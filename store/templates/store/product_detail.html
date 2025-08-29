@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>{{ item.nom }}</h3>
+<div class="row">
+  <div class="col-md-6">
+    <div class="d-flex gap-2 flex-wrap">
+      {% for img in item.rasmlar.all %}
+        <img src="{{ img.rasm.url }}" style="width:120px;height:120px;object-fit:cover" alt="rasm">
+      {% endfor %}
+    </div>
+    <p class="mt-3">{{ item.izoh }}</p>
+  </div>
+  <div class="col-md-6">
+    <div class="p-3 border rounded">
+      <div class="mb-2">Narx: <strong>{{ item.narx_chaqmoq }} Chaqmoq</strong></div>
+      <div class="mb-2">Qoldiq: <strong>{{ item.qoldiq }}</strong></div>
+      {% if user.role == 'student' %}
+        <a class="btn btn-success" href="{% url 'store:create_request' item.pk %}">Savatchaga (so‘rov)</a>
+      {% else %}
+        <div class="text-muted">Faqat o‘quvchi so‘rov yuboradi.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

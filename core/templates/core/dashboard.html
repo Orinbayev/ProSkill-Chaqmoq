@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+  <h3>Dashboard — {{ user.get_role_display }}</h3>
+  <div class="list-group">
+    {% if user.role == 'director' %}
+      <a class="list-group-item" href="/hisob/manager/oquvchi-qoshish/">O‘quvchi qo‘shish</a>
+      <a class="list-group-item" href="/hisob/manager/oqituvchi-qoshish/">O‘qituvchi qo‘shish</a>
+      <a class="list-group-item" href="/do'kon/mahsulotlar/">Mahsulotlar</a>
+      <a class="list-group-item" href="/chaqmoq/reyting/">Reyting</a>
+    {% elif user.role == 'manager' %}
+      <a class="list-group-item" href="/hisob/manager/oquvchi-qoshish/">O‘quvchi qo‘shish</a>
+      <a class="list-group-item" href="/hisob/manager/oqituvchi-qoshish/">O‘qituvchi qo‘shish</a>
+      <a class="list-group-item" href="/ta'lim/guruhlar/">Guruhlar</a>
+      <a class="list-group-item" href="/do'kon/so'rovlar/">Xarid so‘rovlari</a>
+      <a class="list-group-item" href="/chaqmoq/reyting/">Reyting</a>
+    {% elif user.role == 'teacher' %}
+      <a class="list-group-item" href="/ta'lim/guruhlar/meniki/">Mening guruhlarim</a>
+      <a class="list-group-item" href="/chaqmoq/berish/">Chaqmoq berish/ayirish</a>
+      <a class="list-group-item" href="/chaqmoq/reyting/">Reyting</a>
+    {% elif user.role == 'student' %}
+      <a class="list-group-item" href="/do'kon/">Do‘kon — mahsulotlar</a>
+      <a class="list-group-item" href="/chaqmoq/reyting/">Reyting</a>
+    {% endif %}
+  </div>
+{% endblock %}

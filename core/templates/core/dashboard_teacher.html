@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>O‘qituvchi paneli</h3>
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <h5 class="mb-3">Mening guruhlarim</h5>
+      <div class="d-grid gap-2">
+        <a class="btn btn-outline-primary" href="{% url 'education:men_guruhlarim' %}">Guruhlarni ko‘rish</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <h5 class="mb-3">Chaqmoq</h5>
+      <p class="small text-muted">Qoidani tanlab, 1…10 oralig‘ida ball qo‘yish/ayirish (UI keyingi qismda).</p>
+      <div class="d-grid gap-2">
+        <a class="btn btn-outline-secondary disabled" href="#" tabindex="-1" aria-disabled="true">Chaqmoq berish/ayirish — tez orada</a>
+        <a class="btn btn-success" href="{% url 'chaqmoq:reyting' %}">Reyting</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card p-3 h-100 mt-3">
+      <h5 class="mb-3">Do‘kon</h5>
+      <div class="d-grid gap-2">
+        <a class="btn btn-outline-primary" href="{% url 'store:products' %}">Mahsulotlar (ko‘rish)</a>
+      </div>
+      <p class="small text-muted">O‘qituvchi do‘konni faqat kuzatadi, tasdiqlash manager/direktor vakolatida.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

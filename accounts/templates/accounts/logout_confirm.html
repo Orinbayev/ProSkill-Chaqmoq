@@ -1,0 +1,11 @@
+<!-- templates/accounts/logout_confirm.html -->
+{% extends 'base.html' %}
+{% block content %}
+<h3>Chiqishni tasdiqlang</h3>
+<p>Rostdan ham tizimdan chiqmoqchimisiz?</p>
+<form method="post" action="{% url 'accounts:logout' %}">
+  {% csrf_token %}
+  <button class="btn btn-danger">Ha, chiqaman</button>
+  <a href="{% url 'core:home' %}" class="btn btn-secondary">Yo‘q, ortga</a>
+</form>
+{% endblock %}

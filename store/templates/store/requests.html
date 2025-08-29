@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>Xarid so‘rovlari</h3>
+<table class="table">
+  <thead>
+    <tr><th>Sana</th><th>O‘quvchi</th><th>Mahsulot</th><th>Qty</th><th>Status</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for r in items %}
+      <tr>
+        <td>{{ r.sana|date:"Y-m-d H:i" }}</td>
+        <td>{{ r.student.ism }} {{ r.student.familya }}</td>
+        <td>{{ r.product.nom }}</td>
+        <td>{{ r.qty }}</td>
+        <td>{{ r.get_status_display }}</td>
+        <td>
+          {% if r.status == 'pending' %}
+            <a class="btn btn-sm btn-success" href="{% url 'store:request_approve' r.pk %}">Tasdiqlash</a>
+          {% endif %}
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6">So‘rov yo‘q.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>O‘quvchi paneli</h3>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-4">
+    <div class="card p-3 text-center">
+      <div class="small text-muted">Mening Chaqmog‘im</div>
+      <div class="fs-3">{{ balance|default:"—" }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <h5 class="mb-3">Do‘kon</h5>
+      <div class="d-grid gap-2">
+        <a class="btn btn-primary" href="{% url 'store:products' %}">Mahsulotlarni ko‘rish</a>
+      </div>
+      <p class="small text-muted mt-2">Sotib olish: “Savatcha (so‘rov)” → Manager tasdiqlaydi → Chaqmoq yechiladi.</p>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <h5 class="mb-3">Reyting</h5>
+      <div class="d-grid gap-2">
+        <a class="btn btn-success" href="{% url 'chaqmoq:reyting' %}">Umumiy reyting</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>Direktor paneli</h3>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-2">
+    <div class="card p-3 text-center">
+      <div class="small text-muted">Managerlar</div>
+      <div class="fs-4">{{ stats.managers|default:0 }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="card p-3 text-center">
+      <div class="small text-muted">O‘qituvchilar</div>
+      <div class="fs-4">{{ stats.teachers|default:0 }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="card p-3 text-center">
+      <div class="small text-muted">O‘quvchilar</div>
+      <div class="fs-4">{{ stats.students|default:0 }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="card p-3 text-center">
+      <div class="small text-muted">Mahsulotlar</div>
+      <div class="fs-4">{{ stats.products|default:0 }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="card p-3 text-center">
+      <div class="small text-muted">Kutilayotgan so‘rov</div>
+      <div class="fs-4">{{ stats.pending_requests|default:0 }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="card p-3 text-center">
+      <div class="small text-muted">Jami Chaqmoq</div>
+      <div class="fs-4">{{ stats.total_chaqmoq|default:"—" }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <h5 class="mb-3">Foydalanuvchilar</h5>
+      <div class="d-grid gap-2">
+        <a class="btn btn-primary" href="{% url 'accounts:add_teacher' %}">O‘qituvchi qo‘shish</a>
+        <a class="btn btn-primary" href="{% url 'accounts:add_student' %}">O‘quvchi qo‘shish</a>
+        <a class="btn btn-outline-secondary" href="/admin/accounts/user/add/">Manager qo‘shish (admin orqali)</a>
+        <a class="btn btn-outline-secondary" href="/admin/accounts/user/">Ro‘yxatlar (admin)</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <h5 class="mb-3">Ta’lim</h5>
+      <div class="d-grid gap-2">
+        <a class="btn btn-outline-primary" href="{% url 'education:guruhlar' %}">Guruhlar</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card p-3 h-100 mt-3">
+      <h5 class="mb-3">Do‘kon</h5>
+      <div class="d-grid gap-2">
+        <a class="btn btn-outline-primary" href="{% url 'store:products' %}">Mahsulotlar (ko‘rish)</a>
+        <a class="btn btn-outline-warning" href="{% url 'store:requests' %}">Xarid so‘rovlari (tasdiqlash)</a>
+        <a class="btn btn-outline-secondary" href="/admin/store/product/">Mahsulotlarni boshqarish (admin)</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card p-3 h-100 mt-3">
+      <h5 class="mb-3">Reyting va hisobot</h5>
+      <div class="d-grid gap-2">
+        <a class="btn btn-success" href="{% url 'chaqmoq:reyting' %}">Reyting</a>
+        <a class="btn btn-outline-secondary" href="/admin/store/sale/">Sotuvlar (admin)</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

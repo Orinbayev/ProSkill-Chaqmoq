@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>Mahsulotlar</h3>
+<div class="row g-3">
+  {% for p in items %}
+  <div class="col-md-4">
+    <div class="card h-100">
+      {% with img=p.rasmlar.first %}
+        {% if img %}<img src="{{ img.rasm.url }}" class="card-img-top" alt="">{% endif %}
+      {% endwith %}
+      <div class="card-body">
+        <h5 class="card-title">{{ p.nom }}</h5>
+        <p class="card-text">Narx: {{ p.narx_chaqmoq }} Chaqmoq<br>Qoldiq: {{ p.qoldiq }}</p>
+        <a href="{% url 'store:product_detail' p.pk %}" class="btn btn-outline-primary">Ko‘rish</a>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+    <p>Hozircha mahsulot yo‘q.</p>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3 class="mb-3">Yangi foydalanuvchi qo‘shish</h3>
+<form method="post">{% csrf_token %}
+  {{ form.as_p }}
+  <button class="btn btn-success">Saqlash</button>
+</form>
+{% endblock %}
