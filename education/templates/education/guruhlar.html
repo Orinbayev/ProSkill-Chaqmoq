@@ -1,5 +1,27 @@
 {% extends 'base.html' %}
 {% block content %}
-<h3>Guruhlar (manager/direktor uchun)</h3>
-<p>Bu sahifa vaqtincha stub. Keyingi qismda to‘liq jadval va CRUD qo‘shaman.</p>
+<h3>Guruhlar</h3>
+<div class="d-flex gap-2 mb-3">
+  <a class="btn btn-primary" href="{% url 'education:group_create' %}">➕ Yangi guruh</a>
+  <a class="btn btn-outline-primary" href="{% url 'education:enroll_add' %}">➕ Talabani guruhga qo‘shish</a>
+</div>
+<table class="table table-striped align-middle">
+  <thead><tr><th>Guruh</th><th>Center</th><th>O‘qituvchi</th><th>Talabalar</th><th></th></tr></thead>
+  <tbody>
+    {% for g in items %}
+      <tr>
+        <td>{{ g.nom }}</td>
+        <td>{{ g.center.nom }}</td>
+        <td>{% if g.oqituvchi %}{{ g.oqituvchi.ism }} {{ g.oqituvchi.familya }}{% else %}—{% endif %}</td>
+        <td>{{ g.enrollments.count }}</td>
+        <td class="text-nowrap">
+          <a class="btn btn-sm btn-outline-primary" href="{% url 'education:group_students' g.id %}">Ko‘rish</a>
+          <a class="btn btn-sm btn-success" href="{% url 'education:group_rollcall' g.id %}">Davomat / Chaqmoq</a>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5">Guruh yo‘q.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
 {% endblock %}

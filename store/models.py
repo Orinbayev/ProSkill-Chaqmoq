@@ -46,6 +46,10 @@ class PurchaseRequest(models.Model):
         verbose_name = 'Xarid so‘rovi'
         verbose_name_plural = 'Xarid so‘rovlari'
 
+    def __str__(self):
+        s = f"{self.student.ism} {self.student.familya}"
+        return f"{s} → {self.product.nom} x{self.qty} ({self.get_status_display()})"
+
 class Sale(models.Model):
     student = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
@@ -57,3 +61,7 @@ class Sale(models.Model):
     class Meta:
         verbose_name = 'Sotuv'
         verbose_name_plural = 'Sotuvlar'
+    def __str__(self):
+        s = f"{self.student.ism} {self.student.familya}" if self.student else "—"
+        p = self.product.nom if self.product else "—"
+        return f"{s} — {p} x{self.qty}"

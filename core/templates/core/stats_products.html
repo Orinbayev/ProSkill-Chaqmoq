@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>{{ title }}</h3>
+
+<form class="mb-3">
+  <div class="input-group" style="max-width:420px">
+    <input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Nom/adabiyot">
+    <button class="btn btn-outline-secondary">Izlash</button>
+  </div>
+</form>
+
+<table class="table table-striped align-middle">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Nom</th>
+      <th>Narx (Chaqmoq)</th>
+      <th>Qoldiq</th>
+      <th>Yaratilgan</th>
+      <th class="text-end">Amal</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in rows %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ p.nom }}</td>
+        <td>{{ p.narx_chaqmoq }}</td>
+        <td>{{ p.qoldiq }}</td>
+        <td>{{ p.yaratilgan|date:"Y-m-d" }}</td>
+        <td class="text-end text-nowrap">
+          <a class="btn btn-sm btn-outline-primary" href="{% url 'store:product_edit' p.pk %}">Tahrirlash</a>
+          <form method="post" action="{% url 'store:product_delete' p.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button class="btn btn-sm btn-outline-danger">O‘chirish</button>
+          </form>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6">Maʼlumot yo‘q.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<a class="btn btn-primary" href="{% url 'store:product_create' %}">➕ Mahsulot qo‘shish</a>
+{% endblock %}

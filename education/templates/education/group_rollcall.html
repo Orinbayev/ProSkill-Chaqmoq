@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>{{ group.nom }} — Davomat / Chaqmoq</h3>
+
+<form method="post" class="mb-3">{% csrf_token %}
+  <div class="d-flex align-items-center gap-2">
+    <label>Sana:</label>
+    <input type="date" name="date" class="form-control" style="max-width:220px" value="{{ day }}">
+    <button class="btn btn-primary">Saqlash</button>
+    <a class="btn btn-secondary" href="{% url 'education:guruhlar' %}">Orqaga</a>
+  </div>
+  <hr>
+
+  <table class="table table-sm align-middle">
+    <thead>
+      <tr>
+        <th>#</th><th>Talaba</th><th>Davomat</th>
+        <th style="width:320px">+ Chaqmoq (sabab / ball)</th>
+        <th style="width:320px">− Chaqmoq (sabab / ball)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in rows %}
+        {% with a=att.e.student_id %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ e.student.ism }} {{ e.student.familya }}</td>
+          <td>
+            <input type="checkbox" name="present_{{ e.student.id }}" {% if a and a.present %}checked{% endif %}>
+          </td>
+          <td>
+            <div class="d-flex gap-2">
+              <select name="plus_rule_{{ e.student.id }}" class="form-select form-select-sm" style="max-width:210px">
+                <option value="">— Sabab —</option>
+                {% for r in plus_rules %}
+                  <option value="{{ r.id }}">{{ r.nom }} (+{{ r.min_baho }}..+{{ r.max_baho }})</option>
+                {% endfor %}
+              </select>
+              <input type="number" class="form-control form-control-sm" name="plus_val_{{ e.student.id }}" min="0" step="1" value="0">
+            </div>
+          </td>
+          <td>
+            <div class="d-flex gap-2">
+              <select name="minus_rule_{{ e.student.id }}" class="form-select form-select-sm" style="max-width:210px">
+                <option value="">— Sabab —</option>
+                {% for r in minus_rules %}
+                  <option value="{{ r.id }}">{{ r.nom }} (−{{ r.min_baho }}..−{{ r.max_baho }})</option>
+                {% endfor %}
+              </select>
+              <input type="number" class="form-control form-control-sm" name="minus_val_{{ e.student.id }}" min="0" step="1" value="0">
+            </div>
+          </td>
+        </tr>
+        {% endwith %}
+      {% endfor %}
+    </tbody>
+  </table>
+</form>
+{% endblock %}

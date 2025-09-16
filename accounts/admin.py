@@ -17,6 +17,7 @@ class UserAdmin(BaseUserAdmin):
         }),
     )
     list_display = ('email','ism','familya','role','center','is_staff')
+    list_filter = ('role','center','is_staff','is_active')   # <— qo‘shildi
     search_fields = ('email','ism','familya')
     ordering = ('email',)
 

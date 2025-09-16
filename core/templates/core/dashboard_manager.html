@@ -3,29 +3,35 @@
 <h3>Manager paneli</h3>
 
 <div class="row g-3 mb-4">
-  <div class="col-md-3">
-    <div class="card p-3 text-center">
+  <div class="col-md-2">
+    <a class="card p-3 text-center text-decoration-none" href="{% url 'core:stat_teachers' %}">
       <div class="small text-muted">O‘qituvchilar</div>
       <div class="fs-4">{{ stats.teachers|default:0 }}</div>
-    </div>
+    </a>
   </div>
-  <div class="col-md-3">
-    <div class="card p-3 text-center">
+  <div class="col-md-2">
+    <a class="card p-3 text-center text-decoration-none" href="{% url 'core:stat_students' %}">
       <div class="small text-muted">O‘quvchilar</div>
       <div class="fs-4">{{ stats.students|default:0 }}</div>
-    </div>
+    </a>
   </div>
-  <div class="col-md-3">
-    <div class="card p-3 text-center">
+  <div class="col-md-2">
+    <a class="card p-3 text-center text-decoration-none" href="{% url 'core:stat_products' %}">
+      <div class="small text-muted">Mahsulotlar</div>
+      <div class="fs-4">{{ stats.products|default:0 }}</div>
+    </a>
+  </div>
+  <div class="col-md-2">
+    <a class="card p-3 text-center text-decoration-none" href="{% url 'core:stat_requests' %}">
       <div class="small text-muted">Kutilayotgan so‘rov</div>
       <div class="fs-4">{{ stats.pending_requests|default:0 }}</div>
-    </div>
+    </a>
   </div>
-  <div class="col-md-3">
-    <div class="card p-3 text-center">
-      <div class="small text-muted">Bugungi sotuv</div>
-      <div class="fs-4">{{ stats.sales_today|default:0 }}</div>
-    </div>
+  <div class="col-md-2">
+    <a class="card p-3 text-center text-decoration-none" href="{% url 'core:stat_ledger' %}">
+      <div class="small text-muted">Jami Chaqmoq</div>
+      <div class="fs-4">{{ stats.total_chaqmoq|default:"—" }}</div>
+    </a>
   </div>
 </div>
 

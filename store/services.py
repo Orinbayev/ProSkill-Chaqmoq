@@ -30,3 +30,12 @@ def approve_purchase(pr: PurchaseRequest, manager):
     pr.manager = manager
     pr.save(update_fields=['status','manager'])
     return True, 'Tasdiqlandi.'
+
+
+def reject_purchase(pr: PurchaseRequest, manager):
+    if pr.status != PurchaseRequest.PENDING:
+        return False, 'Allaqachon ko‘rilgan.'
+    pr.status = PurchaseRequest.REJECTED
+    pr.manager = manager
+    pr.save(update_fields=['status','manager'])
+    return True, 'Rad etildi.'

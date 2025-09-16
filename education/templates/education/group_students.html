@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>{{ group.nom }} — talabalar</h3>
+<div class="mb-3">
+  <a class="btn btn-success" href="{% url 'education:group_rollcall' group.id %}">Davomat / Chaqmoq</a>
+</div>
+<table class="table table-striped">
+  <thead><tr><th>#</th><th>Ism</th><th>Familiya</th><th>Qoldiq to‘lov</th></tr></thead>
+  <tbody>
+    {% for e in rows %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ e.student.ism }}</td>
+        <td>{{ e.student.familya }}</td>
+        <td>{{ e.qoldiq }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4">Talaba yo‘q.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>{{ title }}</h3>
+
+<form class="mb-3">
+  <select name="status" class="form-select" style="max-width:240px" onchange="this.form.submit()">
+    <option value="">— Barchasi —</option>
+    <option value="pending"  {% if status == 'pending' %}selected{% endif %}>Kutilmoqda</option>
+    <option value="approved" {% if status == 'approved' %}selected{% endif %}>Tasdiqlandi</option>
+    <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>Rad etildi</option>
+  </select>
+</form>
+
+<table class="table table-striped align-middle">
+  <thead>
+    <tr>
+      <th>Sana</th>
+      <th>O‘quvchi</th>
+      <th>Mahsulot</th>
+      <th>Qty</th>
+      <th>Status</th>
+      <th>Tasdiqlovchi</th>
+      <th class="text-end">Amal</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in rows %}
+      <tr>
+        <td>{{ r.sana|date:"Y-m-d H:i" }}</td>
+        <td>{{ r.student.ism }} {{ r.student.familya }}</td>
+        <td>{{ r.product.nom }}</td>
+        <td>{{ r.qty }}</td>
+        <td>{{ r.get_status_display }}</td>
+        <td>{% if r.manager %}{{ r.manager.ism }} {{ r.manager.familya }}{% else %}—{% endif %}</td>
+        <td class="text-end text-nowrap">
+          {% if r.status == 'pending' %}
+            <a class="btn btn-sm btn-success" href="{% url 'store:request_approve' r.pk %}">Tasdiqlash</a>
+            <a class="btn btn-sm btn-outline-danger" href="{% url 'store:request_reject' r.pk %}">Rad etish</a>
+          {% else %} — {% endif %}
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="7">Maʼlumot yo‘q.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
