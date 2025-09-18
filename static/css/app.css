@@ -1,4 +1,27 @@
-body { background: #0f0f12; color:#e9edf1; }
-.card, .border, .table { background: #15161a; color:#e9edf1; }
-.navbar { border-bottom: 1px solid #222; }
-.btn { border-radius: 12px; }
+/* Yengil, toza fon va yumshoq kartalar */
+:root{
+  --bg: #728092;
+  --card-shadow: 0 6px 20px rgba(28, 39, 66, 0.08);
+  --radius: 14px;
+}
+
+html, body { background: var(--bg); }
+
+.card{
+  border-radius: var(--radius) !important;
+  box-shadow: var(--card-shadow);
+  border: 0 !important;
+}
+
+.sidebar, .nav, .navbar{
+  background: #ffffff !important;
+}
+
+.nav-link{
+  color: #1e293b;
+}
+.nav-link:hover{
+  color: #00628f;
+}
+
+

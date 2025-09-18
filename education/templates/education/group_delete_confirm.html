@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>Guruhni o‘chirish</h3>
+<p>«{{ g.nom }}» guruhini o‘chirmoqchisizmi? Bu guruhga bog‘langan jo‘natmalar (davomat/chaqmoq yozuvlari saqlanadi), lekin guruhning o‘zi va a’zoliklar o‘chadi.</p>
+<form method="post">
+  {% csrf_token %}
+  <button class="btn btn-danger">Ha, o‘chirish</button>
+  <a class="btn btn-outline-secondary" href="{% url 'education:group_detail' g.id %}">Bekor qilish</a>
+</form>
+{% endblock %}

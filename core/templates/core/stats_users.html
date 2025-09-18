@@ -1,43 +1,44 @@
 {% extends 'base.html' %}
 {% block content %}
 <h3>{{ title }}</h3>
+
 <form class="mb-3">
-  <div class="input-group" style="max-width:420px">
-    <input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Ism, familiya yoki email">
+  <div class="input-group" style="max-width:520px">
+    <input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Ism, familya yoki email">
     <button class="btn btn-outline-secondary">Izlash</button>
   </div>
 </form>
+
 <table class="table table-striped">
-    <thead>
-    <tr><th>#</th><th>Ism</th><th>Familiya</th><th>Email</th><th>Center</th><th></th></tr>
-    </thead>
-    <tbody>
-    {% for u in rows %}
+  <thead>
     <tr>
-    <td>{{ forloop.counter }}</td>
-    <td>{{ u.ism }}</td>
-    <td>{{ u.familya }}</td>
-    <td>{{ u.email }}</td>
-    <td>{% if u.center %}{{ u.center.nom }}{% else %}—{% endif %}</td>
-    <td class="text-nowrap">
-        <a class="btn btn-sm btn-outline-primary" href="{% url 'accounts:user_edit' u.pk %}">Tahrirlash</a>
-        {% if request.user.role == 'director' or request.user.is_superuser %}
-        <form method="post" action="{% url 'accounts:user_delete' u.pk %}" class="d-inline">
-            {% csrf_token %}<button class="btn btn-sm btn-outline-danger">O‘chirish</button>
-        </form>
-        {% endif %}
-    </td>
+      <th>#</th>
+      <th>F.I.Sh</th>
+      <th>Login (email/username)</th>
+      <th>Gmail</th>
+      <th>Telefon</th>
+      <th>Center</th>
     </tr>
+  </thead>
+  <tbody>
+    {% for u in rows %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>
+          {% if request.user.is_staff %}
+            <a href="/admin/accounts/user/{{ u.id }}/change/">{{ u.ism }} {{ u.familya }}</a>
+          {% else %}
+            {{ u.ism }} {{ u.familya }}
+          {% endif %}
+        </td>
+        <td>{{ u.email }}</td>
+        <td>{{ u.gmail|default:"—" }}</td>
+        <td>{{ u.telefon1|default:"—" }}{% if u.telefon2 %} / {{ u.telefon2 }}{% endif %}</td>
+        <td>{% if u.center %}{{ u.center.nom }}{% else %}—{% endif %}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6">Maʼlumot yo‘q.</td></tr>
     {% endfor %}
-    </tbody>
-
-    {% if title == 'Managerlar' %}
-    <a class="btn btn-primary mt-3" href="{% url 'accounts:add_manager' %}">➕ Manager qo‘shish</a>
-    {% elif title == "O‘qituvchilar" %}
-    <a class="btn btn-primary mt-3" href="{% url 'accounts:add_teacher' %}">➕ O‘qituvchi qo‘shish</a>
-    {% elif title == "O‘quvchilar" %}
-    <a class="btn btn-primary mt-3" href="{% url 'accounts:add_student' %}">➕ O‘quvchi qo‘shish</a>
-    {% endif %}
-
+  </tbody>
 </table>
 {% endblock %}

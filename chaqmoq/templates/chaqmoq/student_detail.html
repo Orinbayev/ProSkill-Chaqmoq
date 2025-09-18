@@ -38,19 +38,10 @@
       </tbody>
     </table>
   </div>
-
   <div class="col-md-6">
     <h5>Chaqmoq yozuvlari{% if n != 'all' %} (oxirgi {{ n }}){% endif %}</h5>
     <table class="table table-sm">
-      <thead>
-        <tr>
-          <th>Sana</th>
-          <th>Guruh</th>
-          <th>Qoida</th>
-          <th>Ball</th>
-          <th>Kim qo‘ydi</th>
-        </tr>
-      </thead>
+      <thead><tr><th>Sana</th><th>Guruh</th><th>Qoida</th><th>Ball</th><th>Kim qo‘ydi</th></tr></thead>
       <tbody>
         {% for l in ledger %}
           <tr>

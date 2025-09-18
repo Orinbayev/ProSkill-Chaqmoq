@@ -1,19 +1,28 @@
 {% extends 'base.html' %}
 {% block content %}
 <h3>Reyting (Chaqmoq bo‘yicha)</h3>
-<table class="table table-striped">
-  <thead><tr><th>#</th><th>Ism</th><th>Familiya</th><th>Guruh</th><th>Jami Chaqmoq</th></tr></thead>
+
+<table class="table table-striped align-middle mt-3">
+  <thead>
+    <tr>
+      <th style="width:64px">#</th>
+      <th>Ism</th>
+      <th>Familya</th>
+      <th class="text-end" style="width:160px">Jami Chaqmoq</th>
+    </tr>
+  </thead>
   <tbody>
-    {% for r in rows %}
+    {% for row in leaderboard %}
       <tr>
         <td>{{ forloop.counter }}</td>
-        <td><a href="{% url 'chaqmoq:student_detail' r.student__id %}">{{ r.student__ism }}</a></td>
-        <td>{{ r.student__familya }}</td>
-        <td>{{ r.group_nom|default:"—" }}</td>
-        <td>{{ r.jami|default:0 }}</td>
+        <td>{{ row.student__ism }}</td>
+        <td>{{ row.student__familya|default:"—" }}</td>
+        <td class="text-end fw-semibold">{{ row.jami }}</td>
       </tr>
     {% empty %}
-      <tr><td colspan="5">Maʼlumot yo‘q.</td></tr>
+      <tr>
+        <td colspan="4" class="text-muted">Hozircha ma’lumot yo‘q.</td>
+      </tr>
     {% endfor %}
   </tbody>
 </table>

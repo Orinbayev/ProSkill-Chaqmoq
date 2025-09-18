@@ -21,19 +21,13 @@ class Group(models.Model):
 class Enrollment(models.Model):
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='enrollments')
     student = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role':'student'})
-    kurs_narhi = models.PositiveIntegerField(default=0)
+    kurs_narhi = models.PositiveIntegerField(default=0)  # so‘mda
     jami_tolangan = models.PositiveIntegerField(default=0)
 
     class Meta:
         verbose_name = 'Guruhga qo‘shilish'
         verbose_name_plural = 'Guruhga qo‘shilishlar'
         unique_together = ('group','student')
-
-    def __str__(self):
-        # To‘liq ko‘rinish: "Ism Familiya → Guruh nomi"
-        full = getattr(self.student, "full_name", None)
-        fio = full() if callable(full) else f"{getattr(self.student,'ism','')} {getattr(self.student,'familya','')}"
-        return f"{fio} → {self.group.nom}"
 
     def qoldiq(self):
         return max(self.kurs_narhi - self.jami_tolangan, 0)
@@ -53,18 +47,21 @@ class Payment(models.Model):
         total = sum(p.summa for p in self.enrollment.payments.all())
         Enrollment.objects.filter(id=self.enrollment_id).update(jami_tolangan=total)
 
-
+# ====== YANGI: Davomat ======
 class Attendance(models.Model):
-    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='attendances')
+    group   = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='attendances')
     student = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role':'student'})
-    date = models.DateField()
-    present = models.BooleanField(default=False)
+    teacher = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='taken_attendances', limit_choices_to={'role':'teacher'}
+    )
+    date    = models.DateField(auto_now_add=True)
+    present = models.BooleanField(default=True)
 
     class Meta:
         verbose_name = 'Davomat'
         verbose_name_plural = 'Davomat'
-        unique_together = ('group','student','date')
+        unique_together = ('group', 'student', 'date')
 
     def __str__(self):
-        s = f"{self.student}"
-        return f"{self.date} — {s} — {'✓' if self.present else '✗'}"
+        return f"{self.date} • {self.group} • {self.student} • {'✓' if self.present else '✗'}"

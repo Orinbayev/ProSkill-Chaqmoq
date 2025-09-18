@@ -4,6 +4,7 @@ from django.contrib import messages
 from .models import Product, PurchaseRequest
 from .services import approve_purchase
 from .forms import ProductForm
+from chaqmoq.models import Ledger
 
 @login_required
 def products(request):
@@ -95,3 +96,29 @@ def request_reject(request, pk):
     ok, msg = reject_purchase(pr, request.user)
     (messages.success if ok else messages.error)(request, msg)
     return redirect('core:stat_requests')
+
+
+
+def _student_has_enough(user, price: int) -> bool:
+    if getattr(user, 'role', None) != 'student':
+        return True
+    bal = Ledger.student_balansi(user.id)
+    return bal >= price
+
+@login_required
+def request_product(request, pk):
+    """Mahsulotga so‘rov (savatcha) yuborish. Studentda bal yetmasa – rad etamiz."""
+    product = get_object_or_404(Product, pk=pk)
+
+    if not _student_has_enough(request.user, product.narxi):
+        messages.error(request, "Chaqmoqingiz yetarli emas.")
+        return redirect('store:products')
+
+    # so‘rovni yaratish — sizdagi mavjud mantiq
+    PurchaseRequest.objects.create(
+        student=request.user,
+        product=product,
+        status=PurchaseRequest.PENDING
+    )
+    messages.success(request, "So‘rov yuborildi. Manager tasdiqlashi kutiladi.")
+    return redirect('store:requests')

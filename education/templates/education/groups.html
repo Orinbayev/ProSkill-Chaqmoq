@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>Guruhlar</h3>
+
+{% if can_manage %}
+  <div class="mb-3">
+    <a class="btn btn-primary" href="{% url 'education:group_create' %}">➕ Guruh yaratish</a>
+  </div>
+{% endif %}
+
+<div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead>
+      <tr>
+        <th>Guruh</th>
+        <th>Center</th>
+        <th>O‘qituvchi</th>
+        <th class="text-center">Talabalar</th>
+        <th class="text-end">Amallar</th>
+      </tr>
+    </thead>
+<tbody>
+{% for g in rows %}
+  <tr class="table-row-link" data-href="{% url 'education:group_detail' g.id %}">
+    <td>{{ g.nom }}</td>
+    <td>{{ g.center }}</td>
+    <td>{{ g.oqituvchi }}</td>
+    <td class="text-center">{{ g.enrollments.count }}</td>
+    <td class="text-end">
+      <a class="btn btn-sm btn-outline-primary" href="{% url 'education:group_detail' g.id %}">Ko‘rish</a>
+    </td>
+  </tr>
+{% endfor %}
+</tbody>
+
+<script>
+  document.querySelectorAll('.table-row-link').forEach(tr=>{
+    tr.style.cursor='pointer';
+    tr.addEventListener('click', e=>{
+      // ichidagi linkni bosganda to‘xtatamiz
+      if (e.target.closest('a')) return;
+      window.location = tr.dataset.href;
+    });
+  });
+</script>
+
+  </table>
+</div>
+{% endblock %}

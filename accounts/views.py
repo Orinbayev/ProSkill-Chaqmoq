@@ -1,88 +1,159 @@
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
+# accounts/views.py
 from django.contrib import messages
-from core.mixins import RoleRequiredMixin
-from django.utils.decorators import method_decorator
-from .forms import ManagerCreateTeacherForm, ManagerCreateStudentForm
-from django.contrib.auth import logout
-from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404
-from .forms import (ManagerCreateTeacherForm, ManagerCreateStudentForm,
-                    ManagerCreateManagerForm, UserUpdateForm)
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.shortcuts import get_object_or_404, render, redirect
+from django.contrib.auth import get_user_model, logout
+from django.views.decorators.http import require_http_methods
+from django import forms
+from django.db.models import Count, Sum
+from django.db.models.functions import Coalesce
 
-User = get_user_model()
+from .forms import AddUserForm
+from accounts.models import User                     # kerak bo‘lsa
+from education.models import Group, Enrollment, Attendance  # ✅ to‘g‘ri joydan import
 
+
+U = get_user_model()
+
+# --- ruxsat yordamchilari ---
+def _can_add(u):
+    return u.is_superuser or getattr(u, "role", None) in ("director", "manager")
+
+def _is_staff_like(u):
+    return u.is_superuser or getattr(u, "role", None) in ("director", "manager")
+
+# --- Foydalanuvchi qo‘shish (o'zgarmagan) ---
 @login_required
-def manager_add_teacher(request):
-    if not (request.user.is_superuser or request.user.role in ('manager','director')):
-        messages.error(request, 'Ruxsat yo‘q')
-        return redirect('core:home')
-    if request.method == 'POST':
-        form = ManagerCreateTeacherForm(request.POST)
+def add_user(request):
+    if not _can_add(request.user):
+        messages.error(request, "Sizda foydalanuvchi qo‘shish huquqi yo‘q.")
+        return redirect("core:home")
+
+    if request.method == "POST":
+        form = AddUserForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'O‘qituvchi yaratildi')
-            return redirect('core:home')
+            user = form.save()
+            messages.success(request, f"{user.ism} {user.familya} muvaffaqiyatli qo‘shildi.")
+            return redirect("core:home")
     else:
-        form = ManagerCreateTeacherForm()
-    return render(request, 'accounts/add_teacher.html', {'form': form})
+        form = AddUserForm()
+
+    return render(request, "accounts/user_form.html", {"form": form, "title": "Foydalanuvchi qo‘shish"})
+
+# --- Tahrirlash formasi (o'zgarmagan) ---
+class UserEditForm(forms.ModelForm):
+    password1 = forms.CharField(
+        label="Yangi parol", widget=forms.PasswordInput, required=False,
+        help_text="Bo‘sh qoldirsangiz parol o‘zgarmaydi."
+    )
+    password2 = forms.CharField(label="Parolni tasdiqlash", widget=forms.PasswordInput, required=False)
+
+    class Meta:
+        model = U
+        fields = ["ism", "familya", "telefon1", "telefon2", "center", "email", "gmail", "role"]
+        widgets = {"role": forms.Select()}
+
+    def clean(self):
+        data = super().clean()
+        p1, p2 = data.get("password1"), data.get("password2")
+        if p1 or p2:
+            if not p1 or not p2 or p1 != p2:
+                self.add_error("password2", "Parollar mos kelmadi.")
+            elif len(p1) < 6:
+                self.add_error("password1", "Parol uzunligi kamida 6 bo‘lsin.")
+        return data
 
 @login_required
-def manager_add_student(request):
-    if not (request.user.is_superuser or request.user.role in ('manager','director')):
-        messages.error(request, 'Ruxsat yo‘q')
-        return redirect('core:home')
-    if request.method == 'POST':
-        form = ManagerCreateStudentForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'O‘quvchi yaratildi')
-            return redirect('core:home')
-    else:
-        form = ManagerCreateStudentForm()
-    return render(request, 'accounts/add_student.html', {'form': form})
+def user_edit(request, pk: int):
+    if not _is_staff_like(request.user):
+        messages.error(request, "Sizda ruxsat yo‘q.")
+        return redirect("core:home")
 
-@login_required
+    obj = get_object_or_404(U, pk=pk)
+    form = UserEditForm(request.POST or None, instance=obj)
+    if request.method == "POST" and form.is_valid():
+        u = form.save()
+        p1 = form.cleaned_data.get("password1")
+        if p1:
+            u.set_password(p1)
+            u.save()
+        messages.success(request, "Foydalanuvchi ma’lumotlari yangilandi.")
+        return redirect("accounts:user_edit", pk=obj.id)
+
+    return render(request, "accounts/user_edit.html", {"form": form, "obj": obj})
+
+@require_http_methods(["GET", "POST"])
 def logout_view(request):
-    if request.method == 'POST':
-        logout(request)
-        messages.success(request, 'Tizimdan chiqildi.')
-        return redirect('accounts:login')
-    # GET bo'lsa, tasdiqlash sahifasi ko'rsatiladi:
-    return render(request, 'accounts/logout_confirm.html')
+    logout(request)
+    messages.success(request, "Tizimdan chiqdingiz.")
+    return redirect("login")
+
+# === YANGI: O‘qituvchi sahifasi -> Guruhlar ro‘yxati ===
+@login_required
+@user_passes_test(_is_staff_like)
+def teacher_detail(request, user_id):
+    teacher = get_object_or_404(User, pk=user_id, role="teacher")
+    groups = (
+        Group.objects
+        .filter(oqituvchi=teacher)                      # ⬅️ teacher emas, oqituvchi
+        .select_related("center", "oqituvchi")
+        .annotate(student_count=Count("enrollments"))
+        .order_by("nom")                                # ⬅️ name emas, nom
+    )
+    return render(request, "accounts/teacher_detail.html", {
+        "teacher": teacher,
+        "groups": groups,
+    })
+
+# === YANGI: Talaba profili -> Chaqmoq + Davomat ===
+@login_required
+@user_passes_test(lambda u: u.is_superuser or u.role in ("director", "manager", "teacher"))
+def student_detail(request, user_id: int):
+    student = get_object_or_404(User, pk=user_id, role="student")
+
+    # ⚡ Chaqmoq (Ledger)
+    from chaqmoq.models import Ledger
+    tx = (
+        Ledger.objects
+        .filter(student=student)
+        .select_related("rule", "group", "beruvchi")
+        .order_by("-sana")[:50]
+    )
+    total = Ledger.student_balansi(student.id)
+
+    # 📅 Davomat
+    from education.models import Attendance
+    attendance = (
+        Attendance.objects
+        .filter(student=student)
+        .select_related("group")
+        .order_by("-date")[:50]
+    )
+
+    groups = (
+        Group.objects
+        .filter(enrollments__student=student)
+        .select_related("center", "oqituvchi")
+        .distinct()
+    )
+
+    return render(request, "accounts/student_detail.html", {
+        "student": student,
+        "groups": groups,
+        "tx": tx,
+        "total": total,
+        "attendance": attendance,
+    })
 
 
 @login_required
-def manager_add_manager(request):
-    if request.user.role not in ('director',) and not request.user.is_superuser:
-        messages.error(request, 'Ruxsat yo‘q'); return redirect('core:home')
-    form = ManagerCreateManagerForm(request.POST or None)
-    if request.method == 'POST' and form.is_valid():
-        form.save(); messages.success(request, 'Manager yaratildi'); return redirect('core:stat_managers')
-    return render(request, 'accounts/add_teacher.html', {'form': form})  # tayyor form page’ni ishlatamiz
-
-@login_required
-def user_edit(request, pk):
-    if request.user.role not in ('director','manager') and not request.user.is_superuser:
-        messages.error(request, 'Ruxsat yo‘q'); return redirect('core:home')
-    u = get_object_or_404(User, pk=pk)
-    form = UserUpdateForm(request.POST or None, instance=u)
-    if request.method == 'POST' and form.is_valid():
-        form.save(); messages.success(request,'Saqlandi'); 
-        return redirect('core:stat_managers' if u.role=='manager' else
-                        'core:stat_teachers' if u.role=='teacher' else
-                        'core:stat_students')
-    return render(request, 'accounts/add_teacher.html', {'form': form})  # minimalizm
-
-@login_required
-def user_delete(request, pk):
-    if request.user.role not in ('director',) and not request.user.is_superuser:
-        messages.error(request, 'Ruxsat yo‘q'); return redirect('core:home')
-    u = get_object_or_404(User, pk=pk)
-    role = u.role
-    if request.method == 'POST':
-        u.delete(); messages.success(request, 'O‘chirildi')
-        return redirect('core:stat_managers' if role=='manager' else
-                        'core:stat_teachers' if role=='teacher' else
-                        'core:stat_students')
-    return render(request, 'accounts/logout_confirm.html', {})  # “tasdiq” shablonidan foydalanamiz
+@user_passes_test(lambda u: getattr(u, "role", None) == "teacher")
+def my_groups(request):
+    rows = (
+        Group.objects
+        .filter(oqituvchi=request.user)                 # o‘qituvchining o‘z guruhlari
+        .select_related("center", "oqituvchi")
+        .annotate(student_count=Count("enrollments"))   # talabalar soni
+        .order_by("nom")
+    )
+    return render(request, "education/groups.html", {"rows": rows})

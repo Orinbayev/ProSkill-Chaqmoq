@@ -1,27 +1,28 @@
-<!-- templates/accounts/login.html -->
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% block content %}
 <div class="row justify-content-center">
-  <div class="col-md-5">
-    <h3 class="mb-3">Tizimga kirish</h3>
+  <div class="col-md-5 col-lg-4">
+    <h3 class="mb-3">Kirish</h3>
 
-    {% if form.errors %}
-      <div class="alert alert-danger">Login yoki parol noto‘g‘ri.</div>
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors.0 }}</div>
     {% endif %}
 
-    <form method="post" action="{% url 'accounts:login' %}">
+    <form method="post" novalidate>
       {% csrf_token %}
+
       <div class="mb-3">
-        <label class="form-label">Email</label>
-        <input type="email" name="username" class="form-control" required placeholder="you@example.com">
+        <label class="form-label">{{ form.username.label }}</label>
+        {{ form.username }}
+        {{ form.username.errors }}
       </div>
+
       <div class="mb-3">
-        <label class="form-label">Parol</label>
-        <input type="password" name="password" class="form-control" required>
+        <label class="form-label">{{ form.password.label }}</label>
+        {{ form.password }}
+        {{ form.password.errors }}
       </div>
-      {% if next %}
-        <input type="hidden" name="next" value="{{ next }}">
-      {% endif %}
+
       <button class="btn btn-primary w-100">Kirish</button>
     </form>
   </div>

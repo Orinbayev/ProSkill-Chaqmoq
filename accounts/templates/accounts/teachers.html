@@ -1,0 +1,22 @@
+<tbody>
+{% for t in teachers %}
+  <tr class="row-link" data-href="{% url 'accounts:teacher_detail' t.id %}">
+    <td>{{ forloop.counter }}</td>
+    <td><a href="{% url 'accounts:teacher_detail' t.id %}">{{ t.ism }} {{ t.familya }}</a></td>
+    <td>{{ t.email|default:"—" }}</td>
+    <td>{{ t.gmail|default:"—" }}</td>
+    <td>{{ t.telefon1|default:"—" }}{% if t.telefon2 %} / {{ t.telefon2 }}{% endif %}</td>
+    <td>{{ t.center|default:"—" }}</td>
+  </tr>
+{% endfor %}
+</tbody>
+
+<script>
+document.querySelectorAll('.row-link').forEach(tr=>{
+  tr.style.cursor='pointer';
+  tr.addEventListener('click', e=>{
+    if(e.target.closest('a')) return;
+    location.href = tr.dataset.href;
+  });
+});
+</script>

@@ -18,15 +18,27 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
+from django.contrib.auth import views as auth_views
+from accounts.views import logout_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('core.urls', namespace='core')),
-    path('hisob/', include('accounts.urls', namespace='accounts')),
-    path("ta'lim/", include('education.urls', namespace='education')),
-    path('chaqmoq/', include('chaqmoq.urls', namespace='chaqmoq')),
-    path("do'kon/", include('store.urls', namespace='store')),
+
+    # Auth (global nomlar: 'login', 'logout')
+    path('hisob/login/',  auth_views.LoginView.as_view(template_name='accounts/login.html'), name='login'),
+    # EHTIYOT UCHUN: logout nomi global bo‘lsin (base.html `{% url 'logout' %}` ni qoplaydi)
+    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+
+    # App’lar
+    path('', include(('core.urls', 'core'), namespace='core')),
+    path('hisob/', include(('accounts.urls', 'accounts'), namespace='accounts')),
+    path('chaqmoq/', include(('chaqmoq.urls', 'chaqmoq'), namespace='chaqmoq')),
+    path("ta'lim/", include(('education.urls', 'education'), namespace='education')),
+    path("do'kon/", include(('store.urls', 'store'), namespace='store')),
+    path("login/",  auth_views.LoginView.as_view(template_name="accounts/login.html"), name="login"),
+    path("logout/", auth_views.LogoutView.as_view(next_page="login"), name="logout"),
 ]
+
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

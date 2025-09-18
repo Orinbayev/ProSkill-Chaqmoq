@@ -1,0 +1,22 @@
+<tbody>
+  {% for s in students %}
+    <tr class="row-link" data-href="{% url 'accounts:student_detail' s.id %}">
+      <td>{{ forloop.counter }}</td>
+      <td><a href="{% url 'accounts:student_detail' s.id %}">{{ s.ism }}</a></td>
+      <td>{{ s.familya }}</td>
+      <td>{{ s.telefon1|default:"—" }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="4" class="text-muted">Talaba yo‘q.</td></tr>
+  {% endfor %}
+</tbody>
+
+<script>
+document.querySelectorAll('.row-link').forEach(tr=>{
+  tr.style.cursor='pointer';
+  tr.addEventListener('click', e=>{
+    if(e.target.closest('a')) return;
+    location.href = tr.dataset.href;
+  });
+});
+</script>

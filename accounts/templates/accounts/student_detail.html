@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>Talaba: {{ student.ism }} {{ student.familya }}</h3>
+
+<p class="text-muted mb-3">
+  Guruhlar:
+  {% for g in groups %}
+    <a href="{% url 'education:group_detail' g.id %}">{{ g.nom }}</a>{% if not forloop.last %}, {% endif %}
+  {% empty %}
+    —
+  {% endfor %}
+</p>
+
+<div class="row g-4">
+  <!-- ⚡ Chaqmoq -->
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>⚡ Chaqmoq</span>
+        <span class="badge text-bg-primary">Jami: {{ total }}</span>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Sana</th>
+                <th class="text-end">Miqdor</th>
+                <th>Sabab</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in tx %}
+                <tr>
+                  <td>{{ t.sana|date:"Y-m-d H:i" }}</td>
+                  <td class="text-end {% if t.ball > 0 %}text-success{% elif t.ball < 0 %}text-danger{% endif %}">
+                    {% if t.ball > 0 %}+{% endif %}{{ t.ball }}
+                  </td>
+                  <td>{{ t.rule.nom }}</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="3" class="text-muted">Yozuvlar yo‘q.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📅 Davomat -->
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header">📅 Davomat</div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Sana</th>
+                <th>Guruh</th>
+                <th>Holat</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for a in attendance %}
+                <tr>
+                  <td>{{ a.date|date:"Y-m-d" }}</td>
+                  <td><a href="{% url 'education:group_detail' a.group.id %}">{{ a.group.nom }}</a></td>
+                  <td>
+                    {% if a.present %}
+                      <span class="text-success">keldi</span>
+                    {% else %}
+                      <span class="text-danger">kelmadi</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="3" class="text-muted">Davomat yozuvlari yo‘q.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
