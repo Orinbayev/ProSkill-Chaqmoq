@@ -7,19 +7,28 @@ User = get_user_model()
 class GroupForm(forms.ModelForm):
     class Meta:
         model = Group
-        fields = ["center", "nom", "oqituvchi", "izoh"]
-        labels = {
-            "nom": "Nom",
-            "oqituvchi": "O‘qituvchi",
-            "izoh": "Izoh",
-        }
-        widgets = {
-            "center": forms.Select(attrs={"class": "form-select"}),
-            "nom": forms.TextInput(attrs={"class": "form-control"}),
-            "oqituvchi": forms.Select(attrs={"class": "form-select"}),
-            # Izoh kichikroq ko‘rinsin:
-            "izoh": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
-        }
+        fields = ["center", "nom", "izoh", "oqituvchi"]
+        widgets = {"izoh": forms.Textarea(attrs={"rows": 3})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # faqat o‘qituvchilar chiqsin
+        self.fields["oqituvchi"].queryset = User.objects.filter(role="teacher")
+
+class LangGroupForm(GroupForm):
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self.fields["category"].initial = Group.LANG
+        self.fields["category"].widget = forms.HiddenInput()
+
+class ITGroupForm(GroupForm):
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self.fields["category"].initial = Group.IT
+        self.fields["category"].widget = forms.HiddenInput()
+
+
+
 
 class AddExistingStudentForm(forms.Form):
     student = forms.ModelChoiceField(

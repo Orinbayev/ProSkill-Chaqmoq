@@ -1,49 +1,67 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% block content %}
-<h3>Guruhlar</h3>
 
-{% if can_manage %}
-  <div class="mb-3">
-    <a class="btn btn-primary" href="{% url 'education:group_create' %}">➕ Guruh yaratish</a>
-  </div>
-{% endif %}
+<h3 class="mb-3">{{ filter_title|default:"Guruhlar" }}</h3>
+
+<div class="d-flex gap-2 mb-3">
+  <a href="{% url 'education:guruhlar' %}" class="btn btn-outline-secondary btn-sm">Barchasi</a>
+  <a href="{% url 'education:guruhlar_tillar' %}" class="btn btn-outline-secondary btn-sm">Tillar</a>
+  <a href="{% url 'education:guruhlar_it' %}" class="btn btn-outline-secondary btn-sm">IT</a>
+
+  {% if can_manage %}
+    <div class="ms-auto d-flex gap-2">
+      <a href="{% url 'education:group_create_lang' %}" class="btn btn-primary btn-sm">+ Tillar guruhi</a>
+      <a href="{% url 'education:group_create_it' %}" class="btn btn-primary btn-sm">+ IT guruhi</a>
+    </div>
+  {% endif %}
+</div>
 
 <div class="table-responsive">
   <table class="table table-hover align-middle">
     <thead>
       <tr>
         <th>Guruh</th>
+        <th>Tur</th>
         <th>Center</th>
         <th>O‘qituvchi</th>
-        <th class="text-center">Talabalar</th>
-        <th class="text-end">Amallar</th>
+        <th>Talabalar</th>
+        <th></th>
       </tr>
     </thead>
-<tbody>
-{% for g in rows %}
-  <tr class="table-row-link" data-href="{% url 'education:group_detail' g.id %}">
-    <td>{{ g.nom }}</td>
-    <td>{{ g.center }}</td>
-    <td>{{ g.oqituvchi }}</td>
-    <td class="text-center">{{ g.enrollments.count }}</td>
-    <td class="text-end">
-      <a class="btn btn-sm btn-outline-primary" href="{% url 'education:group_detail' g.id %}">Ko‘rish</a>
-    </td>
-  </tr>
-{% endfor %}
-</tbody>
-
-<script>
-  document.querySelectorAll('.table-row-link').forEach(tr=>{
-    tr.style.cursor='pointer';
-    tr.addEventListener('click', e=>{
-      // ichidagi linkni bosganda to‘xtatamiz
-      if (e.target.closest('a')) return;
-      window.location = tr.dataset.href;
-    });
-  });
-</script>
-
+    <tbody>
+      {% for g in rows %}
+        <tr class="row-link" data-href="{% url 'education:group_detail' g.id %}">
+          <td><a href="{% url 'education:group_detail' g.id %}">{{ g.nom }}</a></td>
+          <td>
+            {% if g.category == 'lang' %}
+              <span class="badge text-bg-info">Tillar</span>
+            {% else %}
+              <span class="badge text-bg-dark">IT</span>
+            {% endif %}
+          </td>
+          <td>{{ g.center }}</td>
+          <td>{{ g.oqituvchi|default:"—" }}</td>
+          <td>{{ g.student_count }}</td>
+          <td>
+            {% if can_manage %}
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'education:group_edit' g.id %}">Tahrirlash</a>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="text-muted">Guruhlar yo‘q.</td></tr>
+      {% endfor %}
+    </tbody>
   </table>
 </div>
+
+<script>
+document.querySelectorAll('.row-link').forEach(tr=>{
+  tr.style.cursor='pointer';
+  tr.addEventListener('click', e=>{
+    if(e.target.closest('a,button')) return;
+    location.href = tr.dataset.href;
+  });
+});
+</script>
 {% endblock %}

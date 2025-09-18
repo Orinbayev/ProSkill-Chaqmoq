@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">👥 {% if category == "lang" %}Tillar{% else %}IT{% endif %} bo‘yicha guruhlar</h3>
+
+    {% if can_manage %}
+      {% if category == "lang" %}
+        <a class="btn btn-primary" href="{% url 'education:group_create_lang' %}">Yangi (Tillar)</a>
+      {% else %}
+        <a class="btn btn-primary" href="{% url 'education:group_create_it' %}">Yangi (IT)</a>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th>#</th><th>Guruh</th><th>Center</th><th>O‘qituvchi</th><th>Talabalar</th><th>Amallar</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for g in rows %}
+          <tr class="row-link" data-href="{% url 'education:group_detail' g.id %}">
+            <td>{{ forloop.counter }}</td>
+            <td><a href="{% url 'education:group_detail' g.id %}">{{ g.nom }}</a></td>
+            <td>{{ g.center }}</td>
+            <td>{{ g.oqituvchi }}</td>
+            <td>{{ g.student_count }}</td>
+            <td>
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'education:group_detail' g.id %}">Ko‘rish</a>
+              {% if can_manage %}
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'education:group_edit' g.id %}">Tahrirlash</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="text-muted">Hozircha guruh yo‘q.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+  document.querySelectorAll('.row-link').forEach(tr=>{
+    tr.style.cursor='pointer';
+    tr.addEventListener('click', e=>{
+      if(e.target.closest('a,button')) return;
+      location.href = tr.dataset.href;
+    });
+  });
+  </script>
+{% endblock %}

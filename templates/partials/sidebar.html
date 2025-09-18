@@ -15,13 +15,27 @@
     </li>
 
     {# Direktor/managerlar uchun umumiy Guruhlar #}
-    {% if user.is_superuser or user.role == 'director' or user.role == 'manager' %}
-      <li><a href="{% url 'education:guruhlar' %}" class="nav-link">👥 Guruhlar</a></li>
+    {% if user.is_superuser or user.role in 'director manager' %}
+      <li class="nav-item">
+        <a class="nav-link d-flex justify-content-between align-items-center"
+           data-bs-toggle="collapse" href="#groupsCollapse" role="button"
+           aria-expanded="false" aria-controls="groupsCollapse">
+          👥 Guruhlar <span class="small">▾</span>
+        </a>
+        <div class="collapse" id="groupsCollapse">
+          <ul class="nav flex-column ms-3 mb-2">
+            <li><a class="nav-link" href="{% url 'education:groups_lang' %}">— Tillar</a></li>
+            <li><a class="nav-link" href="{% url 'education:groups_it' %}">— IT</a></li>
+          </ul>
+        </div>
+      </li>
     {% endif %}
 
     {# Faqat o‘qituvchi uchun — Mening guruhlarim #}
     {% if user.role == 'teacher' %}
-      <li><a href="{% url 'education:mening_guruhlarim' %}" class="nav-link">👥 Mening guruhlarim</a></li>
+      <li>
+        <a href="{% url 'education:mening_guruhlarim' %}" class="nav-link">👥 Mening guruhlarim</a>
+      </li>
     {% endif %}
 
     <li>
@@ -30,7 +44,9 @@
 
     {# Direktor/managerlar uchun — Chaqmoq berish/ayirish #}
     {% if user.is_superuser or user.role == 'director' or user.role == 'manager' %}
-      <li><a href="{% url 'chaqmoq:berish' %}" class="nav-link">⚡ Chaqmoq berish/ayirish</a></li>
+      <li>
+        <a href="{% url 'chaqmoq:berish' %}" class="nav-link">⚡ Chaqmoq berish/ayirish</a>
+      </li>
     {% endif %}
   </ul>
 
@@ -49,4 +65,3 @@
     <a class="btn btn-primary btn-sm w-100" href="{% url 'login' %}">Kirish</a>
   {% endif %}
 </div>
-  

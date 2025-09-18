@@ -6,30 +6,110 @@ from django.db.models import Count
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from chaqmoq.models import Rule, Ledger  # ⬅️ qo'shing
-
+from .forms import GroupForm, LangGroupForm, ITGroupForm
 from accounts.models import User
 from .forms import GroupForm
 from .models import Group, Enrollment, Attendance  # <-- to'g'ri importlar
+from django.http import HttpResponseForbidden, Http404
 
 U = get_user_model()
 
 
-def _can_manage(user):
-    # direktor yoki manager
-    return user.is_superuser or getattr(user, "role", None) in ("director", "manager")
+def _can_manage(u):
+    return u.is_superuser or getattr(u, "role", None) in ("director", "manager")
 
+@login_required
+def groups_hub(request):
+    return render(request, "education/groups_hub.html")
+
+
+@login_required
+def groups_by_category(request, category):
+    if category not in ("lang", "it"):
+        raise Http404("Noto‘g‘ri kategoriya")
+
+    rows = (Group.objects
+            .filter(category=category)
+            .select_related("center", "oqituvchi")
+            .annotate(student_count=Count("enrollments"))
+            .order_by("nom"))
+
+    ctx = {
+        "rows": rows,
+        "category": category,
+        "can_manage": _can_manage(request.user),
+    }
+    return render(request, "education/groups_by_category.html", ctx)
+
+# DRY: umumiy yaratuvchi
+def _create_group(request, category):
+    if not _can_manage(request.user):
+        messages.error(request, "Sizda guruh yaratish huquqi yo‘q.")
+        return redirect("education:groups_hub")
+
+    if request.method == "POST":
+        form = GroupForm(request.POST)
+        if form.is_valid():
+            g = form.save(commit=False)
+            g.category = category
+            g.save()
+            messages.success(request, "Guruh yaratildi.")
+            return redirect("education:groups_lang" if category == "lang" else "education:groups_it")
+    else:
+        form = GroupForm()
+
+    title = ("Tillar" if category == "lang" else "IT") + " bo‘yicha guruh yaratish"
+    return render(request, "education/group_form.html", {"form": form, "title": title, "category": category})
+
+
+
+def _group_create_with_category(request, category_value):
+    if not _can_manage(request.user):
+        messages.error(request, "Sizda guruh yaratish huquqi yo‘q.")
+        return redirect("education:groups_hub")
+
+    if request.method == "POST":
+        form = GroupForm(request.POST)
+        if form.is_valid():
+            g = form.save(commit=False)
+            g.category = category_value   # formda bo‘lmasa majburiy
+            g.save()
+            messages.success(request, "Guruh yaratildi.")
+            return redirect("education:group_detail", pk=g.pk)
+    else:
+        form = GroupForm(initial={"category": category_value})
+
+    return render(request, "education/group_form.html", {
+        "form": form,
+        "title": "Tillar bo‘yicha guruh yaratish" if category_value == Group.LANG else "IT bo‘yicha guruh yaratish",
+    })
+
+
+
+@login_required
+def group_create_lang(request):
+    return _create_group(request, "lang")
+
+@login_required
+def group_create_it(request):
+    return _create_group(request, "it")
 
 # --- Guruhlar ro'yxati (direktor/managerlar uchun umumiy) ---
 @login_required
 def guruhlar(request):
-    rows = (
-        Group.objects
-        .select_related("center", "oqituvchi")
-        .annotate(student_count=Count("enrollments"))
-        .order_by("nom")
-    )
-    can_manage = _can_manage(request.user)
-    return render(request, "education/groups.html", {"rows": rows, "can_manage": can_manage})
+    rows = Group.objects.select_related('center', 'oqituvchi').annotate(student_count=Count('enrollments'))
+    return render(request, "education/groups.html", {"rows": rows, "can_manage": _can_manage(request.user)})
+
+
+@login_required
+def guruhlar_tillar(request):
+    return groups_by_category(request, Group.LANG)
+
+@login_required
+def guruhlar_it(request):
+    return groups_by_category(request, Group.IT)
+
+
 
 
 # --- Bitta guruh sahifasi ---
@@ -37,11 +117,10 @@ def guruhlar(request):
 def group_detail(request, pk):
     g = get_object_or_404(Group, pk=pk)
 
-    # O‘qituvchi faqat o‘z guruhini ko‘ra oladi
-    if request.user.role == "teacher" and g.oqituvchi_id != request.user.id and not request.user.is_superuser:
+    if request.user.role == "teacher" and not (request.user.is_superuser or g.oqituvchi_id == request.user.id):
         return HttpResponseForbidden()
 
-    # 1) Mavjud o‘quvchilardan BIR NECHTA qo‘shish
+    # multi-select orqali bir nechta mavjud talabani qo‘shish
     if request.method == "POST" and request.POST.get("action") == "add-existing-bulk":
         ids = request.POST.getlist("student_ids")
         if not ids:
@@ -55,105 +134,81 @@ def group_detail(request, pk):
                     s = User.objects.get(pk=sid)
                 except User.DoesNotExist:
                     continue
-                # MUHIM: modelda 'group'!
                 Enrollment.objects.get_or_create(group=g, student=s)
                 added += 1
         messages.success(request, f"{added} ta o‘quvchi guruhga qo‘shildi.")
         return redirect("education:group_detail", pk=g.pk)
 
-    # 2) Mavjud o‘quvchilardan BITTA qo‘shish (eski tugma uchun)
-    if request.method == "POST" and request.POST.get("action") == "add-existing-one":
-        sid = request.POST.get("student_id")
-        try:
-            s = User.objects.get(pk=sid)
-            Enrollment.objects.get_or_create(group=g, student=s)  # <-- 'group'
-            full = f"{s.ism} {s.familya}".strip()
-            messages.success(request, f"{full} guruhga qo‘shildi.")
-        except User.DoesNotExist:
-            messages.error(request, "O‘quvchi topilmadi.")
-        return redirect("education:group_detail", pk=g.pk)
-
-    enrollments = g.enrollments.select_related("student").order_by("student__ism", "student__familya")
-
-    # Guruhga kirmagan foydalanuvchilar (multi-select uchun)
-    already_ids = list(enrollments.values_list("student_id", flat=True))
+    enrollments = g.enrollments.select_related("student").order_by("student__ism")
+    already_ids = enrollments.values_list("student_id", flat=True)
     selectable = User.objects.exclude(id__in=already_ids).order_by("ism", "familya")
 
-    return render(
-        request,
-        "education/group_detail.html",
-        {
-            "g": g,
-            "enrollments": enrollments,
-            "selectable": selectable,
-            "can_give_points": (request.user.is_superuser or request.user.role in ("director", "manager", "teacher")),
-        },
-    )
+    return render(request, "education/group_detail.html", {
+        "g": g,
+        "enrollments": enrollments,
+        "selectable": selectable,
+        "can_give_points": (request.user.is_superuser or request.user.role in ("director", "manager", "teacher")),
+    })
 
 
 # --- Guruh ichida o'quvchiga ball (chaqmoq) berish (oddiy variant) ---
+
 @login_required
 def group_points(request, pk):
     g = get_object_or_404(Group, pk=pk)
-
-    # o‘qituvchi faqat o‘z guruhiga ball bera oladi
-    if request.user.role == "teacher" and g.oqituvchi_id != request.user.id and not request.user.is_superuser:
+    if request.user.role == "teacher" and not (request.user.is_superuser or g.oqituvchi_id == request.user.id):
         return HttpResponseForbidden()
-
     if request.method != "POST":
         return redirect("education:group_detail", pk=g.pk)
 
     sid = request.POST.get("student_id")
-    amount = int(request.POST.get("amount") or 0)
+    amount = int(request.POST.get("amount", "0") or 0)
+    student = get_object_or_404(User, pk=sid)
 
-    student = get_object_or_404(User, pk=sid, role="student")
-
-    # Qo'l bilan berilgan ball uchun default qoida
-    tur = Rule.PLUS if amount >= 0 else Rule.MINUS
-    rule, _ = Rule.objects.get_or_create(
-        nom="Qo'lda berish",
-        defaults={"tur": tur, "min_baho": 1, "max_baho": 100},
-    )
-    # Mavjud qoida boru tur mos kelmasa — moslab qo'yamiz
-    if rule.tur != tur:
-        rule.tur = tur
-        rule.save(update_fields=["tur"])
-
-    # Ledgerga yozuv qo'shamiz
-    Ledger.objects.create(
-        student=student,
-        beruvchi=request.user,
-        group=g,
-        rule=rule,
-        ball=amount,
-    )
+    # ⚡ Ledgerga yozish (tavsiya)
+    from chaqmoq.models import Ledger, Rule
+    # bu yerda qoidani o'zingiz tanlang yoki "free" qoida yarating
+    rule = Rule.objects.first()
+    Ledger.objects.create(student=student, beruvchi=request.user, group=g, rule=rule, ball=amount)
 
     sign = "+" if amount >= 0 else ""
-    full = f"{student.ism} {student.familya}".strip()
-    messages.success(request, f"{full} ga ⚡ {sign}{amount} yozildi.")
+    messages.success(request, f"{student.get_full_name()} ga ⚡ {sign}{amount} berildi.")
     return redirect("education:group_detail", pk=g.pk)
 
 # --- Yaratish / Tahrirlash / O'chirish ---
 @login_required
-def group_create(request):
+def group_create(request, category=None):
     if not _can_manage(request.user):
         messages.error(request, "Sizda guruh yaratish huquqi yo‘q.")
         return redirect("education:guruhlar")
 
-    form = GroupForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        g = form.save()
-        messages.success(request, "Guruh yaratildi.")
-        return redirect("education:group_detail", pk=g.pk)
-    return render(request, "education/group_form.html", {"form": form, "title": "Guruh yaratish"})
+    # kategoriya bo‘yicha mos forma
+    if category == Group.LANG:
+        FormCls = LangGroupForm
+        title = "Tillar bo‘yicha guruh yaratish"
+    elif category == Group.IT:
+        FormCls = ITGroupForm
+        title = "IT bo‘yicha guruh yaratish"
+    else:
+        FormCls = GroupForm
+        title = "Guruh yaratish"
 
+    if request.method == "POST":
+        form = FormCls(request.POST)
+        if form.is_valid():
+            g = form.save()
+            messages.success(request, "Guruh yaratildi.")
+            return redirect("education:group_detail", pk=g.pk)
+    else:
+        form = FormCls(initial={"category": category} if category else None)
+
+    return render(request, "education/group_form.html", {"form": form, "title": title})
 
 @login_required
 def group_edit(request, pk: int):
     if not _can_manage(request.user):
         messages.error(request, "Sizda ruxsat yo‘q.")
         return redirect("education:guruhlar")
-
     g = get_object_or_404(Group, pk=pk)
     form = GroupForm(request.POST or None, instance=g)
     if request.method == "POST" and form.is_valid():
@@ -163,12 +218,12 @@ def group_edit(request, pk: int):
     return render(request, "education/group_form.html", {"form": form, "title": "Guruhni tahrirlash"})
 
 
+
 @login_required
 def group_delete(request, pk: int):
     if not _can_manage(request.user):
         messages.error(request, "Sizda ruxsat yo‘q.")
         return redirect("education:guruhlar")
-
     g = get_object_or_404(Group, pk=pk)
     if request.method == "POST":
         g.delete()
@@ -181,11 +236,9 @@ def group_delete(request, pk: int):
 @login_required
 def enrollment_remove(request, pk: int):
     enr = get_object_or_404(Enrollment.objects.select_related("group", "student"), pk=pk)
-
     if not _can_manage(request.user):
         messages.error(request, "Sizda ruxsat yo‘q.")
         return redirect("education:group_detail", pk=enr.group_id)
-
     if request.method == "POST":
         enr.delete()
         messages.success(request, "O‘quvchi guruhdan chiqarildi.")
@@ -195,11 +248,9 @@ def enrollment_remove(request, pk: int):
 # --- O'qituvchining «Mening guruhlarim» sahifasi ---
 @login_required
 def my_groups(request):
-    rows = (
-        Group.objects
-        .filter(oqituvchi=request.user)  # sizning model maydoni
-        .select_related("center", "oqituvchi")
-        .annotate(student_count=Count("enrollments"))
-        .order_by("nom")
-    )
+    rows = (Group.objects
+            .filter(oqituvchi=request.user)
+            .select_related('center', 'oqituvchi')
+            .annotate(student_count=Count('enrollments'))
+            .order_by('nom'))
     return render(request, "education/my_groups.html", {"rows": rows})
