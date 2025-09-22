@@ -25,3 +25,19 @@ html, body { background: var(--bg); }
 }
 
 
+.table thead th { white-space: nowrap; }
+.badge-quiet { background:#eef2ff; color:#4338ca; }
+
+
+/* C:\Users\user\Desktop\chaqmoq_academy\static\css\app.css */
+/* mavjud faylingizning oxiriga quyidagilarni qo‘shsangiz, ko‘rinish yaxshilanadi */
+
+.badge.text-bg-success, .badge.text-bg-danger {
+  min-width: 56px;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.table td { vertical-align: middle; }
+.table .input-group-sm .btn { padding-left: .5rem; padding-right: .5rem; }
+

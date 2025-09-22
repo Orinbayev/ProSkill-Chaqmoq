@@ -19,13 +19,14 @@
             </span>
             </li>
             <li class="nav-item">
-            <form method="post" action="{% url 'accounts:logout' %}" class="d-inline">
-                {% csrf_token %}
-                <button type="submit" class="nav-link btn btn-link p-0 text-decoration-none">Chiqish</button>
+            <form method="post" action="{% url 'logout' %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="nav-link btn btn-link p-0 text-decoration-none">Chiqish</button>
             </form>
+
             </li>
         {% else %}
-            <li class="nav-item"><a class="nav-link" href="{% url 'accounts:login' %}">Kirish</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Kirish</a></li>
         {% endif %}
         </ul>
     </div>

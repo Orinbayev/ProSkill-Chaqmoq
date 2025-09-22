@@ -1,68 +1,120 @@
 {% extends 'base.html' %}
 {% block content %}
-<h3>{{ g.nom }} — Davomat / Chaqmoq</h3>
 
-<form method="post" class="mb-3">
-  {% csrf_token %}
-  <div class="input-group" style="max-width:280px">
+<h3 class="mb-3">{{ g.nom }} — Davomat / Chaqmoq</h3>
+
+<form method="post" class="mb-3">{% csrf_token %}
+  <div class="input-group" style="max-width:320px">
     <span class="input-group-text">Sana</span>
     <input type="date" name="date" class="form-control" value="{{ date }}">
   </div>
 
-  <table class="table table-sm align-middle mt-3">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Talaba</th>
-        <th>Davomat</th>
-        <th>Qoida</th>
-        <th>Ball</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for s in students %}
-      <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ s.ism }} {{ s.familya }}</td>
-        <td class="text-center">
-          <input type="checkbox" name="present_{{ s.id }}">
-        </td>
-        <td style="min-width:280px">
-          <select class="form-select rule" name="rule_{{ s.id }}">
-            <option value="">—</option>
-            {% for r in rules %}
-              <option value="{{ r.id }}" data-min="{{ r.min_baho }}" data-max="{{ r.max_baho }}" data-type="{{ r.tur }}">
-                {{ r.nom }} {% if r.tur == 'plus' %}(+{{ r.min_baho }}..+{{ r.max_baho }}){% else %}(-{{ r.min_baho }}..-{{ r.max_baho }}){% endif %}
-              </option>
-            {% endfor %}
-          </select>
-        </td>
-        <td style="width:120px">
-          <input type="number" class="form-control ball" name="ball_{{ s.id }}" value="0" min="0" step="1">
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-responsive mt-3">
+    <table class="table table-sm align-middle">
+      <thead class="table-light">
+        <tr>
+          <th style="width:52px">#</th>
+          <th>Talaba</th>
+          <th>Telefon</th>
+          <th class="text-center">Davomat</th>
+          <th style="min-width:320px">Qoida</th>
+          <th style="width:150px">Ball</th>
+          <th style="width:110px" class="text-end">Jami</th>
+        </tr>
+      </thead>
+<tbody>
+  {% for s in students %}
+  <tr>
+    <td>{{ forloop.counter }}</td>
+    <td>{{ s.ism }} {{ s.familya }}</td>
+    <td>{{ s.telefon1|default:"—" }}</td>
+
+    <!-- Davomat: endi s.present bor -->
+    <td class="text-center">
+      <input type="checkbox" name="present_{{ s.id }}" {% if s.present %}checked{% endif %}>
+    </td>
+
+    <td>
+      <select name="rule_{{ s.id }}" class="form-select form-select-sm rule-select">
+        <option value="">—</option>
+        {% for r in rules %}
+          <option value="{{ r.id }}"
+                  data-min="{{ r.min_baho }}"
+                  data-max="{{ r.max_baho }}"
+                  data-type="{{ r.tur }}">
+            {{ r.nom }}
+            {% if r.tur == 'plus' %}(+{{ r.min_baho }}..+{{ r.max_baho }})
+            {% else %}(-{{ r.min_baho }}..-{{ r.max_baho }})
+            {% endif %}
+          </option>
+        {% endfor %}
+      </select>
+    </td>
+
+    <td>
+      <div class="input-group input-group-sm">
+        <button class="btn btn-outline-secondary minus" type="button">−</button>
+        <input name="ball_{{ s.id }}" type="number" class="form-control text-center amount" value="0" min="0" step="1">
+        <button class="btn btn-outline-secondary plus" type="button">+</button>
+      </div>
+      <div class="small mt-1 text-muted help"></div>
+    </td>
+
+    <!-- Balans badge: endi s.balance bor -->
+    <td class="text-end">
+      {% if s.balance >= 0 %}
+        <span class="badge rounded-pill text-bg-success">{{ s.balance }}</span>
+      {% else %}
+        <span class="badge rounded-pill text-bg-danger">{{ s.balance }}</span>
+      {% endif %}
+    </td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="7" class="text-muted">Talaba yo‘q.</td></tr>
+  {% endfor %}
+</tbody>
+
+    </table>
+  </div>
 
   <div class="d-flex gap-2">
     <button class="btn btn-primary">Saqlash</button>
-    <a class="btn btn-secondary" href="{% url 'education:guruhlar' %}">Orqaga</a>
+    <a class="btn btn-secondary" href="{% url 'education:group_detail' g.id %}">Orqaga</a>
   </div>
 </form>
 
 <script>
 (function(){
-  document.querySelectorAll('select.rule').forEach(function(sel){
-    sel.addEventListener('change', function(){
-      const row = sel.closest('tr');
-      const input = row.querySelector('input.ball');
+  // helper: get_item filter o‘rnini JS bilan ham foydali qilish
+  document.querySelectorAll('tr').forEach(function(row){
+    const sel = row.querySelector('select.rule-select');
+    const amount = row.querySelector('input.amount');
+    const help = row.querySelector('.help');
+    const minusBtn = row.querySelector('.minus');
+    const plusBtn  = row.querySelector('.plus');
+    if(!sel || !amount) return;
+
+    function applyBounds(){
       const o = sel.options[sel.selectedIndex];
-      if (!o || !o.dataset.min) { input.value = 0; input.min = 0; input.max=''; return; }
-      input.min = parseInt(o.dataset.min,10);
-      input.max = parseInt(o.dataset.max,10);
-      if (+input.value < +input.min) input.value = input.min;
-    });
+      if (!o || !o.dataset.min){
+        amount.min = 0; amount.max = ''; help.textContent='';
+        return;
+      }
+      const min = parseInt(o.dataset.min,10);
+      const max = parseInt(o.dataset.max,10);
+      const typ = o.dataset.type; // plus/minus
+
+      amount.min = 1;       // foydalanuvchi 0 bermasin
+      amount.max = max;
+      help.textContent = (typ==='plus')
+        ? `+${min} .. +${max} oralig‘ida`
+        : `-${min} .. -${max} (musbat kiritiladi, minus yoziladi)`;
+      if(+amount.value < 1) amount.value = min;
+    }
+    sel.addEventListener('change', applyBounds); applyBounds();
+
+    minusBtn?.addEventListener('click', ()=>{ amount.value = (+amount.value || 0) - 1; if(+amount.value<0) amount.value = 0; });
+    plusBtn?.addEventListener('click', ()=>{ amount.value = (+amount.value || 0) + 1; });
   });
 })();
 </script>

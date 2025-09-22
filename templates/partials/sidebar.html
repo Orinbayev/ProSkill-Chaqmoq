@@ -32,11 +32,9 @@
     {% endif %}
 
     {# Faqat o‘qituvchi uchun — Mening guruhlarim #}
-    {% if user.role == 'teacher' %}
-      <li>
-        <a href="{% url 'education:mening_guruhlarim' %}" class="nav-link">👥 Mening guruhlarim</a>
-      </li>
-    {% endif %}
+   {% if user.role == 'teacher' %}
+     <li><a href="{% url 'education:my_groups' %}" class="nav-link">👥 Mening guruhlarim</a></li>
+   {% endif %}
 
     <li>
       <a href="{% url 'chaqmoq:reyting' %}" class="nav-link">📊 Reyting</a>

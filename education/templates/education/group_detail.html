@@ -1,40 +1,98 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<h2>{{ g.nom }}</h2>
-<p class="text-muted">Center: {{ g.center }}  |  O‘qituvchi: {{ g.oqituvchi }}</p>
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+      <div>
+        <div class="h4 mb-1">{{ g.nom }}</div>
+        <div class="text-muted">
+          Center: {{ g.center }} &nbsp;|&nbsp;
+          O‘qituvchi:
+          {% if g.oqituvchi %}{{ g.oqituvchi.ism }} {{ g.oqituvchi.familya }}{% else %}—{% endif %}
+        </div>
+      </div>
 
-<div class="table-responsive mb-4">
-  <table class="table table-hover align-middle">
+      <!-- ⭐️ Global qoida + ball paneli -->
+      <div class="d-flex align-items-center gap-2">
+        <label class="me-1 fw-semibold">Qoida:</label>
+        <select id="rule-global" class="form-select form-select-sm" style="min-width: 260px;">
+          <option value="">— Qoida tanlang —</option>
+          <optgroup label="Qo‘shish sabablari">
+            {% for r in rules_plus %}
+              <option value="{{ r.id }}" data-tur="+">{{ r.nom }}</option>
+            {% endfor %}
+          </optgroup>
+          <optgroup label="Ayirish sabablari">
+            {% for r in rules_minus %}
+              <option value="{{ r.id }}" data-tur="-">{{ r.nom }}</option>
+            {% endfor %}
+          </optgroup>
+        </select>
+
+        <label class="ms-3 me-1 fw-semibold">Ball:</label>
+        <div class="input-group input-group-sm" style="width:120px">
+          <button class="btn btn-outline-secondary" type="button" id="glob-minus">−</button>
+          <input id="amount-global" type="number" class="form-control text-center" value="3" step="1">
+          <button class="btn btn-outline-secondary" type="button" id="glob-plus">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CSRF uchun zaxira -->
+<form id="csrf-form" class="d-none">{% csrf_token %}</form>
+
+<!-- JS uchun URL’lar -->
+<div id="js-urls"
+     data-attend="{% url 'education:attendance_today' g.id %}"
+     data-points="{% url 'education:group_points' g.id %}"></div>
+
+<div class="table-responsive">
+  <table id="group-table" class="table table-hover align-middle">
     <thead>
       <tr>
         <th>#</th>
-        <th>Ism</th>
-        <th>Familiya</th>
+        <th>F.I.Sh</th>
         <th>Telefon</th>
+        <th class="text-center">Davomat (bugun)</th>
         <th class="text-center">⚡ Chaqmoq</th>
-        {% if can_give_points %}<th class="text-end">Amal</th>{% endif %}
+        <th class="text-end">Amal</th>
       </tr>
     </thead>
     <tbody>
       {% for e in enrollments %}
         <tr>
           <td>{{ forloop.counter }}</td>
-          <td>{{ e.student.ism }}</td>
-          <td>{{ e.student.familya }}</td>
-          <td>{{ e.student.tel1|default:"—" }}</td>
-          <td class="text-center fw-semibold">{{ e.student.chaqmoq|default:0 }}</td>
 
-          {% if can_give_points %}
-          <td class="text-end">
-            <form class="d-inline-flex gap-1" method="post" action="{% url 'education:group_points' g.id %}">
-              {% csrf_token %}
-              <input type="hidden" name="student_id" value="{{ e.student.id }}">
-              <input name="amount" type="number" step="1" class="form-control form-control-sm" style="width:90px" placeholder="+5">
-              <button class="btn btn-sm btn-success">Qo‘shish</button>
-            </form>
+          <td>
+            <div class="fw-semibold">{{ e.student.ism }} {{ e.student.familya }}</div>
+            <div class="text-muted small">{{ e.student.email|default:e.student.username }}</div>
           </td>
-          {% endif %}
+
+          <td>{{ e.student.telefon1|default:"—" }}</td>
+
+          <td class="text-center">
+            <input type="checkbox"
+                   class="form-check-input attend-toggle"
+                   data-enr="{{ e.id }}"
+                   data-student="{{ e.student.id }}"
+                   {% if e.student.present_today %}checked{% endif %}>
+          </td>
+
+          <td class="text-center">
+            <span class="badge balance-badge {% if e.student.balance >= 0 %}text-bg-success{% else %}text-bg-danger{% endif %}">
+              {{ e.student.balance|default:0 }}
+            </span>
+          </td>
+
+          <td class="text-end">
+            <div class="d-flex gap-2 justify-content-end">
+              <button type="button" class="btn btn-sm btn-success btn-add" data-enr="{{ e.id }}">Qo‘shish</button>
+              <button type="button" class="btn btn-sm btn-danger  btn-sub" data-enr="{{ e.id }}">Ayirish</button>
+            </div>
+          </td>
         </tr>
       {% empty %}
         <tr><td colspan="6" class="text-muted">Hozircha o‘quvchi yo‘q.</td></tr>
@@ -43,31 +101,134 @@
   </table>
 </div>
 
-<div class="row g-4">
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-body">
-        <div class="card-title h6 mb-3">Mavjud o‘quvchilarni ko‘pdan qo‘shish</div>
+<style>
+.badge.text-bg-success,
+.badge.text-bg-danger { min-width: 42px; }
+</style>
 
-        <form method="post">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="add-existing-bulk">
-          <select name="student_ids" multiple size="10" class="form-select">
-            {% for s in selectable %}
-              <option value="{{ s.id }}">{{ s.ism }} {{ s.familya }} — {{ s.email|default:s.username }}</option>
-            {% endfor %}
-          </select>
-          <div class="form-text">CTRL (yoki ⌘) bilan bir nechtasini belgilang.</div>
-          <div class="mt-3">
-            <button class="btn btn-primary">Qo‘shish</button>
-          </div>
-        </form>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // --- CSRF
+  function getCookie(name) {
+    const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return m ? decodeURIComponent(m.pop()) : '';
+  }
+  let csrftoken = getCookie('csrftoken');
+  if (!csrftoken) {
+    const inp = document.querySelector('#csrf-form input[name=csrfmiddlewaretoken]');
+    if (inp) csrftoken = inp.value;
+  }
 
-      </div>
-    </div>
-  </div>
+  // Mahalliy sana
+  function todayLocalISO() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  const today = todayLocalISO();
 
-  {# Agar yangidan foydalanuvchi yaratish blokini saqlamoqchi bo‘lsangiz – shu yerda bo‘ladi #}
-</div>
+  const table      = document.getElementById('group-table');
+  const urls       = document.getElementById('js-urls');
+  const attendUrl  = urls.dataset.attend;
+  const pointsUrl  = urls.dataset.points;
+
+  const ruleSelect = document.getElementById('rule-global');
+  const amountIn   = document.getElementById('amount-global');
+
+  // Global ± tugmalar
+  document.getElementById('glob-minus').addEventListener('click', () => {
+    amountIn.value = (parseInt(amountIn.value || '0',10) || 0) - 1;
+  });
+  document.getElementById('glob-plus').addEventListener('click', () => {
+    amountIn.value = (parseInt(amountIn.value || '0',10) || 0) + 1;
+  });
+
+  async function post(url, payload) {
+    const res = await fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'X-CSRFToken': csrftoken,
+        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+      },
+      body: new URLSearchParams(payload)
+    });
+    const ct = res.headers.get('content-type') || '';
+    const data = ct.includes('application/json') ? await res.json() : {};
+    if (!res.ok || data.ok === false) {
+      throw new Error(data.error || ('HTTP ' + res.status));
+    }
+    return data;
+  }
+
+  // Davomat
+  table.addEventListener('change', async (e) => {
+    if (!e.target.classList.contains('attend-toggle')) return;
+    const cb = e.target;
+    try {
+      await post(attendUrl, {
+        enr_id: cb.dataset.enr || '',
+        student_id: cb.dataset.student || '',
+        present: cb.checked ? '1' : '',
+        date: today,
+      });
+    } catch (err) {
+      cb.checked = !cb.checked;
+      alert('Davomatni saqlashda xatolik: ' + err.message);
+      console.error(err);
+    }
+  });
+
+  // Chaqmoq — global qoida + ball bilan
+  table.addEventListener('click', async (e) => {
+    const isAdd = e.target.classList.contains('btn-add');
+    const isSub = e.target.classList.contains('btn-sub');
+    if (!isAdd && !isSub) return;
+
+    const enrId = e.target.dataset.enr;
+    const opt   = ruleSelect.selectedOptions[0];
+    const ruleId = opt?.value || '';
+    const ruleTur = opt?.dataset?.tur; // '+' yoki '-'
+    let amount = parseInt(amountIn.value || '0', 10) || 0;
+
+    if (!ruleId) {
+      alert('Avval “Qoida”ni tanlang.');
+      return;
+    }
+    if (!amount) {
+      alert('“Ball” 0 bo‘lishi mumkin emas.');
+      return;
+    }
+
+    // Tugmaga mos sign
+    if (isAdd) {
+      if (ruleTur === '-') {
+        if (!confirm("Tanlangan qoida ayirish uchun. Baribir qo‘shilsinmi?")) return;
+      }
+      amount = Math.abs(amount);
+    } else {
+      if (ruleTur === '+') {
+        if (!confirm("Tanlangan qoida qo‘shish uchun. Baribir ayrilsinmi?")) return;
+      }
+      amount = -Math.abs(amount);
+    }
+
+    try {
+      const data = await post(pointsUrl, { enr_id: enrId, rule_id: ruleId, amount: amount });
+      // Balansni serverdan kelgani bilan yangilaymiz
+      const tr    = e.target.closest('tr');
+      const badge = tr.querySelector('.balance-badge');
+      badge.textContent = data.balance;
+      badge.classList.toggle('text-bg-success', data.balance >= 0);
+      badge.classList.toggle('text-bg-danger',  data.balance < 0);
+    } catch (err) {
+      alert('Chaqmoqni yozishda xatolik: ' + err.message);
+      console.error(err);
+    }
+  });
+});
+</script>
 
 {% endblock %}

@@ -10,3 +10,11 @@ def add_class(field, css):
         return field.as_widget(attrs=attrs)
     except Exception:
         return field
+    
+@register.filter
+def get_item(d, key):
+    try:
+        return d.get(key)
+    except Exception:
+        return None
+
