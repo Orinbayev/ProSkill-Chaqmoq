@@ -50,10 +50,10 @@
 
   <hr>
 
-  {% if user.is_authenticated %}
-    <div class="small text-muted mb-2">
-      {{ user.ism }} {{ user.familya }} — {{ user.get_role_display }}
-    </div>
+{% if request.user.is_authenticated %}
+  <div class="small text-muted mb-2">
+    {{ request.user.ism }} {{ request.user.familya }} — {{ request.user.get_role_display }}
+  </div>
 
     <form method="post" action="{% url 'logout' %}">
       {% csrf_token %}

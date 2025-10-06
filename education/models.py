@@ -1,7 +1,8 @@
 from django.db import models
 from django.conf import settings
 from accounts.models import Center
-
+from django.core.validators import MinValueValidator
+from django.utils import timezone
 User = settings.AUTH_USER_MODEL
 
 # education/models.py
@@ -28,23 +29,73 @@ class Group(models.Model):
     def __str__(self):
         return self.nom
     
+class GroupStudent(models.Model):
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='students')
+    student = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role': 'student'})
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Guruhdagi o‘quvchi"
+        verbose_name_plural = "Guruhdagi o‘quvchilar"
+
+    def __str__(self):
+        return f"{self.student.get_full_name()} → {self.group.nom}"
 
 
 
 class Enrollment(models.Model):
-    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='enrollments')
-    student = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role': 'student'})
-    kurs_narhi = models.PositiveIntegerField(default=0)
-    jami_tolangan = models.PositiveIntegerField(default=0)
+    group = models.ForeignKey(
+        Group,
+        on_delete=models.CASCADE,
+        related_name='enrollments',
+        verbose_name="Guruh"
+    )
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        limit_choices_to={'role': 'student'},
+        verbose_name="O‘quvchi"
+    )
+    kurs_narhi = models.PositiveIntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+        verbose_name="Kurs narxi (so‘mda)"
+    )
+    jami_tolangan = models.PositiveIntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+        verbose_name="Jami to‘langan (so‘mda)"
+    )
 
     class Meta:
         verbose_name = "Guruhga qo‘shilish"
         verbose_name_plural = "Guruhga qo‘shilishlar"
         unique_together = ('group', 'student')
+        ordering = ['group', 'student']
 
+    def __str__(self):
+        # Agar studentda get_full_name() mavjud bo‘lmasa, username ishlatiladi
+        ism = self.student.get_full_name() if hasattr(self.student, 'get_full_name') else self.student.username
+        return f"{ism} → {self.group.name}"
+
+    @property
     def qoldiq(self):
+        """
+        To‘lov qoldig‘ini hisoblaydi.
+        Misol:
+            kurs_narhi=500000
+            jami_tolangan=300000
+            natija=200000
+        """
         return max(self.kurs_narhi - self.jami_tolangan, 0)
-    
+
+    def tolov_foizi(self):
+        """
+        Qancha to‘langanini foizda qaytaradi.
+        """
+        if self.kurs_narhi == 0:
+            return 0
+        return round((self.jami_tolangan / self.kurs_narhi) * 100, 2)
 
 class Payment(models.Model):
     enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, related_name='payments')
@@ -64,19 +115,47 @@ class Payment(models.Model):
 
 # ====== YANGI: Davomat ======
 class Attendance(models.Model):
-    group   = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='attendances')
-    student = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role': 'student'})
-    teacher = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='taken_attendances', limit_choices_to={'role': 'teacher'}
+    group = models.ForeignKey(
+        Group,
+        on_delete=models.CASCADE,
+        related_name='attendances',
+        verbose_name="Guruh"
     )
-    date    = models.DateField(auto_now_add=True)
-    present = models.BooleanField(default=True)
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        limit_choices_to={'role': 'student'},
+        verbose_name="O‘quvchi"
+    )
+    teacher = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='taken_attendances',
+        limit_choices_to={'role': 'teacher'},
+        verbose_name="O‘qituvchi"
+    )
+    date = models.DateField(
+        default=timezone.localdate,  # bugungi sana (auto_now_add o‘rniga)
+        verbose_name="Sana"
+    )
+    present = models.BooleanField(
+        default=False,  # boshlang‘ich holatda yo‘q
+        verbose_name="Kelganmi"
+    )
 
     class Meta:
         verbose_name = "Davomat"
-        verbose_name_plural = "Davomat"
+        verbose_name_plural = "Davomatlar"
         unique_together = ('group', 'student', 'date')
+        ordering = ['-date']  # Eng so‘nggi kunlar avval chiqadi
 
     def __str__(self):
-        return f"{self.date} • {self.group} • {self.student} • {'✓' if self.present else '✗'}"
+        belgi = "✓" if self.present else "✗"
+        return f"{self.date} | {self.group} | {self.student} | {belgi}"
+
+    def save(self, *args, **kwargs):
+        # Sanani kechasi 00:00gacha shu kun sifatida saqlaydi
+        if not self.date:
+            self.date = timezone.localdate()
+        super().save(*args, **kwargs)

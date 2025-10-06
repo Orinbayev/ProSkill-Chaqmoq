@@ -18,9 +18,13 @@ urlpatterns = [
     path("guruh/yaratish/it/",     views.group_create_it,   name="group_create_it"),
 
     # bitta guruh
-    path("guruh/<int:pk>/",            views.group_detail,   name="group_detail"),
+    path("group/<int:pk>/add-student/", views.add_student_to_group, name="add_student_to_group"),
+
+    path("group/<int:pk>/", views.group_detail, name="group_detail"),
     path("guruh/<int:pk>/tahrirlash/", views.group_edit,     name="group_edit"),
-    path("guruh/<int:pk>/ochirish/",   views.group_delete,   name="group_delete"),
+    path("group/<int:pk>/delete/",   views.group_delete,   name="group_delete"),  # ✅ bu kerakli yo‘l
+    path("guruhlar/ro‘yxat/",          views.group_list,     name="group_list"),    # ✅ aniqlik kiritildi
+
 
     # AJAX
     path("guruh/<int:pk>/attendance_today/", views.attendance_today, name="attendance_today"),

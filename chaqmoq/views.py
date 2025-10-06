@@ -10,15 +10,15 @@ from education.models import Group, Enrollment, Attendance
 
 User = get_user_model()
 
-@login_required
 def reyting(request):
     leaderboard = (
         Ledger.objects
-        .values('student__id', 'student__ism', 'student__familya')
-        .annotate(jami=Sum('ball'))
-        .order_by('-jami')
+        .filter(student__role="student")   # faqat studentlar!
+        .values("student__ism", "student__familya")
+        .annotate(jami=Sum("ball"))
+        .order_by("-jami")
     )
-    return render(request, 'chaqmoq/reyting.html', {'leaderboard': leaderboard})
+    return render(request, "chaqmoq/reyting.html", {"leaderboard": leaderboard})
 
 @login_required
 def student_detail(request, pk):

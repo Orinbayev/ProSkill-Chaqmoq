@@ -1,17 +1,19 @@
 # education/views.py
 from datetime import datetime
+from tokenize import group
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, Value
+from .models import Group, GroupStudent, User
 from django.http import (
     Http404,
+    HttpResponse,
     HttpResponseForbidden,
     JsonResponse,
 )
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils.dateparse import parse_date
 from django.utils.timezone import localdate
 
 from accounts.models import User
@@ -121,10 +123,12 @@ def guruhlar_it(request):
 @login_required
 def group_detail(request, pk: int):
     g = get_object_or_404(Group, pk=pk)
-    if request.user.role == "teacher" and not _teacher_can(request.user, g):
-        return HttpResponseForbidden()
 
-    # Guruh a’zolari (Enrollment orqali)
+    # 🧩 1. O‘qituvchi faqat o‘z guruhini ko‘ra oladi
+    if request.user.role == "teacher" and g.oqituvchi != request.user:
+        return HttpResponseForbidden("Siz bu guruhni ko‘ra olmaysiz.")
+
+    # 🧩 2. Guruhdagi o‘quvchilar (enrollment)
     enrollments = (
         Enrollment.objects
         .filter(group=g)
@@ -132,34 +136,52 @@ def group_detail(request, pk: int):
         .order_by("student__ism", "student__familya")
     )
 
-    # Har bir talabaning umumiy chaqmog‘i (balans)
+    # 🧩 3. Har bir o‘quvchining chaqmog‘i (balansi)
     ids = [e.student_id for e in enrollments]
     bal_map = dict(
-        Ledger.objects.filter(student_id__in=ids)
+        Ledger.objects
+        .filter(student_id__in=ids)
         .values_list("student_id")
-        .annotate(s=Coalesce(Sum("ball"), 0))
+        .annotate(s=Coalesce(Sum("ball"), Value(0)))
     )
 
-    # Bugungi davomat (checkbox holati)
+    # 🧩 4. Bugungi davomat ma’lumotlari
     today = localdate()
-    pres_map = {a.student_id: a.present for a in Attendance.objects.filter(group=g, date=today)}
+    pres_map = {
+        a.student_id: a.present
+        for a in Attendance.objects.filter(group=g, date=today)
+    }
 
-    # Qoida ro‘yxatlari — UI da alohida "Qo‘shish" va "Ayirish" guruhlarida ko‘rsatamiz
+    # 🧩 5. Qoida ro‘yxatlari (plus/minus)
     rules_plus = Rule.objects.filter(tur=Rule.PLUS).order_by("nom")
     rules_minus = Rule.objects.filter(tur=Rule.MINUS).order_by("nom")
 
-    # Front uchun qulay atributlar
+    # 🧩 6. Har bir talaba obyektiga qo‘shimcha atributlar qo‘shamiz
     for e in enrollments:
         s = e.student
         s.balance = int(bal_map.get(s.id, 0))
         s.present_today = bool(pres_map.get(s.id, False))
 
+    # 🧩 7. O‘quvchi qo‘shish tugmasi ruxsati
+    # Rol nomlari mos: admin / manager / teacher / director
+    allowed_roles = ['admin', 'manager', 'teacher', 'director']
+    user_role = getattr(request.user, 'role', None)
+    can_add_student = user_role in allowed_roles
+
+    # 🔍 Debug chiqish
+    print(f"Foydalanuvchi: {request.user}")
+    print(f"Foydalanuvchi roli: {user_role}")
+    print(f"O‘quvchi qo‘shish ruxsati: {can_add_student}")
+
+    # 🧩 8. Template uchun kontekst
     ctx = {
         "g": g,
         "enrollments": enrollments,
         "rules_plus": rules_plus,
         "rules_minus": rules_minus,
+        "can_add_student": can_add_student,
     }
+
     return render(request, "education/group_detail.html", ctx)
 
 
@@ -393,16 +415,81 @@ def group_edit(request, pk):
 
 
 @login_required
+def group_list(request):
+    # Guruhlarni olish
+    category = request.GET.get("category")
+    rows = Group.objects.all().select_related("center", "oqituvchi")
+
+    # Kimlar guruh yaratishi va tahrirlashi mumkinligini aniqlaymiz
+    can_manage = request.user.is_superuser or request.user.role in ["Director", "Manager", "Teacher"]
+
+    # Template'ga yuboriladigan kontekst
+    ctx = {
+        "rows": rows,
+        "category": category,
+        "can_manage": can_manage,
+        "filter_title": "Guruhlar",
+    }
+
+    return render(request, "education/groups.html", ctx)
+
+
+from django.contrib import messages
+
+@login_required
 def group_delete(request, pk):
-    if not _can_manage(request.user):
-        messages.error(request, "Sizda ruxsat yo‘q.")
-        return redirect("education:guruhlar")
+    group = get_object_or_404(Group, pk=pk)
+    category = group.category  # Faraz qilamiz: groupda category degan maydon bor ("lang" yoki "it")
+    group.delete()
+
+    # 🔁 Shu yerda qayerga qaytarishni tekshiramiz
+    if category == "lang":
+        return redirect("education:groups_lang")
+    elif category == "it":
+        return redirect("education:groups_it")
+    else:
+        return redirect("education:groups_hub")  # default holat
+
+
+
+@login_required
+def add_student_to_group(request, pk: int):
     g = get_object_or_404(Group, pk=pk)
+
+    # Faqat ruxsatli rollar qo‘shishi mumkin
+    allowed_roles = ['admin', 'manager', 'teacher', 'director']
+    if request.user.role not in allowed_roles:
+        return HttpResponseForbidden("Sizda bu amalni bajarish uchun ruxsat yo‘q.")
+
+    # O‘quvchilarni olish (ilgari enrollments__group bo‘lgandi)
+    # To‘g‘risi: enrollment__group
+    students = (
+        User.objects
+        .filter(role="student")
+        .exclude(enrollment__group=g)
+        .order_by("ism", "familya")
+    )
+
+    # POST so‘rov bilan yuborilsa — o‘quvchini qo‘shamiz
     if request.method == "POST":
-        g.delete()
-        messages.success(request, "Guruh o‘chirildi.")
-        return redirect("education:guruhlar")
-    return render(request, "education/group_delete_confirm.html", {"g": g})
+        student_id = request.POST.get("student_id")
+        if not student_id:
+            return HttpResponse("O‘quvchi tanlanmagan.", status=400)
+
+        student = get_object_or_404(User, pk=student_id, role="student")
+
+        # Yangi Enrollment yaratamiz
+        Enrollment.objects.create(group=g, student=student)
+        messages.success(request, f"{student.ism} guruhga qo‘shildi.")
+        return redirect("education:group_detail", pk=g.id)
+
+    ctx = {
+        "g": g,
+        "students": students,
+    }
+
+    return render(request, "education/add_student_to_group.html", ctx)
+
 
 
 # ---------- A'zolik va o'qituvchi sahifasi ----------

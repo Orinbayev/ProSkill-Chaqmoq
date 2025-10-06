@@ -13,7 +13,6 @@
   <div class="col-md-6">
     <div class="p-3 border rounded">
       <div class="mb-2">Narx: <strong>{{ item.narx_chaqmoq }} Chaqmoq</strong></div>
-      <div class="mb-2">Qoldiq: <strong>{{ item.qoldiq }}</strong></div>
       {% if user.role == 'student' %}
         {% if has_pending %}
           <div class="alert alert-info">So‘rovingiz yuborilgan. Manager tasdiqlashini kuting.</div>

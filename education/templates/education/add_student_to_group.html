@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container mt-4">
+  <h4>{{ g.nom }} — Guruhga o‘quvchi qo‘shish</h4>
+  <hr>
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label for="student" class="form-label fw-semibold">O‘quvchini tanlang:</label>
+      <select id="student" name="student_id" class="form-select" required>
+        <option value="">— O‘quvchini tanlang —</option>
+        {% for s in students %}
+          <option value="{{ s.id }}">{{ s.ism }} {{ s.familya }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label for="kurs_narhi" class="form-label">Kurs narhi:</label>
+      <input type="number" name="kurs_narhi" id="kurs_narhi" class="form-control" value="0">
+    </div>
+
+    <div class="d-flex justify-content-between">
+      <a href="{% url 'education:group_detail' g.id %}" class="btn btn-secondary">⬅ Orqaga</a>
+      <button type="submit" class="btn btn-primary">Qo‘shish</button>
+    </div>
+  </form>
+
+  {% if messages %}
+    <ul class="mt-3">
+      {% for m in messages %}
+        <li class="{% if m.tags %}text-{{ m.tags }}{% endif %}">{{ m }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</div>
+
+{% endblock %}

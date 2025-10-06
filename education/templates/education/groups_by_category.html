@@ -5,9 +5,9 @@
 
     {% if can_manage %}
       {% if category == "lang" %}
-        <a class="btn btn-primary" href="{% url 'education:group_create_lang' %}">Yangi (Tillar)</a>
+        <a class="btn btn-primary" href="{% url 'education:group_create_lang' %}">+ Yangi (Tillar)</a>
       {% else %}
-        <a class="btn btn-primary" href="{% url 'education:group_create_it' %}">Yangi (IT)</a>
+        <a class="btn btn-primary" href="{% url 'education:group_create_it' %}">+ Yangi (IT)</a>
       {% endif %}
     {% endif %}
   </div>
@@ -16,7 +16,12 @@
     <table class="table table-hover align-middle">
       <thead>
         <tr>
-          <th>#</th><th>Guruh</th><th>Center</th><th>O‘qituvchi</th><th>Talabalar</th><th>Amallar</th>
+          <th>#</th>
+          <th>Guruh</th>
+          <th>Center</th>
+          <th>O‘qituvchi</th>
+          <th>Talabalar</th>
+          <th>Amallar</th>
         </tr>
       </thead>
       <tbody>
@@ -31,6 +36,10 @@
               <a class="btn btn-sm btn-outline-primary" href="{% url 'education:group_detail' g.id %}">Ko‘rish</a>
               {% if can_manage %}
                 <a class="btn btn-sm btn-outline-secondary" href="{% url 'education:group_edit' g.id %}">Tahrirlash</a>
+                <form method="post" action="{% url 'education:group_delete' g.id %}" class="d-inline delete-form">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-danger">O‘chirish</button>
+                </form>
               {% endif %}
             </td>
           </tr>
@@ -42,11 +51,21 @@
   </div>
 
   <script>
+  // satrga bosilganda o‘tish
   document.querySelectorAll('.row-link').forEach(tr=>{
     tr.style.cursor='pointer';
     tr.addEventListener('click', e=>{
-      if(e.target.closest('a,button')) return;
+      if(e.target.closest('a,button,form')) return;
       location.href = tr.dataset.href;
+    });
+  });
+
+  // o‘chirishni tasdiqlash
+  document.querySelectorAll('.delete-form').forEach(form=>{
+    form.addEventListener('submit', e=>{
+      if(!confirm("Rostdan ham bu guruhni o‘chirmoqchimisiz?")) {
+        e.preventDefault();
+      }
     });
   });
   </script>
