@@ -18,7 +18,7 @@ class Group(models.Model):
     center     = models.ForeignKey(Center, on_delete=models.CASCADE)
     nom        = models.CharField(max_length=150)
     izoh       = models.TextField(blank=True)
-    oqituvchi  = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
+    oqituvchi  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
                                    limit_choices_to={'role': 'teacher'})
     tuzilgan   = models.DateTimeField(auto_now_add=True)
 
@@ -31,7 +31,7 @@ class Group(models.Model):
     
 class GroupStudent(models.Model):
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='students')
-    student = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role': 'student'})
+    student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, limit_choices_to={'role': 'student'})
     added_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -51,7 +51,7 @@ class Enrollment(models.Model):
         verbose_name="Guruh"
     )
     student = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         limit_choices_to={'role': 'student'},
         verbose_name="O‘quvchi"
@@ -114,33 +114,35 @@ class Payment(models.Model):
 
 
 # ====== YANGI: Davomat ======
+
 class Attendance(models.Model):
     group = models.ForeignKey(
-        Group,
+        'Group',
         on_delete=models.CASCADE,
         related_name='attendances',
         verbose_name="Guruh"
     )
     student = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         limit_choices_to={'role': 'student'},
         verbose_name="O‘quvchi"
     )
     teacher = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name='taken_attendances',
         limit_choices_to={'role': 'teacher'},
         verbose_name="O‘qituvchi"
     )
+
     date = models.DateField(
-        default=timezone.localdate,  # bugungi sana (auto_now_add o‘rniga)
+        default=timezone.localdate,  # Django versiyasi – to‘g‘ri
         verbose_name="Sana"
     )
     present = models.BooleanField(
-        default=False,  # boshlang‘ich holatda yo‘q
+        default=False,
         verbose_name="Kelganmi"
     )
 
@@ -148,14 +150,46 @@ class Attendance(models.Model):
         verbose_name = "Davomat"
         verbose_name_plural = "Davomatlar"
         unique_together = ('group', 'student', 'date')
-        ordering = ['-date']  # Eng so‘nggi kunlar avval chiqadi
+        ordering = ['-date']
 
     def __str__(self):
-        belgi = "✓" if self.present else "✗"
+        belgi = "✅" if self.present else "❌"
         return f"{self.date} | {self.group} | {self.student} | {belgi}"
 
     def save(self, *args, **kwargs):
-        # Sanani kechasi 00:00gacha shu kun sifatida saqlaydi
+        # Agar sana kiritilmagan bo‘lsa, bugungi sanani qo‘yadi
         if not self.date:
             self.date = timezone.localdate()
+
+        # Har doim kechasi 00:00 gacha shu sana sifatida qoladi
+        now = timezone.localtime()
+        if now.hour == 0 and now.minute < 5:
+            # 00:00 dan 00:05 gacha bo‘lsa – yangi kun sifatida
+            self.date = timezone.localdate()
+
         super().save(*args, **kwargs)
+
+
+
+class AttendanceHistory(models.Model):
+    student = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role': 'student'})
+    date = models.DateField()
+    is_present = models.BooleanField(default=False)
+    plus_coin = models.IntegerField(default=0)
+    minus_coin = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = ('student', 'date')
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.student.get_full_name()} — {self.date} — {'✅' if self.is_present else '❌'}"
+
+
+class Student(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    center = models.ForeignKey(Center, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.user.full_name

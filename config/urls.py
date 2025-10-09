@@ -15,7 +15,7 @@ urlpatterns = [
     path('', include(('core.urls', 'core'), namespace='core')),
     path('hisob/', include(('accounts.urls', 'accounts'), namespace='accounts')),
     path('chaqmoq/', include(('chaqmoq.urls', 'chaqmoq'), namespace='chaqmoq')),
-    path("ta'lim/", include(('education.urls', 'education'), namespace='education')),
+    path('talim/', include(('education.urls', 'education'), namespace='education')),
     path("do'kon/", include(('store.urls', 'store'), namespace='store')),
 ]
 

@@ -1,18 +1,23 @@
 # education/views.py
 from datetime import datetime
 from tokenize import group
-
+from django.views.decorators.http import require_POST
+from django.utils import timezone
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Sum, Value
-from .models import Group, GroupStudent, User
+from django.db.models import Count, Sum, Value, F
+from .models import AttendanceHistory, Group, GroupStudent, User
+from django.utils.dateparse import parse_date
+
 from django.http import (
     Http404,
     HttpResponse,
     HttpResponseForbidden,
     JsonResponse,
 )
+import json
+
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.timezone import localdate
 
@@ -124,11 +129,22 @@ def guruhlar_it(request):
 def group_detail(request, pk: int):
     g = get_object_or_404(Group, pk=pk)
 
-    # 🧩 1. O‘qituvchi faqat o‘z guruhini ko‘ra oladi
+    # O'qituvchilar faqat o'z guruhini ko'ra olishi
     if request.user.role == "teacher" and g.oqituvchi != request.user:
         return HttpResponseForbidden("Siz bu guruhni ko‘ra olmaysiz.")
 
-    # 🧩 2. Guruhdagi o‘quvchilar (enrollment)
+    # GET param orqali sana (YYYY-MM-DD) — agar yo'q bo'lsa bugun
+    date_str = request.GET.get('date')
+    if date_str:
+        sel = parse_date(date_str)
+        if sel is None:
+            selected_date = localdate()
+        else:
+            selected_date = sel
+    else:
+        selected_date = localdate()
+
+    # Guruh a'zolari
     enrollments = (
         Enrollment.objects
         .filter(group=g)
@@ -136,54 +152,39 @@ def group_detail(request, pk: int):
         .order_by("student__ism", "student__familya")
     )
 
-    # 🧩 3. Har bir o‘quvchining chaqmog‘i (balansi)
-    ids = [e.student_id for e in enrollments]
-    bal_map = dict(
-        Ledger.objects
-        .filter(student_id__in=ids)
-        .values_list("student_id")
-        .annotate(s=Coalesce(Sum("ball"), Value(0)))
-    )
+    # Ball (balans) map
+    student_ids = [e.student_id for e in enrollments]
+    bal_qs = Ledger.objects.filter(student_id__in=student_ids).values('student_id').annotate(s=Coalesce(Sum('ball'), 0))
+    bal_map = {item['student_id']: item['s'] for item in bal_qs}
 
-    # 🧩 4. Bugungi davomat ma’lumotlari
-    today = localdate()
-    pres_map = {
-        a.student_id: a.present
-        for a in Attendance.objects.filter(group=g, date=today)
-    }
+    # Tanlangan sanadagi davomat
+    pres_qs = Attendance.objects.filter(group=g, date=selected_date)
+    pres_map = {a.student_id: a.present for a in pres_qs}
 
-    # 🧩 5. Qoida ro‘yxatlari (plus/minus)
+    # Qoida ro'yxatlari
     rules_plus = Rule.objects.filter(tur=Rule.PLUS).order_by("nom")
     rules_minus = Rule.objects.filter(tur=Rule.MINUS).order_by("nom")
 
-    # 🧩 6. Har bir talaba obyektiga qo‘shimcha atributlar qo‘shamiz
+    # Front uchun atributlar
     for e in enrollments:
         s = e.student
         s.balance = int(bal_map.get(s.id, 0))
+        # present_today nomini saqlab qolamiz (template shu nomdan foydalanadi)
         s.present_today = bool(pres_map.get(s.id, False))
 
-    # 🧩 7. O‘quvchi qo‘shish tugmasi ruxsati
-    # Rol nomlari mos: admin / manager / teacher / director
-    allowed_roles = ['admin', 'manager', 'teacher', 'director']
-    user_role = getattr(request.user, 'role', None)
-    can_add_student = user_role in allowed_roles
+    can_add_student = request.user.role in ['director', 'manager', 'teacher']
 
-    # 🔍 Debug chiqish
-    print(f"Foydalanuvchi: {request.user}")
-    print(f"Foydalanuvchi roli: {user_role}")
-    print(f"O‘quvchi qo‘shish ruxsati: {can_add_student}")
-
-    # 🧩 8. Template uchun kontekst
     ctx = {
         "g": g,
         "enrollments": enrollments,
         "rules_plus": rules_plus,
         "rules_minus": rules_minus,
         "can_add_student": can_add_student,
+        # template uchun sana (string)
+        "selected_date": selected_date.isoformat(),
+        "today": localdate().isoformat(),
     }
-
     return render(request, "education/group_detail.html", ctx)
-
 
 
 
@@ -192,56 +193,92 @@ def group_detail(request, pk: int):
 # ---------- AJAX: Davomatni saqlash ----------
 @login_required
 def attendance_today(request, pk: int):
-    """Davomatni bitta qatordan saqlash (enr_id yoki student_id qabul qiladi)."""
+    """
+    Davomatni saqlaydi: form-data yoki JSON qabul qiladi.
+    Kutilgan maydonlar: enr_id yoki student_id (int), present (1/0/true/false), date (YYYY-MM-DD) - ixtiyoriy.
+    """
     if request.method != "POST":
         return JsonResponse({"ok": False, "error": "POST only"}, status=405)
 
+    # data olinishi (JSON yoki form)
+    if request.content_type and request.content_type.startswith("application/json"):
+        try:
+            data = json.loads(request.body.decode())
+        except json.JSONDecodeError:
+            return JsonResponse({"ok": False, "error": "Invalid JSON"}, status=400)
+    else:
+        data = request.POST
+
     g = get_object_or_404(Group, pk=pk)
-    if request.user.role == "teacher" and not _teacher_can(request.user, g):
+    if request.user.role == "teacher" and g.oqituvchi != request.user and not _teacher_can(request.user, g):
         return HttpResponseForbidden()
 
-    enr_id = (request.POST.get("enr_id") or "").strip()
-    student_id = (request.POST.get("student_id") or "").strip()
+    enr_id = (data.get("enr_id") or "").strip()
+    student_id = (data.get("student_id") or "").strip()
+    date_str = (data.get("date") or "").strip()
 
-    if enr_id.isdigit():
+    # sana
+    if date_str:
+        the_date = parse_date(date_str)
+        if not the_date:
+            return JsonResponse({"ok": False, "error": "Invalid date"}, status=400)
+    else:
+        the_date = localdate()
+
+    # o'quvchini aniqlash
+    if enr_id and str(enr_id).isdigit():
         enr = get_object_or_404(Enrollment, pk=int(enr_id), group=g)
         student = enr.student
-    elif student_id.isdigit():
+    elif student_id and str(student_id).isdigit():
         student = get_object_or_404(User, pk=int(student_id), role="student")
     else:
         return JsonResponse({"ok": False, "error": "ID not provided"}, status=400)
 
-    present = bool(request.POST.get("present"))
-    the_date = localdate()  # “bugun” – UI ham shuni jo‘natmoqda
+    present_raw = data.get("present")
+    present = str(present_raw).lower() in ("1", "true", "yes", "on")
 
-    Attendance.objects.update_or_create(
-        group=g, student=student, date=the_date,
-        defaults={"present": present, "teacher": request.user if request.user.role == "teacher" else None}
+    attendance, created = Attendance.objects.update_or_create(
+        group=g,
+        student=student,
+        date=the_date,
+        defaults={
+            "present": present,
+            "teacher": request.user if request.user.role == "teacher" else request.user if request.user.role in ("director", "manager") else None
+        }
     )
-    return JsonResponse({"ok": True, "present": present})
 
+    return JsonResponse({"ok": True, "present": attendance.present})
 
 
 
 # ---------- AJAX: Chaqmoq yozish/ayirish ----------
 @login_required
 def group_points(request, pk: int):
-    """Chaqmoq yozish/ayirish (enr_id yoki student_id + amount [+ rule_id]).
-    Kunlik limit: bir o‘qituvchi bir o‘quvchiga bugun |ball| yig‘indisi ≤ DAILY_LIMIT.
+    """
+    Ball (chaqmoq) qo'shish / ayirish.
+    JSON yoki form-data qabul qiladi.
+    maydonlar: enr_id|student_id, amount (int), rule_id (ixtiyoriy)
     """
     if request.method != "POST":
         return JsonResponse({"ok": False, "error": "POST only"}, status=405)
 
+    if request.content_type and request.content_type.startswith("application/json"):
+        try:
+            data = json.loads(request.body.decode())
+        except json.JSONDecodeError:
+            return JsonResponse({"ok": False, "error": "Invalid JSON"}, status=400)
+    else:
+        data = request.POST
+
     g = get_object_or_404(Group, pk=pk)
-    if request.user.role == "teacher" and not _teacher_can(request.user, g):
+    if request.user.role == "teacher" and g.oqituvchi != request.user and not _teacher_can(request.user, g):
         return HttpResponseForbidden()
 
-    enr_id = (request.POST.get("enr_id") or "").strip()
-    student_id = (request.POST.get("student_id") or "").strip()
-    rule_id = (request.POST.get("rule_id") or "").strip()
-    amount_raw = (request.POST.get("amount") or "0").strip()
+    enr_id = (data.get("enr_id") or "").strip()
+    student_id = (data.get("student_id") or "").strip()
+    rule_id = (data.get("rule_id") or "").strip()
+    amount_raw = (data.get("amount") or "0").strip()
 
-    # miqdor
     try:
         amount = int(amount_raw)
     except ValueError:
@@ -249,65 +286,111 @@ def group_points(request, pk: int):
     if amount == 0:
         return JsonResponse({"ok": False, "error": "0 ball yozilmaydi"}, status=400)
 
-    # o‘quvchi
-    if enr_id.isdigit():
+    # student
+    if enr_id and enr_id.isdigit():
         enr = get_object_or_404(Enrollment, pk=int(enr_id), group=g)
         student = enr.student
-    elif student_id.isdigit():
+    elif student_id and student_id.isdigit():
         student = get_object_or_404(User, pk=int(student_id), role="student")
     else:
         return JsonResponse({"ok": False, "error": "ID not provided"}, status=400)
 
     # qoida
-    if rule_id.isdigit():
+    if rule_id and rule_id.isdigit():
         rule = get_object_or_404(Rule, pk=int(rule_id))
     else:
         rule = Rule.objects.filter(nom="Erkin ball").first()
         if not rule:
             rule = Rule.objects.create(nom="Erkin ball", tur=Rule.PLUS, min_baho=1, max_baho=1_000_000)
 
-    # Kunlik ishlatilgan (o‘qituvchi->o‘quvchi bo‘yicha)
+    # kunlik limit hisoblash
     today = localdate()
-    used = Ledger.objects.filter(
+    used_agg = Ledger.objects.filter(
         student=student,
         group=g,
         beruvchi=request.user,
-        sana=today,  # kunlik hisob uchun to‘g‘ri filter
-    ).aggregate(total=Coalesce(Sum(Abs("ball")), 0))["total"] or 0
+        sana=today,
+    ).aggregate(total=Coalesce(Sum(Abs(F('ball'))), 0))
+    used = int(used_agg.get('total') or 0)
 
-
-
-    remaining = max(0, DAILY_LIMIT - int(used))
+    remaining = max(0, DAILY_LIMIT - used)
     need = abs(amount)
-
     if remaining <= 0:
         return JsonResponse({"ok": False, "error": f"Bugun limit tugagan (maks. {DAILY_LIMIT})."}, status=400)
     if need > remaining:
         return JsonResponse({"ok": False, "error": f"Bugun {remaining} taga yetarli. Kunlik limit {DAILY_LIMIT}."}, status=400)
 
-    # qoida diapazoni
     if not (rule.min_baho <= abs(amount) <= rule.max_baho):
         return JsonResponse({"ok": False, "error": f"Diapazon: {rule.min_baho}..{rule.max_baho}"}, status=400)
 
-    # yozamiz
+    # ledger yozuvi
     Ledger.objects.create(
         student=student,
         beruvchi=request.user,
         group=g,
         rule=rule,
         ball=amount,
-        sana=today,  # bugungi sana
+        sana=today,
     )
 
-    # yangi balans
-    balance = Ledger.objects.filter(student=student).aggregate(s=Coalesce(Sum("ball"), 0))["s"] or 0
+    balance_agg = Ledger.objects.filter(student=student).aggregate(s=Coalesce(Sum('ball'), 0))
+    balance = int(balance_agg.get('s') or 0)
 
-    return JsonResponse({
-        "ok": True,
-        "amount": amount,            # delta
-        "balance": int(balance),     # yangi umumiy balans
-        "remaining": remaining - need
+    return JsonResponse({"ok": True, "amount": amount, "balance": balance, "remaining": remaining - need})
+
+
+@login_required
+def student_detail(request, student_id: int):
+    """
+    Foydalanuvchining davomat va chaqmoq tarixini ko‘rsatadi.
+    """
+    student = get_object_or_404(User, pk=student_id, role="student")
+
+    att_dates = Attendance.objects.filter(student=student).values_list('date', flat=True)
+    ledger_dates = Ledger.objects.filter(student=student).values_list('sana', flat=True)
+
+    # har ikkala sanani toza date formatga o‘tkazamiz
+    all_dates = []
+    for d in att_dates:
+        if hasattr(d, 'date'):
+            d = d.date()
+        all_dates.append(d)
+    for d in ledger_dates:
+        if hasattr(d, 'date'):
+            d = d.date()
+        all_dates.append(d)
+
+    dates = sorted(set(all_dates), reverse=True)[:30]
+
+    history = []
+    for d in dates:
+        # ✅ Davomat
+        present_qs = Attendance.objects.filter(student=student, date=d)
+        present = present_qs.exists() and any(a.present for a in present_qs)
+
+        # ✅ Ledgerdan o‘sha sanaga tegishli plus/minus yig‘indi
+        plus_sum = Ledger.objects.filter(
+            student=student, sana__date=d, ball__gt=0
+        ).aggregate(s=Coalesce(Sum('ball'), 0))['s'] or 0
+
+        minus_sum = Ledger.objects.filter(
+            student=student, sana__date=d, ball__lt=0
+        ).aggregate(s=Coalesce(Sum('ball'), 0))['s'] or 0
+
+        history.append({
+            'date': d,
+            'is_present': bool(present),
+            'plus_coin': int(plus_sum),
+            'minus_coin': int(abs(minus_sum)),
+        })
+
+    return render(request, 'education/student_detail.html', {
+        'student': student,
+        'history': history
     })
+
+
+
 
 # ---------- (ixtiyoriy) alohida Davomat/Chaqmoq sahifasi ----------
 @login_required
@@ -489,6 +572,37 @@ def add_student_to_group(request, pk: int):
     }
 
     return render(request, "education/add_student_to_group.html", ctx)
+
+
+@require_POST
+def toggle_attendance(request):
+    student_id = request.POST.get("student_id")
+    group_id = request.POST.get("group_id")
+    date_str = request.POST.get("date")
+
+    if not (student_id and group_id):
+        return JsonResponse({"error": "Invalid data"}, status=400)
+
+    date = timezone.datetime.strptime(date_str, "%Y-%m-%d").date() if date_str else timezone.localdate()
+
+    att, created = Attendance.objects.get_or_create(
+        group_id=group_id,
+        student_id=student_id,
+        date=date,
+        defaults={"teacher": request.user}
+    )
+
+    # Belgini o‘zgartiramiz (agar bor bo‘lsa)
+    att.present = not att.present
+    att.teacher = request.user
+    att.save()
+
+    return JsonResponse({
+        "success": True,
+        "present": att.present,
+        "date": att.date.strftime("%Y-%m-%d"),
+    })
+
 
 
 

@@ -1,40 +1,45 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<div class="card mb-3">
-  <div class="card-body">
-
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-      <div>
-        <div class="h4 mb-1">{{ g.nom }}</div>
-        <div class="text-muted">
-          Center: {{ g.center }} &nbsp;|&nbsp;
-          O‘qituvchi:
-          {% if g.oqituvchi %}
-            {{ g.oqituvchi.ism }} {{ g.oqituvchi.familya }}
-          {% else %}
-            —
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="d-flex align-items-center gap-2">
-        {% if can_add_student %}
-          <div style="margin-bottom: 15px;">
-            <a href="{% url 'education:add_student_to_group' g.id %}" class="btn btn-primary">
-              ➕ O‘quvchi qo‘shish
-            </a>
-
-          </div>
+<div class="card mb-3 shadow-sm border-0">
+  <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div>
+      <div class="h4 mb-1">{{ g.nom }}</div>
+      <div class="text-muted">
+        Center: {{ g.center }} &nbsp;|&nbsp;
+        O‘qituvchi:
+        {% if g.oqituvchi %}
+          {{ g.oqituvchi.ism }} {{ g.oqituvchi.familya }}
+        {% else %}
+          —
         {% endif %}
-
       </div>
     </div>
+
+    {% if can_add_student %}
+    <div>
+      <a href="{% url 'education:add_student_to_group' g.id %}" class="btn btn-primary">
+        ➕ O‘quvchi qo‘shish
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Sana tanlash -->
+<div class="card mb-3 border-0 shadow-sm">
+  <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-2">
+      <h6 class="fw-bold mb-0">📅 Davomat sanasi:</h6>
+      <input id="attendance-date" type="date" class="form-control form-control-sm" style="width:200px"
+             value="{{ selected_date|default:today }}">
+    </div>
+    <div class="text-muted small">Tanlangan sana: <strong id="selected-date-label">{{ selected_date|default:today }}</strong></div>
   </div>
 </div>
 
 <!-- Qoida va ball paneli -->
-<div class="card mb-3">
+<div class="card mb-3 shadow-sm border-0">
   <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
     <div class="d-flex align-items-center gap-2">
       <label class="fw-semibold me-1">Qoida:</label>
@@ -42,12 +47,12 @@
         <option value="">— Qoida tanlang —</option>
         <optgroup label="Qo‘shish sabablari">
           {% for r in rules_plus %}
-            <option value="{{ r.id }}" data-tur="+">{{ r.nom }}</option>
+            <option value="{{ r.id }}" data-type="+">{{ r.nom }}</option>
           {% endfor %}
         </optgroup>
         <optgroup label="Ayirish sabablari">
           {% for r in rules_minus %}
-            <option value="{{ r.id }}" data-tur="-">{{ r.nom }}</option>
+            <option value="{{ r.id }}" data-type="-">{{ r.nom }}</option>
           {% endfor %}
         </optgroup>
       </select>
@@ -64,21 +69,23 @@
   </div>
 </div>
 
-<form id="csrf-form" class="d-none">{% csrf_token %}</form>
-
+<!-- JS URL manzillar -->
 <div id="js-urls"
      data-attend="{% url 'education:attendance_today' g.id %}"
      data-points="{% url 'education:group_points' g.id %}">
 </div>
 
-<div class="table-responsive">
-  <table id="group-table" class="table table-hover align-middle">
-    <thead>
+<form id="csrf-form" class="d-none">{% csrf_token %}</form>
+
+<!-- Jadval -->
+<div class="table-responsive shadow-sm">
+  <table id="group-table" class="table table-hover align-middle mb-0">
+    <thead class="table-light">
       <tr>
         <th>#</th>
         <th>F.I.Sh</th>
         <th>Telefon</th>
-        <th class="text-center">Davomat (bugun)</th>
+        <th class="text-center">Davomat</th>
         <th class="text-center">⚡ Chaqmoq</th>
         <th class="text-end">Amal</th>
       </tr>
@@ -88,14 +95,18 @@
         <tr>
           <td>{{ forloop.counter }}</td>
           <td>
-            <div class="fw-semibold">{{ e.student.ism }} {{ e.student.familya }}</div>
+            <div class="fw-semibold">
+              <a href="{% url 'education:student_detail' e.student.id %}" class="text-decoration-none">
+                {{ e.student.ism }} {{ e.student.familya }}
+              </a>
+            </div>
             <div class="text-muted small">{{ e.student.email|default:e.student.username }}</div>
           </td>
           <td>{{ e.student.telefon1|default:"—" }}</td>
           <td class="text-center">
-            <input type="checkbox" class="form-check-input attend-toggle"
-                   data-enr="{{ e.id }}"
-                   data-student="{{ e.student.id }}"
+            <input type="checkbox"
+                   class="form-check-input attend-toggle"
+                   data-enrollment="{{ e.id }}"
                    {% if e.student.present_today %}checked{% endif %}>
           </td>
           <td class="text-center">
@@ -105,8 +116,8 @@
           </td>
           <td class="text-end">
             <div class="d-flex gap-2 justify-content-end">
-              <button type="button" class="btn btn-sm btn-success btn-add" data-enr="{{ e.id }}">Qo‘shish</button>
-              <button type="button" class="btn btn-sm btn-danger btn-sub" data-enr="{{ e.id }}">Ayirish</button>
+              <button type="button" class="btn btn-sm btn-success btn-add" data-student="{{ e.student.id }}">Qo‘shish</button>
+              <button type="button" class="btn btn-sm btn-danger btn-sub" data-student="{{ e.student.id }}">Ayirish</button>
             </div>
           </td>
         </tr>
@@ -121,40 +132,124 @@
 .badge.text-bg-success,
 .badge.text-bg-danger {
   min-width: 42px;
+  font-size: 14px;
+  padding: 5px 8px;
 }
+#attendance-date { border-radius: 6px; }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('.attendance-checkbox').forEach(function(box) {
-    box.addEventListener('change', function() {
-      const groupId = this.dataset.group;
-      const studentId = this.dataset.student;
-      const csrfToken = '{{ csrf_token }}';
+  // CSRF helper
+  function getCookie(name) {
+    const match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return match ? decodeURIComponent(match.pop()) : '';
+  }
+  const csrfToken = document.querySelector('#csrf-form input[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
 
-      fetch(`/ta'lim/attendance/${groupId}/${studentId}/`, {
+  const urls = document.getElementById('js-urls');
+  const attendUrl = urls.dataset.attend;
+  const pointsUrl = urls.dataset.points;
+
+  const dateInput = document.getElementById('attendance-date');
+  const selectedLabel = document.getElementById('selected-date-label');
+
+  // sana o'zgartirilganda sahifani yangilash
+  dateInput.addEventListener('change', function() {
+    const d = this.value;
+    if (!d) return;
+    const u = new URL(window.location.href);
+    u.searchParams.set('date', d);
+    window.location.href = u.toString();
+  });
+
+  // Davomat toggle
+  document.querySelectorAll('.attend-toggle').forEach(box => {
+    box.addEventListener('change', function() {
+      const enrId = this.dataset.enrollment;
+      const present = this.checked ? "1" : "0";
+      const dateVal = dateInput.value || "{{ today }}";
+
+      const fd = new FormData();
+      fd.append('enr_id', enrId);
+      fd.append('present', present);
+      fd.append('date', dateVal);
+
+      fetch(attendUrl, {
         method: 'POST',
-        headers: {
-          'X-CSRFToken': csrfToken,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'X-CSRFToken': csrfToken },
+        body: fd
       })
       .then(r => r.json())
       .then(data => {
-        if (data.status !== 'ok') {
-          alert('Xatolik yuz berdi');
+        if (!data.ok) {
+          alert('Davomat saqlanmadi: ' + (data.error || 'Nomaʼlum xato'));
+          // revert
+          box.checked = !box.checked;
         }
+      }).catch(() => {
+        alert('Server bilan aloqa uzildi');
+        box.checked = !box.checked;
       });
     });
+  });
+
+  // Ball funksiyalari (form-data orqali)
+  function sendPoints(studentId, amount, ruleId) {
+    const fd = new FormData();
+    fd.append('student_id', studentId);
+    fd.append('amount', amount);
+    fd.append('rule_id', ruleId);
+
+    fetch(pointsUrl, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken },
+      body: fd
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        const badge = document.querySelector(`button[data-student="${studentId}"]`).closest('tr').querySelector('.balance-badge');
+        badge.textContent = data.balance;
+        badge.className = 'badge balance-badge ' + (data.balance >= 0 ? 'text-bg-success' : 'text-bg-danger');
+      } else {
+        alert('Ball saqlanmadi: ' + (data.error || 'Nomaʼlum xato'));
+      }
+    })
+    .catch(() => alert('Server bilan aloqa uzildi'));
+  }
+
+  document.querySelectorAll('.btn-add').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const studentId = this.dataset.student;
+      const ruleId = document.getElementById('rule-global').value;
+      const amount = Math.abs(parseInt(document.getElementById('amount-global').value) || 0);
+      if (!ruleId) return alert('Qoida tanlanmagan.');
+      sendPoints(studentId, amount, ruleId);
+    });
+  });
+
+  document.querySelectorAll('.btn-sub').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const studentId = this.dataset.student;
+      const ruleId = document.getElementById('rule-global').value;
+      const amount = -Math.abs(parseInt(document.getElementById('amount-global').value) || 0);
+      if (!ruleId) return alert('Qoida tanlanmagan.');
+      sendPoints(studentId, amount, ruleId);
+    });
+  });
+
+  // glob plus/minus
+  document.getElementById('glob-plus').addEventListener('click', () => {
+    const input = document.getElementById('amount-global');
+    input.value = parseInt(input.value || '0', 10) + 1;
+  });
+  document.getElementById('glob-minus').addEventListener('click', () => {
+    const input = document.getElementById('amount-global');
+    const v = Math.max(1, parseInt(input.value || '0', 10) - 1);
+    input.value = v;
   });
 });
 </script>
 
 {% endblock %}
-
-
-
-
-<!-- asafdsf -->
-<!-- 
-#Bu test  uchun! -->
