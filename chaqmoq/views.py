@@ -7,6 +7,8 @@ from django.http import JsonResponse, HttpResponse
 from django.contrib.auth import get_user_model
 from .models import Ledger, Rule
 from education.models import Group, Enrollment, Attendance
+from django.utils import timezone
+from datetime import datetime
 
 User = get_user_model()
 
@@ -84,21 +86,24 @@ def berish(request):
     groups = Group.objects.select_related('oqituvchi', 'center').order_by('nom')
     rules = Rule.objects.order_by('nom')
 
+    # O‘qituvchi faqat o‘z guruhlarini ko‘radi
     if request.user.role == 'teacher':
         groups = groups.filter(oqituvchi=request.user)
 
     selected_gid = request.GET.get('group') or request.POST.get('group')
 
+    # Faqat studentlarni chiqaramiz
     students = User.objects.filter(role='student')
     if selected_gid:
         students = students.filter(enrollment__group_id=selected_gid)
     students = students.order_by('ism', 'familya').distinct()
 
+    # POST so‘rov (ball berish/ayirish)
     if request.method == 'POST':
         try:
             student_id = int(request.POST.get('student') or 0)
-            rule_id    = int(request.POST.get('rule') or 0)
-            raw_ball   = int(request.POST.get('ball') or 0)
+            rule_id = int(request.POST.get('rule') or 0)
+            raw_ball = int(request.POST.get('ball') or 0)
         except ValueError:
             messages.error(request, 'Noto‘g‘ri maʼlumot.')
             return redirect('chaqmoq:berish')
@@ -107,28 +112,46 @@ def berish(request):
             messages.error(request, 'Student va qoida majburiy.')
             return redirect(f"{request.path}?group={selected_gid or ''}")
 
+        # Student va qoida obyektlari
         student = get_object_or_404(User, pk=student_id, role='student')
-        rule    = get_object_or_404(Rule, pk=rule_id)
+        rule = get_object_or_404(Rule, pk=rule_id)
 
         abs_ball = abs(raw_ball)
         if abs_ball < rule.min_baho or abs_ball > rule.max_baho:
-            messages.error(request, f"Ball {rule.min_baho}..{rule.max_baho} oralig‘ida bo‘lishi kerak.")
+            messages.error(
+                request, f"Ball {rule.min_baho}..{rule.max_baho} oralig‘ida bo‘lishi kerak."
+            )
             return redirect(f"{request.path}?group={selected_gid or ''}")
 
+        # Ballni belgilang (+ yoki -)
         signed = abs_ball if rule.tur == Rule.PLUS else -abs_ball
         group = Group.objects.filter(pk=selected_gid).first() if selected_gid else None
 
+        # 🔹 Tanlangan sanani olish
+        davomat_sana_str = request.POST.get('davomat_sana')
+        if davomat_sana_str:
+            try:
+                tanlangan_sana = datetime.strptime(davomat_sana_str, '%Y-%m-%d')
+                tanlangan_sana = timezone.make_aware(tanlangan_sana)
+            except ValueError:
+                tanlangan_sana = timezone.now()
+        else:
+            tanlangan_sana = timezone.now()
+
+        # 🔹 Yangi chaqmoq yozuvi
         Ledger.objects.create(
             student=student,
             beruvchi=request.user,
             group=group,
             rule=rule,
-            ball=signed
+            ball=signed,
+            sana=tanlangan_sana
         )
-        messages.success(request, f"{student.ism} uchun {signed} chaqmoq yozildi.")
+
+        messages.success(request, f"{student.ism} uchun {signed} chaqmoq yozildi ({tanlangan_sana.date()}).")
         return redirect(f"{request.path}?group={selected_gid or ''}")
 
-    return render(request, 'chaqmoq/give.html', {
+    return render(request, 'chaqmoq/berish.html', {
         'groups': groups,
         'rules': rules,
         'students': students,

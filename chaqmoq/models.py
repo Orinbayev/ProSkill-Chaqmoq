@@ -1,7 +1,7 @@
 from django.db import models
 from django.conf import settings
 from education.models import Group
-
+from django.utils import timezone
 User = settings.AUTH_USER_MODEL
 
 class Rule(models.Model):
@@ -30,7 +30,7 @@ class Ledger(models.Model):
     group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True, blank=True)
     rule = models.ForeignKey(Rule, on_delete=models.PROTECT)
     ball = models.SmallIntegerField()  # manfiy bo‘lishi mumkin
-    sana = models.DateTimeField(auto_now_add=True)
+    sana = models.DateTimeField(default=timezone.now)
 
     class Meta:
         verbose_name = 'Chaqmoq yozuvi'

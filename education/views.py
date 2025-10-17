@@ -7,8 +7,9 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Sum, Value, F
-from .models import AttendanceHistory, Group, GroupStudent, User
+from .models import  Group,  User
 from django.utils.dateparse import parse_date
+from django.utils.timezone import localdate, make_aware
 
 from django.http import (
     Http404,
@@ -29,7 +30,7 @@ from django.db.models.functions import Abs, Coalesce
 
 U = get_user_model()
 
-DAILY_LIMIT = 30  # har bir o‘qituvchi → har bir o‘quvchi uchun, bugungi kun limiti
+DAILY_LIMIT = 50  # har bir o‘qituvchi → har bir o‘quvchi uchun, bugungi kun limiti
 
 # ---------- Ruxsat helperlari ----------
 def _can_manage(u):
@@ -254,89 +255,84 @@ def attendance_today(request, pk: int):
 # ---------- AJAX: Chaqmoq yozish/ayirish ----------
 @login_required
 def group_points(request, pk: int):
-    """
-    Ball (chaqmoq) qo'shish / ayirish.
-    JSON yoki form-data qabul qiladi.
-    maydonlar: enr_id|student_id, amount (int), rule_id (ixtiyoriy)
-    """
+    # Faqat POST
     if request.method != "POST":
         return JsonResponse({"ok": False, "error": "POST only"}, status=405)
 
-    if request.content_type and request.content_type.startswith("application/json"):
+    # JSON yoki form-data
+    if request.content_type and "application/json" in request.content_type:
         try:
             data = json.loads(request.body.decode())
-        except json.JSONDecodeError:
-            return JsonResponse({"ok": False, "error": "Invalid JSON"}, status=400)
+        except Exception:
+            data = {}
     else:
         data = request.POST
 
+    # Guruhni tekshirish
     g = get_object_or_404(Group, pk=pk)
     if request.user.role == "teacher" and g.oqituvchi != request.user and not _teacher_can(request.user, g):
         return HttpResponseForbidden()
 
-    enr_id = (data.get("enr_id") or "").strip()
+    # Ma'lumotlarni olish
     student_id = (data.get("student_id") or "").strip()
     rule_id = (data.get("rule_id") or "").strip()
     amount_raw = (data.get("amount") or "0").strip()
+    date_str = (data.get("date") or "").strip()
 
+    # Ballni parse qilish
     try:
         amount = int(amount_raw)
     except ValueError:
-        return JsonResponse({"ok": False, "error": "Noto‘g‘ri ball"}, status=400)
+        return JsonResponse({"ok": False, "error": "Noto‘g‘ri ball kiritildi"}, status=400)
+
     if amount == 0:
         return JsonResponse({"ok": False, "error": "0 ball yozilmaydi"}, status=400)
 
-    # student
-    if enr_id and enr_id.isdigit():
-        enr = get_object_or_404(Enrollment, pk=int(enr_id), group=g)
-        student = enr.student
-    elif student_id and student_id.isdigit():
-        student = get_object_or_404(User, pk=int(student_id), role="student")
-    else:
-        return JsonResponse({"ok": False, "error": "ID not provided"}, status=400)
+    # Studentni olish
+    student = get_object_or_404(User, pk=int(student_id), role="student")
 
-    # qoida
+    # Qoida olish
     if rule_id and rule_id.isdigit():
         rule = get_object_or_404(Rule, pk=int(rule_id))
     else:
-        rule = Rule.objects.filter(nom="Erkin ball").first()
-        if not rule:
-            rule = Rule.objects.create(nom="Erkin ball", tur=Rule.PLUS, min_baho=1, max_baho=1_000_000)
+        rule = Rule.objects.filter(nom="Erkin ball").first() or Rule.objects.create(
+            nom="Erkin ball", tur=Rule.PLUS, min_baho=1, max_baho=1000000
+        )
 
-    # kunlik limit hisoblash
-    today = localdate()
-    used_agg = Ledger.objects.filter(
-        student=student,
-        group=g,
-        beruvchi=request.user,
-        sana=today,
-    ).aggregate(total=Coalesce(Sum(Abs(F('ball'))), 0))
-    used = int(used_agg.get('total') or 0)
+    # ✅ SANANI ANIQLASH
+    if date_str:
+        try:
+            # foydalanuvchi tanlagan sana (faqat YYYY-MM-DD)
+            parsed_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except Exception:
+            parsed_date = timezone.localdate()
+    else:
+        parsed_date = timezone.localdate()
 
-    remaining = max(0, DAILY_LIMIT - used)
-    need = abs(amount)
-    if remaining <= 0:
-        return JsonResponse({"ok": False, "error": f"Bugun limit tugagan (maks. {DAILY_LIMIT})."}, status=400)
-    if need > remaining:
-        return JsonResponse({"ok": False, "error": f"Bugun {remaining} taga yetarli. Kunlik limit {DAILY_LIMIT}."}, status=400)
+    # Datetimega aylantirish (timezone bilan)
+    sana = timezone.make_aware(datetime.combine(parsed_date, datetime.min.time()))
 
-    if not (rule.min_baho <= abs(amount) <= rule.max_baho):
-        return JsonResponse({"ok": False, "error": f"Diapazon: {rule.min_baho}..{rule.max_baho}"}, status=400)
-
-    # ledger yozuvi
-    Ledger.objects.create(
+    # ⚡ Ledger yozuvini yaratish
+    record = Ledger.objects.create(
         student=student,
         beruvchi=request.user,
         group=g,
         rule=rule,
         ball=amount,
-        sana=today,
+        sana=sana,
     )
 
-    balance_agg = Ledger.objects.filter(student=student).aggregate(s=Coalesce(Sum('ball'), 0))
-    balance = int(balance_agg.get('s') or 0)
+    # Balansni qayta hisoblash
+    balance_agg = Ledger.objects.filter(student=student).aggregate(s=Coalesce(Sum("ball"), 0))
+    balance = int(balance_agg.get("s") or 0)
 
-    return JsonResponse({"ok": True, "amount": amount, "balance": balance, "remaining": remaining - need})
+    return JsonResponse({
+        "ok": True,
+        "amount": amount,
+        "balance": balance,
+        "saved_date": parsed_date.strftime("%Y-%m-%d"),
+        "id": record.id
+    })
 
 
 @login_required

@@ -5,8 +5,6 @@ class ProductImageInline(admin.TabularInline):
     model = ProductImage
     extra = 1
 
-
-
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     list_display = ('nom','narx_chaqmoq','qoldiq')
