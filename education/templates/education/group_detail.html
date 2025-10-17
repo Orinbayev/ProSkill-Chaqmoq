@@ -144,6 +144,7 @@
 {% verbatim %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // 🔹 CSRF token olish
   function getCookie(name) {
     const match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
     return match ? decodeURIComponent(match.pop()) : '';
@@ -152,9 +153,19 @@ document.addEventListener('DOMContentLoaded', function() {
   const csrfToken = document.querySelector('#csrf-form input[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
   const urls = document.getElementById('js-urls');
   const pointsUrl = urls.dataset.points;
+  const attendanceUrl = urls.dataset.attend;
   const dateInput = document.getElementById('attendance-date');
 
-  // Ball yuborish funksiyasi
+  // 🔹 Sana o‘zgarsa sahifani qayta yuklash
+  dateInput.addEventListener('change', function() {
+    const d = this.value;
+    if (!d) return;
+    const u = new URL(window.location.href);
+    u.searchParams.set('date', d);
+    window.location.href = u.toString();
+  });
+
+  // 🔹 Ball yuborish
   function sendPoints(studentId, amount, ruleId) {
     const dateVal = dateInput.value || "";
     const fd = new FormData();
@@ -182,9 +193,9 @@ document.addEventListener('DOMContentLoaded', function() {
     .catch(() => alert('❌ Server bilan aloqa yo‘q.'));
   }
 
-  // Qo‘shish
+  // 🔹 Qo‘shish
   document.querySelectorAll(".btn-add").forEach(btn => {
-    btn.setAttribute("type", "button");
+    btn.type = "button";
     btn.addEventListener("click", function () {
       const studentId = this.dataset.student;
       const ruleId = document.getElementById("rule-global").value;
@@ -194,9 +205,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // Ayirish
+  // 🔹 Ayirish
   document.querySelectorAll(".btn-sub").forEach(btn => {
-    btn.setAttribute("type", "button");
+    btn.type = "button";
     btn.addEventListener("click", function () {
       const studentId = this.dataset.student;
       const ruleId = document.getElementById("rule-global").value;
@@ -206,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // Qo‘lda ball miqdorini oshirish/pasaytirish
+  // 🔹 Ballni qo‘lda oshirish/pasaytirish
   document.getElementById('glob-plus').addEventListener('click', () => {
     const input = document.getElementById('amount-global');
     input.value = parseInt(input.value || '0', 10) + 1;
@@ -216,8 +227,41 @@ document.addEventListener('DOMContentLoaded', function() {
     const v = Math.max(1, parseInt(input.value || '0', 10) - 1);
     input.value = v;
   });
+
+  // 🔹 ✅ Davomat (kelgan / kelmagan)
+  document.querySelectorAll('.attend-toggle').forEach(box => {
+    box.addEventListener('change', function() {
+      const enrId = this.dataset.enrollment;
+      const present = this.checked ? "1" : "0";
+      const dateVal = dateInput.value || "";
+
+      const fd = new FormData();
+      fd.append("enr_id", enrId);
+      fd.append("present", present);
+      fd.append("date", dateVal);
+
+      fetch(attendanceUrl, {
+        method: "POST",
+        headers: { "X-CSRFToken": csrfToken },
+        body: fd
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          if (!data.present && data.removed_points > 0) {
+            alert("⚠️ O‘quvchi kelmaganligi uchun " + data.removed_points + " ta chaqmoq o‘chirildi.");
+          }
+        } else {
+          alert("❌ Davomat saqlanmadi: " + (data.error || "Server xatosi"));
+        }
+      })
+      .catch(() => alert("❌ Server bilan aloqa yo‘q."));
+    });
+  });
+
 });
 </script>
+
 {% endverbatim %}
 
 {% endblock %}
