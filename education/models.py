@@ -193,3 +193,16 @@ class Student(models.Model):
 
     def __str__(self):
         return self.user.full_name
+
+
+class DailyLightningSetting(models.Model):
+    date = models.DateField(unique=True)
+    max_lightning = models.PositiveIntegerField(default=0)  # 0 → cheklanmagan
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Kunlik chaqmoq limiti"
+        verbose_name_plural = "Kunlik chaqmoq limitlari"
+
+    def __str__(self):
+        return f"{self.date} — {self.max_lightning or 'Cheklanmagan'}"

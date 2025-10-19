@@ -10,6 +10,7 @@ from django.db.models import Count, Sum, Value, F
 from .models import  Group,  User
 from django.utils.dateparse import parse_date
 from django.utils.timezone import localdate, make_aware
+from django.db.models.functions import ExtractMonth, ExtractYear
 
 from django.http import (
     Http404,
@@ -300,15 +301,28 @@ def group_points(request, pk: int):
     # ✅ SANANI ANIQLASH
     if date_str:
         try:
-            # foydalanuvchi tanlagan sana (faqat YYYY-MM-DD)
             parsed_date = datetime.strptime(date_str, "%Y-%m-%d").date()
         except Exception:
             parsed_date = timezone.localdate()
     else:
         parsed_date = timezone.localdate()
 
-    # Datetimega aylantirish (timezone bilan)
     sana = timezone.make_aware(datetime.combine(parsed_date, datetime.min.time()))
+
+    # ✅ Kunlik chaqmoq limitini tekshirish
+    from .models import DailyLightningSetting  # import kerak bo‘ladi
+    setting = DailyLightningSetting.objects.filter(date=parsed_date, active=True).first()
+    if setting and setting.max_lightning > 0:
+        today_sum = Ledger.objects.filter(
+            student=student,
+            sana__date=parsed_date
+        ).aggregate(s=Coalesce(Sum('ball'), 0))['s'] or 0
+
+        if today_sum + amount > setting.max_lightning:
+            return JsonResponse({
+                "ok": False,
+                "error": f"Bugun {setting.max_lightning} tadan ortiq chaqmoq berish mumkin emas."
+            }, status=400)
 
     # ⚡ Ledger yozuvini yaratish
     record = Ledger.objects.create(
@@ -335,53 +349,65 @@ def group_points(request, pk: int):
 
 @login_required
 def student_detail(request, student_id: int):
-    """
-    Foydalanuvchining davomat va chaqmoq tarixini ko‘rsatadi.
-    """
     student = get_object_or_404(User, pk=student_id, role="student")
 
-    att_dates = Attendance.objects.filter(student=student).values_list('date', flat=True)
-    ledger_dates = Ledger.objects.filter(student=student).values_list('sana', flat=True)
+    # Barcha davomat va ledger yozuvlarini olish
+    attendances = Attendance.objects.filter(student=student).annotate(
+        month=ExtractMonth('date'),
+        year=ExtractYear('date')
+    ).order_by('-date')
 
-    # har ikkala sanani toza date formatga o‘tkazamiz
-    all_dates = []
-    for d in att_dates:
-        if hasattr(d, 'date'):
-            d = d.date()
-        all_dates.append(d)
-    for d in ledger_dates:
-        if hasattr(d, 'date'):
-            d = d.date()
-        all_dates.append(d)
+    ledgers = Ledger.objects.filter(student=student).annotate(
+        month=ExtractMonth('sana'),
+        year=ExtractYear('sana')
+    )
 
-    dates = sorted(set(all_dates), reverse=True)[:30]
+    # Guruhlash: { (year, month): [att1, att2, ...] }
+    grouped = {}
+    for a in attendances:
+        key = (a.year, a.month)
+        if key not in grouped:
+            grouped[key] = []
+        grouped[key].append(a)
 
-    history = []
-    for d in dates:
-        # ✅ Davomat
-        present_qs = Attendance.objects.filter(student=student, date=d)
-        present = present_qs.exists() and any(a.present for a in present_qs)
+    # Har oy uchun yig‘indi hisoblash
+    month_summaries = {}
+    for key, records in grouped.items():
+        y, m = key
+        total_present = sum(1 for r in records if r.present)
+        month_ledgers = ledgers.filter(year=y, month=m)
+        plus_sum = month_ledgers.filter(ball__gt=0).aggregate(total=Sum('ball'))['total'] or 0
+        minus_sum = month_ledgers.filter(ball__lt=0).aggregate(total=Sum('ball'))['total'] or 0
 
-        # ✅ Ledgerdan o‘sha sanaga tegishli plus/minus yig‘indi
-        plus_sum = Ledger.objects.filter(
-            student=student, sana__date=d, ball__gt=0
-        ).aggregate(s=Coalesce(Sum('ball'), 0))['s'] or 0
+        month_summaries[key] = {
+            'present_days': total_present,
+            'plus': plus_sum,
+            'minus': minus_sum,
+            'days': []
+        }
 
-        minus_sum = Ledger.objects.filter(
-            student=student, sana__date=d, ball__lt=0
-        ).aggregate(s=Coalesce(Sum('ball'), 0))['s'] or 0
+        # Har bir kun uchun ham plus/minus qiymatlar
+        for r in records:
+            plus_day = ledgers.filter(sana__date=r.date, ball__gt=0).aggregate(total=Sum('ball'))['total'] or 0
+            minus_day = ledgers.filter(sana__date=r.date, ball__lt=0).aggregate(total=Sum('ball'))['total'] or 0
+            month_summaries[key]['days'].append({
+                'date': r.date,
+                'present': r.present,
+                'plus': plus_day,
+                'minus': abs(minus_day),
+            })
 
-        history.append({
-            'date': d,
-            'is_present': bool(present),
-            'plus_coin': int(plus_sum),
-            'minus_coin': int(abs(minus_sum)),
-        })
-
-    return render(request, 'education/student_detail.html', {
+    ctx = {
         'student': student,
-        'history': history
-    })
+        'month_summaries': month_summaries,
+        'month_names': {
+            1: "Yanvar", 2: "Fevral", 3: "Mart", 4: "Aprel", 5: "May",
+            6: "Iyun", 7: "Iyul", 8: "Avgust", 9: "Sentabr", 10: "Oktabr",
+            11: "Noyabr", 12: "Dekabr"
+        }
+    }
+
+    return render(request, "education/student_detail.html", ctx)
 
 
 
