@@ -346,65 +346,59 @@ def group_points(request, pk: int):
         "id": record.id
     })
 
-
 @login_required
 def student_detail(request, student_id: int):
     student = get_object_or_404(User, pk=student_id, role="student")
 
-    # Barcha davomat va ledger yozuvlarini olish
+    MONTH_NAMES = {
+        1: "Yanvar", 2: "Fevral", 3: "Mart", 4: "Aprel", 5: "May",
+        6: "Iyun", 7: "Iyul", 8: "Avgust", 9: "Sentabr", 10: "Oktyabr",
+        11: "Noyabr", 12: "Dekabr"
+    }
+
     attendances = Attendance.objects.filter(student=student).annotate(
-        month=ExtractMonth('date'),
-        year=ExtractYear('date')
+        year=ExtractYear('date'),
+        month=ExtractMonth('date')
     ).order_by('-date')
 
     ledgers = Ledger.objects.filter(student=student).annotate(
-        month=ExtractMonth('sana'),
-        year=ExtractYear('sana')
+        year=ExtractYear('sana'),
+        month=ExtractMonth('sana')
     )
 
-    # Guruhlash: { (year, month): [att1, att2, ...] }
     grouped = {}
     for a in attendances:
         key = (a.year, a.month)
-        if key not in grouped:
-            grouped[key] = []
-        grouped[key].append(a)
+        grouped.setdefault(key, []).append(a)
 
-    # Har oy uchun yig‘indi hisoblash
-    month_summaries = {}
-    for key, records in grouped.items():
-        y, m = key
+    month_summaries = []
+    for (year, month), records in grouped.items():
         total_present = sum(1 for r in records if r.present)
-        month_ledgers = ledgers.filter(year=y, month=m)
+        month_ledgers = ledgers.filter(year=year, month=month)
         plus_sum = month_ledgers.filter(ball__gt=0).aggregate(total=Sum('ball'))['total'] or 0
         minus_sum = month_ledgers.filter(ball__lt=0).aggregate(total=Sum('ball'))['total'] or 0
 
-        month_summaries[key] = {
-            'present_days': total_present,
-            'plus': plus_sum,
-            'minus': minus_sum,
-            'days': []
-        }
-
-        # Har bir kun uchun ham plus/minus qiymatlar
-        for r in records:
-            plus_day = ledgers.filter(sana__date=r.date, ball__gt=0).aggregate(total=Sum('ball'))['total'] or 0
-            minus_day = ledgers.filter(sana__date=r.date, ball__lt=0).aggregate(total=Sum('ball'))['total'] or 0
-            month_summaries[key]['days'].append({
-                'date': r.date,
-                'present': r.present,
-                'plus': plus_day,
-                'minus': abs(minus_day),
-            })
+        month_summaries.append({
+            "year": year,
+            "month": month,
+            "month_name": MONTH_NAMES.get(month, "Noma’lum oy"),
+            "present_days": total_present,
+            "plus": plus_sum,
+            "minus": abs(minus_sum),
+            "days": [
+                {
+                    "date": r.date,
+                    "present": r.present,
+                    "plus": ledgers.filter(sana__date=r.date, ball__gt=0).aggregate(total=Sum('ball'))['total'] or 0,
+                    "minus": abs(ledgers.filter(sana__date=r.date, ball__lt=0).aggregate(total=Sum('ball'))['total'] or 0)
+                }
+                for r in records
+            ]
+        })
 
     ctx = {
-        'student': student,
-        'month_summaries': month_summaries,
-        'month_names': {
-            1: "Yanvar", 2: "Fevral", 3: "Mart", 4: "Aprel", 5: "May",
-            6: "Iyun", 7: "Iyul", 8: "Avgust", 9: "Sentabr", 10: "Oktabr",
-            11: "Noyabr", 12: "Dekabr"
-        }
+        "student": student,
+        "month_summaries": month_summaries,
     }
 
     return render(request, "education/student_detail.html", ctx)
