@@ -7,12 +7,23 @@ User = get_user_model()
 class GroupForm(forms.ModelForm):
     class Meta:
         model = Group
-        fields = ["center", "nom", "izoh", "oqituvchi"]
-        widgets = {"izoh": forms.Textarea(attrs={"rows": 3})}
+        fields = [
+            'category', 'center', 'nom', 'izoh', 'oqituvchi',
+            'kurs_narxi', 'oqituvchi_foiz', 'oy_dars_soni'
+        ]
+        labels = {
+            'nom': "Guruh nomi",
+            'oqituvchi': "O‘qituvchi",
+            'kurs_narxi': "Kurs narxi (so‘m)",
+            'oqituvchi_foiz': "O‘qituvchi foizi (%)",
+            'oy_dars_soni': "Bir oyda darslar soni",
+            'izoh': "Izoh",
+            'center': "Markaz",
+            'category': "Yo‘nalish",
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # faqat o‘qituvchilar chiqsin
         self.fields["oqituvchi"].queryset = User.objects.filter(role="teacher")
 
 class LangGroupForm(GroupForm):
@@ -167,3 +178,20 @@ class EnrollmentCreateForm(forms.ModelForm):
             self.fields['group'].queryset = Group.objects.filter(oqituvchi=user)
         else:
             self.fields['group'].queryset = Group.objects.all().order_by('nom')
+
+
+
+class EnrollmentForm(forms.ModelForm):
+    class Meta:
+        model = Enrollment
+        fields = ['student', 'kurs_narhi', 'oqituvchi_foiz']
+        labels = {
+            'student': "O‘quvchini tanlang",
+            'kurs_narhi': "Kurs narxi (so‘mda)",
+            'oqituvchi_foiz': "O‘qituvchining ulushi (%)",
+        }
+        widgets = {
+            'student': forms.Select(attrs={'class': 'form-select'}),
+            'kurs_narhi': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Masalan: 600000'}),
+            'oqituvchi_foiz': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Masalan: 40'}),
+        }

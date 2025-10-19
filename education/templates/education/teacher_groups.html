@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container mt-4">
+  <h4 class="fw-bold mb-3">
+    {{ teacher.ism }} {{ teacher.familya }} — O‘qituvchi guruhlari
+  </h4>
+
+  {% if teacher_data %}
+    {% for item in teacher_data %}
+      <details class="mb-2 bg-light rounded p-2">
+        <summary class="fw-semibold">
+          {{ item.group.nom }} — 💰 {{ item.daromad|intcomma }} so‘m | {{ item.foiz }}%
+        </summary>
+
+        {% if item.enrollments %}
+        <table class="table table-striped table-sm mt-2">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>O‘quvchi</th>
+              <th>Kurs narxi</th>
+              <th>Foiz</th>
+              <th>Kelgan darslar</th>
+              <th>Daromad (so‘m)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for e in item.enrollments %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ e.student.ism }} {{ e.student.familya }}</td>
+                <td>{{ e.kurs_narhi|intcomma }}</td>
+                <td>{{ e.foiz }}%</td>
+                <td>{{ e.attended }}</td>
+                <td>{{ e.daromad|intcomma }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+          <p class="text-muted mt-2">Bu guruhda hozircha o‘quvchilar yo‘q.</p>
+        {% endif %}
+      </details>
+    {% endfor %}
+  {% else %}
+    <p class="text-muted">Bu o‘qituvchining hozircha guruhlari yo‘q.</p>
+  {% endif %}
+</div>
+{% endblock %}

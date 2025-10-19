@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h3 class="fw-bold mb-3">📈 O‘qituvchilar umumiy oylik daromad hisobot paneli</h3>
+  <p class="text-muted">Oy: {{ month }} / {{ year }}</p>
+
+  {% if data_summary %}
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <canvas id="teacherIncomeChart" height="100"></canvas>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <table class="table table-striped align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>O‘qituvchi</th>
+            <th>O‘tilgan darslar</th>
+            <th>O‘qituvchi daromadi</th>
+            <th>Guruhlar soni</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in data_summary %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td><strong>{{ t.teacher.get_full_name }}</strong></td>
+            <td>{{ t.total_lessons }}</td>
+            <td><strong>{{ t.total_income|floatformat:0 }}</strong> so‘m</td>
+            <td>{{ t.group_count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% else %}
+  <div class="alert alert-warning mt-4">
+    Hisobot uchun ma’lumot mavjud emas. Guruhlar yoki darslar yo‘q.
+  </div>
+  {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('teacherIncomeChart').getContext('2d');
+const chart = new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: [{% for l in chart_labels %}'{{ l }}',{% endfor %}],
+    datasets: [{
+      label: 'Daromad (so‘m)',
+      data: [{% for v in chart_values %}{{ v }},{% endfor %}],
+      backgroundColor: 'rgba(75, 192, 192, 0.6)',
+      borderColor: 'rgba(75, 192, 192, 1)',
+      borderWidth: 1,
+      borderRadius: 6
+    }]
+  },
+  options: {responsive: true, scales: {y: {beginAtZero: true}}}
+});
+</script>
+{% endblock %}

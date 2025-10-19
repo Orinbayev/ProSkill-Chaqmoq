@@ -75,6 +75,10 @@ class User(AbstractUser):
 
     def full_name(self):
         return f"{self.ism} {self.familya}"
+    
+    def get_full_name(self):
+        """Django bilan mos bo‘lgan nom (oldingi full_name bilan bir xil natija)"""
+        return f"{self.ism} {self.familya}".strip()
 
     def __str__(self):
         return f"{self.full_name()} — {self.get_role_display()}"

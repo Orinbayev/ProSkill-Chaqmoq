@@ -1,20 +1,22 @@
 <div class="d-flex flex-column p-3 border-end bg-white shadow-sm min-vh-100" style="width:260px">
   <a href="{% url 'core:home' %}" class="d-flex align-items-center mb-3 text-decoration-none">
-    <span class="fs-5">⚡ Chaqmoq</span>
+    <span class="fs-5 fw-bold text-primary">⚡ Chaqmoq</span>
   </a>
 
   <hr>
 
   <ul class="nav nav-pills flex-column mb-auto">
+    <!-- 🏠 Boshqaruv -->
     <li class="nav-item">
       <a href="{% url 'core:home' %}" class="nav-link">🏠 Boshqaruv</a>
     </li>
 
+    <!-- 🛍️ Do‘kon -->
     <li>
       <a href="{% url 'store:products' %}" class="nav-link">🛍️ Do‘kon</a>
     </li>
 
-    {# Direktor/managerlar uchun umumiy Guruhlar #}
+    <!-- 👥 Guruhlar (direktor/manager) -->
     {% if user.is_superuser or user.role in 'director manager' %}
       <li class="nav-item">
         <a class="nav-link d-flex justify-content-between align-items-center"
@@ -31,16 +33,29 @@
       </li>
     {% endif %}
 
-    {# Faqat o‘qituvchi uchun — Mening guruhlarim #}
-   {% if user.role == 'teacher' %}
-     <li><a href="{% url 'education:my_groups' %}" class="nav-link">👥 Mening guruhlarim</a></li>
-   {% endif %}
+    <!-- 👩‍🏫 O‘qituvchi uchun — Mening guruhlarim -->
+    {% if user.role == 'teacher' %}
+      <li>
+        <a href="{% url 'education:my_groups' %}" class="nav-link">👩‍🏫 Mening guruhlarim</a>
+      </li>
+    {% endif %}
 
+    <!-- 💰 To‘lov (direktor va o‘qituvchi uchun) -->
+    {% if user.is_superuser or user.role == 'director' or user.role == 'teacher' %}
+      <li>
+          <a href="{% url 'education:teacher_salary_list' %}" class="nav-link text-warning fw-bold">💰 To‘lov</a>
+          <a href="{% url 'education:teacher_salary_summary' %}" class="nav-link text-info fw-bold">📊 Hisobot (Direktor)</a>
+
+      </li>
+    {% endif %}
+
+
+    <!-- 📊 Reyting -->
     <li>
       <a href="{% url 'chaqmoq:reyting' %}" class="nav-link">📊 Reyting</a>
     </li>
 
-    {# Direktor/managerlar uchun — Chaqmoq berish/ayirish #}
+    <!-- ⚡ Chaqmoq berish/ayirish (direktor/manager) -->
     {% if user.is_superuser or user.role == 'director' or user.role == 'manager' %}
       <li>
         <a href="{% url 'chaqmoq:berish' %}" class="nav-link">⚡ Chaqmoq berish/ayirish</a>
@@ -50,16 +65,19 @@
 
   <hr>
 
-{% if request.user.is_authenticated %}
-  <div class="small text-muted mb-2">
-    {{ request.user.ism }} {{ request.user.familya }} — {{ request.user.get_role_display }}
-  </div>
+  <!-- 👤 Foydalanuvchi ma’lumoti -->
+  {% if request.user.is_authenticated %}
+    <div class="small text-muted mb-2">
+      {{ request.user.ism }} {{ request.user.familya }} — 
+      <span class="text-primary">{{ request.user.get_role_display }}</span>
+    </div>
 
     <form method="post" action="{% url 'logout' %}">
       {% csrf_token %}
-      <button type="submit" class="btn btn-outline-danger btn-sm w-100">Chiqish</button>
+      <button type="submit" class="btn btn-outline-danger btn-sm w-100">🚪 Chiqish</button>
     </form>
+
   {% else %}
-    <a class="btn btn-primary btn-sm w-100" href="{% url 'login' %}">Kirish</a>
+    <a class="btn btn-primary btn-sm w-100" href="{% url 'login' %}">🔑 Kirish</a>
   {% endif %}
 </div>

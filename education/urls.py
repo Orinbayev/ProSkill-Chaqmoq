@@ -26,6 +26,12 @@ urlpatterns = [
     path("guruh/<int:pk>/attendance_today/", views.attendance_today, name="attendance_today"),
     path("guruh/<int:pk>/points/", views.group_points, name="group_points"),
     path("attendance/toggle/", views.toggle_attendance, name="toggle_attendance"),
+    path("teacher-salary/", views.teacher_salary_list, name="teacher_salary_list"),
+    path("teacher-salary/<int:teacher_id>/", views.teacher_groups, name="teacher_groups"),
+    path("teacher-salary/group/<int:group_id>/", views.teacher_salary_report, name="teacher_salary_report"),
+    path('teacher-salary/', views.teacher_salary_redirect, name='teacher_salary_auto'),
+    path("teacher-salary/summary/", views.teacher_salary_summary, name="teacher_salary_summary"),
+
 
     # === 👨‍🏫 O‘QITUVCHI UCHUN ===
     path("mening-guruhlarim/", views.my_groups, name="my_groups"),

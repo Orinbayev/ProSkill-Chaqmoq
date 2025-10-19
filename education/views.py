@@ -11,6 +11,7 @@ from .models import  Group,  User
 from django.utils.dateparse import parse_date
 from django.utils.timezone import localdate, make_aware
 from django.db.models.functions import ExtractMonth, ExtractYear
+from datetime import date
 
 from django.http import (
     Http404,
@@ -187,8 +188,6 @@ def group_detail(request, pk: int):
     }
 
     return render(request, "education/group_detail.html", ctx)
-
-
 
 
 
@@ -473,6 +472,140 @@ def group_rollcall(request, pk):
         {"g": g, "date": the_date.isoformat(), "students": students, "rules": rules},
     )
 
+@login_required
+def teacher_salary_list(request):
+    teachers = User.objects.filter(role='teacher').order_by('ism')
+    return render(request, "education/teacher_salary_list.html", {"teachers": teachers})
+
+
+# 🔹 2. O‘qituvchining barcha guruhlari
+@login_required
+def teacher_groups(request, teacher_id):
+    teacher = get_object_or_404(User, id=teacher_id, role="teacher")
+    groups = Group.objects.filter(oqituvchi=teacher).prefetch_related('enrollments__student', 'attendances')
+
+    teacher_data = []
+    for group in groups:
+        enrollments = []
+        for e in group.enrollments.all():
+            attended = group.attendances.filter(student=e.student, present=True).count()
+            enrollments.append({
+                "student": e.student,
+                "kurs_narhi": e.kurs_narhi,
+                "foiz": e.oqituvchi_foiz,
+                "attended": attended,
+                "daromad": e.real_oqituvchi_daromadi(),
+            })
+        total_income = sum(e["daromad"] for e in enrollments)
+
+        teacher_data.append({
+            "group": group,
+            "enrollments": enrollments,
+            "foiz": group.oqituvchi_foiz,
+            "daromad": total_income,
+        })
+
+    return render(request, "education/teacher_groups.html", {
+        "teacher": teacher,
+        "teacher_data": teacher_data,
+    })
+
+
+
+@login_required
+def teacher_salary_report(request, group_id):
+    group = get_object_or_404(Group, id=group_id)
+    enrollments = group.enrollments.select_related("student")
+
+    total_lessons = Attendance.objects.filter(group=group).values("date").distinct().count()
+    per_lesson_income = group.dars_boshiga_tolov()
+
+    student_summaries = []
+    for e in enrollments:
+        attended = Attendance.objects.filter(group=group, student=e.student, present=True).count()
+        teacher_income = attended * per_lesson_income
+        student_summaries.append({
+            "student": e.student,
+            "attended": attended,
+            "teacher_income": teacher_income
+        })
+
+    teacher_total_income = sum(s["teacher_income"] for s in student_summaries)
+
+    ctx = {
+        "group": group,
+        "student_summaries": student_summaries,
+        "teacher_total_income": teacher_total_income,
+        "month": timezone.now().strftime("%B"),
+        "year": timezone.now().year,
+    }
+    return render(request, "education/teacher_salary_report.html", ctx)
+
+
+# 📊 DIREKTOR HISOBOT PANELI
+@login_required
+def teacher_salary_summary(request):
+    teachers = User.objects.filter(role='teacher')
+    all_groups = Group.objects.select_related('oqituvchi').all()
+
+    data_summary = []
+    chart_labels, chart_values = [], []
+    now = timezone.now()
+
+    for teacher in teachers:
+        teacher_groups = all_groups.filter(oqituvchi=teacher)
+        teacher_total_income = 0
+        total_lessons = 0
+
+        for group in teacher_groups:
+            dars_boshiga_tolov = group.dars_boshiga_tolov()
+            attended_count = Attendance.objects.filter(group=group, present=True).count()
+            total_lessons += attended_count
+            teacher_total_income += attended_count * dars_boshiga_tolov
+
+        data_summary.append({
+            "teacher": teacher,
+            "total_lessons": total_lessons,
+            "total_income": round(teacher_total_income),
+            "group_count": teacher_groups.count(),
+        })
+
+        if teacher_total_income > 0:
+            chart_labels.append(teacher.get_full_name())
+            chart_values.append(round(teacher_total_income))
+
+    ctx = {
+        "data_summary": data_summary,
+        "chart_labels": chart_labels,
+        "chart_values": chart_values,
+        "month": now.strftime("%B"),
+        "year": now.year,
+    }
+    return render(request, "education/teacher_salary_summary.html", ctx)
+
+
+
+@login_required
+def teacher_salary_redirect(request):
+    group = None
+
+    # O‘qituvchi bo‘lsa — o‘z guruhini topadi
+    if request.user.role == "teacher":
+        group = Group.objects.filter(oqituvchi=request.user).first()
+
+    # Direktor yoki superuser bo‘lsa — birinchi mavjud guruhni topadi
+    elif request.user.role == "director" or request.user.is_superuser:
+        group = Group.objects.first()
+
+    # Agar topilmasa — xabar chiqar va qaytar
+    if not group:
+        messages.warning(request, "Hech qanday guruh topilmadi!")
+        return redirect("education:groups_it")
+
+    # Topilgan guruh bo‘yicha maosh sahifasiga yo‘naltirish
+    return redirect("education:teacher_salary_report", group.id)
+
+
 
 # ---------- CRUD ----------
 @login_required
@@ -551,15 +684,17 @@ def group_delete(request, pk):
 
 @login_required
 def add_student_to_group(request, pk: int):
+    """
+    Guruhga yangi o‘quvchi qo‘shish + kurs narxi + o‘qituvchi foizi bilan birga.
+    """
     g = get_object_or_404(Group, pk=pk)
 
-    # Faqat ruxsatli rollar qo‘shishi mumkin
+    # Faqat ruxsatli rollar
     allowed_roles = ['admin', 'manager', 'teacher', 'director']
     if request.user.role not in allowed_roles:
         return HttpResponseForbidden("Sizda bu amalni bajarish uchun ruxsat yo‘q.")
 
-    # O‘quvchilarni olish (ilgari enrollments__group bo‘lgandi)
-    # To‘g‘risi: enrollment__group
+    # Guruhda yo‘q o‘quvchilar ro‘yxati
     students = (
         User.objects
         .filter(role="student")
@@ -567,17 +702,38 @@ def add_student_to_group(request, pk: int):
         .order_by("ism", "familya")
     )
 
-    # POST so‘rov bilan yuborilsa — o‘quvchini qo‘shamiz
+    # POST so‘rov — yangi o‘quvchini qo‘shish
     if request.method == "POST":
         student_id = request.POST.get("student_id")
+        kurs_narhi = request.POST.get("kurs_narhi")
+        oqituvchi_foiz = request.POST.get("oqituvchi_foiz")
+
         if not student_id:
             return HttpResponse("O‘quvchi tanlanmagan.", status=400)
 
+        try:
+            kurs_narhi = int(kurs_narhi or 0)
+            oqituvchi_foiz = int(oqituvchi_foiz or 40)
+        except ValueError:
+            messages.error(request, "Kiritilgan qiymatlar son bo‘lishi kerak.")
+            return redirect("education:add_student_to_group", pk=g.id)
+
         student = get_object_or_404(User, pk=student_id, role="student")
 
-        # Yangi Enrollment yaratamiz
-        Enrollment.objects.create(group=g, student=student)
-        messages.success(request, f"{student.ism} guruhga qo‘shildi.")
+        # 🔹 Yangi Enrollment yozuvi yaratamiz
+        Enrollment.objects.create(
+            group=g,
+            student=student,
+            kurs_narhi=kurs_narhi,
+            oqituvchi_foiz=oqituvchi_foiz
+        )
+
+        messages.success(
+            request,
+            f"{student.full_name()} guruhga qo‘shildi! "
+            f"Kurs narxi: {kurs_narhi:,} so‘m, "
+            f"O‘qituvchi ulushi: {oqituvchi_foiz}%"
+        )
         return redirect("education:group_detail", pk=g.id)
 
     ctx = {
@@ -586,6 +742,35 @@ def add_student_to_group(request, pk: int):
     }
 
     return render(request, "education/add_student_to_group.html", ctx)
+
+
+@login_required
+def teacher_groups_view(request, teacher_id):
+    teacher = get_object_or_404(User, id=teacher_id, role="teacher")
+
+    groups = (
+        teacher.group_set
+        .prefetch_related('enrollments__student')
+        .all()
+    )
+
+    teacher_data = []
+    for group in groups:
+        enrollments = group.enrollments.all()
+        group_income = sum([enr.real_oqituvchi_daromadi() for enr in enrollments])
+        group_info = {
+            'name': group.name,
+            'students': enrollments,
+            'foiz': enrollments.first().oqituvchi_foiz if enrollments.exists() else 0,
+            'daromad': group_income,
+        }
+        teacher_data.append(group_info)
+
+    ctx = {
+        "teacher": teacher,
+        "teacher_data": teacher_data,
+    }
+    return render(request, "education/teacher_groups.html", ctx)
 
 
 @require_POST

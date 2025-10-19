@@ -4,6 +4,7 @@ from accounts.models import Center
 from django.core.validators import MinValueValidator
 from django.utils import timezone
 User = settings.AUTH_USER_MODEL
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 # education/models.py
 class Group(models.Model):
@@ -14,13 +15,21 @@ class Group(models.Model):
         (IT, "IT"),
     )
 
-    category   = models.CharField(max_length=8, choices=CATEGORY_CHOICES, default=LANG)
-    center     = models.ForeignKey(Center, on_delete=models.CASCADE)
-    nom        = models.CharField(max_length=150)
-    izoh       = models.TextField(blank=True)
-    oqituvchi  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
-                                   limit_choices_to={'role': 'teacher'})
-    tuzilgan   = models.DateTimeField(auto_now_add=True)
+    category = models.CharField(max_length=8, choices=CATEGORY_CHOICES, default=LANG)
+    center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE)
+    nom = models.CharField(max_length=150)
+    izoh = models.TextField(blank=True)
+    oqituvchi = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        limit_choices_to={'role': 'teacher'}
+    )
+    tuzilgan = models.DateTimeField(auto_now_add=True)
+
+    kurs_narxi = models.PositiveIntegerField(default=500000, help_text="Bir oylik to‘lov (so‘mda)")
+    oqituvchi_foiz = models.PositiveIntegerField(default=40, help_text="O‘qituvchi foizi (%)")
+    oy_dars_soni = models.PositiveIntegerField(default=12, help_text="Bir oyda nechta dars bo‘ladi")
 
     class Meta:
         verbose_name = "Guruh"
@@ -28,6 +37,16 @@ class Group(models.Model):
 
     def __str__(self):
         return self.nom
+
+    def dars_boshiga_tolov(self):
+        """Har dars uchun to‘lovni xavfsiz hisoblash"""
+        if self.kurs_narxi > 0 and self.oqituvchi_foiz > 0 and self.oy_dars_soni > 0:
+            return (self.kurs_narxi * self.oqituvchi_foiz / 100) / self.oy_dars_soni
+        else:
+            # Default qiymat (agar admin unutgan bo‘lsa)
+            return 0
+
+
     
 class GroupStudent(models.Model):
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='students')
@@ -45,7 +64,7 @@ class GroupStudent(models.Model):
 
 class Enrollment(models.Model):
     group = models.ForeignKey(
-        Group,
+        'education.Group',
         on_delete=models.CASCADE,
         related_name='enrollments',
         verbose_name="Guruh"
@@ -56,47 +75,45 @@ class Enrollment(models.Model):
         limit_choices_to={'role': 'student'},
         verbose_name="O‘quvchi"
     )
-    kurs_narhi = models.PositiveIntegerField(
-        default=0,
-        validators=[MinValueValidator(0)],
-        verbose_name="Kurs narxi (so‘mda)"
-    )
-    jami_tolangan = models.PositiveIntegerField(
-        default=0,
-        validators=[MinValueValidator(0)],
-        verbose_name="Jami to‘langan (so‘mda)"
-    )
+    kurs_narhi = models.PositiveIntegerField(default=0, validators=[MinValueValidator(0)], verbose_name="Kurs narxi (so‘mda)")
+    oqituvchi_foiz = models.PositiveIntegerField(default=40, validators=[MinValueValidator(0), MaxValueValidator(100)], verbose_name="O‘qituvchi ulushi (%)")
+    jami_tolangan = models.PositiveIntegerField(default=0, validators=[MinValueValidator(0)], verbose_name="Jami to‘langan (so‘mda)")
 
     class Meta:
+        unique_together = ('group', 'student')
         verbose_name = "Guruhga qo‘shilish"
         verbose_name_plural = "Guruhga qo‘shilishlar"
-        unique_together = ('group', 'student')
         ordering = ['group', 'student']
 
     def __str__(self):
-        # Agar studentda get_full_name() mavjud bo‘lmasa, username ishlatiladi
-        ism = self.student.get_full_name() if hasattr(self.student, 'get_full_name') else self.student.username
-        return f"{ism} → {self.group.name}"
+        ism = getattr(self.student, 'ism', 'Noma’lum')
+        familya = getattr(self.student, 'familya', '')
+        return f"{ism} {familya} → {self.group.nom}"
 
     @property
-    def qoldiq(self):
-        """
-        To‘lov qoldig‘ini hisoblaydi.
-        Misol:
-            kurs_narhi=500000
-            jami_tolangan=300000
-            natija=200000
-        """
-        return max(self.kurs_narhi - self.jami_tolangan, 0)
+    def oqituvchi_daromadi(self):
+        """O‘qituvchiga to‘liq kurs uchun tushadigan summa."""
+        return round(self.kurs_narhi * self.oqituvchi_foiz / 100)
 
-    def tolov_foizi(self):
+    @property
+    def attended_count(self):
+        return self.group.attendances.filter(student=self.student, present=True).count()
+
+    def real_oqituvchi_daromadi(self):
         """
-        Qancha to‘langanini foizda qaytaradi.
+        O‘qituvchining haqiqiy daromadini hisoblaydi:
+        faqat darsga kelgan o‘quvchilar asosida.
         """
-        if self.kurs_narhi == 0:
+        total_lessons = self.group.oy_dars_soni or 0
+        attended = self.group.attendances.filter(student=self.student, present=True).count()
+
+        if total_lessons == 0:
             return 0
-        return round((self.jami_tolangan / self.kurs_narhi) * 100, 2)
 
+        foiz = attended / total_lessons
+        return round(self.oqituvchi_daromadi * foiz)
+    
+    
 class Payment(models.Model):
     enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, related_name='payments')
     summa = models.PositiveIntegerField()
@@ -206,3 +223,5 @@ class DailyLightningSetting(models.Model):
 
     def __str__(self):
         return f"{self.date} — {self.max_lightning or 'Cheklanmagan'}"
+
+
