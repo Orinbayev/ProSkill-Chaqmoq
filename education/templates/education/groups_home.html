@@ -1,11 +1,8 @@
 {% extends "base.html" %}
 {% load static %}
-{% url 'education:group_delete_confirm' g.id %}
-
 {% block content %}
 
 <style>
-/* 🌈 Umumiy fon */
 body {
   background: linear-gradient(135deg, #e8f0ff, #ffffff);
   min-height: 100vh;
@@ -56,26 +53,11 @@ body {
   transform: translateY(-6px);
   box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
 }
-.category-card::before {
-  content: "";
-  position: absolute;
-  top: -60px;
-  left: -60px;
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  background: rgba(0, 123, 255, 0.1);
-  transition: 0.3s;
-}
-.category-card:hover::before {
-  transform: scale(1.3);
-  background: rgba(0, 123, 255, 0.2);
-}
 
-/* 🧿 Emoji aylana */
+/* 🖼️ Icon yoki rasm doirasi */
 .icon-circle {
-  width: 80px;
-  height: 80px;
+  width: 90px;
+  height: 90px;
   border-radius: 50%;
   background: linear-gradient(135deg, #007bff, #6ec8ff);
   display: flex;
@@ -86,9 +68,16 @@ body {
   margin: 0 auto 1rem;
   box-shadow: 0 5px 15px rgba(0, 123, 255, 0.3);
   transition: all 0.3s ease;
+  overflow: hidden;
+}
+.icon-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 .category-card:hover .icon-circle {
-  transform: rotate(10deg) scale(1.1);
+  transform: rotate(8deg) scale(1.08);
 }
 
 /* 🧾 Bo‘lim nomi */
@@ -171,23 +160,31 @@ body {
     <div class="col-md-4 col-sm-6">
       <div class="category-card h-100">
         <div class="icon-circle">
-          {% if cat.name|lower == "it" %}
-          💻
-          {% elif cat.name|lower == "inglis tili" or cat.name|lower == "english" %}
-          📘💬
-          {% elif cat.name|lower == "grafika" %}
-          🎨
-          {% elif cat.name|lower == "buxgalteriya" %}
-          💰📊
+          {% if cat.image %}
+            <img src="{{ cat.image.url }}" alt="{{ cat.name }}">
           {% else %}
-          📚
+            {% if cat.name|lower == "it" %}
+              💻
+            {% elif cat.name|lower == "english" or cat.name|lower == "inglis tili" %}
+              📘💬
+            {% elif cat.name|lower == "grafika" %}
+              🎨
+            {% elif cat.name|lower == "buxgalteriya" %}
+              💰📊
+            {% elif cat.name|lower == "kids" %}
+              🧒📖
+            {% else %}
+              📚
+            {% endif %}
           {% endif %}
         </div>
+
         <h5>{{ cat.name }}</h5>
+
         {% if cat.description %}
-        <p>{{ cat.description }}</p>
+          <p>{{ cat.description }}</p>
         {% else %}
-        <p class="text-muted">Bo‘lim haqida ma’lumot yo‘q</p>
+          <p class="text-muted">Bo‘lim haqida ma’lumot yo‘q</p>
         {% endif %}
 
         <div class="card-actions">
@@ -200,7 +197,6 @@ body {
               🗑️ O‘chirish
             </button>
           </form>
-
         </div>
       </div>
     </div>

@@ -1,19 +1,132 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% block content %}
-<div class="container py-5">
-  <h3 class="text-primary mb-3">✏️ Bo‘limni tahrirlash</h3>
-  <form method="post" class="card p-4 shadow-sm">
+
+<style>
+body {
+  background: linear-gradient(135deg, #eaf3ff, #ffffff);
+  min-height: 100vh;
+  font-family: 'Poppins', sans-serif;
+}
+
+.form-container {
+  max-width: 650px;
+  margin: 3rem auto;
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  padding: 2rem 2.5rem;
+}
+.form-container h3 {
+  font-weight: 800;
+  color: #0066ff;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+label {
+  font-weight: 600;
+  color: #003366;
+}
+input, textarea {
+  border-radius: 10px;
+  border: 1.5px solid #cfdaf0;
+  padding: 10px 14px;
+  width: 100%;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  background-color: #f9fcff;
+  transition: 0.3s;
+}
+input:focus, textarea:focus {
+  border-color: #007bff;
+  background-color: #fff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.1);
+  outline: none;
+}
+.preview {
+  text-align: center;
+  margin-bottom: 15px;
+}
+.preview img {
+  max-width: 160px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.btn-save {
+  background: linear-gradient(45deg, #00b894, #00cec9);
+  color: white;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  width: 100%;
+  padding: 12px;
+  box-shadow: 0 4px 12px rgba(0, 200, 150, 0.3);
+  transition: 0.3s;
+}
+.btn-save:hover {
+  background: linear-gradient(45deg, #00cec9, #00b894);
+  transform: scale(1.03);
+}
+.btn-back {
+  width: 100%;
+  border-radius: 10px;
+  margin-top: 0.8rem;
+  padding: 12px;
+  font-weight: 600;
+}
+
+label {
+  display: block;
+  font-weight: 600;
+  color: #003366 !important;
+  margin-bottom: 6px;
+}
+.preview p {
+  color: #003366;
+  font-weight: 600;
+}
+
+</style>
+
+<div class="form-container">
+  <h3>✏️ Bo‘limni tahrirlash</h3>
+
+  <form method="POST" enctype="multipart/form-data">
     {% csrf_token %}
+
     <div class="mb-3">
-      <label class="form-label fw-semibold">Bo‘lim nomi</label>
-      <input type="text" name="name" class="form-control" value="{{ cat.name }}" required>
+      <label for="id_name">Bo‘lim nomi</label>
+      <input type="text" name="name" id="id_name" class="form-control" value="{{ cat.name }}" required>
     </div>
+
     <div class="mb-3">
-      <label class="form-label fw-semibold">Tavsif</label>
-      <textarea name="description" class="form-control" rows="3">{{ cat.description }}</textarea>
+      <label for="id_description">Tavsif</label>
+      <textarea name="description" id="id_description" class="form-control" rows="3">{{ cat.description }}</textarea>
     </div>
-    <button type="submit" class="btn btn-primary">💾 Saqlash</button>
-    <a href="{% url 'education:groups_home' %}" class="btn btn-secondary ms-2">Bekor qilish</a>
+
+    <div class="mb-3">
+      <label for="id_image">Bo‘lim rasmi (ixtiyoriy)</label><br>
+      {% if cat.image %}
+        <div class="preview mb-2">
+          <p>🖼️ Joriy rasm:</p>
+          <img src="{{ cat.image.url }}" alt="{{ cat.name }}">
+        </div>
+      {% endif %}
+      <input type="file" name="image" id="id_image" accept="image/*" class="form-control">
+    </div>
+
+    <button type="submit" class="btn btn-save">💾 Saqlash</button>
+    <a href="{% url 'education:groups_home' %}" class="btn btn-outline-secondary btn-back">⬅️ Orqaga</a>
   </form>
 </div>
+
+<script>
+document.getElementById("id_image").addEventListener("change", function(event) {
+  const preview = document.querySelector(".preview img");
+  if (preview && event.target.files.length > 0) {
+    preview.src = URL.createObjectURL(event.target.files[0]);
+  }
+});
+</script>
+
 {% endblock %}

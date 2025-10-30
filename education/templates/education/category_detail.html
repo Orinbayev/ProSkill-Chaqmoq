@@ -16,7 +16,7 @@ body {
   text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
 }
 .group-card {
-  border-radius: 16px;
+  border-radius: 20px;
   border: none;
   background: white;
   transition: all 0.3s ease;
@@ -29,18 +29,44 @@ body {
 .group-card h5 {
   color: #003366;
   font-weight: 700;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.6rem;
 }
 .group-card p {
   margin-bottom: 0.3rem;
 }
-.group-card a.btn {
-  border-radius: 10px;
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 0.8rem;
+}
+.action-buttons a {
+  border-radius: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
   transition: 0.3s;
 }
-.group-card a.btn:hover {
-  background-color: #0056d2;
+.btn-detail {
+  background: linear-gradient(45deg, #007bff, #00a8ff);
   color: white !important;
+}
+.btn-detail:hover {
+  background: linear-gradient(45deg, #0061d6, #0094e0);
+}
+.btn-edit {
+  background: linear-gradient(45deg, #00c851, #00e676);
+  color: white !important;
+}
+.btn-edit:hover {
+  background: linear-gradient(45deg, #00b342, #00d463);
+}
+.btn-delete {
+  background: linear-gradient(45deg, #ff4444, #ff6b6b);
+  color: white !important;
+}
+.btn-delete:hover {
+  background: linear-gradient(45deg, #e63946, #ff5252);
 }
 .add-btn {
   background: linear-gradient(45deg, #00b894, #00cec9);
@@ -54,33 +80,12 @@ body {
 .add-btn:hover {
   background: linear-gradient(45deg, #00cec9, #00b894);
   transform: scale(1.05);
-  box-shadow: 0 8px 18px rgba(0, 200, 150, 0.5);
 }
 .empty-section {
   color: #777;
   text-align: center;
   margin-top: 2rem;
   font-size: 1.1rem;
-}
-/* ✏️ Tahrirlash / 🗑️ O‘chirish tugmalari */
-.action-buttons a {
-  border-radius: 8px;
-  font-weight: 600;
-  margin: 0 4px;
-}
-.action-buttons a.edit-btn {
-  background: #007bff;
-  color: white;
-}
-.action-buttons a.edit-btn:hover {
-  background: #0056b3;
-}
-.action-buttons a.delete-btn {
-  background: #dc3545;
-  color: white;
-}
-.action-buttons a.delete-btn:hover {
-  background: #bb2d3b;
 }
 </style>
 
@@ -97,17 +102,16 @@ body {
           <h5>{{ g.nom }}</h5>
           <p class="text-muted">🏫 {{ g.center }}</p>
           <p class="text-secondary">👨‍🏫 {{ g.oqituvchi }}</p>
-          <p class="text-info fw-bold">💰 {{ g.kurs_narxi|floatformat:0 }} so‘m / oy</p>
         </div>
 
         <div class="card-footer bg-transparent border-0">
-          <div class="d-flex justify-content-center flex-wrap action-buttons">
-            <a href="{% url 'education:group_detail' g.id %}" class="btn btn-outline-primary btn-sm">📘 Batafsil</a>
+          <div class="action-buttons">
+            <a href="{% url 'education:group_detail' g.id %}" class="btn btn-detail btn-sm">📘 Batafsil</a>
 
             {% if user.is_superuser or user.role in 'director manager' %}
-              <a href="{% url 'education:group_edit' g.id %}" class="btn edit-btn btn-sm">✏️ Tahrirlash</a>
-              <a href="{% url 'education:group_delete' g.id %}" class="btn delete-btn btn-sm"
-                 onclick="return confirm('Haqiqatan ham “{{ g.nom }}” guruhini o‘chirilsinmi?')">
+              <a href="{% url 'education:group_edit' g.id %}" class="btn btn-edit btn-sm">✏️ Tahrirlash</a>
+              <a href="{% url 'education:group_delete' g.id %}" class="btn btn-delete btn-sm"
+                 onclick="return confirm('“{{ g.nom }}” guruhini o‘chirilsinmi?')">
                  🗑️ O‘chirish
               </a>
             {% endif %}
@@ -125,11 +129,11 @@ body {
 
   {% if user.is_superuser or user.role in 'director manager' %}
   <div class="d-flex justify-content-center mt-5">
-  <a href="{% url 'education:group_create_category' cat.id %}" class="btn add-btn px-4 py-2">
-    ➕ Yangi guruh yaratish
-  </a>
-
+    <a href="{% url 'education:group_create_category' category.id %}" class="btn add-btn px-4 py-2">
+      ➕ Yangi guruh yaratish
+    </a>
   </div>
   {% endif %}
 </div>
+
 {% endblock %}

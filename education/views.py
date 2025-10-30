@@ -78,11 +78,19 @@ def edit_category(request, id):
     if request.method == "POST":
         name = request.POST.get("name")
         description = request.POST.get("description")
+        image = request.FILES.get("image")
+
         cat.name = name
         cat.description = description
+
+        # 🔹 Agar yangi rasm tanlangan bo‘lsa, yangisini saqlaymiz
+        if image:
+            cat.image = image
+
         cat.save()
         messages.success(request, "Bo‘lim muvaffaqiyatli tahrirlandi ✅")
         return redirect("education:groups_home")
+
     return render(request, "education/category_edit.html", {"cat": cat})
 
 
@@ -126,15 +134,20 @@ def create_group_for_category(request, category_id):
         form = GroupForm(request.POST)
         if form.is_valid():
             group = form.save(commit=False)
-            group.category_obj = category  # ✅ To‘g‘ri bo‘limga biriktiramiz
+
+            # 🟢 To‘g‘ri maydon: ForeignKey bo‘lgan 'category_obj'
+            group.category_obj = category
+
+            # Eski 'category' maydoni ham to‘ldirilsa yaxshi
+            group.category = Group.IT  # yoki Group.LANG — kerakli turga qarab
             group.save()
+
             messages.success(request, f"✅ '{group.nom}' guruhi {category.name} bo‘limiga qo‘shildi.")
-            return redirect("education:category_detail", id=category.id)
+            return redirect("education:category_detail", category_id=category.id)
     else:
         form = GroupForm()
 
     return render(request, "education/group_form.html", {"form": form, "category": category})
-
 
 # @login_required
 # def group_create_lang(request):
@@ -407,9 +420,13 @@ def groups_home(request):
 
 
 def category_detail(request, category_id):
-    cat = get_object_or_404(Category, id=category_id)
-    groups = Group.objects.filter(category_obj=cat)
-    return render(request, "education/category_detail.html", {"cat": cat, "groups": groups})
+    category = get_object_or_404(Category, id=category_id)
+    groups = Group.objects.filter(category_obj=category)  # 🟢 shu yerni o‘zgartir
+    return render(request, 'education/category_detail.html', {
+        'category': category,
+        'groups': groups
+    })
+
 
 
 
@@ -441,12 +458,22 @@ from django.contrib import messages
 class CategoryForm(forms.ModelForm):
     class Meta:
         model = Category
-        fields = ["name", "icon", "description"]
+        fields = ["name", "image", "description"]
         widgets = {
-            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Masalan: Dizayn"}),
-            "icon": forms.TextInput(attrs={"class": "form-control", "placeholder": "Emoji: 🎨 yoki 💻"}),
-            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Bo‘lim haqida qisqa izoh"}),
+            "name": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Masalan: Dizayn"
+            }),
+            "image": forms.ClearableFileInput(attrs={
+                "class": "form-control",
+            }),
+            "description": forms.Textarea(attrs={
+                "class": "form-control",
+                "rows": 3,
+                "placeholder": "Bo‘lim haqida qisqa izoh"
+            }),
         }
+
 
 
 @login_required
@@ -458,12 +485,11 @@ def groups_home(request):
 
 @login_required
 def add_category(request):
-    """Yangi kategoriya (bo‘lim) qo‘shish"""
     if request.method == "POST":
-        form = CategoryForm(request.POST)
+        form = CategoryForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
-            messages.success(request, "✅ Yangi bo‘lim muvaffaqiyatli qo‘shildi!")
+            messages.success(request, "Bo‘lim muvaffaqiyatli qo‘shildi ✅")
             return redirect("education:groups_home")
     else:
         form = CategoryForm()
