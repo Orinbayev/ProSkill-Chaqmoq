@@ -1,16 +1,105 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-4">
-  <h3 class="fw-bold mb-3">👩‍🏫 O‘qituvchilar ro‘yxati</h3>
-  <div class="list-group shadow-sm">
+
+<style>
+body {
+  background: linear-gradient(135deg, #eef4ff, #ffffff);
+  font-family: 'Poppins', sans-serif;
+  min-height: 100vh;
+}
+
+/* 🧭 Asosiy konteyner */
+.container {
+  max-width: 900px;
+  margin-top: 3rem;
+}
+
+/* 📘 Sarlavha */
+h3 {
+  font-weight: 800;
+  color: #007bff;
+  text-align: center;
+  margin-bottom: 2.5rem;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* 👩‍🏫 O‘qituvchi kartalari */
+.teacher-card {
+  background: linear-gradient(135deg, #ffffff, #f9fcff);
+  border-radius: 15px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  transition: all 0.3s ease;
+  text-decoration: none;
+  color: #333;
+  padding: 1.2rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  border: 1px solid #e2e6ef;
+}
+.teacher-card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 10px 25px rgba(0, 123, 255, 0.15);
+  border-color: #007bff30;
+  background: linear-gradient(135deg, #f8fbff, #eef4ff);
+}
+
+/* 👩‍🏫 O‘qituvchi ismi */
+.teacher-name {
+  font-weight: 600;
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.teacher-name::before {
+  content: "👩‍🏫";
+  font-size: 1.4rem;
+}
+
+/* 🔹 Ko‘rish belgisi */
+.view-badge {
+  background: linear-gradient(135deg, #007bff, #00aaff);
+  color: #fff;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+}
+.teacher-card:hover .view-badge {
+  background: linear-gradient(135deg, #00aaff, #007bff);
+  transform: translateX(4px);
+}
+
+/* ⚠️ Bo‘sh holat */
+.alert-warning {
+  background: #fff7e6;
+  border: 1px solid #ffe08a;
+  color: #9c6a00;
+  border-radius: 12px;
+  font-weight: 500;
+  box-shadow: 0 4px 15px rgba(255, 208, 0, 0.2);
+  text-align: center;
+}
+</style>
+
+<div class="container">
+  <h3>👩‍🏫 O‘qituvchilar ro‘yxati</h3>
+
+  {% if teachers %}
     {% for t in teachers %}
-      <a href="{% url 'education:teacher_groups' t.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-        <span><strong>{{ t.get_full_name }}</strong></span>
-        <span class="badge bg-primary">Ko‘rish →</span>
+      <a href="{% url 'education:teacher_groups' t.id %}" class="teacher-card">
+        <span class="teacher-name">{{ t.get_full_name }}</span>
+        <span class="view-badge">Ko‘rish →</span>
       </a>
-    {% empty %}
-      <div class="alert alert-warning">O‘qituvchilar topilmadi.</div>
     {% endfor %}
-  </div>
+  {% else %}
+    <div class="alert alert-warning mt-4">
+      O‘qituvchilar topilmadi.
+    </div>
+  {% endif %}
 </div>
+
 {% endblock %}

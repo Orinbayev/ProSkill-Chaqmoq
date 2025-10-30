@@ -1,43 +1,184 @@
 {% extends "base.html" %}
 {% block content %}
-<h3 class="mb-3">{{ title }}</h3>
 
-<form method="post" novalidate>
-  {% csrf_token %}
-  {% if form.non_field_errors %}
+<style>
+body {
+  background: linear-gradient(135deg, #eef4ff, #ffffff);
+  font-family: 'Poppins', sans-serif;
+  min-height: 100vh;
+}
+
+/* 🧭 Forma konteyner */
+.form-wrapper {
+  max-width: 800px;
+  margin: 4rem auto;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+  padding: 2.5rem 3rem;
+  transition: 0.3s;
+}
+.form-wrapper:hover {
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
+}
+
+/* 📘 Sarlavha */
+.form-wrapper h3 {
+  font-weight: 800;
+  color: #0066ff;
+  text-align: center;
+  margin-bottom: 2rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* 🧾 Input va select maydonlari */
+.form-wrapper input,
+.form-wrapper select,
+.form-wrapper textarea {
+  border-radius: 10px;
+  border: 1.5px solid #cfdaf0;
+  padding: 10px 14px;
+  width: 100%;
+  font-size: 1rem;
+  background-color: #f9fcff;
+  transition: all 0.3s;
+}
+
+/* 🔹 Fokus animatsiyasi */
+.form-wrapper input:focus,
+.form-wrapper select:focus,
+.form-wrapper textarea:focus {
+  border-color: #007bff;
+  background-color: #fff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+  outline: none;
+}
+
+/* ✨ O‘qituvchi select uchun chiroyli ko‘rinish */
+.form-wrapper select {
+  background: linear-gradient(135deg, #f8fbff, #eef4ff);
+  cursor: pointer;
+  color: #333;
+  appearance: none;
+  position: relative;
+  padding-right: 2.5rem;
+}
+.form-wrapper select:hover {
+  background: linear-gradient(135deg, #f2f9ff, #e6f2ff);
+  transform: scale(1.01);
+}
+.form-wrapper select:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.15rem rgba(0, 123, 255, 0.15);
+}
+
+/* 📏 Izoh maydoni (kichikroq qilib) */
+.form-wrapper textarea {
+  resize: vertical;
+  min-height: 90px;
+  max-height: 160px;
+}
+
+/* 🏷 Label */
+.form-label {
+  font-weight: 600;
+  color: #444;
+  margin-bottom: 0.4rem;
+}
+
+/* ⚠️ Xatolik matni */
+.text-danger.small {
+  font-size: 0.85rem;
+}
+
+/* 💾 Saqlash tugmasi */
+.btn-save {
+  background: linear-gradient(45deg, #00b894, #00cec9);
+  color: white;
+  font-weight: 600;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 30px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 200, 150, 0.3);
+}
+.btn-save:hover {
+  background: linear-gradient(45deg, #00cec9, #00b894);
+  transform: scale(1.05);
+  box-shadow: 0 8px 18px rgba(0, 200, 150, 0.5);
+}
+
+/* ↩️ Bekor qilish tugmasi */
+.btn-cancel {
+  border-radius: 12px;
+  padding: 12px 30px;
+  font-weight: 600;
+  border: 1.5px solid #ccc;
+  background-color: #f9f9f9;
+  transition: 0.3s;
+}
+.btn-cancel:hover {
+  background-color: #f1f3f5;
+  transform: scale(1.03);
+}
+
+/* 🧩 Tugma joylashuvi */
+.form-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+</style>
+
+<div class="form-wrapper">
+  <h3>{{ title }}</h3>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
     <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-  {% endif %}
-
-  <div class="row g-3">
-    <div class="col-md-4">
-      <label class="form-label">Center</label>
-      {{ form.center }}
-      <div class="text-danger small">{{ form.center.errors }}</div>
-    </div>
-    <div class="col-md-4">
-      <label class="form-label">Nom</label>
-      {{ form.nom }}
-      <div class="text-danger small">{{ form.nom.errors }}</div>
-    </div>
-    <div class="col-md-4">
-      <label class="form-label">O‘qituvchi</label>
-      {{ form.oqituvchi }}
-      <div class="text-danger small">{{ form.oqituvchi.errors }}</div>
-    </div>
-    <div class="col-12">
-      <label class="form-label">Izoh</label>
-      {{ form.izoh }}
-      <div class="text-danger small">{{ form.izoh.errors }}</div>
-    </div>
-  </div>
-
-  <div class="mt-3">
-    <button type="submit" class="btn btn-primary">Saqlash</button>
-    {% if category == "lang" %}
-      <a class="btn btn-light" href="{% url 'education:groups_lang' %}">Bekor qilish</a>
-    {% else %}
-      <a class="btn btn-light" href="{% url 'education:groups_it' %}">Bekor qilish</a>
     {% endif %}
-  </div>
-</form>
+
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Markaz</label>
+        {{ form.center }}
+        <div class="text-danger small">{{ form.center.errors }}</div>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label">Guruh nomi</label>
+        {{ form.nom }}
+        <div class="text-danger small">{{ form.nom.errors }}</div>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label">O‘qituvchi</label>
+        <div class="position-relative">
+          {{ form.oqituvchi }}
+          <span style="position:absolute; right:10px; top:38px; pointer-events:none; color:#007bff;">▼</span>
+        </div>
+        <div class="text-danger small">{{ form.oqituvchi.errors }}</div>
+      </div>
+
+      <div class="col-12">
+        <label class="form-label">Izoh</label>
+        {{ form.izoh }}
+        <div class="text-danger small">{{ form.izoh.errors }}</div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-save">💾 Saqlash</button>
+      {% if category == "lang" %}
+      <a class="btn btn-cancel" href="{% url 'education:groups_lang' %}">⬅️ Bekor qilish</a>
+      {% else %}
+      <a class="btn btn-cancel" href="{% url 'education:groups_it' %}">⬅️ Bekor qilish</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
 {% endblock %}

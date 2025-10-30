@@ -8,36 +8,65 @@ class GroupForm(forms.ModelForm):
     class Meta:
         model = Group
         fields = [
-            'category', 'center', 'nom', 'izoh', 'oqituvchi',
-            'kurs_narxi', 'oqituvchi_foiz', 'oy_dars_soni'
+            "category", "center", "nom", "izoh", "oqituvchi",
+            "kurs_narxi", "oqituvchi_foiz", "oy_dars_soni"
         ]
         labels = {
-            'nom': "Guruh nomi",
-            'oqituvchi': "O‘qituvchi",
-            'kurs_narxi': "Kurs narxi (so‘m)",
-            'oqituvchi_foiz': "O‘qituvchi foizi (%)",
-            'oy_dars_soni': "Bir oyda darslar soni",
-            'izoh': "Izoh",
-            'center': "Markaz",
-            'category': "Yo‘nalish",
+            "nom": "Guruh nomi",
+            "oqituvchi": "O‘qituvchi",
+            "kurs_narxi": "Kurs narxi (so‘m)",
+            "oqituvchi_foiz": "O‘qituvchi foizi (%)",
+            "oy_dars_soni": "Bir oyda darslar soni",
+            "izoh": "Izoh",
+            "center": "Markaz",
+            "category": "Yo‘nalish",
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["oqituvchi"].queryset = User.objects.filter(role="teacher")
 
+        # Bu maydonlar agar kiritilmasa ham xato bermaydi
+        for f in ["kurs_narxi", "oqituvchi_foiz", "oy_dars_soni", "category"]:
+            self.fields[f].required = False
+
+        # Default qiymatlar
+        self.fields["kurs_narxi"].initial = 500000
+        self.fields["oqituvchi_foiz"].initial = 40
+        self.fields["oy_dars_soni"].initial = 12
+
+
 class LangGroupForm(GroupForm):
-    def __init__(self, *a, **kw):
-        super().__init__(*a, **kw)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.fields["category"].initial = Group.LANG
         self.fields["category"].widget = forms.HiddenInput()
 
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        obj.category = Group.LANG  # <— Eng muhim qator
+        obj.kurs_narxi = obj.kurs_narxi or 500000
+        obj.oqituvchi_foiz = obj.oqituvchi_foiz or 40
+        obj.oy_dars_soni = obj.oy_dars_soni or 12
+        if commit:
+            obj.save()
+        return obj
+
 class ITGroupForm(GroupForm):
-    def __init__(self, *a, **kw):
-        super().__init__(*a, **kw)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.fields["category"].initial = Group.IT
         self.fields["category"].widget = forms.HiddenInput()
 
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        obj.category = Group.IT  # <— Eng muhim qator
+        obj.kurs_narxi = obj.kurs_narxi or 500000
+        obj.oqituvchi_foiz = obj.oqituvchi_foiz or 40
+        obj.oy_dars_soni = obj.oy_dars_soni or 12
+        if commit:
+            obj.save()
+        return obj
 
 
 

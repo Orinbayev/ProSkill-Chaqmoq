@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% load static %}
+{% url 'education:group_delete_confirm' g.id %}
+
+{% block content %}
+
+<style>
+/* 🌈 Umumiy fon */
+body {
+  background: linear-gradient(135deg, #e8f0ff, #ffffff);
+  min-height: 100vh;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* 🔷 Sarlavha va yuqori panel */
+.header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+.header-bar h2 {
+  font-weight: 800;
+  color: #0056d2;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.add-btn {
+  background: linear-gradient(45deg, #00b894, #00cec9);
+  color: white;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 200, 150, 0.3);
+  transition: all 0.3s ease;
+}
+.add-btn:hover {
+  background: linear-gradient(45deg, #00cec9, #00b894);
+  transform: scale(1.05);
+  box-shadow: 0 8px 18px rgba(0, 200, 150, 0.5);
+}
+
+/* 📦 Karta umumiy ko‘rinishi */
+.category-card {
+  border: none;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #ffffff, #f2f6ff);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  padding: 2rem 1rem 1.2rem;
+  transition: all 0.35s ease;
+  position: relative;
+  overflow: hidden;
+}
+.category-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
+}
+.category-card::before {
+  content: "";
+  position: absolute;
+  top: -60px;
+  left: -60px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(0, 123, 255, 0.1);
+  transition: 0.3s;
+}
+.category-card:hover::before {
+  transform: scale(1.3);
+  background: rgba(0, 123, 255, 0.2);
+}
+
+/* 🧿 Emoji aylana */
+.icon-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #007bff, #6ec8ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  color: white;
+  margin: 0 auto 1rem;
+  box-shadow: 0 5px 15px rgba(0, 123, 255, 0.3);
+  transition: all 0.3s ease;
+}
+.category-card:hover .icon-circle {
+  transform: rotate(10deg) scale(1.1);
+}
+
+/* 🧾 Bo‘lim nomi */
+.category-card h5 {
+  font-weight: 700;
+  color: #003366;
+  margin-bottom: 0.6rem;
+}
+
+/* 📝 Tavsif */
+.category-card p {
+  color: #666;
+  font-size: 0.9rem;
+  min-height: 40px;
+}
+
+/* 🔘 Tugmalar */
+.card-actions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.card-actions a,
+.card-actions form button {
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.85rem;
+  transition: all 0.3s ease;
+}
+.card-actions .btn-view {
+  border: 1px solid #007bff;
+  color: #007bff;
+  background: white;
+}
+.card-actions .btn-view:hover {
+  background: #007bff;
+  color: #fff;
+}
+.card-actions .btn-edit {
+  border: 1px solid #ffc107;
+  color: #e69500;
+  background: #fff8e1;
+}
+.card-actions .btn-edit:hover {
+  background: #ffc107;
+  color: #fff;
+}
+.card-actions .btn-delete {
+  border: 1px solid #dc3545;
+  color: #dc3545;
+  background: #fff5f5;
+}
+.card-actions .btn-delete:hover {
+  background: #dc3545;
+  color: #fff;
+}
+
+/* 💬 Bo‘sh holat */
+.empty-section {
+  text-align: center;
+  color: #888;
+  font-size: 1.1rem;
+  margin-top: 2rem;
+}
+</style>
+
+<div class="container py-5">
+  <div class="header-bar">
+    <h2>👥 Guruhlar bo‘limlari</h2>
+    <a href="{% url 'education:add_category' %}" class="btn add-btn px-4 py-2">
+      ➕ Yangi bo‘lim qo‘shish
+    </a>
+  </div>
+
+  {% if categories %}
+  <div class="row g-4">
+    {% for cat in categories %}
+    <div class="col-md-4 col-sm-6">
+      <div class="category-card h-100">
+        <div class="icon-circle">
+          {% if cat.name|lower == "it" %}
+          💻
+          {% elif cat.name|lower == "inglis tili" or cat.name|lower == "english" %}
+          📘💬
+          {% elif cat.name|lower == "grafika" %}
+          🎨
+          {% elif cat.name|lower == "buxgalteriya" %}
+          💰📊
+          {% else %}
+          📚
+          {% endif %}
+        </div>
+        <h5>{{ cat.name }}</h5>
+        {% if cat.description %}
+        <p>{{ cat.description }}</p>
+        {% else %}
+        <p class="text-muted">Bo‘lim haqida ma’lumot yo‘q</p>
+        {% endif %}
+
+        <div class="card-actions">
+          <a href="{% url 'education:category_detail' cat.id %}" class="btn btn-view">👁️ Ko‘rish</a>
+          <a href="{% url 'education:edit_category' cat.id %}" class="btn btn-edit">✏️ Tahrirlash</a>
+          <form action="{% url 'education:delete_category' cat.id %}" method="post" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-delete"
+                    onclick="return confirm('🗑️ {{ cat.name }} bo‘limini o‘chirmoqchimisiz?');">
+              🗑️ O‘chirish
+            </button>
+          </form>
+
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-section">
+    <p>Bo‘limlar hali mavjud emas. “Yangi bo‘lim qo‘shish” tugmasidan foydalaning.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

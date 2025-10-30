@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+body {
+  background: linear-gradient(135deg, #eaf3ff, #ffffff);
+  font-family: 'Poppins', sans-serif;
+  min-height: 100vh;
+}
+
+/* 🧭 Konteyner */
+.form-container {
+  max-width: 600px;
+  margin: 4rem auto;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+  padding: 2.5rem;
+  transition: 0.3s;
+}
+.form-container:hover {
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+}
+
+/* 📘 Sarlavha */
+.form-container h3 {
+  font-weight: 800;
+  color: #009879;
+  text-align: center;
+  margin-bottom: 1.8rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* 🧾 Input maydonlari */
+.form-container input,
+.form-container select,
+.form-container textarea {
+  border-radius: 10px;
+  border: 1.5px solid #cfdaf0;
+  padding: 10px 14px;
+  width: 100%;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  transition: all 0.3s;
+  background-color: #f9fcff;
+}
+.form-container input:focus,
+.form-container select:focus,
+.form-container textarea:focus {
+  border-color: #007bff;
+  background-color: #fff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+  outline: none;
+}
+
+/* 💾 Tugmalar */
+.btn-save {
+  background: linear-gradient(45deg, #00b894, #00cec9);
+  color: white;
+  font-weight: 600;
+  border: none;
+  border-radius: 12px;
+  width: 100%;
+  padding: 12px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 200, 150, 0.3);
+}
+.btn-save:hover {
+  background: linear-gradient(45deg, #00cec9, #00b894);
+  transform: scale(1.04);
+  box-shadow: 0 8px 18px rgba(0, 200, 150, 0.5);
+}
+
+/* ↩️ Orqaga tugmasi */
+.btn-back {
+  border-radius: 12px;
+  width: 100%;
+  padding: 12px;
+  font-weight: 600;
+  margin-top: 0.8rem;
+  transition: 0.3s;
+}
+.btn-back:hover {
+  background-color: #f1f3f5;
+  transform: scale(1.03);
+}
+</style>
+
+<div class="form-container">
+  <h3>➕ Yangi bo‘lim qo‘shish</h3>
+
+  <form method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-save mt-3">💾 Saqlash</button>
+    <a href="{% url 'education:groups_home' %}" class="btn btn-outline-secondary btn-back mt-2">
+      ⬅️ Orqaga
+    </a>
+  </form>
+</div>
+
+{% endblock %}

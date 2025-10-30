@@ -1,71 +1,134 @@
 {% extends 'base.html' %}
+{% load humanize %}
+
 {% block content %}
-<div class="card mb-3 shadow-sm">
-  <div class="card-body">
-    <h4 class="fw-bold">{{ student.ism }} {{ student.familya }}</h4>
-    <p class="text-muted mb-0">📞 {{ student.telefon1|default:"–" }}</p>
-    <p class="text-muted">📧 {{ student.email|default:student.username }}</p>
+<div class="container py-4">
+
+  <!-- O'quvchi ma'lumotlari -->
+  <div class="card shadow mb-4">
+    <div class="card-body d-flex align-items-center">
+      <div class="me-4">
+        <i class="fa fa-user-circle fa-4x text-primary"></i>
+      </div>
+      <div>
+        <h3 class="fw-bold mb-1">{{ student.get_full_name }}</h3>
+        <p class="mb-0">
+          <i class="fa fa-phone text-muted"></i> {{ student.telefon }} &nbsp;&nbsp;
+          <i class="fa fa-envelope text-muted"></i> {{ student.email }}
+        </p>
+      </div>
+    </div>
   </div>
-</div>
 
-<h5 class="fw-bold mb-3">📅 Davomat va chaqmoq (oylar bo‘yicha)</h5>
+  <!-- Davomat & Chaqmoq bo'limi -->
+  <div class="card shadow">
+    <div class="card-header bg-primary text-white fw-semibold">
+      <i class="fa fa-calendar-check"></i> Davomat va Chaqmoq (guruhlar bo‘yicha)
+    </div>
+    <div class="card-body">
 
-<div class="accordion" id="attendanceAccordion">
-  {% for summary in month_summaries %}
-    <div class="accordion-item mb-2 shadow-sm">
-      <h2 class="accordion-header">
-        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                data-bs-target="#m{{ summary.year }}{{ summary.month }}">
-          {{ summary.year }} - {{ summary.month_name }} —
-          <small class="text-muted ms-2">
-            Kelgan: {{ summary.present_days }} marta
-          </small>
-        </button>
-      </h2>
+      {% regroup month_summaries by group as group_list %}
 
-      <div id="m{{ summary.year }}{{ summary.month }}" class="accordion-collapse collapse"
-           data-bs-parent="#attendanceAccordion">
-        <div class="accordion-body p-0">
-          <table class="table table-hover mb-0 align-middle">
-            <thead class="table-light">
-              <tr>
-                <th>#</th>
-                <th>Sana</th>
-                <th>Davomat</th>
-                <th>Qo‘shilgan chaqmoq</th>
-                <th>Ayirilgan chaqmoq</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for d in summary.days %}
-              <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>{{ d.date|date:"d-M-Y" }}</td>
-                <td>
-                  {% if d.present %}
-                    <span class="badge bg-success">Kelgan</span>
-                  {% else %}
-                    <span class="badge bg-danger">Kelmadi</span>
-                  {% endif %}
-                </td>
-                <td class="text-success">+{{ d.plus }}</td>
-                <td class="text-danger">-{{ d.minus }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+      {% for group in group_list %}
+      <div class="mb-4">
+        <h4 class="fw-bold text-info border-bottom pb-2">
+          <i class="fa fa-users"></i> {{ group.grouper }}
+        </h4>
 
-          <div class="p-2 bg-light border-top small text-end">
-            <strong>Oy yakuni:</strong>
-            Kelgan: {{ summary.present_days }} marta |
-            Qo‘shilgan: <span class="text-success">+{{ summary.plus }}</span> |
-            Ayirilgan: <span class="text-danger">-{{ summary.minus }}</span>
+        {% for summary in group.list %}
+        <div class="accordion mb-3" id="accordion-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+          <div class="accordion-item border-0 shadow-sm">
+            <h2 class="accordion-header" id="heading-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+              <button class="accordion-button collapsed bg-light" type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapse-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
+                aria-expanded="false">
+
+                <div class="d-flex justify-content-between w-100 align-items-center">
+                  <div>
+                    <strong>{{ summary.year }} - {{ summary.month_name }}</strong>
+                    <span class="badge bg-success ms-2">
+                      <i class="fa fa-user-check"></i> {{ summary.present_days }} marta kelgan
+                    </span>
+                  </div>
+                  <div>
+                    <span class="text-success fw-semibold">+{{ summary.plus }}</span> /
+                    <span class="text-danger fw-semibold">-{{ summary.minus }}</span>
+                  </div>
+                </div>
+              </button>
+            </h2>
+
+            <div id="collapse-{{ forloop.parentloop.counter }}-{{ forloop.counter }}" class="accordion-collapse collapse">
+              <div class="accordion-body">
+
+                <!-- Progress bar -->
+                <div class="mb-3">
+                  <div class="small text-muted">Umumiy ishtirok foizi</div>
+                  <!-- Progress bar -->
+{% with total_days=summary.days|length %}
+  {% if total_days > 0 %}
+    {% with percent=summary.present_days|floatformat:2 %}
+      {% widthratio summary.present_days total_days 100 as percent %}
+      <div class="mb-3">
+        <div class="small text-muted">Umumiy ishtirok foizi</div>
+        <div class="progress" style="height: 18px;">
+          <div class="progress-bar bg-success"
+               role="progressbar"
+               style="width: {{ percent }}%"
+               aria-valuenow="{{ percent }}"
+               aria-valuemin="0"
+               aria-valuemax="100">
+            {{ percent }}%
           </div>
         </div>
       </div>
+    {% endwith %}
+  {% endif %}
+{% endwith %}
+
+                </div>
+
+                <!-- Jadval -->
+                <table class="table table-sm table-striped align-middle text-center">
+                  <thead class="table-secondary">
+                    <tr>
+                      <th>#</th>
+                      <th>Sana</th>
+                      <th>Davomat</th>
+                      <th>Qo‘shilgan chaqmoq</th>
+                      <th>Ayirilgan chaqmoq</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for d in summary.days %}
+                    <tr>
+                      <td>{{ forloop.counter }}</td>
+                      <td>{{ d.date|date:"d-M-Y" }}</td>
+                      <td>
+                        {% if d.present %}
+                          <span class="badge bg-success"><i class="fa fa-check"></i> Kelgan</span>
+                        {% else %}
+                          <span class="badge bg-danger"><i class="fa fa-times"></i> Kelmadi</span>
+                        {% endif %}
+                      </td>
+                      <td class="text-success fw-semibold">+{{ d.plus }}</td>
+                      <td class="text-danger fw-semibold">-{{ d.minus }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% empty %}
+        <div class="alert alert-warning">Davomat ma'lumotlari topilmadi.</div>
+      {% endfor %}
     </div>
-  {% empty %}
-    <p class="text-muted">Hozircha davomat ma’lumotlari mavjud emas.</p>
-  {% endfor %}
+  </div>
 </div>
 {% endblock %}

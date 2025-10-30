@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+<style>
+body {
+  background: linear-gradient(145deg, #e8f0ff, #ffffff);
+  min-height: 100vh;
+}
+.category-header {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 800;
+  color: #0066ff;
+  margin-bottom: 1rem;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+}
+.group-card {
+  border-radius: 16px;
+  border: none;
+  background: white;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+}
+.group-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+}
+.group-card h5 {
+  color: #003366;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+.group-card p {
+  margin-bottom: 0.3rem;
+}
+.group-card a.btn {
+  border-radius: 10px;
+  transition: 0.3s;
+}
+.group-card a.btn:hover {
+  background-color: #0056d2;
+  color: white !important;
+}
+.add-btn {
+  background: linear-gradient(45deg, #00b894, #00cec9);
+  color: white;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 200, 150, 0.3);
+  transition: all 0.3s ease;
+}
+.add-btn:hover {
+  background: linear-gradient(45deg, #00cec9, #00b894);
+  transform: scale(1.05);
+  box-shadow: 0 8px 18px rgba(0, 200, 150, 0.5);
+}
+.empty-section {
+  color: #777;
+  text-align: center;
+  margin-top: 2rem;
+  font-size: 1.1rem;
+}
+/* ✏️ Tahrirlash / 🗑️ O‘chirish tugmalari */
+.action-buttons a {
+  border-radius: 8px;
+  font-weight: 600;
+  margin: 0 4px;
+}
+.action-buttons a.edit-btn {
+  background: #007bff;
+  color: white;
+}
+.action-buttons a.edit-btn:hover {
+  background: #0056b3;
+}
+.action-buttons a.delete-btn {
+  background: #dc3545;
+  color: white;
+}
+.action-buttons a.delete-btn:hover {
+  background: #bb2d3b;
+}
+</style>
+
+<div class="container py-4">
+  <h3 class="category-header">🚀 {{ category.name }} bo‘limi</h3>
+  <hr class="mb-4" style="opacity: 0.2;">
+
+  {% if groups %}
+  <div class="row g-4">
+    {% for g in groups %}
+    <div class="col-md-4 col-sm-6">
+      <div class="card group-card h-100 text-center p-3">
+        <div class="card-body">
+          <h5>{{ g.nom }}</h5>
+          <p class="text-muted">🏫 {{ g.center }}</p>
+          <p class="text-secondary">👨‍🏫 {{ g.oqituvchi }}</p>
+          <p class="text-info fw-bold">💰 {{ g.kurs_narxi|floatformat:0 }} so‘m / oy</p>
+        </div>
+
+        <div class="card-footer bg-transparent border-0">
+          <div class="d-flex justify-content-center flex-wrap action-buttons">
+            <a href="{% url 'education:group_detail' g.id %}" class="btn btn-outline-primary btn-sm">📘 Batafsil</a>
+
+            {% if user.is_superuser or user.role in 'director manager' %}
+              <a href="{% url 'education:group_edit' g.id %}" class="btn edit-btn btn-sm">✏️ Tahrirlash</a>
+              <a href="{% url 'education:group_delete' g.id %}" class="btn delete-btn btn-sm"
+                 onclick="return confirm('Haqiqatan ham “{{ g.nom }}” guruhini o‘chirilsinmi?')">
+                 🗑️ O‘chirish
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-section">
+    <p>Hozircha bu bo‘limda guruhlar mavjud emas.</p>
+  </div>
+  {% endif %}
+
+  {% if user.is_superuser or user.role in 'director manager' %}
+  <div class="d-flex justify-content-center mt-5">
+  <a href="{% url 'education:group_create_category' cat.id %}" class="btn add-btn px-4 py-2">
+    ➕ Yangi guruh yaratish
+  </a>
+
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

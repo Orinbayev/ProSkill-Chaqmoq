@@ -1,37 +1,51 @@
-# education/urls.py
 from django.urls import path
 from . import views
+from .models import Group  # 🔹 kerak bo‘ladi category uchun
 
 app_name = "education"
 
 urlpatterns = [
     # === 📚 HUB / RO‘YXATLAR ===
-    path("guruhlar/", views.groups_hub, name="groups_hub"),
     path("guruhlar/ro‘yxat/", views.group_list, name="group_list"),
-    path("guruhlar/tillar/", views.groups_by_category, {"category": "lang"}, name="groups_lang"),
-    path("guruhlar/it/", views.groups_by_category, {"category": "it"}, name="groups_it"),
 
+    # 🔹 Guruhlar kategoriyasi bo‘yicha
+    path("guruhlar/", views.groups_home, name="groups_home"),
+    path("guruhlar/add/", views.add_category, name="add_category"),
+    path("guruhlar/tillar/", views.groups_by_category, {"category": Group.LANG}, name="groups_lang"),
+    path("guruhlar/it/", views.groups_by_category, {"category": Group.IT}, name="groups_it"),
+    
     # === ➕ YARATISH / TAHRIRLASH / O‘CHIRISH ===
-    path("guruh/yaratish/tillar/", views.group_create_lang, name="group_create_lang"),
-    path("guruh/yaratish/it/", views.group_create_it, name="group_create_it"),
+    # 🔹 To‘g‘ridan-to‘g‘ri group_create view chaqiradi, lekin category qiymati uzatilgan holda
+    path("guruh/yaratish/tillar/", views.group_create, {"category": Group.LANG}, name="group_create_lang"),
+    path("guruh/yaratish/it/", views.group_create, {"category": Group.IT}, name="group_create_it"),
+
     path("guruh/<int:pk>/tahrirlash/", views.group_edit, name="group_edit"),
     path("guruh/<int:pk>/o‘chirish/", views.group_delete, name="group_delete"),
+    path('guruhlar/', views.groups_hub, name='groups_hub'),
 
     # === 👥 GURUHLAR ===
     path("guruh/<int:pk>/", views.group_detail, name="group_detail"),
     path("guruh/<int:pk>/add-student/", views.add_student_to_group, name="add_student_to_group"),
     path("guruh/<int:pk>/davomat/", views.group_rollcall, name="group_rollcall"),
+    path('category/<int:id>/edit/', views.edit_category, name='edit_category'),
+    path('category/<int:id>/delete/', views.delete_category, name='delete_category'),
+    path('guruh/<int:id>/delete/', views.group_delete_confirm, name='group_delete_confirm'),
+    path("groups/", views.group_list, name="groups"),
+    path("groups/add/", views.group_add, name="group_add"),
+    path("groups/<int:pk>/edit/", views.group_edit, name="group_edit"),
+    path("groups/<int:pk>/delete/", views.group_delete, name="group_delete"),
 
     # === 📅 DAVOMAT va BALLAR ===
     path("guruh/<int:pk>/attendance_today/", views.attendance_today, name="attendance_today"),
     path("guruh/<int:pk>/points/", views.group_points, name="group_points"),
     path("attendance/toggle/", views.toggle_attendance, name="toggle_attendance"),
+
+    # === 💰 O‘QITUVCHI HISOBLARI ===
     path("teacher-salary/", views.teacher_salary_list, name="teacher_salary_list"),
     path("teacher-salary/<int:teacher_id>/", views.teacher_groups, name="teacher_groups"),
     path("teacher-salary/group/<int:group_id>/", views.teacher_salary_report, name="teacher_salary_report"),
-    path('teacher-salary/', views.teacher_salary_redirect, name='teacher_salary_auto'),
     path("teacher-salary/summary/", views.teacher_salary_summary, name="teacher_salary_summary"),
-
+    path("teacher-salary/auto/", views.teacher_salary_redirect, name="teacher_salary_auto"),
 
     # === 👨‍🏫 O‘QITUVCHI UCHUN ===
     path("mening-guruhlarim/", views.my_groups, name="my_groups"),
@@ -41,4 +55,9 @@ urlpatterns = [
     # === 🧍‍♂️ O‘QUVCHILAR ===
     path("student/<int:student_id>/", views.student_detail, name="student_detail"),
     path("kiritish/<int:pk>/olib-tashlash/", views.enrollment_remove, name="enrollment_remove"),
+    path('guruhlar/<int:category_id>/', views.category_detail, name='category_detail'),
+    # Guruh yaratish bo‘lim asosida
+    path("guruh/yaratish/<int:category_id>/", views.group_create_by_category, name="group_create_category"),
+
+
 ]

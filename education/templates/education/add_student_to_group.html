@@ -1,12 +1,116 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-4">
-  <h4 class="fw-bold mb-3">{{ g.name }} — Guruhga o‘quvchi qo‘shish</h4>
+
+<style>
+body {
+  background: linear-gradient(135deg, #eef4ff, #ffffff);
+  font-family: 'Poppins', sans-serif;
+  min-height: 100vh;
+}
+
+/* 📦 Asosiy container */
+.container {
+  max-width: 750px;
+  margin-top: 3rem;
+  background: linear-gradient(135deg, #ffffff, #f9fcff);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+  transition: all 0.3s ease;
+}
+.container:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(0,123,255,0.15);
+}
+
+/* 📘 Sarlavha */
+h4 {
+  text-align: center;
+  color: #007bff;
+  font-weight: 800;
+  margin-bottom: 1.8rem;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* 🧾 Form label va inputlar */
+label {
+  font-weight: 600;
+  color: #333;
+}
+input, select {
+  border-radius: 10px !important;
+  border: 1px solid #d4d8e2 !important;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.05);
+  transition: all 0.3s ease;
+}
+input:focus, select:focus {
+  border-color: #007bff !important;
+  box-shadow: 0 0 0 3px rgba(0,123,255,0.2) !important;
+}
+
+/* 🔹 Hisob-kitob qismi */
+#hisobBox {
+  border-radius: 12px;
+  padding: 1.2rem 1.5rem;
+  background: linear-gradient(135deg, #eaf6ff, #f8fbff);
+  box-shadow: 0 4px 12px rgba(0,123,255,0.1);
+  animation: fadeIn 0.4s ease-in-out;
+}
+#hisobBox ul {
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 0;
+}
+#hisobBox li {
+  font-weight: 500;
+  font-size: 0.95rem;
+  margin-bottom: 5px;
+}
+#hisobBox strong {
+  color: #007bff;
+}
+
+/* 🎨 Tugmalar */
+.btn-primary {
+  background: linear-gradient(135deg, #007bff, #00aaff);
+  border: none;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  padding: 10px 18px;
+}
+.btn-primary:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0,123,255,0.4);
+}
+.btn-secondary {
+  background: #e8eef7;
+  color: #333;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+.btn-secondary:hover {
+  background: #dfe8ff;
+  color: #007bff;
+}
+
+/* 💡 Animatsiya */
+@keyframes fadeIn {
+  from {opacity: 0; transform: translateY(10px);}
+  to {opacity: 1; transform: translateY(0);}
+}
+</style>
+
+<div class="container fade-in">
+  <h4>{{ g.name }} — Guruhga o‘quvchi qo‘shish</h4>
 
   <form method="post">
     {% csrf_token %}
+    
+    <!-- 👤 O‘quvchi tanlash -->
     <div class="mb-3">
-      <label class="form-label">O‘quvchini tanlang:</label>
+      <label class="form-label">🧑‍🎓 O‘quvchini tanlang:</label>
       <select name="student_id" class="form-select" required>
         <option value="">— O‘quvchini tanlang —</option>
         {% for s in students %}
@@ -15,28 +119,35 @@
       </select>
     </div>
 
+    <!-- 💰 Kurs narxi va foiz -->
     <div class="row">
       <div class="col-md-6 mb-3">
         <label class="form-label">💰 Kurs narxi (so‘mda):</label>
-        <input type="number" id="kursNarxi" name="kurs_narhi" class="form-control" placeholder="Masalan: 600000" required>
+        <input type="number" id="kursNarxi" name="kurs_narhi" class="form-control"
+               placeholder="Masalan: 600000" required>
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">👨‍🏫 O‘qituvchi ulushi (%):</label>
-        <input type="number" id="foiz" name="oqituvchi_foiz" class="form-control" value="40" min="0" max="100" required>
+        <input type="number" id="foiz" name="oqituvchi_foiz" class="form-control"
+               value="40" min="0" max="100" required>
       </div>
     </div>
 
-    <div class="alert alert-info" id="hisobBox" style="display:none;">
-      <strong>Hisob-kitob:</strong>
-      <ul class="mb-0">
-        <li>Kurs narxi: <span id="kursSumma">0</span> so‘m</li>
-        <li>O‘qituvchiga tushadigan summa: <span id="teacherSumma">0</span> so‘m</li>
-        <li>Markazga qoladigan summa: <span id="centerSumma">0</span> so‘m</li>
+    <!-- 📊 Hisob natijasi -->
+    <div class="alert alert-info mt-3" id="hisobBox" style="display:none;">
+      <strong>📊 Hisob-kitob:</strong>
+      <ul class="mb-0 mt-2">
+        <li>💵 Kurs narxi: <span id="kursSumma">0</span> so‘m</li>
+        <li>👨‍🏫 O‘qituvchiga tushadigan summa: <span id="teacherSumma">0</span> so‘m</li>
+        <li>🏫 Markazga qoladigan summa: <span id="centerSumma">0</span> so‘m</li>
       </ul>
     </div>
 
-    <button type="submit" class="btn btn-primary">Qo‘shish</button>
-    <a href="{% url 'education:group_detail' g.id %}" class="btn btn-secondary ms-2">Ortga</a>
+    <!-- 🔘 Tugmalar -->
+    <div class="mt-4 text-center">
+      <button type="submit" class="btn btn-primary px-4">➕ Qo‘shish</button>
+      <a href="{% url 'education:group_detail' g.id %}" class="btn btn-secondary ms-2 px-4">⬅️ Ortga</a>
+    </div>
   </form>
 </div>
 
@@ -64,4 +175,5 @@ function hisobla() {
 kursInput.addEventListener('input', hisobla);
 foizInput.addEventListener('input', hisobla);
 </script>
+
 {% endblock %}

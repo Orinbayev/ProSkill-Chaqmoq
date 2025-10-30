@@ -1,8 +1,113 @@
 {% extends 'base.html' %}
 {% block content %}
 
+<style>
+body {
+  background: linear-gradient(135deg, #eef4ff, #ffffff);
+  font-family: 'Poppins', sans-serif;
+}
+
+/* 🔹 Karta dizayni */
+.card {
+  border: none !important;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ffffff, #f9fcff);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+  transition: all 0.3s ease;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0,123,255,0.15);
+}
+
+/* 🔹 Tugmalar */
+.btn-primary {
+  background: linear-gradient(135deg, #007bff, #00aaff);
+  border: none;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+.btn-primary:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0,123,255,0.4);
+}
+.btn-outline-secondary {
+  font-weight: 600;
+}
+
+/* 🔹 Sarlavhalar */
+.h4 {
+  font-weight: 700;
+  color: #007bff;
+}
+.text-muted {
+  color: #6c757d !important;
+}
+
+/* 🔹 Jadval */
+.table {
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 0.95rem;
+}
+.table thead {
+  background: linear-gradient(135deg, #007bff, #00aaff);
+  color: #fff;
+}
+.table th {
+  text-align: center;
+  font-weight: 600;
+}
+.table td {
+  text-align: center;
+  vertical-align: middle;
+}
+.table-hover tbody tr:hover {
+  background-color: #f2f8ff;
+  transition: background 0.2s ease;
+}
+
+/* 🔹 Chaqmoq badge */
+.balance-badge {
+  border-radius: 8px;
+  font-size: 0.9rem;
+  padding: 6px 10px;
+  font-weight: 600;
+}
+
+/* 🔹 Form va inputlar */
+input[type="date"],
+input[type="number"],
+select {
+  border-radius: 8px !important;
+  border: 1px solid #d6ddeb !important;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+  transition: all 0.2s ease;
+}
+input:focus, select:focus {
+  border-color: #007bff !important;
+  box-shadow: 0 0 0 3px rgba(0,123,255,0.2) !important;
+}
+
+/* 🔹 Qoida paneli */
+label {
+  font-weight: 600;
+  color: #333;
+}
+
+/* 🔹 Animatsiya */
+.fade-in {
+  animation: fadeIn 0.4s ease-in-out;
+}
+@keyframes fadeIn {
+  from {opacity: 0; transform: translateY(8px);}
+  to {opacity: 1; transform: translateY(0);}
+}
+</style>
+
 <!-- Guruh maʼlumotlari -->
-<div class="card mb-3 shadow-sm border-0">
+<div class="card mb-3 fade-in">
   <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
     <div>
       <div class="h4 mb-1">{{ g.nom }}</div>
@@ -28,12 +133,12 @@
 </div>
 
 <!-- Sana tanlash -->
-<div class="card mb-3 border-0 shadow-sm">
+<div class="card mb-3 fade-in">
   <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div class="d-flex align-items-center gap-2">
-      <h6 class="fw-bold mb-0">📅 Davomat sanasi:</h6>
-      <input id="attendance-date" type="date" class="form-control form-control-sm" style="width:200px"
-             value="{{ selected_date|default:today }}">
+      <h6 class="fw-bold mb-0 text-primary">📅 Davomat sanasi:</h6>
+      <input id="attendance-date" type="date" class="form-control form-control-sm"
+             style="width:200px" value="{{ selected_date|default:today }}">
     </div>
     <div class="text-muted small">
       Tanlangan sana: <strong id="selected-date-label">{{ selected_date|default:today }}</strong>
@@ -42,10 +147,10 @@
 </div>
 
 <!-- Qoida va ball paneli -->
-<div class="card mb-3 shadow-sm border-0">
+<div class="card mb-3 fade-in">
   <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
     <div class="d-flex align-items-center gap-2">
-      <label class="fw-semibold me-1">Qoida:</label>
+      <label class="fw-semibold me-1">🧠 Qoida:</label>
       <select id="rule-global" class="form-select form-select-sm" style="min-width: 260px;">
         <option value="">— Qoida tanlang —</option>
         <optgroup label="Qo‘shish sabablari">
@@ -62,7 +167,7 @@
     </div>
 
     <div class="d-flex align-items-center gap-2">
-      <label class="fw-semibold me-1">Ball:</label>
+      <label class="fw-semibold me-1">⚡ Ball:</label>
       <div class="input-group input-group-sm" style="width:120px">
         <button class="btn btn-outline-secondary" type="button" id="glob-minus">−</button>
         <input id="amount-global" type="number" class="form-control text-center" value="3" step="1">
@@ -81,9 +186,9 @@
 <form id="csrf-form" class="d-none">{% csrf_token %}</form>
 
 <!-- Jadval -->
-<div class="table-responsive shadow-sm">
+<div class="table-responsive shadow-sm fade-in">
   <table id="group-table" class="table table-hover align-middle mb-0">
-    <thead class="table-light">
+    <thead>
       <tr>
         <th>#</th>
         <th>F.I.Sh</th>
@@ -99,25 +204,24 @@
           <td>{{ forloop.counter }}</td>
           <td>
             <div class="fw-semibold">
-              <a href="{% url 'education:student_detail' e.student.id %}" class="text-decoration-none">
+              <a href="{% url 'education:student_detail' e.student.id %}" class="text-decoration-none text-primary">
                 {{ e.student.ism }} {{ e.student.familya }}
               </a>
             </div>
             <div class="text-muted small">{{ e.student.email|default:e.student.username }}</div>
           </td>
           <td>{{ e.student.telefon1|default:"—" }}</td>
-          <td class="text-center">
-            <input type="checkbox"
-                   class="form-check-input attend-toggle"
+          <td>
+            <input type="checkbox" class="form-check-input attend-toggle"
                    data-enrollment="{{ e.id }}"
                    {% if e.student.present_today %}checked{% endif %}>
           </td>
-          <td class="text-center">
+          <td>
             <span class="badge balance-badge {% if e.student.balance >= 0 %}text-bg-success{% else %}text-bg-danger{% endif %}">
               {{ e.student.balance|default:0 }}
             </span>
           </td>
-          <td class="text-end">
+          <td>
             <div class="d-flex gap-2 justify-content-end">
               <button type="button" class="btn btn-sm btn-success btn-add" data-student="{{ e.student.id }}">Qo‘shish</button>
               <button type="button" class="btn btn-sm btn-danger btn-sub" data-student="{{ e.student.id }}">Ayirish</button>
@@ -131,20 +235,9 @@
   </table>
 </div>
 
-<style>
-.badge.text-bg-success,
-.badge.text-bg-danger {
-  min-width: 42px;
-  font-size: 14px;
-  padding: 5px 8px;
-}
-#attendance-date { border-radius: 6px; }
-</style>
-
 {% verbatim %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // 🔹 CSRF token olish
   function getCookie(name) {
     const match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
     return match ? decodeURIComponent(match.pop()) : '';
@@ -156,7 +249,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const attendanceUrl = urls.dataset.attend;
   const dateInput = document.getElementById('attendance-date');
 
-  // 🔹 Sana o‘zgarsa sahifani qayta yuklash
+  // 🔹 Sana o‘zgarsa
   dateInput.addEventListener('change', function() {
     const d = this.value;
     if (!d) return;
@@ -165,7 +258,14 @@ document.addEventListener('DOMContentLoaded', function() {
     window.location.href = u.toString();
   });
 
-  // 🔹 Ball yuborish
+  // 🔹 Davomat belgilangani tekshirish
+  function isPresent(studentId) {
+    const row = document.querySelector(`button[data-student="${studentId}"]`).closest("tr");
+    const checkbox = row.querySelector(".attend-toggle");
+    return checkbox && checkbox.checked;
+  }
+
+  // 🔹 Chaqmoq yuborish
   function sendPoints(studentId, amount, ruleId) {
     const dateVal = dateInput.value || "";
     const fd = new FormData();
@@ -193,11 +293,11 @@ document.addEventListener('DOMContentLoaded', function() {
     .catch(() => alert('❌ Server bilan aloqa yo‘q.'));
   }
 
-  // 🔹 Qo‘shish
+  // 🔹 Qo‘shish tugmasi
   document.querySelectorAll(".btn-add").forEach(btn => {
-    btn.type = "button";
     btn.addEventListener("click", function () {
       const studentId = this.dataset.student;
+      if (!isPresent(studentId)) return alert("⚠️ Avval davomatni belgilang!");
       const ruleId = document.getElementById("rule-global").value;
       const amount = Math.abs(parseInt(document.getElementById("amount-global").value) || 0);
       if (!ruleId) return alert("Qoida tanlanmagan.");
@@ -205,11 +305,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // 🔹 Ayirish
+  // 🔹 Ayirish tugmasi
   document.querySelectorAll(".btn-sub").forEach(btn => {
-    btn.type = "button";
     btn.addEventListener("click", function () {
       const studentId = this.dataset.student;
+      if (!isPresent(studentId)) return alert("⚠️ Avval davomatni belgilang!");
       const ruleId = document.getElementById("rule-global").value;
       const amount = -Math.abs(parseInt(document.getElementById("amount-global").value) || 0);
       if (!ruleId) return alert("Qoida tanlanmagan.");
@@ -217,7 +317,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // 🔹 Ballni qo‘lda oshirish/pasaytirish
+  // 🔹 Ballni oshirish/pasaytirish
   document.getElementById('glob-plus').addEventListener('click', () => {
     const input = document.getElementById('amount-global');
     input.value = parseInt(input.value || '0', 10) + 1;
@@ -228,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function() {
     input.value = v;
   });
 
-  // 🔹 ✅ Davomat (kelgan / kelmagan)
+  // 🔹 Davomat
   document.querySelectorAll('.attend-toggle').forEach(box => {
     box.addEventListener('change', function() {
       const enrId = this.dataset.enrollment;
@@ -247,12 +347,8 @@ document.addEventListener('DOMContentLoaded', function() {
       })
       .then(r => r.json())
       .then(data => {
-        if (data.ok) {
-          if (!data.present && data.removed_points > 0) {
-            alert("⚠️ O‘quvchi kelmaganligi uchun " + data.removed_points + " ta chaqmoq o‘chirildi.");
-          }
-        } else {
-          alert("❌ Davomat saqlanmadi: " + (data.error || "Server xatosi"));
+        if (data.ok && !data.present && data.removed_points > 0) {
+          alert("⚠️ O‘quvchi kelmaganligi uchun " + data.removed_points + " ta chaqmoq o‘chirildi.");
         }
       })
       .catch(() => alert("❌ Server bilan aloqa yo‘q."));
@@ -261,7 +357,5 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 </script>
-
 {% endverbatim %}
-
 {% endblock %}

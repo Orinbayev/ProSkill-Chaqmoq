@@ -80,6 +80,7 @@ def students_json(request):
         qs = qs.filter(enrollment__group_id=gid)
     data = [{'id': u.id, 'name': f"{u.ism} {u.familya}"} for u in qs.order_by('ism','familya').distinct()]
     return JsonResponse({'students': data})
+from datetime import date
 
 @login_required
 def berish(request):
@@ -156,6 +157,7 @@ def berish(request):
         'rules': rules,
         'students': students,
         'selected_gid': selected_gid,
+        "today": date.today(),
     })
 
 

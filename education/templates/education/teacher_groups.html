@@ -2,45 +2,167 @@
 {% load humanize %}
 
 {% block content %}
-<div class="container mt-4">
-  <h4 class="fw-bold mb-3">
-    {{ teacher.ism }} {{ teacher.familya }} — O‘qituvchi guruhlari
-  </h4>
+
+<style>
+body {
+  background: linear-gradient(135deg, #eef4ff, #ffffff);
+  font-family: 'Poppins', sans-serif;
+  min-height: 100vh;
+}
+
+/* 📘 Sarlavha */
+h4 {
+  font-weight: 800;
+  color: #007bff;
+  margin-bottom: 2rem;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* 🧩 Har bir guruh kartasi */
+details {
+  background: linear-gradient(135deg, #ffffff, #f9fcff);
+  border-radius: 16px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  transition: all 0.3s ease;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid #e2e6ef;
+  cursor: pointer;
+}
+details:hover {
+  transform: scale(1.02);
+  box-shadow: 0 10px 25px rgba(0, 123, 255, 0.15);
+  border-color: #007bff30;
+  background: linear-gradient(135deg, #f8fbff, #eef4ff);
+}
+
+/* 🔹 Summary (guruh sarlavhasi) */
+summary {
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  list-style: none;
+}
+summary::-webkit-details-marker {
+  display: none;
+}
+
+/* 💰 Daromad belgisi */
+summary::after {
+  content: "⬇️";
+  font-size: 1rem;
+  color: #007bff;
+  transition: transform 0.3s ease;
+}
+details[open] summary::after {
+  transform: rotate(180deg);
+}
+
+/* 💸 Jadval */
+.table {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 1rem;
+}
+.table th {
+  background-color: #007bff;
+  color: #fff;
+  font-weight: 600;
+  text-align: center;
+}
+.table td, .table th {
+  vertical-align: middle;
+  text-align: center;
+}
+.table-hover tbody tr:hover {
+  background-color: #f2f8ff;
+  transition: background 0.2s ease;
+}
+
+/* 🧾 Bo‘sh holatlar */
+.text-muted {
+  color: #777 !important;
+  font-style: italic;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+/* 🧍‍♂️ O‘qituvchi ismi */
+.teacher-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  background: linear-gradient(90deg, #007bff, #00bcd4);
+  color: #fff;
+  padding: 1rem 1.5rem;
+  border-radius: 15px;
+  box-shadow: 0 6px 20px rgba(0, 123, 255, 0.25);
+  display: inline-block;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+.teacher-header span {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+/* 💵 Daromad badge */
+.salary-badge {
+  background: linear-gradient(135deg, #00b894, #00cec9);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 4px 10px;
+  margin-left: 10px;
+  font-size: 0.9rem;
+}
+</style>
+
+<div class="container mt-5">
+  <div class="teacher-header">
+    👩‍🏫 {{ teacher.ism }} {{ teacher.familya }}
+    <span>— O‘qituvchi guruhlari</span>
+  </div>
 
   {% if teacher_data %}
     {% for item in teacher_data %}
-      <details class="mb-2 bg-light rounded p-2">
-        <summary class="fw-semibold">
-          {{ item.group.nom }} — 💰 {{ item.daromad|intcomma }} so‘m | {{ item.foiz }}%
+      <details>
+        <summary>
+          <span>{{ item.group.nom }}</span>
+          <span>💰 {{ item.daromad|intcomma }} so‘m <span class="salary-badge">{{ item.foiz }}%</span></span>
         </summary>
 
         {% if item.enrollments %}
-        <table class="table table-striped table-sm mt-2">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>O‘quvchi</th>
-              <th>Kurs narxi</th>
-              <th>Foiz</th>
-              <th>Kelgan darslar</th>
-              <th>Daromad (so‘m)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for e in item.enrollments %}
+          <table class="table table-hover table-sm mt-3">
+            <thead>
               <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>{{ e.student.ism }} {{ e.student.familya }}</td>
-                <td>{{ e.kurs_narhi|intcomma }}</td>
-                <td>{{ e.foiz }}%</td>
-                <td>{{ e.attended }}</td>
-                <td>{{ e.daromad|intcomma }}</td>
+                <th>#</th>
+                <th>O‘quvchi</th>
+                <th>Kurs narxi</th>
+                <th>Foiz</th>
+                <th>Kelgan darslar</th>
+                <th>Daromad (so‘m)</th>
               </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {% for e in item.enrollments %}
+                <tr>
+                  <td>{{ forloop.counter }}</td>
+                  <td>{{ e.student.ism }} {{ e.student.familya }}</td>
+                  <td>{{ e.kurs_narhi|intcomma }}</td>
+                  <td>{{ e.foiz }}%</td>
+                  <td>{{ e.attended }}</td>
+                  <td><strong>{{ e.daromad|intcomma }}</strong></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         {% else %}
-          <p class="text-muted mt-2">Bu guruhda hozircha o‘quvchilar yo‘q.</p>
+          <p class="text-muted">Bu guruhda hozircha o‘quvchilar yo‘q.</p>
         {% endif %}
       </details>
     {% endfor %}
@@ -48,4 +170,5 @@
     <p class="text-muted">Bu o‘qituvchining hozircha guruhlari yo‘q.</p>
   {% endif %}
 </div>
+
 {% endblock %}

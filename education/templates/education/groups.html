@@ -1,67 +1,45 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% block content %}
+<div class="container">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold text-primary">👥 Guruhlar ro‘yxati</h3>
+    {% if can_manage %}
+      <a href="{% url 'education:group_add' %}" class="btn btn-success fw-semibold">➕ Yangi guruh</a>
+    {% endif %}
+  </div>
 
-<h3 class="mb-3">{{ filter_title|default:"Guruhlar" }}</h3>
-
-<div class="d-flex gap-2 mb-3">
-  <a href="{% url 'education:guruhlar' %}" class="btn btn-outline-secondary btn-sm">Barchasi</a>
-  <a href="{% url 'education:guruhlar_tillar' %}" class="btn btn-outline-secondary btn-sm">Tillar</a>
-  <a href="{% url 'education:guruhlar_it' %}" class="btn btn-outline-secondary btn-sm">IT</a>
-
-  {% if request.user.role in ['Director', 'Manager', 'Teacher'] %}
-    <div class="ms-auto d-flex gap-2">
-      <a href="{% url 'education:group_create_lang' %}" class="btn btn-primary btn-sm">+ Tillar guruhi</a>
-      <a href="{% url 'education:group_create_it' %}" class="btn btn-primary btn-sm">+ IT guruhi</a>
-    </div>
-  {% endif %}
-</div>
-
-<div class="table-responsive">
-  <table class="table table-hover align-middle">
-    <thead>
+  <table class="table table-hover shadow-sm align-middle">
+    <thead class="table-dark">
       <tr>
-        <th>Guruh</th>
-        <th>Tur</th>
-        <th>Center</th>
+        <th>#</th>
+        <th>Guruh nomi</th>
         <th>O‘qituvchi</th>
-        <th>Talabalar</th>
-        <th></th>
+        <th>O‘quvchilar</th>
+        <th>Boshlangan sana</th>
+        {% if can_manage %}
+        <th>Amallar</th>
+        {% endif %}
       </tr>
     </thead>
     <tbody>
       {% for g in rows %}
-        <tr class="row-link" data-href="{% url 'education:group_detail' g.id %}">
-          <td><a href="{% url 'education:group_detail' g.id %}">{{ g.nom }}</a></td>
-          <td>
-            {% if g.category == 'lang' %}
-              <span class="badge text-bg-info">Tillar</span>
-            {% else %}
-              <span class="badge text-bg-dark">IT</span>
-            {% endif %}
-          </td>
-          <td>{{ g.center }}</td>
-          <td>{{ g.oqituvchi|default:"—" }}</td>
-          <td>{{ g.student_count }}</td>
-          <td>
-          {% if request.user.role == "Director" or request.user.role == "Manager" or request.user.role == "Teacher" %}
-              <a class="btn btn-sm btn-outline-secondary" href="{% url 'education:group_edit' g.id %}">Tahrirlash</a>
-            {% endif %}
-          </td>
-        </tr>
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ g.nom }}</td>
+        <td>{{ g.oqituvchi }}</td>
+        <td>{{ g.students.count }}</td>
+        <td>{{ g.sana|date:"d.m.Y" }}</td>
+        {% if can_manage %}
+        <td>
+          <a href="{% url 'education:group_edit' g.id %}" class="btn btn-sm btn-outline-primary">✏️</a>
+          <a href="{% url 'education:group_delete' g.id %}" class="btn btn-sm btn-outline-danger">🗑️</a>
+        </td>
+        {% endif %}
+      </tr>
       {% empty %}
-        <tr><td colspan="6" class="text-muted">Guruhlar yo‘q.</td></tr>
+      <tr><td colspan="6" class="text-center text-muted">Hech qanday guruh topilmadi</td></tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
-
-<script>
-document.querySelectorAll('.row-link').forEach(tr=>{
-  tr.style.cursor='pointer';
-  tr.addEventListener('click', e=>{
-    if(e.target.closest('a,button')) return;
-    location.href = tr.dataset.href;
-  });
-});
-</script>
 {% endblock %}

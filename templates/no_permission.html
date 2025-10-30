@@ -1,9 +1,44 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-5">
-  <div class="alert alert-danger text-center p-4 rounded">
-    <h4 class="fw-bold">🚫 {{ message }}</h4>
-    <a href="/" class="btn btn-outline-primary mt-3">Bosh sahifaga qaytish</a>
+<div class="d-flex justify-content-center align-items-center" style="min-height:80vh;">
+  <div class="card shadow-lg border-0 p-5 text-center" 
+       style="max-width:520px; background:rgba(255,255,255,0.03); border-radius:18px; backdrop-filter:blur(10px);">
+    
+    <!-- 🚫 Icon Animation -->
+    <div class="mb-4">
+      <div class="mx-auto mb-3" style="
+          width:90px; height:90px; border-radius:50%;
+          background:linear-gradient(135deg,#ef4444,#dc2626);
+          display:flex; align-items:center; justify-content:center;
+          box-shadow:0 0 25px rgba(239,68,68,0.5);
+          animation:pulse 1.8s infinite ease-in-out;
+        ">
+        <span style="font-size:42px;">🚫</span>
+      </div>
+      <h3 class="fw-bold text-light mb-1">Ruxsat yo‘q</h3>
+      <p class="text-secondary mb-3" style="font-size:0.95rem;">
+        {{ message|default:"Sizda ushbu sahifaga kirish huquqi mavjud emas." }}
+      </p>
+    </div>
+
+    <!-- 🔘 Return Button -->
+    <a href="/" class="btn btn-lg text-light fw-semibold px-4"
+       style="background:linear-gradient(90deg,#2563eb,#38bdf8); border:none; border-radius:12px; box-shadow:0 0 12px rgba(56,189,248,0.4); transition:0.3s;">
+      🏠 Bosh sahifaga qaytish
+    </a>
   </div>
 </div>
+
+<style>
+@keyframes pulse {
+  0% { transform:scale(1); box-shadow:0 0 20px rgba(239,68,68,0.4); }
+  50% { transform:scale(1.08); box-shadow:0 0 30px rgba(239,68,68,0.7); }
+  100% { transform:scale(1); box-shadow:0 0 20px rgba(239,68,68,0.4); }
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow:0 0 18px rgba(56,189,248,0.6);
+}
+</style>
 {% endblock %}

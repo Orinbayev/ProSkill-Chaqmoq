@@ -1,54 +1,152 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<div class="container mt-4">
-  <h3 class="mb-4">🏆 Reyting (Chaqmoq bo‘yicha)</h3>
+<style>
+  body {
+    background: linear-gradient(145deg, #0f172a, #1e293b);
+    color: #e2e8f0;
+    font-family: 'Poppins', sans-serif;
+  }
 
-  <div class="card shadow-lg rounded-4 border-0">
-    <div class="card-body p-0">
-      <table class="table table-hover align-middle mb-0">
-        <thead class="table-dark">
-          <tr>
-            <th class="text-center" style="width:64px">№</th>
-            <th>Ism familiya</th>
-            <th class="text-end" style="width:160px">⚡ Jami Chaqmoq</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in leaderboard %}
-            <tr class="{% if forloop.first %}table-warning{% elif forloop.counter <= 3 %}table-light{% endif %}">
-              <td class="text-center fw-bold">
-                {% if forloop.first %}
-                  🥇
-                {% elif forloop.counter == 2 %}
-                  🥈
-                {% elif forloop.counter == 3 %}
-                  🥉
-                {% else %}
-                  {{ forloop.counter }}
-                {% endif %}
-              </td>
-              <td>
-                <div class="d-flex align-items-center">
-                  <div class="rounded-circle bg-primary text-white d-flex justify-content-center align-items-center me-3" style="width:40px; height:40px;">
-                    {{ row.student__ism|first|upper }}
-                  </div>
-                  <span class="fw-semibold">{{ row.student__ism }} {{ row.student__familya|default:"—" }}</span>
-                </div>
-              </td>
-              <td class="text-end fw-bold text-primary">{{ row.jami }}</td>
-            </tr>
-          {% empty %}
-            <tr>
-              <td colspan="3" class="text-center text-muted py-4">
-                Hozircha ma’lumot yo‘q.
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
+  .leaderboard-container {
+    max-width: 800px;
+    margin: 50px auto;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 24px;
+    box-shadow: 0 0 40px rgba(255, 215, 0, 0.15);
+    backdrop-filter: blur(12px);
+    padding: 30px;
+  }
+
+  h3 {
+    text-align: center;
+    font-weight: 700;
+    color: #fbbf24;
+    text-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
+    margin-bottom: 25px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #e2e8f0;
+  }
+
+  thead {
+    background: linear-gradient(to right, #fbbf24, #f59e0b);
+    color: #1e293b;
+    font-weight: 700;
+  }
+
+  th, td {
+    padding: 14px 18px;
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  tbody tr {
+    transition: 0.3s;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  tbody tr:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-3px);
+  }
+
+  .rank {
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+
+  .avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 700;
+    color: #fff;
+    font-size: 1.1rem;
+    margin-right: 12px;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+  }
+
+  .top1 {
+    color: #facc15;
+    text-shadow: 0 0 10px rgba(250, 204, 21, 0.6);
+  }
+
+  .top2 {
+    color: #e5e7eb;
+    text-shadow: 0 0 10px rgba(229, 231, 235, 0.5);
+  }
+
+  .top3 {
+    color: #f97316;
+    text-shadow: 0 0 10px rgba(249, 115, 22, 0.6);
+  }
+
+  .no-data {
+    text-align: center;
+    padding: 40px 0;
+    color: #94a3b8;
+  }
+
+  .score {
+    text-align: right;
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+</style>
+
+<div class="leaderboard-container">
+  <h3>🏆 Premium Reyting (Chaqmoq bo‘yicha)</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th class="text-center" style="width:64px;">№</th>
+        <th>Ism familiya</th>
+        <th class="text-end">⚡ Jami Chaqmoq</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in leaderboard %}
+        <tr>
+          <td class="rank">
+            {% if forloop.first %}
+              <span class="top1">🥇</span>
+            {% elif forloop.counter == 2 %}
+              <span class="top2">🥈</span>
+            {% elif forloop.counter == 3 %}
+              <span class="top3">🥉</span>
+            {% else %}
+              <span>{{ forloop.counter }}</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="d-flex align-items-center">
+              <div class="avatar">
+                {{ row.student__ism|first|upper }}
+              </div>
+              <span>{{ row.student__ism }} {{ row.student__familya|default:"—" }}</span>
+            </div>
+          </td>
+          <td class="score top{{ forloop.counter }}">
+            {{ row.jami }}
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="3" class="no-data">Hozircha ma’lumot yo‘q ⚡</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
 
 {% endblock %}

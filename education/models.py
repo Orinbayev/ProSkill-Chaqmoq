@@ -5,8 +5,15 @@ from django.core.validators import MinValueValidator
 from django.utils import timezone
 User = settings.AUTH_USER_MODEL
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.db.models import Sum
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 
 # education/models.py
+from django.db import models
+from django.conf import settings
+
+
 class Group(models.Model):
     LANG = "lang"
     IT = "it"
@@ -15,7 +22,19 @@ class Group(models.Model):
         (IT, "IT"),
     )
 
+    # 🔹 Eski tizimdagi tanlov saqlanib qoladi (eski kodlar buzilmaydi)
     category = models.CharField(max_length=8, choices=CATEGORY_CHOICES, default=LANG)
+
+    # 🔹 Yangi tizim — dinamik Category modeli bilan bog‘lanish (kelajakdagi bo‘limlar uchun)
+    category_obj = models.ForeignKey(
+        "education.Category",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="groups",
+        verbose_name="Bo‘lim (Category modeli orqali)"
+    )
+
     center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE)
     nom = models.CharField(max_length=150)
     izoh = models.TextField(blank=True)
@@ -115,24 +134,40 @@ class Enrollment(models.Model):
     
     
 class Payment(models.Model):
-    enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, related_name='payments')
-    summa = models.PositiveIntegerField()
-    sana = models.DateField(auto_now_add=True)
+    enrollment = models.ForeignKey(
+        Enrollment,
+        on_delete=models.CASCADE,
+        related_name='payments',
+        verbose_name="O‘quvchi kursga yozilganligi"
+    )
+    summa = models.PositiveIntegerField(verbose_name="To‘lov summasi (so‘mda)")
+    sana = models.DateField(auto_now_add=True, verbose_name="To‘lov sanasi")
 
     class Meta:
         verbose_name = "To‘lov"
         verbose_name_plural = "To‘lovlar"
+        ordering = ['-sana']
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        total = sum(p.summa for p in self.enrollment.payments.all())
-        Enrollment.objects.filter(id=self.enrollment_id).update(jami_tolangan=total)
+        # 🔹 Har safar to‘lov kiritilganda jami to‘langan miqdorni yangilash
+        total = self.enrollment.payments.aggregate(jami=Sum('summa'))['jami'] or 0
+        self.enrollment.jami_tolangan = total
+        self.enrollment.save(update_fields=['jami_tolangan'])
+
+    def __str__(self):
+        return f"{self.enrollment.student} — {self.summa:,} so‘m ({self.sana})"
 
 
 
 # ====== YANGI: Davomat ======
 
 class Attendance(models.Model):
+    """
+    Har bir guruh uchun alohida davomat.
+    Masalan, bir o‘quvchi bir kunda IT va English guruhida qatnashsa,
+    ikkita alohida Attendance yozuvi bo‘ladi.
+    """
     group = models.ForeignKey(
         'Group',
         on_delete=models.CASCADE,
@@ -155,7 +190,7 @@ class Attendance(models.Model):
     )
 
     date = models.DateField(
-        default=timezone.localdate,  # Django versiyasi – to‘g‘ri
+        default=timezone.localdate,
         verbose_name="Sana"
     )
     present = models.BooleanField(
@@ -166,23 +201,20 @@ class Attendance(models.Model):
     class Meta:
         verbose_name = "Davomat"
         verbose_name_plural = "Davomatlar"
-        unique_together = ('group', 'student', 'date')
+        unique_together = ('group', 'student', 'date')  # 🔥 Har bir guruh uchun alohida davomat
         ordering = ['-date']
 
     def __str__(self):
         belgi = "✅" if self.present else "❌"
-        return f"{self.date} | {self.group} | {self.student} | {belgi}"
+        return f"{self.date} | {self.group.nom} | {self.student.get_full_name()} | {belgi}"
 
     def save(self, *args, **kwargs):
-        # Agar sana kiritilmagan bo‘lsa, bugungi sanani qo‘yadi
+        """Davomat saqlanganda avtomatik o‘qituvchi va sana belgilanadi."""
         if not self.date:
             self.date = timezone.localdate()
 
-        # Har doim kechasi 00:00 gacha shu sana sifatida qoladi
-        now = timezone.localtime()
-        if now.hour == 0 and now.minute < 5:
-            # 00:00 dan 00:05 gacha bo‘lsa – yangi kun sifatida
-            self.date = timezone.localdate()
+        if not self.teacher and hasattr(self.group, 'oqituvchi'):
+            self.teacher = self.group.oqituvchi
 
         super().save(*args, **kwargs)
 
@@ -201,6 +233,16 @@ class AttendanceHistory(models.Model):
 
     def __str__(self):
         return f"{self.student.get_full_name()} — {self.date} — {'✅' if self.is_present else '❌'}"
+
+
+class Category(models.Model):
+    """Guruhlar kategoriyasi (masalan: Tillar, IT, Dizayn...)"""
+    name = models.CharField(max_length=100, unique=True)
+    icon = models.CharField(max_length=10, blank=True, null=True, help_text="Emoji yoki belgi masalan 💻 📘 🎨")
+    description = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name
 
 
 class Student(models.Model):
@@ -224,4 +266,26 @@ class DailyLightningSetting(models.Model):
     def __str__(self):
         return f"{self.date} — {self.max_lightning or 'Cheklanmagan'}"
 
+class TeacherIncome(models.Model):
+    teacher = models.ForeignKey(User, on_delete=models.CASCADE)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    attendance = models.OneToOneField(Attendance, on_delete=models.CASCADE)
+    amount = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
 
+
+
+@receiver(pre_save, sender=Payment)
+def auto_attach_enrollment(sender, instance, **kwargs):
+    """
+    Agar Payment yaratishda enrollment berilmagan bo‘lsa,
+    uni o‘quvchi va guruh asosida avtomatik topadi.
+    """
+    if not instance.enrollment_id:
+        from education.models import Enrollment
+        enroll = Enrollment.objects.filter(
+            group__students__student=instance.enrollment.student,
+            group__id=instance.enrollment.group_id
+        ).first()
+        if enroll:
+            instance.enrollment = enroll
