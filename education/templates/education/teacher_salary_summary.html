@@ -77,23 +77,10 @@
     transform: scale(1.01);
   }
 
-  .text-success {
-    color: #22c55e !important;
-  }
-
-  .text-primary {
-    color: #38bdf8 !important;
-  }
-
-  .fw-bold {
-    font-weight: 700;
-  }
-
-  .no-data {
-    text-align: center;
-    padding: 40px 0;
-    color: #94a3b8;
-  }
+  .text-success { color: #22c55e !important; }
+  .text-primary { color: #38bdf8 !important; }
+  .fw-bold { font-weight: 700; }
+  .no-data { text-align: center; padding: 40px 0; color: #94a3b8; }
 
   canvas {
     border-radius: 16px;
@@ -105,14 +92,14 @@
 <div class="dashboard-container">
   <h3>📊 O‘qituvchilar Umumiy Oylik Hisobot Paneli</h3>
 
-  <form method="get" class="text-center mb-4">
+  <div class="text-center mb-4">
     <label for="month" class="fw-semibold me-2">Oy tanlang:</label>
-    <select name="month" id="month" onchange="this.form.submit()">
+    <select name="month" id="month">
       {% for val, name in months %}
         <option value="{{ val }}" {% if val == selected_month %}selected{% endif %}>{{ name }}</option>
       {% endfor %}
     </select>
-  </form>
+  </div>
 
   <p class="text-center text-slate-400 mb-4">
     Hisobot — <strong>{{ month_name }}</strong> oyi, {{ year }} yil
@@ -126,24 +113,23 @@
     <thead>
       <tr>
         <th>#</th>
-        <th>O‘qituvchi</th>
+        <th>👨‍🏫 O‘qituvchi</th>
         <th>📚 Darslar</th>
         <th>👥 Guruhlar</th>
         <th>💰 O‘qituvchi Daromadi</th>
-        <th>🏫 Foyda</th>
-        <th>💵 </th>
+        <th>🏫 Markaz foydasi</th>
+        <th>💵 Umumiy aylanma</th>
       </tr>
     </thead>
     <tbody>
       {% for t in teacher_data %}
         <tr>
           <td>{{ forloop.counter }}</td>
-          <td>{{ t.teacher.get_full_name|default:t.teacher.username|default:t.teacher }}</td>
-          <td>{{ t.lessons }}</td>
+          <td>{{ t.teacher }}</td>
           <td>{{ t.groups }}</td>
           <td class="text-success">{{ t.teacher_income|floatformat:0 }} so‘m</td>
           <td class="text-primary">{{ t.center_profit|floatformat:0 }} so‘m</td>
-          <td class="fw-bold text-warning">{{ t.total_sum|floatformat:0 }} so‘m</td>
+          <td class="fw-bold text-warning">{{ t.total_turnover|floatformat:0 }} so‘m</td>
         </tr>
       {% empty %}
         <tr><td colspan="7" class="no-data">Ma’lumot topilmadi ⚡</td></tr>
@@ -152,56 +138,98 @@
   </table>
 </div>
 
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const ctx = document.getElementById('incomeChart');
-new Chart(ctx, {
-  type: 'bar',
-  data: {
-    labels: {{ chart_labels|safe }},
-    datasets: [
-      {
-        label: 'O‘qituvchi daromadi',
-        data: {{ chart_teacher_income|safe }},
-        backgroundColor: 'rgba(34, 197, 94, 0.6)',
-        borderColor: '#22c55e',
-        borderWidth: 1.5,
-        borderRadius: 6,
-      },
-      {
-        label: 'Markaz foydasi',
-        data: {{ chart_center_income|safe }},
-        backgroundColor: 'rgba(56, 189, 248, 0.6)',
-        borderColor: '#38bdf8',
-        borderWidth: 1.5,
-        borderRadius: 6,
-      }
-    ]
-  },
-  options: {
-    responsive: true,
-    plugins: {
-      legend: { 
-        labels: { color: '#f1f5f9', font: { size: 14, weight: 'bold' } } 
-      },
-      tooltip: {
-        callbacks: {
-          label: function(ctx) {
-            let value = ctx.parsed.y || 0;
-            return value.toLocaleString('uz-UZ') + ' so‘m';
-          }
-        }
-      }
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: { color: '#f8fafc', callback: (v)=>v.toLocaleString('uz-UZ')+' so‘m' },
-        grid: { color: 'rgba(255,255,255,0.1)' }
-      },
-      x: { ticks: { color: '#f8fafc' }, grid: { color: 'rgba(255,255,255,0.05)' } }
-    }
+document.addEventListener("DOMContentLoaded", function () {
+  const monthSelect = document.getElementById("month");
+  const tableBody = document.querySelector("tbody");
+  const ctx = document.getElementById("incomeChart");
+  let chartInstance = null;
+
+  function formatNum(num) {
+    return num.toLocaleString("uz-UZ") + " so‘m";
   }
+
+  function loadData() {
+    const month = monthSelect.value;
+    fetch(`/talim/teacher-salary/summary/?month=${month}`, {
+      headers: { "X-Requested-With": "XMLHttpRequest" }
+    })
+      .then(res => res.json())
+      .then(data => {
+        // Jadvalni yangilash
+        tableBody.innerHTML = "";
+        if (data.teacher_data.length === 0) {
+          tableBody.innerHTML = `<tr><td colspan="7" class="no-data">Ma’lumot topilmadi ⚡</td></tr>`;
+        } else {
+          data.teacher_data.forEach((t, i) => {
+            const row = `
+              <tr>
+                <td>${i + 1}</td>
+                <td>${t.teacher}</td>
+                <td>${t.lessons}</td>
+                <td>${t.groups}</td>
+                <td class="text-success">${formatNum(t.teacher_income)}</td>
+                <td class="text-primary">${formatNum(t.center_profit)}</td>
+                <td class="fw-bold text-warning">${formatNum(t.total_turnover)}</td>
+              </tr>`;
+            tableBody.insertAdjacentHTML("beforeend", row);
+          });
+        }
+
+        // Grafikni yangilash
+        if (chartInstance) chartInstance.destroy();
+        chartInstance = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: {{ chart_labels|safe }},
+            datasets: [
+              {
+                label: "O‘qituvchi daromadi",
+                data: data.chart_teacher_income,
+                backgroundColor: "rgba(34, 197, 94, 0.6)",
+                borderColor: "#22c55e",
+                borderWidth: 1.5,
+                borderRadius: 6,
+              },
+              {
+                label: "Markaz foydasi",
+                data: data.chart_center_income,
+                backgroundColor: "rgba(56, 189, 248, 0.6)",
+                borderColor: "#38bdf8",
+                borderWidth: 1.5,
+                borderRadius: 6,
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { labels: { color: "#f1f5f9", font: { size: 14, weight: "bold" } } },
+              tooltip: {
+                callbacks: { label: ctx => formatNum(ctx.parsed.y || 0) }
+              }
+            },
+            scales: {
+              y: { beginAtZero: true, ticks: { color: "#f8fafc" }, grid: { color: "rgba(255,255,255,0.1)" } },
+              x: { ticks: { color: "#f8fafc" }, grid: { color: "rgba(255,255,255,0.05)" } }
+            }
+          }
+        });
+      })
+      .catch(err => console.error("❌ Fetch error:", err));
+  }
+
+  // Oy o‘zgarganda
+  monthSelect.addEventListener("change", loadData);
+
+  // Har 10 sekundda avtomatik yangilanish
+  setInterval(loadData, 10000);
+
+  // Boshlang‘ich yuklanish
+  loadData();
 });
 </script>
+
 {% endblock %}

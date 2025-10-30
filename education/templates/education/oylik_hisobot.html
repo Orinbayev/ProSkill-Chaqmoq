@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block content %}
+
+<div class="container py-5">
+  <h2 class="text-center text-warning fw-bold mb-4">
+    📘 O‘qituvchilar Umumiy Oylik Hisobot Paneli
+  </h2>
+
+  <table class="table table-bordered table-hover text-center align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>#</th>
+        <th>👨‍🏫 O‘qituvchi</th>
+        <th>👥 Guruhlar</th>
+        <th>📚 Darslar</th>
+        <th>💰 O‘qituvchi Daromadi</th>
+        <th>🏫 Markaz Foydasi</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in oylik_data %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ t.oqituvchi }}</td>
+        <td>{{ t.guruhlar }}</td>
+        <td>{{ t.darslar }}</td>
+        <td class="text-success fw-bold">{{ t.daromad|intcomma }} so‘m</td>
+        <td class="text-info fw-bold">{{ t.markaz_foydasi|intcomma }} so‘m</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

@@ -428,6 +428,64 @@ def category_detail(request, category_id):
     })
 
 
+from datetime import datetime
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+from education.models import Group, Dars, OylikHisobot
+from accounts.models import User
+
+@login_required
+def oylik_hisobot(request):
+    """Har bir o‘qituvchining oyligini avtomatik hisoblash"""
+    oy = datetime.now().strftime("%B")
+    yil = datetime.now().year
+    oylik_data = []
+
+    teachers = User.objects.filter(role='teacher')
+
+    for teacher in teachers:
+        guruhlar = Group.objects.filter(oqituvchi=teacher)
+        jami_darslar = 0
+        jami_daromad = 0
+
+        for g in guruhlar:
+            darslar_soni = Dars.objects.filter(
+                guruh=g,
+                oqituvchi=teacher,
+                sana__month=datetime.now().month,
+                sana__year=datetime.now().year
+            ).count()
+
+            dars_tolovi = g.dars_boshiga_tolov()
+            jami_darslar += darslar_soni
+            jami_daromad += darslar_soni * dars_tolovi
+
+        markaz_foydasi = jami_daromad * 0.5  # misol uchun 50/50
+
+        oylik_data.append({
+            "oqituvchi": teacher.get_full_name() or teacher.username,
+            "guruhlar": guruhlar.count(),
+            "darslar": jami_darslar,
+            "daromad": round(jami_daromad),
+            "markaz_foydasi": round(markaz_foydasi),
+        })
+
+        # OylikHisobot jadvaliga yozib qo‘yish
+        OylikHisobot.objects.update_or_create(
+            oqituvchi=teacher,
+            oy=oy,
+            yil=yil,
+            defaults={
+                "jami_darslar": jami_darslar,
+                "jami_daromad": round(jami_daromad),
+                "markaz_foydasi": round(markaz_foydasi)
+            }
+        )
+
+    return render(request, "education/oylik_hisobot.html", {"oylik_data": oylik_data, "oy": oy, "yil": yil})
+
+
+
 
 
 @login_required
@@ -708,8 +766,31 @@ def teacher_salary_report(request, group_id):
 # 📊 DIREKTOR HISOBOT PANELI
 
 
+
+
+from django.db.models import Sum, Count, Q
+from django.utils.timezone import localdate
+from datetime import date
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+from django.contrib import messages
+
+from education.models import Group, Attendance, Payment, Enrollment
+from accounts.models import User
+
+
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum
+from django.utils.timezone import localdate
+from datetime import date
+from accounts.models import User
+from education.models import Group, Enrollment, Payment, Attendance
+
+
 @login_required
 def teacher_salary_summary(request):
+    """Har bir o‘qituvchi bo‘yicha oylik to‘liq hisobot"""
     teachers = User.objects.filter(role="teacher")
 
     selected_month = int(request.GET.get("month", localdate().month))
@@ -725,85 +806,107 @@ def teacher_salary_summary(request):
     chart_labels = [m[1] for m in months]
     chart_teacher_income = [0] * 12
     chart_center_income = [0] * 12
+    chart_total_turnover = [0] * 12
+
+    total_center_profit_global = 0
+    total_turnover_global = 0
 
     for teacher in teachers:
         groups = Group.objects.filter(oqituvchi=teacher)
-        total_teacher_income = 0
-        total_center_income = 0
-        total_classes = 0
 
-        for g in groups:
-            # === 1. O‘qituvchi o‘tgan darslar soni (davomat asosida)
+        total_teacher_income = 0
+        total_center_profit = 0
+        total_turnover = 0
+        total_lessons = 0
+
+        for group in groups:
+            # Darslar soni shu oyda
             attended_lessons = Attendance.objects.filter(
-                group=g,
-                teacher=teacher,
+                group=group,
                 present=True,
                 date__year=current_year,
                 date__month=selected_month
             ).count()
+            total_lessons += attended_lessons
 
-            total_classes += attended_lessons
+            enrollments = Enrollment.objects.filter(group=group)
 
-            # === 2. Har dars uchun to‘lov asosida o‘qituvchi ulushi
-            # agar oy_dars_soni yo‘q bo‘lsa nolga bo‘linishni oldini olamiz
-            oy_dars_soni = getattr(g, "oy_dars_soni", 12) or 12
-            kurs_narxi = getattr(g, "kurs_narxi", 0)
-            teacher_share = getattr(g, "oqituvchi_foiz", 40)
-
-            # Har dars uchun o‘qituvchi ulushi
-            lesson_payment = (kurs_narxi * teacher_share / 100) / oy_dars_soni
-            group_teacher_income = attended_lessons * lesson_payment
-
-            # === 3. Shu oyda tushgan haqiqiy to‘lovlar
-            enrollments = Enrollment.objects.filter(group=g)
+            # To‘lovlar shu oyda
             payments = Payment.objects.filter(
                 enrollment__in=enrollments,
                 sana__year=current_year,
                 sana__month=selected_month
             )
-            group_total = payments.aggregate(total=Sum("summa"))["total"] or 0
+            total_payment = payments.aggregate(total=Sum("summa"))["total"] or 0
+            total_turnover += total_payment
 
-            # === 4. Markazga qolgan ulush (agar to‘lovlar kam bo‘lsa, 0 dan oshmaydi)
-            center_income = max(group_total - group_teacher_income, 0)
+            # O‘qituvchi daromadi
+            group_teacher_income = 0
+            for enroll in enrollments:
+                lessons_in_month = Attendance.objects.filter(
+                    group=group,
+                    student=enroll.student,
+                    present=True,
+                    date__year=current_year,
+                    date__month=selected_month
+                ).count()
 
-            # === 5. Umumiy yig‘indi
+                oy_dars_soni = group.oy_dars_soni or 1
+                proportion = lessons_in_month / oy_dars_soni
+                student_income = enroll.kurs_narhi * (enroll.oqituvchi_foiz / 100)
+                real_income = round(student_income * proportion)
+                group_teacher_income += real_income
+
             total_teacher_income += group_teacher_income
-            total_center_income += center_income
 
-            # === 6. Grafik uchun
-            chart_teacher_income[selected_month - 1] += group_teacher_income
-            chart_center_income[selected_month - 1] += center_income
+            # Markaz foydasi = tushgan to‘lov - o‘qituvchi daromadi
+            center_profit = max(total_payment - group_teacher_income, 0)
+            total_center_profit += center_profit
 
-        total_sum = total_teacher_income + total_center_income
+            idx = selected_month - 1
+            chart_teacher_income[idx] += group_teacher_income
+            chart_center_income[idx] += center_profit
+            chart_total_turnover[idx] += total_payment
+
+        total_center_profit_global += total_center_profit
+        total_turnover_global += total_turnover
 
         teacher_data.append({
-            "teacher": teacher,
-            "lessons": total_classes,
+            "teacher": teacher.get_full_name() or teacher.username,
+            "lessons": total_lessons,
             "groups": groups.count(),
             "teacher_income": total_teacher_income,
-            "center_profit": total_center_income,
-            "total_sum": total_sum,
+            "center_profit": total_center_profit,
+            "total_turnover": total_turnover,
         })
 
-    # === Oyni nom bilan ko‘rsatish
     month_name = next((m[1] for m in months if m[0] == selected_month), "Noma’lum")
 
-    # === Natija
+    # Agar AJAX orqali kelsa (fetch)
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({
+            "teacher_data": teacher_data,
+            "chart_teacher_income": chart_teacher_income,
+            "chart_center_income": chart_center_income,
+            "chart_total_turnover": chart_total_turnover,
+            "center_profit_total": total_center_profit_global,
+            "turnover_total": total_turnover_global,
+        })
+
+    # HTML uchun
     context = {
         "teacher_data": teacher_data,
         "chart_labels": chart_labels,
         "chart_teacher_income": chart_teacher_income,
         "chart_center_income": chart_center_income,
+        "chart_total_turnover": chart_total_turnover,
         "months": months,
         "selected_month": selected_month,
         "month_name": month_name,
         "year": current_year,
+        "center_profit_total": total_center_profit_global,
+        "turnover_total": total_turnover_global,
     }
-
-    # Debug uchun terminalda ko‘rsatish
-    print(f"=== Hisobot → {month_name}, {current_year}")
-    for t in teacher_data:
-        print(f"{t['teacher']} | Darslar: {t['lessons']} | Daromad: {t['teacher_income']:.0f} so‘m")
 
     return render(request, "education/teacher_salary_summary.html", context)
 

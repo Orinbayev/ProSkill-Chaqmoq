@@ -22,10 +22,10 @@ class Group(models.Model):
         (IT, "IT"),
     )
 
-    # 🔹 Eski tizimdagi tanlov saqlanib qoladi (eski kodlar buzilmaydi)
+    # Eski tizimdagi tanlov
     category = models.CharField(max_length=8, choices=CATEGORY_CHOICES, default=LANG)
 
-    # 🔹 Yangi tizim — dinamik Category modeli bilan bog‘lanish (kelajakdagi bo‘limlar uchun)
+    # Yangi tizim
     category_obj = models.ForeignKey(
         "education.Category",
         on_delete=models.SET_NULL,
@@ -44,8 +44,8 @@ class Group(models.Model):
         null=True,
         limit_choices_to={'role': 'teacher'}
     )
-    tuzilgan = models.DateTimeField(auto_now_add=True)
 
+    tuzilgan = models.DateTimeField(auto_now_add=True)
     kurs_narxi = models.PositiveIntegerField(default=500000, help_text="Bir oylik to‘lov (so‘mda)")
     oqituvchi_foiz = models.PositiveIntegerField(default=40, help_text="O‘qituvchi foizi (%)")
     oy_dars_soni = models.PositiveIntegerField(default=12, help_text="Bir oyda nechta dars bo‘ladi")
@@ -60,10 +60,42 @@ class Group(models.Model):
     def dars_boshiga_tolov(self):
         """Har dars uchun to‘lovni xavfsiz hisoblash"""
         if self.kurs_narxi > 0 and self.oqituvchi_foiz > 0 and self.oy_dars_soni > 0:
-            return (self.kurs_narxi * self.oqituvchi_foiz / 100) / self.oy_dars_soni
-        else:
-            # Default qiymat (agar admin unutgan bo‘lsa)
-            return 0
+            return round((self.kurs_narxi * self.oqituvchi_foiz / 100) / self.oy_dars_soni, 2)
+        return 0
+
+
+class Oquvchi(models.Model):
+    """Guruhdagi o‘quvchi"""
+    ism = models.CharField(max_length=100)
+    guruh = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='oquvchilar')
+    tolov = models.PositiveIntegerField(default=0, help_text="O‘quvchining oylik to‘lovi (so‘mda)")
+
+    def __str__(self):
+        return f"{self.ism} ({self.guruh.nom})"
+
+
+class Dars(models.Model):
+    """Har bir o‘qituvchining darslari"""
+    guruh = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='darslar')
+    oqituvchi = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    sana = models.DateField(auto_now_add=True)
+    davom_etilgan = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.guruh.nom} - {self.sana}"
+
+
+class OylikHisobot(models.Model):
+    """Avtomatik oylik hisobot jadvali"""
+    oqituvchi = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    oy = models.CharField(max_length=15)
+    yil = models.IntegerField()
+    jami_darslar = models.PositiveIntegerField(default=0)
+    jami_daromad = models.PositiveIntegerField(default=0)
+    markaz_foydasi = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.oqituvchi} — {self.oy} {self.yil}"
 
 
     
@@ -134,11 +166,25 @@ class Enrollment(models.Model):
     
     
 class Payment(models.Model):
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        limit_choices_to={'role': 'student'},
+        verbose_name="O‘quvchi"
+    )
+    group = models.ForeignKey(
+        'education.Group',
+        on_delete=models.CASCADE,
+        related_name='group_payments',
+        verbose_name="Guruh"
+    )
     enrollment = models.ForeignKey(
-        Enrollment,
+        'education.Enrollment',
         on_delete=models.CASCADE,
         related_name='payments',
-        verbose_name="O‘quvchi kursga yozilganligi"
+        verbose_name="Yozilish",
+        null=True,
+        blank=True
     )
     summa = models.PositiveIntegerField(verbose_name="To‘lov summasi (so‘mda)")
     sana = models.DateField(auto_now_add=True, verbose_name="To‘lov sanasi")
@@ -148,16 +194,35 @@ class Payment(models.Model):
         verbose_name_plural = "To‘lovlar"
         ordering = ['-sana']
 
+    def __str__(self):
+        return f"{self.student.get_full_name()} — {self.summa:,} so‘m ({self.sana})"
+
     def save(self, *args, **kwargs):
+        """
+        🔹 Agar enrollment ko‘rsatilmagan bo‘lsa, avtomatik topadi yoki yaratadi.
+        🔹 Har safar jami to‘langan miqdorni yangilaydi.
+        """
+        from education.models import Enrollment
+
+        # 1️⃣ Enrollment topamiz yoki yaratamiz
+        if not self.enrollment:
+            enrollment, created = Enrollment.objects.get_or_create(
+                group=self.group,
+                student=self.student,
+                defaults={
+                    'kurs_narhi': self.group.kurs_narxi,
+                    'oqituvchi_foiz': self.group.oqituvchi_foiz,
+                }
+            )
+            self.enrollment = enrollment
+
+        # 2️⃣ To‘lovni saqlaymiz
         super().save(*args, **kwargs)
-        # 🔹 Har safar to‘lov kiritilganda jami to‘langan miqdorni yangilash
+
+        # 3️⃣ Jami to‘lovni yangilaymiz
         total = self.enrollment.payments.aggregate(jami=Sum('summa'))['jami'] or 0
         self.enrollment.jami_tolangan = total
         self.enrollment.save(update_fields=['jami_tolangan'])
-
-    def __str__(self):
-        return f"{self.enrollment.student} — {self.summa:,} so‘m ({self.sana})"
-
 
 
 # ====== YANGI: Davomat ======
@@ -279,14 +344,23 @@ class TeacherIncome(models.Model):
 @receiver(pre_save, sender=Payment)
 def auto_attach_enrollment(sender, instance, **kwargs):
     """
-    Agar Payment yaratishda enrollment berilmagan bo‘lsa,
-    uni o‘quvchi va guruh asosida avtomatik topadi.
+    ✅ To‘lov saqlanayotganda agar enrollment berilmagan bo‘lsa —
+    o‘quvchini va guruhni aniqlab, to‘g‘ri Enrollment yozuviga bog‘laydi.
     """
-    if not instance.enrollment_id:
-        from education.models import Enrollment
-        enroll = Enrollment.objects.filter(
-            group__students__student=instance.enrollment.student,
-            group__id=instance.enrollment.group_id
-        ).first()
-        if enroll:
-            instance.enrollment = enroll
+    # Agar enrollment allaqachon bor bo‘lsa — chiqamiz
+    if instance.enrollment_id:
+        return
+
+    # Agar instance’da student yoki group haqida ma’lumot yo‘q bo‘lsa — hech narsa qilmaymiz
+    # (ya’ni Payment yaratishda bu ma’lumotlar yo‘q bo‘lsa)
+    student_id = getattr(instance, "student_id", None)
+    group_id = getattr(instance, "group_id", None)
+
+    if not student_id or not group_id:
+        return
+
+    # Endi Enrollment’ni topamiz
+    enroll = Enrollment.objects.filter(group_id=group_id, student_id=student_id).first()
+    if enroll:
+        instance.enrollment = enroll
+
