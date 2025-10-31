@@ -790,12 +790,14 @@ from education.models import Group, Enrollment, Payment, Attendance
 
 @login_required
 def teacher_salary_summary(request):
-    """Har bir o‘qituvchi bo‘yicha oylik to‘liq hisobot"""
+    """Har bir o‘qituvchi bo‘yicha oylik to‘liq hisobot (markaz foydasi va umumiy aylanma bilan)"""
     teachers = User.objects.filter(role="teacher")
 
+    # 🗓️ Oy tanlanmasa – joriy oy
     selected_month = int(request.GET.get("month", localdate().month))
     current_year = date.today().year
 
+    # Oy nomlari
     months = [
         (1, "Yanvar"), (2, "Fevral"), (3, "Mart"), (4, "Aprel"),
         (5, "May"), (6, "Iyun"), (7, "Iyul"), (8, "Avgust"),
@@ -820,29 +822,11 @@ def teacher_salary_summary(request):
         total_lessons = 0
 
         for group in groups:
-            # Darslar soni shu oyda
-            attended_lessons = Attendance.objects.filter(
-                group=group,
-                present=True,
-                date__year=current_year,
-                date__month=selected_month
-            ).count()
-            total_lessons += attended_lessons
-
             enrollments = Enrollment.objects.filter(group=group)
+            oy_dars_soni = group.oy_dars_soni or 12  # Default 12 dars
 
-            # To‘lovlar shu oyda
-            payments = Payment.objects.filter(
-                enrollment__in=enrollments,
-                sana__year=current_year,
-                sana__month=selected_month
-            )
-            total_payment = payments.aggregate(total=Sum("summa"))["total"] or 0
-            total_turnover += total_payment
-
-            # O‘qituvchi daromadi
-            group_teacher_income = 0
             for enroll in enrollments:
+                # O‘quvchining o‘tgan darslari
                 lessons_in_month = Attendance.objects.filter(
                     group=group,
                     student=enroll.student,
@@ -851,22 +835,28 @@ def teacher_salary_summary(request):
                     date__month=selected_month
                 ).count()
 
-                oy_dars_soni = group.oy_dars_soni or 1
-                proportion = lessons_in_month / oy_dars_soni
-                student_income = enroll.kurs_narhi * (enroll.oqituvchi_foiz / 100)
-                real_income = round(student_income * proportion)
-                group_teacher_income += real_income
+                total_lessons += lessons_in_month
 
-            total_teacher_income += group_teacher_income
+                # Proporsional ulush (masalan, 10/12 dars = 0.83)
+                dars_ulushi = min(lessons_in_month / oy_dars_soni, 1)
 
-            # Markaz foydasi = tushgan to‘lov - o‘qituvchi daromadi
-            center_profit = max(total_payment - group_teacher_income, 0)
-            total_center_profit += center_profit
+                # To‘lov (o‘quvchi oyligi)
+                kurs_narhi = enroll.kurs_narhi or 0
+                oqituvchi_foiz = enroll.oqituvchi_foiz or 0
 
+                # O‘qituvchi va markaz foydasi
+                teacher_income = kurs_narhi * (oqituvchi_foiz / 100) * dars_ulushi
+                center_profit = kurs_narhi * (1 - oqituvchi_foiz / 100) * dars_ulushi
+
+                total_teacher_income += teacher_income
+                total_center_profit += center_profit
+                total_turnover += kurs_narhi * dars_ulushi  # umumiy aylanma (to‘liq oy uchun)
+
+            # Diagramma uchun qiymatlar
             idx = selected_month - 1
-            chart_teacher_income[idx] += group_teacher_income
-            chart_center_income[idx] += center_profit
-            chart_total_turnover[idx] += total_payment
+            chart_teacher_income[idx] += total_teacher_income
+            chart_center_income[idx] += total_center_profit
+            chart_total_turnover[idx] += total_turnover
 
         total_center_profit_global += total_center_profit
         total_turnover_global += total_turnover
@@ -875,22 +865,22 @@ def teacher_salary_summary(request):
             "teacher": teacher.get_full_name() or teacher.username,
             "lessons": total_lessons,
             "groups": groups.count(),
-            "teacher_income": total_teacher_income,
-            "center_profit": total_center_profit,
-            "total_turnover": total_turnover,
+            "teacher_income": round(total_teacher_income),
+            "center_profit": round(total_center_profit),
+            "total_turnover": round(total_turnover),
         })
 
     month_name = next((m[1] for m in months if m[0] == selected_month), "Noma’lum")
 
-    # Agar AJAX orqali kelsa (fetch)
+    # AJAX uchun
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         return JsonResponse({
             "teacher_data": teacher_data,
             "chart_teacher_income": chart_teacher_income,
             "chart_center_income": chart_center_income,
             "chart_total_turnover": chart_total_turnover,
-            "center_profit_total": total_center_profit_global,
-            "turnover_total": total_turnover_global,
+            "center_profit_total": round(total_center_profit_global),
+            "turnover_total": round(total_turnover_global),
         })
 
     # HTML uchun
@@ -904,12 +894,11 @@ def teacher_salary_summary(request):
         "selected_month": selected_month,
         "month_name": month_name,
         "year": current_year,
-        "center_profit_total": total_center_profit_global,
-        "turnover_total": total_turnover_global,
+        "center_profit_total": round(total_center_profit_global),
+        "turnover_total": round(total_turnover_global),
     }
 
     return render(request, "education/teacher_salary_summary.html", context)
-
 
 @login_required
 def teacher_salary_redirect(request):

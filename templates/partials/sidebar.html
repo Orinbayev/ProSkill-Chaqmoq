@@ -17,6 +17,15 @@
       </a>
     </li>
 
+
+    {% if user.is_superuser or user.role in 'director manager' %}
+    <li class="mb-1">
+      <a href="{% url 'education:groups_home' %}" class="nav-link sidebar-link fw-semibold py-2 px-3 text-light">
+        👥 Bo'limlar
+      </a>
+    </li>
+    {% endif %}
+    
     <!-- 🛍️ Do‘kon -->
     <li class="mb-1">
       <a href="{% url 'store:products' %}" class="nav-link sidebar-link fw-semibold py-2 px-3 text-light">
@@ -25,13 +34,7 @@
     </li>
 
     <!-- 👥 Guruhlar -->
-    {% if user.is_superuser or user.role in 'director manager' %}
-    <li class="mb-1">
-      <a href="{% url 'education:groups_home' %}" class="nav-link sidebar-link fw-semibold py-2 px-3 text-light">
-        👥 Guruhlar
-      </a>
-    </li>
-    {% endif %}
+
 
     <!-- 👩‍🏫 Mening guruhlarim -->
     {% if user.role == 'teacher' %}
