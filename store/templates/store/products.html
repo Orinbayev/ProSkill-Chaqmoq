@@ -1,22 +1,102 @@
 {% extends 'base.html' %}
 {% block content %}
-<h3>Mahsulotlar</h3>
-<div class="row g-3">
-  {% for p in items %}
-  <div class="col-md-4">
-    <div class="card h-100">
-      {% with img=p.rasmlar.first %}
-        {% if img %}<img src="{{ img.rasm.url }}" class="card-img-top" alt="">{% endif %}
-      {% endwith %}
-      <div class="card-body">
-        <h5 class="card-title">{{ p.nom }}</h5>
-        <p class="card-text">Narx: {{ p.narx_chaqmoq }} Chaqmoq<br></p>
-        <a href="{% url 'store:product_detail' p.pk %}" class="btn btn-outline-primary">Ko‘rish</a>
-      </div>
-    </div>
+
+<style>
+  .products-container {
+    padding: 20px 40px;
+    color: #e2e8f0;
+  }
+
+  h3 {
+    color: #facc15;
+    font-weight: 700;
+    margin-bottom: 25px;
+  }
+
+  .add-btn {
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+    color: white;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    float: right;
+    transition: 0.3s;
+    text-decoration: none;
+  }
+
+  .add-btn:hover {
+    opacity: 0.85;
+  }
+
+  .card {
+    background: rgba(255,255,255,0.05);
+    border-radius: 16px;
+    box-shadow: 0 0 15px rgba(59,130,246,0.2);
+    transition: 0.3s;
+  }
+
+  .card:hover {
+    transform: scale(1.03);
+  }
+
+  .card img {
+    height: 220px;
+    object-fit: cover;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+  }
+
+  .card-title {
+    color: #fbbf24;
+    font-weight: 600;
+  }
+
+  .card-text {
+    color: #cbd5e1;
+  }
+
+  .btn-primary {
+    background: #3b82f6;
+    border: none;
+  }
+
+  .no-data {
+    text-align: center;
+    padding: 50px;
+    color: #94a3b8;
+  }
+</style>
+
+<div class="products-container">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>🛍️ Mahsulotlar</h3>
+    {% if can_add %}
+      <a href="{% url 'store:product_create' %}" class="add-btn">+ Mahsulot qo‘shish</a>
+    {% endif %}
   </div>
-  {% empty %}
-    <p>Hozircha mahsulot yo‘q.</p>
-  {% endfor %}
+
+  <div class="row g-4">
+    {% for p in items %}
+      <div class="col-md-4">
+        <div class="card h-100">
+          {% with img=p.rasmlar.first %}
+            {% if img %}
+              <img src="{{ img.rasm.url }}" alt="{{ p.nom }}">
+            {% else %}
+              <img src="https://placehold.co/400x250?text=No+Image" alt="no image">
+            {% endif %}
+          {% endwith %}
+          <div class="card-body">
+            <h5 class="card-title">{{ p.nom }}</h5>
+            <p class="card-text">💰 {{ p.narx_chaqmoq }} Chaqmoq</p>
+            <a href="{% url 'store:product_detail' p.pk %}" class="btn btn-primary w-100">Ko‘rish</a>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="no-data">Hozircha mahsulot yo‘q.</div>
+    {% endfor %}
+  </div>
 </div>
+
 {% endblock %}

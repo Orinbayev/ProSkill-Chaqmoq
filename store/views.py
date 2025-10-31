@@ -1,16 +1,21 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
-from .models import Product, PurchaseRequest
-from .services import approve_purchase
+from .models import Product, ProductImage, PurchaseRequest
+from .services import approve_purchase, reject_purchase
 from .forms import ProductForm
 from chaqmoq.models import Ledger
 
+
+# ✅ Mahsulotlar ro‘yxati
 @login_required
 def products(request):
     items = Product.objects.all().order_by('-yaratilgan')
-    return render(request, 'store/products.html', {'items': items})
+    can_add = request.user.role in ('manager', 'director') or request.user.is_superuser
+    return render(request, 'store/products.html', {'items': items, 'can_add': can_add})
 
+
+# ✅ Mahsulot tafsiloti
 @login_required
 def product_detail(request, pk):
     item = get_object_or_404(Product, pk=pk)
@@ -21,104 +26,125 @@ def product_detail(request, pk):
         ).exists()
     return render(request, 'store/product_detail.html', {'item': item, 'has_pending': has_pending})
 
+
+# ✅ Mahsulotga so‘rov yuborish (student uchun)
 @login_required
 def create_request(request, pk):
     item = get_object_or_404(Product, pk=pk)
     if request.user.role != 'student':
-        messages.error(request, 'Faqat o‘quvchi so‘rov yaratishi mumkin.')
+        messages.error(request, 'Faqat o‘quvchi so‘rov yuborishi mumkin.')
         return redirect('store:products')
+
     exists = PurchaseRequest.objects.filter(
         student=request.user, product=item, status=PurchaseRequest.PENDING
     ).exists()
     if exists:
         messages.info(request, 'Oldin yuborilgan so‘rov mavjud.')
         return redirect('store:product_detail', pk=pk)
+
+    if not _student_has_enough(request.user, item.narx_chaqmoq):
+        messages.error(request, "Chaqmoqingiz yetarli emas.")
+        return redirect('store:products')
+
     PurchaseRequest.objects.create(student=request.user, product=item, qty=1)
     messages.success(request, 'Xarid so‘rovi yuborildi.')
     return redirect('store:product_detail', pk=pk)
 
 
+# ✅ Manager/Direktor uchun so‘rovlar ro‘yxati
 @login_required
 def request_list(request):
-    if request.user.role not in ('manager','director'):
-        messages.error(request, 'Ruxsat yo‘q')
+    if request.user.role not in ('manager', 'director'):
+        messages.error(request, 'Ruxsat yo‘q.')
         return redirect('core:home')
     items = PurchaseRequest.objects.order_by('-sana')
     return render(request, 'store/requests.html', {'items': items})
 
+
+# ✅ So‘rovni tasdiqlash
 @login_required
 def request_approve(request, pk):
-    if request.user.role not in ('manager','director'):
-        messages.error(request, 'Ruxsat yo‘q')
+    if request.user.role not in ('manager', 'director'):
+        messages.error(request, 'Ruxsat yo‘q.')
         return redirect('store:requests')
+
     pr = get_object_or_404(PurchaseRequest, pk=pk)
     ok, msg = approve_purchase(pr, request.user)
     (messages.success if ok else messages.error)(request, msg)
     return redirect('store:requests')
 
 
+# ✅ So‘rovni rad etish
+@login_required
+def request_reject(request, pk):
+    if request.user.role not in ('manager', 'director'):
+        messages.error(request, 'Ruxsat yo‘q.')
+        return redirect('store:requests')
+
+    pr = get_object_or_404(PurchaseRequest, pk=pk)
+    ok, msg = reject_purchase(pr, request.user)
+    (messages.success if ok else messages.error)(request, msg)
+    return redirect('store:requests')
+
+
+# ✅ Mahsulot qo‘shish
 @login_required
 def product_create(request):
-    if request.user.role not in ('manager','director') and not request.user.is_superuser:
-        messages.error(request,'Ruxsat yo‘q'); return redirect('core:stat_products')
+    if request.user.role not in ('manager', 'director') and not request.user.is_superuser:
+        messages.error(request, 'Ruxsat yo‘q.')
+        return redirect('store:products')
+
+    from .forms import ProductForm, ProductImageForm
+
     form = ProductForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
-        form.save(); messages.success(request,'Mahsulot qo‘shildi'); return redirect('core:stat_products')
-    return render(request, 'accounts/add_teacher.html', {'form': form})
+        product = form.save()
+        # Rasmlar yuklash
+        files = request.FILES.getlist('rasmlar')
+        for file in files:
+            ProductImage.objects.create(product=product, rasm=file)
+        messages.success(request, 'Mahsulot va rasmlar muvaffaqiyatli qo‘shildi!')
+        return redirect('store:products')
 
+    return render(request, 'store/product_form.html', {'form': form, 'title': "Mahsulot qo‘shish"})
+
+
+# ✅ Mahsulotni tahrirlash
 @login_required
 def product_edit(request, pk):
-    if request.user.role not in ('manager','director') and not request.user.is_superuser:
-        messages.error(request,'Ruxsat yo‘q'); return redirect('core:stat_products')
-    obj = get_object_or_404(Product, pk=pk)
-    form = ProductForm(request.POST or None, instance=obj)
-    if request.method == 'POST' and form.is_valid():
-        form.save(); messages.success(request,'Saqlandi'); return redirect('core:stat_products')
-    return render(request, 'accounts/add_teacher.html', {'form': form})
+    if request.user.role not in ('manager', 'director') and not request.user.is_superuser:
+        messages.error(request, 'Ruxsat yo‘q.')
+        return redirect('store:products')
 
+    obj = get_object_or_404(Product, pk=pk)
+    form = ProductForm(request.POST or None, request.FILES or None, instance=obj)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Mahsulot saqlandi!')
+        return redirect('store:products')
+
+    return render(request, 'store/product_form.html', {'form': form, 'title': 'Mahsulotni tahrirlash'})
+
+
+# ✅ Mahsulotni o‘chirish
 @login_required
 def product_delete(request, pk):
     if request.user.role not in ('director',) and not request.user.is_superuser:
-        messages.error(request,'Ruxsat yo‘q'); return redirect('core:stat_products')
+        messages.error(request, 'Ruxsat yo‘q.')
+        return redirect('store:products')
+
     obj = get_object_or_404(Product, pk=pk)
     if request.method == 'POST':
-        obj.delete(); messages.success(request,'O‘chirildi'); return redirect('core:stat_products')
+        obj.delete()
+        messages.success(request, 'Mahsulot o‘chirildi!')
+        return redirect('store:products')
+
     return render(request, 'accounts/logout_confirm.html', {})
 
 
-@login_required
-def request_reject(request, pk):
-    if request.user.role not in ('manager','director'):
-        messages.error(request, 'Ruxsat yo‘q')
-        return redirect('store:requests')
-    pr = get_object_or_404(PurchaseRequest, pk=pk)
-    from .services import reject_purchase
-    ok, msg = reject_purchase(pr, request.user)
-    (messages.success if ok else messages.error)(request, msg)
-    return redirect('core:stat_requests')
-
-
-
+# 🔒 Talabaning balansini tekshirish
 def _student_has_enough(user, price: int) -> bool:
     if getattr(user, 'role', None) != 'student':
         return True
     bal = Ledger.student_balansi(user.id)
     return bal >= price
-
-@login_required
-def request_product(request, pk):
-    """Mahsulotga so‘rov (savatcha) yuborish. Studentda bal yetmasa – rad etamiz."""
-    product = get_object_or_404(Product, pk=pk)
-
-    if not _student_has_enough(request.user, product.narxi):
-        messages.error(request, "Chaqmoqingiz yetarli emas.")
-        return redirect('store:products')
-
-    # so‘rovni yaratish — sizdagi mavjud mantiq
-    PurchaseRequest.objects.create(
-        student=request.user,
-        product=product,
-        status=PurchaseRequest.PENDING
-    )
-    messages.success(request, "So‘rov yuborildi. Manager tasdiqlashi kutiladi.")
-    return redirect('store:requests')
