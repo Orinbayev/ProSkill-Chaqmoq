@@ -7,7 +7,7 @@ urlpatterns = [
     path('', views.products, name='products'),
     path('mahsulot/<int:pk>/', views.product_detail, name='product_detail'),
     path('mahsulot/<int:pk>/sorov/', views.create_request, name='create_request'),
-
+    path('mahsulotlar/', views.product_list, name='product_list'),
     path("so'rovlar/", views.request_list, name='requests'),
     path("so'rovlar/<int:pk>/tasdiqlash/", views.request_approve, name='request_approve'),
 

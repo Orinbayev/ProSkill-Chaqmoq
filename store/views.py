@@ -10,9 +10,27 @@ from chaqmoq.models import Ledger
 # ✅ Mahsulotlar ro‘yxati
 @login_required
 def products(request):
+    """Mahsulotlar ro‘yxati va tanlab o‘chirish funksiyasi"""
     items = Product.objects.all().order_by('-yaratilgan')
+
+    # 🔹 Faqat manager, director yoki superuser qo‘sha / o‘chira oladi
     can_add = request.user.role in ('manager', 'director') or request.user.is_superuser
-    return render(request, 'store/products.html', {'items': items, 'can_add': can_add})
+
+    # 🔹 Tanlangan mahsulotlarni o‘chirish (POST orqali)
+    if request.method == "POST":
+        selected_ids = request.POST.getlist("selected_products")
+        if selected_ids:
+            Product.objects.filter(id__in=selected_ids).delete()
+            messages.success(request, f"{len(selected_ids)} ta mahsulot o‘chirildi ✅")
+            return redirect('store:products')
+        else:
+            messages.warning(request, "Hech qanday mahsulot tanlanmadi ❗")
+
+    return render(request, 'store/products.html', {
+        'items': items,
+        'can_add': can_add,
+    })
+
 
 
 # ✅ Mahsulot tafsiloti
@@ -107,6 +125,20 @@ def product_create(request):
         return redirect('store:products')
 
     return render(request, 'store/product_form.html', {'form': form, 'title': "Mahsulot qo‘shish"})
+
+
+def product_list(request):
+    products = Product.objects.all()
+
+    # 🔹 Tanlanganlarni o‘chirish
+    if request.method == "POST":
+        ids = request.POST.getlist('selected_products')
+        if ids:
+            Product.objects.filter(id__in=ids).delete()
+            messages.success(request, "Tanlangan mahsulotlar muvaffaqiyatli o‘chirildi ✅")
+            return redirect('store:products')
+
+    return render(request, 'store/product_list.html', {'products': products})
 
 
 # ✅ Mahsulotni tahrirlash
