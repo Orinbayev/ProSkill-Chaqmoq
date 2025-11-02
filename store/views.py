@@ -35,31 +35,45 @@ def products(request):
 
 
 # ✅ Mahsulot tafsiloti
+from django.contrib.auth import get_user_model
+User = get_user_model()
+
 @login_required
 def product_detail(request, pk):
     item = get_object_or_404(Product, pk=pk)
     has_pending = False
 
-    # Agar foydalanuvchi o‘quvchi bo‘lsa, uning so‘rovi mavjudligini tekshir
-    if request.user.role == 'student':
+    # Foydalanuvchini bazadan yangilab olish
+    user = User.objects.get(id=request.user.id)
+
+    # Agar foydalanuvchi o‘quvchi bo‘lsa, so‘rovni tekshir
+    if user.role == 'student':
         has_pending = PurchaseRequest.objects.filter(
-            student=request.user,
+            student=user,
             product=item,
             status=PurchaseRequest.PENDING
         ).exists()
 
-    # 🔹 Commentlarni olish (faqat parent commentlar)
+    # Foydalanuvchi chaqmog'ini bazadan olish
+    user_chaqmoq = user.chaqmoq
+
+    # Sotib olishlar soni
+    item.sotib_olganlar = PurchaseRequest.objects.filter(
+        product=item,
+        status=PurchaseRequest.APPROVED
+    ).count()
+
     comments = Comment.objects.filter(product=item, parent=None).prefetch_related('replies', 'user')
 
-    # 🔹 Sotib olishlar soni (tasdiqlangan so‘rovlar soni)
-    item.sotib_olganlar = PurchaseRequest.objects.filter(
-        product=item, status=PurchaseRequest.APPROVED
-    ).count()
+    # Yetarlilik holati
+    yetarli = user_chaqmoq >= item.narx_chaqmoq
 
     return render(request, 'store/product_detail.html', {
         'item': item,
         'has_pending': has_pending,
-        'comments': comments
+        'comments': comments,
+        'user_chaqmoq': user_chaqmoq,
+        'yetarli': yetarli,
     })
 
 
@@ -89,29 +103,40 @@ def reply_comment(request, cid):
             )
     return redirect('store:product_detail', pk=parent.product.id)
 
+from django.db import transaction
 
 
 # ✅ Mahsulotga so‘rov yuborish (student uchun)
 @login_required
 def create_request(request, pk):
-    item = get_object_or_404(Product, pk=pk)
-    if request.user.role != 'student':
-        messages.error(request, 'Faqat o‘quvchi so‘rov yuborishi mumkin.')
-        return redirect('store:products')
+    """O‘quvchi mahsulot uchun so‘rov yuboradi"""
+    product = get_object_or_404(Product, pk=pk)
+    user = User.objects.get(id=request.user.id)
 
-    exists = PurchaseRequest.objects.filter(
-        student=request.user, product=item, status=PurchaseRequest.PENDING
-    ).exists()
-    if exists:
-        messages.info(request, 'Oldin yuborilgan so‘rov mavjud.')
+    if user.role != 'student':
+        messages.error(request, "Faqat o‘quvchilar sotib olishlari mumkin.")
         return redirect('store:product_detail', pk=pk)
 
-    if not _student_has_enough(request.user, item.narx_chaqmoq):
-        messages.error(request, "Chaqmoqingiz yetarli emas.")
-        return redirect('store:products')
+    # Agar mavjud bo‘lmasa
+    if product.qoldiq <= 0:
+        messages.error(request, "Mahsulot omborda qolmagan.")
+        return redirect('store:product_detail', pk=pk)
 
-    PurchaseRequest.objects.create(student=request.user, product=item, qty=1)
-    messages.success(request, 'Xarid so‘rovi yuborildi.')
+    # Agar so‘rov oldin yuborilgan bo‘lsa
+    if PurchaseRequest.objects.filter(student=user, product=product, status=PurchaseRequest.PENDING).exists():
+        messages.warning(request, "Siz bu mahsulot uchun so‘rov yuborgansiz.")
+        return redirect('store:product_detail', pk=pk)
+
+    # ✅ Chaqmoqni hozircha yechmaymiz — manager tasdiqlaganda yechiladi
+    with transaction.atomic():
+        PurchaseRequest.objects.create(
+            student=user,
+            product=product,
+            qty=1,
+            status=PurchaseRequest.PENDING
+        )
+
+    messages.success(request, f"So‘rovingiz yuborildi! Manager tasdiqlaganidan keyin chaqmoq yechiladi.")
     return redirect('store:product_detail', pk=pk)
 
 

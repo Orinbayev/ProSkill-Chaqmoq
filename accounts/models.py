@@ -63,6 +63,7 @@ class User(AbstractUser):
 
     # ixtiyoriy: asl Gmail kiritish uchun alohida maydon (vizual)
     gmail = models.EmailField('Gmail', blank=True)
+    chaqmoq = models.PositiveIntegerField(default=0, verbose_name='Chaqmoq soni')
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []

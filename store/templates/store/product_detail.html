@@ -22,17 +22,21 @@
       <div class="mb-2">💰 Narx: <strong>{{ item.narx_chaqmoq }} Chaqmoq</strong></div>
       <div>🛒 Sotib olishlar: <strong>{{ item.sotib_olganlar }}</strong></div>
 
-      {% if user.role == 'student' %}
-        {% if has_pending %}
-          <div class="alert alert-info mt-2">So‘rovingiz yuborilgan. Tasdiqlashni kuting.</div>
-        {% elif user.chaqmoq >= item.narx_chaqmoq %}
-          <a class="btn btn-success mt-2" href="{% url 'store:create_request' item.pk %}">⚡ So‘rov yuborish</a>
+        {% if user.role == 'student' %}
+          {% if has_pending %}
+            <div class="alert alert-info mt-2">So‘rovingiz yuborilgan. Tasdiqlashni kuting.</div>
+          {% elif yetarli %}
+            <a class="btn btn-success mt-2" href="{% url 'store:create_request' item.pk %}">⚡ So‘rov yuborish</a>
+          {% else %}
+            <p class="text-danger mt-2">
+              Sizda yetarli chaqmoq mavjud emas. ({{ user_chaqmoq }} / {{ item.narx_chaqmoq }})
+            </p>
+          {% endif %}
         {% else %}
-          <p class="text-danger mt-2">Sizda yetarli chaqmoq mavjud emas.</p>
+          <div class="text-muted">Faqat o‘quvchi so‘rov yuboradi.</div>
         {% endif %}
-      {% else %}
-        <div class="text-muted">Faqat o‘quvchi so‘rov yuboradi.</div>
-      {% endif %}
+
+
     </div>
   </div>
 </div>

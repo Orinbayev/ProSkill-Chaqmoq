@@ -139,6 +139,49 @@ def create_sale_on_approve(sender, instance, created, **kwargs):
                 manager=instance.manager
             )
 
+@receiver(post_save, sender=PurchaseRequest)
+def handle_purchase_request(sender, instance, created, **kwargs):
+    """
+    Manager tasdiqlaganda:
+      - Chaqmoq yechiladi
+      - Mahsulot qoldig‘i kamayadi
+      - Sotuv yaratiladi
+
+    Rad etilganda:
+      - Agar chaqmoq ilgari yechilgan bo‘lsa, qaytariladi
+    """
+    product = instance.product
+    student = instance.student
+
+    # Tasdiqlangan holat
+    if not created and instance.status == PurchaseRequest.APPROVED:
+        if hasattr(student, 'chaqmoq') and student.chaqmoq >= product.narx_chaqmoq * instance.qty:
+            # Chaqmoqni yechish
+            student.chaqmoq -= product.narx_chaqmoq * instance.qty
+            student.save()
+
+            # Mahsulot qoldig‘ini kamaytirish
+            if product.qoldiq >= instance.qty:
+                product.qoldiq -= instance.qty
+            product.sotilgan_soni += instance.qty
+            product.save()
+
+            # Sotuv yozuvini yaratish
+            Sale.objects.create(
+                student=student,
+                product=product,
+                qty=instance.qty,
+                narx_chaqmoq=product.narx_chaqmoq,
+                manager=instance.manager
+            )
+
+    # Rad etilgan holat — qaytarish (agar chaqmoq ilgari yechilgan bo‘lsa)
+    elif not created and instance.status == PurchaseRequest.REJECTED:
+        # Hech narsa qilmaslik ham mumkin,
+        # lekin agar kerak bo‘lsa, bu joyda refund logikasi yoziladi.
+        pass
+
+
 
 class Comment(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='comments')
