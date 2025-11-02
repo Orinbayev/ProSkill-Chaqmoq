@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4 text-light">
+  <h3 class="mb-4">🧩 Yangi o‘quvchi qo‘shish</h3>
+  <form method="POST">
+    {% csrf_token %}
+    <div class="row g-3">
+      <div class="col-md-6">{{ form.ism.label_tag }} {{ form.ism }}</div>
+      <div class="col-md-6">{{ form.familya.label_tag }} {{ form.familya }}</div>
+      <div class="col-md-6">{{ form.telefon1.label_tag }} {{ form.telefon1 }}</div>
+      <div class="col-md-6">{{ form.telefon2.label_tag }} {{ form.telefon2 }}</div>
+      <div class="col-md-4">{{ form.yosh.label_tag }} {{ form.yosh }}</div>
+      <div class="col-md-4">{{ form.manba.label_tag }} {{ form.manba }}</div>
+      <div class="col-md-4">{{ form.yonalish.label_tag }} {{ form.yonalish }}</div>
+      <div class="col-12">{{ form.comment.label_tag }} {{ form.comment }}</div>
+
+      <!-- 🏠 Yashash manzili qo‘shildi -->
+      <div class="col-md-6">{{ form.address.label_tag }} {{ form.address }}</div>
+
+      <!-- 🟢 Status tanlash -->
+      <div class="col-md-6">{{ form.status.label_tag }} {{ form.status }}</div>
+    </div>
+
+    <button type="submit" class="btn btn-success mt-4">Saqlash</button>
+  </form>
+</div>
+{% endblock %}

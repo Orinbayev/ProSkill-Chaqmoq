@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5 text-center text-light">
+  <h4>🗑️ "{{ lead.ism }} {{ lead.familya }}" ni o‘chirmoqchimisiz?</h4>
+  <form method="POST" class="mt-3">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Ha, o‘chir</button>
+    <a href="{% url 'store:lead_list' %}" class="btn btn-secondary">Yo‘q, qaytish</a>
+  </form>
+</div>
+{% endblock %}

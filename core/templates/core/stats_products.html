@@ -30,7 +30,8 @@
         <td>{{ p.yaratilgan|date:"Y-m-d" }}</td>
         <td class="text-end text-nowrap">
           <a class="btn btn-sm btn-outline-primary" href="{% url 'store:product_edit' p.pk %}">Tahrirlash</a>
-          <form method="post" action="{% url 'store:product_delete' p.pk %}" class="d-inline">
+          <form method="post" action="{% url 'store:product_delete' p.pk %}" class="d-inline" 
+                onsubmit="return confirm('Haqiqatan ham o‘chirishni xohlaysizmi?');">
             {% csrf_token %}
             <button class="btn btn-sm btn-outline-danger">O‘chirish</button>
           </form>

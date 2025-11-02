@@ -1,3 +1,4 @@
+from .models import Product, PurchaseRequest, Comment
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
@@ -38,11 +39,56 @@ def products(request):
 def product_detail(request, pk):
     item = get_object_or_404(Product, pk=pk)
     has_pending = False
+
+    # Agar foydalanuvchi o‘quvchi bo‘lsa, uning so‘rovi mavjudligini tekshir
     if request.user.role == 'student':
         has_pending = PurchaseRequest.objects.filter(
-            student=request.user, product=item, status=PurchaseRequest.PENDING
+            student=request.user,
+            product=item,
+            status=PurchaseRequest.PENDING
         ).exists()
-    return render(request, 'store/product_detail.html', {'item': item, 'has_pending': has_pending})
+
+    # 🔹 Commentlarni olish (faqat parent commentlar)
+    comments = Comment.objects.filter(product=item, parent=None).prefetch_related('replies', 'user')
+
+    # 🔹 Sotib olishlar soni (tasdiqlangan so‘rovlar soni)
+    item.sotib_olganlar = PurchaseRequest.objects.filter(
+        product=item, status=PurchaseRequest.APPROVED
+    ).count()
+
+    return render(request, 'store/product_detail.html', {
+        'item': item,
+        'has_pending': has_pending,
+        'comments': comments
+    })
+
+
+@login_required
+def add_comment(request, pk):
+    if request.method == 'POST':
+        item = get_object_or_404(Product, pk=pk)
+        text = request.POST.get('text', '').strip()
+        if text:
+            Comment.objects.create(product=item, user=request.user, text=text)
+        return redirect('store:product_detail', pk=pk)
+    return redirect('store:product_detail', pk=pk)
+
+
+
+@login_required
+def reply_comment(request, cid):
+    parent = get_object_or_404(Comment, pk=cid)
+    if request.method == 'POST':
+        text = request.POST.get('text', '').strip()
+        if text:
+            Comment.objects.create(
+                product=parent.product,
+                user=request.user,
+                text=text,
+                parent=parent
+            )
+    return redirect('store:product_detail', pk=parent.product.id)
+
 
 
 # ✅ Mahsulotga so‘rov yuborish (student uchun)
@@ -180,3 +226,64 @@ def _student_has_enough(user, price: int) -> bool:
         return True
     bal = Ledger.student_balansi(user.id)
     return bal >= price
+
+from .models import Lead
+from .forms import LeadForm
+from .models import Lead, LeadStatus
+
+@login_required
+def lead_list(request):
+    # 🔹 status bo‘yicha filter
+    status_id = request.GET.get('status')
+    statuses = LeadStatus.objects.all()
+
+    if status_id:
+        leads = Lead.objects.filter(status_id=status_id).order_by('-qoshilgan_sana')
+    else:
+        leads = Lead.objects.all().order_by('-qoshilgan_sana')
+
+    context = {
+        'leads': leads,
+        'statuses': statuses,
+        'selected_status': status_id,
+    }
+    return render(request, 'store/lead_list.html', context)
+
+
+@login_required
+def lead_create(request):
+    if request.method == 'POST':
+        form = LeadForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "✅ Yangi o‘quvchi (lead) qo‘shildi!")
+            return redirect('store:lead_list')
+    else:
+        form = LeadForm()
+    return render(request, 'store/lead_create.html', {'form': form})
+
+
+# ✏️ Leadni tahrirlash
+@login_required
+def lead_edit(request, pk):
+    lead = get_object_or_404(Lead, pk=pk)
+    if request.method == 'POST':
+        form = LeadForm(request.POST, instance=lead)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "✏️ Ma’lumot tahrirlandi!")
+            return redirect('store:lead_list')
+    else:
+        form = LeadForm(instance=lead)
+    return render(request, 'store/lead_edit.html', {'form': form, 'lead': lead})
+
+
+# 🗑️ Leadni o‘chirish
+@login_required
+def lead_delete(request, pk):
+    lead = get_object_or_404(Lead, pk=pk)
+    if request.method == 'POST':
+        lead.delete()
+        messages.warning(request, "🗑️ Lead o‘chirildi!")
+        return redirect('store:lead_list')
+    return render(request, 'store/lead_delete.html', {'lead': lead})

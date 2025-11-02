@@ -23,3 +23,28 @@ class SaleAdmin(admin.ModelAdmin):
     list_display = ('sana','student','product','qty','narx_chaqmoq','manager')
     list_filter = ('sana','product')
     search_fields = ('student__ism','student__familya','product__nom')
+
+from .models import Lead, Manba, Yonalish
+from .models import Lead, Manba, Yonalish, LeadStatus
+
+@admin.register(Lead)
+class LeadAdmin(admin.ModelAdmin):
+    list_display = ('ism', 'familya', 'telefon1', 'yosh', 'manba', 'yonalish', 'status', 'comment', 'qoshilgan_sana')
+    search_fields = ('ism', 'familya', 'telefon1', 'address', 'comment')
+    list_filter = ('status', 'manba', 'yonalish')
+
+@admin.register(LeadStatus)
+class LeadStatusAdmin(admin.ModelAdmin):
+    list_display = ('nom',)
+
+
+@admin.register(Manba)
+class ManbaAdmin(admin.ModelAdmin):
+    list_display = ('nom',)
+    search_fields = ('nom',)
+
+@admin.register(Yonalish)
+class YonalishAdmin(admin.ModelAdmin):
+    list_display = ('nom',)
+    search_fields = ('nom',)
+
