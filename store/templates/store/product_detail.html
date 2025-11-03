@@ -1,65 +1,133 @@
 {% extends 'base.html' %}
 {% block content %}
 <style>
-  .comment-box{margin-top:20px;}
-  .comment{background:#1e293b;margin-top:10px;padding:10px 12px;border-radius:8px;}
-  .reply{margin-left:30px;background:#273449;}
-  textarea{width:100%;border-radius:8px;padding:10px;background:#0f172a;color:#e5e7eb;border:1px solid #1f2937;}
+  .comment-box { margin-top: 20px; }
+  .comment {
+    background: #1e293b;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    color: #e5e7eb;
+  }
+  .reply {
+    margin-left: 30px;
+    background: #273449;
+  }
+  textarea {
+    width: 100%;
+    border-radius: 8px;
+    padding: 10px;
+    background: #0f172a;
+    color: #e5e7eb;
+    border: 1px solid #1f2937;
+  }
+  .alert {
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-top: 10px;
+  }
+  .alert-info {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+  .alert-success {
+    background: #dcfce7;
+    color: #166534;
+  }
+  .alert-danger {
+    background: #fee2e2;
+    color: #991b1b;
+  }
 </style>
 
-<h3>{{ item.nom }}</h3>
+<h3 class="mb-3">{{ item.nom }}</h3>
 <div class="row">
   <div class="col-md-6">
     <div class="d-flex gap-2 flex-wrap">
       {% for img in item.rasmlar.all %}
-        <img src="{{ img.rasm.url }}" style="width:180px;height:180px;object-fit:cover" alt="rasm">
+        <img src="{{ img.rasm.url }}" style="width:180px;height:180px;object-fit:cover;border-radius:8px" alt="rasm">
+      {% empty %}
+        <img src="https://placehold.co/180x180?text=No+Image" style="border-radius:8px">
       {% endfor %}
     </div>
-    <p class="mt-3">{{ item.izoh }}</p>
+    {% if item.izoh %}
+      <p class="mt-3 text-light">{{ item.izoh }}</p>
+    {% endif %}
   </div>
+
   <div class="col-md-6">
-    <div class="p-3 border rounded">
+    <div class="p-3 border rounded text-light bg-slate-800" style="background:#111827;">
       <div class="mb-2">💰 Narx: <strong>{{ item.narx_chaqmoq }} Chaqmoq</strong></div>
-      <div>🛒 Sotib olishlar: <strong>{{ item.sotib_olganlar }}</strong></div>
+      <div>🛒 Sotib olishlar: <strong>{{ sotib_olganlar_soni }}</strong></div>
 
-        {% if user.role == 'student' %}
-          {% if has_pending %}
-            <div class="alert alert-info mt-2">So‘rovingiz yuborilgan. Tasdiqlashni kuting.</div>
-          {% elif yetarli %}
-            <a class="btn btn-success mt-2" href="{% url 'store:create_request' item.pk %}">⚡ So‘rov yuborish</a>
-          {% else %}
-            <p class="text-danger mt-2">
-              Sizda yetarli chaqmoq mavjud emas. ({{ user_chaqmoq }} / {{ item.narx_chaqmoq }})
-            </p>
-          {% endif %}
+      {% if user.role == 'student' %}
+        {% if request_status == 'approved' %}
+          <div class="alert alert-success mt-2">
+            ✅ Sizning so‘rovingiz <b>tasdiqlandi!</b> Mahsulot sizga biriktirilgan.
+            <br>
+            <a href="{% url 'store:create_request' item.pk %}" class="btn btn-outline-primary mt-2">
+              🔁 Yana sotib olish
+            </a>
+          </div>
+
+        {% elif request_status == 'rejected' %}
+          <div class="alert alert-danger mt-2">
+            ❌ Afsuski, so‘rovingiz <b>rad etildi.</b> Boshqa mahsulotni sinab ko‘rish yoki qayta so‘rov yuborish mumkin.
+            <br>
+            <a href="{% url 'store:create_request' item.pk %}" class="btn btn-outline-primary mt-2">
+              🔁 Qayta sotib olish
+            </a>
+          </div>
+
+        {% elif request_status == 'pending' %}
+          <div class="alert alert-info mt-2">
+            ⏳ So‘rovingiz yuborilgan. <b>Tasdiqlanishini kuting.</b>
+          </div>
+
         {% else %}
-          <div class="text-muted">Faqat o‘quvchi so‘rov yuboradi.</div>
+          {% if yetarli %}
+            <form method="post" action="{% url 'store:create_request' item.pk %}">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-success mt-2">⚡ So‘rov yuborish</button>
+</form>
+
+          {% else %}
+            <div class="alert alert-danger mt-2">
+              ❗ Sizda yetarli chaqmoq mavjud emas.<br>
+              ({{ user_chaqmoq }} / {{ item.narx_chaqmoq }})
+            </div>
+          {% endif %}
         {% endif %}
-
-
+      {% else %}
+        <div class="text-muted mt-2">📘 Faqat o‘quvchi so‘rov yuborishi mumkin.</div>
+      {% endif %}
     </div>
   </div>
 </div>
 
-<hr>
-<h4>💬 Fikrlar</h4>
+<hr class="my-4">
+<h4 class="text-light">💬 Fikrlar</h4>
 <form method="post" action="{% url 'store:add_comment' item.pk %}">
   {% csrf_token %}
   <textarea name="text" rows="3" placeholder="Fikringizni yozing..."></textarea>
   <button type="submit" class="btn btn-primary mt-2">Yuborish</button>
 </form>
 
-{% for c in comments %}
-<div class="comment">
-  <b>{{ c.user.ism }} {{ c.user.familya }}</b>: {{ c.text }}
-  {% for r in c.replies.all %}
-  <div class="comment reply"><b>{{ r.user.ism }} {{ r.user.familya }}</b>: {{ r.text }}</div>
+<div class="comment-box">
+  {% for c in comments %}
+  <div class="comment">
+    <b>{{ c.user.ism }} {{ c.user.familya }}</b>: {{ c.text }}
+    {% for r in c.replies.all %}
+      <div class="comment reply"><b>{{ r.user.ism }} {{ r.user.familya }}</b>: {{ r.text }}</div>
+    {% endfor %}
+    <form method="post" action="{% url 'store:reply_comment' c.id %}">
+      {% csrf_token %}
+      <textarea name="text" rows="2" placeholder="Javob yozish..."></textarea>
+      <button type="submit" class="btn btn-sm btn-secondary mt-1">↩️ Javob</button>
+    </form>
+  </div>
+  {% empty %}
+    <p class="text-muted mt-3">Hozircha fikrlar mavjud emas.</p>
   {% endfor %}
-  <form method="post" action="{% url 'store:reply_comment' c.id %}">
-    {% csrf_token %}
-    <textarea name="text" rows="2" placeholder="Javob yozish..."></textarea>
-    <button type="submit" class="btn btn-sm btn-secondary mt-1">↩️ Javob</button>
-  </form>
 </div>
-{% endfor %}
 {% endblock %}

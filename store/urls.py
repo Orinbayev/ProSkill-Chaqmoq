@@ -12,6 +12,8 @@ urlpatterns = [
     path('mahsulotlar/', views.product_list, name='product_list'),
     path("so'rovlar/", views.request_list, name='requests'),
     path("so'rovlar/<int:pk>/tasdiqlash/", views.request_approve, name='request_approve'),
+    path("so'rovlar/<int:pk>/tasdiqlash/", views.request_approve, name="request_approve"),
+    path("so'rovlar/<int:pk>/rad_etish/", views.request_reject, name="request_reject"),
 
     # CRUD (director/manager)
     path('product/create/', views.product_create, name='product_create'),

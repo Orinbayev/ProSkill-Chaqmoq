@@ -1,8 +1,5 @@
 from django.db import models
 from django.conf import settings
-
-User = settings.AUTH_USER_MODEL
-
 from django.contrib.auth import get_user_model
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -15,7 +12,6 @@ User = get_user_model()
 class Product(models.Model):
     nom = models.CharField(max_length=150)
     narx_chaqmoq = models.PositiveIntegerField(help_text="Mahsulot narxi (chaqmoqda)")
-    qoldiq = models.PositiveIntegerField(default=0, help_text="Ombordagi mahsulot soni")
     sotilgan_soni = models.PositiveIntegerField(default=0, help_text="Jami sotilgan mahsulotlar soni")
     izoh = models.TextField(blank=True)
     yaratilgan = models.DateTimeField(auto_now_add=True)
@@ -26,12 +22,18 @@ class Product(models.Model):
         ordering = ['-yaratilgan']
 
     def __str__(self):
-        return f"{self.nom} ({self.qoldiq} dona)"
+        return f"{self.nom} — {self.sotilgan_soni} dona sotilgan"
 
     @property
     def mavjud(self):
-        """Mahsulot mavjudmi?"""
-        return self.qoldiq > 0
+        """Har doim True qaytaradi, chunki mahsulot doim mavjud hisoblanadi"""
+        return True
+
+    @property
+    def sotib_olganlar(self):
+        from store.models import Sale
+        return Sale.objects.filter(product=self).count()
+
 
 
 # ===================================
@@ -53,6 +55,7 @@ class ProductImage(models.Model):
 # 3️⃣ XARID SO‘ROVI
 # ===================================
 class PurchaseRequest(models.Model):
+    # ======== STATUS CHOICES ========
     PENDING = 'pending'
     APPROVED = 'approved'
     REJECTED = 'rejected'
@@ -62,24 +65,59 @@ class PurchaseRequest(models.Model):
         (REJECTED, 'Rad etildi'),
     )
 
-    student = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role': 'student'})
-    product = models.ForeignKey(Product, on_delete=models.PROTECT)
-    qty = models.PositiveIntegerField(default=1)
-    status = models.CharField(max_length=10, choices=STATUS, default=PENDING)
-    manager = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='tasdiqlovchi', limit_choices_to={'role': 'manager'}
+    # ======== FIELDS ========
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        limit_choices_to={'role': 'student'},
+        verbose_name='O‘quvchi'
     )
-    sana = models.DateTimeField(auto_now_add=True)
 
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.SET_NULL,  # 🔥 Mahsulot o‘chirilsa, bu joy NULL bo‘ladi
+        null=True,
+        blank=True,
+        related_name='purchase_requests',
+        verbose_name='Mahsulot'
+    )
+
+    qty = models.PositiveIntegerField(default=1, verbose_name='Soni')
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS,
+        default=PENDING,
+        verbose_name='Holat'
+    )
+
+    manager = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='tasdiqlovchi',
+        limit_choices_to={'role': 'manager'},
+        verbose_name='Tasdiqlovchi'
+    )
+
+    sana = models.DateTimeField(auto_now_add=True, verbose_name='Yaratilgan sana')
+
+    # ======== META ========
     class Meta:
         verbose_name = 'Xarid so‘rovi'
         verbose_name_plural = 'Xarid so‘rovlari'
         ordering = ['-sana']
 
+    # ======== STRING REPRESENTATION ========
     def __str__(self):
-        s = f"{self.student.first_name} {self.student.last_name}" if self.student else "—"
-        return f"{s} → {self.product.nom} x{self.qty} ({self.get_status_display()})"
+        student_name = (
+            f"{self.student.first_name} {self.student.last_name}"
+            if self.student else "Noma'lum o‘quvchi"
+        )
+        product_name = (
+            self.product.nom if self.product else "O‘chirilgan mahsulot"
+        )
+        return f"{student_name} → {product_name} ×{self.qty} ({self.get_status_display()})"
 
 
 # ===================================
@@ -108,25 +146,24 @@ class Sale(models.Model):
 # 5️⃣ SIGNAL — MANAGER TASDIQLAGANDA SOTUV YARATISH
 # ===================================
 @receiver(post_save, sender=PurchaseRequest)
-def create_sale_on_approve(sender, instance, created, **kwargs):
+def handle_purchase_request(sender, instance, created, **kwargs):
     """
-    Manager tasdiqlaganda avtomatik sotuv yaratiladi,
-    student chaqmoqdan to‘lov yechiladi,
-    mahsulot qoldig‘i kamayadi.
+    Manager tasdiqlaganda:
+      - Studentdan chaqmoq yechiladi
+      - Mahsulotning sotilgan_soni oshiriladi
+      - Sotuv yozuvi yaratiladi
     """
-    if not created and instance.status == PurchaseRequest.APPROVED:
-        product = instance.product
-        student = instance.student
+    product = instance.product
+    student = instance.student
 
-        # Studentda yetarli chaqmoq bo‘lsa
+    # Tasdiqlangan holat
+    if not created and instance.status == PurchaseRequest.APPROVED:
         if hasattr(student, 'chaqmoq') and student.chaqmoq >= product.narx_chaqmoq * instance.qty:
             # 1️⃣ Chaqmoqni yechish
             student.chaqmoq -= product.narx_chaqmoq * instance.qty
             student.save()
 
-            # 2️⃣ Mahsulot qoldig‘ini kamaytirish
-            if product.qoldiq >= instance.qty:
-                product.qoldiq -= instance.qty
+            # 2️⃣ Sotilgan sonni oshirish
             product.sotilgan_soni += instance.qty
             product.save()
 
@@ -139,50 +176,10 @@ def create_sale_on_approve(sender, instance, created, **kwargs):
                 manager=instance.manager
             )
 
-@receiver(post_save, sender=PurchaseRequest)
-def handle_purchase_request(sender, instance, created, **kwargs):
-    """
-    Manager tasdiqlaganda:
-      - Chaqmoq yechiladi
-      - Mahsulot qoldig‘i kamayadi
-      - Sotuv yaratiladi
 
-    Rad etilganda:
-      - Agar chaqmoq ilgari yechilgan bo‘lsa, qaytariladi
-    """
-    product = instance.product
-    student = instance.student
-
-    # Tasdiqlangan holat
-    if not created and instance.status == PurchaseRequest.APPROVED:
-        if hasattr(student, 'chaqmoq') and student.chaqmoq >= product.narx_chaqmoq * instance.qty:
-            # Chaqmoqni yechish
-            student.chaqmoq -= product.narx_chaqmoq * instance.qty
-            student.save()
-
-            # Mahsulot qoldig‘ini kamaytirish
-            if product.qoldiq >= instance.qty:
-                product.qoldiq -= instance.qty
-            product.sotilgan_soni += instance.qty
-            product.save()
-
-            # Sotuv yozuvini yaratish
-            Sale.objects.create(
-                student=student,
-                product=product,
-                qty=instance.qty,
-                narx_chaqmoq=product.narx_chaqmoq,
-                manager=instance.manager
-            )
-
-    # Rad etilgan holat — qaytarish (agar chaqmoq ilgari yechilgan bo‘lsa)
-    elif not created and instance.status == PurchaseRequest.REJECTED:
-        # Hech narsa qilmaslik ham mumkin,
-        # lekin agar kerak bo‘lsa, bu joyda refund logikasi yoziladi.
-        pass
-
-
-
+# ===================================
+# 6️⃣ IZOH MODELI
+# ===================================
 class Comment(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='comments')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -199,25 +196,23 @@ class Comment(models.Model):
         return f"{self.user.username} → {self.product.nom}"
 
 
-from django.db import models
-
+# ===================================
+# 7️⃣ LEAD MODELLARI
+# ===================================
 class Yonalish(models.Model):
     nom = models.CharField(max_length=100, unique=True)
-
     def __str__(self):
         return self.nom
 
 
 class Manba(models.Model):
     nom = models.CharField(max_length=100, unique=True)
-
     def __str__(self):
         return self.nom
 
 
 class LeadStatus(models.Model):
     nom = models.CharField(max_length=100)
-
     def __str__(self):
         return self.nom
 
@@ -229,14 +224,10 @@ class Lead(models.Model):
     telefon2 = models.CharField(max_length=20, blank=True)
     yosh = models.PositiveIntegerField()
     address = models.CharField(max_length=255, blank=True, verbose_name="Yashash manzili")
-
     manba = models.ForeignKey(Manba, on_delete=models.SET_NULL, null=True, blank=True)
     yonalish = models.ForeignKey(Yonalish, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.ForeignKey('LeadStatus', on_delete=models.SET_NULL, null=True, blank=True)
-
-    # 🟢 Yangi maydon – izoh
     comment = models.TextField(blank=True, null=True, verbose_name="Izoh (comment)")
-
     qoshilgan_sana = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

@@ -15,7 +15,6 @@
       <th>#</th>
       <th>F.I.Sh</th>
       <th>Login (email/username)</th>
-      <th>Gmail</th>
       <th>Telefon</th>
       <th>Center</th>
     </tr>
@@ -32,7 +31,6 @@
           {% endif %}
         </td>
         <td>{{ u.email }}</td>
-        <td>{{ u.gmail|default:"—" }}</td>
         <td>{{ u.telefon1|default:"—" }}{% if u.telefon2 %} / {{ u.telefon2 }}{% endif %}</td>
         <td>{% if u.center %}{{ u.center.nom }}{% else %}—{% endif %}</td>
       </tr>

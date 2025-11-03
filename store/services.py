@@ -4,32 +4,49 @@ from chaqmoq.models import Ledger, Rule
 
 @transaction.atomic
 def approve_purchase(pr: PurchaseRequest, manager):
-    if pr.status != PurchaseRequest.PENDING:
-        return False, 'Allaqachon ko‘rilgan.'
-    # talab qilingan Chaqmoq
-    kerak = pr.product.narx_chaqmoq * pr.qty
-    balans = Ledger.student_balansi(pr.student_id)
-    if balans < kerak:
-        return False, 'Chaqmoq yetarli emas.'
-    if pr.product.qoldiq < pr.qty:
-        return False, 'Mahsulot qoldig‘i yetarli emas.'
+    """Manager yoki direktor so‘rovni tasdiqlaydi"""
+    product = pr.product
+    student = pr.student
 
-    # Chaqmoq yechish (minus yozuv)
-    minus_rule, _ = Rule.objects.get_or_create(nom='Do‘kondan xarid', tur=Rule.MINUS, defaults={'min_baho':1,'max_baho':1000000})
-    Ledger.objects.create(student=pr.student, beruvchi=manager, rule=minus_rule, ball=-kerak)
+    # ✅ 1. Balansni tekshirish
+    balans = Ledger.student_balansi(student.id)
+    umumiy_narx = product.narx_chaqmoq * pr.qty
 
-    # qoldiq kamaytirish
-    p = pr.product
-    p.qoldiq -= pr.qty
-    p.save(update_fields=['qoldiq'])
+    if balans < umumiy_narx:
+        return False, f"{student.ism} uchun balans yetarli emas ({balans} / {umumiy_narx})"
 
-    # Sotuv yozish
-    Sale.objects.create(student=pr.student, product=pr.product, qty=pr.qty, narx_chaqmoq=pr.product.narx_chaqmoq, manager=manager)
-
+    # ✅ 2. So‘rovni tasdiqlash
     pr.status = PurchaseRequest.APPROVED
     pr.manager = manager
-    pr.save(update_fields=['status','manager'])
-    return True, 'Tasdiqlandi.'
+    pr.save()
+
+    # ✅ 3. Ledgerga yozuv qo‘shish (chaqmoq yechish)
+    rule = Rule.objects.filter(nom__icontains="Sotib olish").first()
+    if not rule:
+        rule = Rule.objects.create(nom="Mahsulot sotib olish", tur="-", min_baho=0, max_baho=0)
+
+    Ledger.objects.create(
+        student=student,
+        beruvchi=manager,
+        rule=rule,
+        ball=-umumiy_narx
+    )
+
+    # ✅ 4. Sotuv yozuvini yaratish
+    Sale.objects.create(
+        student=student,
+        product=product,
+        qty=pr.qty,
+        narx_chaqmoq=product.narx_chaqmoq,
+        manager=manager
+    )
+
+    # ✅ 5. Mahsulot statistikasi
+    if hasattr(product, 'sotilgan_soni'):
+        product.sotilgan_soni += pr.qty
+        product.save(update_fields=['sotilgan_soni'])
+
+    return True, f"{product.nom} mahsulot uchun so‘rov tasdiqlandi ✅"
 
 
 def reject_purchase(pr: PurchaseRequest, manager):

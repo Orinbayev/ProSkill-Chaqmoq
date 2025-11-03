@@ -14,8 +14,7 @@
     <tr>
       <th>#</th>
       <th>Nom</th>
-      <th>Narx (Chaqmoq)</th>
-      <th>Qoldiq</th>
+      <th>Narx (Chaqmoq)</th> 
       <th>Yaratilgan</th>
       <th class="text-end">Amal</th>
     </tr>
@@ -26,7 +25,6 @@
         <td>{{ forloop.counter }}</td>
         <td>{{ p.nom }}</td>
         <td>{{ p.narx_chaqmoq }}</td>
-        <td>{{ p.qoldiq }}</td>
         <td>{{ p.yaratilgan|date:"Y-m-d" }}</td>
         <td class="text-end text-nowrap">
           <a class="btn btn-sm btn-outline-primary" href="{% url 'store:product_edit' p.pk %}">Tahrirlash</a>

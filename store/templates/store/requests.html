@@ -14,9 +14,15 @@
         <td>{{ r.qty }}</td>
         <td>{{ r.get_status_display }}</td>
         <td>
-          {% if r.status == 'pending' %}
-            <a class="btn btn-sm btn-success" href="{% url 'store:request_approve' r.pk %}">Tasdiqlash</a>
-          {% endif %}
+        {% if r.status == 'pending' %}
+          <a class="btn btn-sm btn-success" href="{% url 'store:request_approve' r.pk %}">Tasdiqlash</a>
+          <a class="btn btn-sm btn-danger ms-2" href="{% url 'store:request_reject' r.pk %}">Rad etish</a>
+        {% elif r.status == 'approved' %}
+          <span class="badge bg-success">Tasdiqlandi</span>
+        {% elif r.status == 'rejected' %}
+          <span class="badge bg-danger">Rad etildi</span>
+        {% endif %}
+
         </td>
       </tr>
     {% empty %}

@@ -53,8 +53,10 @@
     </li>
     {% endif %}
 
+
+
     <!-- 💰 To‘lov / Hisobot -->
-    {% if user.is_superuser or user.role == 'director' or user.role == 'teacher' %}
+    {% if user.is_superuser or user.role == 'director' or user.role == 'manager' %}
     <li class="mb-1">
       <a href="{% url 'education:teacher_salary_list' %}" class="nav-link sidebar-link fw-semibold py-2 px-3 text-success">
         💰 To‘lov
@@ -87,6 +89,32 @@
     </li>
     {% endif %}
   </ul>
+
+ <!-- ⚙️ Qo‘shish va Admin Panel -->
+{% if user.is_superuser or user.role == 'director' %}
+  <hr class="border-secondary opacity-25 mt-4">
+
+  <div class="p-3 text-center">
+    <!-- Foydalanuvchi qo‘shish -->
+    <a href="{% url 'accounts:add_user' %}"
+       class="btn w-100 fw-semibold text-light mb-2"
+       style="background:linear-gradient(90deg,#3b82f6,#60a5fa);
+              border:none; border-radius:10px;
+              box-shadow:0 0 12px rgba(59,130,246,0.5);">
+      ➕ Foydalanuvchi qo‘shish
+    </a>
+
+    <!-- Django Admin Panel -->
+    <a href="/admin/"
+       class="btn w-100 fw-semibold text-light"
+       style="background:linear-gradient(90deg,#0ea5e9,#2563eb);
+              border:none; border-radius:10px;
+              box-shadow:0 0 12px rgba(37,99,235,0.4);">
+      ⚙️ Admin Panel
+    </a>
+  </div>
+{% endif %}
+
 
   <hr class="border-secondary opacity-25 mt-4">
 

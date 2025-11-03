@@ -8,6 +8,9 @@ from .forms import ProductForm
 from chaqmoq.models import Ledger
 
 
+
+
+
 # ✅ Mahsulotlar ro‘yxati
 @login_required
 def products(request):
@@ -27,10 +30,7 @@ def products(request):
         else:
             messages.warning(request, "Hech qanday mahsulot tanlanmadi ❗")
 
-    return render(request, 'store/products.html', {
-        'items': items,
-        'can_add': can_add,
-    })
+    return render(request, 'store/product_list.html', {'items': items, 'can_add': can_add})
 
 
 
@@ -41,40 +41,37 @@ User = get_user_model()
 @login_required
 def product_detail(request, pk):
     item = get_object_or_404(Product, pk=pk)
-    has_pending = False
+    user = request.user
+    request_status = None
 
-    # Foydalanuvchini bazadan yangilab olish
-    user = User.objects.get(id=request.user.id)
-
-    # Agar foydalanuvchi o‘quvchi bo‘lsa, so‘rovni tekshir
     if user.role == 'student':
-        has_pending = PurchaseRequest.objects.filter(
+        last_request = PurchaseRequest.objects.filter(
             student=user,
-            product=item,
-            status=PurchaseRequest.PENDING
-        ).exists()
+            product=item
+        ).order_by('-sana').first()
+        if last_request:
+            request_status = last_request.status
 
-    # Foydalanuvchi chaqmog'ini bazadan olish
-    user_chaqmoq = user.chaqmoq
+    from chaqmoq.models import Ledger
+    user_chaqmoq = Ledger.student_balansi(user.id)
 
-    # Sotib olishlar soni
-    item.sotib_olganlar = PurchaseRequest.objects.filter(
+    sotib_olganlar_soni = PurchaseRequest.objects.filter(
         product=item,
         status=PurchaseRequest.APPROVED
     ).count()
 
     comments = Comment.objects.filter(product=item, parent=None).prefetch_related('replies', 'user')
-
-    # Yetarlilik holati
     yetarli = user_chaqmoq >= item.narx_chaqmoq
 
     return render(request, 'store/product_detail.html', {
         'item': item,
-        'has_pending': has_pending,
+        'request_status': request_status,
         'comments': comments,
         'user_chaqmoq': user_chaqmoq,
         'yetarli': yetarli,
+        'sotib_olganlar_soni': sotib_olganlar_soni,
     })
+
 
 
 @login_required
@@ -107,27 +104,38 @@ from django.db import transaction
 
 
 # ✅ Mahsulotga so‘rov yuborish (student uchun)
+# ✅ Mahsulotga so‘rov yuborish (student uchun)
 @login_required
 def create_request(request, pk):
     """O‘quvchi mahsulot uchun so‘rov yuboradi"""
     product = get_object_or_404(Product, pk=pk)
-    user = User.objects.get(id=request.user.id)
+    user = request.user  # Foydalanuvchini olamiz
 
+    # ✅ 1. Faqat studentlarga ruxsat
     if user.role != 'student':
         messages.error(request, "Faqat o‘quvchilar sotib olishlari mumkin.")
         return redirect('store:product_detail', pk=pk)
 
-    # Agar mavjud bo‘lmasa
-    if product.qoldiq <= 0:
-        messages.error(request, "Mahsulot omborda qolmagan.")
+    # ✅ 2. Agar so‘rov allaqachon yuborilgan bo‘lsa
+    # ❌ faqat "pending" emas, balki "tasdiqlangan"ni ham qayta sotib olishga ruxsat beramiz
+    if PurchaseRequest.objects.filter(
+        student=user, product=product, status=PurchaseRequest.PENDING
+    ).exists():
+        messages.warning(request, "Siz bu mahsulot uchun so‘rov yuborgansiz. Tasdiqlanishini kuting.")
         return redirect('store:product_detail', pk=pk)
 
-    # Agar so‘rov oldin yuborilgan bo‘lsa
-    if PurchaseRequest.objects.filter(student=user, product=product, status=PurchaseRequest.PENDING).exists():
-        messages.warning(request, "Siz bu mahsulot uchun so‘rov yuborgansiz.")
+
+    # ✅ 3. Ledger orqali foydalanuvchining real chaqmoq balansini olish
+    user_chaqmoq = Ledger.student_balansi(user.id)
+
+    if user_chaqmoq < product.narx_chaqmoq:
+        messages.error(
+            request,
+            f"Sizda yetarli chaqmoq mavjud emas. ({user_chaqmoq} / {product.narx_chaqmoq})"
+        )
         return redirect('store:product_detail', pk=pk)
 
-    # ✅ Chaqmoqni hozircha yechmaymiz — manager tasdiqlaganda yechiladi
+    # ✅ 4. So‘rovni yaratish
     with transaction.atomic():
         PurchaseRequest.objects.create(
             student=user,
@@ -136,7 +144,10 @@ def create_request(request, pk):
             status=PurchaseRequest.PENDING
         )
 
-    messages.success(request, f"So‘rovingiz yuborildi! Manager tasdiqlaganidan keyin chaqmoq yechiladi.")
+    messages.success(
+        request,
+        f"So‘rovingiz yuborildi! Sizning joriy balansingiz: {user_chaqmoq - product.narx_chaqmoq} Chaqmoq."
+    )
     return redirect('store:product_detail', pk=pk)
 
 
