@@ -1,6 +1,6 @@
 """
 Django settings for Chaqmoq Academy project.
-Optimized for both local and Render (production) environments.
+Ready for both local and Render environments.
 """
 
 import os
@@ -13,13 +13,12 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ===== Core =====
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY", "unsafe-secret-key")
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
 
 # ===== Installed Apps =====
 INSTALLED_APPS = [
-    # Django core
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -42,7 +41,7 @@ INSTALLED_APPS = [
 # ===== Middleware =====
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",  # 2-o‘rinda bo‘lishi kerak
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # MUST be 2nd
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -51,8 +50,6 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-
-# ===== URLS / WSGI =====
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
 
@@ -76,32 +73,27 @@ TEMPLATES = [
 # ===== Database =====
 DATABASES = {
     'default': {
-        'ENGINE': os.getenv("DB_ENGINE"),
+        'ENGINE': os.getenv("DB_ENGINE", "django.db.backends.postgresql"),
         'NAME': os.getenv("DB_NAME"),
         'USER': os.getenv("DB_USER"),
         'PASSWORD': os.getenv("DB_PASSWORD"),
         'HOST': os.getenv("DB_HOST"),
-        'PORT': os.getenv("DB_PORT"),
+        'PORT': os.getenv("DB_PORT", "5432"),
         'OPTIONS': {
+            # This line fixes Render SSL issue
             'sslmode': os.getenv("DB_SSLMODE", "require"),
         },
     }
 }
 
-
 # ===== Authentication =====
 AUTH_USER_MODEL = "accounts.User"
-
 AUTHENTICATION_BACKENDS = [
-    "accounts.backends.EmailOrUsernameBackend",  # custom backend
-    "django.contrib.auth.backends.ModelBackend",  # default
+    "accounts.backends.EmailOrUsernameBackend",
+    "django.contrib.auth.backends.ModelBackend",
 ]
-
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-        "OPTIONS": {"min_length": 6},
-    },
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 6}},
 ]
 
 LOGIN_URL = "login"
@@ -109,8 +101,8 @@ LOGIN_REDIRECT_URL = "core:home"
 LOGOUT_REDIRECT_URL = "login"
 
 # ===== Internationalization =====
-LANGUAGE_CODE = os.getenv("LANGUAGE_CODE", "en")
-TIME_ZONE = os.getenv("TIME_ZONE", "UTC")
+LANGUAGE_CODE = os.getenv("LANGUAGE_CODE", "uz")
+TIME_ZONE = os.getenv("TIME_ZONE", "Asia/Tashkent")
 USE_I18N = True
 USE_TZ = True
 
@@ -118,11 +110,9 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
-
-# Whitenoise setup
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-MEDIA_URL = os.getenv("MEDIA_URL", "/media/")
+MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # ===== Misc =====
