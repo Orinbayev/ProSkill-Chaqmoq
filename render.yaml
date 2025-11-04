@@ -1,13 +1,31 @@
 services:
   - type: web
-    name: chaqmoq-academy
+    name: ProSkill-Chaqmoq
     env: python
+    plan: free
+    region: frankfurt
     buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate"
     startCommand: "gunicorn config.wsgi"
     envVars:
       - key: DEBUG
         value: False
       - key: SECRET_KEY
-        generateValue: true
-      - key: DATABASE_URL
-        sync: false
+        value: django-insecure-&*5^50d(g7h_r0zum@!!(^b=jk6zjqtl+(0b91+$*$$5(y=lbd)
+      - key: DB_ENGINE
+        value: django.db.backends.postgresql
+      - key: DB_NAME
+        value: chaqmoq_db
+      - key: DB_USER
+        value: chaqmoq_user
+      - key: DB_PASSWORD
+        value: XgCvkXOFbxuEKpyWrjztvKBrx1VDFISr
+      - key: DB_HOST
+        value: dpg-d44o05bipnbc73anklp0-a.frankfurt-postgres.render.com
+      - key: DB_PORT
+        value: 5432
+      - key: DB_SSLMODE
+        value: require
+      - key: LANGUAGE_CODE
+        value: uz
+      - key: TIME_ZONE
+        value: Asia/Tashkent

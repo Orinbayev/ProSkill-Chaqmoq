@@ -42,16 +42,15 @@ INSTALLED_APPS = [
 # ===== Middleware =====
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # 2-o‘rinda bo‘lishi kerak
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-
-    # For static file compression in production
-    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
+
 
 # ===== URLS / WSGI =====
 ROOT_URLCONF = "config.urls"
@@ -117,9 +116,11 @@ USE_I18N = True
 USE_TZ = True
 
 # ===== Static & Media =====
-STATIC_URL = os.getenv("STATIC_URL", "/static/")
-STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"]
+
+# Whitenoise setup
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = os.getenv("MEDIA_URL", "/media/")
