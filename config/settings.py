@@ -1,13 +1,13 @@
 """
-Django settings for Chaqmoq Academy project.
-Ready for both local and Render environments.
+Django settings for Chaqmoq Academy project (Render version).
+This version is fully ready for deployment on Render — includes Cloudinary for media storage.
 """
 
 import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# ===== Load Environment Variables =====
+# ===== Load environment variables =====
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -18,9 +18,8 @@ DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
 
 # ===== Installed Apps =====
-# ===== Installed Apps =====
 INSTALLED_APPS = [
-    # Django Core Apps
+    # Django core apps
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -31,8 +30,8 @@ INSTALLED_APPS = [
     # Third-party
     "django_extensions",
     "django.contrib.humanize",
-    "cloudinary_storage",      # 🆕 Cloudinary media storage
-    "cloudinary",              # 🆕 Cloudinary core
+    "cloudinary_storage",  # for media storage
+    "cloudinary",
 
     # Project apps
     "accounts",
@@ -42,11 +41,10 @@ INSTALLED_APPS = [
     "core",
 ]
 
-
 # ===== Middleware =====
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",  # MUST be 2nd
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # for static files
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -75,19 +73,16 @@ TEMPLATES = [
     },
 ]
 
-# ===== Database =====
+# ===== Database (Render PostgreSQL) =====
 DATABASES = {
-    'default': {
-        'ENGINE': os.getenv("DB_ENGINE", "django.db.backends.postgresql"),
-        'NAME': os.getenv("DB_NAME"),
-        'USER': os.getenv("DB_USER"),
-        'PASSWORD': os.getenv("DB_PASSWORD"),
-        'HOST': os.getenv("DB_HOST"),
-        'PORT': os.getenv("DB_PORT", "5432"),
-        'OPTIONS': {
-            # This line fixes Render SSL issue
-            'sslmode': os.getenv("DB_SSLMODE", "require"),
-        },
+    "default": {
+        "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.postgresql"),
+        "NAME": os.getenv("DB_NAME"),
+        "USER": os.getenv("DB_USER"),
+        "PASSWORD": os.getenv("DB_PASSWORD"),
+        "HOST": os.getenv("DB_HOST"),
+        "PORT": os.getenv("DB_PORT", "5432"),
+        "OPTIONS": {"sslmode": os.getenv("DB_SSLMODE", "require")},
     }
 }
 
@@ -105,21 +100,23 @@ LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "core:home"
 LOGOUT_REDIRECT_URL = "login"
 
-# ===== Internationalization =====
+# ===== Language / Timezone =====
 LANGUAGE_CODE = os.getenv("LANGUAGE_CODE", "uz")
 TIME_ZONE = os.getenv("TIME_ZONE", "Asia/Tashkent")
 USE_I18N = True
 USE_TZ = True
 
-# ===== Static & Media =====
+# ===== Static Files =====
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = [BASE_DIR / "static"]
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
+# ===== Media Files (Cloudinary) =====
+DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_ROOT = '/opt/render/project/src/media'
+# ===== Cloudinary Config =====
+CLOUDINARY_URL = os.getenv("CLOUDINARY_URL", None)
 
 # ===== Misc =====
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
