@@ -75,20 +75,19 @@ TEMPLATES = [
 
 # ===== Database =====
 DATABASES = {
-    "default": {
-        "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.postgresql"),
-        "NAME": os.getenv("DB_NAME"),
-        "USER": os.getenv("DB_USER"),
-        "PASSWORD": os.getenv("DB_PASSWORD"),
-        "HOST": os.getenv("DB_HOST"),
-        "PORT": os.getenv("DB_PORT", "5432"),
-        "OPTIONS": {
-            # Optional SSL config for Render PostgreSQL
-            "sslmode": os.getenv("DB_SSLMODE", "prefer"),
-            "sslrootcert": os.getenv("DB_SSLROOTCERT", None),
+    'default': {
+        'ENGINE': os.getenv("DB_ENGINE"),
+        'NAME': os.getenv("DB_NAME"),
+        'USER': os.getenv("DB_USER"),
+        'PASSWORD': os.getenv("DB_PASSWORD"),
+        'HOST': os.getenv("DB_HOST"),
+        'PORT': os.getenv("DB_PORT"),
+        'OPTIONS': {
+            'sslmode': os.getenv("DB_SSLMODE", "require"),
         },
     }
 }
+
 
 # ===== Authentication =====
 AUTH_USER_MODEL = "accounts.User"
