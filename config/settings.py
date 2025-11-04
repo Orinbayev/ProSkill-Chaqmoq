@@ -18,7 +18,9 @@ DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
 
 # ===== Installed Apps =====
+# ===== Installed Apps =====
 INSTALLED_APPS = [
+    # Django Core Apps
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -29,6 +31,8 @@ INSTALLED_APPS = [
     # Third-party
     "django_extensions",
     "django.contrib.humanize",
+    "cloudinary_storage",      # 🆕 Cloudinary media storage
+    "cloudinary",              # 🆕 Cloudinary core
 
     # Project apps
     "accounts",
@@ -37,6 +41,7 @@ INSTALLED_APPS = [
     "store",
     "core",
 ]
+
 
 # ===== Middleware =====
 MIDDLEWARE = [
@@ -111,6 +116,7 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
