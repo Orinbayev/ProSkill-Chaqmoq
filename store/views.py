@@ -224,20 +224,25 @@ def product_list(request):
 
 
 # ✅ Mahsulotni tahrirlash
-@login_required
 def product_edit(request, pk):
-    if request.user.role not in ('manager', 'director') and not request.user.is_superuser:
-        messages.error(request, 'Ruxsat yo‘q.')
-        return redirect('store:products')
+    item = get_object_or_404(Product, pk=pk)
+    if request.method == "POST":
+        form = ProductForm(request.POST, request.FILES, instance=item)
+        files = request.FILES.getlist('rasmlar')
 
-    obj = get_object_or_404(Product, pk=pk)
-    form = ProductForm(request.POST or None, request.FILES or None, instance=obj)
-    if request.method == 'POST' and form.is_valid():
-        form.save()
-        messages.success(request, 'Mahsulot saqlandi!')
-        return redirect('store:products')
+        if form.is_valid():
+            form.save()
 
-    return render(request, 'store/product_form.html', {'form': form, 'title': 'Mahsulotni tahrirlash'})
+            # Agar yangi rasmlar yuklangan bo‘lsa — eski rasmlar saqlanib qoladi, yangi qo‘shiladi
+            for file in files:
+                ProductImage.objects.create(product=item, rasm=file)
+
+            return redirect('store:product_detail', pk=item.pk)
+    else:
+        form = ProductForm(instance=item)
+
+    rasmlar = item.rasmlar.all()
+    return render(request, 'store/product_edit.html', {'form': form, 'item': item, 'rasmlar': rasmlar})
 
 
 # ✅ Mahsulotni o‘chirish

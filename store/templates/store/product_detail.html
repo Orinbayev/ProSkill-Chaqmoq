@@ -1,18 +1,76 @@
 {% extends 'base.html' %}
 {% block content %}
 <style>
-  .comment-box { margin-top: 20px; }
-  .comment {
-    background: #1e293b;
-    margin-top: 10px;
-    padding: 10px 12px;
-    border-radius: 8px;
+  body {
+    background-color: #0f172a;
     color: #e5e7eb;
   }
-  .reply {
-    margin-left: 30px;
-    background: #273449;
+
+  .product-detail {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.3);
+    margin-top: 40px;
   }
+
+  h3 {
+    color: #facc15;
+    font-weight: 700;
+    margin-bottom: 25px;
+    text-align: center;
+  }
+
+  .product-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .product-images img {
+    width: 180px;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+    transition: transform 0.3s;
+  }
+
+  .product-images img:hover {
+    transform: scale(1.05);
+  }
+
+  .product-info {
+    background: #111827;
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 10px;
+  }
+
+  .alert {
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-top: 12px;
+    font-size: 14px;
+  }
+
+  .alert-info {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
+  .alert-success {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .alert-danger {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
   textarea {
     width: 100%;
     border-radius: 8px;
@@ -20,114 +78,169 @@
     background: #0f172a;
     color: #e5e7eb;
     border: 1px solid #1f2937;
+    transition: border-color 0.3s;
   }
-  .alert {
+
+  textarea:focus {
+    border-color: #facc15;
+    outline: none;
+  }
+
+  .btn {
     border-radius: 8px;
-    padding: 10px 14px;
-    margin-top: 10px;
+    padding: 8px 14px;
+    font-weight: 600;
   }
-  .alert-info {
-    background: #dbeafe;
-    color: #1e40af;
+
+  .btn-success {
+    background-color: #22c55e;
+    border: none;
   }
-  .alert-success {
-    background: #dcfce7;
-    color: #166534;
+
+  .btn-outline-primary {
+    border-color: #38bdf8;
+    color: #38bdf8;
   }
-  .alert-danger {
-    background: #fee2e2;
-    color: #991b1b;
+
+  .btn-outline-primary:hover {
+    background: #38bdf8;
+    color: #0f172a;
+  }
+
+  .comment-box {
+    margin-top: 35px;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 25px;
+    border-radius: 16px;
+  }
+
+  .comment {
+    background: #1e293b;
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    color: #e5e7eb;
+  }
+
+  .reply {
+    margin-left: 40px;
+    background: #273449;
+    margin-top: 8px;
+  }
+
+  .comment b {
+    color: #facc15;
+  }
+
+  .no-comments {
+    color: #9ca3af;
+    font-style: italic;
+    text-align: center;
+    margin-top: 15px;
   }
 </style>
 
-<h3 class="mb-3">{{ item.nom }}</h3>
-<div class="row">
-  <div class="col-md-6">
-    <div class="d-flex gap-2 flex-wrap">
-      {% for img in item.rasmlar.all %}
-        <img src="{{ img.rasm.url }}" style="width:180px;height:180px;object-fit:cover;border-radius:8px" alt="rasm">
-      {% empty %}
-        <img src="https://placehold.co/180x180?text=No+Image" style="border-radius:8px">
-      {% endfor %}
-    </div>
-    {% if item.izoh %}
-      <p class="mt-3 text-light">{{ item.izoh }}</p>
-    {% endif %}
-  </div>
+<div class="container product-detail">
+  <h3>🛍️ {{ item.nom }}</h3>
 
-  <div class="col-md-6">
-    <div class="p-3 border rounded text-light bg-slate-800" style="background:#111827;">
-      <div class="mb-2">💰 Narx: <strong>{{ item.narx_chaqmoq }} Chaqmoq</strong></div>
-      <div>🛒 Sotib olishlar: <strong>{{ sotib_olganlar_soni }}</strong></div>
+  <div class="row">
+    <!-- Chap qism (rasmlar va izoh) -->
+    <div class="col-md-6">
+      <div class="product-images">
+        {% for img in item.rasmlar.all %}
+          <img src="{{ img.rasm.url }}" alt="rasm">
+        {% empty %}
+          <img src="https://placehold.co/180x180?text=No+Image">
+        {% endfor %}
+      </div>
 
-      {% if user.role == 'student' %}
-        {% if request_status == 'approved' %}
-          <div class="alert alert-success mt-2">
-            ✅ Sizning so‘rovingiz <b>tasdiqlandi!</b> Mahsulot sizga biriktirilgan.
-            <br>
-            <a href="{% url 'store:create_request' item.pk %}" class="btn btn-outline-primary mt-2">
-              🔁 Yana sotib olish
-            </a>
-          </div>
-
-        {% elif request_status == 'rejected' %}
-          <div class="alert alert-danger mt-2">
-            ❌ Afsuski, so‘rovingiz <b>rad etildi.</b> Boshqa mahsulotni sinab ko‘rish yoki qayta so‘rov yuborish mumkin.
-            <br>
-            <a href="{% url 'store:create_request' item.pk %}" class="btn btn-outline-primary mt-2">
-              🔁 Qayta sotib olish
-            </a>
-          </div>
-
-        {% elif request_status == 'pending' %}
-          <div class="alert alert-info mt-2">
-            ⏳ So‘rovingiz yuborilgan. <b>Tasdiqlanishini kuting.</b>
-          </div>
-
-        {% else %}
-          {% if yetarli %}
-            <form method="post" action="{% url 'store:create_request' item.pk %}">
-  {% csrf_token %}
-  <button type="submit" class="btn btn-success mt-2">⚡ So‘rov yuborish</button>
-</form>
-
-          {% else %}
-            <div class="alert alert-danger mt-2">
-              ❗ Sizda yetarli chaqmoq mavjud emas.<br>
-              ({{ user_chaqmoq }} / {{ item.narx_chaqmoq }})
-            </div>
-          {% endif %}
-        {% endif %}
-      {% else %}
-        <div class="text-muted mt-2">📘 Faqat o‘quvchi so‘rov yuborishi mumkin.</div>
+      {% if item.izoh %}
+        <p class="mt-3 text-light text-center" style="font-size:15px;">{{ item.izoh }}</p>
       {% endif %}
     </div>
+
+    <!-- O'ng qism (narx va tugmalar) -->
+    <div class="col-md-6">
+      <div class="product-info">
+        <div class="mb-2">💰 Narx: <strong>{{ item.narx_chaqmoq }} Chaqmoq</strong></div>
+        <div>🛒 Sotib olishlar: <strong>{{ sotib_olganlar_soni }}</strong></div>
+
+        {% if user.role == 'student' %}
+          {% if request_status == 'approved' %}
+            <div class="alert alert-success">
+              ✅ Sizning so‘rovingiz <b>tasdiqlandi!</b>
+              <br>
+              <a href="{% url 'store:create_request' item.pk %}" class="btn btn-outline-primary mt-2">
+                🔁 Yana sotib olish
+              </a>
+            </div>
+
+          {% elif request_status == 'rejected' %}
+            <div class="alert alert-danger">
+              ❌ So‘rovingiz <b>rad etildi.</b> Boshqa mahsulotni sinab ko‘rish mumkin.
+              <br>
+              <a href="{% url 'store:create_request' item.pk %}" class="btn btn-outline-primary mt-2">
+                🔁 Qayta sotib olish
+              </a>
+            </div>
+
+          {% elif request_status == 'pending' %}
+            <div class="alert alert-info">
+              ⏳ So‘rovingiz yuborilgan. <b>Tasdiqlanishini kuting.</b>
+            </div>
+
+          {% else %}
+            {% if yetarli %}
+              <form method="post" action="{% url 'store:create_request' item.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success mt-2">⚡ So‘rov yuborish</button>
+              </form>
+            {% else %}
+              <div class="alert alert-danger mt-2">
+                ❗ Sizda yetarli chaqmoq mavjud emas.<br>
+                ({{ user_chaqmoq }} / {{ item.narx_chaqmoq }})
+              </div>
+            {% endif %}
+          {% endif %}
+        {% else %}
+          <div class="text-muted mt-2">📘 Faqat o‘quvchi so‘rov yuborishi mumkin.</div>
+        {% endif %}
+
+        {% if user.is_staff or user.role == 'admin' %}
+          <hr class="text-secondary my-3">
+          <a href="{% url 'store:product_edit' item.pk %}" class="btn btn-outline-primary">✏️ Mahsulotni tahrirlash</a>
+        {% endif %}
+      </div>
+    </div>
   </div>
-</div>
 
-<hr class="my-4">
-<h4 class="text-light">💬 Fikrlar</h4>
-<form method="post" action="{% url 'store:add_comment' item.pk %}">
-  {% csrf_token %}
-  <textarea name="text" rows="3" placeholder="Fikringizni yozing..."></textarea>
-  <button type="submit" class="btn btn-primary mt-2">Yuborish</button>
-</form>
+  <!-- Fikrlar bo‘limi -->
+  <div class="comment-box mt-5">
+    <h4 class="text-light mb-3">💬 Fikrlar</h4>
 
-<div class="comment-box">
-  {% for c in comments %}
-  <div class="comment">
-    <b>{{ c.user.ism }} {{ c.user.familya }}</b>: {{ c.text }}
-    {% for r in c.replies.all %}
-      <div class="comment reply"><b>{{ r.user.ism }} {{ r.user.familya }}</b>: {{ r.text }}</div>
-    {% endfor %}
-    <form method="post" action="{% url 'store:reply_comment' c.id %}">
+    <form method="post" action="{% url 'store:add_comment' item.pk %}">
       {% csrf_token %}
-      <textarea name="text" rows="2" placeholder="Javob yozish..."></textarea>
-      <button type="submit" class="btn btn-sm btn-secondary mt-1">↩️ Javob</button>
+      <textarea name="text" rows="3" placeholder="Fikringizni yozing..."></textarea>
+      <button type="submit" class="btn btn-outline-primary mt-2">Yuborish</button>
     </form>
+
+    {% if comments %}
+      {% for c in comments %}
+      <div class="comment">
+        <b>{{ c.user.ism }} {{ c.user.familya }}</b>: {{ c.text }}
+        {% for r in c.replies.all %}
+          <div class="comment reply"><b>{{ r.user.ism }} {{ r.user.familya }}</b>: {{ r.text }}</div>
+        {% endfor %}
+        <form method="post" action="{% url 'store:reply_comment' c.id %}">
+          {% csrf_token %}
+          <textarea name="text" rows="2" placeholder="Javob yozish..."></textarea>
+          <button type="submit" class="btn btn-sm btn-secondary mt-1">↩️ Javob</button>
+        </form>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="no-comments">Hozircha fikrlar mavjud emas.</p>
+    {% endif %}
   </div>
-  {% empty %}
-    <p class="text-muted mt-3">Hozircha fikrlar mavjud emas.</p>
-  {% endfor %}
 </div>
 {% endblock %}
