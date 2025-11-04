@@ -1,6 +1,6 @@
 """
-Django settings for Chaqmoq Academy project (Render version).
-This version is fully ready for deployment on Render — includes Cloudinary for media storage.
+Django settings for Chaqmoq Academy project (Render Disk version).
+This configuration works 100% correctly on Render.com with persistent media storage.
 """
 
 import os
@@ -19,7 +19,7 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
 
 # ===== Installed Apps =====
 INSTALLED_APPS = [
-    # Django core apps
+    # Django core
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -30,10 +30,8 @@ INSTALLED_APPS = [
     # Third-party
     "django_extensions",
     "django.contrib.humanize",
-    "cloudinary_storage",  # for media storage
-    "cloudinary",
 
-    # Project apps
+    # Local apps
     "accounts",
     "education",
     "chaqmoq",
@@ -44,7 +42,7 @@ INSTALLED_APPS = [
 # ===== Middleware =====
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",  # for static files
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # Static optimization
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -73,7 +71,7 @@ TEMPLATES = [
     },
 ]
 
-# ===== Database (Render PostgreSQL) =====
+# ===== Database =====
 DATABASES = {
     "default": {
         "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.postgresql"),
@@ -100,7 +98,7 @@ LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "core:home"
 LOGOUT_REDIRECT_URL = "login"
 
-# ===== Language / Timezone =====
+# ===== Locale =====
 LANGUAGE_CODE = os.getenv("LANGUAGE_CODE", "uz")
 TIME_ZONE = os.getenv("TIME_ZONE", "Asia/Tashkent")
 USE_I18N = True
@@ -109,14 +107,12 @@ USE_TZ = True
 # ===== Static Files =====
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"]
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-# ===== Media Files (Cloudinary) =====
-DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+# ===== Media Files (Render Disk) =====
 MEDIA_URL = "/media/"
-MEDIA_ROOT = '/opt/render/project/src/media'
-# ===== Cloudinary Config =====
-CLOUDINARY_URL = os.getenv("CLOUDINARY_URL", None)
+MEDIA_ROOT = "/opt/render/project/src/media"  # The mount path of Render Disk
 
 # ===== Misc =====
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
