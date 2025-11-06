@@ -1,9 +1,8 @@
 {% extends 'base.html' %}
 {% block content %}
-
 <style>
   .form-wrapper {
-    max-width: 480px;
+    max-width: 550px;
     margin: 60px auto;
     background: rgba(255, 255, 255, 0.06);
     border-radius: 20px;
@@ -12,19 +11,22 @@
     color: #fff;
     backdrop-filter: blur(14px);
   }
+
   label {
     font-weight: 600;
-    color: #ffffff !important;
+    color: #ffffff;
     margin-bottom: 6px;
     display: block;
     font-size: 15px;
   }
+
   h3 {
     text-align: center;
     color: #fbbf24;
     font-weight: 700;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
   }
+
   input, textarea {
     width: 100%;
     border: 1px solid rgba(148, 163, 184, 0.4);
@@ -34,6 +36,7 @@
     padding: 10px 12px;
     margin-bottom: 16px;
   }
+
   .upload-zone {
     border: 2px dashed #fbbf24;
     border-radius: 12px;
@@ -45,34 +48,83 @@
     cursor: pointer;
     transition: 0.3s;
   }
-  .upload-zone input[type="file"] {
-    display: none;
+
+  .upload-zone:hover {
+    background: rgba(251, 191, 36, 0.05);
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
   }
+
+  .upload-zone input[type="file"] { display: none; }
+
   .preview-container {
     margin-top: 15px;
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 15px;
     justify-content: center;
   }
-  .preview-container img {
-    width: 80px;
-    height: 80px;
+
+  .preview-item {
+    position: relative;
+    display: inline-block;
+  }
+
+  .preview-item img {
+    width: 90px;
+    height: 90px;
     border-radius: 10px;
     object-fit: cover;
     border: 2px solid #facc15;
+    box-shadow: 0 0 5px rgba(251, 191, 36, 0.5);
   }
-  .buttons { text-align: center; margin-top: 20px; }
+
+  .delete-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #dc2626;
+    border: none;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+
+  .delete-btn:hover {
+    background: #b91c1c;
+    transform: scale(1.1);
+  }
+
+  .buttons { text-align: center; margin-top: 25px; }
+
   .save-btn {
     background: linear-gradient(90deg, #22c55e, #16a34a);
-    border: none; padding: 10px 25px;
-    border-radius: 8px; color: white;
-    font-weight: 600; cursor: pointer;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
   }
+
   .back-btn {
-    background: none; border: 1px solid #38bdf8;
-    color: #38bdf8; border-radius: 8px;
-    padding: 9px 22px; margin-left: 8px;
+    background: none;
+    border: 1px solid #38bdf8;
+    color: #38bdf8;
+    border-radius: 8px;
+    padding: 9px 22px;
+    margin-left: 8px;
+    font-weight: 500;
+    transition: 0.3s;
+  }
+
+  .back-btn:hover {
+    background: #38bdf8;
+    color: #0f172a;
   }
 </style>
 
@@ -81,30 +133,38 @@
 
   <form method="POST" enctype="multipart/form-data">
     {% csrf_token %}
-    
+
     <label for="id_nom">Nom:</label>
     {{ form.nom }}
 
-    <label for="id_narx_chaqmoq">Narx chaqmoq:</label>
+    <label for="id_narx_chaqmoq">Narx (chaqmoq):</label>
     {{ form.narx_chaqmoq }}
 
     <label for="id_izoh">Izoh:</label>
     {{ form.izoh }}
 
+    <hr style="margin:20px 0;border-color:rgba(255,255,255,0.1);">
+
     <label>Yuklangan rasmlar:</label>
     <div class="preview-container">
       {% for r in rasmlar %}
+      <div class="preview-item">
         <img src="{{ r.rasm.url }}" alt="rasm">
+        <form method="POST" action="{% url 'store:delete_product_image' r.id %}" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit" class="delete-btn">✕</button>
+        </form>
+      </div>
       {% empty %}
         <p class="text-muted">Rasm mavjud emas</p>
       {% endfor %}
     </div>
 
-    <hr style="margin:20px 0;border-color:rgba(255,255,255,0.1);">
+    <hr style="margin:25px 0;border-color:rgba(255,255,255,0.1);">
 
     <label>Yangi rasm qo‘shish:</label>
     <div class="upload-zone" id="drop-area">
-      📸 Rasmlarni shu yerga tashlang yoki bosing
+      📸 <b>Rasmlarni shu yerga tashlang yoki bosing</b>
       <input type="file" name="rasmlar" id="fileInput" multiple>
       <p id="file-count" style="margin-top:10px; color:#facc15;"></p>
     </div>
@@ -138,12 +198,17 @@
   function showPreview() {
     previewContainer.innerHTML = "";
     const files = fileInput.files;
-    if (files.length > 0) fileCountText.textContent = `${files.length} ta yangi rasm tanlandi`;
+    if (files.length > 0)
+      fileCountText.textContent = `${files.length} ta yangi rasm tanlandi`;
     [...files].forEach(file => {
       const reader = new FileReader();
       reader.onload = e => {
         const img = document.createElement("img");
         img.src = e.target.result;
+        img.style.width = "90px";
+        img.style.height = "90px";
+        img.style.borderRadius = "10px";
+        img.style.objectFit = "cover";
         previewContainer.appendChild(img);
       };
       reader.readAsDataURL(file);

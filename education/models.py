@@ -46,7 +46,7 @@ class Group(models.Model):
     )
 
     tuzilgan = models.DateTimeField(auto_now_add=True)
-    kurs_narxi = models.PositiveIntegerField(default=500000, help_text="Bir oylik to‘lov (so‘mda)")
+    kurs_narxi = models.PositiveIntegerField(default=50000000, help_text="Bir oylik to‘lov (so‘mda)")
     oqituvchi_foiz = models.PositiveIntegerField(default=40, help_text="O‘qituvchi foizi (%)")
     oy_dars_soni = models.PositiveIntegerField(default=12, help_text="Bir oyda nechta dars bo‘ladi")
 
@@ -150,6 +150,27 @@ class Enrollment(models.Model):
     def attended_count(self):
         return self.group.attendances.filter(student=self.student, present=True).count()
 
+    def get_monthly_payment(self):
+        """Joriy oy uchun jami to‘langan summani qaytaradi"""
+        now = timezone.now()
+        total = Payment.objects.filter(
+            student=self.student,
+            group=self.group,
+            month=now.month,
+            year=now.year
+        ).aggregate(total=Sum('summa'))['total'] or 0
+        return total
+
+    @property
+    def qoldiq_oylik(self):
+        """Joriy oy uchun qolgan to‘lov"""
+        return max(self.kurs_narhi - self.get_monthly_payment(), 0)
+
+    @property
+    def is_full_this_month(self):
+        """Joriy oy uchun to‘liq to‘langanmi?"""
+        return self.get_monthly_payment() >= self.kurs_narhi
+
     def real_oqituvchi_daromadi(self):
         """
         O‘qituvchining haqiqiy daromadini hisoblaydi:
@@ -164,8 +185,18 @@ class Enrollment(models.Model):
         foiz = attended / total_lessons
         return round(self.oqituvchi_daromadi * foiz)
     
+from decimal import Decimal
+from django.db import models
+from django.conf import settings
+from django.db.models import Sum
     
 class Payment(models.Model):
+    PAYMENT_TYPES = (
+        ('cash', 'Naqd'),
+        ('card', 'Karta'),
+        ('mixed', 'Aralash'),
+    )
+
     student = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -186,8 +217,24 @@ class Payment(models.Model):
         null=True,
         blank=True
     )
-    summa = models.PositiveIntegerField(verbose_name="To‘lov summasi (so‘mda)")
+
+    # biz hozir cash va cardni alohida saqlaymiz; summa umumiy uchun ham qoladi
+    payment_type = models.CharField(max_length=10, choices=PAYMENT_TYPES, default='cash')
+    cash_amount = models.PositiveIntegerField(default=0, verbose_name="Naqd summasi (so'mda)")
+    card_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Karta summasi (valyutada yoki so'mda)")
+    card_rate = models.DecimalField(max_digits=12, decimal_places=6, default=1, verbose_name="Kurs (agar karta valyutada bo'lsa)")
+    card_currency = models.CharField(max_length=10, default='UZS', verbose_name="Karta valyutasi")
+    note = models.TextField(blank=True, null=True, verbose_name="Izoh")
+    is_full_paid = models.BooleanField(default=False, verbose_name="To'liq to'landi (belgi)")
+
+    # legacy: summa (saqlanadigan umumiy so'm)
+    summa = models.PositiveIntegerField(verbose_name="To‘lov summasi (so‘mda)", default=0) 
+    total = models.FloatField(default=0)  # ✅ Qo‘shildi
+ 
     sana = models.DateField(auto_now_add=True, verbose_name="To‘lov sanasi")
+    vaqt = models.TimeField(default=timezone.now)  # 🕒 Qo‘shildi
+    month = models.PositiveSmallIntegerField(verbose_name="Oy", default=timezone.now().month)
+    year = models.PositiveSmallIntegerField(verbose_name="Yil", default=timezone.now().year)
 
     class Meta:
         verbose_name = "To‘lov"
@@ -197,32 +244,33 @@ class Payment(models.Model):
     def __str__(self):
         return f"{self.student.get_full_name()} — {self.summa:,} so‘m ({self.sana})"
 
+    @property
+    def card_amount_som(self):
+            # Agar card_rate = 1 bo‘lsa ham Decimal bilan hisobla, so‘ng int
+            return int((self.card_amount or Decimal('0')) * (self.card_rate or Decimal('1')))
+
     def save(self, *args, **kwargs):
-        """
-        🔹 Agar enrollment ko‘rsatilmagan bo‘lsa, avtomatik topadi yoki yaratadi.
-        🔹 Har safar jami to‘langan miqdorni yangilaydi.
-        """
-        from education.models import Enrollment
+        # 1) summa (UZS) ni hisobla
+        self.summa = int(self.cash_amount or 0) + self.card_amount_som  # ❌ () yo‘q endi
+        self.total = float(self.summa)
 
-        # 1️⃣ Enrollment topamiz yoki yaratamiz
-        if not self.enrollment:
-            enrollment, created = Enrollment.objects.get_or_create(
-                group=self.group,
-                student=self.student,
-                defaults={
-                    'kurs_narhi': self.group.kurs_narxi,
-                    'oqituvchi_foiz': self.group.oqituvchi_foiz,
-                }
-            )
-            self.enrollment = enrollment
+        # 2) Enrollment borligini kafolatla
+        if not self.enrollment_id and self.student_id and self.group_id:
+            enroll = Enrollment.objects.filter(
+                student_id=self.student_id,
+                group_id=self.group_id
+            ).first()
+            if enroll:
+                self.enrollment = enroll
 
-        # 2️⃣ To‘lovni saqlaymiz
         super().save(*args, **kwargs)
 
-        # 3️⃣ Jami to‘lovni yangilaymiz
-        total = self.enrollment.payments.aggregate(jami=Sum('summa'))['jami'] or 0
-        self.enrollment.jami_tolangan = total
-        self.enrollment.save(update_fields=['jami_tolangan'])
+        # 3) ENROLLMENT jami to‘lovni yangila (faqat summa yig‘indisi)
+        if self.enrollment_id:
+            agg = Payment.objects.filter(enrollment_id=self.enrollment_id).aggregate(s=Sum('summa'))
+            Enrollment.objects.filter(pk=self.enrollment_id).update(jami_tolangan=agg['s'] or 0)
+
+
 
 
 # ====== YANGI: Davomat ======

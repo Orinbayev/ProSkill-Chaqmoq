@@ -26,4 +26,5 @@ if settings.DEBUG:
 else:
     urlpatterns += [
         re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+        
     ]

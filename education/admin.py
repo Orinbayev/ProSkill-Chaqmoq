@@ -9,6 +9,8 @@ admin.site.register(Enrollment)
 admin.site.register(Payment)
 admin.site.register(Attendance) 
 
+
+
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ("name", "icon", "description")

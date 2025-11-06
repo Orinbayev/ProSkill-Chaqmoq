@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+body {
+  background: linear-gradient(135deg, #eef6ff, #ffffff);
+  min-height: 100vh;
+  font-family: 'Poppins', sans-serif;
+}
+
+.page-container {
+  text-align: center;
+  padding-top: 120px;
+}
+
+.page-container h2 {
+  color: #0056d2;
+  font-weight: 800;
+  font-size: 2rem;
+  margin-bottom: 40px;
+}
+
+.option-btn {
+  display: inline-block;
+  margin: 20px;
+  padding: 25px 60px;
+  border-radius: 16px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+  transition: 0.3s;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.option-btn:hover {
+  transform: scale(1.05);
+}
+
+.teacher-btn {
+  background: linear-gradient(45deg, #3b82f6, #2563eb);
+}
+
+.teacher-btn:hover {
+  box-shadow: 0 8px 18px rgba(59,130,246,0.4);
+}
+
+.student-btn {
+  background: linear-gradient(45deg, #22c55e, #16a34a);
+}
+
+.student-btn:hover {
+  box-shadow: 0 8px 18px rgba(22,163,74,0.4);
+}
+</style>
+
+<div class="page-container">
+  <h2>💰 To‘lovlar bo‘limi</h2>
+
+  <a href="{% url 'education:teacher_salary_list' %}" class="option-btn teacher-btn">
+    🧑‍🏫 O‘qituvchilar
+  </a>
+
+  <a href="{% url 'education:tolov_oquvchilar' %}" class="option-btn student-btn">
+    👨‍🎓 O‘quvchilar
+  </a>
+</div>
+
+{% endblock %}

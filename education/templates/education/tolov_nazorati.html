@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+.container {
+  max-width: 1100px;
+  margin: 40px auto;
+  background: #fff;
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 3px 20px rgba(0,0,0,0.08);
+}
+h2 {
+  color: #16a34a;
+  text-align: center;
+  font-weight: 700;
+}
+.table thead {
+  background: #16a34a;
+  color: #fff;
+}
+.table td, .table th {
+  padding: 10px 12px;
+  vertical-align: middle;
+}
+tr.full { background-color: #e6ffe8 !important; }
+tr.late { background-color: #ffe4e6 !important; }
+.filter-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+.filter-buttons a {
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #e5e7eb;
+  text-decoration: none;
+  font-weight: 600;
+  color: #111;
+}
+.filter-buttons a.active {
+  background: #16a34a;
+  color: #fff;
+}
+</style>
+
+<div class="container">
+  <h2>💰 O‘quvchilar to‘lov nazorati</h2>
+
+  <form method="get" class="mb-3" style="text-align:center;">
+    <input type="text" name="q" value="{{ query }}" placeholder="🔍 F.I.Sh yoki email orqali izlash" style="width:60%;padding:8px 12px;border-radius:8px;border:1px solid #ccc;">
+    <button class="btn btn-success">Izlash</button>
+  </form>
+
+  <div class="filter-buttons">
+    <a href="?filter=" class="{% if not filter_type %}active{% endif %}">Hammasi</a>
+    <a href="?filter=full" class="{% if filter_type == 'full' %}active{% endif %}">To‘liq to‘lovchilar ✅</a>
+    <a href="?filter=unpaid" class="{% if filter_type == 'unpaid' %}active{% endif %}">To‘lamaganlar ❌</a>
+  </div>
+
+  <table class="table table-bordered table-striped">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>F.I.Sh</th>
+        <th>Guruh</th>
+        <th>Kurs narxi</th>
+        <th>Jami to‘langan</th>
+        <th>Qoldiq</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+<tbody>
+  {% for s in stats %}
+  <tr class="{% if s.is_late %}late{% endif %}">
+    <td>{{ forloop.counter }}</td>
+    <td>{{ s.student.ism }} {{ s.student.familya }}</td>
+    <td>{{ s.student.telefon1|default:"—" }}</td>
+    <td>{{ s.jami_tolangan }}</td>
+    <td>{{ s.kurs_narhi }}</td>
+    <td>{{ s.qoldiq }}</td>
+    <td>{{ s.note }}</td>
+    <td>
+      {% if s.is_full %}
+        ✅ To‘liq
+      {% elif s.is_late %}
+        ❌ Kechiktirgan
+      {% else %}
+        ⏳ To‘layotgan
+      {% endif %}
+    </td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="8" class="text-center">Ma’lumot topilmadi.</td></tr>
+  {% endfor %}
+</tbody>
+
+  </table>
+</div>
+{% endblock %}

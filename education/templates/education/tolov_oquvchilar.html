@@ -1,0 +1,346 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<style>
+body {
+  background: #f8fafc;
+  font-family: 'Poppins', sans-serif;
+  color: #111;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 40px auto;
+  background: #fff;
+  border-radius: 14px;
+  padding: 25px 35px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+h2 {
+  text-align: center;
+  color: #22c55e;
+  font-weight: 700;
+  margin-bottom: 25px;
+  font-size: 22px;
+}
+
+/* 🔍 Search bar */
+.search-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.search-bar input {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
+  width: 240px;
+  transition: 0.25s;
+}
+.search-bar input:focus {
+  border-color: #22c55e;
+  box-shadow: 0 0 3px rgba(34,197,94,0.4);
+  outline: none;
+}
+.search-bar button {
+  background: #22c55e;
+  color: white;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: 0.2s;
+}
+.search-bar button:hover { background: #16a34a; }
+
+/* Filter buttons */
+.filter-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+.filter-buttons a {
+  text-decoration: none;
+  color: #111;
+  background: #e5e7eb;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  transition: 0.2s;
+}
+.filter-buttons a.active {
+  background: #22c55e;
+  color: #fff;
+}
+.filter-buttons a:hover { background: #16a34a; color: #fff; }
+
+/* Table */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  text-align: center;
+}
+thead { background: #22c55e; color: #fff; font-size: 13.5px; }
+th, td {
+  padding: 10px 6px;
+  border-bottom: 1px solid #e5e7eb;
+}
+tbody tr:hover { background: #f9fafb; }
+
+.status.full { color: #16a34a; font-weight: 600; }
+.status.unpaid { color: #dc2626; font-weight: 600; }
+.status.late { color: #d97706; font-weight: 600; }
+
+.payment-form {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.payment-input {
+  width: 70px;
+  padding: 5px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 13px;
+  text-align: center;
+}
+.payment-input:focus {
+  border-color: #22c55e;
+  outline: none;
+}
+.save-btn {
+  background: #22c55e;
+  color: #fff;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: 0.2s;
+}
+.save-btn:hover { background: #16a34a; }
+
+/* Modal */
+#paymentModal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.45);
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 20px 25px;
+  border-radius: 12px;
+  width: 550px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  border-top: 4px solid #22c55e;
+  animation: fadeIn 0.25s ease-in-out;
+}
+
+.modal-content h3 {
+  color: #22c55e;
+  font-weight: 700;
+  text-align: center;
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+
+.modal-content p {
+  text-align: center;
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.modal-content table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.modal-content th {
+  background: #22c55e;
+  color: white;
+  padding: 8px;
+}
+.modal-content td {
+  padding: 7px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.modal-content tr:hover td { background-color: #f0fdf4; }
+
+.modal-close {
+  display: block;
+  background: #22c55e;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  margin: 10px auto 0;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+}
+.modal-close:hover { background: #16a34a; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>
+
+<div class="container">
+  <h2>💰 O‘quvchilar to‘lov nazorati</h2>
+
+  <form method="get" class="search-bar">
+    <input type="text" name="q" value="{{ query }}" placeholder="🔍 F.I.Sh yoki email orqali izlash...">
+    <input type="date" name="date" value="{{ request.GET.date }}">
+    <button type="submit">Filtrlash</button>
+  </form>
+
+  <div class="filter-buttons">
+    <a href="?filter=" class="{% if not filter_type %}active{% endif %}">Hammasi</a>
+    <a href="?filter=full" class="{% if filter_type == 'full' %}active{% endif %}">✅ To‘liq</a>
+    <a href="?filter=unpaid" class="{% if filter_type == 'unpaid' %}active{% endif %}">❌ To‘lamagan</a>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>F.I.Sh</th>
+        <th>Guruh</th>
+        <th>Kurs narxi</th>
+        <th>Jami to‘langan</th>
+        <th>Qoldiq</th>
+        <th>Status</th>
+        <th>Karta</th>
+        <th>Naqd</th>
+        <th>Saqlash</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in data %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>
+          <a href="javascript:void(0)" onclick="openModal('{{ s.student.id }}', '{{ s.student.ism }} {{ s.student.familya }}')" style="color:#0d9488;font-weight:600;text-decoration:none;">
+            {{ s.student.ism }} {{ s.student.familya }}
+          </a>
+        </td>
+        <td>{{ s.group.nom }}</td>
+        <td>{{ s.kurs_narhi|intcomma }}</td>
+        <td>{{ s.jami_tolangan|intcomma }}</td>
+        <td>{{ s.qoldiq|intcomma }}</td>
+        <td class="status {% if s.is_full %}full{% elif s.is_late %}late{% else %}unpaid{% endif %}">
+          {% if s.is_full %}✅ To‘liq{% elif s.is_late %}⚠️ Kechikkan{% else %}❌ To‘lamagan{% endif %}
+        </td>
+        <td colspan="3">
+          <form method="post" action="{% url 'education:create_payment' %}" class="payment-form">
+            {% csrf_token %}
+            <input type="hidden" name="student_id" value="{{ s.student.id }}">
+            <input type="hidden" name="group_id" value="{{ s.group.id }}">
+            <input type="number" name="card_amount" class="payment-input" placeholder="Karta" min="0">
+            <input type="number" name="cash_amount" class="payment-input" placeholder="Naqd" min="0">
+            <button type="submit" class="save-btn">Saqlash</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="10" style="text-align:center;color:#999;">Maʼlumot topilmadi.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal -->
+<div id="paymentModal">
+  <div class="modal-content">
+    <h3>🧾 To‘lov tarixi</h3>
+    <p id="studentName"></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Sana</th>
+          <th>Soat</th>
+          <th>Naqd</th>
+          <th>Karta</th>
+          <th>Kurs narxi</th>
+          <th>Qoldiq</th>
+        </tr>
+      </thead>
+      <tbody id="paymentHistory">
+        <tr><td colspan="6">Yuklanmoqda...</td></tr>
+      </tbody>
+    </table>
+    <button class="modal-close" onclick="closeModal()">Yopish</button>
+  </div>
+</div>
+
+<script>
+function openModal(studentId, studentName) {
+  document.getElementById('studentName').innerText = studentName;
+  const tbody = document.getElementById('paymentHistory');
+  tbody.innerHTML = '<tr><td colspan="6">Yuklanmoqda...</td></tr>';
+
+  fetch(`/talim/tolovlar/tarix/${studentId}/`)
+    .then(res => res.json())
+    .then(data => {
+      const kursNarxi = parseFloat(data.kurs_narhi) || 0;
+      const payments = data.payments || [];
+      if (!payments.length) {
+        tbody.innerHTML = '<tr><td colspan="6">To‘lov topilmadi</td></tr>';
+        return;
+      }
+      let totalPaid = 0;
+      tbody.innerHTML = payments.map(p => {
+        const cash = parseFloat(p.cash_amount) || 0;
+        const card = parseFloat(p.card_amount) || 0;
+        const jami = cash + card;
+        totalPaid += jami;
+        const qoldiq = kursNarxi - totalPaid;
+        return `
+          <tr>
+            <td>${p.sana}</td>
+            <td>${p.vaqt}</td>
+            <td>${cash ? cash.toLocaleString() : '-'}</td>
+            <td>${card ? card.toLocaleString() : '-'}</td>
+            <td>${kursNarxi.toLocaleString()}</td>
+            <td style="color:${qoldiq <= 0 ? '#16a34a' : '#dc2626'};font-weight:600;">
+              ${qoldiq > 0 ? qoldiq.toLocaleString() + ' so‘m' : 'To‘liq to‘langan'}
+            </td>
+          </tr>`;
+      }).join('');
+    })
+    .catch(() => {
+      tbody.innerHTML = '<tr><td colspan="6" style="color:red;">❌ Xatolik yuz berdi!</td></tr>';
+    });
+
+  document.getElementById('paymentModal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('paymentModal').style.display = 'none';
+}
+</script>
+{% endblock %}

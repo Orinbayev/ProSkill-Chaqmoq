@@ -51,6 +51,254 @@ def _teacher_can(user, g: Group) -> bool:
         user.role == "teacher" and g.oqituvchi_id == user.id
     )
 
+from .models import Student, Category
+
+# education/views.py
+from django.shortcuts import render
+from django.db.models import Q, Sum
+from accounts.models import User
+from education.models import Enrollment
+from .models import Payment
+from datetime import date
+
+def tolovlar_home(request):
+    return render(request, "education/tolovlar_home.html")
+
+
+
+# education/views.py
+
+def tolov_oquvchilar(request):
+    q = request.GET.get("q", "")
+    filter_type = request.GET.get("filter")
+    date_filter = request.GET.get("date")
+
+    enrollments = Enrollment.objects.select_related("student", "group")
+
+    if q:
+        enrollments = enrollments.filter(
+            Q(student__ism__icontains=q) |
+            Q(student__familya__icontains=q) |
+            Q(student__email__icontains=q)
+        )
+
+    if date_filter:
+        enrollments = enrollments.filter(payments__sana=date_filter)
+
+    data = []
+    for e in enrollments:
+        # ✅ 1) Har talabaning o‘ziga yozilgan narx – BOSH manba
+        kurs_narhi = e.kurs_narhi or getattr(e.group, "kurs_narxi", 0)
+
+        # ✅ 2) Jami to‘lovni ENROLLMENT bo‘yicha yig‘
+        jami_tolov = Payment.objects.filter(enrollment=e).aggregate(
+            s=Sum('summa')
+        )['s'] or 0
+
+        qoldiq = max(0, kurs_narhi - jami_tolov)
+        is_full = jami_tolov >= kurs_narhi
+
+        if filter_type == "full" and not is_full:
+            continue
+        if filter_type == "unpaid" and is_full:
+            continue
+
+        data.append({
+            "student": e.student,
+            "group": e.group,
+            "kurs_narhi": kurs_narhi,
+            "jami_tolangan": jami_tolov,
+            "qoldiq": qoldiq,
+            "is_full": is_full,
+        })
+
+    return render(request, "education/tolov_oquvchilar.html", {
+        "data": data,
+        "query": q,
+        "filter_type": filter_type,
+    })
+
+
+# education/views.py
+
+def create_payment(request):
+    if request.method == "POST":
+        student_id = request.POST.get("student_id")
+        group_id = request.POST.get("group_id")
+        card_amount = request.POST.get("card_amount") or "0"
+        cash_amount = request.POST.get("cash_amount") or "0"
+
+        if not student_id or not group_id:
+            messages.error(request, "O‘quvchi yoki guruh tanlanmagan!")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
+        # 🔹 Raqamlarga o‘girish – to‘g‘ri turlar
+        try:
+            from decimal import Decimal
+            card_amount = Decimal(card_amount)
+            cash_amount = int(cash_amount)
+        except Exception:
+            messages.error(request, "To‘lov summasi noto‘g‘ri formatda.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
+        if card_amount <= 0 and cash_amount <= 0:
+            messages.warning(request, "To‘lov summasi 0 bo‘lishi mumkin emas!")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
+        group = Group.objects.get(pk=group_id)
+
+        enrollment, _ = Enrollment.objects.get_or_create(
+            student_id=student_id,
+            group_id=group_id,
+            defaults={
+                "kurs_narhi": group.kurs_narxi,
+                "oqituvchi_foiz": group.oqituvchi_foiz,
+            },
+        )
+
+        Payment.objects.create(
+            student_id=student_id,
+            group_id=group_id,
+            enrollment=enrollment,
+            cash_amount=cash_amount,
+            card_amount=card_amount,  # Decimal
+            sana=timezone.now().date(),
+            vaqt=timezone.now().time(),
+        )
+
+        # 🔹 ENROLLMENT jami – faqat summa yig‘indi
+        jami_tolov = Payment.objects.filter(enrollment=enrollment).aggregate(s=Sum("summa"))["s"] or 0
+        # Kurs narxi har doim ENROLLMENT.dan olinadi
+        kurs_narhi = enrollment.kurs_narhi or group.kurs_narxi
+
+        Enrollment.objects.filter(pk=enrollment.pk).update(
+            jami_tolangan=jami_tolov,
+            kurs_narhi=kurs_narhi,
+        )
+
+        messages.success(
+            request,
+            f"✅ {group.nom} guruhi uchun {jami_tolov:,.0f} so‘mgacha to‘lov yangilandi. Kurs narxi: {kurs_narhi:,.0f} so‘m"
+        )
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
+def payment_history(request, student_id):
+    """
+    O‘quvchining to‘lov tarixini, joriy oy uchun to‘lov va kurs narxini qaytaradi.
+    """
+    now = timezone.now()
+    current_month = now.month
+    current_year = now.year
+
+    # 🔹 Shu o‘quvchining to‘lovlari
+    payments = Payment.objects.filter(student_id=student_id).order_by('sana', 'vaqt')
+
+    if not payments.exists():
+        return JsonResponse({
+            "kurs_narhi": 0,
+            "this_month_paid": 0,
+            "qoldiq": 0,
+            "month": current_month,
+            "year": current_year,
+            "payments": []
+        }, safe=False)
+
+    # 🔹 Kurs narxi
+    first_payment = payments.first()
+    kurs_narhi = 0
+    if first_payment.enrollment and first_payment.enrollment.kurs_narhi:
+        kurs_narhi = first_payment.enrollment.kurs_narhi
+    elif first_payment.group and hasattr(first_payment.group, 'kurs_narxi'):
+        kurs_narhi = first_payment.group.kurs_narxi
+
+    # 🔹 Hozirgi oy uchun jami to‘lov
+    this_month_paid = payments.filter(
+        sana__month=current_month,
+        sana__year=current_year
+    ).aggregate(total=Sum('summa'))['total'] or 0
+
+    # 🔹 Qoldiq
+    qoldiq = max(kurs_narhi - this_month_paid, 0)
+
+    # 🔹 To‘lovlar ro‘yxati
+    data = [{
+        "sana": p.sana.strftime("%d.%m.%Y"),
+        "vaqt": p.vaqt.strftime("%H:%M") if p.vaqt else "",
+        "cash_amount": int(p.cash_amount or 0),
+        "card_amount": int(p.card_amount or 0),
+        "kurs_narhi": kurs_narhi
+    } for p in payments]
+
+    return JsonResponse({
+        "kurs_narhi": kurs_narhi,
+        "this_month_paid": this_month_paid,
+        "qoldiq": qoldiq,
+        "month": current_month,
+        "year": current_year,
+        "payments": data
+    }, safe=False)
+
+
+
+
+def tolov_oqituvchilar(request):
+    # whatever you already show for teachers (your groups_home, etc.)
+    return render(request, "education/groups_home.html", {})  # or your real context
+
+def payment_monitor(request):
+    q = request.GET.get("q", "")
+    filter_type = request.GET.get("filter", "")
+
+    payments = Payment.objects.select_related("student", "group", "enrollment")
+
+    if q:
+        payments = payments.filter(
+            Q(student__ism__icontains=q) |
+            Q(student__familya__icontains=q) |
+            Q(student__email__icontains=q)
+        )
+
+    if filter_type == "card":
+        payments = payments.filter(note__icontains="karta")
+    elif filter_type == "cash":
+        payments = payments.filter(note__icontains="naqd")
+    elif filter_type == "full":
+        payments = payments.filter(enrollment__jami_tolangan__gte=F('enrollment__kurs_narhi'))
+    elif filter_type == "unpaid":
+        payments = payments.filter(enrollment__jami_tolangan__lt=F('enrollment__kurs_narhi'))
+
+    stats = []
+    today = date.today()
+
+    for p in payments:
+        jamlangan = p.enrollment.jami_tolangan if p.enrollment else 0
+        kurs_narhi = p.enrollment.kurs_narhi if p.enrollment else 0
+        qoldiq = max(kurs_narhi - jamlangan, 0)
+        is_full = jamlangan >= kurs_narhi
+        is_late = (not is_full) and (p.sana.month < today.month or p.sana.year < today.year)
+
+        stats.append({
+            "id": p.id,
+            "student": p.student,
+            "group": p.group,
+            "kurs_narhi": kurs_narhi,
+            "jami_tolangan": jamlangan,
+            "qoldiq": qoldiq,
+            "note": getattr(p, "note", ""),
+            "is_full": is_full,
+            "is_late": is_late,
+            "sana": p.sana,
+        })
+
+    return render(request, "education/tolov_nazorati.html", {
+        "stats": stats,
+        "query": q,
+        "filter_type": filter_type,
+    })
+
+
 # ---------- HUB va ro'yxatlar ----------
 @login_required
 def groups_hub(request):
@@ -929,7 +1177,6 @@ def group_create(request, category=None):
         messages.error(request, "Sizda guruh yaratish huquqi yo‘q.")
         return redirect("education:guruhlar")
 
-    # Formani kategoriyaga qarab tanlaymiz
     if category == Group.LANG:
         FormCls, title = LangGroupForm, "Tillar bo‘yicha guruh yaratish"
     elif category == Group.IT:
@@ -939,35 +1186,38 @@ def group_create(request, category=None):
 
     form = FormCls(request.POST or None)
 
-    if request.method == "POST":
-        if form.is_valid():
-            g = form.save(commit=False)
+    if request.method == "POST" and form.is_valid():
+        g = form.save(commit=False)
 
-            # 🔹 Kategoriya bo‘sh bo‘lsa, avtomatik to‘ldir
-            g.category = category or Group.LANG
+        # 🔹 Kategoriya bo‘sh bo‘lsa, avtomatik to‘ldir
+        g.category = category or Group.LANG
 
-            # 🔹 Center avtomatik foydalanuvchidan
-            if not g.center_id:
-                if hasattr(request.user, "center") and request.user.center:
-                    g.center = request.user.center
-                else:
-                    from accounts.models import Center
-                    g.center = Center.objects.first()
+        # 🔹 Center avtomatik foydalanuvchidan
+        if not g.center_id:
+            if hasattr(request.user, "center") and request.user.center:
+                g.center = request.user.center
+            else:
+                from accounts.models import Center
+                g.center = Center.objects.first()
 
-            # 🔹 Agar kurs narxi yoki foizlar formadan kelmasa — default qiymatlar ber
-            if not g.kurs_narxi:
-                g.kurs_narxi = 500000
-            if not g.oqituvchi_foiz:
-                g.oqituvchi_foiz = 40
-            if not g.oy_dars_soni:
-                g.oy_dars_soni = 12
+        # ✅ Foydalanuvchi kurs narxini kiritgan bo‘lsa — o‘sha qiymatni saqlaymiz
+        if g.kurs_narxi in [None, "", 0]:
+            g.kurs_narxi = 500000  # faqat bo‘sh bo‘lsa default beramiz
 
-            g.save()
+        # ✅ O‘qituvchi foizi
+        if not g.oqituvchi_foiz:
+            g.oqituvchi_foiz = 40
 
-            messages.success(request, f"✅ {g.nom} guruhi muvaffaqiyatli yaratildi.")
-            return redirect("education:group_detail", pk=g.pk)
-        else:
-            print("❌ Forma xato:", form.errors)
+        # ✅ Oylik dars soni
+        if not g.oy_dars_soni:
+            g.oy_dars_soni = 12
+
+        g.save()
+        messages.success(request, f"✅ {g.nom} guruhi muvaffaqiyatli yaratildi.")
+        return redirect("education:group_detail", pk=g.pk)
+
+    elif request.method == "POST":
+        print("❌ Forma xato:", form.errors)
 
     return render(request, "education/group_form.html", {"form": form, "title": title})
 
@@ -1053,16 +1303,14 @@ def group_delete(request, pk):
 @login_required
 def add_student_to_group(request, pk: int):
     """
-    Guruhga yangi o‘quvchi qo‘shish + kurs narxi + o‘qituvchi foizi bilan birga.
+    Guruhga yangi o‘quvchi qo‘shish (kurs narxi va o‘qituvchi foizi bilan birga)
     """
     g = get_object_or_404(Group, pk=pk)
 
-    # Faqat ruxsatli rollar
     allowed_roles = ['admin', 'manager', 'teacher', 'director']
     if request.user.role not in allowed_roles:
-        return HttpResponseForbidden("Sizda bu amalni bajarish uchun ruxsat yo‘q.")
+        return HttpResponseForbidden("❌ Sizda bu amalni bajarish uchun ruxsat yo‘q.")
 
-    # Guruhda yo‘q o‘quvchilar ro‘yxati
     students = (
         User.objects
         .filter(role="student")
@@ -1070,46 +1318,50 @@ def add_student_to_group(request, pk: int):
         .order_by("ism", "familya")
     )
 
-    # POST so‘rov — yangi o‘quvchini qo‘shish
     if request.method == "POST":
         student_id = request.POST.get("student_id")
         kurs_narhi = request.POST.get("kurs_narhi")
         oqituvchi_foiz = request.POST.get("oqituvchi_foiz")
 
-        if not student_id:
-            return HttpResponse("O‘quvchi tanlanmagan.", status=400)
+        if not student_id or not kurs_narhi:
+            messages.error(request, "O‘quvchi va kurs narxi kiritilishi shart!")
+            return redirect("education:add_student_to_group", pk=g.id)
 
         try:
-            kurs_narhi = int(kurs_narhi or 0)
+            kurs_narhi = int(kurs_narhi)
             oqituvchi_foiz = int(oqituvchi_foiz or 40)
         except ValueError:
-            messages.error(request, "Kiritilgan qiymatlar son bo‘lishi kerak.")
+            messages.error(request, "❌ Kiritilgan qiymatlar son bo‘lishi kerak.")
             return redirect("education:add_student_to_group", pk=g.id)
 
         student = get_object_or_404(User, pk=student_id, role="student")
 
-        # 🔹 Yangi Enrollment yozuvi yaratamiz
-        Enrollment.objects.create(
+        # 🔎 O‘sha o‘quvchi allaqachon shu guruhda bo‘lmasin
+        if Enrollment.objects.filter(group=g, student=student).exists():
+            messages.warning(request, f"{student.ism} {student.familya} allaqachon bu guruhda mavjud.")
+            return redirect("education:add_student_to_group", pk=g.id)
+
+        # 🟢 To‘g‘ridan-to‘g‘ri kurs narxini saqlaymiz
+        enrollment = Enrollment.objects.create(
             group=g,
             student=student,
             kurs_narhi=kurs_narhi,
-            oqituvchi_foiz=oqituvchi_foiz
+            oqituvchi_foiz=oqituvchi_foiz,
         )
+
+        # ⚡ Shu joyda alohida qayta yozamiz, Payment model uni ustiga yozmasin
+        enrollment.save(update_fields=["kurs_narhi", "oqituvchi_foiz"])
 
         messages.success(
             request,
-            f"{student.full_name()} guruhga qo‘shildi! "
-            f"Kurs narxi: {kurs_narhi:,} so‘m, "
-            f"O‘qituvchi ulushi: {oqituvchi_foiz}%"
+            f"✅ {student.ism} {student.familya} guruhga qo‘shildi! "
+            f"Kurs narxi: {kurs_narhi:,} so‘m | O‘qituvchi ulushi: {oqituvchi_foiz}%"
         )
         return redirect("education:group_detail", pk=g.id)
 
-    ctx = {
-        "g": g,
-        "students": students,
-    }
+    return render(request, "education/add_student_to_group.html", {"g": g, "students": students})
 
-    return render(request, "education/add_student_to_group.html", ctx)
+
 
 
 @login_required

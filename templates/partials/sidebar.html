@@ -58,7 +58,7 @@
     <!-- 💰 To‘lov / Hisobot -->
     {% if user.is_superuser or user.role == 'director' or user.role == 'manager' %}
     <li class="mb-1">
-      <a href="{% url 'education:teacher_salary_list' %}" class="nav-link sidebar-link fw-semibold py-2 px-3 text-success">
+    <a href="{% url 'education:tolovlar_home' %}" class="nav-link sidebar-link fw-semibold py-2 px-3 text-success">
         💰 To‘lov
       </a>
     </li>
