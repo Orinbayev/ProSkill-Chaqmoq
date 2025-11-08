@@ -1303,7 +1303,7 @@ def group_delete(request, pk):
 @login_required
 def add_student_to_group(request, pk: int):
     """
-    Guruhga yangi o‘quvchi qo‘shish (kurs narxi va o‘qituvchi foizi bilan birga)
+    Guruhga bir nechta o‘quvchini qo‘shish (kurs narxi va o‘qituvchi foizi bilan birga)
     """
     g = get_object_or_404(Group, pk=pk)
 
@@ -1319,12 +1319,12 @@ def add_student_to_group(request, pk: int):
     )
 
     if request.method == "POST":
-        student_id = request.POST.get("student_id")
+        student_ids = request.POST.getlist("student_ids")
         kurs_narhi = request.POST.get("kurs_narhi")
         oqituvchi_foiz = request.POST.get("oqituvchi_foiz")
 
-        if not student_id or not kurs_narhi:
-            messages.error(request, "O‘quvchi va kurs narxi kiritilishi shart!")
+        if not student_ids or not kurs_narhi:
+            messages.error(request, "O‘quvchi(lar) va kurs narxi kiritilishi shart!")
             return redirect("education:add_student_to_group", pk=g.id)
 
         try:
@@ -1334,33 +1334,40 @@ def add_student_to_group(request, pk: int):
             messages.error(request, "❌ Kiritilgan qiymatlar son bo‘lishi kerak.")
             return redirect("education:add_student_to_group", pk=g.id)
 
-        student = get_object_or_404(User, pk=student_id, role="student")
+        qoshilganlar = []
+        mavjudlar = []
 
-        # 🔎 O‘sha o‘quvchi allaqachon shu guruhda bo‘lmasin
-        if Enrollment.objects.filter(group=g, student=student).exists():
-            messages.warning(request, f"{student.ism} {student.familya} allaqachon bu guruhda mavjud.")
-            return redirect("education:add_student_to_group", pk=g.id)
+        for sid in student_ids:
+            student = get_object_or_404(User, pk=sid, role="student")
 
-        # 🟢 To‘g‘ridan-to‘g‘ri kurs narxini saqlaymiz
-        enrollment = Enrollment.objects.create(
-            group=g,
-            student=student,
-            kurs_narhi=kurs_narhi,
-            oqituvchi_foiz=oqituvchi_foiz,
-        )
+            if Enrollment.objects.filter(group=g, student=student).exists():
+                mavjudlar.append(f"{student.ism} {student.familya}")
+                continue
 
-        # ⚡ Shu joyda alohida qayta yozamiz, Payment model uni ustiga yozmasin
-        enrollment.save(update_fields=["kurs_narhi", "oqituvchi_foiz"])
+            Enrollment.objects.create(
+                group=g,
+                student=student,
+                kurs_narhi=kurs_narhi,
+                oqituvchi_foiz=oqituvchi_foiz,
+            )
+            qoshilganlar.append(f"{student.ism} {student.familya}")
 
-        messages.success(
-            request,
-            f"✅ {student.ism} {student.familya} guruhga qo‘shildi! "
-            f"Kurs narxi: {kurs_narhi:,} so‘m | O‘qituvchi ulushi: {oqituvchi_foiz}%"
-        )
+        if qoshilganlar:
+            messages.success(
+                request,
+                f"✅ {len(qoshilganlar)} ta o‘quvchi guruhga qo‘shildi! "
+                f"Kurs narxi: {kurs_narhi:,} so‘m | O‘qituvchi ulushi: {oqituvchi_foiz}%"
+            )
+
+        if mavjudlar:
+            messages.warning(
+                request,
+                f"⚠️ Quyidagi o‘quvchilar allaqachon bu guruhda bor: {', '.join(mavjudlar)}"
+            )
+
         return redirect("education:group_detail", pk=g.id)
 
     return render(request, "education/add_student_to_group.html", {"g": g, "students": students})
-
 
 
 
