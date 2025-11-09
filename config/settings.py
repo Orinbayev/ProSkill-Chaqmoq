@@ -145,6 +145,7 @@ INSTALLED_APPS = [
     "chaqmoq",
     "store",
     "core",
+    
 ]
 
 # ===== Middleware =====

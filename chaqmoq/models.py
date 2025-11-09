@@ -31,6 +31,7 @@ class Ledger(models.Model):
     rule = models.ForeignKey(Rule, on_delete=models.PROTECT)
     ball = models.SmallIntegerField()  # manfiy bo‘lishi mumkin
     sana = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)  # 👈 real kiritilgan vaqt
 
     class Meta:
         verbose_name = 'Chaqmoq yozuvi'

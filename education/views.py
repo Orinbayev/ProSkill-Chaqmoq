@@ -51,6 +51,59 @@ def _teacher_can(user, g: Group) -> bool:
         user.role == "teacher" and g.oqituvchi_id == user.id
     )
 
+
+from chaqmoq.models import Ledger
+
+from datetime import datetime
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from chaqmoq.models import Ledger
+
+
+def points_details(request):
+    student_id = request.GET.get("student")
+    date_str = request.GET.get("date")
+    type_ = request.GET.get("type", "plus")
+
+    if not student_id or not date_str:
+        return JsonResponse({"error": "Missing parameters"}, status=400)
+
+    try:
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return JsonResponse({"error": "Invalid date format"}, status=400)
+
+    tz = timezone.get_current_timezone()
+
+    # Shu kunning oralig‘i (Toshkent vaqti)
+    start = timezone.make_aware(datetime.combine(date_obj, datetime.min.time()), tz)
+    end = timezone.make_aware(datetime.combine(date_obj, datetime.max.time()), tz)
+
+    qs = Ledger.objects.filter(student_id=student_id, sana__range=(start, end))
+    if type_ == "plus":
+        qs = qs.filter(ball__gt=0)
+    elif type_ == "minus":
+        qs = qs.filter(ball__lt=0)
+
+    details = []
+    for l in qs.order_by("-sana"):
+        # 👇 Ko‘rsatish uchun vaqt: created_at > sana
+        show_dt = l.created_at if getattr(l, "created_at", None) else l.sana
+        local_dt = timezone.localtime(show_dt, tz)
+        tm = local_dt.strftime("%H:%M | %d-%b-%Y")
+
+        details.append({
+            "amount": l.ball,
+            "rule": str(l.rule) if l.rule else "",
+            "reason": getattr(l.rule, "izoh", "") if hasattr(l.rule, "izoh") else "",
+            "teacher": str(l.beruvchi) if l.beruvchi else "",
+            "group": str(l.group) if l.group else "",
+            "time": tm,
+        })
+
+    return JsonResponse({"details": details})
+
+
 from .models import Student, Category
 
 # education/views.py

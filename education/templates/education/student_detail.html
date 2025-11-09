@@ -2,9 +2,10 @@
 {% load humanize %}
 
 {% block content %}
+
 <div class="container py-4">
 
-  <!-- O'quvchi ma'lumotlari -->
+  <!-- 🔹 O'quvchi ma'lumotlari -->
   <div class="card shadow mb-4">
     <div class="card-body d-flex align-items-center">
       <div class="me-4">
@@ -20,7 +21,7 @@
     </div>
   </div>
 
-  <!-- Davomat & Chaqmoq bo'limi -->
+  <!-- 🔹 Davomat va Chaqmoq bo‘limi -->
   <div class="card shadow">
     <div class="card-header bg-primary text-white fw-semibold">
       <i class="fa fa-calendar-check"></i> Davomat va Chaqmoq (guruhlar bo‘yicha)
@@ -40,9 +41,9 @@
           <div class="accordion-item border-0 shadow-sm">
             <h2 class="accordion-header" id="heading-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
               <button class="accordion-button collapsed bg-light" type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#collapse-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
-                aria-expanded="false">
+                      data-bs-toggle="collapse"
+                      data-bs-target="#collapse-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
+                      aria-expanded="false">
 
                 <div class="d-flex justify-content-between w-100 align-items-center">
                   <div>
@@ -62,34 +63,20 @@
             <div id="collapse-{{ forloop.parentloop.counter }}-{{ forloop.counter }}" class="accordion-collapse collapse">
               <div class="accordion-body">
 
-                <!-- Progress bar -->
+                {% with total_days=summary.days|length %}
+                {% if total_days > 0 %}
+                {% widthratio summary.present_days total_days 100 as percent %}
                 <div class="mb-3">
                   <div class="small text-muted">Umumiy ishtirok foizi</div>
-                  <!-- Progress bar -->
-{% with total_days=summary.days|length %}
-  {% if total_days > 0 %}
-    {% with percent=summary.present_days|floatformat:2 %}
-      {% widthratio summary.present_days total_days 100 as percent %}
-      <div class="mb-3">
-        <div class="small text-muted">Umumiy ishtirok foizi</div>
-        <div class="progress" style="height: 18px;">
-          <div class="progress-bar bg-success"
-               role="progressbar"
-               style="width: {{ percent }}%"
-               aria-valuenow="{{ percent }}"
-               aria-valuemin="0"
-               aria-valuemax="100">
-            {{ percent }}%
-          </div>
-        </div>
-      </div>
-    {% endwith %}
-  {% endif %}
-{% endwith %}
-
+                  <div class="progress" style="height: 18px;">
+                    <div class="progress-bar bg-success" style="width: {{ percent }}%">
+                      {{ percent }}%
+                    </div>
+                  </div>
                 </div>
+                {% endif %}
+                {% endwith %}
 
-                <!-- Jadval -->
                 <table class="table table-sm table-striped align-middle text-center">
                   <thead class="table-secondary">
                     <tr>
@@ -112,8 +99,24 @@
                           <span class="badge bg-danger"><i class="fa fa-times"></i> Kelmadi</span>
                         {% endif %}
                       </td>
-                      <td class="text-success fw-semibold">+{{ d.plus }}</td>
-                      <td class="text-danger fw-semibold">-{{ d.minus }}</td>
+                      <td>
+                        <span class="text-success fw-semibold clickable"
+                              style="cursor:pointer"
+                              data-type="plus"
+                              data-date="{{ d.date|date:'Y-m-d' }}"
+                              data-student="{{ student.id }}">
+                          +{{ d.plus }}
+                        </span>
+                      </td>
+                      <td>
+                        <span class="text-danger fw-semibold clickable"
+                              style="cursor:pointer"
+                              data-type="minus"
+                              data-date="{{ d.date|date:'Y-m-d' }}"
+                              data-student="{{ student.id }}">
+                          -{{ d.minus }}
+                        </span>
+                      </td>
                     </tr>
                     {% endfor %}
                   </tbody>
@@ -131,4 +134,133 @@
     </div>
   </div>
 </div>
+
+<!-- ⚡ Chaqmoq tafsilotlari modal -->
+<div class="modal fade" id="pointsModal" tabindex="-1" aria-labelledby="pointsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg">
+
+      <!-- HEADER -->
+      <div class="modal-header text-white border-0 py-3 px-4"
+           style="background: linear-gradient(90deg, #0d6efd, #6f42c1);
+                  border-top-left-radius: 18px; border-top-right-radius: 18px;">
+        <h5 class="modal-title fw-bold mb-0" id="pointsModalLabel">
+          <i class="fa fa-bolt text-warning me-2"></i> Chaqmoq tafsilotlari
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Yopish"></button>
+      </div>
+
+      <!-- BODY -->
+      <div class="modal-body p-4" id="modal-content-body" style="max-height:70vh; overflow-y:auto;">
+        <div class="text-center py-4 text-muted">
+          <i class="fa fa-spinner fa-spin text-primary fs-1 mb-2"></i><br>
+          Yuklanmoqda...
+        </div>
+      </div>
+
+      <!-- FOOTER -->
+      <div class="modal-footer border-0 justify-content-between align-items-center px-4 py-3"
+           style="background-color: #f7f9fc; border-bottom-left-radius: 18px; border-bottom-right-radius: 18px;">
+        <small class="text-secondary">
+          <i class="fa fa-info-circle me-1"></i> Ma’lumotlar avtomatik ravishda yangilanadi.
+        </small>
+        <button type="button" class="btn btn-outline-primary btn-sm px-3 fw-semibold" data-bs-dismiss="modal">
+          <i class="fa fa-times me-1"></i> Yopish
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const modalEl = document.getElementById("pointsModal");
+  const modalBody = document.getElementById("modal-content-body");
+  const modal = new bootstrap.Modal(modalEl);
+
+  // ✅ Modal yopilganda scroll holatini tiklash
+  modalEl.addEventListener('hidden.bs.modal', () => {
+    document.body.style.overflow = 'auto';
+  });
+
+  // ✅ Modal ochilganda interaktivlikni yo‘qotmaslik
+  modalEl.addEventListener('shown.bs.modal', () => {
+    document.body.style.pointerEvents = 'auto';
+  });
+
+  // ⚡ Tafsilotlarni yuklash
+  document.querySelectorAll(".clickable").forEach(el => {
+    el.addEventListener("click", async () => {
+      const studentId = el.dataset.student;
+      const date = el.dataset.date;
+      const type = el.dataset.type;
+
+      modalBody.innerHTML = `
+        <div class="text-center py-4">
+          <i class="fa fa-bolt fa-spin text-primary fs-1"></i>
+          <div class="text-muted mt-2">Yuklanmoqda...</div>
+        </div>`;
+      modal.show();
+
+      try {
+        const response = await fetch(`/talim/points-details/?student=${studentId}&date=${date}&type=${type}`);
+        const data = await response.json();
+        const details = data.details || data;
+
+        if (!details || details.length === 0) {
+          modalBody.innerHTML = `
+            <div class="text-center py-4 text-muted">
+              <i class="fa fa-exclamation-circle fa-2x mb-2"></i><br>
+              Hech qanday tafsilot topilmadi.
+            </div>`;
+          return;
+        }
+
+        const color = type === "plus" ? "success" : "danger";
+        const title = type === "plus" ? "Qo‘shilgan chaqmoqlar ⚡" : "Ayirilgan chaqmoqlar ⚡";
+        const total = details.reduce((sum, d) => sum + d.amount, 0);
+
+        modalBody.innerHTML = `
+          <h5 class="text-center fw-bold text-${color} mb-4">${title}</h5>
+          <div style="max-height:60vh; overflow-y:auto; padding-right:6px;">
+            ${details.map(d => `
+              <div class="card chaqmoq-card mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <h6 class="fw-semibold text-primary mb-0">
+                    <i class="fa fa-bolt text-warning me-1"></i>
+                    ${d.rule || "Qoida ko‘rsatilmagan"}
+                  </h6>
+                  <span class="fw-bold text-${d.amount > 0 ? 'success' : 'danger'} fs-5">
+                    ${d.amount > 0 ? '+' + d.amount : d.amount}
+                  </span>
+                </div>
+                
+                <div class="small text-secondary">
+                  <i class="fa fa-user text-muted"></i> ${d.teacher || "—"}
+                  ${d.group ? ` | <i class="fa fa-users text-muted"></i> ${d.group}` : ""}
+                  ${d.time ? ` | <i class="fa fa-clock text-muted"></i> ${d.time}` : ""}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <hr class="mt-3 mb-2">
+          <div class="text-end fw-bold fs-5 text-${color}">
+            <i class="fa fa-bolt text-warning"></i> Jami: ${total > 0 ? '+' + total : total} ⚡
+          </div>`;
+      } catch (err) {
+        console.error(err);
+        modalBody.innerHTML = `
+          <div class="text-center text-danger py-4">
+            <i class="fa fa-times-circle fa-2x mb-2"></i><br>
+            Xatolik yuz berdi.
+          </div>`;
+      }
+    });
+  });
+});
+</script>
 {% endblock %}

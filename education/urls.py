@@ -6,6 +6,7 @@ app_name = "education"
 
 urlpatterns = [
     # === 📚 HUB / RO‘YXATLAR ===
+    
     path("guruhlar/ro‘yxat/", views.group_list, name="group_list"),
     path("tolovlar/", views.tolovlar_home, name="tolovlar_home"),
     path("tolovlar/oqituvchilar/", views.tolov_oqituvchilar, name="tolov_oqituvchilar"),
@@ -13,6 +14,8 @@ urlpatterns = [
     path("tolov-nazorati/", views.payment_monitor, name="payment_monitor"),
     path("payment/create/", views.create_payment, name="create_payment"),
     path("tolovlar/tarix/<int:student_id>/", views.payment_history, name="payment_history"),
+    path("points-details/", views.points_details, name="points_details"),
+
 
     # 🔹 Guruhlar kategoriyasi bo‘yicha
     path("guruhlar/", views.groups_home, name="groups_home"),
