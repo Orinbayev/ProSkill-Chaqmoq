@@ -2,6 +2,13 @@
 {% block content %}
 
 <style>
+
+@keyframes flashFade {
+  0% { opacity: 0; transform: translateY(-50%) scale(0.9); }
+  20% { opacity: 1; transform: translateY(-50%) scale(1); }
+  100% { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+
 body {
   background: linear-gradient(135deg, #eef4ff, #ffffff);
   font-family: 'Poppins', sans-serif;
@@ -32,18 +39,7 @@ body {
   transform: scale(1.05);
   box-shadow: 0 4px 12px rgba(0,123,255,0.4);
 }
-.btn-outline-secondary {
-  font-weight: 600;
-}
-
-/* 🔹 Sarlavhalar */
-.h4 {
-  font-weight: 700;
-  color: #007bff;
-}
-.text-muted {
-  color: #6c757d !important;
-}
+.btn-outline-secondary { font-weight: 600; }
 
 /* 🔹 Jadval */
 .table {
@@ -55,11 +51,7 @@ body {
   background: linear-gradient(135deg, #007bff, #00aaff);
   color: #fff;
 }
-.table th {
-  text-align: center;
-  font-weight: 600;
-}
-.table td {
+.table th, .table td {
   text-align: center;
   vertical-align: middle;
 }
@@ -74,32 +66,11 @@ body {
   font-size: 0.9rem;
   padding: 6px 10px;
   font-weight: 600;
-}
-
-/* 🔹 Form va inputlar */
-input[type="date"],
-input[type="number"],
-select {
-  border-radius: 8px !important;
-  border: 1px solid #d6ddeb !important;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
-  transition: all 0.2s ease;
-}
-input:focus, select:focus {
-  border-color: #007bff !important;
-  box-shadow: 0 0 0 3px rgba(0,123,255,0.2) !important;
-}
-
-/* 🔹 Qoida paneli */
-label {
-  font-weight: 600;
-  color: #333;
+  position: relative;
 }
 
 /* 🔹 Animatsiya */
-.fade-in {
-  animation: fadeIn 0.4s ease-in-out;
-}
+.fade-in { animation: fadeIn 0.4s ease-in-out; }
 @keyframes fadeIn {
   from {opacity: 0; transform: translateY(8px);}
   to {opacity: 1; transform: translateY(0);}
@@ -116,18 +87,11 @@ label {
         O‘qituvchi:
         {% if g.oqituvchi %}
           {{ g.oqituvchi.ism }} {{ g.oqituvchi.familya }}
-        {% else %}
-          —
-        {% endif %}
+        {% else %} — {% endif %}
       </div>
     </div>
-
     {% if can_add_student %}
-    <div>
-      <a href="{% url 'education:add_student_to_group' g.id %}" class="btn btn-primary">
-        ➕ O‘quvchi qo‘shish
-      </a>
-    </div>
+    <div><a href="{% url 'education:add_student_to_group' g.id %}" class="btn btn-primary">➕ O‘quvchi qo‘shish</a></div>
     {% endif %}
   </div>
 </div>
@@ -137,8 +101,7 @@ label {
   <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div class="d-flex align-items-center gap-2">
       <h6 class="fw-bold mb-0 text-primary">📅 Davomat sanasi:</h6>
-      <input id="attendance-date" type="date" class="form-control form-control-sm"
-             style="width:200px" value="{{ selected_date|default:today }}">
+      <input id="attendance-date" type="date" class="form-control form-control-sm" style="width:200px" value="{{ selected_date|default:today }}">
     </div>
     <div class="text-muted small">
       Tanlangan sana: <strong id="selected-date-label">{{ selected_date|default:today }}</strong>
@@ -182,7 +145,6 @@ label {
      data-attend="{% url 'education:attendance_today' g.id %}"
      data-points="{% url 'education:group_points' g.id %}">
 </div>
-
 <form id="csrf-form" class="d-none">{% csrf_token %}</form>
 
 <!-- Jadval -->
@@ -193,9 +155,9 @@ label {
         <th>#</th>
         <th>F.I.Sh</th>
         <th>Telefon</th>
-        <th class="text-center">Davomat</th>
-        <th class="text-center">⚡ Chaqmoq</th>
-        <th class="text-end">Amal</th>
+        <th>Davomat</th>
+        <th>⚡ Chaqmoq</th>
+        <th>Amal</th>
       </tr>
     </thead>
     <tbody>
@@ -203,19 +165,12 @@ label {
         <tr>
           <td>{{ forloop.counter }}</td>
           <td>
-            <div class="fw-semibold">
-              <a href="{% url 'education:student_detail' e.student.id %}" class="text-decoration-none text-primary">
-                {{ e.student.ism }} {{ e.student.familya }}
-              </a>
-            </div>
-            <div class="text-muted small">{{ e.student.email|default:e.student.username }}</div>
+            <a href="{% url 'education:student_detail' e.student.id %}" class="fw-semibold text-decoration-none text-primary">
+              {{ e.student.ism }} {{ e.student.familya }}
+            </a><div class="text-muted small">{{ e.student.email|default:e.student.username }}</div>
           </td>
           <td>{{ e.student.telefon1|default:"—" }}</td>
-          <td>
-            <input type="checkbox" class="form-check-input attend-toggle"
-                   data-enrollment="{{ e.id }}"
-                   {% if e.student.present_today %}checked{% endif %}>
-          </td>
+          <td><input type="checkbox" class="form-check-input attend-toggle" data-enrollment="{{ e.id }}" {% if e.student.present_today %}checked{% endif %}></td>
           <td>
             <span class="badge balance-badge {% if e.student.balance >= 0 %}text-bg-success{% else %}text-bg-danger{% endif %}">
               {{ e.student.balance|default:0 }}
@@ -249,7 +204,6 @@ document.addEventListener('DOMContentLoaded', function() {
   const attendanceUrl = urls.dataset.attend;
   const dateInput = document.getElementById('attendance-date');
 
-  // 🔹 Sana o‘zgarsa
   dateInput.addEventListener('change', function() {
     const d = this.value;
     if (!d) return;
@@ -258,42 +212,66 @@ document.addEventListener('DOMContentLoaded', function() {
     window.location.href = u.toString();
   });
 
-  // 🔹 Davomat belgilangani tekshirish
   function isPresent(studentId) {
     const row = document.querySelector(`button[data-student="${studentId}"]`).closest("tr");
     const checkbox = row.querySelector(".attend-toggle");
     return checkbox && checkbox.checked;
   }
 
-  // 🔹 Chaqmoq yuborish
-  function sendPoints(studentId, amount, ruleId) {
-    const dateVal = dateInput.value || "";
-    const fd = new FormData();
-    fd.append("student_id", studentId);
-    fd.append("amount", amount);
-    fd.append("rule_id", ruleId);
-    fd.append("date", dateVal);
+  // 🔹 Chaqmoq yuborish + vizual effekt
+function sendPoints(studentId, amount, ruleId) {
+  const dateVal = dateInput.value || "";
+  const fd = new FormData();
+  fd.append("student_id", studentId);
+  fd.append("amount", amount);
+  fd.append("rule_id", ruleId);
+  fd.append("date", dateVal);
 
-    fetch(pointsUrl, {
-      method: "POST",
-      headers: { "X-CSRFToken": csrfToken },
-      body: fd
-    })
-    .then(r => r.json())
-    .then(data => {
-      if (data.ok) {
-        const badge = document.querySelector(`button[data-student="${studentId}"]`)
-          .closest("tr").querySelector(".balance-badge");
-        badge.textContent = data.balance;
-        badge.className = 'badge balance-badge ' + (data.balance >= 0 ? 'text-bg-success' : 'text-bg-danger');
-      } else {
-        alert('❌ Xato: ' + (data.error || 'Server xatosi'));
-      }
-    })
-    .catch(() => alert('❌ Server bilan aloqa yo‘q.'));
-  }
+  fetch(pointsUrl, {
+    method: "POST",
+    headers: { "X-CSRFToken": csrfToken },
+    body: fd
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      const row = document.querySelector(`button[data-student="${studentId}"]`).closest("tr");
+      const badge = row.querySelector(".balance-badge");
 
-  // 🔹 Qo‘shish tugmasi
+      // 🔹 Balansni yangilash
+      badge.textContent = data.balance;
+      badge.className = 'badge balance-badge ' + (data.balance >= 0 ? 'text-bg-success' : 'text-bg-danger');
+
+      // 🔹 Eski flash’ni o‘chirish (agar avvalgi bor bo‘lsa)
+      const oldFlash = badge.parentElement.querySelector(".flash-change");
+      if (oldFlash) oldFlash.remove();
+
+      // 🔹 Yangi flash yaratish
+      const flash = document.createElement("span");
+      flash.className = "flash-change";
+      flash.textContent = (amount > 0 ? "+" + amount : amount);
+      flash.style.color = amount > 0 ? "#22c55e" : "#ef4444";
+      flash.style.fontWeight = "700";
+      flash.style.position = "absolute";
+      flash.style.top = "50%";
+      flash.style.left = "calc(100% + 6px)";
+      flash.style.transform = "translateY(-50%)"; // Markazda joylash
+      flash.style.fontSize = "0.9rem";
+      flash.style.animation = "flashFade 0.4s ease-out"; // animatsiya
+      badge.parentElement.style.position = "relative";
+      badge.parentElement.appendChild(flash);
+
+      // 🔹 20 daqiqadan keyin o‘chadi
+      setTimeout(() => flash.remove(), 7200); // 20 daqiqa = 1 200 000 ms
+
+    } else {
+      alert('❌ Xato: ' + (data.error || 'Server xatosi'));
+    }
+  })
+  .catch(() => alert('❌ Server bilan aloqa yo‘q.'));
+}
+
+
   document.querySelectorAll(".btn-add").forEach(btn => {
     btn.addEventListener("click", function () {
       const studentId = this.dataset.student;
@@ -305,7 +283,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // 🔹 Ayirish tugmasi
   document.querySelectorAll(".btn-sub").forEach(btn => {
     btn.addEventListener("click", function () {
       const studentId = this.dataset.student;
@@ -317,7 +294,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // 🔹 Ballni oshirish/pasaytirish
   document.getElementById('glob-plus').addEventListener('click', () => {
     const input = document.getElementById('amount-global');
     input.value = parseInt(input.value || '0', 10) + 1;
@@ -328,13 +304,11 @@ document.addEventListener('DOMContentLoaded', function() {
     input.value = v;
   });
 
-  // 🔹 Davomat
   document.querySelectorAll('.attend-toggle').forEach(box => {
     box.addEventListener('change', function() {
       const enrId = this.dataset.enrollment;
       const present = this.checked ? "1" : "0";
       const dateVal = dateInput.value || "";
-
       const fd = new FormData();
       fd.append("enr_id", enrId);
       fd.append("present", present);
@@ -354,7 +328,6 @@ document.addEventListener('DOMContentLoaded', function() {
       .catch(() => alert("❌ Server bilan aloqa yo‘q."));
     });
   });
-
 });
 </script>
 {% endverbatim %}
