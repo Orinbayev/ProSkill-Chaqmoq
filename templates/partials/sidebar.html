@@ -1,185 +1,223 @@
-<div class="d-flex flex-column flex-shrink-0 p-3 shadow-lg min-vh-100"
-     style="width:260px; background:linear-gradient(180deg,#0f172a,#1e293b,#0f172a); color:#e2e8f0; font-family:'Poppins',sans-serif;">
-
-  <!-- 🔥 Logo -->
-  <a href="{% url 'core:home' %}" class="d-flex align-items-center mb-4 text-decoration-none text-warning">
-    <span class="fs-4 fw-bold" style="letter-spacing:0.5px;">⚡ Chaqmoq</span>
+<div class="d-flex flex-column flex-shrink-0 p-3 min-vh-100 sidebar-wrapper">
+  <!-- ⚡ Logo -->
+  <a href="{% url 'core:home' %}" class="d-flex align-items-center mb-4 text-decoration-none sidebar-logo">
+    <span class="logo-icon me-2">⚡</span>
+    <span class="fs-4 fw-bold">Chaqmoq</span>
   </a>
 
-  <hr class="border-secondary opacity-25 mb-4">
-
   <!-- 📋 Navigation -->
-  <ul class="nav nav-pills flex-column mb-auto">
+  <div class="sidebar-card">
+
     <!-- 🏠 Boshqaruv -->
-    <li class="nav-item mb-1">
-      <a href="{% url 'core:home' %}" class="nav-link sidebar-link fw-semibold py-2 px-3 text-light">
-        🏠 Boshqaruv
-      </a>
-    </li>
+    <a href="{% url 'core:home' %}" 
+       class="sidebar-item {% if request.path == '/' or 'core/home' in request.path %}active{% endif %}">
+      <span>🏠</span> <b>Boshqaruv</b>
+    </a>
 
+    <!-- ➕ O‘quvchi qo‘shish -->
+    {% if user.is_superuser or user.role == 'director' %}
+    <a href="{% url 'accounts:add_user' %}" 
+       class="sidebar-item {% if 'accounts/add_user' in request.path or 'add_user' in request.path %}active{% endif %}">
+      <span>➕</span> O‘quvchi qo‘shish
+    </a>
+    {% endif %}
+
+    <!-- 📞 Leadlar -->
     {% if request.user.role != 'teacher' and request.user.role != 'student' %}
-    <li class="mb-1">
-      <a href="{% url 'store:lead_list' %}" class="nav-link sidebar-link fw-semibold py-2 px-3 text-light">
-        📞 Leadlar
-      </a>
-    </li>
+    <a href="{% url 'store:lead_list' %}" 
+       class="sidebar-item {% if 'lead' in request.path or 'store/lead' in request.path %}active{% endif %}">
+      <span>📞</span> Leadlar
+    </a>
     {% endif %}
 
-
-    {% if user.is_superuser or user.role in 'director manager' %}
-    <li class="mb-1">
-      <a href="{% url 'education:groups_home' %}" class="nav-link sidebar-link fw-semibold py-2 px-3 text-light">
-        👥 Bo'limlar
-      </a>
-    </li>
-    {% endif %}
-    
     <!-- 🛍️ Do‘kon -->
-    <li class="mb-1">
-      <a href="{% url 'store:products' %}" class="nav-link sidebar-link fw-semibold py-2 px-3 text-light">
-        🛍️ Do‘kon
-      </a>
-    </li>
-
-    <!-- 👥 Guruhlar -->
-
-
-    <!-- 👩‍🏫 Mening guruhlarim -->
-    {% if user.role == 'teacher' %}
-    <li class="mb-1">
-      <a href="{% url 'education:my_groups' %}" class="nav-link sidebar-link fw-semibold py-2 px-3 text-light">
-        👩‍🏫 Mening guruhlarim
-      </a>
-    </li>
-    {% endif %}
-
-
-
-    <!-- 💰 To‘lov / Hisobot -->
-    {% if user.is_superuser or user.role == 'director' or user.role == 'manager' %}
-    <li class="mb-1">
-    <a href="{% url 'education:tolovlar_home' %}" class="nav-link sidebar-link fw-semibold py-2 px-3 text-success">
-        💰 To‘lov
-      </a>
-    </li>
-    {% if user.role == 'director' or user.is_superuser %}
-    <li class="mb-1">
-      <a href="{% url 'education:teacher_salary_summary' %}" class="nav-link sidebar-link fw-semibold py-2 px-3 text-info">
-        📊 Hisobot (Direktor)
-      </a>
-    </li>
-    {% endif %}
-    {% endif %}
+    <a href="{% url 'store:products' %}" 
+       class="sidebar-item {% if 'products' in request.path or 'store' in request.path %}active{% endif %}">
+      <span>🛍️</span> Do‘kon
+    </a>
 
     <!-- 🏆 Reyting -->
-    <li class="mb-1">
-      <a href="{% url 'chaqmoq:reyting' %}" class="nav-link sidebar-link fw-semibold py-2 px-3 text-light">
-        🏆 Reyting
-      </a>
-    </li>
+    <a href="{% url 'chaqmoq:reyting' %}" 
+       class="sidebar-item {% if 'reyting' in request.path or 'chaqmoq/reyting' in request.path %}active{% endif %}">
+      <span>🏆</span> Reyting
+    </a>
 
-
-
-    <!-- ⚡ Chaqmoq -->
+    <!-- 💰 To‘lov -->
     {% if user.is_superuser or user.role == 'director' or user.role == 'manager' %}
-    <li class="mb-1">
-      <a href="{% url 'chaqmoq:berish' %}" class="nav-link sidebar-link fw-semibold py-2 px-3 text-light">
-        ⚡ Chaqmoq berish / ayirish
-      </a>
-    </li>
+    <a href="{% url 'education:tolovlar_home' %}" 
+       class="sidebar-item {% if 'tolov' in request.path or 'education/tolovlar' in request.path %}active{% endif %}">
+      <span>💰</span> To‘lov
+    </a>
     {% endif %}
-  </ul>
 
- <!-- ⚙️ Qo‘shish va Admin Panel -->
-{% if user.is_superuser or user.role == 'director' %}
-  <hr class="border-secondary opacity-25 mt-4">
-
-  <div class="p-3 text-center">
-    <!-- Foydalanuvchi qo‘shish -->
-    <a href="{% url 'accounts:add_user' %}"
-       class="btn w-100 fw-semibold text-light mb-2"
-       style="background:linear-gradient(90deg,#3b82f6,#60a5fa);
-              border:none; border-radius:10px;
-              box-shadow:0 0 12px rgba(59,130,246,0.5);">
-      ➕ Foydalanuvchi qo‘shish
+    <!-- 📊 Hisobot -->
+    {% if user.is_superuser or user.role == 'director' %}
+    <a href="{% url 'education:teacher_salary_summary' %}" 
+       class="sidebar-item {% if 'teacher_salary' in request.path or 'education/teacher_salary' in request.path %}active{% endif %}">
+      <span>📊</span> Hisobot
     </a>
+    {% endif %}
 
-    <!-- Django Admin Panel -->
-    <a href="/admin/"
-       class="btn w-100 fw-semibold text-light"
-       style="background:linear-gradient(90deg,#0ea5e9,#2563eb);
-              border:none; border-radius:10px;
-              box-shadow:0 0 12px rgba(37,99,235,0.4);">
-      ⚙️ Admin Panel
+    <!-- ⚡ Chaqmoq berish -->
+    {% if user.is_superuser or user.role == 'director' or user.role == 'manager' %}
+    <a href="{% url 'chaqmoq:berish' %}" 
+       class="sidebar-item {% if 'berish' in request.path or 'chaqmoq/berish' in request.path %}active{% endif %}">
+      <span>⚡</span> Chaqmoq berish
     </a>
+    {% endif %}
+
+    <!-- ⚙️ Admin Panel -->
+    {% if user.is_superuser or user.role == 'director' %}
+    <a href="/admin/" 
+       class="sidebar-item {% if 'admin' in request.path %}active{% endif %}">
+      <span>⚙️</span> Admin Panel
+    </a>
+    {% endif %}
   </div>
-{% endif %}
 
-
-  <hr class="border-secondary opacity-25 mt-4">
-
-  <!-- 👤 User Info -->
-  {% if request.user.is_authenticated %}
-  <div class="p-3 rounded-4 text-center" 
-       style="background:rgba(255,255,255,0.05); box-shadow:inset 0 0 12px rgba(0,0,0,0.3);">
-    <div class="user-avatar mx-auto mb-2">
-      {{ request.user.ism|first|upper }}
-    </div>
-    <div class="fw-semibold text-light">{{ request.user.ism }} {{ request.user.familya }}</div>
-    <div class="small text-warning mb-3">{{ request.user.get_role_display }}</div>
-
-    <form method="post" action="{% url 'logout' %}">
-      {% csrf_token %}
-      <button type="submit" class="btn btn-outline-danger btn-sm w-100 logout-btn">🚪 Chiqish</button>
-    </form>
+  <!-- 👤 User Section -->
+  <div class="sidebar-user mt-auto">
+    {% if request.user.is_authenticated %}
+      <div class="user-avatar">{{ request.user.ism|first|upper }}</div>
+      <div class="user-info">
+        <div class="fw-semibold">{{ request.user.ism }} {{ request.user.familya }}</div>
+        <small class="text-warning">{{ request.user.get_role_display }}</small>
+      </div>
+      <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="logout-btn">🚪 Chiqish</button>
+      </form>
+    {% else %}
+      <a href="{% url 'login' %}" class="btn-login">🔑 Kirish</a>
+    {% endif %}
   </div>
-  {% else %}
-  <a class="btn btn-warning fw-bold w-100 mt-3" href="{% url 'login' %}">🔑 Kirish</a>
-  {% endif %}
 </div>
 
 <style>
-  .sidebar-link {
-    border-radius: 10px;
-    transition: all 0.25s ease;
-    color: #05080c !important;
-  }
+/* === SIDEBAR WRAPPER === */
+.sidebar-wrapper {
+  width: 270px;
+  background: linear-gradient(180deg, #0f172a, #1e293b, #0f172a);
+  color: #fff;
+  font-family: 'Poppins', sans-serif;
+  padding: 25px 20px;
+  box-shadow: inset 0 0 25px rgba(0,0,0,0.45);
+  border-right: 1px solid rgba(255,255,255,0.05);
+}
 
-  .sidebar-link:hover {
-    background: rgba(59,130,246,0.15);
-    color: #3b82f6 !important;
-    transform: translateX(4px);
-  }
+/* === LOGO === */
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  color: #facc15;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 0.5px;x
+}
+.logo-icon {
+  font-size: 26px;
+  background: linear-gradient(135deg, #facc15, #fbbf24);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 10px rgba(250,204,21,0.6);
+}
 
-  .sidebar-link.active {
-    background: linear-gradient(90deg, #2563eb, #38bdf8);
-    color: #fff !important;
-    box-shadow: 0 0 12px rgba(56,189,248,0.4);
-  }
+/* === MENU CONTAINER === */
+.sidebar-card {
+  background: rgba(255,255,255,0.04);
+  border-radius: 20px;
+  padding: 10px;
+}
 
-  .user-avatar {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #38bdf8, #2563eb);
-    color: white;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-weight: bold;
-    font-size: 1.2rem;
-    box-shadow: 0 0 12px rgba(56,189,248,0.5);
-  }
+/* === MENU ITEMS === */
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  color: #cbd5e1;
+  text-decoration: none;
+  background: rgba(255,255,255,0.06);
+  margin: 8px 0;
+  padding: 12px 15px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: all 0.25s ease;
+}
 
-  .logout-btn {
-    border-radius: 8px;
-    font-weight: 600;
-    transition: 0.3s;
-  }
+/* 🟦 Hover */
+.sidebar-item:hover {
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  color: #fff;
+  transform: translateX(5px);
+  box-shadow: 0 3px 12px rgba(59,130,246,0.3);
+}
 
-  .logout-btn:hover {
-    background: #dc2626;
-    color: #fff;
-    border-color: #dc2626;
-  }
+/* 🟨 Active */
+.sidebar-item.active {
+  background: linear-gradient(90deg, #facc15, #fbbf24, #fcd34d);
+  color: #000;
+  box-shadow: 0 0 15px rgba(250,204,21,0.4);
+  transform: translateX(4px);
+  border: none;
+}
+
+/* === USER PANEL === */
+.sidebar-user {
+  margin-top: 40px;
+  text-align: center;
+  background: rgba(255,255,255,0.05);
+  border-radius: 16px;
+  padding: 20px 10px;
+  box-shadow: inset 0 0 15px rgba(0,0,0,0.3);
+}
+
+.user-avatar {
+  width: 55px;
+  height: 55px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #facc15);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 18px;
+  box-shadow: 0 0 10px rgba(250,204,21,0.5);
+}
+
+/* === BUTTONS === */
+.logout-btn {
+  background: rgba(220,38,38,0.1);
+  color: #f87171;
+  border: 1px solid rgba(248,113,113,0.3);
+  border-radius: 10px;
+  padding: 6px 0;
+  width: 100%;
+  font-weight: 600;
+  transition: 0.3s;
+}
+.logout-btn:hover {
+  background: #dc2626;
+  color: #fff;
+  transform: scale(1.05);
+}
+
+.btn-login {
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 10px;
+  text-decoration: none;
+  transition: 0.3s;
+}
+.btn-login:hover {
+  background: linear-gradient(90deg, #60a5fa, #3b82f6);
+  transform: scale(1.05);
+}
 </style>

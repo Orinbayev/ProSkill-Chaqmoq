@@ -1,64 +1,211 @@
 {% extends 'base.html' %}
 {% block content %}
-<h3>{{ title }}</h3>
+<h3 class="mb-4 text-light fw-semibold">{{ title }}</h3>
 
-<form method="post" class="mt-3" style="max-width: 980px;">
+<form method="post" class="user-form glass-card">
   {% csrf_token %}
-
   {% if form.non_field_errors %}
-    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+  <div class="alert alert-danger">{{ form.non_field_errors }}</div>
   {% endif %}
 
   <div class="row g-3">
+    <!-- Ism -->
     <div class="col-md-6">
       <label class="form-label">{{ form.ism.label }}</label>
       {{ form.ism }}
       {{ form.ism.errors }}
     </div>
+
+    <!-- Familya -->
     <div class="col-md-6">
       <label class="form-label">{{ form.familya.label }}</label>
       {{ form.familya }}
       {{ form.familya.errors }}
     </div>
 
+    <!-- Telefon -->
     <div class="col-md-6">
       <label class="form-label">{{ form.telefon1.label }}</label>
       {{ form.telefon1 }}
       {{ form.telefon1.errors }}
     </div>
+
+    <!-- Uy telefoni -->
     <div class="col-md-6">
       <label class="form-label">{{ form.telefon2.label }}</label>
       {{ form.telefon2 }}
       {{ form.telefon2.errors }}
     </div>
 
+    <!-- Center -->
     <div class="col-md-6">
       <label class="form-label">{{ form.center.label }}</label>
       {{ form.center }}
       {{ form.center.errors }}
     </div>
+
+    <!-- Roli -->
     <div class="col-md-6">
       <label class="form-label">{{ form.role.label }}</label>
       {{ form.role }}
       {{ form.role.errors }}
     </div>
 
-    <!-- LOGIN va PAROL – OXIRIDA, hech qanday help_textsiz -->
+    <!-- Login -->
     <div class="col-md-6">
       <label class="form-label">{{ form.email.label }}</label>
       {{ form.email }}
       {{ form.email.errors }}
     </div>
-    <div class="col-md-6">
+
+    <!-- Parol -->
+    <div class="col-md-6 position-relative">
       <label class="form-label">{{ form.password.label }}</label>
       {{ form.password }}
+      <button type="button" class="btn btn-sm toggle-eye" id="togglePassword">👁</button>
       {{ form.password.errors }}
     </div>
   </div>
 
-  <div class="mt-3 d-flex gap-2">
-    <button class="btn btn-primary">Saqlash</button>
-    <a class="btn btn-outline-secondary" href="{% url 'core:home' %}">Bekor qilish</a>
+  <!-- Buttons -->
+  <div class="mt-4 d-flex gap-3">
+    <button class="btn btn-save">💾 Saqlash</button>
+    <a class="btn btn-cancel" href="{% url 'core:home' %}">✖️ Bekor qilish</a>
   </div>
 </form>
+
+<!-- === JavaScript === -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const ism = document.getElementById("id_ism");
+  const familya = document.getElementById("id_familya");
+  const email = document.getElementById("id_email");
+  const pass = document.getElementById("id_password");
+  const eye = document.getElementById("togglePassword");
+
+  function generateEmail() {
+    const i = ism.value.trim().toLowerCase();
+    const f = familya.value.trim().toLowerCase();
+    if (i && f && !email.value) email.value = `${i}${f}@gmail.com`;
+  }
+
+  function suggestPass() {
+    const i = ism.value.trim().toLowerCase();
+    const f = familya.value.trim().toLowerCase();
+    if (i && f && !pass.value)
+      pass.value = `${i}_${f}${Math.floor(Math.random() * 900 + 100)}`;
+  }
+
+  ism.addEventListener("blur", generateEmail);
+  familya.addEventListener("blur", generateEmail);
+  ism.addEventListener("blur", suggestPass);
+  familya.addEventListener("blur", suggestPass);
+
+  eye.addEventListener("click", () => {
+    const type = pass.type === "password" ? "text" : "password";
+    pass.type = type;
+    eye.textContent = type === "password" ? "👁" : "🙈";
+  });
+
+  const phones = [document.getElementById("id_telefon1"), document.getElementById("id_telefon2")];
+  phones.forEach(p => {
+    p.addEventListener("focus", () => { if (!p.value) p.value = "+998"; });
+    p.addEventListener("input", () => {
+      p.value = p.value.replace(/[^\d+]/g, "").slice(0, 13);
+      if (!p.value.startsWith("+998")) p.value = "+998" + p.value.replace(/^\+?998?/, "");
+    });
+  });
+});
+</script>
+
+<!-- === STYLE === -->
+<style>
+/* --- Glass card design --- */
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 30px 35px;
+  backdrop-filter: blur(15px);
+  box-shadow: 0 0 25px rgba(0,0,0,0.25);
+  color: #fff;
+  margin-top: 20px;
+}
+
+/* --- Inputs --- */
+.uniform-input,
+input.form-control,
+select.form-select,
+textarea.form-control {
+  background: #fff !important;
+  color: #000 !important;
+  border: 1px solid #ccc !important;
+  border-radius: 8px !important;
+  padding: 10px 12px !important;
+  font-size: 15px !important;
+  transition: all 0.25s ease;
+  width: 100%;
+}
+
+.uniform-input:focus,
+input.form-control:focus,
+select.form-select:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 8px rgba(59,130,246,0.5);
+  background-color: #fff !important;
+  outline: none;
+}
+
+label.form-label {
+  color: #e5e7eb;
+  font-weight: 500;
+}
+
+/* --- Buttons --- */
+.btn-save {
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  padding: 8px 20px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+.btn-save:hover {
+  background: linear-gradient(90deg, #60a5fa, #3b82f6);
+  transform: translateY(-2px);
+}
+
+.btn-cancel {
+  border: 1px solid #888;
+  color: #ddd;
+  padding: 8px 20px;
+  border-radius: 8px;
+  transition: 0.3s;
+}
+.btn-cancel:hover {
+  background: #ddd;
+  color: #000;
+}
+
+/* --- Eye button --- */
+.toggle-eye {
+  position: absolute;
+  top: 36px;
+  right: 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 18px;
+}
+.toggle-eye:hover {
+  transform: scale(1.2);
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+  .glass-card {
+    padding: 20px;
+  }
+}
+</style>
 {% endblock %}

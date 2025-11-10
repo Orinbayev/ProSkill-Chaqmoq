@@ -5,19 +5,20 @@ from accounts.models import Center
 User = get_user_model()
 
 ROLE_CHOICES = (
-    ("teacher", "O‘qituvchi"),
     ("student", "O‘quvchi"),
+    ("teacher", "O‘qituvchi"),
     ("manager", "Manager"),
 )
 
 class AddUserForm(forms.ModelForm):
-    # LOGIN: tizimga kirish uchun ishlatiladi (User.email ga yoziladi)
     email = forms.CharField(label="Login")
-    # “Gmail” ni olib tashladik
-    telefon1 = forms.CharField(label="Telefon1", required=False)
-    telefon2 = forms.CharField(label="Telefon2", required=False)
+    telefon1 = forms.CharField(label="Telefon nomer", required=False)
+    telefon2 = forms.CharField(label="Uyida telefon nomeri", required=False)
     center = forms.ModelChoiceField(
-        queryset=Center.objects.all(), empty_label="---------", required=False, label="Center"
+        queryset=Center.objects.all(),
+        empty_label="---------",
+        required=False,
+        label="Center"
     )
     role = forms.ChoiceField(choices=ROLE_CHOICES, label="Roli")
     password = forms.CharField(label="Parol", widget=forms.PasswordInput)
@@ -28,20 +29,49 @@ class AddUserForm(forms.ModelForm):
             "ism", "familya",
             "telefon1", "telefon2",
             "center", "role",
-            "email", "password",   # Login va Parol oxirida
+            "email", "password",
         ]
         widgets = {
-            "ism": forms.TextInput(attrs={"placeholder": "Ism"}),
-            "familya": forms.TextInput(attrs={"placeholder": "Familya"}),
+            "ism": forms.TextInput(attrs={
+                "placeholder": "Ism",
+                "class": "form-control uniform-input",
+                "id": "id_ism"
+            }),
+            "familya": forms.TextInput(attrs={
+                "placeholder": "Familya",
+                "class": "form-control uniform-input",
+                "id": "id_familya"
+            }),
+            "telefon1": forms.TextInput(attrs={
+                "placeholder": "+998XXXXXXXXX",
+                "class": "form-control uniform-input",
+                "id": "id_telefon1",
+                "oninput": "validatePhone(this)",
+                "maxlength": "13"
+            }),
+            "telefon2": forms.TextInput(attrs={
+                "placeholder": "+998XXXXXXXXX",
+                "class": "form-control uniform-input",
+                "id": "id_telefon2",
+                "oninput": "validatePhone(this)",
+                "maxlength": "13"
+            }),
+            "email": forms.TextInput(attrs={
+                "placeholder": "Login (email)",
+                "class": "form-control uniform-input",
+                "id": "id_email"
+            }),
+            "password": forms.PasswordInput(attrs={
+                "placeholder": "Parol",
+                "class": "form-control uniform-input",
+                "id": "id_password"
+            }),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Bootstrap klasslari
-        for name in ["ism", "familya", "telefon1", "telefon2", "email", "password"]:
-            self.fields[name].widget.attrs.setdefault("class", "form-control")
         for name in ["center", "role"]:
-            self.fields[name].widget.attrs.setdefault("class", "form-select")
+            self.fields[name].widget.attrs.setdefault("class", "form-select uniform-input")
 
     def clean_email(self):
         login = self.cleaned_data["email"].strip()
@@ -54,7 +84,7 @@ class AddUserForm(forms.ModelForm):
         user = User(
             ism=data.get("ism"),
             familya=data.get("familya"),
-            email=data.get("email"),       # LOGIN shu yerga yoziladi
+            email=data.get("email"),
             telefon1=data.get("telefon1"),
             telefon2=data.get("telefon2"),
             center=data.get("center"),
