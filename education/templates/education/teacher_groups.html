@@ -5,43 +5,45 @@
 
 <style>
 body {
-  background: linear-gradient(135deg, #eef4ff, #ffffff);
+  background: linear-gradient(180deg, #0f172a, #1e293b, #0f172a);
   font-family: 'Poppins', sans-serif;
   min-height: 100vh;
+  color: #e2e8f0;
 }
 
 /* 📘 Sarlavha */
 h4 {
   font-weight: 800;
-  color: #007bff;
+  color: #facc15;
   margin-bottom: 2rem;
   text-align: center;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  text-shadow: 0 2px 6px rgba(250,204,21,0.5);
 }
 
 /* 🧩 Har bir guruh kartasi */
 details {
-  background: linear-gradient(135deg, #ffffff, #f9fcff);
+  background: rgba(255,255,255,0.05);
   border-radius: 16px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.5);
   transition: all 0.3s ease;
   padding: 1rem 1.5rem;
   margin-bottom: 1.5rem;
-  border: 1px solid #e2e6ef;
+  border: 1px solid rgba(255,255,255,0.08);
   cursor: pointer;
+  backdrop-filter: blur(8px);
 }
 details:hover {
   transform: scale(1.02);
-  box-shadow: 0 10px 25px rgba(0, 123, 255, 0.15);
-  border-color: #007bff30;
-  background: linear-gradient(135deg, #f8fbff, #eef4ff);
+  box-shadow: 0 10px 25px rgba(59,130,246,0.3);
+  border-color: rgba(59,130,246,0.3);
+  background: rgba(59,130,246,0.1);
 }
 
 /* 🔹 Summary (guruh sarlavhasi) */
 summary {
   font-weight: 600;
-  font-size: 1.05rem;
-  color: #333;
+  font-size: 1.1rem;
+  color: #f8fafc;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -51,11 +53,11 @@ summary::-webkit-details-marker {
   display: none;
 }
 
-/* 💰 Daromad belgisi */
+/* 🔽 Belgisi */
 summary::after {
   content: "⬇️";
   font-size: 1rem;
-  color: #007bff;
+  color: #60a5fa;
   transition: transform 0.3s ease;
 }
 details[open] summary::after {
@@ -64,13 +66,15 @@ details[open] summary::after {
 
 /* 💸 Jadval */
 .table {
-  background: #fff;
+  background: rgba(255,255,255,0.05);
   border-radius: 12px;
   overflow: hidden;
   margin-top: 1rem;
+  color: #f1f5f9;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.3);
 }
 .table th {
-  background-color: #007bff;
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
   color: #fff;
   font-weight: 600;
   text-align: center;
@@ -78,15 +82,16 @@ details[open] summary::after {
 .table td, .table th {
   vertical-align: middle;
   text-align: center;
+  border-color: rgba(255,255,255,0.08) !important;
 }
 .table-hover tbody tr:hover {
-  background-color: #f2f8ff;
+  background-color: rgba(59,130,246,0.15);
   transition: background 0.2s ease;
 }
 
 /* 🧾 Bo‘sh holatlar */
 .text-muted {
-  color: #777 !important;
+  color: #94a3b8 !important;
   font-style: italic;
   text-align: center;
   margin-top: 1rem;
@@ -96,36 +101,57 @@ details[open] summary::after {
 .teacher-header {
   text-align: center;
   margin-bottom: 2rem;
-  background: linear-gradient(90deg, #007bff, #00bcd4);
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
   color: #fff;
   padding: 1rem 1.5rem;
   border-radius: 15px;
-  box-shadow: 0 6px 20px rgba(0, 123, 255, 0.25);
+  box-shadow: 0 8px 25px rgba(59,130,246,0.35);
   display: inline-block;
-  font-size: 1.3rem;
+  font-size: 1.4rem;
   font-weight: 700;
 }
 .teacher-header span {
+  display: block;
   font-size: 1rem;
-  opacity: 0.9;
+  opacity: 0.85;
 }
 
 /* 💵 Daromad badge */
 .salary-badge {
-  background: linear-gradient(135deg, #00b894, #00cec9);
+  background: linear-gradient(90deg, #22c55e, #16a34a);
   color: #fff;
   font-weight: 600;
   border-radius: 10px;
   padding: 4px 10px;
   margin-left: 10px;
   font-size: 0.9rem;
+  box-shadow: 0 0 15px rgba(22,163,74,0.4);
+}
+
+/* 💰 Daromad summasi */
+summary span strong {
+  color: #22c55e;
+}
+
+/* 🧾 Jadval ichidagi sonlar */
+.table td strong {
+  color: #facc15;
+  font-weight: 700;
+}
+
+/* Responsiv */
+@media (max-width: 768px) {
+  summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
 }
 </style>
 
 <div class="container mt-5">
   <div class="teacher-header">
-    👩‍🏫 {{ teacher.ism }} {{ teacher.familya }}
-    <span>— O‘qituvchi guruhlari</span>
+    👩‍🏫 {{ teacher.ism }} {{ teacher.familya }}<span> O‘qituvchi guruhlari</span>
   </div>
 
   {% if teacher_data %}
@@ -133,7 +159,7 @@ details[open] summary::after {
       <details>
         <summary>
           <span>{{ item.group.nom }}</span>
-          <span>💰 {{ item.daromad|intcomma }} so‘m <span class="salary-badge">{{ item.foiz }}%</span></span>
+          <span>💰 <strong>{{ item.daromad|intcomma }}</strong> so‘m <span class="salary-badge">{{ item.foiz }}%</span></span>
         </summary>
 
         {% if item.enrollments %}

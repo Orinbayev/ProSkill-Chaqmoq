@@ -4,9 +4,10 @@
 
 <style>
 body {
-  background: linear-gradient(135deg, #e8f0ff, #ffffff);
+  background: linear-gradient(180deg, #0f172a, #1e293b, #0f172a);
   min-height: 100vh;
   font-family: 'Poppins', sans-serif;
+  color: #e2e8f0;
 }
 
 /* 🔷 Sarlavha va yuqori panel */
@@ -19,39 +20,40 @@ body {
 }
 .header-bar h2 {
   font-weight: 800;
-  color: #0056d2;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: #facc15;
+  text-shadow: 0 2px 6px rgba(250, 204, 21, 0.4);
 }
 .add-btn {
-  background: linear-gradient(45deg, #00b894, #00cec9);
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
   color: white;
   font-weight: 600;
   border: none;
   border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 200, 150, 0.3);
+  box-shadow: 0 4px 12px rgba(59,130,246,0.3);
   transition: all 0.3s ease;
 }
 .add-btn:hover {
-  background: linear-gradient(45deg, #00cec9, #00b894);
+  background: linear-gradient(90deg, #60a5fa, #3b82f6);
   transform: scale(1.05);
-  box-shadow: 0 8px 18px rgba(0, 200, 150, 0.5);
+  box-shadow: 0 8px 18px rgba(59,130,246,0.4);
 }
 
 /* 📦 Karta umumiy ko‘rinishi */
 .category-card {
   border: none;
   border-radius: 18px;
-  background: linear-gradient(145deg, #ffffff, #f2f6ff);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
   text-align: center;
   padding: 2rem 1rem 1.2rem;
   transition: all 0.35s ease;
   position: relative;
   overflow: hidden;
+  backdrop-filter: blur(6px);
 }
 .category-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 10px 25px rgba(59,130,246,0.3);
 }
 
 /* 🖼️ Icon yoki rasm doirasi */
@@ -59,14 +61,14 @@ body {
   width: 90px;
   height: 90px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #007bff, #6ec8ff);
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2.5rem;
   color: white;
   margin: 0 auto 1rem;
-  box-shadow: 0 5px 15px rgba(0, 123, 255, 0.3);
+  box-shadow: 0 5px 15px rgba(59,130,246,0.4);
   transition: all 0.3s ease;
   overflow: hidden;
 }
@@ -83,13 +85,13 @@ body {
 /* 🧾 Bo‘lim nomi */
 .category-card h5 {
   font-weight: 700;
-  color: #003366;
+  color: #f8fafc;
   margin-bottom: 0.6rem;
 }
 
 /* 📝 Tavsif */
 .category-card p {
-  color: #666;
+  color: #cbd5e1;
   font-size: 0.9rem;
   min-height: 40px;
 }
@@ -109,38 +111,44 @@ body {
   font-size: 0.85rem;
   transition: all 0.3s ease;
 }
+
+/* 👁️ Ko‘rish */
 .card-actions .btn-view {
-  border: 1px solid #007bff;
-  color: #007bff;
-  background: white;
+  border: 1px solid #3b82f6;
+  color: #3b82f6;
+  background: rgba(255,255,255,0.08);
 }
 .card-actions .btn-view:hover {
-  background: #007bff;
+  background: #3b82f6;
   color: #fff;
 }
+
+/* ✏️ Tahrirlash */
 .card-actions .btn-edit {
-  border: 1px solid #ffc107;
-  color: #e69500;
-  background: #fff8e1;
+  border: 1px solid #fbbf24;
+  color: #facc15;
+  background: rgba(255,255,255,0.08);
 }
 .card-actions .btn-edit:hover {
-  background: #ffc107;
-  color: #fff;
+  background: linear-gradient(90deg, #facc15, #fbbf24);
+  color: #000;
 }
+
+/* 🗑️ O‘chirish */
 .card-actions .btn-delete {
-  border: 1px solid #dc3545;
-  color: #dc3545;
-  background: #fff5f5;
+  border: 1px solid #ef4444;
+  color: #ef4444;
+  background: rgba(255,255,255,0.08);
 }
 .card-actions .btn-delete:hover {
-  background: #dc3545;
+  background: #ef4444;
   color: #fff;
 }
 
 /* 💬 Bo‘sh holat */
 .empty-section {
   text-align: center;
-  color: #888;
+  color: #94a3b8;
   font-size: 1.1rem;
   margin-top: 2rem;
 }

@@ -3,32 +3,36 @@
 
 <style>
 body {
-  background: linear-gradient(135deg, #eef4ff, #ffffff);
+  background: linear-gradient(180deg, #0f172a, #1e293b, #0f172a);
   font-family: 'Poppins', sans-serif;
   min-height: 100vh;
+  color: #e2e8f0;
 }
 
 /* 🧭 Forma konteyner */
 .form-wrapper {
   max-width: 800px;
   margin: 4rem auto;
-  background: #ffffff;
+  background: rgba(255,255,255,0.05);
   border-radius: 20px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.5);
   padding: 2.5rem 3rem;
+  backdrop-filter: blur(10px);
   transition: 0.3s;
 }
 .form-wrapper:hover {
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 12px 35px rgba(59,130,246,0.3);
+  border-color: rgba(59,130,246,0.3);
 }
 
 /* 📘 Sarlavha */
 .form-wrapper h3 {
   font-weight: 800;
-  color: #0066ff;
+  color: #facc15;
   text-align: center;
   margin-bottom: 2rem;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  text-shadow: 0 2px 6px rgba(250,204,21,0.5);
 }
 
 /* 🧾 Input va select maydonlari */
@@ -36,11 +40,12 @@ body {
 .form-wrapper select,
 .form-wrapper textarea {
   border-radius: 10px;
-  border: 1.5px solid #cfdaf0;
+  border: 1.5px solid rgba(255,255,255,0.1);
   padding: 10px 14px;
   width: 100%;
   font-size: 1rem;
-  background-color: #f9fcff;
+  background-color: rgba(255,255,255,0.06);
+  color: #f8fafc;
   transition: all 0.3s;
 }
 
@@ -48,31 +53,25 @@ body {
 .form-wrapper input:focus,
 .form-wrapper select:focus,
 .form-wrapper textarea:focus {
-  border-color: #007bff;
-  background-color: #fff;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+  border-color: #3b82f6;
+  background-color: rgba(59,130,246,0.08);
+  box-shadow: 0 0 8px rgba(59,130,246,0.4);
   outline: none;
 }
 
-/* ✨ O‘qituvchi select uchun chiroyli ko‘rinish */
+/* ✨ Select (O‘qituvchi tanlash) */
 .form-wrapper select {
-  background: linear-gradient(135deg, #f8fbff, #eef4ff);
   cursor: pointer;
-  color: #333;
   appearance: none;
   position: relative;
   padding-right: 2.5rem;
 }
 .form-wrapper select:hover {
-  background: linear-gradient(135deg, #f2f9ff, #e6f2ff);
-  transform: scale(1.01);
-}
-.form-wrapper select:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 0 0.15rem rgba(0, 123, 255, 0.15);
+  transform: scale(1.02);
+  border-color: #60a5fa;
 }
 
-/* 📏 Izoh maydoni (kichikroq qilib) */
+/* 📏 Izoh maydoni */
 .form-wrapper textarea {
   resize: vertical;
   min-height: 90px;
@@ -82,30 +81,31 @@ body {
 /* 🏷 Label */
 .form-label {
   font-weight: 600;
-  color: #444;
+  color: #e5e7eb;
   margin-bottom: 0.4rem;
 }
 
 /* ⚠️ Xatolik matni */
 .text-danger.small {
   font-size: 0.85rem;
+  color: #f87171;
 }
 
 /* 💾 Saqlash tugmasi */
 .btn-save {
-  background: linear-gradient(45deg, #00b894, #00cec9);
-  color: white;
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  color: #fff;
   font-weight: 600;
   border: none;
   border-radius: 12px;
   padding: 12px 30px;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 200, 150, 0.3);
+  box-shadow: 0 0 20px rgba(22,163,74,0.4);
 }
 .btn-save:hover {
-  background: linear-gradient(45deg, #00cec9, #00b894);
-  transform: scale(1.05);
-  box-shadow: 0 8px 18px rgba(0, 200, 150, 0.5);
+  background: linear-gradient(90deg, #16a34a, #22c55e);
+  transform: scale(1.06);
+  box-shadow: 0 0 25px rgba(22,163,74,0.6);
 }
 
 /* ↩️ Bekor qilish tugmasi */
@@ -113,13 +113,15 @@ body {
   border-radius: 12px;
   padding: 12px 30px;
   font-weight: 600;
-  border: 1.5px solid #ccc;
-  background-color: #f9f9f9;
+  border: 1.5px solid rgba(255,255,255,0.2);
+  background-color: rgba(255,255,255,0.05);
+  color: #cbd5e1;
   transition: 0.3s;
 }
 .btn-cancel:hover {
-  background-color: #f1f3f5;
-  transform: scale(1.03);
+  background-color: rgba(255,255,255,0.1);
+  transform: scale(1.05);
+  color: #fff;
 }
 
 /* 🧩 Tugma joylashuvi */
@@ -127,8 +129,29 @@ body {
   display: flex;
   justify-content: center;
   gap: 1rem;
-  margin-top: 1.5rem;
+  margin-top: 1.8rem;
 }
+
+/* 🔽 Select oynasi (dropdown) uchun stil */
+select {
+  background-color: rgba(15, 23, 42, 0.9) !important; /* qoramtir fon */
+  color: #e2e8f0 !important; /* yozuv oq */
+}
+
+/* 🔽 Drop-down ro‘yxatining orqa foni */
+select option {
+  background-color: #0f172a; /* to‘liq qora fon */
+  color: #f8fafc;            /* yozuv oq */
+}
+
+/* Hover payti (tanlashda yaltirash effekti) */
+select option:hover,
+select option:focus,
+select option:checked {
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  color: #fff;
+}
+
 </style>
 
 <div class="form-wrapper">
@@ -138,44 +161,44 @@ body {
     {% csrf_token %}
 
     {% if form.non_field_errors %}
-    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    <div class="alert alert-danger bg-danger bg-opacity-25 text-danger p-2 rounded">{{ form.non_field_errors }}</div>
     {% endif %}
 
     <div class="row g-3">
       <div class="col-md-4">
-        <label class="form-label">Markaz</label>
+        <label class="form-label">🏫 Markaz</label>
         {{ form.center }}
         <div class="text-danger small">{{ form.center.errors }}</div>
       </div>
 
       <div class="col-md-4">
-        <label class="form-label">Guruh nomi</label>
+        <label class="form-label">📘 Guruh nomi</label>
         {{ form.nom }}
         <div class="text-danger small">{{ form.nom.errors }}</div>
       </div>
 
       <div class="col-md-4">
-        <label class="form-label">O‘qituvchi</label>
+        <label class="form-label">👨‍🏫 O‘qituvchi</label>
         <div class="position-relative">
           {{ form.oqituvchi }}
-          <span style="position:absolute; right:10px; top:38px; pointer-events:none; color:#007bff;">▼</span>
+          <span style="position:absolute; right:10px; top:38px; pointer-events:none; color:#60a5fa;">▼</span>
         </div>
         <div class="text-danger small">{{ form.oqituvchi.errors }}</div>
       </div>
 
       <div class="col-12">
-        <label class="form-label">Izoh</label>
+        <label class="form-label">📝 Izoh</label>
         {{ form.izoh }}
         <div class="text-danger small">{{ form.izoh.errors }}</div>
       </div>
     </div>
 
     <div class="form-actions">
-      <button type="submit" class="btn btn-save">💾 Saqlash</button>
+      <button type="submit" class="btn-save">💾 Saqlash</button>
       {% if category == "lang" %}
-      <a class="btn btn-cancel" href="{% url 'education:groups_lang' %}">⬅️ Bekor qilish</a>
+      <a class="btn-cancel" href="{% url 'education:groups_lang' %}">⬅️ Bekor qilish</a>
       {% else %}
-      <a class="btn btn-cancel" href="{% url 'education:groups_it' %}">⬅️ Bekor qilish</a>
+      <a class="btn-cancel" href="{% url 'education:groups_it' %}">⬅️ Bekor qilish</a>
       {% endif %}
     </div>
   </form>
