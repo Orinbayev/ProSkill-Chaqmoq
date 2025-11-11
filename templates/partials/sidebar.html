@@ -1,13 +1,13 @@
 <div class="d-flex flex-column flex-shrink-0 p-3 min-vh-100 sidebar-wrapper">
-  <!-- ⚡ Logo -->
+  <!-- ⚡ LOGO -->
   <a href="{% url 'core:home' %}" class="d-flex align-items-center mb-4 text-decoration-none sidebar-logo">
     <span class="logo-icon me-2">⚡</span>
     <span class="fs-4 fw-bold">Chaqmoq</span>
   </a>
 
-  <!-- 📋 Navigation -->
+  <!-- 📋 MENU -->
   <div class="sidebar-card">
-
+    
     <!-- 🏠 Boshqaruv -->
     <a href="{% url 'core:home' %}" 
        class="sidebar-item {% if request.path == '/' or 'core/home' in request.path %}active{% endif %}">
@@ -17,8 +17,16 @@
     <!-- ➕ O‘quvchi qo‘shish -->
     {% if user.is_superuser or user.role == 'director' %}
     <a href="{% url 'accounts:add_user' %}" 
-       class="sidebar-item {% if 'accounts/add_user' in request.path or 'add_user' in request.path %}active{% endif %}">
+       class="sidebar-item {% if 'accounts/add_user' in request.path %}active{% endif %}">
       <span>➕</span> O‘quvchi qo‘shish
+    </a>
+    {% endif %}
+
+    <!-- 👥 Bo‘limlar -->
+    {% if user.is_superuser or user.role in 'director manager' %}
+    <a href="{% url 'education:groups_home' %}"
+       class="sidebar-item {% if 'groups_home' in request.path or 'education/groups' in request.path %}active{% endif %}">
+      <span>👥</span> Bo‘limlar
     </a>
     {% endif %}
 
@@ -34,12 +42,6 @@
     <a href="{% url 'store:products' %}" 
        class="sidebar-item {% if 'products' in request.path or 'store' in request.path %}active{% endif %}">
       <span>🛍️</span> Do‘kon
-    </a>
-
-    <!-- 🏆 Reyting -->
-    <a href="{% url 'chaqmoq:reyting' %}" 
-       class="sidebar-item {% if 'reyting' in request.path or 'chaqmoq/reyting' in request.path %}active{% endif %}">
-      <span>🏆</span> Reyting
     </a>
 
     <!-- 💰 To‘lov -->
@@ -58,6 +60,12 @@
     </a>
     {% endif %}
 
+    <!-- 🏆 Reyting -->
+    <a href="{% url 'chaqmoq:reyting' %}" 
+       class="sidebar-item {% if 'reyting' in request.path or 'chaqmoq/reyting' in request.path %}active{% endif %}">
+      <span>🏆</span> Reyting
+    </a>
+
     <!-- ⚡ Chaqmoq berish -->
     {% if user.is_superuser or user.role == 'director' or user.role == 'manager' %}
     <a href="{% url 'chaqmoq:berish' %}" 
@@ -75,7 +83,7 @@
     {% endif %}
   </div>
 
-  <!-- 👤 User Section -->
+  <!-- 👤 USER SECTION -->
   <div class="sidebar-user mt-auto">
     {% if request.user.is_authenticated %}
       <div class="user-avatar">{{ request.user.ism|first|upper }}</div>
@@ -93,6 +101,7 @@
   </div>
 </div>
 
+<!-- === STYLE === -->
 <style>
 /* === SIDEBAR WRAPPER === */
 .sidebar-wrapper {
@@ -107,12 +116,9 @@
 
 /* === LOGO === */
 .sidebar-logo {
-  display: flex;
-  align-items: center;
   color: #facc15;
   font-weight: 700;
   font-size: 22px;
-  letter-spacing: 0.5px;x
 }
 .logo-icon {
   font-size: 26px;
@@ -127,9 +133,10 @@
   background: rgba(255,255,255,0.04);
   border-radius: 20px;
   padding: 10px;
+  backdrop-filter: blur(5px);
 }
 
-/* === MENU ITEMS === */
+/* === MENU ITEM === */
 .sidebar-item {
   display: flex;
   align-items: center;
@@ -145,24 +152,24 @@
   transition: all 0.25s ease;
 }
 
-/* 🟦 Hover */
+/* Hover effekt */
 .sidebar-item:hover {
   background: linear-gradient(90deg, #3b82f6, #60a5fa);
   color: #fff;
-  transform: translateX(5px);
-  box-shadow: 0 3px 12px rgba(59,130,246,0.3);
+  transform: translateX(6px);
+  box-shadow: 0 4px 12px rgba(59,130,246,0.3);
 }
 
-/* 🟨 Active */
+/* Active holat */
 .sidebar-item.active {
   background: linear-gradient(90deg, #facc15, #fbbf24, #fcd34d);
   color: #000;
   box-shadow: 0 0 15px rgba(250,204,21,0.4);
-  transform: translateX(4px);
   border: none;
+  transform: translateX(4px);
 }
 
-/* === USER PANEL === */
+/* === USER SECTION === */
 .sidebar-user {
   margin-top: 40px;
   text-align: center;
@@ -187,7 +194,6 @@
   box-shadow: 0 0 10px rgba(250,204,21,0.5);
 }
 
-/* === BUTTONS === */
 .logout-btn {
   background: rgba(220,38,38,0.1);
   color: #f87171;
