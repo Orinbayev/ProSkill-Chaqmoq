@@ -20,6 +20,26 @@ body {
   text-shadow: 0 2px 6px rgba(250,204,21,0.6);
 }
 
+/* 🔍 Qidiruv input */
+.search-box {
+  max-width: 400px;
+  margin: 0 auto 25px auto;
+}
+.search-box input {
+  width: 100%;
+  padding: 10px 15px;
+  border-radius: 12px;
+  border: none;
+  outline: none;
+  background: rgba(255,255,255,0.08);
+  color: #e2e8f0;
+  font-size: 1rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.search-box input::placeholder {
+  color: #94a3b8;
+}
+
 /* ✨ Karta */
 .group-card {
   border-radius: 20px;
@@ -38,14 +58,11 @@ body {
   background: rgba(59,130,246,0.1);
 }
 
-/* Guruh nomi */
 .group-card h5 {
   color: #60a5fa;
   font-weight: 700;
   margin-bottom: 0.6rem;
 }
-
-/* Qo‘shimcha info */
 .group-card p {
   color: #cbd5e1;
   margin-bottom: 0.3rem;
@@ -69,35 +86,15 @@ body {
   text-decoration: none;
 }
 
-/* 📘 Batafsil */
-.btn-detail {
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
-  box-shadow: 0 0 15px rgba(59,130,246,0.3);
-}
-.btn-detail:hover {
-  background: linear-gradient(90deg, #60a5fa, #3b82f6);
-  transform: scale(1.06);
-}
+/* Buttonlar */
+.btn-detail { background: linear-gradient(90deg,#3b82f6,#60a5fa); }
+.btn-detail:hover { background: linear-gradient(90deg,#60a5fa,#3b82f6); transform: scale(1.06); }
 
-/* ✏️ Tahrirlash */
-.btn-edit {
-  background: linear-gradient(90deg, #22c55e, #16a34a);
-  box-shadow: 0 0 15px rgba(34,197,94,0.3);
-}
-.btn-edit:hover {
-  background: linear-gradient(90deg, #16a34a, #22c55e);
-  transform: scale(1.06);
-}
+.btn-edit { background: linear-gradient(90deg,#22c55e,#16a34a); }
+.btn-edit:hover { background: linear-gradient(90deg,#16a34a,#22c55e); transform: scale(1.06); }
 
-/* 🗑️ O‘chirish */
-.btn-delete {
-  background: linear-gradient(90deg, #ef4444, #f87171);
-  box-shadow: 0 0 15px rgba(239,68,68,0.3);
-}
-.btn-delete:hover {
-  background: linear-gradient(90deg, #f87171, #ef4444);
-  transform: scale(1.06);
-}
+.btn-delete { background: linear-gradient(90deg,#ef4444,#f87171); }
+.btn-delete:hover { background: linear-gradient(90deg,#f87171,#ef4444); transform: scale(1.06); }
 
 /* ➕ Yangi guruh tugmasi */
 .add-btn {
@@ -107,12 +104,11 @@ body {
   border: none;
   border-radius: 12px;
   box-shadow: 0 0 20px rgba(0,200,150,0.4);
-  transition: all 0.3s ease;
+  transition: 0.3s ease;
 }
 .add-btn:hover {
   background: linear-gradient(90deg, #00cec9, #00b894);
   transform: scale(1.07);
-  box-shadow: 0 0 25px rgba(0,200,150,0.6);
 }
 
 /* 💤 Bo‘sh holat */
@@ -125,19 +121,27 @@ body {
 }
 </style>
 
+
 <div class="container py-5">
+
   <h3 class="category-header">🚀 {{ category.name }} bo‘limi</h3>
+
+  <!-- 🔍 SEARCH QIDIRUV -->
+  <div class="search-box">
+      <input type="text" id="searchInput" placeholder="🔍 Guruh qidiring... (nomi, o‘qituvchi, markaz)">
+  </div>
+
   <hr class="mb-4" style="opacity: 0.2; border-color: rgba(255,255,255,0.1);">
 
   {% if groups %}
-  <div class="row g-4">
+  <div class="row g-4" id="groupList">
     {% for g in groups %}
-    <div class="col-md-4 col-sm-6">
+    <div class="col-md-4 col-sm-6 group-item">
       <div class="card group-card h-100 p-3">
         <div class="card-body">
-          <h5>{{ g.nom }}</h5>
-          <p>🏫 {{ g.center }}</p>
-          <p>👨‍🏫 {{ g.oqituvchi }}</p>
+          <h5 class="group-name">{{ g.nom }}</h5>
+          <p class="group-center">🏫 {{ g.center }}</p>
+          <p class="group-teacher">👨‍🏫 {{ g.oqituvchi }}</p>
         </div>
 
         <div class="card-footer bg-transparent border-0">
@@ -147,12 +151,11 @@ body {
             {% if user.is_superuser or user.role in 'director manager' %}
               <a href="{% url 'education:group_edit' g.id %}" class="btn-edit">✏️ Tahrirlash</a>
               <a href="{% url 'education:group_delete' g.id %}" class="btn-delete"
-                 onclick="return confirm('“{{ g.nom }}” guruhini o‘chirilsinmi?')">
-                 🗑️ O‘chirish
-              </a>
+                 onclick="return confirm('“{{ g.nom }}” guruhini o‘chirilsinmi?')">🗑️ O‘chirish</a>
             {% endif %}
           </div>
         </div>
+
       </div>
     </div>
     {% endfor %}
@@ -171,5 +174,26 @@ body {
   </div>
   {% endif %}
 </div>
+
+
+<!-- 🔍 LIVE SEARCH JS -->
+<script>
+document.getElementById("searchInput").addEventListener("keyup", function () {
+    let value = this.value.toLowerCase();
+    let items = document.querySelectorAll(".group-item");
+
+    items.forEach(item => {
+        let name = item.querySelector(".group-name").textContent.toLowerCase();
+        let center = item.querySelector(".group-center").textContent.toLowerCase();
+        let teacher = item.querySelector(".group-teacher").textContent.toLowerCase();
+
+        if (name.includes(value) || center.includes(value) || teacher.includes(value)) {
+            item.style.display = "";
+        } else {
+            item.style.display = "none";
+        }
+    });
+});
+</script>
 
 {% endblock %}

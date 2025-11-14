@@ -517,7 +517,7 @@ def group_detail(request, pk: int):
         pres_qs = Attendance.objects.filter(group=g, date__gte=start, date__lt=end)
     except Exception:
         pres_qs = Attendance.objects.filter(group=g, date=selected_date)
-
+        
     pres_map = {a.student_id: a.present for a in pres_qs}
 
     # Qoida ro‘yxatlari
