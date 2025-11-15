@@ -5,9 +5,67 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q, Sum
 from chaqmoq.models import Ledger
 from django.contrib import messages
+from django.shortcuts import render, get_object_or_404
 
 from store.models import Product, PurchaseRequest, Sale
 U = get_user_model()
+from django.db.models import Count
+from accounts.models import User
+from education.models import Group
+
+
+@login_required
+def teacher_list(request):
+    teachers = User.objects.filter(role="teacher").annotate(
+        group_count=Count('group')
+    )
+
+    return render(request, "core/teacher_list.html", {
+        "teachers": teachers
+    })
+
+
+@login_required
+def teacher_detail(request, pk):
+    teacher = get_object_or_404(User, pk=pk, role="teacher")
+
+    groups = Group.objects.filter(oqituvchi=teacher)
+
+    return render(request, "core/teacher_detail.html", {
+        "teacher": teacher,
+        "groups": groups
+    })
+
+from accounts.forms import TeacherForm
+
+
+@login_required
+def teacher_edit(request, pk):
+    teacher = get_object_or_404(User, pk=pk, role="teacher")
+
+    if request.method == "POST":
+        form = TeacherForm(request.POST, instance=teacher)
+        if form.is_valid():
+            teacher = form.save()
+
+            # 🔥 Yangi foiz
+            yangi_foiz = teacher.oqituvchi_foizi
+
+            # 🔥 1) O‘qituvchi ishlaydigan barcha guruhlarni yangilash
+            from education.models import Group, Enrollment
+
+            Group.objects.filter(oqituvchi=teacher).update(oqituvchi_foiz=yangi_foiz)
+
+            # 🔥 2) O‘qituvchining barcha enrollmentlarini yangilash
+            Enrollment.objects.filter(group__oqituvchi=teacher).update(oqituvchi_foiz=yangi_foiz)
+
+            return redirect("core:teacher_list")
+
+    else:
+        form = TeacherForm(instance=teacher)
+
+    return render(request, "core/teacher_edit.html", {"form": form, "teacher": teacher})
+
 
 def _build_stats():
     U = get_user_model()

@@ -6,6 +6,10 @@ app_name = 'core'
 urlpatterns = [
     path('', views.home, name='home'),
 
+    path('teachers/', views.teacher_list, name='teacher_list'),
+    path('teachers/<int:pk>/', views.teacher_detail, name='teacher_detail'),
+    path('teachers/<int:pk>/edit/', views.teacher_edit, name='teacher_edit'),
+
     path('stat/managers/',  views.stat_managers,  name='stat_managers'),
     path('stat/teachers/',  views.stat_teachers,  name='stat_teachers'),
     path('stat/students/',  views.stat_students,  name='stat_students'),
@@ -13,3 +17,4 @@ urlpatterns = [
     path('stat/requests/',  views.stat_requests,  name='stat_requests'),
     path('stat/ledger/',    views.stat_ledger,    name='stat_ledger'),
 ]
+

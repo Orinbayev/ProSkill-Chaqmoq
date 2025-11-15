@@ -8,7 +8,7 @@ from django import forms
 from django.db.models import Count, Sum
 from django.db.models.functions import Coalesce
 
-from .forms import AddUserForm
+from .forms import AddUserForm, TeacherForm
 from accounts.models import User                     # kerak bo‘lsa
 from education.models import Group, Enrollment, Attendance  # ✅ to‘g‘ri joydan import
 
@@ -82,6 +82,27 @@ def add_user(request):
         "accounts/user_form.html",
         {"form": form, "title": "Foydalanuvchi qo‘shish", "groups": groups}
     )
+
+
+
+@login_required
+def add_teacher(request):
+    if request.method == "POST":
+        form = TeacherForm(request.POST)
+        if form.is_valid():
+            teacher = form.save(commit=False)
+
+            teacher.role = "teacher"
+
+            # 🔥 Formdan kelgan foizni majburan yozamiz
+            teacher.oqituvchi_foizi = form.cleaned_data.get("oqituvchi_foizi")
+
+            teacher.save()
+            return redirect("core:teacher_list")
+    else:
+        form = TeacherForm()
+
+    return render(request, "accounts/add_teacher.html", {"form": form})
 
 
 # --- Tahrirlash formasi (o'zgarmagan) ---

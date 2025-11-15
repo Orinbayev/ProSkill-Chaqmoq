@@ -30,6 +30,7 @@ class AddUserForm(forms.ModelForm):
             "telefon1", "telefon2",
             "center", "role",
             "email", "password",
+            "oqituvchi_foizi",
         ]
         widgets = {
             "ism": forms.TextInput(attrs={
@@ -89,6 +90,7 @@ class AddUserForm(forms.ModelForm):
             telefon2=data.get("telefon2"),
             center=data.get("center"),
             role=data.get("role"),
+            oqituvchi_foizi=data.get("oqituvchi_foizi") or 40
         )
         if user.role == "manager":
             user.is_staff = True
@@ -96,3 +98,8 @@ class AddUserForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+
+class TeacherForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['ism', 'familya', 'email', 'telefon1', 'center', 'oqituvchi_foizi']
