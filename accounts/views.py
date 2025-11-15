@@ -23,6 +23,8 @@ def _is_staff_like(u):
     return u.is_superuser or getattr(u, "role", None) in ("director", "manager")
 
 # --- Foydalanuvchi qo‘shish (o'zgarmagan) ---
+from education.models import Enrollment, Group
+
 @login_required
 def add_user(request):
     if not _can_add(request.user):
@@ -31,14 +33,37 @@ def add_user(request):
 
     if request.method == "POST":
         form = AddUserForm(request.POST)
+        group_id = request.POST.get("group_id")
+
         if form.is_valid():
             user = form.save()
+
+            # Guruh tanlangan bo‘lsa qo‘shish
+            if user.role == "student" and group_id:
+                try:
+                    group = Group.objects.get(id=group_id)
+                    Enrollment.objects.get_or_create(student=user, group=group)
+                except Group.DoesNotExist:
+                    pass
+
             messages.success(request, f"{user.ism} {user.familya} muvaffaqiyatli qo‘shildi.")
             return redirect("core:home")
+
+        else:
+            # DEBUG uchun: form xatolarini console-ga chiqaramiz
+            print("FORM ERRORS:", form.errors)
+
     else:
         form = AddUserForm()
 
-    return render(request, "accounts/user_form.html", {"form": form, "title": "Foydalanuvchi qo‘shish"})
+    groups = Group.objects.all().order_by("nom")
+
+    return render(
+        request,
+        "accounts/user_form.html",
+        {"form": form, "title": "Foydalanuvchi qo‘shish", "groups": groups}
+    )
+
 
 # --- Tahrirlash formasi (o'zgarmagan) ---
 class UserEditForm(forms.ModelForm):

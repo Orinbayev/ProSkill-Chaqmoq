@@ -2,72 +2,80 @@
 {% block content %}
 <h3 class="mb-4 text-light fw-semibold">{{ title }}</h3>
 
+
+{% if form.errors %}
+<div class="alert alert-danger mt-3">
+  <ul class="mb-0">
+    {% for field in form %}
+      {% for error in field.errors %}
+        <li><b>{{ field.label }}:</b> {{ error }}</li>
+      {% endfor %}
+    {% endfor %}
+    {% for error in form.non_field_errors %}
+      <li>{{ error }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
 <form method="post" class="user-form glass-card">
   {% csrf_token %}
-  {% if form.non_field_errors %}
-  <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-  {% endif %}
 
   <div class="row g-3">
-    <!-- Ism -->
+
     <div class="col-md-6">
       <label class="form-label">{{ form.ism.label }}</label>
       {{ form.ism }}
-      {{ form.ism.errors }}
     </div>
 
-    <!-- Familya -->
     <div class="col-md-6">
       <label class="form-label">{{ form.familya.label }}</label>
       {{ form.familya }}
-      {{ form.familya.errors }}
     </div>
 
-    <!-- Telefon -->
     <div class="col-md-6">
       <label class="form-label">{{ form.telefon1.label }}</label>
       {{ form.telefon1 }}
-      {{ form.telefon1.errors }}
     </div>
 
-    <!-- Uy telefoni -->
     <div class="col-md-6">
       <label class="form-label">{{ form.telefon2.label }}</label>
       {{ form.telefon2 }}
-      {{ form.telefon2.errors }}
     </div>
 
-    <!-- Center -->
     <div class="col-md-6">
       <label class="form-label">{{ form.center.label }}</label>
       {{ form.center }}
-      {{ form.center.errors }}
     </div>
 
-    <!-- Roli -->
     <div class="col-md-6">
       <label class="form-label">{{ form.role.label }}</label>
       {{ form.role }}
-      {{ form.role.errors }}
     </div>
 
-    <!-- Login -->
     <div class="col-md-6">
       <label class="form-label">{{ form.email.label }}</label>
       {{ form.email }}
-      {{ form.email.errors }}
     </div>
 
-    <!-- Parol -->
     <div class="col-md-6 position-relative">
       <label class="form-label">{{ form.password.label }}</label>
       {{ form.password }}
       <button type="button" class="btn btn-sm toggle-eye" id="togglePassword">👁</button>
-      {{ form.password.errors }}
     </div>
   </div>
 
-  <!-- Buttons -->
+  <!-- 🔥 O‘quvchi bo‘lsa — guruh tanlash -->
+  <div id="groupSelectBlock" class="mt-4" style="display:none;">
+    <label class="form-label text-light">Guruhga qo‘shish (ixtiyoriy)</label>
+    <select name="group_id" id="group_id" class="form-select uniform-input">
+      <option value="">— Guruh tanlang —</option>
+      {% for g in groups %}
+        <option value="{{ g.id }}">{{ g.nom }} — {{ g.center }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
   <div class="mt-4 d-flex gap-3">
     <button class="btn btn-save">💾 Saqlash</button>
     <a class="btn btn-cancel" href="{% url 'core:home' %}">✖️ Bekor qilish</a>
@@ -76,45 +84,112 @@
 
 <!-- === JavaScript === -->
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-  const ism = document.getElementById("id_ism");
-  const familya = document.getElementById("id_familya");
-  const email = document.getElementById("id_email");
+// === Telefon raqam formati (+998 xx xxx xx xx) ===
+document.addEventListener("DOMContentLoaded", function () {
+    const phones = [
+        document.getElementById("id_telefon1"),
+        document.getElementById("id_telefon2")
+    ];
+
+    phones.forEach(input => {
+        if (!input) return;
+
+        // Bosganda +998 qo‘yish
+        input.addEventListener("focus", () => {
+            if (!input.value.startsWith("+998")) {
+                input.value = "+998";
+            }
+        });
+
+        // Faqat raqam + + belgisi, maksimal uzunlik
+        input.addEventListener("input", () => {
+            // faqat raqam & plus
+            input.value = input.value.replace(/[^\d+]/g, "");
+
+            // +998 boshida turishi shart
+            if (!input.value.startsWith("+998")) {
+                input.value = "+998" + input.value.replace(/^\+?998?/, "");
+            }
+
+            // maksimal uzunlik — +998 + 9 raqam => 13 belgi
+            if (input.value.length > 13) {
+                input.value = input.value.slice(0, 13);
+            }
+        });
+
+        // bo‘shatib yuborsa yana +998 qo‘yish
+        input.addEventListener("blur", () => {
+            if (input.value === "" || input.value === "+") {
+                input.value = "+998";
+            }
+        });
+    });
+});
+
+
+// === Avtomatik email va parol generatsiya ===
+document.addEventListener("DOMContentLoaded", function () {
+    const ism = document.getElementById("id_ism");
+    const familya = document.getElementById("id_familya");
+    const email = document.getElementById("id_email");
+    const pass = document.getElementById("id_password");
+
+    function generateLogin() {
+        const i = ism.value.trim().toLowerCase();
+        const f = familya.value.trim().toLowerCase();
+
+        if (i && f) {
+            // agar email bo'sh yoki yangi o'zgartirilmagan bo'lsa
+            if (!email.value || email.dataset.auto === "1") {
+                email.value = `${i}${f}@gmail.com`;
+                email.dataset.auto = "1"; // foydalanuvchi qo'lda o‘zgartirsa buzilmasin
+            }
+
+            // parol ham bo'sh bo‘lsa generatsiya qilamiz
+            if (!pass.value || pass.dataset.auto === "1") {
+                const rand = Math.floor(100 + Math.random() * 900);
+                pass.value = `${i}_${f}${rand}`;
+                pass.dataset.auto = "1";
+            }
+        }
+    }
+
+    ism.addEventListener("input", generateLogin);
+    familya.addEventListener("input", generateLogin);
+
+    // foydalanuvchi email yoki passwordni qo'lda o‘zgartirsa — avtomatik yozish to‘xtaydi
+    email.addEventListener("input", () => email.dataset.auto = "0");
+    pass.addEventListener("input", () => pass.dataset.auto = "0");
+});
+
+
+document.addEventListener("DOMContentLoaded", function () {
+
+  // === ROLGA QARAB GURUH CHIQARISH ===
+  const role = document.getElementById("id_role");
+  const groupBlock = document.getElementById("groupSelectBlock");
+
+  function showGroup() {
+      if (role.value === "student") {
+          groupBlock.style.display = "block";
+      } else {
+          groupBlock.style.display = "none";
+      }
+  }
+
+  role.addEventListener("change", showGroup);
+  showGroup();
+
+
+  // === Parol ko‘rsatish ===
   const pass = document.getElementById("id_password");
   const eye = document.getElementById("togglePassword");
 
-  function generateEmail() {
-    const i = ism.value.trim().toLowerCase();
-    const f = familya.value.trim().toLowerCase();
-    if (i && f && !email.value) email.value = `${i}${f}@gmail.com`;
-  }
-
-  function suggestPass() {
-    const i = ism.value.trim().toLowerCase();
-    const f = familya.value.trim().toLowerCase();
-    if (i && f && !pass.value)
-      pass.value = `${i}_${f}${Math.floor(Math.random() * 900 + 100)}`;
-  }
-
-  ism.addEventListener("blur", generateEmail);
-  familya.addEventListener("blur", generateEmail);
-  ism.addEventListener("blur", suggestPass);
-  familya.addEventListener("blur", suggestPass);
-
   eye.addEventListener("click", () => {
-    const type = pass.type === "password" ? "text" : "password";
-    pass.type = type;
-    eye.textContent = type === "password" ? "👁" : "🙈";
+      pass.type = pass.type === "password" ? "text" : "password";
+      eye.textContent = pass.type === "password" ? "👁" : "🙈";
   });
 
-  const phones = [document.getElementById("id_telefon1"), document.getElementById("id_telefon2")];
-  phones.forEach(p => {
-    p.addEventListener("focus", () => { if (!p.value) p.value = "+998"; });
-    p.addEventListener("input", () => {
-      p.value = p.value.replace(/[^\d+]/g, "").slice(0, 13);
-      if (!p.value.startsWith("+998")) p.value = "+998" + p.value.replace(/^\+?998?/, "");
-    });
-  });
 });
 </script>
 
