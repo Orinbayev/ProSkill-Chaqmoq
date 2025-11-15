@@ -34,15 +34,35 @@ def add_user(request):
     if request.method == "POST":
         form = AddUserForm(request.POST)
         group_id = request.POST.get("group_id")
+        kurs_narhi = request.POST.get("kurs_narhi")
+        oqituvchi_foizi = request.POST.get("oqituvchi_foizi")
 
         if form.is_valid():
             user = form.save()
 
-            # Guruh tanlangan bo‘lsa qo‘shish
+            # Agar yangi user student bo‘lsa — guruh + kurs narxi bilan birga qo‘shamiz
             if user.role == "student" and group_id:
                 try:
                     group = Group.objects.get(id=group_id)
-                    Enrollment.objects.get_or_create(student=user, group=group)
+
+                    # Kurs narxi bo‘sh bo‘lmasligi shart
+                    if kurs_narhi:
+                        kurs_narhi = int(kurs_narhi)
+                    else:
+                        kurs_narhi = group.kurs_narhi if hasattr(group, "kurs_narhi") else 0
+
+                    # O‘qituvchi foizi avtomatik — guruhdagi o‘qituvchidan olinadi
+                    oqituvchi_foizi = group.oqituvchi.oqituvchi_foizi
+
+                    Enrollment.objects.get_or_create(
+                        student=user,
+                        group=group,
+                        defaults={
+                            "kurs_narhi": kurs_narhi,
+                            "oqituvchi_foiz": oqituvchi_foizi
+                        }
+                    )
+
                 except Group.DoesNotExist:
                     pass
 
@@ -50,7 +70,6 @@ def add_user(request):
             return redirect("core:home")
 
         else:
-            # DEBUG uchun: form xatolarini console-ga chiqaramiz
             print("FORM ERRORS:", form.errors)
 
     else:

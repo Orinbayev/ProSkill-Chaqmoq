@@ -1311,6 +1311,14 @@ def group_list(request):
     }
     return render(request, "education/groups.html", context)
 
+def get_group_price(request, pk):
+    try:
+        group = Group.objects.get(pk=pk)
+        return JsonResponse({"price": group.kurs_narhi})
+    except Group.DoesNotExist:
+        return JsonResponse({"price": 0})
+
+
 
 @login_required
 def group_add(request):
@@ -1382,7 +1390,8 @@ def add_student_to_group(request, pk: int):
 
         try:
             kurs_narhi = int(kurs_narhi)
-            oqituvchi_foiz = int(oqituvchi_foiz or 40)
+            oqituvchi_foiz = g.oqituvchi.oqituvchi_foizi
+
         except ValueError:
             messages.error(request, "❌ Kiritilgan qiymatlar son bo‘lishi kerak.")
             return redirect("education:add_student_to_group", pk=g.id)

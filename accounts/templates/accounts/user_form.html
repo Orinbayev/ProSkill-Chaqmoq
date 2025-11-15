@@ -2,7 +2,6 @@
 {% block content %}
 <h3 class="mb-4 text-light fw-semibold">{{ title }}</h3>
 
-
 {% if form.errors %}
 <div class="alert alert-danger mt-3">
   <ul class="mb-0">
@@ -65,7 +64,7 @@
     </div>
   </div>
 
-  <!-- 🔥 O‘quvchi bo‘lsa — guruh tanlash -->
+  <!-- === STUDENT ROLE — GROUP SELECT === -->
   <div id="groupSelectBlock" class="mt-4" style="display:none;">
     <label class="form-label text-light">Guruhga qo‘shish (ixtiyoriy)</label>
     <select name="group_id" id="group_id" class="form-select uniform-input">
@@ -76,126 +75,137 @@
     </select>
   </div>
 
+  <!-- === KURS NARXI (faqat student bo‘lsa) === -->
+  <div class="mt-3" id="priceBlock" style="display:none;">
+    <label class="form-label text-light">Kurs narxi (so‘m)</label>
+    <input type="number" id="kursNarxiInput" name="kurs_narhi"
+           class="form-control uniform-input" min="0">
+  </div>
+
+  <!-- === O‘QITUVCHI FOIZI (faqat teacher role) === -->
+  <div class="col-md-6 mt-3" id="foizField" style="display:none;">
+    <label class="form-label">O‘qituvchi ulushi (%)</label>
+    <input type="number" name="oqituvchi_foizi" id="id_oqituvchi_foizi"
+           class="form-control uniform-input" min="0" max="100"
+           value="{{ request.user.oqituvchi_foizi|default:40 }}">
+  </div>
+
   <div class="mt-4 d-flex gap-3">
     <button class="btn btn-save">💾 Saqlash</button>
     <a class="btn btn-cancel" href="{% url 'core:home' %}">✖️ Bekor qilish</a>
   </div>
 </form>
 
-<!-- === JavaScript === -->
+<!-- === JavaScript — ONE CLEAN BLOCK === -->
 <script>
-// === Telefon raqam formati (+998 xx xxx xx xx) ===
-document.addEventListener("DOMContentLoaded", function () {
-    const phones = [
-        document.getElementById("id_telefon1"),
-        document.getElementById("id_telefon2")
-    ];
+document.addEventListener("DOMContentLoaded", () => {
 
-    phones.forEach(input => {
-        if (!input) return;
-
-        // Bosganda +998 qo‘yish
-        input.addEventListener("focus", () => {
-            if (!input.value.startsWith("+998")) {
-                input.value = "+998";
-            }
-        });
-
-        // Faqat raqam + + belgisi, maksimal uzunlik
-        input.addEventListener("input", () => {
-            // faqat raqam & plus
-            input.value = input.value.replace(/[^\d+]/g, "");
-
-            // +998 boshida turishi shart
-            if (!input.value.startsWith("+998")) {
-                input.value = "+998" + input.value.replace(/^\+?998?/, "");
-            }
-
-            // maksimal uzunlik — +998 + 9 raqam => 13 belgi
-            if (input.value.length > 13) {
-                input.value = input.value.slice(0, 13);
-            }
-        });
-
-        // bo‘shatib yuborsa yana +998 qo‘yish
-        input.addEventListener("blur", () => {
-            if (input.value === "" || input.value === "+") {
-                input.value = "+998";
-            }
-        });
-    });
-});
-
-
-// === Avtomatik email va parol generatsiya ===
-document.addEventListener("DOMContentLoaded", function () {
-    const ism = document.getElementById("id_ism");
-    const familya = document.getElementById("id_familya");
-    const email = document.getElementById("id_email");
-    const pass = document.getElementById("id_password");
-
-    function generateLogin() {
-        const i = ism.value.trim().toLowerCase();
-        const f = familya.value.trim().toLowerCase();
-
-        if (i && f) {
-            // agar email bo'sh yoki yangi o'zgartirilmagan bo'lsa
-            if (!email.value || email.dataset.auto === "1") {
-                email.value = `${i}${f}@gmail.com`;
-                email.dataset.auto = "1"; // foydalanuvchi qo'lda o‘zgartirsa buzilmasin
-            }
-
-            // parol ham bo'sh bo‘lsa generatsiya qilamiz
-            if (!pass.value || pass.dataset.auto === "1") {
-                const rand = Math.floor(100 + Math.random() * 900);
-                pass.value = `${i}_${f}${rand}`;
-                pass.dataset.auto = "1";
-            }
-        }
-    }
-
-    ism.addEventListener("input", generateLogin);
-    familya.addEventListener("input", generateLogin);
-
-    // foydalanuvchi email yoki passwordni qo'lda o‘zgartirsa — avtomatik yozish to‘xtaydi
-    email.addEventListener("input", () => email.dataset.auto = "0");
-    pass.addEventListener("input", () => pass.dataset.auto = "0");
-});
-
-
-document.addEventListener("DOMContentLoaded", function () {
-
-  // === ROLGA QARAB GURUH CHIQARISH ===
+  // ==== ELEMENTS ====
   const role = document.getElementById("id_role");
   const groupBlock = document.getElementById("groupSelectBlock");
+  const groupSelect = document.getElementById("group_id");
+  const priceBlock = document.getElementById("priceBlock");
+  const kursInput = document.getElementById("kursNarxiInput");
+  const foizField = document.getElementById("foizField");
 
-  function showGroup() {
-      if (role.value === "student") {
-          groupBlock.style.display = "block";
-      } else {
-          groupBlock.style.display = "none";
-      }
-  }
-
-  role.addEventListener("change", showGroup);
-  showGroup();
-
-
-  // === Parol ko‘rsatish ===
+  const ism = document.getElementById("id_ism");
+  const familya = document.getElementById("id_familya");
+  const email = document.getElementById("id_email");
   const pass = document.getElementById("id_password");
   const eye = document.getElementById("togglePassword");
 
+  const phones = [
+      document.getElementById("id_telefon1"),
+      document.getElementById("id_telefon2")
+  ];
+
+  // === ROLE → SHOW/HIDE SECTIONS ===
+  function handleRole() {
+      groupBlock.style.display = (role.value === "student") ? "block" : "none";
+      priceBlock.style.display = "none";
+
+      foizField.style.display = (role.value === "teacher") ? "block" : "none";
+  }
+  role.addEventListener("change", handleRole);
+  handleRole();
+
+  // === STUDENT GROUP → LOAD PRICE ===
+  function loadPrice() {
+      const gid = groupSelect.value;
+      if (!gid) {
+          priceBlock.style.display = "none";
+          return;
+      }
+
+      fetch(`/education/group-price/${gid}/`)
+          .then(res => res.json())
+          .then(data => {
+              kursInput.value = data.price;
+              priceBlock.style.display = "block";
+          })
+          .catch(() => {
+              kursInput.value = 0;
+              priceBlock.style.display = "block";
+          });
+  }
+  groupSelect.addEventListener("change", loadPrice);
+
+  // === PASSWORD EYE ===
   eye.addEventListener("click", () => {
       pass.type = pass.type === "password" ? "text" : "password";
       eye.textContent = pass.type === "password" ? "👁" : "🙈";
   });
 
+  // === AUTO EMAIL + PASSWORD GENERATION ===
+  function generateLogin() {
+      const i = ism.value.trim().toLowerCase();
+      const f = familya.value.trim().toLowerCase();
+
+      if (i && f) {
+          if (!email.value || email.dataset.auto === "1") {
+              email.value = `${i}${f}@gmail.com`;
+              email.dataset.auto = "1";
+          }
+
+          if (!pass.value || pass.dataset.auto === "1") {
+              const rnd = Math.floor(100 + Math.random() * 900);
+              pass.value = `${i}_${f}${rnd}`;
+              pass.dataset.auto = "1";
+          }
+      }
+  }
+  ism.addEventListener("input", generateLogin);
+  familya.addEventListener("input", generateLogin);
+  email.addEventListener("input", () => email.dataset.auto = "0");
+  pass.addEventListener("input", () => pass.dataset.auto = "0");
+
+  // === PHONE FORMAT ===
+  phones.forEach(input => {
+      if (!input) return;
+
+      input.addEventListener("focus", () => {
+          if (!input.value.startsWith("+998")) input.value = "+998";
+      });
+
+      input.addEventListener("input", () => {
+          input.value = input.value.replace(/[^\d+]/g, "");
+          if (!input.value.startsWith("+998")) {
+              input.value = "+998" + input.value.replace(/^\+?998?/, "");
+          }
+          if (input.value.length > 13) {
+              input.value = input.value.slice(0, 13);
+          }
+      });
+
+      input.addEventListener("blur", () => {
+          if (input.value === "") input.value = "+998";
+      });
+  });
 });
 </script>
 
 <!-- === STYLE === -->
 <style>
-/* --- Glass card design --- */
 .glass-card {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 16px;
@@ -206,7 +216,6 @@ document.addEventListener("DOMContentLoaded", function () {
   margin-top: 20px;
 }
 
-/* --- Inputs --- */
 .uniform-input,
 input.form-control,
 select.form-select,
@@ -226,8 +235,6 @@ input.form-control:focus,
 select.form-select:focus {
   border-color: #3b82f6 !important;
   box-shadow: 0 0 8px rgba(59,130,246,0.5);
-  background-color: #fff !important;
-  outline: none;
 }
 
 label.form-label {
@@ -235,7 +242,6 @@ label.form-label {
   font-weight: 500;
 }
 
-/* --- Buttons --- */
 .btn-save {
   background: linear-gradient(90deg, #3b82f6, #60a5fa);
   border: none;
@@ -243,7 +249,6 @@ label.form-label {
   font-weight: 600;
   padding: 8px 20px;
   border-radius: 8px;
-  transition: all 0.3s ease;
 }
 .btn-save:hover {
   background: linear-gradient(90deg, #60a5fa, #3b82f6);
@@ -255,14 +260,12 @@ label.form-label {
   color: #ddd;
   padding: 8px 20px;
   border-radius: 8px;
-  transition: 0.3s;
 }
 .btn-cancel:hover {
   background: #ddd;
   color: #000;
 }
 
-/* --- Eye button --- */
 .toggle-eye {
   position: absolute;
   top: 36px;
@@ -275,12 +278,6 @@ label.form-label {
 .toggle-eye:hover {
   transform: scale(1.2);
 }
-
-
-@media (max-width: 768px) {
-  .glass-card {
-    padding: 20px;
-  }
-}
 </style>
+
 {% endblock %}

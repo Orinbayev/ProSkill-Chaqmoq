@@ -46,24 +46,32 @@ class Roles(models.TextChoices):
     OQUVCHI  = 'student',  _("O‘quvchi")
 
 class User(AbstractUser):
-    username = None  # ishlatmaymiz
+    username = None
     email = models.EmailField('Login email (Gmail bo‘lishi mumkin)', unique=True)
 
+    # asosiy ma'lumotlar
     ism = models.CharField(max_length=100)
     familya = models.CharField(max_length=120)
     telefon1 = models.CharField(max_length=20)
     telefon2 = models.CharField(max_length=20, blank=True)
 
-    # qo‘shimcha ko‘rsatish uchun
     lavozim = models.CharField(max_length=50, blank=True)
 
-    # rollar va markaz
+    # rollar
     role = models.CharField(max_length=20, choices=Roles.choices)
     center = models.ForeignKey(Center, on_delete=models.SET_NULL, null=True, blank=True)
 
-    # ixtiyoriy: asl Gmail kiritish uchun alohida maydon (vizual)
+    # email ko‘rinishi
     gmail = models.EmailField('Gmail', blank=True)
+
+    # chaqmoq sistemi
     chaqmoq = models.PositiveIntegerField(default=0, verbose_name='Chaqmoq soni')
+
+    # ⭐ O‘qituvchi foizi
+    oqituvchi_foizi = models.PositiveIntegerField(
+        default=40,
+        verbose_name="O‘qituvchi ulushi (%)"
+    )
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
@@ -76,12 +84,9 @@ class User(AbstractUser):
 
     def full_name(self):
         return f"{self.ism} {self.familya}"
-    
+
     def get_full_name(self):
-        """Django bilan mos bo‘lgan nom (oldingi full_name bilan bir xil natija)"""
         return f"{self.ism} {self.familya}".strip()
 
     def __str__(self):
         return f"{self.full_name()} — {self.get_role_display()}"
-
-
