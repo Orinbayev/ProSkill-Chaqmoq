@@ -52,9 +52,28 @@
     background: none; color: #38bdf8; border: 1px solid #38bdf8;
     border-radius: 6px; padding: 6px 14px; margin-left: 10px;
   }
+  .main-content-scroll {
+    max-height: calc(100vh - 120px); /* yuqoridan 120px joy qoldirib */
+    overflow-y: auto;
+    padding-right: 10px;
+    /* Faqat mahsulotlar chiqadigan qism scroll bo‘lsin */
+.products-scroll-wrapper {
+    height: calc(100vh - 120px); /* Yuqoridan pastgacha mukammal balandlik */
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+/* Scroll ichidan tashqi bo‘sh joyni yo‘qotish */
+.products-container {
+    padding: 10px 20px !important;
+}
+
+}
+
 </style>
 
-<div class="products-container">
+<div class="products-scroll-wrapper">
+<div class="products-container main-content-scroll">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h3>🛍️ Mahsulotlar</h3>
 
@@ -103,6 +122,9 @@
     {% endif %}
   </form>
 </div>
+</div>
+
+
 
 {% if can_add %}
 <script>

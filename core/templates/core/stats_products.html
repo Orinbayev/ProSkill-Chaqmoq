@@ -1,45 +1,123 @@
 {% extends 'base.html' %}
 {% block content %}
-<h3>{{ title }}</h3>
 
-<form class="mb-3">
-  <div class="input-group" style="max-width:420px">
-    <input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Nom/adabiyot">
-    <button class="btn btn-outline-secondary">Izlash</button>
+<style>
+/* ==== Page Title ==== */
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #22c55e;
+  margin-bottom: 20px;
+}
+
+/* ==== Search Bar ==== */
+.search-wrapper {
+  max-width: 450px;
+  margin-bottom: 20px;
+}
+.search-wrapper input {
+  border-radius: 10px 0 0 10px;
+}
+.search-wrapper button {
+  border-radius: 0 10px 10px 0;
+}
+
+/* ==== Table Styling ==== */
+.table-container {
+  background: #111827;
+  padding: 20px;
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+}
+
+.table thead {
+  background: #1f2937;
+  color: #22c55e;
+  font-size: 15px;
+}
+
+.table tbody tr {
+  transition: 0.25s;
+}
+.table tbody tr:hover {
+  background: rgba(34,197,94,0.1);
+}
+
+.btn-sm {
+  border-radius: 8px !important;
+}
+
+/* Empty state */
+.empty-row {
+  color: #9ca3af;
+  text-align: center;
+  padding: 18px 0;
+}
+
+/* Add button */
+.add-btn {
+  margin-top: 18px;
+  padding: 10px 20px;
+  font-weight: 600;
+  border-radius: 10px;
+}
+</style>
+
+<h3 class="page-title">{{ title }}</h3>
+
+<form class="search-wrapper">
+  <div class="input-group">
+    <input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="🔎 Nom/adabiyot bo‘yicha izlash">
+    <button class="btn btn-outline-success">Izlash</button>
   </div>
 </form>
 
-<table class="table table-striped align-middle">
-  <thead>
-    <tr>
-      <th>#</th>
-      <th>Nom</th>
-      <th>Narx (Chaqmoq)</th> 
-      <th>Yaratilgan</th>
-      <th class="text-end">Amal</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for p in rows %}
+<div class="table-container">
+  <table class="table table-striped align-middle text-light">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Nom</th>
+        <th>Narx (Chaqmoq)</th>
+        <th>Yaratilgan sana</th>
+        <th class="text-end">Amallar</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for p in rows %}
       <tr>
         <td>{{ forloop.counter }}</td>
         <td>{{ p.nom }}</td>
         <td>{{ p.narx_chaqmoq }}</td>
         <td>{{ p.yaratilgan|date:"Y-m-d" }}</td>
         <td class="text-end text-nowrap">
-          <a class="btn btn-sm btn-outline-primary" href="{% url 'store:product_edit' p.pk %}">Tahrirlash</a>
-          <form method="post" action="{% url 'store:product_delete' p.pk %}" class="d-inline" 
-                onsubmit="return confirm('Haqiqatan ham o‘chirishni xohlaysizmi?');">
+
+          <a class="btn btn-sm btn-outline-primary me-1" 
+             href="{% url 'store:product_edit' p.pk %}">
+            ✏️ Tahrirlash
+          </a>
+
+          <form method="post" action="{% url 'store:product_delete' p.pk %}" 
+                class="d-inline"
+                onsubmit="return confirm('Haqiqatan ham o‘chirmoqchimisiz?');">
             {% csrf_token %}
-            <button class="btn btn-sm btn-outline-danger">O‘chirish</button>
+            <button class="btn btn-sm btn-outline-danger">🗑️ O‘chirish</button>
           </form>
+
         </td>
       </tr>
-    {% empty %}
-      <tr><td colspan="6">Maʼlumot yo‘q.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+      {% empty %}
+      <tr>
+        <td colspan="5" class="empty-row">Maʼlumot topilmadi.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
 
-<a class="btn btn-primary" href="{% url 'store:product_create' %}">➕ Mahsulot qo‘shish</a>
+<a class="btn btn-success add-btn" href="{% url 'store:product_create' %}">
+  ➕ Mahsulot qo‘shish
+</a>
+
 {% endblock %}

@@ -114,6 +114,15 @@ MEDIA_ROOT = "/opt/render/project/src/media"  # The mount path of Render Disk
 # ===== Misc =====
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+
+
+
+
+
+
+
+
+
 # """
 # Django settings for Chaqmoq Academy project.
 # Auto-detects: local (SQLite) or Render (PostgreSQL)

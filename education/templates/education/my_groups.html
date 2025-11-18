@@ -1,39 +1,111 @@
 {% extends "base.html" %}
 {% block content %}
-<h3>Mening guruhlarim</h3>
 
-<div class="table-responsive">
-  <table class="table table-hover align-middle">
-    <thead>
-      <tr>
-        <th>Guruh</th>
-        <th>Center</th>
-        <th>O‘qituvchi</th>
-        <th>Talabalar</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for g in rows %}
-        <tr class="row-link" data-href="{% url 'education:group_detail' g.id %}">
-          <td><a href="{% url 'education:group_detail' g.id %}">{{ g.nom }}</a></td>
-          <td>{{ g.center }}</td>
-          <td>{{ g.oqituvchi }}</td>
-          <td>{{ g.student_count }}</td>
-        </tr>
-      {% empty %}
-        <tr><td colspan="4" class="text-muted">Hali guruhlari yo‘q.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<style>
+/* Container */
+.groups-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+/* Search bar */
+.group-search {
+  max-width: 300px;
+}
+.group-search input {
+  background: #0f172a;
+  color: #e5e7eb;
+  border: 1px solid #1e293b;
+  padding: 7px 12px;
+  border-radius: 8px;
+  width: 100%;
+  transition: .2s;
+}
+.group-search input:focus {
+  border-color: #22c55e;
+  outline: none;
+  box-shadow: 0 0 8px rgba(34,197,94,0.25);
+}
+
+/* Card grid */
+.groups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 10px;
+}
+
+/* Group card */
+.group-card {
+  background: #0f172a;
+  border: 1px solid #1f2937;
+  border-radius: 14px;
+  padding: 18px 20px;
+  transition: 0.25s;
+  cursor: pointer;
+}
+
+.group-card:hover {
+  background: #1e293b;
+  border-color: #22c55e;
+  box-shadow: 0 4px 12px rgba(34,197,94,0.25);
+}
+
+/* Title */
+.group-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #22c55e;
+  margin-bottom: 10px;
+}
+
+/* Info rows */
+.group-info {
+  color: #d1d5db;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+.group-info span {
+  color: #9ca3af;
+}
+</style>
+
+<div class="groups-header">
+  <h3 class="text-light fw-bold">📘 Mening guruhlarim</h3>
+
+  <!-- Search -->
+  <form method="get" class="group-search">
+    <input type="text" name="q" value="{{ request.GET.q }}" placeholder="🔍 Guruh izlash...">
+  </form>
 </div>
 
-<script>
-document.querySelectorAll('.row-link').forEach(tr=>{
-  tr.style.cursor = 'pointer';
-  tr.addEventListener('click', e=>{
-    if (e.target.closest('a')) return;
-    location.href = tr.dataset.href;
-  });
-});
-</script>
+<!-- Groups List -->
+<div class="groups-grid">
+
+  {% for g in rows %}
+  <div class="group-card" onclick="location.href='{% url 'education:group_detail' g.id %}'">
+
+    <div class="group-title">{{ g.nom }}</div>
+
+    <div class="group-info">
+      <span>🏫 Center:</span> {{ g.center }}
+    </div>
+
+    <div class="group-info">
+      <span>👨‍🏫 O‘qituvchi:</span> {{ g.oqituvchi }}
+    </div>
+
+    <div class="group-info">
+      <span>👥 Talabalar:</span> {{ g.student_count }}
+    </div>
+
+  </div>
+  {% empty %}
+    <p class="text-muted mt-3">Hozircha guruhlar yo‘q.</p>
+  {% endfor %}
+
+</div>
+
 {% endblock %}

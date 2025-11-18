@@ -1,34 +1,110 @@
 {% extends 'base.html' %}
 {% block content %}
-<h3>O‘quvchi paneli</h3>
 
-<div class="row g-3 mb-3">
+<style>
+.dashboard-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin-bottom: 25px;
+}
+
+.card-modern {
+    background: #1e293b;
+    border-radius: 14px;
+    padding: 22px 26px;
+    border: 1px solid #334155;
+    transition: 0.25s ease;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+}
+
+.card-modern:hover {
+    border-color: #22c55e;
+    box-shadow: 0 6px 20px rgba(34,197,94,0.15);
+}
+
+.card-title-modern {
+    font-size: 18px;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin-bottom: 12px;
+}
+
+.balance-box {
+    font-size: 40px;
+    font-weight: 700;
+    color: #22c55e;
+}
+
+.small-muted {
+    color: #94a3b8;
+}
+
+.action-btn {
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.btn-store {
+    background: #2563eb;
+    color: white;
+}
+
+.btn-store:hover {
+    background: #1d4ed8;
+}
+
+.btn-rating {
+    background: #16a34a;
+    color: white;
+}
+
+.btn-rating:hover {
+    background: #15803d;
+}
+</style>
+
+<h3 class="dashboard-title">🎓 O‘quvchi paneli</h3>
+
+<div class="row g-4">
+
+  <!-- BALANCE -->
   <div class="col-md-4">
-    <div class="card p-3 text-center">
-      <div class="small text-muted">Mening Chaqmog‘im</div>
-      <div class="fs-3">{{ balance|default:"—" }}</div>
-    </div>
-  </div>
-</div>
-
-<div class="row g-3">
-  <div class="col-md-6">
-    <div class="card p-3 h-100">
-      <h5 class="mb-3">Do‘kon</h5>
-      <div class="d-grid gap-2">
-        <a class="btn btn-primary" href="{% url 'store:products' %}">Mahsulotlarni ko‘rish</a>
-      </div>
-      <p class="small text-muted mt-2">Sotib olish: “Savatcha (so‘rov)” → Manager tasdiqlaydi → Chaqmoq yechiladi.</p>
+    <div class="card-modern text-center">
+      <div class="small-muted">Mening Chaqmog‘im</div>
+      <div class="balance-box">{{ balance|default:"0" }}</div>
     </div>
   </div>
 
+</div>
+
+<div class="row g-4 mt-2">
+
+  <!-- DO‘KON -->
   <div class="col-md-6">
-    <div class="card p-3 h-100">
-      <h5 class="mb-3">Reyting</h5>
-      <div class="d-grid gap-2">
-        <a class="btn btn-success" href="{% url 'chaqmoq:reyting' %}">Umumiy reyting</a>
-      </div>
+    <div class="card-modern h-100">
+      <div class="card-title-modern">🛒 Do‘kon</div>
+      <a class="btn action-btn btn-store w-100" href="{% url 'store:products' %}">
+        Mahsulotlarni ko‘rish
+      </a>
+      <p class="small-muted mt-3">
+        Sotib olish jarayoni: Savatcha → Manager tasdiqlaydi → Chaqmoq yechiladi.
+      </p>
     </div>
   </div>
+
+  <!-- REYTING -->
+  <div class="col-md-6">
+    <div class="card-modern h-100">
+      <div class="card-title-modern">🏆 Reyting</div>
+      <a class="btn action-btn btn-rating w-100" href="{% url 'chaqmoq:reyting' %}">
+        Umumiy reytingni ko‘rish
+      </a>
+    </div>
+  </div>
+
 </div>
+
 {% endblock %}
