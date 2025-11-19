@@ -69,13 +69,139 @@ body {
   position: relative;
 }
 
+.remove-col {
+    width: 40px;
+    text-align: center;
+}
+.remove-check {
+    transform: scale(1.3);
+}
+
 /* 🔹 Animatsiya */
 .fade-in { animation: fadeIn 0.4s ease-in-out; }
 @keyframes fadeIn {
   from {opacity: 0; transform: translateY(8px);}
   to {opacity: 1; transform: translateY(0);}
 }
+
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  margin-top: 10px;
+  border-radius: 10px;
+  color: #fff;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.20);
+  animation: toastShow 0.4s ease;
+  backdrop-filter: blur(6px);
+}
+
+.toast-success {
+  background: linear-gradient(135deg,#16a34a,#22c55e);
+}
+
+.toast-error {
+  background: linear-gradient(135deg,#dc2626,#ef4444);
+}
+
+@keyframes toastShow {
+  from { opacity: 0; transform: translateX(50px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+/* 🔥 Remove Mode Button Group */
+.remove-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-bottom: 15px;
+}
+
+/* 🗑️ Mode Button */
+#remove-mode-btn {
+    background: #ffe8e8;
+    border: 1px solid #ff6b6b;
+    color: #c00000;
+    font-weight: 600;
+    border-radius: 10px;
+    padding: 7px 14px;
+    transition: all .25s ease;
+}
+
+#remove-mode-btn:hover {
+    background: #ff6b6b;
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(255,40,40,0.35);
+}
+
+#remove-mode-btn.active {
+    background: #ff3d3d;
+    color: #fff;
+    border-color: #ff0000;
+}
+
+/* ❌ Tanlanganlarni chiqarish */
+#remove-selected-btn {
+    background: linear-gradient(135deg, #ff3d3d, #c00000);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 7px 18px;
+    font-weight: 600;
+    transition: all .25s ease;
+}
+
+#remove-selected-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255,0,0,0.4);
+}
+/* Jadval umumiy */
+#group-table {
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+/* Header */
+#group-table thead tr {
+    background: linear-gradient(135deg, #124dee, #007bff);
+    color: #fff;
+}
+
+#group-table thead th {
+    font-weight: 600;
+    padding: 14px;
+    font-size: 0.9rem;
+}
+
+/* Qatorlar hover */
+#group-table tbody tr {
+    transition: background 0.25s ease, transform 0.1s ease;
+}
+
+#group-table tbody tr:hover {
+    background: #f3f7ff;
+    transform: scale(1.002);
+}
+
+/* Remove checkbox column */
+.remove-col {
+    width: 40px;
+}
+
+.remove-check {
+    transform: scale(1.4);
+    cursor: pointer;
+}
+
 </style>
+
+
+
+<div id="toast-container"
+     style="position: fixed; top: 20px; right: 20px; z-index: 99999;"></div>
 
 <!-- Guruh maʼlumotlari -->
 <div class="card mb-3 fade-in">
@@ -107,6 +233,16 @@ body {
       Tanlangan sana: <strong id="selected-date-label">{{ selected_date|default:today }}</strong>
     </div>
   </div>
+</div>
+<div class="mb-3 d-flex justify-content-end gap-2 fade-in">
+    <button id="remove-mode-btn" class="btn btn-outline-danger btn-sm">
+        🗑️ O‘quvchilarni chiqarish rejimi
+    </button>
+
+    <button id="remove-selected-btn" 
+            class="btn btn-danger btn-sm d-none">
+        ❌ Tanlanganlarni chiqarish
+    </button>
 </div>
 
 <!-- Qoida va ball paneli -->
@@ -141,10 +277,7 @@ body {
 </div>
 
 <!-- JS URL manzillar -->
-<div id="js-urls"
-     data-attend="{% url 'education:attendance_today' g.id %}"
-     data-points="{% url 'education:group_points' g.id %}">
-</div>
+
 <form id="csrf-form" class="d-none">{% csrf_token %}</form>
 
 <!-- Jadval -->
@@ -152,6 +285,7 @@ body {
   <table id="group-table" class="table table-hover align-middle mb-0">
     <thead>
       <tr>
+        <th class="remove-col d-none">❌</th>
         <th>#</th>
         <th>F.I.Sh</th>
         <th>Telefon</th>
@@ -160,175 +294,285 @@ body {
         <th>Amal</th>
       </tr>
     </thead>
-    <tbody>
-      {% for e in enrollments %}
-        <tr>
-          <td>{{ forloop.counter }}</td>
-          <td>
-            <a href="{% url 'education:student_detail' e.student.id %}" class="fw-semibold text-decoration-none text-primary">
-              {{ e.student.ism }} {{ e.student.familya }}
-            </a><div class="text-muted small">{{ e.student.email|default:e.student.username }}</div>
-          </td>
-          <td>{{ e.student.telefon1|default:"—" }}</td>
-          <td><input type="checkbox" class="form-check-input attend-toggle" data-enrollment="{{ e.id }}" {% if e.student.present_today %}checked{% endif %}></td>
-          <td>
-            <span class="badge balance-badge {% if e.student.balance >= 0 %}text-bg-success{% else %}text-bg-danger{% endif %}">
-              {{ e.student.balance|default:0 }}
-            </span>
-          </td>
-          <td>
-            <div class="d-flex gap-2 justify-content-end">
-              <button type="button" class="btn btn-sm btn-success btn-add" data-student="{{ e.student.id }}">Qo‘shish</button>
-              <button type="button" class="btn btn-sm btn-danger btn-sub" data-student="{{ e.student.id }}">Ayirish</button>
-            </div>
-          </td>
-        </tr>
-      {% empty %}
-        <tr><td colspan="6" class="text-muted text-center">Hozircha o‘quvchi yo‘q.</td></tr>
-      {% endfor %}
-    </tbody>
+<tbody>
+{% for e in enrollments %}
+<tr>
+
+    <!-- REMOVE CHECKBOX -->
+    <td class="remove-col d-none">
+        <input type="checkbox" class="remove-check" value="{{ e.id }}">
+    </td>
+
+    <td>{{ forloop.counter }}</td>
+
+    <td>
+        <a href="{% url 'education:student_detail' e.student.id %}"
+           class="fw-semibold text-decoration-none text-primary">
+            {{ e.student.ism }} {{ e.student.familya }}
+        </a>
+        <div class="text-muted small">{{ e.student.email|default:e.student.username }}</div>
+    </td>
+
+    <td>{{ e.student.telefon1|default:"—" }}</td>
+
+    <td>
+        <input type="checkbox" class="form-check-input attend-toggle"
+        data-enrollment="{{ e.id }}" {% if e.student.present_today %}checked{% endif %}>
+    </td>
+
+    <td>
+        <span class="badge balance-badge {% if e.student.balance >= 0 %}text-bg-success{% else %}text-bg-danger{% endif %}">
+            {{ e.student.balance|default:0 }}
+        </span>
+    </td>
+
+    <td>
+        <div class="d-flex gap-2 justify-content-end">
+            <button type="button" class="btn btn-sm btn-success btn-add" data-student="{{ e.student.id }}">Qo‘shish</button>
+            <button type="button" class="btn btn-sm btn-danger btn-sub" data-student="{{ e.student.id }}">Ayirish</button>
+        </div>
+    </td>
+
+</tr>
+{% endfor %}
+</tbody>
+
   </table>
 </div>
 
-{% verbatim %}
+<div id="js-urls"
+     data-attend="{% url 'education:attendance_today' g.id %}"
+     data-points="{% url 'education:group_points' g.id %}"
+     data-remove="{% url 'education:group_bulk_remove' g.id %}">
+</div>
+<div id="remove-url" data-url="{% url 'education:group_bulk_remove' g.id %}"></div>
+
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  function getCookie(name) {
-    const match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
-    return match ? decodeURIComponent(match.pop()) : '';
-  }
-
-  const csrfToken = document.querySelector('#csrf-form input[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
-  const urls = document.getElementById('js-urls');
-  const pointsUrl = urls.dataset.points;
-  const attendanceUrl = urls.dataset.attend;
-  const dateInput = document.getElementById('attendance-date');
-
-  dateInput.addEventListener('change', function() {
-    const d = this.value;
-    if (!d) return;
-    const u = new URL(window.location.href);
-    u.searchParams.set('date', d);
-    window.location.href = u.toString();
-  });
-
-  function isPresent(studentId) {
-    const row = document.querySelector(`button[data-student="${studentId}"]`).closest("tr");
-    const checkbox = row.querySelector(".attend-toggle");
-    return checkbox && checkbox.checked;
-  }
-
-  // 🔹 Chaqmoq yuborish + vizual effekt
-function sendPoints(studentId, amount, ruleId) {
-  const dateVal = dateInput.value || "";
-  const fd = new FormData();
-  fd.append("student_id", studentId);
-  fd.append("amount", amount);
-  fd.append("rule_id", ruleId);
-  fd.append("date", dateVal);
-
-  fetch(pointsUrl, {
-    method: "POST",
-    headers: { "X-CSRFToken": csrfToken },
-    body: fd
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data.ok) {
-      const row = document.querySelector(`button[data-student="${studentId}"]`).closest("tr");
-      const badge = row.querySelector(".balance-badge");
-
-      // 🔹 Balansni yangilash
-      badge.textContent = data.balance;
-      badge.className = 'badge balance-badge ' + (data.balance >= 0 ? 'text-bg-success' : 'text-bg-danger');
-
-      // 🔹 Eski flash’ni o‘chirish (agar avvalgi bor bo‘lsa)
-      const oldFlash = badge.parentElement.querySelector(".flash-change");
-      if (oldFlash) oldFlash.remove();
-
-      // 🔹 Yangi flash yaratish
-      const flash = document.createElement("span");
-      flash.className = "flash-change";
-      flash.textContent = (amount > 0 ? "+" + amount : amount);
-      flash.style.color = amount > 0 ? "#22c55e" : "#ef4444";
-      flash.style.fontWeight = "700";
-      flash.style.position = "absolute";
-      flash.style.top = "50%";
-      flash.style.left = "calc(100% + 6px)";
-      flash.style.transform = "translateY(-50%)"; // Markazda joylash
-      flash.style.fontSize = "0.9rem";
-      flash.style.animation = "flashFade 0.4s ease-out"; // animatsiya
-      badge.parentElement.style.position = "relative";
-      badge.parentElement.appendChild(flash);
-
-      // 🔹 20 daqiqadan keyin o‘chadi
-      setTimeout(() => flash.remove(), 7200); // 20 daqiqa = 1 200 000 ms
-
-    } else {
-      alert('❌ Xato: ' + (data.error || 'Server xatosi'));
+document.addEventListener('DOMContentLoaded', function () {
+    /* === CSRF TOKEN === */
+    function getCookie(name) {
+        const match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+        return match ? decodeURIComponent(match.pop()) : '';
     }
-  })
-  .catch(() => alert('❌ Server bilan aloqa yo‘q.'));
-}
 
+    const csrfToken =
+        document.querySelector('#csrf-form input[name=csrfmiddlewaretoken]')?.value ||
+        getCookie('csrftoken');
 
-  document.querySelectorAll(".btn-add").forEach(btn => {
-    btn.addEventListener("click", function () {
-      const studentId = this.dataset.student;
-      if (!isPresent(studentId)) return alert("⚠️ Avval davomatni belgilang!");
-      const ruleId = document.getElementById("rule-global").value;
-      const amount = Math.abs(parseInt(document.getElementById("amount-global").value) || 0);
-      if (!ruleId) return alert("Qoida tanlanmagan.");
-      sendPoints(studentId, amount, ruleId);
-    });
-  });
+    const urls = document.getElementById('js-urls');
+    const attendanceUrl = urls.dataset.attend;
+    const pointsUrl = urls.dataset.points;
+    const removeUrl = urls.dataset.remove;
 
-  document.querySelectorAll(".btn-sub").forEach(btn => {
-    btn.addEventListener("click", function () {
-      const studentId = this.dataset.student;
-      if (!isPresent(studentId)) return alert("⚠️ Avval davomatni belgilang!");
-      const ruleId = document.getElementById("rule-global").value;
-      const amount = -Math.abs(parseInt(document.getElementById("amount-global").value) || 0);
-      if (!ruleId) return alert("Qoida tanlanmagan.");
-      sendPoints(studentId, amount, ruleId);
-    });
-  });
+    const removeModeBtn = document.getElementById("remove-mode-btn");
+    const removeSelectedBtn = document.getElementById("remove-selected-btn");
+    const dateInput = document.getElementById('attendance-date');
 
-  document.getElementById('glob-plus').addEventListener('click', () => {
-    const input = document.getElementById('amount-global');
-    input.value = parseInt(input.value || '0', 10) + 1;
-  });
-  document.getElementById('glob-minus').addEventListener('click', () => {
-    const input = document.getElementById('amount-global');
-    const v = Math.max(1, parseInt(input.value || '0', 10) - 1);
-    input.value = v;
-  });
+    if (!removeModeBtn || !removeSelectedBtn) {
+        console.error("❌ remove-mode tugmalari topilmadi");
+    }
 
-  document.querySelectorAll('.attend-toggle').forEach(box => {
-    box.addEventListener('change', function() {
-      const enrId = this.dataset.enrollment;
-      const present = this.checked ? "1" : "0";
-      const dateVal = dateInput.value || "";
-      const fd = new FormData();
-      fd.append("enr_id", enrId);
-      fd.append("present", present);
-      fd.append("date", dateVal);
+    /* === REMOVE MODE YOQILISHI === */
+    let removeMode = false;
 
-      fetch(attendanceUrl, {
-        method: "POST",
-        headers: { "X-CSRFToken": csrfToken },
-        body: fd
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.ok && !data.present && data.removed_points > 0) {
-          alert("⚠️ O‘quvchi kelmaganligi uchun " + data.removed_points + " ta chaqmoq o‘chirildi.");
+    removeModeBtn.addEventListener("click", function () {
+        removeMode = !removeMode;
+
+        document.querySelectorAll(".remove-col").forEach(col => {
+            col.classList.toggle("d-none", !removeMode);
+        });
+
+        removeSelectedBtn.classList.toggle("d-none", !removeMode);
+
+        if (removeMode) {
+            removeModeBtn.classList.remove("btn-outline-danger");
+            removeModeBtn.classList.add("btn-danger");
+            removeModeBtn.textContent = "❌ Rejimdan chiqish";
+        } else {
+            removeModeBtn.classList.remove("btn-danger");
+            removeModeBtn.classList.add("btn-outline-danger");
+            removeModeBtn.textContent = "🗑️ O‘quvchilarni chiqarish rejimi";
         }
-      })
-      .catch(() => alert("❌ Server bilan aloqa yo‘q."));
     });
-  });
+
+    function showToast(message, type = "success") {
+    const box = document.getElementById("toast-container");
+
+    const div = document.createElement("div");
+    div.className = `toast toast-${type}`;
+    div.innerHTML = message;
+
+    box.appendChild(div);
+
+    setTimeout(() => {
+        div.style.opacity = "0";
+        div.style.transform = "translateX(50px)";
+        setTimeout(() => div.remove(), 300);
+    }, 3000);
+}
+    /* === REMOVE SELECTED === */
+    removeSelectedBtn.addEventListener("click", function () {
+        const checks = [...document.querySelectorAll(".remove-check:checked")];
+
+        if (checks.length === 0) {
+            showToast("⚠️ Hech bir o‘quvchi tanlanmagan!", "error");
+            return;
+        }
+
+        if (!confirm("Tanlangan o‘quvchilarni guruhdan chiqarishni tasdiqlaysizmi?"))
+            return;
+
+        const ids = checks.map(c => c.value);
+
+        const params = new URLSearchParams();
+        ids.forEach(id => params.append('enrollment_ids', id));
+
+        fetch(removeUrl, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": csrfToken,
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: params
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                showToast(`${data.deleted} ta o‘quvchi guruhdan chiqarildi.`, "success");
+                location.reload();
+            } else {
+                showToast("Xato: " + data.msg, "error");
+            }
+        })
+        .catch((err) => {
+            console.error(err);
+            showToast("Server bilan aloqa yo‘q.", "error");
+        });
+    });
+
+    /* === DAVOMAT SANA O‘ZGARTIRISH === */
+    dateInput.addEventListener('change', function() {
+        const d = this.value;
+        if (!d) return;
+        const u = new URL(window.location.href);
+        u.searchParams.set('date', d);
+        window.location.href = u.toString();
+    });
+
+    /* === YORDAMCHI FUNKSIYALAR (davomat & chaqmoq) === */
+
+    function isPresent(studentId) {
+        const row = document.querySelector(`button[data-student="${studentId}"]`).closest("tr");
+        const checkbox = row.querySelector(".attend-toggle");
+        return checkbox && checkbox.checked;
+    }
+
+    function sendPoints(studentId, amount, ruleId) {
+        const dateVal = dateInput.value || "";
+        const fd = new FormData();
+        fd.append("student_id", studentId);
+        fd.append("amount", amount);
+        fd.append("rule_id", ruleId);
+        fd.append("date", dateVal);
+
+        fetch(pointsUrl, {
+            method: "POST",
+            headers: { "X-CSRFToken": csrfToken },
+            body: fd
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                const row = document.querySelector(`button[data-student="${studentId}"]`).closest("tr");
+                const badge = row.querySelector(".balance-badge");
+
+                badge.textContent = data.balance;
+                badge.className = 'badge balance-badge ' +
+                    (data.balance >= 0 ? 'text-bg-success' : 'text-bg-danger');
+
+                const oldFlash = badge.parentElement.querySelector(".flash-change");
+                if (oldFlash) oldFlash.remove();
+
+                const flash = document.createElement("span");
+                flash.className = "flash-change";
+                flash.textContent = (amount > 0 ? "+" + amount : amount);
+                flash.style.color = amount > 0 ? "#22c55e" : "#ef4444";
+                flash.style.fontWeight = "700";
+                flash.style.position = "absolute";
+                flash.style.top = "50%";
+                flash.style.left = "calc(100% + 6px)";
+                flash.style.transform = "translateY(-50%)";
+                flash.style.fontSize = "0.9rem";
+                flash.style.animation = "flashFade 0.4s ease-out";
+                badge.parentElement.style.position = "relative";
+                badge.parentElement.appendChild(flash);
+
+                setTimeout(() => flash.remove(), 7200);
+            } else {
+                alert('❌ Xato: ' + (data.error || 'Server xatosi'));
+            }
+        })
+        .catch(() => alert('❌ Server bilan aloqa yo‘q.'));
+    }
+
+    document.querySelectorAll(".btn-add").forEach(btn => {
+        btn.addEventListener("click", function () {
+            const studentId = this.dataset.student;
+            if (!isPresent(studentId)) return alert("⚠️ Avval davomatni belgilang!");
+            const ruleId = document.getElementById("rule-global").value;
+            const amount = Math.abs(parseInt(document.getElementById("amount-global").value) || 0);
+            if (!ruleId) return alert("Qoida tanlanmagan.");
+            sendPoints(studentId, amount, ruleId);
+        });
+    });
+
+    document.querySelectorAll(".btn-sub").forEach(btn => {
+        btn.addEventListener("click", function () {
+            const studentId = this.dataset.student;
+            if (!isPresent(studentId)) return alert("⚠️ Avval davomatni belgilang!");
+            const ruleId = document.getElementById("rule-global").value;
+            const amount = -Math.abs(parseInt(document.getElementById("amount-global").value) || 0);
+            if (!ruleId) return alert("Qoida tanlanmagan.");
+            sendPoints(studentId, amount, ruleId);
+        });
+    });
+
+    document.getElementById('glob-plus').addEventListener('click', () => {
+        const input = document.getElementById('amount-global');
+        input.value = parseInt(input.value || '0', 10) + 1;
+    });
+
+    document.getElementById('glob-minus').addEventListener('click', () => {
+        const input = document.getElementById('amount-global');
+        const v = Math.max(1, parseInt(input.value || '0', 10) - 1);
+        input.value = v;
+    });
+
+    document.querySelectorAll('.attend-toggle').forEach(box => {
+        box.addEventListener('change', function() {
+            const enrId = this.dataset.enrollment;
+            const present = this.checked ? "1" : "0";
+            const dateVal = dateInput.value || "";
+            const fd = new FormData();
+            fd.append("enr_id", enrId);
+            fd.append("present", present);
+            fd.append("date", dateVal);
+
+            fetch(attendanceUrl, {
+                method: "POST",
+                headers: { "X-CSRFToken": csrfToken },
+                body: fd
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok && !data.present && data.removed_points > 0) {
+                    alert("⚠️ O‘quvchi kelmaganligi uchun " + data.removed_points + " ta chaqmoq o‘chirildi.");
+                }
+            })
+            .catch(() => alert("❌ Server bilan aloqa yo‘q."));
+        });
+    });
 });
 </script>
-{% endverbatim %}
+
 {% endblock %}

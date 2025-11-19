@@ -619,6 +619,32 @@ def attendance_today(request, pk: int):
     })
 
 
+
+@login_required
+def group_bulk_remove(request, pk):
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "msg": "POST bo‘lishi shart."})
+
+    g = get_object_or_404(Group, pk=pk)
+
+    # ruxsat tekshirish
+    if request.user.role not in ["director", "manager", "teacher", "admin"]:
+        return JsonResponse({"ok": False, "msg": "Ruxsat yo‘q."})
+
+    ids = request.POST.getlist("enrollment_ids")
+
+    if not ids:
+        return JsonResponse({"ok": False, "msg": "ID kelmagan."})
+
+    qs = Enrollment.objects.filter(id__in=ids, group=g)
+    count = qs.count()
+    qs.delete()
+
+    return JsonResponse({"ok": True, "deleted": count})
+
+
+
+
 # ---------- AJAX: Chaqmoq yozish/ayirish ----------
 @login_required
 def group_points(request, pk: int):

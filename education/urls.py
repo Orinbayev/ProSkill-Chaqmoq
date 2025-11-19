@@ -16,6 +16,8 @@ urlpatterns = [
     path("tolovlar/tarix/<int:student_id>/", views.payment_history, name="payment_history"),
     path("points-details/", views.points_details, name="points_details"),
     path("group-price/<int:pk>/", views.get_group_price, name="group_price"),
+    path("groups/<int:pk>/bulk_remove/", views.group_bulk_remove, name="group_bulk_remove"),
+
 
 
     # 🔹 Guruhlar kategoriyasi bo‘yicha
