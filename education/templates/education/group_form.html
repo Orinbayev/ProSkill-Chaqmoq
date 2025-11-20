@@ -9,6 +9,14 @@ body {
   color: #e2e8f0;
 }
 
+.btn-cancel {
+    text-decoration: none !important;
+}
+
+.btn-cancel:hover {
+    text-decoration: none !important;
+}
+
 /* 🧭 Forma konteyner */
 .form-wrapper {
   max-width: 800px;
@@ -193,14 +201,12 @@ select option:checked {
       </div>
     </div>
 
-    <div class="form-actions">
-      <button type="submit" class="btn-save">💾 Saqlash</button>
-      {% if category == "lang" %}
-      <a class="btn-cancel" href="{% url 'education:groups_lang' %}">⬅️ Bekor qilish</a>
-      {% else %}
-      <a class="btn-cancel" href="{% url 'education:groups_it' %}">⬅️ Bekor qilish</a>
-      {% endif %}
-    </div>
+<div class="form-actions">
+    <button type="submit" class="btn-save">Saqlash</button>
+
+    <a class="btn-cancel" href="{% url 'education:groups_home' %}">Bekor qilish</a>
+</div>
+
   </form>
 </div>
 
