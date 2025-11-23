@@ -2,6 +2,7 @@
 {% block content %}
 
 <style>
+/* ================= TABLE WRAPPER ================= */
 .table-box {
     background: rgba(255,255,255,0.04);
     border-radius: 14px;
@@ -9,20 +10,20 @@
     box-shadow: 0 4px 24px rgba(0,0,0,0.45);
 }
 
-/* Header */
+/* ================= HEADER ================= */
 .table-box thead {
     background: rgba(255,255,255,0.08);
     color: #38bdf8;
     font-weight: 600;
 }
 
-/* Hover */
+/* ================= HOVER ================= */
 .table-box tbody tr:hover {
     background: rgba(255,255,255,0.07);
     transition: .2s;
 }
 
-/* Guruh badge */
+/* ================= GROUP BADGE ================= */
 .badge-group {
     background: #1e3a8a;
     color: #fff;
@@ -31,70 +32,75 @@
     font-size: 12px;
     display: inline-block;
     margin: 2px;
+    transition: 0.2s;
+    text-decoration: none;
 }
 .badge-group:hover {
     background: #3b82f6;
+    transform: scale(1.05);
 }
 
-/* Chaqmoq */
+/* ================= CHAQMOQ COLORS ================= */
 .pos { color:#22c55e; font-weight:600; }
 .neg { color:#ef4444; font-weight:600; }
 .zero { color:#94a3b8; }
 
-/* Pagination */
-.pagination {
-    display: flex;
-    gap: 6px;
-    list-style: none;
-}
-.pagination a {
-    padding: 7px 13px;
-    border-radius: 10px;
-    background: rgba(255,255,255,0.12);
-    color: #fff;
-    text-decoration: none;
-}
-.pagination .active a {
-    background: #6366f1 !important;
-}
-
-/* Page-size dropdown */
+/* ================= PAGE SIZE ================= */
 .page-size-box select {
-    background: rgba(255,255,255,0.08);
-    color: #fff;
-    border: 1px solid rgba(255,255,255,0.15);
+    background: #f8fafc;
+    color: #000 !important;
     padding: 6px 12px;
     border-radius: 10px;
-}
-
-
-.page-size-box select {
-    background: #f8fafc;          /* oq emas, biroz yumshoq kulrang */
-    color: #000 !important;        /* Yozuv QORA bo'ladi */
-    padding: 4px 10px;
-    border-radius: 6px;
     border: 1px solid #cbd5e1;
     font-weight: 600;
 }
-
-.page-size-box select option {
-    color: #000 !important;        /* Dropdown ichidagi variantlar ham QORA */
-    background: #ffffff !important;
+.page-size-box option {
+    background: #fff !important;
+    color: #000 !important;
 }
 
-.page-size-box {
-    margin-top: 15px;
-    font-size: 14px;
-    font-weight: 500;
+/* ================= PAGINATION ================= */
+.pagination-wrapper {
+    max-width: 600px;
+    margin: 25px auto;
+    overflow-x: auto;
+    padding-bottom: 10px;
 }
 
+.pagination {
+    display: flex;
+    gap: 6px;
+    padding-left: 0;
+    list-style: none;
+    white-space: nowrap;
+}
+
+.pagination li a {
+    padding: 6px 14px;
+    background: rgba(255,255,255,0.07);
+    color: #fff;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+    text-decoration: none;
+    transition: 0.2s;
+}
+
+.pagination li a:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+.pagination .active a {
+    background: #4f46e5 !important;
+    color: #fff !important;
+    border-color: #4f46e5 !important;
+}
 </style>
 
 
 <h3 class="text-light fw-bold mb-4">{{ title }}</h3>
 
 
-<!-- SEARCH -->
+<!-- ================= SEARCH ================= -->
 <form class="mb-4">
   <div class="input-group" style="max-width:500px;">
       <input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Ism, familya yoki email">
@@ -103,8 +109,7 @@
 </form>
 
 
-
-<!-- TABLE -->
+<!-- ================= TABLE ================= -->
 <div class="table-responsive table-box">
 
 <table class="table table-dark table-hover mb-0 align-middle">
@@ -170,27 +175,26 @@
 
 
 
-<!-- PAGE SIZE + PAGINATION -->
-<div class="d-flex justify-content-between align-items-center mt-3">
+<!-- ================= PAGE SIZE + PAGINATION ================= -->
+<div class="d-flex justify-content-between align-items-center mt-3 flex-wrap">
 
     <!-- Ko‘rsatish soni -->
-<div class="page-size-box text-light">
-    Ko‘rsatish:
-    <select onchange="location.href='?size='+this.value{% if request.GET.q %}+'&q={{ request.GET.q }}'{% endif %}">
-        <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
-        <option value="20" {% if page_size == 20 %}selected{% endif %}>20</option>
-        <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
-        <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
-    </select>
-</div>
+    <div class="page-size-box text-light mb-3">
+        Ko‘rsatish:
+        <select onchange="location.href='?size='+this.value{% if request.GET.q %}+'&q={{ request.GET.q }}'{% endif %}">
+            <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
+            <option value="20" {% if page_size == 20 %}selected{% endif %}>20</option>
+            <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
+            <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
+        </select>
+    </div>
 
-
-    <!-- PAGES -->
-    <nav>
+    <!-- Pagination -->
+    <div class="pagination-wrapper">
         <ul class="pagination">
 
             {% if page_obj.has_previous %}
-                <li><a href="?page={{ page_obj.previous_page_number }}&size={{ page_size }}">«</a></li>
+                <li><a href="?page={{ page_obj.previous_page_number }}&size={{ page_size }}">&laquo;</a></li>
             {% endif %}
 
             {% for i in page_obj.paginator.page_range %}
@@ -202,11 +206,11 @@
             {% endfor %}
 
             {% if page_obj.has_next %}
-                <li><a href="?page={{ page_obj.next_page_number }}&size={{ page_size }}">»</a></li>
+                <li><a href="?page={{ page_obj.next_page_number }}&size={{ page_size }}">&raquo;</a></li>
             {% endif %}
 
         </ul>
-    </nav>
+    </div>
 
 </div>
 
