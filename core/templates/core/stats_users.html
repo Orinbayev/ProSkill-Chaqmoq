@@ -1,42 +1,175 @@
 {% extends 'base.html' %}
 {% block content %}
-<h3>{{ title }}</h3>
 
-<form class="mb-3">
-  <div class="input-group" style="max-width:520px">
+<style>
+/* ===== GLOBAL ===== */
+.table-wrapper {
+    background: rgba(255,255,255,0.03);
+    border-radius: 16px;
+    box-shadow: 0 4px 25px rgba(0,0,0,0.35);
+    overflow: hidden;
+}
+
+.table-dark thead {
+    background: rgba(255,255,255,0.07);
+    color: #38bdf8;
+}
+
+.table-dark tbody tr:hover {
+    background: rgba(255,255,255,0.10);
+    transition: 0.2s ease;
+}
+
+/* Guruh badge */
+.badge-group {
+    background: #1e3a8a;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+    margin: 2px;
+    display: inline-block;
+    text-decoration: none !important;
+}
+.badge-group:hover {
+    background: #3b82f6;
+}
+
+/* Chaqmoq */
+.chaqmoq-pos {
+    color:#22c55e;
+    font-weight:700;
+}
+.chaqmoq-neg {
+    color:#ef4444;
+    font-weight:700;
+}
+
+/* Search */
+.search-box input {
+    border-radius: 10px;
+}
+.search-box button {
+    border-radius: 10px;
+}
+
+/* Pagination */
+.pagination {
+    gap: 6px;
+}
+.pagination .page-link {
+    padding: 6px 14px;
+    border-radius: 10px !important;
+    background: rgba(255,255,255,0.07);
+    color: #e2e8f0;
+    border: none;
+}
+.pagination .page-link:hover {
+    background: rgba(255,255,255,0.15);
+}
+.pagination .active .page-link {
+    background: #6366f1 !important;
+    color: white;
+}
+
+/* Bu muhim: underline yo‘q */
+a, a:hover, a:focus {
+    text-decoration: none !important;
+}
+</style>
+
+<h3 class="text-light fw-bold mb-4">{{ title }}</h3>
+
+<form class="mb-4">
+  <div class="input-group search-box" style="max-width:500px;">
     <input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Ism, familya yoki email">
-    <button class="btn btn-outline-secondary">Izlash</button>
+    <button class="btn btn-primary">Izlash</button>
   </div>
-</form>   
+</form>
 
-<table class="table table-striped">
+<div class="table-responsive table-wrapper">
+<table class="table table-dark table-hover align-middle mb-0">
   <thead>
     <tr>
       <th>#</th>
       <th>F.I.Sh</th>
-      <th>Login (email/username)</th>
+      <th>Login</th>
       <th>Telefon</th>
-      <th>Center</th>
+      <th>⚡ Chaqmoq</th>
+      <th>Guruhlar</th>
     </tr>
   </thead>
+
   <tbody>
-    {% for u in rows %}
+    {% for u in page_obj %}
       <tr>
-        <td>{{ forloop.counter }}</td>
+        <td>{{ start_index|add:forloop.counter0 }}</td>
+
+        <td class="fw-semibold">
+          <span class="text-info">{{ u.ism }} {{ u.familya }}</span>
+        </td>
+
+        <td>{{ u.email }}</td>
+
         <td>
-          {% if request.user.is_staff %}
-            <a href="/admin/accounts/user/{{ u.id }}/change/">{{ u.ism }} {{ u.familya }}</a>
-          {% else %}
-            {{ u.ism }} {{ u.familya }}
+          {{ u.telefon1|default:"—" }}
+          {% if u.telefon2 %}
+             <small class="text-muted"> / {{ u.telefon2 }}</small>
           {% endif %}
         </td>
-        <td>{{ u.email }}</td>
-        <td>{{ u.telefon1|default:"—" }}{% if u.telefon2 %} / {{ u.telefon2 }}{% endif %}</td>
-        <td>{% if u.center %}{{ u.center.nom }}{% else %}—{% endif %}</td>
+
+        <td>
+          {% if u.jami_chaqmoq %}
+              {% if u.jami_chaqmoq < 0 %}
+                 <span class="chaqmoq-neg">{{ u.jami_chaqmoq }}</span>
+              {% else %}
+                 <span class="chaqmoq-pos">{{ u.jami_chaqmoq }}</span>
+              {% endif %}
+          {% else %}
+              <span class="text-muted">0</span>
+          {% endif %}
+        </td>
+
+        <td>
+          {% for e in u.enrollment_set.all %}
+            <a href="{% url 'education:group_detail' e.group.id %}" class="badge-group">
+                {{ e.group.nom }}
+            </a>
+          {% empty %}
+            <span class="text-muted">— Guruh yo‘q</span>
+          {% endfor %}
+        </td>
+
       </tr>
-    {% empty %}
-      <tr><td colspan="6">Maʼlumot yo‘q.</td></tr>
     {% endfor %}
   </tbody>
+
 </table>
+</div>
+
+<!-- PAGINATION -->
+<div class="d-flex justify-content-center mt-3">
+  <nav>
+    <ul class="pagination">
+
+      {% if page_obj.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">«</a></li>
+      {% endif %}
+
+      {% for i in page_obj.paginator.page_range %}
+          <li class="page-item {% if page_obj.number == i %}active{% endif %}">
+            <a class="page-link" href="?page={{ i }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">
+                {{ i }}
+            </a>
+          </li>
+      {% endfor %}
+
+      {% if page_obj.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">»</a></li>
+      {% endif %}
+
+    </ul>
+  </nav>
+</div>
+
 {% endblock %}

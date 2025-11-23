@@ -38,7 +38,7 @@ body.login-page .layout {
 
 /* glowing logo text */
 .logo-title {
-  font-size: 32px;
+  font-size: 30px;
   font-weight: 700;
   background: linear-gradient(135deg, #00b4d8, #90e0ef);
   -webkit-background-clip: text;
@@ -155,11 +155,12 @@ body.login-page .layout {
 <div class="particle p3"></div>
 
 <div class="login-card">
-  <div class="logo-title">Pro Skill Academy</div>
-  <h3>Welcome Back 👋</h3>
-  <p style="font-size:13px; color:rgba(255,255,255,0.7); margin-bottom:25px;">
-    Level up your learning. Enter your credentials to continue.
+  <div class="logo-title">ProSkill Academy</div>
+    <p style="font-size:13px; color:rgba(255,255,255,0.7); margin-bottom:25px;">
+    Zamonaviy kasblar - kuchli mutaxissislar
   </p>
+  <h4>Xush kelibsiz!👋</h4>
+
 
   {% if form.non_field_errors %}
     <div class="alert">{{ form.non_field_errors.0 }}</div>
@@ -167,15 +168,15 @@ body.login-page .layout {
 
   <form method="post" novalidate>
     {% csrf_token %}
-    <input type="text" name="username" placeholder="Email ID" required value="{{ form.username.value|default:'' }}">
-    <input type="password" name="password" placeholder="Password" required>
+    <input type="text" name="username" placeholder="Email pochtangiz" required value="{{ form.username.value|default:'' }}">
+    <input type="password" name="password" placeholder="Parolingiz" required>
 
     <div class="remember-forgot">
-      <label><input type="checkbox"> Remember me</label>
-      <a href="http://t.me/de_amirxon">Forgot Password?</a>
+      <label><input type="checkbox"> Eslab qol</label>
+      <a href="http://t.me/de_amirxon">Texnik xizmat</a>
     </div>
 
-    <button type="submit">LOGIN</button>
+    <button type="submit">Kirish</button>
   </form>
 
   <p style="margin-top:20px; font-size:13px; color:rgba(255,255,255,0.7);">

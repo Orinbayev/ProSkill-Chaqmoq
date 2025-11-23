@@ -15,11 +15,12 @@ User = get_user_model()
 def reyting(request):
     leaderboard = (
         Ledger.objects
-        .filter(student__role="student")   # faqat studentlar!
-        .values("student__ism", "student__familya")
+        .filter(student__role="student")
+        .values("student__id", "student__ism", "student__familya")
         .annotate(jami=Sum("ball"))
         .order_by("-jami")
     )
+
     return render(request, "chaqmoq/reyting.html", {"leaderboard": leaderboard})
 
 @login_required

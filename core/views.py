@@ -12,6 +12,7 @@ U = get_user_model()
 from django.db.models import Count
 from accounts.models import User
 from education.models import Group
+from django.core.paginator import Paginator
 
 
 @login_required
@@ -124,12 +125,42 @@ def stat_teachers(request):
 
 @login_required
 def stat_students(request):
-    if not _staff_only(request): return render(request, 'core/dashboard_guest.html')
-    q = request.GET.get('q','').strip()
-    rows = U.objects.filter(role='student')
+    if not _staff_only(request):
+        return render(request, 'core/dashboard_guest.html')
+
+    q = request.GET.get('q', '').strip()
+
+    # barcha studentlar
+    rows = (
+        U.objects
+        .filter(role='student')
+        .annotate(jami_chaqmoq=Sum("ledger__ball"))   # ⚡ Chaqmoq hisobi
+        .prefetch_related("enrollment_set__group")
+        .order_by("id")
+    )
+
     if q:
-        rows = rows.filter(Q(ism__icontains=q)|Q(familya__icontains=q)|Q(email__icontains=q))
-    return render(request, 'core/stats_users.html', {'title': "O‘quvchilar", 'rows': rows})
+        rows = rows.filter(
+            Q(ism__icontains=q) |
+            Q(familya__icontains=q) |
+            Q(email__icontains=q)
+        )
+
+    # PAGINATION
+    from django.core.paginator import Paginator
+    paginator = Paginator(rows, 10)       # 1 sahifada 10 ta o‘quvchi
+    page = request.GET.get("page")
+    page_obj = paginator.get_page(page)
+
+    # GLOBAL TARTIB RAQAMI (barqaror)
+    start_index = page_obj.start_index()  # masalan 21, 31 ...
+    
+    return render(request, 'core/stats_users.html', {
+        'title': "O‘quvchilar",
+        'page_obj': page_obj,
+        'start_index': start_index,
+    })
+
 
 @login_required
 def stat_products(request):
