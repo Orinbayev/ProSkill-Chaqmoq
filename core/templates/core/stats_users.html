@@ -73,7 +73,9 @@
     padding-left: 0;
     list-style: none;
     white-space: nowrap;
+    align-items: center;
 }
+
 
 .pagination li a {
     padding: 6px 14px;
@@ -85,15 +87,32 @@
     transition: 0.2s;
 }
 
+.pagination li a, 
+.pagination .dots {
+    padding: 6px 14px;
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    text-decoration: none;
+    border-radius: 10px;
+    transition: 0.2s;
+    border: 1px solid rgba(255,255,255,0.12);
+    font-weight: 500;
+}
 .pagination li a:hover {
     background: rgba(255,255,255,0.2);
 }
 
+
+
 .pagination .active a {
-    background: #4f46e5 !important;
-    color: #fff !important;
-    border-color: #4f46e5 !important;
+    background: #4f46e5;
+    border-color: #4f46e5;
 }
+
+.pagination .dots {
+    cursor: default;
+}
+
 </style>
 
 
@@ -190,27 +209,53 @@
     </div>
 
     <!-- Pagination -->
-    <div class="pagination-wrapper">
-        <ul class="pagination">
+<nav>
+    <ul class="pagination">
 
-            {% if page_obj.has_previous %}
-                <li><a href="?page={{ page_obj.previous_page_number }}&size={{ page_size }}">&laquo;</a></li>
-            {% endif %}
+        {% if page_obj.has_previous %}
+            <li><a href="?page={{ page_obj.previous_page_number }}&size={{ page_size }}">‹</a></li>
+        {% endif %}
 
-            {% for i in page_obj.paginator.page_range %}
+        {# --- ALWAYS SHOW FIRST PAGE --- #}
+        {% if page_obj.number != 1 %}
+            <li><a href="?page=1&size={{ page_size }}">1</a></li>
+        {% endif %}
+
+        {# --- SHOW "..." IF FAR FROM START --- #}
+        {% if page_obj.number > 4 %}
+            <li><span class="dots">…</span></li>
+        {% endif %}
+
+        {# --- NEAR PAGES: CURRENT-1, CURRENT, CURRENT+1 --- #}
+        {% for i in page_obj.paginator.page_range %}
+            {% if i >= page_obj.number|add:"-1" and i <= page_obj.number|add:"1" %}
                 <li class="{% if page_obj.number == i %}active{% endif %}">
-                    <a href="?page={{ i }}&size={{ page_size }}">
-                        {{ i }}
-                    </a>
+                    <a href="?page={{ i }}&size={{ page_size }}">{{ i }}</a>
                 </li>
-            {% endfor %}
-
-            {% if page_obj.has_next %}
-                <li><a href="?page={{ page_obj.next_page_number }}&size={{ page_size }}">&raquo;</a></li>
             {% endif %}
+        {% endfor %}
 
-        </ul>
-    </div>
+        {# --- SHOW "..." BEFORE LAST PAGE --- #}
+        {% if page_obj.number < page_obj.paginator.num_pages|add:"-3" %}
+            <li><span class="dots">…</span></li>
+        {% endif %}
+
+        {# --- ALWAYS SHOW LAST PAGE --- #}
+        {% if page_obj.number != page_obj.paginator.num_pages %}
+            <li>
+                <a href="?page={{ page_obj.paginator.num_pages }}&size={{ page_size }}">
+                    {{ page_obj.paginator.num_pages }}
+                </a>
+            </li>
+        {% endif %}
+
+        {% if page_obj.has_next %}
+            <li><a href="?page={{ page_obj.next_page_number }}&size={{ page_size }}">›</a></li>
+        {% endif %}
+
+    </ul>
+</nav>
+
 
 </div>
 
