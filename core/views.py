@@ -128,14 +128,17 @@ def stat_students(request):
     if not _staff_only(request):
         return render(request, 'core/dashboard_guest.html')
 
-    q = request.GET.get('q', '').strip()
+    q = request.GET.get("q", "").strip()
+    page_size = request.GET.get("size", "10")     # DEFAULT 10
+    try:
+        page_size = int(page_size)
+    except:
+        page_size = 10
 
-    # barcha studentlar
     rows = (
-        U.objects
-        .filter(role='student')
-        .annotate(jami_chaqmoq=Sum("ledger__ball"))   # ⚡ Chaqmoq hisobi
-        .prefetch_related("enrollment_set__group")
+        U.objects.filter(role='student')
+        .prefetch_related('enrollment_set__group')
+        .annotate(jami_chaqmoq=Sum("ledger__ball"))
         .order_by("id")
     )
 
@@ -146,19 +149,17 @@ def stat_students(request):
             Q(email__icontains=q)
         )
 
-    # PAGINATION
-    from django.core.paginator import Paginator
-    paginator = Paginator(rows, 10)       # 1 sahifada 10 ta o‘quvchi
-    page = request.GET.get("page")
-    page_obj = paginator.get_page(page)
+    paginator = Paginator(rows, page_size)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
 
-    # GLOBAL TARTIB RAQAMI (barqaror)
-    start_index = page_obj.start_index()  # masalan 21, 31 ...
-    
-    return render(request, 'core/stats_users.html', {
-        'title': "O‘quvchilar",
-        'page_obj': page_obj,
-        'start_index': start_index,
+    start_index = page_obj.start_index()
+
+    return render(request, "core/stats_users.html", {
+        "title": "O‘quvchilar",
+        "page_obj": page_obj,
+        "start_index": start_index,
+        "page_size": page_size,
     })
 
 

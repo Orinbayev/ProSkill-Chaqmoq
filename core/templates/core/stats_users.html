@@ -2,174 +2,212 @@
 {% block content %}
 
 <style>
-/* ===== GLOBAL ===== */
-.table-wrapper {
-    background: rgba(255,255,255,0.03);
-    border-radius: 16px;
-    box-shadow: 0 4px 25px rgba(0,0,0,0.35);
+.table-box {
+    background: rgba(255,255,255,0.04);
+    border-radius: 14px;
     overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.45);
 }
 
-.table-dark thead {
-    background: rgba(255,255,255,0.07);
+/* Header */
+.table-box thead {
+    background: rgba(255,255,255,0.08);
     color: #38bdf8;
+    font-weight: 600;
 }
 
-.table-dark tbody tr:hover {
-    background: rgba(255,255,255,0.10);
-    transition: 0.2s ease;
+/* Hover */
+.table-box tbody tr:hover {
+    background: rgba(255,255,255,0.07);
+    transition: .2s;
 }
 
 /* Guruh badge */
 .badge-group {
     background: #1e3a8a;
     color: #fff;
-    padding: 5px 10px;
-    border-radius: 10px;
-    font-size: 11px;
-    margin: 2px;
+    padding: 4px 10px;
+    border-radius: 7px;
+    font-size: 12px;
     display: inline-block;
-    text-decoration: none !important;
+    margin: 2px;
 }
 .badge-group:hover {
     background: #3b82f6;
 }
 
 /* Chaqmoq */
-.chaqmoq-pos {
-    color:#22c55e;
-    font-weight:700;
-}
-.chaqmoq-neg {
-    color:#ef4444;
-    font-weight:700;
-}
-
-/* Search */
-.search-box input {
-    border-radius: 10px;
-}
-.search-box button {
-    border-radius: 10px;
-}
+.pos { color:#22c55e; font-weight:600; }
+.neg { color:#ef4444; font-weight:600; }
+.zero { color:#94a3b8; }
 
 /* Pagination */
 .pagination {
+    display: flex;
     gap: 6px;
+    list-style: none;
 }
-.pagination .page-link {
-    padding: 6px 14px;
-    border-radius: 10px !important;
-    background: rgba(255,255,255,0.07);
-    color: #e2e8f0;
-    border: none;
+.pagination a {
+    padding: 7px 13px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    text-decoration: none;
 }
-.pagination .page-link:hover {
-    background: rgba(255,255,255,0.15);
-}
-.pagination .active .page-link {
+.pagination .active a {
     background: #6366f1 !important;
-    color: white;
 }
 
-/* Bu muhim: underline yo‘q */
-a, a:hover, a:focus {
-    text-decoration: none !important;
+/* Page-size dropdown */
+.page-size-box select {
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 6px 12px;
+    border-radius: 10px;
 }
+
+
+.page-size-box select {
+    background: #f8fafc;          /* oq emas, biroz yumshoq kulrang */
+    color: #000 !important;        /* Yozuv QORA bo'ladi */
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    font-weight: 600;
+}
+
+.page-size-box select option {
+    color: #000 !important;        /* Dropdown ichidagi variantlar ham QORA */
+    background: #ffffff !important;
+}
+
+.page-size-box {
+    margin-top: 15px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
 </style>
+
 
 <h3 class="text-light fw-bold mb-4">{{ title }}</h3>
 
+
+<!-- SEARCH -->
 <form class="mb-4">
-  <div class="input-group search-box" style="max-width:500px;">
-    <input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Ism, familya yoki email">
-    <button class="btn btn-primary">Izlash</button>
+  <div class="input-group" style="max-width:500px;">
+      <input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Ism, familya yoki email">
+      <button class="btn btn-primary">Izlash</button>
   </div>
 </form>
 
-<div class="table-responsive table-wrapper">
-<table class="table table-dark table-hover align-middle mb-0">
-  <thead>
-    <tr>
-      <th>#</th>
-      <th>F.I.Sh</th>
-      <th>Login</th>
-      <th>Telefon</th>
-      <th>⚡ Chaqmoq</th>
-      <th>Guruhlar</th>
-    </tr>
-  </thead>
 
-  <tbody>
+
+<!-- TABLE -->
+<div class="table-responsive table-box">
+
+<table class="table table-dark table-hover mb-0 align-middle">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>F.I.Sh</th>
+            <th>Login</th>
+            <th>Telefon</th>
+            <th>⚡ Chaqmoq</th>
+            <th>Guruhlar</th>
+        </tr>
+    </thead>
+
+    <tbody>
     {% for u in page_obj %}
-      <tr>
-        <td>{{ start_index|add:forloop.counter0 }}</td>
+        <tr>
 
-        <td class="fw-semibold">
-          <span class="text-info">{{ u.ism }} {{ u.familya }}</span>
-        </td>
+            <td>{{ start_index|add:forloop.counter0 }}</td>
 
-        <td>{{ u.email }}</td>
+            <td class="text-info fw-semibold">
+                {{ u.ism }} {{ u.familya }}
+            </td>
 
-        <td>
-          {{ u.telefon1|default:"—" }}
-          {% if u.telefon2 %}
-             <small class="text-muted"> / {{ u.telefon2 }}</small>
-          {% endif %}
-        </td>
+            <td>{{ u.email }}</td>
 
-        <td>
-          {% if u.jami_chaqmoq %}
-              {% if u.jami_chaqmoq < 0 %}
-                 <span class="chaqmoq-neg">{{ u.jami_chaqmoq }}</span>
-              {% else %}
-                 <span class="chaqmoq-pos">{{ u.jami_chaqmoq }}</span>
-              {% endif %}
-          {% else %}
-              <span class="text-muted">0</span>
-          {% endif %}
-        </td>
+            <td>
+                {{ u.telefon1|default:"—" }}
+                {% if u.telefon2 %}
+                    <small class="text-muted"> / {{ u.telefon2 }}</small>
+                {% endif %}
+            </td>
 
-        <td>
-          {% for e in u.enrollment_set.all %}
-            <a href="{% url 'education:group_detail' e.group.id %}" class="badge-group">
-                {{ e.group.nom }}
-            </a>
-          {% empty %}
-            <span class="text-muted">— Guruh yo‘q</span>
-          {% endfor %}
-        </td>
+            <td>
+                {% if u.jami_chaqmoq %}
+                    {% if u.jami_chaqmoq < 0 %}
+                        <span class="neg">{{ u.jami_chaqmoq }}</span>
+                    {% else %}
+                        <span class="pos">{{ u.jami_chaqmoq }}</span>
+                    {% endif %}
+                {% else %}
+                    <span class="zero">0</span>
+                {% endif %}
+            </td>
 
-      </tr>
+            <td>
+                {% for e in u.enrollment_set.all %}
+                    <a href="{% url 'education:group_detail' e.group.id %}"
+                       class="badge-group">
+                        {{ e.group.nom }}
+                    </a>
+                {% empty %}
+                    <span class="text-muted">— Guruh yo‘q</span>
+                {% endfor %}
+            </td>
+
+        </tr>
     {% endfor %}
-  </tbody>
+    </tbody>
 
 </table>
 </div>
 
-<!-- PAGINATION -->
-<div class="d-flex justify-content-center mt-3">
-  <nav>
-    <ul class="pagination">
 
-      {% if page_obj.has_previous %}
-          <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">«</a></li>
-      {% endif %}
 
-      {% for i in page_obj.paginator.page_range %}
-          <li class="page-item {% if page_obj.number == i %}active{% endif %}">
-            <a class="page-link" href="?page={{ i }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">
-                {{ i }}
-            </a>
-          </li>
-      {% endfor %}
+<!-- PAGE SIZE + PAGINATION -->
+<div class="d-flex justify-content-between align-items-center mt-3">
 
-      {% if page_obj.has_next %}
-          <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">»</a></li>
-      {% endif %}
+    <!-- Ko‘rsatish soni -->
+<div class="page-size-box text-light">
+    Ko‘rsatish:
+    <select onchange="location.href='?size='+this.value{% if request.GET.q %}+'&q={{ request.GET.q }}'{% endif %}">
+        <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
+        <option value="20" {% if page_size == 20 %}selected{% endif %}>20</option>
+        <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
+        <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
+    </select>
+</div>
 
-    </ul>
-  </nav>
+
+    <!-- PAGES -->
+    <nav>
+        <ul class="pagination">
+
+            {% if page_obj.has_previous %}
+                <li><a href="?page={{ page_obj.previous_page_number }}&size={{ page_size }}">«</a></li>
+            {% endif %}
+
+            {% for i in page_obj.paginator.page_range %}
+                <li class="{% if page_obj.number == i %}active{% endif %}">
+                    <a href="?page={{ i }}&size={{ page_size }}">
+                        {{ i }}
+                    </a>
+                </li>
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <li><a href="?page={{ page_obj.next_page_number }}&size={{ page_size }}">»</a></li>
+            {% endif %}
+
+        </ul>
+    </nav>
+
 </div>
 
 {% endblock %}
