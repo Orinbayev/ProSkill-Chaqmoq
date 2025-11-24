@@ -17,7 +17,7 @@ urlpatterns = [
     path("points-details/", views.points_details, name="points_details"),
     path("group-price/<int:pk>/", views.get_group_price, name="group_price"),
     path("groups/<int:pk>/bulk_remove/", views.group_bulk_remove, name="group_bulk_remove"),
-
+    path('guruh/<int:g_id>/attend-all/', views.attend_all_students, name='group_attend_all'),
 
 
     # 🔹 Guruhlar kategoriyasi bo‘yicha

@@ -544,6 +544,67 @@ def group_detail(request, pk: int):
     return render(request, "education/group_detail.html", ctx)
 
 
+@login_required
+def attend_all(request, pk):
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required"})
+
+    g = get_object_or_404(Group, pk=pk)
+
+    # faqat direktor/manager/teacher
+    if request.user.role == "teacher" and g.oqituvchi != request.user:
+        return JsonResponse({"ok": False, "error": "ruxsat yo‘q"})
+
+    date_str = request.POST.get("date")
+    selected_date = parse_date(date_str) if date_str else localdate()
+
+    # davomat qayd qilish
+    students = Enrollment.objects.filter(group=g)
+    count = 0
+
+    for e in students:
+        Attendance.objects.update_or_create(
+            group=g,
+            student=e.student,
+            date=selected_date,
+            defaults={"present": True}
+        )
+        count += 1
+
+    return JsonResponse({"ok": True, "count": count})
+
+@require_POST
+@login_required
+def attend_all_students(request, g_id):
+    # Guruhni olish
+    g = get_object_or_404(Group, pk=g_id)
+
+    # faqat shu guruh o‘qituvchisi ko‘ra olsin
+    if request.user.role == "teacher" and g.oqituvchi != request.user:
+        return JsonResponse({"ok": False, "error": "ruxsat yo‘q"})
+
+    # Sana
+    date_str = request.POST.get("date")
+    selected_date = parse_date(date_str) if date_str else localdate()
+
+    # Guruhdagi barcha o‘quvchilar
+    enrollments = (
+        Enrollment.objects
+        .filter(group=g)
+        .select_related("student")
+    )
+
+    count = 0
+    for e in enrollments:
+        Attendance.objects.update_or_create(
+            group=g,
+            student=e.student,
+            date=selected_date,
+            defaults={"present": True}
+        )
+        count += 1
+
+    return JsonResponse({"ok": True, "count": count})
 
 # ---------- AJAX: Davomatni saqlash ----------
 @login_required

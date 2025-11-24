@@ -195,6 +195,92 @@ body {
     transform: scale(1.4);
     cursor: pointer;
 }
+/* Rule select */
+
+
+/* Attend All Button */
+
+
+/* Ball box */
+
+.ball-box button {
+    font-weight: 700;
+}
+
+/* General align fix */
+.card-body {
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
+}
+.remove-btn {
+    padding: 7px 14px;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: .25s ease;
+}
+.remove-btn:hover {
+    background:#ff6b6b;
+    color:#fff;
+}
+
+.add-student-btn {
+    padding: 7px 16px;
+    border-radius: 10px;
+    font-weight: 600;
+    background: linear-gradient(135deg,#007bff,#00aaff);
+    border: none;
+    transition:.25s ease;
+}
+.add-student-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0,123,255,0.4);
+}
+.select-rule {
+    border-radius: 8px;
+    padding: 4px 8px;
+}
+
+.attend-btn {
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #0d6efd, #0aa2ff);
+    border: none;
+}
+.attend-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0,123,255,0.4);
+}
+
+/* Ball box */
+.ball-box .btn {
+    font-weight: 700;
+}
+.ball-box input {
+    font-weight: 600;
+    border-radius: 6px !important;
+}
+.card-body label {
+    margin-right: 4px;
+
+}
+.select-rule {
+    min-width: 220px;
+}
+
+.attend-btn {
+    white-space: nowrap;
+    padding: 6px 14px;
+    font-weight: 600;
+}
+
+.ball-box input {
+    font-weight: 600;
+}
+
+.card-body label {
+    margin-right: 4px;
+}
 
 </style>
 
@@ -206,9 +292,11 @@ body {
 <!-- Guruh maʼlumotlari -->
 <div class="card mb-3 fade-in">
   <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+    <!-- LEFT (Group info) -->
     <div>
       <div class="h4 mb-1">{{ g.nom }}</div>
-      <div class="text-muted">
+      <div class="text-muted small">
         Center: {{ g.center }} &nbsp;|&nbsp;
         O‘qituvchi:
         {% if g.oqituvchi %}
@@ -216,11 +304,32 @@ body {
         {% else %} — {% endif %}
       </div>
     </div>
-    {% if can_add_student %}
-    <div><a href="{% url 'education:add_student_to_group' g.id %}" class="btn btn-primary">➕ O‘quvchi qo‘shish</a></div>
-    {% endif %}
+
+    <!-- RIGHT BUTTONS (remove mode + add student) -->
+    <div class="d-flex align-items-center gap-2">
+
+        <button id="remove-mode-btn"
+                class="btn btn-outline-danger btn-sm remove-btn">
+            🗑️ O‘quvchilarni chiqarish rejimi
+        </button>
+
+        <button id="remove-selected-btn"
+                class="btn btn-danger btn-sm d-none">
+            ❌ Tanlanganlarni chiqarish
+        </button>
+
+        {% if can_add_student %}
+        <a href="{% url 'education:add_student_to_group' g.id %}"
+           class="btn btn-primary btn-sm add-student-btn">
+            ➕ O‘quvchi qo‘shish
+        </a>
+        {% endif %}
+
+    </div>
+
   </div>
 </div>
+
 
 <!-- Sana tanlash -->
 <div class="card mb-3 fade-in">
@@ -234,47 +343,59 @@ body {
     </div>
   </div>
 </div>
-<div class="mb-3 d-flex justify-content-end gap-2 fade-in">
-    <button id="remove-mode-btn" class="btn btn-outline-danger btn-sm">
-        🗑️ O‘quvchilarni chiqarish rejimi
-    </button>
 
-    <button id="remove-selected-btn" 
-            class="btn btn-danger btn-sm d-none">
-        ❌ Tanlanganlarni chiqarish
-    </button>
-</div>
 
 <!-- Qoida va ball paneli -->
+
 <div class="card mb-3 fade-in">
-  <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
-    <div class="d-flex align-items-center gap-2">
-      <label class="fw-semibold me-1">🧠 Qoida:</label>
-      <select id="rule-global" class="form-select form-select-sm" style="min-width: 260px;">
-        <option value="">— Qoida tanlang —</option>
-        <optgroup label="Qo‘shish sabablari">
-          {% for r in rules_plus %}
-            <option value="{{ r.id }}" data-type="+">{{ r.nom }}</option>
-          {% endfor %}
-        </optgroup>
-        <optgroup label="Ayirish sabablari">
-          {% for r in rules_minus %}
-            <option value="{{ r.id }}" data-type="-">{{ r.nom }}</option>
-          {% endfor %}
-        </optgroup>
-      </select>
+  <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+    <!-- LEFT SIDE (Qoida + Tugma) -->
+    <div class="rule-box d-flex flex-nowrap align-items-center gap-3">
+
+        <label class="fw-semibold mb-0">🧠 Qoida:</label>
+
+        <select id="rule-global"
+                class="form-select form-select-sm select-rule">
+            <option value="">— Qoida tanlang —</option>
+
+            <optgroup label="Qo‘shish sabablari">
+                {% for r in rules_plus %}
+                    <option value="{{ r.id }}" data-type="+">{{ r.nom }}</option>
+                {% endfor %}
+            </optgroup>
+
+            <optgroup label="Ayirish sabablari">
+                {% for r in rules_minus %}
+                    <option value="{{ r.id }}" data-type="-">{{ r.nom }}</option>
+                {% endfor %}
+            </optgroup>
+        </select>
+
+        <button id="attend-all-btn" class="btn btn-primary btn-sm attend-btn">
+            Barcha o‘quvchilarni davomat qilish
+        </button>
     </div>
 
+    <!-- RIGHT SIDE (BALL) -->
     <div class="d-flex align-items-center gap-2">
-      <label class="fw-semibold me-1">⚡ Ball:</label>
-      <div class="input-group input-group-sm" style="width:120px">
-        <button class="btn btn-outline-secondary" type="button" id="glob-minus">−</button>
-        <input id="amount-global" type="number" class="form-control text-center" value="3" step="1">
-        <button class="btn btn-outline-secondary" type="button" id="glob-plus">+</button>
-      </div>
+        <label class="fw-semibold mb-0">⚡ Ball:</label>
+
+        <div class="input-group input-group-sm ball-box" style="width:120px;">
+            <button class="btn btn-outline-secondary" id="glob-minus">−</button>
+            <input id="amount-global" type="number" class="form-control text-center" value="3">
+            <button class="btn btn-outline-secondary" id="glob-plus">+</button>
+        </div>
     </div>
+
   </div>
 </div>
+
+
+
+
+
+
 
 <!-- JS URL manzillar -->
 
@@ -343,10 +464,13 @@ body {
 <div id="js-urls"
      data-attend="{% url 'education:attendance_today' g.id %}"
      data-points="{% url 'education:group_points' g.id %}"
-     data-remove="{% url 'education:group_bulk_remove' g.id %}">
+     data-remove="{% url 'education:group_bulk_remove' g.id %}"
+     data-attend-all="{% url 'education:group_attend_all' g.id %}">
 </div>
-<div id="remove-url" data-url="{% url 'education:group_bulk_remove' g.id %}"></div>
+<form id="csrf-form" class="d-none">{% csrf_token %}</form>
 
+<div id="remove-url" data-url="{% url 'education:group_bulk_remove' g.id %}"></div>
+<div id="group-id" data-id="{{ g.id }}"></div>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     /* === CSRF TOKEN === */
@@ -361,96 +485,118 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const urls = document.getElementById('js-urls');
     const attendanceUrl = urls.dataset.attend;
-    const pointsUrl = urls.dataset.points;
-    const removeUrl = urls.dataset.remove;
+    const pointsUrl     = urls.dataset.points;
+    const removeUrl     = urls.dataset.remove;
+    const attendAllUrl  = urls.dataset.attendAll;
 
-    const removeModeBtn = document.getElementById("remove-mode-btn");
-    const removeSelectedBtn = document.getElementById("remove-selected-btn");
-    const dateInput = document.getElementById('attendance-date');
+    const removeModeBtn    = document.getElementById("remove-mode-btn");
+    const removeSelectedBtn= document.getElementById("remove-selected-btn");
+    const dateInput        = document.getElementById('attendance-date');
+    const attendAllBtn     = document.getElementById('attend-all-btn');
 
-    if (!removeModeBtn || !removeSelectedBtn) {
-        console.error("❌ remove-mode tugmalari topilmadi");
+    function showToast(message, type = "success") {
+        const box = document.getElementById("toast-container");
+        const div = document.createElement("div");
+        div.className = `toast toast-${type}`;
+        div.innerHTML = message;
+        box.appendChild(div);
+        setTimeout(() => {
+            div.style.opacity = "0";
+            div.style.transform = "translateX(50px)";
+            setTimeout(() => div.remove(), 300);
+        }, 3000);
+    }
+
+    /* 🔵 Barcha o‘quvchilarni DAVOMAT QILISH */
+    if (attendAllBtn && attendAllUrl) {
+        attendAllBtn.addEventListener('click', function () {
+            const dateVal = dateInput.value || '';
+            const params = new URLSearchParams();
+            params.append('date', dateVal);
+
+            fetch(attendAllUrl, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": csrfToken,
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: params.toString()
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    // barcha checkboxlarni belgilash
+                    document.querySelectorAll(".attend-toggle")
+                        .forEach(ch => ch.checked = true);
+
+                    showToast(`✔ ${data.count} ta o‘quvchi davomat qilindi`, "success");
+                } else {
+                    showToast("Xato: " + (data.error || "Server xatosi"), "error");
+                }
+            })
+            .catch(() => showToast("Server bilan aloqa yo‘q!", "error"));
+        });
     }
 
     /* === REMOVE MODE YOQILISHI === */
-    let removeMode = false;
+    if (removeModeBtn && removeSelectedBtn) {
+        let removeMode = false;
 
-    removeModeBtn.addEventListener("click", function () {
-        removeMode = !removeMode;
+        removeModeBtn.addEventListener("click", function () {
+            removeMode = !removeMode;
 
-        document.querySelectorAll(".remove-col").forEach(col => {
-            col.classList.toggle("d-none", !removeMode);
-        });
+            document.querySelectorAll(".remove-col").forEach(col => {
+                col.classList.toggle("d-none", !removeMode);
+            });
 
-        removeSelectedBtn.classList.toggle("d-none", !removeMode);
+            removeSelectedBtn.classList.toggle("d-none", !removeMode);
 
-        if (removeMode) {
-            removeModeBtn.classList.remove("btn-outline-danger");
-            removeModeBtn.classList.add("btn-danger");
-            removeModeBtn.textContent = "❌ Rejimdan chiqish";
-        } else {
-            removeModeBtn.classList.remove("btn-danger");
-            removeModeBtn.classList.add("btn-outline-danger");
-            removeModeBtn.textContent = "🗑️ O‘quvchilarni chiqarish rejimi";
-        }
-    });
-
-    function showToast(message, type = "success") {
-    const box = document.getElementById("toast-container");
-
-    const div = document.createElement("div");
-    div.className = `toast toast-${type}`;
-    div.innerHTML = message;
-
-    box.appendChild(div);
-
-    setTimeout(() => {
-        div.style.opacity = "0";
-        div.style.transform = "translateX(50px)";
-        setTimeout(() => div.remove(), 300);
-    }, 3000);
-}
-    /* === REMOVE SELECTED === */
-    removeSelectedBtn.addEventListener("click", function () {
-        const checks = [...document.querySelectorAll(".remove-check:checked")];
-
-        if (checks.length === 0) {
-            showToast("⚠️ Hech bir o‘quvchi tanlanmagan!", "error");
-            return;
-        }
-
-        if (!confirm("Tanlangan o‘quvchilarni guruhdan chiqarishni tasdiqlaysizmi?"))
-            return;
-
-        const ids = checks.map(c => c.value);
-
-        const params = new URLSearchParams();
-        ids.forEach(id => params.append('enrollment_ids', id));
-
-        fetch(removeUrl, {
-            method: "POST",
-            headers: {
-                "X-CSRFToken": csrfToken,
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: params
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.ok) {
-                showToast(`${data.deleted} ta o‘quvchi guruhdan chiqarildi.`, "success");
-                location.reload();
+            if (removeMode) {
+                removeModeBtn.classList.remove("btn-outline-danger");
+                removeModeBtn.classList.add("btn-danger");
+                removeModeBtn.textContent = "❌ Chiqish";
             } else {
-                showToast("Xato: " + data.msg, "error");
+                removeModeBtn.classList.remove("btn-danger");
+                removeModeBtn.classList.add("btn-outline-danger");
+                removeModeBtn.textContent = "🗑️ Guruhdan chiqarish";
             }
-        })
-        .catch((err) => {
-            console.error(err);
-            showToast("Server bilan aloqa yo‘q.", "error");
         });
-    });
 
-    /* === DAVOMAT SANA O‘ZGARTIRISH === */
+        removeSelectedBtn.addEventListener("click", function () {
+            const checks = [...document.querySelectorAll(".remove-check:checked")];
+            if (!checks.length) {
+                showToast("⚠️ Hech bir o‘quvchi tanlanmagan!", "error");
+                return;
+            }
+
+            if (!confirm("Tanlangan o‘quvchilarni guruhdan chiqarishni tasdiqlaysizmi?"))
+                return;
+
+            const params = new URLSearchParams();
+            checks.forEach(c => params.append('enrollment_ids', c.value));
+
+            fetch(removeUrl, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": csrfToken,
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: params.toString()
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    showToast(`${data.deleted} ta o‘quvchi guruhdan chiqarildi.`, "success");
+                    location.reload();
+                } else {
+                    showToast("Xato: " + data.msg, "error");
+                }
+            })
+            .catch(() => showToast("Server bilan aloqa yo‘q.", "error"));
+        });
+    }
+
+    /* === SANA O‘ZGARGANDA URL GA QO‘YISH === */
     dateInput.addEventListener('change', function() {
         const d = this.value;
         if (!d) return;
@@ -459,8 +605,7 @@ document.addEventListener('DOMContentLoaded', function () {
         window.location.href = u.toString();
     });
 
-    /* === YORDAMCHI FUNKSIYALAR (davomat & chaqmoq) === */
-
+    /* === QUYIDAGI QISM – SENING ESKI KODING: chaqmoq qo‘shish/ayirish, davomat toggle === */
     function isPresent(studentId) {
         const row = document.querySelector(`button[data-student="${studentId}"]`).closest("tr");
         const checkbox = row.querySelector(".attend-toggle");
@@ -574,5 +719,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
+
 
 {% endblock %}
