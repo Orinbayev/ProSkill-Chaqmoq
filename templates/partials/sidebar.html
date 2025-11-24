@@ -15,7 +15,7 @@
     </a>
 
     <!-- ➕ O‘quvchi qo‘shish -->
-    {% if user.is_superuser or user.role == 'director' %}
+    {% if user.is_superuser or user.role == 'director' or user.role == 'manager' %}
     <a href="{% url 'accounts:add_user' %}" 
        class="sidebar-item {% if 'accounts/add_user' in request.path %}active{% endif %}">
       <span>➕</span> O‘quvchi qo‘shish

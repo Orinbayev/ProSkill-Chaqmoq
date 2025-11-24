@@ -113,7 +113,9 @@ def stat_managers(request):
         return render(request, 'core/dashboard_guest.html')
 
     q = request.GET.get('q', '').strip()
-    page_size = int(request.GET.get('size', 10))
+
+    # ❗ Managerda pagination yo‘q → page_size = 10 qat'iy (yoki hammasi)
+    page_size = 9999   # shunchaki hammasini chiqarib yuboradi
 
     rows = U.objects.filter(role='manager')
 
@@ -125,8 +127,7 @@ def stat_managers(request):
         )
 
     paginator = Paginator(rows, page_size)
-    page_number = request.GET.get("page", 1)
-    page_obj = paginator.get_page(page_number)
+    page_obj = paginator.get_page(1)  # ❗ har doim birinchi sahifa
 
     start_index = page_obj.start_index()
 
@@ -136,6 +137,9 @@ def stat_managers(request):
         'page_obj': page_obj,
         'page_size': page_size,
         'start_index': start_index,
+
+        # ❗ paginationni o‘chiradigan flag
+        'no_pagination': True,
     })
 
 @login_required
