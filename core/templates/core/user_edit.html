@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.edit-box {
+    max-width: 650px;
+    margin: 0 auto;
+    background: rgba(255,255,255,0.05);
+    padding: 28px;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    backdrop-filter: blur(8px);
+}
+.edit-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 20px;
+}
+.form-label { color: #cbd5e1; font-weight: 500; }
+.form-control {
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 10px;
+}
+.form-control:focus {
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 3px rgba(56,189,248,0.4);
+}
+.btn-save {
+    background: #22c55e;
+    padding: 10px 20px;
+    font-weight: 600;
+    color: #fff;
+    border-radius: 10px;
+}
+.btn-cancel {
+    background: rgba(255,255,255,0.12);
+    padding: 10px 20px;
+    font-weight: 600;
+    color: #fff;
+    border-radius: 10px;
+}
+</style>
+
+<div class="edit-box mt-4">
+    <div class="edit-title">O‘quvchini tahrirlash</div>
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label class="form-label">Ism</label>
+            <input type="text" name="ism" value="{{ user_obj.ism }}" class="form-control">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Familya</label>
+            <input type="text" name="familya" value="{{ user_obj.familya }}" class="form-control">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Email (Login)</label>
+            <input type="email" name="email" value="{{ user_obj.email }}" class="form-control">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Telefon 1</label>
+            <input type="text" name="telefon1" value="{{ user_obj.telefon1 }}" class="form-control">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Telefon 2</label>
+            <input type="text" name="telefon2" value="{{ user_obj.telefon2 }}" class="form-control">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Role</label>
+            <select name="role" class="form-control">
+                <option value="student" {% if user_obj.role == "student" %}selected{% endif %}>O‘quvchi</option>
+                <option value="teacher" {% if user_obj.role == "teacher" %}selected{% endif %}>O‘qituvchi</option>
+                <option value="manager" {% if user_obj.role == "manager" %}selected{% endif %}>Manager</option>
+                <option value="director" {% if user_obj.role == "director" %}selected{% endif %}>Direktor</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Parol (ixtiyoriy)</label>
+            <input type="password" name="password" placeholder="Yangi parol yozing..." class="form-control">
+        </div>
+
+        <div class="d-flex gap-3 mt-4">
+            <button class="btn-save">💾 Saqlash</button>
+            <a href="/stat/students/" class="btn-cancel">Bekor qilish</a>
+        </div>
+
+    </form>
+</div>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const tel1 = document.querySelector("input[name='telefon1']");
+    const tel2 = document.querySelector("input[name='telefon2']");
+
+    function formatPhone(input) {
+        // Agar bo'sh bo'lsa avtomatik +998 qo'yiladi
+        if (!input.value || input.value.trim() === "") {
+            input.value = "+998";
+        }
+
+        // Faqat raqamlar va + belgisi qolsin
+        input.value = input.value.replace(/[^0-9+]/g, "");
+
+        // +998 bilan boshlanmagan bo‘lsa, boshiga +998 qo‘shamiz
+        if (!input.value.startsWith("+998")) {
+            input.value = "+998" + input.value.replace("+", "").replace("998", "");
+        }
+
+        // Maksimal uzunlik — 13 belgidan oshmasin (+998 ** *** ** **)
+        if (input.value.length > 13) {
+            input.value = input.value.slice(0, 13);
+        }
+    }
+
+    [tel1, tel2].forEach(function (input) {
+        if (!input) return;
+
+        // Form ochilganda avtomatik +998 qo‘yish
+        formatPhone(input);
+
+        // Type qilayotganda ham avtomatik formatlanadi
+        input.addEventListener("input", function () {
+            formatPhone(input);
+        });
+    });
+});
+</script>
+
+{% endblock %}

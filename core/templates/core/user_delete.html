@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.delete-box {
+    max-width: 500px;
+    margin: 80px auto;
+    background: rgba(255,255,255,0.06);
+    border-radius: 18px;
+    padding: 30px;
+    text-align: center;
+    color: white;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+.delete-box h2 {
+    font-size: 26px;
+    margin-bottom: 15px;
+}
+
+.delete-box p {
+    font-size: 16px;
+    opacity: 0.8;
+}
+
+.btn-danger {
+    background: #dc2626;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 12px;
+    color: #fff;
+    font-weight: 600;
+    margin-top: 20px;
+}
+
+.btn-danger:hover {
+    background: #ef4444;
+}
+
+.btn-secondary {
+    background: #475569;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 12px;
+    color: #fff;
+    font-weight: 600;
+    margin-left: 10px;
+}
+
+.btn-secondary:hover {
+    background: #64748b;
+}
+</style>
+
+<div class="delete-box">
+    <h2>🗑 O‘chirishni tasdiqlaysizmi?</h2>
+
+    <p>
+        Siz <span class="text-info fw-bold">{{ user.ism }} {{ user.familya }}</span> 
+        foydalanuvchisini butunlay o‘chirmoqchisiz.
+    </p>
+
+    <form method="POST">
+        {% csrf_token %}
+        <button class="btn-danger">Ha, o‘chirish</button>
+        <a href="javascript:history.back()" class="btn-secondary">Bekor qilish</a>
+    </form>
+</div>
+
+{% endblock %}

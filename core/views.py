@@ -142,6 +142,58 @@ def stat_managers(request):
         'no_pagination': True,
     })
 
+
+@login_required
+def user_edit(request, pk):
+    user = get_object_or_404(U, pk=pk)
+
+    if request.method == "POST":
+        user.ism = request.POST.get("ism")
+        user.familya = request.POST.get("familya")
+        user.email = request.POST.get("email")
+        user.telefon1 = request.POST.get("telefon1")
+        user.telefon2 = request.POST.get("telefon2")
+        user.role = request.POST.get("role")
+
+        new_pass = request.POST.get("password")
+        if new_pass and new_pass.strip() != "":
+            user.set_password(new_pass)
+
+        user.save()
+        return redirect("/stat/students/")
+
+    return render(request, "core/user_edit.html", {
+        "user_obj": user
+    })
+
+
+
+
+
+@login_required
+def user_delete(request, pk):
+    if not _staff_only(request):
+        return render(request, 'core/dashboard_guest.html')
+
+    user = get_object_or_404(U, pk=pk)
+
+    if request.method == "POST":
+        user.delete()
+        return redirect("core:stat_students")
+
+    return render(request, "core/user_delete.html", {
+        "user": user
+    })
+
+
+@login_required
+def user_view(request, pk):
+    user = get_object_or_404(U, pk=pk)
+
+    return render(request, "core/user_view.html", {
+        "user": user
+    })
+
 @login_required
 def stat_teachers(request):
     if not _staff_only(request): return render(request, 'core/dashboard_guest.html')
