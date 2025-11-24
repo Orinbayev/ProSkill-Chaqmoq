@@ -105,14 +105,38 @@ def _staff_only(request):
     u = request.user
     return u.is_superuser or getattr(u, 'role', None) in ('manager','director')
 
+from django.core.paginator import Paginator
+
 @login_required
 def stat_managers(request):
-    if not _staff_only(request): return render(request, 'core/dashboard_guest.html')
-    q = request.GET.get('q','').strip()
+    if not _staff_only(request):
+        return render(request, 'core/dashboard_guest.html')
+
+    q = request.GET.get('q', '').strip()
+    page_size = int(request.GET.get('size', 10))
+
     rows = U.objects.filter(role='manager')
+
     if q:
-        rows = rows.filter(Q(ism__icontains=q)|Q(familya__icontains=q)|Q(email__icontains=q))
-    return render(request, 'core/stats_users.html', {'title': 'Managerlar', 'rows': rows})
+        rows = rows.filter(
+            Q(ism__icontains=q) |
+            Q(familya__icontains=q) |
+            Q(email__icontains=q)
+        )
+
+    paginator = Paginator(rows, page_size)
+    page_number = request.GET.get("page", 1)
+    page_obj = paginator.get_page(page_number)
+
+    start_index = page_obj.start_index()
+
+    return render(request, 'core/stats_users.html', {
+        'title': 'Managerlar',
+        'rows': rows,
+        'page_obj': page_obj,
+        'page_size': page_size,
+        'start_index': start_index,
+    })
 
 @login_required
 def stat_teachers(request):

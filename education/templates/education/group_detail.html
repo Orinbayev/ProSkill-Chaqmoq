@@ -692,6 +692,37 @@ document.addEventListener('DOMContentLoaded', function () {
         const v = Math.max(1, parseInt(input.value || '0', 10) - 1);
         input.value = v;
     });
+/* === QOIDA TURIGA QARAB QO‘SHISH / AYIRISH TUGMALARINI KO‘RINISHINI O‘ZGARTIRISH === */
+const ruleSelect = document.getElementById("rule-global");
+
+function updateButtonsByRule() {
+    const selected = ruleSelect.options[ruleSelect.selectedIndex];
+    const type = selected.dataset.type; // "+" yoki "-"
+
+    document.querySelectorAll("tr").forEach(row => {
+        const addBtn = row.querySelector(".btn-add");
+        const subBtn = row.querySelector(".btn-sub");
+
+        if (!addBtn || !subBtn) return;
+
+        if (type === "+") {
+            addBtn.style.display = "inline-block";
+            subBtn.style.display = "none";
+        } else if (type === "-") {
+            addBtn.style.display = "none";
+            subBtn.style.display = "inline-block";
+        } else {
+            // qoida tanlanmagan bo‘lsa ikkisini ham ko‘rsat
+            addBtn.style.display = "inline-block";
+            subBtn.style.display = "inline-block";
+        }
+    });
+}
+
+ruleSelect.addEventListener("change", updateButtonsByRule);
+
+// sahifa ochilganda tekshirish
+updateButtonsByRule();
 
     document.querySelectorAll('.attend-toggle').forEach(box => {
         box.addEventListener('change', function() {
