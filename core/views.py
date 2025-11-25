@@ -143,11 +143,18 @@ def stat_managers(request):
     })
 
 
+from education.models import Group, Enrollment
+
 @login_required
 def user_edit(request, pk):
-    user = get_object_or_404(U, pk=pk)
+    user = get_object_or_404(U, id=pk)
+
+    all_groups = Group.objects.all()
+    enrollments = Enrollment.objects.filter(student=user).select_related("group")
 
     if request.method == "POST":
+
+        # 1) USER MA'LUMOTLARI
         user.ism = request.POST.get("ism")
         user.familya = request.POST.get("familya")
         user.email = request.POST.get("email")
@@ -155,18 +162,51 @@ def user_edit(request, pk):
         user.telefon2 = request.POST.get("telefon2")
         user.role = request.POST.get("role")
 
-        new_pass = request.POST.get("password")
-        if new_pass and new_pass.strip() != "":
-            user.set_password(new_pass)
+        password = request.POST.get("password")
+        if password:
+            user.set_password(password)
 
         user.save()
+
+        # 2) Mavjud guruhlar bo‘yicha narxlarni yangilash
+        for enroll in enrollments:
+            field = f"kurs_narhi_{enroll.id}"
+            new_price = request.POST.get(field)
+
+            if new_price:
+                try:
+                    enroll.kurs_narhi = int(new_price)
+                    enroll.save()
+                except:
+                    pass
+
+        # 3) Yangi guruhga qo‘shish
+        group_id = request.POST.get("group_id")
+        kurs_narhi = request.POST.get("kurs_narhi")
+
+        if group_id:
+            group = Group.objects.get(id=group_id)
+
+            enroll, created = Enrollment.objects.get_or_create(
+                student=user,
+                group=group
+            )
+
+            if kurs_narhi:
+                try:
+                    enroll.kurs_narhi = int(kurs_narhi)
+                except:
+                    pass
+
+            enroll.save()
+
         return redirect("/stat/students/")
 
     return render(request, "core/user_edit.html", {
-        "user_obj": user
+        "user_obj": user,
+        "enrollments": enrollments,
+        "groups": all_groups,
     })
-
-
 
 
 

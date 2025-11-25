@@ -1454,9 +1454,6 @@ def group_delete(request, pk):
 
 @login_required
 def add_student_to_group(request, pk: int):
-    """
-    Guruhga bir nechta o‘quvchini qo‘shish (kurs narxi va o‘qituvchi foizi bilan birga)
-    """
     g = get_object_or_404(Group, pk=pk)
 
     allowed_roles = ['admin', 'manager', 'teacher', 'director']
@@ -1472,19 +1469,9 @@ def add_student_to_group(request, pk: int):
 
     if request.method == "POST":
         student_ids = request.POST.getlist("student_ids")
-        kurs_narhi = request.POST.get("kurs_narhi")
-        oqituvchi_foiz = request.POST.get("oqituvchi_foiz")
 
-        if not student_ids or not kurs_narhi:
-            messages.error(request, "O‘quvchi(lar) va kurs narxi kiritilishi shart!")
-            return redirect("education:add_student_to_group", pk=g.id)
-
-        try:
-            kurs_narhi = int(kurs_narhi)
-            oqituvchi_foiz = g.oqituvchi.oqituvchi_foizi
-
-        except ValueError:
-            messages.error(request, "❌ Kiritilgan qiymatlar son bo‘lishi kerak.")
+        if not student_ids:
+            messages.error(request, "❌ Hech bo‘lmaganda bitta o‘quvchi tanlang!")
             return redirect("education:add_student_to_group", pk=g.id)
 
         qoshilganlar = []
@@ -1493,34 +1480,36 @@ def add_student_to_group(request, pk: int):
         for sid in student_ids:
             student = get_object_or_404(User, pk=sid, role="student")
 
+            # Agar bu guruhda bo‘lsa
             if Enrollment.objects.filter(group=g, student=student).exists():
                 mavjudlar.append(f"{student.ism} {student.familya}")
                 continue
+
+            # ❗ KURS NARXNI STUDENTNING O‘ZIDAN OLAMIZ
+            existing_enrollment = Enrollment.objects.filter(student=student).first()
+            kurs_narhi = existing_enrollment.kurs_narhi if existing_enrollment else 0
 
             Enrollment.objects.create(
                 group=g,
                 student=student,
                 kurs_narhi=kurs_narhi,
-                oqituvchi_foiz=oqituvchi_foiz,
+                oqituvchi_foiz=g.oqituvchi.oqituvchi_foizi,
             )
+
             qoshilganlar.append(f"{student.ism} {student.familya}")
 
         if qoshilganlar:
-            messages.success(
-                request,
-                f"✅ {len(qoshilganlar)} ta o‘quvchi guruhga qo‘shildi! "
-                f"Kurs narxi: {kurs_narhi:,} so‘m | O‘qituvchi ulushi: {oqituvchi_foiz}%"
-            )
+            messages.success(request, f"✅ {len(qoshilganlar)} ta o‘quvchi guruhga qo‘shildi!")
 
         if mavjudlar:
-            messages.warning(
-                request,
-                f"⚠️ Quyidagi o‘quvchilar allaqachon bu guruhda bor: {', '.join(mavjudlar)}"
-            )
+            messages.warning(request, "⚠️ Allaqachon guruhda bor: " + ", ".join(mavjudlar))
 
         return redirect("education:group_detail", pk=g.id)
 
-    return render(request, "education/add_student_to_group.html", {"g": g, "students": students})
+    return render(request, "education/add_student_to_group.html", {
+        "g": g,
+        "students": students
+    })
 
 
 
