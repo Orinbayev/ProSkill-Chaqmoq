@@ -53,7 +53,7 @@
 
         <div class="row">
 
-            <!-- === LEFT COLUMN === -->
+            <!-- LEFT COLUMN -->
             <div class="col-md-6">
 
                 <div class="mb-3">
@@ -61,15 +61,17 @@
                     <input type="text" name="ism" value="{{ user_obj.ism }}" class="form-control">
                 </div>
 
-
                 <div class="mb-3">
                     <label class="form-label">Email (Login)</label>
                     <input type="email" name="email" value="{{ user_obj.email }}" class="form-control">
                 </div>
+
                 <div class="mb-3">
                     <label class="form-label">Telefon 1</label>
-                    <input type="text" name="telefon1" id="telefon1" value="{{ user_obj.telefon1 }}" class="form-control">
+                    <input type="text" name="telefon1" id="telefon1"
+                           value="{{ user_obj.telefon1 }}" class="form-control">
                 </div>
+
                 <div class="mb-3">
                     <label class="form-label">Role</label>
                     <select name="role" class="form-control">
@@ -80,65 +82,88 @@
                     </select>
                 </div>
 
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div class="col-md-6">
+
+                <div class="mb-3">
+                    <label class="form-label">Familya</label>
+                    <input type="text" name="familya" value="{{ user_obj.familya }}" class="form-control">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Parol (ixtiyoriy)</label>
+                    <input type="password" name="password" placeholder="Yangi parol yozing..." class="form-control">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Telefon 2</label>
+                    <input type="text" name="telefon2" id="telefon2"
+                           value="{{ user_obj.telefon2 }}" class="form-control">
+                </div>
 
             </div>
 
-            <!-- === RIGHT COLUMN === -->
-<!-- === RIGHT COLUMN === -->
-<div class="col-md-6">
-    <div class="mb-3">
-        <label class="form-label">Familya</label>
-        <input type="text" name="familya" value="{{ user_obj.familya }}" class="form-control">
-    </div>
-
-    <div class="mb-3">
-        <label class="form-label">Parol (ixtiyoriy)</label>
-        <input type="password" name="password" placeholder="Yangi parol yozing..." class="form-control">
-    </div>
-
-    <div class="mb-3">
-        <label class="form-label">Telefon 2</label>
-        <input type="text" name="telefon2" id="telefon2" value="{{ user_obj.telefon2 }}" class="form-control">
-    </div>
-
-
-
-
-</div>
-
-<!-- === KURS NARXI UZUN QATOR (FULL WIDTH) === -->
-<!-- <div class="col-md-12">
-    <div class="mb-3">
-        <label class="form-label">Kurs narxi (so'm)</label>
-        <input type="number" name="kurs_narhi" id="kursNarxiInput"
-       value="{% if enrollments %}{{ enrollments.0.kurs_narhi }}{% else %}0{% endif %}"
-       class="form-control">
-
-    </div>
-</div> -->
-
-<hr class="mt-4 mb-3" style="border-color:#ffffff30">
-
-<h4 class="text-light mb-3">📘 O‘quvchining guruhlari va kurs narxlari</h4>
-
-{% if enrollments %}
-    {% for e in enrollments %}
-        <div class="mb-3">
-            <label class="form-label text-info">
-                {{ e.group.nom }} — {{ e.group.center }}
-            </label>
-
-            <input type="number"
-                   name="kurs_narhi_{{ e.id }}"
-                   class="form-control"
-                   value="{{ e.kurs_narhi }}"
-                   min="0">
         </div>
-    {% endfor %}
-{% else %}
-    <p class="text-warning">O‘quvchi hali hech qaysi guruhga yozilmagan.</p>
-{% endif %}
 
+        <hr class="mt-4 mb-3" style="border-color:#ffffff30">
+
+        <h4 class="text-light mb-3">📘 O‘quvchining guruhlari va kurs narxlari</h4>
+
+        {% if enrollments %}
+            {% for e in enrollments %}
+                <div class="mb-3 p-3" style="background:rgba(255,255,255,0.05); border-radius:10px;">
+
+                    <label class="form-label text-info">
+                        {{ e.group.nom }} — {{ e.group.center }}
+                    </label>
+
+                    <div class="d-flex gap-3">
+                        <!-- Narx -->
+                        <input type="number"
+                               name="kurs_narhi_{{ e.id }}"
+                               class="form-control"
+                               value="{{ e.kurs_narhi }}"
+                               min="0"
+                               style="flex:2">
+
+                        <!-- Guruhdan chiqarish -->
+                        <div class="form-check d-flex align-items-center" style="flex:1;">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   name="delete_group_{{ e.id }}"
+                                   id="del{{ e.id }}">
+                            <label for="del{{ e.id }}" class="form-check-label text-danger ms-2">
+                                ❌ O‘chirish
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-warning">O‘quvchi hali hech qaysi guruhga yozilmagan.</p>
+        {% endif %}
+
+        <hr class="mt-4 mb-3" style="border-color:#ffffff30">
+
+        <h4 class="text-light mb-3">➕ Yangi guruhga qo‘shish</h4>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Guruhni tanlang</label>
+                <select name="yangi_group_id" class="form-control">
+                    <option value="">— Tanlanmagan —</option>
+                    {% for g in groups %}
+                        <option value="{{ g.id }}">{{ g.nom }} — {{ g.center }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Kurs narxi (so‘m)</label>
+                <input type="number" name="yangi_group_price" class="form-control" min="0">
+            </div>
         </div>
 
         <div class="d-flex gap-3 mt-4">
@@ -151,30 +176,19 @@
 
 <script>
 function formatPhone(el){
-    if(!el.value.startsWith("+998")){
+    if (!el.value.startsWith("+998")) {
         el.value = "+998" + el.value.replace(/\D/g, "").slice(0, 9);
     }
     el.value = el.value.replace(/[^\d+]/g, "");
 }
-["telefon1", "telefon2"].forEach(id=>{
+
+["telefon1", "telefon2"].forEach(id => {
     const input = document.getElementById(id);
-    if(input){
+    if (input) {
         formatPhone(input);
-        input.addEventListener("input",()=>formatPhone(input));
+        input.addEventListener("input", () => formatPhone(input));
     }
 });
-
-document.getElementById("group_id").addEventListener("change", function(){
-    const gid = this.value;
-    if(!gid) return;
-
-    fetch(`/education/group-price/${gid}/`)
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById("kursNarxiInput").value = data.price;
-        });
-});
-
 </script>
 
 {% endblock %}

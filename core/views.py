@@ -153,7 +153,6 @@ def user_edit(request, pk):
     enrollments = Enrollment.objects.filter(student=user).select_related("group")
 
     if request.method == "POST":
-
         # 1) USER MA'LUMOTLARI
         user.ism = request.POST.get("ism")
         user.familya = request.POST.get("familya")
@@ -168,36 +167,40 @@ def user_edit(request, pk):
 
         user.save()
 
-        # 2) Mavjud guruhlar bo‘yicha narxlarni yangilash
+        # 2) Mavjud guruhlar bo‘yicha narxlarni yangilash / o‘chirish
         for enroll in enrollments:
+            # agar checkbox bosilgan bo‘lsa – guruhdan chiqaramiz
+            if request.POST.get(f"delete_group_{enroll.id}") == "on":
+                enroll.active = False          # ❌ delete emas
+                enroll.save()
+                continue
+
+
+            # aks holda narxni yangilaymiz
             field = f"kurs_narhi_{enroll.id}"
             new_price = request.POST.get(field)
-
             if new_price:
                 try:
                     enroll.kurs_narhi = int(new_price)
                     enroll.save()
-                except:
+                except ValueError:
                     pass
 
-        # 3) Yangi guruhga qo‘shish
-        group_id = request.POST.get("group_id")
-        kurs_narhi = request.POST.get("kurs_narhi")
+        # 3) Yangi guruhga qo‘shish (ixtiyoriy)
+        yangi_group_id = request.POST.get("yangi_group_id")
+        yangi_group_price = request.POST.get("yangi_group_price")
 
-        if group_id:
-            group = Group.objects.get(id=group_id)
-
+        if yangi_group_id:
+            group = Group.objects.get(id=yangi_group_id)
             enroll, created = Enrollment.objects.get_or_create(
                 student=user,
                 group=group
             )
-
-            if kurs_narhi:
+            if yangi_group_price:
                 try:
-                    enroll.kurs_narhi = int(kurs_narhi)
-                except:
+                    enroll.kurs_narhi = int(yangi_group_price)
+                except ValueError:
                     pass
-
             enroll.save()
 
         return redirect("/stat/students/")
@@ -207,7 +210,6 @@ def user_edit(request, pk):
         "enrollments": enrollments,
         "groups": all_groups,
     })
-
 
 
 @login_required
