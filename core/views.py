@@ -284,7 +284,60 @@ def stat_students(request):
         "page_size": page_size,
     })
 
+import openpyxl
+from openpyxl.styles import Font, Alignment
 
+from django.http import HttpResponse
+
+@login_required
+def stat_students_export_excel(request):
+    if not _staff_only(request):
+        return HttpResponse("Ruxsat yo‘q", status=403)
+
+    # Studentlarni olamiz
+    students = (
+        U.objects.filter(role='student')
+        .prefetch_related('enrollment_set__group')
+        .annotate(jami_chaqmoq=Sum("ledger__ball"))
+        .order_by("id")
+    )
+
+    # Excel yaratamiz
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Oquvchilar"
+
+    # Header yozamiz
+    headers = ["#", "F.I.Sh", "Login", "Telefon", "Guruhlar"]
+    ws.append(headers)
+
+    # Header style
+    for col in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col)
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal="center")
+
+    # Data yozamiz
+    for idx, u in enumerate(students, start=1):
+        groups = ", ".join([e.group.nom for e in u.enrollment_set.all()])
+        phone = u.telefon1 or ""
+
+        ws.append([
+            idx,
+            f"{u.ism} {u.familya}",
+            u.email,
+            phone,
+            groups
+        ])
+
+    # Javob sifatida Excel qaytaramiz
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response['Content-Disposition'] = 'attachment; filename="oquvchilar.xlsx"'
+    wb.save(response)
+
+    return response
 @login_required
 def stat_products(request):
     if not _staff_only(request): return render(request, 'core/dashboard_guest.html')

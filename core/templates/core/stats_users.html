@@ -146,12 +146,17 @@
 <h3 class="text-light fw-bold mb-4">{{ title }}</h3>
 
 <!-- ================= SEARCH ================= -->
-<form class="mb-4">
-  <div class="input-group" style="max-width:500px;">
-      <input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Ism, familya yoki email">
-      <button class="btn btn-primary">Izlash</button>
-  </div>
-</form>
+<div class="d-flex justify-content-between mb-3">
+    <form style="max-width:500px;" class="d-flex">
+        <input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Ism, familya yoki email">
+        <button class="btn btn-primary ms-2">Izlash</button>
+    </form>
+    
+    <a href="{% url 'core:students_export_excel' %}" class="btn btn-success">
+        📥 Excel
+    </a>
+</div>
+
 
 <!-- ================= TABLE ================= -->
 <div class="table-responsive table-box">
