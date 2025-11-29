@@ -11,7 +11,7 @@
       <tr>
         <th class="text-info">#</th>
         <th class="text-info">F.I.Sh</th>
-        <th class="text-info">Email</th>
+        <!-- <th class="text-info">Email</th> -->
         <th class="text-info">Telefon</th>
         <th class="text-info">Ulushi (%)</th>
         <th class="text-info">Guruh</th>
@@ -26,10 +26,14 @@
 
         <!-- Ism + Familya bir qatorda -->
         <td class="fw-semibold">
-          {{ t.ism }} <br> {{ t.familya }}
-        </td>
+    {{ t.ism }} <br>
 
-        <td class="text-warning">{{ t.email }}</td>
+    {% if t.familya %}{{ t.familya }}{% endif %}
+    {% if t.otchestvo %} {{ t.otchestvo }}{% endif %}
+</td>
+
+
+        <!-- <td class="text-warning">{{ t.email }}</td> -->
         <td>{{ t.telefon1 }}</td>
 
         <td>

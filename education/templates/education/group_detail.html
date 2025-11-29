@@ -428,9 +428,12 @@ body {
 
     <td>
         <a href="{% url 'education:student_detail' e.student.id %}"
-           class="fw-semibold text-decoration-none text-primary">
-            {{ e.student.ism }} {{ e.student.familya }}
-        </a>
+   class="fw-semibold text-decoration-none text-primary">
+    {{ e.student.ism }}
+    {% if e.student.familya %} {{ e.student.familya }} {% endif %}
+    {% if e.student.otchestvo %} {{ e.student.otchestvo }} {% endif %}
+</a>
+
         <div class="text-muted small">{{ e.student.email|default:e.student.username }}</div>
     </td>
 

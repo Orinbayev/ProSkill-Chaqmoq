@@ -51,61 +51,64 @@
     <form method="POST">
         {% csrf_token %}
 
-        <div class="row">
+<div class="row">
 
-            <!-- LEFT COLUMN -->
-            <div class="col-md-6">
+    <!-- 1-QATOR: Ism, Familya, Otasining ismi -->
+    <div class="col-md-4 mb-3">
+        <label class="form-label">Ism</label>
+        <input type="text" name="ism" value="{{ user_obj.ism }}" class="form-control">
+    </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Ism</label>
-                    <input type="text" name="ism" value="{{ user_obj.ism }}" class="form-control">
-                </div>
+    <div class="col-md-4 mb-3">
+        <label class="form-label">Familya</label>
+        <input type="text" name="familya" value="{{ user_obj.familya }}" class="form-control">
+    </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Email (Login)</label>
-                    <input type="email" name="email" value="{{ user_obj.email }}" class="form-control">
-                </div>
+    <div class="col-md-4 mb-3">
+        <label class="form-label">Otasining ismi</label>
+        <input type="text" name="otchestvo" value="{{ user_obj.otchestvo }}" class="form-control">
+    </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Telefon 1</label>
-                    <input type="text" name="telefon1" id="telefon1"
-                           value="{{ user_obj.telefon1 }}" class="form-control">
-                </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Role</label>
-                    <select name="role" class="form-control">
-                        <option value="student" {% if user_obj.role == "student" %}selected{% endif %}>O‘quvchi</option>
-                        <option value="teacher" {% if user_obj.role == "teacher" %}selected{% endif %}>O‘qituvchi</option>
-                        <option value="manager" {% if user_obj.role == "manager" %}selected{% endif %}>Manager</option>
-                        <option value="director" {% if user_obj.role == "director" %}selected{% endif %}>Direktor</option>
-                    </select>
-                </div>
+    <!-- 2-QATOR: Email — Parol -->
+    <div class="col-md-6 mb-3">
+        <label class="form-label">Email (Login)</label>
+        <input type="email" name="email" value="{{ user_obj.email }}" class="form-control">
+    </div>
 
-            </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label">Parol (ixtiyoriy)</label>
+        <input type="password" name="password" placeholder="Yangi parol yozing..." class="form-control">
+    </div>
 
-            <!-- RIGHT COLUMN -->
-            <div class="col-md-6">
 
-                <div class="mb-3">
-                    <label class="form-label">Familya</label>
-                    <input type="text" name="familya" value="{{ user_obj.familya }}" class="form-control">
-                </div>
+    <!-- 3-QATOR: Telefon 1 — Telefon 2 -->
+    <div class="col-md-6 mb-3">
+        <label class="form-label">Telefon 1</label>
+        <input type="text" name="telefon1" id="telefon1"
+               value="{{ user_obj.telefon1 }}" class="form-control">
+    </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Parol (ixtiyoriy)</label>
-                    <input type="password" name="password" placeholder="Yangi parol yozing..." class="form-control">
-                </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label">Telefon 2</label>
+        <input type="text" name="telefon2" id="telefon2"
+               value="{{ user_obj.telefon2 }}" class="form-control">
+    </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Telefon 2</label>
-                    <input type="text" name="telefon2" id="telefon2"
-                           value="{{ user_obj.telefon2 }}" class="form-control">
-                </div>
 
-            </div>
+    <!-- 4-QATOR: Role -->
+    <div class="col-md-12 mb-3">
+        <label class="form-label">Role</label>
+        <select name="role" class="form-control">
+            <option value="student" {% if user_obj.role == "student" %}selected{% endif %}>O‘quvchi</option>
+            <option value="teacher" {% if user_obj.role == "teacher" %}selected{% endif %}>O‘qituvchi</option>
+            <option value="manager" {% if user_obj.role == "manager" %}selected{% endif %}>Manager</option>
+            <option value="director" {% if user_obj.role == "director" %}selected{% endif %}>Direktor</option>
+        </select>
+    </div>
 
-        </div>
+</div>
+
 
         <hr class="mt-4 mb-3" style="border-color:#ffffff30">
 

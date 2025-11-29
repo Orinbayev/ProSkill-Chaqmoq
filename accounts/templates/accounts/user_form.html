@@ -1,7 +1,38 @@
 {% extends 'base.html' %}
 {% block content %}
 <h3 class="mb-4 text-light fw-semibold">{{ title }}</h3>
+<style>
+  .uniform-input {
+    width: 100% !important;
+}
+input.uniform-input {
+    width: 100% !important;
+}
+label.form-label {
+    white-space: nowrap;
+}
+.col-md-4 input {
+    width: 100% !important;
+}
 
+label.form-label {
+    white-space: nowrap; /* Chiroyli turishi uchun */
+}
+.col-md-4 {
+    flex: 0 0 33.333%;
+    max-width: 33.333%;
+}
+.col-md-4 .form-control {
+    height: 45px;
+}
+label.form-label {
+    display: inline-block;
+    margin-bottom: 6px;
+    white-space: nowrap;
+}
+
+
+</style>
 {% if form.errors %}
 <div class="alert alert-danger mt-3">
   <ul class="mb-0">
@@ -20,49 +51,60 @@
 <form method="post" class="user-form glass-card">
   {% csrf_token %}
 
-  <div class="row g-3">
+<div class="row g-0 gx-3 gy-3">
 
-    <div class="col-md-6">
-      <label class="form-label">{{ form.ism.label }}</label>
-      {{ form.ism }}
-    </div>
-
-    <div class="col-md-6">
-      <label class="form-label">{{ form.familya.label }}</label>
-      {{ form.familya }}
-    </div>
-
-    <div class="col-md-6">
-      <label class="form-label">{{ form.telefon1.label }}</label>
-      {{ form.telefon1 }}
-    </div>
-
-    <div class="col-md-6">
-      <label class="form-label">{{ form.telefon2.label }}</label>
-      {{ form.telefon2 }}
-    </div>
-
-    <div class="col-md-6">
-      <label class="form-label">{{ form.center.label }}</label>
-      {{ form.center }}
-    </div>
-
-    <div class="col-md-6">
-      <label class="form-label">{{ form.role.label }}</label>
-      {{ form.role }}
-    </div>
-
-    <div class="col-md-6">
-      <label class="form-label">{{ form.email.label }}</label>
-      {{ form.email }}
-    </div>
-
-    <div class="col-md-6 position-relative">
-      <label class="form-label">{{ form.password.label }}</label>
-      {{ form.password }}
-      <button type="button" class="btn btn-sm toggle-eye" id="togglePassword">👁</button>
-    </div>
+  <!-- === 1-qator: Ism / Familya / Otchestvo === -->
+  <div class="col-md-4">
+    <label class="form-label">{{ form.ism.label }}</label>
+    {{ form.ism }}
   </div>
+
+  <div class="col-md-4">
+    <label class="form-label">{{ form.familya.label }}</label>
+    {{ form.familya }}
+  </div>
+
+  <div class="col-md-4">
+    <label class="form-label">{{ form.otchestvo.label }}</label>
+    {{ form.otchestvo }}
+  </div>
+
+  <!-- === 2-qator: Telefonlar === -->
+  <div class="col-md-6">
+    <label class="form-label">{{ form.telefon1.label }}</label>
+    {{ form.telefon1 }}
+  </div>
+
+  <div class="col-md-6">
+    <label class="form-label">{{ form.telefon2.label }}</label>
+    {{ form.telefon2 }}
+  </div>
+
+  <!-- === 3-qator: Center / Role === -->
+  <div class="col-md-6">
+    <label class="form-label">{{ form.center.label }}</label>
+    {{ form.center }}
+  </div>
+
+  <div class="col-md-6">
+    <label class="form-label">{{ form.role.label }}</label>
+    {{ form.role }}
+  </div>
+
+  <!-- === 4-qator: Email / Password === -->
+  <div class="col-md-6">
+    <label class="form-label">{{ form.email.label }}</label>
+    {{ form.email }}
+  </div>
+
+  <div class="col-md-6 position-relative">
+    <label class="form-label">{{ form.password.label }}</label>
+    {{ form.password }}
+    <button type="button" class="btn btn-sm toggle-eye" id="togglePassword">👁</button>
+  </div>
+
+</div>
+
 
   <!-- === STUDENT ROLE — GROUP SELECT === -->
   <div id="groupSelectBlock" class="mt-4" style="display:none;">

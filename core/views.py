@@ -42,22 +42,38 @@ from accounts.forms import TeacherForm
 
 @login_required
 def teacher_edit(request, pk):
-    teacher = get_object_or_404(User, pk=pk, role="teacher")
+    # 1) O‘qituvchini topamiz (role bilan emas, chunki manager → teacher bo‘lishi mumkin)
+    teacher = get_object_or_404(User, pk=pk)
 
     if request.method == "POST":
         form = TeacherForm(request.POST, instance=teacher)
-        if form.is_valid():
-            teacher = form.save()
 
-            # 🔥 Yangi foiz
+        if form.is_valid():
+            teacher = form.save(commit=False)
+
+            # 🔥 Otasining ismi albatta saqlansin
+            teacher.otchestvo = form.cleaned_data.get("otchestvo")
+
+            # 🔥 Telefonlarni tozalash
+            tel1 = form.cleaned_data.get("telefon1", "")
+            tel2 = form.cleaned_data.get("telefon2", "")
+
+            if tel1:
+                teacher.telefon1 = "+998" + tel1.replace("+998", "").replace(" ", "").replace("-", "")
+            if tel2:
+                teacher.telefon2 = "+998" + tel2.replace("+998", "").replace(" ", "").replace("-", "")
+
+            teacher.save()
+
+            # 🔥 Yangi ulush (foiz)
             yangi_foiz = teacher.oqituvchi_foizi
 
-            # 🔥 1) O‘qituvchi ishlaydigan barcha guruhlarni yangilash
             from education.models import Group, Enrollment
 
+            # 🔥 1) O‘qituvchi ishlaydigan guruhlar
             Group.objects.filter(oqituvchi=teacher).update(oqituvchi_foiz=yangi_foiz)
 
-            # 🔥 2) O‘qituvchining barcha enrollmentlarini yangilash
+            # 🔥 2) O‘sha guruhlardagi barcha enrollmentlar
             Enrollment.objects.filter(group__oqituvchi=teacher).update(oqituvchi_foiz=yangi_foiz)
 
             return redirect("core:teacher_list")
@@ -65,7 +81,10 @@ def teacher_edit(request, pk):
     else:
         form = TeacherForm(instance=teacher)
 
-    return render(request, "core/teacher_edit.html", {"form": form, "teacher": teacher})
+    return render(request, "core/teacher_edit.html", {
+        "form": form,
+        "teacher": teacher
+    })
 
 
 def _build_stats():
@@ -156,6 +175,7 @@ def user_edit(request, pk):
         # 1) USER MA'LUMOTLARI
         user.ism = request.POST.get("ism")
         user.familya = request.POST.get("familya")
+        user.otchestvo = request.POST.get("otchestvo")
         user.email = request.POST.get("email")
         user.telefon1 = request.POST.get("telefon1")
         user.telefon2 = request.POST.get("telefon2")

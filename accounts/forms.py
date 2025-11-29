@@ -11,22 +11,25 @@ ROLE_CHOICES = (
 )
 
 class AddUserForm(forms.ModelForm):
-    email = forms.CharField(label="Login")
-    telefon1 = forms.CharField(label="Telefon nomer", required=False)
-    telefon2 = forms.CharField(label="Uyida telefon nomeri", required=False)
+    # email = forms.CharField(label="Login")
+    # telefon1 = forms.CharField(label="Telefon nomer", required=False)
+    # telefon2 = forms.CharField(label="Uyida telefon nomeri", required=False)
+    # otchestvo = forms.CharField(label="Otasining ismi", required=False)
+
+
     center = forms.ModelChoiceField(
         queryset=Center.objects.all(),
         empty_label="---------",
         required=False,
         label="Center"
     )
-    role = forms.ChoiceField(choices=ROLE_CHOICES, label="Roli")
-    password = forms.CharField(label="Parol", widget=forms.PasswordInput)
+    # role = forms.ChoiceField(choices=ROLE_CHOICES, label="Roli")
+    # password = forms.CharField(label="Parol", widget=forms.PasswordInput)
 
     class Meta:
         model = User
         fields = [
-            "ism", "familya",
+            "ism", "familya", "otchestvo",
             "telefon1", "telefon2",
             "center", "role",
             "email", "password",
@@ -43,6 +46,12 @@ class AddUserForm(forms.ModelForm):
                 "class": "form-control uniform-input",
                 "id": "id_familya"
             }),
+           "otchestvo": forms.TextInput(attrs={
+                "placeholder": "Otasining ismi (ixtiyoriy)",
+                "class": "form-control uniform-input w-100",
+                "id": "id_otchestvo"
+            }),
+
             "telefon1": forms.TextInput(attrs={
                 "placeholder": "+998XXXXXXXXX",
                 "class": "form-control uniform-input",
@@ -69,22 +78,12 @@ class AddUserForm(forms.ModelForm):
             }),
         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for name in ["center", "role"]:
-            self.fields[name].widget.attrs.setdefault("class", "form-select uniform-input")
-
-    def clean_email(self):
-        login = self.cleaned_data["email"].strip()
-        if User.objects.filter(email__iexact=login).exists():
-            raise forms.ValidationError("Bu login allaqachon mavjud.")
-        return login
-
     def save(self, commit=True):
         data = self.cleaned_data
         user = User(
             ism=data.get("ism"),
             familya=data.get("familya"),
+            otchestvo=data.get("otchestvo"),
             email=data.get("email"),
             telefon1=data.get("telefon1"),
             telefon2=data.get("telefon2"),
@@ -99,7 +98,8 @@ class AddUserForm(forms.ModelForm):
             user.save()
         return user
 
+
 class TeacherForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ['ism', 'familya', 'email', 'telefon1', 'center', 'oqituvchi_foizi']
+        fields = ['ism', 'familya', 'otchestvo', 'email', 'telefon1', 'center', 'oqituvchi_foizi']

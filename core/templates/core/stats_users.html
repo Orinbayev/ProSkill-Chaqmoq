@@ -183,9 +183,15 @@
 
             <!-- F.I.Sh bosilganda admin user detail sahifasiga o'tadi -->
             <td class="text-info fw-semibold">
-                <a href="/admin/accounts/user/{{ u.id }}/change/" class="text-info" style="text-decoration:none;">
-                    {{ u.ism }} {{ u.familya }}
-                </a>
+            <a href="/admin/accounts/user/{{ u.id }}/change/" 
+            class="text-info" style="text-decoration:none;">
+
+                {{ u.ism }}
+                {% if u.familya %} {{ u.familya }}{% endif %}
+                {% if u.otchestvo %} {{ u.otchestvo }}{% endif %}
+
+            </a>
+
             </td>
 
             <td>{{ u.email }}</td>

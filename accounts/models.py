@@ -54,7 +54,7 @@ class User(AbstractUser):
     familya = models.CharField(max_length=120)
     telefon1 = models.CharField(max_length=20)
     telefon2 = models.CharField(max_length=20, blank=True)
-
+    otchestvo = models.CharField(max_length=150, blank=True, null=True)
     lavozim = models.CharField(max_length=50, blank=True)
 
     # rollar
