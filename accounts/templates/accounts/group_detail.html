@@ -1,22 +1,84 @@
 <tbody>
   {% for s in students %}
-    <tr class="row-link" data-href="{% url 'accounts:student_detail' s.id %}">
-      <td>{{ forloop.counter }}</td>
-      <td><a href="{% url 'accounts:student_detail' s.id %}">{{ s.ism }}</a></td>
+    <tr class="row-link student-row" data-href="{% url 'accounts:student_detail' s.id %}">
+      
+      <!-- TARTIB -->
+      <td class="text-center fw-bold">{{ forloop.counter }}</td>
+
+      <!-- AVATAR + ISM -->
+      <td>
+        <div class="d-flex align-items-center gap-2">
+          <div class="student-avatar">
+            {{ s.ism|first|upper }}
+          </div>
+          <a href="{% url 'accounts:student_detail' s.id %}" class="student-name">
+            {{ s.ism }}
+          </a>
+        </div>
+      </td>
+
+      <!-- FAMILYA -->
       <td>{{ s.familya }}</td>
+
+      <!-- TELEFON -->
       <td>{{ s.telefon1|default:"—" }}</td>
+
     </tr>
   {% empty %}
-    <tr><td colspan="4" class="text-muted">Talaba yo‘q.</td></tr>
+    <tr>
+      <td colspan="4" class="text-muted text-center py-3">
+        Talaba yo‘q.
+      </td>
+    </tr>
   {% endfor %}
 </tbody>
 
+<!-- ---- CLICKABLE ROW SCRIPT ---- -->
 <script>
-document.querySelectorAll('.row-link').forEach(tr=>{
-  tr.style.cursor='pointer';
-  tr.addEventListener('click', e=>{
-    if(e.target.closest('a')) return;
+document.querySelectorAll('.row-link').forEach(tr => {
+  tr.style.cursor = 'pointer';
+  tr.addEventListener('click', e => {
+    if (e.target.closest('a')) return;
     location.href = tr.dataset.href;
   });
 });
 </script>
+
+<!-- ---- STYLE ---- -->
+<style>
+.student-row {
+  transition: 0.25s ease;
+}
+
+.student-row:hover {
+  background: rgba(255,255,255,0.07);
+  transform: translateX(4px);
+}
+
+/* AVATAR */
+.student-avatar {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  font-weight: 700;
+  justify-content: center;
+  align-items: center;
+  font-size: 1rem;
+  box-shadow: 0 0 10px rgba(29,78,216,0.4);
+}
+
+/* LINK SIFATIDA ISM */
+.student-name {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #38bdf8;
+  text-decoration: none;
+}
+
+.student-name:hover {
+  text-decoration: underline;
+}
+</style>

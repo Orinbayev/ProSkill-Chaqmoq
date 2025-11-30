@@ -1,27 +1,184 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-4 text-light">
-  <h3 class="mb-4">🧩 Yangi o‘quvchi qo‘shish</h3>
-  <form method="POST">
+
+<div class="lead-wrapper container text-light">
+
+  <h3 class="page-title">🧩 Yangi o‘quvchi qo‘shish</h3>
+
+  <form method="POST" class="lead-form">
     {% csrf_token %}
+
     <div class="row g-3">
-      <div class="col-md-6">{{ form.ism.label_tag }} {{ form.ism }}</div>
-      <div class="col-md-6">{{ form.familya.label_tag }} {{ form.familya }}</div>
-      <div class="col-md-6">{{ form.telefon1.label_tag }} {{ form.telefon1 }}</div>
-      <div class="col-md-6">{{ form.telefon2.label_tag }} {{ form.telefon2 }}</div>
-      <div class="col-md-4">{{ form.yosh.label_tag }} {{ form.yosh }}</div>
-      <div class="col-md-4">{{ form.manba.label_tag }} {{ form.manba }}</div>
-      <div class="col-md-4">{{ form.yonalish.label_tag }} {{ form.yonalish }}</div>
-      <div class="col-12">{{ form.comment.label_tag }} {{ form.comment }}</div>
 
-      <!-- 🏠 Yashash manzili qo‘shildi -->
-      <div class="col-md-6">{{ form.address.label_tag }} {{ form.address }}</div>
+      <div class="col-md-6 form-group">
+        {{ form.ism.label_tag }} 
+        {{ form.ism }}
+      </div>
 
-      <!-- 🟢 Status tanlash -->
-      <div class="col-md-6">{{ form.status.label_tag }} {{ form.status }}</div>
+      <div class="col-md-6 form-group">
+        {{ form.familya.label_tag }} 
+        {{ form.familya }}
+      </div>
+
+      <div class="col-md-6 form-group">
+        {{ form.telefon1.label_tag }} 
+        {{ form.telefon1 }}
+      </div>
+
+      <div class="col-md-6 form-group">
+        {{ form.telefon2.label_tag }} 
+        {{ form.telefon2 }}
+      </div>
+
+      <div class="col-md-4 form-group">
+        {{ form.yosh.label_tag }} 
+        {{ form.yosh }}
+      </div>
+
+      <div class="col-md-4 form-group">
+        {{ form.manba.label_tag }} 
+        {{ form.manba }}
+      </div>
+
+      <div class="col-md-4 form-group">
+        {{ form.yonalish.label_tag }} 
+        {{ form.yonalish }}
+      </div>
+
+      <div class="col-12 form-group">
+        {{ form.comment.label_tag }} 
+        {{ form.comment }}
+      </div>
+
+      <div class="col-md-6 form-group">
+        {{ form.address.label_tag }} 
+        {{ form.address }}
+      </div>
+
+      <div class="col-md-6 form-group">
+        {{ form.status.label_tag }} 
+        {{ form.status }}
+      </div>
+
     </div>
 
-    <button type="submit" class="btn btn-success mt-4">Saqlash</button>
+    <button type="submit" class="btn btn-save">💾 Saqlash</button>
+
   </form>
+
 </div>
+
+
+<style>
+
+/* ==========================
+     MAIN WRAPPER
+========================== */
+.lead-wrapper {
+  margin-top: 20px;
+  max-width: 900px;
+}
+
+.page-title {
+  margin-bottom: 25px;
+  font-weight: 600;
+  font-size: 1.7rem;
+}
+
+
+/* ==========================
+     FORM CARD
+========================== */
+.lead-form {
+  background: rgba(255,255,255,0.03);
+  padding: 25px 25px 30px;
+  border-radius: 18px;
+  box-shadow: 0 0 25px rgba(0,0,0,0.28);
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(6px);
+}
+
+
+/* ==========================
+     FORM LABELS
+========================== */
+.lead-form label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #f1f5f9;
+  font-size: 0.95rem;
+}
+
+
+/* ==========================
+     INPUTS & SELECTS
+========================== */
+.lead-form input,
+.lead-form select,
+.lead-form textarea {
+  width: 100%;
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(255,255,255,0.15) !important;
+  color: #e2e8f0 !important;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  transition: 0.25s ease;
+}
+
+.lead-form input:focus,
+.lead-form select:focus,
+.lead-form textarea:focus {
+  background: rgba(255,255,255,0.10) !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 8px rgba(56,189,248,0.4);
+  outline: none !important;
+}
+
+
+/* ==========================
+     SAVE BUTTON
+========================== */
+.btn-save {
+  margin-top: 25px;
+  padding: 12px 25px;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  background: linear-gradient(90deg,#22c55e,#4ade80);
+  color: #000;
+  box-shadow: 0 0 14px rgba(34,197,94,0.4);
+  transition: 0.25s;
+}
+
+@media (hover:hover) {
+  .btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 20px rgba(34,197,94,0.6);
+  }
+}
+
+
+/* ==========================
+     MOBILE OPTIMIZATION
+========================== */
+@media (max-width: 576px) {
+
+  .lead-form {
+    padding: 20px 18px;
+  }
+
+  .page-title {
+    font-size: 1.45rem;
+  }
+
+  .btn-save {
+    width: 100%;
+    padding: 14px;
+    font-size: 1rem;
+  }
+}
+
+</style>
+
 {% endblock %}

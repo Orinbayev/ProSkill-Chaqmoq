@@ -1,11 +1,101 @@
 {% extends 'base.html' %}
 {% block content %}
-<h3 class="mb-3">Yangi o‘qituvchi qo‘shish</h3>
 
-<form method="post">
+<style>
+
+/* TITLE */
+.page-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #38bdf8;
+  text-shadow: 0 0 12px rgba(56,189,248,0.4);
+  margin-bottom: 1.5rem;
+}
+
+/* FORM WRAPPER */
+.form-wrapper {
+  max-width: 650px;
+  margin: 0 auto;
+  background: rgba(255,255,255,0.06);
+  padding: 30px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 32px rgba(0,0,0,0.45);
+}
+
+/* LABELS */
+.form-wrapper label {
+  color: #cbd5e1;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+/* INPUTS */
+.form-wrapper input,
+.form-wrapper select {
+  background: rgba(255,255,255,0.08) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,0.15) !important;
+  padding: 12px !important;
+  border-radius: 10px !important;
+}
+
+.form-wrapper input:focus,
+.form-wrapper select:focus {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 10px rgba(56,189,248,0.35) !important;
+}
+
+/* ERRORS */
+.errorlist {
+  list-style: none;
+  color: #f87171;
+  margin-top: 5px;
+  padding-left: 0;
+}
+
+/* SAVE BUTTON */
+.btn-save {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  padding: 12px 20px;
+  border-radius: 12px;
+  margin-top: 15px;
+  width: 100%;
+  transition: 0.25s ease;
+  box-shadow: 0 0 18px rgba(34,197,94,0.35);
+}
+
+.btn-save:hover {
+  transform: scale(1.05);
+  background: linear-gradient(90deg, #16a34a, #22c55e);
+  box-shadow: 0 0 25px rgba(34,197,94,0.6);
+}
+
+</style>
+
+
+<h3 class="page-title">👨‍🏫 Yangi o‘qituvchi qo‘shish</h3>
+
+<div class="form-wrapper">
+
+  <form method="post" novalidate>
     {% csrf_token %}
-    {{ form.as_p }}
-    <button class="btn btn-success">Saqlash</button>
-</form>
+
+    {% for field in form %}
+      <div class="mb-3">
+        <label>{{ field.label }}</label>
+        {{ field }}
+        {{ field.errors }}
+      </div>
+    {% endfor %}
+
+    <button class="btn-save">💾 Saqlash</button>
+  </form>
+
+</div>
 
 {% endblock %}

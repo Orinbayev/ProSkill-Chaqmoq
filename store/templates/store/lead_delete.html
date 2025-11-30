@@ -1,11 +1,143 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-5 text-center text-light">
-  <h4>🗑️ "{{ lead.ism }} {{ lead.familya }}" ni o‘chirmoqchimisiz?</h4>
-  <form method="POST" class="mt-3">
-    {% csrf_token %}
-    <button type="submit" class="btn btn-danger">Ha, o‘chir</button>
-    <a href="{% url 'store:lead_list' %}" class="btn btn-secondary">Yo‘q, qaytish</a>
-  </form>
+
+<div class="delete-wrapper d-flex justify-content-center align-items-center">
+
+  <div class="delete-card text-center">
+
+    <div class="delete-icon mx-auto">
+      🗑️
+    </div>
+
+    <h4 class="delete-title">
+      "{{ lead.ism }} {{ lead.familya }}" ni o‘chirmoqchimisiz?
+    </h4>
+
+    <p class="delete-text">
+      Bu amalni ortga qaytarib bo‘lmaydi.
+    </p>
+
+    <form method="POST" class="mt-4">
+      {% csrf_token %}
+
+      <button type="submit" class="btn btn-delete">
+        Ha, o‘chir
+      </button>
+
+      <a href="{% url 'store:lead_list' %}" class="btn btn-cancel">
+        Yo‘q, qaytish
+      </a>
+    </form>
+
+  </div>
+
 </div>
+
+
+<style>
+
+/* WRAPPER */
+.delete-wrapper {
+  min-height: 70vh;
+  padding: 20px;
+}
+
+/* CARD */
+.delete-card {
+  background: rgba(255,255,255,0.04);
+  padding: 30px 30px 35px;
+  border-radius: 20px;
+  max-width: 480px;
+  width: 100%;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 0 20px rgba(0,0,0,.25);
+  color: #f1f5f9;
+}
+
+/* ICON */
+.delete-icon {
+  width: 85px;
+  height: 85px;
+  border-radius: 50%;
+  background: rgba(239,68,68,0.15);
+  font-size: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #ef4444;
+  margin-bottom: 20px;
+  box-shadow: 0 0 18px rgba(239,68,68,.4);
+}
+
+/* TITLE */
+.delete-title {
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+/* TEXT */
+.delete-text {
+  color: #cbd5e1;
+  font-size: 0.95rem;
+}
+
+/* BUTTONS */
+.btn-delete {
+  background: linear-gradient(90deg,#ef4444,#dc2626);
+  color: #fff;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 10px;
+  margin-right: 10px;
+  border: none;
+  box-shadow: 0 0 12px rgba(239,68,68,0.4);
+  transition: 0.25s;
+}
+
+@media (hover:hover) {
+  .btn-delete:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 16px rgba(239,68,68,0.6);
+  }
+}
+
+.btn-cancel {
+  background: rgba(255,255,255,0.1);
+  color: #e2e8f0;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.15);
+  transition: 0.25s;
+}
+
+@media (hover:hover) {
+  .btn-cancel:hover {
+    background: rgba(255,255,255,0.15);
+    transform: translateY(-2px);
+  }
+}
+
+
+/* MOBILE OPTIMIZATION */
+@media (max-width: 480px) {
+  .delete-card {
+    padding: 25px;
+  }
+
+  .delete-title {
+    font-size: 1.2rem;
+  }
+
+  form .btn-delete,
+  form .btn-cancel {
+    width: 100%;
+    margin: 6px 0;
+  }
+}
+
+</style>
+
 {% endblock %}

@@ -2,77 +2,108 @@
 {% block content %}
 
 <style>
-body {
-  background: linear-gradient(135deg, #eaf3ff, #ffffff);
-  font-family: 'Poppins', sans-serif;
-  min-height: 100vh;
-}
-.form-container {
-  max-width: 600px;
-  margin: 4rem auto;
-  background: #ffffff;
-  border-radius: 20px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-  padding: 2.5rem;
-}
-.form-container h3 {
-  font-weight: 800;
-  color: #009879;
-  text-align: center;
-  margin-bottom: 1.8rem;
-}
-label {
-  display: block;
-  font-weight: 600;
-  color: #003366 !important;
-  margin-bottom: 6px;
-}
-input, textarea {
-  border-radius: 10px;
-  border: 1.5px solid #cfdaf0;
-  padding: 10px 14px;
-  width: 100%;
-  font-size: 1rem;
-  margin-bottom: 1rem;
-  background-color: #f9fcff;
-}
-.preview p {
-  color: #003366;
-  font-weight: 600;
-}
-.btn-save {
-  background: linear-gradient(45deg, #00b894, #00cec9);
-  color: white;
-  font-weight: 600;
-  border: none;
-  border-radius: 12px;
-  width: 100%;
-  padding: 12px;
-}
-.btn-back {
-  border-radius: 12px;
-  width: 100%;
-  padding: 12px;
-  font-weight: 600;
-  margin-top: 0.8rem;
-}
-.preview {
-  text-align: center;
-  margin-bottom: 15px;
-}
-.preview img {
-  max-width: 150px;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
+  :root {
+    --panel:#111827;
+    --glass:rgba(255,255,255,0.04);
+    --border:rgba(148,163,184,0.25);
+    --text:#e5e7eb;
+    --yellow:#facc15;
+    --blue:#38bdf8;
+    --green:#22c55e;
+  }
+
+  .form-wrapper {
+    max-width: 600px;
+    margin: 50px auto;
+    background: var(--glass);
+    padding: 30px 35px;
+    border-radius: 18px;
+    border:1px solid var(--border);
+    color: var(--text);
+    box-shadow: 0 0 25px rgba(56,189,248,0.15);
+    backdrop-filter: blur(12px);
+  }
+
+  h3 {
+    text-align:center;
+    font-weight: 700;
+    color: var(--yellow);
+    margin-bottom: 25px;
+  }
+
+  label {
+    font-weight:600;
+    margin-bottom:6px;
+    display:block;
+    color: var(--text);
+  }
+
+  input, textarea {
+    width:100%;
+    border-radius:12px;
+    border:1px solid var(--border);
+    background:#1e293b;
+    padding:12px 15px;
+    color:var(--text);
+    margin-bottom:18px;
+    transition:0.25s;
+  }
+  input:focus, textarea:focus {
+    outline:none;
+    border-color: var(--yellow);
+    box-shadow:0 0 10px rgba(250,204,21,0.4);
+  }
+
+  .btn-save {
+    width:100%;
+    padding:12px;
+    border-radius:10px;
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+    border:none;
+    font-weight:600;
+    color:#fff;
+    transition:0.25s;
+  }
+  .btn-save:hover {
+    transform:scale(1.05);
+  }
+
+  .btn-back {
+    width:100%;
+    margin-top:10px;
+    padding:12px;
+    border-radius:10px;
+    border:1px solid var(--blue);
+    color:var(--blue);
+    text-align:center;
+    font-weight:600;
+    display:block;
+    transition:0.25s;
+  }
+  .btn-back:hover {
+    background:var(--blue);
+    color:#0f172a;
+  }
+
+  /* Rasm preview */
+  .preview {
+    text-align:center;
+    margin-bottom:15px;
+  }
+  .preview img {
+    max-width:140px;
+    border-radius:12px;
+    border:1px solid var(--yellow);
+    box-shadow:0 0 10px rgba(250,204,21,0.35);
+  }
 </style>
 
-<div class="form-container">
+<div class="form-wrapper">
   <h3>➕ Yangi bo‘lim qo‘shish</h3>
 
   <form method="POST" enctype="multipart/form-data">
     {% csrf_token %}
-    
+
     <label for="id_name">Bo‘lim nomi:</label>
     {{ form.name }}
 
@@ -80,32 +111,31 @@ input, textarea {
     {{ form.image }}
 
     <div class="preview" id="imagePreview" style="display:none;">
-      <p>🖼️ Tanlangan rasm:</p>
+      <p style="color:var(--yellow);font-weight:600;">🖼️ Tanlangan rasm:</p>
       <img id="previewImg" src="#" alt="Preview">
     </div>
 
     <label for="id_description">Tavsif:</label>
     {{ form.description }}
 
-    <button type="submit" class="btn btn-save mt-3">💾 Saqlash</button>
-    <a href="{% url 'education:groups_home' %}" class="btn btn-outline-secondary btn-back mt-2">
-      ⬅️ Orqaga
-    </a>
+    <button type="submit" class="btn-save">💾 Saqlash</button>
+    <a href="{% url 'education:groups_home' %}" class="btn-back">⬅️ Orqaga</a>
   </form>
 </div>
 
 <script>
-document.getElementById("id_image").addEventListener("change", function(event) {
-  const preview = document.getElementById("imagePreview");
-  const img = document.getElementById("previewImg");
-  const file = event.target.files[0];
-  if (file) {
-    preview.style.display = "block";
-    img.src = URL.createObjectURL(file);
-  } else {
-    preview.style.display = "none";
-  }
-});
+  document.getElementById("id_image").addEventListener("change", function (event) {
+    const preview = document.getElementById("imagePreview");
+    const img = document.getElementById("previewImg");
+    const file = event.target.files[0];
+
+    if (file) {
+      preview.style.display = "block";
+      img.src = URL.createObjectURL(file);
+    } else {
+      preview.style.display = "none";
+    }
+  });
 </script>
 
 {% endblock %}

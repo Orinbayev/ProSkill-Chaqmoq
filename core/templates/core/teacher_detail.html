@@ -1,11 +1,68 @@
 {% extends "base.html" %}
 {% block content %}
 
+<style>
+/* 🔥 UNIVERSAL RESPONSIVE FIXES */
+@media (max-width: 768px) {
+    h3 {
+        font-size: 20px !important;
+        text-align: center;
+    }
+
+    .card p {
+        font-size: 14px !important;
+        margin-bottom: 6px;
+    }
+
+    .table-responsive {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    table thead th {
+        white-space: nowrap;
+        font-size: 13px !important;
+    }
+
+    table tbody td {
+        white-space: nowrap;
+        font-size: 13px !important;
+    }
+
+    .btn-sm {
+        padding: 4px 10px !important;
+        font-size: 12px !important;
+    }
+}
+
+/* 🔥 Card styling */
+.profile-card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 12px;
+    padding: 18px;
+}
+
+/* 🔥 Table design */
+.table-dark th {
+    background: rgba(255,255,255,0.08) !important;
+    color: #38bdf8;
+}
+.table-dark td, .table-dark th {
+    border-color: rgba(255,255,255,0.1) !important;
+}
+
+.table-dark tbody tr:hover {
+    background: rgba(255,255,255,0.07);
+    transition: 0.2s;
+}
+</style>
+
 <h3 class="text-light fw-bold mb-4">
   👨‍🏫 {{ teacher.full_name }} — O‘qituvchi profili
 </h3>
 
-<div class="card bg-dark text-light mb-4 p-3">
+<div class="profile-card text-light mb-4">
   <p><b>Email:</b> {{ teacher.email }}</p>
   <p><b>Telefon:</b> {{ teacher.telefon1 }}</p>
   <p><b>Center:</b> {{ teacher.center }}</p>
@@ -15,7 +72,8 @@
 <h4 class="text-warning fw-bold">📚 O‘qituvchi guruhlari:</h4>
 
 {% if groups %}
-<table class="table table-dark table-bordered mt-3">
+<div class="table-responsive mt-3">
+<table class="table table-dark table-bordered mb-0 align-middle">
   <thead>
     <tr>
       <th>#</th>
@@ -41,6 +99,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% else %}
 <p class="text-secondary mt-3">Hozircha guruhlari yo‘q.</p>
 {% endif %}

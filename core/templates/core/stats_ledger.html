@@ -1,39 +1,162 @@
 {% extends 'base.html' %}
 {% block content %}
-<h3>Chaqmoq — umumiy: {{ sum_all }}</h3>
 
-<h5 class="mt-3">Reyting</h5>
-<table class="table table-striped">
-  <thead><tr><th>#</th><th>Ism</th><th>Familiya</th><th>Jami</th></tr></thead>
+<style>
+/* TITLE */
+.page-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #22c55e;
+    margin-bottom: 25px;
+}
+
+/* SECTION TITLE */
+.section-title {
+    color: #e2e8f0;
+    font-size: 20px;
+    font-weight: 600;
+    margin-top: 30px;
+    margin-bottom: 14px;
+}
+
+/* WRAPPERS */
+.table-wrapper {
+    background: rgba(17, 24, 39, 0.6);
+    border-radius: 14px;
+    padding: 18px;
+    border: 1px solid rgba(55,65,81,0.4);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+}
+
+/* TABLE STYLE */
+.table-modern {
+    width: 100%;
+    border-collapse: collapse;
+    color: #e5e7eb;
+}
+
+.table-modern thead th {
+    background: rgba(30,41,59,0.8);
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    border-bottom: 2px solid #334155;
+}
+
+.table-modern tbody tr {
+    transition: 0.25s;
+}
+
+.table-modern tbody tr:hover {
+    background: rgba(55,65,81,0.35);
+}
+
+.table-modern td {
+    padding: 12px;
+    border-bottom: 1px solid rgba(55,65,81,0.4);
+}
+
+/* VALUE COLORS */
+.score {
+    font-weight: 700;
+    color: #22c55e;
+}
+
+.empty {
+    text-align: center;
+    padding: 16px;
+    color: #94a3b8;
+}
+
+/* RESPONSIVE FIX */
+@media (max-width: 768px) {
+    .table-modern thead {
+        display: none;
+    }
+    .table-modern tr {
+        display: block;
+        margin-bottom: 12px;
+        border-radius: 12px;
+        background: rgba(30,41,59,0.7);
+        padding: 10px;
+    }
+    .table-modern td {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 6px;
+        border-bottom: 1px dashed rgba(148,163,184,0.3);
+    }
+    .table-modern td:last-child {
+        border-bottom: none;
+    }
+    .table-modern td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #cbd5e1;
+    }
+}
+</style>
+
+<h3 class="page-title">⚡ Chaqmoq — umumiy: {{ sum_all }}</h3>
+
+<!-- ⭐ LEADERBOARD -->
+<h4 class="section-title">🏆 Reyting</h4>
+<div class="table-wrapper">
+<table class="table-modern">
+  <thead>
+      <tr>
+          <th>#</th>
+          <th>Ism</th>
+          <th>Familiya</th>
+          <th>Jami</th>
+      </tr>
+  </thead>
   <tbody>
     {% for r in leaderboard %}
       <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ r.student__ism }}</td>
-        <td>{{ r.student__familya }}</td>
-        <td>{{ r.jami|default:0 }}</td>
+        <td data-label="#"> {{ forloop.counter }} </td>
+        <td data-label="Ism"> {{ r.student__ism }} </td>
+        <td data-label="Familiya"> {{ r.student__familya }} </td>
+        <td data-label="Jami" class="score"> {{ r.jami|default:0 }} </td>
       </tr>
     {% empty %}
-      <tr><td colspan="4">Reyting bo‘sh.</td></tr>
+      <tr><td colspan="4" class="empty">Reyting bo‘sh.</td></tr>
     {% endfor %}
   </tbody>
 </table>
+</div>
 
-<h5 class="mt-4">Oxirgi 50 yozuv</h5>
-<table class="table table-sm">
-  <thead><tr><th>Sana</th><th>Talaba</th><th>Guruh</th><th>Qoida</th><th>Ball</th></tr></thead>
+<!-- ⭐ LAST 50 RECORDS -->
+<h4 class="section-title">📝 Oxirgi 50 yozuv</h4>
+<div class="table-wrapper">
+<table class="table-modern">
+  <thead>
+    <tr>
+      <th>Sana</th>
+      <th>Talaba</th>
+      <th>Guruh</th>
+      <th>Qoida</th>
+      <th>Ball</th>
+    </tr>
+  </thead>
   <tbody>
     {% for l in last %}
       <tr>
-        <td>{{ l.sana|date:"Y-m-d H:i" }}</td>
-        <td>{{ l.student.ism }} {{ l.student.familya }}</td>
-        <td>{% if l.group %}{{ l.group.nom }}{% else %}—{% endif %}</td>
-        <td>{{ l.rule.nom }}</td>
-        <td>{{ l.ball }}</td>
+        <td data-label="Sana">{{ l.sana|date:"Y-m-d H:i" }}</td>
+        <td data-label="Talaba">{{ l.student.ism }} {{ l.student.familya }}</td>
+        <td data-label="Guruh">
+          {% if l.group %}{{ l.group.nom }}{% else %}—{% endif %}
+        </td>
+        <td data-label="Qoida">{{ l.rule.nom }}</td>
+        <td data-label="Ball" class="score">{{ l.ball }}</td>
       </tr>
     {% empty %}
-      <tr><td colspan="5">Yozuv yo‘q.</td></tr>
+      <tr><td colspan="5" class="empty">Yozuv yo‘q.</td></tr>
     {% endfor %}
   </tbody>
 </table>
+</div>
+
 {% endblock %}

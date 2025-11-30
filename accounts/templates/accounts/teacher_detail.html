@@ -1,35 +1,138 @@
 {% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+.page-wrapper {
+  padding: 25px 10px;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* CARD STYLE */
+.ps-card {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 20px;
+  backdrop-filter: blur(15px);
+  box-shadow: 0 0 20px rgba(0,0,0,0.35);
+  overflow: hidden;
+  transition: .3s;
+}
+.ps-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 0 35px rgba(0,180,216,0.25);
+}
+
+/* HEADER */
+.teacher-title {
+  font-size: 28px;
+  color: #fff;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+
+.teacher-sub {
+  color: #9ca3af;
+  font-size: 15px;
+  margin-bottom: 25px;
+}
+
+/* TABLE DESIGN */
+.ps-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  color: #e2e8f0;
+}
+
+.ps-table th {
+  background: rgba(255,255,255,0.12);
+  padding: 12px;
+  font-weight: 600;
+}
+
+.ps-table td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.ps-table tr:hover {
+  background: rgba(255,255,255,0.08);
+  cursor: pointer;
+}
+
+.ps-table a {
+  color: #00b4d8;
+  text-decoration: none;
+  font-weight: 500;
+}
+.ps-table a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive */
+@media(max-width: 540px){
+  .teacher-title { font-size: 22px; }
+  .ps-table td, .ps-table th { padding: 10px; font-size: 13px; }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<h3>O‘qituvchi: {{ teacher.ism }} {{ teacher.familya }}</h3>
-<p class="text-muted mb-3">{{ teacher.get_role_display }}</p>
+<div class="page-wrapper">
 
-<div class="table-responsive">
-  <table class="table table-hover align-middle">
-    <thead>
-      <tr>
-        <th>Guruh</th>
-        <th>Center</th>
-        <th>Talabalar</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for g in groups %}
-        <tr class="row-link" data-href="{% url 'education:group_detail' g.id %}">
-          <td><a href="{% url 'education:group_detail' g.id %}">{{ g.nom }}</a></td>
+  <!-- TEACHER HEADER -->
+  <div class="teacher-title">
+    👨‍🏫 O‘qituvchi: {{ teacher.ism }} {{ teacher.familya }}
+  </div>
 
-          <td>{{ g.center }}</td>
-          <td>{{ g.student_count }}</td>
-        </tr>
-      {% empty %}
-        <tr><td colspan="3" class="text-muted">Guruhlar yo‘q.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="teacher-sub">
+    Rol: {{ teacher.get_role_display }}
+  </div>
+
+  <!-- CARD -->
+  <div class="ps-card">
+
+    <div class="ps-card-body">
+
+      <div class="table-responsive">
+        <table class="ps-table align-middle">
+          <thead>
+            <tr>
+              <th>Guruh</th>
+              <th>Center</th>
+              <th>Talabalar</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for g in groups %}
+              <tr class="row-link" data-href="{% url 'education:group_detail' g.id %}">
+                <td>
+                  <a href="{% url 'education:group_detail' g.id %}">
+                    {{ g.nom }}
+                  </a>
+                </td>
+                <td>{{ g.center }}</td>
+                <td>{{ g.student_count }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="3" class="text-muted text-center py-3">Guruhlar mavjud emas.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+
+        </table>
+      </div>
+
+    </div>
+
+  </div>
+
 </div>
 
 <script>
 document.querySelectorAll('.row-link').forEach(tr=>{
-  tr.style.cursor='pointer';
   tr.addEventListener('click', e=>{
     if(e.target.closest('a')) return;
     location.href = tr.dataset.href;

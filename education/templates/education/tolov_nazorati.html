@@ -1,63 +1,134 @@
 {% extends 'base.html' %}
 {% block content %}
+
 <style>
+body {
+  background: #0f172a;
+  font-family: 'Poppins', sans-serif;
+  color: #e2e8f0;
+}
+
 .container {
-  max-width: 1100px;
+  max-width: 1150px;
   margin: 40px auto;
-  background: #fff;
-  border-radius: 16px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 20px;
   padding: 30px;
-  box-shadow: 0 3px 20px rgba(0,0,0,0.08);
+  box-shadow: 0 0 40px rgba(59,130,246,0.15);
+  backdrop-filter: blur(12px);
 }
+
+/* Title */
 h2 {
-  color: #16a34a;
+  color: #22c55e;
+  font-weight: 800;
   text-align: center;
-  font-weight: 700;
+  text-shadow: 0 0 15px rgba(34,197,94,0.5);
 }
-.table thead {
-  background: #16a34a;
-  color: #fff;
+
+/* Search */
+.search-box {
+  text-align: center;
+  margin-bottom: 20px;
 }
-.table td, .table th {
-  padding: 10px 12px;
-  vertical-align: middle;
+.search-box input {
+  width: 60%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #e2e8f0;
+  transition: .2s;
 }
-tr.full { background-color: #e6ffe8 !important; }
-tr.late { background-color: #ffe4e6 !important; }
+.search-box input:focus {
+  border-color: #22c55e;
+  box-shadow: 0 0 10px rgba(34,197,94,0.4);
+}
+
+/* Filters */
 .filter-buttons {
   display: flex;
-  gap: 10px;
   justify-content: center;
+  gap: 12px;
   margin-bottom: 20px;
 }
 .filter-buttons a {
-  padding: 8px 14px;
-  border-radius: 8px;
-  background: #e5e7eb;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: #1e293b;
+  color: #fff;
   text-decoration: none;
   font-weight: 600;
-  color: #111;
+  transition: .2s;
+}
+.filter-buttons a:hover {
+  background: #374151;
 }
 .filter-buttons a.active {
-  background: #16a34a;
-  color: #fff;
+  background: #22c55e;
+  box-shadow: 0 0 10px rgba(34,197,94,0.6);
 }
+
+/* Table */
+.table-wrapper {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #e2e8f0;
+}
+
+thead {
+  background: #22c55e;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+td, th {
+  padding: 14px 12px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Row colors */
+tr.full { background: rgba(34,197,94,0.15); }
+tr.late { background: rgba(244,63,94,0.15); }
+tr.unpaid { background: rgba(250,204,21,0.15); }
+
+.status-badge {
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 8px;
+}
+
+.status-full { background: #22c55e; color: #0f172a; }
+.status-late { background: #ef4444; }
+.status-unpaid { background: #facc15; color: #111; }
+
 </style>
 
+
+
 <div class="container">
+
   <h2>💰 O‘quvchilar to‘lov nazorati</h2>
 
-  <form method="get" class="mb-3" style="text-align:center;">
-    <input type="text" name="q" value="{{ query }}" placeholder="🔍 F.I.Sh yoki email orqali izlash" style="width:60%;padding:8px 12px;border-radius:8px;border:1px solid #ccc;">
-    <button class="btn btn-success">Izlash</button>
+  <!-- Search -->
+  <form method="get" class="search-box">
+    <input type="text" name="q" value="{{ query }}" placeholder="🔍 F.I.Sh yoki email orqali izlash">
+    <button class="btn btn-success ms-2">Izlash</button>
   </form>
 
+  <!-- Filters -->
   <div class="filter-buttons">
     <a href="?filter=" class="{% if not filter_type %}active{% endif %}">Hammasi</a>
-    <a href="?filter=full" class="{% if filter_type == 'full' %}active{% endif %}">To‘liq to‘lovchilar ✅</a>
+    <a href="?filter=full" class="{% if filter_type == 'full' %}active{% endif %}">To‘liq to‘laganlar ✅</a>
     <a href="?filter=unpaid" class="{% if filter_type == 'unpaid' %}active{% endif %}">To‘lamaganlar ❌</a>
+    <a href="?filter=late" class="{% if filter_type == 'late' %}active{% endif %}">Kechiktirganlar ⏳</a>
   </div>
 
+  <div class="table-wrapper">
   <table class="table table-bordered table-striped">
     <thead>
       <tr>
@@ -70,31 +141,42 @@ tr.late { background-color: #ffe4e6 !important; }
         <th>Status</th>
       </tr>
     </thead>
-<tbody>
-  {% for s in stats %}
-  <tr class="{% if s.is_late %}late{% endif %}">
-    <td>{{ forloop.counter }}</td>
-    <td>{{ s.student.ism }} {{ s.student.familya }}</td>
-    <td>{{ s.student.telefon1|default:"—" }}</td>
-    <td>{{ s.jami_tolangan }}</td>
-    <td>{{ s.kurs_narhi }}</td>
-    <td>{{ s.qoldiq }}</td>
-    <td>{{ s.note }}</td>
-    <td>
-      {% if s.is_full %}
-        ✅ To‘liq
-      {% elif s.is_late %}
-        ❌ Kechiktirgan
-      {% else %}
-        ⏳ To‘layotgan
-      {% endif %}
-    </td>
-  </tr>
-  {% empty %}
-  <tr><td colspan="8" class="text-center">Ma’lumot topilmadi.</td></tr>
-  {% endfor %}
-</tbody>
+
+    <tbody>
+      {% for s in stats %}
+      <tr class="
+        {% if s.is_full %}full
+        {% elif s.is_late %}late
+        {% elif s.is_unpaid %}unpaid
+        {% endif %}
+      ">
+        <td>{{ forloop.counter }}</td>
+        <td>{{ s.student.ism }} {{ s.student.familya }}</td>
+        <td>{{ s.guruh.nom }}</td>
+        <td>{{ s.kurs_narhi|intcomma }} so‘m</td>
+        <td>{{ s.jami_tolangan|intcomma }} so‘m</td>
+        <td>{{ s.qoldiq|intcomma }} so‘m</td>
+
+        <td>
+          {% if s.is_full %}
+            <span class="status-badge status-full">To‘liq</span>
+          {% elif s.is_late %}
+            <span class="status-badge status-late">Kechiktirgan</span>
+          {% else %}
+            <span class="status-badge status-unpaid">To‘layotgan</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" class="text-center py-4">Ma’lumot topilmadi.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
 
   </table>
+  </div>
+
 </div>
+
 {% endblock %}

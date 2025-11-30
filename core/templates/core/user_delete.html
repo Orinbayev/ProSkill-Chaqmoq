@@ -2,36 +2,48 @@
 {% block content %}
 
 <style>
+
+/*********************************************
+  DELETE BOX WRAPPER
+*********************************************/
 .delete-box {
-    max-width: 500px;
+    max-width: 520px;
     margin: 80px auto;
     background: rgba(255,255,255,0.06);
-    border-radius: 18px;
-    padding: 30px;
+    border-radius: 20px;
+    padding: 32px;
     text-align: center;
     color: white;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.4);
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.45);
 }
 
+/*********************************************
+  TITLE + TEXT
+*********************************************/
 .delete-box h2 {
     font-size: 26px;
-    margin-bottom: 15px;
+    margin-bottom: 12px;
+    font-weight: 700;
 }
 
 .delete-box p {
     font-size: 16px;
-    opacity: 0.8;
+    opacity: 0.85;
+    margin-bottom: 15px;
 }
 
+/*********************************************
+  BUTTONS
+*********************************************/
 .btn-danger {
     background: #dc2626;
     border: none;
-    padding: 10px 18px;
+    padding: 12px 22px;
     border-radius: 12px;
     color: #fff;
     font-weight: 600;
-    margin-top: 20px;
+    transition: 0.2s;
 }
 
 .btn-danger:hover {
@@ -41,24 +53,59 @@
 .btn-secondary {
     background: #475569;
     border: none;
-    padding: 10px 18px;
+    padding: 12px 22px;
     border-radius: 12px;
-    color: #fff;
+    color: white;
     font-weight: 600;
     margin-left: 10px;
+    transition: 0.2s;
 }
 
 .btn-secondary:hover {
     background: #64748b;
 }
+
+/*********************************************
+  MOBILE RESPONSIVE RULES
+*********************************************/
+@media (max-width: 600px) {
+
+    .delete-box {
+        margin: 40px 14px;
+        padding: 24px;
+    }
+
+    .delete-box h2 {
+        font-size: 22px;
+    }
+
+    .delete-box p {
+        font-size: 14px;
+    }
+
+    .btn-danger,
+    .btn-secondary {
+        width: 100%;
+        margin: 8px 0;
+        padding: 12px;
+        font-size: 15px;
+    }
+
+    .btn-secondary {
+        margin-left: 0;
+    }
+}
+
 </style>
+
 
 <div class="delete-box">
     <h2>🗑 O‘chirishni tasdiqlaysizmi?</h2>
 
     <p>
-        Siz <span class="text-info fw-bold">{{ user.ism }} {{ user.familya }}</span> 
-        foydalanuvchisini butunlay o‘chirmoqchisiz.
+        Siz <span class="text-info fw-bold">
+            {{ user.ism }} {{ user.familya }}
+        </span> foydalanuvchisini butunlay o‘chirmoqchisiz.
     </p>
 
     <form method="POST">

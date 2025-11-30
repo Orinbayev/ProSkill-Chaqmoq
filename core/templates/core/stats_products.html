@@ -2,64 +2,112 @@
 {% block content %}
 
 <style>
-/* ==== Page Title ==== */
+/* ===== PAGE TITLE ===== */
 .page-title {
   font-size: 28px;
   font-weight: 700;
   color: #22c55e;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
 }
 
-/* ==== Search Bar ==== */
+/* ===== SEARCH BAR ===== */
 .search-wrapper {
-  max-width: 450px;
-  margin-bottom: 20px;
+  max-width: 480px;
+  margin-bottom: 25px;
 }
 .search-wrapper input {
   border-radius: 10px 0 0 10px;
+  background: #0f172a;
+  color: #e2e8f0;
+  border: 1px solid #334155;
 }
 .search-wrapper button {
   border-radius: 0 10px 10px 0;
+  font-weight: 600;
 }
 
-/* ==== Table Styling ==== */
+/* ===== TABLE CONTAINER ===== */
 .table-container {
-  background: #111827;
+  background: rgba(17, 24, 39, 0.7);
   padding: 20px;
   border-radius: 14px;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.05);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
 }
 
-.table thead {
-  background: #1f2937;
+/* ===== TABLE HEAD ===== */
+.table-modern thead {
+  background: rgba(30,41,59,0.85);
+}
+.table-modern thead th {
+  padding: 14px 10px;
+  font-size: 14px;
+  font-weight: 600;
   color: #22c55e;
-  font-size: 15px;
+  text-transform: uppercase;
 }
 
-.table tbody tr {
+/* ===== TABLE BODY ===== */
+.table-modern tbody tr {
   transition: 0.25s;
 }
-.table tbody tr:hover {
-  background: rgba(34,197,94,0.1);
+.table-modern tbody tr:hover {
+  background: rgba(34,197,94,0.12);
 }
 
-.btn-sm {
+.table-modern td {
+  padding: 12px 10px;
+  color: #e2e8f0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.actions-cell a,
+.actions-cell button {
   border-radius: 8px !important;
 }
 
-/* Empty state */
+/* EMPTY ROW */
 .empty-row {
-  color: #9ca3af;
-  text-align: center;
+  color: #94a3b8;
   padding: 18px 0;
 }
 
-/* Add button */
+/* ADD BUTTON */
 .add-btn {
   margin-top: 18px;
-  padding: 10px 20px;
-  font-weight: 600;
-  border-radius: 10px;
+  padding: 12px 22px;
+  font-weight: 700;
+  border-radius: 12px;
+  font-size: 16px;
+}
+
+/* ===== MOBILE MODE (RESPONSIVE TABLE) ===== */
+@media (max-width: 768px) {
+  .table-modern thead {
+    display: none;
+  }
+  .table-modern tr {
+    display: block;
+    margin-bottom: 15px;
+    border-radius: 12px;
+    background: rgba(30,41,59,0.6);
+    padding: 10px;
+  }
+  .table-modern td {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 6px;
+    border-bottom: 1px dashed rgba(255,255,255,0.1);
+  }
+  .table-modern td:last-child {
+    border-bottom: none;
+  }
+  .table-modern td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #cbd5e1;
+  }
 }
 </style>
 
@@ -67,13 +115,16 @@
 
 <form class="search-wrapper">
   <div class="input-group">
-    <input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="🔎 Nom/adabiyot bo‘yicha izlash">
+    <input class="form-control"
+           name="q"
+           value="{{ request.GET.q }}"
+           placeholder="🔎 Nom/adabiyot bo‘yicha izlash">
     <button class="btn btn-outline-success">Izlash</button>
   </div>
 </form>
 
 <div class="table-container">
-  <table class="table table-striped align-middle text-light">
+  <table class="table-modern table align-middle">
     <thead>
       <tr>
         <th>#</th>
@@ -87,22 +138,26 @@
     <tbody>
       {% for p in rows %}
       <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ p.nom }}</td>
-        <td>{{ p.narx_chaqmoq }}</td>
-        <td>{{ p.yaratilgan|date:"Y-m-d" }}</td>
-        <td class="text-end text-nowrap">
+        <td data-label="#">{{ forloop.counter }}</td>
+        <td data-label="Nom">{{ p.nom }}</td>
+        <td data-label="Narx">{{ p.narx_chaqmoq }}</td>
+        <td data-label="Sana">{{ p.yaratilgan|date:"Y-m-d" }}</td>
 
-          <a class="btn btn-sm btn-outline-primary me-1" 
+        <td data-label="Amallar" class="text-end text-nowrap actions-cell">
+
+          <a class="btn btn-sm btn-outline-primary me-1"
              href="{% url 'store:product_edit' p.pk %}">
             ✏️ Tahrirlash
           </a>
 
-          <form method="post" action="{% url 'store:product_delete' p.pk %}" 
+          <form method="post"
+                action="{% url 'store:product_delete' p.pk %}"
                 class="d-inline"
                 onsubmit="return confirm('Haqiqatan ham o‘chirmoqchimisiz?');">
             {% csrf_token %}
-            <button class="btn btn-sm btn-outline-danger">🗑️ O‘chirish</button>
+            <button class="btn btn-sm btn-outline-danger">
+              🗑️ O‘chirish
+            </button>
           </form>
 
         </td>
@@ -116,7 +171,8 @@
   </table>
 </div>
 
-<a class="btn btn-success add-btn" href="{% url 'store:product_create' %}">
+<a class="btn btn-success add-btn"
+   href="{% url 'store:product_create' %}">
   ➕ Mahsulot qo‘shish
 </a>
 

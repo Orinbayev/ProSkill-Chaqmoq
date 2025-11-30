@@ -2,7 +2,7 @@
 {% block content %}
 
 <style>
-  :root{
+  :root {
     --bg:#0f172a;
     --panel:#111827;
     --muted:#9ca3af;
@@ -15,188 +15,359 @@
     --btn:#10b981;
   }
 
-  .lead-wrap{ color:var(--text); }
-  .lead-toolbar{ display:flex; gap:12px; align-items:center; justify-content:space-between; margin:12px 0 18px; }
-  .lead-toolbar .filter{
-    background:var(--panel); border:1px solid var(--line); color:var(--text);
-    padding:10px 12px; border-radius:10px; min-width:260px;
-  }
-  .btn-add{
-    background:var(--btn); color:#07110b; border:0; padding:10px 14px; border-radius:10px;
-    font-weight:700; text-decoration:none;
-  }
-  .btn-add:hover{ filter:brightness(.95); }
+  .lead-wrap { color: var(--text); }
 
-  .tbl{ width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; border-radius:12px; }
-  .tbl thead th{
-    background:var(--panel); color:var(--muted); font-weight:700;
-    padding:12px 14px; text-transform:uppercase; font-size:.82rem; letter-spacing:.03em;
+  /* ===== TOP TOOLBAR ===== */
+  .lead-toolbar {
+    display:flex;
+    gap:12px;
+    align-items:center;
+    justify-content:space-between;
+    margin:12px 0 18px;
+    flex-wrap:wrap;
+  }
+
+  .lead-toolbar h3 { margin:0; }
+
+  .filter {
+    background: var(--panel);
+    border:1px solid var(--line);
+    color: var(--text);
+    padding:10px 12px;
+    border-radius:10px;
+    min-width:220px;
+  }
+
+  .btn-add {
+    background: var(--btn);
+    color:#07110b;
+    border:0;
+    padding:10px 14px;
+    border-radius:10px;
+    font-weight:700;
+    text-decoration:none;
+    white-space:nowrap;
+  }
+
+  .btn-add:hover { filter:brightness(.95); }
+
+
+  /* ===== RESPONSIVE TABLE HANDLING ===== */
+  .table-responsive-box {
+    width:100%;
+    overflow-x:auto;
+    padding-bottom:10px;
+  }
+
+  .tbl {
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0;
+    overflow:hidden;
+    border-radius:12px;
+    min-width:850px;  /* ← mobil scroll uchun */
+  }
+
+  .tbl thead th {
+    background:var(--panel);
+    color:var(--muted);
+    font-weight:700;
+    padding:12px 14px;
+    text-transform:uppercase;
+    font-size:.82rem;
     border-bottom:1px solid var(--line);
-  }
-  .tbl tbody tr.main-row{ background:rgba(255,255,255,0.02); }
-  .tbl tbody tr + tr.main-row{ border-top:1px solid var(--line); }
-  .tbl td{ padding:12px 14px; }
-  .col-actions{ text-align:center; }
-
-  .badge{ display:inline-block; padding:4px 10px; border-radius:999px; font-weight:700; font-size:.78rem; }
-  .badge.warn{ background:var(--chip-warn); color:#111827; }
-  .badge.ok{ background:var(--chip-ok); color:#062312; }
-  .badge.bad{ background:var(--chip-bad); color:#fff; }
-  .badge.alt{ background:var(--chip-alt); color:#fff; }
-
-  .btn-details{
-    border:1px solid #1d4ed8; background:#1d4ed8; color:#fff; padding:6px 12px; border-radius:8px;
-    font-weight:600; cursor:pointer;
-  }
-  .btn-details:hover{ filter:brightness(.95); }
-
-  /* details row */
-  .details-row{ display:none; background:#0b1220; }
-  .details-cell{ padding:0 !important; border-top:1px solid var(--line); }
-  .details-card{
-    padding:16px; display:grid; gap:12px; grid-template-columns:repeat(12,1fr);
+    white-space:nowrap;
   }
 
-  .detail{
+  .tbl td { padding:12px 14px; }
+
+
+  .main-row { background:rgba(255,255,255,0.02); }
+  .tbl tbody tr + tr.main-row { border-top:1px solid var(--line); }
+
+  .col-actions { text-align:center; white-space:nowrap; }
+
+
+  /* ===== BADGES ===== */
+  .badge {
+    display:inline-block;
+    padding:4px 10px;
+    border-radius:999px;
+    font-weight:700;
+    font-size:.78rem;
+  }
+  .badge.warn { background:var(--chip-warn); color:#111827; }
+  .badge.ok { background:var(--chip-ok); color:#062312; }
+  .badge.bad { background:var(--chip-bad); color:white; }
+  .badge.alt { background:var(--chip-alt); color:white; }
+
+
+  .btn-details {
+    border:1px solid #1d4ed8;
+    background:#1d4ed8;
+    color:#fff;
+    padding:6px 12px;
+    border-radius:8px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .btn-details:hover { filter:brightness(.95); }
+
+
+  /* ===== DETAILS EXPAND ===== */
+  .details-row { display:none; background:#0b1220; }
+  .details-cell { padding:0 !important; border-top:1px solid var(--line); }
+
+  .details-card {
+    padding:16px;
+    display:grid;
+    gap:12px;
+    grid-template-columns:repeat(12,1fr);
+  }
+
+  .detail {
     grid-column:span 6;
     background:rgba(255,255,255,0.03);
-    border:1px solid var(--line); border-radius:10px;
-    padding:8px 12px; min-height:80px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:8px 12px;
+    min-height:80px;
   }
-  .detail.full{ grid-column:1 / -1; }
-  .label{ color:var(--muted); font-size:.78rem; text-transform:uppercase; letter-spacing:.03em; }
-  .value{ margin-top:4px; font-size:0.9rem; word-break:break-word; white-space:pre-wrap; }
 
-  @media (max-width: 900px){
-    .details-card{ grid-template-columns:repeat(6,1fr); }
-    .detail{ grid-column:span 6; }
+  .detail.full { grid-column:1 / -1; }
+
+  .label {
+    color:var(--muted);
+    font-size:.78rem;
+    text-transform:uppercase;
   }
-  @media (max-width: 640px){
-    .lead-toolbar{ flex-direction:column; align-items:stretch; gap:10px; }
-    .col-hide-sm{ display:none; }
+
+  .value {
+    margin-top:4px;
+    font-size:0.9rem;
+    word-break:break-word;
+    white-space:pre-wrap;
   }
+
+
+  /* ===== RESPONSIVE BREAKPOINTS ===== */
+  @media (max-width: 900px) {
+    .details-card { grid-template-columns:repeat(6,1fr); }
+    .detail { grid-column:span 6; }
+  }
+
+  @media (max-width: 640px) {
+    .lead-toolbar {
+      flex-direction:column;
+      align-items:stretch;
+      gap:10px;
+    }
+    .col-hide-sm { display:none; }
+  }
+
+  @media (max-width: 480px) {
+    .btn-details { width:100%; }
+  }
+
 </style>
 
+
 <div class="container lead-wrap">
+
+  <!-- ===== HEADER TOOLBAR ===== -->
   <div class="lead-toolbar">
-    <h3 class="m-0">📋 Leadlar ro‘yxati</h3>
+    <h3>📋 Leadlar ro‘yxati</h3>
+
     <form method="get">
       <select name="status" class="filter" onchange="this.form.submit()">
         <option value="">-- Barcha statuslar --</option>
         {% for s in statuses %}
-          <option value="{{ s.id }}" {% if s.id|stringformat:"s" == selected_status %}selected{% endif %}>{{ s.nom }}</option>
+          <option value="{{ s.id }}" {% if s.id|stringformat:"s" == selected_status %}selected{% endif %}>
+            {{ s.nom }}
+          </option>
         {% endfor %}
       </select>
     </form>
+
     <a class="btn-add" href="{% url 'store:lead_create' %}">+ Yangi lead</a>
   </div>
 
-  <table class="tbl">
-    <thead>
-      <tr>
-        <th style="width:48px">#</th>
-        <th>Ism</th>
-        <th>Familya</th>
-        <th class="col-hide-sm">Telefon</th>
-        <th class="col-hide-sm">Yosh</th>
-        <th>Status</th>
-        <th>Sana</th>
-        <th class="col-actions">Amallar</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for l in leads %}
-      <!-- Asosiy jadval -->
-      <tr class="main-row" data-lead="{{ l.id }}">
-        <td>{{ forloop.counter }}</td>
-        <td>{{ l.ism }}</td>
-        <td>{{ l.familya }}</td>
-        <td class="col-hide-sm">{{ l.telefon1 }}</td>
-        <td class="col-hide-sm">{{ l.yosh }}</td>
-        <td>
-          {% if l.status %}
-            {% if l.status.nom == "Kutmoqda" %}
-              <span class="badge warn">{{ l.status.nom }}</span>
-            {% elif l.status.nom == "O‘qimoqda" %}
-              <span class="badge ok">{{ l.status.nom }}</span>
-            {% elif l.status.nom == "Rad etilgan" %}
-              <span class="badge bad">{{ l.status.nom }}</span>
+
+  <!-- ===== RESPONSIVE TABLE WRAP ===== -->
+  <div class="table-responsive-box">
+
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Ism</th>
+          <th>Familya</th>
+          <th class="col-hide-sm">Telefon</th>
+          <th class="col-hide-sm">Yosh</th>
+          <th>Status</th>
+          <th>Sana</th>
+          <th class="col-actions">Amallar</th>
+        </tr>
+      </thead>
+
+      <tbody>
+
+        {% for l in leads %}
+        <!-- MAIN ROW -->
+        <tr class="main-row" data-lead="{{ l.id }}">
+          <td>{{ forloop.counter }}</td>
+          <td>{{ l.ism }}</td>
+          <td>{{ l.familya }}</td>
+          <td class="col-hide-sm">{{ l.telefon1 }}</td>
+          <td class="col-hide-sm">{{ l.yosh }}</td>
+
+          <td>
+            {% if l.status %}
+              {% if l.status.nom == "Kutmoqda" %}
+                <span class="badge warn">{{ l.status.nom }}</span>
+              {% elif l.status.nom == "O‘qimoqda" %}
+                <span class="badge ok">{{ l.status.nom }}</span>
+              {% elif l.status.nom == "Rad etilgan" %}
+                <span class="badge bad">{{ l.status.nom }}</span>
+              {% else %}
+                <span class="badge alt">{{ l.status.nom }}</span>
+              {% endif %}
             {% else %}
-              <span class="badge alt">{{ l.status.nom }}</span>
+              <span class="badge alt">—</span>
             {% endif %}
-          {% else %}
-            <span class="badge alt">—</span>
-          {% endif %}
-        </td>
-        <td>{{ l.qoshilgan_sana|date:"d.m.Y H:i" }}</td>
-        <td class="col-actions">
-          <button class="btn-details" type="button" data-toggle="detail-{{ l.id }}">Batafsil</button>
-        </td>
-      </tr>
+          </td>
 
-      <!-- Batafsil satr -->
-      <tr id="detail-{{ l.id }}" class="details-row">
-        <td class="details-cell" colspan="8">
-          <div class="details-card">
-            <div class="detail"><div class="label">Ism</div><div class="value">{{ l.ism }}</div></div>
-            <div class="detail"><div class="label">Familya</div><div class="value">{{ l.familya|default:"—" }}</div></div>
+          <td>{{ l.qoshilgan_sana|date:"d.m.Y H:i" }}</td>
 
-            <div class="detail"><div class="label">Telefon</div><div class="value">{{ l.telefon1 }}</div></div>
-            <div class="detail"><div class="label">Telefon 2</div><div class="value">{{ l.telefon2|default:"—" }}</div></div>
+          <td class="col-actions">
+            <button class="btn-details" data-toggle="detail-{{ l.id }}">Batafsil</button>
+          </td>
+        </tr>
 
-            <div class="detail"><div class="label">Yosh</div><div class="value">{{ l.yosh }}</div></div>
-            <div class="detail"><div class="label">Manba</div><div class="value">{% if l.manba %}{{ l.manba.nom }}{% else %}—{% endif %}</div></div>
 
-            <!-- 🔽 Ixcham va simmetrik Yo‘nalish + Status -->
-            <div class="detail"><div class="label">Yo‘nalish</div>
-              <div class="value">{% if l.yonalish %}{{ l.yonalish.nom }}{% else %}—{% endif %}</div>
-            </div>
-            <div class="detail">
-              <div class="label">Status</div>
-              <div class="value">
-                {% if l.status %}
-                  {% if l.status.nom == "Kutmoqda" %}
-                    <span class="badge warn">{{ l.status.nom }}</span>
-                  {% elif l.status.nom == "O‘qimoqda" %}
-                    <span class="badge ok">{{ l.status.nom }}</span>
-                  {% elif l.status.nom == "Rad etilgan" %}
-                    <span class="badge bad">{{ l.status.nom }}</span>
-                  {% else %}
-                    <span class="badge alt">{{ l.status.nom }}</span>
-                  {% endif %}
-                {% else %}—{% endif %}
+        <!-- DETAILS ROW -->
+        <tr id="detail-{{ l.id }}" class="details-row">
+          <td class="details-cell" colspan="8">
+
+            <div class="details-card">
+
+              <div class="detail">
+                <div class="label">Ism</div>
+                <div class="value">{{ l.ism }}</div>
               </div>
+
+              <div class="detail">
+                <div class="label">Familya</div>
+                <div class="value">{{ l.familya|default:"—" }}</div>
+              </div>
+
+              <div class="detail">
+                <div class="label">Telefon</div>
+                <div class="value">{{ l.telefon1 }}</div>
+              </div>
+
+              <div class="detail">
+                <div class="label">Telefon 2</div>
+                <div class="value">{{ l.telefon2|default:"—" }}</div>
+              </div>
+
+              <div class="detail">
+                <div class="label">Yosh</div>
+                <div class="value">{{ l.yosh }}</div>
+              </div>
+
+              <div class="detail">
+                <div class="label">Manba</div>
+                <div class="value">{% if l.manba %}{{ l.manba.nom }}{% else %}—{% endif %}</div>
+              </div>
+
+              <div class="detail">
+                <div class="label">Yo‘nalish</div>
+                <div class="value">{% if l.yonalish %}{{ l.yonalish.nom }}{% else %}—{% endif %}</div>
+              </div>
+
+              <div class="detail">
+                <div class="label">Status</div>
+                <div class="value">
+                  {% if l.status %}
+                    {% if l.status.nom == "Kutmoqda" %}
+                      <span class="badge warn">{{ l.status.nom }}</span>
+                    {% elif l.status.nom == "O‘qimoqda" %}
+                      <span class="badge ok">{{ l.status.nom }}</span>
+                    {% elif l.status.nom == "Rad etilgan" %}
+                      <span class="badge bad">{{ l.status.nom }}</span>
+                    {% else %}
+                      <span class="badge alt">{{ l.status.nom }}</span>
+                    {% endif %}
+                  {% else %}—{% endif %}
+                </div>
+              </div>
+
+              <div class="detail full">
+                <div class="label">Manzil</div>
+                <div class="value">{{ l.address|default:"—" }}</div>
+              </div>
+
+              <div class="detail full">
+                <div class="label">Izoh</div>
+                <div class="value">{{ l.comment|default:"—" }}</div>
+              </div>
+
+              <div class="detail">
+                <div class="label">Qo‘shilgan</div>
+                <div class="value">{{ l.qoshilgan_sana|date:"d.m.Y H:i" }}</div>
+              </div>
+
+
+              <!-- ACTIONS -->
+              <div class="detail" style="display:flex; gap:8px; align-items:center;">
+                <a href="{% url 'store:lead_edit' l.id %}" class="btn btn-sm btn-warning"
+                   style="padding:8px 12px;border-radius:8px;">
+                  ✏️ Tahrirlash
+                </a>
+
+                <a href="{% url 'store:lead_delete' l.id %}" class="btn btn-sm btn-danger"
+                   style="padding:8px 12px;border-radius:8px;">
+                  🗑️ O‘chirish
+                </a>
+              </div>
+
             </div>
 
-            <div class="detail full"><div class="label">Manzil</div><div class="value">{{ l.address|default:"—" }}</div></div>
-            <div class="detail full"><div class="label">Izoh</div><div class="value">{{ l.comment|default:"—" }}</div></div>
-            <div class="detail"><div class="label">Qo‘shilgan</div><div class="value">{{ l.qoshilgan_sana|date:"d.m.Y H:i" }}</div></div>
+          </td>
+        </tr>
 
-            <div class="detail" style="display:flex; gap:8px; align-items:center;">
-              <a href="{% url 'store:lead_edit' l.id %}" class="btn btn-sm btn-warning" style="padding:8px 12px;border-radius:8px;">✏️ Tahrirlash</a>
-              <a href="{% url 'store:lead_delete' l.id %}" class="btn btn-sm btn-danger" style="padding:8px 12px;border-radius:8px;">🗑️ O‘chirish</a>
-            </div>
-          </div>
-        </td>
-      </tr>
-      {% empty %}
-      <tr class="main-row"><td colspan="8" class="text-center py-4" style="color:var(--muted)">Hech qanday lead topilmadi.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+        {% empty %}
+        <tr class="main-row">
+          <td colspan="8" class="text-center py-4" style="color:var(--muted)">
+            Hech qanday lead topilmadi.
+          </td>
+        </tr>
+
+        {% endfor %}
+
+      </tbody>
+    </table>
+
+  </div> <!-- /responsive -->
+
 </div>
 
+
 <script>
-  document.addEventListener('click', (e)=>{
-    const btn = e.target.closest('[data-toggle]');
-    if(!btn) return;
-    const id = btn.getAttribute('data-toggle');
-    const row = document.getElementById(id);
-    document.querySelectorAll('.details-row').forEach(r=>{
-      if(r.id !== id) r.style.display = 'none';
-    });
-    row.style.display = (row.style.display === 'table-row') ? 'none' : 'table-row';
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest('[data-toggle]');
+  if (!btn) return;
+
+  const id = btn.getAttribute('data-toggle');
+  const row = document.getElementById(id);
+
+  document.querySelectorAll('.details-row').forEach(r=>{
+    if (r.id !== id) r.style.display = 'none';
   });
+
+  row.style.display = (row.style.display === 'table-row') ? 'none' : 'table-row';
+});
 </script>
 
 {% endblock %}

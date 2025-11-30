@@ -20,6 +20,141 @@
       </div>
     </div>
   </div>
+<style>
+
+/* ==============================
+📱 GLOBAL RESPONSIVE FIXES
+============================== */
+
+/* Container – chetlar moslashadi */
+@media (max-width: 576px) {
+  .container {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+}
+
+/* 🔹 O'quvchi card – mobilga moslashtirish */
+@media (max-width: 576px) {
+
+  .card-body.d-flex {
+    flex-direction: column !important;
+    text-align: center !important;
+  }
+
+  .card-body .me-4 {
+    margin-right: 0 !important;
+    margin-bottom: 12px !important;
+  }
+
+  .card-body h3 {
+    font-size: 1.25rem !important;
+  }
+
+  .card-body p {
+    font-size: 0.9rem !important;
+  }
+}
+
+/* 🔹 Accordion mobile view */
+@media (max-width: 576px) {
+
+  .accordion-button .d-flex {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px;
+  }
+
+  .accordion-button strong {
+    font-size: 1rem !important;
+  }
+
+  .accordion-button span.badge {
+    font-size: 0.75rem !important;
+  }
+
+  .accordion-button .text-success,
+  .accordion-button .text-danger {
+    font-size: 0.95rem !important;
+  }
+}
+
+/* 🔹 H4 Guruh title — kichik ekran */
+@media (max-width: 576px) {
+  h4.fw-bold {
+    font-size: 1.05rem !important;
+    text-align: left !important;
+  }
+}
+
+/* 🔹 Table — scroll + kichik font */
+@media (max-width: 768px) {
+
+  .table-responsive {
+    overflow-x: auto !important;
+    display: block;
+  }
+
+  table.table {
+    font-size: 0.78rem !important;
+    min-width: 650px !important; /* jadval buzilmasin */
+  }
+
+  table.table th,
+  table.table td {
+    padding: 4px 6px !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* 🔹 Progress bar */
+@media (max-width: 576px) {
+  .progress {
+    height: 14px !important;
+  }
+}
+
+/* 🔹 Modal dialog – mobilga moslash */
+@media (max-width: 576px) {
+
+  .modal-dialog {
+    margin: 12px !important;
+    max-width: 92% !important;
+  }
+
+  .modal-body {
+    padding: 16px !important;
+  }
+
+  .modal-header h5 {
+    font-size: 1rem !important;
+  }
+
+  .chaqmoq-card {
+    padding: 12px !important;
+  }
+
+  .fs-5 {
+    font-size: 1rem !important;
+  }
+}
+
+/* 🔹 Card ichidagi ikkilamchi info */
+@media (max-width: 576px) {
+  .small.text-secondary {
+    font-size: 0.8rem !important;
+  }
+}
+
+/* 🔹 Badge – mobil uchun mos */
+@media (max-width: 576px) {
+  .badge {
+    font-size: 0.75rem !important;
+    padding: 5px 8px !important;
+  }
+}
+
+</style>
 
   <!-- 🔹 Davomat va Chaqmoq bo‘limi -->
   <div class="card shadow">

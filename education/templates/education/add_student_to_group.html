@@ -1,100 +1,127 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<!-- Tom Select kutubxonasini ulaymiz -->
 <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 
 <style>
-body {
-  background: linear-gradient(135deg, #eef4ff, #ffffff);
-  font-family: 'Poppins', sans-serif;
-  min-height: 100vh;
-}
+  :root{
+    --panel:#111827;
+    --glass:rgba(255,255,255,0.04);
+    --border:rgba(148,163,184,0.25);
+    --text:#e5e7eb;
+    --yellow:#facc15;
+    --blue:#38bdf8;
+    --green:#22c55e;
+  }
 
-.container {
-  max-width: 850px;
-  margin-top: 3rem;
-  background: #fff;
-  border-radius: 16px;
-  padding: 2.5rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-}
+  body {
+    background:#0f172a;
+    color:var(--text);
+  }
 
-h4 {
-  text-align: center;
-  color: #007bff;
-  font-weight: 800;
-  margin-bottom: 2rem;
-}
+  .wrapper {
+    max-width: 650px;
+    margin: 35px auto;
+    background: var(--glass);
+    border:1px solid var(--border);
+    padding: 30px;
+    border-radius: 18px;
+    box-shadow: 0 0 25px rgba(56,189,248,0.12);
+    backdrop-filter: blur(10px);
+  }
 
-label {
-  font-weight: 600;
-  color: #333;
-}
+  h4 {
+    text-align:center;
+    color: var(--yellow);
+    font-weight:700;
+    margin-bottom:25px;
+  }
 
-.ts-control {
-  border-radius: 10px;
-  border: 1px solid #d4d8e2;
-  padding: 8px 10px;
-  background-color: #f8faff;
-  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.05);
-}
+  label {
+    color: var(--text);
+    font-weight:600;
+    margin-bottom:6px;
+  }
 
-.ts-wrapper.multi .ts-control > div {
-  background: #007bff;
-  color: white;
-  border-radius: 6px;
-  padding: 4px 8px;
-  margin: 2px;
-}
+  /* TOM SELECT DARK MODE */
+  .ts-control {
+    background:#1e293b !important;
+    border:1px solid var(--border) !important;
+    border-radius:12px !important;
+    color:var(--text) !important;
+    padding:10px !important;
+  }
 
-.ts-wrapper.multi .ts-control > div .remove {
-  color: white;
-}
+  .ts-wrapper.multi .ts-control > div {
+    background: var(--blue) !important;
+    color:#fff !important;
+    border-radius:8px;
+    padding:4px 8px;
+    margin:2px;
+  }
 
-.btn-primary {
-  background: linear-gradient(135deg, #007bff, #00aaff);
-  border: none;
-  font-weight: 600;
-  border-radius: 10px;
-  transition: 0.3s;
-}
-.btn-primary:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0,123,255,0.4);
-}
-.btn-secondary {
-  background: #e8eef7;
-  color: #333;
-  font-weight: 600;
-  border-radius: 10px;
-}
-.btn-secondary:hover {
-  background: #dfe8ff;
-  color: #007bff;
-}
-#hisobBox {
-  border-radius: 12px;
-  padding: 1.2rem 1.5rem;
-  background: linear-gradient(135deg, #eaf6ff, #f8fbff);
-  box-shadow: 0 4px 12px rgba(0,123,255,0.1);
-  animation: fadeIn 0.4s ease-in-out;
-}
-@keyframes fadeIn {
-  from {opacity: 0; transform: translateY(10px);}
-  to {opacity: 1; transform: translateY(0);}
-}
+  .ts-dropdown {
+    background:#1e293b !important;
+    color:#fff !important;
+    border:1px solid var(--border);
+  }
+
+  .ts-dropdown .option:hover {
+    background:#334155 !important;
+  }
+
+  .btn-primary {
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+    border:none;
+    padding:10px 25px;
+    border-radius:10px;
+    font-weight:600;
+    transition:0.25s;
+  }
+
+  .btn-primary:hover {
+    transform:scale(1.05);
+    filter:brightness(1.1);
+  }
+
+  .btn-secondary {
+    background: none;
+    border:1px solid var(--blue);
+    padding:10px 25px;
+    color: var(--blue);
+    border-radius:10px;
+    font-weight:600;
+    transition:0.25s;
+  }
+
+  .btn-secondary:hover {
+    background: var(--blue);
+    color:#0f172a;
+  }
+
+  #hisobBox {
+    background: rgba(255,255,255,0.05);
+    padding:18px;
+    border-radius:16px;
+    border:1px solid var(--border);
+    margin-top:15px;
+    display:none;
+  }
+
+  #hisobBox li {
+    margin-top:6px;
+  }
 </style>
 
-<div class="container fade-in">
-  <h4>{{ g.name }} — Guruhga o‘quvchilarni qo‘shish</h4>
+<div class="wrapper">
+
+  <h4>👥 {{ g.name }} — Guruhga o‘quvchi qo‘shish</h4>
 
   <form method="post">
     {% csrf_token %}
 
-    <!-- 👥 O‘quvchi tanlash (Tom Select bilan) -->
+    <!-- Students select -->
     <div class="mb-4">
       <label class="form-label">🧑‍🎓 O‘quvchilarni tanlang:</label>
       <select id="students-select" name="student_ids" multiple required>
@@ -102,71 +129,62 @@ label {
           <option value="{{ s.id }}">{{ s.ism }} {{ s.familya }} — {{ s.telefon1 }}</option>
         {% endfor %}
       </select>
-      <small class="text-muted d-block mt-2">🔹 Qidiruv uchun ism yozing yoki ro‘yxatdan tanlang.</small>
-    <!-- </div> -->
+      <small class="text-muted d-block mt-2">🔎 Qidirish uchun ism kiriting</small>
+    </div>
 
-    <!-- 💰 Kurs narxi va foiz -->
-    <!-- <div class="row">
-      <div class="col-md-6 mb-3">
-        <label class="form-label">💰 Kurs narxi (so‘mda):</label>
-        <input type="number" id="kursNarxi" name="kurs_narhi" class="form-control" placeholder="Masalan: 600000" required>
-      </div> -->
-
-      <!-- <div class="col-md-6 mb-3">
-  <label class="form-label">👨‍🏫 O‘qituvchi ulushi (%):</label>
-  <input type="number" id="foiz" class="form-control" value="{{ g.oqituvchi.oqituvchi_foizi }}" readonly>
-</div> -->
-
-    <!-- </div> -->
-
-    <!-- 📊 Hisob natijasi -->
-    <div class="alert alert-info mt-3" id="hisobBox" style="display:none;">
+    <!-- Calculation box (hidden) -->
+    <div class="alert" id="hisobBox">
       <strong>📊 Hisob-kitob:</strong>
       <ul class="mb-0 mt-2">
         <li>💵 Kurs narxi: <span id="kursSumma">0</span> so‘m</li>
-        <li>👨‍🏫 O‘qituvchiga: <span id="teacherSumma">0</span> so‘m</li>
-        <li>🏫 Markazga: <span id="centerSumma">0</span> so‘m</li>
+        <li>👨‍🏫 O‘qituvchi ulushi: <span id="teacherSumma">0</span> so‘m</li>
+        <li>🏫 Markaz ulushi: <span id="centerSumma">0</span> so‘m</li>
       </ul>
     </div>
 
-    <!-- 🔘 Tugmalar -->
     <div class="mt-4 text-center">
-      <button type="submit" class="btn btn-primary px-4">➕ Qo‘shish</button>
-      <a href="{% url 'education:group_detail' g.id %}" class="btn btn-secondary ms-2 px-4">⬅️ Ortga</a>
+      <button type="submit" class="btn btn-primary">➕ Qo‘shish</button>
+      <a href="{% url 'education:group_detail' g.id %}" class="btn btn-secondary ms-2">⬅️ Ortga</a>
     </div>
+
   </form>
 </div>
 
 <script>
-new TomSelect("#students-select", {
-  plugins: ['remove_button'],
-  create: false,
-  persist: false,
-  maxItems: null,
-  sortField: {field: "text", direction: "asc"},
-  placeholder: "O‘quvchilarni tanlang yoki qidiring...",
-});
+  new TomSelect("#students-select", {
+    plugins: ['remove_button'],
+    persist:false,
+    maxItems:null,
+    sortField:{field:"text", direction:"asc"},
+    placeholder:"O‘quvchi tanlang yoki qidiring...",
+  });
 
-const kursInput = document.getElementById('kursNarxi');
-const foizInput = document.getElementById('foiz');
-const box = document.getElementById('hisobBox');
-const kursSumma = document.getElementById('kursSumma');
-const teacherSumma = document.getElementById('teacherSumma');
-const centerSumma = document.getElementById('centerSumma');
+  // Calculate (if needed)
+  const kursInput = document.getElementById('kursNarxi');
+  const foizInput = document.getElementById('foiz');
+  const box = document.getElementById('hisobBox');
+  const kursSumma = document.getElementById('kursSumma');
+  const teacherSumma = document.getElementById('teacherSumma');
+  const centerSumma = document.getElementById('centerSumma');
 
-function hisobla() {
-  const kurs = parseFloat(kursInput.value) || 0;
-  const foiz = parseFloat(foizInput.value) || 0;
-  const teacher = (kurs * foiz / 100).toFixed(0);
-  const center = (kurs - teacher).toFixed(0);
-  kursSumma.textContent = kurs.toLocaleString();
-  teacherSumma.textContent = teacher.toLocaleString();
-  centerSumma.textContent = center.toLocaleString();
-  box.style.display = kurs > 0 ? 'block' : 'none';
-}
+  function hisobla(){
+    const kurs = parseFloat(kursInput?.value || 0);
+    const foiz = parseFloat(foizInput?.value || 0);
 
-kursInput.addEventListener('input', hisobla);
-foizInput.addEventListener('input', hisobla);
+    if(!kursInput) return;
+
+    kursSumma.textContent = kurs.toLocaleString();
+    const teacher = (kurs * foiz / 100).toFixed(0);
+    const center = kurs - teacher;
+
+    teacherSumma.textContent = Number(teacher).toLocaleString();
+    centerSumma.textContent  = Number(center).toLocaleString();
+
+    box.style.display = kurs > 0 ? 'block' : 'none';
+  }
+
+  kursInput?.addEventListener("input", hisobla);
+  foizInput?.addEventListener("input", hisobla);
 </script>
 
 {% endblock %}

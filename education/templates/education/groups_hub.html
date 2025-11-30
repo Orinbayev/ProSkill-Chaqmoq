@@ -1,15 +1,114 @@
 {% extends "base.html" %}
 {% block content %}
-<h3 class="mb-4">Guruhlar</h3>
 
-<div class="row g-3">
-  <div class="col-md-6">
-    <a class="btn btn-lg btn-outline-primary w-100 py-4"
-       href="{% url 'education:groups_lang' %}">Tillar bo‘yicha guruhlar</a>
+<style>
+
+body {
+  background: linear-gradient(180deg, #0f172a, #1e293b, #0f172a);
+  min-height: 100vh;
+  font-family: "Poppins", sans-serif;
+  color: #e2e8f0;
+}
+
+/* Title */
+.page-title {
+  font-weight: 800;
+  font-size: 2rem;
+  color: #facc15;
+  margin-bottom: 2rem;
+  text-shadow: 0 2px 6px rgba(250,204,21,0.4);
+  text-align: center;
+}
+
+/* Buttons (main hub buttons) */
+.hub-btn {
+  display: block;
+  width: 100%;
+  padding: 2.2rem 1rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  border-radius: 16px;
+  text-align: center;
+  text-decoration: none;
+  transition: .35s ease;
+  letter-spacing: 0.5px;
+  border: none;
+}
+
+/* LANG button */
+.btn-lang {
+  background: linear-gradient(130deg, #3b82f6, #60a5fa);
+  color: white;
+  box-shadow: 0 6px 18px rgba(59,130,246,0.35);
+}
+.btn-lang:hover {
+  transform: translateY(-5px) scale(1.03);
+  box-shadow: 0 10px 24px rgba(59,130,246,0.45);
+}
+
+/* IT button */
+.btn-it {
+  background: linear-gradient(130deg, #0f172a, #334155);
+  color: #f8fafc;
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+}
+.btn-it:hover {
+  transform: translateY(-5px) scale(1.03);
+  background: linear-gradient(130deg, #1e293b, #475569);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.55);
+}
+
+/* 🟦 RESPONSIVE */
+@media (max-width: 768px) {
+
+  .page-title {
+    font-size: 1.6rem;
+    margin-bottom: 1.8rem;
+  }
+
+  .hub-btn {
+    padding: 1.8rem 1rem;
+    font-size: 1.15rem;
+  }
+}
+
+@media (max-width: 480px) {
+
+  .hub-btn {
+    padding: 1.6rem 1rem;
+    font-size: 1.1rem;
+    border-radius: 14px;
+  }
+}
+
+</style>
+
+
+<div class="container py-5">
+
+  <h3 class="page-title">Guruhlar</h3>
+
+  <div class="row g-4">
+
+    <!-- Languages -->
+    <div class="col-md-6">
+      <a href="{% url 'education:groups_lang' %}"
+         class="hub-btn btn-lang">
+        🌐 Tillar bo‘yicha guruhlar
+      </a>
+    </div>
+
+    <!-- IT -->
+    <div class="col-md-6">
+      <a href="{% url 'education:groups_it' %}"
+         class="hub-btn btn-it">
+        💻 IT bo‘yicha guruhlar
+      </a>
+    </div>
+
   </div>
-  <div class="col-md-6">
-    <a class="btn btn-lg btn-outline-dark w-100 py-4"
-       href="{% url 'education:groups_it' %}">IT bo‘yicha guruhlar</a>
-  </div>
+
 </div>
+
 {% endblock %}

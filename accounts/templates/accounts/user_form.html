@@ -1,38 +1,92 @@
 {% extends 'base.html' %}
 {% block content %}
+
 <h3 class="mb-4 text-light fw-semibold">{{ title }}</h3>
+
 <style>
-  .uniform-input {
-    width: 100% !important;
-}
-input.uniform-input {
-    width: 100% !important;
-}
-label.form-label {
-    white-space: nowrap;
-}
-.col-md-4 input {
-    width: 100% !important;
-}
-
-label.form-label {
-    white-space: nowrap; /* Chiroyli turishi uchun */
-}
-.col-md-4 {
-    flex: 0 0 33.333%;
-    max-width: 33.333%;
-}
-.col-md-4 .form-control {
-    height: 45px;
-}
-label.form-label {
-    display: inline-block;
-    margin-bottom: 6px;
-    white-space: nowrap;
+/* ===== GLOBAL GLASS CARD ===== */
+.glass-card {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 18px;
+  padding: 30px 35px;
+  backdrop-filter: blur(18px);
+  box-shadow: 0 0 35px rgba(0,0,0,0.35);
+  color: #fff;
+  margin-top: 20px;
 }
 
+/* ===== INPUT / SELECT ===== */
+.uniform-input,
+.form-control,
+.form-select {
+  width: 100% !important;
+  background: rgba(255,255,255,0.85) !important;
+  color: #111 !important;
+  border: 1px solid #ccc !important;
+  border-radius: 10px !important;
+  padding: 10px 12px !important;
+  font-size: 15px;
+  transition: all .25s;
+}
 
+.form-control:focus,
+.form-select:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 10px rgba(59,130,246,0.5);
+}
+
+/* Label */
+label.form-label {
+  color: #e2e8f0;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Password eye button */
+.toggle-eye {
+  position: absolute;
+  right: 12px;
+  top: 40px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 18px;
+  color: #444;
+}
+.toggle-eye:hover { transform: scale(1.2); }
+
+/* BUTTONS */
+.btn-save {
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  padding: 10px 22px;
+  border-radius: 10px;
+}
+.btn-save:hover { transform: translateY(-2px); }
+
+.btn-cancel {
+  border: 1px solid #aaa;
+  color: #ddd;
+  padding: 10px 22px;
+  border-radius: 10px;
+}
+.btn-cancel:hover {
+  background: #ddd;
+  color: #000;
+}
+
+/* RESPONSIVE */
+@media(max-width: 768px) {
+  .col-md-4, .col-md-6 {
+    max-width: 100%;
+    flex: 0 0 100%;
+  }
+}
 </style>
+
 {% if form.errors %}
 <div class="alert alert-danger mt-3">
   <ul class="mb-0">
@@ -41,6 +95,7 @@ label.form-label {
         <li><b>{{ field.label }}:</b> {{ error }}</li>
       {% endfor %}
     {% endfor %}
+
     {% for error in form.non_field_errors %}
       <li>{{ error }}</li>
     {% endfor %}
@@ -51,64 +106,64 @@ label.form-label {
 <form method="post" class="user-form glass-card">
   {% csrf_token %}
 
-<div class="row g-0 gx-3 gy-3">
+  <div class="row g-3">
 
-  <!-- === 1-qator: Ism / Familya / Otchestvo === -->
-  <div class="col-md-4">
-    <label class="form-label">{{ form.ism.label }}</label>
-    {{ form.ism }}
+    <!-- === 1-qator === -->
+    <div class="col-md-4">
+      <label class="form-label">{{ form.ism.label }}</label>
+      {{ form.ism }}
+    </div>
+
+    <div class="col-md-4">
+      <label class="form-label">{{ form.familya.label }}</label>
+      {{ form.familya }}
+    </div>
+
+    <div class="col-md-4">
+      <label class="form-label">{{ form.otchestvo.label }}</label>
+      {{ form.otchestvo }}
+    </div>
+
+    <!-- === Telefonlar === -->
+    <div class="col-md-6">
+      <label class="form-label">{{ form.telefon1.label }}</label>
+      {{ form.telefon1 }}
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">{{ form.telefon2.label }}</label>
+      {{ form.telefon2 }}
+    </div>
+
+    <!-- === Center / Role === -->
+    <div class="col-md-6">
+      <label class="form-label">{{ form.center.label }}</label>
+      {{ form.center }}
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">{{ form.role.label }}</label>
+      {{ form.role }}
+    </div>
+
+    <!-- === Email === -->
+    <div class="col-md-6">
+      <label class="form-label">{{ form.email.label }}</label>
+      {{ form.email }}
+    </div>
+
+    <!-- === Password with Eye === -->
+    <div class="col-md-6 position-relative">
+      <label class="form-label">{{ form.password.label }}</label>
+      {{ form.password }}
+      <button type="button" class="toggle-eye" id="togglePassword">👁</button>
+    </div>
+
   </div>
 
-  <div class="col-md-4">
-    <label class="form-label">{{ form.familya.label }}</label>
-    {{ form.familya }}
-  </div>
-
-  <div class="col-md-4">
-    <label class="form-label">{{ form.otchestvo.label }}</label>
-    {{ form.otchestvo }}
-  </div>
-
-  <!-- === 2-qator: Telefonlar === -->
-  <div class="col-md-6">
-    <label class="form-label">{{ form.telefon1.label }}</label>
-    {{ form.telefon1 }}
-  </div>
-
-  <div class="col-md-6">
-    <label class="form-label">{{ form.telefon2.label }}</label>
-    {{ form.telefon2 }}
-  </div>
-
-  <!-- === 3-qator: Center / Role === -->
-  <div class="col-md-6">
-    <label class="form-label">{{ form.center.label }}</label>
-    {{ form.center }}
-  </div>
-
-  <div class="col-md-6">
-    <label class="form-label">{{ form.role.label }}</label>
-    {{ form.role }}
-  </div>
-
-  <!-- === 4-qator: Email / Password === -->
-  <div class="col-md-6">
-    <label class="form-label">{{ form.email.label }}</label>
-    {{ form.email }}
-  </div>
-
-  <div class="col-md-6 position-relative">
-    <label class="form-label">{{ form.password.label }}</label>
-    {{ form.password }}
-    <button type="button" class="btn btn-sm toggle-eye" id="togglePassword">👁</button>
-  </div>
-
-</div>
-
-
-  <!-- === STUDENT ROLE — GROUP SELECT === -->
+  <!-- Student → Group select -->
   <div id="groupSelectBlock" class="mt-4" style="display:none;">
-    <label class="form-label text-light">Guruhga qo‘shish (ixtiyoriy)</label>
+    <label class="form-label">Guruhga qo‘shish (ixtiyoriy)</label>
     <select name="group_id" id="group_id" class="form-select uniform-input">
       <option value="">— Guruh tanlang —</option>
       {% for g in groups %}
@@ -117,19 +172,17 @@ label.form-label {
     </select>
   </div>
 
-  <!-- === KURS NARXI (faqat student bo‘lsa) === -->
+  <!-- Kurs narxi -->
   <div class="mt-3" id="priceBlock" style="display:none;">
-    <label class="form-label text-light">Kurs narxi (so‘m)</label>
-    <input type="number" id="kursNarxiInput" name="kurs_narhi"
-           class="form-control uniform-input" min="0">
+    <label class="form-label">Kurs narxi (so‘m)</label>
+    <input type="number" id="kursNarxiInput" name="kurs_narhi" class="form-control uniform-input" min="0">
   </div>
 
-  <!-- === O‘QITUVCHI FOIZI (faqat teacher role) === -->
+  <!-- Teacher percent -->
   <div class="col-md-6 mt-3" id="foizField" style="display:none;">
     <label class="form-label">O‘qituvchi ulushi (%)</label>
     <input type="number" name="oqituvchi_foizi" id="id_oqituvchi_foizi"
-           class="form-control uniform-input" min="0" max="100"
-           value="{{ request.user.oqituvchi_foizi|default:40 }}">
+           class="form-control uniform-input" min="0" max="100">
   </div>
 
   <div class="mt-4 d-flex gap-3">
@@ -138,11 +191,10 @@ label.form-label {
   </div>
 </form>
 
-<!-- === JavaScript — ONE CLEAN BLOCK === -->
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
-  // ==== ELEMENTS ====
+  // ELEMENTS
   const role = document.getElementById("id_role");
   const groupBlock = document.getElementById("groupSelectBlock");
   const groupSelect = document.getElementById("group_id");
@@ -151,175 +203,83 @@ document.addEventListener("DOMContentLoaded", () => {
   const foizField = document.getElementById("foizField");
 
   const ism = document.getElementById("id_ism");
-  const familya = document.getElementById("id_familya");
+  const fam = document.getElementById("id_familya");
   const email = document.getElementById("id_email");
   const pass = document.getElementById("id_password");
   const eye = document.getElementById("togglePassword");
 
-  const phones = [
-      document.getElementById("id_telefon1"),
-      document.getElementById("id_telefon2")
-  ];
+  const phones = [document.getElementById("id_telefon1"), document.getElementById("id_telefon2")];
 
-  // === ROLE → SHOW/HIDE SECTIONS ===
+  // SHOW/HIDE sections by role
   function handleRole() {
-      groupBlock.style.display = (role.value === "student") ? "block" : "none";
-      priceBlock.style.display = "none";
-
-      foizField.style.display = (role.value === "teacher") ? "block" : "none";
+    groupBlock.style.display = role.value === "student" ? "block" : "none";
+    priceBlock.style.display = "none";
+    foizField.style.display = role.value === "teacher" ? "block" : "none";
   }
   role.addEventListener("change", handleRole);
   handleRole();
 
-  // === STUDENT GROUP → LOAD PRICE ===
+  // STUDENT: Load group price
   function loadPrice() {
-      const gid = groupSelect.value;
-      if (!gid) {
-          priceBlock.style.display = "none";
-          return;
-      }
+    const gid = groupSelect.value;
+    if (!gid) { priceBlock.style.display = "none"; return; }
 
-      fetch(`/education/group-price/${gid}/`)
-          .then(res => res.json())
-          .then(data => {
-              kursInput.value = data.price;
-              priceBlock.style.display = "block";
-          })
-          .catch(() => {
-              kursInput.value = 0;
-              priceBlock.style.display = "block";
-          });
+    fetch(`/education/group-price/${gid}/`)
+      .then(r => r.json())
+      .then(data => {
+        kursInput.value = data.price;
+        priceBlock.style.display = "block";
+      })
+      .catch(() => {
+        kursInput.value = 0;
+        priceBlock.style.display = "block";
+      });
   }
   groupSelect.addEventListener("change", loadPrice);
 
-  // === PASSWORD EYE ===
+  // PASSWORD eye toggle
   eye.addEventListener("click", () => {
-      pass.type = pass.type === "password" ? "text" : "password";
-      eye.textContent = pass.type === "password" ? "👁" : "🙈";
+    pass.type = pass.type === "password" ? "text" : "password";
+    eye.textContent = pass.type === "password" ? "👁" : "🙈";
   });
 
-  // === AUTO EMAIL + PASSWORD GENERATION ===
+  // AUTO email / password generator
   function generateLogin() {
-      const i = ism.value.trim().toLowerCase();
-      const f = familya.value.trim().toLowerCase();
+    const i = ism.value.trim().toLowerCase();
+    const f = fam.value.trim().toLowerCase();
 
-      if (i && f) {
-          if (!email.value || email.dataset.auto === "1") {
-              email.value = `${i}${f}@gmail.com`;
-              email.dataset.auto = "1";
-          }
-
-          if (!pass.value || pass.dataset.auto === "1") {
-              const rnd = Math.floor(100 + Math.random() * 900);
-              pass.value = `${i}_${f}${rnd}`;
-              pass.dataset.auto = "1";
-          }
+    if (i && f) {
+      if (!email.value || email.dataset.auto === "1") {
+        email.value = `${i}${f}@gmail.com`;
+        email.dataset.auto = "1";
       }
+      if (!pass.value || pass.dataset.auto === "1") {
+        pass.value = `${i}_${f}${Math.floor(100+Math.random()*900)}`;
+        pass.dataset.auto = "1";
+      }
+    }
   }
   ism.addEventListener("input", generateLogin);
-  familya.addEventListener("input", generateLogin);
-  email.addEventListener("input", () => email.dataset.auto = "0");
-  pass.addEventListener("input", () => pass.dataset.auto = "0");
+  fam.addEventListener("input", generateLogin);
 
-  // === PHONE FORMAT ===
-  phones.forEach(input => {
-      if (!input) return;
+  // PHONE format
+  phones.forEach(inp => {
+    if (!inp) return;
 
-      input.addEventListener("focus", () => {
-          if (!input.value.startsWith("+998")) input.value = "+998";
-      });
+    inp.addEventListener("focus", () => {
+      if (!inp.value.startsWith("+998")) inp.value = "+998";
+    });
 
-      input.addEventListener("input", () => {
-          input.value = input.value.replace(/[^\d+]/g, "");
-          if (!input.value.startsWith("+998")) {
-              input.value = "+998" + input.value.replace(/^\+?998?/, "");
-          }
-          if (input.value.length > 13) {
-              input.value = input.value.slice(0, 13);
-          }
-      });
-
-      input.addEventListener("blur", () => {
-          if (input.value === "") input.value = "+998";
-      });
+    inp.addEventListener("input", () => {
+      inp.value = inp.value.replace(/[^\d+]/g, "");
+      if (!inp.value.startsWith("+998"))
+        inp.value = "+998" + inp.value.replace(/^\+?998?/, "");
+      if (inp.value.length > 13)
+        inp.value = inp.value.slice(0, 13);
+    });
   });
+
 });
 </script>
-
-<!-- === STYLE === -->
-<style>
-.glass-card {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
-  padding: 30px 35px;
-  backdrop-filter: blur(15px);
-  box-shadow: 0 0 25px rgba(0,0,0,0.25);
-  color: #fff;
-  margin-top: 20px;
-}
-
-.uniform-input,
-input.form-control,
-select.form-select,
-textarea.form-control {
-  background: #fff !important;
-  color: #000 !important;
-  border: 1px solid #ccc !important;
-  border-radius: 8px !important;
-  padding: 10px 12px !important;
-  font-size: 15px !important;
-  transition: all 0.25s ease;
-  width: 100%;
-}
-
-.uniform-input:focus,
-input.form-control:focus,
-select.form-select:focus {
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 8px rgba(59,130,246,0.5);
-}
-
-label.form-label {
-  color: #e5e7eb;
-  font-weight: 500;
-}
-
-.btn-save {
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
-  border: none;
-  color: #fff;
-  font-weight: 600;
-  padding: 8px 20px;
-  border-radius: 8px;
-}
-.btn-save:hover {
-  background: linear-gradient(90deg, #60a5fa, #3b82f6);
-  transform: translateY(-2px);
-}
-
-.btn-cancel {
-  border: 1px solid #888;
-  color: #ddd;
-  padding: 8px 20px;
-  border-radius: 8px;
-}
-.btn-cancel:hover {
-  background: #ddd;
-  color: #000;
-}
-
-.toggle-eye {
-  position: absolute;
-  top: 36px;
-  right: 10px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 18px;
-}
-.toggle-eye:hover {
-  transform: scale(1.2);
-}
-</style>
 
 {% endblock %}

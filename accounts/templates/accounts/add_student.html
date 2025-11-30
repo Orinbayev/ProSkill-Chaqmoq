@@ -1,8 +1,100 @@
 {% extends 'base.html' %}
 {% block content %}
-<h3 class="mb-3">Yangi o‘quvchi qo‘shish</h3>
-<form method="post">{% csrf_token %}
-  {{ form.as_p }}
-  <button class="btn btn-success">Saqlash</button>
-</form>
+
+<style>
+/* GLOBAL PAGE */
+.page-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #38bdf8;
+  margin-bottom: 1.5rem;
+  text-shadow: 0 0 12px rgba(56,189,248,0.4);
+}
+
+/* FORM WRAPPER */
+.form-wrapper {
+  max-width: 650px;
+  margin: 0 auto;
+  background: rgba(255,255,255,0.05);
+  padding: 28px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  backdrop-filter: blur(8px);
+}
+
+/* LABEL */
+.form-wrapper label {
+  color: #cbd5e1;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+/* INPUTS */
+.form-wrapper input,
+.form-wrapper select {
+  background: rgba(255,255,255,0.08) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+  padding: 11px 12px !important;
+  border-radius: 10px !important;
+}
+
+.form-wrapper input:focus,
+.form-wrapper select:focus {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 10px rgba(56,189,248,0.4) !important;
+}
+
+/* BUTTONS */
+.btn-save {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  padding: 12px 20px;
+  border-radius: 12px;
+  margin-top: 10px;
+  box-shadow: 0 0 18px rgba(34,197,94,0.35);
+  transition: 0.25s ease;
+}
+.btn-save:hover {
+  transform: scale(1.05);
+  background: linear-gradient(90deg, #16a34a, #22c55e);
+  box-shadow: 0 0 25px rgba(34,197,94,0.55);
+}
+
+/* ERROR TEXT */
+.errorlist {
+  color: #f87171;
+  padding-left: 0;
+  list-style: none;
+  font-size: 0.9rem;
+  margin-top: 3px;
+  font-weight: 500;
+}
+</style>
+
+
+<h3 class="page-title">➕ Yangi o‘quvchi qo‘shish</h3>
+
+<div class="form-wrapper">
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    {% for field in form %}
+      <div class="mb-3">
+        <label>{{ field.label }}</label>
+        {{ field }}
+        {{ field.errors }}
+      </div>
+    {% endfor %}
+
+    <button class="btn-save w-100">💾 Saqlash</button>
+
+  </form>
+
+</div>
+
 {% endblock %}

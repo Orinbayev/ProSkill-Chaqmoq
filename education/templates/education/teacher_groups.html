@@ -12,12 +12,22 @@ body {
 }
 
 /* 📘 Sarlavha */
-h4 {
-  font-weight: 800;
-  color: #facc15;
-  margin-bottom: 2rem;
+.teacher-header {
   text-align: center;
-  text-shadow: 0 2px 6px rgba(250,204,21,0.5);
+  margin-bottom: 2rem;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  color: #fff;
+  padding: 1rem 1.5rem;
+  border-radius: 15px;
+  box-shadow: 0 8px 25px rgba(59,130,246,0.35);
+  display: inline-block;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+.teacher-header span {
+  display: block;
+  font-size: 1rem;
+  opacity: 0.85;
 }
 
 /* 🧩 Har bir guruh kartasi */
@@ -39,7 +49,7 @@ details:hover {
   background: rgba(59,130,246,0.1);
 }
 
-/* 🔹 Summary (guruh sarlavhasi) */
+/* Summary */
 summary {
   font-weight: 600;
   font-size: 1.1rem;
@@ -47,76 +57,19 @@ summary {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  list-style: none;
 }
-summary::-webkit-details-marker {
-  display: none;
-}
-
-/* 🔽 Belgisi */
+summary::-webkit-details-marker { display: none; }
 summary::after {
   content: "⬇️";
   font-size: 1rem;
   color: #60a5fa;
-  transition: transform 0.3s ease;
+  transition: 0.3s;
 }
 details[open] summary::after {
   transform: rotate(180deg);
 }
 
-/* 💸 Jadval */
-.table {
-  background: rgba(255,255,255,0.05);
-  border-radius: 12px;
-  overflow: hidden;
-  margin-top: 1rem;
-  color: #f1f5f9;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.3);
-}
-.table th {
-  background: linear-gradient(90deg, #2563eb, #3b82f6);
-  color: #fff;
-  font-weight: 600;
-  text-align: center;
-}
-.table td, .table th {
-  vertical-align: middle;
-  text-align: center;
-  border-color: rgba(255,255,255,0.08) !important;
-}
-.table-hover tbody tr:hover {
-  background-color: rgba(59,130,246,0.15);
-  transition: background 0.2s ease;
-}
-
-/* 🧾 Bo‘sh holatlar */
-.text-muted {
-  color: #94a3b8 !important;
-  font-style: italic;
-  text-align: center;
-  margin-top: 1rem;
-}
-
-/* 🧍‍♂️ O‘qituvchi ismi */
-.teacher-header {
-  text-align: center;
-  margin-bottom: 2rem;
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
-  color: #fff;
-  padding: 1rem 1.5rem;
-  border-radius: 15px;
-  box-shadow: 0 8px 25px rgba(59,130,246,0.35);
-  display: inline-block;
-  font-size: 1.4rem;
-  font-weight: 700;
-}
-.teacher-header span {
-  display: block;
-  font-size: 1rem;
-  opacity: 0.85;
-}
-
-/* 💵 Daromad badge */
+/* Salary badge */
 .salary-badge {
   background: linear-gradient(90deg, #22c55e, #16a34a);
   color: #fff;
@@ -128,30 +81,76 @@ details[open] summary::after {
   box-shadow: 0 0 15px rgba(22,163,74,0.4);
 }
 
-/* 💰 Daromad summasi */
 summary span strong {
   color: #22c55e;
 }
 
-/* 🧾 Jadval ichidagi sonlar */
-.table td strong {
-  color: #facc15;
-  font-weight: 700;
+/* 💸 Jadval */
+.table-box {
+  margin-top: 1rem;
+  overflow-x: auto;     /* 📱 Jadval scroll bo’ladi */
+  border-radius: 12px;
+}
+.table {
+  background: rgba(255,255,255,0.05);
+  min-width: 700px;      /* 📱 Mobil buzilmasligi uchun */
+}
+.table th {
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  color: #fff;
+  font-weight: 600;
+  text-align: center;
+}
+.table td, .table th {
+  text-align: center;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+.table-hover tbody tr:hover {
+  background-color: rgba(59,130,246,0.15);
+  transition: 0.2s;
 }
 
-/* Responsiv */
-@media (max-width: 768px) {
+/* 📱 MOBILE RESPONSIVE */
+@media (max-width: 576px) {
+
+  .container {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .teacher-header {
+    width: 100%;
+    font-size: 1.2rem;
+  }
+
   summary {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
+    font-size: 1rem;
+  }
+
+  .salary-badge {
+    margin-left: 0;
+    margin-top: 6px;
+  }
+
+  details {
+    padding: 1rem !important;
+  }
+
+  .table {
+    font-size: 0.82rem;
   }
 }
+
 </style>
+
 
 <div class="container mt-5">
   <div class="teacher-header">
-    👩‍🏫 {{ teacher.ism }} {{ teacher.familya }}<span> O‘qituvchi guruhlari</span>
+    👩‍🏫 {{ teacher.ism }} {{ teacher.familya }}
+    <span>O‘qituvchi guruhlari</span>
   </div>
 
   {% if teacher_data %}
@@ -163,30 +162,32 @@ summary span strong {
         </summary>
 
         {% if item.enrollments %}
-          <table class="table table-hover table-sm mt-3">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>O‘quvchi</th>
-                <th>Kurs narxi</th>
-                <th>Foiz</th>
-                <th>Kelgan darslar</th>
-                <th>Daromad (so‘m)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for e in item.enrollments %}
+          <div class="table-box">
+            <table class="table table-hover table-sm">
+              <thead>
                 <tr>
-                  <td>{{ forloop.counter }}</td>
-                  <td>{{ e.student.ism }} {{ e.student.familya }}</td>
-                  <td>{{ e.kurs_narhi|intcomma }}</td>
-                  <td>{{ e.foiz }}%</td>
-                  <td>{{ e.attended }}</td>
-                  <td><strong>{{ e.daromad|intcomma }}</strong></td>
+                  <th>#</th>
+                  <th>O‘quvchi</th>
+                  <th>Kurs narxi</th>
+                  <th>Foiz</th>
+                  <th>Kelgan darslar</th>
+                  <th>Daromad (so‘m)</th>
                 </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {% for e in item.enrollments %}
+                  <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ e.student.ism }} {{ e.student.familya }}</td>
+                    <td>{{ e.kurs_narhi|intcomma }}</td>
+                    <td>{{ e.foiz }}%</td>
+                    <td>{{ e.attended }}</td>
+                    <td><strong>{{ e.daromad|intcomma }}</strong></td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
         {% else %}
           <p class="text-muted">Bu guruhda hozircha o‘quvchilar yo‘q.</p>
         {% endif %}

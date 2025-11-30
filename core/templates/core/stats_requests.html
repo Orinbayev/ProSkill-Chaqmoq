@@ -1,47 +1,193 @@
 {% extends 'base.html' %}
 {% block content %}
-<h3>{{ title }}</h3>
 
-<form class="mb-3">
-  <select name="status" class="form-select" style="max-width:240px" onchange="this.form.submit()">
-    <option value="">— Barchasi —</option>
-    <option value="pending"  {% if status == 'pending' %}selected{% endif %}>Kutilmoqda</option>
-    <option value="approved" {% if status == 'approved' %}selected{% endif %}>Tasdiqlandi</option>
-    <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>Rad etildi</option>
-  </select>
+<style>
+/* ===== TITLE ===== */
+.page-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #22c55e;
+    margin-bottom: 20px;
+}
+
+/* ===== FILTER SELECT ===== */
+.filter-box {
+    max-width: 260px;
+    margin-bottom: 18px;
+}
+.filter-box select {
+    background: #0f172a;
+    color: #e2e8f0;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-weight: 500;
+}
+.filter-box select:focus {
+    border-color: #22c55e;
+    box-shadow: 0 0 6px rgba(34,197,94,0.3);
+}
+
+/* ===== TABLE WRAPPER ===== */
+.table-container {
+    background: rgba(15, 23, 42, 0.6);
+    padding: 20px;
+    border-radius: 16px;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+}
+
+/* ===== TABLE HEAD ===== */
+.table-modern thead {
+    background: rgba(30,41,59,0.75);
+}
+.table-modern thead th {
+    color: #22c55e;
+    padding: 14px 8px;
+    font-size: 14px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+/* ===== TABLE BODY ===== */
+.table-modern tbody tr {
+    transition: 0.25s;
+}
+.table-modern tbody tr:hover {
+    background: rgba(34,197,94,0.12);
+}
+.table-modern td {
+    padding: 12px 8px;
+    color: #e2e8f0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+/* STATUS COLORS */
+.status-pending { color: #eab308; font-weight: 600; }
+.status-approved { color: #22c55e; font-weight: 700; }
+.status-rejected { color: #dc2626; font-weight: 700; }
+
+/* ACTION BUTTONS */
+.btn-mini {
+    padding: 6px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 8px !important;
+}
+
+/* EMPTY STATE */
+.empty-row {
+    color: #94a3b8;
+    text-align: center;
+    padding: 18px 0;
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .table-modern thead { display: none; }
+
+    .table-modern tr {
+        display: block;
+        margin-bottom: 15px;
+        padding: 12px;
+        border-radius: 14px;
+        background: rgba(30,41,59,0.7);
+    }
+
+    .table-modern td {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 6px;
+        border-bottom: 1px dashed rgba(255,255,255,0.1);
+    }
+    .table-modern td:last-child {
+        border-bottom: none;
+    }
+
+    .table-modern td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #cbd5e1;
+    }
+}
+</style>
+
+<h3 class="page-title">{{ title }}</h3>
+
+<form class="filter-box">
+    <select name="status" onchange="this.form.submit()">
+        <option value="">— Barchasi —</option>
+        <option value="pending"  {% if status == 'pending' %}selected{% endif %}>Kutilmoqda</option>
+        <option value="approved" {% if status == 'approved' %}selected{% endif %}>Tasdiqlandi</option>
+        <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>Rad etildi</option>
+    </select>
 </form>
 
-<table class="table table-striped align-middle">
-  <thead>
-    <tr>
-      <th>Sana</th>
-      <th>O‘quvchi</th>
-      <th>Mahsulot</th>
-      <th>Qty</th>
-      <th>Status</th>
-      <th>Tasdiqlovchi</th>
-      <th class="text-end">Amal</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for r in rows %}
-      <tr>
-        <td>{{ r.sana|date:"Y-m-d H:i" }}</td>
-        <td>{{ r.student.ism }} {{ r.student.familya }}</td>
-        <td>{{ r.product.nom }}</td>
-        <td>{{ r.qty }}</td>
-        <td>{{ r.get_status_display }}</td>
-        <td>{% if r.manager %}{{ r.manager.ism }} {{ r.manager.familya }}{% else %}—{% endif %}</td>
-        <td class="text-end text-nowrap">
-          {% if r.status == 'pending' %}
-            <a class="btn btn-sm btn-success" href="{% url 'store:request_approve' r.pk %}">Tasdiqlash</a>
-            <a class="btn btn-sm btn-outline-danger" href="{% url 'store:request_reject' r.pk %}">Rad etish</a>
-          {% else %} — {% endif %}
-        </td>
-      </tr>
-    {% empty %}
-      <tr><td colspan="7">Maʼlumot yo‘q.</td></tr>
-    {% endfor %}
-  </tbody>
+<div class="table-container">
+<table class="table-modern table align-middle">
+    <thead>
+        <tr>
+            <th>Sana</th>
+            <th>O‘quvchi</th>
+            <th>Mahsulot</th>
+            <th>Qty</th>
+            <th>Status</th>
+            <th>Tasdiqlovchi</th>
+            <th class="text-end">Amallar</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for r in rows %}
+        <tr>
+            <td data-label="Sana">{{ r.sana|date:"Y-m-d H:i" }}</td>
+            <td data-label="O‘quvchi">{{ r.student.ism }} {{ r.student.familya }}</td>
+            <td data-label="Mahsulot">{{ r.product.nom }}</td>
+            <td data-label="Qty">{{ r.qty }}</td>
+
+            <td data-label="Status" class="
+                {% if r.status == 'pending' %}status-pending
+                {% elif r.status == 'approved' %}status-approved
+                {% else %}status-rejected{% endif %}
+            ">
+                {{ r.get_status_display }}
+            </td>
+
+            <td data-label="Tasdiqlovchi">
+                {% if r.manager %}
+                    {{ r.manager.ism }} {{ r.manager.familya }}
+                {% else %}
+                    —
+                {% endif %}
+            </td>
+
+            <td data-label="Amallar" class="text-end text-nowrap">
+
+                {% if r.status == 'pending' %}
+                <a class="btn btn-success btn-mini me-1"
+                   href="{% url 'store:request_approve' r.pk %}">
+                    Tasdiqlash
+                </a>
+
+                <a class="btn btn-outline-danger btn-mini"
+                   href="{% url 'store:request_reject' r.pk %}">
+                    Rad etish
+                </a>
+
+                {% else %}
+                —
+                {% endif %}
+
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="7" class="empty-row">Maʼlumot yo‘q.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
 </table>
+</div>
+
 {% endblock %}

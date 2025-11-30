@@ -9,14 +9,14 @@
     margin-bottom: 25px;
 }
 
-/* 🔥 5 ta kartani bir qatorga joylaymiz */
+/* 📌 GRID — barcha ekranlarga moslashadi */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 18px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
-/* PREMIUM KARTALAR */
+/* 📌 PREMIUM KARTALAR */
 .stat-card {
     background: #ffffff0d;
     padding: 18px;
@@ -52,7 +52,61 @@
     margin-top: 10px;
     color: #4db8ff !important;
 }
+
+
+/* 📱📱📱  RESPONSIVE  📱📱📱 */
+
+@media (max-width: 768px) {    /* PLANSHEET + TELEFON */
+    .dashboard-title {
+        font-size: 22px;
+        text-align: center;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 14px;
+    }
+
+    .stat-card {
+        min-height: 110px;
+        padding: 14px;
+    }
+
+    .stat-value {
+        font-size: 22px;
+    }
+}
+
+@media (max-width: 480px) {    /* TELEFON uchun */
+    .dashboard-title {
+        font-size: 20px;
+        margin-bottom: 20px;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;  /* HAR QATORDA 1 TA */
+        gap: 12px;
+    }
+
+    .stat-card {
+        min-height: 100px;
+        padding: 12px;
+    }
+
+    .stat-title {
+        font-size: 13px;
+    }
+
+    .stat-value {
+        font-size: 20px;
+    }
+
+    .stat-link {
+        font-size: 11px;
+    }
+}
 </style>
+
 
 <h3 class="dashboard-title">Direktor paneli</h3>
 

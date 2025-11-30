@@ -2,146 +2,237 @@
 {% block content %}
 
 <style>
+
+/***************************************
+  WRAPPER
+***************************************/
 .edit-box {
     max-width: 900px;
-    margin: 0 auto;
+    margin: 20px auto;
     background: rgba(255,255,255,0.05);
-    padding: 28px;
+    padding: 26px;
     border-radius: 18px;
-    border: 1px solid rgba(255,255,255,0.1);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
-    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+    backdrop-filter: blur(6px);
 }
+
+/***************************************
+  TITLES
+***************************************/
 .edit-title {
     font-size: 26px;
     font-weight: 700;
     color: #fff;
-    margin-bottom: 20px;
+    margin-bottom: 18px;
 }
-.form-label { color: #cbd5e1; font-weight: 500; }
+
+.section-title {
+    color: #e2e8f0;
+    margin: 18px 0 12px;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+/***************************************
+  INPUTS
+***************************************/
+.form-label {
+    color: #cbd5e1;
+    font-weight: 500;
+}
+
 .form-control {
-    background: rgba(255,255,255,0.08);
-    color: #fff;
+    background: rgba(255,255,255,0.08) !important;
+    color: white !important;
     border: 1px solid rgba(255,255,255,0.15);
     padding: 10px;
+    border-radius: 10px;
 }
+
 .form-control:focus {
-    border-color: #38bdf8;
+    border-color: #38bdf8 !important;
     box-shadow: 0 0 0 3px rgba(56,189,248,0.4);
 }
+
+/***************************************
+  BUTTONS
+***************************************/
 .btn-save {
     background: #22c55e;
-    padding: 10px 20px;
-    font-weight: 600;
-    color: #fff;
-    border-radius: 10px;
+    padding: 12px 22px;
+    font-weight: 700;
+    color: white;
+    border-radius: 12px;
+    border: none;
 }
+
+.btn-save:hover {
+    background: #16a34a;
+}
+
 .btn-cancel {
-    background: rgba(255,255,255,0.12);
-    padding: 10px 20px;
-    font-weight: 600;
-    color: #fff;
-    border-radius: 10px;
+    background: rgba(255,255,255,0.15);
+    padding: 12px 22px;
+    font-weight: 700;
+    color: white;
+    border-radius: 12px;
+    border: none;
 }
+
+.btn-cancel:hover {
+    background: rgba(255,255,255,0.25);
+}
+
+/***************************************
+  GROUP BOX
+***************************************/
+.group-box {
+    background: rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 12px;
+}
+
+.group-label {
+    color: #38bdf8;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+/***************************************
+  RESPONSIVE FIXES
+***************************************/
+@media (max-width: 768px) {
+    .edit-box {
+        padding: 18px;
+        margin: 10px;
+    }
+
+    .edit-title {
+        font-size: 22px;
+    }
+
+    .section-title {
+        font-size: 18px;
+    }
+
+    .btn-save,
+    .btn-cancel {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
+    .d-flex.gap-3 {
+        flex-direction: column;
+    }
+}
+
 </style>
 
-<div class="edit-box mt-4">
+
+<div class="edit-box">
+
+    <!-- ===== EDIT TITLE ===== -->
     <div class="edit-title">O‘quvchini tahrirlash</div>
 
     <form method="POST">
         {% csrf_token %}
 
-<div class="row">
+        <div class="row">
 
-    <!-- 1-QATOR: Ism, Familya, Otasining ismi -->
-    <div class="col-md-4 mb-3">
-        <label class="form-label">Ism</label>
-        <input type="text" name="ism" value="{{ user_obj.ism }}" class="form-control">
-    </div>
+            <!-- 1️⃣ Ism -->
+            <div class="col-md-4 col-12 mb-3">
+                <label class="form-label">Ism</label>
+                <input type="text" name="ism" value="{{ user_obj.ism }}" class="form-control">
+            </div>
 
-    <div class="col-md-4 mb-3">
-        <label class="form-label">Familya</label>
-        <input type="text" name="familya" value="{{ user_obj.familya }}" class="form-control">
-    </div>
+            <!-- 2️⃣ Familya -->
+            <div class="col-md-4 col-12 mb-3">
+                <label class="form-label">Familya</label>
+                <input type="text" name="familya" value="{{ user_obj.familya }}" class="form-control">
+            </div>
 
-    <div class="col-md-4 mb-3">
-        <label class="form-label">Otasining ismi</label>
-        <input type="text" name="otchestvo" value="{{ user_obj.otchestvo }}" class="form-control">
-    </div>
+            <!-- 3️⃣ Otchestvo -->
+            <div class="col-md-4 col-12 mb-3">
+                <label class="form-label">Otasining ismi</label>
+                <input type="text" name="otchestvo" value="{{ user_obj.otchestvo }}" class="form-control">
+            </div>
 
+            <!-- 4️⃣ Email -->
+            <div class="col-md-6 col-12 mb-3">
+                <label class="form-label">Email (Login)</label>
+                <input type="email" name="email" value="{{ user_obj.email }}" class="form-control">
+            </div>
 
-    <!-- 2-QATOR: Email — Parol -->
-    <div class="col-md-6 mb-3">
-        <label class="form-label">Email (Login)</label>
-        <input type="email" name="email" value="{{ user_obj.email }}" class="form-control">
-    </div>
+            <!-- 5️⃣ Password -->
+            <div class="col-md-6 col-12 mb-3">
+                <label class="form-label">Parol (ixtiyoriy)</label>
+                <input type="password" name="password" placeholder="Yangi parol..." class="form-control">
+            </div>
 
-    <div class="col-md-6 mb-3">
-        <label class="form-label">Parol (ixtiyoriy)</label>
-        <input type="password" name="password" placeholder="Yangi parol yozing..." class="form-control">
-    </div>
+            <!-- 6️⃣ Telefon 1 -->
+            <div class="col-md-6 col-12 mb-3">
+                <label class="form-label">Telefon 1</label>
+                <input type="text" name="telefon1" id="telefon1"
+                       value="{{ user_obj.telefon1 }}" class="form-control">
+            </div>
 
+            <!-- 7️⃣ Telefon 2 -->
+            <div class="col-md-6 col-12 mb-3">
+                <label class="form-label">Telefon 2</label>
+                <input type="text" name="telefon2" id="telefon2"
+                       value="{{ user_obj.telefon2 }}" class="form-control">
+            </div>
 
-    <!-- 3-QATOR: Telefon 1 — Telefon 2 -->
-    <div class="col-md-6 mb-3">
-        <label class="form-label">Telefon 1</label>
-        <input type="text" name="telefon1" id="telefon1"
-               value="{{ user_obj.telefon1 }}" class="form-control">
-    </div>
+            <!-- 8️⃣ Role -->
+            <div class="col-12 mb-3">
+                <label class="form-label">Role</label>
+                <select name="role" class="form-control">
+                    <option value="student"  {% if user_obj.role == "student" %}selected{% endif %}>O‘quvchi</option>
+                    <option value="teacher" {% if user_obj.role == "teacher" %}selected{% endif %}>O‘qituvchi</option>
+                    <option value="manager" {% if user_obj.role == "manager" %}selected{% endif %}>Manager</option>
+                    <option value="director" {% if user_obj.role == "director" %}selected{% endif %}>Direktor</option>
+                </select>
+            </div>
 
-    <div class="col-md-6 mb-3">
-        <label class="form-label">Telefon 2</label>
-        <input type="text" name="telefon2" id="telefon2"
-               value="{{ user_obj.telefon2 }}" class="form-control">
-    </div>
-
-
-    <!-- 4-QATOR: Role -->
-    <div class="col-md-12 mb-3">
-        <label class="form-label">Role</label>
-        <select name="role" class="form-control">
-            <option value="student" {% if user_obj.role == "student" %}selected{% endif %}>O‘quvchi</option>
-            <option value="teacher" {% if user_obj.role == "teacher" %}selected{% endif %}>O‘qituvchi</option>
-            <option value="manager" {% if user_obj.role == "manager" %}selected{% endif %}>Manager</option>
-            <option value="director" {% if user_obj.role == "director" %}selected{% endif %}>Direktor</option>
-        </select>
-    </div>
-
-</div>
-
+        </div>
 
         <hr class="mt-4 mb-3" style="border-color:#ffffff30">
 
-        <h4 class="text-light mb-3">📘 O‘quvchining guruhlari va kurs narxlari</h4>
+        <!-- ===== GROUP SECTION ===== -->
+        <div class="section-title">📘 O‘quvchining guruhlari va kurs narxlari</div>
 
         {% if enrollments %}
             {% for e in enrollments %}
-                <div class="mb-3 p-3" style="background:rgba(255,255,255,0.05); border-radius:10px;">
+                <div class="group-box">
 
-                    <label class="form-label text-info">
+                    <label class="group-label">
                         {{ e.group.nom }} — {{ e.group.center }}
                     </label>
 
-                    <div class="d-flex gap-3">
-                        <!-- Narx -->
-                        <input type="number"
-                               name="kurs_narhi_{{ e.id }}"
-                               class="form-control"
-                               value="{{ e.kurs_narhi }}"
-                               min="0"
-                               style="flex:2">
+                    <div class="row mt-2">
 
-                        <!-- Guruhdan chiqarish -->
-                        <div class="form-check d-flex align-items-center" style="flex:1;">
-                            <input class="form-check-input"
+                        <div class="col-md-8 col-12 mb-2">
+                            <input type="number"
+                                   name="kurs_narhi_{{ e.id }}"
+                                   class="form-control"
+                                   value="{{ e.kurs_narhi }}"
+                                   min="0">
+                        </div>
+
+                        <div class="col-md-4 col-12 d-flex align-items-center">
+                            <input class="form-check-input me-2"
                                    type="checkbox"
                                    name="delete_group_{{ e.id }}"
                                    id="del{{ e.id }}">
-                            <label for="del{{ e.id }}" class="form-check-label text-danger ms-2">
+                            <label for="del{{ e.id }}" class="form-check-label text-danger">
                                 ❌ O‘chirish
                             </label>
                         </div>
+
                     </div>
+
                 </div>
             {% endfor %}
         {% else %}
@@ -150,10 +241,12 @@
 
         <hr class="mt-4 mb-3" style="border-color:#ffffff30">
 
-        <h4 class="text-light mb-3">➕ Yangi guruhga qo‘shish</h4>
+        <!-- ===== ADD NEW GROUP ===== -->
+        <div class="section-title">➕ Yangi guruhga qo‘shish</div>
 
         <div class="row">
-            <div class="col-md-6 mb-3">
+
+            <div class="col-md-6 col-12 mb-3">
                 <label class="form-label">Guruhni tanlang</label>
                 <select name="yangi_group_id" class="form-control">
                     <option value="">— Tanlanmagan —</option>
@@ -163,12 +256,14 @@
                 </select>
             </div>
 
-            <div class="col-md-6 mb-3">
+            <div class="col-md-6 col-12 mb-3">
                 <label class="form-label">Kurs narxi (so‘m)</label>
                 <input type="number" name="yangi_group_price" class="form-control" min="0">
             </div>
+
         </div>
 
+        <!-- ===== BUTTONS ===== -->
         <div class="d-flex gap-3 mt-4">
             <button class="btn-save">💾 Saqlash</button>
             <a href="/stat/students/" class="btn-cancel">Bekor qilish</a>
@@ -176,6 +271,7 @@
 
     </form>
 </div>
+
 
 <script>
 function formatPhone(el){

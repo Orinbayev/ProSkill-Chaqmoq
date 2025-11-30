@@ -1,61 +1,201 @@
 {% extends 'base.html' %}
 {% block content %}
-<h3>{{ student.ism }} {{ student.familya }} — balans: {{ balance }}</h3>
 
-<h5 class="mt-3">Guruhlar</h5>
-<ul>
-  {% for e in enrolls %}
-    <li>{{ e.group.nom }}</li>
-  {% empty %}
-    <li>Guruhga biriktirilmagan.</li>
-  {% endfor %}
-</ul>
+<style>
+/* GLOBAL */
+body {
+  background: linear-gradient(150deg, #0f172a, #1e293b);
+  color: #e2e8f0;
+  font-family: 'Poppins', sans-serif;
+}
 
-<form method="get" class="mb-2">
-  <label class="me-2">Ko‘rsatish:</label>
-  <select name="n" class="form-select d-inline-block" style="width:120px" onchange="this.form.submit()">
-    <option value="15"  {% if n == '15' %}selected{% endif %}>15 ta</option>
-    <option value="50"  {% if n == '50' %}selected{% endif %}>50 ta</option>
-    <option value="all" {% if n == 'all' %}selected{% endif %}>Barchasi</option>
-  </select>
-</form>
+/* PAGE TITLE */
+.student-title {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #facc15;
+  text-shadow: 0 0 12px rgba(250, 204, 21, 0.4);
+}
 
-<div class="row g-4 mt-2">
-  <div class="col-md-6">
-    <h5>Davomat{% if n != 'all' %} (oxirgi {{ n }}){% endif %}</h5>
-    <table class="table table-sm">
-      <thead><tr><th>Sana</th><th>Guruh</th><th>Davomat</th></tr></thead>
-      <tbody>
-        {% for a in attendance %}
-          <tr>
-            <td>{{ a.date|date:"Y-m-d" }}</td>
-            <td>{{ a.group.nom }}</td>
-            <td>{% if a.present %}✓{% else %}✗{% endif %}</td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="3">Davomat yozilmagan.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+/* BALANCE CARD */
+.balance-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 18px 24px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  box-shadow: 0 0 22px rgba(0,0,0,0.35);
+  backdrop-filter: blur(8px);
+}
+
+/* BADGE FOR GROUPS */
+.group-badge {
+  display: inline-block;
+  background: rgba(59,130,246,0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(59,130,246,0.35);
+  padding: 4px 10px;
+  border-radius: 12px;
+  margin: 4px 6px 4px 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* TABLES */
+.table-box {
+  background: rgba(255,255,255,0.05);
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 0 20px rgba(0,0,0,0.35);
+}
+
+table {
+  width: 100%;
+  color: #e2e8f0;
+}
+
+thead {
+  background: linear-gradient(to right, #3b82f6, #2563eb);
+  color: #fff;
+  font-weight: 700;
+}
+
+th, td {
+  padding: 10px 12px;
+}
+
+tbody tr {
+  transition: .25s;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+tbody tr:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+/* SELECT DROPDOWN */
+select.form-select {
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff !important;
+  border-radius: 10px;
+}
+
+select.form-select:focus {
+  box-shadow: 0 0 10px rgba(59,130,246,0.35);
+  border-color: #3b82f6;
+}
+</style>
+
+<div class="container mt-4">
+
+  <!-- HEADER -->
+  <h3 class="student-title">
+    🎓 {{ student.ism }} {{ student.familya }}
+  </h3>
+
+  <div class="balance-card mt-2">
+    ⚡ Jami balans: <span class="text-info">{{ balance }}</span>
   </div>
-  <div class="col-md-6">
-    <h5>Chaqmoq yozuvlari{% if n != 'all' %} (oxirgi {{ n }}){% endif %}</h5>
-    <table class="table table-sm">
-      <thead><tr><th>Sana</th><th>Guruh</th><th>Qoida</th><th>Ball</th><th>Kim qo‘ydi</th></tr></thead>
-      <tbody>
-        {% for l in ledger %}
-          <tr>
-            <td>{{ l.sana|date:"Y-m-d H:i" }}</td>
-            <td>{% if l.group %}{{ l.group.nom }}{% else %}—{% endif %}</td>
-            <td>{{ l.rule.nom }}</td>
-            <td>{{ l.ball }}</td>
-            <td>{% if l.beruvchi %}{{ l.beruvchi.ism }} {{ l.beruvchi.familya }}{% else %}—{% endif %}</td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="5">Yozuv yo‘q.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+
+  <!-- GROUP LIST -->
+  <h5 class="mt-4 fw-bold text-info">📘 Biriktirilgan guruhlar:</h5>
+  <div class="mb-3">
+    {% for e in enrolls %}
+      <span class="group-badge">{{ e.group.nom }}</span>
+    {% empty %}
+      <p class="text-secondary">Guruhga biriktirilmagan.</p>
+    {% endfor %}
   </div>
+
+  <!-- SELECT NUMBER -->
+  <form method="get" class="mb-3">
+    <label class="me-2 fw-semibold">Ko‘rsatish soni:</label>
+    <select name="n" class="form-select d-inline-block" style="width:140px" onchange="this.form.submit()">
+      <option value="15"  {% if n == '15' %}selected{% endif %}>15 ta</option>
+      <option value="50"  {% if n == '50' %}selected{% endif %}>50 ta</option>
+      <option value="all" {% if n == 'all' %}selected{% endif %}>Barchasi</option>
+    </select>
+  </form>
+
+  <div class="row g-4">
+
+    <!-- DAVOMAT -->
+    <div class="col-md-6">
+      <div class="table-box">
+        <h5 class="fw-bold text-primary">📅 Davomat {% if n != 'all' %}(oxirgi {{ n }}){% endif %}</h5>
+        <table class="table table-sm mt-2">
+          <thead>
+            <tr>
+              <th>Sana</th>
+              <th>Guruh</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in attendance %}
+              <tr>
+                <td>{{ a.date|date:"Y-m-d" }}</td>
+                <td>{{ a.group.nom }}</td>
+                <td>
+                  {% if a.present %}
+                    <span class="text-success fw-bold">✓</span>
+                  {% else %}
+                    <span class="text-danger fw-bold">✗</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="3" class="text-secondary">Davomat yo‘q.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- LEDGER -->
+    <div class="col-md-6">
+      <div class="table-box">
+        <h5 class="fw-bold text-warning">⚡ Chaqmoq yozuvlari {% if n != 'all' %}(oxirgi {{ n }}){% endif %}</h5>
+        <table class="table table-sm mt-2">
+          <thead>
+            <tr>
+              <th>Sana</th>
+              <th>Guruh</th>
+              <th>Qoida</th>
+              <th>Ball</th>
+              <th>Kim</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for l in ledger %}
+              <tr>
+                <td>{{ l.sana|date:"Y-m-d H:i" }}</td>
+                <td>{{ l.group.nom if l.group else "—" }}</td>
+                <td>{{ l.rule.nom }}</td>
+                <td class="{% if l.ball >= 0 %}text-success{% else %}text-danger{% endif %} fw-bold">
+                  {{ l.ball }}
+                </td>
+                <td>
+                  {% if l.beruvchi %}
+                    {{ l.beruvchi.ism }} {{ l.beruvchi.familya }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="5" class="text-secondary">Yozuv mavjud emas.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
 </div>
+
 {% endblock %}

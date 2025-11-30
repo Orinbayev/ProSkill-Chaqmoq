@@ -5,102 +5,123 @@
   👨‍🏫 O‘qituvchilar ro‘yxati
 </h3>
 
-<div class="table-container shadow-lg rounded">
-  <table class="table table-dark table-hover align-middle mb-0">
-    <thead class="table-gradient">
-      <tr>
-        <th class="text-info">#</th>
-        <th class="text-info">F.I.Sh</th>
-        <!-- <th class="text-info">Email</th> -->
-        <th class="text-info">Telefon</th>
-        <th class="text-info">Ulushi (%)</th>
-        <th class="text-info">Guruh</th>
-        <th class="text-info text-center">Amallar</th>
-      </tr>
-    </thead>
+<div class="table-wrapper">
+  <div class="table-responsive rounded shadow-lg">
+    <table class="table table-dark table-hover align-middle mb-0 teacher-table">
+      <thead>
+        <tr>
+          <th class="text-info">#</th>
+          <th class="text-info">F.I.Sh</th>
+          <th class="text-info">Telefon</th>
+          <th class="text-info">Ulushi (%)</th>
+          <th class="text-info">Guruh</th>
+          <th class="text-info text-center">Amallar</th>
+        </tr>
+      </thead>
 
-    <tbody>
-      {% for t in teachers %}
-      <tr>
-        <td class="fw-bold">{{ forloop.counter }}</td>
+      <tbody>
+        {% for t in teachers %}
+        <tr>
+          <td class="fw-bold">{{ forloop.counter }}</td>
 
-        <!-- Ism + Familya bir qatorda -->
-        <td class="fw-semibold">
-    {{ t.ism }} <br>
+          <td class="fw-semibold name-col">
+            {{ t.ism }}
+            {% if t.familya %}<br>{{ t.familya }}{% endif %}
+            {% if t.otchestvo %} {{ t.otchestvo }}{% endif %}
+          </td>
 
-    {% if t.familya %}{{ t.familya }}{% endif %}
-    {% if t.otchestvo %} {{ t.otchestvo }}{% endif %}
-</td>
+          <td>{{ t.telefon1|default:"—" }}</td>
 
+          <td>
+            <span class="badge bg-info text-dark percent-badge">
+              {{ t.oqituvchi_foizi }}%
+            </span>
+          </td>
 
-        <!-- <td class="text-warning">{{ t.email }}</td> -->
-        <td>{{ t.telefon1 }}</td>
+          <td>
+            <span class="badge bg-warning text-dark group-badge">
+              {{ t.group_count }}
+            </span>
+          </td>
 
-        <td>
-          <span class="badge rounded-pill bg-info px-3 py-2">
-            {{ t.oqituvchi_foizi }}%
-          </span>
-        </td>
+          <td class="text-center action-cell">
 
-        <td>
-          <span class="badge rounded-pill bg-warning text-dark px-3 py-2">
-            {{ t.group_count }}
-          </span>
-        </td>
+            <a href="{% url 'core:teacher_detail' t.id %}"
+               class="btn btn-view">
+               🔍 Ko‘rish
+            </a>
 
-        <!-- Amallar -->
-        <td class="text-center action-buttons">
+            <a href="{% url 'core:teacher_edit' t.id %}"
+               class="btn btn-edit">
+               ✏️ Tahrirlash
+            </a>
 
-          <a href="{% url 'core:teacher_detail' t.id %}"
-             class="btn btn-view">
-             🔍 Ko‘rish
-          </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
 
-          <a href="{% url 'core:teacher_edit' t.id %}"
-             class="btn btn-edit">
-             ✏️ Tahrirlash
-          </a>
-
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+    </table>
+  </div>
 </div>
 
 <style>
-/* TABLE LIMIT — 100% EKRANGA SIG‘ADI */
-.table-container {
+
+/***************************************************
+  TABLE RESPONSIVE WRAPPER
+****************************************************/
+.table-wrapper {
   width: 100%;
-  max-width: 1150px;
-  margin: 0 auto;
+  overflow-x: auto;
+  padding-bottom: 10px;
 }
 
-/* HEADER DESIGN */
-.table-gradient {
-  background: linear-gradient(90deg, #0d1117, #161b22, #1f2937);
+/***************************************************
+  HEADER STYLE
+****************************************************/
+.teacher-table thead {
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(6px);
 }
-.table-gradient th {
-  padding: 12px;
+.teacher-table th {
+  white-space: nowrap;
+  padding: 12px 14px;
   font-weight: 600;
 }
 
-/* BADGE LAR */
-.badge {
-  font-size: 0.85rem;
+/***************************************************
+  NAME COLUMN
+****************************************************/
+.name-col {
+  white-space: normal !important;
+  word-wrap: break-word;
 }
 
-/* TUGMALAR */
-.action-buttons {
+/***************************************************
+  BADGES
+****************************************************/
+.percent-badge,
+.group-badge {
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/***************************************************
+  ACTION BUTTONS
+****************************************************/
+.action-cell {
   white-space: nowrap;
 }
-
-.btn-view, .btn-edit {
-  padding: 6px 16px;
+.btn-view,
+.btn-edit {
+  padding: 6px 14px;
   font-size: 0.85rem;
-  border-radius: 8px;
-  text-decoration: none;
+  border-radius: 10px;
   font-weight: 600;
+  display: inline-block;
+  margin: 2px;
 }
 
 /* Ko‘rish */
@@ -121,11 +142,56 @@
   background: #eab308;
 }
 
-/* Qator balansi */
-table tr td, table tr th {
-  vertical-align: middle !important;
-  white-space: nowrap;
+/***************************************************
+  MOBILE FRIENDLY DESIGN
+****************************************************/
+@media (max-width: 768px) {
+
+  h3 {
+    font-size: 20px;
+    text-align: center;
+  }
+
+  .teacher-table th,
+  .teacher-table td {
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+
+  .btn-view,
+  .btn-edit {
+    font-size: 12px;
+    padding: 5px 10px;
+  }
+
+  .percent-badge,
+  .group-badge {
+    font-size: 12px;
+    padding: 4px 9px;
+  }
+
+  .name-col {
+    font-size: 13px;
+  }
 }
+
+/***************************************************
+  SMALL MOBILE (iPhone SE, Galaxy mini)
+****************************************************/
+@media (max-width: 480px) {
+
+  .btn-view,
+  .btn-edit {
+    display: block;
+    width: 100%;
+    margin-bottom: 6px;
+  }
+
+  .action-cell {
+    width: 100px;
+  }
+}
+
 </style>
 
 {% endblock %}

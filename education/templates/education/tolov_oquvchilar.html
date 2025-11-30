@@ -67,6 +67,7 @@ h2 {
   justify-content: center;
   gap: 6px;
   margin-bottom: 20px;
+  flex-wrap: wrap;
 }
 .filter-buttons a {
   text-decoration: none;
@@ -85,11 +86,17 @@ h2 {
 .filter-buttons a:hover { background: #16a34a; color: #fff; }
 
 /* Table */
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
   text-align: center;
+  min-width: 800px;
 }
 thead { background: #22c55e; color: #fff; font-size: 13.5px; }
 th, td {
@@ -107,6 +114,7 @@ tbody tr:hover { background: #f9fafb; }
   align-items: center;
   justify-content: center;
   gap: 4px;
+  flex-wrap: nowrap;
 }
 .payment-input {
   width: 70px;
@@ -150,6 +158,7 @@ tbody tr:hover { background: #f9fafb; }
   padding: 20px 25px;
   border-radius: 12px;
   width: 550px;
+  max-width: 95%;
   max-height: 80vh;
   overflow-y: auto;
   box-shadow: 0 8px 30px rgba(0,0,0,0.25);
@@ -207,6 +216,28 @@ tbody tr:hover { background: #f9fafb; }
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* 📱 Responsiv */
+@media (max-width: 768px) {
+  .container {
+    margin: 20px auto;
+    padding: 18px 14px;
+  }
+  h2 {
+    font-size: 18px;
+    margin-bottom: 15px;
+  }
+  table {
+    font-size: 12px;
+    min-width: 700px;
+  }
+  th, td {
+    padding: 6px 4px;
+  }
+  .payment-input {
+    width: 60px;
+  }
+}
 </style>
 
 <div class="container">
@@ -220,57 +251,61 @@ tbody tr:hover { background: #f9fafb; }
 
   <div class="filter-buttons">
     <a href="?filter=" class="{% if not filter_type %}active{% endif %}">Hammasi</a>
-    <a href="?filter=full" class="{% if filter_type == 'full' %}active{% endif %}">✅ To‘liq</a>
-    <a href="?filter=unpaid" class="{% if filter_type == 'unpaid' %}active{% endif %}">❌ To‘lamagan</a>
+    <a href="?filter=full" class="{% if filter_type == 'full' %}active{% endif %}">✅ To‘liq yopilganlar</a>
+    <a href="?filter=unpaid" class="{% if filter_type == 'unpaid' %}active{% endif %}">❌ To‘lamagan / qoldig‘i bor</a>
   </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>F.I.Sh</th>
-        <th>Guruh</th>
-        <th>Kurs narxi</th>
-        <th>Jami to‘langan</th>
-        <th>Qoldiq</th>
-        <th>Status</th>
-        <th>Karta</th>
-        <th>Naqd</th>
-        <th>Saqlash</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for s in data %}
-      <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>
-          <a href="javascript:void(0)" onclick="openModal('{{ s.student.id }}', '{{ s.student.ism }} {{ s.student.familya }}')" style="color:#0d9488;font-weight:600;text-decoration:none;">
-            {{ s.student.ism }} {{ s.student.familya }}
-          </a>
-        </td>
-        <td>{{ s.group.nom }}</td>
-        <td>{{ s.kurs_narhi|intcomma }}</td>
-        <td>{{ s.jami_tolangan|intcomma }}</td>
-        <td>{{ s.qoldiq|intcomma }}</td>
-        <td class="status {% if s.is_full %}full{% elif s.is_late %}late{% else %}unpaid{% endif %}">
-          {% if s.is_full %}✅ To‘liq{% elif s.is_late %}⚠️ Kechikkan{% else %}❌ To‘lamagan{% endif %}
-        </td>
-        <td colspan="3">
-          <form method="post" action="{% url 'education:create_payment' %}" class="payment-form">
-            {% csrf_token %}
-            <input type="hidden" name="student_id" value="{{ s.student.id }}">
-            <input type="hidden" name="group_id" value="{{ s.group.id }}">
-            <input type="number" name="card_amount" class="payment-input" placeholder="Karta" min="0">
-            <input type="number" name="cash_amount" class="payment-input" placeholder="Naqd" min="0">
-            <button type="submit" class="save-btn">Saqlash</button>
-          </form>
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="10" style="text-align:center;color:#999;">Maʼlumot topilmadi.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>F.I.Sh</th>
+          <th>Guruh</th>
+          <th>Kurs narxi</th>
+          <th>Jami to‘langan (umumiy)</th>
+          <th>Joriy oy qoldig‘i</th>
+          <th>Status</th>
+          <th>Karta</th>
+          <th>Naqd</th>
+          <th>Saqlash</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in data %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>
+            <a href="javascript:void(0)"
+               onclick="openModal('{{ s.student.id }}', '{{ s.student.ism }} {{ s.student.familya }}')"
+               style="color:#0d9488;font-weight:600;text-decoration:none;">
+              {{ s.student.ism }} {{ s.student.familya }}
+            </a>
+          </td>
+          <td>{{ s.group.nom }}</td>
+          <td>{{ s.kurs_narhi|intcomma }}</td>
+          <td>{{ s.jami_tolangan|intcomma }}</td>
+          <td>{{ s.qoldiq|intcomma }}</td>
+          <td class="status {% if s.is_full %}full{% elif s.is_late %}late{% else %}unpaid{% endif %}">
+            {% if s.is_full %}✅ To‘liq{% elif s.is_late %}⚠️ Qisman{% else %}❌ To‘lamagan{% endif %}
+          </td>
+          <td colspan="3">
+            <form method="post" action="{% url 'education:create_payment' %}" class="payment-form">
+              {% csrf_token %}
+              <input type="hidden" name="student_id" value="{{ s.student.id }}">
+              <input type="hidden" name="group_id" value="{{ s.group.id }}">
+              <input type="number" name="card_amount" class="payment-input" placeholder="Karta" min="0">
+              <input type="number" name="cash_amount" class="payment-input" placeholder="Naqd" min="0">
+              <button type="submit" class="save-btn">Saqlash</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="10" style="text-align:center;color:#999;">Maʼlumot topilmadi.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 
 <!-- Modal -->
@@ -285,12 +320,13 @@ tbody tr:hover { background: #f9fafb; }
           <th>Soat</th>
           <th>Naqd</th>
           <th>Karta</th>
-          <th>Kurs narxi</th>
-          <th>Qoldiq</th>
+          <th>Jami</th>
+          <th>Yig‘indi</th>
+          <th>Qoldiq (aktiv oy)</th>
         </tr>
       </thead>
       <tbody id="paymentHistory">
-        <tr><td colspan="6">Yuklanmoqda...</td></tr>
+        <tr><td colspan="7">Yuklanmoqda...</td></tr>
       </tbody>
     </table>
     <button class="modal-close" onclick="closeModal()">Yopish</button>
@@ -298,42 +334,49 @@ tbody tr:hover { background: #f9fafb; }
 </div>
 
 <script>
+function formatNumber(num) {
+  if (!num || isNaN(num)) return "0";
+  return Number(num).toLocaleString("uz-UZ");
+}
+
 function openModal(studentId, studentName) {
   document.getElementById('studentName').innerText = studentName;
   const tbody = document.getElementById('paymentHistory');
-  tbody.innerHTML = '<tr><td colspan="6">Yuklanmoqda...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7">Yuklanmoqda...</td></tr>';
 
   fetch(`/talim/tolovlar/tarix/${studentId}/`)
     .then(res => res.json())
     .then(data => {
-      const kursNarxi = parseFloat(data.kurs_narhi) || 0;
+      const kursNarxi = data.kurs_narhi || 0;
       const payments = data.payments || [];
+
       if (!payments.length) {
-        tbody.innerHTML = '<tr><td colspan="6">To‘lov topilmadi</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7">To‘lov topilmadi</td></tr>';
         return;
       }
-      let totalPaid = 0;
+
       tbody.innerHTML = payments.map(p => {
-        const cash = parseFloat(p.cash_amount) || 0;
-        const card = parseFloat(p.card_amount) || 0;
-        const jami = cash + card;
-        totalPaid += jami;
-        const qoldiq = kursNarxi - totalPaid;
+        const cash = p.cash_amount || 0;
+        const card = p.card_amount || 0;
+        const jami = p.summa || (cash + card);
+        const qoldiq = p.qoldiq || 0;
+
         return `
           <tr>
             <td>${p.sana}</td>
             <td>${p.vaqt}</td>
-            <td>${cash ? cash.toLocaleString() : '-'}</td>
-            <td>${card ? card.toLocaleString() : '-'}</td>
-            <td>${kursNarxi.toLocaleString()}</td>
-            <td style="color:${qoldiq <= 0 ? '#16a34a' : '#dc2626'};font-weight:600;">
-              ${qoldiq > 0 ? qoldiq.toLocaleString() + ' so‘m' : 'To‘liq to‘langan'}
+            <td>${cash ? formatNumber(cash) : '-'}</td>
+            <td>${card ? formatNumber(card) : '-'}</td>
+            <td>${formatNumber(jami)}</td>
+            <td>${formatNumber(p.total_paid)}</td>
+            <td style="color:${qoldiq === 0 ? '#16a34a' : '#dc2626'};font-weight:600;">
+              ${qoldiq === 0 ? 'To‘liq yopilgan' : formatNumber(qoldiq) + ' so‘m qoldi'}
             </td>
           </tr>`;
       }).join('');
     })
     .catch(() => {
-      tbody.innerHTML = '<tr><td colspan="6" style="color:red;">❌ Xatolik yuz berdi!</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="color:red;">❌ Xatolik yuz berdi!</td></tr>';
     });
 
   document.getElementById('paymentModal').style.display = 'flex';

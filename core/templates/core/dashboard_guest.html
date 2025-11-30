@@ -1,6 +1,88 @@
 {% extends 'base.html' %}
 {% block content %}
-  <h3>Mehmon sahifasi</h3>
-  <p>Rol belgilanmagan. Iltimos, administrator sifatida <a href="/admin/">admin</a>ga kiring va foydalanuvchiga rol bering
-  (director/manager/teacher/student).</p>
+
+<style>
+.guest-wrapper {
+    min-height: calc(100vh - 80px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 25px;
+}
+
+/* Card */
+.guest-card {
+    background: #ffffff0d;
+    padding: 32px 36px;
+    border-radius: 16px;
+    max-width: 520px;
+    width: 100%;
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 6px 25px rgba(0,0,0,0.3);
+}
+
+/* Title */
+.guest-card h3 {
+    color: #4ade80;
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 16px;
+}
+
+/* Text */
+.guest-card p {
+    color: #e5e7eb;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+/* Link button */
+.guest-btn {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 10px 22px;
+    font-size: 15px;
+    font-weight: 600;
+    background: #22c55e;
+    color: #fff;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: .25s ease;
+}
+
+.guest-btn:hover {
+    background: #16a34a;
+    transform: translateY(-3px);
+}
+
+/* RESPONSIV */
+@media (max-width: 480px) {
+    .guest-card {
+        padding: 24px 22px;
+        border-radius: 14px;
+    }
+    .guest-card h3 {
+        font-size: 22px;
+    }
+    .guest-card p {
+        font-size: 14px;
+    }
+}
+</style>
+
+<div class="guest-wrapper">
+    <div class="guest-card">
+        <h3>🚫 Kirish cheklangan</h3>
+        <p>
+            Sizning akkauntingizga rol biriktirilmagan.<br>
+            Iltimos, administratorga murojaat qiling yoki quyidagi havola orqali
+            <br>admin panelga o‘ting va rol belgilang (director / manager / teacher / student).
+        </p>
+        <a href="/admin/" class="guest-btn">🔑 Admin panelga o‘tish</a>
+    </div>
+</div>
+
 {% endblock %}

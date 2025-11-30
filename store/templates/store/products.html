@@ -2,199 +2,232 @@
 {% block content %}
 
 <style>
+  :root {
+    --glass: rgba(255,255,255,0.06);
+    --border: rgba(148,163,184,0.2);
+    --yellow: #facc15;
+    --blue: #38bdf8;
+    --green1: #22c55e;
+    --green2: #16a34a;
+    --danger1: #ef4444;
+    --danger2: #b91c1c;
+    --text: #e2e8f0;
+  }
+
   .products-container {
-    padding: 20px 40px;
-    color: #e2e8f0;
+    padding: 25px 35px;
+    color: var(--text);
+    min-height: calc(100vh - 110px);
   }
 
   h3 {
-    color: #facc15;
+    color: var(--yellow);
     font-weight: 700;
     margin-bottom: 25px;
   }
 
-  .add-btn, .delete-mode-btn {
-    border: none;
-    padding: 8px 18px;
-    border-radius: 8px;
-    transition: 0.3s;
-    text-decoration: none;
-    font-weight: 600;
-  }
-
+  /* BUTTONS */
   .add-btn {
-    background: linear-gradient(90deg, #22c55e, #16a34a);
+    background: linear-gradient(90deg, var(--green1), var(--green2));
+    padding: 9px 20px;
+    border-radius: 10px;
     color: white;
+    font-weight: 700;
+    text-decoration: none;
+    transition: .25s;
   }
-
-  .add-btn:hover {
-    opacity: 0.85;
-  }
+  .add-btn:hover { opacity: .88; }
 
   .delete-mode-btn {
-    background: linear-gradient(90deg, #ef4444, #b91c1c);
+    background: linear-gradient(90deg, var(--danger1), var(--danger2));
+    padding: 9px 20px;
+    border-radius: 10px;
     color: white;
+    font-weight: 700;
     margin-left: 10px;
+    transition: .25s;
+    cursor: pointer;
   }
 
-  .delete-mode-btn:hover {
-    opacity: 0.9;
+  /* PRODUCT GRID */
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+    gap: 22px;
   }
 
   .card {
-    background: rgba(255,255,255,0.05);
+    background: var(--glass);
+    border: 1px solid var(--border);
     border-radius: 16px;
-    box-shadow: 0 0 15px rgba(59,130,246,0.2);
-    transition: 0.3s;
+    overflow: hidden;
+    box-shadow: 0 0 18px rgba(56,189,248,0.20);
+    transition: .25s;
     position: relative;
   }
-
   .card:hover {
-    transform: scale(1.03);
+    transform: translateY(-4px);
+    box-shadow: 0 0 25px rgba(56,189,248,0.35);
   }
 
   .card img {
-    height: 220px;
+    width: 100%;
+    height: 240px;
     object-fit: cover;
-    border-top-left-radius: 16px;
-    border-top-right-radius: 16px;
-  }
-
-  .card-title {
-    color: #fbbf24;
-    font-weight: 600;
-  }
-
-  .card-text {
-    color: #cbd5e1;
-  }
-
-  .btn-primary {
-    background: #3b82f6;
-    border: none;
   }
 
   .checkbox {
     position: absolute;
-    top: 12px;
-    right: 14px;
-    transform: scale(1.5);
+    top: 14px;
+    right: 16px;
+    transform: scale(1.6);
     display: none;
   }
+  .checkbox.active { display: block; }
 
-  .checkbox.active {
-    display: block;
+  .card-body {
+    padding: 14px 16px;
   }
+
+  .card-title {
+    color: var(--yellow);
+    font-weight: 700;
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+
+  .card-text { color: #cbd5e1; }
+
+  .btn-view {
+    display: block;
+    width: 100%;
+    background: var(--blue);
+    color: #fff;
+    padding: 9px 16px;
+    border-radius: 10px;
+    text-align: center;
+    text-decoration: none;
+    font-weight: 600;
+    margin-top: 10px;
+    transition: .25s;
+  }
+  .btn-view:hover { background: #5fd0ff; }
 
   .no-data {
-    text-align: center;
-    padding: 50px;
     color: #94a3b8;
+    text-align: center;
+    padding: 60px;
+    font-size: 18px;
   }
 
+  /* DELETE PANEL */
   .delete-actions {
+    display: none;
     text-align: center;
     margin-top: 25px;
-    display: none;
   }
 
   .confirm-delete-btn {
-    background: #dc2626;
+    background: var(--danger1);
     color: white;
     border: none;
-    border-radius: 6px;
-    padding: 7px 16px;
-    font-weight: 500;
+    border-radius: 10px;
+    padding: 10px 22px;
+    font-weight: 700;
     cursor: pointer;
-    transition: 0.3s;
-  }
-
-  .confirm-delete-btn:hover {
-    background: #b91c1c;
   }
 
   .cancel-btn {
     background: none;
-    color: #38bdf8;
-    border: 1px solid #38bdf8;
-    border-radius: 6px;
-    padding: 6px 14px;
-    margin-left: 10px;
-    transition: 0.3s;
+    border: 2px solid var(--blue);
+    color: var(--blue);
+    padding: 8px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    margin-left: 12px;
+    cursor: pointer;
   }
 
-  .cancel-btn:hover {
-    background: #38bdf8;
-    color: #0f172a;
+  @media (max-width: 540px) {
+    .products-container { padding: 20px; }
   }
 </style>
 
+
 <div class="products-container">
+
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h3>🛍️ Mahsulotlar</h3>
+
     <div>
       {% if can_add %}
-        <a href="{% url 'store:product_create' %}" class="add-btn">+ Mahsulot qo‘shish</a>
+      <a href="{% url 'store:product_create' %}" class="add-btn">+ Mahsulot qo‘shish</a>
       {% endif %}
+
       <button id="toggleDelete" class="delete-mode-btn">🗑️ O‘chirish rejimi</button>
     </div>
   </div>
 
   <form method="POST">
     {% csrf_token %}
-    <div class="row g-4">
+
+    <div class="product-grid">
       {% for p in items %}
-        <div class="col-md-4">
-          <div class="card h-100">
-            {% with img=p.rasmlar.first %}
-              {% if img %}
-                <img src="{{ img.rasm.url }}" alt="{{ p.nom }}">
-              {% else %}
-                <img src="https://placehold.co/400x250?text=No+Image" alt="no image">
-              {% endif %}
-            {% endwith %}
-            <input type="checkbox" name="selected_products" value="{{ p.id }}" class="checkbox">
-            <div class="card-body">
-              <h5 class="card-title">{{ p.nom }}</h5>
-              <p class="card-text">💰 {{ p.narx_chaqmoq }} Chaqmoq</p>
-              <a href="{% url 'store:product_detail' p.pk %}" class="btn btn-primary w-100">Ko‘rish</a>
-            </div>
-          </div>
+      <div class="card">
+
+        {% with img=p.rasmlar.first %}
+          {% if img %}
+            <img src="{{ img.rasm.url }}" alt="{{ p.nom }}">
+          {% else %}
+            <img src="https://placehold.co/400x400?text=No+Image">
+          {% endif %}
+        {% endwith %}
+
+        <input type="checkbox" class="checkbox" name="selected_products" value="{{ p.id }}">
+
+        <div class="card-body">
+          <div class="card-title">{{ p.nom }}</div>
+          <div class="card-text">💰 {{ p.narx_chaqmoq }} Chaqmoq</div>
+          <a href="{% url 'store:product_detail' p.pk %}" class="btn-view">Ko‘rish</a>
         </div>
+
+      </div>
       {% empty %}
         <div class="no-data">Hozircha mahsulot yo‘q.</div>
       {% endfor %}
     </div>
 
-    <div class="delete-actions" id="deleteActions">
+    <div id="deleteActions" class="delete-actions">
       <button type="submit" class="confirm-delete-btn">🗑️ Tanlanganlarni o‘chirish</button>
-      <button type="button" class="cancel-btn" id="cancelDelete">Bekor qilish</button>
+      <button type="button" id="cancelDelete" class="cancel-btn">Bekor qilish</button>
     </div>
+
   </form>
+
 </div>
 
-<script>
-  const toggleBtn = document.getElementById('toggleDelete');
-  const checkboxes = document.querySelectorAll('.checkbox');
-  const deleteActions = document.getElementById('deleteActions');
-  const cancelBtn = document.getElementById('cancelDelete');
-  let deleteMode = false;
 
-  toggleBtn.addEventListener('click', () => {
-    deleteMode = !deleteMode;
-    checkboxes.forEach(cb => cb.classList.toggle('active', deleteMode));
-    deleteActions.style.display = deleteMode ? 'block' : 'none';
-    toggleBtn.textContent = deleteMode ? '❌ O‘chirish rejimidan chiqish' : '🗑️ O‘chirish rejimi';
+<script>
+  const toggleBtn = document.getElementById("toggleDelete");
+  const checkboxes = document.querySelectorAll(".checkbox");
+  const actions = document.getElementById("deleteActions");
+  let mode = false;
+
+  toggleBtn.addEventListener("click", () => {
+    mode = !mode;
+    checkboxes.forEach(cb => cb.classList.toggle("active", mode));
+    actions.style.display = mode ? "block" : "none";
+    toggleBtn.textContent = mode ? "❌ Rejimdan chiqish" : "🗑️ O‘chirish rejimi";
   });
 
-  cancelBtn.addEventListener('click', () => {
-    deleteMode = false;
+  document.getElementById("cancelDelete").addEventListener("click", () => {
+    mode = false;
     checkboxes.forEach(cb => {
       cb.checked = false;
-      cb.classList.remove('active');
+      cb.classList.remove("active");
     });
-    deleteActions.style.display = 'none';
-    toggleBtn.textContent = '🗑️ O‘chirish rejimi';
+    actions.style.display = "none";
+    toggleBtn.textContent = "🗑️ O‘chirish rejimi";
   });
 </script>
 

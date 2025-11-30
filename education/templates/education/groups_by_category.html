@@ -1,72 +1,176 @@
 {% extends "base.html" %}
 {% block content %}
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h3 class="mb-0">👥 {% if category == "lang" %}Tillar{% else %}IT{% endif %} bo‘yicha guruhlar</h3>
 
-    {% if can_manage %}
-      {% if category == "lang" %}
-        <a class="btn btn-primary" href="{% url 'education:group_create_lang' %}">+ Yangi (Tillar)</a>
-      {% else %}
-        <a class="btn btn-primary" href="{% url 'education:group_create_it' %}">+ Yangi (IT)</a>
-      {% endif %}
+<style>
+/* 📱 Mobil: Jadval o‘rniga card */
+@media (max-width: 768px) {
+
+  table.table {
+      display: none !important;
+  }
+
+  .mobile-card {
+      background: #ffffff0a;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+      color: #e2e8f0;
+  }
+
+  .mc-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+  }
+
+  .mc-label {
+      font-weight: 600;
+      color: #94a3b8;
+  }
+  .mc-value {
+      font-weight: 500;
+      color: #f1f5f9;
+  }
+
+  .mc-actions a,
+  .mc-actions button {
+      width: 100%;
+      margin-top: 6px;
+  }
+}
+
+/* 💻 Desktop */
+@media (min-width: 769px) {
+  .mobile-version { display: none !important; }
+}
+</style>
+
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0">👥 {% if category == "lang" %}Tillar{% else %}IT{% endif %} bo‘yicha guruhlar</h3>
+
+  {% if can_manage %}
+    {% if category == "lang" %}
+      <a class="btn btn-primary" href="{% url 'education:group_create_lang' %}">+ Yangi (Tillar)</a>
+    {% else %}
+      <a class="btn btn-primary" href="{% url 'education:group_create_it' %}">+ Yangi (IT)</a>
     {% endif %}
+  {% endif %}
+</div>
+
+<!-- 💻 DESKTOP TABLE-->
+<div class="table-responsive desktop-version">
+  <table class="table table-hover align-middle">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Guruh</th>
+        <th>Center</th>
+        <th>O‘qituvchi</th>
+        <th>Talabalar</th>
+        <th>Amallar</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for g in rows %}
+      <tr class="row-link" data-href="{% url 'education:group_detail' g.id %}">
+        <td>{{ forloop.counter }}</td>
+        <td><a href="{% url 'education:group_detail' g.id %}">{{ g.nom }}</a></td>
+        <td>{{ g.center }}</td>
+        <td>{{ g.oqituvchi }}</td>
+        <td>{{ g.student_count }}</td>
+        <td>
+          <a class="btn btn-sm btn-outline-primary" href="{% url 'education:group_detail' g.id %}">Ko‘rish</a>
+
+          {% if can_manage %}
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'education:group_edit' g.id %}">Tahrirlash</a>
+
+            <form method="post" action="{% url 'education:group_delete' g.id %}"
+                  class="d-inline delete-form">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-danger">O‘chirish</button>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-muted text-center">Hozircha guruh yo‘q.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+
+<!-- 📱 MOBILE VERSION -->
+<div class="mobile-version">
+  {% for g in rows %}
+  <div class="mobile-card">
+
+    <div class="mc-row">
+      <span class="mc-label">📘 Guruh:</span>
+      <span class="mc-value">{{ g.nom }}</span>
+    </div>
+
+    <div class="mc-row">
+      <span class="mc-label">🏫 Center:</span>
+      <span class="mc-value">{{ g.center }}</span>
+    </div>
+
+    <div class="mc-row">
+      <span class="mc-label">👨‍🏫 O‘qituvchi:</span>
+      <span class="mc-value">{{ g.oqituvchi }}</span>
+    </div>
+
+    <div class="mc-row">
+      <span class="mc-label">👥 Talabalar:</span>
+      <span class="mc-value">{{ g.student_count }}</span>
+    </div>
+
+    <div class="mc-actions mt-2">
+      <a href="{% url 'education:group_detail' g.id %}"
+         class="btn btn-sm btn-outline-primary w-100">Ko‘rish</a>
+
+      {% if can_manage %}
+      <a href="{% url 'education:group_edit' g.id %}"
+         class="btn btn-sm btn-outline-secondary w-100 mt-2">Tahrirlash</a>
+
+      <form method="post"
+            action="{% url 'education:group_delete' g.id %}"
+            class="delete-form w-100 mt-2">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-outline-danger w-100">O‘chirish</button>
+      </form>
+      {% endif %}
+    </div>
+
   </div>
+  {% empty %}
+  <p class="text-muted">Hozircha guruh yo‘q.</p>
+  {% endfor %}
+</div>
 
-  <div class="table-responsive">
-    <table class="table table-hover align-middle">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Guruh</th>
-          <th>Center</th>
-          <th>O‘qituvchi</th>
-          <th>Talabalar</th>
-          <th>Amallar</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for g in rows %}
-          <tr class="row-link" data-href="{% url 'education:group_detail' g.id %}">
-            <td>{{ forloop.counter }}</td>
-            <td><a href="{% url 'education:group_detail' g.id %}">{{ g.nom }}</a></td>
-            <td>{{ g.center }}</td>
-            <td>{{ g.oqituvchi }}</td>
-            <td>{{ g.student_count }}</td>
-            <td>
-              <a class="btn btn-sm btn-outline-primary" href="{% url 'education:group_detail' g.id %}">Ko‘rish</a>
-              {% if can_manage %}
-                <a class="btn btn-sm btn-outline-secondary" href="{% url 'education:group_edit' g.id %}">Tahrirlash</a>
-                <form method="post" action="{% url 'education:group_delete' g.id %}" class="d-inline delete-form">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-sm btn-outline-danger">O‘chirish</button>
-                </form>
-              {% endif %}
-            </td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="6" class="text-muted">Hozircha guruh yo‘q.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
 
-  <script>
-  // satrga bosilganda o‘tish
-  document.querySelectorAll('.row-link').forEach(tr=>{
-    tr.style.cursor='pointer';
-    tr.addEventListener('click', e=>{
-      if(e.target.closest('a,button,form')) return;
-      location.href = tr.dataset.href;
-    });
+<script>
+// satr bosilganda detailsga o‘tish
+document.querySelectorAll('.row-link').forEach(tr=>{
+  tr.style.cursor='pointer';
+  tr.addEventListener('click', e=>{
+    if(e.target.closest('a,button,form')) return;
+    location.href = tr.dataset.href;
   });
+});
 
-  // o‘chirishni tasdiqlash
-  document.querySelectorAll('.delete-form').forEach(form=>{
-    form.addEventListener('submit', e=>{
-      if(!confirm("Rostdan ham bu guruhni o‘chirmoqchimisiz?")) {
-        e.preventDefault();
-      }
-    });
+// delete confirm
+document.querySelectorAll('.delete-form').forEach(form=>{
+  form.addEventListener('submit', e=>{
+    if(!confirm("Rostdan ham bu guruhni o‘chirmoqchimisiz?")) {
+      e.preventDefault();
+    }
   });
-  </script>
+});
+</script>
+
 {% endblock %}

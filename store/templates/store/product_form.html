@@ -2,154 +2,184 @@
 {% block content %}
 
 <style>
-  .form-wrapper {
-    max-width: 480px;
-    margin: 60px auto;
-    background: rgba(255, 255, 255, 0.06);
-    border-radius: 20px;
-    padding: 25px 35px;
-    box-shadow: 0 0 25px rgba(59, 130, 246, 0.25);
-    color: #fff;
-    backdrop-filter: blur(14px);
+  :root {
+    --bg: #0f172a;
+    --glass: rgba(255,255,255,0.06);
+    --border: rgba(148,163,184,0.4);
+    --accent: #facc15;
+    --blue: #38bdf8;
+    --green1: #22c55e;
+    --green2: #16a34a;
+    --muted: #9ca3af;
   }
 
-  label {
-    font-weight: 600;
-    color: #ffffff !important;
-    text-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
-    margin-bottom: 6px;
-    display: block;
-    font-size: 15px;
-    letter-spacing: 0.3px;
+  .form-wrapper {
+    max-width: 520px;
+    margin: 58px auto;
+    background: var(--glass);
+    border-radius: 22px;
+    padding: 30px 35px;
+    box-shadow: 0 0 25px rgba(56,189,248,0.24);
+    color: #fff;
+    backdrop-filter: blur(12px);
   }
 
   h3 {
     text-align: center;
-    color: #fbbf24;
+    color: var(--accent);
     font-weight: 700;
     margin-bottom: 20px;
-    letter-spacing: 0.5px;
+    letter-spacing: .5px;
+  }
+
+  label {
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 6px;
+    display: block;
+    font-size: 15px;
+    text-shadow: 0 0 6px rgba(255,255,255,0.25);
   }
 
   input, textarea {
     width: 100%;
-    border: 1px solid rgba(148, 163, 184, 0.4);
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(255,255,255,0.07);
+    padding: 12px 13px;
     color: #fff;
-    padding: 10px 12px;
     margin-bottom: 16px;
     font-size: 15px;
-    transition: 0.3s;
-  }
-
-  textarea {
-    min-height: 70px;
-    max-height: 100px;
-    resize: vertical;
+    transition: 0.25s;
   }
 
   input:focus, textarea:focus {
-    border-color: #fbbf24;
-    box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+    border-color: var(--accent);
+    box-shadow: 0 0 10px rgba(250,204,21,0.4);
     outline: none;
   }
 
+  textarea {
+    min-height: 80px;
+    resize: vertical;
+  }
+
+  /* UPLOAD ZONE */
   .upload-zone {
-    border: 2px dashed #fbbf24;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.04);
-    padding: 25px;
+    border: 2px dashed var(--accent);
+    border-radius: 14px;
+    background: rgba(255,255,255,0.04);
+    padding: 27px;
     text-align: center;
-    color: #facc15;
-    font-weight: 500;
+    color: var(--accent);
+    font-weight: 600;
     cursor: pointer;
-    transition: 0.3s;
+    transition: 0.25s;
   }
 
   .upload-zone:hover {
-    background: rgba(251, 191, 36, 0.05);
-    box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+    background: rgba(250,204,21,0.05);
+    box-shadow: 0 0 12px rgba(250,204,21,0.3);
   }
 
-  .upload-zone input[type="file"] {
+  .upload-zone input {
     display: none;
   }
 
+  /* PREVIEW */
   .preview-container {
     margin-top: 15px;
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 12px;
     justify-content: center;
   }
 
   .preview-container img {
-    width: 80px;
-    height: 80px;
-    border-radius: 10px;
+    width: 85px;
+    height: 85px;
+    border-radius: 12px;
     object-fit: cover;
-    border: 2px solid #facc15;
-    box-shadow: 0 0 5px rgba(251, 191, 36, 0.5);
+    border: 2px solid var(--accent);
+    box-shadow: 0 0 8px rgba(250,204,21,0.45);
   }
 
+  /* BUTTONS */
   .buttons {
     text-align: center;
-    margin-top: 20px;
+    margin-top: 25px;
   }
 
   .save-btn {
-    background: linear-gradient(90deg, #22c55e, #16a34a);
+    background: linear-gradient(90deg, var(--green1), var(--green2));
     border: none;
-    padding: 10px 25px;
-    border-radius: 8px;
-    color: white;
-    font-weight: 600;
+    padding: 11px 26px;
+    border-radius: 12px;
+    color: #fff;
+    font-weight: 700;
     cursor: pointer;
-    transition: 0.3s;
+    transition: .25s;
   }
 
   .save-btn:hover {
-    opacity: 0.85;
+    opacity: .88;
   }
 
   .back-btn {
     background: none;
-    border: 1px solid #38bdf8;
-    color: #38bdf8;
-    border-radius: 8px;
-    padding: 9px 22px;
-    margin-left: 8px;
-    font-weight: 500;
-    transition: 0.3s;
+    border: 2px solid var(--blue);
+    color: var(--blue);
+    border-radius: 12px;
+    padding: 10px 22px;
+    margin-left: 10px;
+    font-weight: 600;
+    transition: .25s;
   }
 
   .back-btn:hover {
-    background: #38bdf8;
-    color: #0f172a;
+    background: var(--blue);
+    color: var(--bg);
+  }
+
+  /* MOBILE OPTIMIZATION */
+  @media (max-width: 540px) {
+    .form-wrapper {
+      padding: 25px;
+    }
+
+    .buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .back-btn {
+      margin-left: 0;
+    }
   }
 </style>
 
+
 <div class="form-wrapper">
+
   <h3>🛍️ Mahsulot qo‘shish</h3>
 
   <form method="POST" enctype="multipart/form-data">
     {% csrf_token %}
-    
-    <label for="id_nom">Nom:</label>
+
+    <label>Nom:</label>
     {{ form.nom }}
 
-    <label for="id_narx_chaqmoq">Narx chaqmoq:</label>
+    <label>Narx (chaqmoq):</label>
     {{ form.narx_chaqmoq }}
 
-    <label for="id_izoh">Izoh:</label>
+    <label>Izoh:</label>
     {{ form.izoh }}
 
     <label>Rasmlar:</label>
     <div class="upload-zone" id="drop-area">
-      📸 Rasmlarni shu yerga tashlang yoki bosing
+      📸 <b>Rasmlarni shu yerga tashlang yoki bosing</b>
       <input type="file" name="rasmlar" id="fileInput" multiple>
-      <p id="file-count" style="margin-top:10px; color:#facc15;"></p>
+      <p id="file-count" style="margin-top:10px; color:var(--accent);"></p>
     </div>
 
     <div class="preview-container" id="preview-container"></div>
@@ -158,43 +188,48 @@
       <button type="submit" class="save-btn">💾 Saqlash</button>
       <a href="{% url 'store:products' %}" class="back-btn">⬅️ Orqaga</a>
     </div>
+
   </form>
+
 </div>
 
 <script>
   const dropArea = document.getElementById("drop-area");
-  const fileInput = document.getElementById("fileInput");
+  const inputFile = document.getElementById("fileInput");
   const previewContainer = document.getElementById("preview-container");
   const fileCountText = document.getElementById("file-count");
 
-  dropArea.addEventListener("click", () => fileInput.click());
+  dropArea.addEventListener("click", () => inputFile.click());
+
   dropArea.addEventListener("dragover", e => {
     e.preventDefault();
     dropArea.style.borderColor = "#22c55e";
   });
+
   dropArea.addEventListener("dragleave", () => {
-    dropArea.style.borderColor = "#fbbf24";
+    dropArea.style.borderColor = "#facc15";
   });
+
   dropArea.addEventListener("drop", e => {
     e.preventDefault();
-    fileInput.files = e.dataTransfer.files;
+    inputFile.files = e.dataTransfer.files;
     showPreview();
   });
 
-  fileInput.addEventListener("change", showPreview);
+  inputFile.addEventListener("change", showPreview);
 
   function showPreview() {
     previewContainer.innerHTML = "";
-    const files = fileInput.files;
+    const files = [...inputFile.files];
 
     if (files.length > 0) {
-      fileCountText.textContent = `${files.length} ta rasm tanlandi`;
+      fileCountText.textContent = files.length + " ta rasm tanlandi";
       dropArea.style.borderColor = "#22c55e";
     } else {
       fileCountText.textContent = "";
     }
 
-    [...files].forEach(file => {
+    files.forEach(file => {
       const reader = new FileReader();
       reader.onload = e => {
         const img = document.createElement("img");

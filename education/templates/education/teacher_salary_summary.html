@@ -10,140 +10,154 @@
   }
 
   .dashboard-container {
-    max-width: 1100px;
+    max-width: 1150px;
     margin: 40px auto;
-    padding: 30px;
-    border-radius: 24px;
+    padding: 32px;
+    border-radius: 22px;
     background: rgba(255, 255, 255, 0.05);
-    box-shadow: 0 0 40px rgba(59, 130, 246, 0.2);
-    backdrop-filter: blur(14px);
+    box-shadow: 0 0 40px rgba(56, 189, 248, 0.2);
+    backdrop-filter: blur(12px);
   }
 
   h3 {
     text-align: center;
-    font-weight: 700;
+    font-weight: 800;
     color: #fbbf24;
-    text-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
-    margin-bottom: 25px;
+    text-shadow: 0 0 12px rgba(251,191,36,0.4);
+    margin-bottom: 30px;
+    font-size: 1.9rem;
   }
 
+  /* Select */
   select {
     background: #1e293b;
     color: #f8fafc;
     border: 1px solid #475569;
-    border-radius: 10px;
-    padding: 8px 12px;
-    outline: none;
-    transition: 0.3s;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 1rem;
+    transition: .2s;
   }
+  select:hover { border-color: #fbbf24; }
 
-  select:hover {
-    border-color: #facc15;
-  }
-
-  .card {
-    background: rgba(255, 255, 255, 0.08);
-    border: none;
-    border-radius: 20px;
-    box-shadow: 0 0 20px rgba(251, 191, 36, 0.15);
+  /* Table wrapper */
+  .table-wrapper {
+    overflow-x: auto;
+    border-radius: 16px;
+    margin-top: 20px;
   }
 
   table {
-    margin-top: 20px;
-    border-collapse: collapse;
     width: 100%;
-    border-radius: 12px;
-    overflow: hidden;
-    color: #f1f5f9;
+    border-collapse: collapse;
+    min-width: 900px;
   }
 
   thead {
     background: linear-gradient(90deg, #f59e0b, #fbbf24);
     color: #1e293b;
-    font-weight: 700;
+    font-weight: 900;
   }
 
   th, td {
-    padding: 14px 12px;
+    padding: 14px;
     text-align: center;
+    white-space: nowrap;
   }
 
   tbody tr {
-    transition: 0.3s;
+    transition: 0.25s ease;
   }
-
   tbody tr:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255,255,255,0.07);
     transform: scale(1.01);
   }
 
-  .text-success { color: #22c55e !important; }
-  .text-primary { color: #38bdf8 !important; }
-  .fw-bold { font-weight: 700; }
-  .no-data { text-align: center; padding: 40px 0; color: #94a3b8; }
+  .no-data {
+    padding: 45px 0;
+    color: #94a3b8;
+    font-size: 1.2rem;
+    text-align: center;
+  }
 
+  /* Chart */
   canvas {
     border-radius: 16px;
     background: rgba(255,255,255,0.02);
     box-shadow: inset 0 0 10px rgba(59,130,246,0.1);
   }
+
+  /* Responsive */
+  @media(max-width: 550px){
+    h3 { font-size: 1.4rem; }
+    select { width: 100%; }
+    th, td { font-size: 0.82rem; padding: 10px; }
+  }
 </style>
 
 <div class="dashboard-container">
-  <h3>📊 O‘qituvchilar Umumiy Oylik Hisobot Paneli</h3>
 
-  <div class="text-center mb-4">
-    <label for="month" class="fw-semibold me-2">Oy tanlang:</label>
-    <select name="month" id="month">
+  <h3>📊 O‘qituvchilar – Oylik Umumiy Hisobot</h3>
+
+  <!-- MONTH SELECT -->
+  <div class="text-center mb-3">
+    <label class="fw-semibold me-2">Oy:</label>
+    <select id="month">
       {% for val, name in months %}
         <option value="{{ val }}" {% if val == selected_month %}selected{% endif %}>{{ name }}</option>
       {% endfor %}
     </select>
   </div>
 
-  <p class="text-center text-slate-400 mb-4">
-    Hisobot — <strong>{{ month_name }}</strong> oyi, {{ year }} yil
+  <p class="text-center mb-4 text-slate-400">
+    Hisobot: <strong>{{ month_name }}</strong>, {{ year }} yil
   </p>
 
+  <!-- CHART -->
   <div class="card p-3 mb-4">
-    <canvas id="incomeChart" height="120"></canvas>
+    <canvas id="incomeChart" height="130"></canvas>
   </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>👨‍🏫 O‘qituvchi</th>
-        <th>📚 Darslar</th>
-        <th>👥 Guruhlar</th>
-        <th>💰 O‘qituvchi Daromadi</th>
-        <th>🏫 Markaz foydasi</th>
-        <th>💵 Umumiy aylanma</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for t in teacher_data %}
+  <!-- TABLE -->
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>👨‍🏫 O‘qituvchi</th>
+          <th>📚 Darslar</th>
+          <th>👥 Guruhlar</th>
+          <th>💰 O‘qituvchi Daromadi</th>
+          <th>🏫 Markaz Foydasi</th>
+          <th>💵 Aylanma</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+        {% for t in teacher_data %}
         <tr>
           <td>{{ forloop.counter }}</td>
           <td>{{ t.teacher }}</td>
+          <td>{{ t.lessons }}</td>
           <td>{{ t.groups }}</td>
           <td class="text-success">{{ t.teacher_income|floatformat:0 }} so‘m</td>
           <td class="text-primary">{{ t.center_profit|floatformat:0 }} so‘m</td>
           <td class="fw-bold text-warning">{{ t.total_turnover|floatformat:0 }} so‘m</td>
         </tr>
-      {% empty %}
-        <tr><td colspan="7" class="no-data">Ma’lumot topilmadi ⚡</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+        {% empty %}
+        <tr><td colspan="7" class="no-data">⚡ Ma’lumot topilmadi</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
 </div>
 
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   const monthSelect = document.getElementById("month");
-  const tableBody = document.querySelector("tbody");
+  const tableBody = document.getElementById("table-body");
   const ctx = document.getElementById("incomeChart");
   let chartInstance = null;
 
@@ -152,82 +166,72 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function loadData() {
-    const month = monthSelect.value;
-    fetch(`/talim/teacher-salary/summary/?month=${month}`, {
+    fetch(`/talim/teacher-salary/summary/?month=${monthSelect.value}`, {
       headers: { "X-Requested-With": "XMLHttpRequest" }
     })
-      .then(res => res.json())
-      .then(data => {
-        // Jadvalni yangilash
-        tableBody.innerHTML = "";
-        if (data.teacher_data.length === 0) {
-          tableBody.innerHTML = `<tr><td colspan="7" class="no-data">Ma’lumot topilmadi ⚡</td></tr>`;
-        } else {
-          data.teacher_data.forEach((t, i) => {
-            const row = `
-              <tr>
-                <td>${i + 1}</td>
-                <td>${t.teacher}</td>
-                <td>${t.lessons}</td>
-                <td>${t.groups}</td>
-                <td class="text-success">${formatNum(t.teacher_income)}</td>
-                <td class="text-primary">${formatNum(t.center_profit)}</td>
-                <td class="fw-bold text-warning">${formatNum(t.total_turnover)}</td>
-              </tr>`;
-            tableBody.insertAdjacentHTML("beforeend", row);
-          });
-        }
-
-        // Grafikni yangilash
-        if (chartInstance) chartInstance.destroy();
-        chartInstance = new Chart(ctx, {
-          type: "bar",
-          data: {
-            labels: {{ chart_labels|safe }},
-            datasets: [
-              {
-                label: "O‘qituvchi daromadi",
-                data: data.chart_teacher_income,
-                backgroundColor: "rgba(34, 197, 94, 0.6)",
-                borderColor: "#22c55e",
-                borderWidth: 1.5,
-                borderRadius: 6,
-              },
-              {
-                label: "Markaz foydasi",
-                data: data.chart_center_income,
-                backgroundColor: "rgba(56, 189, 248, 0.6)",
-                borderColor: "#38bdf8",
-                borderWidth: 1.5,
-                borderRadius: 6,
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { labels: { color: "#f1f5f9", font: { size: 14, weight: "bold" } } },
-              tooltip: {
-                callbacks: { label: ctx => formatNum(ctx.parsed.y || 0) }
-              }
-            },
-            scales: {
-              y: { beginAtZero: true, ticks: { color: "#f8fafc" }, grid: { color: "rgba(255,255,255,0.1)" } },
-              x: { ticks: { color: "#f8fafc" }, grid: { color: "rgba(255,255,255,0.05)" } }
-            }
-          }
+    .then(r => r.json())
+    .then(data => {
+      /* === TABLE UPDATE === */
+      tableBody.innerHTML = "";
+      if (!data.teacher_data || data.teacher_data.length === 0){
+        tableBody.innerHTML =
+          `<tr><td colspan="7" class="no-data">⚡ Ma’lumot topilmadi</td></tr>`;
+      } else {
+        data.teacher_data.forEach((t, i) => {
+          tableBody.insertAdjacentHTML("beforeend", `
+            <tr>
+              <td>${i+1}</td>
+              <td>${t.teacher}</td>
+              <td>${t.lessons}</td>
+              <td>${t.groups}</td>
+              <td class="text-success">${formatNum(t.teacher_income)}</td>
+              <td class="text-primary">${formatNum(t.center_profit)}</td>
+              <td class="fw-bold text-warning">${formatNum(t.total_turnover)}</td>
+            </tr>
+          `);
         });
-      })
-      .catch(err => console.error("❌ Fetch error:", err));
+      }
+
+      /* === CHART UPDATE === */
+      if (chartInstance) chartInstance.destroy();
+
+      chartInstance = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: data.chart_labels,  // ← OLDI TUZATILDI
+          datasets: [
+            {
+              label: "O‘qituvchi daromadi",
+              data: data.chart_teacher_income,
+              backgroundColor: "rgba(34,197,94,0.6)",
+              borderColor: "#22c55e",
+              borderRadius: 6,
+              borderWidth: 1.5
+            },
+            {
+              label: "Markaz foydasi",
+              data: data.chart_center_income,
+              backgroundColor: "rgba(56,189,248,0.6)",
+              borderColor: "#38bdf8",
+              borderRadius: 6,
+              borderWidth: 1.5
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+
+    })
+    .catch(e => console.error("Fetch error:", e));
   }
 
-  // Oy o‘zgarganda
   monthSelect.addEventListener("change", loadData);
-
-  // Har 10 sekundda avtomatik yangilanish
   setInterval(loadData, 10000);
-
-  // Boshlang‘ich yuklanish
   loadData();
 });
 </script>

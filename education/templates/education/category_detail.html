@@ -3,122 +3,118 @@
 {% block content %}
 
 <style>
+/* === GLOBAL BACKGROUND === */
 body {
-  background: linear-gradient(180deg, #0f172a, #1e293b, #0f172a);
-  min-height: 100vh;
-  font-family: 'Poppins', sans-serif;
+  background: radial-gradient(circle at top, rgba(250,204,21,0.15), transparent),
+              radial-gradient(circle at bottom right, rgba(56,189,248,0.15), transparent),
+              #0f172a;
   color: #e2e8f0;
+  font-family: 'Poppins', sans-serif;
+  min-height: 100vh;
 }
 
-/* 🚀 Sarlavha */
+/* === CATEGORY HEADER === */
 .category-header {
   text-align: center;
   font-size: 2rem;
   font-weight: 800;
   color: #facc15;
-  margin-bottom: 1rem;
-  text-shadow: 0 2px 6px rgba(250,204,21,0.6);
+  margin-bottom: 1.5rem;
+  text-shadow: 0 3px 10px rgba(250,204,21,0.5);
 }
 
-/* 🔍 Qidiruv input */
+/* === SEARCH BOX === */
 .search-box {
-  max-width: 400px;
-  margin: 0 auto 25px auto;
+  max-width: 420px;
+  margin: 0 auto 30px auto;
 }
 .search-box input {
   width: 100%;
-  padding: 10px 15px;
-  border-radius: 12px;
-  border: none;
-  outline: none;
+  padding: 12px 16px;
+  border-radius: 14px;
   background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
   color: #e2e8f0;
   font-size: 1rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.35);
 }
 .search-box input::placeholder {
   color: #94a3b8;
 }
 
-/* ✨ Karta */
+/* === GROUP CARD === */
 .group-card {
-  border-radius: 20px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 5px 20px rgba(0,0,0,0.4);
-  transition: all 0.35s ease;
+  border-radius: 18px;
+  padding: 20px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+  transition: 0.3s ease;
   backdrop-filter: blur(8px);
-  text-align: center;
-  color: #f8fafc;
 }
 .group-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 10px 25px rgba(59,130,246,0.4);
+  transform: translateY(-6px) scale(1.02);
   border-color: rgba(59,130,246,0.4);
-  background: rgba(59,130,246,0.1);
+  box-shadow: 0 12px 28px rgba(59,130,246,0.25);
 }
 
 .group-card h5 {
   color: #60a5fa;
-  font-weight: 700;
-  margin-bottom: 0.6rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
 }
 .group-card p {
   color: #cbd5e1;
-  margin-bottom: 0.3rem;
+  margin-bottom: 4px;
 }
 
-/* 🔘 Tugmalar joyi */
+/* === ACTION BUTTONS === */
 .action-buttons {
   display: flex;
   justify-content: center;
   gap: 10px;
   flex-wrap: wrap;
-  margin-top: 0.8rem;
 }
 .action-buttons a {
-  border-radius: 12px;
-  font-weight: 600;
-  padding: 6px 12px;
-  font-size: 0.9rem;
-  transition: 0.3s;
-  color: #fff !important;
   text-decoration: none;
+  padding: 7px 14px;
+  border-radius: 10px;
+  font-weight: 600;
+  color: white !important;
+  transition: 0.25s;
+  font-size: 0.9rem;
 }
 
-/* Buttonlar */
+/* COLORS */
 .btn-detail { background: linear-gradient(90deg,#3b82f6,#60a5fa); }
-.btn-detail:hover { background: linear-gradient(90deg,#60a5fa,#3b82f6); transform: scale(1.06); }
+.btn-detail:hover { transform: scale(1.07); }
 
 .btn-edit { background: linear-gradient(90deg,#22c55e,#16a34a); }
-.btn-edit:hover { background: linear-gradient(90deg,#16a34a,#22c55e); transform: scale(1.06); }
+.btn-edit:hover { transform: scale(1.07); }
 
-.btn-delete { background: linear-gradient(90deg,#ef4444,#f87171); }
-.btn-delete:hover { background: linear-gradient(90deg,#f87171,#ef4444); transform: scale(1.06); }
+.btn-delete { background: linear-gradient(90deg,#ef4444,#dc2626); }
+.btn-delete:hover { transform: scale(1.07); }
 
-/* ➕ Yangi guruh tugmasi */
+/* === ADD NEW GROUP === */
 .add-btn {
   background: linear-gradient(90deg, #00b894, #00cec9);
+  padding: 10px 25px;
+  border-radius: 12px;
+  box-shadow: 0 0 18px rgba(0,200,150,0.4);
   color: white;
   font-weight: 600;
-  border: none;
-  border-radius: 12px;
-  box-shadow: 0 0 20px rgba(0,200,150,0.4);
-  transition: 0.3s ease;
+  transition: 0.3s;
 }
-.add-btn:hover {
-  background: linear-gradient(90deg, #00cec9, #00b894);
-  transform: scale(1.07);
+.add-btn:hover { transform: scale(1.06); }
+
+/* === EMPTY SECTION === */
+.empty-section {
+  text-align: center;
+  font-size: 1.1rem;
+  color: #94a3b8;
+  margin-top: 2rem;
 }
 
-/* 💤 Bo‘sh holat */
-.empty-section {
-  color: #94a3b8;
-  text-align: center;
-  margin-top: 2rem;
-  font-size: 1.1rem;
-  font-style: italic;
-}
 </style>
 
 
@@ -126,49 +122,49 @@ body {
 
   <h3 class="category-header">🚀 {{ category.name }} bo‘limi</h3>
 
-  <!-- 🔍 SEARCH QIDIRUV -->
+  <!-- SEARCH -->
   <div class="search-box">
-      <input type="text" id="searchInput" placeholder="🔍 Guruh qidiring... (nomi, o‘qituvchi, markaz)">
+    <input type="text" id="searchInput" placeholder="🔍 Guruh qidiring... (nomi, o‘qituvchi, markaz)">
   </div>
 
-  <hr class="mb-4" style="opacity: 0.2; border-color: rgba(255,255,255,0.1);">
+  <hr style="opacity:0.2; margin-bottom:30px;">
 
   {% if groups %}
   <div class="row g-4" id="groupList">
     {% for g in groups %}
-    <div class="col-md-4 col-sm-6 group-item">
-      <div class="card group-card h-100 p-3">
-        <div class="card-body">
-          <h5 class="group-name">{{ g.nom }}</h5>
-          <p class="group-center">🏫 {{ g.center }}</p>
-          <p class="group-teacher">👨‍🏫 {{ g.oqituvchi }}</p>
-        </div>
+    <div class="col-lg-4 col-md-6 col-sm-6 group-item">
+      <div class="group-card h-100">
 
-        <div class="card-footer bg-transparent border-0">
-          <div class="action-buttons">
-            <a href="{% url 'education:group_detail' g.id %}" class="btn-detail">📘 Batafsil</a>
+        <h5 class="group-name">{{ g.nom }}</h5>
+        <p class="group-center">🏫 {{ g.center }}</p>
+        <p class="group-teacher">👨‍🏫 {{ g.oqituvchi }}</p>
 
-            {% if user.is_superuser or user.role in 'director manager' %}
-              <a href="{% url 'education:group_edit' g.id %}" class="btn-edit">✏️ Tahrirlash</a>
-              <a href="{% url 'education:group_delete' g.id %}" class="btn-delete"
-                 onclick="return confirm('“{{ g.nom }}” guruhini o‘chirilsinmi?')">🗑️ O‘chirish</a>
-            {% endif %}
-          </div>
+        <div class="action-buttons mt-3">
+          <a href="{% url 'education:group_detail' g.id %}" class="btn-detail">📘 Batafsil</a>
+
+          {% if user.is_superuser or user.role in 'director manager' %}
+          <a href="{% url 'education:group_edit' g.id %}" class="btn-edit">✏️ Tahrirlash</a>
+          <a href="{% url 'education:group_delete' g.id %}"
+             class="btn-delete"
+             onclick="return confirm('“{{ g.nom }}” guruhini o‘chirilsinmi?')">🗑️ O‘chirish</a>
+          {% endif %}
         </div>
 
       </div>
     </div>
     {% endfor %}
   </div>
+
   {% else %}
   <div class="empty-section">
     <p>Hozircha bu bo‘limda guruhlar mavjud emas.</p>
   </div>
   {% endif %}
 
+
   {% if user.is_superuser or user.role in 'director manager' %}
   <div class="d-flex justify-content-center mt-5">
-    <a href="{% url 'education:group_create_category' category.id %}" class="btn add-btn px-4 py-2">
+    <a href="{% url 'education:group_create_category' category.id %}" class="add-btn">
       ➕ Yangi guruh yaratish
     </a>
   </div>
@@ -176,23 +172,22 @@ body {
 </div>
 
 
-<!-- 🔍 LIVE SEARCH JS -->
+<!-- LIVE SEARCH -->
 <script>
-document.getElementById("searchInput").addEventListener("keyup", function () {
-    let value = this.value.toLowerCase();
-    let items = document.querySelectorAll(".group-item");
+document.getElementById("searchInput").addEventListener("keyup", function() {
+  let value = this.value.toLowerCase();
+  document.querySelectorAll(".group-item").forEach(item => {
 
-    items.forEach(item => {
-        let name = item.querySelector(".group-name").textContent.toLowerCase();
-        let center = item.querySelector(".group-center").textContent.toLowerCase();
-        let teacher = item.querySelector(".group-teacher").textContent.toLowerCase();
+    let name = item.querySelector(".group-name").textContent.toLowerCase();
+    let center = item.querySelector(".group-center").textContent.toLowerCase();
+    let teacher = item.querySelector(".group-teacher").textContent.toLowerCase();
 
-        if (name.includes(value) || center.includes(value) || teacher.includes(value)) {
-            item.style.display = "";
-        } else {
-            item.style.display = "none";
-        }
-    });
+    item.style.display =
+      name.includes(value) ||
+      center.includes(value) ||
+      teacher.includes(value)
+      ? "" : "none";
+  });
 });
 </script>
 

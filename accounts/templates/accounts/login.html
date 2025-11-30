@@ -5,181 +5,204 @@
 
 {% block extra_css %}
 <style>
+/* MAIN PAGE BACKGROUND */
 body.login-page {
   background: radial-gradient(circle at top right, #00b4d8, #03045e);
   height: 100vh;
+  margin: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Poppins', sans-serif;
-  margin: 0;
+  font-family: "Poppins", sans-serif;
   overflow: hidden;
+  position: relative;
 }
 
-/* animated gradient aura */
+/* MAIN LAYOUTni yashirish */
+body.login-page .layout {
+  display: none !important;
+}
+
+/* BACKGROUND AURA ANIMATION */
 body.login-page::before {
   content: "";
   position: absolute;
   width: 200%;
   height: 200%;
-  background: conic-gradient(from 180deg, #00b4d8, #48cae4, #0077b6, #03045e, #00b4d8);
-  animation: rotate 10s linear infinite;
-  opacity: 0.25;
+  background: conic-gradient(
+      from 180deg,
+      #00b4d8,
+      #48cae4,
+      #0077b6,
+      #03045e,
+      #00b4d8
+  );
+  animation: rotate 12s linear infinite;
+  opacity: 0.23;
 }
 @keyframes rotate {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
-/* hide main layout */
-body.login-page .layout {
-  display: none !important;
+/* PARTICLES */
+.particle {
+  position: absolute;
+  background: rgba(255,255,255,0.15);
+  border-radius: 50%;
+  animation: float 6s ease-in-out infinite;
+}
+.p1 { width: 12px; height: 12px; top: 15%; left: 20%; animation-delay: .2s; }
+.p2 { width: 9px; height: 9px; top: 70%; left: 75%; animation-delay: 1s; }
+.p3 { width: 14px; height: 14px; top: 40%; left: 85%; animation-delay: 2s; }
+
+@keyframes float {
+  0% { transform: translateY(0); opacity: .45; }
+  50% { transform: translateY(-15px); opacity: .85; }
+  100% { transform: translateY(0); opacity: .45; }
 }
 
-/* glowing logo text */
-.logo-title {
-  font-size: 30px;
-  font-weight: 700;
-  background: linear-gradient(135deg, #00b4d8, #90e0ef);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin-bottom: 10px;
-  letter-spacing: 1px;
-}
-
-/* card design */
+/* LOGIN CARD */
 .login-card {
-  position: relative;
-  z-index: 2;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 25px;
-  padding: 45px 55px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 28px;
+  padding: 45px 50px;
   width: 400px;
   backdrop-filter: blur(25px);
-  box-shadow: 0 0 30px rgba(0,0,0,0.4);
-  color: #fff;
+  border: 1px solid rgba(255,255,255,0.2);
+  position: relative;
+  z-index: 2;
   text-align: center;
-  transition: 0.3s;
+  color: #fff;
+  box-shadow: 0 0 45px rgba(0,180,216,0.25);
+  transition: .3s;
 }
 .login-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 0 50px rgba(0, 180, 216, 0.3);
+  transform: translateY(-4px);
+  box-shadow: 0 0 70px rgba(0,180,216,0.45);
 }
 
-.login-card h3 {
-  font-weight: 600;
-  margin-bottom: 25px;
+/* LOGO TEXT */
+.logo-title {
+  font-size: 33px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #90e0ef, #caf0f8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: .5px;
+  margin-bottom: 8px;
 }
 
-.login-card input[type="text"],
-.login-card input[type="password"] {
+/* INPUTS */
+.login-card input {
+  width: 100%;
   background: transparent;
   border: none;
   border-bottom: 1px solid rgba(255,255,255,0.4);
-  width: 100%;
-  color: #fff;
-  padding: 10px;
-  margin-bottom: 25px;
   outline: none;
-  transition: all 0.3s ease;
+  padding: 11px;
+  margin-bottom: 28px;
+  color: #fff;
+  transition: .3s;
 }
-
 .login-card input:focus {
   border-bottom: 1px solid #00b4d8;
-  box-shadow: 0 2px 8px rgba(0,180,216,0.3);
+  box-shadow: 0 2px 10px rgba(0,180,216,0.4);
 }
 
+/* BUTTON */
 .login-card button {
   width: 100%;
   border: none;
+  padding: 13px;
+  border-radius: 12px;
   background: linear-gradient(135deg, #00b4d8, #0077b6);
   color: #fff;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
-  border-radius: 10px;
-  padding: 12px;
-  transition: 0.3s;
+  transition: .3s;
 }
 .login-card button:hover {
   transform: scale(1.05);
   background: linear-gradient(135deg, #0077b6, #00b4d8);
 }
 
+/* REMEMBER + SUPPORT */
 .remember-forgot {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  font-size: 13px;
   color: rgba(255,255,255,0.8);
+  font-size: 13px;
   margin-bottom: 25px;
 }
 .remember-forgot a {
-  color: #90e0ef;
-  text-decoration: none;
+  color: #caf0f8;
 }
 .remember-forgot a:hover {
   text-decoration: underline;
 }
 
+/* ALERT */
 .alert {
-  background: rgba(255, 87, 87, 0.2);
-  color: #ff7f7f;
-  border: 1px solid rgba(255, 87, 87, 0.4);
-  border-radius: 10px;
+  background: rgba(255, 87, 87, 0.25);
+  border: 1px solid rgba(255,87,87,0.45);
+  color: #ff8f8f;
   padding: 10px;
+  border-radius: 12px;
   margin-bottom: 20px;
 }
 
-/* subtle floating particles */
-@keyframes float {
-  0% { transform: translateY(0); opacity: 0.4; }
-  50% { transform: translateY(-15px); opacity: 0.7; }
-  100% { transform: translateY(0); opacity: 0.4; }
+/* RESPONSIVE */
+@media screen and (max-width: 450px) {
+  .login-card {
+    width: 90%;
+    padding: 35px 30px;
+  }
+  .logo-title { font-size: 28px; }
 }
-.particle {
-  position: absolute;
-  background: rgba(255,255,255,0.1);
-  border-radius: 50%;
-  animation: float 6s ease-in-out infinite;
-}
-.p1 { width: 10px; height: 10px; top: 10%; left: 25%; animation-delay: 0s; }
-.p2 { width: 8px; height: 8px; top: 60%; left: 70%; animation-delay: 1s; }
-.p3 { width: 12px; height: 12px; top: 30%; left: 80%; animation-delay: 2s; }
 </style>
 {% endblock %}
 
 {% block pre_layout %}
+
+<!-- Floating Particles -->
 <div class="particle p1"></div>
 <div class="particle p2"></div>
 <div class="particle p3"></div>
 
 <div class="login-card">
+
   <div class="logo-title">ProSkill Academy</div>
-    <p style="font-size:13px; color:rgba(255,255,255,0.7); margin-bottom:25px;">
-    Zamonaviy kasblar - kuchli mutaxissislar
+
+  <p style="font-size:13px; color:rgba(255,255,255,0.8); margin-bottom:25px;">
+    Zamonaviy kasblar — kuchli mutaxassislar
   </p>
-  <h4>Xush kelibsiz!👋</h4>
 
+  <h4>👋 Xush kelibsiz!</h4>
 
+  <!-- ERROR MESSAGE -->
   {% if form.non_field_errors %}
     <div class="alert">{{ form.non_field_errors.0 }}</div>
   {% endif %}
 
+  <!-- LOGIN FORM -->
   <form method="post" novalidate>
     {% csrf_token %}
-    <input type="text" name="username" placeholder="Email pochtangiz" required value="{{ form.username.value|default:'' }}">
-    <input type="password" name="password" placeholder="Parolingiz" required>
+    
+    <input type="text" name="username" placeholder="Email manzil" required value="{{ form.username.value|default:'' }}">
+    <input type="password" name="password" placeholder="Parol" required>
 
     <div class="remember-forgot">
       <label><input type="checkbox"> Eslab qol</label>
-      <a href="http://t.me/de_amirxon">Texnik xizmat</a>
+      <a href="https://t.me/de_amirxon" target="_blank">Texnik yordam</a>
     </div>
 
     <button type="submit">Kirish</button>
   </form>
 
-  <p style="margin-top:20px; font-size:13px; color:rgba(255,255,255,0.7);">
+  <p style="margin-top:20px; font-size:13px; opacity:.7;">
+    ProSkill Academy © 2025
   </p>
 </div>
+
 {% endblock %}

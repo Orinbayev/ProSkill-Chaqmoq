@@ -1,24 +1,137 @@
 {% extends 'base.html' %}
 {% block content %}
-  <h3>Dashboard — {{ user.get_role_display }}</h3>
-  <div class="list-group">
+
+<style>
+.dashboard-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #22c55e;
+    margin-bottom: 25px;
+}
+
+/* GRID */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+}
+
+/* CARD */
+.dashboard-card {
+    background: rgba(17, 24, 39, 0.75);
+    padding: 20px 22px;
+    border-radius: 14px;
+    border: 1px solid rgba(55, 65, 81, 0.4);
+    color: #e2e8f0;
+    text-decoration: none;
+    transition: 0.25s ease;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+}
+
+.dashboard-card:hover {
+    transform: translateY(-6px);
+    background: rgba(30, 41, 59, 0.9);
+    border-color: #22c55e;
+    box-shadow: 0 8px 24px rgba(34,197,94,0.28);
+}
+
+/* title */
+.card-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+/* description */
+.card-sub {
+    font-size: 13px;
+    color: #94a3b8;
+}
+</style>
+
+<h3 class="dashboard-title">Dashboard — {{ user.get_role_display }}</h3>
+
+<div class="dashboard-grid">
+
     {% if user.role == 'director' %}
-      <a class="list-group-item" href="/hisob/manager/oquvchi-qoshish/">O‘quvchi qo‘shish</a>
-      <a class="list-group-item" href="/hisob/manager/oqituvchi-qoshish/">O‘qituvchi qo‘shish</a>
-      <a class="list-group-item" href="/do'kon/mahsulotlar/">Mahsulotlar</a>
-      <a class="list-group-item" href="/chaqmoq/reyting/">Reyting</a>
+
+        <a class="dashboard-card" href="/hisob/manager/oquvchi-qoshish/">
+            <div class="card-title">🧑‍🎓 O‘quvchi qo‘shish</div>
+            <div class="card-sub">Yangi o‘quvchilarni ro‘yxatdan o‘tkazish</div>
+        </a>
+
+        <a class="dashboard-card" href="/hisob/manager/oqituvchi-qoshish/">
+            <div class="card-title">👨‍🏫 O‘qituvchi qo‘shish</div>
+            <div class="card-sub">Yangi o‘qituvchilarni qo‘shish</div>
+        </a>
+
+        <a class="dashboard-card" href="/do'kon/mahsulotlar/">
+            <div class="card-title">🛒 Mahsulotlar</div>
+            <div class="card-sub">Do‘kondagi mahsulotlar</div>
+        </a>
+
+        <a class="dashboard-card" href="/chaqmoq/reyting/">
+            <div class="card-title">⚡ Reyting</div>
+            <div class="card-sub">Talabalarning umumiy reytingi</div>
+        </a>
+
+
     {% elif user.role == 'manager' %}
-      <a class="list-group-item" href="/hisob/manager/oquvchi-qoshish/">O‘quvchi qo‘shish</a>
-      <a class="list-group-item" href="/hisob/manager/oqituvchi-qoshish/">O‘qituvchi qo‘shish</a>
-      <a class="list-group-item" href="/ta'lim/guruhlar/">Guruhlar</a>
-      <a class="list-group-item" href="/do'kon/so'rovlar/">Xarid so‘rovlari</a>
-      <a class="list-group-item" href="/chaqmoq/reyting/">Reyting</a>
+
+        <a class="dashboard-card" href="/hisob/manager/oquvchi-qoshish/">
+            <div class="card-title">🧑‍🎓 O‘quvchi qo‘shish</div>
+            <div class="card-sub">O‘quvchi ro‘yxatga olish</div>
+        </a>
+
+        <a class="dashboard-card" href="/hisob/manager/oqituvchi-qoshish/">
+            <div class="card-title">👨‍🏫 O‘qituvchi qo‘shish</div>
+            <div class="card-sub">O‘qituvchi qo‘shish sahifasi</div>
+        </a>
+
+        <a class="dashboard-card" href="/ta'lim/guruhlar/">
+            <div class="card-title">📚 Guruhlar</div>
+            <div class="card-sub">Tillar va IT guruhlari</div>
+        </a>
+
+        <a class="dashboard-card" href="/do'kon/so'rovlar/">
+            <div class="card-title">🛒 Xarid so‘rovlari</div>
+            <div class="card-sub">Tasdiqlash jarayoni</div>
+        </a>
+
+        <a class="dashboard-card" href="/chaqmoq/reyting/">
+            <div class="card-title">⚡ Reyting</div>
+            <div class="card-sub">Talabalar reytingi</div>
+        </a>
+
+
     {% elif user.role == 'teacher' %}
-      <a class="list-group-item" href="/ta'lim/guruhlar/meniki/">Mening guruhlarim</a>
-      <a class="list-group-item" href="/chaqmoq/reyting/">Reyting</a>
+
+        <a class="dashboard-card" href="/ta'lim/guruhlar/meniki/">
+            <div class="card-title">📘 Mening guruhlarim</div>
+            <div class="card-sub">O‘qitadigan guruhlaringiz</div>
+        </a>
+
+        <a class="dashboard-card" href="/chaqmoq/reyting/">
+            <div class="card-title">⚡ Reyting</div>
+            <div class="card-sub">Umumiy reyting</div>
+        </a>
+
+
     {% elif user.role == 'student' %}
-      <a class="list-group-item" href="/do'kon/">Do‘kon — mahsulotlar</a>
-      <a class="list-group-item" href="/chaqmoq/reyting/">Reyting</a>
+
+        <a class="dashboard-card" href="/do'kon/">
+            <div class="card-title">🛒 Do‘kon</div>
+            <div class="card-sub">Mahsulotlar va narxlar</div>
+        </a>
+
+        <a class="dashboard-card" href="/chaqmoq/reyting/">
+            <div class="card-title">⚡ Reyting</div>
+            <div class="card-sub">Sizning o‘rningiz</div>
+        </a>
+
     {% endif %}
-  </div>
+
+</div>
+
 {% endblock %}

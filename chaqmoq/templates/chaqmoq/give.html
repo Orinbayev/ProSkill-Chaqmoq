@@ -1,92 +1,219 @@
 {% extends 'base.html' %}
 {% block content %}
-<h3 class="mb-4">⚡ Chaqmoq berish / ayirish</h3>
 
-<form method="post" id="give-form" class="mt-3" style="max-width:800px;">
-  {% csrf_token %}
+<style>
+/************************************************
+  GLOBAL PAGE DESIGN
+************************************************/
+body {
+  background: linear-gradient(180deg, #0f172a, #1e293b, #0f172a);
+  color: #e2e8f0;
+  font-family: 'Poppins', sans-serif;
+}
 
-  <div class="row g-3">
-    <!-- Guruh -->
-    <div class="col-md-6">
-      <label class="form-label fw-semibold">Guruh (ixtiyoriy):</label>
-      <select name="group" id="group" class="form-select shadow-sm">
-        <option value="">———</option>
-        {% for g in groups %}
-          <option value="{{ g.id }}" {% if selected_gid|stringformat:"s" == g.id|stringformat:"s" %}selected{% endif %}>{{ g.nom }}</option>
-        {% endfor %}
-      </select>
-      <div class="form-text">Guruh tanlasang — studentlar shu guruh bo‘yicha filtrlanadi.</div>
-    </div>
+/************************************************
+  TITLE
+************************************************/
+.page-title {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 800;
+  color: #facc15;
+  margin-bottom: 30px;
+  text-shadow: 0 3px 12px rgba(250,204,21,0.35);
+}
 
-    <!-- Student -->
-    <div class="col-md-6">
-      <label class="form-label fw-semibold">Student:</label>
-      <div class="input-group">
-        <span class="input-group-text bg-light">Qidirish</span>
-        <input type="text" id="student-search" class="form-control" placeholder="Ism bo‘yicha filtrlash">
+/************************************************
+  FORM CONTAINER (GLASS UI)
+************************************************/
+.give-box {
+  max-width: 900px;
+  margin: auto;
+  padding: 2.5rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 22px;
+  box-shadow: 0 18px 45px rgba(0,0,0,0.45);
+  backdrop-filter: blur(10px);
+  transition: 0.25s ease;
+}
+
+.give-box:hover {
+  border-color: rgba(59,130,246,0.32);
+  box-shadow: 0 26px 55px rgba(59,130,246,0.35);
+}
+
+/************************************************
+  LABELS
+************************************************/
+.form-label {
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+/************************************************
+  INPUT + SELECT STYLING
+************************************************/
+.form-control,
+.form-select {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 12px 14px;
+  border-radius: 12px;
+  transition: 0.25s;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #3b82f6;
+  background: rgba(255,255,255,0.15);
+  box-shadow: 0 0 12px rgba(59,130,246,0.35);
+}
+
+/* Option colors */
+.form-select option.text-success { background: #063a19 !important; }
+.form-select option.text-danger { background: #3f0a0a !important; }
+
+/************************************************
+  BUTTONS
+************************************************/
+.btn-save {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  color: #fff;
+  padding: 14px 24px;
+  font-weight: 700;
+  border-radius: 12px;
+  border: none;
+  transition: 0.25s ease;
+  width: 200px;
+}
+
+.btn-save:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 25px rgba(22,163,74,0.6);
+}
+
+.btn-outline {
+  border: 1px solid rgba(255,255,255,0.25);
+  padding: 14px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.btn-outline:hover {
+  background: rgba(255,255,255,0.12);
+  transform: scale(1.05);
+  color: #fff;
+}
+
+/************************************************
+  RESPONSIVE BOOST
+************************************************/
+@media (max-width: 768px) {
+  .give-box { padding: 1.6rem; }
+  .page-title { font-size: 1.6rem; }
+  .btn-save, .btn-outline { width: 100%; }
+}
+</style>
+
+
+<div class="container py-4">
+
+  <h3 class="page-title">⚡ Chaqmoq berish / ayirish</h3>
+
+  <form method="post" id="give-form" class="give-box">
+    {% csrf_token %}
+
+    <div class="row g-4">
+
+      <!-- GROUP -->
+      <div class="col-md-6">
+        <label class="form-label">📘 Guruh (ixtiyoriy):</label>
+        <select name="group" id="group" class="form-select shadow-sm">
+          <option value="">———</option>
+          {% for g in groups %}
+            <option value="{{ g.id }}"
+              {% if selected_gid|stringformat:"s" == g.id|stringformat:"s" %}selected{% endif %}>
+              {{ g.nom }}
+            </option>
+          {% endfor %}
+        </select>
       </div>
-      <select name="student" id="student" class="form-select mt-2 shadow-sm" required>
-        <option value="">———</option>
-        {% for s in students %}
-          <option value="{{ s.id }}">{{ s.ism }} {{ s.familya }}</option>
-        {% endfor %}
-      </select>
+
+      <!-- STUDENT -->
+      <div class="col-md-6">
+        <label class="form-label">🧑‍🎓 Student:</label>
+        <div class="input-group mb-2">
+          <span class="input-group-text bg-dark text-light">🔎</span>
+          <input type="text" id="student-search" class="form-control" placeholder="Ism bo‘yicha qidirish">
+        </div>
+
+        <select name="student" id="student" class="form-select shadow-sm" required>
+          <option value="">———</option>
+          {% for s in students %}
+            <option value="{{ s.id }}">{{ s.ism }} {{ s.familya }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- PLUS RULE -->
+      <div class="col-12">
+        <label class="form-label text-success">💚 Chaqmoq qo‘shish:</label>
+        <select name="rule" id="rule" class="form-select border-success shadow-sm">
+          <option value="">———</option>
+          {% for r in rules %}
+            {% if r.tur == 'plus' %}
+              <option value="{{ r.id }}" data-min="{{ r.min_baho }}" data-max="{{ r.max_baho }}" data-type="plus"
+                class="text-success fw-semibold">
+                {{ r.nom }} +{{ r.max_baho }}
+              </option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- MINUS RULE -->
+      <div class="col-12">
+        <label class="form-label text-danger">💔 Chaqmoq ayirish:</label>
+        <select name="rule_minus" id="rule_minus" class="form-select border-danger shadow-sm">
+          <option value="">———</option>
+          {% for r in rules %}
+            {% if r.tur == 'minus' %}
+              <option value="{{ r.id }}" data-min="{{ r.min_baho }}" data-max="{{ r.max_baho }}" data-type="minus"
+                class="text-danger fw-semibold">
+                {{ r.nom }} -{{ r.max_baho }}
+              </option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- BALL -->
+      <div class="col-md-6">
+        <label class="form-label">⚡ Ball:</label>
+        <input type="number" name="ball" id="ball"
+               class="form-control shadow-sm"
+               placeholder="0" required>
+      </div>
+
     </div>
 
-    <!-- Chaqmoq berish qoidalari (YASHIL) -->
-    <div class="col-12">
-      <label class="form-label fw-semibold text-success">💚 Chaqmoq qo‘shish:</label>
-      <select name="rule" id="rule" class="form-select border-success shadow-sm" required>
-        <option value="">———</option>
-        {% for r in rules %}
-          {% if r.tur == 'plus' %}
-            <option value="{{ r.id }}"
-                    data-min="{{ r.min_baho }}"
-                    data-max="{{ r.max_baho }}"
-                    data-type="{{ r.tur }}"
-                    class="text-success fw-semibold">
-              {{ r.nom }} +{{ r.max_baho }}
-            </option>
-          {% endif %}
-        {% endfor %}
-      </select>
-      <div class="form-text text-success" id="rule-help">Qoida tanla (+ ball qo‘shish uchun).</div>
+    <!-- BUTTONS -->
+    <div class="mt-4 d-flex gap-3 flex-wrap">
+      <button class="btn-save">💾 Saqlash</button>
+      <a class="btn-outline" href="{% url 'chaqmoq:reyting' %}">📊 Reyting</a>
     </div>
 
-    <!-- Chaqmoq ayirish qoidalari (QIZIL) -->
-    <div class="col-12">
-      <label class="form-label fw-semibold text-danger mt-3">💔 Chaqmoq ayirish:</label>
-      <select name="rule_minus" id="rule_minus" class="form-select border-danger shadow-sm">
-        <option value="">———</option>
-        {% for r in rules %}
-          {% if r.tur == 'minus' %}
-            <option value="{{ r.id }}"
-                    data-min="{{ r.min_baho }}"
-                    data-max="{{ r.max_baho }}"
-                    data-type="{{ r.tur }}"
-                    class="text-danger fw-semibold">
-              {{ r.nom }} -{{ r.max_baho }}
-            </option>
-          {% endif %}
-        {% endfor %}
-      </select>
-      <div class="form-text text-danger">Minus qoida tanla (chaqmoq ayirish uchun).</div>
-    </div>
+  </form>
+</div>
 
-    <!-- Ball kiritish -->
-    <div class="col-md-6">
-      <label class="form-label fw-semibold">Ball:</label>
-      <input type="number" name="ball" id="ball" class="form-control shadow-sm" placeholder="0" min="1" step="1" required>
-      <div class="form-text">Musbat son kiriting. Minus avtomatik qo‘llaniladi.</div>
-    </div>
-  </div>
 
-  <div class="mt-4 d-flex gap-2">
-    <button class="btn btn-success px-4 shadow-sm">💾 Saqlash</button>
-    <a class="btn btn-outline-secondary px-4" href="{% url 'chaqmoq:reyting' %}">📊 Reyting</a>
-  </div>
-</form>
-
+<!---------------------------------------------
+  JAVASCRIPT — group → student filter,
+  search filter, rule min/max validation
+---------------------------------------------->
 <script>
 (function(){
   const groupSel = document.getElementById('group');
@@ -95,64 +222,50 @@
   const rulePlusSel = document.getElementById('rule');
   const ruleMinusSel = document.getElementById('rule_minus');
   const ballInp = document.getElementById('ball');
-  const ruleHelp = document.getElementById('rule-help');
 
+  // GROUP → STUDENT FILTER LOAD
   function loadStudents() {
     const gid = groupSel.value;
     fetch(`{% url 'chaqmoq:students_json' %}?group=${gid}`)
       .then(r => r.json())
       .then(data => {
-        const cur = studentSel.value;
+        const prev = studentSel.value;
         studentSel.innerHTML = '<option value="">———</option>';
         data.students.forEach(s => {
           const opt = document.createElement('option');
-          opt.value = s.id; opt.textContent = s.name;
+          opt.value = s.id;
+          opt.textContent = s.name;
           studentSel.appendChild(opt);
         });
-        if ([...studentSel.options].some(o => o.value === cur)) studentSel.value = cur;
+        studentSel.value = prev;
         searchInp.dispatchEvent(new Event('input'));
       });
   }
 
-  // filtr
+  // SEARCH FILTER
   searchInp.addEventListener('input', function(){
     const q = this.value.toLowerCase();
-    [...studentSel.options].forEach((opt, idx) => {
-      if (idx === 0) return;
+    [...studentSel.options].forEach((opt, i) => {
+      if (i === 0) return;
       opt.hidden = !opt.textContent.toLowerCase().includes(q);
     });
   });
 
-  // qoida tanlansa – yordamchi matn
-  function applyRuleBounds(sel) {
+  // APPLY MIN/MAX LIMITS
+  function setBallLimits(sel) {
     const o = sel.options[sel.selectedIndex];
     if (!o || !o.dataset.min) return;
     const min = parseInt(o.dataset.min);
     const max = parseInt(o.dataset.max);
-    const typ = o.dataset.type;
     ballInp.min = min;
     ballInp.max = max;
     ballInp.value = min;
-    ruleHelp.textContent = (typ === "plus")
-      ? `+${min} dan +${max} gacha ball beriladi`
-      : `-${min} dan -${max} gacha ball ayiriladi`;
   }
 
   groupSel.addEventListener('change', loadStudents);
-  rulePlusSel.addEventListener('change', () => applyRuleBounds(rulePlusSel));
-  ruleMinusSel.addEventListener('change', () => applyRuleBounds(ruleMinusSel));
-
-  applyRuleBounds(rulePlusSel);
+  rulePlusSel.addEventListener('change', () => setBallLimits(rulePlusSel));
+  ruleMinusSel.addEventListener('change', () => setBallLimits(ruleMinusSel));
 })();
 </script>
 
-<style>
-  select.form-select option.text-success {
-    background-color: #e7f8ed;
-  }
-  select.form-select option.text-danger {
-    background-color: #fdecea;
-  }
-  .form-label { font-weight: 600; }
-</style>
 {% endblock %}

@@ -1,18 +1,100 @@
 {% extends 'base.html' %}
-
 {% block content %}
-<h2>{{ group.nom }} guruhiga o‘quvchi qo‘shish</h2>
 
-<form method="post">
-  {% csrf_token %}
-  <label for="student">O‘quvchini tanlang:</label>
-  <select name="student_id" id="student">
-    {% for student in students %}
-      <option value="{{ student.id }}">{{ student.get_full_name }}</option>
-    {% endfor %}
-  </select>
-  <button type="submit">Qo‘shish</button>
-</form>
+<style>
+  :root{
+    --panel:#111827;
+    --glass:rgba(255,255,255,0.04);
+    --border:rgba(148,163,184,0.25);
+    --text:#e5e7eb;
+    --yellow:#facc15;
+    --blue:#38bdf8;
+    --green:#22c55e;
+  }
 
-<a href="{% url 'education:group_detail' group.id %}">⬅️ Ortga</a>
+  .wrapper {
+    max-width: 550px;
+    margin: 40px auto;
+    background: var(--glass);
+    padding: 30px 35px;
+    border-radius: 18px;
+    border:1px solid var(--border);
+    box-shadow:0 0 25px rgba(56,189,248,0.15);
+    backdrop-filter: blur(12px);
+  }
+
+  h2 {
+    text-align:center;
+    color: var(--yellow);
+    font-weight: 700;
+    margin-bottom:25px;
+  }
+
+  label {
+    color: var(--text);
+    font-weight:600;
+    margin-bottom:8px;
+    display:block;
+  }
+
+  select {
+    width:100%;
+    padding:12px 14px;
+    border-radius:12px;
+    background:#1e293b;
+    color:var(--text);
+    border:1px solid var(--border);
+    margin-bottom:20px;
+    font-size:15px;
+  }
+
+  .btn-primary {
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+    border:none;
+    padding:10px 25px;
+    border-radius:10px;
+    color:white;
+    font-weight:600;
+    width:100%;
+    transition:0.25s;
+  }
+  .btn-primary:hover {
+    transform:scale(1.05);
+    filter:brightness(1.1);
+  }
+
+  .back-link {
+    display:block;
+    text-align:center;
+    margin-top:20px;
+    color: var(--blue);
+    text-decoration:none;
+    font-weight:600;
+  }
+  .back-link:hover {
+    text-decoration:underline;
+  }
+</style>
+
+<div class="wrapper">
+
+  <h2>👤 {{ group.nom }} guruhiga o‘quvchi qo‘shish</h2>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <label for="student">O‘quvchini tanlang:</label>
+    <select name="student_id" id="student" required>
+      {% for student in students %}
+        <option value="{{ student.id }}">{{ student.get_full_name }}</option>
+      {% endfor %}
+    </select>
+
+    <button type="submit" class="btn-primary">➕ Qo‘shish</button>
+  </form>
+
+  <a href="{% url 'education:group_detail' group.id %}" class="back-link">⬅️ Ortga qaytish</a>
+
+</div>
+
 {% endblock %}

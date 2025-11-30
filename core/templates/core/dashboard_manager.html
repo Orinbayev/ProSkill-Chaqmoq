@@ -9,7 +9,7 @@
     margin-bottom: 25px;
 }
 
-/* GRID */
+/* GRID TOP */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -18,33 +18,34 @@
 
 /* PREMIUM CARD */
 .stat-card {
-    background: #ffffff0d;
-    padding: 18px;
-    border-radius: 14px;
+    background: #ffffff10;
+    padding: 20px;
+    border-radius: 16px;
     text-decoration: none;
     display: block;
     color: white;
-    transition: 0.25s ease;
-    backdrop-filter: blur(6px);
-    border: 1px solid rgba(255,255,255,0.07);
-    min-height: 130px;
+    transition: 0.3s ease;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.06);
+    min-height: 135px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.25);
 }
 
 .stat-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+    transform: translateY(-6px);
+    box-shadow: 0 14px 28px rgba(0,150,255,0.35);
     border-color: rgba(0,150,255,0.4);
 }
 
 .stat-title {
     font-size: 14px;
-    opacity: 0.7;
+    opacity: 0.65;
 }
 
 .stat-value {
-    font-size: 28px;
+    font-size: 30px;
     font-weight: 600;
-    margin-top: 8px;
+    margin-top: 10px;
 }
 
 .stat-link {
@@ -53,30 +54,47 @@
     color: #4db8ff !important;
 }
 
-/* CATEGORY BOX */
+/* CATEGORY BOX (NEW) */
 .section-card {
-    background: #ffffff0d;
-    border-radius: 14px;
-    padding: 18px;
+    background: #ffffff10;
+    border-radius: 15px;
+    padding: 22px;
+    margin-top: 28px;
     color: white;
-    border: 1px solid rgba(255,255,255,0.07);
-    backdrop-filter: blur(6px);
-    margin-top: 22px;
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.25);
 }
 
 .section-card h5 {
-    margin-bottom: 14px;
+    margin-bottom: 16px;
     font-weight: 600;
+    font-size: 18px;
 }
 
 .section-card .btn {
     font-weight: 500;
+    margin-right: 8px;
+    margin-bottom: 8px;
+}
+
+/* RESPONSIVE FIXES */
+@media (max-width: 768px) {
+    .stat-value {
+        font-size: 26px;
+    }
+    .section-card {
+        padding: 18px;
+    }
+    .section-card h5 {
+        font-size: 16px;
+    }
 }
 </style>
 
 <h3 class="dashboard-title">Manager paneli</h3>
 
-<!-- TOP GRID -->
+<!-- 🔝 STATISTICS GRID -->
 <div class="stats-grid">
 
     <a class="stat-card" href="{% url 'core:stat_teachers' %}">
@@ -99,20 +117,26 @@
         <div class="stat-value">{{ stats.pending_requests|default:0 }}</div>
     </a>
 
-
-
 </div>
 
-<!-- SECTIONS -->
-<div class="row">
+<!-- 🔥 NEW SECTION BLOCKS -->
+<div class="section-card mt-4">
+    <h5>📚 O‘quvchilar & Guruhlar</h5>
+    <a href="{% url 'core:stat_students' %}" class="btn btn-outline-info btn-sm">O‘quvchilar</a>
+    <a href="{% url 'education:groups_home' %}" class="btn btn-outline-light btn-sm">Guruhlar</a>
+    <a href="{% url 'education:tolov_oquvchilar' %}" class="btn btn-outline-warning btn-sm">To‘lovlar</a>
+</div>
 
+<div class="section-card">
+    <h5>🧑‍🏫 O‘qituvchilar</h5>
+    <a href="{% url 'core:stat_teachers' %}" class="btn btn-outline-primary btn-sm">Ro‘yxat</a>
+    <a href="{% url 'education:teacher_salary_list' %}" class="btn btn-outline-success btn-sm">Oyliklar</a>
+</div>
 
-
-
-
-
-    
-
+<div class="section-card">
+    <h5>🛒 Ombor & Mahsulotlar</h5>
+    <a href="{% url 'core:stat_products' %}" class="btn btn-outline-info btn-sm">Mahsulotlar</a>
+    <a href="{% url 'core:stat_requests' %}" class="btn btn-outline-danger btn-sm">So‘rovlar</a>
 </div>
 
 {% endblock %}

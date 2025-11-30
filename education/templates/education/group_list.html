@@ -1,5 +1,64 @@
 {% extends "base.html" %}
 {% block content %}
+
+<style>
+/* 📱 RESPONSIVE TABLE → CARD MODE */
+
+@media (max-width: 768px) {
+
+  table.table {
+      display: none !important;
+  }
+
+  .mobile-card {
+      background: #ffffff10;
+      border: 1px solid #ffffff22;
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+      backdrop-filter: blur(6px);
+  }
+
+  .mobile-card h5 {
+      margin: 0 0 8px;
+      font-size: 1.1rem;
+      color: #facc15;
+  }
+
+  .mobile-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      border-bottom: 1px dashed #ffffff2e;
+      padding-bottom: 4px;
+  }
+
+  .mobile-label {
+      font-weight: 600;
+      color: #9ca3af;
+  }
+
+  .mobile-value {
+      font-weight: 500;
+      color: #e5e7eb;
+  }
+
+  .mobile-actions button,
+  .mobile-actions a {
+      width: 100%;
+      margin-bottom: 6px;
+  }
+}
+
+/* 💻 Desktop (normal table) */
+@media (min-width: 769px) {
+  .mobile-version {
+      display: none !important;
+  }
+}
+</style>
+
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h3 class="mb-0">👥 {% if category == "lang" %}Tillar{% else %}IT{% endif %} bo‘yicha guruhlar</h3>
 
@@ -12,7 +71,8 @@
   {% endif %}
 </div>
 
-<div class="table-responsive">
+<!-- 💻 Desktop Table -->
+<div class="table-responsive desktop-version">
   <table class="table table-hover align-middle">
     <thead>
       <tr>
@@ -41,6 +101,47 @@
     </tbody>
   </table>
 </div>
+
+<!-- 📱 Mobile Card Version -->
+<div class="mobile-version">
+  {% for g in rows %}
+    <div class="mobile-card">
+
+      <h5>{{ g.nom }}</h5>
+
+      <div class="mobile-row">
+        <span class="mobile-label">Markaz:</span>
+        <span class="mobile-value">{{ g.center }}</span>
+      </div>
+
+      <div class="mobile-row">
+        <span class="mobile-label">O‘qituvchi:</span>
+        <span class="mobile-value">{{ g.oqituvchi }}</span>
+      </div>
+
+      <div class="mobile-row">
+        <span class="mobile-label">Talabalar:</span>
+        <span class="mobile-value">{{ g.student_count }}</span>
+      </div>
+
+      <div class="mobile-actions mt-2">
+        <a class="btn btn-outline-primary btn-sm" href="{% url 'education:group_detail' g.id %}">Ko‘rish</a>
+
+        {% if can_manage %}
+          <a class="btn btn-outline-secondary btn-sm" href="{% url 'education:group_edit' g.id %}">Tahrirlash</a>
+
+          <button class="btn btn-outline-danger btn-sm delete-btn"
+            data-id="{{ g.id }}"
+            data-name="{{ g.nom }}">O‘chirish</button>
+        {% endif %}
+      </div>
+
+    </div>
+  {% empty %}
+    <p class="text-center text-muted mt-4">Hozircha guruh yo‘q.</p>
+  {% endfor %}
+</div>
+
 
 <!-- Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
@@ -86,4 +187,5 @@ document.querySelectorAll('.delete-btn').forEach(btn=>{
   });
 });
 </script>
+
 {% endblock %}

@@ -1,6 +1,61 @@
 {% extends 'base.html' %}
 {% block content %}
 
+<style>
+/* 📱 MOBILDA — JADVAL O‘RNIGA CARD KO‘RINISH */
+@media (max-width: 768px) {
+
+  table.table {
+    display: none !important;
+  }
+
+  .mobile-student {
+    background: #ffffff0a;
+    border: 1px solid #ffffff15;
+    border-radius: 14px;
+    padding: 15px;
+    margin-bottom: 12px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.35);
+    backdrop-filter: blur(8px);
+  }
+
+  .m-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .m-label {
+    font-weight: 600;
+    color: #a1a1aa;
+  }
+  .m-value {
+    color: #e2e8f0;
+    font-weight: 500;
+  }
+
+  .att-input, .rule-select, .amt-box {
+    width: 100% !important;
+    margin-top: 8px;
+  }
+
+  .amt-box .input-group {
+    width: 100% !important;
+  }
+
+  .badge {
+    font-size: 0.9rem;
+    padding: 6px 10px;
+  }
+}
+
+/* KATTA EKRANDA ESKI JADVAL QOLADI */
+@media (min-width: 769px) {
+  .mobile-version {
+    display: none !important;
+  }
+}
+</style>
+
 <h3 class="mb-3">{{ g.nom }} — Davomat / Chaqmoq</h3>
 
 <form method="post" class="mb-3">{% csrf_token %}
@@ -9,89 +64,159 @@
     <input type="date" name="date" class="form-control" value="{{ date }}">
   </div>
 
-  <div class="table-responsive mt-3">
+  <!-- 💻 DESKTOP TABLE -->
+  <div class="table-responsive mt-3 desktop-version">
     <table class="table table-sm align-middle">
       <thead class="table-light">
         <tr>
-          <th style="width:52px">#</th>
+          <th>#</th>
           <th>Talaba</th>
           <th>Telefon</th>
           <th class="text-center">Davomat</th>
-          <th style="min-width:320px">Qoida</th>
-          <th style="width:150px">Ball</th>
-          <th style="width:110px" class="text-end">Jami</th>
+          <th>Qoida</th>
+          <th>Ball</th>
+          <th class="text-end">Jami</th>
         </tr>
       </thead>
-<tbody>
-  {% for s in students %}
-  <tr>
-    <td>{{ forloop.counter }}</td>
-    <td>{{ s.ism }} {{ s.familya }}</td>
-    <td>{{ s.telefon1|default:"—" }}</td>
 
-    <!-- Davomat: endi s.present bor -->
-    <td class="text-center">
-      <input type="checkbox" name="present_{{ s.id }}" {% if s.present %}checked{% endif %}>
-    </td>
+      <tbody>
+      {% for s in students %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ s.ism }} {{ s.familya }}</td>
+        <td>{{ s.telefon1|default:"—" }}</td>
 
-    <td>
-      <select name="rule_{{ s.id }}" class="form-select form-select-sm rule-select">
-        <option value="">—</option>
-        {% for r in rules %}
-          <option value="{{ r.id }}"
-                  data-min="{{ r.min_baho }}"
-                  data-max="{{ r.max_baho }}"
-                  data-type="{{ r.tur }}">
-            {{ r.nom }}
-            {% if r.tur == 'plus' %}(+{{ r.min_baho }}..+{{ r.max_baho }})
-            {% else %}(-{{ r.min_baho }}..-{{ r.max_baho }})
-            {% endif %}
-          </option>
-        {% endfor %}
-      </select>
-    </td>
+        <td class="text-center">
+          <input type="checkbox" name="present_{{ s.id }}" {% if s.present %}checked{% endif %}>
+        </td>
 
-    <td>
-      <div class="input-group input-group-sm">
-        <button class="btn btn-outline-secondary minus" type="button">−</button>
-        <input name="ball_{{ s.id }}" type="number" class="form-control text-center amount" value="0" min="0" step="1">
-        <button class="btn btn-outline-secondary plus" type="button">+</button>
-      </div>
-      <div class="small mt-1 text-muted help"></div>
-    </td>
+        <td>
+          <select name="rule_{{ s.id }}" class="form-select form-select-sm rule-select">
+            <option value="">—</option>
+            {% for r in rules %}
+              <option value="{{ r.id }}"
+                      data-min="{{ r.min_baho }}"
+                      data-max="{{ r.max_baho }}"
+                      data-type="{{ r.tur }}">
+                {{ r.nom }}
+                {% if r.tur == 'plus' %}
+                  (+{{ r.min_baho }}..+{{ r.max_baho }})
+                {% else %}
+                  (-{{ r.min_baho }}..-{{ r.max_baho }})
+                {% endif %}
+              </option>
+            {% endfor %}
+          </select>
+        </td>
 
-    <!-- Balans badge: endi s.balance bor -->
-    <td class="text-end">
-      {% if s.balance >= 0 %}
-        <span class="badge rounded-pill text-bg-success">{{ s.balance }}</span>
-      {% else %}
-        <span class="badge rounded-pill text-bg-danger">{{ s.balance }}</span>
-      {% endif %}
-    </td>
-  </tr>
-  {% empty %}
-  <tr><td colspan="7" class="text-muted">Talaba yo‘q.</td></tr>
-  {% endfor %}
-</tbody>
+        <td>
+          <div class="input-group input-group-sm">
+            <button class="btn btn-outline-secondary minus" type="button">−</button>
+            <input name="ball_{{ s.id }}" type="number" class="form-control text-center amount" value="0" min="0" step="1">
+            <button class="btn btn-outline-secondary plus" type="button">+</button>
+          </div>
+          <div class="small mt-1 text-muted help"></div>
+        </td>
+
+        <td class="text-end">
+          {% if s.balance >= 0 %}
+            <span class="badge rounded-pill text-bg-success">{{ s.balance }}</span>
+          {% else %}
+            <span class="badge rounded-pill text-bg-danger">{{ s.balance }}</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="text-muted">Talaba yo‘q.</td></tr>
+      {% endfor %}
+      </tbody>
 
     </table>
   </div>
 
-  <div class="d-flex gap-2">
+
+  <!-- 📱 MOBIL VERSION (CARD KO‘RINISH) -->
+  <div class="mobile-version mt-3">
+    {% for s in students %}
+    <div class="mobile-student">
+
+      <div class="m-row">
+        <span class="m-label">👤 Talaba:</span>
+        <span class="m-value">{{ s.ism }} {{ s.familya }}</span>
+      </div>
+
+      <div class="m-row">
+        <span class="m-label">📞 Tel:</span>
+        <span class="m-value">{{ s.telefon1|default:"—" }}</span>
+      </div>
+
+      <div class="mt-2">
+        <label class="m-label">Davomat:</label><br>
+        <input type="checkbox" name="present_{{ s.id }}" {% if s.present %}checked{% endif %}>
+      </div>
+
+      <div class="mt-2">
+        <label class="m-label">Qoida tanlash:</label>
+        <select name="rule_{{ s.id }}" class="form-select rule-select mt-1">
+          <option value="">—</option>
+          {% for r in rules %}
+            <option value="{{ r.id }}"
+                    data-min="{{ r.min_baho }}"
+                    data-max="{{ r.max_baho }}"
+                    data-type="{{ r.tur }}">
+              {{ r.nom }}
+              {% if r.tur == 'plus' %}
+                (+{{ r.min_baho }}..+{{ r.max_baho }})
+              {% else %}
+                (-{{ r.min_baho }}..-{{ r.max_baho }})
+              {% endif %}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="amt-box mt-2">
+        <label class="m-label">Ball:</label>
+        <div class="input-group input-group-sm mt-1">
+          <button class="btn btn-outline-secondary minus" type="button">−</button>
+          <input name="ball_{{ s.id }}" type="number" class="form-control text-center amount" value="0">
+          <button class="btn btn-outline-secondary plus" type="button">+</button>
+        </div>
+        <div class="small mt-1 text-muted help"></div>
+      </div>
+
+      <div class="m-row mt-2">
+        <span class="m-label">Jami:</span>
+        <span class="m-value">
+          {% if s.balance >= 0 %}
+            <span class="badge bg-success">{{ s.balance }}</span>
+          {% else %}
+            <span class="badge bg-danger">{{ s.balance }}</span>
+          {% endif %}
+        </span>
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+
+
+  <div class="d-flex gap-2 mt-3">
     <button class="btn btn-primary">Saqlash</button>
     <a class="btn btn-secondary" href="{% url 'education:group_detail' g.id %}">Orqaga</a>
   </div>
+
 </form>
 
 <script>
 (function(){
-  // helper: get_item filter o‘rnini JS bilan ham foydali qilish
-  document.querySelectorAll('tr').forEach(function(row){
+  document.querySelectorAll('tr, .mobile-student').forEach(function(row){
     const sel = row.querySelector('select.rule-select');
     const amount = row.querySelector('input.amount');
     const help = row.querySelector('.help');
     const minusBtn = row.querySelector('.minus');
     const plusBtn  = row.querySelector('.plus');
+
     if(!sel || !amount) return;
 
     function applyBounds(){
@@ -100,22 +225,33 @@
         amount.min = 0; amount.max = ''; help.textContent='';
         return;
       }
+
       const min = parseInt(o.dataset.min,10);
       const max = parseInt(o.dataset.max,10);
-      const typ = o.dataset.type; // plus/minus
+      const typ = o.dataset.type;
 
-      amount.min = 1;       // foydalanuvchi 0 bermasin
+      amount.min = 1;
       amount.max = max;
-      help.textContent = (typ==='plus')
+      help.textContent = (typ === 'plus')
         ? `+${min} .. +${max} oralig‘ida`
-        : `-${min} .. -${max} (musbat kiritiladi, minus yoziladi)`;
+        : `-${min} .. -${max} (musbat kiriting)`;
+
       if(+amount.value < 1) amount.value = min;
     }
-    sel.addEventListener('change', applyBounds); applyBounds();
 
-    minusBtn?.addEventListener('click', ()=>{ amount.value = (+amount.value || 0) - 1; if(+amount.value<0) amount.value = 0; });
-    plusBtn?.addEventListener('click', ()=>{ amount.value = (+amount.value || 0) + 1; });
+    sel.addEventListener('change', applyBounds);
+    applyBounds();
+
+    minusBtn?.addEventListener('click', ()=>{
+      amount.value = (+amount.value || 0) - 1;
+      if(+amount.value < 0) amount.value = 0;
+    });
+
+    plusBtn?.addEventListener('click', ()=>{
+      amount.value = (+amount.value || 0) + 1;
+    });
   });
 })();
 </script>
+
 {% endblock %}
