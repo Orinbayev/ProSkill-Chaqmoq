@@ -11,11 +11,6 @@ ROLE_CHOICES = (
 )
 
 class AddUserForm(forms.ModelForm):
-    # email = forms.CharField(label="Login")
-    # telefon1 = forms.CharField(label="Telefon nomer", required=False)
-    # telefon2 = forms.CharField(label="Uyida telefon nomeri", required=False)
-    # otchestvo = forms.CharField(label="Otasining ismi", required=False)
-
 
     center = forms.ModelChoiceField(
         queryset=Center.objects.all(),
@@ -23,8 +18,6 @@ class AddUserForm(forms.ModelForm):
         required=False,
         label="Center"
     )
-    # role = forms.ChoiceField(choices=ROLE_CHOICES, label="Roli")
-    # password = forms.CharField(label="Parol", widget=forms.PasswordInput)
 
     class Meta:
         model = User
@@ -35,6 +28,7 @@ class AddUserForm(forms.ModelForm):
             "email", "password",
             "oqituvchi_foizi",
         ]
+
         widgets = {
             "ism": forms.TextInput(attrs={
                 "placeholder": "Ism",
@@ -46,25 +40,18 @@ class AddUserForm(forms.ModelForm):
                 "class": "form-control uniform-input",
                 "id": "id_familya"
             }),
-           "otchestvo": forms.TextInput(attrs={
+            "otchestvo": forms.TextInput(attrs={
                 "placeholder": "Otasining ismi (ixtiyoriy)",
-                "class": "form-control uniform-input w-100",
+                "class": "form-control uniform-input",
                 "id": "id_otchestvo"
             }),
-
             "telefon1": forms.TextInput(attrs={
                 "placeholder": "+998XXXXXXXXX",
-                "class": "form-control uniform-input",
-                "id": "id_telefon1",
-                "oninput": "validatePhone(this)",
-                "maxlength": "13"
+                "class": "form-control uniform-input"
             }),
             "telefon2": forms.TextInput(attrs={
                 "placeholder": "+998XXXXXXXXX",
-                "class": "form-control uniform-input",
-                "id": "id_telefon2",
-                "oninput": "validatePhone(this)",
-                "maxlength": "13"
+                "class": "form-control uniform-input"
             }),
             "email": forms.TextInput(attrs={
                 "placeholder": "Login (email)",
@@ -78,24 +65,43 @@ class AddUserForm(forms.ModelForm):
             }),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 🔥 O‘QITUVCHI FOIZI → MAJBURIY EMAS
+        self.fields["oqituvchi_foizi"].required = False
+
     def save(self, commit=True):
         data = self.cleaned_data
+
         user = User(
-            ism=data.get("ism"),
-            familya=data.get("familya"),
+            ism=data["ism"],
+            familya=data["familya"],
             otchestvo=data.get("otchestvo"),
-            email=data.get("email"),
-            telefon1=data.get("telefon1"),
+            email=data["email"],
+            telefon1=data["telefon1"],
             telefon2=data.get("telefon2"),
             center=data.get("center"),
-            role=data.get("role"),
-            oqituvchi_foizi=data.get("oqituvchi_foizi") or 40
+            role=data["role"],
         )
+
+        # 🔥 Agar teacher bo‘lsa → foiz bo‘lsin
+        if user.role == "teacher":
+            user.oqituvchi_foizi = data.get("oqituvchi_foizi") or 40
+
+        # 🔥 Student bo‘lsa → FORMADAN FOIZ KELMASIN
+        else:
+            user.oqituvchi_foizi = 0
+
+        # manager → admin huquq
         if user.role == "manager":
             user.is_staff = True
-        user.set_password(data.get("password"))
+
+        # Parol
+        user.set_password(data["password"])
+
         if commit:
             user.save()
+
         return user
 
 

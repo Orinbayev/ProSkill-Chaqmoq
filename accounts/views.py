@@ -35,32 +35,29 @@ def add_user(request):
         form = AddUserForm(request.POST)
         group_id = request.POST.get("group_id")
         kurs_narhi = request.POST.get("kurs_narhi")
-        oqituvchi_foizi = request.POST.get("oqituvchi_foizi")
 
         if form.is_valid():
             user = form.save()
 
-            # Agar yangi user student bo‘lsa — guruh + kurs narxi bilan birga qo‘shamiz
+            # === STUDENT BO‘LSA ===
             if user.role == "student" and group_id:
                 try:
                     group = Group.objects.get(id=group_id)
 
-                    # Kurs narxi bo‘sh bo‘lmasligi shart
+                    # Kurs narxi
                     if kurs_narhi:
                         kurs_narhi = int(kurs_narhi)
                     else:
-                        kurs_narhi = group.kurs_narhi if hasattr(group, "kurs_narhi") else 0
+                        kurs_narhi = getattr(group, "kurs_narhi", 0)
 
-                    # O‘qituvchi foizi avtomatik — guruhdagi o‘qituvchidan olinadi
-                    oqituvchi_foizi = group.oqituvchi.oqituvchi_foizi
+                    # 🔥 O‘qituvchi foizi → guruhdagi o‘qituvchini olib beramiz
+                    oqituvchi_foiz = group.oqituvchi.oqituvchi_foizi
 
-                    Enrollment.objects.get_or_create(
+                    Enrollment.objects.create(
                         student=user,
                         group=group,
-                        defaults={
-                            "kurs_narhi": kurs_narhi,
-                            "oqituvchi_foiz": oqituvchi_foizi
-                        }
+                        kurs_narhi=kurs_narhi,
+                        oqituvchi_foiz=oqituvchi_foiz
                     )
 
                 except Group.DoesNotExist:
