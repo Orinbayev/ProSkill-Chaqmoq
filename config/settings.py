@@ -19,23 +19,88 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
 
 # ===== Installed Apps =====
 INSTALLED_APPS = [
-    # Django core
+    "jazzmin",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # Third-party
     "django_extensions",
     "django.contrib.humanize",
-    # Local apps
     "accounts",
     "education",
     "chaqmoq",
     "store",
     "core",
+    
 ]
+JAZZMIN_SETTINGS = {
+    "site_title": "⚡ Chaqmoq Admin",
+    "site_header": "⚡ Chaqmoq Academy",
+    "site_brand": "Chaqmoq Admin",
+    "welcome_sign": "Chaqmoq Academy boshqaruv paneliga xush kelibsiz",
+    "copyright": "Chaqmoq Academy © 2025",
+    
+    # Apple-style Light Theme
+    "theme": "flatly",
+
+    # Logos (agar bo'lsa)
+    # "site_logo": "images/chaqmoq_logo.png",
+    # "login_logo": "images/chaqmoq_logo.png",
+
+    # Top navigation settings
+    "topmenu_links": [
+        {"name": "Bosh sahifa", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"model": "accounts.user"},
+        {"model": "education.category"},
+        {"app": "store"},
+    ],
+
+    # User menu items
+    "usermenu_links": [
+        {"name": "Profil", "url": "admin:password_change"},
+        {"name": "Chiqish", "url": "admin:logout"},
+    ],
+
+    # Sidebar settings
+    "show_sidebar": True,
+    "navigation_expanded": True,
+
+    # Custom icons for each model (fontawesome)
+    "icons": {
+        "accounts.User": "fas fa-user",
+        "accounts.Center": "fas fa-school",
+
+        "chaqmoq.ChaqmoqQoidalari": "fas fa-bolt",
+        "chaqmoq.ChaqmoqYozuvlari": "fas fa-keyboard",
+
+        "education.Category": "fas fa-layer-group",
+        "education.Davomatlar": "fas fa-calendar-check",
+        "education.Guruh": "fas fa-users",
+        "education.GuruxgaQoshilishlar": "fas fa-user-plus",
+        "education.KunlikchaqmoqLimitlari": "fas fa-clock",
+        "education.Tolovlar": "fas fa-wallet",
+
+        "store.Products": "fas fa-box",
+        "store.ProductImages": "fas fa-images",
+        "store.Leads": "fas fa-address-book",
+        "store.LeadStatus": "fas fa-flag",
+        "store.Sotuvlar": "fas fa-shopping-cart",
+        "store.XaridSorovlari": "fas fa-file-invoice",
+        "store.Yonalish": "fas fa-route",
+        "store.Izohlar": "fas fa-comments",
+    },
+
+    # UI Tweaks
+    "show_ui_builder": False,
+    "changeform_format": "horizontal_tabs",
+    "changeform_format_overrides": {"auth.user": "collapsible"},
+    
+    # Footer settings
+    "show_ui_builder": False,
+}
+
 
 # ===== Middleware =====
 MIDDLEWARE = [
@@ -141,6 +206,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # # ===== Installed Apps =====
 # INSTALLED_APPS = [
+#     "jazzmin",
 #     "django.contrib.admin",
 #     "django.contrib.auth",
 #     "django.contrib.contenttypes",
@@ -156,6 +222,72 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 #     "core",
     
 # ]
+# JAZZMIN_SETTINGS = {
+#     "site_title": "⚡ Chaqmoq Admin",
+#     "site_header": "⚡ Chaqmoq Academy",
+#     "site_brand": "Chaqmoq Admin",
+#     "welcome_sign": "Chaqmoq Academy boshqaruv paneliga xush kelibsiz",
+#     "copyright": "Chaqmoq Academy © 2025",
+    
+#     # Apple-style Light Theme
+#     "theme": "flatly",
+
+#     # Logos (agar bo'lsa)
+#     # "site_logo": "images/chaqmoq_logo.png",
+#     # "login_logo": "images/chaqmoq_logo.png",
+
+#     # Top navigation settings
+#     "topmenu_links": [
+#         {"name": "Bosh sahifa", "url": "admin:index", "permissions": ["auth.view_user"]},
+#         {"model": "accounts.user"},
+#         {"model": "education.category"},
+#         {"app": "store"},
+#     ],
+
+#     # User menu items
+#     "usermenu_links": [
+#         {"name": "Profil", "url": "admin:password_change"},
+#         {"name": "Chiqish", "url": "admin:logout"},
+#     ],
+
+#     # Sidebar settings
+#     "show_sidebar": True,
+#     "navigation_expanded": True,
+
+#     # Custom icons for each model (fontawesome)
+#     "icons": {
+#         "accounts.User": "fas fa-user",
+#         "accounts.Center": "fas fa-school",
+
+#         "chaqmoq.ChaqmoqQoidalari": "fas fa-bolt",
+#         "chaqmoq.ChaqmoqYozuvlari": "fas fa-keyboard",
+
+#         "education.Category": "fas fa-layer-group",
+#         "education.Davomatlar": "fas fa-calendar-check",
+#         "education.Guruh": "fas fa-users",
+#         "education.GuruxgaQoshilishlar": "fas fa-user-plus",
+#         "education.KunlikchaqmoqLimitlari": "fas fa-clock",
+#         "education.Tolovlar": "fas fa-wallet",
+
+#         "store.Products": "fas fa-box",
+#         "store.ProductImages": "fas fa-images",
+#         "store.Leads": "fas fa-address-book",
+#         "store.LeadStatus": "fas fa-flag",
+#         "store.Sotuvlar": "fas fa-shopping-cart",
+#         "store.XaridSorovlari": "fas fa-file-invoice",
+#         "store.Yonalish": "fas fa-route",
+#         "store.Izohlar": "fas fa-comments",
+#     },
+
+#     # UI Tweaks
+#     "show_ui_builder": False,
+#     "changeform_format": "horizontal_tabs",
+#     "changeform_format_overrides": {"auth.user": "collapsible"},
+    
+#     # Footer settings
+#     "show_ui_builder": False,
+# }
+
 
 # # ===== Middleware =====
 # MIDDLEWARE = [
