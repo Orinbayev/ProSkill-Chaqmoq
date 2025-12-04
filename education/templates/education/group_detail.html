@@ -12,6 +12,7 @@
 body {
   background: linear-gradient(135deg, #eef4ff, #ffffff);
   font-family: 'Poppins', sans-serif;
+  overflow-x: hidden;
 }
 
 /* 🔹 Karta dizayni */
@@ -195,11 +196,14 @@ body {
     transform: scale(1.4);
     cursor: pointer;
 }
-/* Rule select */
 
-
-/* Attend All Button */
-
+/* Davomat header (checkbox bilan) */
+.attend-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
 
 /* Ball box */
 
@@ -350,7 +354,7 @@ body {
 <div class="card mb-3 fade-in">
   <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
 
-    <!-- LEFT SIDE (Qoida + Tugma) -->
+    <!-- LEFT SIDE (Qoida + umumiy tugma) -->
     <div class="rule-box d-flex flex-nowrap align-items-center gap-3">
 
         <label class="fw-semibold mb-0">🧠 Qoida:</label>
@@ -372,8 +376,9 @@ body {
             </optgroup>
         </select>
 
-        <button id="attend-all-btn" class="btn btn-primary btn-sm attend-btn">
-            Barcha o‘quvchilarni davomat qilish
+        <!-- 🔥 Tanlangan qoidani davomat olingan barcha o‘quvchilarga joriy qilish -->
+        <button id="points-all-btn" class="btn btn-success btn-sm attend-btn">
+            ⚡ Joriy qilish
         </button>
     </div>
 
@@ -391,12 +396,6 @@ body {
   </div>
 </div>
 
-
-
-
-
-
-
 <!-- JS URL manzillar -->
 
 <form id="csrf-form" class="d-none">{% csrf_token %}</form>
@@ -410,7 +409,12 @@ body {
         <th>#</th>
         <th>F.I.Sh</th>
         <th>Telefon</th>
-        <th>Davomat</th>
+        <th>
+            <div class="attend-header">
+                <span>Davomat</span>
+                <input type="checkbox" id="attend-all-checkbox" class="form-check-input">
+            </div>
+        </th>
         <th>⚡ Chaqmoq</th>
         <th>Amal</th>
       </tr>
@@ -474,6 +478,7 @@ body {
 
 <div id="remove-url" data-url="{% url 'education:group_bulk_remove' g.id %}"></div>
 <div id="group-id" data-id="{{ g.id }}"></div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     /* === CSRF TOKEN === */
@@ -492,10 +497,141 @@ document.addEventListener('DOMContentLoaded', function () {
     const removeUrl     = urls.dataset.remove;
     const attendAllUrl  = urls.dataset.attendAll;
 
-    const removeModeBtn    = document.getElementById("remove-mode-btn");
-    const removeSelectedBtn= document.getElementById("remove-selected-btn");
-    const dateInput        = document.getElementById('attendance-date');
-    const attendAllBtn     = document.getElementById('attend-all-btn');
+    const removeModeBtn     = document.getElementById("remove-mode-btn");
+    const removeSelectedBtn = document.getElementById("remove-selected-btn");
+    const dateInput         = document.getElementById('attendance-date');
+    const pointsAllBtn      = document.getElementById('points-all-btn');
+    const attendAllCheckbox = document.getElementById('attend-all-checkbox');
+    const groupIdElement    = document.getElementById('group-id');
+    const groupId           = groupIdElement ? groupIdElement.dataset.id : "0";
+
+    const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+
+    function getFlashStorageKey() {
+        const dateVal = dateInput.value || "";
+        return `chaqmoq_flash_${groupId}_${dateVal}`;
+    }
+
+    let flashState = {};
+
+    function loadFlashState() {
+        const key = getFlashStorageKey();
+        flashState = {};
+        try {
+            const raw = localStorage.getItem(key);
+            if (!raw) return;
+            const parsed = JSON.parse(raw) || {};
+            const now = Date.now();
+            Object.keys(parsed).forEach(sid => {
+                const rec = parsed[sid];
+                if (!rec) return;
+                const updatedAt = rec.updatedAt || now;
+                if (now - updatedAt <= TWO_HOURS_MS && rec.amount) {
+                    flashState[sid] = {
+                        amount: rec.amount,
+                        updatedAt: updatedAt
+                    };
+                }
+            });
+            saveFlashState();
+        } catch (e) {
+            flashState = {};
+        }
+    }
+
+    function saveFlashState() {
+        const key = getFlashStorageKey();
+        try {
+            localStorage.setItem(key, JSON.stringify(flashState));
+        } catch (e) {}
+    }
+
+    function removeFlash(studentId) {
+        const rowBtn = document.querySelector(`button[data-student="${studentId}"]`);
+        if (rowBtn) {
+            const row = rowBtn.closest("tr");
+            if (row) {
+                const oldFlash = row.querySelector(".flash-change");
+                if (oldFlash) oldFlash.remove();
+            }
+        }
+        delete flashState[studentId];
+        saveFlashState();
+    }
+
+    function renderFlashForStudent(studentId) {
+        const data = flashState[studentId];
+        const rowBtn = document.querySelector(`button[data-student="${studentId}"]`);
+        if (!rowBtn) return;
+        const row = rowBtn.closest("tr");
+        if (!row) return;
+        const badge = row.querySelector(".balance-badge");
+        if (!badge) return;
+
+        const oldFlash = row.querySelector(".flash-change");
+        if (oldFlash) oldFlash.remove();
+
+        if (!data || !data.amount) return;
+
+        const net = data.amount;
+        const flash = document.createElement("span");
+        flash.className = "flash-change";
+        flash.textContent = net > 0 ? "+" + net : net;
+        flash.style.color = net > 0 ? "#22c55e" : "#ef4444";
+        flash.style.fontWeight = "700";
+        flash.style.position = "absolute";
+        flash.style.top = "50%";
+        flash.style.left = "calc(100% + 6px)";
+        flash.style.transform = "translateY(-50%)";
+        flash.style.fontSize = "0.9rem";
+        flash.style.animation = "flashFade 0.4s ease-out";
+        badge.parentElement.style.position = "relative";
+        badge.parentElement.appendChild(flash);
+    }
+
+    function scheduleFlashCleanup(studentId) {
+        const rec = flashState[studentId];
+        if (!rec) return;
+        const now = Date.now();
+        const remaining = TWO_HOURS_MS - (now - rec.updatedAt);
+        if (remaining <= 0) {
+            removeFlash(studentId);
+            return;
+        }
+        setTimeout(() => {
+            const recNow = flashState[studentId];
+            if (!recNow) return;
+            const now2 = Date.now();
+            if (now2 - recNow.updatedAt >= TWO_HOURS_MS) {
+                removeFlash(studentId);
+            }
+        }, remaining);
+    }
+
+    function updateStudentFlash(studentId, delta) {
+        const now = Date.now();
+        const prev = flashState[studentId] || {amount: 0, updatedAt: now};
+        prev.amount = (prev.amount || 0) + delta;
+        prev.updatedAt = now;
+
+        if (!prev.amount) {
+            delete flashState[studentId];
+        } else {
+            flashState[studentId] = prev;
+        }
+
+        saveFlashState();
+        renderFlashForStudent(studentId);
+        scheduleFlashCleanup(studentId);
+    }
+
+    function initAllFlashes() {
+        loadFlashState();
+        Object.keys(flashState).forEach(sid => {
+            renderFlashForStudent(sid);
+            scheduleFlashCleanup(sid);
+        });
+    }
 
     function showToast(message, type = "success") {
         const box = document.getElementById("toast-container");
@@ -510,35 +646,73 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 3000);
     }
 
-    /* 🔵 Barcha o‘quvchilarni DAVOMAT QILISH */
-    if (attendAllBtn && attendAllUrl) {
-        attendAllBtn.addEventListener('click', function () {
+    /* 🔵 HEADER DAVOMAT CHECKBOX – BARCHA UCHUN */
+    if (attendAllCheckbox && attendAllUrl) {
+        attendAllCheckbox.addEventListener('change', function () {
+            const isChecked = this.checked;
             const dateVal = dateInput.value || '';
-            const params = new URLSearchParams();
-            params.append('date', dateVal);
 
-            fetch(attendAllUrl, {
-                method: "POST",
-                headers: {
-                    "X-CSRFToken": csrfToken,
-                    "Content-Type": "application/x-www-form-urlencoded"
-                },
-                body: params.toString()
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.ok) {
-                    // barcha checkboxlarni belgilash
-                    document.querySelectorAll(".attend-toggle")
-                        .forEach(ch => ch.checked = true);
+            if (isChecked) {
+                // HAMMASIGA DAVOMAT QO‘YISH
+                const params = new URLSearchParams();
+                params.append('date', dateVal);
 
-                    showToast(`✔ ${data.count} ta o‘quvchi davomat qilindi`, "success");
-                } else {
-                    showToast("Xato: " + (data.error || "Server xatosi"), "error");
-                }
-            })
-            .catch(() => showToast("Server bilan aloqa yo‘q!", "error"));
+                fetch(attendAllUrl, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": csrfToken,
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: params.toString()
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.ok) {
+                        document.querySelectorAll(".attend-toggle")
+                            .forEach(ch => ch.checked = true);
+
+                        showToast(`✔ ${data.count} ta o‘quvchi davomat qilindi`, "success");
+                    } else {
+                        showToast("Xato: " + (data.error || "Server xatosi"), "error");
+                        attendAllCheckbox.checked = false;
+                    }
+                })
+                .catch(() => {
+                    showToast("Server bilan aloqa yo‘q!", "error");
+                    attendAllCheckbox.checked = false;
+                });
+            } else {
+                // HAMMA DAVOMATNI BEKOR QILISH – har bir qator uchun "change" eventini chaqiramiz
+                const toggles = Array.from(document.querySelectorAll('.attend-toggle'));
+                if (!toggles.length) return;
+
+                let processed = 0;
+                toggles.forEach(ch => {
+                    if (!ch.checked) return; // faqat davomat bor bo‘lsa
+                    ch.checked = false;
+                    ch.dispatchEvent(new Event('change'));
+
+                    // shu o‘quvchi uchun 2 soatlik indikatorni ham tozalaymiz
+                    const row = ch.closest('tr');
+                    if (!row) return;
+                    const btn = row.querySelector('.btn-add, .btn-sub');
+                    if (!btn) return;
+                    const studentId = btn.dataset.student;
+                    if (studentId) {
+                        removeFlash(studentId);
+                    }
+                    processed++;
+                });
+
+                showToast(`✔ ${processed} ta o‘quvchidan davomat olindi`, "success");
+            }
         });
+
+        // Sahifa ochilganda master-checkbox holatini tekshirish
+        const allToggles = Array.from(document.querySelectorAll('.attend-toggle'));
+        if (allToggles.length && allToggles.every(t => t.checked)) {
+            attendAllCheckbox.checked = true;
+        }
     }
 
     /* === REMOVE MODE YOQILISHI === */
@@ -608,7 +782,7 @@ document.addEventListener('DOMContentLoaded', function () {
         window.location.href = u.toString();
     });
 
-    /* === QUYIDAGI QISM – SENING ESKI KODING: chaqmoq qo‘shish/ayirish, davomat toggle === */
+    /* === QUYIDAGI QISM – chaqmoq qo‘shish/ayirish, davomat toggle === */
     function isPresent(studentId) {
         const row = document.querySelector(`button[data-student="${studentId}"]`).closest("tr");
         const checkbox = row.querySelector(".attend-toggle");
@@ -638,24 +812,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 badge.className = 'badge balance-badge ' +
                     (data.balance >= 0 ? 'text-bg-success' : 'text-bg-danger');
 
-                const oldFlash = badge.parentElement.querySelector(".flash-change");
-                if (oldFlash) oldFlash.remove();
-
-                const flash = document.createElement("span");
-                flash.className = "flash-change";
-                flash.textContent = (amount > 0 ? "+" + amount : amount);
-                flash.style.color = amount > 0 ? "#22c55e" : "#ef4444";
-                flash.style.fontWeight = "700";
-                flash.style.position = "absolute";
-                flash.style.top = "50%";
-                flash.style.left = "calc(100% + 6px)";
-                flash.style.transform = "translateY(-50%)";
-                flash.style.fontSize = "0.9rem";
-                flash.style.animation = "flashFade 0.4s ease-out";
-                badge.parentElement.style.position = "relative";
-                badge.parentElement.appendChild(flash);
-
-                setTimeout(() => flash.remove(), 7200);
+                // 2 soatlik jamlanma indikatorini yangilash
+                updateStudentFlash(studentId, amount);
             } else {
                 alert('❌ Xato: ' + (data.error || 'Server xatosi'));
             }
@@ -663,6 +821,7 @@ document.addEventListener('DOMContentLoaded', function () {
         .catch(() => alert('❌ Server bilan aloqa yo‘q.'));
     }
 
+    /* 🔹 Har bir o‘quvchiga alohida Qo‘shish / Ayirish tugmalari */
     document.querySelectorAll(".btn-add").forEach(btn => {
         btn.addEventListener("click", function () {
             const studentId = this.dataset.student;
@@ -695,37 +854,88 @@ document.addEventListener('DOMContentLoaded', function () {
         const v = Math.max(1, parseInt(input.value || '0', 10) - 1);
         input.value = v;
     });
-/* === QOIDA TURIGA QARAB QO‘SHISH / AYIRISH TUGMALARINI KO‘RINISHINI O‘ZGARTIRISH === */
-const ruleSelect = document.getElementById("rule-global");
 
-function updateButtonsByRule() {
-    const selected = ruleSelect.options[ruleSelect.selectedIndex];
-    const type = selected.dataset.type; // "+" yoki "-"
+    /* === BARCHA DAVOMAT OLINGAN O‘QUVCHILARGA BIR YO‘LA QOIDA JORIY QILISH (+/-) === */
+    if (pointsAllBtn) {
+        pointsAllBtn.addEventListener('click', function () {
+            const ruleSelect = document.getElementById("rule-global");
+            const selected   = ruleSelect.options[ruleSelect.selectedIndex];
 
-    document.querySelectorAll("tr").forEach(row => {
-        const addBtn = row.querySelector(".btn-add");
-        const subBtn = row.querySelector(".btn-sub");
+            if (!selected || !selected.value) {
+                alert("⚠️ Avval qoida tanlang.");
+                return;
+            }
 
-        if (!addBtn || !subBtn) return;
+            const ruleId   = selected.value;
+            const ruleType = selected.dataset.type || "+"; // "+" yoki "-"
 
-        if (type === "+") {
-            addBtn.style.display = "inline-block";
-            subBtn.style.display = "none";
-        } else if (type === "-") {
-            addBtn.style.display = "none";
-            subBtn.style.display = "inline-block";
-        } else {
-            // qoida tanlanmagan bo‘lsa ikkisini ham ko‘rsat
-            addBtn.style.display = "inline-block";
-            subBtn.style.display = "inline-block";
-        }
-    });
-}
+            const amountInput = document.getElementById('amount-global');
+            let amount       = Math.abs(parseInt(amountInput.value || '0', 10));
 
-ruleSelect.addEventListener("change", updateButtonsByRule);
+            if (!amount) {
+                alert("⚠️ Ball miqdorini kiriting.");
+                return;
+            }
 
-// sahifa ochilganda tekshirish
-updateButtonsByRule();
+            if (ruleType === "-") {
+                amount = -amount;
+            }
+
+            const checked = Array.from(document.querySelectorAll('.attend-toggle:checked'));
+            if (!checked.length) {
+                alert("⚠️ Hech bir o‘quvchiga davomat olinmagan.");
+                return;
+            }
+
+            let count = 0;
+            checked.forEach(ch => {
+                const row = ch.closest('tr');
+                if (!row) return;
+                const btn = row.querySelector('.btn-add, .btn-sub');
+                if (!btn) return;
+                const studentId = btn.dataset.student;
+                if (!studentId) return;
+
+                sendPoints(studentId, amount, ruleId);
+                count++;
+            });
+
+            if (count > 0) {
+                showToast(`✔ ${count} ta o‘quvchiga qoida joriy qilindi`, "success");
+            }
+        });
+    }
+
+    /* === QOIDA TURIGA QARAB QO‘SHISH / AYIRISH TUGMALARINI KO‘RINISHINI O‘ZGARTIRISH === */
+    const ruleSelect = document.getElementById("rule-global");
+
+    function updateButtonsByRule() {
+        const selected = ruleSelect.options[ruleSelect.selectedIndex];
+        const type = selected.dataset.type; // "+" yoki "-"
+
+        document.querySelectorAll("tr").forEach(row => {
+            const addBtn = row.querySelector(".btn-add");
+            const subBtn = row.querySelector(".btn-sub");
+
+            if (!addBtn || !subBtn) return;
+
+            if (type === "+") {
+                addBtn.style.display = "inline-block";
+                subBtn.style.display = "none";
+            } else if (type === "-") {
+                addBtn.style.display = "none";
+                subBtn.style.display = "inline-block";
+            } else {
+                addBtn.style.display = "inline-block";
+                subBtn.style.display = "inline-block";
+            }
+        });
+    }
+
+    ruleSelect.addEventListener("change", updateButtonsByRule);
+
+    // sahifa ochilganda tekshirish
+    updateButtonsByRule();
 
     document.querySelectorAll('.attend-toggle').forEach(box => {
         box.addEventListener('change', function() {
@@ -737,6 +947,10 @@ updateButtonsByRule();
             fd.append("present", present);
             fd.append("date", dateVal);
 
+            const row = this.closest('tr');
+            const btn = row ? row.querySelector('.btn-add, .btn-sub') : null;
+            const studentId = btn ? btn.dataset.student : null;
+
             fetch(attendanceUrl, {
                 method: "POST",
                 headers: { "X-CSRFToken": csrfToken },
@@ -746,11 +960,27 @@ updateButtonsByRule();
             .then(data => {
                 if (data.ok && !data.present && data.removed_points > 0) {
                     alert("⚠️ O‘quvchi kelmaganligi uchun " + data.removed_points + " ta chaqmoq o‘chirildi.");
+
+                    // agar shu davomat tufayli chaqmoq o‘chirilgan bo‘lsa,
+                    // 2 soatlik indikator jamlanmasidan ham minus qilamiz
+                    if (studentId) {
+                        updateStudentFlash(studentId, -Math.abs(data.removed_points));
+                    }
+                }
+
+                // Har bir individual o‘zgarishdan keyin master-checkboxni yangilash
+                if (attendAllCheckbox) {
+                    const toggles = Array.from(document.querySelectorAll('.attend-toggle'));
+                    const allChecked = toggles.length && toggles.every(t => t.checked);
+                    attendAllCheckbox.checked = allChecked;
                 }
             })
             .catch(() => alert("❌ Server bilan aloqa yo‘q."));
         });
     });
+
+    // 2 soatlik chaqmoq indikatorlarini localStorage dan tiklash
+    initAllFlashes();
 });
 </script>
 
