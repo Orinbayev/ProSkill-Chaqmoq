@@ -1,3 +1,6 @@
+{% extends "base.html" %}
+{% block content %}
+
 <style>
 body {
   background: linear-gradient(180deg, #0f172a, #1e293b, #0f172a);
@@ -222,3 +225,53 @@ select option:checked {
   }
 }
 </style>
+
+<div class="container">
+  <div class="form-wrapper">
+    <h3>📘 Yangi guruh yaratish</h3>
+
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-save">💾 Saqlash</button>
+        {% if category %}
+          <a href="{% url 'education:category_detail' category.id %}" class="btn btn-cancel">
+            Bekor qilish
+          </a>
+        {% else %}
+          <a href="{% url 'education:groups_home' %}" class="btn btn-cancel">
+            Bekor qilish
+          </a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.form-wrapper label').forEach(function (label) {
+    const txt = label.textContent.trim();
+
+    // 1) Yo'nalish maydonini yashirish
+    if (txt.startsWith("Yo'nalish") || txt.startsWith("Yo‘nalish")) {
+      const wrap = label.closest('p, .mb-3, div');
+      if (wrap) wrap.style.display = 'none';
+    }
+
+    // 2) "Bir oyda darslar soni" maydonini yashirish
+    if (txt.startsWith("Bir oyda darslar soni")) {
+      const wrap = label.closest('p, .mb-3, div');
+      if (wrap) wrap.style.display = 'none';
+    }
+
+    // 3) O'qituvchi foizi endi o'zgartiriladigan bo'lsin – bu yerda hech narsa qilmaymiz
+    // (oldingi readOnly qo‘yilgan kodni olib tashladik)
+  });
+});
+</script>
+
+
+{% endblock %}
