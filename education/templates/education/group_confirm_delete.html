@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <div class="card p-4" style="background: rgba(255,255,255,0.03); border-radius:12px;">
+    <h4 style="color:#facc15;">Guruhni o'chirish</h4>
+    <p>Haqiqatan ham «{{ group.nom }}» guruhini o'chirmoqchimisiz?</p>
+
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger">Ha, o'chirish</button>
+      <a href="{% url 'education:groups_all' %}" class="btn btn-secondary">Bekor qilish</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

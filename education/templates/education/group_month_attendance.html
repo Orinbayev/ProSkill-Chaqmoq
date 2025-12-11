@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block content %}
+
+<style>
+.att-table-wrapper {
+  overflow-x: auto;
+}
+
+.att-table {
+  min-width: 800px;
+  font-size: 0.9rem;
+}
+
+.att-table thead th {
+  text-align: center;
+  vertical-align: middle;
+  padding: 6px 8px;
+}
+
+.att-table tbody td {
+  text-align: center;
+  vertical-align: middle;
+  padding: 4px 6px;
+}
+
+/* 🔵 Kelgan */
+.att-cell-present::before {
+  content: "●";
+  color: #0d6efd;
+  font-size: 18px;
+}
+
+/* 🔴 Kelmadi */
+.att-cell-absent::before {
+  content: "✕";
+  color: #ef4444;
+  font-size: 18px;
+}
+
+/* 🟡 Kelmadi, lekin pul yozilgan */
+.att-cell-forced::before {
+  content: "!";
+  color: #f59e0b;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* Bo‘sh hujayra – hech narsa chizmaymiz */
+
+/* Legend */
+.att-legend span {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 12px;
+  font-size: 0.9rem;
+}
+.att-legend i {
+  margin-right: 4px;
+}
+
+/* Clickable button – davomat o‘zgartirish */
+.att-cell-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+.att-cell-btn:focus {
+  outline: none;
+}
+.att-cell-empty {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+}
+</style>
+
+<div class="container py-4">
+
+  <div class="card shadow mb-3">
+    <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div>
+        <h4 class="fw-bold mb-0">{{ group.nom }}</h4>
+        <div class="small text-muted">
+          {{ group.center }}{% if group.oqituvchi %} · O‘qituvchi: {{ group.oqituvchi.get_full_name }}{% endif %}
+        </div>
+      </div>
+
+      <div class="text-end">
+        <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+          <select name="year" class="form-select form-select-sm" style="width:auto;">
+            {% for y in years %}
+              <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+          </select>
+
+          <select name="month" class="form-select form-select-sm" style="width:auto;">
+            {% for m, name in months %}
+              <option value="{{ m }}" {% if m == month %}selected{% endif %}>
+                {{ name }}
+              </option>
+            {% endfor %}
+          </select>
+
+          <button type="submit" class="btn btn-primary btn-sm">
+            Ko‘rish
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="mb-2 att-legend">
+    <span><i class="att-cell-present"></i> Kelgan (ko‘k)</span>
+    <span><i class="att-cell-absent"></i> Kelmadi (qizil)</span>
+    <span><i class="att-cell-forced"></i> Kelmadi, lekin pul yozilgan</span>
+  </div>
+
+  <div class="card shadow">
+    <div class="card-body att-table-wrapper">
+      <table class="table table-bordered att-table align-middle">
+        <thead class="table-light">
+          <tr>
+            <th style="width:40px;">№</th>
+            <th style="min-width:220px; text-align:left;">O‘quvchi ismi</th>
+            {% for d in days %}
+              <th>{{ d|date:"d" }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td style="text-align:left;">
+              {{ row.student.get_full_name }}
+            </td>
+
+            {% for cell in row.cells %}
+              <td>
+                {# forced – faqat ko‘rsatamiz, o‘zgartirmaymiz #}
+                {% if cell.status == 'forced' %}
+                  <span class="att-cell-forced"></span>
+
+                {% else %}
+                  <button type="button"
+                          class="att-cell-btn att-cell-toggle"
+                          data-student="{{ row.student.id }}"
+                          data-date="{{ cell.date|date:'Y-m-d' }}"
+                          data-status="{{ cell.status }}">
+                    {% if cell.status == 'present' %}
+                      <span class="att-cell-present"></span>
+                    {% elif cell.status == 'absent' %}
+                      <span class="att-cell-absent"></span>
+                    {% else %}
+                      <span class="att-cell-empty"></span>
+                    {% endif %}
+                  </button>
+                {% endif %}
+              </td>
+            {% endfor %}
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="{{ 2|add:days|length }}" class="text-center text-muted">
+              Bu guruhda o‘quvchilar yo‘q.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// CSRF token olish
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + "=")) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+const csrftoken = getCookie("csrftoken");
+
+// Hujayra bosilganda davomatni toggle qilish
+document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll(".att-cell-toggle").forEach(btn => {
+    btn.addEventListener("click", function () {
+      const studentId = this.dataset.student;
+      const date = this.dataset.date;
+      const currentStatus = this.dataset.status;
+
+      fetch("{% url 'education:attendance_toggle_cell' group.id %}", {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrftoken,
+          "X-Requested-With": "XMLHttpRequest",
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          student_id: studentId,
+          date: date,
+          status: currentStatus,
+        }),
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.ok) return;
+
+        const newStatus = data.status;
+        this.dataset.status = newStatus;
+
+        // ichidagi span'ni yangilaymiz
+        this.innerHTML = "";
+        if (newStatus === "present") {
+          this.innerHTML = '<span class="att-cell-present"></span>';
+        } else if (newStatus === "absent") {
+          this.innerHTML = '<span class="att-cell-absent"></span>';
+        } else {
+          this.innerHTML = '<span class="att-cell-empty"></span>';
+        }
+      })
+      .catch(err => console.error(err));
+    });
+  });
+});
+</script>
+{% endblock %}

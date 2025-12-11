@@ -56,6 +56,10 @@ U = get_user_model()
 
 DAILY_LIMIT = 50  # har bir o‘qituvchi → har bir o‘quvchi uchun, bugungi kun limiti
 
+
+
+
+
 # ---------- Ruxsat helperlari ----------
 def _can_manage(u):
     return u.is_superuser or getattr(u, "role", None) in ("director", "manager")
@@ -80,6 +84,192 @@ from datetime import datetime
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from chaqmoq.models import Ledger
+
+
+@login_required
+def attendance_groups(request):
+    """
+    Barcha guruhlar ro‘yxati.
+    Sidebar'dagi 📅 Guruhlar bo‘limi shu view'ga kiradi.
+    """
+    groups = (
+        Group.objects
+        .select_related("center", "oqituvchi")
+        .order_by("nom")
+    )
+    return render(
+        request,
+        "education/attendance_groups.html",
+        {"groups": groups},
+    )
+
+import calendar
+from django.db.models import Min, Max
+
+@login_required
+def group_month_attendance(request, group_id):
+    """
+    Bitta guruh uchun tanlangan oy bo‘yicha davomat jadvali.
+    Satrlarda o‘quvchilar, ustunlarda kunlar.
+    """
+    group = get_object_or_404(Group, pk=group_id)
+
+    today = date.today()
+    year = int(request.GET.get("year", today.year))
+    month = int(request.GET.get("month", today.month))
+
+    # Oy boshi va oxiri
+    first_day = date(year, month, 1)
+    days_in_month = calendar.monthrange(year, month)[1]
+    day_list = [first_day + timedelta(days=i) for i in range(days_in_month)]
+
+    # Guruhdagi o‘quvchilar
+    enrollments = (
+        Enrollment.objects
+        .filter(group=group)
+        .select_related("student")
+        .order_by("student__ism", "student__familya")
+    )
+    students = [e.student for e in enrollments]
+
+    # Shu guruh bo‘yicha barcha davomatlar
+    qs = (
+        Attendance.objects
+        .filter(group=group)
+        .select_related("student")
+    )
+
+    # Yillar diapazoni (mavjud davomatlar oralig‘i)
+    agg = qs.aggregate(min_date=Min("date"), max_date=Max("date"))
+    if agg["min_date"] and agg["max_date"]:
+        start_year = agg["min_date"].year
+        end_year = agg["max_date"].year
+    else:
+        # Agar hali davomat bo‘lmasa ham, kamida bir yil oldin/bir yil keyin
+        start_year = year - 1
+        end_year = year + 1
+    years = list(range(start_year, end_year + 1))
+
+    # Tanlangan oy uchun davomatlar
+    month_qs = qs.filter(date__year=year, date__month=month)
+
+    # (student_id, date) -> Attendance
+    att_map = {
+        (a.student_id, a.date): a
+        for a in month_qs
+    }
+
+    # Jadval satrlari: har bir hujayrada sana + status
+    rows = []
+    for student in students:
+        cells = []
+        for d in day_list:
+            a = att_map.get((student.id, d))
+            if not a:
+                status = "none"          # umuman davomat olinmagan
+            elif a.present:
+                status = "present"       # kelgan (ko‘k)
+            elif a.forced:
+                status = "forced"        # kelmadi, pul yozilgan
+            else:
+                status = "absent"        # kelmagan (qizil)
+            cells.append({"date": d, "status": status})
+        rows.append({"student": student, "cells": cells})
+
+    months = [(i, calendar.month_name[i]) for i in range(1, 13)]
+
+    context = {
+        "group": group,
+        "rows": rows,
+        "days": day_list,
+        "year": year,
+        "month": month,
+        "month_name": calendar.month_name[month],
+        "years": years,
+        "months": months,
+    }
+    return render(
+        request,
+        "education/group_month_attendance.html",
+        context,
+    )
+
+
+
+@require_POST
+@login_required
+def attendance_toggle_cell(request, group_id):
+    """
+    Jadvaldagi bitta hujayra ustiga bosilganda:
+    none -> present -> absent -> none sikli bo‘yicha o‘zgartiramiz.
+    forced (kelmadi, lekin pul yozilgan) yozuvlariga tegmaymiz.
+    """
+    group = get_object_or_404(Group, pk=group_id)
+
+    student_id = request.POST.get("student_id")
+    date_str = request.POST.get("date")
+    current_status = request.POST.get("status", "none")
+
+    d = parse_date(date_str)
+    if not d or not student_id:
+        return JsonResponse({"ok": False, "error": "Bad data"}, status=400)
+
+    student = get_object_or_404(User, pk=student_id, role="student")
+
+    att = Attendance.objects.filter(
+        group=group,
+        student=student,
+        date=d,
+    ).first()
+
+    # forced bo‘lsa – o‘zgartirmaymiz
+    if att and att.forced:
+        return JsonResponse({"ok": True, "status": "forced"})
+
+    # none -> present
+    if current_status == "none":
+        if not att:
+            att = Attendance(
+                group=group,
+                student=student,
+                date=d,
+                present=True,
+            )
+        else:
+            att.present = True
+            att.forced = False
+
+        if not att.teacher and hasattr(group, "oqituvchi"):
+            att.teacher = group.oqituvchi
+
+        att.save()
+        new_status = "present"
+
+    # present -> absent
+    elif current_status == "present":
+        if not att:
+            att = Attendance(
+                group=group,
+                student=student,
+                date=d,
+                present=False,
+            )
+        else:
+            att.present = False
+            att.forced = False
+            att.save()
+        new_status = "absent"
+
+    # absent -> none (yozuvni o‘chirib tashlaymiz)
+    elif current_status == "absent":
+        if att:
+            att.delete()
+        new_status = "none"
+
+    else:
+        new_status = current_status or "none"
+
+    return JsonResponse({"ok": True, "status": new_status})
 
 
 def points_details(request):
@@ -508,62 +698,136 @@ def guruhlar_it(request):
 def group_detail(request, pk: int):
     g = get_object_or_404(Group, pk=pk)
 
-    # Faqat o‘qituvchi o‘z guruhini ko‘ra oladi
     if request.user.role == "teacher" and g.oqituvchi != request.user:
         return HttpResponseForbidden("Siz bu guruhni ko‘ra olmaysiz.")
 
-    # Sana tanlash
     date_str = request.GET.get("date")
     selected_date = parse_date(date_str) if date_str else localdate()
     if not selected_date:
         selected_date = localdate()
 
-    # Guruhdagi o‘quvchilar
     enrollments = (
         Enrollment.objects
         .filter(group=g)
         .select_related("student")
         .order_by("student__ism", "student__familya")
     )
-
     student_ids = [e.student_id for e in enrollments]
 
-    # Balanslarni olish
-    bal_qs = Ledger.objects.filter(student_id__in=student_ids).values("student_id").annotate(s=Coalesce(Sum("ball"), 0))
+    # Balanslar
+    bal_qs = (
+        Ledger.objects
+        .filter(student_id__in=student_ids)
+        .values("student_id")
+        .annotate(s=Coalesce(Sum("ball"), 0))
+    )
     bal_map = {b["student_id"]: b["s"] for b in bal_qs}
 
-    # ✅ Davomatni olish
+    # Sana bo'yicha Attendance (DateTimeField bo'lsa ham ishlaydi)
     try:
         start = make_aware(datetime.combine(selected_date, datetime.min.time()))
-        end = make_aware(datetime.combine(selected_date + timedelta(days=1), datetime.min.time()))
-        pres_qs = Attendance.objects.filter(group=g, date__gte=start, date__lt=end)
+        end   = make_aware(datetime.combine(selected_date + timedelta(days=1),
+                                           datetime.min.time()))
+        att_qs = Attendance.objects.filter(group=g, date__gte=start, date__lt=end)
     except Exception:
-        pres_qs = Attendance.objects.filter(group=g, date=selected_date)
-        
-    pres_map = {a.student_id: a.present for a in pres_qs}
+        att_qs = Attendance.objects.filter(group=g, date=selected_date)
 
-    # Qoida ro‘yxatlari
-    rules_plus = Rule.objects.filter(tur=Rule.PLUS).order_by("nom")
-    rules_minus = Rule.objects.filter(tur=Rule.MINUS).order_by("nom")
+    pres_map   = {}
+    forced_map = {}
+    for a in att_qs:
+        pres_map[a.student_id]   = a.present
+        forced_map[a.student_id] = getattr(a, "forced", False)
 
+    # Studentga soxta fieldlar
     for e in enrollments:
         s = e.student
-        s.balance = int(bal_map.get(s.id, 0))
+        s.balance       = int(bal_map.get(s.id, 0))
         s.present_today = bool(pres_map.get(s.id, False))
+        s.forced_today  = bool(forced_map.get(s.id, False))
 
     can_add_student = request.user.role in ["director", "manager", "teacher"]
 
     ctx = {
         "g": g,
         "enrollments": enrollments,
-        "rules_plus": rules_plus,
-        "rules_minus": rules_minus,
+        "rules_plus": Rule.objects.filter(tur=Rule.PLUS).order_by("nom"),
+        "rules_minus": Rule.objects.filter(tur=Rule.MINUS).order_by("nom"),
         "can_add_student": can_add_student,
         "selected_date": selected_date.isoformat(),
         "today": localdate().isoformat(),
     }
-
     return render(request, "education/group_detail.html", ctx)
+
+
+from django.views.decorators.http import require_POST
+from django.http import JsonResponse
+from django.utils.dateparse import parse_date
+
+@login_required
+@require_POST
+def attendance_force(request):
+    """
+    Tanlangan guruh va sana bo‘yicha:
+    ✅ kelmagan (present=False) o‘quvchilar uchun
+    forced=True qilib, o‘qituvchiga pul yoziladigan dars sifatida belgilaydi.
+
+    Frontend POST yuboradi:
+      - group_id
+      - date (YYYY-MM-DD)
+    """
+    group_id = request.POST.get("group_id")
+    date_str = request.POST.get("date")
+
+    # 🔴 JS dagi xabardagi "Ma'lumot yetarli emas" — mana shu joydan keladi
+    if not group_id or not date_str:
+        return JsonResponse({"ok": False, "error": "Maʼlumot yetarli emas"})
+
+    date_obj = parse_date(date_str)
+    if not date_obj:
+        return JsonResponse({"ok": False, "error": "Sana noto‘g‘ri formatda"})
+
+    # Guruhni olamiz
+    g = get_object_or_404(Group, pk=group_id)
+
+    # Shu guruhdagi barcha enrollments
+    enrollments = Enrollment.objects.filter(group=g).select_related("student")
+
+    # Shu sana uchun mavjud attendance yozuvlari
+    att_qs = Attendance.objects.filter(group=g, date=date_obj)
+    att_by_student = {a.student_id: a for a in att_qs}
+
+    forced_count = 0
+
+    for enr in enrollments:
+        att = att_by_student.get(enr.student_id)
+
+        if att:
+            # Agar allaqachon present=True bo‘lsa, buni majburan "kelmadi" qilishni xohlamaymiz
+            # (agar kerak bo‘lsa, bu qismni o‘zing o‘zgartirasan)
+            if att.present:
+                continue
+
+            if not att.forced:
+                att.forced = True
+                att.present = False  # forced bo‘lsa ham uni "kelmadi" deb saqlab qo‘yamiz
+                att.save()
+                forced_count += 1
+        else:
+            # Hech qanday attendance yo‘q bo‘lsa, yangi "kelmadi, forced" yozuvi yaratamiz
+            Attendance.objects.create(
+                group=g,
+                student=enr.student,
+                teacher=g.oqituvchi,
+                date=date_obj,
+                present=False,
+                forced=True,
+            )
+            forced_count += 1
+
+    return JsonResponse({
+        "ok": True,
+        "count": forced_count,
+    })
 
 
 @login_required
@@ -1182,12 +1446,19 @@ def teacher_salary_report(request, group_id):
 
 @login_required
 def teacher_salary_summary(request):
+    """
+    O'qituvchilar maoshi va markaz foydasini yil/oy bo'yicha hisoblaydi.
+    - Attendance: present=True YOKI forced=True bo'lgan barcha darslar hisobga olinadi.
+    """
 
+    # ================================
     # Tanlangan yil / oy
-    selected_year = int(request.GET.get("year", date.today().year))
-    selected_month = int(request.GET.get("month", date.today().month))
+    # ================================
+    today = date.today()
+    selected_year = int(request.GET.get("year") or today.year)
+    selected_month = int(request.GET.get("month") or today.month)
 
-    # Oy nomlari
+    # Oylar ro'yxati
     months = [
         (1, "Yanvar"), (2, "Fevral"), (3, "Mart"), (4, "Aprel"),
         (5, "May"), (6, "Iyun"), (7, "Iyul"), (8, "Avgust"),
@@ -1195,63 +1466,68 @@ def teacher_salary_summary(request):
     ]
     chart_labels = [m[1] for m in months]
 
-    # ============================================
-    # 1) Attendance to‘plami — yil bo‘yicha
-    # ============================================
-
+    # ================================
+    # 1) Attendance: yil bo'yicha
+    #    present=True VA forced=True ikkala holat ham dars hisoblanadi
+    # ================================
     attendance = (
         Attendance.objects
         .annotate(
             y=ExtractYear("date"),
-            m=ExtractMonth("date")
+            m=ExtractMonth("date"),
         )
         .filter(y=selected_year)
+        .filter(Q(present=True) | Q(forced=True))  # 🔥 MUHIM JOY
         .values("group_id", "student_id", "m")
         .annotate(les=Count("id"))
     )
 
-    # (group, student, month) → lessons
+    # (group, student, month) => darslar soni
     attendance_map = {
         (a["group_id"], a["student_id"], a["m"]): a["les"]
         for a in attendance
     }
 
-    # ============================================
-    # 2) O‘qituvchilar + Guruh + Enrollment preload
-    # ============================================
-
-    teachers = User.objects.filter(role="teacher").prefetch_related(
-        Prefetch(
-            "group_set",
-            queryset=Group.objects.prefetch_related(
-                Prefetch("enrollments", queryset=Enrollment.objects.select_related("student"))
+    # ================================
+    # 2) O'qituvchilar + guruhlari + enrollment
+    # ================================
+    teachers = (
+        User.objects
+        .filter(role="teacher")
+        .prefetch_related(
+            Prefetch(
+                "group_set",
+                queryset=Group.objects.prefetch_related(
+                    Prefetch(
+                        "enrollments",
+                        queryset=Enrollment.objects.select_related("student")
+                    )
+                )
             )
         )
     )
 
-    # ============================================
-    # Grafik – 12 oy bo‘yicha
-    # ============================================
-
+    # ================================
+    # Grafik uchun bo'sh massivlar (12 oy)
+    # ================================
     chart_teacher_income = [0] * 12
     chart_center_income = [0] * 12
     chart_total_turnover = [0] * 12
 
-    # ============================================
+    # ================================
     # 3) HISOB-KITOB
-    # ============================================
-
+    # ================================
     teacher_data = []
 
     for teacher in teachers:
 
-        # Faqat tanlangan oy uchun hisoblanadigan fieldlar
+        # Tanlangan oy uchun ko'rsatkichlar
         month_lessons = 0
         month_teacher_income = 0
         month_center_profit = 0
         month_turnover = 0
 
-        # Grafik uchun: 12 oy bo‘yicha ishlaymiz
+        # 12 oy bo'yicha aylanib chiqamiz
         for month_num, _ in months:
 
             m_lessons = 0
@@ -1265,9 +1541,11 @@ def teacher_salary_summary(request):
                     kurs = enr.kurs_narhi or 0
                     foiz = (enr.oqituvchi_foiz or 0) / 100
 
+                    # Shu oyda shu o'quvchi nechta dars qilgan?
                     les = attendance_map.get((group.id, enr.student.id, month_num), 0)
 
                     if les > 0:
+                        # 1 oy = 12 ta dars deb qabul qilingan
                         teacher_part = kurs * foiz / 12
                         center_part = kurs * (1 - foiz) / 12
                         turnover_part = kurs / 12
@@ -1277,11 +1555,12 @@ def teacher_salary_summary(request):
                         m_center_profit += center_part * les
                         m_turnover += turnover_part * les
 
+            # 🔹 Grafiklar uchun yig'amiz
             chart_teacher_income[month_num - 1] += m_teacher_income
             chart_center_income[month_num - 1] += m_center_profit
             chart_total_turnover[month_num - 1] += m_turnover
 
-            # Jadval faqat tanlangan oy uchun
+            # 🔹 Jadval faqat tanlangan oy uchun
             if month_num == selected_month:
                 month_lessons = m_lessons
                 month_teacher_income = m_teacher_income
@@ -1297,10 +1576,9 @@ def teacher_salary_summary(request):
             "total_turnover": round(month_turnover),
         })
 
-    # ============================================
-    # AJAX JSON javobi (fetch uchun)
-    # ============================================
-
+    # ================================
+    # 4) AJAX JSON Response (year/month select o'zgarganda)
+    # ================================
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         return JsonResponse({
             "year": selected_year,
@@ -1311,10 +1589,9 @@ def teacher_salary_summary(request):
             "chart_total_turnover": chart_total_turnover,
         })
 
-    # ============================================
-    # HTML sahifaga render
-    # ============================================
-
+    # ================================
+    # 5) HTML render
+    # ================================
     return render(request, "education/teacher_salary_summary.html", {
         "years": list(range(2024, 2036)),
         "months": months,
@@ -1455,6 +1732,40 @@ def teacher_salary_summary(request):
     #     "chart_center_income": chart_center_income,
     #     "chart_total_turnover": chart_total_turnover,
     # })
+
+@login_required
+def force_absent_attendance(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=400)
+
+    group_id = request.POST.get("group_id")
+    date_str = request.POST.get("date")
+
+    group = get_object_or_404(Group, id=group_id)
+    date = parse_date(date_str)
+
+    enrollments = Enrollment.objects.filter(group=group)
+    forced_count = 0
+
+    for enr in enrollments:
+        att, created = Attendance.objects.get_or_create(
+            group=group,
+            student=enr.student,
+            date=date,
+            defaults={"present": False}
+        )
+
+        # kelgan bo‘lsa — forced qilmaymiz
+        if att.present:
+            continue
+
+        # forced=True qilamiz
+        if not att.forced:
+            att.forced = True
+            att.save()
+            forced_count += 1
+
+    return JsonResponse({"ok": True, "count": forced_count})
 
 
 # ================================

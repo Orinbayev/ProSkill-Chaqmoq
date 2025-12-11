@@ -70,6 +70,27 @@ urlpatterns = [
     path('guruhlar/<int:category_id>/', views.category_detail, name='category_detail'),
     # Guruh yaratish bo‘lim asosida
     path("guruh/yaratish/<int:category_id>/", views.group_create_by_category, name="group_create_category"),
+    path(
+        "attendance/force/",
+        views.attendance_force,
+        name="attendance_force"
+    ),
+    path(
+        "attendance/groups/",
+        views.attendance_groups,
+        name="attendance_groups",
+    ),
+
+    path(
+        "attendance/groups/<int:group_id>/",
+        views.group_month_attendance,
+        name="group_month_attendance",),
+
+    path(
+        "attendance/groups/<int:group_id>/toggle/",
+        views.attendance_toggle_cell,
+        name="attendance_toggle_cell",
+    ),
 
 
 ]

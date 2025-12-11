@@ -306,9 +306,16 @@ class Attendance(models.Model):
         default=timezone.localdate,
         verbose_name="Sana"
     )
+
     present = models.BooleanField(
         default=False,
         verbose_name="Kelganmi"
+    )
+
+    # 🔥 YANGI MAYDON
+    forced = models.BooleanField(
+        default=False,
+        verbose_name="Kelmadi – lekin o‘qituvchiga pul yozilsin"
     )
 
     class Meta:
@@ -318,19 +325,27 @@ class Attendance(models.Model):
         ordering = ['-date']
 
     def __str__(self):
-        belgi = "✅" if self.present else "❌"
+        if self.present:
+            belgi = "✅ Kelgan"
+        elif self.forced:
+            belgi = "🔴 Kelmadi (pul yozildi)"
+        else:
+            belgi = "❌ Kelmadi"
+
         return f"{self.date} | {self.group.nom} | {self.student.get_full_name()} | {belgi}"
 
     def save(self, *args, **kwargs):
-        """Davomat saqlanganda avtomatik o‘qituvchi va sana belgilanadi."""
+        """Davomat saqlanganda avtomatik o‘qituvchi belgilanadi."""
+
+        # Sana bo‘lmasa — avtomatik qo‘yamiz
         if not self.date:
             self.date = timezone.localdate()
 
+        # O‘qituvchi bo‘lmasa — guruh o‘qituvchisini avtomatik bog‘laymiz
         if not self.teacher and hasattr(self.group, 'oqituvchi'):
             self.teacher = self.group.oqituvchi
 
         super().save(*args, **kwargs)
-
 
 
 class AttendanceHistory(models.Model):

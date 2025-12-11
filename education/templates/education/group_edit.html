@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+body {
+  background: radial-gradient(circle at top left, rgba(250,204,21,0.15), transparent),
+              radial-gradient(circle at bottom right, rgba(56,189,248,0.15), transparent),
+              #0f172a;
+  min-height: 100vh;
+  font-family: 'Poppins', sans-serif;
+  color: #e2e8f0;
+}
+
+.form-container {
+  max-width: 650px;
+  margin: 3rem auto;
+  padding: 2rem 2.5rem;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 10px 35px rgba(0,0,0,0.5);
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+.form-container h3 {
+  text-align: center;
+  color: #facc15;
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+  text-shadow: 0 2px 10px rgba(250,204,21,0.5);
+}
+
+label {
+  font-weight: 600;
+  color: #cbd5e1;
+  margin-bottom: 6px;
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 12px 15px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.06);
+  color: #e2e8f0;
+  font-size: 1rem;
+}
+
+.btn-save {
+    color: #fff;
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+.btn-save, .btn-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    padding: 14px 0;         /* 👍 Ikkalasi bir xil balandlik */
+    font-size: 1rem;
+    font-weight: 700;
+
+    border-radius: 10px;
+    border: none;
+    text-decoration: none;
+}
+
+.btn-back {
+    background: rgba(255,255,255,0.12);
+    color: #e2e8f0;
+}
+select {
+    color: #e2e8f0 !important;  /* Oq emas, ko‘rinadigan rang */
+    background-color: rgba(255,255,255,0.06) !important;
+}
+option {
+    color: black;  /* Ochilish oynasi qora bo‘lib chiqadi */
+}
+
+</style>
+
+
+<div class="form-container">
+  <h3>✏️ Guruhni tahrirlash</h3>
+
+  <form method="POST">
+    {% csrf_token %}
+
+    <!-- GROUP NAME -->
+    <div class="mb-3">
+      <label>Guruh nomi</label>
+      <input type="text" name="nom" value="{{ group.nom }}" required>
+    </div>
+
+    <!-- CENTER -->
+    <div class="mb-3">
+      <label for="id_center">O‘quv markazi</label>
+      <select name="center" id="id_center" class="form-select">
+        {% for c in centers %}
+          <option value="{{ c.id }}"
+            {% if group.center and group.center.id == c.id %}selected{% endif %}>
+            {{ c.nom }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- TEACHER -->
+    <div class="mb-3">
+      <label>O‘qituvchi</label>
+      <select name="oqituvchi" id="id_oqituvchi" class="form-select">
+        {% for t in teachers %}
+          <option value="{{ t.id }}" {% if group.oqituvchi.id == t.id %}selected{% endif %}>
+            {{ t.ism }} {{ t.familya }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- DESCRIPTION -->
+    <div class="mb-3">
+      <label>Izoh</label>
+      <textarea name="izoh" rows="3">{{ group.izoh }}</textarea>
+    </div>
+
+    <!-- BUTTONS -->
+  <div class="d-flex justify-content-between gap-2 mt-4">
+      <button type="submit" class="btn-save">💾 Saqlash</button>
+      <a href="{% url 'education:groups_all' %}" class="btn-back">⬅️ Orqaga</a>
+  </div>
+
+
+  </form>
+</div>
+
+
+{% endblock %}

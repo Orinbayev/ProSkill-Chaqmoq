@@ -47,6 +47,14 @@
     </a>
     {% endif %}
 
+        {% if user.is_superuser or user.role == 'director' or user.role == 'manager' %}
+    <a href="{% url 'education:attendance_groups' %}"
+       class="sidebar-item {% if 'attendance/groups' in request.path %}active{% endif %}">
+      <span>📅</span> Guruhlar
+    </a>
+    {% endif %}
+
+    
     {% if request.user.role != 'teacher' and request.user.role != 'student' %}
     <a href="{% url 'store:lead_list' %}" 
        class="sidebar-item {% if 'lead' in request.path %}active{% endif %}">
