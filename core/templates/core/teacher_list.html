@@ -18,67 +18,74 @@
           <th class="text-info text-center">Amallar</th>
         </tr>
       </thead>
-
       <tbody>
         {% for t in teachers %}
         <tr>
           <td class="fw-bold">{{ forloop.counter }}</td>
-
           <td class="fw-semibold name-col">
             {{ t.ism }}
             {% if t.familya %}<br>{{ t.familya }}{% endif %}
             {% if t.otchestvo %} {{ t.otchestvo }}{% endif %}
           </td>
-
           <td>{{ t.telefon1|default:"—" }}</td>
-
           <td>
             <span class="badge bg-info text-dark percent-badge">
               {{ t.oqituvchi_foizi }}%
             </span>
           </td>
-
           <td>
             <span class="badge bg-warning text-dark group-badge">
               {{ t.group_count }}
             </span>
           </td>
+<td class="text-center action-cell">
 
-          <td class="text-center action-cell">
+  <a href="{% url 'core:teacher_detail' t.id %}"
+     class="icon-btn view"
+     title="Ko‘rish">
+     <i class="fa-solid fa-eye"></i>
+  </a>
 
-            <a href="{% url 'core:teacher_detail' t.id %}"
-               class="btn btn-view">
-               🔍 Ko‘rish
-            </a>
+  <a href="{% url 'core:teacher_edit' t.id %}"
+     class="icon-btn edit"
+     title="Tahrirlash">
+     <i class="fa-solid fa-pen"></i>
+  </a>
 
-            <a href="{% url 'core:teacher_edit' t.id %}"
-               class="btn btn-edit">
-               ✏️ Tahrirlash
-            </a>
+  <form method="post"
+        action="{% url 'core:teacher_delete' t.id %}"
+        class="d-inline"
+        onsubmit="return confirm('O‘qituvchini o‘chirishni tasdiqlaysizmi?');">
+    {% csrf_token %}
+    <button type="submit"
+            class="icon-btn delete"
+            title="O‘chirish">
+      <i class="fa-solid fa-trash"></i>
+    </button>
+  </form>
 
+</td>
+
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="text-center py-3 text-secondary">
+            ⚠️ O‘qituvchi topilmadi
           </td>
         </tr>
         {% endfor %}
       </tbody>
-
     </table>
   </div>
 </div>
 
 <style>
-
-/***************************************************
-  TABLE RESPONSIVE WRAPPER
-****************************************************/
 .table-wrapper {
   width: 100%;
   overflow-x: auto;
   padding-bottom: 10px;
 }
 
-/***************************************************
-  HEADER STYLE
-****************************************************/
 .teacher-table thead {
   background: rgba(255,255,255,0.05);
   backdrop-filter: blur(6px);
@@ -89,17 +96,11 @@
   font-weight: 600;
 }
 
-/***************************************************
-  NAME COLUMN
-****************************************************/
 .name-col {
   white-space: normal !important;
   word-wrap: break-word;
 }
 
-/***************************************************
-  BADGES
-****************************************************/
 .percent-badge,
 .group-badge {
   padding: 6px 12px;
@@ -108,88 +109,120 @@
   font-weight: 600;
 }
 
-/***************************************************
-  ACTION BUTTONS
-****************************************************/
 .action-cell {
   white-space: nowrap;
 }
-.btn-view,
-.btn-edit {
-  padding: 6px 14px;
-  font-size: 0.85rem;
-  border-radius: 10px;
-  font-weight: 600;
-  display: inline-block;
-  margin: 2px;
-}
 
-/* Ko‘rish */
-.btn-view {
-  background: #0ea5e9;
-  color: white;
-}
-.btn-view:hover {
-  background: #0284c7;
-}
-
-/* Tahrirlash */
-.btn-edit {
-  background: #facc15;
-  color: #000;
-}
-.btn-edit:hover {
-  background: #eab308;
-}
-
-/***************************************************
-  MOBILE FRIENDLY DESIGN
-****************************************************/
 @media (max-width: 768px) {
-
   h3 {
     font-size: 20px;
     text-align: center;
   }
-
   .teacher-table th,
   .teacher-table td {
     padding: 10px 8px;
     font-size: 13px;
   }
-
-  .btn-view,
-  .btn-edit {
-    font-size: 12px;
-    padding: 5px 10px;
-  }
-
   .percent-badge,
   .group-badge {
     font-size: 12px;
     padding: 4px 9px;
   }
-
   .name-col {
     font-size: 13px;
   }
 }
 
-/***************************************************
-  SMALL MOBILE (iPhone SE, Galaxy mini)
-****************************************************/
 @media (max-width: 480px) {
-
-  .btn-view,
   .btn-edit {
     display: block;
     width: 100%;
     margin-bottom: 6px;
   }
-
   .action-cell {
     width: 100px;
   }
+}
+
+.btn-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  margin: 2px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-view {
+  background: rgba(14,165,233,0.15);
+  color: #38bdf8;
+}
+.btn-view:hover {
+  background: rgba(14,165,233,0.3);
+}
+
+.btn-edit {
+  background: rgba(250,204,21,0.15);
+  color: #facc15;
+}
+.btn-edit:hover {
+  background: rgba(250,204,21,0.3);
+}
+
+.btn-delete {
+  background: rgba(239,68,68,0.15);
+  color: #ef4444;
+}
+.btn-delete:hover {
+  background: rgba(239,68,68,0.3);
+}
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  margin: 0 3px;
+  transition: all 0.2s ease;
+}
+
+/* View */
+.icon-btn.view {
+  background-color: rgba(59, 130, 246, 0.15); /* blue bg */
+  color: #3b82f6;
+}
+.icon-btn.view:hover {
+  background-color: rgba(59, 130, 246, 0.3);
+  color: #ffffff;
+}
+
+/* Edit */
+.icon-btn.edit {
+  background-color: rgba(250, 204, 21, 0.15); /* yellow bg */
+  color: #facc15;
+}
+.icon-btn.edit:hover {
+  background-color: rgba(250, 204, 21, 0.3);
+  color: #ffffff;
+}
+
+/* Delete */
+.icon-btn.delete {
+  background-color: rgba(239, 68, 68, 0.15); /* red bg */
+  color: #ef4444;
+}
+.icon-btn.delete:hover {
+  background-color: rgba(239, 68, 68, 0.3);
+  color: #ffffff;
 }
 
 </style>

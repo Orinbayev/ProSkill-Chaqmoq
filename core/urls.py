@@ -13,6 +13,7 @@ urlpatterns = [
     path("user/<int:pk>/delete/", views.user_delete, name="user_delete"),
     path("user/<int:pk>/view/", views.user_view, name="user_view"),
     path("students/export-excel/", views.stat_students_export_excel, name="students_export_excel"),
+    path('teachers/<int:pk>/delete/', views.teacher_delete, name='teacher_delete'),
 
 
     path('stat/managers/',  views.stat_managers,  name='stat_managers'),

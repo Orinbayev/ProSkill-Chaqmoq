@@ -166,25 +166,26 @@ def request_list(request):
 def request_approve(request, pk):
     if request.user.role not in ('manager', 'director'):
         messages.error(request, 'Ruxsat yo‘q.')
-        return redirect('store:requests')
+        return redirect(request.META.get('HTTP_REFERER', 'store:requests'))
 
     pr = get_object_or_404(PurchaseRequest, pk=pk)
     ok, msg = approve_purchase(pr, request.user)
     (messages.success if ok else messages.error)(request, msg)
-    return redirect('store:requests')
+
+    return redirect(request.META.get('HTTP_REFERER', 'store:requests'))
 
 
-# ✅ So‘rovni rad etish
 @login_required
 def request_reject(request, pk):
     if request.user.role not in ('manager', 'director'):
         messages.error(request, 'Ruxsat yo‘q.')
-        return redirect('store:requests')
+        return redirect(request.META.get('HTTP_REFERER', 'store:requests'))
 
     pr = get_object_or_404(PurchaseRequest, pk=pk)
     ok, msg = reject_purchase(pr, request.user)
     (messages.success if ok else messages.error)(request, msg)
-    return redirect('store:requests')
+
+    return redirect(request.META.get('HTTP_REFERER', 'store:requests'))
 
 
 # ✅ Mahsulot qo‘shish

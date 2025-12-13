@@ -358,6 +358,8 @@ def stat_students_export_excel(request):
     wb.save(response)
 
     return response
+
+
 @login_required
 def stat_products(request):
     if not _staff_only(request): return render(request, 'core/dashboard_guest.html')
@@ -366,6 +368,25 @@ def stat_products(request):
     if q:
         rows = rows.filter(Q(nom__icontains=q)|Q(izoh__icontains=q))
     return render(request, 'core/stats_products.html', {'title': "Mahsulotlar", 'rows': rows})
+
+
+
+
+@login_required
+def teacher_delete(request, pk):
+    if request.user.role not in ('manager', 'director') and not request.user.is_superuser:
+        messages.error(request, "Ruxsat yo‘q.")
+        return redirect('core:teacher_list')
+
+    teacher = get_object_or_404(User, pk=pk, role='teacher')
+
+    if request.method == "POST":
+        teacher.delete()
+        messages.success(request, "O‘qituvchi o‘chirildi ✅")
+        return redirect('core:teacher_list')
+
+    return redirect('core:teacher_list')
+
 
 @login_required
 def stat_requests(request):

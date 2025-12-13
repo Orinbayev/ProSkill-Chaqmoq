@@ -16,12 +16,10 @@
     margin-bottom: 18px;
 }
 .filter-box select {
-    background: #0f172a;
-    color: #e2e8f0;
-    border: 1px solid #334155;
-    border-radius: 10px;
-    padding: 10px 12px;
-    font-weight: 500;
+    color: #000000;
+}
+.filter-box select option {
+    color: #000000;
 }
 .filter-box select:focus {
     border-color: #22c55e;
@@ -30,24 +28,23 @@
 
 /* ===== TABLE WRAPPER ===== */
 .table-container {
-    background: rgba(15, 23, 42, 0.6);
+    background: #ffffff;
     padding: 20px;
     border-radius: 16px;
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255,255,255,0.06);
-    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
 }
 
 /* ===== TABLE HEAD ===== */
 .table-modern thead {
-    background: rgba(30,41,59,0.75);
+    background: #f1f5f9;
 }
 .table-modern thead th {
-    color: #22c55e;
+    color: #16a34a;
     padding: 14px 8px;
     font-size: 14px;
     text-transform: uppercase;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 /* ===== TABLE BODY ===== */
@@ -55,18 +52,18 @@
     transition: 0.25s;
 }
 .table-modern tbody tr:hover {
-    background: rgba(34,197,94,0.12);
+    background: #f0fdf4;
 }
-.table-modern td {
-    padding: 12px 8px;
-    color: #e2e8f0;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+.table-modern td,
+.table-modern th {
+    border: 1px solid #e5e7eb;
 }
 
+
 /* STATUS COLORS */
-.status-pending { color: #eab308; font-weight: 600; }
-.status-approved { color: #22c55e; font-weight: 700; }
-.status-rejected { color: #dc2626; font-weight: 700; }
+.status-pending { color: #ca8a04; font-weight: 700; }
+.status-approved { color: #16a34a; font-weight: 800; }
+.status-rejected { color: #dc2626; font-weight: 800; }
 
 /* ACTION BUTTONS */
 .btn-mini {
@@ -78,9 +75,10 @@
 
 /* EMPTY STATE */
 .empty-row {
-    color: #94a3b8;
+    color: #020617; /* 🔴 QORA */
     text-align: center;
     padding: 18px 0;
+    font-weight: 500;
 }
 
 /* ===== MOBILE RESPONSIVE ===== */
@@ -92,14 +90,16 @@
         margin-bottom: 15px;
         padding: 12px;
         border-radius: 14px;
-        background: rgba(30,41,59,0.7);
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
     }
 
     .table-modern td {
         display: flex;
         justify-content: space-between;
         padding: 10px 6px;
-        border-bottom: 1px dashed rgba(255,255,255,0.1);
+        border-bottom: 1px dashed #cbd5f5;
+        color: #020617; /* 🔴 MOBILDA HAM QORA */
     }
     .table-modern td:last-child {
         border-bottom: none;
@@ -107,8 +107,8 @@
 
     .table-modern td::before {
         content: attr(data-label);
-        font-weight: 600;
-        color: #cbd5e1;
+        font-weight: 700;
+        color: #334155;
     }
 }
 </style>
@@ -163,22 +163,18 @@
             </td>
 
             <td data-label="Amallar" class="text-end text-nowrap">
-
                 {% if r.status == 'pending' %}
                 <a class="btn btn-success btn-mini me-1"
                    href="{% url 'store:request_approve' r.pk %}">
                     Tasdiqlash
                 </a>
-
                 <a class="btn btn-outline-danger btn-mini"
                    href="{% url 'store:request_reject' r.pk %}">
                     Rad etish
                 </a>
-
                 {% else %}
                 —
                 {% endif %}
-
             </td>
         </tr>
         {% empty %}
