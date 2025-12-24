@@ -3,277 +3,391 @@
 {% block content %}
 
 <style>
-
-body {
-  background: linear-gradient(180deg, #0f172a, #1e293b, #0f172a);
-  min-height: 100vh;
-  font-family: 'Poppins', sans-serif;
-  color: #e2e8f0;
-}
-
-/* ==================== HEADER ==================== */
-.header-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
-}
-.header-bar h2 {
-  font-weight: 800;
-  color: #facc15;
-  text-shadow: 0 2px 6px rgba(250,204,21,0.4);
-}
-
-/* Button */
-.add-btn {
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
-  color: white;
-  font-weight: 600;
-  border: none;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(59,130,246,0.3);
-  transition: 0.3s ease;
-}
-.add-btn:hover {
-  background: linear-gradient(90deg, #60a5fa, #3b82f6);
-  transform: scale(1.05);
-}
-
-/* ==================== CATEGORY CARD ==================== */
-.category-card {
-  border: none;
-  border-radius: 18px;
-  background: rgba(255,255,255,0.08);
-  box-shadow: 0 6px 15px rgba(0,0,0,0.25);
-  text-align: center;
-  padding: 2rem 1rem 1.2rem;
-  transition: .35s;
-  position: relative;
-  overflow: hidden;
-  backdrop-filter: blur(6px);
-}
-.category-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 10px 25px rgba(59,130,246,0.3);
-}
-
-/* ==================== IMAGE / ICON ==================== */
-.icon-circle {
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6, #60a5fa);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2.5rem;
-  color: white;
-  margin: 0 auto 1rem;
-  box-shadow: 0 5px 15px rgba(59,130,246,0.4);
-  transition: .3s;
-  overflow: hidden;
-}
-.icon-circle img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.category-card:hover .icon-circle {
-  transform: rotate(8deg) scale(1.09);
-}
-
-.category-card h5 {
-  font-weight: 700;
-  color: #f8fafc;
-  margin-bottom: .6rem;
-}
-.category-card p {
-  color: #cbd5e1;
-  font-size: .9rem;
-  min-height: 40px;
-}
-
-/* ==================== ACTION BUTTONS ==================== */
-.card-actions {
-  margin-top: 1rem;
-  display: flex;
-  justify-content: center;
-  gap: .5rem;
-}
-.card-actions a,
-.card-actions form button {
-  border-radius: 8px;
-  font-weight: 600;
-  padding: .35rem .9rem;
-  font-size: .85rem;
-  transition: .3s;
-}
-
-/* View */
-.btn-view {
-  border: 1px solid #3b82f6;
-  color: #3b82f6;
-  background: rgba(255,255,255,0.08);
-}
-.btn-view:hover {
-  background:#3b82f6;
-  color:#fff;
-}
-
-/* Edit */
-.btn-edit {
-  border: 1px solid #fbbf24;
-  color:#facc15;
-  background:rgba(255,255,255,0.08);
-}
-.btn-edit:hover {
-  background: linear-gradient(90deg,#facc15,#fbbf24);
-  color:#000;
-}
-
-/* Delete */
-.btn-delete {
-  border:1px solid #ef4444;
-  color:#ef4444;
-  background:rgba(255,255,255,0.08);
-}
-.btn-delete:hover {
-  background:#ef4444;
-  color:#fff;
-}
-
-/* EMPTY STATE */
-.empty-section {
-  text-align:center;
-  color:#94a3b8;
-  font-size:1.1rem;
-  margin-top:2rem;
-}
-
-/* ==================== RESPONSIVE ==================== */
-
-/* 📱 MOBILE */
-@media (max-width: 768px) {
-
-  .header-bar {
-    flex-direction: column;
-    text-align: center;
-    gap: 1rem;
+  body{
+    background: linear-gradient(180deg, #0b1224, #0f172a, #0b1224);
+    min-height: 100vh;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Poppins", sans-serif;
+    color: #e5e7eb;
   }
-  .header-bar h2 {
-    font-size: 1.6rem;
+  .page-wrap{ padding: 34px 0 70px; }
+
+  /* Header */
+  .page-title{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:14px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .page-title h2{
+    margin:0;
+    font-weight: 900;
+    letter-spacing: .2px;
+    color:#facc15;
+    text-shadow: 0 2px 10px rgba(250,204,21,.25);
+  }
+  .subtext{ color:#94a3b8; font-weight:650; margin-top:4px; }
+
+  .meta-badges{
+    display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;
+  }
+  .meta-pill{
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.10);
+    color:#cbd5e1;
+    font-weight: 650;
+    font-size: 13px;
+  }
+  .meta-pill b{ color:#fff; }
+
+  /* Add button */
+  .add-btn{
+    border-radius: 14px;
+    padding: 10px 16px;
+    font-weight: 850;
+    border: 1px solid rgba(255,255,255,.12);
+    background: linear-gradient(90deg, rgba(59,130,246,.95), rgba(96,165,250,.95));
+    color:#fff !important;
+    text-decoration:none;
+    transition:.2s;
+    white-space: nowrap;
+  }
+  .add-btn:hover{ transform: translateY(-1px); opacity:.98; }
+
+  /* Filters */
+  .filters{
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    padding: 14px;
+    box-shadow: 0 10px 28px rgba(0,0,0,.35);
+    backdrop-filter: blur(10px);
+    margin-bottom: 14px;
+  }
+  .filters .form-control{
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.10);
+    color: #e5e7eb;
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  .filters .form-control::placeholder{ color:#9ca3af; }
+  .filters .btn-clear{
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.06);
+    color:#e5e7eb;
+    padding: 10px 14px;
+    font-weight:750;
+    transition:.2s;
+  }
+  .filters .btn-clear:hover{
+    background: rgba(255,255,255,.10);
+    transform: translateY(-1px);
   }
 
-  .add-btn {
-    width: 100%;
-    padding: 12px 0;
+  /* List wrapper */
+  .list-box{
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 16px 40px rgba(0,0,0,.40);
   }
 
-  .category-card {
-    padding: 1.5rem 1rem;
+  /* Columns */
+  .list-head{
+    display:grid;
+    grid-template-columns: 90px 1.2fr 1.8fr 160px 210px;
+    gap: 10px;
+    padding: 12px 14px;
+    background: rgba(59,130,246,.16);
+    border-bottom: 1px solid rgba(255,255,255,.10);
+    color:#bfdbfe;
+    font-weight: 800;
+    font-size: 13px;
   }
 
-  .icon-circle {
-    width: 75px;
-    height: 75px;
-    font-size: 2rem;
+  .list-row{
+    display:grid;
+    grid-template-columns: 90px 1.2fr 1.8fr 160px 210px;
+    gap: 10px;
+    padding: 14px 14px;
+    align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.02);
+    transition: .18s ease;
+  }
+  .list-row:hover{ background: rgba(59,130,246,.10); }
+
+  .cell-muted{ color:#94a3b8; font-weight: 650; }
+  .cell-strong{ color:#e5e7eb; font-weight: 780; }
+  .cell-blue{ color:#60a5fa; font-weight: 900; }
+
+  /* group count pill */
+  .count-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.06);
+    color:#e5e7eb;
+    font-weight: 800;
+    justify-content:center;
+    min-width: 90px;
+  }
+  .count-pill .dot{
+    width:8px; height:8px; border-radius:50%;
+    background: rgba(34,197,94,.95);
+    box-shadow: 0 0 12px rgba(34,197,94,.45);
   }
 
-  .card-actions {
-    flex-direction: column;
-    gap: .6rem;
+  /* actions */
+  .actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    flex-wrap: nowrap;
   }
 
-  .card-actions a,
-  .card-actions button {
-    width: 100%;
+  .icon-btn{
+    width: 44px;
+    height: 38px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.06);
+    text-decoration:none;
+    transition:.18s;
+    color:#e5e7eb !important;
+    font-size: 16px;
+    cursor: pointer;
   }
-}
-
-/* 📱 SMALL MOBILE */
-@media (max-width: 480px) {
-  .category-card p {
-    font-size: .8rem;
+  .icon-btn:hover{
+    transform: translateY(-1px);
+    background: rgba(255,255,255,.10);
   }
-}
+  .icon-btn:focus{ outline:none; box-shadow:none; }
 
+  .icon-view{ background: rgba(59,130,246,.22); border-color: rgba(59,130,246,.35); }
+  .icon-view:hover{ background: rgba(59,130,246,.30); }
+
+  .icon-edit{ background: rgba(34,197,94,.20); border-color: rgba(34,197,94,.35); }
+  .icon-edit:hover{ background: rgba(34,197,94,.28); }
+
+  .icon-del{ background: rgba(239,68,68,.18); border-color: rgba(239,68,68,.35); }
+  .icon-del:hover{ background: rgba(239,68,68,.26); }
+
+  .empty{
+    text-align:center;
+    color:#9ca3af;
+    padding: 30px 16px;
+  }
+
+  /* Mobile */
+  @media (max-width: 992px){
+    .list-head{ display:none; }
+    .list-row{ grid-template-columns: 1fr; gap: 10px; }
+    .actions{ justify-content:flex-start; }
+    .mini-pill{
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      font-weight:800;
+      color:#cbd5e1;
+      font-size: 12px;
+      display:inline-block;
+      margin-bottom: 6px;
+    }
+  }
 </style>
 
+<div class="container page-wrap">
 
+  <div class="page-title">
+    <div>
+      <h2>👥 Guruhlar bo‘limlari</h2>
+      <!-- <div class="subtext">Bo‘limlar ro‘yxati (qator-qator ko‘rinish) + filter</div> -->
+    </div>
 
-<div class="container py-5">
-  
-  <div class="header-bar">
-    <h2>👥 Guruhlar bo‘limlari</h2>
+    <div class="d-flex gap-2 flex-wrap align-items-center justify-content-end">
+      {% if user.is_superuser or user.role in 'director manager' %}
+        <a href="{% url 'education:add_category' %}" class="add-btn">➕ Yangi bo‘lim qo‘shish</a>
+      {% endif %}
 
-    <a href="{% url 'education:add_category' %}" class="btn add-btn px-4 py-2">
-      ➕ Yangi bo‘lim qo‘shish
-    </a>
+      <div class="meta-badges">
+        <div class="meta-pill">Jami bo‘lim: <b id="totalCount">{{ categories|length }}</b></div>
+        <!-- <div class="meta-pill">Ko‘rinayapti: <b id="visibleCount">{{ categories_count|default:categories|length }}</b></div> -->
+      </div>
+    </div>
   </div>
 
-  {% if categories %}
-  <div class="row g-4">
-    {% for cat in categories %}
-    <div class="col-lg-4 col-md-6 col-sm-6">
+  <!-- FILTER -->
+  <div class="filters">
+    <div class="row g-2 align-items-center">
+      <div class="col-lg-10">
+        <input id="qAll" class="form-control" placeholder="🔎 Qidirish: bo‘lim nomi / tavsif">
+      </div>
+      <div class="col-lg-2 d-grid">
+        <button class="btn-clear" type="button" id="clearBtn">Tozalash ✖</button>
+      </div>
+    </div>
+  </div>
 
-      <div class="category-card h-100">
-        
-        <div class="icon-circle">
-          {% if cat.image %}
-            <img src="{{ cat.image.url }}" alt="{{ cat.name }}">
+  <!-- LIST -->
+  <div class="list-box">
+    <div class="list-head">
+      <div>№</div>
+      <div>Bo‘lim nomi</div>
+      <div>Tavsif</div>
+      <div>Guruhlar</div>
+      <div class="text-end">Amallar</div>
+    </div>
+
+    {% if categories %}
+      {% for cat in categories %}
+      <div class="list-row cat-item"
+          role="button" tabindex="0"
+          onclick="goCategory(event, '{% url 'education:category_detail' cat.id %}')"
+          onkeydown="if(event.key==='Enter'){ goCategory(event, '{% url 'education:category_detail' cat.id %}'); }"
+          data-name="{{ cat.name|default_if_none:'' }}"
+          data-desc="{{ cat.description|default_if_none:'' }}">
+
+        <!-- Desktop -->
+        <div class="cell-muted d-none d-lg-block">{{ forloop.counter }}</div>
+
+        <div class="cell-strong d-none d-lg-block">
+          <span class="cell-blue">{{ cat.name }}</span>
+        </div>
+
+        <div class="cell-muted d-none d-lg-block">
+          {% if cat.description %}
+            {{ cat.description }}
           {% else %}
-            {% if cat.name|lower == "it" %}
-              💻
-            {% elif cat.name|lower == "english" or cat.name|lower == "inglis tili" %}
-              📘💬
-            {% elif cat.name|lower == "grafika" %}
-              🎨
-            {% elif cat.name|lower == "buxgalteriya" %}
-              💰📊
-            {% elif cat.name|lower == "kids" %}
-              🧒📖
-            {% else %}
-              📚
-            {% endif %}
+            — Tavsif yo‘q
           {% endif %}
         </div>
 
-        <h5>{{ cat.name }}</h5>
-
-        {% if cat.description %}
-          <p>{{ cat.description }}</p>
-        {% else %}
-          <p class="text-muted">Bo‘lim haqida ma’lumot yo‘q</p>
-        {% endif %}
-
-        <div class="card-actions">
-
-          <a href="{% url 'education:category_detail' cat.id %}" class="btn btn-view">👁️ Ko‘rish</a>
-
-          <a href="{% url 'education:edit_category' cat.id %}" class="btn btn-edit">✏️ Tahrirlash</a>
-
-          <form action="{% url 'education:delete_category' cat.id %}" method="post" style="display:inline;">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-delete"
-                    onclick="return confirm('🗑️ {{ cat.name }} bo‘limini o‘chirmoqchimisiz?');">
-              🗑️ O‘chirish
-            </button>
-          </form>
-
+        <div class="d-none d-lg-block">
+          <span class="count-pill" title="Ushbu bo‘limdagi guruhlar soni">
+            <span class="dot"></span>
+            {{ cat.groups_count }} ta
+          </span>
         </div>
-      </div>
 
-    </div>
-    {% endfor %}
+        <div class="actions d-none d-lg-flex">
+          <a href="{% url 'education:category_detail' cat.id %}"
+             class="icon-btn icon-view" title="Ko‘rish" data-stop="1">👁</a>
+
+          {% if user.is_superuser or user.role in 'director manager' %}
+            <a href="{% url 'education:edit_category' cat.id %}"
+               class="icon-btn icon-edit" title="Tahrirlash" data-stop="1">✏️</a>
+
+            <form action="{% url 'education:delete_category' cat.id %}" method="post"
+                  style="display:inline;" data-stop="1">
+              {% csrf_token %}
+              <button type="submit" class="icon-btn icon-del"
+                      title="O‘chirish" data-stop="1"
+                      onclick="return confirm('🗑️ {{ cat.name }} bo‘limini o‘chirmoqchimisiz?');">🗑</button>
+            </form>
+          {% endif %}
+        </div>
+
+        <!-- Mobile -->
+        <div class="d-lg-none">
+          <span class="mini-pill">№ {{ forloop.counter }}</span>
+
+          <div class="cell-strong mb-1">
+            <span class="cell-blue">{{ cat.name }}</span>
+          </div>
+
+          <div class="cell-muted mb-2">
+            {% if cat.description %}
+              {{ cat.description }}
+            {% else %}
+              — Tavsif yo‘q
+            {% endif %}
+          </div>
+
+          <div class="mb-2">
+            <span class="count-pill">
+              <span class="dot"></span>
+              {{ cat.groups_count }} ta guruh
+            </span>
+          </div>
+
+          <div class="actions">
+            <a href="{% url 'education:category_detail' cat.id %}"
+               class="icon-btn icon-view" title="Ko‘rish" data-stop="1">👁</a>
+
+            {% if user.is_superuser or user.role in 'director manager' %}
+              <a href="{% url 'education:edit_category' cat.id %}"
+                 class="icon-btn icon-edit" title="Tahrirlash" data-stop="1">✏️</a>
+
+              <form action="{% url 'education:delete_category' cat.id %}" method="post"
+                    style="display:inline;" data-stop="1">
+                {% csrf_token %}
+                <button type="submit" class="icon-btn icon-del"
+                        title="O‘chirish" data-stop="1"
+                        onclick="return confirm('🗑️ {{ cat.name }} bo‘limini o‘chirmoqchimisiz?');">🗑</button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty">
+        Bo‘limlar hali mavjud emas.
+      </div>
+    {% endif %}
   </div>
 
-  {% else %}
-    <div class="empty-section">
-      <p>Bo‘limlar hali mavjud emas. “Yangi bo‘lim qo‘shish” tugmasidan foydalaning.</p>
-    </div>
-  {% endif %}
-
 </div>
+
+<script>
+  function goCategory(e, url){
+    if (e.target.closest('[data-stop="1"]')) return;
+    window.location.href = url;
+  }
+
+  const qAll = document.getElementById("qAll");
+  const clearBtn = document.getElementById("clearBtn");
+  const items = Array.from(document.querySelectorAll(".cat-item"));
+  const visibleCountEl = document.getElementById("visibleCount");
+
+  function applyFilter(){
+    const s = (qAll.value || "").trim().toLowerCase();
+    let visible = 0;
+
+    items.forEach(it => {
+      const text = ((it.dataset.name || "") + " " + (it.dataset.desc || "")).toLowerCase();
+      const ok = !s || text.includes(s);
+      it.style.display = ok ? "" : "none";
+      if(ok) visible++;
+    });
+
+    visibleCountEl.textContent = visible;
+  }
+
+  qAll.addEventListener("input", applyFilter);
+
+  clearBtn.addEventListener("click", () => {
+    qAll.value = "";
+    applyFilter();
+    qAll.focus();
+  });
+
+  applyFilter();
+</script>
 
 {% endblock %}

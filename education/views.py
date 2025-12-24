@@ -1095,12 +1095,13 @@ def groups_home(request):
 
 def category_detail(request, category_id):
     category = get_object_or_404(Category, id=category_id)
-    groups = Group.objects.filter(category_obj=category)  # 🟢 shu yerni o‘zgartir
-    return render(request, 'education/category_detail.html', {
-        'category': category,
-        'groups': groups
-    })
+    groups = Group.objects.filter(category_obj=category).order_by("id")
 
+    return render(request, "education/category_detail.html", {
+        "category": category,
+        "groups": groups,
+        "groups_count": groups.count(),
+    })
 
 from datetime import datetime
 from django.contrib.auth.decorators import login_required
@@ -1210,9 +1211,25 @@ class CategoryForm(forms.ModelForm):
 
 @login_required
 def groups_home(request):
-    """Barcha kategoriyalarni (bo‘limlarni) ko‘rsatish"""
-    categories = Category.objects.all().order_by("name")
-    return render(request, "education/groups_home.html", {"categories": categories})
+    # kategoriyalar
+    categories = list(Category.objects.all().order_by("name"))
+
+    # har bir category uchun guruhlar sonini hisoblab map qilamiz
+    counts_qs = (
+        Group.objects
+        .values("category_obj")          # FK field nomi sizda shu: category_obj
+        .annotate(c=Count("id"))
+    )
+    count_map = {row["category_obj"]: row["c"] for row in counts_qs}
+
+    # template ishlatishi uchun cat.groups_count qo‘shib chiqamiz
+    for cat in categories:
+        cat.groups_count = count_map.get(cat.id, 0)
+
+    return render(request, "education/groups_home.html", {
+        "categories": categories,
+        "categories_count": len(categories),
+    })
 
 
 @login_required

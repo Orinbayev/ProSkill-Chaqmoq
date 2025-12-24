@@ -258,12 +258,31 @@ def user_view(request, pk):
 
 @login_required
 def stat_teachers(request):
-    if not _staff_only(request): return render(request, 'core/dashboard_guest.html')
-    q = request.GET.get('q','').strip()
-    rows = U.objects.filter(role='teacher')
+    if not _staff_only(request):
+        return render(request, 'core/dashboard_guest.html')
+
+    q = request.GET.get("q", "").strip()
+    page_size = 9999
+
+    rows = (
+        U.objects.filter(role="teacher")
+        .prefetch_related('enrollment_set__group')
+        .order_by("id")
+    )
     if q:
-        rows = rows.filter(Q(ism__icontains=q)|Q(familya__icontains=q)|Q(email__icontains=q))
-    return render(request, 'core/stats_users.html', {'title': "O‘qituvchilar", 'rows': rows})
+        rows = rows.filter(Q(ism__icontains=q) | Q(familya__icontains=q) | Q(email__icontains=q))
+
+    paginator = Paginator(rows, page_size)
+    page_obj = paginator.get_page(1)
+    start_index = page_obj.start_index()
+
+    return render(request, "core/stats_users.html", {
+        "title": "O‘qituvchilar",
+        "page_obj": page_obj,
+        "start_index": start_index,
+        "page_size": page_size,
+        "no_pagination": True,
+    })
 
 @login_required
 def stat_students(request):
@@ -303,6 +322,220 @@ def stat_students(request):
         "start_index": start_index,
         "page_size": page_size,
     })
+
+import re
+import secrets
+import string
+
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.shortcuts import redirect, render
+from django.views.decorators.http import require_POST
+
+from openpyxl import load_workbook
+
+
+# ---------------- HELPERS ----------------
+
+def _normalize_header(x: str) -> str:
+    return (str(x or "").strip().lower()
+            .replace("’", "'").replace("`", "'")
+            .replace(" ", "").replace("_", "").replace("-", ""))
+
+
+def _pick_col(headers_map, *aliases):
+    for a in aliases:
+        key = _normalize_header(a)
+        if key in headers_map:
+            return headers_map[key]
+    return None
+
+
+def _cell_to_str(v):
+    """Excel cell qiymatini toza stringga aylantiradi (int/float bo‘lsa ham)."""
+    if v is None:
+        return ""
+    if isinstance(v, float) and v.is_integer():
+        return str(int(v)).strip()
+    return str(v).strip()
+
+
+def _clean_for_login(text: str) -> str:
+    """ism/familyani login uchun tozalash (oddiy translit + faqat a-z0-9)."""
+    s = (text or "").strip().lower()
+
+    # Uzbekcha belgilarni soddalashtiramiz
+    s = s.replace("o‘", "o").replace("o'", "o")
+    s = s.replace("g‘", "g").replace("g'", "g")
+    s = s.replace("’", "").replace("'", "")
+
+    # faqat a-z0-9
+    s = re.sub(r"[^a-z0-9]+", "", s)
+    return s
+
+
+def _gen_default_password():
+    alphabet = string.ascii_letters + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(10))
+
+
+def _gen_unique_gmail_like_email(U, ism: str, familya: str) -> str:
+    """
+    mahmudjon.aminboyev4832@gmail.com
+    """
+    first = _clean_for_login(ism) or "user"
+    last = _clean_for_login(familya)
+
+    base = f"{first}.{last}" if last else first
+
+    for _ in range(80):
+        suffix = secrets.randbelow(9000) + 1000  # 4 xonali
+        email = f"{base}{suffix}@gmail.com"
+        if not U.objects.filter(email=email).exists():
+            return email
+
+    token = secrets.token_hex(3)
+    return f"{base}{token}@gmail.com"
+
+
+# ---------------- MAIN IMPORT VIEW ----------------
+
+@login_required
+@require_POST
+def students_import_excel(request):
+    if not _staff_only(request):
+        return render(request, 'core/dashboard_guest.html')
+
+    f = request.FILES.get("file")
+    if not f:
+        messages.error(request, "Excel fayl tanlanmadi.")
+        return redirect("core:stat_students")
+
+    if not f.name.lower().endswith(".xlsx"):
+        messages.error(request, "Faqat .xlsx format qabul qilinadi (Excel 2007+).")
+        return redirect("core:stat_students")
+
+    try:
+        wb = load_workbook(filename=f, data_only=True)
+        ws = wb.active
+    except Exception as e:
+        messages.error(request, f"Excel o‘qib bo‘lmadi: {e}")
+        return redirect("core:stat_students")
+
+    rows = list(ws.iter_rows(values_only=True))
+    if not rows or len(rows) < 2:
+        messages.error(request, "Excel bo‘sh yoki sarlavha (header) yo‘q.")
+        return redirect("core:stat_students")
+
+    header_row = rows[0]
+    headers_map = {}
+    for idx, h in enumerate(header_row):
+        key = _normalize_header(h)
+        if key:
+            headers_map[key] = idx
+
+    # Excel ustunlari (email/parol/guruhlar yo‘q!)
+    col_ism = _pick_col(headers_map, "ism", "firstname", "name", "first name")
+    col_fam = _pick_col(headers_map, "familya", "familiya", "lastname", "surname", "last name")
+    col_otch = _pick_col(headers_map, "otchestvo", "middlename", "patronymic", "middle name")
+    col_tel1 = _pick_col(headers_map, "telefon", "telefon1", "phone", "tel", "phone1", "tel1")
+    col_tel2 = _pick_col(headers_map, "telefon2", "phone2", "tel2")
+
+    # ism & familya bo‘lmasa import qilmaymiz
+    if col_ism is None or col_fam is None:
+        messages.error(request, "Excel’da 'ism' va 'familya' ustunlari bo‘lishi shart.")
+        return redirect("core:stat_students")
+
+    created = 0
+    updated = 0
+    skipped = 0
+    problems = []
+    created_credentials = []  # yangi yaratilganlar uchun login/parol ro‘yxat
+
+    with transaction.atomic():
+        for r_i, r in enumerate(rows[1:], start=2):
+            if not r or all((c is None or str(c).strip() == "") for c in r):
+                continue
+
+            ism = _cell_to_str(r[col_ism]) if (col_ism < len(r)) else ""
+            fam = _cell_to_str(r[col_fam]) if (col_fam < len(r)) else ""
+            otch = _cell_to_str(r[col_otch]) if (col_otch is not None and col_otch < len(r)) else ""
+
+            tel1 = _cell_to_str(r[col_tel1]) if (col_tel1 is not None and col_tel1 < len(r)) else ""
+            tel2 = _cell_to_str(r[col_tel2]) if (col_tel2 is not None and col_tel2 < len(r)) else ""
+
+            if not ism or not fam:
+                skipped += 1
+                problems.append(f"{r_i}-qator: ism yoki familya yo‘q (skip).")
+                continue
+
+            try:
+                # 1) Telefon bo‘lsa — dublikatni oldini olamiz (update)
+                u = None
+                if tel1:
+                    u = U.objects.filter(role="student", telefon1=tel1).first()
+
+                if u:
+                    # UPDATE: email/parolga tegmaymiz
+                    u.ism = ism
+                    u.familya = fam
+                    u.otchestvo = otch
+                    if tel1:
+                        u.telefon1 = tel1
+                    if tel2:
+                        u.telefon2 = tel2
+                    if getattr(u, "role", None) != "student":
+                        u.role = "student"
+                    u.save()
+                    updated += 1
+
+                else:
+                    # 2) CREATE: email+parol avtomatik
+                    email = _gen_unique_gmail_like_email(U, ism, fam)
+                    password = _gen_default_password()
+
+                    u = U(email=email)
+                    u.role = "student"
+                    u.ism = ism
+                    u.familya = fam
+                    u.otchestvo = otch
+                    if tel1:
+                        u.telefon1 = tel1
+                    if tel2:
+                        u.telefon2 = tel2
+
+                    u.set_password(password)
+                    u.save()
+
+                    created += 1
+                    created_credentials.append((ism, fam, email, password))
+
+            except Exception as e:
+                skipped += 1
+                problems.append(f"{r_i}-qator: xatolik — {e}")
+
+    messages.success(request, f"Import tugadi ✅ Yangi: {created}, Yangilandi: {updated}, Skip: {skipped}")
+
+    # yangi login/parollarni ekranga chiqarib beramiz (faqat 10 tasi)
+    if created_credentials:
+        preview = created_credentials[:10]
+        text = " | ".join([f"{a} {b}: {e} / {p}" for a, b, e, p in preview])
+        if len(created_credentials) > 10:
+            text += f" | ... (+{len(created_credentials)-10} ta)"
+        messages.info(request, f"Yangi login/parollar: {text}")
+
+    if problems:
+        preview = " | ".join(problems[:8])
+        if len(problems) > 8:
+            preview += f" | ... (+{len(problems)-8} ta)"
+        messages.warning(request, f"Ogohlantirishlar: {preview}")
+
+    return redirect("core:stat_students")
+
+
+
+
 
 import openpyxl
 from openpyxl.styles import Font, Alignment

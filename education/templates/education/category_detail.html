@@ -3,197 +3,334 @@
 {% block content %}
 
 <style>
-body {
-  background: linear-gradient(180deg, #0f172a, #1e293b, #0f172a);
-  min-height: 100vh;
-  font-family: 'Poppins', sans-serif;
-  color: #e2e8f0;
-}
+  body{
+    background: linear-gradient(180deg, #0b1224, #0f172a, #0b1224);
+    min-height: 100vh;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Poppins", sans-serif;
+    color: #e5e7eb;
+  }
 
-/* 🚀 Sarlavha */
-.category-header {
-  text-align: center;
-  font-size: 2rem;
-  font-weight: 800;
-  color: #facc15;
-  margin-bottom: 1rem;
-  text-shadow: 0 2px 6px rgba(250,204,21,0.6);
-}
+  .page-wrap{ padding: 34px 0 70px; }
 
-/* 🔍 Qidiruv input */
-.search-box {
-  max-width: 400px;
-  margin: 0 auto 25px auto;
-}
-.search-box input {
-  width: 100%;
-  padding: 10px 15px;
-  border-radius: 12px;
-  border: none;
-  outline: none;
-  background: rgba(255,255,255,0.08);
-  color: #e2e8f0;
-  font-size: 1rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-}
-.search-box input::placeholder {
-  color: #94a3b8;
-}
+  .page-title{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:14px;
+    margin-bottom: 14px;
+  }
+  .page-title h2{
+    margin:0;
+    font-weight: 800;
+    letter-spacing: .2px;
+    color:#facc15;
+    text-shadow: 0 2px 10px rgba(250,204,21,.25);
+  }
+  .meta-badges{
+    display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;
+  }
+  .meta-pill{
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.10);
+    color:#cbd5e1;
+    font-weight: 650;
+    font-size: 13px;
+  }
+  .meta-pill b{ color:#fff; }
 
-/* ✨ Karta */
-.group-card {
-  border-radius: 20px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 5px 20px rgba(0,0,0,0.4);
-  transition: all 0.35s ease;
-  backdrop-filter: blur(8px);
-  text-align: center;
-  color: #f8fafc;
-}
-.group-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 10px 25px rgba(59,130,246,0.4);
-  border-color: rgba(59,130,246,0.4);
-  background: rgba(59,130,246,0.1);
-}
+  .filters{
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    padding: 14px;
+    box-shadow: 0 10px 28px rgba(0,0,0,.35);
+    backdrop-filter: blur(10px);
+    margin-bottom: 14px;
+  }
+  .filters .form-control{
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.10);
+    color: #e5e7eb;
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  .filters .form-control::placeholder{ color:#9ca3af; }
+  .filters .btn-clear{
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.06);
+    color:#e5e7eb;
+    padding: 10px 14px;
+    font-weight:700;
+    transition:.2s;
+  }
+  .filters .btn-clear:hover{
+    background: rgba(255,255,255,.10);
+    transform: translateY(-1px);
+  }
 
-.group-card h5 {
-  color: #60a5fa;
-  font-weight: 700;
-  margin-bottom: 0.6rem;
-}
-.group-card p {
-  color: #cbd5e1;
-  margin-bottom: 0.3rem;
-}
+  .list-box{
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 16px 40px rgba(0,0,0,.40);
+  }
 
-/* 🔘 Tugmalar joyi */
-.action-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 0.8rem;
-}
-.action-buttons a {
-  border-radius: 12px;
-  font-weight: 600;
-  padding: 6px 12px;
-  font-size: 0.9rem;
-  transition: 0.3s;
-  color: #fff !important;
-  text-decoration: none;
-}
+  /* ID olib tashlandi: endi 5 ta ustun */
+  .list-head{
+    display:grid;
+    grid-template-columns: 90px 1.7fr 1.2fr 1.3fr 170px;
+    gap: 10px;
+    padding: 12px 14px;
+    background: rgba(59,130,246,.16);
+    border-bottom: 1px solid rgba(255,255,255,.10);
+    color:#bfdbfe;
+    font-weight: 750;
+    font-size: 13px;
+  }
 
-/* Buttonlar */
-.btn-detail { background: linear-gradient(90deg,#3b82f6,#60a5fa); }
-.btn-detail:hover { background: linear-gradient(90deg,#60a5fa,#3b82f6); transform: scale(1.06); }
+  .list-row{
+    display:grid;
+    grid-template-columns: 90px 1.7fr 1.2fr 1.3fr 170px;
+    gap: 10px;
+    padding: 14px 14px;
+    align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.02);
+    transition: .18s ease;
+  }
+  .list-row:hover{
+    background: rgba(59,130,246,.10);
+  }
 
-.btn-edit { background: linear-gradient(90deg,#22c55e,#16a34a); }
-.btn-edit:hover { background: linear-gradient(90deg,#16a34a,#22c55e); transform: scale(1.06); }
+  .cell-muted{ color:#94a3b8; font-weight: 650; }
+  .cell-strong{ color:#e5e7eb; font-weight: 750; }
+  .cell-blue{ color:#60a5fa; font-weight: 800; }
 
-.btn-delete { background: linear-gradient(90deg,#ef4444,#f87171); }
-.btn-delete:hover { background: linear-gradient(90deg,#f87171,#ef4444); transform: scale(1.06); }
+  .actions{
+    display:flex;
+    justify-content:flex-end;
+    gap: 10px;
+  }
+  .icon-btn{
+    width: 44px;
+    height: 38px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.06);
+    text-decoration:none;
+    transition:.18s;
+    color:#e5e7eb !important;
+    font-size: 16px;
+  }
+  .icon-btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,.10); }
 
-/* ➕ Yangi guruh tugmasi */
-.add-btn {
-  background: linear-gradient(90deg, #00b894, #00cec9);
-  color: white;
-  font-weight: 600;
-  border: none;
-  border-radius: 12px;
-  box-shadow: 0 0 20px rgba(0,200,150,0.4);
-  transition: 0.3s ease;
-}
-.add-btn:hover {
-  background: linear-gradient(90deg, #00cec9, #00b894);
-  transform: scale(1.07);
-}
+  .icon-view{ background: rgba(59,130,246,.22); border-color: rgba(59,130,246,.35); }
+  .icon-view:hover{ background: rgba(59,130,246,.30); }
 
-/* 💤 Bo‘sh holat */
-.empty-section {
-  color: #94a3b8;
-  text-align: center;
-  margin-top: 2rem;
-  font-size: 1.1rem;
-  font-style: italic;
-}
+  .icon-edit{ background: rgba(34,197,94,.20); border-color: rgba(34,197,94,.35); }
+  .icon-edit:hover{ background: rgba(34,197,94,.28); }
+
+  .icon-del{ background: rgba(239,68,68,.18); border-color: rgba(239,68,68,.35); }
+  .icon-del:hover{ background: rgba(239,68,68,.26); }
+
+  @media (max-width: 992px){
+    .list-head{ display:none; }
+    .list-row{
+      grid-template-columns: 1fr;
+      gap: 8px;
+      padding: 14px;
+    }
+    .actions{ justify-content:flex-start; }
+    .row-top{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .mini-pill{
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      font-weight:700;
+      color:#cbd5e1;
+      font-size: 12px;
+    }
+  }
+
+  .empty{
+    text-align:center;
+    color:#9ca3af;
+    padding: 30px 16px;
+  }
+
+  .add-btn{
+    border-radius: 14px;
+    padding: 10px 16px;
+    font-weight: 800;
+    border: 1px solid rgba(255,255,255,.12);
+    background: linear-gradient(90deg, rgba(59,130,246,.95), rgba(96,165,250,.95));
+    color:#fff !important;
+    text-decoration:none;
+    transition:.2s;
+  }
+  .add-btn:hover{ transform: translateY(-1px); opacity:.98; }
 </style>
 
+<div class="container page-wrap">
 
-<div class="container py-5">
+  <div class="page-title">
+    <div>
+      <h2>📚 {{ category.name }} bo‘limi</h2>
+      <!-- <div class="cell-muted mt-1">Guruhlar ro‘yxati (qator-qator ko‘rinish)</div> -->
+    </div>
 
-  <h3 class="category-header">🚀 {{ category.name }} bo‘limi</h3>
-
-  <!-- 🔍 SEARCH QIDIRUV -->
-  <div class="search-box">
-      <input type="text" id="searchInput" placeholder="🔍 Guruh qidiring... (nomi, o‘qituvchi, markaz)">
+    <div class="meta-badges">
+      <div class="meta-pill">Jami guruh: <b id="totalCount">{{ groups|length }}</b></div>
+      <!-- <div class="meta-pill">Ko‘rinayapti: <b id="visibleCount">{{ groups|length }}</b></div> -->
+    </div>
   </div>
 
-  <hr class="mb-4" style="opacity: 0.2; border-color: rgba(255,255,255,0.1);">
+  <div class="filters">
+    <div class="row g-2 align-items-center">
+      <div class="col-lg-8">
+        <input id="qAll" class="form-control" placeholder="🔎 Qidirish: guruh nomi / o‘qituvchi / markaz">
+      </div>
+      <div class="col-lg-2 col-md-6">
+        <input id="qNo" class="form-control" placeholder="№ (masalan: 3)" inputmode="numeric">
+      </div>
+      <div class="col-lg-2 col-md-6 d-grid">
+        <button class="btn-clear" type="button" id="clearBtn">Tozalash ✖</button>
+      </div>
+    </div>
+  </div>
 
-  {% if groups %}
-  <div class="row g-4" id="groupList">
-    {% for g in groups %}
-    <div class="col-md-4 col-sm-6 group-item">
-      <div class="card group-card h-100 p-3">
-        <div class="card-body">
-          <h5 class="group-name">{{ g.nom }}</h5>
-          <p class="group-center">🏫 {{ g.center }}</p>
-          <p class="group-teacher">👨‍🏫 {{ g.oqituvchi }}</p>
+  <div class="list-box" id="groupList">
+    <div class="list-head">
+      <div>№</div>
+      <div>Guruh nomi</div>
+      <div>Markaz</div>
+      <div>O‘qituvchi</div>
+      <div class="text-end">Amallar</div>
+    </div>
+
+    {% if groups %}
+      {% for g in groups %}
+      <div class="list-row group-item"
+           data-no="{{ forloop.counter }}"
+           data-name="{{ g.nom|default_if_none:'' }}"
+           data-center="{{ g.center|default_if_none:'' }}"
+           data-teacher="{{ g.oqituvchi|default_if_none:'' }}">
+
+        <div class="cell-muted d-none d-lg-block">{{ forloop.counter }}</div>
+
+        <div class="cell-strong d-none d-lg-block">
+          <span class="cell-blue">{{ g.nom }}</span>
         </div>
 
-        <div class="card-footer bg-transparent border-0">
-          <div class="action-buttons">
-            <a href="{% url 'education:group_detail' g.id %}" class="btn-detail">📘 Batafsil</a>
+        <div class="cell-muted d-none d-lg-block">🏫 {{ g.center }}</div>
+        <div class="cell-muted d-none d-lg-block">👨‍🏫 {{ g.oqituvchi }}</div>
+
+        <div class="actions d-none d-lg-flex">
+          <a class="icon-btn icon-view" title="Batafsil" href="{% url 'education:group_detail' g.id %}">👁</a>
+
+          {% if user.is_superuser or user.role in 'director manager' %}
+            <a class="icon-btn icon-edit" title="Tahrirlash" href="{% url 'education:group_edit' g.id %}">✏️</a>
+            <a class="icon-btn icon-del" title="O‘chirish"
+               href="{% url 'education:group_delete' g.id %}"
+               onclick="return confirm('“{{ g.nom }}” guruhini o‘chirilsinmi?')">🗑</a>
+          {% endif %}
+        </div>
+
+        <div class="d-lg-none">
+          <div class="row-top mb-2">
+            <span class="mini-pill">№ {{ forloop.counter }}</span>
+          </div>
+          <div class="cell-strong mb-1"><span class="cell-blue">{{ g.nom }}</span></div>
+          <div class="cell-muted mb-1">🏫 {{ g.center }}</div>
+          <div class="cell-muted mb-2">👨‍🏫 {{ g.oqituvchi }}</div>
+
+          <div class="actions">
+            <a class="icon-btn icon-view" title="Batafsil" href="{% url 'education:group_detail' g.id %}">👁</a>
 
             {% if user.is_superuser or user.role in 'director manager' %}
-              <a href="{% url 'education:group_edit' g.id %}" class="btn-edit">✏️ Tahrirlash</a>
-              <a href="{% url 'education:group_delete' g.id %}" class="btn-delete"
-                 onclick="return confirm('“{{ g.nom }}” guruhini o‘chirilsinmi?')">🗑️ O‘chirish</a>
+              <a class="icon-btn icon-edit" title="Tahrirlash" href="{% url 'education:group_edit' g.id %}">✏️</a>
+              <a class="icon-btn icon-del" title="O‘chirish"
+                 href="{% url 'education:group_delete' g.id %}"
+                 onclick="return confirm('“{{ g.nom }}” guruhini o‘chirilsinmi?')">🗑</a>
             {% endif %}
           </div>
         </div>
 
       </div>
-    </div>
-    {% endfor %}
+      {% endfor %}
+    {% else %}
+      <div class="empty">Hozircha bu bo‘limda guruhlar yo‘q.</div>
+    {% endif %}
   </div>
-  {% else %}
-  <div class="empty-section">
-    <p>Hozircha bu bo‘limda guruhlar mavjud emas.</p>
-  </div>
-  {% endif %}
 
   {% if user.is_superuser or user.role in 'director manager' %}
-  <div class="d-flex justify-content-center mt-5">
-    <a href="{% url 'education:group_create_category' category.id %}" class="btn add-btn px-4 py-2">
+  <div class="d-flex justify-content-center mt-4">
+    <a href="{% url 'education:group_create_category' category.id %}" class="add-btn">
       ➕ Yangi guruh yaratish
     </a>
   </div>
   {% endif %}
+
 </div>
 
-
-<!-- 🔍 LIVE SEARCH JS -->
 <script>
-document.getElementById("searchInput").addEventListener("keyup", function () {
-    let value = this.value.toLowerCase();
-    let items = document.querySelectorAll(".group-item");
+  const qAll = document.getElementById("qAll");
+  const qNo  = document.getElementById("qNo");
+  const clearBtn = document.getElementById("clearBtn");
 
-    items.forEach(item => {
-        let name = item.querySelector(".group-name").textContent.toLowerCase();
-        let center = item.querySelector(".group-center").textContent.toLowerCase();
-        let teacher = item.querySelector(".group-teacher").textContent.toLowerCase();
+  const items = Array.from(document.querySelectorAll(".group-item"));
+  const visibleCountEl = document.getElementById("visibleCount");
 
-        if (name.includes(value) || center.includes(value) || teacher.includes(value)) {
-            item.style.display = "";
-        } else {
-            item.style.display = "none";
-        }
+  function applyFilter(){
+    const sAll = (qAll.value || "").trim().toLowerCase();
+    const sNo  = (qNo.value  || "").trim().toLowerCase();
+
+    let visible = 0;
+
+    items.forEach(it => {
+      const no = (it.dataset.no || "").toLowerCase();
+      const text = (
+        (it.dataset.name || "") + " " +
+        (it.dataset.center || "") + " " +
+        (it.dataset.teacher || "")
+      ).toLowerCase();
+
+      let ok = true;
+
+      if (sAll && !text.includes(sAll)) ok = false;
+      if (ok && sNo && no !== sNo) ok = false;
+
+      it.style.display = ok ? "" : "none";
+      if (ok) visible++;
     });
-});
+
+    visibleCountEl.textContent = visible;
+  }
+
+  qAll.addEventListener("input", applyFilter);
+  qNo.addEventListener("input", applyFilter);
+
+  clearBtn.addEventListener("click", () => {
+    qAll.value = "";
+    qNo.value = "";
+    applyFilter();
+    qAll.focus();
+  });
+
+  applyFilter();
 </script>
 
 {% endblock %}
