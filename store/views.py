@@ -6,7 +6,9 @@ from .models import Product, ProductImage, PurchaseRequest
 from .services import approve_purchase, reject_purchase
 from .forms import ProductForm
 from chaqmoq.models import Ledger
-
+from .services import convert_lead_to_student  # tepaga import qiling
+from django.views.decorators.http import require_POST
+from django.urls import reverse
 
 
 
@@ -268,21 +270,47 @@ from .models import Lead
 from .forms import LeadForm
 from .models import Lead, LeadStatus
 
+from django.db.models import Count, Q
+
 @login_required
 def lead_list(request):
-    # 🔹 status bo‘yicha filter
     status_id = request.GET.get('status')
-    statuses = LeadStatus.objects.all()
 
+    # 1) Dropdown uchun: har bir status bo‘yicha count
+    statuses = (
+        LeadStatus.objects
+        .annotate(
+            leads_count=Count('lead', distinct=True),
+            converted_count=Count('lead', filter=Q(lead__converted_user__isnull=False), distinct=True),
+        )
+        .order_by('id')
+    )
+
+    # 2) Filter bo‘yicha leadlar
+    leads = Lead.objects.all().order_by('-qoshilgan_sana')
     if status_id:
-        leads = Lead.objects.filter(status_id=status_id).order_by('-qoshilgan_sana')
-    else:
-        leads = Lead.objects.all().order_by('-qoshilgan_sana')
+        leads = leads.filter(status_id=status_id)
+
+    # 3) Filter bo‘yicha ko‘rsatkichlar (ekrandagi)
+    leads_count_filtered = leads.count()
+    converted_count_filtered = leads.filter(converted_user__isnull=False).count()
+
+    # 4) Umumiy ko‘rsatkichlar (hammasi)
+    total_count = Lead.objects.count()
+    total_converted = Lead.objects.filter(converted_user__isnull=False).count()
 
     context = {
         'leads': leads,
         'statuses': statuses,
         'selected_status': status_id,
+
+        # umumiy
+        'total_count': total_count,
+        'total_converted': total_converted,
+
+        # filter bo‘yicha (ekrandagi)
+        'leads_count_filtered': leads_count_filtered,
+        'converted_count_filtered': converted_count_filtered,
     }
     return render(request, 'store/lead_list.html', context)
 
@@ -301,17 +329,37 @@ def lead_create(request):
 
 
 # ✏️ Leadni tahrirlash
+
 @login_required
 def lead_edit(request, pk):
     lead = get_object_or_404(Lead, pk=pk)
+
     if request.method == 'POST':
         form = LeadForm(request.POST, instance=lead)
         if form.is_valid():
-            form.save()
-            messages.success(request, "✏️ Ma’lumot tahrirlandi!")
+            lead = form.save()
+
+            # ✅ STATUS "Tasdiqlandi" bo'lsa avtomatik studentga o'tkazamiz
+            if lead.status and (lead.status.nom or "").strip().lower() == "tasdiqlandi":
+                user, password, created = convert_lead_to_student(lead, request.user)
+
+                if created:
+                    messages.success(
+                        request,
+                        f"✅ Lead o‘quvchiga o‘tkazildi! Login: {user.email} | Parol: {password}"
+                    )
+                else:
+                    messages.info(
+                        request,
+                        f"ℹ️ Lead oldindan mavjud o‘quvchiga bog‘landi: {user.email}"
+                    )
+            else:
+                messages.success(request, "✏️ Ma’lumot tahrirlandi!")
+
             return redirect('store:lead_list')
     else:
         form = LeadForm(instance=lead)
+
     return render(request, 'store/lead_edit.html', {'form': form, 'lead': lead})
 
 
@@ -324,3 +372,36 @@ def lead_delete(request, pk):
         messages.warning(request, "🗑️ Lead o‘chirildi!")
         return redirect('store:lead_list')
     return render(request, 'store/lead_delete.html', {'lead': lead})
+
+
+
+
+
+
+
+
+@require_POST
+@login_required
+def lead_convert(request, pk):
+    lead = get_object_or_404(Lead, pk=pk)
+
+    # ruxsat
+    if not (request.user.is_superuser or request.user.role in ('manager', 'director')):
+        messages.error(request, "Ruxsat yo‘q.")
+        return redirect('store:lead_list')
+
+    # statusni "Tasdiqlandi" ga qo'yamiz
+    tasdiq = LeadStatus.objects.filter(nom="Tasdiqlandi").first()
+    if tasdiq:
+        lead.status = tasdiq
+        lead.save(update_fields=["status"])
+
+    user, password, created = convert_lead_to_student(lead, request.user)
+
+    if created:
+        messages.success(request, f"✅ O‘tkazildi! Login: {user.email} | Parol: {password}")
+    else:
+        messages.info(request, f"ℹ️ Lead mavjud o‘quvchiga bog‘landi: {user.email}")
+
+    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or reverse("store:lead_list")
+    return redirect(next_url)

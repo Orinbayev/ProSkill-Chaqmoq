@@ -12,12 +12,18 @@ urlpatterns = [
     path("tolovlar/oqituvchilar/", views.tolov_oqituvchilar, name="tolov_oqituvchilar"),
     path("tolovlar/oquvchilar/", views.tolov_oquvchilar, name="tolov_oquvchilar"),
     path("tolov-nazorati/", views.payment_monitor, name="payment_monitor"),
-    path("payment/create/", views.create_payment, name="create_payment"),
+    # path("payment/create/", views.create_payment, name="create_payment"),
     path("tolovlar/tarix/<int:student_id>/", views.payment_history, name="payment_history"),
     path("points-details/", views.points_details, name="points_details"),
     path("group-price/<int:pk>/", views.get_group_price, name="group_price"),
     path("groups/<int:pk>/bulk_remove/", views.group_bulk_remove, name="group_bulk_remove"),
     path('guruh/<int:g_id>/attend-all/', views.attend_all_students, name='group_attend_all'),
+   
+    path("tolov/oquvchilar/", views.tolov_oquvchilar, name="tolov_oquvchilar"),
+    path("tolov/create/", views.create_payment, name="create_payment"),
+
+    path("tolovlar/tarix/enrollment/<int:enrollment_id>/", views.payment_history_enrollment, name="payment_history_enrollment"),
+    path("tolov/chek/<int:payment_id>/", views.payment_receipt_pdf, name="payment_receipt_pdf"),
 
 
     # 🔹 Guruhlar kategoriyasi bo‘yicha

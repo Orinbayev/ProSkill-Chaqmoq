@@ -1,17 +1,209 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<div class="edit-wrapper container text-light">
+<style>
+  :root {
+    --bg:#0f172a;
+    --panel:#111827;
+    --muted:#9ca3af;
+    --text:#e5e7eb;
+    --line:#1f2937;
 
-  <h3 class="page-title">
-    ✏️ "{{ lead.ism }}" ma’lumotlarini tahrirlash
-  </h3>
+    --chip-ok:#22c55e;
+    --chip-bad:#ef4444;
+    --btn:#10b981;
+    --blue:#1d4ed8;
+    --sky:#38bdf8;
+  }
+
+  /* =====================
+       WRAPPER
+  ===================== */
+  .edit-wrapper{
+    margin-top: 18px;
+    max-width: 980px;
+    color: var(--text);
+  }
+
+  .page-title{
+    margin: 0 0 14px;
+    font-weight: 900;
+    font-size: 1.45rem;
+    letter-spacing: .2px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+
+  .page-sub{
+    color: var(--muted);
+    margin-bottom: 18px;
+    font-size: .95rem;
+  }
+
+  /* =====================
+       FORM CARD
+  ===================== */
+  .edit-form{
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: 0 0 24px rgba(0,0,0,0.28);
+  }
+
+  /* Section header inside card */
+  .form-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    margin-bottom: 14px;
+  }
+
+  .form-head .title{
+    font-weight: 900;
+    letter-spacing:.2px;
+  }
+
+  .form-head .hint{
+    color: var(--muted);
+    font-size: .9rem;
+  }
+
+  /* =====================
+       LABELS
+  ===================== */
+  .edit-form label{
+    font-weight: 900;
+    margin-bottom: 6px;
+    color: var(--muted);
+    font-size: .82rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+
+  /* =====================
+       INPUTS
+  ===================== */
+  .edit-form input,
+  .edit-form select,
+  .edit-form textarea{
+    width:100%;
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid rgba(255,255,255,0.10) !important;
+    color: var(--text) !important;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: .95rem;
+    transition: 0.18s ease;
+    outline: none !important;
+  }
+
+  .edit-form textarea{
+    min-height: 110px;
+    resize: vertical;
+  }
+
+  .edit-form input:focus,
+  .edit-form select:focus,
+  .edit-form textarea:focus{
+    background: rgba(255,255,255,0.06) !important;
+    border-color: rgba(56,189,248,0.8) !important;
+    box-shadow: 0 0 0 3px rgba(56,189,248,0.18);
+  }
+
+  /* Nice spacing between groups */
+  .form-group{ margin-bottom: 6px; }
+
+  /* =====================
+       BUTTON BAR
+  ===================== */
+  .btnbar{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    flex-wrap:wrap;
+  }
+
+  .btnx{
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-weight: 900;
+    border: 1px solid rgba(255,255,255,0.10);
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    cursor:pointer;
+    background: rgba(255,255,255,0.03);
+    color: var(--text);
+    transition: .15s ease;
+    white-space:nowrap;
+  }
+
+  .btnx:hover{ filter: brightness(.98); transform: translateY(-1px); }
+
+  .btnx.primary{
+    background: var(--btn);
+    border-color: var(--btn);
+    color:#07110b;
+  }
+
+  .btnx.secondary{
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.10);
+  }
+
+  .btnx.danger{
+    background: rgba(239,68,68,0.12);
+    border-color: rgba(239,68,68,0.30);
+    color:#fecaca;
+  }
+
+  /* =====================
+       GRID LOOK POLISH
+  ===================== */
+  .row.g-3{ --bs-gutter-y: 14px; }
+
+  /* =====================
+       MOBILE
+  ===================== */
+  @media (max-width: 576px){
+    .edit-form{ padding: 14px; }
+    .page-title{ font-size: 1.25rem; }
+    .btnbar .btnx{ width:100%; justify-content:center; }
+  }
+</style>
+
+
+<div class="edit-wrapper container">
+
+  <div class="page-title">
+    ✏️ Lead tahrirlash
+  </div>
+  <div class="page-sub">
+    <span style="color:var(--muted);">Lead:</span>
+    <strong style="color:var(--text);">{{ lead.ism }} {{ lead.familya|default:"" }}</strong>
+  </div>
 
   <form method="POST" class="edit-form">
     {% csrf_token %}
 
-    <div class="row g-3">
+    <div class="form-head">
+      <div class="title">🧾 Asosiy ma’lumotlar</div>
+      <div class="hint">Maydonlarni to‘g‘rilang va <b>Saqlash</b> tugmasini bosing.</div>
+    </div>
 
+    <div class="row g-3">
       <div class="col-md-6 form-group">
         {{ form.ism.label_tag }}
         {{ form.ism }}
@@ -37,7 +229,7 @@
         {{ form.yosh }}
       </div>
 
-      <div class="col-md-4 form-group">
+      <div class="col-md-8 form-group">
         {{ form.address.label_tag }}
         {{ form.address }}
       </div>
@@ -57,149 +249,19 @@
         {{ form.status }}
       </div>
 
-      <div class="col-md-8 form-group">
+      <div class="col-md-12 form-group">
         {{ form.comment.label_tag }}
         {{ form.comment }}
       </div>
-
     </div>
 
-    <div class="d-flex flex-wrap gap-2 mt-4">
-      <button type="submit" class="btn btn-save">💾 Saqlash</button>
-      <a href="{% url 'store:lead_list' %}" class="btn btn-cancel">⬅️ Ortga</a>
+    <div class="btnbar">
+      <a href="{% url 'store:lead_list' %}" class="btnx secondary">⬅️ Ortga</a>
+      <button type="submit" class="btnx primary">💾 Saqlash</button>
     </div>
 
   </form>
 
 </div>
-
-
-<style>
-
-/* =====================
-     WRAPPER
-===================== */
-.edit-wrapper {
-  margin-top: 20px;
-  max-width: 900px;
-}
-
-.page-title {
-  margin-bottom: 22px;
-  font-weight: 600;
-  font-size: 1.7rem;
-}
-
-
-/* =====================
-     FORM CARD
-===================== */
-.edit-form {
-  background: rgba(255,255,255,0.03);
-  padding: 25px 25px 30px;
-  border-radius: 18px;
-  box-shadow: 0 0 25px rgba(0,0,0,0.28);
-  border: 1px solid rgba(255,255,255,0.08);
-  backdrop-filter: blur(6px);
-}
-
-
-/* =====================
-     LABELS
-===================== */
-.edit-form label {
-  font-weight: 600;
-  margin-bottom: 6px;
-  color: #f1f5f9;
-  font-size: 0.95rem;
-}
-
-
-/* =====================
-     INPUTS
-===================== */
-.edit-form input,
-.edit-form select,
-.edit-form textarea {
-  width: 100%;
-  background: rgba(255,255,255,0.06) !important;
-  border: 1px solid rgba(255,255,255,0.15) !important;
-  color: #e2e8f0 !important;
-  padding: 10px 12px;
-  border-radius: 10px;
-  font-size: 0.95rem;
-  transition: 0.25s ease;
-}
-
-.edit-form input:focus,
-.edit-form select:focus,
-.edit-form textarea:focus {
-  background: rgba(255,255,255,0.10) !important;
-  border-color: #38bdf8 !important;
-  box-shadow: 0 0 8px rgba(56,189,248,0.4);
-  outline: none !important;
-}
-
-
-/* =====================
-     BUTTONS
-===================== */
-.btn-save {
-  padding: 10px 24px;
-  border: none;
-  border-radius: 12px;
-  font-weight: 600;
-  background: linear-gradient(90deg,#2563eb,#38bdf8);
-  color: #fff;
-  box-shadow: 0 0 14px rgba(56,189,248,0.4);
-  transition: 0.25s;
-}
-
-@media (hover:hover) {
-  .btn-save:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0 22px rgba(56,189,248,0.6);
-  }
-}
-
-.btn-cancel {
-  padding: 10px 20px;
-  background: rgba(255,255,255,0.1);
-  color: #e2e8f0;
-  font-weight: 600;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.15);
-  transition: 0.25s;
-}
-
-@media (hover:hover) {
-  .btn-cancel:hover {
-    background: rgba(255,255,255,0.18);
-    transform: translateY(-2px);
-  }
-}
-
-
-/* =====================
-     MOBILE FIXES
-===================== */
-@media (max-width: 576px) {
-
-  .edit-form {
-    padding: 20px 18px;
-  }
-
-  .page-title {
-    font-size: 1.45rem;
-  }
-
-  .btn-save,
-  .btn-cancel {
-    width: 100%;
-    text-align: center;
-  }
-}
-
-</style>
 
 {% endblock %}

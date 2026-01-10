@@ -51,6 +51,9 @@ from .forms import GroupForm, ITGroupForm, LangGroupForm
 from .models import Group, Enrollment, Attendance, Payment 
 from chaqmoq.models import Ledger, Rule
 from django.db.models.functions import Abs, Coalesce
+from io import BytesIO
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
 
 U = get_user_model()
 
@@ -84,6 +87,407 @@ from datetime import datetime
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from chaqmoq.models import Ledger
+
+from education.services.tuition import month_first_day, ensure_tuition_month, get_month_paid, create_payment_and_allocate
+
+
+def parse_month_str(month_str: str) -> date:
+    # "2026-01" -> 2026-01-01
+    if not month_str:
+        return month_first_day(timezone.localdate())
+    try:
+        y, m = month_str.split("-")
+        return date(int(y), int(m), 1)
+    except Exception:
+        return month_first_day(timezone.localdate())
+
+
+def user_can_manage_payments(user) -> bool:
+    # sizda role bor: manager/director
+    return user.is_superuser or getattr(user, "role", None) in ("manager", "director")
+
+
+
+
+from django.core.paginator import Paginator
+
+
+from .models import Enrollment, Payment
+from .permissions import user_can_manage_payments
+
+
+@login_required
+def tolov_oquvchilar(request):
+    if not user_can_manage_payments(request.user):
+        messages.error(request, "Ruxsat yo‘q.")
+        return redirect("core:home")
+
+    # =========================
+    # GET params
+    # =========================
+    q = (request.GET.get("q") or "").strip()
+    status_filter = (request.GET.get("status") or "").strip()   # full | partial | unpaid | ""
+    month_str = (request.GET.get("month") or "").strip()        # YYYY-MM
+    per_page_raw = (request.GET.get("per_page") or "10").strip()
+
+    # per_page (faqat ruxsat etilgan)
+    allowed_per_page = {"10", "20", "50", "100"}
+    if per_page_raw not in allowed_per_page:
+        per_page_raw = "10"
+    per_page = int(per_page_raw)
+
+    # month default = joriy oy (1-kun)
+    selected_month = parse_month_str(month_str)
+    if not selected_month:
+        today = timezone.localdate()
+        selected_month = today.replace(day=1)
+
+    # Template JS ishlatadi: YYYY-MM
+    month_str_out = selected_month.strftime("%Y-%m")
+
+    # =========================
+    # Base queryset
+    # =========================
+    enrollments = Enrollment.objects.select_related("student", "group")
+
+    if q:
+        enrollments = enrollments.filter(
+            Q(student__ism__icontains=q) |
+            Q(student__familya__icontains=q) |
+            Q(student__email__icontains=q)
+        )
+
+    # =========================
+    # All-time stats (butun davr) — tez ishlashi uchun aggregate
+    # =========================
+    all_students_total = enrollments.count()
+
+    paid_students_qs = (
+        Payment.objects
+        .filter(enrollment__in=enrollments)
+        .values("enrollment_id")
+        .distinct()
+    )
+    all_paid_students = paid_students_qs.count()
+    all_never_paid_students = max(0, all_students_total - all_paid_students)
+
+    all_paid_total = (
+        Payment.objects
+        .filter(enrollment__in=enrollments)
+        .aggregate(s=Sum("summa"))["s"] or 0
+    )
+    all_payments_count = (
+        Payment.objects
+        .filter(enrollment__in=enrollments)
+        .count()
+    )
+
+    # jami_tolangan ni N+1 qilmaslik uchun dict qilib olamiz
+    sums_map = {
+        x["enrollment_id"]: (x["s"] or 0)
+        for x in (
+            Payment.objects
+            .filter(enrollment__in=enrollments)
+            .values("enrollment_id")
+            .annotate(s=Sum("summa"))
+        )
+    }
+
+    # =========================
+    # Build rows (hammasi) — pill counterlar shu yerga bog‘liq
+    # =========================
+    rows = []
+    month_fee_total = 0
+    month_paid_total = 0
+    month_left_total = 0
+
+    for e in enrollments:
+        tm = ensure_tuition_month(e, selected_month)
+
+        # fee 0 bo‘lib qolmasin (fallback)
+        if not tm.fee_amount or tm.fee_amount == 0:
+            fallback = (
+                (getattr(e, "kurs_narhi", 0) or 0) or
+                (getattr(e.group, "kurs_narxi", 0) or 0)
+            )
+            if fallback and fallback > 0:
+                tm.fee_amount = fallback
+                tm.save(update_fields=["fee_amount"])
+
+        fee = tm.fee_amount or 0
+        fee_missing = fee <= 0
+
+        paid_this_month = get_month_paid(tm) or 0
+        qoldiq = 0 if fee_missing else max(0, fee - paid_this_month)
+
+        if fee_missing:
+            status = "unpaid"
+        elif paid_this_month >= fee:
+            status = "full"
+        elif paid_this_month > 0:
+            status = "partial"
+        else:
+            status = "unpaid"
+
+        jami_tolangan = sums_map.get(e.id, 0)
+
+        # Stats (tanlangan oy)
+        month_fee_total += int(fee or 0)
+        month_paid_total += int(paid_this_month or 0)
+        month_left_total += int(qoldiq or 0)
+
+        rows.append({
+            "enrollment": e,
+            "student": e.student,
+            "group": e.group,
+            "month": selected_month,
+            "fee": fee,
+            "paid_this_month": paid_this_month,
+            "qoldiq": qoldiq,
+            "status": status,
+            "jami_tolangan": jami_tolangan,
+            "fee_missing": fee_missing,
+        })
+
+    # =========================
+    # Counters (status filterdan oldin)
+    # =========================
+    total = len(rows)
+    full_count = sum(1 for x in rows if x["status"] == "full")
+    partial_count = sum(1 for x in rows if x["status"] == "partial")
+    unpaid_count = sum(1 for x in rows if x["status"] == "unpaid")
+
+    # =========================
+    # Status filter (ekranga chiqadigan data)
+    # =========================
+    if status_filter in ("full", "partial", "unpaid"):
+        data_rows = [x for x in rows if x["status"] == status_filter]
+    else:
+        status_filter = ""
+        data_rows = rows
+
+    # =========================
+    # Pagination
+    # =========================
+    paginator = Paginator(data_rows, per_page)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    return render(request, "education/tolov_oquvchilar.html", {
+        # list
+        "data": page_obj.object_list,
+
+        # filters
+        "query": q,
+        "selected_month": selected_month,
+        "month_str": month_str_out,
+        "status_filter": status_filter,
+
+        # pills count
+        "total": total,
+        "full_count": full_count,
+        "partial_count": partial_count,
+        "unpaid_count": unpaid_count,
+
+        # pagination
+        "page_obj": page_obj,
+        "paginator": paginator,
+        "is_paginated": paginator.num_pages > 1,
+        "per_page": per_page_raw,
+
+        # stats: selected month
+        "month_fee_total": month_fee_total,
+        "month_paid_total": month_paid_total,
+        "month_left_total": month_left_total,
+
+        # stats: all time
+        "all_students_total": all_students_total,
+        "all_paid_students": all_paid_students,
+        "all_never_paid_students": all_never_paid_students,
+        "all_paid_total": all_paid_total,
+        "all_payments_count": all_payments_count,
+    })
+
+
+
+@login_required
+def create_payment(request):
+    if request.method != "POST":
+        return redirect("education:tolov_oquvchilar")
+
+    if not user_can_manage_payments(request.user):
+        messages.error(request, "Ruxsat yo‘q.")
+        return redirect("education:tolov_oquvchilar")
+
+    enrollment_id = request.POST.get("enrollment_id")
+    next_url = request.POST.get("next") or "education:tolov_oquvchilar"
+
+    enrollment = get_object_or_404(Enrollment, id=enrollment_id)
+
+    cash_amount = request.POST.get("cash_amount") or 0
+    card_amount = request.POST.get("card_amount") or 0
+
+    try:
+        payment = create_payment_and_allocate(
+            enrollment=enrollment,
+            created_by=request.user,
+            cash_amount=int(cash_amount or 0),
+            card_amount=int(card_amount or 0),
+        )
+        messages.success(request, "✅ To‘lov saqlandi va oylar bo‘yicha taqsimlandi!")
+    except Exception as e:
+        messages.error(request, f"❌ Xatolik: {e}")
+
+    return redirect(next_url)
+
+
+@login_required
+def payment_history_enrollment(request, enrollment_id: int):
+    if not user_can_manage_payments(request.user):
+        return JsonResponse({"error": "forbidden"}, status=403)
+
+    month_str = request.GET.get("month", "")
+    selected_month = parse_month_str(month_str)
+
+    enrollment = get_object_or_404(Enrollment.objects.select_related("student", "group"), id=enrollment_id)
+    tm = ensure_tuition_month(enrollment, selected_month)
+
+    fee = tm.fee_amount
+    paid_this_month = get_month_paid(tm)
+    qoldiq = max(0, fee - paid_this_month)
+
+    # payments
+    payments_qs = Payment.objects.filter(enrollment=enrollment).order_by("-id")
+
+    payments = []
+    for p in payments_qs:
+        allocations = []
+        for a in p.allocations.select_related("tuition_month").all():
+            allocations.append({
+                "month": a.tuition_month.month.strftime("%Y-%m"),
+                "amount": a.amount,
+            })
+
+        paid_at = None
+        if hasattr(p, "paid_at") and p.paid_at:
+            paid_at = p.paid_at
+        elif hasattr(p, "sana") and p.sana:
+            # sana/vaqt bo‘lsa:
+            if hasattr(p, "vaqt") and p.vaqt:
+                paid_at = timezone.make_aware(timezone.datetime.combine(p.sana, p.vaqt))
+            else:
+                paid_at = timezone.make_aware(timezone.datetime.combine(p.sana, timezone.datetime.min.time()))
+        else:
+            paid_at = timezone.now()
+
+        payments.append({
+            "id": p.id,
+            "paid_at": paid_at.strftime("%d.%m.%Y %H:%M"),
+            "cash": int(getattr(p, "cash_amount", 0) or 0),
+            "card": int(getattr(p, "card_amount", 0) or 0),
+            "total": int(getattr(p, "summa", 0) or 0),
+            "allocations": allocations,
+            "receipt_url": f"/talim/tolov/chek/{p.id}/",
+        })
+
+    return JsonResponse({
+        "student": f"{enrollment.student.ism} {enrollment.student.familya}",
+        "group": getattr(enrollment.group, "nom", ""),
+        "month": selected_month.strftime("%Y-%m"),
+        "fee": fee,
+        "paid_this_month": paid_this_month,
+        "qoldiq": qoldiq,
+        "payments": payments,
+    })
+
+
+
+
+
+
+
+@login_required
+def payment_receipt_pdf(request, payment_id: int):
+    if not user_can_manage_payments(request.user):
+        return HttpResponse("Forbidden", status=403)
+
+    p = get_object_or_404(Payment.objects.select_related("enrollment__student", "enrollment__group"), id=payment_id)
+    enrollment = p.enrollment
+    student = enrollment.student
+    group = enrollment.group
+
+    # PDF
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    w, h = A4
+
+    y = h - 60
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(50, y, "TO‘LOV CHEKI")
+    y -= 18
+
+    c.setFont("Helvetica", 11)
+    c.drawString(50, y, f"Chek ID: #{p.id}")
+    y -= 16
+
+    c.drawString(50, y, f"O‘quvchi: {student.ism} {student.familya}")
+    y -= 16
+
+    c.drawString(50, y, f"Guruh: {getattr(group, 'nom', '')}")
+    y -= 16
+
+    cash = int(getattr(p, "cash_amount", 0) or 0)
+    card = int(getattr(p, "card_amount", 0) or 0)
+    total = int(getattr(p, "summa", 0) or 0)
+
+    c.drawString(50, y, f"Naqd: {cash:,} so‘m".replace(",", " "))
+    y -= 16
+    c.drawString(50, y, f"Karta: {card:,} so‘m".replace(",", " "))
+    y -= 16
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, y, f"Jami: {total:,} so‘m".replace(",", " "))
+    y -= 22
+
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, y, "Taqsimot (qaysi oylarga tushdi):")
+    y -= 16
+    c.setFont("Helvetica", 11)
+
+    allocations = p.allocations.select_related("tuition_month").all()
+    if not allocations:
+        c.drawString(55, y, "- Allocation topilmadi")
+        y -= 14
+    else:
+        for a in allocations:
+            c.drawString(55, y, f"- {a.tuition_month.month.strftime('%Y-%m')}: {a.amount:,} so‘m".replace(",", " "))
+            y -= 14
+            if y < 80:
+                c.showPage()
+                y = h - 60
+
+    y -= 10
+    c.setFont("Helvetica-Oblique", 9)
+    c.drawString(50, 50, "Chaqmoq Academy - To‘lov nazorati tizimi")
+
+    c.showPage()
+    c.save()
+
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    resp = HttpResponse(pdf, content_type="application/pdf")
+    resp["Content-Disposition"] = f'attachment; filename="chek_{p.id}.pdf"'
+    return resp
+
+
+
+
+
+
+
+
+
+
+
 
 
 @login_required
@@ -333,119 +737,9 @@ def tolovlar_home(request):
 
 # education/views.py
 
-def tolov_oquvchilar(request):
-    q = request.GET.get("q", "")
-    filter_type = request.GET.get("filter")
-    date_filter = request.GET.get("date")
-
-    enrollments = Enrollment.objects.select_related("student", "group")
-
-    if q:
-        enrollments = enrollments.filter(
-            Q(student__ism__icontains=q) |
-            Q(student__familya__icontains=q) |
-            Q(student__email__icontains=q)
-        )
-
-    if date_filter:
-        enrollments = enrollments.filter(payments__sana=date_filter)
-
-    data = []
-    for e in enrollments:
-        # ✅ 1) Har talabaning o‘ziga yozilgan narx – BOSH manba
-        kurs_narhi = e.kurs_narhi or getattr(e.group, "kurs_narxi", 0)
-
-        # ✅ 2) Jami to‘lovni ENROLLMENT bo‘yicha yig‘
-        jami_tolov = Payment.objects.filter(enrollment=e).aggregate(
-            s=Sum('summa')
-        )['s'] or 0
-
-        qoldiq = max(0, kurs_narhi - jami_tolov)
-        is_full = jami_tolov >= kurs_narhi
-
-        if filter_type == "full" and not is_full:
-            continue
-        if filter_type == "unpaid" and is_full:
-            continue
-
-        data.append({
-            "student": e.student,
-            "group": e.group,
-            "kurs_narhi": kurs_narhi,
-            "jami_tolangan": jami_tolov,
-            "qoldiq": qoldiq,
-            "is_full": is_full,
-        })
-
-    return render(request, "education/tolov_oquvchilar.html", {
-        "data": data,
-        "query": q,
-        "filter_type": filter_type,
-    })
-
 
 # education/views.py
 
-def create_payment(request):
-    if request.method == "POST":
-        student_id = request.POST.get("student_id")
-        group_id = request.POST.get("group_id")
-        card_amount = request.POST.get("card_amount") or "0"
-        cash_amount = request.POST.get("cash_amount") or "0"
-
-        if not student_id or not group_id:
-            messages.error(request, "O‘quvchi yoki guruh tanlanmagan!")
-            return redirect(request.META.get("HTTP_REFERER", "/"))
-
-        # 🔹 Raqamlarga o‘girish – to‘g‘ri turlar
-        try:
-            from decimal import Decimal
-            card_amount = Decimal(card_amount)
-            cash_amount = int(cash_amount)
-        except Exception:
-            messages.error(request, "To‘lov summasi noto‘g‘ri formatda.")
-            return redirect(request.META.get("HTTP_REFERER", "/"))
-
-        if card_amount <= 0 and cash_amount <= 0:
-            messages.warning(request, "To‘lov summasi 0 bo‘lishi mumkin emas!")
-            return redirect(request.META.get("HTTP_REFERER", "/"))
-
-        group = Group.objects.get(pk=group_id)
-
-        enrollment, _ = Enrollment.objects.get_or_create(
-            student_id=student_id,
-            group_id=group_id,
-            defaults={
-                "kurs_narhi": group.kurs_narxi,
-                "oqituvchi_foiz": group.oqituvchi_foiz,
-            },
-        )
-
-        Payment.objects.create(
-            student_id=student_id,
-            group_id=group_id,
-            enrollment=enrollment,
-            cash_amount=cash_amount,
-            card_amount=card_amount,  # Decimal
-            sana=timezone.now().date(),
-            vaqt=timezone.now().time(),
-        )
-
-        # 🔹 ENROLLMENT jami – faqat summa yig‘indi
-        jami_tolov = Payment.objects.filter(enrollment=enrollment).aggregate(s=Sum("summa"))["s"] or 0
-        # Kurs narxi har doim ENROLLMENT.dan olinadi
-        kurs_narhi = enrollment.kurs_narhi or group.kurs_narxi
-
-        Enrollment.objects.filter(pk=enrollment.pk).update(
-            jami_tolangan=jami_tolov,
-            kurs_narhi=kurs_narhi,
-        )
-
-        messages.success(
-            request,
-            f"✅ {group.nom} guruhi uchun {jami_tolov:,.0f} so‘mgacha to‘lov yangilandi. Kurs narxi: {kurs_narhi:,.0f} so‘m"
-        )
-        return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
 

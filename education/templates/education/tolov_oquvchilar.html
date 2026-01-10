@@ -3,387 +3,1199 @@
 
 {% block content %}
 <style>
-body {
-  background: #f8fafc;
-  font-family: 'Poppins', sans-serif;
-  color: #111;
-}
+  /* =========================================================
+     THEME
+     ========================================================= */
+  :root{
+    --panel:#111827;
+    --muted:#9ca3af;
+    --text:#e5e7eb;
+    --line:#1f2937;
 
-.container {
-  max-width: 1200px;
-  margin: 40px auto;
-  background: #fff;
-  border-radius: 14px;
-  padding: 25px 35px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-}
+    --ok:#22c55e;
+    --warn:#facc15;
+    --bad:#ef4444;
+    --gray:#94a3b8;
 
-h2 {
-  text-align: center;
-  color: #22c55e;
-  font-weight: 700;
-  margin-bottom: 25px;
-  font-size: 22px;
-}
-
-/* 🔍 Search bar */
-.search-bar {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-.search-bar input {
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  font-size: 14px;
-  width: 240px;
-  transition: 0.25s;
-}
-.search-bar input:focus {
-  border-color: #22c55e;
-  box-shadow: 0 0 3px rgba(34,197,94,0.4);
-  outline: none;
-}
-.search-bar button {
-  background: #22c55e;
-  color: white;
-  border: none;
-  padding: 8px 18px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 14px;
-  transition: 0.2s;
-}
-.search-bar button:hover { background: #16a34a; }
-
-/* Filter buttons */
-.filter-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-.filter-buttons a {
-  text-decoration: none;
-  color: #111;
-  background: #e5e7eb;
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 13px;
-  transition: 0.2s;
-}
-.filter-buttons a.active {
-  background: #22c55e;
-  color: #fff;
-}
-.filter-buttons a:hover { background: #16a34a; color: #fff; }
-
-/* Table */
-.table-wrapper {
-  width: 100%;
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-  text-align: center;
-  min-width: 800px;
-}
-thead { background: #22c55e; color: #fff; font-size: 13.5px; }
-th, td {
-  padding: 10px 6px;
-  border-bottom: 1px solid #e5e7eb;
-}
-tbody tr:hover { background: #f9fafb; }
-
-.status.full { color: #16a34a; font-weight: 600; }
-.status.unpaid { color: #dc2626; font-weight: 600; }
-.status.late { color: #d97706; font-weight: 600; }
-
-.payment-form {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  flex-wrap: nowrap;
-}
-.payment-input {
-  width: 70px;
-  padding: 5px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  font-size: 13px;
-  text-align: center;
-}
-.payment-input:focus {
-  border-color: #22c55e;
-  outline: none;
-}
-.save-btn {
-  background: #22c55e;
-  color: #fff;
-  border: none;
-  padding: 6px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 13px;
-  transition: 0.2s;
-}
-.save-btn:hover { background: #16a34a; }
-
-/* Modal */
-#paymentModal {
-  display: none;
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0,0,0,0.45);
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-}
-
-.modal-content {
-  background: #fff;
-  padding: 20px 25px;
-  border-radius: 12px;
-  width: 550px;
-  max-width: 95%;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.25);
-  border-top: 4px solid #22c55e;
-  animation: fadeIn 0.25s ease-in-out;
-}
-
-.modal-content h3 {
-  color: #22c55e;
-  font-weight: 700;
-  text-align: center;
-  font-size: 18px;
-  margin-bottom: 6px;
-}
-
-.modal-content p {
-  text-align: center;
-  font-weight: 600;
-  color: #111;
-  margin-bottom: 10px;
-  font-size: 13px;
-}
-
-.modal-content table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-.modal-content th {
-  background: #22c55e;
-  color: white;
-  padding: 8px;
-}
-.modal-content td {
-  padding: 7px;
-  border-bottom: 1px solid #e5e7eb;
-}
-.modal-content tr:hover td { background-color: #f0fdf4; }
-
-.modal-close {
-  display: block;
-  background: #22c55e;
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 8px;
-  margin: 10px auto 0;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 13px;
-}
-.modal-close:hover { background: #16a34a; }
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* 📱 Responsiv */
-@media (max-width: 768px) {
-  .container {
-    margin: 20px auto;
-    padding: 18px 14px;
+    --btn:#10b981;
+    --blue:#1d4ed8;
   }
-  h2 {
-    font-size: 18px;
-    margin-bottom: 15px;
+  *{ box-sizing:border-box; }
+
+  /* =========================================================
+     PAGE WRAP
+     ========================================================= */
+  .pay-wrap{
+    max-width:1200px;
+    margin:0 auto;
+    padding: 0 12px;
+    color:var(--text);
   }
-  table {
-    font-size: 12px;
-    min-width: 700px;
+
+  .pay-card{
+    background: rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:16px;
+    padding:14px;
+    box-shadow: 0 0 25px rgba(0,0,0,0.25);
   }
-  th, td {
-    padding: 6px 4px;
+
+  /* =========================================================
+     INPUTS / BUTTONS
+     ========================================================= */
+  .inp, .month-btn, .btn{ height:42px; }
+
+  .inp{
+    background: var(--panel);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:10px;
+    padding:0 12px;
+    outline:none;
+    min-width: 240px;
   }
-  .payment-input {
-    width: 60px;
+  .inp::placeholder{ color:#64748b; }
+  .inp:focus{
+    border-color:#38bdf8;
+    box-shadow: 0 0 0 3px rgba(56,189,248,0.18);
   }
-}
+
+  .btn{
+    border:0;
+    border-radius:10px;
+    padding:0 14px;
+    font-weight:900;
+    cursor:pointer;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    white-space:nowrap;
+    justify-content:center;
+  }
+  .btn.green{ background:var(--btn); color:#07110b; }
+  .btn.blue{ background:var(--blue); color:#fff; }
+  .btn.gray{ background:rgba(255,255,255,0.06); color:var(--text); border:1px solid var(--line); }
+  .btn:hover{ filter:brightness(.95); }
+
+  /* =========================================================
+     HEADER BIG BOX (Title + Tools + Filters)
+     ========================================================= */
+  .pay-headbox{
+    padding:14px;
+    border-radius:18px;
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.02);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.18);
+    margin-bottom: 14px;
+  }
+
+  .head-title{
+    margin:0 0 12px;
+    text-align:center;
+    font-weight:1000;
+    font-size:1.35rem;
+    letter-spacing:.2px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:10px;
+  }
+
+  /* tools row */
+  .tools{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    padding:10px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.02);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.18);
+  }
+  .tools .field{ margin-right:auto; } /* search left, others right */
+
+  /* Search field */
+  .field{ position:relative; display:flex; align-items:center; width: min(560px, 100%); }
+  .inp-search{
+    padding-left:42px;
+    padding-right:38px;
+    min-width: 340px;
+    width:100%;
+    transition: .15s ease;
+  }
+  .field .icon{
+    position:absolute;
+    left:12px;
+    top:50%;
+    transform: translateY(-50%);
+    color:#64748b;
+    font-size: 1rem;
+    pointer-events:none;
+  }
+  .clear-btn{
+    position:absolute;
+    right:8px;
+    top:50%;
+    transform: translateY(-50%);
+    width:28px;
+    height:28px;
+    border-radius:10px;
+    border:1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    color: var(--muted);
+    cursor:pointer;
+    display:none;
+  }
+  .clear-btn:hover{ filter:brightness(1.08); }
+
+  /* Filters (center) */
+  .filters{
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    flex-wrap:wrap;
+    margin:12px 0 0;
+  }
+  .pill{
+    display:inline-flex;
+    flex-direction: column;
+    align-items:center;
+    text-align:center;
+    gap:4px;
+    padding: 10px 16px;
+    min-width: 120px;
+    border-radius: 12px;
+    border:1px solid var(--line);
+    background: rgba(255,255,255,0.03);
+    color:var(--text);
+    font-weight:900;
+    font-size:.92rem;
+    text-decoration:none;
+    transition:.15s ease;
+  }
+  .pill:hover{ transform: translateY(-1px); filter: brightness(1.03); }
+  .pill.active{
+    background:var(--btn);
+    color:#07110b;
+    border-color:transparent;
+    box-shadow: 0 10px 30px rgba(16,185,129,0.18);
+  }
+  .pill .count{ opacity:.9; font-size:.85rem; }
+
+  /* =========================================================
+     MONTH PICKER
+     ========================================================= */
+  .monthpicker{ position:relative; }
+  .month-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background: rgba(255,255,255,0.03);
+    color: var(--text);
+    font-weight:900;
+    cursor:pointer;
+    min-width: 220px;
+    justify-content:space-between;
+    transition:.15s ease;
+    padding:0 12px;
+  }
+  .month-btn:hover{ filter:brightness(1.05); }
+  .month-btn .caret{ opacity:.8; }
+
+  .month-menu{
+    display:none;
+    position:absolute;
+    right:0;
+    margin-top:10px;
+    width: 360px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(11,18,32,0.98);
+    box-shadow: 0 18px 70px rgba(0,0,0,0.55);
+    padding:12px;
+    z-index: 999;
+    backdrop-filter: blur(10px);
+  }
+  .monthpicker.open .month-menu{ display:block; }
+
+  .mm-row{ display:flex; gap:10px; }
+  .mm-col{ flex:1; position:relative; }
+  .mm-label{
+    display:block;
+    font-size:.78rem;
+    color: var(--muted);
+    font-weight:900;
+    margin-bottom:6px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+  }
+  .mm-dd{
+    width:100%;
+    height:42px;
+    padding:0 10px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background: rgba(255,255,255,0.03);
+    color: var(--text);
+    outline:none;
+    font-weight:900;
+    cursor:pointer;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .mm-dd:hover{ filter:brightness(1.05); }
+  .mm-dd .car{ opacity:.8; }
+
+  .mm-dd-menu{
+    display:none;
+    position:absolute;
+    top: 66px;
+    left: 0;
+    right: 0;
+    max-height: 260px;
+    overflow:auto;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(15,23,42,0.98);
+    box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+    padding:6px;
+    z-index: 1000;
+  }
+  .mm-col.open .mm-dd-menu{ display:block; }
+
+  .mm-item{
+    padding:10px 10px;
+    border-radius:10px;
+    color: var(--text);
+    font-weight:900;
+    cursor:pointer;
+    user-select:none;
+  }
+  .mm-item:hover{ background: rgba(255,255,255,0.06); }
+  .mm-item.active{ background: rgba(16,185,129,0.20); border: 1px solid rgba(16,185,129,0.35); }
+
+  .mm-actions{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    margin-top:12px;
+  }
+  .mm-actions .btn{ flex:1; }
+
+  /* =========================================================
+     LIST ITEMS
+     ========================================================= */
+  .pay-list{ display:flex; flex-direction:column; gap:10px; }
+  .item{
+    border:1px solid var(--line);
+    background: rgba(255,255,255,0.02);
+    border-radius:14px;
+    padding:12px;
+  }
+  .row1{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .who{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  .idx{ font-weight:900; color:var(--muted); }
+  .name-link{ color:#38bdf8; font-weight:900; text-decoration:none; }
+  .name-link:hover{ text-decoration:underline; }
+
+  .group-tag{
+    padding:4px 10px;
+    border-radius:999px;
+    border:1px solid var(--line);
+    color:var(--text);
+    background: rgba(255,255,255,0.03);
+    font-weight:900;
+    font-size:.85rem;
+  }
+  .sub{ margin-top:6px; color:var(--muted); font-size:.9rem; }
+
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:6px 10px;
+    border-radius:999px;
+    font-weight:900;
+    font-size:.82rem;
+  }
+  .b-ok{ background: var(--ok); color:#062312; }
+  .b-warn{ background: var(--warn); color:#111827; }
+  .b-bad{ background: var(--bad); color:#fff; }
+  .b-gray{ background: var(--gray); color:#0b1220; }
+
+  .row2{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-top:10px;
+    padding-top:10px;
+    border-top:1px dashed rgba(255,255,255,0.10);
+  }
+  .amounts{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    color:var(--muted);
+    font-weight:800;
+    font-size:.92rem;
+  }
+  .amounts b{ color:var(--text); }
+
+  .pay-form{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .mini-inp{
+    width:110px;
+    height:42px;
+    padding:0 10px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background: rgba(255,255,255,0.06);
+    color: var(--text);
+    text-align:center;
+    outline:none;
+  }
+  .mini-inp:focus{
+    border-color:#38bdf8;
+    box-shadow: 0 0 0 3px rgba(56,189,248,0.18);
+  }
+
+  /* =========================================================
+     PAGINATION BAR
+     ========================================================= */
+  .pager{
+    margin-top:14px;
+    padding:10px 12px;
+    border:1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.02);
+    border-radius:14px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+
+  .perpage{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    color:var(--muted);
+    font-weight:900;
+  }
+  .perpage select{
+    height:40px;
+    background: var(--panel);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:10px;
+    padding:0 10px;
+    font-weight:900;
+    outline:none;
+    cursor:pointer;
+  }
+  .perpage select:focus{
+    border-color:#38bdf8;
+    box-shadow: 0 0 0 3px rgba(56,189,248,0.18);
+  }
+
+  .pagination{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+  .pg-btn, .pg-num{
+    min-width:40px;
+    height:40px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.03);
+    color: var(--text);
+    font-weight:1000;
+    text-decoration:none;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:.15s ease;
+    user-select:none;
+  }
+  .pg-btn:hover, .pg-num:hover{ transform: translateY(-1px); filter: brightness(1.05); }
+  .pg-num.active{
+    background: rgba(99,102,241,0.92);
+    border-color: transparent;
+    box-shadow: 0 10px 25px rgba(29,78,216,0.22);
+  }
+  .pg-btn.disabled{ opacity:.35; pointer-events:none; }
+
+  /* =========================================================
+     MODALS
+     ========================================================= */
+  .modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background: rgba(0,0,0,0.55);
+    z-index:9999;
+    justify-content:center;
+    align-items:center;
+    padding:14px;
+  }
+  .modal-box{
+    width: 900px;
+    max-width: 96vw;
+    max-height: 85vh;
+    overflow:auto;
+    background: #0b1220;
+    border:1px solid var(--line);
+    border-radius:16px;
+    box-shadow: 0 16px 60px rgba(0,0,0,0.55);
+  }
+  .modal-head{
+    padding:14px 14px;
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    align-items:flex-start;
+    border-bottom:1px solid var(--line);
+    background: rgba(255,255,255,0.03);
+  }
+  .modal-title{ margin:0; font-weight:900; font-size:1.05rem; }
+  .modal-sub{ margin-top:4px; color: var(--muted); font-size:.9rem; }
+  .modal-body{ padding:12px 14px; }
+
+  .modal-stats{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:12px;
+  }
+  .stat{
+    border:1px solid var(--line);
+    background: rgba(255,255,255,0.03);
+    padding:10px 12px;
+    border-radius:12px;
+    font-weight:900;
+    color: var(--text);
+    min-width: 160px;
+  }
+  .stat small{ display:block; color: var(--muted); font-weight:800; margin-bottom:4px; }
+
+  .table-wrap{ width:100%; overflow-x:auto; }
+  .modal-table{ width:100%; border-collapse:collapse; }
+  .modal-table th{
+    text-align:center;
+    background: var(--panel);
+    color: var(--muted);
+    padding:10px 8px;
+    font-size:.8rem;
+    text-transform:uppercase;
+    border-bottom:1px solid var(--line);
+    white-space:nowrap;
+  }
+  .modal-table td{
+    padding:10px 8px;
+    border-bottom:1px solid var(--line);
+    text-align:center;
+    vertical-align:top;
+  }
+  .alloc{ color: var(--muted); font-size:.86rem; text-align:left; }
+  .alloc b{ color: var(--text); }
+
+  /* Stats modal */
+  .tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .tab{
+    border:1px solid var(--line);
+    background: rgba(255,255,255,0.03);
+    color: var(--text);
+    font-weight:900;
+    padding:8px 10px;
+    border-radius:999px;
+    cursor:pointer;
+  }
+  .tab.active{ background: rgba(16,185,129,0.20); border-color: rgba(16,185,129,0.35); }
+
+  .stats-grid{
+    display:grid;
+    grid-template-columns: 360px 1fr;
+    gap:14px;
+    align-items:start;
+  }
+  .chart-card{
+    border:1px solid var(--line);
+    background: rgba(255,255,255,0.03);
+    border-radius:14px;
+    padding:12px;
+  }
+  .chart-wrap{ width:100%; display:flex; justify-content:center; }
+  #statsChart{ max-width: 320px; max-height: 320px; }
+
+  .mini-table{ width:100%; border-collapse:collapse; margin-top:10px; }
+  .mini-table th, .mini-table td{
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    padding:10px 8px;
+    text-align:left;
+  }
+  .mini-table th{
+    color: var(--muted);
+    text-transform:uppercase;
+    font-size:.78rem;
+    letter-spacing:.04em;
+  }
+  .mini-table td{ color: var(--text); font-weight:900; }
+
+  /* =========================================================
+     RESPONSIVE
+     ========================================================= */
+  @media (max-width: 900px){
+    .stats-grid{ grid-template-columns: 1fr; }
+  }
+  @media (max-width: 700px){
+    .btn{ width:100%; }
+    .field{ width:100%; }
+    .inp{ min-width:100%; }
+    .month-btn{ width:100%; min-width:unset; }
+    .month-menu{ width:100%; left:0; right:0; }
+    .mini-inp{ width:100%; }
+    .pager{ padding:10px; }
+    .perpage{ width:100%; justify-content:space-between; }
+    .pagination{ width:100%; justify-content:space-between; }
+  }
 </style>
 
-<div class="container">
-  <h2>💰 O‘quvchilar to‘lov nazorati</h2>
+<div class="pay-wrap">
+  <div class="pay-card">
 
-  <form method="get" class="search-bar">
-    <input type="text" name="q" value="{{ query }}" placeholder="🔍 F.I.Sh yoki email orqali izlash...">
-    <input type="date" name="date" value="{{ request.GET.date }}">
-    <button type="submit">Filtrlash</button>
-  </form>
+    <!-- =======================================================
+         HEADER: Title + Tools + Filters
+         ======================================================= -->
+    <div class="pay-headbox">
+      <h3 class="head-title">💰 O‘quvchilar to‘lov nazorati</h3>
 
-  <div class="filter-buttons">
-    <a href="?filter=" class="{% if not filter_type %}active{% endif %}">Hammasi</a>
-    <a href="?filter=full" class="{% if filter_type == 'full' %}active{% endif %}">✅ To‘liq yopilganlar</a>
-    <a href="?filter=unpaid" class="{% if filter_type == 'unpaid' %}active{% endif %}">❌ To‘lamagan / qoldig‘i bor</a>
-  </div>
+      <form method="get" class="tools" id="filterForm">
+        {% if status_filter %}
+          <input type="hidden" name="status" value="{{ status_filter }}">
+        {% endif %}
 
-  <div class="table-wrapper">
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>F.I.Sh</th>
-          <th>Guruh</th>
-          <th>Kurs narxi</th>
-          <th>Jami to‘langan (umumiy)</th>
-          <th>Joriy oy qoldig‘i</th>
-          <th>Status</th>
-          <th>Karta</th>
-          <th>Naqd</th>
-          <th>Saqlash</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for s in data %}
-        <tr>
-          <td>{{ forloop.counter }}</td>
-          <td>
-            <a href="javascript:void(0)"
-               onclick="openModal('{{ s.student.id }}', '{{ s.student.ism }} {{ s.student.familya }}')"
-               style="color:#0d9488;font-weight:600;text-decoration:none;">
-              {{ s.student.ism }} {{ s.student.familya }}
-            </a>
-          </td>
-          <td>{{ s.group.nom }}</td>
-          <td>{{ s.kurs_narhi|intcomma }}</td>
-          <td>{{ s.jami_tolangan|intcomma }}</td>
-          <td>{{ s.qoldiq|intcomma }}</td>
-          <td class="status {% if s.is_full %}full{% elif s.is_late %}late{% else %}unpaid{% endif %}">
-            {% if s.is_full %}✅ To‘liq{% elif s.is_late %}⚠️ Qisman{% else %}❌ To‘lamagan{% endif %}
-          </td>
-          <td colspan="3">
-            <form method="post" action="{% url 'education:create_payment' %}" class="payment-form">
-              {% csrf_token %}
-              <input type="hidden" name="student_id" value="{{ s.student.id }}">
-              <input type="hidden" name="group_id" value="{{ s.group.id }}">
-              <input type="number" name="card_amount" class="payment-input" placeholder="Karta" min="0">
-              <input type="number" name="cash_amount" class="payment-input" placeholder="Naqd" min="0">
-              <button type="submit" class="save-btn">Saqlash</button>
-            </form>
-          </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="10" style="text-align:center;color:#999;">Maʼlumot topilmadi.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+        <!-- ✅ per_page yo‘qolib qolmasin -->
+        <input type="hidden" name="per_page" value="{{ per_page|default:'10' }}">
+
+        <!-- Search -->
+        <div class="field">
+          <span class="icon">🔎</span>
+          <input class="inp inp-search" id="qInput" type="text" name="q" value="{{ query }}"
+                 placeholder="F.I.Sh yoki email orqali izlash…" autocomplete="off">
+          <button class="clear-btn" type="button" id="clearQ" title="Tozalash">✕</button>
+        </div>
+
+        <button class="btn gray" type="button" onclick="openStats()">📊 Statistika</button>
+
+        <!-- Month Picker -->
+        <div class="monthpicker" id="monthPicker">
+          <input type="hidden" name="month" id="monthInput" value="{{ month_str }}">
+
+          <button class="month-btn" type="button" id="monthBtn" aria-haspopup="true" aria-expanded="false">
+            <span>📅</span>
+            <span id="monthLabel">—</span>
+            <span class="caret">▾</span>
+          </button>
+
+          <div class="month-menu" id="monthMenu" role="menu">
+            <div class="mm-row">
+              <div class="mm-col" id="mmMonthCol">
+                <label class="mm-label">OY</label>
+                <button class="mm-dd" type="button" id="ddMonthBtn">
+                  <span id="ddMonthText">—</span>
+                  <span class="car">▾</span>
+                </button>
+                <div class="mm-dd-menu" id="ddMonthMenu"></div>
+              </div>
+
+              <div class="mm-col" id="mmYearCol">
+                <label class="mm-label">YIL</label>
+                <button class="mm-dd" type="button" id="ddYearBtn">
+                  <span id="ddYearText">—</span>
+                  <span class="car">▾</span>
+                </button>
+                <div class="mm-dd-menu" id="ddYearMenu"></div>
+              </div>
+            </div>
+
+            <div class="mm-actions">
+              <button class="btn gray" type="button" id="mmToday">Joriy oy</button>
+              <button class="btn green" type="button" id="mmApply">Qo‘llash</button>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn green" type="submit">Filtrlash</button>
+      </form>
+
+      <!-- Filters -->
+      <div class="filters">
+        {% with query|urlencode as qenc %}
+          <a class="pill {% if not status_filter %}active{% endif %}"
+             href="?q={{ qenc }}&month={{ month_str }}&per_page={{ per_page|default:'10' }}">
+            Hammasi <span class="count">({{ total }})</span>
+          </a>
+
+          <a class="pill {% if status_filter == 'full' %}active{% endif %}"
+             href="?q={{ qenc }}&month={{ month_str }}&per_page={{ per_page|default:'10' }}&status=full">
+            ✅ To‘liq <span class="count">({{ full_count }})</span>
+          </a>
+
+          <!-- ✅ per_page qo‘shildi -->
+          <a class="pill {% if status_filter == 'partial' %}active{% endif %}"
+             href="?q={{ qenc }}&month={{ month_str }}&per_page={{ per_page|default:'10' }}&status=partial">
+            ⚠️ Qisman <span class="count">({{ partial_count }})</span>
+          </a>
+
+          <!-- ✅ per_page qo‘shildi -->
+          <a class="pill {% if status_filter == 'unpaid' %}active{% endif %}"
+             href="?q={{ qenc }}&month={{ month_str }}&per_page={{ per_page|default:'10' }}&status=unpaid">
+            ❌ To‘lanmagan <span class="count">({{ unpaid_count }})</span>
+          </a>
+        {% endwith %}
+      </div>
+    </div>
+
+    <!-- =======================================================
+         LIST
+         ======================================================= -->
+    <div class="pay-list">
+      {% for s in data %}
+        <div class="item">
+          <div class="row1">
+            <div>
+              <div class="who">
+                <span class="idx">#{{ forloop.counter }}</span>
+
+                <a class="name-link"
+                   href="javascript:void(0)"
+                   onclick="openPayModal('{{ s.enrollment.id }}', '{{ s.student.ism }} {{ s.student.familya }}', '{{ s.group.nom }}')">
+                  {{ s.student.ism }} {{ s.student.familya }}
+                </a>
+
+                <span class="group-tag">{{ s.group.nom }}</span>
+              </div>
+
+              <div class="sub">
+                Jami to‘langan: <b style="color:var(--text)">{{ s.jami_tolangan|intcomma }}</b>
+              </div>
+            </div>
+
+            <div>
+              {% if s.fee_missing %}
+                <span class="badge b-gray">ℹ️ Narx yo‘q</span>
+              {% else %}
+                {% if s.status == "full" %}
+                  <span class="badge b-ok">✅ To‘liq</span>
+                {% elif s.status == "partial" %}
+                  <span class="badge b-warn">⚠️ Qisman</span>
+                {% else %}
+                  <span class="badge b-bad">❌ To‘lanmagan</span>
+                {% endif %}
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row2">
+            <div class="amounts">
+              <div>Oylik: <b>{% if s.fee_missing %}—{% else %}{{ s.fee|intcomma }}{% endif %}</b></div>
+              <div>To‘langan: <b>{% if s.fee_missing %}—{% else %}{{ s.paid_this_month|intcomma }}{% endif %}</b></div>
+              <div>Qoldiq:
+                <b>
+                  {% if s.fee_missing %}
+                    —
+                  {% else %}
+                    {% if s.qoldiq == 0 %}
+                      <span style="color:var(--ok);">0</span>
+                    {% else %}
+                      <span style="color:var(--bad);">{{ s.qoldiq|intcomma }}</span>
+                    {% endif %}
+                  {% endif %}
+                </b>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+              <form method="post" action="{% url 'education:create_payment' %}" class="pay-form">
+                {% csrf_token %}
+                <input type="hidden" name="enrollment_id" value="{{ s.enrollment.id }}">
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+                <input class="mini-inp" type="number" name="card_amount" placeholder="Karta" min="0">
+                <input class="mini-inp" type="number" name="cash_amount" placeholder="Naqd" min="0">
+                <button class="btn green" type="submit" style="padding:9px 12px;">Saqlash</button>
+              </form>
+
+              <button class="btn gray" type="button"
+                      onclick="openPayModal('{{ s.enrollment.id }}', '{{ s.student.ism }} {{ s.student.familya }}', '{{ s.group.nom }}')">
+                🧾 Tarix
+              </button>
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="item" style="text-align:center; color:var(--muted); padding:18px;">
+          Ma’lumot topilmadi.
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- =======================================================
+         PAGINATION
+         ======================================================= -->
+    {% with per_page|default:"10" as per_page_val %}
+      <div class="pager">
+        <form method="get" class="perpage">
+          {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+          <input type="hidden" name="q" value="{{ query }}">
+          <input type="hidden" name="month" value="{{ month_str }}">
+
+          <label for="perPageSel">Ko‘rsatish:</label>
+          <select id="perPageSel" name="per_page" onchange="this.form.submit()">
+            <option value="10"  {% if per_page_val|stringformat:"s" == "10" %}selected{% endif %}>10</option>
+            <option value="20"  {% if per_page_val|stringformat:"s" == "20" %}selected{% endif %}>20</option>
+            <option value="50"  {% if per_page_val|stringformat:"s" == "50" %}selected{% endif %}>50</option>
+            <option value="100" {% if per_page_val|stringformat:"s" == "100" %}selected{% endif %}>100</option>
+          </select>
+        </form>
+
+        {% if page_obj.paginator.num_pages > 1 %}
+          {% with query|urlencode as qenc %}
+            {% with "q="|add:qenc|add:"&month="|add:month_str|add:"&per_page="|add:per_page_val|stringformat:"s" as qs_base %}
+              {% if status_filter %}
+                {% with qs_base|add:"&status="|add:status_filter as qs %}
+                  <nav class="pagination" aria-label="Pagination">
+                    {% if page_obj.has_previous %}
+                      <a class="pg-btn" href="?{{ qs }}&page={{ page_obj.previous_page_number }}">‹</a>
+                    {% else %}
+                      <span class="pg-btn disabled">‹</span>
+                    {% endif %}
+
+                    {% for i in page_obj.paginator.page_range %}
+                      <a class="pg-num {% if page_obj.number == i %}active{% endif %}" href="?{{ qs }}&page={{ i }}">{{ i }}</a>
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                      <a class="pg-btn" href="?{{ qs }}&page={{ page_obj.next_page_number }}">›</a>
+                    {% else %}
+                      <span class="pg-btn disabled">›</span>
+                    {% endif %}
+                  </nav>
+                {% endwith %}
+              {% else %}
+                {% with qs_base as qs %}
+                  <nav class="pagination" aria-label="Pagination">
+                    {% if page_obj.has_previous %}
+                      <a class="pg-btn" href="?{{ qs }}&page={{ page_obj.previous_page_number }}">‹</a>
+                    {% else %}
+                      <span class="pg-btn disabled">‹</span>
+                    {% endif %}
+
+                    {% for i in page_obj.paginator.page_range %}
+                      <a class="pg-num {% if page_obj.number == i %}active{% endif %}" href="?{{ qs }}&page={{ i }}">{{ i }}</a>
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                      <a class="pg-btn" href="?{{ qs }}&page={{ page_obj.next_page_number }}">›</a>
+                    {% else %}
+                      <span class="pg-btn disabled">›</span>
+                    {% endif %}
+                  </nav>
+                {% endwith %}
+              {% endif %}
+            {% endwith %}
+          {% endwith %}
+        {% endif %}
+      </div>
+    {% endwith %}
+
   </div>
 </div>
 
-<!-- Modal -->
-<div id="paymentModal">
-  <div class="modal-content">
-    <h3>🧾 To‘lov tarixi</h3>
-    <p id="studentName"></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Sana</th>
-          <th>Soat</th>
-          <th>Naqd</th>
-          <th>Karta</th>
-          <th>Jami</th>
-          <th>Yig‘indi</th>
-          <th>Qoldiq (aktiv oy)</th>
-        </tr>
-      </thead>
-      <tbody id="paymentHistory">
-        <tr><td colspan="7">Yuklanmoqda...</td></tr>
-      </tbody>
-    </table>
-    <button class="modal-close" onclick="closeModal()">Yopish</button>
+<!-- =========================================================
+     TO‘LOV TARIX MODAL
+     ========================================================= -->
+<div id="payModal" class="modal" onclick="backdropClose(event, 'payModal')">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div>
+        <p class="modal-title" id="mTitle">🧾 To‘lov tarixi</p>
+        <div class="modal-sub" id="mSub"></div>
+      </div>
+      <button class="btn gray" onclick="closeModal('payModal')" type="button">✖ Yopish</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="modal-stats">
+        <div class="stat"><small>Tanlangan oy</small><span id="mMonth">—</span></div>
+        <div class="stat"><small>Oylik narx</small><span id="mFee">—</span></div>
+        <div class="stat"><small>Shu oy to‘langan</small><span id="mPaid">—</span></div>
+        <div class="stat"><small>Qoldiq</small><span id="mLeft">—</span></div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="modal-table">
+          <thead>
+            <tr>
+              <th>Vaqt</th>
+              <th>Naqd</th>
+              <th>Karta</th>
+              <th>Jami</th>
+              <th>Qaysi oylarga tushdi</th>
+              <th>Chek</th>
+            </tr>
+          </thead>
+          <tbody id="mBody">
+            <tr><td colspan="6" style="color:var(--muted);">Yuklanmoqda...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
+
+<!-- =========================================================
+     STATISTIKA MODAL
+     ========================================================= -->
+<div id="statsModal" class="modal" onclick="backdropClose(event, 'statsModal')">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div>
+        <p class="modal-title">📊 To‘lov statistikasi</p>
+        <div class="modal-sub" id="statsSub">—</div>
+      </div>
+      <button class="btn gray" onclick="closeModal('statsModal')" type="button">✖ Yopish</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="tabs">
+        <button class="tab active" id="tabMonth" type="button" onclick="setStatsMode('month')">📅 Tanlangan oy</button>
+        <button class="tab" id="tabAll" type="button" onclick="setStatsMode('all')">🗓️ Butun davr</button>
+      </div>
+
+      <div class="stats-grid">
+        <div class="chart-card">
+          <div class="chart-wrap"><canvas id="statsChart"></canvas></div>
+
+          <table class="mini-table" id="statsTable">
+            <thead>
+              <tr><th>Holat</th><th>Son</th><th>Foiz</th></tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="3" style="color:var(--muted); font-weight:900;">Yuklanmoqda...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <div class="modal-stats" id="statsCards"></div>
+
+          <div class="chart-card">
+            <div style="font-weight:900; margin-bottom:8px;">Izoh</div>
+            <div style="color:var(--muted); font-weight:800; line-height:1.45;">
+              • “Tanlangan oy” — shu oy bo‘yicha To‘liq / Qisman / To‘lanmagan taqsimoti.<br>
+              • “Butun davr” — umumiy to‘lov qilgan o‘quvchilar va hech to‘lamaganlar taqsimoti.<br>
+              • Foizlar avtomatik hisoblanadi.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
 <script>
-function formatNumber(num) {
-  if (!num || isNaN(num)) return "0";
-  return Number(num).toLocaleString("uz-UZ");
+function fmt(n){ try { return Number(n || 0).toLocaleString("uz-UZ"); } catch(e){ return n; } }
+function pct(part, total){
+  total = Number(total || 0); part = Number(part || 0);
+  if(total <= 0) return "0%";
+  return Math.round((part / total) * 100) + "%";
 }
 
-function openModal(studentId, studentName) {
-  document.getElementById('studentName').innerText = studentName;
-  const tbody = document.getElementById('paymentHistory');
-  tbody.innerHTML = '<tr><td colspan="7">Yuklanmoqda...</td></tr>';
+function closeModal(id){ document.getElementById(id).style.display = "none"; }
+function openModal(id){ document.getElementById(id).style.display = "flex"; }
+function backdropClose(e, id){ if (e.target && e.target.id === id) closeModal(id); }
 
-  fetch(`/talim/tolovlar/tarix/${studentId}/`)
-    .then(res => res.json())
-    .then(data => {
-      const kursNarxi = data.kurs_narhi || 0;
-      const payments = data.payments || [];
+function openPayModal(enrollmentId, studentName, groupName){
+  const month = "{{ month_str }}";
+  document.getElementById("mSub").innerText = studentName + " • " + groupName;
+  document.getElementById("mBody").innerHTML = '<tr><td colspan="6" style="color:var(--muted);">Yuklanmoqda...</td></tr>';
 
-      if (!payments.length) {
-        tbody.innerHTML = '<tr><td colspan="7">To‘lov topilmadi</td></tr>';
-        return;
+  fetch(`/talim/tolovlar/tarix/enrollment/${enrollmentId}/?month=${encodeURIComponent(month)}`)
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById("mMonth").innerText = d.month || "—";
+      document.getElementById("mFee").innerText = fmt(d.fee) + " so‘m";
+      document.getElementById("mPaid").innerText = fmt(d.paid_this_month) + " so‘m";
+
+      const leftEl = document.getElementById("mLeft");
+      leftEl.innerText = fmt(d.qoldiq) + " so‘m";
+      leftEl.style.color = (Number(d.qoldiq || 0) === 0) ? "var(--ok)" : "var(--bad)";
+
+      const payments = d.payments || [];
+      if (!payments.length){
+        document.getElementById("mBody").innerHTML =
+          '<tr><td colspan="6" style="color:var(--muted); font-weight:900;">To‘lov topilmadi</td></tr>';
+      } else {
+        document.getElementById("mBody").innerHTML = payments.map(p => {
+          const alloc = (p.allocations || []).map(a => `<div class="alloc">• <b>${a.month}</b> — ${fmt(a.amount)} so‘m</div>`).join("");
+          const receipt = p.receipt_url
+            ? `<a class="btn blue" style="padding:8px 10px;" href="${p.receipt_url}">PDF</a>`
+            : `<span style="color:var(--muted)">—</span>`;
+          return `
+            <tr>
+              <td>${p.paid_at || "-"}</td>
+              <td>${p.cash ? fmt(p.cash) : "-"}</td>
+              <td>${p.card ? fmt(p.card) : "-"}</td>
+              <td><b>${fmt(p.total)}</b></td>
+              <td style="text-align:left;">${alloc || '<span style="color:var(--muted)">—</span>'}</td>
+              <td>${receipt}</td>
+            </tr>`;
+        }).join("");
       }
-
-      tbody.innerHTML = payments.map(p => {
-        const cash = p.cash_amount || 0;
-        const card = p.card_amount || 0;
-        const jami = p.summa || (cash + card);
-        const qoldiq = p.qoldiq || 0;
-
-        return `
-          <tr>
-            <td>${p.sana}</td>
-            <td>${p.vaqt}</td>
-            <td>${cash ? formatNumber(cash) : '-'}</td>
-            <td>${card ? formatNumber(card) : '-'}</td>
-            <td>${formatNumber(jami)}</td>
-            <td>${formatNumber(p.total_paid)}</td>
-            <td style="color:${qoldiq === 0 ? '#16a34a' : '#dc2626'};font-weight:600;">
-              ${qoldiq === 0 ? 'To‘liq yopilgan' : formatNumber(qoldiq) + ' so‘m qoldi'}
-            </td>
-          </tr>`;
-      }).join('');
     })
     .catch(() => {
-      tbody.innerHTML = '<tr><td colspan="7" style="color:red;">❌ Xatolik yuz berdi!</td></tr>';
+      document.getElementById("mBody").innerHTML =
+        '<tr><td colspan="6" style="color:var(--bad); font-weight:900;">❌ Xatolik yuz berdi</td></tr>';
     });
 
-  document.getElementById('paymentModal').style.display = 'flex';
+  openModal("payModal");
 }
 
-function closeModal() {
-  document.getElementById('paymentModal').style.display = 'none';
+/* Search clear */
+(function(){
+  const qInput = document.getElementById("qInput");
+  const clearQ = document.getElementById("clearQ");
+  function toggleClear(){ clearQ.style.display = (qInput && qInput.value.trim().length) ? "inline-flex" : "none"; }
+  if(qInput){ toggleClear(); qInput.addEventListener("input", toggleClear); }
+  if(clearQ){
+    clearQ.addEventListener("click", () => { qInput.value = ""; toggleClear(); qInput.focus(); });
+  }
+})();
+
+/* Month picker */
+(function(){
+  const monthNames = ["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul","Avgust","Sentyabr","Oktyabr","Noyabr","Dekabr"];
+  const mp = document.getElementById("monthPicker");
+  const btn = document.getElementById("monthBtn");
+  const monthLabel = document.getElementById("monthLabel");
+  const monthInput = document.getElementById("monthInput");
+
+  const mmMonthCol = document.getElementById("mmMonthCol");
+  const mmYearCol = document.getElementById("mmYearCol");
+
+  const ddMonthBtn = document.getElementById("ddMonthBtn");
+  const ddYearBtn = document.getElementById("ddYearBtn");
+  const ddMonthText = document.getElementById("ddMonthText");
+  const ddYearText = document.getElementById("ddYearText");
+
+  const ddMonthMenu = document.getElementById("ddMonthMenu");
+  const ddYearMenu = document.getElementById("ddYearMenu");
+
+  const mmApply = document.getElementById("mmApply");
+  const mmToday = document.getElementById("mmToday");
+
+  function pad2(n){ return String(n).padStart(2,"0"); }
+  function parseMonthStr(v){
+    if(!v || v.length < 7) return null;
+    const y = parseInt(v.slice(0,4),10);
+    const m = parseInt(v.slice(5,7),10);
+    if(!y || !m || m<1 || m>12) return null;
+    return {y, m};
+  }
+  function setTopLabel(y,m){ monthLabel.textContent = monthNames[m-1] + " " + y; }
+  function openMenu(){ mp.classList.add("open"); btn.setAttribute("aria-expanded","true"); }
+  function closeMenu(){
+    mp.classList.remove("open");
+    btn.setAttribute("aria-expanded","false");
+    mmMonthCol.classList.remove("open");
+    mmYearCol.classList.remove("open");
+  }
+
+  function fillMonthMenu(activeM){
+    ddMonthMenu.innerHTML = "";
+    monthNames.forEach((name, idx) => {
+      const m = idx + 1;
+      const div = document.createElement("div");
+      div.className = "mm-item" + (m === activeM ? " active" : "");
+      div.textContent = name;
+      div.addEventListener("click", () => {
+        state.m = m;
+        ddMonthText.textContent = monthNames[state.m-1];
+        fillMonthMenu(state.m);
+        setTopLabel(state.y, state.m);
+        mmMonthCol.classList.remove("open");
+      });
+      ddMonthMenu.appendChild(div);
+    });
+  }
+
+  function fillYearMenu(centerY, activeY){
+    ddYearMenu.innerHTML = "";
+    const from = centerY - 3;
+    const to = centerY + 3;
+    for(let y=from; y<=to; y++){
+      const div = document.createElement("div");
+      div.className = "mm-item" + (y === activeY ? " active" : "");
+      div.textContent = String(y);
+      div.addEventListener("click", () => {
+        state.y = y;
+        ddYearText.textContent = String(state.y);
+        fillYearMenu(state.y, state.y);
+        setTopLabel(state.y, state.m);
+        mmYearCol.classList.remove("open");
+      });
+      ddYearMenu.appendChild(div);
+    }
+  }
+
+  const now = new Date();
+  const initial = parseMonthStr(monthInput.value) || {y: now.getFullYear(), m: now.getMonth()+1};
+  const state = { y: initial.y, m: initial.m };
+
+  ddMonthText.textContent = monthNames[state.m-1];
+  ddYearText.textContent = String(state.y);
+  setTopLabel(state.y, state.m);
+
+  fillMonthMenu(state.m);
+  fillYearMenu(state.y, state.y);
+
+  btn.addEventListener("click", () => { mp.classList.contains("open") ? closeMenu() : openMenu(); });
+  ddMonthBtn.addEventListener("click", () => { mmYearCol.classList.remove("open"); mmMonthCol.classList.toggle("open"); });
+  ddYearBtn.addEventListener("click", () => { mmMonthCol.classList.remove("open"); mmYearCol.classList.toggle("open"); });
+
+  mmApply.addEventListener("click", () => {
+    monthInput.value = `${state.y}-${pad2(state.m)}`;
+    closeMenu();
+    document.getElementById("filterForm").submit();
+  });
+
+  mmToday.addEventListener("click", () => {
+    state.y = now.getFullYear();
+    state.m = now.getMonth()+1;
+    ddMonthText.textContent = monthNames[state.m-1];
+    ddYearText.textContent = String(state.y);
+    setTopLabel(state.y, state.m);
+    fillMonthMenu(state.m);
+    fillYearMenu(state.y, state.y);
+  });
+
+  document.addEventListener("click", (e) => { if(!mp.contains(e.target)) closeMenu(); });
+  document.addEventListener("keydown", (e) => { if(e.key === "Escape") closeMenu(); });
+})();
+
+/* Stats */
+const STATS_MONTH = {
+  month_label: "{{ month_str }}",
+  total: Number("{{ total|default:'0' }}"),
+  full: Number("{{ full_count|default:'0' }}"),
+  partial: Number("{{ partial_count|default:'0' }}"),
+  unpaid: Number("{{ unpaid_count|default:'0' }}"),
+  fee_total: Number("{{ month_fee_total|default:'0' }}"),
+  paid_total: Number("{{ month_paid_total|default:'0' }}"),
+  left_total: Number("{{ month_left_total|default:'0' }}"),
+};
+const STATS_ALL = {
+  students_total: Number("{{ all_students_total|default:'0' }}"),
+  paid_students: Number("{{ all_paid_students|default:'0' }}"),
+  never_paid_students: Number("{{ all_never_paid_students|default:'0' }}"),
+  paid_total: Number("{{ all_paid_total|default:'0' }}"),
+  payments_count: Number("{{ all_payments_count|default:'0' }}"),
+};
+let statsMode = "month";
+let statsChart = null;
+
+function openStats(){ setStatsMode("month"); openModal("statsModal"); }
+function setStatsMode(mode){
+  statsMode = mode;
+  document.getElementById("tabMonth").classList.toggle("active", mode === "month");
+  document.getElementById("tabAll").classList.toggle("active", mode === "all");
+  document.getElementById("statsSub").innerText = (mode === "month")
+    ? "Tanlangan oy bo‘yicha tahlil" : "Butun davr bo‘yicha umumiy tahlil";
+  renderStats();
+}
+function renderStats(){
+  const cards = document.getElementById("statsCards");
+  const tableBody = document.querySelector("#statsTable tbody");
+
+  let labels = [], values = [], colors = [];
+  if(statsMode === "month"){
+    labels = ["To‘liq", "Qisman", "To‘lanmagan"];
+    values = [STATS_MONTH.full, STATS_MONTH.partial, STATS_MONTH.unpaid];
+    colors = ["#22c55e", "#facc15", "#ef4444"];
+    const total = STATS_MONTH.total || (values[0]+values[1]+values[2]) || 0;
+
+    cards.innerHTML = `
+      <div class="stat"><small>Tanlangan oy</small><span>${STATS_MONTH.month_label || "—"}</span></div>
+      <div class="stat"><small>O‘quvchilar soni</small><span>${total}</span></div>
+      <div class="stat"><small>Oylik jami (summa)</small><span>${fmt(STATS_MONTH.fee_total)} so‘m</span></div>
+      <div class="stat"><small>Shu oy to‘langan</small><span>${fmt(STATS_MONTH.paid_total)} so‘m</span></div>
+      <div class="stat"><small>Qoldiq</small><span style="color:var(--bad)">${fmt(STATS_MONTH.left_total)} so‘m</span></div>
+    `;
+    tableBody.innerHTML = `
+      <tr><td>To‘liq</td><td>${values[0]}</td><td>${pct(values[0], total)}</td></tr>
+      <tr><td>Qisman</td><td>${values[1]}</td><td>${pct(values[1], total)}</td></tr>
+      <tr><td>To‘lanmagan</td><td>${values[2]}</td><td>${pct(values[2], total)}</td></tr>
+    `;
+  } else {
+    labels = ["To‘lov qilgan", "Hech to‘lamagan"];
+    values = [STATS_ALL.paid_students, STATS_ALL.never_paid_students];
+    colors = ["#22c55e", "#ef4444"];
+    const total = STATS_ALL.students_total || (values[0]+values[1]) || 0;
+
+    cards.innerHTML = `
+      <div class="stat"><small>O‘quvchilar jami</small><span>${total}</span></div>
+      <div class="stat"><small>To‘lov qilgan</small><span>${values[0]}</span></div>
+      <div class="stat"><small>Hech to‘lamagan</small><span>${values[1]}</span></div>
+      <div class="stat"><small>Umumiy to‘lov (summa)</small><span>${fmt(STATS_ALL.paid_total)} so‘m</span></div>
+      <div class="stat"><small>To‘lovlar soni</small><span>${STATS_ALL.payments_count}</span></div>
+    `;
+    tableBody.innerHTML = `
+      <tr><td>To‘lov qilgan</td><td>${values[0]}</td><td>${pct(values[0], total)}</td></tr>
+      <tr><td>Hech to‘lamagan</td><td>${values[1]}</td><td>${pct(values[1], total)}</td></tr>
+    `;
+  }
+
+  const ctx = document.getElementById("statsChart");
+  if(statsChart){ statsChart.destroy(); }
+
+  statsChart = new Chart(ctx, {
+    type: "doughnut",
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 0 }] },
+    options: {
+      responsive: true,
+      cutout: "70%",
+      plugins: {
+        legend: { position: "bottom", labels: { color: "#e5e7eb", font: { weight: "bold" } } },
+        tooltip: {
+          callbacks: {
+            label: function(context){
+              const total = context.dataset.data.reduce((a,b)=>a+b,0) || 0;
+              const v = context.raw || 0;
+              return ` ${context.label}: ${v} (${pct(v,total)})`;
+            }
+          }
+        }
+      }
+    }
+  });
 }
 </script>
 {% endblock %}

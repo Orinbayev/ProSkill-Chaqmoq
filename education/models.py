@@ -427,3 +427,57 @@ def auto_attach_enrollment(sender, instance, **kwargs):
     if enroll:
         instance.enrollment = enroll
 
+
+
+
+
+
+
+
+class TuitionMonth(models.Model):
+    """
+    Har bir Enrollment uchun har oy "kurs narxi"ni saqlaydi.
+    month = oyni 1-sanasi (2026-01-01)
+    """
+    enrollment = models.ForeignKey(
+        'education.Enrollment',
+        on_delete=models.CASCADE,
+        related_name='tuition_months'
+    )
+    month = models.DateField()  # always first day of month
+    fee_amount = models.PositiveIntegerField(default=0)  # oylik narx (so'm)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('enrollment', 'month')
+        ordering = ('month',)
+
+    def __str__(self):
+        return f"{self.enrollment_id} - {self.month} - {self.fee_amount}"
+
+
+class PaymentAllocation(models.Model):
+    """
+    Payment qaysi oy(lar)ni yopganini yozib boradi.
+    Masalan: 600k payment -> Jan 550k + Feb 50k
+    """
+    payment = models.ForeignKey(
+        'education.Payment',
+        on_delete=models.CASCADE,
+        related_name='allocations'
+    )
+    tuition_month = models.ForeignKey(
+        TuitionMonth,
+        on_delete=models.CASCADE,
+        related_name='allocations'
+    )
+    amount = models.PositiveIntegerField(default=0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('tuition_month__month', 'id')
+
+    def __str__(self):
+        return f"pay#{self.payment_id} -> {self.tuition_month.month}: {self.amount}"

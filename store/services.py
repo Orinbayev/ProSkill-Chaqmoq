@@ -1,7 +1,17 @@
 from django.db import transaction
 from .models import PurchaseRequest, Sale
 from chaqmoq.models import Ledger, Rule
+import re
+import secrets
+import string
+from django.contrib.auth import get_user_model
+from django.db.models import Q
+from django.utils import timezone
+from django.db import transaction
 
+U = get_user_model()
+
+User = get_user_model()
 @transaction.atomic
 def approve_purchase(pr: PurchaseRequest, manager):
     """Manager yoki direktor so‘rovni tasdiqlaydi"""
@@ -56,3 +66,132 @@ def reject_purchase(pr: PurchaseRequest, manager):
     pr.manager = manager
     pr.save(update_fields=['status','manager'])
     return True, 'Rad etildi.'
+
+# store/services.py
+
+
+def _normalize_phone(phone: str) -> str:
+    """
+    Lead telefonlari ba'zan '993845854' ko'rinishida bo'ladi.
+    Biz buni +998993845854 ga aylantiramiz.
+    """
+    s = (phone or "").strip()
+    if not s:
+        return ""
+
+    # faqat raqamlarni qoldiramiz
+    digits = re.sub(r"\D+", "", s)
+
+    # Agar 9 xonali bo'lsa (UZ local) => +998 qo'shamiz
+    if len(digits) == 9:
+        return "+998" + digits
+
+    # Agar 12 xonali bo'lsa (998xxxxxxxxx) => + qo'shamiz
+    if len(digits) == 12 and digits.startswith("998"):
+        return "+" + digits
+
+    # Agar allaqachon +998... bo'lsa
+    if s.startswith("+998"):
+        return s
+
+    # fallback
+    return s
+
+
+def _clean_for_login(text: str) -> str:
+    s = (text or "").strip().lower()
+    s = s.replace("o‘", "o").replace("o'", "o")
+    s = s.replace("g‘", "g").replace("g'", "g")
+    s = s.replace("’", "").replace("'", "")
+    s = re.sub(r"[^a-z0-9]+", "", s)
+    return s
+
+
+def _gen_default_password() -> str:
+    alphabet = string.ascii_letters + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(10))
+
+
+def _gen_unique_gmail_like_email(ism: str, familya: str) -> str:
+    first = _clean_for_login(ism) or "user"
+    last = _clean_for_login(familya)
+    base = f"{first}.{last}" if last else first
+
+    for _ in range(80):
+        suffix = secrets.randbelow(9000) + 1000
+        email = f"{base}{suffix}@gmail.com"
+        if not U.objects.filter(email=email).exists():
+            return email
+
+    token = secrets.token_hex(3)
+    return f"{base}{token}@gmail.com"
+
+
+def convert_lead_to_student(lead, converted_by=None):
+    """
+    Lead status 'Tasdiqlandi' bo'lsa studentga o'tkazadi.
+
+    Qoidalar:
+    - Agar lead.converted_user bor bo'lsa: qayta yaratmaydi.
+    - Telefon1 bo'yicha student topilsa: o'shani bog'laydi (update qiladi).
+    - Aks holda: yangi student yaratadi (email+parol auto).
+    - lead.converted_user / converted_by / converted_at to'ldiriladi.
+
+    Return: (user, password, created)
+      - created=True bo'lsa password qaytadi
+      - existing bo'lsa password=None
+    """
+    if getattr(lead, "converted_user_id", None):
+        return lead.converted_user, None, False
+
+    tel1 = _normalize_phone(getattr(lead, "telefon1", ""))
+    tel2 = _normalize_phone(getattr(lead, "telefon2", ""))
+
+    with transaction.atomic():
+        user = None
+
+        # 1) Telefon bo'yicha existing student qidiramiz
+        if tel1:
+            user = U.objects.filter(telefon1=tel1).first()
+
+        created = False
+        password = None
+
+        if user:
+            # mavjud userni studentga moslab yangilab qo'yamiz
+            user.role = "student"
+            user.ism = lead.ism
+            user.familya = lead.familya
+            if hasattr(user, "telefon1") and tel1:
+                user.telefon1 = tel1
+            if hasattr(user, "telefon2") and tel2:
+                user.telefon2 = tel2
+            user.save()
+
+        else:
+            # 2) Yangi student yaratamiz
+            email = _gen_unique_gmail_like_email(lead.ism, lead.familya)
+            password = _gen_default_password()
+
+            user = U(email=email)
+            user.role = "student"
+            user.ism = lead.ism
+            user.familya = lead.familya
+
+            if hasattr(user, "telefon1") and tel1:
+                user.telefon1 = tel1
+            if hasattr(user, "telefon2") and tel2:
+                user.telefon2 = tel2
+
+            user.set_password(password)
+            user.save()
+            created = True
+
+        # 3) Lead bilan bog'laymiz
+        lead.converted_user = user
+        lead.converted_at = timezone.now()
+        if converted_by is not None:
+            lead.converted_by = converted_by
+        lead.save(update_fields=["converted_user", "converted_at", "converted_by"])
+
+    return user, password, created

@@ -217,6 +217,8 @@ class LeadStatus(models.Model):
         return self.nom
 
 
+
+
 class Lead(models.Model):
     ism = models.CharField(max_length=100)
     familya = models.CharField(max_length=100, blank=True)
@@ -229,6 +231,21 @@ class Lead(models.Model):
     status = models.ForeignKey('LeadStatus', on_delete=models.SET_NULL, null=True, blank=True)
     comment = models.TextField(blank=True, null=True, verbose_name="Izoh (comment)")
     qoshilgan_sana = models.DateTimeField(auto_now_add=True)
+
+    # ✅ NEW: lead → student conversion info
+    converted_user = models.ForeignKey(
+        User, on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="converted_leads",
+        verbose_name="O‘quvchi (student)"
+    )
+    converted_at = models.DateTimeField(null=True, blank=True)
+    converted_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="converted_leads_by",
+        verbose_name="Kim o‘tkazdi"
+    )
 
     def __str__(self):
         return f"{self.ism} {self.familya or ''}".strip()
