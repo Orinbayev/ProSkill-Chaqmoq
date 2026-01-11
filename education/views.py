@@ -34,6 +34,9 @@ from django.db.models import Count, Prefetch, Sum
 from django.core.cache import cache
 from django.db.models.functions import ExtractMonth
 
+from .models import Enrollment, Payment
+from .permissions import user_can_manage_payments
+
 
 from django.http import (
     Http404,
@@ -111,9 +114,6 @@ def user_can_manage_payments(user) -> bool:
 
 from django.core.paginator import Paginator
 
-
-from .models import Enrollment, Payment
-from .permissions import user_can_manage_payments
 
 
 @login_required
@@ -348,43 +348,53 @@ def payment_history_enrollment(request, enrollment_id: int):
     month_str = request.GET.get("month", "")
     selected_month = parse_month_str(month_str)
 
-    enrollment = get_object_or_404(Enrollment.objects.select_related("student", "group"), id=enrollment_id)
+    enrollment = get_object_or_404(
+        Enrollment.objects.select_related("student", "group"),
+        id=enrollment_id
+    )
+
     tm = ensure_tuition_month(enrollment, selected_month)
 
-    fee = tm.fee_amount
-    paid_this_month = get_month_paid(tm)
-    qoldiq = max(0, fee - paid_this_month)
+    fee = int(tm.fee_amount or 0)
+    paid_this_month = int(get_month_paid(tm) or 0)
+    qoldiq = 0 if fee <= 0 else max(0, fee - paid_this_month)
 
-    # payments
     payments_qs = Payment.objects.filter(enrollment=enrollment).order_by("-id")
 
     payments = []
     for p in payments_qs:
         allocations = []
-        for a in p.allocations.select_related("tuition_month").all():
-            allocations.append({
-                "month": a.tuition_month.month.strftime("%Y-%m"),
-                "amount": a.amount,
-            })
 
-        paid_at = None
-        if hasattr(p, "paid_at") and p.paid_at:
-            paid_at = p.paid_at
-        elif hasattr(p, "sana") and p.sana:
-            # sana/vaqt bo‘lsa:
-            if hasattr(p, "vaqt") and p.vaqt:
-                paid_at = timezone.make_aware(timezone.datetime.combine(p.sana, p.vaqt))
+        # allocations relation bo‘lmasa ham yiqilmasin
+        alloc_qs = getattr(p, "allocations", None)
+        if alloc_qs is not None:
+            for a in alloc_qs.select_related("tuition_month").all():
+                allocations.append({
+                    "month": a.tuition_month.month.strftime("%Y-%m"),
+                    "amount": int(a.amount or 0),
+                })
+
+        # paid_at ni xavfsiz chiqaramiz
+        if getattr(p, "paid_at", None):
+            paid_at_dt = p.paid_at
+        elif getattr(p, "sana", None):
+            if getattr(p, "vaqt", None):
+                paid_at_dt = timezone.make_aware(timezone.datetime.combine(p.sana, p.vaqt))
             else:
-                paid_at = timezone.make_aware(timezone.datetime.combine(p.sana, timezone.datetime.min.time()))
+                paid_at_dt = timezone.make_aware(timezone.datetime.combine(p.sana, timezone.datetime.min.time()))
         else:
-            paid_at = timezone.now()
+            paid_at_dt = timezone.now()
+
+        cash = int(getattr(p, "cash_amount", 0) or 0)
+        card = int(getattr(p, "card_amount", 0) or 0)
+        total = int(getattr(p, "summa", 0) or (cash + card))
 
         payments.append({
             "id": p.id,
-            "paid_at": paid_at.strftime("%d.%m.%Y %H:%M"),
-            "cash": int(getattr(p, "cash_amount", 0) or 0),
-            "card": int(getattr(p, "card_amount", 0) or 0),
-            "total": int(getattr(p, "summa", 0) or 0),
+            "paid_at": timezone.localtime(paid_at_dt).strftime("%d.%m.%Y %H:%M"),
+            "cash": cash,
+            "card": card,
+            "total": total,
             "allocations": allocations,
             "receipt_url": f"/talim/tolov/chek/{p.id}/",
         })

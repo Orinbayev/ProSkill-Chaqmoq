@@ -682,11 +682,16 @@
               <div class="who">
                 <span class="idx">#{{ forloop.counter }}</span>
 
-                <a class="name-link"
-                   href="javascript:void(0)"
-                   onclick="openPayModal('{{ s.enrollment.id }}', '{{ s.student.ism }} {{ s.student.familya }}', '{{ s.group.nom }}')">
-                  {{ s.student.ism }} {{ s.student.familya }}
-                </a>
+                  <a class="name-link"
+                    href="javascript:void(0)"
+                    onclick="openPayModal(
+                      '{{ s.enrollment.id }}',
+                      '{{ s.student.ism|escapejs }} {{ s.student.familya|escapejs }}',
+                      '{{ s.group.nom|escapejs }}'
+                    )">
+                    {{ s.student.ism }} {{ s.student.familya }}
+                  </a>
+
 
                 <span class="group-tag">{{ s.group.nom }}</span>
               </div>
@@ -741,10 +746,15 @@
                 <button class="btn green" type="submit" style="padding:9px 12px;">Saqlash</button>
               </form>
 
-              <button class="btn gray" type="button"
-                      onclick="openPayModal('{{ s.enrollment.id }}', '{{ s.student.ism }} {{ s.student.familya }}', '{{ s.group.nom }}')">
-                🧾 Tarix
-              </button>
+                <button class="btn gray" type="button"
+                        onclick="openPayModal(
+                          '{{ s.enrollment.id }}',
+                          '{{ s.student.ism|escapejs }} {{ s.student.familya|escapejs }}',
+                          '{{ s.group.nom|escapejs }}'
+                        )">
+                  🧾 Tarix
+                </button>
+
             </div>
           </div>
         </div>
@@ -934,7 +944,8 @@ function openModal(id){ document.getElementById(id).style.display = "flex"; }
 function backdropClose(e, id){ if (e.target && e.target.id === id) closeModal(id); }
 
 function openPayModal(enrollmentId, studentName, groupName){
-  const month = "{{ month_str }}";
+  const month = "{{ month_str|escapejs }}";
+  // const month = "{{ month_str }}";
   document.getElementById("mSub").innerText = studentName + " • " + groupName;
   document.getElementById("mBody").innerHTML = '<tr><td colspan="6" style="color:var(--muted);">Yuklanmoqda...</td></tr>';
 
@@ -1197,5 +1208,11 @@ function renderStats(){
     }
   });
 }
+clearQ.addEventListener("click", () => {
+  qInput.value = "";
+  toggleClear();
+  document.getElementById("filterForm").submit();
+});
+
 </script>
 {% endblock %}
