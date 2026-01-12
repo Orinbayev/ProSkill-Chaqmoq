@@ -83,10 +83,13 @@ class User(AbstractUser):
         verbose_name_plural = 'Foydalanuvchilar'
 
     def full_name(self):
-        return f"{self.ism} {self.familya}"
+            # ✅ otchestvo ham qo‘shiladi (None bo‘lsa ham muammo yo‘q)
+            parts = [self.ism, self.familya, self.otchestvo]
+            return " ".join([p for p in parts if p]).strip()
 
     def get_full_name(self):
-        return f"{self.ism} {self.familya}".strip()
+        # Django ko‘p joyda shu metoddan foydalanadi
+        return self.full_name()
 
     def __str__(self):
-        return f"{self.full_name()} — {self.get_role_display()}"
+        return f"{self.get_full_name()} — {self.get_role_display()}"

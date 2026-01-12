@@ -370,6 +370,34 @@
     border-color:#38bdf8;
     box-shadow: 0 0 0 3px rgba(56,189,248,0.18);
   }
+/* ===== MONEY INPUT (format + hint) ===== */
+.money-box{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  width:110px;            /* eski mini-inp width bilan mos */
+}
+
+.money-view{
+  width:100%;
+  text-align:center;
+  letter-spacing:.5px;
+  font-weight:1000;
+}
+
+.money-preview{
+  font-size:11px;
+  font-weight:900;
+  color: var(--muted);
+  text-align:center;
+  line-height:1.1;
+  user-select:none;
+}
+.money-preview b{ color: var(--text); }
+
+@media (max-width: 700px){
+  .money-box{ width:100%; }
+}
 
   /* =========================================================
      PAGINATION BAR
@@ -682,15 +710,11 @@
               <div class="who">
                 <span class="idx">#{{ forloop.counter }}</span>
 
-                  <a class="name-link"
-                    href="javascript:void(0)"
-                    onclick="openPayModal(
-                      '{{ s.enrollment.id }}',
-                      '{{ s.student.ism|escapejs }} {{ s.student.familya|escapejs }}',
-                      '{{ s.group.nom|escapejs }}'
-                    )">
-                    {{ s.student.ism }} {{ s.student.familya }}
-                  </a>
+  <a class="name-link"
+     href="javascript:void(0)"
+     onclick="openPayModal('{{ s.enrollment.id }}','{{ s.student.ism|escapejs }}{% if ot %} {{ ot|escapejs }}{% endif %} {{ s.student.familya|escapejs }}','{{ s.group.nom|escapejs }}')">
+{{ s.student.ism }}{% if s.student.otchestvo %} {{ s.student.otchestvo }}{% endif %}{% if s.student.familya %} {{ s.student.familya }}{% endif %}
+  </a>
 
 
                 <span class="group-tag">{{ s.group.nom }}</span>
@@ -741,19 +765,36 @@
                 <input type="hidden" name="enrollment_id" value="{{ s.enrollment.id }}">
                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
 
-                <input class="mini-inp" type="number" name="card_amount" placeholder="Karta" min="0">
-                <input class="mini-inp" type="number" name="cash_amount" placeholder="Naqd" min="0">
+<div class="money-box">
+  <input class="mini-inp money-view" type="text" inputmode="numeric" autocomplete="off" placeholder="Karta" maxlength="15">
+  <input type="hidden" class="money-hidden" name="card_amount" value="">
+  <div class="money-preview" style="display:none">—</div>
+</div>
+
+<div class="money-box">
+  <input class="mini-inp money-view" type="text" inputmode="numeric" autocomplete="off" placeholder="Naqd" maxlength="15">
+  <input type="hidden" class="money-hidden" name="cash_amount" value="">
+  <div class="money-preview" style="display:none">—</div>
+</div>
+
                 <button class="btn green" type="submit" style="padding:9px 12px;">Saqlash</button>
               </form>
 
                 <button class="btn gray" type="button"
-                        onclick="openPayModal(
-                          '{{ s.enrollment.id }}',
-                          '{{ s.student.ism|escapejs }} {{ s.student.familya|escapejs }}',
-                          '{{ s.group.nom|escapejs }}'
-                        )">
+onclick="openPayModal('{{ s.enrollment.id }}','{{ s.student.ism|escapejs }}{% if ot %} {{ ot|escapejs }}{% endif %} {{ s.student.familya|escapejs }}','{{ s.group.nom|escapejs }}')"
+>
                   🧾 Tarix
                 </button>
+                <a class="btn blue"
+   href="{% url 'education:enrollment_edit' s.enrollment.id %}?next={{ request.get_full_path|urlencode }}">
+  ✏️ Tahrir
+</a>
+
+<a class="btn gray"
+   href="{% url 'education:enrollment_delete' s.enrollment.id %}?next={{ request.get_full_path|urlencode }}">
+  🗑️ O‘chirish
+</a>
+
 
             </div>
           </div>
@@ -879,6 +920,35 @@
   </div>
 </div>
 
+
+<div id="editPaymentModal" class="modal" onclick="backdropClose(event, 'editPaymentModal')">
+  <div class="modal-box" style="width:520px;">
+    <div class="modal-head">
+      <div>
+        <p class="modal-title">✏️ To‘lovni tahrirlash</p>
+        <div class="modal-sub" id="epSub">—</div>
+      </div>
+      <button class="btn gray" onclick="closeModal('editPaymentModal')" type="button">✖ Yopish</button>
+    </div>
+
+    <div class="modal-body">
+      <input type="hidden" id="epPaymentId">
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <input class="mini-inp" style="flex:1; min-width:180px;" type="number" id="epCash" min="0" placeholder="Naqd">
+        <input class="mini-inp" style="flex:1; min-width:180px;" type="number" id="epCard" min="0" placeholder="Karta">
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:12px;">
+        <button class="btn green" type="button" onclick="savePaymentEdit()">✅ Saqlash</button>
+        <button class="btn gray" type="button" onclick="closeModal('editPaymentModal')">Bekor</button>
+      </div>
+
+      <div id="epErr" style="margin-top:10px; color:var(--bad); font-weight:900;"></div>
+    </div>
+  </div>
+</div>
+
 <!-- =========================================================
      STATISTIKA MODAL
      ========================================================= -->
@@ -944,6 +1014,9 @@ function openModal(id){ document.getElementById(id).style.display = "flex"; }
 function backdropClose(e, id){ if (e.target && e.target.id === id) closeModal(id); }
 
 function openPayModal(enrollmentId, studentName, groupName){
+  CURRENT_ENROLLMENT_ID = enrollmentId;
+  CURRENT_STUDENT = studentName;
+  CURRENT_GROUP = groupName;
   const month = "{{ month_str|escapejs }}";
   // const month = "{{ month_str }}";
   document.getElementById("mSub").innerText = studentName + " • " + groupName;
@@ -967,18 +1040,32 @@ function openPayModal(enrollmentId, studentName, groupName){
       } else {
         document.getElementById("mBody").innerHTML = payments.map(p => {
           const alloc = (p.allocations || []).map(a => `<div class="alloc">• <b>${a.month}</b> — ${fmt(a.amount)} so‘m</div>`).join("");
+          const month = "{{ month_str|escapejs }}";
+
           const receipt = p.receipt_url
-            ? `<a class="btn blue" style="padding:8px 10px;" href="${p.receipt_url}">PDF</a>`
+            ? (() => {
+                const sep = p.receipt_url.includes("?") ? "&" : "?";
+                return `<a class="btn blue" style="padding:8px 10px;"
+                          href="${p.receipt_url}${sep}month=${encodeURIComponent(month)}" download>CHEK</a>`;
+              })()
             : `<span style="color:var(--muted)">—</span>`;
-          return `
-            <tr>
-              <td>${p.paid_at || "-"}</td>
-              <td>${p.cash ? fmt(p.cash) : "-"}</td>
-              <td>${p.card ? fmt(p.card) : "-"}</td>
-              <td><b>${fmt(p.total)}</b></td>
-              <td style="text-align:left;">${alloc || '<span style="color:var(--muted)">—</span>'}</td>
-              <td>${receipt}</td>
-            </tr>`;
+
+          const editBtn = `<button class="btn gray" style="padding:8px 10px;" type="button"
+            onclick="openEditPayment(${p.id}, ${p.cash || 0}, ${p.card || 0})">✏️</button>`;
+
+return `
+  <tr>
+    <td>${p.paid_at || "-"}</td>
+    <td>${p.cash ? fmt(p.cash) : "-"}</td>
+    <td>${p.card ? fmt(p.card) : "-"}</td>
+    <td><b>${fmt(p.total)}</b></td>
+    <td>${alloc || '<span style="color:var(--muted)">—</span>'}</td>
+    <td style="display:flex; gap:8px; justify-content:center;">
+      ${editBtn}
+      ${receipt}
+    </td>
+  </tr>`;
+
         }).join("");
       }
     })
@@ -989,6 +1076,8 @@ function openPayModal(enrollmentId, studentName, groupName){
 
   openModal("payModal");
 }
+
+
 
 /* Search clear */
 (function(){
@@ -1024,6 +1113,9 @@ function openPayModal(enrollmentId, studentName, groupName){
   const mmToday = document.getElementById("mmToday");
 
   function pad2(n){ return String(n).padStart(2,"0"); }
+  function syncHidden(){
+  monthInput.value = `${state.y}-${pad2(state.m)}`;
+  }
   function parseMonthStr(v){
     if(!v || v.length < 7) return null;
     const y = parseInt(v.slice(0,4),10);
@@ -1052,8 +1144,12 @@ function openPayModal(enrollmentId, studentName, groupName){
         ddMonthText.textContent = monthNames[state.m-1];
         fillMonthMenu(state.m);
         setTopLabel(state.y, state.m);
+
+        syncHidden(); // ✅ SHUNI QO‘SHING
+
         mmMonthCol.classList.remove("open");
       });
+
       ddMonthMenu.appendChild(div);
     });
   }
@@ -1071,8 +1167,12 @@ function openPayModal(enrollmentId, studentName, groupName){
         ddYearText.textContent = String(state.y);
         fillYearMenu(state.y, state.y);
         setTopLabel(state.y, state.m);
+
+        syncHidden(); // ✅ SHUNI QO‘SHING
+
         mmYearCol.classList.remove("open");
       });
+
       ddYearMenu.appendChild(div);
     }
   }
@@ -1104,12 +1204,17 @@ function openPayModal(enrollmentId, studentName, groupName){
     ddMonthText.textContent = monthNames[state.m-1];
     ddYearText.textContent = String(state.y);
     setTopLabel(state.y, state.m);
+    syncHidden();
     fillMonthMenu(state.m);
     fillYearMenu(state.y, state.y);
   });
 
   document.addEventListener("click", (e) => { if(!mp.contains(e.target)) closeMenu(); });
   document.addEventListener("keydown", (e) => { if(e.key === "Escape") closeMenu(); });
+  document.getElementById("filterForm").addEventListener("submit", () => {
+  syncHidden(); // ✅ Filtrlash bosilganda ham tanlangan oy ketadi
+});
+
 })();
 
 /* Stats */
@@ -1208,11 +1313,131 @@ function renderStats(){
     }
   });
 }
-clearQ.addEventListener("click", () => {
-  qInput.value = "";
-  toggleClear();
-  document.getElementById("filterForm").submit();
-});
 
+let CURRENT_ENROLLMENT_ID = null;
+let CURRENT_STUDENT = "";
+let CURRENT_GROUP = "";
+
+function getCookie(name){
+  const v = `; ${document.cookie}`;
+  const parts = v.split(`; ${name}=`);
+  if(parts.length === 2) return parts.pop().split(';').shift();
+  return "";
+}
+
+function openEditPayment(paymentId, cash, card){
+  document.getElementById("epPaymentId").value = paymentId;
+  document.getElementById("epCash").value = Number(cash || 0);
+  document.getElementById("epCard").value = Number(card || 0);
+  document.getElementById("epErr").innerText = "";
+  document.getElementById("epSub").innerText = (CURRENT_STUDENT ? CURRENT_STUDENT + " • " + CURRENT_GROUP : "—");
+  openModal("editPaymentModal");
+}
+
+function savePaymentEdit(){
+  const id = document.getElementById("epPaymentId").value;
+  const cash = Number(document.getElementById("epCash").value || 0);
+  const card = Number(document.getElementById("epCard").value || 0);
+
+  const errEl = document.getElementById("epErr");
+  errEl.innerText = "";
+
+  if((cash + card) <= 0){
+    errEl.innerText = "Summa 0 bo‘lishi mumkin emas";
+    return;
+  }
+
+  const csrftoken = getCookie("csrftoken");
+
+  fetch(`/talim/tolovlar/payment/${id}/update/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "X-CSRFToken": csrftoken
+    },
+    body: new URLSearchParams({
+      cash_amount: String(cash),
+      card_amount: String(card)
+    })
+  })
+  .then(r => r.json().then(d => ({ok: r.ok, data: d})))
+  .then(({ok, data}) => {
+    if(!ok || !data.ok){
+      errEl.innerText = (data && data.error) ? data.error : "Xatolik";
+      return;
+    }
+    closeModal("editPaymentModal");
+
+    // 🔁 historyni qayta yuklaymiz (allocation ham yangilanadi)
+    if(CURRENT_ENROLLMENT_ID){
+      openPayModal(CURRENT_ENROLLMENT_ID, CURRENT_STUDENT, CURRENT_GROUP);
+    }
+  })
+  .catch(() => {
+    errEl.innerText = "Server xatosi";
+  });
+}
+(function moneyInputsInit(){
+  function cleanDigits(s){
+    return (s || "").toString().replace(/[^\d]/g, "");
+  }
+  function formatUZS(digits){
+    digits = cleanDigits(digits);
+    if(!digits) return "";
+    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  }
+  function setCaretByDigits(input, digitsBefore){
+    // formatted stringda digitsBefore-ta raqamdan keyin caret qo'yadi
+    const v = input.value || "";
+    let seen = 0;
+    let pos = v.length;
+    for(let i=0;i<v.length;i++){
+      if(/\d/.test(v[i])) seen++;
+      if(seen >= digitsBefore){
+        pos = i+1;
+        break;
+      }
+    }
+    try { input.setSelectionRange(pos, pos); } catch(e){}
+  }
+
+  document.querySelectorAll(".money-box").forEach(box => {
+    const view = box.querySelector(".money-view");
+    const hidden = box.querySelector(".money-hidden");
+    const preview = box.querySelector(".money-preview");
+
+    function sync(){
+      const start = view.selectionStart || 0;
+
+      // caret oldidan nechta digit borligini hisoblaymiz
+      const before = (view.value || "").slice(0, start);
+      const digitsBefore = cleanDigits(before).length;
+
+      const raw = cleanDigits(view.value);
+      hidden.value = raw;                 // ✅ serverga ketadigan
+      view.value = formatUZS(raw);        // ✅ ko‘rinadigan
+
+      preview.innerHTML = raw ? `<b>${formatUZS(raw)}</b> so‘m` : "—";
+
+      // caretni qayta tiklaymiz
+      setCaretByDigits(view, digitsBefore);
+    }
+
+    view.addEventListener("input", sync);
+    view.addEventListener("focus", sync);
+    view.addEventListener("blur", sync);
+
+    // Sahifa yuklanganda ham
+    sync();
+
+    // Form submit bo‘lganda ham hidden to‘g‘ri bo‘lsin
+    const form = view.closest("form");
+    if(form){
+      form.addEventListener("submit", () => {
+        hidden.value = cleanDigits(view.value);
+      });
+    }
+  });
+})();
 </script>
 {% endblock %}

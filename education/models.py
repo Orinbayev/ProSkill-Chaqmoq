@@ -22,31 +22,30 @@ class Group(models.Model):
         (IT, "IT"),
     )
 
-    # Eski tizimdagi tanlov
     category = models.CharField(max_length=8, choices=CATEGORY_CHOICES, default=LANG)
 
-    # Yangi tizim
     category_obj = models.ForeignKey(
         "education.Category",
         on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
+        null=True, blank=True,
         related_name="groups",
-        verbose_name="Bo‘lim (Category modeli orqali)"
+        verbose_name="Bo‘lim (Category)"
     )
 
-    center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE)
+    center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE)
     nom = models.CharField(max_length=150)
     izoh = models.TextField(blank=True)
+
     oqituvchi = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
-        limit_choices_to={'role': 'teacher'}
+        limit_choices_to={"role": "teacher"},
     )
 
     tuzilgan = models.DateTimeField(auto_now_add=True)
-    kurs_narxi = models.PositiveIntegerField(default=50000000, help_text="Bir oylik to‘lov (so‘mda)")
+
+    kurs_narxi = models.PositiveIntegerField(default=500000, help_text="Bir oylik to‘lov (so‘mda)")
     oqituvchi_foiz = models.PositiveIntegerField(default=40, help_text="O‘qituvchi foizi (%)")
     oy_dars_soni = models.PositiveIntegerField(default=12, help_text="Bir oyda nechta dars bo‘ladi")
 
@@ -57,11 +56,10 @@ class Group(models.Model):
     def __str__(self):
         return self.nom
 
-    def dars_boshiga_tolov(self):
-        """Har dars uchun to‘lovni xavfsiz hisoblash"""
+    def dars_boshiga_tolov(self) -> float:
         if self.kurs_narxi > 0 and self.oqituvchi_foiz > 0 and self.oy_dars_soni > 0:
             return round((self.kurs_narxi * self.oqituvchi_foiz / 100) / self.oy_dars_soni, 2)
-        return 0
+        return 0.0
 
 
 class Oquvchi(models.Model):
@@ -115,75 +113,52 @@ class GroupStudent(models.Model):
 
 class Enrollment(models.Model):
     group = models.ForeignKey(
-        'education.Group',
+        "education.Group",
         on_delete=models.CASCADE,
-        related_name='enrollments',
-        verbose_name="Guruh"
+        related_name="enrollments",
+        verbose_name="Guruh",
     )
     student = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        limit_choices_to={'role': 'student'},
-        verbose_name="O‘quvchi"
+        limit_choices_to={"role": "student"},
+        verbose_name="O‘quvchi",
     )
-    kurs_narhi = models.PositiveIntegerField(default=0, validators=[MinValueValidator(0)], verbose_name="Kurs narxi (so‘mda)")
-    oqituvchi_foiz = models.PositiveIntegerField(default=40, validators=[MinValueValidator(0), MaxValueValidator(100)], verbose_name="O‘qituvchi ulushi (%)")
-    jami_tolangan = models.PositiveIntegerField(default=0, validators=[MinValueValidator(0)], verbose_name="Jami to‘langan (so‘mda)")
+
+    # oy narxi (Enrollment darajasida saqlaymiz)
+    kurs_narhi = models.PositiveIntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+        verbose_name="Oylik kurs narxi (so‘mda)",
+    )
+
+    oqituvchi_foiz = models.PositiveIntegerField(
+        default=40,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        verbose_name="O‘qituvchi ulushi (%)",
+    )
+
+    # umumiy to‘langan (avto update bo‘ladi)
+    jami_tolangan = models.PositiveIntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+        verbose_name="Jami to‘langan (so‘mda)",
+    )
 
     class Meta:
-        unique_together = ('group', 'student')
+        unique_together = ("group", "student")
         verbose_name = "Guruhga qo‘shilish"
         verbose_name_plural = "Guruhga qo‘shilishlar"
-        ordering = ['group', 'student']
+        ordering = ["group", "student"]
 
     def __str__(self):
-        ism = getattr(self.student, 'ism', 'Noma’lum')
-        familya = getattr(self.student, 'familya', '')
+        ism = getattr(self.student, "ism", "")
+        familya = getattr(self.student, "familya", "")
         return f"{ism} {familya} → {self.group.nom}"
 
     @property
-    def oqituvchi_daromadi(self):
-        """O‘qituvchiga to‘liq kurs uchun tushadigan summa."""
-        return round(self.kurs_narhi * self.oqituvchi_foiz / 100)
-
-    @property
-    def attended_count(self):
-        return self.group.attendances.filter(student=self.student, present=True).count()
-
-    def get_monthly_payment(self):
-        """Joriy oy uchun jami to‘langan summani qaytaradi"""
-        now = timezone.now()
-        total = Payment.objects.filter(
-            student=self.student,
-            group=self.group,
-            month=now.month,
-            year=now.year
-        ).aggregate(total=Sum('summa'))['total'] or 0
-        return total
-
-    @property
-    def qoldiq_oylik(self):
-        """Joriy oy uchun qolgan to‘lov"""
-        return max(self.kurs_narhi - self.get_monthly_payment(), 0)
-
-    @property
-    def is_full_this_month(self):
-        """Joriy oy uchun to‘liq to‘langanmi?"""
-        return self.get_monthly_payment() >= self.kurs_narhi
-
-    def real_oqituvchi_daromadi(self):
-        """
-        O‘qituvchining haqiqiy daromadini hisoblaydi:
-        faqat darsga kelgan o‘quvchilar asosida.
-        """
-        total_lessons = self.group.oy_dars_soni or 0
-        attended = self.group.attendances.filter(student=self.student, present=True).count()
-
-        if total_lessons == 0:
-            return 0
-
-        foiz = attended / total_lessons
-        return round(self.oqituvchi_daromadi * foiz)
+    def oqituvchi_daromadi(self) -> int:
+        return round((self.kurs_narhi or 0) * (self.oqituvchi_foiz or 0) / 100)
     
 from decimal import Decimal
 from django.db import models
@@ -192,83 +167,81 @@ from django.db.models import Sum
     
 class Payment(models.Model):
     PAYMENT_TYPES = (
-        ('cash', 'Naqd'),
-        ('card', 'Karta'),
-        ('mixed', 'Aralash'),
+        ("cash", "Naqd"),
+        ("card", "Karta"),
+        ("mixed", "Aralash"),
     )
 
+    enrollment = models.ForeignKey(
+        Enrollment,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="payments",
+    )
+
+    # qulay access uchun (read-only sifatida ishlatamiz)
     student = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        limit_choices_to={'role': 'student'},
-        verbose_name="O‘quvchi"
+        limit_choices_to={"role": "student"},
+        verbose_name="O‘quvchi",
     )
     group = models.ForeignKey(
-        'education.Group',
+        "education.Group",
         on_delete=models.CASCADE,
-        related_name='group_payments',
-        verbose_name="Guruh"
-    )
-    enrollment = models.ForeignKey(
-        'education.Enrollment',
-        on_delete=models.CASCADE,
-        related_name='payments',
-        verbose_name="Yozilish",
-        null=True,
-        blank=True
+        related_name="group_payments",
+        verbose_name="Guruh",
     )
 
-    # biz hozir cash va cardni alohida saqlaymiz; summa umumiy uchun ham qoladi
-    payment_type = models.CharField(max_length=10, choices=PAYMENT_TYPES, default='cash')
-    cash_amount = models.PositiveIntegerField(default=0, verbose_name="Naqd summasi (so'mda)")
-    card_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Karta summasi (valyutada yoki so'mda)")
-    card_rate = models.DecimalField(max_digits=12, decimal_places=6, default=1, verbose_name="Kurs (agar karta valyutada bo'lsa)")
-    card_currency = models.CharField(max_length=10, default='UZS', verbose_name="Karta valyutasi")
+    payment_type = models.CharField(max_length=10, choices=PAYMENT_TYPES, default="cash")
+
+    cash_amount = models.PositiveIntegerField(default=0, verbose_name="Naqd (so'mda)")
+
+    # karta valyutada bo‘lishi ham mumkin
+    card_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Karta summasi")
+    card_rate = models.DecimalField(max_digits=12, decimal_places=6, default=1, verbose_name="Kurs")
+    card_currency = models.CharField(max_length=10, default="UZS", verbose_name="Karta valyutasi")
+
     note = models.TextField(blank=True, null=True, verbose_name="Izoh")
-    is_full_paid = models.BooleanField(default=False, verbose_name="To'liq to'landi (belgi)")
 
-    # legacy: summa (saqlanadigan umumiy so'm)
-    summa = models.PositiveIntegerField(verbose_name="To‘lov summasi (so‘mda)", default=0) 
-    total = models.FloatField(default=0)  # ✅ Qo‘shildi
- 
-    sana = models.DateField(auto_now_add=True, verbose_name="To‘lov sanasi")
-    vaqt = models.TimeField(default=timezone.now)  # 🕒 Qo‘shildi
-    month = models.PositiveSmallIntegerField(verbose_name="Oy", default=timezone.now().month)
-    year = models.PositiveSmallIntegerField(verbose_name="Yil", default=timezone.now().year)
+    # Umumiy so‘m (hisoblab saqlaymiz)
+    summa = models.PositiveIntegerField(default=0, verbose_name="Jami (so‘mda)")
+
+    paid_date = models.DateField(default=timezone.localdate, verbose_name="To‘lov sanasi")
+    paid_time = models.TimeField(default=timezone.now, verbose_name="To‘lov vaqti")
+
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = "To‘lov"
         verbose_name_plural = "To‘lovlar"
-        ordering = ['-sana']
+        ordering = ["-id"]
 
     def __str__(self):
-        return f"{self.student.get_full_name()} — {self.summa:,} so‘m ({self.sana})"
+        return f"{self.student.get_full_name()} — {self.summa:,} so‘m ({self.paid_date})"
 
     @property
-    def card_amount_som(self):
-            # Agar card_rate = 1 bo‘lsa ham Decimal bilan hisobla, so‘ng int
-            return int((self.card_amount or Decimal('0')) * (self.card_rate or Decimal('1')))
+    def card_amount_som(self) -> int:
+        return int((self.card_amount or Decimal("0")) * (self.card_rate or Decimal("1")))
 
     def save(self, *args, **kwargs):
-        # 1) summa (UZS) ni hisobla
-        self.summa = int(self.cash_amount or 0) + self.card_amount_som  # ❌ () yo‘q endi
-        self.total = float(self.summa)
+        # 1) Enrollment/student/group mosligini kafolatlaymiz
+        if self.enrollment_id:
+            if not self.student_id:
+                self.student_id = self.enrollment.student_id
+            if not self.group_id:
+                self.group_id = self.enrollment.group_id
 
-        # 2) Enrollment borligini kafolatla
-        if not self.enrollment_id and self.student_id and self.group_id:
-            enroll = Enrollment.objects.filter(
-                student_id=self.student_id,
-                group_id=self.group_id
-            ).first()
-            if enroll:
-                self.enrollment = enroll
+        # 2) Umumiy summa
+        self.summa = int(self.cash_amount or 0) + int(self.card_amount_som or 0)
 
         super().save(*args, **kwargs)
 
-        # 3) ENROLLMENT jami to‘lovni yangila (faqat summa yig‘indisi)
-        if self.enrollment_id:
-            agg = Payment.objects.filter(enrollment_id=self.enrollment_id).aggregate(s=Sum('summa'))
-            Enrollment.objects.filter(pk=self.enrollment_id).update(jami_tolangan=agg['s'] or 0)
+        # 3) Enrollment jami_tolangan ni yangilaymiz
+        agg = Payment.objects.filter(enrollment_id=self.enrollment_id).aggregate(s=Sum("summa"))
+        Enrollment.objects.filter(pk=self.enrollment_id).update(jami_tolangan=agg["s"] or 0)
+
 
 
 
@@ -380,7 +353,7 @@ class Student(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.user.full_name
+        return self.user.get_full_name()
 
 
 class DailyLightningSetting(models.Model):
@@ -436,13 +409,13 @@ def auto_attach_enrollment(sender, instance, **kwargs):
 
 class TuitionMonth(models.Model):
     """
-    Har bir Enrollment uchun har oy "kurs narxi"ni saqlaydi.
-    month = oyni 1-sanasi (2026-01-01)
+    Har bir Enrollment uchun har oy narx.
+    month = oy 1-kuni (2026-01-01)
     """
     enrollment = models.ForeignKey(
-        'education.Enrollment',
+        "education.Enrollment",
         on_delete=models.CASCADE,
-        related_name='tuition_months'
+        related_name="tuition_months",
     )
     month = models.DateField()  # always first day of month
     fee_amount = models.PositiveIntegerField(default=0)  # oylik narx (so'm)
@@ -450,11 +423,11 @@ class TuitionMonth(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('enrollment', 'month')
-        ordering = ('month',)
+        unique_together = ("enrollment", "month")
+        ordering = ("month",)
 
     def __str__(self):
-        return f"{self.enrollment_id} - {self.month} - {self.fee_amount}"
+        return f"enr#{self.enrollment_id} - {self.month} - {self.fee_amount}"
 
 
 class PaymentAllocation(models.Model):
@@ -463,21 +436,21 @@ class PaymentAllocation(models.Model):
     Masalan: 600k payment -> Jan 550k + Feb 50k
     """
     payment = models.ForeignKey(
-        'education.Payment',
+        "education.Payment",
         on_delete=models.CASCADE,
-        related_name='allocations'
+        related_name="allocations",
     )
     tuition_month = models.ForeignKey(
-        TuitionMonth,
+        "education.TuitionMonth",
         on_delete=models.CASCADE,
-        related_name='allocations'
+        related_name="allocations",
     )
     amount = models.PositiveIntegerField(default=0)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ('tuition_month__month', 'id')
+        ordering = ("tuition_month__month", "id")
 
     def __str__(self):
         return f"pay#{self.payment_id} -> {self.tuition_month.month}: {self.amount}"

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .box{
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 16px;
+    color:#e5e7eb;
+  }
+  .card{
+    background: rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.10);
+    border-radius:16px;
+    padding:14px;
+  }
+  .btn{
+    height:44px;
+    border:0;
+    border-radius:10px;
+    padding:0 14px;
+    font-weight:1000;
+    cursor:pointer;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    white-space:nowrap;
+  }
+  .btn.red{ background:#ef4444; color:#fff; }
+  .btn.gray{ background:rgba(255,255,255,0.06); color:#e5e7eb; border:1px solid #1f2937; }
+  .actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+</style>
+
+<div class="box">
+  <div class="card">
+    <h3 style="margin:0 0 10px; font-weight:1000;">🗑️ O‘chirishni tasdiqlang</h3>
+    <div style="color:#9ca3af; font-weight:900; line-height:1.5;">
+      Siz rostdan ham <b style="color:#e5e7eb;">{{ enr.student.ism }} {{ enr.student.familya }}</b>
+      o‘quvchini <b style="color:#e5e7eb;">{{ enr.group.nom }}</b> guruhdan o‘chirmoqchimisiz?
+      <br>
+      <span style="color:#ef4444; font-weight:900;">Bu amal qaytarilmaydi.</span>
+    </div>
+
+    <form method="post" style="margin-top:12px;">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <div class="actions">
+        <button class="btn red" type="submit">🗑️ Ha, o‘chir</button>
+        <a class="btn gray" href="{{ next }}">↩️ Bekor qilish</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
