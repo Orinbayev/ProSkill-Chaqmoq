@@ -3,147 +3,302 @@
 {% block content %}
 
 <style>
-.att-table-wrapper {
-  overflow-x: auto;
+:root{
+  /* Chaqmoq dark */
+  --bg1:#0b1220;
+  --bg2:#0f172a;
+
+  /* Card/table */
+  --card: rgba(15, 23, 42, 0.75);
+  --card2: rgba(2, 6, 23, 0.35);
+  --grid: rgba(148, 163, 184, 0.18);
+
+  --text:#e5e7eb;
+  --muted:#94a3b8;
+
+  /* header gradient */
+  --head1:#2563eb;
+  --head2:#3b82f6;
+
+  /* statuses */
+  --present:#22c55e; /* yashil */
+  --absent:#ef4444;  /* qizil */
+  --forced:#f59e0b;  /* sariq */
+
+  --shadow: 0 18px 45px rgba(0,0,0,.45);
 }
 
-.att-table {
-  min-width: 800px;
-  font-size: 0.9rem;
+/* ===== Header card (top) ===== */
+.att-head{
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 18px;
+  padding: 14px 16px;
+  color: var(--text);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
+}
+.att-head h4{
+  color:#fff;
+  margin:0;
 }
 
-.att-table thead th {
+/* year/month/select */
+.att-form{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap: wrap;
+}
+.att-form select{
+  width:auto;
+  min-width: 130px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(15,23,42,0.55);
+  color: var(--text);
+  padding: 9px 10px;
+  outline:none;
+  color-scheme: dark;
+}
+.att-form select:focus{
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+  border-color: rgba(59,130,246,0.55);
+}
+.att-form option{
+  background: rgba(15,23,42,0.98);
+  color: var(--text);
+}
+
+.att-btn{
+  border:none;
+  border-radius: 12px;
+  padding: 9px 14px;
+  font-weight: 900;
+  color:#fff;
+  background: linear-gradient(90deg, var(--head1), var(--head2));
+  box-shadow: 0 12px 26px rgba(37,99,235,.25);
+  transition:.2s ease;
+}
+.att-btn:hover{ transform: translateY(-1px); }
+
+/* ===== Legend ===== */
+.att-legend{
+  display:flex;
+  gap:10px;
+  flex-wrap: wrap;
+  margin: 10px 2px 12px;
+  color: var(--muted);
+  font-size: .92rem;
+}
+.leg{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.dot{ width:10px; height:10px; border-radius:99px; display:inline-block; }
+.dot.g{ background: var(--present); box-shadow: 0 0 10px rgba(34,197,94,.35); }
+.dot.r{ background: var(--absent); box-shadow: 0 0 10px rgba(239,68,68,.35); }
+.dot.y{ background: var(--forced); box-shadow: 0 0 10px rgba(245,158,11,.35); }
+
+/* ===== Table wrapper ===== */
+.att-wrap{
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: var(--shadow);
+}
+.att-table-wrapper{
+  overflow-x:auto;
+  background: var(--card2);
+}
+
+/* nice scrollbar */
+.att-table-wrapper::-webkit-scrollbar{ height: 10px; }
+.att-table-wrapper::-webkit-scrollbar-track{ background: rgba(255,255,255,0.06); }
+.att-table-wrapper::-webkit-scrollbar-thumb{
+  background: linear-gradient(90deg, rgba(37,99,235,.7), rgba(96,165,250,.7));
+  border-radius: 999px;
+}
+
+/* ===== Table ===== */
+.att-table{
+  width: 100%;
+  min-width: 980px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: .92rem;
+  color: var(--text);
+}
+
+/* Header cells */
+.att-table thead th{
+  background: linear-gradient(90deg, rgba(37,99,235,0.95), rgba(59,130,246,0.95));
+  color: #fff;
+  font-weight: 900;
   text-align: center;
-  vertical-align: middle;
-  padding: 6px 8px;
+  padding: 10px 10px;
+  border-right: 1px solid rgba(255,255,255,0.12);
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  white-space: nowrap;
 }
 
-.att-table tbody td {
+/* Body cells */
+.att-table tbody td{
+  background: rgba(2,6,23,0.18);
+  color: var(--text);
+  padding: 10px 10px;
   text-align: center;
-  vertical-align: middle;
-  padding: 4px 6px;
+  border-right: 1px solid var(--grid);
+  border-bottom: 1px solid var(--grid);
 }
 
-/* 🔵 Kelgan */
-.att-cell-present::before {
-  content: "●";
-  color: #0d6efd;
+/* first columns */
+.att-table thead th:first-child,
+.att-table tbody td:first-child{ width: 46px; }
+
+.att-table thead th:nth-child(2),
+.att-table tbody td:nth-child(2){
+  min-width: 260px;
+  text-align: left;
+  padding-left: 12px;
+}
+
+/* hover row */
+.att-table tbody tr:hover td{
+  background: rgba(59,130,246,0.08);
+}
+
+/* ===== Attendance markers ===== */
+.att-cell-present::before{
+  content:"●";
+  color: var(--present);
   font-size: 18px;
+  line-height: 1;
 }
-
-/* 🔴 Kelmadi */
-.att-cell-absent::before {
-  content: "✕";
-  color: #ef4444;
+.att-cell-absent::before{
+  content:"✕";
+  color: var(--absent);
   font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
 }
-
-/* 🟡 Kelmadi, lekin pul yozilgan */
-.att-cell-forced::before {
-  content: "!";
-  color: #f59e0b;
+.att-cell-forced::before{
+  content:"!";
+  color: var(--forced);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 900;
+  line-height: 1;
 }
 
-/* Bo‘sh hujayra – hech narsa chizmaymiz */
-
-/* Legend */
-.att-legend span {
-  display: inline-flex;
-  align-items: center;
-  margin-right: 12px;
-  font-size: 0.9rem;
-}
-.att-legend i {
-  margin-right: 4px;
-}
-
-/* Clickable button – davomat o‘zgartirish */
-.att-cell-btn {
-  border: none;
+/* clickable */
+.att-cell-btn{
+  border: 0;
   background: transparent;
-  padding: 0;
   cursor: pointer;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: inline-grid;
+  place-items: center;
+  transition: .15s ease;
 }
-.att-cell-btn:focus {
-  outline: none;
+.att-cell-btn:hover{
+  background: rgba(255,255,255,0.06);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
 }
-.att-cell-empty {
+.att-cell-btn:focus{ outline: none; }
+
+.att-cell-empty{
   width: 18px;
   height: 18px;
   display: inline-block;
+  opacity: .20;
 }
+.day-head{ padding: 8px 6px !important; }
+.day-head .dnum{
+  font-weight: 900;
+  line-height: 1.05;
+}
+.day-head .dweek{
+  margin-top: 2px;
+  font-size: 11px;
+  opacity: .85;
+  line-height: 1;
+}
+
 </style>
 
 <div class="container py-4">
 
-  <div class="card shadow mb-3">
-    <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <!-- HEADER -->
+  <div class="att-head mb-3">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
       <div>
-        <h4 class="fw-bold mb-0">{{ group.nom }}</h4>
-        <div class="small text-muted">
+        <h4 class="fw-bold">{{ group.nom }}</h4>
+        <div class="small" style="color: var(--muted);">
           {{ group.center }}{% if group.oqituvchi %} · O‘qituvchi: {{ group.oqituvchi.get_full_name }}{% endif %}
         </div>
       </div>
 
-      <div class="text-end">
-        <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
-          <select name="year" class="form-select form-select-sm" style="width:auto;">
-            {% for y in years %}
-              <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
-            {% endfor %}
-          </select>
+      <form method="get" class="att-form">
+        <select name="year">
+          {% for y in years %}
+            <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
 
-          <select name="month" class="form-select form-select-sm" style="width:auto;">
-            {% for m, name in months %}
-              <option value="{{ m }}" {% if m == month %}selected{% endif %}>
-                {{ name }}
-              </option>
-            {% endfor %}
-          </select>
+        <select name="month">
+          {% for m, name in months %}
+            <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ name }}</option>
+          {% endfor %}
+        </select>
 
-          <button type="submit" class="btn btn-primary btn-sm">
-            Ko‘rish
-          </button>
-        </form>
-      </div>
+        <button type="submit" class="att-btn">Ko‘rish</button>
+      </form>
     </div>
   </div>
 
-  <!-- Legend -->
-  <div class="mb-2 att-legend">
-    <span><i class="att-cell-present"></i> Kelgan (ko‘k)</span>
-    <span><i class="att-cell-absent"></i> Kelmadi (qizil)</span>
-    <span><i class="att-cell-forced"></i> Kelmadi, lekin pul yozilgan</span>
+  <!-- LEGEND -->
+  <div class="att-legend">
+    <span class="leg"><span class="dot g"></span> Kelgan</span>
+    <span class="leg"><span class="dot r"></span> Kelmadi</span>
+    <span class="leg"><span class="dot y"></span> Kelmadi, lekin pul yozilgan</span>
   </div>
 
-  <div class="card shadow">
-    <div class="card-body att-table-wrapper">
-      <table class="table table-bordered att-table align-middle">
-        <thead class="table-light">
+  <!-- TABLE -->
+  <div class="att-wrap">
+    <div class="att-table-wrapper">
+      <table class="att-table">
+        <thead>
           <tr>
-            <th style="width:40px;">№</th>
-            <th style="min-width:220px; text-align:left;">O‘quvchi ismi</th>
-            {% for d in days %}
-              <th>{{ d|date:"d" }}</th>
-            {% endfor %}
+            <th>№</th>
+            <th>O‘quvchi ismi</th>
+{% for d in days %}
+  <th class="day-head">
+    <div class="dnum">{{ d|date:"d" }}</div>
+    <div class="dweek">{{ d|date:"D" }}</div>
+  </th>
+{% endfor %}
+
           </tr>
         </thead>
+
         <tbody>
           {% for row in rows %}
           <tr>
             <td>{{ forloop.counter }}</td>
-            <td style="text-align:left;">
-              {{ row.student.get_full_name }}
-            </td>
+            <td>{{ row.student.get_full_name }}</td>
 
             {% for cell in row.cells %}
               <td>
-                {# forced – faqat ko‘rsatamiz, o‘zgartirmaymiz #}
                 {% if cell.status == 'forced' %}
-                  <span class="att-cell-forced"></span>
-
+                  <span class="att-cell-forced" title="Kelmadi, lekin pul yozilgan"></span>
                 {% else %}
                   <button type="button"
                           class="att-cell-btn att-cell-toggle"
@@ -151,11 +306,11 @@
                           data-date="{{ cell.date|date:'Y-m-d' }}"
                           data-status="{{ cell.status }}">
                     {% if cell.status == 'present' %}
-                      <span class="att-cell-present"></span>
+                      <span class="att-cell-present" title="Kelgan"></span>
                     {% elif cell.status == 'absent' %}
-                      <span class="att-cell-absent"></span>
+                      <span class="att-cell-absent" title="Kelmadi"></span>
                     {% else %}
-                      <span class="att-cell-empty"></span>
+                      <span class="att-cell-empty" title="Belgilanmagan"></span>
                     {% endif %}
                   </button>
                 {% endif %}
@@ -164,12 +319,13 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="{{ 2|add:days|length }}" class="text-center text-muted">
+            <td colspan="{{ 2|add:days|length }}" style="text-align:center; color: var(--muted); padding:18px;">
               Bu guruhda o‘quvchilar yo‘q.
             </td>
           </tr>
           {% endfor %}
         </tbody>
+
       </table>
     </div>
   </div>
@@ -180,7 +336,6 @@
 
 {% block extra_js %}
 <script>
-// CSRF token olish
 function getCookie(name) {
   let cookieValue = null;
   if (document.cookie && document.cookie !== "") {
@@ -197,7 +352,6 @@ function getCookie(name) {
 }
 const csrftoken = getCookie("csrftoken");
 
-// Hujayra bosilganda davomatni toggle qilish
 document.addEventListener("DOMContentLoaded", function () {
   document.querySelectorAll(".att-cell-toggle").forEach(btn => {
     btn.addEventListener("click", function () {
@@ -225,14 +379,13 @@ document.addEventListener("DOMContentLoaded", function () {
         const newStatus = data.status;
         this.dataset.status = newStatus;
 
-        // ichidagi span'ni yangilaymiz
         this.innerHTML = "";
         if (newStatus === "present") {
-          this.innerHTML = '<span class="att-cell-present"></span>';
+          this.innerHTML = '<span class="att-cell-present" title="Kelgan"></span>';
         } else if (newStatus === "absent") {
-          this.innerHTML = '<span class="att-cell-absent"></span>';
+          this.innerHTML = '<span class="att-cell-absent" title="Kelmadi"></span>';
         } else {
-          this.innerHTML = '<span class="att-cell-empty"></span>';
+          this.innerHTML = '<span class="att-cell-empty" title="Belgilanmagan"></span>';
         }
       })
       .catch(err => console.error(err));

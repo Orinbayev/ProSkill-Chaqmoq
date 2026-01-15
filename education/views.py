@@ -77,11 +77,15 @@ DAILY_LIMIT = 50  # (hozircha ishlatilmayapti, lekin qoldirdim)
 
 
 
-def _get_int(get, key, default):
+def _get_int(querydict, key, default=0):
     try:
-        return int(get.get(key, default))
+        val = querydict.get(key, None)
+        if val in (None, "", "None"):
+            return default
+        return int(val)
     except (TypeError, ValueError):
         return default
+
     
 
 # ---------- Ruxsat helperlari ----------
@@ -108,7 +112,7 @@ from datetime import datetime
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from chaqmoq.models import Ledger
-
+from django.db.models import Count, Max, Q, Case, When, Value, IntegerField, F
 from education.services.tuition import month_first_day, ensure_tuition_month, get_month_paid, create_payment_and_allocate
 
 
@@ -1071,9 +1075,67 @@ def payment_receipt_pdf(request, payment_id: int):
 
 @login_required
 def attendance_groups(request):
-    groups = Group.objects.select_related("center", "oqituvchi").order_by("nom")
-    return render(request, "education/attendance_groups.html", {"groups": groups})
+    q = (request.GET.get("q") or "").strip()
+    teacher_id = _get_int(request.GET, "teacher", 0)
 
+
+    # ✅ Teacher dropdown uchun
+    teachers = User.objects.filter(role="teacher").order_by("ism", "familya")
+
+    # ✅ Base queryset
+    groups = (
+        Group.objects
+        .select_related("center", "oqituvchi")
+        .annotate(
+            attendance_count=Count("attendances", distinct=True),
+            last_attendance=Max("attendances__date"),
+        )
+        .annotate(
+            has_attendance=Case(
+                When(attendance_count__gt=0, then=Value(1)),
+                default=Value(0),
+                output_field=IntegerField(),
+            )
+        )
+    )
+
+    # ✅ Filter: teacher
+    if teacher_id:
+        groups = groups.filter(oqituvchi_id=teacher_id)
+
+    # ✅ Search
+    if q:
+        groups = groups.filter(
+            Q(nom__icontains=q) |
+            Q(center__nom__icontains=q) |
+            Q(oqituvchi__ism__icontains=q) |
+            Q(oqituvchi__familya__icontains=q)
+        )
+
+    # ✅ Davomat qilinganlar tepada, qilinmaganlar pastda
+    # -has_attendance: bor guruhlar birinchi
+    # last_attendance: oxirgi davomat sanasi eng yangi birinchi
+    # nom: qolganlari nom bo‘yicha
+    groups = groups.order_by(
+        "-has_attendance",
+        F("last_attendance").desc(nulls_last=True),
+        "nom"
+    )
+
+    # ✅ Statistikalar (tepada ko‘rsatish uchun)
+    total = groups.count()
+    active_count = groups.filter(attendance_count__gt=0).count()
+    inactive_count = total - active_count
+
+    return render(request, "education/attendance_groups.html", {
+        "groups": groups,
+        "teachers": teachers,
+        "selected_teacher": teacher_id,
+        "q": q,
+        "total": total,
+        "active_count": active_count,
+        "inactive_count": inactive_count,
+    })
 
 import calendar
 from django.db.models import Min, Max
@@ -1109,6 +1171,7 @@ def group_month_attendance(request, group_id):
         end_year = year + 1
     years = list(range(start_year, end_year + 1))
 
+
     month_qs = qs.filter(date__year=year, date__month=month)
 
     att_map = {(a.student_id, a.date): a for a in month_qs}
@@ -1116,18 +1179,33 @@ def group_month_attendance(request, group_id):
     rows = []
     for student in students:
         cells = []
+        present_count = 0
+        absent_count = 0
+        forced_count = 0
+
         for d in day_list:
             a = att_map.get((student.id, d))
             if not a:
                 status = "none"
             elif getattr(a, "present", False):
                 status = "present"
+                present_count += 1
             elif getattr(a, "forced", False):
                 status = "forced"
+                forced_count += 1
             else:
                 status = "absent"
+                absent_count += 1
+
             cells.append({"date": d, "status": status})
-        rows.append({"student": student, "cells": cells})
+
+        rows.append({
+            "student": student,
+            "cells": cells,
+            "present_count": present_count,
+            "absent_count": absent_count,
+            "forced_count": forced_count,
+        })
 
     months = [(i, calendar.month_name[i]) for i in range(1, 13)]
 
