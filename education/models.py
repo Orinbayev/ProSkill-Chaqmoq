@@ -8,6 +8,11 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import Sum
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
+from decimal import Decimal
+from django.db import models
+from django.conf import settings
+from django.db.models import Sum
+from django.db.models import Q
 
 # education/models.py
 from django.db import models
@@ -158,12 +163,45 @@ class Enrollment(models.Model):
 
     @property
     def oqituvchi_daromadi(self) -> int:
+        """
+        Bu - 1 oy uchun o‘qituvchining full (100% dars) daromadi.
+        Davomatga qarab kamayishi/ko‘payishi boshqa metodda hisoblanadi.
+        """
         return round((self.kurs_narhi or 0) * (self.oqituvchi_foiz or 0) / 100)
+
+    def real_oqituvchi_daromadi(self, year=None, month=None) -> int:
+        """
+        Real o‘qituvchi daromadi (davomatga qarab):
+        - Group.oy_dars_soni ga nisbatan hisoblanadi
+        - faqat tanlangan year/month bo‘yicha Attendance lar olinadi
+        - present=True yoki forced=True bo‘lsa "kelgan" hisoblanadi
+
+        year/month berilmasa: hamma vaqt bo‘yicha hisoblaydi (eski kabi).
+        """
+
+        # 1) Guruhda oyiga nechta dars bor?
+        total_lessons = getattr(self.group, "oy_dars_soni", 0) or 0
+        if total_lessons <= 0:
+            return 0
+
+        # 2) Attendance larni olish (student + group)
+        # ⚠️ Sizda: group.attendances ishlatyapsiz, shuning uchun shu yo‘l to‘g‘ri.
+        qs = self.group.attendances.filter(student=self.student)
+
+        # 3) Agar year/month berilgan bo‘lsa o‘sha oy bo‘yicha filter
+        if year and month:
+            qs = qs.filter(date__year=year, date__month=month)
+
+        # 4) Kelganlar soni (present=True yoki forced=True)
+        attended = qs.filter(Q(present=True) | Q(forced=True)).count()
+
+        # 5) Proporsiya: attended / total_lessons
+        ratio = attended / total_lessons
+
+        # 6) Oylik full daromad * ratio
+        return round(self.oqituvchi_daromadi * ratio)
     
-from decimal import Decimal
-from django.db import models
-from django.conf import settings
-from django.db.models import Sum
+
     
 class Payment(models.Model):
     PAYMENT_TYPES = (

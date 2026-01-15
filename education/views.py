@@ -77,7 +77,12 @@ DAILY_LIMIT = 50  # (hozircha ishlatilmayapti, lekin qoldirdim)
 
 
 
-
+def _get_int(get, key, default):
+    try:
+        return int(get.get(key, default))
+    except (TypeError, ValueError):
+        return default
+    
 
 # ---------- Ruxsat helperlari ----------
 def _can_manage(u):
@@ -2194,42 +2199,109 @@ def group_rollcall(request, pk):
 
 @login_required
 def teacher_salary_list(request):
-    teachers = User.objects.filter(role='teacher').order_by('ism')
-    return render(request, "education/teacher_salary_list.html", {"teachers": teachers})
+    now = timezone.localdate()
+    year = _get_int(request.GET, "year", now.year)
+    month = _get_int(request.GET, "month", now.month)
 
+    if month < 1 or month > 12:
+        month = now.month
+
+    month_names_uz = [
+        "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
+        "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"
+    ]
+    month_name = month_names_uz[month - 1]
+
+    teachers = User.objects.filter(role="teacher").order_by("ism")
+
+    teacher_rows = []
+    total_all = 0
+
+    # Oddiy, tushunarli hisob (keyin xohlasa optimallashtirib beraman)
+    for t in teachers:
+        groups = (
+            Group.objects
+            .filter(oqituvchi=t)
+            .prefetch_related("enrollments", "attendances")
+        )
+
+        teacher_total = 0
+        for g in groups:
+            for enr in g.enrollments.all():
+                # siz ishlatayotgan method
+                teacher_total += enr.real_oqituvchi_daromadi(year=year, month=month)
+
+        total_all += teacher_total
+
+        teacher_rows.append({
+            "teacher": t,
+            "month_salary": teacher_total,
+            "groups_count": groups.count(),
+        })
+
+    return render(request, "education/teacher_salary_list.html", {
+        "teachers": teacher_rows,
+        "year": year,
+        "month": month,
+        "month_name": month_name,
+        "total_all": total_all,
+    })
 
 # 🔹 2. O‘qituvchining barcha guruhlari
 @login_required
 def teacher_groups(request, teacher_id):
     teacher = get_object_or_404(User, id=teacher_id, role="teacher")
-    groups = Group.objects.filter(oqituvchi=teacher).prefetch_related('enrollments__student', 'attendances')
+
+    now = timezone.localdate()
+    year = _get_int(request.GET, "year", now.year)
+    month = _get_int(request.GET, "month", now.month)
+
+    if month < 1 or month > 12:
+        month = now.month
+
+    groups = (
+        Group.objects
+        .filter(oqituvchi=teacher)
+        .prefetch_related('enrollments__student', 'attendances')
+    )
 
     teacher_data = []
     for group in groups:
         enrollments = []
-        for e in group.enrollments.all():
-            attended = group.attendances.filter(student=e.student, present=True).count()
+
+        for enr in group.enrollments.all():
+            attended = group.attendances.filter(
+                student=enr.student,
+                date__year=year,
+                date__month=month
+            ).filter(Q(present=True) | Q(forced=True)).count()
+
+            daromad = enr.real_oqituvchi_daromadi(year=year, month=month)
+
             enrollments.append({
-                "student": e.student,
-                "kurs_narhi": e.kurs_narhi,
-                "foiz": e.oqituvchi_foiz,
+                "student": enr.student,
+                "kurs_narhi": enr.kurs_narhi,
+                "foiz": enr.oqituvchi_foiz,
                 "attended": attended,
-                "daromad": e.real_oqituvchi_daromadi(),
+                "daromad": daromad,
             })
-        total_income = sum(e["daromad"] for e in enrollments)
+
+        total_income = sum(x["daromad"] for x in enrollments)
 
         teacher_data.append({
             "group": group,
             "enrollments": enrollments,
             "foiz": group.oqituvchi_foiz,
             "daromad": total_income,
+            "students_count": len(enrollments),  # ✅ TO‘G‘RI JOYI SHU!
         })
 
     return render(request, "education/teacher_groups.html", {
         "teacher": teacher,
         "teacher_data": teacher_data,
+        "year": year,
+        "month": month,
     })
-
 
 
 @login_required
