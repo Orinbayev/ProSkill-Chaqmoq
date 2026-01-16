@@ -712,7 +712,10 @@
 
   <a class="name-link"
      href="javascript:void(0)"
-     onclick="openPayModal('{{ s.enrollment.id }}','{{ s.student.ism|escapejs }}{% if ot %} {{ ot|escapejs }}{% endif %} {{ s.student.familya|escapejs }}','{{ s.group.nom|escapejs }}')">
+onclick="openPayModal('{{ s.enrollment.id }}',
+'{{ s.student.ism|escapejs }}{% if s.student.otchestvo %} {{ s.student.otchestvo|escapejs }}{% endif %}{% if s.student.familya %} {{ s.student.familya|escapejs }}{% endif %}',
+'{{ s.group.nom|escapejs }}')"
+>
 {{ s.student.ism }}{% if s.student.otchestvo %} {{ s.student.otchestvo }}{% endif %}{% if s.student.familya %} {{ s.student.familya }}{% endif %}
   </a>
 
@@ -781,14 +784,17 @@
               </form>
 
                 <button class="btn gray" type="button"
-onclick="openPayModal('{{ s.enrollment.id }}','{{ s.student.ism|escapejs }}{% if ot %} {{ ot|escapejs }}{% endif %} {{ s.student.familya|escapejs }}','{{ s.group.nom|escapejs }}')"
+onclick="openPayModal('{{ s.enrollment.id }}',
+'{{ s.student.ism|escapejs }}{% if s.student.otchestvo %} {{ s.student.otchestvo|escapejs }}{% endif %}{% if s.student.familya %} {{ s.student.familya|escapejs }}{% endif %}',
+'{{ s.group.nom|escapejs }}')"
 >
                   🧾 Tarix
                 </button>
-                <a class="btn blue"
-   href="{% url 'education:enrollment_edit' s.enrollment.id %}?next={{ request.get_full_path|urlencode }}">
+<a class="btn blue"
+   href="{% url 'education:enrollment_edit' s.enrollment.id %}?next={{ request.get_full_path|urlencode }}&month={{ month_str }}">
   ✏️ Tahrir
 </a>
+
 
 <a class="btn gray"
    href="{% url 'education:enrollment_delete' s.enrollment.id %}?next={{ request.get_full_path|urlencode }}">

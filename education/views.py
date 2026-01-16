@@ -76,6 +76,36 @@ U = get_user_model()
 DAILY_LIMIT = 50  # (hozircha ishlatilmayapti, lekin qoldirdim)
 
 
+def parse_month_yyyy_mm(s: str):
+    # '2026-01' -> date(2026, 1, 1)
+    try:
+        y, m = s.split("-")
+        y = int(y); m = int(m)
+        if 1 <= m <= 12:
+            return date(y, m, 1)
+    except Exception:
+        return None
+    return None
+
+def first_day_of_current_month():
+    d = timezone.localdate()
+    return date(d.year, d.month, 1)
+
+
+def sync_tuition_fee(enrollment, start_month: date, new_fee: int):
+    # 1) shu oydan boshlab update
+    TuitionMonth.objects.filter(
+        enrollment=enrollment,
+        month__gte=start_month
+    ).update(fee_amount=new_fee)
+
+    # 2) aynan shu oy yo'q bo'lsa - yaratadi
+    TuitionMonth.objects.update_or_create(
+        enrollment=enrollment,
+        month=start_month,
+        defaults={"fee_amount": new_fee},
+    )
+
 
 def _get_int(querydict, key, default=0):
     try:
@@ -145,37 +175,40 @@ def get_month_paid(enr: Enrollment, month: date) -> int:
     return int(s)
 
 
-def parse_month_str(month_str: str) -> date:
-    # "2026-01" -> 2026-01-01
-    if not month_str:
-        return month_first_day(timezone.localdate())
+def parse_month_str(s: str) -> date | None:
+    """
+    'YYYY-MM' -> date(YYYY, MM, 1)
+    """
+    if not s:
+        return None
+    s = s.strip()
+    if len(s) != 7 or s[4] != "-":
+        return None
     try:
-        y, m = month_str.split("-")
-        return date(int(y), int(m), 1)
+        y = int(s[:4])
+        m = int(s[5:7])
+        if m < 1 or m > 12:
+            return None
+        return date(y, m, 1)
     except Exception:
-        return month_first_day(timezone.localdate())
-
+        return None
 
 # def user_can_manage_payments(user) -> bool:
 #     # sizda role bor: manager/director
 #     return user.is_superuser or getattr(user, "role", None) in ("manager", "director")
 
 
-def _get_month_from_next(next_url: str):
-    """
-    next_url ichidan month=YYYY-MM ni olib, oy boshini qaytaradi.
-    next_url encoded bo‘lsa ham ishlaydi.
-    """
+from urllib.parse import urlparse, parse_qs
+
+def _get_month_from_next(next_url: str, fallback: date) -> date:
     try:
-        decoded = unquote(next_url or "")
-        q = parse_qs(urlparse(decoded).query)
-        m = (q.get("month") or [None])[0]
+        qs = parse_qs(urlparse(next_url).query)
+        m = (qs.get("month", [""])[0] or "").strip()
         if m:
-            d = parse_month_str(m)
-            return month_first_day(d)
+            return parse_month_str(m) or fallback
+        return fallback
     except Exception:
-        pass
-    return month_first_day(timezone.localdate())
+        return fallback
 
 
 from django.core.paginator import Paginator
@@ -388,12 +421,8 @@ def _add_month(d: date, n: int = 1) -> date:
     return date(y, m, 1)
 
 
-def _model_has_field(Model, field_name: str) -> bool:
-    try:
-        Model._meta.get_field(field_name)
-        return True
-    except Exception:
-        return False
+def _model_has_field(model, field_name: str) -> bool:
+    return any(f.name == field_name for f in model._meta.get_fields())
 
 def create_payment_and_allocate(
     enrollment: Enrollment,
@@ -495,7 +524,10 @@ def create_payment(request):
     enrollment_id = request.POST.get("enrollment_id")
     month_str = (request.POST.get("month") or "").strip()
     next_url = request.POST.get("next") or "education:tolov_oquvchilar"
-    start_month = parse_month_str(month_str) if month_str else _get_month_from_next(next_url)
+# fallback oy: hozirgi oyning 1-kuni
+    fallback = date(timezone.localdate().year, timezone.localdate().month, 1)
+
+    start_month = parse_month_str(month_str) if month_str else _get_month_from_next(next_url, fallback)
     if not enrollment_id:
         messages.error(request, "Enrollment ID kelmadi.")
         return redirect(next_url)
@@ -633,23 +665,75 @@ def payment_update(request, payment_id: int):
     })
 # education/views.py
 
+def month_start(d: date) -> date:
+    return d.replace(day=1)
+
+def parse_month_str_safe(s: str) -> date:
+    """
+    'YYYY-MM' -> date(YYYY,MM,1)
+    bo'sh yoki xato bo'lsa -> joriy oy(1-kun)
+    """
+    s = (s or "").strip()
+    today = timezone.localdate()
+    if len(s) == 7 and s[4] == "-":
+        try:
+            y = int(s[:4])
+            m = int(s[5:])
+            return date(y, m, 1)
+        except Exception:
+            pass
+    return month_start(today)
+
+def _safe_int(v, default=0):
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return default
+
+
+def _parse_yyyy_mm(s: str):
+    """
+    '2026-01' -> date(2026,1,1)
+    None/invalid -> current month first day
+    """
+    s = (s or "").strip()
+    try:
+        y = int(s[:4])
+        m = int(s[5:7])
+        if m < 1 or m > 12:
+            raise ValueError()
+        return timezone.datetime(y, m, 1).date()
+    except Exception:
+        now = timezone.localdate()
+        return timezone.datetime(now.year, now.month, 1).date()
+
+
+def _first_day_of_month(d: date) -> date:
+    return d.replace(day=1)
+
 
 @transaction.atomic
 def enrollment_edit(request, enrollment_id):
-    enr = get_object_or_404(Enrollment.objects.select_related("student", "group"), id=enrollment_id)
+    enr = get_object_or_404(
+        Enrollment.objects.select_related("student", "group"),
+        id=enrollment_id
+    )
     groups = Group.objects.all()
 
     next_url = request.POST.get("next") or request.GET.get("next") or reverse("education:tolov_oquvchilar")
 
+    # month string: ?month=2026-01
+    month_str = (request.GET.get("month") or request.POST.get("month") or "").strip()
+    start_month = parse_month_yyyy_mm(month_str) or first_day_of_current_month()
+
     if request.method == "POST":
-        # --- old qiymatlar ---
         old_price = int(enr.kurs_narhi or 0)
 
         # --- student update ---
         enr.student.ism = request.POST.get("ism", "").strip()
         enr.student.familya = request.POST.get("familya", "").strip()
         enr.student.email = request.POST.get("email", "").strip()
-        enr.student.save()
+        enr.student.save(update_fields=["ism", "familya", "email"])
 
         # --- group update ---
         gid = request.POST.get("group_id")
@@ -660,28 +744,24 @@ def enrollment_edit(request, enrollment_id):
         new_price = int(request.POST.get("kurs_narhi") or 0)
         enr.kurs_narhi = new_price
 
-        enr.oqituvchi_foiz = request.POST.get("oqituvchi_foiz") or enr.oqituvchi_foiz
+        oqf = request.POST.get("oqituvchi_foiz")
+        if oqf is not None and str(oqf).strip() != "":
+            enr.oqituvchi_foiz = int(oqf)
+
         enr.save()
 
-        # ✅ ENG MUHIM QISM: kurs narxi o'zgarsa, TuitionMonth fee ni ham yangilaymiz
-        if new_price != old_price and new_price > 0:
-            start_month = _get_month_from_next(next_url)
-
-            # Sizning model field nomingiz fee_amount bo‘lishi mumkin, yoki fee.
-            fee_field = "fee_amount" if _model_has_field(TuitionMonth, "fee_amount") else "fee"
-
-            # Tanlangan oydan boshlab (month>=start_month) update
-            TuitionMonth.objects.filter(enrollment=enr, month__gte=start_month).update(**{fee_field: new_price})
-
-            # Agar o‘sha oy uchun TuitionMonth hali yo‘q bo‘lsa — yaratib qo‘yamiz
-            tm = ensure_tuition_month(enr, start_month)
-            setattr(tm, fee_field, new_price)
-            tm.save()
+        # ✅ MUHIM: TuitionMonth ham yangilansin (ro'yxat shu yerdan ko'rsatadi)
+        if new_price != old_price:
+            sync_tuition_fee(enr, start_month, new_price)
 
         return redirect(next_url)
 
-    return render(request, "education/enrollment_edit.html", {"enr": enr, "groups": groups, "next": next_url})
-
+    return render(request, "education/enrollment_edit.html", {
+        "enr": enr,
+        "groups": groups,
+        "next": next_url,
+        "month": month_str,   # ✅ template uchun
+    })
 
 @login_required
 @require_http_methods(["GET", "POST"])
@@ -783,12 +863,8 @@ from datetime import date
 
 
 # --------- helpers (shu fayl ichida bo'lsa sariq bo'lmaydi) ----------
-def _model_has_field(Model, field_name: str) -> bool:
-    try:
-        Model._meta.get_field(field_name)
-        return True
-    except Exception:
-        return False
+def _model_has_field(model_cls, field_name: str) -> bool:
+    return any(f.name == field_name for f in model_cls._meta.get_fields())
 
 
 def _get_fee_amount(enrollment) -> int:
@@ -869,7 +945,7 @@ def payment_receipt_pdf(request, payment_id: int):
     dt_text = paid_at.strftime("%d.%m.%Y %H:%M")
 
     # ==== Tanlangan oy bo'yicha qarz hisoblash (month=YYYY-MM) ====
-    fee_field = "fee_amount" if _model_has_field(TuitionMonth, "fee_amount") else "fee"
+    fee_field = "fee_amount"
 
     month_qs = request.GET.get("month")  # masalan: 2026-01
     month_date = _parse_month_str(month_qs)
@@ -1155,7 +1231,7 @@ def group_month_attendance(request, group_id):
     enrollments = (
         Enrollment.objects
         .filter(group=group)
-        .select_related("student")
+        .select_related("student", "group")   # ✅ MUHIM
         .order_by("student__ism", "student__familya")
     )
     students = [e.student for e in enrollments]
@@ -1600,7 +1676,7 @@ def group_detail(request, pk: int):
     enrollments = (
         Enrollment.objects
         .filter(group=g)
-        .select_related("student")
+        .select_related("student", "group")   # ✅ MUHIM
         .order_by("student__ism", "student__familya")
     )
     student_ids = [e.student_id for e in enrollments]
@@ -1768,7 +1844,7 @@ def attend_all_students(request, g_id):
     enrollments = (
         Enrollment.objects
         .filter(group=g)
-        .select_related("student")
+        .select_related("student", "group")   # ✅ MUHIM
     )
 
     count = 0
@@ -2333,31 +2409,37 @@ def teacher_groups(request, teacher_id):
     now = timezone.localdate()
     year = _get_int(request.GET, "year", now.year)
     month = _get_int(request.GET, "month", now.month)
-
     if month < 1 or month > 12:
         month = now.month
+
+    years = list(range(now.year - 3, now.year + 4))
 
     groups = (
         Group.objects
         .filter(oqituvchi=teacher)
-        .prefetch_related('enrollments__student', 'attendances')
+        .prefetch_related(
+            "enrollments__student",
+            "attendances",
+        )
     )
 
     teacher_data = []
     for group in groups:
+
+        # ✅ shu group uchun kerakli oy attendances'ni oldindan filtrlab olamiz
+        month_att = group.attendances.filter(
+            date__year=year,
+            date__month=month
+        ).filter(Q(present=True) | Q(forced=True))
+
         enrollments = []
-
         for enr in group.enrollments.all():
-            attended = group.attendances.filter(
-                student=enr.student,
-                date__year=year,
-                date__month=month
-            ).filter(Q(present=True) | Q(forced=True)).count()
 
+            attended = month_att.filter(student=enr.student).count()
             daromad = enr.real_oqituvchi_daromadi(year=year, month=month)
 
             enrollments.append({
-                "student": enr.student,
+                "student": enr.student,      # ✅ student obyekt
                 "kurs_narhi": enr.kurs_narhi,
                 "foiz": enr.oqituvchi_foiz,
                 "attended": attended,
@@ -2371,7 +2453,7 @@ def teacher_groups(request, teacher_id):
             "enrollments": enrollments,
             "foiz": group.oqituvchi_foiz,
             "daromad": total_income,
-            "students_count": len(enrollments),  # ✅ TO‘G‘RI JOYI SHU!
+            "students_count": len(enrollments),
         })
 
     return render(request, "education/teacher_groups.html", {
@@ -2379,6 +2461,8 @@ def teacher_groups(request, teacher_id):
         "teacher_data": teacher_data,
         "year": year,
         "month": month,
+        "years": years,   # ✅ SHU QO‘SHILDI
+
     })
 
 

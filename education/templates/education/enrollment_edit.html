@@ -56,7 +56,9 @@
 
     <form method="post">
       {% csrf_token %}
-      <input type="hidden" name="next" value="{{ next }}">
+
+<input type="hidden" name="next" value="{{ next }}">
+<input type="hidden" name="month" value="{{ month }}">
 
       <div class="row">
         <div class="col">

@@ -231,6 +231,20 @@
   opacity: .85;
   line-height: 1;
 }
+.att-dayhead{
+  padding: 8px 8px !important;
+}
+.att-daynum{
+  font-weight: 900;
+  font-size: 13px;
+  line-height: 1;
+}
+.att-daydow{
+  margin-top: 3px;
+  font-size: 10px;
+  opacity: .85;
+  font-weight: 800;
+}
 
 </style>
 
@@ -247,11 +261,12 @@
       </div>
 
       <form method="get" class="att-form">
-        <select name="year">
-          {% for y in years %}
-            <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
-          {% endfor %}
-        </select>
+<select name="year">
+  {% for y in years %}
+    <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+  {% endfor %}
+</select>
+
 
         <select name="month">
           {% for m, name in months %}
@@ -280,11 +295,23 @@
             <th>№</th>
             <th>O‘quvchi ismi</th>
 {% for d in days %}
-  <th class="day-head">
-    <div class="dnum">{{ d|date:"d" }}</div>
-    <div class="dweek">{{ d|date:"D" }}</div>
+  <th class="att-dayhead">
+    <div class="att-daynum">{{ d|date:"d" }}</div>
+    <div class="att-daydow">
+      {% with d|date:"w" as w %}
+        {% if w == "0" %}Yak
+        {% elif w == "1" %}Dush
+        {% elif w == "2" %}Sesh
+        {% elif w == "3" %}Chor
+        {% elif w == "4" %}Pay
+        {% elif w == "5" %}Jum
+        {% else %}Shan
+        {% endif %}
+      {% endwith %}
+    </div>
   </th>
 {% endfor %}
+
 
           </tr>
         </thead>

@@ -163,6 +163,29 @@ def stat_managers(request):
 
 
 from education.models import Group, Enrollment
+from datetime import date
+from django.utils import timezone
+from education.models import TuitionMonth
+
+def _first_day_of_month(d: date) -> date:
+    return date(d.year, d.month, 1)
+
+def _parse_month_yyyy_mm(s: str) -> date | None:
+    """
+    "2026-01" -> date(2026,1,1)
+    xato bo'lsa None
+    """
+    try:
+        s = (s or "").strip()
+        if not s:
+            return None
+        y, m = s.split("-")
+        y = int(y); m = int(m)
+        if m < 1 or m > 12:
+            return None
+        return date(y, m, 1)
+    except Exception:
+        return None
 
 @login_required
 def user_edit(request, pk):
@@ -171,15 +194,23 @@ def user_edit(request, pk):
     all_groups = Group.objects.all()
     enrollments = Enrollment.objects.filter(student=user).select_related("group")
 
+    # ✅ next_url va month ni oldindan olib qo'yamiz (template ham shundan foydalanadi)
+    next_url = request.POST.get("next") or request.GET.get("next") or "/stat/students/"
+
+    month_str = request.POST.get("month") or request.GET.get("month") or ""
+    # agar sizda parse_month_str bo'lsa:
+    # selected_month = parse_month_str(month_str) if month_str else _first_day_of_month(timezone.localdate())
+    selected_month = _parse_month_yyyy_mm(month_str) or _first_day_of_month(timezone.localdate())
+
     if request.method == "POST":
         # 1) USER MA'LUMOTLARI
-        user.ism = request.POST.get("ism")
-        user.familya = request.POST.get("familya")
-        user.otchestvo = request.POST.get("otchestvo")
-        user.email = request.POST.get("email")
-        user.telefon1 = request.POST.get("telefon1")
-        user.telefon2 = request.POST.get("telefon2")
-        user.role = request.POST.get("role")
+        user.ism = (request.POST.get("ism") or "").strip()
+        user.familya = (request.POST.get("familya") or "").strip()
+        user.otchestvo = (request.POST.get("otchestvo") or "").strip()
+        user.email = (request.POST.get("email") or "").strip()
+        user.telefon1 = (request.POST.get("telefon1") or "").strip()
+        user.telefon2 = (request.POST.get("telefon2") or "").strip()
+        user.role = (request.POST.get("role") or "").strip() or user.role
 
         password = request.POST.get("password")
         if password:
@@ -187,22 +218,37 @@ def user_edit(request, pk):
 
         user.save()
 
-        # 2) Mavjud guruhlar bo‘yicha narxlarni yangilash / o‘chirish
+        # 2) Mavjud enrollmentlar bo‘yicha narxlarni yangilash / o‘chirish
         for enroll in enrollments:
-            # agar checkbox bosilgan bo‘lsa – guruhdan chiqaramiz
+            # checkbox bosilgan bo'lsa — deactivate (modelingizdagi field nomiga moslang)
             if request.POST.get(f"delete_group_{enroll.id}") == "on":
-                enroll.active = False          # ❌ delete emas
-                enroll.save()
+                # ✅ Enrollment’da "active" yo'q ekan. O'zingizdagi field nomiga moslang:
+                if hasattr(enroll, "is_active"):
+                    enroll.is_active = False
+                    enroll.save(update_fields=["is_active"])
+                elif hasattr(enroll, "status"):
+                    enroll.status = "inactive"
+                    enroll.save(update_fields=["status"])
+                else:
+                    # eng oxirgi variant (xohlamasangiz olib tashlang)
+                    enroll.delete()
                 continue
-
 
             # aks holda narxni yangilaymiz
             field = f"kurs_narhi_{enroll.id}"
-            new_price = request.POST.get(field)
-            if new_price:
+            new_price_raw = request.POST.get(field)
+
+            if new_price_raw is not None and str(new_price_raw).strip() != "":
                 try:
-                    enroll.kurs_narhi = int(new_price)
-                    enroll.save()
+                    enroll.kurs_narhi = int(new_price_raw)
+                    enroll.save(update_fields=["kurs_narhi"])
+
+                    # ✅ MUHIM: aynan USER tanlagan oyga yozamiz (2026-01 bo'lsa shu)
+                    TuitionMonth.objects.update_or_create(
+                        enrollment=enroll,
+                        month=selected_month,
+                        defaults={"fee_amount": enroll.kurs_narhi},
+                    )
                 except ValueError:
                     pass
 
@@ -212,10 +258,7 @@ def user_edit(request, pk):
 
         if yangi_group_id:
             group = Group.objects.get(id=yangi_group_id)
-            enroll, created = Enrollment.objects.get_or_create(
-                student=user,
-                group=group
-            )
+            enroll, created = Enrollment.objects.get_or_create(student=user, group=group)
             if yangi_group_price:
                 try:
                     enroll.kurs_narhi = int(yangi_group_price)
@@ -223,14 +266,23 @@ def user_edit(request, pk):
                     pass
             enroll.save()
 
-        return redirect("/stat/students/")
+            TuitionMonth.objects.update_or_create(
+                enrollment=enroll,
+                month=selected_month,
+                defaults={"fee_amount": enroll.kurs_narhi or 0},
+            )
+
+        # ✅ ENG MUHIM: POSTdan keyin doim redirect (PRG) => kesh muammosi yo'q bo'ladi
+        return redirect(next_url)
 
     return render(request, "core/user_edit.html", {
         "user_obj": user,
         "enrollments": enrollments,
         "groups": all_groups,
+        "next": next_url,
+        "month": month_str,          # ✅ template hidden input uchun
+        "selected_month": selected_month,
     })
-
 
 @login_required
 def user_delete(request, pk):
