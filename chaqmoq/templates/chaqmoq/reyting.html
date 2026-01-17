@@ -303,14 +303,26 @@
       <tbody>
         {% for row in page_obj %}
         <tr data-href="{% url 'chaqmoq:student_detail' row.student__id %}">
-          <td class="rb-rank">
-            {% if page_obj.number == 1 and forloop.counter == 1 %}🥇
-            {% elif page_obj.number == 1 and forloop.counter == 2 %}🥈
-            {% elif page_obj.number == 1 and forloop.counter == 3 %}🥉
-            {% else %}
-              {{ page_obj.start_index|add:forloop.counter0 }}
-            {% endif %}
-          </td>
+<td class="rb-rank">
+  {% if is_search %}
+    {# ✅ qidiruvda: umumiy reytingdagi REAL o‘rni #}
+    {% if row.rank == 1 %}🥇
+    {% elif row.rank == 2 %}🥈
+    {% elif row.rank == 3 %}🥉
+    {% else %}{{ row.rank }}
+    {% endif %}
+  {% else %}
+    {# ✅ oddiy ro‘yxatda: sahifalash bo‘yicha umumiy index #}
+    {% with pos=page_obj.start_index|add:forloop.counter0 %}
+      {% if pos == 1 %}🥇
+      {% elif pos == 2 %}🥈
+      {% elif pos == 3 %}🥉
+      {% else %}{{ pos }}
+      {% endif %}
+    {% endwith %}
+  {% endif %}
+</td>
+
 
           <td>
             <div class="rb-name">

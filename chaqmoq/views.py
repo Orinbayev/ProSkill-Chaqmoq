@@ -16,6 +16,7 @@ from django.db.models.functions import Coalesce, Abs
 
 User = get_user_model()
 
+
 def reyting(request):
     q = (request.GET.get("q") or "").strip()
     per_page = request.GET.get("per_page", "10")
@@ -30,22 +31,37 @@ def reyting(request):
 
     base = Ledger.objects.filter(student__role="student")
 
-    if q:
-        base = base.filter(
-            Q(student__ism__icontains=q) |
-            Q(student__familya__icontains=q)
-        )
-
-    leaderboard_qs = (
+    # ✅ Umumiy leaderboard (hamma o‘quvchi)
+    leaderboard_all = (
         base.values("student__id", "student__ism", "student__familya")
         .annotate(jami=Coalesce(Sum("ball"), 0))
-        .order_by("-jami", "student__ism")
+        .order_by("-jami", "student__ism", "student__id")
     )
+
+    is_search = bool(q)
+    rank_map = None
+
+    # ✅ Agar qidiruv bo‘lsa: hamma ro‘yxatdan REAL rank chiqarib olamiz
+    if is_search:
+        rank_map = {}
+        for idx, sid in enumerate(leaderboard_all.values_list("student__id", flat=True), start=1):
+            rank_map[sid] = idx
+
+        leaderboard_qs = leaderboard_all.filter(
+            Q(student__ism__icontains=q) | Q(student__familya__icontains=q)
+        )
+    else:
+        leaderboard_qs = leaderboard_all
 
     paginator = Paginator(leaderboard_qs, per_page)
     page_obj = paginator.get_page(page)
 
-    # Pagination raqamlarini chiroyli oynacha qilib beramiz (1..N emas, window)
+    # ✅ Page ichidagi dictlarga rank qo‘shib yuboramiz (faqat qidiruvda)
+    if rank_map is not None:
+        for row in page_obj.object_list:
+            row["rank"] = rank_map.get(row["student__id"])
+
+    # Pagination window
     cur = page_obj.number
     total = paginator.num_pages
     start = max(1, cur - 3)
@@ -57,6 +73,7 @@ def reyting(request):
         "q": q,
         "per_page": per_page,
         "page_window": page_window,
+        "is_search": is_search,   # ✅ template uchun
     }
     return render(request, "chaqmoq/reyting.html", ctx)
 
