@@ -148,31 +148,31 @@ from education.services.tuition import month_first_day, ensure_tuition_month, ge
 
 from .models import Enrollment, TuitionMonth, PaymentAllocation
 
-def month_first_day(d: date) -> date:
-    return d.replace(day=1)
+# def month_first_day(d: date) -> date:
+#     return d.replace(day=1)
 
-def ensure_tuition_month(enr: Enrollment, month: date) -> TuitionMonth:
-    month = month_first_day(month)
-    tm, _ = TuitionMonth.objects.get_or_create(
-        enrollment=enr,
-        month=month,
-        defaults={"fee_amount": (enr.kurs_narhi or enr.group.kurs_narxi or 0)},
-    )
-    # fee 0 bo‘lib qolsa fallback
-    if not tm.fee_amount or tm.fee_amount == 0:
-        tm.fee_amount = (enr.kurs_narhi or enr.group.kurs_narxi or 0)
-        tm.save(update_fields=["fee_amount"])
-    return tm
+# def ensure_tuition_month(enr: Enrollment, month: date) -> TuitionMonth:
+#     month = month_first_day(month)
+#     tm, _ = TuitionMonth.objects.get_or_create(
+#         enrollment=enr,
+#         month=month,
+#         defaults={"fee_amount": (enr.kurs_narhi or enr.group.kurs_narxi or 0)},
+#     )
+#     # fee 0 bo‘lib qolsa fallback
+#     if not tm.fee_amount or tm.fee_amount == 0:
+#         tm.fee_amount = (enr.kurs_narhi or enr.group.kurs_narxi or 0)
+#         tm.save(update_fields=["fee_amount"])
+#     return tm
 
 
 
-def get_month_paid(enr: Enrollment, month: date) -> int:
-    month = month_first_day(month)
-    tm = TuitionMonth.objects.filter(enrollment=enr, month=month).first()
-    if not tm:
-        return 0
-    s = PaymentAllocation.objects.filter(tuition_month=tm).aggregate(x=Sum("amount"))["x"] or 0
-    return int(s)
+# def get_month_paid(enr: Enrollment, month: date) -> int:
+#     month = month_first_day(month)
+#     tm = TuitionMonth.objects.filter(enrollment=enr, month=month).first()
+#     if not tm:
+#         return 0
+#     s = PaymentAllocation.objects.filter(tuition_month=tm).aggregate(x=Sum("amount"))["x"] or 0
+#     return int(s)
 
 
 def parse_month_str(s: str) -> date | None:
@@ -231,7 +231,9 @@ def tolov_oquvchilar(request):
         per_page_raw = "10"
     per_page = int(per_page_raw)
 
-    selected_month = parse_month_str(month_str)
+    # selected_month = parse_month_str(month_str)
+    # month_str_out = selected_month.strftime("%Y-%m")
+    selected_month = parse_month_str(month_str) or first_day_of_current_month()
     month_str_out = selected_month.strftime("%Y-%m")
 
     enrollments = Enrollment.objects.select_related("student", "group")
@@ -367,26 +369,26 @@ def month_first_day(d: date) -> date:
     return d.replace(day=1)
 
 
-def parse_month_str(month_str: str) -> date:
-    # "2026-01" -> 2026-01-01
-    if not month_str:
-        return month_first_day(timezone.localdate())
-    try:
-        y, m = month_str.split("-")
-        return date(int(y), int(m), 1)
-    except Exception:
-        return month_first_day(timezone.localdate())
+# def parse_month_str(month_str: str) -> date:
+#     # "2026-01" -> 2026-01-01
+#     if not month_str:
+#         return month_first_day(timezone.localdate())
+#     try:
+#         y, m = month_str.split("-")
+#         return date(int(y), int(m), 1)
+#     except Exception:
+#         return month_first_day(timezone.localdate())
 
 
-def _get_fee_amount(enr: Enrollment) -> int:
-    # Enrollment kurs_narhi -> Group kurs_narxi/kurs_narhi fallback
-    enr_fee = getattr(enr, "kurs_narhi", None)
-    if enr_fee:
-        return int(enr_fee)
-    g = getattr(enr, "group", None)
-    if not g:
-        return 0
-    return int(getattr(g, "kurs_narxi", 0) or getattr(g, "kurs_narhi", 0) or 0)
+# def _get_fee_amount(enr: Enrollment) -> int:
+#     # Enrollment kurs_narhi -> Group kurs_narxi/kurs_narhi fallback
+#     enr_fee = getattr(enr, "kurs_narhi", None)
+#     if enr_fee:
+#         return int(enr_fee)
+#     g = getattr(enr, "group", None)
+#     if not g:
+#         return 0
+#     return int(getattr(g, "kurs_narxi", 0) or getattr(g, "kurs_narhi", 0) or 0)
 
 
 def ensure_tuition_month(enr: Enrollment, month: date) -> TuitionMonth:

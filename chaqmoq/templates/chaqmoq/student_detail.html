@@ -1,201 +1,504 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+{% load tz %}
 {% block content %}
 
 <style>
-/* GLOBAL */
-body {
-  background: linear-gradient(150deg, #0f172a, #1e293b);
-  color: #e2e8f0;
-  font-family: 'Poppins', sans-serif;
+ :root{
+  --bg1:#0b1220;
+  --bg2:#0f1b33;
+  --card: rgba(255,255,255,0.05);
+  --card2: rgba(255,255,255,0.08);
+  --text:#e5e7eb;
+  --muted:#9ca3af;
+  --line: rgba(255,255,255,0.10);
+
+  /* ⚡ CHAQMOQ LOGO ACCENT (amber/orange) */
+  --primary:#f59e0b;     /* amber */
+  --primary2:#facc15;    /* yellow */
+  --success:#22c55e;
+  --danger:#ef4444;
+
+  --shadow: 0 18px 55px rgba(0,0,0,.45);
+  --radius:18px;
 }
 
-/* PAGE TITLE */
-.student-title {
-  font-size: 1.9rem;
-  font-weight: 800;
-  color: #facc15;
-  text-shadow: 0 0 12px rgba(250, 204, 21, 0.4);
+
+  body{
+    background: linear-gradient(160deg, var(--bg1), var(--bg2) 45%, var(--bg1));
+    color: var(--text);
+  }
+
+  .sd-wrap{ max-width: 1050px; margin: 26px auto; padding: 0 14px; }
+
+  /* HERO */
+  .sd-hero{
+    border-radius: 22px;
+    overflow:hidden;
+    box-shadow: var(--shadow);
+    background: linear-gradient(120deg, #1d4ed8, #06b6d4);
+    position: relative;
+    border: 1px solid rgba(255,255,255,.10);
+  }
+  .sd-hero:before{
+    content:"";
+    position:absolute; inset:0;
+    background:
+      radial-gradient(circle at 20% 30%, rgba(255,255,255,.18), transparent 55%),
+      radial-gradient(circle at 80% 10%, rgba(255,255,255,.12), transparent 55%);
+    pointer-events:none;
+  }
+  .sd-hero-inner{
+    position:relative;
+    padding: 22px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:14px;
+    flex-wrap:wrap;
+    color:#fff;
+  }
+
+  .sd-profile{ display:flex; align-items:center; gap:14px; }
+  .sd-avatar{
+    width:64px; height:64px; border-radius: 50%;
+    background: rgba(255,255,255,.18);
+    border:2px solid rgba(255,255,255,.26);
+    display:flex; align-items:center; justify-content:center;
+    font-weight:1000; font-size: 1.4rem;
+    backdrop-filter: blur(10px);
+  }
+  .sd-name{ margin:0; font-weight: 1000; letter-spacing:.2px; }
+  .sd-sub{ margin:4px 0 0 0; opacity:.92; font-weight:650; }
+
+  .sd-actions{ display:flex; gap:10px; flex-wrap:wrap; }
+  .sd-actions a{
+    text-decoration:none;
+    background: rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.22);
+    padding:10px 14px;
+    border-radius: 12px;
+    color:#fff;
+    font-weight:900;
+    transition:.2s;
+    display:inline-flex; align-items:center; gap:8px;
+  }
+  .sd-actions a:hover{ transform: translateY(-1px); background: rgba(255,255,255,.20); }
+
+  /* GRID */
+  .sd-grid{
+    margin-top: 14px;
+    display:grid;
+    grid-template-columns: 1.2fr .8fr;
+    gap: 14px;
+  }
+  @media (max-width: 920px){ .sd-grid{ grid-template-columns: 1fr; } }
+
+  /* CARDS */
+  .card{
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow:hidden;
+    border: 1px solid rgba(255,255,255,.10);
+    backdrop-filter: blur(16px);
+  }
+  .card-hd{
+    padding: 14px 16px;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .card-title{ margin:0; font-weight: 1000; color: var(--text); }
+  .muted{ color: var(--muted); font-weight:650; }
+
+  /* STATS */
+  .stats{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 14px 16px;
+  }
+  @media (max-width: 520px){ .stats{ grid-template-columns: 1fr; } }
+
+  .stat{
+    background: rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.10);
+    border-radius: 14px;
+    padding: 12px;
+  }
+  .stat .k{ font-weight:900; color: rgba(229,231,235,.75); font-size:.9rem; }
+  .stat .v{ font-weight:1000; font-size:1.25rem; margin-top:4px; }
+  .plus{ color: var(--success); }
+  .minus{ color: var(--danger); }
+  .bal{ color: #60a5fa; }
+
+  /* Teacher table */
+  table{ width:100%; border-collapse: collapse; }
+  thead th{
+    background: rgba(255,255,255,0.06);
+    color: var(--text);
+    font-weight:1000;
+    border-bottom:1px solid var(--line);
+    padding:14px 16px;
+    font-size:.92rem;
+  }
+  tbody td{
+    padding: 14px 16px;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+    color: var(--text);
+    font-weight:750;
+  }
+  .t-right{ text-align:right; }
+
+  .chip{ display:inline-flex; align-items:center; gap:8px; }
+  .dot{
+    width:10px; height:10px; border-radius: 50%;
+    background: linear-gradient(90deg, var(--primary), var(--primary2));
+    box-shadow: 0 0 12px rgba(59,130,246,.35);
+  }
+
+  /* Timeline */
+  .timeline{ padding: 12px 14px 14px 14px; }
+  .item{
+    display:flex;
+    gap: 12px;
+    align-items:flex-start;
+    padding: 12px 10px;
+    border-radius: 14px;
+    transition:.15s;
+    background: rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.06);
+    margin-bottom: 10px;
+  }
+  .item:hover{ background: rgba(255,255,255,0.06); }
+
+  .ico{
+    width:40px; height:40px;
+    border-radius: 12px;
+    display:flex; align-items:center; justify-content:center;
+    flex:0 0 auto;
+    background: rgba(34,197,94,.12);
+    color: var(--success);
+    font-weight:1000;
+    border:1px solid rgba(34,197,94,.18);
+  }
+  .ico.minus{
+    background: rgba(239,68,68,.12);
+    color: var(--danger);
+    border:1px solid rgba(239,68,68,.18);
+  }
+
+  .it-main{ flex:1; min-width: 0; }
+  .it-title{ margin:0; font-weight:1000; color: var(--text); }
+  .it-sub{ margin:4px 0 0 0; color: rgba(229,231,235,.72); font-weight:650; font-size:.92rem; }
+
+  .amt{
+    font-weight:1000;
+    min-width: 80px;
+    text-align:right;
+    color: var(--success);
+  }
+  .amt.minus{ color: var(--danger); }
+
+  /* per_page select */
+  .pp-select{
+    background: rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.10);
+    border-radius: 14px;
+    padding:10px 12px;
+    font-weight:900;
+    color: var(--text);
+  }
+
+  /* Pagination */
+  .pg-wrap{
+    padding: 12px 14px 14px 14px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    border-top: 1px solid var(--line);
+  }
+  .pg{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .pg a, .pg span{
+    min-width:38px;
+    height:38px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border-radius: 12px;
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.05);
+    color: var(--text);
+    font-weight:1000;
+    text-decoration:none;
+    padding: 0 10px;
+  }
+  .pg a:hover{ background: rgba(255,255,255,0.08); }
+  .pg .active{
+    background: linear-gradient(90deg, var(--primary), var(--primary2));
+    border-color: rgba(255,255,255,0.18);
+    color:#fff;
+  }
+  .pg .disabled{ opacity:.45; pointer-events:none; }
+
+
+  /* GRID — right panel siqilmasin */
+.sd-grid{
+  grid-template-columns: 1.05fr .95fr !important;
 }
 
-/* BALANCE CARD */
-.balance-card {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 16px;
-  padding: 18px 24px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  box-shadow: 0 0 22px rgba(0,0,0,0.35);
-  backdrop-filter: blur(8px);
+/* TABLE wrapper — chekkaga yopishib qolmasin */
+.table-wrap{
+  padding: 0 14px 14px 14px;
+  overflow-x: auto;
 }
-
-/* BADGE FOR GROUPS */
-.group-badge {
-  display: inline-block;
-  background: rgba(59,130,246,0.2);
-  color: #60a5fa;
-  border: 1px solid rgba(59,130,246,0.35);
-  padding: 4px 10px;
-  border-radius: 12px;
-  margin: 4px 6px 4px 0;
-  font-size: 0.85rem;
-  font-weight: 500;
+.teacher-table{
+  width:100%;
+  min-width: 420px;
 }
-
-/* TABLES */
-.table-box {
-  background: rgba(255,255,255,0.05);
-  padding: 18px;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 0 20px rgba(0,0,0,0.35);
+.teacher-table th, .teacher-table td{
+  white-space: nowrap;
 }
+.teacher-table th:nth-child(1){ width:60px; }
+.teacher-table th:nth-child(3),
+.teacher-table th:nth-child(4){ width:110px; }
 
-table {
-  width: 100%;
-  color: #e2e8f0;
-}
-
-thead {
-  background: linear-gradient(to right, #3b82f6, #2563eb);
-  color: #fff;
+.t-name{ font-weight: 900; }
+.t-role{
+  font-size: .82rem;
+  color: rgba(229,231,235,.70);
   font-weight: 700;
+  margin-top: 2px;
 }
 
-th, td {
-  padding: 10px 12px;
+/* GROUP pills — oq bo‘lib qolmasin + link bo‘lsin */
+.groups-wrap{
+  margin-top:8px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.group-pill{
+  text-decoration:none;
+  background: rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.10);
+  padding:8px 12px;
+  border-radius: 12px;
+  color: var(--text);
+  font-weight: 900;
+  transition:.15s;
+}
+.group-pill:hover{
+  background: rgba(255,255,255,0.10);
+  transform: translateY(-1px);
+  border-color: rgba(59,130,246,.35);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+}
+/* ✅ Native select dropdownni dark qilish */
+html{ color-scheme: dark; }   /* eng muhimi shu! */
+
+.pp-select{
+  color-scheme: dark;
 }
 
-tbody tr {
-  transition: .25s;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+.pp-select option{
+  background: #0f172a;
+  color: #e5e7eb;
 }
 
-tbody tr:hover {
-  background: rgba(255,255,255,0.08);
-}
-
-/* SELECT DROPDOWN */
-select.form-select {
-  background: rgba(255,255,255,0.06) !important;
-  border: 1px solid rgba(255,255,255,0.15);
-  color: #fff !important;
-  border-radius: 10px;
-}
-
-select.form-select:focus {
-  box-shadow: 0 0 10px rgba(59,130,246,0.35);
-  border-color: #3b82f6;
-}
 </style>
 
-<div class="container mt-4">
 
-  <!-- HEADER -->
-  <h3 class="student-title">
-    🎓 {{ student.ism }} {{ student.familya }}
-  </h3>
+<div class="sd-wrap">
 
-  <div class="balance-card mt-2">
-    ⚡ Jami balans: <span class="text-info">{{ balance }}</span>
+  <div class="sd-hero">
+    <div class="sd-hero-inner">
+      <div class="sd-profile">
+        <div class="sd-avatar">{{ student.ism|first|upper }}</div>
+        <div>
+          <h3 class="sd-name">{{ student.ism }} {{ student.familya|default:"" }}</h3>
+          <p class="sd-sub">Coin tarixi va o‘qituvchilar bo‘yicha statistika</p>
+        </div>
+      </div>
+
+      <div class="sd-actions">
+        <a href="{% url 'chaqmoq:reyting' %}">🏆 Reyting</a>
+        <a href="{% url 'core:home' %}">🏠 Bosh sahifa</a>
+      </div>
+    </div>
   </div>
 
-  <!-- GROUP LIST -->
-  <h5 class="mt-4 fw-bold text-info">📘 Biriktirilgan guruhlar:</h5>
-  <div class="mb-3">
+  <div class="sd-grid">
+
+    <!-- LEFT: Tarix -->
+    <div class="card">
+      <div class="card-hd">
+        <div>
+          <h4 class="card-title">Tarix</h4>
+          <div class="muted">Kim, qachon, nima sababdan Coin qo‘shdi/olib tashladi</div>
+        </div>
+
+        <form method="get" style="display:flex; gap:10px; align-items:center;">
+          <select class="pp-select" name="per_page" onchange="this.form.submit()">
+            <option value="10"  {% if per_page == 10 %}selected{% endif %}>10 ta</option>
+            <option value="20"  {% if per_page == 20 %}selected{% endif %}>20 ta</option>
+            <option value="50"  {% if per_page == 50 %}selected{% endif %}>50 ta</option>
+            <option value="100" {% if per_page == 100 %}selected{% endif %}>100 ta</option>
+            <option value="all" {% if per_page == "all" %}selected{% endif %}>Barchasi</option>
+          </select>
+          <input type="hidden" name="page" value="1">
+        </form>
+      </div>
+
+      <div class="timeline">
+        {% for l in ledger %}
+          <div class="item">
+            {% if l.ball >= 0 %}
+              <div class="ico">✓</div>
+            {% else %}
+              <div class="ico minus">!</div>
+            {% endif %}
+
+            <div class="it-main">
+              <p class="it-title">{{ l.rule.nom }}</p>
+<p class="it-sub">
+  {% if l.group %}{{ l.group.nom }}{% else %}Guruh: —{% endif %}
+  •
+{% if l.beruvchi %}{{ l.beruvchi.ism }} {{ l.beruvchi.familya|default:"" }}{% else %}Beruvchi: Topilmadi{% endif %}   {{ l.sana|date:"d.m.Y" }} - {{ l.created_at|localtime|date:"H:i" }}
+</p>
+
+            </div>
+
+            {% if l.ball >= 0 %}
+              <div class="amt">+{{ l.ball }}</div>
+            {% else %}
+              <div class="amt minus">{{ l.ball }}</div>
+            {% endif %}
+          </div>
+        {% empty %}
+          <div class="muted" style="padding:18px;">Hozircha tarix yo‘q.</div>
+        {% endfor %}
+      </div>
+
+      {% if page_obj %}
+      <div class="pg-wrap">
+        <div class="muted">
+          Sahifa: <b>{{ page_obj.number }}</b> / <b>{{ page_obj.paginator.num_pages }}</b>
+          • Jami: <b>{{ page_obj.paginator.count }}</b> ta
+        </div>
+
+        <div class="pg">
+          {% if page_obj.has_previous %}
+            <a href="?per_page={{ per_page }}&page={{ page_obj.previous_page_number }}">‹</a>
+          {% else %}
+            <span class="disabled">‹</span>
+          {% endif %}
+
+          {% for p in page_window %}
+            {% if p == page_obj.number %}
+              <span class="active">{{ p }}</span>
+            {% else %}
+              <a href="?per_page={{ per_page }}&page={{ p }}">{{ p }}</a>
+            {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+            <a href="?per_page={{ per_page }}&page={{ page_obj.next_page_number }}">›</a>
+          {% else %}
+            <span class="disabled">›</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <!-- RIGHT: Stats + Teacher table -->
+    <div class="card">
+      <div class="card-hd">
+        <h4 class="card-title">O‘qituvchilar bo‘yicha</h4>
+        <div class="muted">Coin+ va Coin- yig‘indisi</div>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="k">Coin +</div>
+          <div class="v plus">+{{ totals.total_plus }}</div>
+        </div>
+        <div class="stat">
+          <div class="k">Coin -</div>
+          <div class="v minus">{{ totals.total_minus }}</div>
+        </div>
+        <div class="stat">
+          <div class="k">Jami</div>
+          <div class="v bal">
+            {% if totals.balance > 0 %}+{{ totals.balance }}{% else %}{{ totals.balance }}{% endif %}
+          </div>
+        </div>
+      </div>
+
+<div class="table-wrap">
+  <table class="teacher-table">
+          <thead>
+            <tr>
+              <th style="width:60px;">№</th>
+              <th>O‘qituvchi</th>
+              <th class="t-right">Coin +</th>
+              <th class="t-right">Coin -</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in teacher_stats %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+<td>
+  <span class="chip">
+    <span class="dot"></span>
+    <div>
+      <div class="t-name">
+        {% if t.beruvchi__ism %}{{ t.beruvchi__ism }} {{ t.beruvchi__familya|default:"" }}{% else %}Topilmadi{% endif %}
+      </div>
+      <div class="t-role">
+        {{ t.beruvchi__role|default:"" }}
+      </div>
+    </div>
+  </span>
+</td>
+
+              <td class="t-right plus">+{{ t.coin_plus }}</td>
+              <td class="t-right minus">{{ t.coin_minus }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4" class="muted" style="padding:16px;">Hozircha ma’lumot yo‘q.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div style="padding: 12px 16px 16px 16px; border-top:1px solid var(--line);">
+        <div class="muted" style="font-weight:800;">Guruhlar:</div>
+  <div class="groups-wrap">
     {% for e in enrolls %}
-      <span class="group-badge">{{ e.group.nom }}</span>
+      <a class="group-pill" href="{% url 'education:group_detail' e.group.id %}">
+        {{ e.group.nom }}
+      </a>
     {% empty %}
-      <p class="text-secondary">Guruhga biriktirilmagan.</p>
+      <span class="muted">Guruh topilmadi.</span>
     {% endfor %}
   </div>
 
-  <!-- SELECT NUMBER -->
-  <form method="get" class="mb-3">
-    <label class="me-2 fw-semibold">Ko‘rsatish soni:</label>
-    <select name="n" class="form-select d-inline-block" style="width:140px" onchange="this.form.submit()">
-      <option value="15"  {% if n == '15' %}selected{% endif %}>15 ta</option>
-      <option value="50"  {% if n == '50' %}selected{% endif %}>50 ta</option>
-      <option value="all" {% if n == 'all' %}selected{% endif %}>Barchasi</option>
-    </select>
-  </form>
-
-  <div class="row g-4">
-
-    <!-- DAVOMAT -->
-    <div class="col-md-6">
-      <div class="table-box">
-        <h5 class="fw-bold text-primary">📅 Davomat {% if n != 'all' %}(oxirgi {{ n }}){% endif %}</h5>
-        <table class="table table-sm mt-2">
-          <thead>
-            <tr>
-              <th>Sana</th>
-              <th>Guruh</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for a in attendance %}
-              <tr>
-                <td>{{ a.date|date:"Y-m-d" }}</td>
-                <td>{{ a.group.nom }}</td>
-                <td>
-                  {% if a.present %}
-                    <span class="text-success fw-bold">✓</span>
-                  {% else %}
-                    <span class="text-danger fw-bold">✗</span>
-                  {% endif %}
-                </td>
-              </tr>
-            {% empty %}
-              <tr><td colspan="3" class="text-secondary">Davomat yo‘q.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
       </div>
-    </div>
 
-    <!-- LEDGER -->
-    <div class="col-md-6">
-      <div class="table-box">
-        <h5 class="fw-bold text-warning">⚡ Chaqmoq yozuvlari {% if n != 'all' %}(oxirgi {{ n }}){% endif %}</h5>
-        <table class="table table-sm mt-2">
-          <thead>
-            <tr>
-              <th>Sana</th>
-              <th>Guruh</th>
-              <th>Qoida</th>
-              <th>Ball</th>
-              <th>Kim</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for l in ledger %}
-              <tr>
-                <td>{{ l.sana|date:"Y-m-d H:i" }}</td>
-                <td>{{ l.group.nom if l.group else "—" }}</td>
-                <td>{{ l.rule.nom }}</td>
-                <td class="{% if l.ball >= 0 %}text-success{% else %}text-danger{% endif %} fw-bold">
-                  {{ l.ball }}
-                </td>
-                <td>
-                  {% if l.beruvchi %}
-                    {{ l.beruvchi.ism }} {{ l.beruvchi.familya }}
-                  {% else %}
-                    —
-                  {% endif %}
-                </td>
-              </tr>
-            {% empty %}
-              <tr><td colspan="5" class="text-secondary">Yozuv mavjud emas.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
     </div>
 
   </div>
-
 </div>
 
 {% endblock %}

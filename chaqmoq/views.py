@@ -9,56 +9,142 @@ from .models import Ledger, Rule
 from education.models import Group, Enrollment, Attendance
 from django.utils import timezone
 from datetime import datetime
+from django.core.paginator import Paginator
+from django.db.models import Sum, Case, When, IntegerField, Value, F, Q
+from django.db.models.functions import Coalesce, Abs
+
 
 User = get_user_model()
 
 def reyting(request):
-    leaderboard = (
-        Ledger.objects
-        .filter(student__role="student")
-        .values("student__id", "student__ism", "student__familya")
-        .annotate(jami=Sum("ball"))
-        .order_by("-jami")
+    q = (request.GET.get("q") or "").strip()
+    per_page = request.GET.get("per_page", "10")
+    page = request.GET.get("page", "1")
+
+    try:
+        per_page = int(per_page)
+    except ValueError:
+        per_page = 50
+    if per_page not in (10, 20, 50, 100):
+        per_page = 50
+
+    base = Ledger.objects.filter(student__role="student")
+
+    if q:
+        base = base.filter(
+            Q(student__ism__icontains=q) |
+            Q(student__familya__icontains=q)
+        )
+
+    leaderboard_qs = (
+        base.values("student__id", "student__ism", "student__familya")
+        .annotate(jami=Coalesce(Sum("ball"), 0))
+        .order_by("-jami", "student__ism")
     )
 
-    return render(request, "chaqmoq/reyting.html", {"leaderboard": leaderboard})
+    paginator = Paginator(leaderboard_qs, per_page)
+    page_obj = paginator.get_page(page)
+
+    # Pagination raqamlarini chiroyli oynacha qilib beramiz (1..N emas, window)
+    cur = page_obj.number
+    total = paginator.num_pages
+    start = max(1, cur - 3)
+    end = min(total, cur + 3)
+    page_window = range(start, end + 1)
+
+    ctx = {
+        "page_obj": page_obj,
+        "q": q,
+        "per_page": per_page,
+        "page_window": page_window,
+    }
+    return render(request, "chaqmoq/reyting.html", ctx)
+
 
 @login_required
 def student_detail(request, pk):
     student = get_object_or_404(User, pk=pk, role='student')
-    n = request.GET.get('n', '15')
+
+    # ✅ per_page (10/20/50/100/all) va page
+    per_page_raw = request.GET.get("per_page", "10")
+    page_number = request.GET.get("page", "1")
+
+    per_page = per_page_raw if per_page_raw == "all" else int(per_page_raw)
 
     enrolls = Enrollment.objects.filter(student=student).select_related('group')
 
-    att_qs = (
-        Attendance.objects
-        .filter(student=student)
-        .select_related('group')
-        .order_by('-date')
-    )
     led_qs = (
         Ledger.objects
         .filter(student=student)
         .select_related('group', 'rule', 'beruvchi')
-        .order_by('-sana')
+        .order_by('-created_at')
     )
 
-    if n != 'all':
-        limit = 50 if n == '50' else 15
-        att_qs = att_qs[:limit]
-        led_qs = led_qs[:limit]
+    # ✅ Umumiy totals (plus/minus/balance)
+    totals = led_qs.aggregate(
+        total_plus=Coalesce(Sum(Case(
+            When(ball__gt=0, then=F("ball")),
+            default=Value(0),
+            output_field=IntegerField()
+        )), 0),
+        total_minus=Coalesce(Sum(Case(
+            When(ball__lt=0, then=Abs(F("ball"))),
+            default=Value(0),
+            output_field=IntegerField()
+        )), 0),
+        balance=Coalesce(Sum("ball"), 0)
+    )
 
-    balance = Ledger.objects.filter(student=student).aggregate(total=Sum('ball'))['total'] or 0
+    # ✅ Teacher/Manager/Director bo‘yicha statistika (role bilan)
+    teacher_stats = (
+        led_qs
+        .values("beruvchi__id", "beruvchi__ism", "beruvchi__familya", "beruvchi__role")
+        .annotate(
+            coin_plus=Coalesce(Sum(Case(
+                When(ball__gt=0, then=F("ball")),
+                default=Value(0),
+                output_field=IntegerField()
+            )), 0),
+            coin_minus=Coalesce(Sum(Case(
+                When(ball__lt=0, then=Abs(F("ball"))),
+                default=Value(0),
+                output_field=IntegerField()
+            )), 0),
+        )
+        .order_by("-coin_plus", "-coin_minus", "beruvchi__ism")
+    )
+
+    # ✅ Pagination
+    page_obj = None
+    page_window = []
+
+    if per_page != "all":
+        paginator = Paginator(led_qs, per_page)
+        page_obj = paginator.get_page(page_number)
+        ledger = page_obj.object_list
+
+        # chiroyli page window (1..N ichidan keraklisini ko‘rsatish)
+        current = page_obj.number
+        last = paginator.num_pages
+        start = max(1, current - 3)
+        end = min(last, current + 3)
+        page_window = list(range(start, end + 1))
+    else:
+        ledger = led_qs
 
     ctx = {
-        'student': student,
-        'enrolls': enrolls,
-        'attendance': att_qs,
-        'ledger': led_qs,
-        'balance': balance,
-        'n': n,
+        "student": student,
+        "enrolls": enrolls,
+        "ledger": ledger,
+        "totals": totals,
+        "teacher_stats": teacher_stats,
+
+        "per_page": per_page,          # template’dagi select ishlaydi
+        "page_obj": page_obj,
+        "page_window": page_window,
     }
-    return render(request, 'chaqmoq/student_detail.html', ctx)
+    return render(request, "chaqmoq/student_detail.html", ctx)
+
 
 @login_required
 def api_group_students(request, group_id: int):
@@ -130,15 +216,28 @@ def berish(request):
         group = Group.objects.filter(pk=selected_gid).first() if selected_gid else None
 
         # 🔹 Tanlangan sanani olish
+        # davomat_sana_str = request.POST.get('davomat_sana')
+# 🔹 Tanlangan sanani olish
         davomat_sana_str = request.POST.get('davomat_sana')
+
         if davomat_sana_str:
             try:
-                tanlangan_sana = datetime.strptime(davomat_sana_str, '%Y-%m-%d')
-                tanlangan_sana = timezone.make_aware(tanlangan_sana)
+                # user tanlagan KUN
+                d = datetime.strptime(davomat_sana_str, "%Y-%m-%d").date()
+
+                # hozirgi real vaqt (soat/minut)
+                now_local = timezone.localtime(timezone.now()).time().replace(second=0, microsecond=0)
+
+                # sana + real vaqt birlashtiramiz
+                tanlangan_sana = timezone.make_aware(
+                    datetime.combine(d, now_local),
+                    timezone.get_current_timezone()
+                )
             except ValueError:
                 tanlangan_sana = timezone.now()
         else:
             tanlangan_sana = timezone.now()
+
 
         # 🔹 Yangi chaqmoq yozuvi
         Ledger.objects.create(
@@ -164,32 +263,83 @@ def berish(request):
 
 @login_required
 def my_chaqmoq(request):
-    """O‘quvchi o‘zining davomatini va chaqmoqlarini ko‘radi."""
-    if getattr(request.user, 'role', None) != 'student':
-        # Student bo‘lmasa bosh sahifaga
-        return redirect('core:home')
+    if getattr(request.user, "role", None) != "student":
+        return redirect("core:home")
 
     student = request.user
-    n = request.GET.get("n", "15")
+
+    per_page = request.GET.get("per_page") or request.GET.get("n") or "20"
+    page = request.GET.get("page", "1")
+
+    if per_page == "all":
+        per_page_int = None
+    else:
+        try:
+            per_page_int = int(per_page)
+        except ValueError:
+            per_page_int = 20
+        if per_page_int not in (10, 20, 50, 100):
+            per_page_int = 20
 
     enrolls = Enrollment.objects.filter(student=student).select_related("group")
-    att_qs = Attendance.objects.filter(student=student).select_related("group").order_by("-date")
-    led_qs = Ledger.objects.filter(student=student).select_related("group", "rule").order_by("-sana")
 
-    if n != "all":
-        limit = 50 if n == "50" else 15
-        att_qs = att_qs[:limit]
-        led_qs = led_qs[:limit]
+    teacher_stats = (
+        Ledger.objects
+        .filter(student=student)
+        .values("beruvchi__id", "beruvchi__ism", "beruvchi__familya")
+        .annotate(
+            coin_plus=Coalesce(Sum(
+                Case(When(ball__gt=0, then=F("ball")), default=Value(0), output_field=IntegerField())
+            ), 0),
+            coin_minus=Coalesce(Sum(
+                Case(When(ball__lt=0, then=Abs(F("ball"))), default=Value(0), output_field=IntegerField())
+            ), 0),
+        )
+        .order_by("-coin_plus", "beruvchi__ism")
+    )
 
-    balance = Ledger.student_balansi(student.id)
+    totals = Ledger.objects.filter(student=student).aggregate(
+        total_plus=Coalesce(Sum(
+            Case(When(ball__gt=0, then=F("ball")), default=Value(0), output_field=IntegerField())
+        ), 0),
+        total_minus=Coalesce(Sum(
+            Case(When(ball__lt=0, then=Abs(F("ball"))), default=Value(0), output_field=IntegerField())
+        ), 0),
+        balance=Coalesce(Sum("ball"), 0),
+    )
+
+    led_qs = (
+        Ledger.objects
+        .filter(student=student)
+        .select_related("group", "rule", "beruvchi")
+        .order_by("-sana")
+    )
+
+    if per_page_int is None:
+        ledger_page = led_qs
+        page_obj = None
+        page_window = []
+    else:
+        paginator = Paginator(led_qs, per_page_int)
+        page_obj = paginator.get_page(page)
+        ledger_page = page_obj
+
+        cur = page_obj.number
+        total = paginator.num_pages
+        start = max(1, cur - 3)
+        end = min(total, cur + 3)
+        page_window = range(start, end + 1)
 
     ctx = {
         "student": student,
         "enrolls": enrolls,
-        "attendance": att_qs,
-        "ledger": led_qs,
-        "balance": balance,
-        "n": n,
+        "teacher_stats": teacher_stats,
+        "totals": totals,
+
+        "ledger": ledger_page,
+        "page_obj": page_obj,
+        "page_window": page_window,
+
+        "per_page": "all" if per_page_int is None else per_page_int,
     }
-    # Mavjud templatedan foydalanamiz
     return render(request, "chaqmoq/student_detail.html", ctx)

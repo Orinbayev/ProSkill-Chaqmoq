@@ -6,6 +6,7 @@ app_name = 'chaqmoq'
 urlpatterns = [
     path('reyting/', views.reyting, name='reyting'),
     path('student/<int:pk>/', views.student_detail, name='student_detail'),
+    path("my/", views.my_chaqmoq, name="my_chaqmoq"),
 
     # AJAX endpointlar:
     path('api/group/<int:group_id>/students/', views.api_group_students, name='api_group_students'),
