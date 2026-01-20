@@ -36,7 +36,19 @@
       linear-gradient(180deg, var(--bg1) 0%, var(--bg0) 60%, #04040c 100%);
   }
 
-  .cq-wrap{ max-width: 980px; margin: 0 auto; }
+.cq-wrap{
+  width: 100%;
+  max-width: 1480px;   /* katta ekranda keng */
+  margin: 0 auto;
+}
+
+@media (min-width: 1536px){
+  .cq-wrap{ max-width: 1680px; }
+}
+/* faqat toolbar card kesilmasin */
+.cq-card.no-clip{ overflow: visible !important; }
+
+.cq-wrap{ max-width: 980px; margin: 0 auto; }
 
   .cq-card{
     position: relative;
@@ -283,8 +295,8 @@
     </div>
 
     <!-- TOOLS BAR -->
-    <div class="cq-card p-3">
-      <div class="w-full flex flex-col lg:flex-row lg:flex-nowrap items-stretch lg:items-center gap-2">
+   <div class="cq-card no-clip p-3">
+<div class="w-full flex flex-col lg:flex-row lg:flex-wrap items-stretch lg:items-center gap-2">
 
         <!-- Rule select -->
         <div class="flex items-center gap-3 px-4 py-2 rounded-xl border border-white/10 bg-white/5 flex-1 lg:flex-none">
@@ -331,7 +343,7 @@
         </button>
 
         <!-- Ball -->
-        <div class="lg:ml-auto flex items-center justify-between lg:justify-end gap-3">
+<div class="lg:ml-auto flex items-center justify-between lg:justify-end gap-3 shrink-0">
           <div class="flex items-center gap-2 text-[var(--orange)] font-black uppercase text-[11px] tracking-widest whitespace-nowrap">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
