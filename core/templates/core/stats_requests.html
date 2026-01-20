@@ -2,188 +2,314 @@
 {% block content %}
 
 <style>
-/* ===== TITLE ===== */
-.page-title {
-    font-size: 28px;
-    font-weight: 700;
-    color: #22c55e;
-    margin-bottom: 20px;
+:root{
+  --panel: rgba(17,24,39,.62);
+  --panel2: rgba(2,6,23,.55);
+  --line: rgba(255,255,255,.08);
+  --muted:#94a3b8;
+  --text:#e5e7eb;
+
+  --green:#22c55e;
+  --green2:#16a34a;
+
+  --warn:#f59e0b;
+  --red:#ef4444;
+  --blue:#38bdf8;
 }
 
-/* ===== FILTER SELECT ===== */
-.filter-box {
-    max-width: 260px;
-    margin-bottom: 18px;
+/* page */
+.req-wrap{max-width:1240px;margin:0 auto;padding:8px 12px 24px;color:var(--text);}
+
+/* header card */
+.req-head{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:14px;
+  padding:18px 18px 12px;
+  border-radius:18px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  backdrop-filter: blur(12px);
+  box-shadow:0 18px 45px rgba(0,0,0,.22);
 }
-.filter-box select {
-    color: #000000;
+.head-left{display:flex;align-items:center;gap:12px;}
+.head-ic{
+  width:44px;height:44px;border-radius:14px;
+  display:grid;place-items:center;
+  background:rgba(34,197,94,.14);
+  border:1px solid rgba(34,197,94,.28);
+  color:#a7f3d0;font-size:18px;
 }
-.filter-box select option {
-    color: #000000;
+.req-title{
+  margin:0;
+  font-size:28px;
+  font-weight:900;
+  color:var(--green);
+  text-shadow:0 10px 26px rgba(34,197,94,.18);
 }
-.filter-box select:focus {
-    border-color: #22c55e;
-    box-shadow: 0 0 6px rgba(34,197,94,0.3);
+.req-sub{margin-top:6px;color:var(--muted);font-size:13px;}
+
+/* filter */
+.filter-box{min-width:220px;display:flex;justify-content:flex-end;}
+.filter-box select{
+  width: 220px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(148,163,184,.22);
+  background: rgba(15,23,42,.72);
+  color: var(--text);
+  padding: 0 12px;
+  font-weight: 800;
+  outline: none;
+  cursor: pointer;
+}
+.filter-box select:focus{
+  border-color: rgba(34,197,94,.65);
+  box-shadow: 0 0 0 4px rgba(34,197,94,.12);
+}
+.filter-box option{
+  background:#0b1220;
+  color:#e5e7eb;
 }
 
-/* ===== TABLE WRAPPER ===== */
-.table-container {
-    background: #ffffff;
-    padding: 20px;
-    border-radius: 16px;
-    border: 1px solid #e5e7eb;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+/* table card */
+.table-card{
+  margin-top:14px;
+  border-radius:18px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  backdrop-filter: blur(12px);
+  box-shadow:0 18px 45px rgba(0,0,0,.22);
+  overflow:hidden;
 }
 
-/* ===== TABLE HEAD ===== */
-.table-modern thead {
-    background: #f1f5f9;
+/* table */
+.req-table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  background: rgba(15,23,42,.72);
 }
-.table-modern thead th {
-    color: #16a34a;
-    padding: 14px 8px;
-    font-size: 14px;
-    text-transform: uppercase;
-    font-weight: 700;
+.req-table thead th{
+  background: rgba(2,6,23,.95);
+  color: var(--green);
+  font-size: 12.5px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  padding: 14px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.10);
+  white-space: nowrap;
 }
+.req-table td{
+  padding: 16px 14px;
+  color: var(--text);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  vertical-align: middle;
+}
+.req-table tbody tr{background: rgba(15,23,42,.55);transition:.18s;}
+.req-table tbody tr:nth-child(even){background: rgba(15,23,42,.42);}
+.req-table tbody tr:hover{background: rgba(34,197,94,.10);}
 
-/* ===== TABLE BODY ===== */
-.table-modern tbody tr {
-    transition: 0.25s;
+/* cells */
+.mono{
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  color:#cbd5e1;
 }
-.table-modern tbody tr:hover {
-    background: #f0fdf4;
-}
-.table-modern td,
-.table-modern th {
-    border: 1px solid #e5e7eb;
-}
-
-
-/* STATUS COLORS */
-.status-pending { color: #ca8a04; font-weight: 700; }
-.status-approved { color: #16a34a; font-weight: 800; }
-.status-rejected { color: #dc2626; font-weight: 800; }
-
-/* ACTION BUTTONS */
-.btn-mini {
-    padding: 6px 10px;
-    font-size: 13px;
-    font-weight: 600;
-    border-radius: 8px !important;
-}
-
-/* EMPTY STATE */
-.empty-row {
-    color: #020617; /* 🔴 QORA */
-    text-align: center;
-    padding: 18px 0;
-    font-weight: 500;
+.name-cell{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px;}
+.qty-pill{
+  display:inline-block;
+  padding:6px 12px;
+  border-radius:999px;
+  font-weight:900;
+  background: rgba(56,189,248,.12);
+  border: 1px solid rgba(56,189,248,.22);
+  color: #bae6fd;
 }
 
-/* ===== MOBILE RESPONSIVE ===== */
-@media (max-width: 768px) {
-    .table-modern thead { display: none; }
+/* status pills */
+.status-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:7px 12px;
+  border-radius:999px;
+  font-weight:900;
+  border:1px solid rgba(255,255,255,.10);
+}
+.status-pending{
+  background: rgba(245,158,11,.12);
+  border-color: rgba(245,158,11,.22);
+  color: #fde68a;
+}
+.status-approved{
+  background: rgba(34,197,94,.14);
+  border-color: rgba(34,197,94,.26);
+  color:#bbf7d0;
+}
+.status-rejected{
+  background: rgba(239,68,68,.12);
+  border-color: rgba(239,68,68,.22);
+  color:#fecaca;
+}
 
-    .table-modern tr {
-        display: block;
-        margin-bottom: 15px;
-        padding: 12px;
-        border-radius: 14px;
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-    }
+/* actions */
+.actions{white-space:nowrap;text-align:right;}
+.btn-mini{
+  height:36px;
+  padding:0 12px;
+  border-radius:12px;
+  font-weight:900;
+  border:1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.04);
+  color:#e5e7eb;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  text-decoration:none;
+  transition:.18s;
+}
+.btn-mini:hover{transform:translateY(-1px);filter:brightness(1.12);color:#fff;}
 
-    .table-modern td {
-        display: flex;
-        justify-content: space-between;
-        padding: 10px 6px;
-        border-bottom: 1px dashed #cbd5f5;
-        color: #020617; /* 🔴 MOBILDA HAM QORA */
-    }
-    .table-modern td:last-child {
-        border-bottom: none;
-    }
+.btn-approve{
+  border-color: rgba(34,197,94,.30);
+  background: rgba(34,197,94,.14);
+  color:#d1fae5;
+}
+.btn-reject{
+  border-color: rgba(239,68,68,.28);
+  background: rgba(239,68,68,.12);
+  color:#fecaca;
+}
 
-    .table-modern td::before {
-        content: attr(data-label);
-        font-weight: 700;
-        color: #334155;
-    }
+/* empty state */
+.empty-box{
+  padding: 56px 18px;
+  text-align:center;
+  color: var(--muted);
+}
+.empty-ic{
+  width:64px;height:64px;border-radius:18px;
+  margin:0 auto 12px;
+  display:grid;place-items:center;
+  background: rgba(148,163,184,.08);
+  border:1px solid rgba(148,163,184,.14);
+  color: rgba(148,163,184,.85);
+  font-size: 26px;
+}
+.empty-title{font-weight:900;color:#cbd5e1;}
+.empty-sub{margin-top:6px;font-size:13px;color:rgba(148,163,184,.9);}
+
+/* responsive */
+@media (max-width: 900px){
+  .req-head{flex-direction:column;align-items:flex-start;}
+  .filter-box{width:100%;justify-content:flex-start;}
+  .filter-box select{width:100%;}
+}
+@media (max-width: 720px){
+  .table-scroll{overflow-x:auto;}
+  .req-table{min-width:980px;}
 }
 </style>
 
-<h3 class="page-title">{{ title }}</h3>
+<div class="req-wrap">
 
-<form class="filter-box">
-    <select name="status" onchange="this.form.submit()">
+  <div class="req-head">
+    <div class="head-left">
+      <div class="head-ic"><i class="fa-regular fa-clock"></i></div>
+      <div>
+        <h3 class="req-title">{{ title|default:"Kutilayotgan so‘rovlar" }}</h3>
+        <div class="req-sub">Sotib olish so‘rovlarini tasdiqlang yoki rad eting.</div>
+      </div>
+    </div>
+
+    <form class="filter-box">
+      <select name="status" onchange="this.form.submit()">
         <option value="">— Barchasi —</option>
         <option value="pending"  {% if status == 'pending' %}selected{% endif %}>Kutilmoqda</option>
         <option value="approved" {% if status == 'approved' %}selected{% endif %}>Tasdiqlandi</option>
         <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>Rad etildi</option>
-    </select>
-</form>
+      </select>
+    </form>
+  </div>
 
-<div class="table-container">
-<table class="table-modern table align-middle">
-    <thead>
-        <tr>
-            <th>Sana</th>
-            <th>O‘quvchi</th>
-            <th>Mahsulot</th>
-            <th>Qty</th>
-            <th>Status</th>
-            <th>Tasdiqlovchi</th>
-            <th class="text-end">Amallar</th>
-        </tr>
-    </thead>
+  <div class="table-card">
+    {% if rows %}
+      <div class="table-scroll">
+        <table class="req-table">
+          <thead>
+            <tr>
+              <th>SANA</th>
+              <th>O‘QUVCHI</th>
+              <th>MAHSULOT</th>
+              <th>QTY</th>
+              <th>STATUS</th>
+              <th>TASDIQLOVCHI</th>
+              <th class="text-end">AMALLAR</th>
+            </tr>
+          </thead>
 
-    <tbody>
-        {% for r in rows %}
-        <tr>
-            <td data-label="Sana">{{ r.sana|date:"Y-m-d H:i" }}</td>
-            <td data-label="O‘quvchi">{{ r.student.ism }} {{ r.student.familya }}</td>
-            <td data-label="Mahsulot">{{ r.product.nom }}</td>
-            <td data-label="Qty">{{ r.qty }}</td>
+          <tbody>
+            {% for r in rows %}
+            <tr>
+              <td><span class="mono">{{ r.sana|date:"Y-m-d H:i" }}</span></td>
 
-            <td data-label="Status" class="
-                {% if r.status == 'pending' %}status-pending
-                {% elif r.status == 'approved' %}status-approved
-                {% else %}status-rejected{% endif %}
-            ">
-                {{ r.get_status_display }}
-            </td>
+              <td class="name-cell" title="{{ r.student.ism }} {{ r.student.familya }}">
+                {{ r.student.ism }} {{ r.student.familya }}
+              </td>
 
-            <td data-label="Tasdiqlovchi">
-                {% if r.manager %}
-                    {{ r.manager.ism }} {{ r.manager.familya }}
-                {% else %}
-                    —
-                {% endif %}
-            </td>
+              <td class="name-cell" title="{{ r.product.nom }}">
+                {{ r.product.nom }}
+              </td>
 
-            <td data-label="Amallar" class="text-end text-nowrap">
+              <td><span class="qty-pill">{{ r.qty }}</span></td>
+
+              <td>
                 {% if r.status == 'pending' %}
-                <a class="btn btn-success btn-mini me-1"
-                   href="{% url 'store:request_approve' r.pk %}">
-                    Tasdiqlash
-                </a>
-                <a class="btn btn-outline-danger btn-mini"
-                   href="{% url 'store:request_reject' r.pk %}">
-                    Rad etish
-                </a>
+                  <span class="status-pill status-pending"><i class="fa-solid fa-hourglass-half"></i> {{ r.get_status_display }}</span>
+                {% elif r.status == 'approved' %}
+                  <span class="status-pill status-approved"><i class="fa-solid fa-circle-check"></i> {{ r.get_status_display }}</span>
                 {% else %}
-                —
+                  <span class="status-pill status-rejected"><i class="fa-solid fa-circle-xmark"></i> {{ r.get_status_display }}</span>
                 {% endif %}
-            </td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="7" class="empty-row">Maʼlumot yo‘q.</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+              </td>
+
+              <td>
+                {% if r.manager %}
+                  {{ r.manager.ism }} {{ r.manager.familya }}
+                {% else %}
+                  <span class="mono">—</span>
+                {% endif %}
+              </td>
+
+              <td class="actions">
+                {% if r.status == 'pending' %}
+                  <a class="btn-mini btn-approve"
+                     href="{% url 'store:request_approve' r.pk %}">
+                    <i class="fa-solid fa-check"></i> Tasdiqlash
+                  </a>
+
+                  <a class="btn-mini btn-reject"
+                     href="{% url 'store:request_reject' r.pk %}">
+                    <i class="fa-solid fa-xmark"></i> Rad etish
+                  </a>
+                {% else %}
+                  <span class="mono">—</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <!-- Empty state (rasmdagidek) -->
+      <div class="empty-box">
+        <div class="empty-ic"><i class="fa-solid fa-inbox"></i></div>
+        <div class="empty-title">Ma'lumot yo‘q</div>
+        <div class="empty-sub">Hozirda kutilayotgan so‘rovlar mavjud emas.</div>
+      </div>
+    {% endif %}
+  </div>
+
 </div>
 
 {% endblock %}

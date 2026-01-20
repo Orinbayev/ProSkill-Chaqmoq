@@ -2,352 +2,823 @@
 {% block content %}
 
 <style>
-/* ================= TABLE WRAPPER ================= */
-.table-box {
-    background: rgba(255,255,255,0.04);
+  :root{
+    --bg: #0d121f;
+    --panel: rgba(255,255,255,.04);
+    --panel2: rgba(255,255,255,.06);
+    --line: rgba(255,255,255,.08);
+    --text: #e5e7eb;
+    --muted: #94a3b8;
+
+    --blue: #3b82f6;
+    --blue2:#2563eb;
+
+    --green:#22c55e;
+    --green2:#16a34a;
+
+    --yellow:#f59e0b;
+    --yellow2:#d97706;
+
+    --danger:#ef4444;
+  }
+
+  /* page */
+  .users-page{
+    color: var(--text);
+  }
+
+  .users-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .users-title{
+    margin:0;
+    font-size: 32px;
+    font-weight: 950;
+    letter-spacing: .2px;
+    color: #fff;
+  }
+
+.users-tools{
+  display:flex;
+  align-items:center;
+  justify-content:space-between; /* chapda search, o‘ngda tugmalar */
+  gap: 14px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.tools-left{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tools-right{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content:flex-end;
+}
+
+/* qidiruv biroz kengroq va chiroyli */
+
+/* kichik ekranda pastga tushib ketmasin, o‘ng tugmalar o‘ngda qolsin */
+@media (max-width: 992px){
+  .users-tools{ justify-content:flex-start; }
+  .tools-right{ width:100%; justify-content:flex-end; }
+  .search-input{ width: 100%; max-width: 520px; }
+}
+
+  /* search */
+  .search-form{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap: wrap;
+  }
+.search-input{
+  height: 40px;
+  width: clamp(220px, 26vw, 340px); /* ✅ 100% zoomga mos */
+  max-width: 60vw;
+  border-radius: 14px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
+  color:#fff;
+  padding: 0 14px;
+  outline:none;
+  box-shadow: inset 0 0 18px rgba(0,0,0,.25);
+}
+
+  .search-input::placeholder{ color: rgba(226,232,240,.55); }
+
+  /* buttons */
+  .btn-pill{
+    height: 40px;
+    padding: 0 16px;
     border-radius: 14px;
-    overflow: hidden;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.45);
+    border: 1px solid rgba(255,255,255,.10);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    font-weight: 900;
+    text-decoration:none;
+    cursor:pointer;
+    transition: .18s ease;
+    user-select:none;
+    white-space: nowrap;
+  }
+  .btn-pill:hover{ transform: translateY(-1px); }
+
+  .btn-blue{
+    background: linear-gradient(135deg, var(--blue) 0%, var(--blue2) 100%);
+    color:#fff;
+    box-shadow: 0 14px 28px rgba(37,99,235,.22);
+  }
+
+  .btn-green{
+    background: linear-gradient(135deg, var(--green) 0%, var(--green2) 100%);
+    color:#fff;
+    box-shadow: 0 14px 28px rgba(34,197,94,.20);
+  }
+
+  .btn-yellow{
+    background: linear-gradient(135deg, var(--yellow) 0%, var(--yellow2) 100%);
+    color:#111827;
+    border-color: rgba(245,158,11,.45);
+    box-shadow: 0 14px 28px rgba(245,158,11,.18);
+  }
+
+  /* right actions wrapper (file + import + excel) */
+  .actions{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap: wrap;
+    justify-content:flex-end;
+  }
+
+  /* file pill like screenshot */
+  .file-pill{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding: 0 12px;
+    height: 40px;
+    border-radius: 14px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.08);
+    box-shadow: inset 0 0 18px rgba(0,0,0,.25);
+  }
+
+  .file-btn{
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.06);
+    color:#e5e7eb;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-weight: 800;
+    cursor:pointer;
+  }
+
+  .file-name{
+    max-width: 150px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-size: 12px;
+    color: rgba(226,232,240,.65);
+    font-weight: 700;
+  }
+
+  /* table shell */
+  .table-shell{
+    background: var(--panel);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 18px;
+    box-shadow: 0 10px 35px rgba(0,0,0,.45);
+    overflow: visible;
+  }
+
+  .table-scroll{
+    border-radius: 18px;
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+
+/* =========================
+   ✅ 100% ZOOM FIX (SIDEBAR BOR)
+   Jadval to‘liq sig‘adi
+   ========================= */
+
+.table-shell{
+  overflow: hidden; /* ichidan chiqib ketmasin */
 }
 
-/* ================= HEADER ================= */
-.table-box thead {
-    background: rgba(255,255,255,0.08);
-    color: #38bdf8;
+.table-scroll{
+  overflow-x: hidden; /* scrollni o‘chir */
+}
+
+/* ✅ Endi jadval min-width bilan majburlamaymiz */
+table.users-table{
+  width:100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 0;              /* ✅ eng muhimi */
+  table-layout: fixed;       /* ✅ sig‘diradi */
+}
+
+/* ✅ padding/fontni biroz kichraytirib, 100% zoomda ham joy beradi */
+table.users-table thead th{
+  padding: 12px 12px;
+  font-size: 10px;
+}
+
+table.users-table tbody td{
+  padding: 12px 12px;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap; /* default */
+}
+
+/* ✅ Ustun ENLARI: % bilan (sidebar bo‘lsa ham sig‘adi) */
+table.users-table thead th:nth-child(1),
+table.users-table tbody td:nth-child(1){ width: 6%; }   /* # */
+
+table.users-table thead th:nth-child(2),
+table.users-table tbody td:nth-child(2){ width: 22%; }  /* F.I.Sh */
+
+table.users-table thead th:nth-child(3),
+table.users-table tbody td:nth-child(3){ width: 26%; }  /* Login */
+
+table.users-table thead th:nth-child(4),
+table.users-table tbody td:nth-child(4){ width: 16%; }  /* Telefon */
+
+table.users-table thead th:nth-child(5),
+table.users-table tbody td:nth-child(5){ width: 10%; }  /* ⚡Chaqmoq */
+
+table.users-table thead th:nth-child(6),
+table.users-table tbody td:nth-child(6){ width: 16%; }  /* Guruhlar */
+
+table.users-table thead th:nth-child(7),
+table.users-table tbody td:nth-child(7){ width: 4%; }   /* menu */
+
+/* ✅ Uzun ism/email kesilib qolmasin: 2 qatordan foydalan */
+table.users-table tbody td:nth-child(2),
+table.users-table tbody td:nth-child(3){
+  white-space: normal;
+  line-height: 1.15;
+}
+
+/* ✅ Telefon ham 2 qatorda bo‘la olsin */
+table.users-table tbody td:nth-child(4){
+  white-space: normal;
+  line-height: 1.15;
+}
+
+/* ✅ Guruhlar “badge”lar joyi: wrap bo‘lsin */
+table.users-table tbody td:nth-child(6){
+  white-space: normal;
+  overflow: visible;
+}
+
+/* Kichikroq ekranlarda yana biroz ixchamlashtiramiz */
+@media (max-width: 1200px){
+  table.users-table thead th{ padding: 10px 10px; font-size: 9px; }
+  table.users-table tbody td{ padding: 10px 10px; font-size: 12px; }
+}
+
+
+  table.users-table thead th{
+    background: rgba(255,255,255,.05);
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    padding: 14px 16px;
+    font-size: 11px;
+    letter-spacing: .9px;
+    text-transform: uppercase;
+    color: rgba(148,163,184,.9);
+    font-weight: 900;
+  }
+
+  table.users-table tbody td{
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    color: rgba(226,232,240,.92);
+    vertical-align: middle;
     font-weight: 600;
-}
+  }
 
-/* ================= HOVER ================= */
-.table-box tbody tr:hover {
-    background: rgba(255,255,255,0.07);
-    transition: .2s;
-}
+  table.users-table tbody tr:hover td{
+    background: rgba(255,255,255,.05);
+    transition: .18s ease;
+  }
 
-/* ================= GROUP BADGE ================= */
-.badge-group {
+  /* name link */
+  .name-link{
+    color: #38bdf8;
+    text-decoration:none;
+    font-weight: 900;
+  }
+  .name-link:hover{ text-decoration: underline; }
+
+  /* group badge */
+  .badge-group{
     background: #1e3a8a;
     color: #fff;
     padding: 4px 10px;
-    border-radius: 7px;
+    border-radius: 999px;
     font-size: 12px;
     display: inline-block;
-    margin: 2px;
+    margin: 2px 4px 2px 0;
     transition: 0.2s;
     text-decoration: none;
-}
-.badge-group:hover {
-    background: #3b82f6;
-    transform: scale(1.05);
-}
+    border: 1px solid rgba(59,130,246,.25);
+  }
+  .badge-group:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+  }
 
-/* ================= CHAQMOQ COLORS ================= */
-.pos { color:#22c55e; font-weight:600; }
-.neg { color:#ef4444; font-weight:600; }
-.zero { color:#94a3b8; }
+  /* chaqmoq colors */
+  .pos { color:#22c55e; font-weight: 900; }
+  .neg { color:#ef4444; font-weight: 900; }
+  .zero{ color:#94a3b8; font-weight: 800; }
 
-/* ================= PAGE SIZE ================= */
-.page-size-box select {
-    background: #f8fafc;
-    color: #000 !important;
-    padding: 6px 12px;
-    border-radius: 10px;
-    border: 1px solid #cbd5e1;
-    font-weight: 600;
-}
-.page-size-box option {
-    background: #fff !important;
-    color: #000 !important;
-}
+  /* menu */
+  .menu-wrapper{
+    position: relative;
+    display:flex;
+    justify-content:flex-end;
+  }
 
-/* ================= PAGINATION ================= */
-.pagination-wrapper {
-    max-width: 600px;
-    margin: 25px auto;
-    overflow-x: auto;
-    padding-bottom: 10px;
-}
-
-.pagination {
-    display: flex;
-    gap: 6px;
-    padding-left: 0;
-    list-style: none;
-    white-space: nowrap;
-    align-items: center;
-}
-.pagination li a {
-    padding: 6px 14px;
-    background: rgba(255,255,255,0.07);
-    color: #fff;
-    border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.1);
-    text-decoration: none;
-    transition: 0.2s;
-}
-.pagination .active a {
-    background: #4f46e5;
-    border-color: #4f46e5;
-}
-.menu-btn {
-    background: transparent;
-    border: none;
-    color: #9ca3af;
-    font-size: 24px;
+  .menu-btn{
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.05);
+    color: rgba(226,232,240,.75);
+    font-size: 22px;
+    line-height: 0;
     cursor: pointer;
-    padding: 0 6px;
-}
-.menu-btn:hover {
-    color: #fff;
-}
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .menu-btn:hover{ color:#fff; border-color: rgba(255,255,255,.18); }
 
-.menu-dropdown {
-    display: none;
-    position: absolute;
-    right: 20px;
-    background: #1e293b;
-    border: 1px solid rgba(255,255,255,0.08);
+  /* .menu-dropdown{
+    display:none;
+    position:absolute;
+    right: 0;
+    top: 40px;
+    background: rgba(17,24,39,.92);
+    border: 1px solid rgba(255,255,255,.10);
     padding: 6px 0;
-    border-radius: 10px;
-    width: 150px;
-    z-index: 10;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+    border-radius: 14px;
+    width: 170px;
+    z-index: 9999;
+    box-shadow: 0 16px 40px rgba(0,0,0,.45);
+    backdrop-filter: blur(10px);
+  } */
+   /* ✅ menu tugmaga birikadi */
+.menu-wrapper{
+  position: relative;
+  display:flex;
+  justify-content:flex-end;
 }
 
-.menu-dropdown a {
-    display: block;
+.menu-dropdown{
+  display:none;
+  position:absolute;          /* ✅ fixed emas */
+  right: 0;                   /* ✅ tugmaning o‘ngiga yopishadi */
+  top: 44px;                  /* ✅ tugmadan pastga tushadi */
+  width: 190px;
+  background: rgba(17,24,39,.96);
+  border: 1px solid rgba(255,255,255,.10);
+  padding: 6px 0;
+  border-radius: 14px;
+  z-index: 99999;
+  box-shadow: 0 18px 50px rgba(0,0,0,.55);
+  backdrop-filter: blur(12px);
+}
+
+.menu-dropdown a{
+  display:block;
+  color:#e5e7eb;
+  padding: 10px 14px;
+  font-size: 14px;
+  text-decoration:none;
+  transition:.15s ease;
+  font-weight:800;
+}
+.menu-dropdown a:hover{
+  background: rgba(255,255,255,.10);
+  color:#fff;
+  padding-left: 18px;
+}
+
+/* ✅ table kesib tashlamasin */
+.table-shell,
+.table-scroll{
+  overflow: visible !important;
+}
+
+  .menu-dropdown a{
+    display:block;
     color: #e2e8f0;
     padding: 10px 14px;
     font-size: 14px;
     text-decoration: none;
-    transition: 0.15s ease;
-}
-
-.menu-dropdown a:hover {
-    background: rgba(255,255,255,0.12);
-    color: #fff;
+    transition: .15s ease;
+    font-weight: 700;
+  }
+  .menu-dropdown a:hover{
+    background: rgba(255,255,255,.10);
+    color:#fff;
     padding-left: 18px;
-}
-.menu-wrapper {
-    position: relative;
-    overflow: visible !important;
+  }
+
+  /* footer (pagination + size) */
+  .users-footer{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 12px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+
+  .page-size-box{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    color: rgba(226,232,240,.9);
+    font-weight: 800;
+  }
+  .page-size-box select{
+    background: rgba(255,255,255,.08);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.10);
+    font-weight: 900;
+    outline:none;
+  }
+  .page-size-box option{
+    background: #0f172a;
+    color:#fff;
+  }
+
+  .pagination{
+    display:flex;
+    gap:6px;
+    padding-left:0;
+    list-style:none;
+    white-space: nowrap;
+    align-items:center;
+    margin:0;
+  }
+  .pagination li a{
+    padding: 7px 14px;
+    background: rgba(255,255,255,.07);
+    color: #fff;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.10);
+    text-decoration: none;
+    transition: .18s ease;
+    font-weight: 800;
+  }
+  .pagination li a:hover{ transform: translateY(-1px); }
+  .pagination .active a{
+    background: #4f46e5;
+    border-color: #4f46e5;
+  }
+
+  /* responsive */
+  @media (max-width: 992px){
+    .search-input{ width: 100%; max-width: 100%; }
+    table.users-table{ min-width: 820px; }
+  }
+  /* ✅ MENU DROPDOWN always visible (not cut by table overflow) */
+.menu-dropdown{
+  position: fixed;             /* ✅ table ichida emas, viewportda turadi */
+  background: rgba(17,24,39,.96);
+  border: 1px solid rgba(255,255,255,.10);
+  padding: 6px 0;
+  border-radius: 14px;
+  width: 180px;
+  z-index: 99999;              /* ✅ hammasidan tepada */
+  box-shadow: 0 18px 50px rgba(0,0,0,.55);
+  backdrop-filter: blur(12px);
 }
 
-.menu-dropdown {
-    position: absolute;
-    right: 0;
-    top: 30px;
-    z-index: 9999; /* eng ustida turadi */
+/* dropdown itemlar */
+.menu-dropdown a{
+  display:block;
+  color:#e5e7eb;
+  padding: 10px 14px;
+  font-size: 14px;
+  text-decoration:none;
+  transition:.15s ease;
+  font-weight:800;
 }
-.table-responsive {
-    overflow: visible !important;
+.menu-dropdown a:hover{
+  background: rgba(255,255,255,.10);
+  color:#fff;
+  padding-left: 18px;
 }
+
+/* ✅ table wrapper kesib tashlamasin (qo‘shimcha xavfsizlik) */
+.table-shell, .table-scroll{
+  overflow: visible !important;
+}
+
 </style>
 
-<h3 class="text-light fw-bold mb-4">{{ title }}</h3>
+<div class="users-page">
 
-<!-- ================= SEARCH ================= -->
-<!-- ================= SEARCH ================= -->
-<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+  <div class="users-head">
+    <h1 class="users-title">{{ title }}</h1>
 
-    <form style="max-width:500px;" class="d-flex" method="get">
-        <input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Ism, familya yoki email">
-        <button class="btn btn-primary ms-2">Izlash</button>
+<div class="users-tools">
+
+  <div class="tools-left">
+    <!-- SEARCH -->
+    <form class="search-form" method="get">
+      <input class="search-input" name="q" value="{{ request.GET.q }}" placeholder="Ism, familya yoki email">
+      <button class="btn-pill btn-blue" type="submit">Izlash</button>
     </form>
+  </div>
 
-    <div class="d-flex gap-2 flex-wrap">
+  <div class="tools-right">
+    <!-- ACTIONS -->
+    <div class="actions">
 
-        {% if title == "O‘quvchilar" %}
-        <form action="{% url 'core:students_import_excel' %}" method="post" enctype="multipart/form-data" class="d-flex gap-2">
-            {% csrf_token %}
-            <input type="file" name="file" accept=".xlsx" class="form-control" style="max-width:260px;" required>
-            <button class="btn btn-warning fw-bold">Import</button>
-        </form>
-        {% endif %}
+      {% if title == "O‘quvchilar" %}
+      <form action="{% url 'core:students_import_excel' %}" method="post" enctype="multipart/form-data"
+            class="d-flex gap-2 flex-wrap align-items-center">
+        {% csrf_token %}
 
-        <a href="{% url 'core:students_export_excel' %}" class="btn btn-success">
-            Excel
-        </a>
+        <div class="file-pill">
+          <input id="excelFile" type="file" name="file" accept=".xlsx" hidden required>
+          <label for="excelFile" class="file-btn">
+            <i class="fa-regular fa-folder-open"></i> Выберите файл
+          </label>
+          <span class="file-name" id="excelFileName">файл...бран</span>
+        </div>
+
+        <button class="btn-pill btn-yellow" type="submit" title="Excel import">
+          <i class="fa-solid fa-arrow-up-from-bracket"></i> Import
+        </button>
+      </form>
+      {% endif %}
+
+      <a href="{% url 'core:students_export_excel' %}" class="btn-pill btn-green">
+        <i class="fa-solid fa-file-excel"></i> Excel
+      </a>
 
     </div>
+  </div>
+
 </div>
 
-{% if messages %}
-<div class="mb-3">
-  {% for message in messages %}
-    <div class="alert alert-{{ message.tags }} py-2 mb-2">
-      {{ message }}
-    </div>
-  {% endfor %}
-</div>
-{% endif %}
+  </div>
 
+  {% if messages %}
+  <div class="mb-3">
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} py-2 mb-2">
+        {{ message }}
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
 
-<!-- ================= TABLE ================= -->
-<div class="table-responsive table-box">
-
-<table class="table table-dark table-hover mb-0 align-middle">
-    <thead>
-        <tr>
-            <th>#</th>
+  <!-- TABLE -->
+  <div class="table-shell">
+    <div class="table-responsive table-scroll">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th style="width:60px;">#</th>
             <th>F.I.Sh</th>
             <th>Login</th>
             <th>Telefon</th>
-            <th>⚡ Chaqmoq</th>
+            <th style="width:120px;">⚡Chaqmoq</th>
             <th>Guruhlar</th>
-            <th></th>
+            <th style="width:70px;"></th>
+          </tr>
+        </thead>
 
-        </tr>
-    </thead>
-
-    <tbody>
-    {% for u in page_obj %}
-        <tr>
-
+        <tbody>
+          {% for u in page_obj %}
+          <tr>
             <td>{{ start_index|add:forloop.counter0 }}</td>
 
-            <!-- F.I.Sh bosilganda admin user detail sahifasiga o'tadi -->
-            <td class="text-info fw-semibold">
-            <a href="/admin/accounts/user/{{ u.id }}/change/" 
-            class="text-info" style="text-decoration:none;">
-
+            <td>
+              <a href="/admin/accounts/user/{{ u.id }}/change/" class="name-link">
                 {{ u.ism }}
                 {% if u.familya %} {{ u.familya }}{% endif %}
                 {% if u.otchestvo %} {{ u.otchestvo }}{% endif %}
-
-            </a>
-
+              </a>
             </td>
 
             <td>{{ u.email }}</td>
 
             <td>
-                {{ u.telefon1|default:"—" }}
-                {% if u.telefon2 %}
-                    <small class="text-muted"> / {{ u.telefon2 }}</small>
-                {% endif %}
+              {{ u.telefon1|default:"—" }}
+              {% if u.telefon2 %}
+                <small style="color:rgba(148,163,184,.75); font-weight:700;"> / {{ u.telefon2 }}</small>
+              {% endif %}
             </td>
 
-
             <td>
-                {% if u.jami_chaqmoq %}
-                    {% if u.jami_chaqmoq < 0 %}
-                        <span class="neg">{{ u.jami_chaqmoq }}</span>
-                    {% else %}
-                        <span class="pos">{{ u.jami_chaqmoq }}</span>
-                    {% endif %}
+              {% if u.jami_chaqmoq %}
+                {% if u.jami_chaqmoq < 0 %}
+                  <span class="neg">{{ u.jami_chaqmoq }}</span>
                 {% else %}
-                    <span class="zero">0</span>
+                  <span class="pos">{{ u.jami_chaqmoq }}</span>
                 {% endif %}
+              {% else %}
+                <span class="zero">0</span>
+              {% endif %}
             </td>
 
             <td>
-                {% for e in u.enrollment_set.all %}
-                    <a href="{% url 'education:group_detail' e.group.id %}" class="badge-group">
-                        {{ e.group.nom }}
-                    </a>
-                {% empty %}
-                    <span class="text-muted">— Guruh yo‘q</span>
-                {% endfor %}
+              {% for e in u.enrollment_set.all %}
+                <a href="{% url 'education:group_detail' e.group.id %}" class="badge-group">
+                  {{ e.group.nom }}
+                </a>
+              {% empty %}
+                <span style="color:rgba(148,163,184,.75); font-weight:700;">— Guruh yo‘q</span>
+              {% endfor %}
             </td>
 
+            <td class="text-end">
+              <div class="menu-wrapper">
+                <button class="menu-btn" type="button" onclick="toggleMenu({{ u.id }})">⋮</button>
+                <div id="menu-{{ u.id }}" class="menu-dropdown">
+                  <a href="{% url 'core:user_edit' u.id %}">📝 Tahrirlash</a>
+                  <a href="{% url 'core:user_delete' u.id %}">🗑 O‘chirish</a>
+                </div>
+              </div>
+            </td>
 
-    <td class="text-end">
-        <div class="dropdown">
-            <button class="menu-btn" onclick="toggleMenu({{ u.id }})">⋮</button>
+          </tr>
+          {% endfor %}
+        </tbody>
 
-            <div id="menu-{{ u.id }}" class="menu-dropdown">
-        <a href="{% url 'core:user_edit' u.id %}">📝 Tahrirlash</a>
-        <a href="{% url 'core:user_delete' u.id %}">🗑 O‘chirish</a>
-</div>
+      </table>
+    </div>
+  </div>
 
+  <!-- PAGE SIZE + PAGINATION -->
+  {% if not no_pagination %}
+  <div class="users-footer">
 
-        </div>
-    </td>
-
-
-        </tr>
-    {% endfor %}
-    </tbody>
-
-</table>
-</div>
-
-<!-- ================= PAGE SIZE + PAGINATION (managerda yo‘q) ================= -->
-{% if not no_pagination %}
-<div class="d-flex justify-content-between align-items-center mt-3 flex-wrap">
-
-    <div class="page-size-box text-light mb-3">
-        Ko‘rsatish:
-        <select onchange="location.href='?size='+this.value{% if request.GET.q %}+'&q={{ request.GET.q }}'{% endif %}">
-            <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
-            <option value="20" {% if page_size == 20 %}selected{% endif %}>20</option>
-            <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
-            <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
-        </select>
+    <div class="page-size-box">
+      Ko‘rsatish:
+      <select onchange="
+        (function(sel){
+          const url = new URL(window.location.href);
+          url.searchParams.set('size', sel.value);
+          url.searchParams.set('page', 1);
+          window.location.href = url.toString();
+        })(this)
+      ">
+        <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
+        <option value="20" {% if page_size == 20 %}selected{% endif %}>20</option>
+        <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
+        <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
+      </select>
     </div>
 
     <nav>
-        <ul class="pagination">
-            {% if page_obj.has_previous %}
-                <li><a href="?page={{ page_obj.previous_page_number }}&size={{ page_size }}">‹</a></li>
-            {% endif %}
+      <ul class="pagination">
+        {% if page_obj.has_previous %}
+          <li><a href="?page={{ page_obj.previous_page_number }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">‹</a></li>
+        {% endif %}
 
-            <li class="{% if page_obj.number == 1 %}active{% endif %}">
-                <a href="?page=1&size={{ page_size }}">1</a>
-            </li>
+        <li class="{% if page_obj.number == 1 %}active{% endif %}">
+          <a href="?page=1&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">1</a>
+        </li>
 
-            {% if page_obj.number > 2 %}
-            <li><a href="?page=2&size={{ page_size }}">2</a></li>
-            {% endif %}
+        {% if page_obj.number > 2 %}
+          <li><a href="?page=2&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">2</a></li>
+        {% endif %}
 
-            {% if page_obj.number > 4 %}
-            <li><a>…</a></li>
-            {% endif %}
+        {% if page_obj.number > 4 %}
+          <li><a>…</a></li>
+        {% endif %}
 
-            {% if page_obj.number|add:-1 > 2 %}
-                <li><a href="?page={{ page_obj.number|add:-1 }}&size={{ page_size }}">{{ page_obj.number|add:-1 }}</a></li>
-            {% endif %}
+        {% if page_obj.number|add:-1 > 2 %}
+          <li><a href="?page={{ page_obj.number|add:-1 }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ page_obj.number|add:-1 }}</a></li>
+        {% endif %}
 
-            {% if page_obj.number != 1 and page_obj.number != page_obj.paginator.num_pages %}
-                <li class="active"><a href="?page={{ page_obj.number }}&size={{ page_size }}">{{ page_obj.number }}</a></li>
-            {% endif %}
+        {% if page_obj.number != 1 and page_obj.number != page_obj.paginator.num_pages %}
+          <li class="active"><a href="?page={{ page_obj.number }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ page_obj.number }}</a></li>
+        {% endif %}
 
-            {% if page_obj.number|add:1 < page_obj.paginator.num_pages %}
-                <li><a href="?page={{ page_obj.number|add:1 }}&size={{ page_size }}">{{ page_obj.number|add:1 }}</a></li>
-            {% endif %}
+        {% if page_obj.number|add:1 < page_obj.paginator.num_pages %}
+          <li><a href="?page={{ page_obj.number|add:1 }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ page_obj.number|add:1 }}</a></li>
+        {% endif %}
 
-            {% if page_obj.number < page_obj.paginator.num_pages|add:-2 %}
-                <li><a>…</a></li>
-            {% endif %}
+        {% if page_obj.number < page_obj.paginator.num_pages|add:-2 %}
+          <li><a>…</a></li>
+        {% endif %}
 
-            {% if page_obj.paginator.num_pages > 1 %}
-                <li class="{% if page_obj.number == page_obj.paginator.num_pages %}active{% endif %}">
-                    <a href="?page={{ page_obj.paginator.num_pages }}&size={{ page_size }}">{{ page_obj.paginator.num_pages }}</a>
-                </li>
-            {% endif %}
+        {% if page_obj.paginator.num_pages > 1 %}
+          <li class="{% if page_obj.number == page_obj.paginator.num_pages %}active{% endif %}">
+            <a href="?page={{ page_obj.paginator.num_pages }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ page_obj.paginator.num_pages }}</a>
+          </li>
+        {% endif %}
 
-            {% if page_obj.has_next %}
-                <li><a href="?page={{ page_obj.next_page_number }}&size={{ page_size }}">›</a></li>
-            {% endif %}
-        </ul>
+        {% if page_obj.has_next %}
+          <li><a href="?page={{ page_obj.next_page_number }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">›</a></li>
+        {% endif %}
+      </ul>
     </nav>
+  </div>
+  {% endif %}
+
 </div>
-{% endif %}
+
 <script>
-function toggleMenu(id) {
+  // File name show like screenshot
+  (function(){
+    const f = document.getElementById("excelFile");
+    const name = document.getElementById("excelFileName");
+    if(!f || !name) return;
+
+    f.addEventListener("change", function(){
+      if(!f.files || !f.files.length){
+        name.textContent = "файл...бран";
+        return;
+      }
+      name.textContent = f.files[0].name;
+    });
+  })();
+
+  // ✅ Menu dropdown (FIXED, always visible)
+  function toggleMenu(id) {
+    // boshqalarini yopamiz
     document.querySelectorAll('.menu-dropdown').forEach(m => {
-        if (m.id !== 'menu-' + id) m.style.display = 'none';
+      if (m.id !== 'menu-' + id) m.style.display = 'none';
     });
 
     const el = document.getElementById('menu-' + id);
-    el.style.display = el.style.display === 'block' ? 'none' : 'block';
-}
+    if (!el) return;
 
-document.addEventListener("click", function(e) {
-    if (!e.target.closest('.dropdown')) {
-        document.querySelectorAll('.menu-dropdown').forEach(m => m.style.display = 'none');
+    // toggle
+    const isOpen = el.style.display === 'block';
+    if (isOpen) {
+      el.style.display = 'none';
+      return;
     }
-});
+
+    // buttonni topamiz (id bo‘yicha eng yaqin menu-wrapper ichidagi tugma)
+    const btn = document.querySelector(`#menu-${id}`)?.parentElement?.querySelector('.menu-btn') 
+             || document.querySelector(`button[onclick="toggleMenu(${id})"]`);
+
+    if (!btn) {
+      el.style.display = 'block';
+      return;
+    }
+
+    // viewport bo‘yicha joylash
+    const r = btn.getBoundingClientRect();
+    const dropW = 180; // CSS width bilan bir xil
+    const gap = 8;
+
+    let top = r.bottom + gap;
+    let left = r.right - dropW;
+
+    // o‘ngdan chiqib ketmasin
+    if (left + dropW > window.innerWidth - 8) left = window.innerWidth - dropW - 8;
+    if (left < 8) left = 8;
+
+    // pastdan chiqib ketmasin (agar kerak bo‘lsa tepaga chiqaradi)
+    const approxH = 96; // 2ta item uchun taxminiy balandlik
+    if (top + approxH > window.innerHeight - 8) {
+      top = r.top - approxH - gap;
+    }
+    if (top < 8) top = 8;
+
+    el.style.left = left + 'px';
+    el.style.top = top + 'px';
+    el.style.display = 'block';
+  }
+
+  // tashqariga bosilsa yopilsin
+  document.addEventListener("click", function(e) {
+    if (!e.target.closest('.menu-wrapper') && !e.target.closest('.menu-dropdown')) {
+      document.querySelectorAll('.menu-dropdown').forEach(m => m.style.display = 'none');
+    }
+  });
+
+  // scroll/resize bo‘lsa ham yopib yuboramiz (layout buzilmasin)
+  window.addEventListener('scroll', () => {
+    document.querySelectorAll('.menu-dropdown').forEach(m => m.style.display = 'none');
+  }, true);
+
+  window.addEventListener('resize', () => {
+    document.querySelectorAll('.menu-dropdown').forEach(m => m.style.display = 'none');
+  });
 </script>
+
 
 {% endblock %}

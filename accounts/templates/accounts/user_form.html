@@ -1,200 +1,302 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<h3 class="mb-4 text-light fw-semibold">{{ title }}</h3>
-
 <style>
-/* ===== GLOBAL GLASS CARD ===== */
-.glass-card {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 18px;
-  padding: 30px 35px;
-  backdrop-filter: blur(18px);
-  box-shadow: 0 0 35px rgba(0,0,0,0.35);
-  color: #fff;
-  margin-top: 20px;
+:root{
+  --panel: rgba(17,24,39,.62);
+  --line: rgba(255,255,255,.08);
+  --muted:#94a3b8;
+  --text:#e5e7eb;
+
+  --blue:#3b82f6;
+  --cyan:#38bdf8;
+  --green:#22c55e;
 }
 
-/* ===== INPUT / SELECT ===== */
-.uniform-input,
-.form-control,
-.form-select {
-  width: 100% !important;
-  background: rgba(255,255,255,0.85) !important;
-  color: #111 !important;
-  border: 1px solid #ccc !important;
-  border-radius: 10px !important;
-  padding: 10px 12px !important;
-  font-size: 15px;
-  transition: all .25s;
+.uwrap{ max-width: 1200px; margin:0 auto; padding: 6px 12px 24px; color:var(--text); }
+
+.uhead{
+  display:flex; align-items:flex-start; gap:12px;
+  margin: 6px 0 14px;
+}
+.uhead .ic{
+  width:38px; height:38px; border-radius:14px;
+  display:grid; place-items:center;
+  background: rgba(245,158,11,.14);
+  border:1px solid rgba(245,158,11,.22);
+  color:#fde68a;
+}
+.uhead h3{ margin:0; font-size:28px; font-weight:900; color:#fff; }
+.uhead .sub{ margin-top:6px; color:var(--muted); font-size:13px; }
+
+.card{
+  background: var(--panel);
+  border:1px solid var(--line);
+  border-radius:18px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 18px 45px rgba(0,0,0,.28);
+  padding: 18px;
 }
 
-.form-control:focus,
-.form-select:focus {
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 10px rgba(59,130,246,0.5);
+.section{
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+.section:first-child{ margin-top:0; padding-top:0; border-top:none; }
+
+.stitle{
+  display:flex; align-items:center; gap:10px;
+  font-weight:900;
+  color:#cbd5e1;
+  text-transform:uppercase;
+  letter-spacing:.35px;
+  font-size:12px;
+  margin-bottom: 10px;
+}
+.stitle .sic{
+  width:26px; height:26px; border-radius:10px;
+  display:grid; place-items:center;
+  background: rgba(34,197,94,.12);
+  border:1px solid rgba(34,197,94,.18);
+  color:#bbf7d0;
 }
 
-/* Label */
-label.form-label {
-  color: #e2e8f0;
-  font-weight: 500;
-  white-space: nowrap;
+.grid{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap:12px;
 }
 
-/* Password eye button */
-.toggle-eye {
-  position: absolute;
-  right: 12px;
-  top: 40px;
-  border: none;
+.lbl{ font-weight:900; color:#a5bfd9; font-size:12px; margin: 6px 0 8px; display:block; }
+
+.control{
+  position:relative;
+}
+.control .ico{
+  position:absolute;
+  left:12px; top:50%;
+  transform: translateY(-50%);
+  color: rgba(148,163,184,.9);
+  pointer-events:none;
+}
+input, select{
+  width:100% !important;
+  border:1px solid rgba(148,163,184,.22) !important;
+  border-radius:14px !important;
+  background: rgba(15,23,42,.75) !important;
+  color:#e5e7eb !important;
+  padding: 12px 12px 12px 40px !important;
+  outline:none;
+  transition:.2s;
+}
+input:focus, select:focus{
+  border-color: rgba(59,130,246,.55) !important;
+  box-shadow: 0 0 0 4px rgba(59,130,246,.12) !important;
+}
+select{ padding-left: 40px !important; }
+
+.eye-btn{
+  position:absolute;
+  right:10px;
+  top:50%;
+  transform: translateY(-50%);
+  border:none;
   background: transparent;
-  cursor: pointer;
-  font-size: 18px;
-  color: #444;
+  color: rgba(226,232,240,.85);
+  font-size: 16px;
+  padding: 6px 8px;
+  border-radius:10px;
 }
-.toggle-eye:hover { transform: scale(1.2); }
+.eye-btn:hover{ background: rgba(255,255,255,.06); }
 
-/* BUTTONS */
-.btn-save {
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
-  border: none;
-  color: #fff;
-  font-weight: 600;
-  padding: 10px 22px;
-  border-radius: 10px;
+.errbox{
+  margin-top:10px;
+  padding:12px 14px;
+  border-radius:16px;
+  background: rgba(239,68,68,.12);
+  border:1px solid rgba(239,68,68,.25);
+  color:#fecaca;
+  font-weight:800;
 }
-.btn-save:hover { transform: translateY(-2px); }
+.errbox ul{ margin:0; padding-left:18px; }
 
-.btn-cancel {
-  border: 1px solid #aaa;
-  color: #ddd;
-  padding: 10px 22px;
-  border-radius: 10px;
+.actions{
+  display:flex;
+  gap:12px;
+  margin-top: 14px;
 }
-.btn-cancel:hover {
-  background: #ddd;
-  color: #000;
+.btnx{
+  border:none;
+  border-radius:14px;
+  padding:12px 16px;
+  font-weight:900;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  text-decoration:none;
 }
+.btn-save{
+  flex:1;
+  background: linear-gradient(90deg,#2563eb,#60a5fa);
+  color:#fff;
+}
+.btn-cancel{
+  width:240px;
+  border:1px solid rgba(148,163,184,.25);
+  background: rgba(148,163,184,.08);
+  color:#cbd5e1;
+}
+.btnx:hover{ transform: translateY(-1px); filter:brightness(1.05); }
 
-/* RESPONSIVE */
-@media(max-width: 768px) {
-  .col-md-4, .col-md-6 {
-    max-width: 100%;
-    flex: 0 0 100%;
-  }
+@media (max-width: 980px){
+  .grid{ grid-template-columns: 1fr; }
+  .btn-cancel{ width:100%; }
+  .actions{ flex-direction:column; }
+  .uhead h3{ font-size:22px; }
 }
 </style>
 
-{% if form.errors %}
-<div class="alert alert-danger mt-3">
-  <ul class="mb-0">
-    {% for field in form %}
-      {% for error in field.errors %}
-        <li><b>{{ field.label }}:</b> {{ error }}</li>
-      {% endfor %}
-    {% endfor %}
+<div class="uwrap">
 
-    {% for error in form.non_field_errors %}
-      <li>{{ error }}</li>
-    {% endfor %}
-  </ul>
+  <div class="uhead">
+    <div class="ic"><i class="fa-solid fa-user-plus"></i></div>
+    <div>
+      <h3>{{ title }}</h3>
+      <div class="sub">Yangi foydalanuvchi ma’lumotlarini kiriting va rolini belgilang.</div>
+    </div>
+  </div>
+
+  {% if form.errors %}
+    <div class="errbox">
+      <ul>
+        {% for field in form %}
+          {% for error in field.errors %}
+            <li><b>{{ field.label }}:</b> {{ error }}</li>
+          {% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <form method="post" class="card user-form">
+    {% csrf_token %}
+
+    <div class="section">
+      <div class="stitle"><span class="sic"><i class="fa-solid fa-id-card"></i></span> Shaxsiy ma’lumotlar</div>
+      <div class="grid">
+        <div>
+          <label class="lbl">{{ form.ism.label }}</label>
+          <div class="control"><span class="ico"><i class="fa-solid fa-user"></i></span>{{ form.ism }}</div>
+        </div>
+        <div>
+          <label class="lbl">{{ form.familya.label }}</label>
+          <div class="control"><span class="ico"><i class="fa-solid fa-user"></i></span>{{ form.familya }}</div>
+        </div>
+        <div>
+          <label class="lbl">{{ form.otchestvo.label }}</label>
+          <div class="control"><span class="ico"><i class="fa-solid fa-user"></i></span>{{ form.otchestvo }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="stitle"><span class="sic"><i class="fa-solid fa-phone"></i></span> Aloqa</div>
+      <div class="grid">
+        <div>
+          <label class="lbl">{{ form.telefon1.label }}</label>
+          <div class="control"><span class="ico"><i class="fa-solid fa-phone"></i></span>{{ form.telefon1 }}</div>
+        </div>
+        <div>
+          <label class="lbl">{{ form.telefon2.label }}</label>
+          <div class="control"><span class="ico"><i class="fa-solid fa-phone"></i></span>{{ form.telefon2 }}</div>
+        </div>
+        <div>
+          <label class="lbl">{{ form.center.label }}</label>
+          <div class="control"><span class="ico"><i class="fa-solid fa-building"></i></span>{{ form.center }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="stitle"><span class="sic"><i class="fa-solid fa-lock"></i></span> Kirish ma’lumotlari</div>
+      <div class="grid">
+        <div>
+          <label class="lbl">{{ form.role.label }}</label>
+          <div class="control"><span class="ico"><i class="fa-solid fa-shield"></i></span>{{ form.role }}</div>
+        </div>
+
+        <div>
+          <label class="lbl">{{ form.email.label }}</label>
+          <div class="control"><span class="ico"><i class="fa-solid fa-envelope"></i></span>{{ form.email }}</div>
+        </div>
+
+        <div>
+          <label class="lbl">{{ form.password.label }}</label>
+          <div class="control">
+            <span class="ico"><i class="fa-solid fa-key"></i></span>
+            {{ form.password }}
+            <button type="button" class="eye-btn" id="togglePassword" title="Parolni ko‘rsatish">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Student → Group select -->
+    <div id="groupSelectBlock" class="section" style="display:none;">
+      <div class="stitle"><span class="sic"><i class="fa-solid fa-users"></i></span> Guruhga qo‘shish</div>
+      <label class="lbl">Guruhga qo‘shish (ixtiyoriy)</label>
+      <div class="control">
+        <span class="ico"><i class="fa-solid fa-layer-group"></i></span>
+        <select name="group_id" id="group_id">
+          <option value="">— Guruh tanlang —</option>
+          {% for g in groups %}
+            <option value="{{ g.id }}">{{ g.nom }} — {{ g.center }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <!-- Kurs narxi -->
+    <div class="section" id="priceBlock" style="display:none;">
+      <div class="stitle"><span class="sic"><i class="fa-solid fa-money-bill"></i></span> Kurs narxi</div>
+      <label class="lbl">Kurs narxi (so‘m)</label>
+      <div class="control">
+        <span class="ico"><i class="fa-solid fa-coins"></i></span>
+        <input type="number" id="kursNarxiInput" name="kurs_narhi" min="0">
+      </div>
+    </div>
+
+    <!-- Teacher percent -->
+    <div class="section" id="foizField" style="display:none;">
+      <div class="stitle"><span class="sic"><i class="fa-solid fa-percent"></i></span> O‘qituvchi ulushi</div>
+      <label class="lbl">O‘qituvchi ulushi (%)</label>
+      <div class="control">
+        <span class="ico"><i class="fa-solid fa-percent"></i></span>
+        <input type="number" name="oqituvchi_foizi" id="id_oqituvchi_foizi" min="0" max="100">
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btnx btn-save" type="submit">
+        <i class="fa-solid fa-floppy-disk"></i> Saqlash
+      </button>
+      <a class="btnx btn-cancel" href="{% url 'core:home' %}">
+        <i class="fa-solid fa-xmark"></i> Bekor qilish
+      </a>
+    </div>
+
+  </form>
 </div>
-{% endif %}
-
-<form method="post" class="user-form glass-card">
-  {% csrf_token %}
-
-  <div class="row g-3">
-
-    <!-- === 1-qator === -->
-    <div class="col-md-4">
-      <label class="form-label">{{ form.ism.label }}</label>
-      {{ form.ism }}
-    </div>
-
-    <div class="col-md-4">
-      <label class="form-label">{{ form.familya.label }}</label>
-      {{ form.familya }}
-    </div>
-
-    <div class="col-md-4">
-      <label class="form-label">{{ form.otchestvo.label }}</label>
-      {{ form.otchestvo }}
-    </div>
-
-    <!-- === Telefonlar === -->
-    <div class="col-md-6">
-      <label class="form-label">{{ form.telefon1.label }}</label>
-      {{ form.telefon1 }}
-    </div>
-
-    <div class="col-md-6">
-      <label class="form-label">{{ form.telefon2.label }}</label>
-      {{ form.telefon2 }}
-    </div>
-
-    <!-- === Center / Role === -->
-    <div class="col-md-6">
-      <label class="form-label">{{ form.center.label }}</label>
-      {{ form.center }}
-    </div>
-
-    <div class="col-md-6">
-      <label class="form-label">{{ form.role.label }}</label>
-      {{ form.role }}
-    </div>
-
-    <!-- === Email === -->
-    <div class="col-md-6">
-      <label class="form-label">{{ form.email.label }}</label>
-      {{ form.email }}
-    </div>
-
-    <!-- === Password with Eye === -->
-    <div class="col-md-6 position-relative">
-      <label class="form-label">{{ form.password.label }}</label>
-      {{ form.password }}
-      <button type="button" class="toggle-eye" id="togglePassword">👁</button>
-    </div>
-
-  </div>
-
-  <!-- Student → Group select -->
-  <div id="groupSelectBlock" class="mt-4" style="display:none;">
-    <label class="form-label">Guruhga qo‘shish (ixtiyoriy)</label>
-    <select name="group_id" id="group_id" class="form-select uniform-input">
-      <option value="">— Guruh tanlang —</option>
-      {% for g in groups %}
-        <option value="{{ g.id }}">{{ g.nom }} — {{ g.center }}</option>
-      {% endfor %}
-    </select>
-  </div>
-
-  <!-- Kurs narxi -->
-  <div class="mt-3" id="priceBlock" style="display:none;">
-    <label class="form-label">Kurs narxi (so‘m)</label>
-    <input type="number" id="kursNarxiInput" name="kurs_narhi" class="form-control uniform-input" min="0">
-  </div>
-
-  <!-- Teacher percent -->
-  <div class="col-md-6 mt-3" id="foizField" style="display:none;">
-    <label class="form-label">O‘qituvchi ulushi (%)</label>
-    <input type="number" name="oqituvchi_foizi" id="id_oqituvchi_foizi"
-           class="form-control uniform-input" min="0" max="100">
-  </div>
-
-  <div class="mt-4 d-flex gap-3">
-    <button class="btn btn-save">💾 Saqlash</button>
-    <a class="btn btn-cancel" href="{% url 'core:home' %}">✖️ Bekor qilish</a>
-  </div>
-</form>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-
-  // ELEMENTS
   const role = document.getElementById("id_role");
   const groupBlock = document.getElementById("groupSelectBlock");
   const groupSelect = document.getElementById("group_id");
@@ -206,11 +308,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const fam = document.getElementById("id_familya");
   const email = document.getElementById("id_email");
   const pass = document.getElementById("id_password");
-  const eye = document.getElementById("togglePassword");
+  const eyeBtn = document.getElementById("togglePassword");
 
   const phones = [document.getElementById("id_telefon1"), document.getElementById("id_telefon2")];
 
-  // SHOW/HIDE sections by role
   function handleRole() {
     groupBlock.style.display = role.value === "student" ? "block" : "none";
     priceBlock.style.display = "none";
@@ -219,7 +320,6 @@ document.addEventListener("DOMContentLoaded", () => {
   role.addEventListener("change", handleRole);
   handleRole();
 
-  // STUDENT: Load group price
   function loadPrice() {
     const gid = groupSelect.value;
     if (!gid) { priceBlock.style.display = "none"; return; }
@@ -237,13 +337,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   groupSelect.addEventListener("change", loadPrice);
 
-  // PASSWORD eye toggle
-  eye.addEventListener("click", () => {
-    pass.type = pass.type === "password" ? "text" : "password";
-    eye.textContent = pass.type === "password" ? "👁" : "🙈";
+  eyeBtn.addEventListener("click", () => {
+    const isPass = pass.type === "password";
+    pass.type = isPass ? "text" : "password";
+    eyeBtn.innerHTML = isPass
+      ? '<i class="fa-solid fa-eye-slash"></i>'
+      : '<i class="fa-solid fa-eye"></i>';
   });
 
-  // AUTO email / password generator
   function generateLogin() {
     const i = ism.value.trim().toLowerCase();
     const f = fam.value.trim().toLowerCase();
@@ -262,14 +363,11 @@ document.addEventListener("DOMContentLoaded", () => {
   ism.addEventListener("input", generateLogin);
   fam.addEventListener("input", generateLogin);
 
-  // PHONE format
   phones.forEach(inp => {
     if (!inp) return;
-
     inp.addEventListener("focus", () => {
       if (!inp.value.startsWith("+998")) inp.value = "+998";
     });
-
     inp.addEventListener("input", () => {
       inp.value = inp.value.replace(/[^\d+]/g, "");
       if (!inp.value.startsWith("+998"))
@@ -278,7 +376,6 @@ document.addEventListener("DOMContentLoaded", () => {
         inp.value = inp.value.slice(0, 13);
     });
   });
-
 });
 </script>
 

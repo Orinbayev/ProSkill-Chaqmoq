@@ -144,8 +144,23 @@ def user_edit(request, pk: int):
 
     return render(request, "accounts/user_edit.html", {"form": form, "obj": obj})
 
+from django.views.decorators.http import require_GET
+
+@login_required
+@require_GET
+def logout_now(request):
+    logout(request)
+    return redirect("login")  # sizda login url name "login" bo‘lsa
+
+
+@login_required
 @require_http_methods(["GET", "POST"])
 def logout_view(request):
+    # GET -> tasdiqlash sahifasi
+    if request.method == "GET":
+        return render(request, "accounts/logout_confirm.html")
+
+    # POST -> logout
     logout(request)
     messages.success(request, "Tizimdan chiqdingiz.")
     return redirect("login")

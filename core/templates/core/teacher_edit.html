@@ -1,108 +1,217 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h3 class="text-light mb-4 fw-bold">
-    ✏️ O‘qituvchini tahrirlash — 
-    <span class="text-info">{{ teacher.ism }} {{ teacher.familya }}</span>
-</h3>
+<style>
+  :root{
+    --panel: rgba(17,24,39,.62);
+    --line: rgba(255,255,255,.08);
+    --muted:#94a3b8;
+    --text:#e5e7eb;
 
-<div class="card bg-dark text-light p-4 shadow-lg edit-card">
+    --cyan:#38bdf8;
+    --green:#22c55e;
+    --orange:#f59e0b;
+    --danger:#ef4444;
+  }
 
-    <form method="post" class="row g-4">
-        {% csrf_token %}
+  .page-wrap{
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 8px 12px 22px;
+    color: var(--text);
+  }
 
+  /* TITLE */
+  .page-title{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin: 0 0 16px;
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing:.2px;
+  }
+
+  .title-badge{
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: rgba(245,158,11,.18);
+    border: 1px solid rgba(245,158,11,.30);
+    box-shadow: 0 12px 28px rgba(0,0,0,.35);
+    color: #fbbf24;
+    flex: 0 0 auto;
+  }
+
+  .title-name{
+    color: var(--cyan);
+    font-weight: 900;
+  }
+
+  /* CARD */
+  .edit-card{
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 22px;
+    box-shadow: 0 18px 45px rgba(0,0,0,.40);
+  }
+
+  .form-grid{
+    display:grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 18px;
+  }
+
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .field label{
+    color: rgba(165,191,217,.95);
+    font-weight: 800;
+    font-size: 13px;
+  }
+
+  /* inputs (django form fields) */
+  .field input,
+  .field select,
+  .field textarea{
+    background: rgba(30,36,51,.75) !important;
+    border: 1px solid rgba(47,59,79,.9) !important;
+    color: #fff !important;
+    padding: 12px 12px !important;
+    border-radius: 14px !important;
+    width: 100%;
+    outline: none;
+    box-shadow: none !important;
+  }
+
+  .field input:focus,
+  .field select:focus,
+  .field textarea:focus{
+    border-color: rgba(56,189,248,.65) !important;
+    box-shadow: 0 0 0 4px rgba(56,189,248,.10) !important;
+  }
+
+  .err{
+    color: #f87171;
+    font-weight: 800;
+    font-size: 12px;
+    margin-top: 2px;
+  }
+
+  /* ACTIONS */
+  .actions{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .btnx{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap: 10px;
+    border-radius: 14px;
+    padding: 12px 18px;
+    font-weight: 900;
+    text-decoration:none;
+    border: 1px solid rgba(255,255,255,.10);
+    transition: .18s ease;
+    min-width: 180px;
+  }
+
+  .btn-back{
+    background: rgba(148,163,184,.14);
+    border-color: rgba(148,163,184,.22);
+    color: rgba(226,232,240,.95);
+  }
+  .btn-back:hover{
+    background: rgba(148,163,184,.22);
+    color: #fff;
+    transform: translateY(-1px);
+  }
+
+  .btn-save{
+    background: rgba(34,197,94,.18);
+    border-color: rgba(34,197,94,.30);
+    color: #86efac;
+  }
+  .btn-save:hover{
+    background: rgba(34,197,94,.28);
+    color: #fff;
+    transform: translateY(-1px);
+  }
+
+  /* make last row full width if needed */
+  .span-2{ grid-column: span 2; }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px){
+    .page-title{ font-size: 20px; }
+    .form-grid{ grid-template-columns: 1fr; }
+    .span-2{ grid-column: span 1; }
+
+    .actions{
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .btnx{
+      width: 100%;
+      min-width: unset;
+    }
+  }
+</style>
+
+<div class="page-wrap">
+
+  <h2 class="page-title">
+    <span class="title-badge">
+      <i class="fa-solid fa-pen"></i>
+    </span>
+    <span>O‘qituvchini tahrirlash — <span class="title-name">{{ teacher.ism }} {{ teacher.familya }}</span></span>
+  </h2>
+
+  <div class="edit-card">
+
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="form-grid">
         {% for field in form %}
-        <div class="col-md-6 col-sm-12">
-            <label class="form-label fw-semibold">{{ field.label }}</label>
-            <div class="input-group">
-                {{ field }}
-            </div>
-            <small class="text-danger">{{ field.errors }}</small>
-        </div>
+          <div class="field {% if field.name == 'oqituvchi_foizi' %}{% endif %}">
+            <label>{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}
+              <div class="err">{{ field.errors|striptags }}</div>
+            {% endif %}
+          </div>
         {% endfor %}
+      </div>
 
-        <div class="col-12 mt-3 d-flex action-row">
-            <a href="{% url 'core:teacher_detail' teacher.id %}" 
-               class="btn btn-secondary btn-lg action-btn">
-                ⬅️ Ortga
-            </a>
+      <div class="actions">
+        <a href="{% url 'core:teacher_detail' teacher.id %}" class="btnx btn-back">
+          <i class="fa-solid fa-arrow-left"></i> Ortga
+        </a>
 
-            <button class="btn btn-success btn-lg action-btn">
-                💾 Saqlash
-            </button>
-        </div>
+        <button type="submit" class="btnx btn-save">
+          <i class="fa-solid fa-floppy-disk"></i> Saqlash
+        </button>
+      </div>
+
     </form>
 
+  </div>
+
 </div>
-
-<style>
-/* ======= Responsive Card ======= */
-.edit-card {
-    border-radius: 14px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.08);
-}
-
-/* ======= Inputs Dark Theme ======= */
-input, select {
-    background: #1e2433 !important;
-    border: 1px solid #2f3b4f !important;
-    color: #fff !important;
-    padding: 10px !important;
-    border-radius: 10px !important;
-    width: 100%;
-}
-input:focus, select:focus {
-    border: 1px solid #0dcaf0 !important;
-    box-shadow: 0 0 8px rgba(13, 202, 240, 0.5) !important;
-}
-
-label {
-    color: #a5bfd9 !important;
-}
-
-/* ======= BUTTONS ======= */
-.action-row {
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-.action-btn {
-    border-radius: 10px !important;
-    width: 200px;
-}
-
-/* ======= SMALL SCREEN FIXES ======= */
-@media (max-width: 768px) {
-    h3 {
-        font-size: 20px;
-        text-align: center;
-    }
-
-    .edit-card {
-        padding: 18px;
-    }
-
-    .action-row {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .action-btn {
-        width: 100%;
-        font-size: 16px;
-        padding: 10px;
-    }
-
-    input, select {
-        font-size: 14px !important;
-        padding: 9px !important;
-    }
-
-    label {
-        font-size: 14px !important;
-    }
-}
-</style>
 
 {% endblock %}

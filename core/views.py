@@ -112,12 +112,91 @@ def home(request):
         return render(request, 'core/dashboard_manager.html', {'stats': _build_stats()})
     if role == 'teacher':
         return render(request, 'core/dashboard_teacher.html')
+
     if role == 'student':
         from chaqmoq.models import Ledger
+
         balance = Ledger.student_balansi(u.id)
-        return render(request, 'core/dashboard_student.html', {'balance': balance})
+        last_actions = _student_last_actions(u.id)  # ✅ oxirgi 10 ta
+
+        return render(request, 'core/dashboard_student.html', {
+            'balance': balance,
+            'last_actions': last_actions,
+        })
+
 
     return redirect('/admin/accounts/user/')
+
+
+
+def _safe_user_label(user_obj) -> str:
+    if not user_obj:
+        return "Tizim"
+    # User modelda ism/familya bo‘lsa chiroyli chiqaramiz
+    ism = getattr(user_obj, "ism", "") or ""
+    fam = getattr(user_obj, "familya", "") or ""
+    full = (ism + " " + fam).strip()
+    return full or str(user_obj)
+
+def _ledger_title(ledger_obj) -> str:
+    rule = getattr(ledger_obj, "rule", None)
+    if rule:
+        for attr in ("nom", "name", "title"):
+            v = getattr(rule, attr, None)
+            if v:
+                return str(v)
+    # fallback
+    return "Harakat"
+
+def _ledger_actor(ledger_obj):
+    for attr in ("beruvchi", "created_by", "actor", "author", "manager", "teacher", "user"):
+        v = getattr(ledger_obj, attr, None)
+        if v:
+            return v
+    return None
+
+
+def _student_last_actions(student_id: int):
+    """
+    Oxirgi 10 ta Ledger yozuvini dict ko‘rinishida qaytaradi:
+    title, who, created_at, delta, sign, abs_delta, group
+    """
+    from chaqmoq.models import Ledger
+    from django.utils import timezone
+
+    field_names = {f.name for f in Ledger._meta.fields}
+
+    sr = []
+    for f in ("rule", "group", "beruvchi"):
+        if f in field_names:
+            sr.append(f)
+
+    qs = (Ledger.objects
+          .filter(student_id=student_id)
+          .select_related(*sr)
+          .order_by("-created_at")[:10])
+
+    out = []
+    for x in qs:
+        delta = int(getattr(x, "ball", 0) or 0)
+        sign = "+" if delta >= 0 else "-"
+        actor_obj = getattr(x, "beruvchi", None)
+
+        grp = ""
+        if getattr(x, "group", None):
+            grp = getattr(x.group, "nom", "") or ""
+
+        out.append({
+            "title": _ledger_title(x),
+            "who": _safe_user_label(actor_obj),
+            "created_at": getattr(x, "created_at", None) or getattr(x, "sana", timezone.now()),
+            "delta": delta,
+            "sign": sign,
+            "abs_delta": abs(delta),
+            "group": grp,
+        })
+    return out
+
 
 
 def _staff_only(request):
@@ -694,3 +773,43 @@ def stat_ledger(request):
     last = Ledger.objects.select_related('student','rule','group').order_by('-sana')[:50]
     jami = Ledger.objects.aggregate(s=Sum('ball'))['s'] or 0
     return render(request, 'core/stats_ledger.html', {'leaderboard': leaderboard, 'last': last, 'sum_all': jami})
+
+
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth import update_session_auth_hash
+
+from .forms import ProfileForm
+
+@login_required
+def profile_view(request):
+    user = request.user
+
+    pform = ProfileForm(instance=user)
+    pass_form = PasswordChangeForm(user=user)
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "profile":
+            pform = ProfileForm(request.POST, request.FILES, instance=user)
+            if pform.is_valid():
+                pform.save()
+                messages.success(request, "✅ Profil yangilandi")
+                return redirect("core:profile")
+            else:
+                messages.error(request, "❌ Profilni saqlashda xatolik bor")
+
+        elif action == "password":
+            pass_form = PasswordChangeForm(user=user, data=request.POST)
+            if pass_form.is_valid():
+                u = pass_form.save()
+                update_session_auth_hash(request, u)  # ✅ logout qilib yubormaydi
+                messages.success(request, "✅ Parol yangilandi")
+                return redirect("core:profile")
+            else:
+                messages.error(request, "❌ Parolni o‘zgartirishda xatolik bor")
+
+    return render(request, "core/profile_manager.html", {
+        "pform": pform,
+        "pass_form": pass_form,
+    })

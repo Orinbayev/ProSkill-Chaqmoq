@@ -6,6 +6,7 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
 # from multiprocessing import Value 
+from django.db import models
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -28,6 +29,17 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from io import BytesIO
 from datetime import datetime
+from education.services.tuition import (
+    parse_month_str,
+    month_first_day,
+    ensure_tuition_month,
+    get_month_paid,
+    create_payment_and_allocate,
+    update_payment_and_reallocate,
+    sync_tuition_fee,
+    tuition_month_fee,
+    tuition_month_fee_field,
+)
 
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -76,6 +88,24 @@ U = get_user_model()
 DAILY_LIMIT = 50  # (hozircha ishlatilmayapti, lekin qoldirdim)
 
 
+def _day_range(d):
+    start = make_aware(datetime.combine(d, datetime.min.time()))
+    end = make_aware(datetime.combine(d + timedelta(days=1), datetime.min.time()))
+    return start, end
+
+
+def _attendance_adjust_rule():
+    """
+    Davomat OFF bo‘lganda, o‘sha kundagi ballarni 'bekor qilish' uchun
+    maxsus Rule kerak bo‘ladi. (DBga 1 marta tushadi)
+    """
+    rule, _ = Rule.objects.get_or_create(
+        nom="Davomat bekor qilindi",
+        defaults={"tur": Rule.MINUS, "min_baho": 1, "max_baho": 10000},
+    )
+    return rule
+
+
 def parse_month_yyyy_mm(s: str):
     # '2026-01' -> date(2026, 1, 1)
     try:
@@ -92,19 +122,19 @@ def first_day_of_current_month():
     return date(d.year, d.month, 1)
 
 
-def sync_tuition_fee(enrollment, start_month: date, new_fee: int):
-    # 1) shu oydan boshlab update
-    TuitionMonth.objects.filter(
-        enrollment=enrollment,
-        month__gte=start_month
-    ).update(fee_amount=new_fee)
+# def sync_tuition_fee(enrollment, start_month: date, new_fee: int):
+#     # 1) shu oydan boshlab update
+#     TuitionMonth.objects.filter(
+#         enrollment=enrollment,
+#         month__gte=start_month
+#     ).update(fee_amount=new_fee)
 
-    # 2) aynan shu oy yo'q bo'lsa - yaratadi
-    TuitionMonth.objects.update_or_create(
-        enrollment=enrollment,
-        month=start_month,
-        defaults={"fee_amount": new_fee},
-    )
+#     # 2) aynan shu oy yo'q bo'lsa - yaratadi
+#     TuitionMonth.objects.update_or_create(
+#         enrollment=enrollment,
+#         month=start_month,
+#         defaults={"fee_amount": new_fee},
+#     )
 
 
 def _get_int(querydict, key, default=0):
@@ -148,21 +178,7 @@ from education.services.tuition import month_first_day, ensure_tuition_month, ge
 
 from .models import Enrollment, TuitionMonth, PaymentAllocation
 
-# def month_first_day(d: date) -> date:
-#     return d.replace(day=1)
 
-# def ensure_tuition_month(enr: Enrollment, month: date) -> TuitionMonth:
-#     month = month_first_day(month)
-#     tm, _ = TuitionMonth.objects.get_or_create(
-#         enrollment=enr,
-#         month=month,
-#         defaults={"fee_amount": (enr.kurs_narhi or enr.group.kurs_narxi or 0)},
-#     )
-#     # fee 0 bo‘lib qolsa fallback
-#     if not tm.fee_amount or tm.fee_amount == 0:
-#         tm.fee_amount = (enr.kurs_narhi or enr.group.kurs_narxi or 0)
-#         tm.save(update_fields=["fee_amount"])
-#     return tm
 
 
 
@@ -391,21 +407,21 @@ def month_first_day(d: date) -> date:
 #     return int(getattr(g, "kurs_narxi", 0) or getattr(g, "kurs_narhi", 0) or 0)
 
 
-def ensure_tuition_month(enr: Enrollment, month: date) -> TuitionMonth:
-    month = month_first_day(month)
-    fee = _get_fee_amount(enr)
+# def ensure_tuition_month(enr: Enrollment, month: date) -> TuitionMonth:
+#     month = month_first_day(month)
+#     fee = _get_fee_amount(enr)
 
-    tm, _ = TuitionMonth.objects.get_or_create(
-        enrollment=enr,
-        month=month,
-        defaults={"fee_amount": fee},
-    )
+#     tm, _ = TuitionMonth.objects.get_or_create(
+#         enrollment=enr,
+#         month=month,
+#         defaults={"fee_amount": fee},
+#     )
 
-    # fee 0 bo‘lib qolsa fallback
-    if not getattr(tm, "fee_amount", 0):
-        tm.fee_amount = fee
-        tm.save(update_fields=["fee_amount"])
-    return tm
+#     # fee 0 bo‘lib qolsa fallback
+#     if not getattr(tm, "fee_amount", 0):
+#         tm.fee_amount = fee
+#         tm.save(update_fields=["fee_amount"])
+#     return tm
 
 
 def get_month_paid(enr: Enrollment, month: date) -> int:
@@ -426,95 +442,95 @@ def _add_month(d: date, n: int = 1) -> date:
 def _model_has_field(model, field_name: str) -> bool:
     return any(f.name == field_name for f in model._meta.get_fields())
 
-def create_payment_and_allocate(
-    enrollment: Enrollment,
-    cash_amount: int,
-    card_amount_som: int,
-    created_by: User | None,
-    start_month: date | None = None,
-) -> Payment:
-    """
-    Payment yaratadi va pullarni TuitionMonth’larga ketma-ket taqsimlaydi:
-    start_month -> keyingi oylar...
-    """
-    start_month = month_first_day(start_month or timezone.localdate())
-    total = int(cash_amount or 0) + int(card_amount_som or 0)
+# def create_payment_and_allocate(
+#     enrollment: Enrollment,
+#     cash_amount: int,
+#     card_amount_som: int,
+#     created_by: User | None,
+#     start_month: date | None = None,
+# ) -> Payment:
+#     """
+#     Payment yaratadi va pullarni TuitionMonth’larga ketma-ket taqsimlaydi:
+#     start_month -> keyingi oylar...
+#     """
+#     start_month = month_first_day(start_month or timezone.localdate())
+#     total = int(cash_amount or 0) + int(card_amount_som or 0)
 
-    if total <= 0:
-        raise ValueError("To‘lov summasi 0 bo‘lishi mumkin emas.")
+#     if total <= 0:
+#         raise ValueError("To‘lov summasi 0 bo‘lishi mumkin emas.")
 
-    # Payment create (fieldlar turlicha bo‘lishi mumkin)
-    kwargs = {}
-    if _model_has_field(Payment, "enrollment"):
-        kwargs["enrollment"] = enrollment
-    if _model_has_field(Payment, "student"):
-        kwargs["student"] = enrollment.student
-    if _model_has_field(Payment, "group"):
-        kwargs["group"] = enrollment.group
+#     # Payment create (fieldlar turlicha bo‘lishi mumkin)
+#     kwargs = {}
+#     if _model_has_field(Payment, "enrollment"):
+#         kwargs["enrollment"] = enrollment
+#     if _model_has_field(Payment, "student"):
+#         kwargs["student"] = enrollment.student
+#     if _model_has_field(Payment, "group"):
+#         kwargs["group"] = enrollment.group
 
-    if _model_has_field(Payment, "cash_amount"):
-        kwargs["cash_amount"] = int(cash_amount or 0)
+#     if _model_has_field(Payment, "cash_amount"):
+#         kwargs["cash_amount"] = int(cash_amount or 0)
 
-    # kartani ba’zi loyihalarda card_amount_som, ba’zida card_amount
-    if _model_has_field(Payment, "card_amount_som"):
-        kwargs["card_amount_som"] = int(card_amount_som or 0)
-    elif _model_has_field(Payment, "card_amount"):
-        kwargs["card_amount"] = int(card_amount_som or 0)
+#     # kartani ba’zi loyihalarda card_amount_som, ba’zida card_amount
+#     if _model_has_field(Payment, "card_amount_som"):
+#         kwargs["card_amount_som"] = int(card_amount_som or 0)
+#     elif _model_has_field(Payment, "card_amount"):
+#         kwargs["card_amount"] = int(card_amount_som or 0)
 
-    if _model_has_field(Payment, "summa"):
-        kwargs["summa"] = total
+#     if _model_has_field(Payment, "summa"):
+#         kwargs["summa"] = total
 
-    if _model_has_field(Payment, "paid_at"):
-        kwargs["paid_at"] = timezone.now()
-    else:
-        # eski fieldlar bo‘lsa
-        if _model_has_field(Payment, "sana"):
-            kwargs["sana"] = timezone.localdate()
-        if _model_has_field(Payment, "vaqt"):
-            kwargs["vaqt"] = timezone.localtime().time()
+#     if _model_has_field(Payment, "paid_at"):
+#         kwargs["paid_at"] = timezone.now()
+#     else:
+#         # eski fieldlar bo‘lsa
+#         if _model_has_field(Payment, "sana"):
+#             kwargs["sana"] = timezone.localdate()
+#         if _model_has_field(Payment, "vaqt"):
+#             kwargs["vaqt"] = timezone.localtime().time()
 
-    if created_by and _model_has_field(Payment, "created_by"):
-        kwargs["created_by"] = created_by
+#     if created_by and _model_has_field(Payment, "created_by"):
+#         kwargs["created_by"] = created_by
 
-    p = Payment.objects.create(**kwargs)
+#     p = Payment.objects.create(**kwargs)
 
-    # Allocation: start_month dan boshlab ketma-ket oylar
-    left = total
-    cur = start_month
+#     # Allocation: start_month dan boshlab ketma-ket oylar
+#     left = total
+#     cur = start_month
 
-    # 60 oy max (cheksiz loop bo‘lmasin)
-    for _ in range(60):
-        tm = ensure_tuition_month(enrollment, cur)
-        fee = int(getattr(tm, "fee_amount", 0) or 0)
+#     # 60 oy max (cheksiz loop bo‘lmasin)
+#     for _ in range(60):
+#         tm = ensure_tuition_month(enrollment, cur)
+#         fee = int(getattr(tm, "fee_amount", 0) or 0)
 
-        # fee 0 bo‘lsa — keyingi oyga o‘tamiz
-        if fee <= 0:
-            cur = _add_month(cur, 1)
-            continue
+#         # fee 0 bo‘lsa — keyingi oyga o‘tamiz
+#         if fee <= 0:
+#             cur = _add_month(cur, 1)
+#             continue
 
-        paid = get_month_paid(enrollment, cur)
-        need = max(0, fee - paid)
-        if need <= 0:
-            cur = _add_month(cur, 1)
-            continue
+#         paid = get_month_paid(enrollment, cur)
+#         need = max(0, fee - paid)
+#         if need <= 0:
+#             cur = _add_month(cur, 1)
+#             continue
 
-        alloc = min(need, left)
-        if alloc > 0:
-            PaymentAllocation.objects.create(payment=p, tuition_month=tm, amount=alloc)
-            left -= alloc
+#         alloc = min(need, left)
+#         if alloc > 0:
+#             PaymentAllocation.objects.create(payment=p, tuition_month=tm, amount=alloc)
+#             left -= alloc
 
-        if left <= 0:
-            break
+#         if left <= 0:
+#             break
 
-        cur = _add_month(cur, 1)
+#         cur = _add_month(cur, 1)
 
-    # Enrollment jami_tolangan update (agar field bo‘lsa)
-    if _model_has_field(Enrollment, "jami_tolangan"):
-        Enrollment.objects.filter(pk=enrollment.pk).update(
-            jami_tolangan=Coalesce(F("jami_tolangan"), 0) + total
-        )
+#     # Enrollment jami_tolangan update (agar field bo‘lsa)
+#     if _model_has_field(Enrollment, "jami_tolangan"):
+#         Enrollment.objects.filter(pk=enrollment.pk).update(
+#             jami_tolangan=Coalesce(F("jami_tolangan"), 0) + total
+#         )
 
-    return p
+#     return p
 
 @require_POST
 @login_required
@@ -558,6 +574,9 @@ def create_payment(request):
 from decimal import Decimal, InvalidOperation
 from django.db.models import Sum, F, Value
 
+from education.services.tuition import parse_month_str  # sizda bo‘lmasa, views dagi parse_month_str ni ishlating
+from education.services.tuition import update_payment_and_reallocate
+
 @require_POST
 @login_required
 def payment_update(request, payment_id: int):
@@ -569,93 +588,34 @@ def payment_update(request, payment_id: int):
     if not enrollment:
         return JsonResponse({"ok": False, "error": "enrollment_not_found"}, status=400)
 
-    # eski summa (DB dagi real summa)
     old_total = int(getattr(p, "summa", 0) or 0)
 
-    # yangi summa (formdan)
+    from decimal import Decimal, InvalidOperation
     try:
         cash_amount = int(Decimal((request.POST.get("cash_amount") or "0").strip()))
-        card_amount_int = int(Decimal((request.POST.get("card_amount") or "0").strip()))
+        card_amount = int(Decimal((request.POST.get("card_amount") or "0").strip()))
     except (InvalidOperation, ValueError):
         return JsonResponse({"ok": False, "error": "summa_notogri"}, status=400)
 
-    if cash_amount < 0 or card_amount_int < 0:
+    if cash_amount < 0 or card_amount < 0:
         return JsonResponse({"ok": False, "error": "summa_manfiy_bolmaydi"}, status=400)
 
-    new_total = cash_amount + card_amount_int
+    new_total = cash_amount + card_amount
     if new_total <= 0:
         return JsonResponse({"ok": False, "error": "summa_0_bolmaydi"}, status=400)
 
-    # start_month: formdan kelsa shu, kelmasa allocationdan, bo‘lmasa hozirgi oy
     month_str = (request.POST.get("month") or "").strip()
     start_month = parse_month_str(month_str) if month_str else None
 
-    if not start_month:
-        first_alloc = (
-            getattr(p, "allocations", None)
-            and p.allocations.select_related("tuition_month").order_by("tuition_month__month").first()
-        )
-        if first_alloc and first_alloc.tuition_month:
-            start_month = first_alloc.tuition_month.month
-
-    start_month = month_first_day(start_month or timezone.localdate())
-
-    def month_paid_excluding_payment(tm: TuitionMonth) -> int:
-        s = (
-            PaymentAllocation.objects
-            .filter(tuition_month=tm)
-            .exclude(payment=p)
-            .aggregate(x=Coalesce(Sum("amount"), Value(0)))["x"]
-        )
-        return int(s or 0)
-
-    with transaction.atomic():
-        # 1) Paymentni yangilash (save() side-effectlaridan qochamiz)
-        Payment.objects.filter(pk=p.pk).update(
+    try:
+        update_payment_and_reallocate(
+            payment=p,
             cash_amount=cash_amount,
-            card_amount=Decimal(card_amount_int),  # rate=1 bo‘lsa somdek ishlaydi
-            summa=new_total,
+            card_amount_som=card_amount,
+            start_month=start_month,
         )
-
-        # 2) eski allocationlarni o‘chirish
-        PaymentAllocation.objects.filter(payment=p).delete()
-
-        # 3) qayta taqsimlash (start_month dan boshlab)
-        left = new_total
-        cur = start_month
-
-        for _ in range(60):
-            tm = ensure_tuition_month(enrollment, cur)
-            fee = int(getattr(tm, "fee_amount", 0) or 0)
-
-            if fee <= 0:
-                cur = _add_month(cur, 1)
-                continue
-
-            paid_other = month_paid_excluding_payment(tm)
-            need = max(0, fee - paid_other)
-
-            if need <= 0:
-                cur = _add_month(cur, 1)
-                continue
-
-            alloc = min(need, left)
-            if alloc > 0:
-                PaymentAllocation.objects.create(payment_id=p.id, tuition_month=tm, amount=alloc)
-                left -= alloc
-
-            if left <= 0:
-                break
-
-            cur = _add_month(cur, 1)
-
-        # 4) ✅ jami_tolangan ni delta bilan emas, real aggregate bilan yozamiz (constraint buzilmaydi)
-        total_paid = (
-            Payment.objects
-            .filter(enrollment_id=enrollment.id)
-            .aggregate(t=Coalesce(Sum("summa"), Value(0)))["t"]
-        )
-        Enrollment.objects.filter(pk=enrollment.pk).update(jami_tolangan=int(total_paid or 0))
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": str(e)}, status=400)
 
     return JsonResponse({
         "ok": True,
@@ -663,9 +623,9 @@ def payment_update(request, payment_id: int):
         "old_total": old_total,
         "new_total": new_total,
         "delta": new_total - old_total,
-        "start_month": start_month.strftime("%Y-%m"),
+        "start_month": (start_month or timezone.localdate().replace(day=1)).strftime("%Y-%m"),
     })
-# education/views.py
+
 
 def month_start(d: date) -> date:
     return d.replace(day=1)
@@ -795,7 +755,8 @@ def payment_history_enrollment(request, enrollment_id: int):
         return JsonResponse({"error": "forbidden"}, status=403)
 
     month_str = request.GET.get("month", "")
-    selected_month = parse_month_str(month_str)
+    selected_month = parse_month_str(month_str) or first_day_of_current_month()
+
 
     enrollment = get_object_or_404(
         Enrollment.objects.select_related("student", "group"),
@@ -803,7 +764,8 @@ def payment_history_enrollment(request, enrollment_id: int):
     )
 
     tm = ensure_tuition_month(enrollment, selected_month)
-    fee = int(getattr(tm, "fee_amount", 0) or 0)
+    fee = tuition_month_fee(tm)
+
     paid_this_month = int(get_month_paid(enrollment, selected_month) or 0)
     qoldiq = 0 if fee <= 0 else max(0, fee - paid_this_month)
 
@@ -1297,6 +1259,67 @@ def group_month_attendance(request, group_id):
         "years": years,
         "months": months,
     })
+
+
+import csv
+from django.http import HttpResponse
+from datetime import date, timedelta
+import calendar
+
+
+@login_required
+def group_month_attendance_export(request, group_id):
+    group = get_object_or_404(Group, pk=group_id)
+
+    today = date.today()
+    year = int(request.GET.get("year", today.year))
+    month = int(request.GET.get("month", today.month))
+
+    first_day = date(year, month, 1)
+    days_in_month = calendar.monthrange(year, month)[1]
+    day_list = [first_day + timedelta(days=i) for i in range(days_in_month)]
+
+    enrollments = (
+        Enrollment.objects
+        .filter(group=group)
+        .select_related("student")
+        .order_by("student__ism", "student__familya")
+    )
+    students = [e.student for e in enrollments]
+
+    month_qs = (Attendance.objects
+                .filter(group=group, date__year=year, date__month=month)
+                .select_related("student"))
+
+    att_map = {(a.student_id, a.date): a for a in month_qs}
+
+    # ✅ Excel uchun UTF-8 BOM
+    response = HttpResponse(content_type="text/csv; charset=utf-8")
+    filename = f"{group.nom}_{year}-{month:02d}_attendance.csv"
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    response.write("\ufeff")
+
+    # ✅ MUHIM: delimiter=';' (Excel RU/UZ)
+    writer = csv.writer(response, delimiter=';', lineterminator="\n", quoting=csv.QUOTE_MINIMAL)
+
+    header = ["O'quvchi"] + [d.strftime("%d-%m-%Y") for d in day_list]
+    writer.writerow(header)
+
+    for s in students:
+        row = [s.get_full_name()]
+        for d in day_list:
+            a = att_map.get((s.id, d))
+            if not a:
+                row.append("")  # belgilanmagan
+            elif getattr(a, "present", False):
+                row.append("KELDI")
+            elif getattr(a, "forced", False):
+                row.append("KELMADI (PUL)")
+            else:
+                row.append("KELMADI")
+        writer.writerow(row)
+
+    return response
 
 
 
@@ -1822,7 +1845,8 @@ def attend_all(request, pk):
             group=g,
             student=e.student,
             date=selected_date,
-            defaults={"present": True}
+            defaults={"present": True, "forced": False, "teacher": request.user}
+
         )
         count += 1
 
@@ -1831,107 +1855,156 @@ def attend_all(request, pk):
 @require_POST
 @login_required
 def attend_all_students(request, g_id):
-    # Guruhni olish
     g = get_object_or_404(Group, pk=g_id)
 
-    # faqat shu guruh o‘qituvchisi ko‘ra olsin
     if request.user.role == "teacher" and g.oqituvchi != request.user:
         return JsonResponse({"ok": False, "error": "ruxsat yo‘q"})
 
-    # Sana
     date_str = request.POST.get("date")
     selected_date = parse_date(date_str) if date_str else localdate()
 
-    # Guruhdagi barcha o‘quvchilar
-    enrollments = (
-        Enrollment.objects
-        .filter(group=g)
-        .select_related("student", "group")   # ✅ MUHIM
-    )
+    adj_rule = _attendance_adjust_rule()
+    start, end = _day_range(selected_date)
 
+    enrollments = Enrollment.objects.filter(group=g).select_related("student")
+
+    items = []
     count = 0
+
     for e in enrollments:
         Attendance.objects.update_or_create(
             group=g,
             student=e.student,
             date=selected_date,
-            defaults={"present": True}
+            defaults={"present": True, "forced": False, "teacher": request.user},
         )
+
+        # Shu kunga qo‘yilgan adjustment bo‘lsa — delete → ball qaytadi
+        adj_qs = Ledger.objects.filter(
+            student=e.student,
+            group=g,
+            rule=adj_rule,
+            sana__gte=start,
+            sana__lt=end,
+        )
+        adj_sum = int(adj_qs.aggregate(s=Coalesce(Sum("ball"), 0))["s"] or 0)
+        restored_sum = int(-adj_sum) if adj_sum else 0
+        adj_qs.delete()
+
+        balance = int(
+            Ledger.objects.filter(student=e.student)
+            .aggregate(s=Coalesce(Sum("ball"), 0))["s"] or 0
+        )
+
+        items.append({"student_id": e.student.id, "balance": balance, "restored_sum": restored_sum})
         count += 1
 
-    return JsonResponse({"ok": True, "count": count})
+    return JsonResponse({"ok": True, "count": count, "items": items})
 
 # ---------- AJAX: Davomatni saqlash ----------
+@require_POST
 @login_required
 def attendance_today(request, pk: int):
     """
-    Har bir guruh uchun davomatni alohida saqlaydi.
-    O‘quvchi bir kunda IT va Ingliz tilida qatnashsa — ikkita alohida Attendance yozuvi yaratiladi.
-    Chaqmoqlar esa umumiy hisobda qoladi.
+    status:
+      - 'present' -> present=True,  forced=False  (chaqmoq mumkin)
+      - 'forced'  -> present=False, forced=True   (kelmadi, pul yoziladi)
+      - 'none'    -> attendance yo'q (bekor qilish)
+    Backward compatible: present=1/0 yuborilsa ham ishlaydi.
     """
-    if request.method != "POST":
-        return JsonResponse({"ok": False, "error": "POST only"}, status=405)
-
-    # Guruhni topamiz
     g = get_object_or_404(Group, pk=pk)
 
-    # Foydalanuvchi huquqini tekshiramiz
-    if not _teacher_can(request.user, g):
-        return JsonResponse({"ok": False, "error": "Ruxsat yo‘q"}, status=403)
+    # faqat direktor/manager/teacher
+    if request.user.role == "teacher" and g.oqituvchi != request.user:
+        return JsonResponse({"ok": False, "error": "ruxsat yo‘q"}, status=403)
 
-    # Ma'lumotlarni olish
     enr_id = request.POST.get("enr_id")
-    present_val = request.POST.get("present")
+    if not enr_id:
+        return JsonResponse({"ok": False, "error": "enr_id required"}, status=400)
+
+    # sana
     date_str = request.POST.get("date")
+    selected_date = parse_date(date_str) if date_str else localdate()
 
-    if not (enr_id and present_val is not None):
-        return JsonResponse({"ok": False, "error": "Incomplete data"}, status=400)
+    # status (yangi)
+    status = (request.POST.get("status") or "").strip().lower()
 
-    try:
-        enrollment = Enrollment.objects.select_related("student").get(pk=int(enr_id), group=g)
-    except Enrollment.DoesNotExist:
-        return JsonResponse({"ok": False, "error": "Enrollment not found"}, status=404)
+    # backward compatibility (eski front bo'lsa)
+    if status not in ("present", "forced", "none"):
+        pv = request.POST.get("present")
+        if pv is None:
+            return JsonResponse({"ok": False, "error": "status/present required"}, status=400)
+        status = "present" if str(pv).lower() in ("1", "true", "yes", "on") else "none"
 
-    student = enrollment.student
-    present = str(present_val).lower() in ("1", "true", "yes", "on")
+    e = get_object_or_404(Enrollment, id=enr_id, group=g)
+    student = e.student
 
-    # ✅ Sanani aniqlash
-    if date_str:
-        try:
-            selected_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-        except Exception:
-            selected_date = localdate()
-    else:
-        selected_date = localdate()
-
-    # ⚙️ Davomatni alohida guruhga yozamiz
-    att, created = Attendance.objects.update_or_create(
+    # shu kunlik ledgerlarni topish (shu guruh + shu student + shu sana)
+    day_ledgers = Ledger.objects.filter(
         group=g,
         student=student,
-        date=selected_date,
-        defaults={"present": present, "teacher": request.user},
+        sana__date=selected_date
     )
 
-    # 🔹 Endi chaqmoq tizimi (Ledger) umumiy qoladi, o‘chirmaymiz.
-    # Faqat kelmagan bo‘lsa, shu guruhdagi shu kundagi yozuvlarni o‘chiramiz.
-    removed_points = 0
-    if not present:
-        start = make_aware(datetime.combine(selected_date, datetime.min.time()))
-        end = make_aware(datetime.combine(selected_date + timedelta(days=1), datetime.min.time()))
-        removed_points = Ledger.objects.filter(
-            student=student, group=g,
-            sana__gte=start, sana__lt=end
-        ).count()
-        Ledger.objects.filter(
-            student=student, group=g,
-            sana__gte=start, sana__lt=end
-        ).delete()
+    removed = day_ledgers.aggregate(
+        removed_sum=Coalesce(Sum("ball"), 0),
+        removed_count=Count("id")
+    )
+    removed_sum = int(removed["removed_sum"] or 0)
+    removed_count = int(removed["removed_count"] or 0)
+
+    # Agar status present bo'lmasa -> shu kundagi chaqmoqlarni bekor qilamiz
+    if status != "present" and removed_count:
+        day_ledgers.delete()
+
+    # Attendance ni yaratish/yangilash/o'chirish
+    if status == "none":
+        Attendance.objects.filter(group=g, student=student, date=selected_date).delete()
+        present = False
+        forced = False
+
+    elif status == "present":
+        Attendance.objects.update_or_create(
+            group=g,
+            student=student,
+            date=selected_date,
+            defaults={
+                "teacher": request.user,
+                "present": True,
+                "forced": False,
+            }
+        )
+        present = True
+        forced = False
+
+    elif status == "forced":
+        Attendance.objects.update_or_create(
+            group=g,
+            student=student,
+            date=selected_date,
+            defaults={
+                "teacher": request.user,
+                "present": False,
+                "forced": True,
+            }
+        )
+        present = False
+        forced = True
+
+    # yangi balans (hamma ledgerlar yig'indisi)
+    bal = Ledger.objects.filter(student=student).aggregate(
+        s=Coalesce(Sum("ball"), 0)
+    )["s"]
+    bal = int(bal or 0)
 
     return JsonResponse({
         "ok": True,
+        "status": status,
         "present": present,
-        "removed_points": removed_points,
-        "created": created
+        "forced": forced,
+        "removed_sum": removed_sum,
+        "removed_count": removed_count,
+        "balance": bal,
     })
 
 
@@ -1964,7 +2037,6 @@ def group_bulk_remove(request, pk):
 # ---------- AJAX: Chaqmoq yozish/ayirish ----------
 @login_required
 def group_points(request, pk: int):
-    # Faqat POST
     if request.method != "POST":
         return JsonResponse({"ok": False, "error": "POST only"}, status=405)
 
@@ -1977,18 +2049,16 @@ def group_points(request, pk: int):
     else:
         data = request.POST
 
-    # Guruhni tekshirish
     g = get_object_or_404(Group, pk=pk)
     if request.user.role == "teacher" and g.oqituvchi != request.user and not _teacher_can(request.user, g):
         return HttpResponseForbidden()
 
-    # Ma'lumotlarni olish
     student_id = (data.get("student_id") or "").strip()
     rule_id = (data.get("rule_id") or "").strip()
     amount_raw = (data.get("amount") or "0").strip()
     date_str = (data.get("date") or "").strip()
 
-    # Ballni parse qilish
+    # ball parse
     try:
         amount = int(amount_raw)
     except ValueError:
@@ -1997,10 +2067,9 @@ def group_points(request, pk: int):
     if amount == 0:
         return JsonResponse({"ok": False, "error": "0 ball yozilmaydi"}, status=400)
 
-    # Studentni olish
     student = get_object_or_404(User, pk=int(student_id), role="student")
 
-    # Qoida olish
+    # rule
     if rule_id and rule_id.isdigit():
         rule = get_object_or_404(Rule, pk=int(rule_id))
     else:
@@ -2008,7 +2077,7 @@ def group_points(request, pk: int):
             nom="Erkin ball", tur=Rule.PLUS, min_baho=1, max_baho=1000000
         )
 
-    # ✅ SANANI ANIQLASH
+    # sana
     if date_str:
         try:
             parsed_date = datetime.strptime(date_str, "%Y-%m-%d").date()
@@ -2017,24 +2086,34 @@ def group_points(request, pk: int):
     else:
         parsed_date = timezone.localdate()
 
-    sana = timezone.make_aware(datetime.combine(parsed_date, datetime.min.time()))
+    # ✅ Davomatsiz chaqmoq qo‘yilmasin (faqat present=True)
+    date_field = Attendance._meta.get_field("date")
+    if isinstance(date_field, models.DateTimeField):
+        present_exists = Attendance.objects.filter(group=g, student=student, date__date=parsed_date, present=True).exists()
+    else:
+        present_exists = Attendance.objects.filter(group=g, student=student, date=parsed_date, present=True).exists()
 
-    # ✅ Kunlik chaqmoq limitini tekshirish
-    from .models import DailyLightningSetting  # import kerak bo‘ladi
+    if not present_exists:
+        return JsonResponse({"ok": False, "error": "Avval davomatni belgilang (KELDI)!"}, status=400)
+
+    # ✅ Kunlik chaqmoq limit
+    from .models import DailyLightningSetting
     setting = DailyLightningSetting.objects.filter(date=parsed_date, active=True).first()
-    if setting and setting.max_lightning > 0:
-        today_sum = Ledger.objects.filter(
+    if setting and setting.max_lightning and setting.max_lightning > 0:
+        today_plus = Ledger.objects.filter(
             student=student,
-            sana__date=parsed_date
-        ).aggregate(s=Coalesce(Sum('ball'), 0))['s'] or 0
+            sana__date=parsed_date,
+            ball__gt=0
+        ).aggregate(s=Coalesce(Sum("ball"), 0))["s"] or 0
 
-        if today_sum + amount > setting.max_lightning:
+        if int(today_plus) + max(0, amount) > int(setting.max_lightning):
             return JsonResponse({
                 "ok": False,
                 "error": f"Bugun {setting.max_lightning} tadan ortiq chaqmoq berish mumkin emas."
             }, status=400)
 
-    # ⚡ Ledger yozuvini yaratish
+    # ledger create
+    sana = timezone.make_aware(datetime.combine(parsed_date, datetime.min.time()))
     record = Ledger.objects.create(
         student=student,
         beruvchi=request.user,
@@ -2044,17 +2123,16 @@ def group_points(request, pk: int):
         sana=sana,
     )
 
-    # Balansni qayta hisoblash
-    balance_agg = Ledger.objects.filter(student=student).aggregate(s=Coalesce(Sum("ball"), 0))
-    balance = int(balance_agg.get("s") or 0)
+    balance = Ledger.objects.filter(student=student).aggregate(s=Coalesce(Sum("ball"), 0))["s"] or 0
 
     return JsonResponse({
         "ok": True,
         "amount": amount,
-        "balance": balance,
+        "balance": int(balance),
         "saved_date": parsed_date.strftime("%Y-%m-%d"),
         "id": record.id
     })
+
 
 # @login_required
 # def groups_home(request):

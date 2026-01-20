@@ -5,216 +5,319 @@
 
 <style>
 :root{
-  --bg1:#0b1220;
-  --bg2:#0f172a;
+  --bg1:#020617;
+  --bg2:#0b1226;
 
-  --panel: rgba(255,255,255,0.06);
-  --panel2: rgba(255,255,255,0.04);
-  --line: rgba(255,255,255,0.10);
+  --panel: rgba(17,24,39,.62);
+  --panel2: rgba(2,6,23,.55);
+  --line: rgba(255,255,255,.09);
 
   --text:#e5e7eb;
   --muted:#94a3b8;
 
-  --blue1:#2563eb;
+  --blue:#3b82f6;
   --blue2:#60a5fa;
 
-  --green1:#22c55e;
+  --green:#22c55e;
   --green2:#16a34a;
 
-  --gold1:#facc15;
-  --gold2:#fbbf24;
+  --red:#fb7185;
+  --red2:#f43f5e;
 
-  --shadow: 0 18px 45px rgba(0,0,0,0.45);
+  --gold:#fbbf24;
+
+  --shadow: 0 20px 70px rgba(0,0,0,.45);
 }
 
 body{
-  background: radial-gradient(1200px 500px at 50% -10%, rgba(96,165,250,0.22), transparent 55%),
-              radial-gradient(900px 500px at 10% 10%, rgba(37,99,235,0.16), transparent 55%),
-              linear-gradient(180deg, var(--bg1), var(--bg2), var(--bg1));
-  font-family: 'Poppins', sans-serif;
-  min-height: 100vh;
+  background:
+    radial-gradient(900px 520px at 15% 0%, rgba(59,130,246,.18), transparent 55%),
+    radial-gradient(900px 520px at 85% 10%, rgba(34,197,94,.12), transparent 55%),
+    linear-gradient(180deg, var(--bg1), var(--bg2));
   color: var(--text);
+  min-height:100vh;
 }
 
-.page-wrap{ max-width: 1100px; margin: 0 auto; }
-
-/* Header */
-.header-wrap{
-  display:flex;
-  justify-content:center;
-  margin-bottom: 16px;
+.page-wrap{
+  max-width: 1140px;
+  margin: 20px auto;
+  padding: 0 14px 26px;
 }
-.page-header{
+
+/* ===== HEADER HERO ===== */
+.hero{
   display:flex;
   align-items:center;
-  gap: 12px;
-  padding: 14px 18px;
-  border-radius: 18px;
-  background: linear-gradient(90deg, rgba(37,99,235,0.92), rgba(96,165,250,0.92));
-  box-shadow: 0 14px 40px rgba(37,99,235,0.30);
-  border: 1px solid rgba(255,255,255,0.16);
-  min-width: 360px;
-}
-.page-header .icon{
-  width: 44px; height: 44px;
-  display:grid; place-items:center;
-  border-radius: 14px;
-  background: rgba(255,255,255,0.18);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14);
-}
-.page-header .title{
-  font-weight: 900;
-  font-size: 1.2rem;
-  line-height: 1.1;
-}
-.page-header .sub{
-  font-size: .92rem;
-  color: rgba(255,255,255,0.88);
+  justify-content:space-between;
+  gap: 18px;
+  padding: 18px 18px;
+  border-radius: 22px;
+  background: linear-gradient(90deg, rgba(37,99,235,.95), rgba(96,165,250,.92));
+  border: 1px solid rgba(255,255,255,.16);
+  box-shadow: 0 18px 52px rgba(37,99,235,.28);
+  position: relative;
+  overflow:hidden;
 }
 
-/* Stats row */
-.stats{
+.hero::after{
+  content:"";
+  position:absolute;
+  right:-40px;
+  top:-30px;
+  width: 220px;
+  height: 220px;
+  border-radius: 38px;
+  background: rgba(255,255,255,.08);
+  transform: rotate(18deg);
+  filter: blur(0px);
+  opacity:.35;
+}
+
+.hero-left{
+  display:flex;
+  align-items:center;
+  gap: 14px;
+  min-width:0;
+}
+
+.hero-ico{
+  width:56px; height:56px;
+  border-radius: 18px;
+  display:grid;
+  place-items:center;
+  background: rgba(255,255,255,.16);
+  border: 1px solid rgba(255,255,255,.16);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+  font-size: 26px;
+}
+
+.hero-title{
+  font-size: 22px;
+  font-weight: 900;
+  margin: 0;
+  line-height: 1.1;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.hero-sub{
+  margin-top: 6px;
+  color: rgba(255,255,255,.90);
+  font-size: 13px;
+  font-weight: 600;
+  line-height:1.35;
+}
+
+.hero-right{
   display:flex;
   gap: 10px;
-  justify-content:center;
   flex-wrap:wrap;
-  margin: 8px 0 16px;
+  justify-content:flex-end;
 }
-.stat{
-  padding: 8px 12px;
-  border-radius: 14px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  box-shadow: 0 10px 20px rgba(0,0,0,0.25);
-  font-weight: 800;
-}
-.stat b{ color:#fff; }
-.stat .ok{ color: var(--green1); }
-.stat .bad{ color: #f87171; }
 
-/* Filter bar */
-.filter-bar{
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  box-shadow: var(--shadow);
-  padding: 14px;
-  backdrop-filter: blur(12px);
-  margin-bottom: 14px;
+.pill{
+  padding: 9px 12px;
+  border-radius: 999px;
+  font-weight: 900;
+  font-size: 12px;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(2,6,23,.18);
+  color: #fff;
+  white-space:nowrap;
 }
+
+.pill-total b{ color:#fff; }
+.pill-ok{
+  background: rgba(34,197,94,.18);
+  border-color: rgba(34,197,94,.28);
+  color: #bbf7d0;
+}
+.pill-bad{
+  background: rgba(244,63,94,.16);
+  border-color: rgba(244,63,94,.28);
+  color: #fecdd3;
+}
+
+/* ===== FILTER BAR ===== */
+.filter-card{
+  margin-top: 14px;
+  background: linear-gradient(180deg, var(--panel), var(--panel2));
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+  padding: 14px;
+}
+
 .filter-form{
   display:flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: stretch;
-  justify-content:center;
+  gap: 12px;
+  flex-wrap:wrap;
+  align-items:center;
 }
+
 .fg{
   display:flex;
   align-items:center;
   gap: 10px;
   padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(15,23,42,0.55);
-  border: 1px solid rgba(255,255,255,0.12);
-  min-height: 48px;
+  border-radius: 16px;
+  background: rgba(2,6,23,.35);
+  border: 1px solid rgba(255,255,255,.10);
+  min-height: 50px;
+  flex: 1 1 280px;
 }
-.fg .lbl{
-  font-size: .85rem;
-  color: var(--muted);
-  white-space:nowrap;
+
+.fg .ico{
+  opacity:.9;
+  color: rgba(229,231,235,.95);
+  font-size: 14px;
 }
+
 .fg select, .fg input{
-  border: none !important;
-  outline: none !important;
+  width:100%;
+  border:none !important;
+  outline:none !important;
   background: transparent !important;
   color: var(--text) !important;
-  min-width: 200px;
+  font-weight: 700;
 }
-.fg input{ min-width: 240px; }
+
+.fg input::placeholder{
+  color: rgba(148,163,184,.9);
+  font-weight: 700;
+}
+
 .fg:focus-within{
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.22);
-  border-color: rgba(59,130,246,0.55);
+  border-color: rgba(96,165,250,.45);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.18);
 }
 
 .btn-go{
-  min-height: 48px;
-  border-radius: 14px;
-  padding: 0 16px;
+  min-height: 50px;
+  border-radius: 16px;
+  padding: 0 18px;
   font-weight: 900;
-  border: none;
+  border:none;
   color:#fff;
-  background: linear-gradient(90deg, var(--blue1), #3b82f6);
-  box-shadow: 0 14px 26px rgba(37,99,235,0.25);
-  transition:.25s ease;
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  box-shadow: 0 16px 30px rgba(37,99,235,.22);
+  transition:.2s ease;
+  flex: 0 0 auto;
 }
-.btn-go:hover{ transform: translateY(-1px); box-shadow: 0 18px 34px rgba(37,99,235,0.35); }
+.btn-go:hover{ transform: translateY(-1px); filter: brightness(1.05); }
 
 .btn-clear{
-  min-height: 48px;
-  border-radius: 14px;
-  padding: 0 16px;
+  min-height: 50px;
+  border-radius: 16px;
+  padding: 0 18px;
   font-weight: 900;
-  border: 1px solid rgba(255,255,255,0.16);
+  border: 1px solid rgba(255,255,255,.14);
   color: var(--text);
-  background: rgba(255,255,255,0.05);
-  transition:.2s ease;
+  background: rgba(255,255,255,.06);
   text-decoration:none;
-  display:inline-flex;
+  display:flex;
   align-items:center;
   justify-content:center;
+  transition:.2s ease;
+  flex: 0 0 auto;
 }
-.btn-clear:hover{ background: rgba(255,255,255,0.08); }
+.btn-clear:hover{ background: rgba(255,255,255,.10); }
 
-/* ✅ List card */
+/* Dark select dropdown look */
+.filter-card select, .filter-card input{ color-scheme: dark; }
+.filter-card select option{
+  background: rgba(2,6,23,.96) !important;
+  color: #e5e7eb !important;
+}
+
+/* ===== LIST CARD ===== */
 .list-card{
-  background: var(--panel);
+  margin-top: 14px;
+  background: linear-gradient(180deg, var(--panel), var(--panel2));
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: 20px;
   box-shadow: var(--shadow);
   padding: 14px;
   backdrop-filter: blur(12px);
 }
 
-/* Group item */
+/* ===== GROUP ITEM ===== */
 .group-item{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: 14px;
+  padding: 14px 14px;
   margin: 10px 0;
-  border-radius: 16px;
+  border-radius: 18px;
   text-decoration:none;
   color: var(--text);
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  transition:.25s ease;
-}
-.group-item:hover{
-  transform: translateY(-2px);
-  border-color: rgba(96,165,250,0.35);
-  box-shadow: 0 14px 30px rgba(59,130,246,0.18);
-  background: rgba(59,130,246,0.08);
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  transition:.22s ease;
 }
 
-.g-left{ min-width: 0; }
+.group-item:hover{
+  transform: translateY(-2px);
+  border-color: rgba(96,165,250,.30);
+  background: rgba(59,130,246,.08);
+  box-shadow: 0 16px 36px rgba(59,130,246,.16);
+}
+
+.g-left{
+  display:flex;
+  align-items:center;
+  gap: 14px;
+  min-width:0;
+}
+
+.avatar{
+  width:48px; height:48px;
+  border-radius: 14px;
+  display:grid;
+  place-items:center;
+  font-weight: 900;
+  background: rgba(34,197,94,.10);
+  border: 1px solid rgba(34,197,94,.18);
+  color: #86efac;
+  flex: 0 0 auto;
+}
+
+.g-text{ min-width:0; }
 .g-title{
   font-weight: 900;
-  font-size: 1.05rem;
+  font-size: 16px;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
-  max-width: 680px;
-}
-.g-sub{
-  margin-top: 2px;
-  color: var(--muted);
-  font-size: .9rem;
+  max-width: 520px;
 }
 
-/* Badges */
-.badges{
+.g-meta{
+  margin-top: 4px;
+  display:flex;
+  gap: 8px;
+  flex-wrap:wrap;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tag{
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(2,6,23,.28);
+  color: rgba(229,231,235,.92);
+}
+
+.tag-muted{
+  color: rgba(148,163,184,.95);
+}
+
+.right{
   display:flex;
   align-items:center;
   gap: 10px;
@@ -222,155 +325,169 @@ body{
   justify-content:flex-end;
 }
 
-.badge-soft{
-  padding: 8px 10px;
-  border-radius: 14px;
+.badge{
+  padding: 8px 12px;
+  border-radius: 999px;
   font-weight: 900;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.05);
-  color: var(--text);
+  font-size: 12px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.05);
+  color: rgba(229,231,235,.95);
   white-space: nowrap;
 }
-.badge-active{
-  background: rgba(34,197,94,0.12);
-  border-color: rgba(34,197,94,0.25);
+
+.badge-ok{
+  background: rgba(34,197,94,.14);
+  border-color: rgba(34,197,94,.22);
   color: #86efac;
 }
-.badge-inactive{
-  background: rgba(248,113,113,0.10);
-  border-color: rgba(248,113,113,0.25);
-  color: #fca5a5;
+
+.badge-bad{
+  background: rgba(244,63,94,.14);
+  border-color: rgba(244,63,94,.22);
+  color: #fda4af;
 }
 
-.go-pill{
-  padding: 10px 14px;
-  border-radius: 14px;
-  font-weight: 900;
-  background: linear-gradient(90deg, rgba(250,204,21,0.92), rgba(251,191,36,0.92));
-  color:#0b1220;
-  border: 1px solid rgba(255,255,255,0.16);
-  box-shadow: 0 10px 20px rgba(250,204,21,0.14);
+.badge-date{
+  background: rgba(2,6,23,.35);
+  border-color: rgba(255,255,255,.10);
+  color: rgba(229,231,235,.95);
 }
+
+.btn-view{
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-weight: 900;
+  background: linear-gradient(90deg, rgba(251,191,36,.95), rgba(250,204,21,.92));
+  color: #0b1220;
+  border: 1px solid rgba(255,255,255,.16);
+  box-shadow: 0 12px 24px rgba(250,204,21,.14);
+  display:flex;
+  align-items:center;
+  gap: 8px;
+}
+
+.btn-view .arr{ font-weight: 900; }
 
 /* Empty */
 .empty{
   margin-top: 8px;
   padding: 14px;
   border-radius: 16px;
-  background: rgba(255,255,255,0.04);
-  border: 1px dashed rgba(250,204,21,0.35);
-  color: var(--gold1);
+  background: rgba(255,255,255,.04);
+  border: 1px dashed rgba(251,191,36,.35);
+  color: rgba(251,191,36,.95);
   text-align:center;
-  font-weight: 800;
-}
-
-/* Dark select dropdown */
-.filter-bar select,
-.filter-bar input{ color-scheme: dark; }
-.filter-bar select,
-.filter-bar option{
-  background-color: rgba(15,23,42,0.96) !important;
-  color: #e5e7eb !important;
+  font-weight: 900;
 }
 
 /* Mobile */
-@media (max-width: 576px){
-  .page-wrap{ padding: 0 12px; }
-  .page-header{ width: 100%; min-width: 0; }
-  .fg{ width: 100%; justify-content:space-between; }
-  .fg select, .fg input{ min-width: 0; width: 100%; text-align:right; }
+@media (max-width: 640px){
+  .hero{ align-items:flex-start; }
+  .hero-right{ width:100%; justify-content:flex-start; }
+  .g-title{ max-width: 210px; }
+  .filter-form{ gap: 10px; }
+  .fg{ flex: 1 1 100%; }
   .btn-go, .btn-clear{ width: 100%; }
-  .g-title{ max-width: 240px; }
-  .badges{ justify-content:flex-start; }
+  .right{ justify-content:flex-start; }
 }
 </style>
 
-<div class="container mt-5">
-  <div class="page-wrap">
+<div class="page-wrap">
 
-    <!-- HEADER -->
-    <div class="header-wrap">
-      <div class="page-header">
-        <div class="icon">📅</div>
-        <div>
-          <div class="title">Guruhlar bo‘yicha davomat</div>
-          <div class="sub">Davomat bor guruhlar tepada, yo‘qlari pastda ko‘rsatiladi</div>
-        </div>
+  <!-- HERO HEADER -->
+  <div class="hero">
+    <div class="hero-left">
+      <div class="hero-ico">📅</div>
+      <div style="min-width:0;">
+        <div class="hero-title">Guruhlar bo‘yicha davomat</div>
+        <div class="hero-sub">Davomat bor guruhlar tepada, yo‘qlari pastda ko‘rsatiladi</div>
       </div>
     </div>
 
-    <!-- STATS -->
-    <div class="stats">
-      <div class="stat">Jami: <b>{{ total }}</b></div>
-      <div class="stat">Davomat bor: <b class="ok">{{ active_count }}</b></div>
-      <div class="stat">Davomat yo‘q: <b class="bad">{{ inactive_count }}</b></div>
+    <div class="hero-right">
+      <div class="pill pill-total">JAMI: <b>{{ total }}</b></div>
+      <div class="pill pill-ok">DAVOMAT BOR: {{ active_count }}</div>
+      <div class="pill pill-bad">DAVOMAT YO‘Q: {{ inactive_count }}</div>
     </div>
+  </div>
 
-    <!-- FILTER + SEARCH -->
-    <div class="filter-bar">
-      <form method="get" class="filter-form">
+  <!-- FILTER -->
+  <div class="filter-card">
+    <form method="get" class="filter-form">
 
-        <div class="fg">
-          <div class="lbl">👩‍🏫 O‘qituvchi</div>
-          <select name="teacher">
-            <option value="">Barchasi</option>
-            {% for t in teachers %}
-              <option value="{{ t.id }}" {% if selected_teacher == t.id %}selected{% endif %}>
-                {{ t.get_full_name }}
-              </option>
-            {% endfor %}
-          </select>
-        </div>
+      <div class="fg">
+        <span class="ico">🧑‍🏫</span>
+        <select name="teacher">
+          <option value="">Barchasi (O‘qituvchi)</option>
+          {% for t in teachers %}
+            <option value="{{ t.id }}" {% if selected_teacher == t.id %}selected{% endif %}>
+              {{ t.get_full_name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
 
-        <div class="fg">
-          <div class="lbl">🔎 Qidiruv</div>
-          <input type="text" name="q" value="{{ q }}" placeholder="Guruh nomi / Center / O‘qituvchi...">
-        </div>
+      <div class="fg" style="flex: 2 1 360px;">
+        <span class="ico">🔎</span>
+        <input type="text" name="q" value="{{ q }}" placeholder="Guruh nomi / Markaz / O‘qituvchi...">
+      </div>
 
-        <button class="btn-go" type="submit">Ko‘rsatish</button>
-        <a class="btn-clear" href="{% url 'education:attendance_groups' %}">Tozalash</a>
-      </form>
-    </div>
+      <button class="btn-go" type="submit">Ko‘rsatish</button>
+      <a class="btn-clear" href="{% url 'education:attendance_groups' %}">Tozalash</a>
+    </form>
+  </div>
 
-    <!-- LIST -->
-    <div class="list-card">
+  <!-- LIST -->
+  <div class="list-card">
 
-      {% if groups %}
-        {% for g in groups %}
-          <a href="{% url 'education:group_month_attendance' g.id %}" class="group-item">
-            <div class="g-left">
+    {% if groups %}
+      {% for g in groups %}
+        <a href="{% url 'education:group_month_attendance' g.id %}" class="group-item">
+
+          <div class="g-left">
+            <div class="avatar">
+              {{ g.nom|default:"G"|slice:":1"|upper }}
+            </div>
+
+            <div class="g-text">
               <div class="g-title">{{ g.nom }}</div>
-              <div class="g-sub">
-                {{ g.center }}
+              <div class="g-meta">
+                <span class="tag">{{ g.center }}</span>
+
                 {% if g.oqituvchi %}
-                  · O‘qituvchi: {{ g.oqituvchi.get_full_name }}
+                  <span class="tag tag-muted">👨‍🏫 {{ g.oqituvchi.get_full_name }}</span>
                 {% else %}
-                  · <span style="color:#fca5a5;font-weight:800;">O‘qituvchi biriktirilmagan</span>
+                  <span class="tag" style="border-color: rgba(244,63,94,.30); background: rgba(244,63,94,.10); color:#fecdd3;">
+                    O‘qituvchi biriktirilmagan
+                  </span>
                 {% endif %}
               </div>
             </div>
+          </div>
 
-            <div class="badges">
-              {% if g.attendance_count|default:0 > 0 %}
-                <div class="badge-soft badge-active">✅ Davomat bor</div>
-                {% if g.last_attendance %}
-                  <div class="badge-soft">🗓️ {{ g.last_attendance|date:"d-m-Y" }}</div>
-                {% endif %}
-              {% else %}
-                <div class="badge-soft badge-inactive">⛔ Davomat yo‘q</div>
+          <div class="right">
+            {% if g.attendance_count|default:0 > 0 %}
+              <div class="badge badge-ok">✅ Davomat bor</div>
+              {% if g.last_attendance %}
+                <div class="badge badge-date">📅 {{ g.last_attendance|date:"d-m-Y" }}</div>
               {% endif %}
+            {% else %}
+              <div class="badge badge-bad">⛔ Davomat yo‘q</div>
+              <div class="badge badge-date">📅 Bugun</div>
+            {% endif %}
 
-              <div class="go-pill">Ko‘rish →</div>
-            </div>
-          </a>
-        {% endfor %}
-      {% else %}
-        <div class="empty">Hozircha hech qanday guruh topilmadi.</div>
-      {% endif %}
+            <div class="btn-view">Ko‘rish <span class="arr">›</span></div>
+          </div>
 
-    </div>
+        </a>
+      {% endfor %}
+    {% else %}
+      <div class="empty">Hozircha hech qanday guruh topilmadi.</div>
+    {% endif %}
 
   </div>
+
 </div>
 
 {% endblock %}

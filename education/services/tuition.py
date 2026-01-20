@@ -1,4 +1,4 @@
-# C:\Users\user\Desktop\chaqmoq_academy\education\services\tuition.py
+# education/services/tuition.py
 from __future__ import annotations
 
 from datetime import date
@@ -7,8 +7,6 @@ from typing import Optional, Union
 from django.db import transaction
 from django.db.models import Sum, F
 from django.db.models.functions import Coalesce
-from django.utils import timezone
-from django.db import transaction
 from django.utils import timezone
 
 from education.models import TuitionMonth, PaymentAllocation, Payment, Enrollment
@@ -26,9 +24,24 @@ def _model_has_field(Model, field_name: str) -> bool:
         return False
 
 
-def _tm_fee_field() -> str:
-    # Sizda TuitionMonth.da fee_amount bo‘lishi mumkin, ba’zida fee bo‘ladi
+def tuition_month_fee_field() -> str:
+    """
+    TuitionMonth modelida fee field nomi turlicha bo'lishi mumkin:
+    - fee_amount
+    - fee
+    """
     return "fee_amount" if _model_has_field(TuitionMonth, "fee_amount") else "fee"
+
+
+def tuition_month_fee(tm: TuitionMonth) -> int:
+    field = tuition_month_fee_field()
+    return int(getattr(tm, field, 0) or 0)
+
+
+def set_tuition_month_fee(tm: TuitionMonth, amount: int) -> None:
+    field = tuition_month_fee_field()
+    setattr(tm, field, int(amount or 0))
+    tm.save(update_fields=[field])
 
 
 def month_first_day(d: date) -> date:
@@ -39,6 +52,26 @@ def add_month(d: date, n: int = 1) -> date:
     y = d.year + (d.month - 1 + n) // 12
     m = (d.month - 1 + n) % 12 + 1
     return date(y, m, 1)
+
+
+def parse_month_str(s: str) -> Optional[date]:
+    """
+    'YYYY-MM' -> date(YYYY,MM,1)
+    invalid -> None
+    """
+    if not s:
+        return None
+    s = s.strip()
+    if len(s) != 7 or s[4] != "-":
+        return None
+    try:
+        y = int(s[:4])
+        m = int(s[5:7])
+        if 1 <= m <= 12:
+            return date(y, m, 1)
+        return None
+    except Exception:
+        return None
 
 
 def get_fee_amount(enrollment: Enrollment) -> int:
@@ -65,23 +98,21 @@ def get_fee_amount(enrollment: Enrollment) -> int:
 def ensure_tuition_month(enrollment: Enrollment, month: date) -> TuitionMonth:
     """
     Agar shu oy uchun TuitionMonth bo‘lmasa yaratadi.
-    fee 0 bo‘lib qolsa -> enrollment/groupdan qayta yozadi.
+    Fee 0 bo‘lib qolsa -> enrollment/groupdan qayta yozadi.
     """
     month = month_first_day(month)
-    fee_field = _tm_fee_field()
-    fee = get_fee_amount(enrollment)
+    fee = int(get_fee_amount(enrollment) or 0)
+    fee_field = tuition_month_fee_field()
 
-    defaults = {fee_field: int(fee)}
     tm, _ = TuitionMonth.objects.get_or_create(
         enrollment=enrollment,
         month=month,
-        defaults=defaults
+        defaults={fee_field: fee},
     )
 
-    # fee 0 bo‘lib qolsa fallback bilan update
     cur_fee = int(getattr(tm, fee_field, 0) or 0)
     if cur_fee <= 0 and fee > 0:
-        setattr(tm, fee_field, int(fee))
+        setattr(tm, fee_field, fee)
         tm.save(update_fields=[fee_field])
 
     return tm
@@ -103,11 +134,7 @@ def get_month_paid(enrollment_or_tm: Union[Enrollment, TuitionMonth], month: Opt
         if not tm:
             return 0
 
-    s = (
-        PaymentAllocation.objects
-        .filter(tuition_month=tm)
-        .aggregate(s=Sum("amount"))["s"] or 0
-    )
+    s = PaymentAllocation.objects.filter(tuition_month=tm).aggregate(s=Sum("amount"))["s"] or 0
     return int(s)
 
 
@@ -116,14 +143,13 @@ def find_earliest_unpaid_month(enrollment: Enrollment, start_month: Optional[dat
     Eng oldingi to‘lanmagan (paid < fee) oyni topadi.
     start_month berilsa -> o‘sha oydan boshlab qidiradi.
     """
-    fee_field = _tm_fee_field()
+    fee_field = tuition_month_fee_field()
 
     if start_month is None:
         start_month = month_first_day(timezone.localdate())
     else:
         start_month = month_first_day(start_month)
 
-    # start_month kamida mavjud bo‘lsin
     ensure_tuition_month(enrollment, start_month)
 
     months = TuitionMonth.objects.filter(enrollment=enrollment, month__gte=start_month).order_by("month")
@@ -136,94 +162,74 @@ def find_earliest_unpaid_month(enrollment: Enrollment, start_month: Optional[dat
         if paid < fee:
             return tm
 
-    # hammasi yopilgan bo‘lsa -> keyingi oy
     last = months.last()
     next_m = add_month(last.month, 1) if last else start_month
     return ensure_tuition_month(enrollment, next_m)
 
 
-# =========================
-#  CREATE PAYMENT + ALLOCATE
-# =========================
-
-@transaction.atomic
-def create_payment_and_allocate(
-    *,
-    enrollment: Enrollment,
-    created_by,
-    cash_amount: int,
-    card_amount: int,
-    start_month: Optional[date] = None,
-    paid_at=None
-) -> Payment:
+def sync_tuition_fee(enrollment: Enrollment, start_month: date, new_fee: int) -> None:
     """
-    Payment yaratadi va pullarni oylar bo‘yicha taqsimlaydi:
-    - start_month berilsa: o‘sha oydan boshlab ketma-ket taqsimlaydi
-    - start_month bo‘lmasa: joriy oy (oy boshidan) boshlab
+    enrollment kurs narhi o'zgarsa, shu oydan boshlab TuitionMonth fee larni yangilaydi.
+    fee field nomi fee_amount yoki fee bo'lishi mumkin.
     """
+    start_month = month_first_day(start_month)
+    fee_field = tuition_month_fee_field()
+    new_fee = int(new_fee or 0)
 
-    cash_amount = int(cash_amount or 0)
-    card_amount = int(card_amount or 0)
-    total = cash_amount + card_amount
-    if total <= 0:
-        raise ValueError("To‘lov summasi 0 bo‘lishi mumkin emas")
+    TuitionMonth.objects.filter(enrollment=enrollment, month__gte=start_month).update(**{fee_field: new_fee})
+    TuitionMonth.objects.update_or_create(
+        enrollment=enrollment,
+        month=start_month,
+        defaults={fee_field: new_fee},
+    )
 
-    if paid_at is None:
-        paid_at = timezone.now()
 
-    if start_month is None:
-        start_month = month_first_day(timezone.localdate())
-    else:
-        start_month = month_first_day(start_month)
+# =========================
+#  CORE ALLOCATION ENGINE
+# =========================
 
-    # -------------------------
-    # Payment CREATE (robust)
-    # -------------------------
-    kwargs = {}
+def _get_payment_card_amount(p: Payment) -> int:
+    if _model_has_field(Payment, "card_amount_som"):
+        return int(getattr(p, "card_amount_som", 0) or 0)
+    return int(getattr(p, "card_amount", 0) or 0)
 
-    if _model_has_field(Payment, "enrollment"):
-        kwargs["enrollment"] = enrollment
-    if _model_has_field(Payment, "student"):
-        kwargs["student"] = enrollment.student
-    if _model_has_field(Payment, "group"):
-        kwargs["group"] = enrollment.group
+
+def _set_payment_amounts(p: Payment, cash_amount: int, card_amount_som: int, total: int) -> None:
+    update_fields = []
 
     if _model_has_field(Payment, "cash_amount"):
-        kwargs["cash_amount"] = cash_amount
+        p.cash_amount = int(cash_amount or 0)
+        update_fields.append("cash_amount")
 
-    # card maydon nomlari turlicha bo‘lishi mumkin
     if _model_has_field(Payment, "card_amount_som"):
-        kwargs["card_amount_som"] = card_amount
+        p.card_amount_som = int(card_amount_som or 0)
+        update_fields.append("card_amount_som")
     elif _model_has_field(Payment, "card_amount"):
-        kwargs["card_amount"] = card_amount
+        p.card_amount = int(card_amount_som or 0)
+        update_fields.append("card_amount")
 
     if _model_has_field(Payment, "summa"):
-        kwargs["summa"] = total
+        p.summa = int(total or 0)
+        update_fields.append("summa")
 
-    # vaqt fieldlari
-    if _model_has_field(Payment, "paid_at"):
-        kwargs["paid_at"] = paid_at
-    else:
-        # eski loyihalarda sana/vaqt bo‘ladi
-        if _model_has_field(Payment, "sana"):
-            kwargs["sana"] = timezone.localdate()
-        if _model_has_field(Payment, "vaqt"):
-            kwargs["vaqt"] = timezone.localtime().time()
+    if update_fields:
+        p.save(update_fields=update_fields)
 
-    if created_by and _model_has_field(Payment, "created_by"):
-        kwargs["created_by"] = created_by
 
-    payment = Payment.objects.create(**kwargs)
+def _allocate_amount_forward(*, enrollment: Enrollment, payment: Payment, amount: int, start_month: date) -> None:
+    """
+    amount ni start_month dan boshlab fee to'lguncha oyma-oy taqsimlaydi.
+    """
+    amount = int(amount or 0)
+    if amount <= 0:
+        return
 
-    # -------------------------
-    # Allocation: start_month -> forward
-    # -------------------------
-    left = total
-    cur = start_month
-    fee_field = _tm_fee_field()
+    left = amount
+    cur = month_first_day(start_month)
+    fee_field = tuition_month_fee_field()
 
-    # 60 oy max (cheksiz loop bo‘lmasin)
-    for _ in range(60):
+    # xavfsizlik: 240 oy (20 yil) max loop
+    for _ in range(240):
         tm = ensure_tuition_month(enrollment, cur)
         fee = int(getattr(tm, fee_field, 0) or 0)
 
@@ -248,8 +254,7 @@ def create_payment_and_allocate(
 
         cur = add_month(cur, 1)
 
-    # Agar baribir left qolib ketsa (juda katta to‘lov), davom ettiramiz
-    # (realda kam bo‘ladi, lekin xavfsiz)
+    # agar hali ham qolsa (juda katta to'lov) — davom ettiramiz
     while left > 0:
         tm = ensure_tuition_month(enrollment, cur)
         fee = int(getattr(tm, fee_field, 0) or 0)
@@ -268,6 +273,76 @@ def create_payment_and_allocate(
         left -= take
         cur = add_month(cur, 1)
 
+
+# =========================
+#  CREATE PAYMENT + ALLOCATE
+# =========================
+
+@transaction.atomic
+def create_payment_and_allocate(
+    *,
+    enrollment: Enrollment,
+    created_by,
+    cash_amount: int,
+    card_amount_som: int,
+    start_month: Optional[date] = None,
+    paid_at=None
+) -> Payment:
+    """
+    Payment yaratadi va pullarni oylar bo‘yicha taqsimlaydi:
+    - start_month berilsa: o‘sha oydan boshlab ketma-ket taqsimlaydi
+    - start_month bo‘lmasa: joriy oy (oy boshidan) boshlab
+    """
+    cash_amount = int(cash_amount or 0)
+    card_amount_som = int(card_amount_som or 0)
+    total = cash_amount + card_amount_som
+    if total <= 0:
+        raise ValueError("To‘lov summasi 0 bo‘lishi mumkin emas")
+
+    if paid_at is None:
+        paid_at = timezone.now()
+
+    if start_month is None:
+        start_month = month_first_day(timezone.localdate())
+    else:
+        start_month = month_first_day(start_month)
+
+    # Payment CREATE (robust)
+    kwargs = {}
+
+    if _model_has_field(Payment, "enrollment"):
+        kwargs["enrollment"] = enrollment
+    if _model_has_field(Payment, "student"):
+        kwargs["student"] = enrollment.student
+    if _model_has_field(Payment, "group"):
+        kwargs["group"] = enrollment.group
+
+    if _model_has_field(Payment, "cash_amount"):
+        kwargs["cash_amount"] = cash_amount
+
+    if _model_has_field(Payment, "card_amount_som"):
+        kwargs["card_amount_som"] = card_amount_som
+    elif _model_has_field(Payment, "card_amount"):
+        kwargs["card_amount"] = card_amount_som
+
+    if _model_has_field(Payment, "summa"):
+        kwargs["summa"] = total
+
+    if _model_has_field(Payment, "paid_at"):
+        kwargs["paid_at"] = paid_at
+    else:
+        if _model_has_field(Payment, "sana"):
+            kwargs["sana"] = timezone.localdate()
+        if _model_has_field(Payment, "vaqt"):
+            kwargs["vaqt"] = timezone.localtime().time()
+
+    if created_by and _model_has_field(Payment, "created_by"):
+        kwargs["created_by"] = created_by
+
+    payment = Payment.objects.create(**kwargs)
+
+    _allocate_amount_forward(enrollment=enrollment, payment=payment, amount=total, start_month=start_month)
+
     # Enrollment.jami_tolangan update (agar field bo‘lsa)
     if _model_has_field(Enrollment, "jami_tolangan"):
         Enrollment.objects.filter(pk=enrollment.pk).update(
@@ -277,19 +352,82 @@ def create_payment_and_allocate(
     return payment
 
 
+# =========================
+#  UPDATE PAYMENT + REALLOCATE
+# =========================
+
 @transaction.atomic
-def reallocate_enrollment(enrollment: Enrollment):
+def update_payment_and_reallocate(
+    *,
+    payment: Payment,
+    cash_amount: int,
+    card_amount_som: int,
+    start_month: Optional[date] = None
+) -> Payment:
+    """
+    Payment summalarini yangilaydi va allocation'larini qayta taqsimlaydi.
+    start_month:
+      - berilsa: shu oydan boshlab forward allocate
+      - berilmasa: eng oldingi unpaid oydan boshlab
+    """
+    enrollment = getattr(payment, "enrollment", None)
+    if not enrollment:
+        raise ValueError("Payment.enrollment topilmadi (modelda enrollment FK bo‘lishi kerak).")
+
+    cash_amount = int(cash_amount or 0)
+    card_amount_som = int(card_amount_som or 0)
+    new_total = cash_amount + card_amount_som
+    if new_total <= 0:
+        raise ValueError("To‘lov summasi 0 bo‘lishi mumkin emas")
+
+    old_total = int(getattr(payment, "summa", 0) or (_get_payment_card_amount(payment) + int(getattr(payment, "cash_amount", 0) or 0)))
+
+    # 1) Paymentni update
+    _set_payment_amounts(payment, cash_amount, card_amount_som, new_total)
+
+    # 2) Shu payment allocationlarini o'chiramiz
+    PaymentAllocation.objects.filter(payment=payment).delete()
+
+    # 3) start_month tanlash
+    if start_month is not None:
+        start_month = month_first_day(start_month)
+    else:
+        # eng oldingi unpaid oydan boshlaymiz (yaxshiroq)
+        first_tm = TuitionMonth.objects.filter(enrollment=enrollment).order_by("month").first()
+        base = first_tm.month if first_tm else month_first_day(timezone.localdate())
+        start_month = find_earliest_unpaid_month(enrollment, start_month=base).month
+
+    # 4) allocate
+    _allocate_amount_forward(enrollment=enrollment, payment=payment, amount=new_total, start_month=start_month)
+
+    # 5) Enrollment jami_tolangan delta update
+    if _model_has_field(Enrollment, "jami_tolangan"):
+        delta = int(new_total - old_total)
+        if delta:
+            Enrollment.objects.filter(pk=enrollment.pk).update(
+                jami_tolangan=Coalesce(F("jami_tolangan"), 0) + delta
+            )
+
+    return payment
+
+
+# =========================
+#  FULL REALLOCATE (optional)
+# =========================
+
+@transaction.atomic
+def reallocate_enrollment(enrollment: Enrollment) -> None:
     """
     Enrollment bo‘yicha hamma PaymentAllocation’larni 0 dan qayta hisoblaydi.
     Paymentlar ketma-ket (eskidan yangiga) yurib chiqiladi va allocation qayta taqsimlanadi.
     """
+    # Payment modelida enrollment bo'lishi kutiladi. Bo'lmasa fallback qilish mumkin.
+    if not _model_has_field(Payment, "enrollment"):
+        raise ValueError("Payment modelida enrollment field yo'q, reallocate_enrollment ishlamaydi.")
 
-    # 1) hammasini tozalaymiz
     PaymentAllocation.objects.filter(payment__enrollment=enrollment).delete()
 
-    # 2) Paymentlarni tartib bilan olamiz
     payment_fields = {f.name for f in Payment._meta.get_fields()}
-
     order_by = ["id"]
     if "paid_at" in payment_fields:
         order_by = ["paid_at", "id"]
@@ -300,45 +438,16 @@ def reallocate_enrollment(enrollment: Enrollment):
 
     payments = Payment.objects.filter(enrollment=enrollment).order_by(*order_by)
 
-    # 3) Hech bo‘lmasa current oy mavjud bo‘lsin
+    # hech bo‘lmasa current oy mavjud bo‘lsin
     ensure_tuition_month(enrollment, timezone.localdate())
 
-    fee_field = _tm_fee_field()
-
-    def get_card_amount(p: Payment) -> int:
-        if _model_has_field(Payment, "card_amount_som"):
-            return int(getattr(p, "card_amount_som", 0) or 0)
-        return int(getattr(p, "card_amount", 0) or 0)
-
-    # 4) Har bir paymentni qayta allocate qilamiz
     for p in payments:
         cash = int(getattr(p, "cash_amount", 0) or 0)
-        card = get_card_amount(p)
+        card = _get_payment_card_amount(p)
         total = cash + card
         if total <= 0:
             continue
 
-        remaining = total
-
-        while remaining > 0:
-            tm = find_earliest_unpaid_month(enrollment)
-            fee = int(getattr(tm, fee_field, 0) or 0)
-            paid = get_month_paid(tm)
-
-            need = max(0, fee - paid)
-
-            # agar shu oy yopilgan bo‘lsa keyingi oyga o‘tamiz
-            if need == 0:
-                next_m = add_month(tm.month, 1)
-                tm = ensure_tuition_month(enrollment, next_m)
-                fee = int(getattr(tm, fee_field, 0) or 0)
-                paid = get_month_paid(tm)
-                need = max(0, fee - paid)
-
-            take = min(remaining, need)
-            if take > 0:
-                PaymentAllocation.objects.create(payment=p, tuition_month=tm, amount=take)
-                remaining -= take
-            else:
-                # xavfsizlik: cheksiz loop bo‘lmasin
-                break
+        # unpaid oylar bo'yicha taqsimlash
+        tm = find_earliest_unpaid_month(enrollment)
+        _allocate_amount_forward(enrollment=enrollment, payment=p, amount=total, start_month=tm.month)

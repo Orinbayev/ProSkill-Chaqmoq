@@ -2,183 +2,336 @@
 {% block content %}
 
 <style>
-/* === GLOBAL DARK BACKGROUND === */
-body {
-  background: radial-gradient(circle at top left, rgba(250,204,21,0.15), transparent),
-              radial-gradient(circle at bottom right, rgba(56,189,248,0.15), transparent),
-              #0f172a;
-  min-height: 100vh;
-  font-family: 'Poppins', sans-serif;
-  color: #e2e8f0;
-}
+  :root{
+    --bg1:#020617;
+    --bg2:#0b1226;
 
-/* === FORM WRAPPER === */
-.form-container {
-  max-width: 650px;
-  margin: 3rem auto;
-  padding: 2rem 2.5rem;
-  border-radius: 18px;
-  background: rgba(255,255,255,0.05);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 10px 35px rgba(0,0,0,0.5);
-  animation: fadeIn 0.4s ease-in-out;
-}
+    --panel: rgba(17,24,39,.62);
+    --panel2: rgba(2,6,23,.55);
+    --line: rgba(255,255,255,.09);
 
-/* === TITLE === */
-.form-container h3 {
-  text-align: center;
-  color: #facc15;
-  font-size: 1.8rem;
-  font-weight: 800;
-  margin-bottom: 1.5rem;
-  text-shadow: 0 2px 10px rgba(250,204,21,0.5);
-}
+    --text:#e5e7eb;
+    --muted:#94a3b8;
 
-/* === LABEL === */
-label {
-  font-weight: 600;
-  color: #cbd5e1;
-  margin-bottom: 6px;
-}
+    --purple:#a855f7;
+    --purple2:#7c3aed;
 
-/* === INPUTS === */
-input,
-textarea {
-  width: 100%;
-  padding: 12px 15px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.15);
-  background: rgba(255,255,255,0.06);
-  color: #e2e8f0;
-  font-size: 1rem;
-  transition: 0.25s;
-}
-input::placeholder,
-textarea::placeholder {
-  color: #94a3b8;
-}
-input:focus,
-textarea:focus {
-  border-color: #60a5fa;
-  background: rgba(255,255,255,0.12);
-  box-shadow: 0 0 12px rgba(96,165,250,0.4);
-  outline: none;
-}
+    --green:#22c55e;
+    --green2:#16a34a;
+  }
 
-/* === PREVIEW IMAGE === */
-.preview {
-  text-align: center;
-  margin-bottom: 10px;
-}
-.preview p {
-  color: #e2e8f0;
-  font-weight: 600;
-}
-.preview img {
-  max-width: 160px;
-  border-radius: 12px;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.4);
-}
+  body{
+    background:
+      radial-gradient(900px 600px at 10% 0%, rgba(168,85,247,.15), transparent 55%),
+      radial-gradient(900px 600px at 90% 10%, rgba(34,197,94,.12), transparent 55%),
+      linear-gradient(180deg, var(--bg1), var(--bg2));
+    color: var(--text);
+  }
 
-/* === SAVE BUTTON === */
-.btn-save {
-  width: 100%;
-  padding: 12px;
-  border-radius: 10px;
-  border: none;
-  font-weight: 700;
-  color: #fff;
-  background: linear-gradient(90deg, #22c55e, #16a34a);
-  box-shadow: 0 0 20px rgba(34,197,94,0.35);
-  transition: 0.3s;
-}
-.btn-save:hover {
-  transform: scale(1.04);
-  background: linear-gradient(90deg, #16a34a, #22c55e);
-}
+  .page-wrap{
+    max-width: 980px;
+    margin: 18px auto;
+    padding: 0 12px 26px;
+  }
 
-/* === BACK BUTTON === */
-.btn-back {
-  width: 100%;
-  margin-top: 0.8rem;
-  padding: 12px;
-  border-radius: 10px;
-  font-weight: 600;
-  background: rgba(255,255,255,0.1);
-  color: #cbd5e1;
-  border: 1px solid rgba(255,255,255,0.15);
-  transition: 0.3s;
-}
-.btn-back:hover {
-  background: rgba(255,255,255,0.2);
-  border-color: rgba(255,255,255,0.35);
-}
+  .glass-card{
+    max-width: 640px;
+    margin: 0 auto;
+    background: linear-gradient(180deg, var(--panel), var(--panel2));
+    border: 1px solid var(--line);
+    border-radius: 28px;
+    padding: 28px 28px 22px;
+    box-shadow: 0 20px 70px rgba(0,0,0,.45);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    position: relative;
+    overflow: hidden;
+  }
 
-/* === ANIMATION === */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(15px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+  .glass-card::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(650px 260px at 35% 0%, rgba(168,85,247,.18), transparent 65%),
+      radial-gradient(650px 260px at 75% 10%, rgba(34,197,94,.14), transparent 65%);
+    pointer-events:none;
+    filter: blur(18px);
+    opacity:.95;
+  }
+  .glass-card > *{ position: relative; z-index: 2; }
+
+  /* ===== Header ===== */
+  .head{
+    display:flex;
+    align-items:flex-start;
+    gap:16px;
+    margin-bottom: 16px;
+  }
+
+  .head-icon{
+    width:52px;
+    height:52px;
+    border-radius: 18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: rgba(168,85,247,.12);
+    border:1px solid rgba(168,85,247,.25);
+    box-shadow: 0 12px 30px rgba(168,85,247,.10);
+    flex: 0 0 auto;
+  }
+
+  .head-icon .pen{
+    width:34px; height:34px;
+    border-radius: 14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: rgba(2,6,23,.45);
+    border:1px solid rgba(255,255,255,.08);
+    color: #e9d5ff;
+    font-weight: 900;
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .title{
+    margin:0;
+    font-size: 30px;
+    font-weight: 900;
+    letter-spacing: .2px;
+    line-height: 1.05;
+  }
+  .title .accent{ color: #c084fc; }
+
+  .subtitle{
+    margin:10px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  /* ===== Labels ===== */
+  .label{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    color: rgba(229,231,235,.95);
+    font-weight: 800;
+    letter-spacing: .10em;
+    text-transform: uppercase;
+    font-size: 12px;
+    margin: 14px 2px 6px;
+  }
+  .label .mark{
+    width: 8px; height: 8px;
+    border-radius: 999px;
+    background: rgba(168,85,247,.85);
+    box-shadow: 0 0 0 4px rgba(168,85,247,.14);
+  }
+
+  /* ===== Inputs (NO WHITE EVER) ===== */
+  .glass-card input[type="text"],
+  .glass-card input[type="file"],
+  .glass-card textarea{
+    width:100%;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(2,6,23,.35) !important;
+    padding: 12px 13px;
+    color: #e5e7eb !important;
+    outline:none;
+    transition:.18s ease;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
+  }
+
+  .glass-card textarea{
+    min-height: 105px;
+    resize: vertical;
+  }
+
+  .glass-card input::placeholder,
+  .glass-card textarea::placeholder{
+    color: rgba(148,163,184,.85) !important;
+  }
+
+  .glass-card input[type="text"]:focus,
+  .glass-card textarea:focus{
+    border-color: rgba(168,85,247,.55) !important;
+    box-shadow:
+      0 0 0 4px rgba(168,85,247,.12),
+      inset 0 0 0 1px rgba(255,255,255,.03) !important;
+  }
+
+  /* ===== Chrome Autofill Fix ===== */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill{
+    -webkit-text-fill-color: #e5e7eb !important;
+    -webkit-box-shadow: 0 0 0 1000px rgba(2,6,23,.35) inset !important;
+    transition: background-color 9999s ease-in-out 0s !important;
+    caret-color: #c084fc !important;
+  }
+
+  /* ===== File input button ===== */
+  .glass-card input[type="file"]{
+    padding: 11px 12px;
+  }
+  .glass-card input[type="file"]::file-selector-button{
+    background: rgba(168,85,247,.18);
+    border: 1px solid rgba(168,85,247,.28);
+    color: #f5f3ff;
+    border-radius: 12px;
+    padding: 8px 12px;
+    margin-right: 12px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .glass-card input[type="file"]::file-selector-button:hover{
+    filter: brightness(1.08);
+  }
+
+  /* ===== Preview ===== */
+  .preview{
+    display:none;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(15,23,42,.28);
+    border-radius: 18px;
+    padding: 14px;
+    margin-top: 10px;
+  }
+  .preview.show{ display:block; }
+
+  .preview-title{
+    margin: 0 0 10px;
+    color: rgba(229,231,235,.95);
+    font-weight: 900;
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+  .preview-title .spark{ color:#c084fc; }
+
+  .preview img{
+    width:100%;
+    max-width: 260px;
+    border-radius: 14px;
+    border: 1px solid rgba(168,85,247,.25);
+    box-shadow: 0 16px 38px rgba(168,85,247,.10);
+    display:block;
+  }
+
+  /* ===== Buttons ===== */
+  .btns{
+    margin-top: 16px;
+    display:grid;
+    gap: 12px;
+  }
+
+  .btn-main{
+    width:100%;
+    border:none;
+    border-radius: 14px;
+    padding: 12px 14px;
+    font-weight: 900;
+    letter-spacing: .2px;
+    cursor:pointer;
+    transition:.18s ease;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    text-decoration:none;
+  }
+
+  .btn-save{
+    background: linear-gradient(90deg, var(--green), var(--green2));
+    color: #062314;
+    box-shadow: 0 18px 40px rgba(34,197,94,.18);
+  }
+  .btn-save:hover{ transform: translateY(-1px); filter: brightness(1.04); }
+
+  .btn-back{
+    background: rgba(148,163,184,.10);
+    color: rgba(229,231,235,.95);
+    border: 1px solid rgba(255,255,255,.10);
+  }
+  .btn-back:hover{ background: rgba(148,163,184,.16); transform: translateY(-1px); }
+
+  @media (max-width: 520px){
+    .glass-card{ padding: 22px 18px 18px; }
+    .title{ font-size: 26px; }
+  }
 </style>
 
+<div class="page-wrap">
+  <div class="glass-card">
 
-<div class="form-container">
-  <h3>✏️ Bo‘limni tahrirlash</h3>
-
-  <form method="POST" enctype="multipart/form-data">
-    {% csrf_token %}
-
-    <!-- NAME -->
-    <div class="mb-3">
-      <label for="id_name">Bo‘lim nomi</label>
-      <input type="text" name="name" id="id_name"
-             value="{{ cat.name }}" required>
+    <div class="head">
+      <div class="head-icon" aria-hidden="true">
+        <div class="pen">✎</div>
+      </div>
+      <div>
+        <h1 class="title"><span class="accent">Bo‘limni</span> tahrirlash</h1>
+        <p class="subtitle">Bo‘lim ma’lumotlarini yangilang (nom, tavsif va rasm)</p>
+      </div>
     </div>
 
-    <!-- DESCRIPTION -->
-    <div class="mb-3">
-      <label for="id_description">Tavsif</label>
-      <textarea name="description" id="id_description" rows="3">{{ cat.description }}</textarea>
-    </div>
+    <form method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
 
-    <!-- IMAGE -->
-    <div class="mb-3">
-      <label for="id_image">Bo‘lim rasmi (ixtiyoriy)</label><br>
+      <!-- NAME -->
+      <div class="label"><span class="mark"></span> Bo‘lim nomi</div>
+      <input type="text" name="name" id="id_name" value="{{ cat.name }}" required autocomplete="off">
 
-      {% if cat.image %}
-      <div class="preview mb-2">
-        <p>🖼️ Joriy rasm:</p>
-        <img id="previewImg" src="{{ cat.image.url }}" alt="{{ cat.name }}">
-      </div>
-      {% else %}
-      <div class="preview mb-2" style="display:none;">
-        <img id="previewImg" src="#" alt="Preview">
-      </div>
-      {% endif %}
-
+      <!-- IMAGE -->
+      <div class="label"><span class="mark"></span> Bo‘lim rasmi (ixtiyoriy)</div>
       <input type="file" name="image" id="id_image" accept="image/*">
-    </div>
 
-    <!-- BUTTONS -->
-    <button type="submit" class="btn btn-save">💾 Saqlash</button>
-    <a href="{% url 'education:groups_home' %}" class="btn btn-back">⬅️ Orqaga</a>
-  </form>
+      <div class="preview {% if cat.image %}show{% endif %}" id="imagePreview">
+        <p class="preview-title"><span class="spark">✦</span> Joriy / Tanlangan rasm</p>
+        {% if cat.image %}
+          <img id="previewImg" src="{{ cat.image.url }}" alt="{{ cat.name }}">
+        {% else %}
+          <img id="previewImg" src="#" alt="Preview">
+        {% endif %}
+      </div>
+
+      <!-- DESCRIPTION -->
+      <div class="label"><span class="mark"></span> Tavsif</div>
+      <textarea name="description" id="id_description" rows="3" autocomplete="off">{{ cat.description }}</textarea>
+
+      <!-- BUTTONS -->
+      <div class="btns">
+        <button type="submit" class="btn-main btn-save">
+          💾 Saqlash
+        </button>
+
+        <a href="{% url 'education:groups_home' %}" class="btn-main btn-back">
+          ← Orqaga
+        </a>
+      </div>
+    </form>
+
+  </div>
 </div>
 
-
-<!-- IMAGE PREVIEW SCRIPT -->
 <script>
-document.getElementById("id_image").addEventListener("change", function(event) {
-  const file = event.target.files[0];
-  const previewImg = document.getElementById("previewImg");
-  const previewBox = previewImg.parentElement;
+  const input = document.getElementById("id_image");
+  const box = document.getElementById("imagePreview");
+  const img = document.getElementById("previewImg");
 
-  if (file) {
-    previewBox.style.display = "block";
-    previewImg.src = URL.createObjectURL(file);
+  if (input) {
+    input.addEventListener("change", function (event) {
+      const file = event.target.files[0];
+      if (file) {
+        box.classList.add("show");
+        img.src = URL.createObjectURL(file);
+      }
+    });
   }
-});
 </script>
 
 {% endblock %}

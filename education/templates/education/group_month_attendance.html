@@ -3,353 +3,515 @@
 {% block content %}
 
 <style>
-:root{
-  /* Chaqmoq dark */
-  --bg1:#0b1220;
-  --bg2:#0f172a;
+  :root{
+  --bg1:#020617;
+  --bg2:#0b1226;
 
-  /* Card/table */
-  --card: rgba(15, 23, 42, 0.75);
-  --card2: rgba(2, 6, 23, 0.35);
-  --grid: rgba(148, 163, 184, 0.18);
+  --panel: rgba(17,24,39,.62);
+  --panel2: rgba(2,6,23,.55);
+  --line: rgba(255,255,255,.09);
 
   --text:#e5e7eb;
   --muted:#94a3b8;
 
-  /* header gradient */
-  --head1:#2563eb;
-  --head2:#3b82f6;
+  --blue1:#2563eb;
+  --blue2:#60a5fa;
 
-  /* statuses */
-  --present:#22c55e; /* yashil */
-  --absent:#ef4444;  /* qizil */
-  --forced:#f59e0b;  /* sariq */
+  --present:#22c55e;
+  --absent:#fb7185;
+  --forced:#fbbf24;
 
-  --shadow: 0 18px 45px rgba(0,0,0,.45);
+  --shadow: 0 22px 70px rgba(0,0,0,.45);
 }
 
-/* ===== Header card (top) ===== */
-.att-head{
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 18px;
-  padding: 14px 16px;
+body{
+  background:
+    radial-gradient(900px 520px at 15% 0%, rgba(59,130,246,.18), transparent 55%),
+    radial-gradient(900px 520px at 85% 10%, rgba(34,197,94,.12), transparent 55%),
+    linear-gradient(180deg, var(--bg1), var(--bg2));
   color: var(--text);
-  backdrop-filter: blur(10px);
-  box-shadow: var(--shadow);
-}
-.att-head h4{
-  color:#fff;
-  margin:0;
+  min-height: 100vh;
 }
 
-/* year/month/select */
-.att-form{
+/* page width */
+.att-page{
+  max-width: 1180px;
+  margin: 18px auto;
+  padding: 0 14px 26px;
+}
+
+/* ===== Top bar ===== */
+.topbar{
   display:flex;
-  gap:10px;
-  align-items:center;
-  flex-wrap: wrap;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, var(--panel), var(--panel2));
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
 }
-.att-form select{
-  width:auto;
-  min-width: 130px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(15,23,42,0.55);
-  color: var(--text);
+
+.tb-left{
+  display:flex;
+  align-items:flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.backbtn{
+  width:40px; height:40px;
+  border-radius: 14px;
+  display:grid; place-items:center;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  color: rgba(229,231,235,.95);
+  text-decoration:none;
+  transition:.18s ease;
+  flex: 0 0 auto;
+}
+.backbtn:hover{
+  transform: translateY(-1px);
+  background: rgba(255,255,255,.09);
+}
+
+.tb-title{
+  margin: 0;
+  font-weight: 900;
+  font-size: 22px;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tb-sub{
+  margin-top: 6px;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Right controls */
+.tb-right{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content:flex-end;
+}
+
+.ctrl{
+  display:flex;
+  align-items:center;
+  gap: 10px;
   padding: 9px 10px;
-  outline:none;
+  border-radius: 14px;
+  background: rgba(2,6,23,.30);
+  border: 1px solid rgba(255,255,255,.10);
+}
+
+.ctrl select{
+  border:none !important;
+  outline:none !important;
+  background: transparent !important;
+  color: var(--text) !important;
+  font-weight: 900;
+  padding: 0 2px;
   color-scheme: dark;
 }
-.att-form select:focus{
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.25);
-  border-color: rgba(59,130,246,0.55);
-}
-.att-form option{
-  background: rgba(15,23,42,0.98);
+
+.ctrl option{
+  background: rgba(2,6,23,.98);
   color: var(--text);
 }
 
-.att-btn{
+.btn-view{
   border:none;
-  border-radius: 12px;
-  padding: 9px 14px;
+  border-radius: 14px;
+  padding: 10px 14px;
   font-weight: 900;
   color:#fff;
-  background: linear-gradient(90deg, var(--head1), var(--head2));
-  box-shadow: 0 12px 26px rgba(37,99,235,.25);
-  transition:.2s ease;
+  background: linear-gradient(90deg, var(--blue1), #3b82f6);
+  box-shadow: 0 14px 28px rgba(37,99,235,.22);
+  transition:.18s ease;
 }
-.att-btn:hover{ transform: translateY(-1px); }
+.btn-view:hover{ transform: translateY(-1px); filter:brightness(1.05); }
+
+.btn-dl{
+  width:42px; height:42px;
+  border-radius: 14px;
+  display:grid; place-items:center;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+  color: rgba(229,231,235,.95);
+  text-decoration:none;
+  transition:.18s ease;
+}
+.btn-dl:hover{
+  transform: translateY(-1px);
+  background: rgba(255,255,255,.10);
+}
 
 /* ===== Legend ===== */
-.att-legend{
+.legend{
   display:flex;
-  gap:10px;
+  gap: 10px;
   flex-wrap: wrap;
-  margin: 10px 2px 12px;
-  color: var(--muted);
-  font-size: .92rem;
+  margin: 12px 2px 12px;
 }
+
 .leg{
   display:inline-flex;
   align-items:center;
-  gap:8px;
-  padding: 7px 10px;
+  gap: 10px;
+  padding: 9px 12px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.10);
+  font-weight: 900;
+  font-size: 12px;
+  color: rgba(229,231,235,.95);
 }
-.dot{ width:10px; height:10px; border-radius:99px; display:inline-block; }
-.dot.g{ background: var(--present); box-shadow: 0 0 10px rgba(34,197,94,.35); }
-.dot.r{ background: var(--absent); box-shadow: 0 0 10px rgba(239,68,68,.35); }
-.dot.y{ background: var(--forced); box-shadow: 0 0 10px rgba(245,158,11,.35); }
 
-/* ===== Table wrapper ===== */
-.att-wrap{
-  border-radius: 16px;
-  overflow: hidden;
-  background: var(--card);
-  border: 1px solid rgba(255,255,255,0.10);
-  box-shadow: var(--shadow);
+.dot{
+  width:10px; height:10px;
+  border-radius: 999px;
 }
-.att-table-wrapper{
+.dot.p{ background: var(--present); box-shadow: 0 0 10px rgba(34,197,94,.35); }
+.dot.a{ background: var(--absent);  box-shadow: 0 0 10px rgba(251,113,133,.35); }
+.dot.f{ background: var(--forced);  box-shadow: 0 0 10px rgba(251,191,36,.35); }
+
+/* ===== Table card ===== */
+.table-card{
+  border-radius: 20px;
+  background: linear-gradient(180deg, var(--panel), var(--panel2));
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/* scroller */
+.table-scroll{
   overflow-x:auto;
-  background: var(--card2);
+  background: rgba(2,6,23,.25);
+  padding-bottom: 10px; /* scrollbar joyi */
 }
 
 /* nice scrollbar */
-.att-table-wrapper::-webkit-scrollbar{ height: 10px; }
-.att-table-wrapper::-webkit-scrollbar-track{ background: rgba(255,255,255,0.06); }
-.att-table-wrapper::-webkit-scrollbar-thumb{
-  background: linear-gradient(90deg, rgba(37,99,235,.7), rgba(96,165,250,.7));
+.table-scroll::-webkit-scrollbar{ height: 8px; }
+.table-scroll::-webkit-scrollbar-track{
+  background: rgba(255,255,255,.05);
+  border-radius: 999px;
+  margin: 0 14px;
+}
+.table-scroll::-webkit-scrollbar-thumb{
+  background: linear-gradient(90deg, rgba(37,99,235,.80), rgba(96,165,250,.75));
   border-radius: 999px;
 }
 
-/* ===== Table ===== */
+/* table */
 .att-table{
   width: 100%;
-  min-width: 980px;
+  min-width: 1050px;
   border-collapse: separate;
   border-spacing: 0;
-  font-size: .92rem;
-  color: var(--text);
-}
-
-/* Header cells */
-.att-table thead th{
-  background: linear-gradient(90deg, rgba(37,99,235,0.95), rgba(59,130,246,0.95));
-  color: #fff;
-  font-weight: 900;
-  text-align: center;
-  padding: 10px 10px;
-  border-right: 1px solid rgba(255,255,255,0.12);
-  border-bottom: 1px solid rgba(255,255,255,0.12);
-  white-space: nowrap;
-}
-
-/* Body cells */
-.att-table tbody td{
-  background: rgba(2,6,23,0.18);
-  color: var(--text);
-  padding: 10px 10px;
-  text-align: center;
-  border-right: 1px solid var(--grid);
-  border-bottom: 1px solid var(--grid);
-}
-
-/* first columns */
-.att-table thead th:first-child,
-.att-table tbody td:first-child{ width: 46px; }
-
-.att-table thead th:nth-child(2),
-.att-table tbody td:nth-child(2){
-  min-width: 260px;
-  text-align: left;
-  padding-left: 12px;
-}
-
-/* hover row */
-.att-table tbody tr:hover td{
-  background: rgba(59,130,246,0.08);
-}
-
-/* ===== Attendance markers ===== */
-.att-cell-present::before{
-  content:"●";
-  color: var(--present);
-  font-size: 18px;
-  line-height: 1;
-}
-.att-cell-absent::before{
-  content:"✕";
-  color: var(--absent);
-  font-size: 18px;
-  font-weight: 900;
-  line-height: 1;
-}
-.att-cell-forced::before{
-  content:"!";
-  color: var(--forced);
-  font-size: 18px;
-  font-weight: 900;
-  line-height: 1;
-}
-
-/* clickable */
-.att-cell-btn{
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  width: 30px;
-  height: 30px;
-  border-radius: 10px;
-  display: inline-grid;
-  place-items: center;
-  transition: .15s ease;
-}
-.att-cell-btn:hover{
-  background: rgba(255,255,255,0.06);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
-}
-.att-cell-btn:focus{ outline: none; }
-
-.att-cell-empty{
-  width: 18px;
-  height: 18px;
-  display: inline-block;
-  opacity: .20;
-}
-.day-head{ padding: 8px 6px !important; }
-.day-head .dnum{
-  font-weight: 900;
-  line-height: 1.05;
-}
-.day-head .dweek{
-  margin-top: 2px;
-  font-size: 11px;
-  opacity: .85;
-  line-height: 1;
-}
-.att-dayhead{
-  padding: 8px 8px !important;
-}
-.att-daynum{
-  font-weight: 900;
   font-size: 13px;
-  line-height: 1;
+  color: var(--text);
 }
-.att-daydow{
-  margin-top: 3px;
-  font-size: 10px;
-  opacity: .85;
-  font-weight: 800;
+
+/* header */
+.att-table thead th{
+  background: linear-gradient(90deg, rgba(37,99,235,.95), rgba(59,130,246,.95));
+  color:#fff;
+  font-weight: 900;
+  padding: 11px 10px;
+  border-right: 1px solid rgba(255,255,255,.12);
+  border-bottom: 1px solid rgba(255,255,255,.12);
+  white-space: nowrap;
+  text-align:center;
+}
+
+/* body */
+.att-table tbody td{
+  background: rgba(2,6,23,.22);
+  padding: 11px 10px;
+  text-align:center;
+  border-right: 1px solid rgba(148,163,184,.18);
+  border-bottom: 1px solid rgba(148,163,184,.18);
+}
+
+/* ✅ col widths */
+.col-no{ width:56px; }
+.col-name{ min-width: 300px; text-align:left !important; padding-left: 14px !important; }
+
+/* ✅ STICKY FIRST COLUMNS (NO overlap!) */
+.att-table thead th.sticky,
+.att-table tbody td.sticky{
+  position: sticky;
+  left: 0;
+  z-index: 20;
+}
+
+.att-table thead th.sticky2,
+.att-table tbody td.sticky2{
+  position: sticky;
+  left: 56px; /* № width = 56px */
+  z-index: 20;
+}
+
+/* sticky background must be solid */
+.att-table tbody td.sticky,
+.att-table tbody td.sticky2{
+  background: rgba(2,6,23,.45);
+  backdrop-filter: blur(8px);
+}
+
+/* ✅ STICKY "DEVOR" (separator) */
+.att-table thead th.sticky,
+.att-table tbody td.sticky{
+  border-right: 1px solid rgba(255,255,255,.10);
+}
+
+.att-table thead th.sticky2,
+.att-table tbody td.sticky2{
+  border-right: 1px solid rgba(255,255,255,.10);
+}
+
+/* ✅ stronger separator with pseudo-element (never disappears) */
+.att-table thead th.sticky2::after,
+.att-table tbody td.sticky2::after{
+  content:"";
+  position:absolute;
+  top:0;
+  right:-1px;
+  width:14px;
+  height:100%;
+  pointer-events:none;
+  background: linear-gradient(90deg, rgba(0,0,0,.35), rgba(0,0,0,0));
+}
+
+/* row hover */
+.att-table tbody tr:hover td{
+  background: rgba(59,130,246,.08);
+}
+.att-table tbody tr:hover td.sticky,
+.att-table tbody tr:hover td.sticky2{
+  background: rgba(2,6,23,.55);
+}
+
+/* day head */
+.dayhead{ padding: 10px 8px !important; }
+.daynum{ font-weight: 900; font-size: 13px; line-height: 1; }
+.daydow{ margin-top: 4px; font-size: 10px; opacity:.88; font-weight: 900; }
+
+/* markers */
+.mark{
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display:inline-block;
+  opacity: .25;
+}
+.mark.p{ background: var(--present); opacity:1; box-shadow: 0 0 12px rgba(34,197,94,.30); }
+.mark.a{ background: var(--absent); opacity:1; box-shadow: 0 0 12px rgba(251,113,133,.30); }
+.mark.f{ background: var(--forced); opacity:1; box-shadow: 0 0 12px rgba(251,191,36,.30); }
+
+/* clickable cell */
+.cellbtn{
+  border:0;
+  background: transparent;
+  cursor:pointer;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display:inline-grid;
+  place-items:center;
+  transition:.14s ease;
+}
+.cellbtn:hover{
+  background: rgba(255,255,255,.06);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
+}
+.cellbtn:focus{ outline:none; }
+
+/* empty */
+.empty{
+  text-align:center;
+  color: var(--muted);
+  padding: 18px;
+  font-weight: 900;
+}
+
+/* mobile */
+@media (max-width: 720px){
+  .tb-right{ width:100%; justify-content:flex-start; }
+  .ctrl{ width:100%; justify-content:space-between; }
+  .btn-view{ width:100%; }
+}
+
+/* ✅ hamma th/td width hisobida padding ham kirsin */
+.att-table th,
+.att-table td{ box-sizing: border-box; }
+
+/* ✅ № ustunini real width bo‘yicha qotirish (padding bilan ham 56pxdan oshmaydi) */
+.att-table thead th.sticky,
+.att-table tbody td.sticky{
+  width: 56px;
+  min-width: 56px;
+  max-width: 56px;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* ✅ sticky2 left endi 56px aniq bo‘ladi */
+.att-table thead th.sticky2,
+.att-table tbody td.sticky2{
+  left: 56px;
+}
+
+/* ✅ “devor”ni gap emas, ingichka separator qilish */
+.att-table thead th.sticky2::after,
+.att-table tbody td.sticky2::after{
+  content:"";
+  position:absolute;
+  top:0;
+  right:-1px;
+  width: 6px; /* oldin 14px edi — gap bo‘lib ko‘rinardi */
+  height:100%;
+  pointer-events:none;
+  background: linear-gradient(90deg,
+    rgba(0,0,0,.35),
+    rgba(0,0,0,0)
+  );
+}
+
+/* ✅ separator yanada tiniq bo‘lsin */
+.att-table thead th.sticky2,
+.att-table tbody td.sticky2{
+  border-right: 1px solid rgba(255,255,255,.12);
 }
 
 </style>
 
-<div class="container py-4">
+<div class="att-page">
 
-  <!-- HEADER -->
-  <div class="att-head mb-3">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-      <div>
-        <h4 class="fw-bold">{{ group.nom }}</h4>
-        <div class="small" style="color: var(--muted);">
+  <!-- TOPBAR -->
+  <div class="topbar">
+
+    <div class="tb-left">
+      <a class="backbtn" href="{% url 'education:attendance_groups' %}" title="Ortga">←</a>
+      <div style="min-width:0;">
+        <h4 class="tb-title">{{ group.nom }}</h4>
+        <div class="tb-sub">
           {{ group.center }}{% if group.oqituvchi %} · O‘qituvchi: {{ group.oqituvchi.get_full_name }}{% endif %}
         </div>
       </div>
+    </div>
 
-      <form method="get" class="att-form">
-<select name="year">
-  {% for y in years %}
-    <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
-  {% endfor %}
-</select>
+    <div class="tb-right">
+      <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
 
+        <div class="ctrl" title="Yil / Oy tanlang">
+          <select name="year">
+            {% for y in years %}
+              <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+          </select>
+          <select name="month">
+            {% for m, name in months %}
+              <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ name }}</option>
+            {% endfor %}
+          </select>
+        </div>
 
-        <select name="month">
-          {% for m, name in months %}
-            <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ name }}</option>
-          {% endfor %}
-        </select>
+        <button type="submit" class="btn-view">Ko‘rish</button>
 
-        <button type="submit" class="att-btn">Ko‘rish</button>
+        <!-- ✅ Download (CSV) -->
+        <a class="btn-dl"
+           title="Saqlab olish (CSV)"
+           href="{% url 'education:group_month_attendance_export' group.id %}?year={{ year }}&month={{ month }}">
+          ⬇
+        </a>
       </form>
     </div>
+
   </div>
 
   <!-- LEGEND -->
-  <div class="att-legend">
-    <span class="leg"><span class="dot g"></span> Kelgan</span>
-    <span class="leg"><span class="dot r"></span> Kelmadi</span>
-    <span class="leg"><span class="dot y"></span> Kelmadi, lekin pul yozilgan</span>
+  <div class="legend">
+    <span class="leg"><span class="dot p"></span> KELGAN</span>
+    <span class="leg"><span class="dot a"></span> KELMADI</span>
+    <span class="leg"><span class="dot f"></span> KELMADI, LEKIN PUL YOZILGAN</span>
   </div>
 
   <!-- TABLE -->
-  <div class="att-wrap">
-    <div class="att-table-wrapper">
+  <div class="table-card">
+    <div class="table-scroll">
       <table class="att-table">
         <thead>
           <tr>
-            <th>№</th>
-            <th>O‘quvchi ismi</th>
-{% for d in days %}
-  <th class="att-dayhead">
-    <div class="att-daynum">{{ d|date:"d" }}</div>
-    <div class="att-daydow">
-      {% with d|date:"w" as w %}
-        {% if w == "0" %}Yak
-        {% elif w == "1" %}Dush
-        {% elif w == "2" %}Sesh
-        {% elif w == "3" %}Chor
-        {% elif w == "4" %}Pay
-        {% elif w == "5" %}Jum
-        {% else %}Shan
-        {% endif %}
-      {% endwith %}
-    </div>
-  </th>
-{% endfor %}
+            <th class="col-no sticky">№</th>
+            <th class="col-name sticky2">O‘quvchi ismi</th>
 
-
+            {% for d in days %}
+              <th class="dayhead">
+                <div class="daynum">{{ d|date:"d" }}</div>
+                <div class="daydow">
+                  {% with d|date:"w" as w %}
+                    {% if w == "0" %}YAK
+                    {% elif w == "1" %}DUSH
+                    {% elif w == "2" %}SESH
+                    {% elif w == "3" %}CHOR
+                    {% elif w == "4" %}PAY
+                    {% elif w == "5" %}JUM
+                    {% else %}SHAN
+                    {% endif %}
+                  {% endwith %}
+                </div>
+              </th>
+            {% endfor %}
           </tr>
         </thead>
 
         <tbody>
           {% for row in rows %}
-          <tr>
-            <td>{{ forloop.counter }}</td>
-            <td>{{ row.student.get_full_name }}</td>
+            <tr>
+              <td class="sticky">{{ forloop.counter }}</td>
+              <td class="sticky2 col-name">{{ row.student.get_full_name }}</td>
 
-            {% for cell in row.cells %}
-              <td>
-                {% if cell.status == 'forced' %}
-                  <span class="att-cell-forced" title="Kelmadi, lekin pul yozilgan"></span>
-                {% else %}
-                  <button type="button"
-                          class="att-cell-btn att-cell-toggle"
-                          data-student="{{ row.student.id }}"
-                          data-date="{{ cell.date|date:'Y-m-d' }}"
-                          data-status="{{ cell.status }}">
-                    {% if cell.status == 'present' %}
-                      <span class="att-cell-present" title="Kelgan"></span>
-                    {% elif cell.status == 'absent' %}
-                      <span class="att-cell-absent" title="Kelmadi"></span>
-                    {% else %}
-                      <span class="att-cell-empty" title="Belgilanmagan"></span>
-                    {% endif %}
-                  </button>
-                {% endif %}
-              </td>
-            {% endfor %}
-          </tr>
+              {% for cell in row.cells %}
+                <td>
+                  {% if cell.status == 'forced' %}
+                    <span class="mark f" title="Kelmadi, lekin pul yozilgan"></span>
+                  {% else %}
+                    <button type="button"
+                            class="cellbtn att-cell-toggle"
+                            data-student="{{ row.student.id }}"
+                            data-date="{{ cell.date|date:'Y-m-d' }}"
+                            data-status="{{ cell.status }}">
+                      {% if cell.status == 'present' %}
+                        <span class="mark p" title="Kelgan"></span>
+                      {% elif cell.status == 'absent' %}
+                        <span class="mark a" title="Kelmadi"></span>
+                      {% else %}
+                        <span class="mark" title="Belgilanmagan"></span>
+                      {% endif %}
+                    </button>
+                  {% endif %}
+                </td>
+              {% endfor %}
+            </tr>
           {% empty %}
-          <tr>
-            <td colspan="{{ 2|add:days|length }}" style="text-align:center; color: var(--muted); padding:18px;">
-              Bu guruhda o‘quvchilar yo‘q.
-            </td>
-          </tr>
+            <tr>
+              <td colspan="{{ 2|add:days|length }}" class="empty">
+                Bu guruhda o‘quvchilar yo‘q.
+              </td>
+            </tr>
           {% endfor %}
         </tbody>
 
@@ -406,13 +568,14 @@ document.addEventListener("DOMContentLoaded", function () {
         const newStatus = data.status;
         this.dataset.status = newStatus;
 
+        // update marker
         this.innerHTML = "";
         if (newStatus === "present") {
-          this.innerHTML = '<span class="att-cell-present" title="Kelgan"></span>';
+          this.innerHTML = '<span class="mark p" title="Kelgan"></span>';
         } else if (newStatus === "absent") {
-          this.innerHTML = '<span class="att-cell-absent" title="Kelmadi"></span>';
+          this.innerHTML = '<span class="mark a" title="Kelmadi"></span>';
         } else {
-          this.innerHTML = '<span class="att-cell-empty" title="Belgilanmagan"></span>';
+          this.innerHTML = '<span class="mark" title="Belgilanmagan"></span>';
         }
       })
       .catch(err => console.error(err));

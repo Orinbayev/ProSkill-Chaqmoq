@@ -3,151 +3,262 @@
 
 <style>
   :root {
-    --bg:#0f172a;
-    --panel:#111827;
+    --bg:#0b1220;
+    --panel: rgba(17,24,39,.66);
+    --panel2: rgba(2,6,23,.45);
     --muted:#9ca3af;
     --text:#e5e7eb;
-    --line:#1f2937;
+    --line: rgba(255,255,255,.09);
+
     --chip-warn:#facc15;
     --chip-ok:#22c55e;
     --chip-bad:#ef4444;
     --chip-alt:#6b7280;
+
     --btn:#10b981;
+    --blue:#1d4ed8;
+    --shadow: 0 18px 55px rgba(0,0,0,.45);
   }
 
-  .lead-wrap { color: var(--text); }
+  /* ✅ Bootstrap container cheklovini “buzamiz” (100% zoomda ham keng ko‘rinsin) */
+  .lead-page{
+    width: 100%;
+    max-width: 1400px;
+    margin: 16px auto 28px;
+    padding: 0 16px;
+    color: var(--text);
+  }
 
-  /* ===== TOP TOOLBAR ===== */
-.lead-toolbar{
-  display:flex;
-  gap:12px;
-  align-items:center;
-  justify-content:space-between;
-  margin:12px 0 18px;
-  flex-wrap:wrap;
-}
-.lead-toolbar-right{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  margin-left:auto;   /* o‘ng tomonga yopishtiradi */
-}
+  /* ===== TOP TOOLBAR (rasmdagidek) ===== */
+  .lead-toolbar{
+    display:flex;
+    gap:14px;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
 
-.lead-filter-form{ margin:0; }  /* form default margin bo‘lmasin */
+    padding: 16px 18px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--panel), var(--panel2));
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(10px);
+  }
 
-  .lead-toolbar h3 { margin:0; }
+  .lead-toolbar-left{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    min-width: 260px;
+  }
 
-  .filter {
-    background: var(--panel);
-    border:1px solid var(--line);
+  .lead-icon{
+    width:38px;height:38px;
+    border-radius: 14px;
+    display:grid;place-items:center;
+    background: rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.10);
+  }
+
+  .lead-title{
+    margin:0;
+    font-weight: 900;
+    font-size: 24px;
+    line-height: 1.15;
+  }
+  .lead-sub{
+    margin-top:4px;
+    color: var(--muted);
+    font-weight: 700;
+    font-size: 12px;
+    opacity: .95;
+  }
+
+  .lead-toolbar-right{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-left:auto;
+  }
+
+  .lead-filter-form{ margin:0; }
+
+  .filter{
+    background: rgba(2,6,23,.32);
+    border:1px solid rgba(255,255,255,.12);
     color: var(--text);
     padding:10px 12px;
-    border-radius:10px;
-    min-width:220px;
+    border-radius: 14px;
+    min-width: 230px;
+    font-weight: 900;
+    outline:none;
+    color-scheme: dark;
   }
 
-  .btn-add {
-    background: var(--btn);
-    color:#07110b;
+  .btn-add{
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+    color:#05210f;
     border:0;
     padding:10px 14px;
-    border-radius:10px;
-    font-weight:700;
+    border-radius:14px;
+    font-weight: 900;
     text-decoration:none;
     white-space:nowrap;
+    box-shadow: 0 14px 26px rgba(34,197,94,.18);
   }
-  .btn-add:hover { filter:brightness(.95); }
+  .btn-add:hover{ filter:brightness(.97); transform: translateY(-1px); }
 
-  /* ===== RESPONSIVE TABLE HANDLING ===== */
-  .table-responsive-box {
+  /* ===== SEARCH BAR (rasmdagidek) ===== */
+  .lead-search{
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(2,6,23,.18));
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+  }
+
+  .search-input{
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text);
+    font-weight: 800;
+    padding: 10px 10px;
+  }
+  .search-input::placeholder{ color: rgba(148,163,184,.85); font-weight: 800; }
+
+  /* ===== TABLE CARD ===== */
+  .table-card{
+    margin-top: 14px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--panel), var(--panel2));
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  /* table scroll faqat kichik ekranda kerak bo‘ladi */
+  .table-responsive-box{
     width:100%;
     overflow-x:auto;
-    padding-bottom:10px;
+    background: rgba(2,6,23,.18);
   }
 
-  .tbl {
+  .table-responsive-box::-webkit-scrollbar{ height: 9px; }
+  .table-responsive-box::-webkit-scrollbar-track{ background: rgba(255,255,255,.05); }
+  .table-responsive-box::-webkit-scrollbar-thumb{
+    background: rgba(59,130,246,.65);
+    border-radius: 999px;
+  }
+
+  .tbl{
     width:100%;
-    border-collapse:separate;
-    border-spacing:0;
-    overflow:hidden;
-    border-radius:12px;
-    min-width:850px;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed; /* ✅ 100% zoomda sig‘ishi uchun */
   }
 
-  .tbl thead th {
-    background:var(--panel);
-    color:var(--muted);
-    font-weight:700;
-    padding:12px 14px;
-    text-transform:uppercase;
-    font-size:.82rem;
-    border-bottom:1px solid var(--line);
-    white-space:nowrap;
+  .tbl thead th{
+    background: rgba(2,6,23,.35);
+    color: rgba(148,163,184,.95);
+    font-weight: 900;
+    padding: 12px 12px;
+    text-transform: uppercase;
+    font-size: 12px;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+    letter-spacing: .05em;
   }
 
-  .tbl td { padding:12px 14px; }
+  .tbl tbody td{
+    padding: 12px 12px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    color: var(--text);
+    font-weight: 800;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap; /* default */
+  }
 
-  .main-row {
-    background:rgba(255,255,255,0.02);
+  .main-row{
+    background: rgba(255,255,255,.02);
     transition: .12s ease;
     cursor:pointer;
   }
-  .main-row:hover { background:rgba(255,255,255,0.04); }
+  .main-row:hover{ background: rgba(255,255,255,.04); }
 
-  .tbl tbody tr + tr.main-row { border-top:1px solid var(--line); }
-  .col-actions { text-align:center; white-space:nowrap; }
+  /* ✅ Ustun ENLARI: 100% zoomda ham rasm kabi joylashadi */
+  .col-idx{ width: 54px; }
+  .col-ism{ width: 240px; }
+  .col-fam{ width: 190px; }
+  .col-tel{ width: 150px; }
+  .col-yosh{ width: 90px; }
+  .col-status{ width: 150px; }
+  .col-sana{ width: 160px; }
+  .col-actions{ width: 150px; text-align:right; }
+
+  /* Telefon + Sana ikki qator bo‘lib chiroyli ko‘rinsin */
+  .phone-cell, .date-cell{
+    white-space: normal;
+    line-height: 1.2;
+  }
+  .phone-cell .ico{ margin-right: 6px; opacity: .9; }
+  .date-cell .ico{ margin-right: 6px; opacity: .9; }
 
   /* ===== BADGES ===== */
-  .badge {
+  .badge{
     display:inline-flex;
     align-items:center;
     gap:6px;
-    padding:4px 10px;
-    border-radius:999px;
-    font-weight:800;
-    font-size:.78rem;
-    line-height:1;
-    white-space:nowrap;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-weight: 900;
+    font-size: 12px;
+    line-height: 1;
+    white-space: nowrap;
   }
-  .badge.warn { background:var(--chip-warn); color:#111827; }
-  .badge.ok { background:var(--chip-ok); color:#062312; }
-  .badge.bad { background:var(--chip-bad); color:white; }
-  .badge.alt { background:var(--chip-alt); color:white; }
+  .badge.warn { background: rgba(250,204,21,.16); color: var(--chip-warn); border:1px solid rgba(250,204,21,.22); }
+  .badge.ok   { background: rgba(34,197,94,.14);  color: var(--chip-ok);   border:1px solid rgba(34,197,94,.22); }
+  .badge.bad  { background: rgba(239,68,68,.14);  color: var(--chip-bad);  border:1px solid rgba(239,68,68,.22); }
+  .badge.alt  { background: rgba(107,114,128,.14); color: #cbd5e1;        border:1px solid rgba(107,114,128,.22); }
 
-  .mini-check {
+  .mini-check{
     display:inline-block;
     margin-left:8px;
     color:#22c55e;
     font-weight:900;
   }
 
-  .btn-details {
-    border:1px solid #1d4ed8;
-    background:#1d4ed8;
+  .btn-details{
+    border:0;
+    background: linear-gradient(90deg, #2563eb, #3b82f6);
     color:#fff;
-    padding:6px 12px;
-    border-radius:8px;
-    font-weight:700;
+    padding: 9px 12px;
+    border-radius: 12px;
+    font-weight: 900;
     cursor:pointer;
+    white-space:nowrap;
   }
-  .btn-details:hover { filter:brightness(.95); }
+  .btn-details:hover{ filter:brightness(.97); transform: translateY(-1px); }
 
-  /* ===== DETAILS EXPAND ===== */
-  .details-row { display:none; background:#0b1220; }
-  .details-cell { padding:0 !important; border-top:1px solid var(--line); }
+  /* ===== DETAILS (sizdagi holicha qoldirdim) ===== */
+  .details-row{ display:none; background: #0b1220; }
+  .details-cell{ padding:0 !important; border-top:1px solid rgba(255,255,255,.06); }
 
-  .details-card {
+  .details-card{
     padding:14px;
     display:grid;
     gap:12px;
     grid-template-columns:repeat(12,1fr);
   }
 
-  /* Summary header (full width) */
-  .detail-head {
+  .detail-head{
     grid-column:1 / -1;
     background:rgba(255,255,255,0.03);
-    border:1px solid var(--line);
+    border:1px solid rgba(255,255,255,.08);
     border-radius:12px;
     padding:12px 14px;
     display:flex;
@@ -156,14 +267,10 @@
     gap:12px;
     flex-wrap:wrap;
   }
-  .head-left { min-width:240px; }
-  .lead-name {
-    font-size:1.05rem;
-    font-weight:900;
-    margin:0;
-    color:var(--text);
-  }
-  .sub {
+
+  .head-left{ min-width:240px; }
+  .lead-name{ font-size:1.05rem; font-weight:900; margin:0; color:var(--text); }
+  .sub{
     margin-top:4px;
     color:var(--muted);
     font-size:.86rem;
@@ -171,28 +278,16 @@
     gap:10px;
     flex-wrap:wrap;
   }
-  .sub span { white-space:nowrap; }
+  .sub span{ white-space:nowrap; }
 
-  .head-mid {
-    display:flex;
-    gap:10px;
-    align-items:center;
-    flex-wrap:wrap;
-  }
+  .head-mid{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .head-right{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-left:auto; }
 
-  .head-right {
-    display:flex;
-    gap:8px;
-    align-items:center;
-    flex-wrap:wrap;
-    margin-left:auto;
-  }
-
-  .btn-pill {
-    border-radius:10px;
+  .btn-pill{
+    border-radius:12px;
     padding:9px 12px;
     font-weight:900;
-    border:1px solid var(--line);
+    border:1px solid rgba(255,255,255,.10);
     text-decoration:none;
     display:inline-flex;
     align-items:center;
@@ -202,36 +297,20 @@
     color:var(--text);
     white-space:nowrap;
   }
-  .btn-pill:hover { filter:brightness(.98); }
+  .btn-pill.blue{ border-color: var(--blue); background: var(--blue); color:#fff; }
+  .btn-pill.red{ border-color:#ef4444; background:#ef4444; color:#fff; }
+  .btn-pill.green{ border-color:#22c55e; background:#22c55e; color:#062312; }
 
-  .btn-pill.blue {
-    border-color:#1d4ed8;
-    background:#1d4ed8;
-    color:#fff;
-  }
-  .btn-pill.red {
-    border-color:#ef4444;
-    background:#ef4444;
-    color:#fff;
-  }
-  .btn-pill.green {
-    border-color:#22c55e;
-    background:#22c55e;
-    color:#062312;
-  }
-
-  /* Detail blocks */
-  .detail {
+  .detail{
     grid-column:span 6;
     background:rgba(255,255,255,0.03);
-    border:1px solid var(--line);
+    border:1px solid rgba(255,255,255,.08);
     border-radius:12px;
     padding:12px 14px;
-    min-height:auto;              /* ✅ katta bo‘lib ketmasin */
   }
-  .detail.full { grid-column:1 / -1; }
+  .detail.full{ grid-column:1 / -1; }
 
-  .label {
+  .label{
     color:var(--muted);
     font-size:.76rem;
     text-transform:uppercase;
@@ -239,7 +318,6 @@
     font-weight:900;
   }
 
-  /* ✅ Professional ichki layout: key-value */
   .kv{
     margin-top:10px;
     display:grid;
@@ -261,307 +339,375 @@
     word-break:break-word;
   }
 
-  /* ✅ Converted / Student block -> ixcham, tartibli */
-  .converted-card{
-    grid-column:1 / -1;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    flex-wrap:wrap;
+  @media (max-width: 1100px){
+    .lead-page{ max-width: 100%; }
+    .col-fam{ width: 160px; }
+    .col-ism{ width: 210px; }
   }
-  .converted-left{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    flex-wrap:wrap;
-    min-width:240px;
-  }
-  .converted-left .oktext{
-    color:#22c55e;
-    font-weight:900;
-    white-space:nowrap;
-  }
-  .converted-left a{
-    color:#38bdf8;
-    font-weight:900;
-    text-decoration:none;
-  }
-  .converted-left a:hover{ text-decoration:underline; }
 
-  .badge-group{
-    background:#1e3a8a;
-    color:#fff;
-    padding:8px 12px;
-    border-radius:10px;
-    font-size:13px;
-    font-weight:900;
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    text-decoration:none;
-    white-space:nowrap;
-  }
-  .badge-group:hover{ background:#3b82f6; }
-
-  /* ===== RESPONSIVE BREAKPOINTS ===== */
-  @media (max-width: 900px) {
-    .details-card { grid-template-columns:repeat(6,1fr); }
-    .detail { grid-column:1 / -1; } /* hammasi full bo‘lsin */
+  @media (max-width: 900px){
+    /* kichik ekranda scroll normal */
+    .tbl{ min-width: 980px; } /* faqat kichik ekranda */
+    .details-card{ grid-template-columns:repeat(6,1fr); }
+    .detail{ grid-column:1 / -1; }
     .kv{ grid-template-columns:120px 1fr; }
   }
 
-  @media (max-width: 640px) {
-    .lead-toolbar {
-      flex-direction:column;
-      align-items:stretch;
-      gap:10px;
-    }
-    .col-hide-sm { display:none; }
+  @media (max-width: 520px){
+    .lead-toolbar-right{ width:100%; justify-content:flex-start; }
+    .filter{ width:100%; min-width: 0; }
+    .btn-add{ width:100%; text-align:center; }
   }
+  /* =========================
+   ✅ 100% ZOOM FIX (SIDEBAR BOR)
+   Jadval scrollsiz sig‘adi
+   ========================= */
 
-  @media (max-width: 480px) {
-    .btn-details { width:100%; }
-    .btn-pill { width:100%; justify-content:center; }
-    .head-right { width:100%; }
-    .badge-group{ width:100%; justify-content:center; }
-  }
+.table-responsive-box{
+  overflow-x: hidden !important;   /* endi scroll chiqmaydi */
+}
+
+.tbl{
+  width: 100% !important;
+  table-layout: fixed !important;  /* sig‘dirish uchun */
+}
+
+/* paddingni kichraytiramiz */
+.tbl thead th{ padding: 10px 10px !important; font-size: 11px !important; }
+.tbl tbody td{ padding: 10px 10px !important; font-size: 13px !important; }
+
+/* ✅ Ustunlarni PX emas, % bilan beramiz (sidebarda ham sig‘adi) */
+.tbl thead th:nth-child(1),
+.tbl tbody td:nth-child(1){ width: 5% !important; }   /* # */
+
+.tbl thead th:nth-child(2),
+.tbl tbody td:nth-child(2){ width: 19% !important; }  /* ISM */
+
+.tbl thead th:nth-child(3),
+.tbl tbody td:nth-child(3){ width: 14% !important; }  /* FAMILIYA */
+
+.tbl thead th:nth-child(4),
+.tbl tbody td:nth-child(4){ width: 13% !important; }  /* TELEFON */
+
+.tbl thead th:nth-child(5),
+.tbl tbody td:nth-child(5){ width: 7% !important; }   /* YOSH */
+
+.tbl thead th:nth-child(6),
+.tbl tbody td:nth-child(6){ width: 12% !important; }  /* STATUS */
+
+.tbl thead th:nth-child(7),
+.tbl tbody td:nth-child(7){ width: 18% !important; }  /* SANA */
+
+.tbl thead th:nth-child(8),
+.tbl tbody td:nth-child(8){ width: 12% !important; text-align:right !important; } /* AMALLAR */
+
+/* ✅ ISM/FAMILIYA qatorga sig‘masa, pastga tushib ketsin (kesilmasin) */
+.tbl tbody td:nth-child(2),
+.tbl tbody td:nth-child(3){
+  white-space: normal !important;
+  line-height: 1.15 !important;
+}
+
+/* ✅ TELEFON va SANA ham 2 qator bo‘la olsin */
+.tbl tbody td:nth-child(4),
+.tbl tbody td:nth-child(7){
+  white-space: normal !important;
+  line-height: 1.15 !important;
+}
+
+/* ✅ Batafsil tugmasini ixcham qilamiz (eng ko‘p joy yeb qo‘yadi) */
+.btn-details{
+  padding: 8px 10px !important;
+  border-radius: 10px !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  white-space: nowrap !important;
+}
+
+/* ✅ Juda kichik ekranda ham buzilmasin */
+@media (max-width: 1100px){
+  .tbl thead th{ font-size: 10px !important; }
+  .tbl tbody td{ font-size: 12px !important; }
+}
+/* ✅ SELECT: dark theme dropdown fix (Chrome/Windows) */
+.filter{
+  background: rgba(17,24,39,.72) !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  color: #e5e7eb !important;
+  color-scheme: dark;               /* ✅ dropdown ham dark */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* dropdown ichidagi optionlar */
+.filter option{
+  background: #0b1226 !important;
+  color: #e5e7eb !important;
+}
+
+/* Hover/selected rangini imkon qadar yaqinlashtiramiz */
+.filter option:checked,
+.filter option:hover{
+  background: #1d4ed8 !important;   /* ko‘k highlight */
+  color: #ffffff !important;
+}
+
 </style>
 
-<div class="container lead-wrap">
+<div class="lead-page">
 
-  <!-- ===== HEADER TOOLBAR ===== -->
-   
-<div class="lead-toolbar">
-  <h3>📋 Leadlar ro‘yxati</h3>
+  <!-- HEADER TOOLBAR -->
+  <div class="lead-toolbar">
+    <div class="lead-toolbar-left">
+      <div class="lead-icon">🎯</div>
+      <div>
+        <h3 class="lead-title">Leadlar ro‘yxati</h3>
+        <div class="lead-sub">Yangi qiziqish bildirgan mijozlar bilan ishlash bo‘limi</div>
+      </div>
+    </div>
 
-  <div class="lead-toolbar-right">
-    <form method="get" class="lead-filter-form">
-<select name="status" class="filter" onchange="this.form.submit()">
-  <option value="">
-    -- Barcha statuslar  |  {{ total_converted }} --
-  </option>
+    <div class="lead-toolbar-right">
+      <form method="get" class="lead-filter-form">
+        <select name="status" class="filter" onchange="this.form.submit()">
+          <option value="">
+            Barcha statuslar | {{ total_converted }}
+          </option>
+          {% for s in statuses %}
+            <option value="{{ s.id }}" {% if s.id|stringformat:"s" == selected_status %}selected{% endif %}>
+              {{ s.nom }} | {{ s.converted_count }}
+            </option>
+          {% endfor %}
+        </select>
+      </form>
 
-  {% for s in statuses %}
-    <option value="{{ s.id }}" {% if s.id|stringformat:"s" == selected_status %}selected{% endif %}>
-      {{ s.nom }}  |  {{ s.converted_count }}
-    </option>
-  {% endfor %}
-</select>
-
-    </form>
-
-    <a class="btn-add" href="{% url 'store:lead_create' %}">+ Yangi lead</a>
+      <a class="btn-add" href="{% url 'store:lead_create' %}">➕ Yangi lead</a>
+    </div>
   </div>
-</div>
+
+  <!-- SEARCH (faqat UI, agar backend search yo‘q bo‘lsa ham chiroyli turadi) -->
+<form method="get" id="leadSearchForm">
+  <div class="lead-search">
+    <input
+      class="search-input"
+      type="text"
+      name="q"
+      value="{{ q|default:'' }}"
+      placeholder="🔎 Ism, familya yoki telefon bo‘yicha qidirish..."
+      autocomplete="off"
+    />
+  </div>
+</form>
 
 
-  <!-- ===== RESPONSIVE TABLE WRAP ===== -->
-  <div class="table-responsive-box">
-    <table class="tbl">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Ism</th>
-          <th>Familya</th>
-          <th class="col-hide-sm">Telefon</th>
-          <th class="col-hide-sm">Yosh</th>
-          <th>Status</th>
-          <th>Sana</th>
-          <th class="col-actions">Amallar</th>
-        </tr>
-      </thead>
+  <!-- TABLE -->
+  <div class="table-card">
+    <div class="table-responsive-box">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th class="col-idx">#</th>
+            <th class="col-ism">Ism</th>
+            <th class="col-fam">Familya</th>
+            <th class="col-tel">Telefon</th>
+            <th class="col-yosh">Yosh</th>
+            <th class="col-status">Status</th>
+            <th class="col-sana">Sana</th>
+            <th class="col-actions">Amallar</th>
+          </tr>
+        </thead>
 
-      <tbody>
-        {% for l in leads %}
+        <tbody>
+          {% for l in leads %}
 
-        <!-- MAIN ROW -->
-        <tr class="main-row" data-lead="{{ l.id }}">
-          <td>{{ forloop.counter }}</td>
-          <td>{{ l.ism }}</td>
-          <td>{{ l.familya }}</td>
-          <td class="col-hide-sm">{{ l.telefon1 }}</td>
-          <td class="col-hide-sm">{{ l.yosh }}</td>
+          <!-- MAIN ROW -->
+          <tr class="main-row" data-lead="{{ l.id }}">
+            <td>{{ forloop.counter }}</td>
+            <td>👤 <b>{{ l.ism }}</b></td>
+            <td>{{ l.familya }}</td>
 
-          <td>
-            {% if l.status %}
-              {% if l.status.nom == "Kutmoqda" %}
-                <span class="badge warn">{{ l.status.nom }}</span>
-              {% elif l.status.nom == "O‘qimoqda" %}
-                <span class="badge ok">{{ l.status.nom }}</span>
-              {% elif l.status.nom == "Rad etilgan" %}
-                <span class="badge bad">{{ l.status.nom }}</span>
-              {% elif l.status.nom == "Tasdiqlandi" %}
-                <span class="badge ok">{{ l.status.nom }}</span>
+            <td class="phone-cell">
+              <span class="ico"></span> {{ l.telefon1|default:"—" }}
+            </td>
+
+            <td>{{ l.yosh|default:"—" }}</td>
+
+            <td>
+              {% if l.status %}
+                {% if l.status.nom == "Kutmoqda" %}
+                  <span class="badge warn">{{ l.status.nom }}</span>
+                {% elif l.status.nom == "O‘qimoqda" %}
+                  <span class="badge.ok badge ok">{{ l.status.nom }}</span>
+                {% elif l.status.nom == "Rad etilgan" %}
+                  <span class="badge bad">{{ l.status.nom }}</span>
+                {% elif l.status.nom == "Tasdiqlandi" %}
+                  <span class="badge ok">{{ l.status.nom }}✅</span>
+                {% else %}
+                  <span class="badge alt">{{ l.status.nom }}</span>
+                {% endif %}
               {% else %}
-                <span class="badge alt">{{ l.status.nom }}</span>
+                <span class="badge alt">—</span>
               {% endif %}
-            {% else %}
-              <span class="badge alt">—</span>
-            {% endif %}
 
-            {% if l.converted_user %}
-              <span class="mini-check" title="O‘quvchiga o‘tkazilgan">✅</span>
-            {% endif %}
-          </td>
-
-          <td>{{ l.qoshilgan_sana|date:"d.m.Y H:i" }}</td>
-
-          <td class="col-actions">
-            <button type="button" class="btn-details" data-toggle="detail-{{ l.id }}">Batafsil</button>
-          </td>
-        </tr>
-
-        <!-- DETAILS ROW -->
-        <tr id="detail-{{ l.id }}" class="details-row">
-          <td class="details-cell" colspan="8">
-            <div class="details-card">
-
-              <!-- TOP SUMMARY BAR -->
-              <div class="detail-head">
-                <div class="head-left">
-                  <p class="lead-name">👤 {{ l.ism }} {{ l.familya|default:"" }}</p>
-                  <div class="sub">
-                    <span>📞 {{ l.telefon1|default:"—" }}</span>
-                    {% if l.yosh %}<span>🎂 {{ l.yosh }}</span>{% endif %}
-                    {% if l.manba %}<span>📍 {{ l.manba.nom }}</span>{% endif %}
-                    {% if l.yonalish %}<span>🎯 {{ l.yonalish.nom }}</span>{% endif %}
-                  </div>
-                </div>
-
-                <div class="head-mid">
-                  {% if l.status %}
-                    {% if l.status.nom == "Kutmoqda" %}
-                      <span class="badge warn">⏳ {{ l.status.nom }}</span>
-                    {% elif l.status.nom == "O‘qimoqda" %}
-                      <span class="badge ok">📚 {{ l.status.nom }}</span>
-                    {% elif l.status.nom == "Rad etilgan" %}
-                      <span class="badge bad">⛔ {{ l.status.nom }}</span>
-                    {% elif l.status.nom == "Tasdiqlandi" %}
-                      <span class="badge ok">✅ {{ l.status.nom }}</span>
-                    {% else %}
-                      <span class="badge alt">{{ l.status.nom }}</span>
-                    {% endif %}
-                  {% else %}
-                    <span class="badge alt">—</span>
-                  {% endif %}
-
-                  <span class="badge alt">🗓 {{ l.qoshilgan_sana|date:"d.m.Y H:i" }}</span>
-                </div>
-
-                <div class="head-right">
-                  {% if request.user.is_superuser or request.user.role == 'manager' or request.user.role == 'director' %}
-                    {% if not l.converted_user %}
-                      <form method="post" action="{% url 'store:lead_convert' l.id %}" style="display:inline;">
-                        {% csrf_token %}
-                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                        {% if l.status and l.status.nom == "Tasdiqlandi" %}
-                          <button type="submit" class="btn-pill green">⚡ O‘tkazish</button>
-                        {% else %}
-                          <button type="submit" class="btn-pill green">✅ Tasdiqlash</button>
-                        {% endif %}
-                      </form>
-                    {% endif %}
-                  {% endif %}
-
-                  <a href="{% url 'store:lead_edit' l.id %}" class="btn-pill blue">✏️ Tahrirlash</a>
-                  <a href="{% url 'store:lead_delete' l.id %}" class="btn-pill red">🗑️ O‘chirish</a>
-                </div>
-              </div>
-
-              <!-- ✅ Converted info (ixcham, tartibli) -->
               {% if l.converted_user %}
-              <div class="detail converted-card">
-                <div>
-                  <div class="label">O‘quvchi</div>
-                  <div class="converted-left" style="margin-top:10px;">
-                    <span class="oktext">✅ Tasdiqlangan:</span>
-                    <a href="/admin/accounts/user/{{ l.converted_user.id }}/change/">
-                      {{ l.converted_user.ism }} {{ l.converted_user.familya }}
-                    </a>
-                  </div>
-                </div>
-
-                <a class="badge-group" href="/admin/accounts/user/{{ l.converted_user.id }}/change/">
-                  🔐 Parol almashtirish →
-                </a>
-              </div>
+                <span class="mini-check" title="O‘quvchiga o‘tkazilgan">✅</span>
               {% endif %}
+            </td>
 
-              <!-- ✅ 2 ta professional karta: Kontakt + Ma’lumot -->
-              <div class="detail">
-                <div class="label">Kontakt</div>
-                <div class="kv">
-                  <div class="k">Telefon</div>
-                  <div class="v">{{ l.telefon1|default:"—" }}</div>
+            <td class="date-cell">
+              <span class="ico">🕒</span> {{ l.qoshilgan_sana|date:"d.m.Y" }}<br>
+              <span style="color:var(--muted); font-weight:900;">{{ l.qoshilgan_sana|date:"H:i" }}</span>
+            </td>
 
-                  <div class="k">Telefon 2</div>
-                  <div class="v">{{ l.telefon2|default:"—" }}</div>
+            <td class="col-actions">
+              <button type="button" class="btn-details" data-toggle="detail-{{ l.id }}">Batafsil ↗</button>
+            </td>
+          </tr>
 
-                  <div class="k">Yosh</div>
-                  <div class="v">{{ l.yosh|default:"—" }}</div>
-                </div>
-              </div>
+          <!-- DETAILS ROW (sizdagi holicha) -->
+          <tr id="detail-{{ l.id }}" class="details-row">
+            <td class="details-cell" colspan="8">
+              <div class="details-card">
 
-              <div class="detail">
-                <div class="label">Ma’lumot</div>
-                <div class="kv">
-                  <div class="k">Manba</div>
-                  <div class="v">{% if l.manba %}{{ l.manba.nom }}{% else %}—{% endif %}</div>
+                <div class="detail-head">
+                  <div class="head-left">
+                    <p class="lead-name">👤 {{ l.ism }} {{ l.familya|default:"" }}</p>
+                    <div class="sub">
+                      <span>{{ l.telefon1|default:"—" }}</span>
+                      {% if l.yosh %}<span>🎂 {{ l.yosh }}</span>{% endif %}
+                      {% if l.manba %}<span>📍 {{ l.manba.nom }}</span>{% endif %}
+                      {% if l.yonalish %}<span>🎯 {{ l.yonalish.nom }}</span>{% endif %}
+                    </div>
+                  </div>
 
-                  <div class="k">Yo‘nalish</div>
-                  <div class="v">{% if l.yonalish %}{{ l.yonalish.nom }}{% else %}—{% endif %}</div>
-
-                  <div class="k">Status</div>
-                  <div class="v">
+                  <div class="head-mid">
                     {% if l.status %}
                       {% if l.status.nom == "Kutmoqda" %}
-                        <span class="badge warn">{{ l.status.nom }}</span>
+                        <span class="badge warn">⏳ {{ l.status.nom }}</span>
                       {% elif l.status.nom == "O‘qimoqda" %}
-                        <span class="badge ok">{{ l.status.nom }}</span>
+                        <span class="badge ok">📚 {{ l.status.nom }}</span>
                       {% elif l.status.nom == "Rad etilgan" %}
-                        <span class="badge bad">{{ l.status.nom }}</span>
+                        <span class="badge bad">⛔ {{ l.status.nom }}</span>
                       {% elif l.status.nom == "Tasdiqlandi" %}
-                        <span class="badge ok">{{ l.status.nom }}</span>
+                        <span class="badge ok">✅{{ l.status.nom }}</span>
                       {% else %}
                         <span class="badge alt">{{ l.status.nom }}</span>
                       {% endif %}
                     {% else %}
                       <span class="badge alt">—</span>
                     {% endif %}
+                    <span class="badge alt">🗓 {{ l.qoshilgan_sana|date:"d.m.Y H:i" }}</span>
+                  </div>
+
+                  <div class="head-right">
+                    {% if request.user.is_superuser or request.user.role == 'manager' or request.user.role == 'director' %}
+                      {% if not l.converted_user %}
+                        <form method="post" action="{% url 'store:lead_convert' l.id %}" style="display:inline;">
+                          {% csrf_token %}
+                          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                          {% if l.status and l.status.nom == "Tasdiqlandi" %}
+                            <button type="submit" class="btn-pill green">⚡ O‘tkazish</button>
+                          {% else %}
+                            <button type="submit" class="btn-pill green">✅ Tasdiqlash</button>
+                          {% endif %}
+                        </form>
+                      {% endif %}
+                    {% endif %}
+
+                    <a href="{% url 'store:lead_edit' l.id %}" class="btn-pill blue">✏️ Tahrirlash</a>
+                    <a href="{% url 'store:lead_delete' l.id %}" class="btn-pill red">🗑️ O‘chirish</a>
                   </div>
                 </div>
-              </div>
 
-              <!-- Full width blocks -->
-              <div class="detail full">
-                <div class="label">Manzil</div>
-                <div class="kv" style="grid-template-columns:1fr;">
-                  <div class="v">{{ l.address|default:"—" }}</div>
+                {% if l.converted_user %}
+                <div class="detail full">
+                  <div class="label">O‘quvchi</div>
+                  <div class="kv" style="grid-template-columns:1fr;">
+                    <div class="v">
+                      ✅ Tasdiqlangan:
+                      <a style="color:#38bdf8;font-weight:900;text-decoration:none;"
+                         href="/admin/accounts/user/{{ l.converted_user.id }}/change/">
+                        {{ l.converted_user.ism }} {{ l.converted_user.familya }}
+                      </a>
+                    </div>
+                  </div>
                 </div>
-              </div>
+                {% endif %}
 
-              <div class="detail full">
-                <div class="label">Izoh</div>
-                <div class="kv" style="grid-template-columns:1fr;">
-                  <div class="v">{{ l.comment|default:"—" }}</div>
+                <div class="detail">
+                  <div class="label">Kontakt</div>
+                  <div class="kv">
+                    <div class="k">Telefon</div>
+                    <div class="v">{{ l.telefon1|default:"—" }}</div>
+
+                    <div class="k">Telefon 2</div>
+                    <div class="v">{{ l.telefon2|default:"—" }}</div>
+
+                    <div class="k">Yosh</div>
+                    <div class="v">{{ l.yosh|default:"—" }}</div>
+                  </div>
                 </div>
+
+                <div class="detail">
+                  <div class="label">Ma’lumot</div>
+                  <div class="kv">
+                    <div class="k">Manba</div>
+                    <div class="v">{% if l.manba %}{{ l.manba.nom }}{% else %}—{% endif %}</div>
+
+                    <div class="k">Yo‘nalish</div>
+                    <div class="v">{% if l.yonalish %}{{ l.yonalish.nom }}{% else %}—{% endif %}</div>
+
+                    <div class="k">Status</div>
+                    <div class="v">
+                      {% if l.status %}
+                        {% if l.status.nom == "Kutmoqda" %}
+                          <span class="badge warn">{{ l.status.nom }}</span>
+                        {% elif l.status.nom == "O‘qimoqda" %}
+                          <span class="badge ok">{{ l.status.nom }}</span>
+                        {% elif l.status.nom == "Rad etilgan" %}
+                          <span class="badge bad">{{ l.status.nom }}</span>
+                        {% elif l.status.nom == "Tasdiqlandi" %}
+                          <span class="badge ok">✅ {{ l.status.nom }}</span>
+                        {% else %}
+                          <span class="badge alt">{{ l.status.nom }}</span>
+                        {% endif %}
+                      {% else %}
+                        <span class="badge alt">—</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="detail full">
+                  <div class="label">Manzil</div>
+                  <div class="kv" style="grid-template-columns:1fr;">
+                    <div class="v">{{ l.address|default:"—" }}</div>
+                  </div>
+                </div>
+
+                <div class="detail full">
+                  <div class="label">Izoh</div>
+                  <div class="kv" style="grid-template-columns:1fr;">
+                    <div class="v">{{ l.comment|default:"—" }}</div>
+                  </div>
+                </div>
+
               </div>
+            </td>
+          </tr>
 
-            </div>
-          </td>
-        </tr>
-
-        {% empty %}
-        <tr class="main-row" style="cursor:default;">
-          <td colspan="8" class="text-center py-4" style="color:var(--muted)">
-            Hech qanday lead topilmadi.
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+          {% empty %}
+          <tr class="main-row" style="cursor:default;">
+            <td colspan="8" style="text-align:center; padding:24px; color:var(--muted); font-weight:900;">
+              Hech qanday lead topilmadi.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
+
 </div>
 
 <script>
@@ -594,6 +740,26 @@
     const leadId = tr.getAttribute('data-lead');
     if (!leadId) return;
     toggleDetails('detail-' + leadId);
+  });
+})();
+(function () {
+  const form = document.getElementById('leadSearchForm');
+  const input = form.querySelector('input[name="q"]');
+
+  let timer = null;
+
+  input.addEventListener('input', function () {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      form.submit();
+    }, 400); // 0.4 soniya kutib qidiradi
+  });
+
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      form.submit();
+    }
   });
 })();
 </script>

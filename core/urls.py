@@ -23,6 +23,6 @@ urlpatterns = [
     path('stat/requests/',  views.stat_requests,  name='stat_requests'),
     path('stat/ledger/',    views.stat_ledger,    name='stat_ledger'),
     path("students/import-excel/", views.students_import_excel, name="students_import_excel"),
-
+    path("profil/", views.profile_view, name="profile"),
 ]
 

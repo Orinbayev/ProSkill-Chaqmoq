@@ -2,141 +2,541 @@
 {% block content %}
 
 <style>
-.dashboard-title {
-    font-size: 28px;
-    font-weight: 700;
-    color: #fff;
-    margin-bottom: 25px;
-}
+  :root{
+    --panel: rgba(17,24,39,.55);
+    --panel2: rgba(17,24,39,.45);
+    --line: rgba(255,255,255,.08);
 
-/* GRID TOP */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    --text:#e5e7eb;
+    --muted:#94a3b8;
+
+    --blue:#38bdf8;
+    --green:#22c55e;
+    --orange:#f59e0b;
+    --red:#ef4444;
+  }
+
+  .dash-wrap{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 6px 6px 24px;
+    color: var(--text);
+  }
+
+  /* ===== TOP BAR ===== */
+  .dash-top{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
     gap: 18px;
-}
+    margin-bottom: 18px;
+  }
 
-/* PREMIUM CARD */
-.stat-card {
-    background: #ffffff10;
-    padding: 20px;
-    border-radius: 16px;
-    text-decoration: none;
-    display: block;
-    color: white;
-    transition: 0.3s ease;
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255,255,255,0.06);
-    min-height: 135px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.25);
-}
-
-.stat-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 14px 28px rgba(0,150,255,0.35);
-    border-color: rgba(0,150,255,0.4);
-}
-
-.stat-title {
-    font-size: 14px;
-    opacity: 0.65;
-}
-
-.stat-value {
+  .dash-title{
+    margin: 0;
     font-size: 30px;
-    font-weight: 600;
-    margin-top: 10px;
-}
+    font-weight: 900;
+    letter-spacing: .2px;
+    color: #fff;
+  }
 
-.stat-link {
-    font-size: 12px;
-    margin-top: 10px;
-    color: #4db8ff !important;
-}
-
-/* CATEGORY BOX (NEW) */
-.section-card {
-    background: #ffffff10;
-    border-radius: 15px;
-    padding: 22px;
-    margin-top: 28px;
-    color: white;
-    border: 1px solid rgba(255,255,255,0.06);
-    backdrop-filter: blur(8px);
-    box-shadow: 0 6px 18px rgba(0,0,0,0.25);
-}
-
-.section-card h5 {
-    margin-bottom: 16px;
-    font-weight: 600;
-    font-size: 18px;
-}
-
-.section-card .btn {
+  .dash-sub{
+    margin: 6px 0 0;
+    font-size: 12.5px;
+    color: rgba(226,232,240,.70);
     font-weight: 500;
-    margin-right: 8px;
-    margin-bottom: 8px;
+  }
+
+  .dash-actions{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    padding-top: 2px;
+    flex-wrap: wrap;
+  }
+
+  .search-pill{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    height: 40px;
+    min-width: 300px;
+    padding: 0 14px;
+    border-radius: 14px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.08);
+    box-shadow: inset 0 0 18px rgba(0,0,0,.25);
+  }
+
+  .search-pill i{
+    font-size: 14px;
+    color: rgba(226,232,240,.8);
+  }
+
+  .search-pill input{
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-size: 13.5px;
+  }
+
+  .icon-btn{
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.06);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition: .2s ease;
+    position: relative;
+    cursor:pointer;
+    pointer-events:auto;
+  }
+  .icon-btn:hover{
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,.16);
+  }
+  .icon-btn i{
+    font-size: 15px;
+    color: rgba(226,232,240,.92);
+  }
+  .notif-dot{
+    position:absolute;
+    top: 10px;
+    right: 10px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ef4444;
+    box-shadow: 0 0 10px rgba(239,68,68,.7);
+  }
+
+/* ✅ BIG ROUND AVATAR (override) */
+.avatar{
+  width: 46px;              /* kattaroq */
+  height: 46px;
+  border-radius: 999px;     /* dumaloq */
+  overflow: hidden;         /* rasm tashqariga chiqmasin */
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(37,99,235,.20);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  box-shadow: 0 12px 26px rgba(0,0,0,.35);
+  transition: .18s ease;
+}
+.avatar:hover{
+  transform: translateY(-2px);
+  border-color: rgba(56,189,248,.45);
+  box-shadow: 0 16px 36px rgba(0,0,0,.45), 0 0 0 4px rgba(56,189,248,.10);
+}
+.avatar:focus{
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(56,189,248,.18);
 }
 
-/* RESPONSIVE FIXES */
-@media (max-width: 768px) {
-    .stat-value {
-        font-size: 26px;
-    }
-    .section-card {
-        padding: 18px;
-    }
-    .section-card h5 {
-        font-size: 16px;
-    }
-}
+
+  /* ===== DROPDOWNS ===== */
+  .dd-wrap{ position: relative; }
+
+  .dd-menu{
+    position:absolute;
+    right:0;
+    top: 50px;
+    width: 240px;
+    background: rgba(17,24,39,.92);
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 16px;
+    box-shadow: 0 16px 40px rgba(0,0,0,.45);
+    backdrop-filter: blur(10px);
+    padding: 12px;
+    display:none;
+    z-index: 3000;
+  }
+  .dd-menu.show{ display:block; }
+
+  .dd-title{
+    font-weight: 900;
+    font-size: 14px;
+    color:#e5e7eb;
+    margin-bottom: 6px;
+  }
+  .dd-text{
+    font-size: 12px;
+    color: rgba(255,255,255,.65);
+  }
+
+  .dd-logout{
+    width:100%;
+    border:none;
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: rgba(220,38,38,.12);
+    color:#f87171;
+    border: 1px solid rgba(248,113,113,.22);
+    font-weight:800;
+    cursor:pointer;
+    transition:.2s;
+  }
+  .dd-logout:hover{ background:#dc2626; color:#fff; }
+
+  /* ===== STATS GRID ===== */
+  .stats-grid{
+    display:grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .stat-card{
+    position: relative;
+    display:block;
+    text-decoration:none;
+    color: var(--text);
+    padding: 18px 18px;
+    border-radius: 16px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    backdrop-filter: blur(10px);
+    min-height: 118px;
+    transition: .22s ease;
+    overflow:hidden;
+  }
+  .stat-card:hover{
+    transform: translateY(-3px);
+    border-color: rgba(255,255,255,.16);
+    box-shadow: 0 18px 45px rgba(0,0,0,.40);
+  }
+
+  .stat-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 14px;
+  }
+  .stat-label{
+    font-size: 11px;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    color: rgba(148,163,184,.85);
+    font-weight: 800;
+  }
+  .stat-value{
+    margin-top: 6px;
+    font-size: 34px;
+    font-weight: 950;
+    line-height: 1;
+    color: #fff;
+  }
+  .chev{
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border: 1px solid rgba(255,255,255,.06);
+    background: rgba(255,255,255,.03);
+    opacity: .55;
+    margin-top: 10px;
+  }
+  .stat-card:hover .chev{
+    opacity: .9;
+    border-color: rgba(255,255,255,.12);
+  }
+  .chev i{
+    font-size: 13px;
+    color: rgba(226,232,240,.9);
+  }
+
+  /* ===== SECTION CARDS ===== */
+  .section-grid{
+    margin-top: 18px;
+    display:grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .section-card{
+    border-radius: 16px;
+    padding: 16px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 16px 40px rgba(0,0,0,.20);
+  }
+
+  .section-title{
+    margin: 0 0 10px;
+    font-weight: 950;
+    font-size: 16px;
+    color:#fff;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+
+  .section-sub{
+    margin: 0 0 12px;
+    color: rgba(226,232,240,.70);
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+
+  .pill-row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .pill-link{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.04);
+    color: var(--text);
+    text-decoration:none;
+    font-weight: 900;
+    font-size: 12.5px;
+    transition: .18s ease;
+    white-space:nowrap;
+  }
+  .pill-link:hover{
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,.18);
+    filter: brightness(1.06);
+  }
+
+  .pill-blue{ box-shadow: 0 0 0 0 rgba(56,189,248,.0); }
+  .pill-blue:hover{ box-shadow: 0 10px 25px rgba(56,189,248,.12); }
+
+  .pill-green:hover{ box-shadow: 0 10px 25px rgba(34,197,94,.12); }
+  .pill-orange:hover{ box-shadow: 0 10px 25px rgba(245,158,11,.12); }
+  .pill-red:hover{ box-shadow: 0 10px 25px rgba(239,68,68,.10); }
+
+  @media (max-width: 992px){
+    .dash-top{ flex-direction: column; align-items: stretch; }
+    .dash-actions{ justify-content: flex-start; }
+    .search-pill{ min-width: 0; width: 100%; }
+  }
+  @media (max-width: 720px){
+    .stats-grid{ grid-template-columns: 1fr; }
+    .section-grid{ grid-template-columns: 1fr; }
+  }
 </style>
 
-<h3 class="dashboard-title">Manager paneli</h3>
+<div class="dash-wrap">
 
-<!-- 🔝 STATISTICS GRID -->
-<div class="stats-grid">
+  <!-- TOP -->
+  <div class="dash-top">
+    <div>
+      <h1 class="dash-title">Manager paneli</h1>
+      <div class="dash-sub">Xush kelibsiz, bo‘limlar bo‘yicha umumiy holat.</div>
+    </div>
 
+    <div class="dash-actions">
+      <div class="search-pill">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="dashSearch" type="text" placeholder="Qidiruv..." />
+      </div>
+
+      <!-- 🔔 NOTIFICATION -->
+      <div class="dd-wrap">
+        <button class="icon-btn" id="notifBtn" type="button" title="Bildirishnomalar">
+          <span class="notif-dot"></span>
+          <i class="fa-regular fa-bell"></i>
+        </button>
+
+        <div class="dd-menu" id="notifDD">
+          <div class="dd-title">Bildirishnomalar</div>
+          <div class="dd-text">Hozircha bildirishnoma yo‘q.</div>
+        </div>
+      </div>
+
+      <!-- 👤 PROFILE -->
+      <div class="dd-wrap">
+<button class="avatar" id="profileBtn2" type="button" title="{{ request.user.ism }} {{ request.user.familya }}">
+  {% if request.user.avatar %}
+    <img src="{{ request.user.avatar.url }}" alt="avatar"
+         style="width:100%;height:100%;object-fit:cover;border-radius:999px;display:block;">
+  {% else %}
+    {{ request.user.ism|default:"M"|first|upper }}
+  {% endif %}
+</button>
+
+
+
+        <div class="dd-menu" id="profileDD2">
+          <div class="dd-title">{{ request.user.ism }} {{ request.user.familya }}</div>
+          <div class="dd-text">{{ request.user.get_role_display }}</div>
+<a href="{% url 'core:profile' %}"
+   style="display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px;
+          border:1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.04);
+          color:#e5e7eb; text-decoration:none; font-weight:900; margin:10px 0;">
+  <i class="fa-regular fa-user"></i> Profil
+</a>
+
+          <form method="post" action="{% url 'logout' %}" style="margin-top:10px;">
+            {% csrf_token %}
+            <button class="dd-logout" type="submit">
+              <i class="fa-solid fa-right-from-bracket me-1"></i> Chiqish
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-grid">
     <a class="stat-card" href="{% url 'core:stat_teachers' %}">
-        <div class="stat-title">O‘qituvchilar</div>
-        <div class="stat-value">{{ stats.teachers|default:0 }}</div>
+      <div class="stat-head">
+        <div>
+          <div class="stat-label">O‘QITUVCHILAR</div>
+          <div class="stat-value">{{ stats.teachers|default:0 }}</div>
+        </div>
+        <div class="chev"><i class="fa-solid fa-chevron-right"></i></div>
+      </div>
     </a>
 
     <a class="stat-card" href="{% url 'core:stat_students' %}">
-        <div class="stat-title">O‘quvchilar</div>
-        <div class="stat-value">{{ stats.students|default:0 }}</div>
+      <div class="stat-head">
+        <div>
+          <div class="stat-label">O‘QUVCHILAR</div>
+          <div class="stat-value">{{ stats.students|default:0 }}</div>
+        </div>
+        <div class="chev"><i class="fa-solid fa-chevron-right"></i></div>
+      </div>
     </a>
 
     <a class="stat-card" href="{% url 'core:stat_products' %}">
-        <div class="stat-title">Mahsulotlar</div>
-        <div class="stat-value">{{ stats.products|default:0 }}</div>
+      <div class="stat-head">
+        <div>
+          <div class="stat-label">MAHSULOTLAR</div>
+          <div class="stat-value">{{ stats.products|default:0 }}</div>
+        </div>
+        <div class="chev"><i class="fa-solid fa-chevron-right"></i></div>
+      </div>
     </a>
 
     <a class="stat-card" href="{% url 'core:stat_requests' %}">
-        <div class="stat-title">Kutilayotgan so‘rov</div>
-        <div class="stat-value">{{ stats.pending_requests|default:0 }}</div>
+      <div class="stat-head">
+        <div>
+          <div class="stat-label">KUTILAYOTGAN SO‘ROV</div>
+          <div class="stat-value">{{ stats.pending_requests|default:0 }}</div>
+        </div>
+        <div class="chev"><i class="fa-solid fa-chevron-right"></i></div>
+      </div>
     </a>
+  </div>
+
+  <!-- SECTIONS -->
+  <div class="section-grid">
+
+    <div class="section-card">
+      <div class="section-title">📚 O‘quvchilar & Guruhlar</div>
+      <div class="section-sub">Ro‘yxat, guruhlar va o‘quvchi to‘lovlari.</div>
+      <div class="pill-row">
+        <a class="pill-link pill-blue" href="{% url 'core:stat_students' %}">👨‍🎓 O‘quvchilar</a>
+        <a class="pill-link pill-blue" href="{% url 'education:groups_home' %}">👥 Guruhlar</a>
+        <a class="pill-link pill-orange" href="{% url 'education:tolov_oquvchilar' %}">💳 To‘lovlar</a>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">🧑‍🏫 O‘qituvchilar</div>
+      <div class="section-sub">O‘qituvchilar ro‘yxati va oyliklar bo‘limi.</div>
+      <div class="pill-row">
+        <a class="pill-link pill-blue" href="{% url 'core:stat_teachers' %}">📋 Ro‘yxat</a>
+        <a class="pill-link pill-green" href="{% url 'education:teacher_salary_list' %}">💵 Oyliklar</a>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">🛒 Ombor & Mahsulotlar</div>
+      <div class="section-sub">Mahsulotlar va kutilayotgan so‘rovlar.</div>
+      <div class="pill-row">
+        <a class="pill-link pill-blue" href="{% url 'core:stat_products' %}">📦 Mahsulotlar</a>
+        <a class="pill-link pill-red" href="{% url 'core:stat_requests' %}">⏳ So‘rovlar</a>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">⚡ Tezkor</div>
+      <div class="section-sub">Manager uchun tez kiriladigan bo‘limlar.</div>
+      <div class="pill-row">
+        <a class="pill-link pill-blue" href="{% url 'education:tolov_oquvchilar' %}">📌 To‘lov nazorati</a>
+        <a class="pill-link pill-blue" href="{% url 'education:groups_home' %}">🧩 Guruhlar</a>
+      </div>
+    </div>
+
+  </div>
 
 </div>
 
-<!-- 🔥 NEW SECTION BLOCKS -->
-<div class="section-card mt-4">
-    <h5>📚 O‘quvchilar & Guruhlar</h5>
-    <a href="{% url 'core:stat_students' %}" class="btn btn-outline-info btn-sm">O‘quvchilar</a>
-    <a href="{% url 'education:groups_home' %}" class="btn btn-outline-light btn-sm">Guruhlar</a>
-    <a href="{% url 'education:tolov_oquvchilar' %}" class="btn btn-outline-warning btn-sm">To‘lovlar</a>
-</div>
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+  // ===== DROPDOWNS =====
+  const notifBtn = document.getElementById("notifBtn");
+  const notifDD  = document.getElementById("notifDD");
+  const profBtn  = document.getElementById("profileBtn2");
+  const profDD   = document.getElementById("profileDD2");
 
-<div class="section-card">
-    <h5>🧑‍🏫 O‘qituvchilar</h5>
-    <a href="{% url 'core:stat_teachers' %}" class="btn btn-outline-primary btn-sm">Ro‘yxat</a>
-    <a href="{% url 'education:teacher_salary_list' %}" class="btn btn-outline-success btn-sm">Oyliklar</a>
-</div>
+  function closeAll(){
+    if (notifDD) notifDD.classList.remove("show");
+    if (profDD)  profDD.classList.remove("show");
+  }
+  function toggle(dd){
+    if(!dd) return;
+    const isOpen = dd.classList.contains("show");
+    closeAll();
+    if(!isOpen) dd.classList.add("show");
+  }
 
-<div class="section-card">
-    <h5>🛒 Ombor & Mahsulotlar</h5>
-    <a href="{% url 'core:stat_products' %}" class="btn btn-outline-info btn-sm">Mahsulotlar</a>
-    <a href="{% url 'core:stat_requests' %}" class="btn btn-outline-danger btn-sm">So‘rovlar</a>
-</div>
+  if(notifBtn && notifDD){
+    notifBtn.addEventListener("click", function(e){
+      e.preventDefault(); e.stopPropagation();
+      toggle(notifDD);
+    });
+    notifDD.addEventListener("click", function(e){ e.stopPropagation(); });
+  }
+
+  if(profBtn && profDD){
+    profBtn.addEventListener("click", function(e){
+      e.preventDefault(); e.stopPropagation();
+      toggle(profDD);
+    });
+    profDD.addEventListener("click", function(e){ e.stopPropagation(); });
+  }
+
+  document.addEventListener("click", closeAll);
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape") closeAll();
+  });
+
+  // ===== SEARCH (cards + section filter) =====
+  const input = document.getElementById("dashSearch");
+  if(input){
+    const cards = Array.from(document.querySelectorAll(".stat-card, .section-card"));
+    const norm = (s) => (s || "").toString().toLowerCase().trim();
+    input.addEventListener("input", function(){
+      const q = norm(input.value);
+      cards.forEach(el => {
+        const t = norm(el.innerText);
+        el.style.display = (!q || t.includes(q)) ? "" : "none";
+      });
+    });
+  }
+});
+</script>
 
 {% endblock %}

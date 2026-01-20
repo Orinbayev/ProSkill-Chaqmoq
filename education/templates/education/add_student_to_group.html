@@ -6,194 +6,353 @@
 
 <style>
   :root{
-    --panel:#111827;
-    --glass:rgba(255,255,255,0.04);
-    --border:rgba(148,163,184,0.25);
+    /* ===== 1-rasmga yaqin palette ===== */
+    --bg1:#020617;         /* deep navy */
+    --bg2:#0b1226;         /* gradient second */
+    --panel: rgba(17,24,39,.60);
+    --panel2: rgba(2,6,23,.55);
+    --line: rgba(255,255,255,.09);
+
     --text:#e5e7eb;
-    --yellow:#facc15;
+    --muted:#94a3b8;
+
     --blue:#38bdf8;
     --green:#22c55e;
+    --green2:#16a34a;
+    --slate:#334155;
+
+    --shadow: 0 20px 70px rgba(0,0,0,.45);
+    --radius: 26px;
   }
 
-  body {
-    background:#0f172a;
-    color:var(--text);
-  }
-
-  .wrapper {
-    max-width: 650px;
-    margin: 35px auto;
-    background: var(--glass);
-    border:1px solid var(--border);
-    padding: 30px;
-    border-radius: 18px;
-    box-shadow: 0 0 25px rgba(56,189,248,0.12);
-    backdrop-filter: blur(10px);
-  }
-
-  h4 {
-    text-align:center;
-    color: var(--yellow);
-    font-weight:700;
-    margin-bottom:25px;
-  }
-
-  label {
+  body{
+    background:
+      radial-gradient(900px 600px at 10% 0%, rgba(56,189,248,.16), transparent 55%),
+      radial-gradient(900px 600px at 90% 10%, rgba(34,197,94,.14), transparent 55%),
+      linear-gradient(180deg, var(--bg1), var(--bg2));
     color: var(--text);
-    font-weight:600;
-    margin-bottom:6px;
   }
 
-  /* TOM SELECT DARK MODE */
-  .ts-control {
-    background:#1e293b !important;
-    border:1px solid var(--border) !important;
-    border-radius:12px !important;
-    color:var(--text) !important;
-    padding:10px !important;
+  /* ===== outer card ===== */
+  .add-wrap{
+    max-width: 860px;
+    margin: 26px auto;
+    padding: 0 12px 24px;
   }
 
-  .ts-wrapper.multi .ts-control > div {
-    background: var(--blue) !important;
-    color:#fff !important;
-    border-radius:8px;
-    padding:4px 8px;
-    margin:2px;
+  .add-card{
+    background: linear-gradient(180deg, var(--panel), var(--panel2));
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    padding: 34px 34px 28px;
+    position: relative;
+    overflow: hidden;
   }
 
-  .ts-dropdown {
-    background:#1e293b !important;
-    color:#fff !important;
-    border:1px solid var(--border);
+  /* subtle border glow */
+  .add-card::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(650px 250px at 30% 0%, rgba(56,189,248,.20), transparent 65%),
+      radial-gradient(650px 250px at 75% 10%, rgba(34,197,94,.18), transparent 65%);
+    pointer-events:none;
+    opacity:.9;
+    filter: blur(18px);
+  }
+  .add-card > *{ position: relative; z-index: 2; }
+
+  /* ===== header ===== */
+  .header{
+    display:flex;
+    align-items:flex-start;
+    gap:16px;
+    margin-bottom: 18px;
   }
 
-  .ts-dropdown .option:hover {
-    background:#334155 !important;
+  .header-icon{
+    width:54px;
+    height:54px;
+    border-radius:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: rgba(56,189,248,.12);
+    border:1px solid rgba(56,189,248,.22);
+    box-shadow: 0 10px 26px rgba(56,189,248,.10);
+    flex: 0 0 auto;
   }
 
-  .btn-primary {
-    background: linear-gradient(90deg, #22c55e, #16a34a);
-    border:none;
-    padding:10px 25px;
-    border-radius:10px;
-    font-weight:600;
-    transition:0.25s;
+  .header-icon svg{ width:28px; height:28px; opacity:.95; }
+
+  .title{
+    margin:0;
+    font-size: 34px;
+    font-weight: 900;
+    letter-spacing: .2px;
+    line-height: 1.05;
+  }
+  .title .accent{ color: var(--blue); }
+
+  .subtitle{
+    margin:10px 0 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.45;
   }
 
-  .btn-primary:hover {
-    transform:scale(1.05);
-    filter:brightness(1.1);
+  /* ===== section label row ===== */
+  .section-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-top: 18px;
+    margin-bottom: 10px;
   }
 
-  .btn-secondary {
-    background: none;
-    border:1px solid var(--blue);
-    padding:10px 25px;
-    color: var(--blue);
-    border-radius:10px;
-    font-weight:600;
-    transition:0.25s;
+  .section-label{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-weight: 800;
+    font-size: 12px;
   }
 
-  .btn-secondary:hover {
-    background: var(--blue);
-    color:#0f172a;
+  .count-badge{
+    font-size: 12px;
+    font-weight: 800;
+    color: rgba(229,231,235,.95);
+    background: rgba(56,189,248,.12);
+    border: 1px solid rgba(56,189,248,.22);
+    padding: 4px 10px;
+    border-radius: 999px;
   }
 
-  #hisobBox {
-    background: rgba(255,255,255,0.05);
-    padding:18px;
-    border-radius:16px;
-    border:1px solid var(--border);
-    margin-top:15px;
-    display:none;
+  /* ===== input panel ===== */
+  .input-panel{
+    border-radius: 18px;
+    border: 1px solid var(--line);
+    background: rgba(15,23,42,.35);
+    padding: 14px;
   }
 
-  #hisobBox li {
-    margin-top:6px;
+  .hint{
+    margin: 10px 2px 0;
+    color: var(--muted);
+    font-size: 13px;
+    display:flex;
+    gap:8px;
+    align-items:center;
   }
-  .ts-control input {
-    color: #ffffff !important;      /* yozilgan text */
-}
+  .hint .dot{
+    width:6px; height:6px; border-radius:999px;
+    background: rgba(56,189,248,.75);
+    box-shadow: 0 0 0 4px rgba(56,189,248,.12);
+    display:inline-block;
+  }
 
-/* Placeholder matnni oq rangga o‘tkazish */
-.ts-control input::placeholder {
-    color: #ffffff !important;
-    opacity: 0.7; /* biroz shaffof oq */
-}
+  /* ===== TomSelect: 1-rasmga yaqin ===== */
+  .ts-wrapper{ width:100%; }
+
+  .ts-control{
+    background: rgba(2,6,23,.35) !important;
+    border: 1px solid rgba(255,255,255,.10) !important;
+    border-radius: 16px !important;
+    color: var(--text) !important;
+    padding: 12px 12px !important;
+    min-height: 56px !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
+  }
+
+  .ts-control input{
+    color: #fff !important;
+    font-size: 15px !important;
+  }
+  .ts-control input::placeholder{
+    color: rgba(148,163,184,.9) !important;
+    opacity: .9 !important;
+  }
+
+  /* selected chips */
+  .ts-wrapper.multi .ts-control > div{
+    background: rgba(56,189,248,.16) !important;
+    border: 1px solid rgba(56,189,248,.30) !important;
+    color: #eaf6ff !important;
+    border-radius: 14px !important;
+    padding: 8px 10px !important;
+    margin: 4px 6px 4px 0 !important;
+    font-weight: 800 !important;
+    box-shadow: 0 10px 24px rgba(56,189,248,.10);
+  }
+
+  /* remove x */
+  .ts-wrapper.multi .ts-control > div .remove{
+    border-left: 0 !important;
+    margin-left: 8px !important;
+    color: rgba(229,231,235,.85) !important;
+    font-weight: 900 !important;
+    padding-left: 10px !important;
+  }
+
+  .ts-dropdown{
+    background: rgba(2,6,23,.96) !important;
+    border: 1px solid rgba(255,255,255,.10) !important;
+    border-radius: 16px !important;
+    overflow: hidden;
+  }
+  .ts-dropdown .option{
+    color: #e5e7eb !important;
+    padding: 12px 12px !important;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .ts-dropdown .option:last-child{ border-bottom: none; }
+  .ts-dropdown .option.active,
+  .ts-dropdown .option:hover{
+    background: rgba(56,189,248,.10) !important;
+  }
+
+  /* ===== buttons row ===== */
+  .btn-row{
+    display:flex;
+    gap:14px;
+    margin-top: 22px;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  .btn-main{
+    flex: 1 1 380px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    padding: 14px 18px;
+    border-radius: 16px;
+    font-weight: 900;
+    border: 1px solid rgba(255,255,255,.10);
+    transition: .18s ease;
+    text-decoration:none;
+    user-select:none;
+  }
+
+  .btn-success{
+    background: linear-gradient(90deg, var(--green), var(--green2));
+    color: #062314;
+    box-shadow: 0 18px 40px rgba(34,197,94,.18);
+    border: none;
+  }
+  .btn-success:hover{
+    transform: translateY(-1px);
+    filter: brightness(1.04);
+  }
+
+  .btn-cancel{
+    flex: 0 1 220px;
+    background: rgba(148,163,184,.10);
+    color: rgba(229,231,235,.95);
+    border: 1px solid rgba(255,255,255,.10);
+  }
+  .btn-cancel:hover{
+    background: rgba(148,163,184,.16);
+    transform: translateY(-1px);
+  }
+
+  /* responsive */
+  @media (max-width: 520px){
+    .add-card{ padding: 22px 18px 18px; }
+    .title{ font-size: 28px; }
+    .btn-cancel{ flex: 1 1 220px; }
+  }
 </style>
 
-<div class="wrapper">
+<div class="add-wrap">
+  <div class="add-card">
 
-  <h4>👥 {{ g.name }} — Guruhga o‘quvchi qo‘shish</h4>
+    <div class="header">
+      <div class="header-icon" aria-hidden="true">
+        <!-- user-plus icon -->
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M15 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z" stroke="rgba(56,189,248,.95)" stroke-width="2"/>
+          <path d="M3 20c0-3.2 3.6-5 8-5" stroke="rgba(56,189,248,.95)" stroke-width="2" stroke-linecap="round"/>
+          <path d="M18 8v6" stroke="rgba(56,189,248,.95)" stroke-width="2" stroke-linecap="round"/>
+          <path d="M15 11h6" stroke="rgba(56,189,248,.95)" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
 
-  <form method="post">
-    {% csrf_token %}
-
-    <!-- Students select -->
-    <div class="mb-4">
-      <label class="form-label">🧑‍🎓 O‘quvchilarni tanlang:</label>
-      <select id="students-select" name="student_ids" multiple required>
-        {% for s in students %}
-          <option value="{{ s.id }}">{{ s.ism }} {{ s.familya }} — {{ s.telefon1 }}</option>
-        {% endfor %}
-      </select>
-      <small class="text-muted d-block mt-2">🔎 Qidirish uchun ism kiriting</small>
+      <div>
+        <h1 class="title">Guruhga o‘quvchi <span class="accent">qo‘shish</span></h1>
+        <p class="subtitle">
+          Guruh tarkibini shakllantirish uchun o‘quvchilarni qidirib toping.
+        </p>
+      </div>
     </div>
 
-    <!-- Calculation box (hidden) -->
-    <div class="alert" id="hisobBox">
-      <strong>📊 Hisob-kitob:</strong>
-      <ul class="mb-0 mt-2">
-        <li>💵 Kurs narxi: <span id="kursSumma">0</span> so‘m</li>
-        <li>👨‍🏫 O‘qituvchi ulushi: <span id="teacherSumma">0</span> so‘m</li>
-        <li>🏫 Markaz ulushi: <span id="centerSumma">0</span> so‘m</li>
-      </ul>
-    </div>
+    <form method="post">
+      {% csrf_token %}
 
-    <div class="mt-4 text-center">
-      <button type="submit" class="btn btn-primary">➕ Qo‘shish</button>
-      <a href="{% url 'education:group_detail' g.id %}" class="btn btn-secondary ms-2">⬅️ Ortga</a>
-    </div>
+      <div class="section-row">
+        <div class="section-label">
+          <span style="display:inline-flex;align-items:center;gap:8px;">
+            <span style="color:rgba(56,189,248,.95)">✦</span>
+            TANLANGAN O‘QUVCHILAR
+          </span>
+        </div>
+        <span class="count-badge" id="selectedCount">0 ta</span>
+      </div>
 
-  </form>
+      <div class="input-panel">
+        <select id="students-select" name="student_ids" multiple required>
+          {% for s in students %}
+            <option value="{{ s.id }}">{{ s.ism }} {{ s.familya }} — {{ s.telefon1 }}</option>
+          {% endfor %}
+        </select>
+
+        <div class="hint">
+          <span class="dot"></span>
+          <span>Tizimdan mavjud o‘quvchini tanlash uchun ism kiriting</span>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button type="submit" class="btn-main btn-success">
+          <span style="font-size:18px;line-height:0;">＋</span>
+          O‘quvchini biriktirish
+        </button>
+
+        <a href="{% url 'education:group_detail' g.id %}" class="btn-main btn-cancel">
+          ← Bekor qilish
+        </a>
+      </div>
+
+    </form>
+
+  </div>
 </div>
 
 <script>
-  new TomSelect("#students-select", {
+  const ts = new TomSelect("#students-select", {
     plugins: ['remove_button'],
-    persist:false,
-    maxItems:null,
-    sortField:{field:"text", direction:"asc"},
-    placeholder:"O‘quvchi tanlang yoki qidiring...",
+    persist: false,
+    maxItems: null,
+    sortField: { field: "text", direction: "asc" },
+    placeholder: "Yana qo‘shish...",
   });
 
-  // Calculate (if needed)
-  const kursInput = document.getElementById('kursNarxi');
-  const foizInput = document.getElementById('foiz');
-  const box = document.getElementById('hisobBox');
-  const kursSumma = document.getElementById('kursSumma');
-  const teacherSumma = document.getElementById('teacherSumma');
-  const centerSumma = document.getElementById('centerSumma');
-
-  function hisobla(){
-    const kurs = parseFloat(kursInput?.value || 0);
-    const foiz = parseFloat(foizInput?.value || 0);
-
-    if(!kursInput) return;
-
-    kursSumma.textContent = kurs.toLocaleString();
-    const teacher = (kurs * foiz / 100).toFixed(0);
-    const center = kurs - teacher;
-
-    teacherSumma.textContent = Number(teacher).toLocaleString();
-    centerSumma.textContent  = Number(center).toLocaleString();
-
-    box.style.display = kurs > 0 ? 'block' : 'none';
+  const countEl = document.getElementById("selectedCount");
+  function updateCount(){
+    const n = ts.items.length;
+    countEl.textContent = `${n} ta`;
   }
-
-  kursInput?.addEventListener("input", hisobla);
-  foizInput?.addEventListener("input", hisobla);
+  ts.on("change", updateCount);
+  updateCount();
 </script>
 
 {% endblock %}

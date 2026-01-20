@@ -1,0 +1,465 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  :root{
+    --card: rgba(255,255,255,.04);
+    --line: rgba(255,255,255,.10);
+
+    --text:#e5e7eb;
+    --muted:#94a3b8;
+
+    --blue:#60a5fa;
+    --green:#10b981;
+    --orange:#f59e0b;
+
+    --shadow: 0 18px 55px rgba(0,0,0,.45);
+    --radius: 18px;
+  }
+
+  .profile-page{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 14px 12px 30px;
+    color: var(--text);
+  }
+
+  .p-head{ margin-bottom: 14px; }
+
+  .p-title{
+    display:flex; align-items:center; gap: 10px;
+    margin: 0;
+    font-weight: 950;
+    font-size: 30px;
+    letter-spacing: .2px;
+  }
+  .p-sub{
+    margin: 6px 0 0;
+    color: rgba(148,163,184,.92);
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  .p-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 14px;
+  }
+  @media(max-width: 980px){
+    .p-grid{ grid-template-columns: 1fr; }
+  }
+
+  .p-card{
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow:hidden;
+    backdrop-filter: blur(10px);
+  }
+
+  .p-card-head{
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+
+  .p-card-title{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    font-weight: 950;
+    margin:0;
+    font-size: 15px;
+    color: #fff;
+  }
+
+  .p-card-body{ padding: 16px; }
+
+  /* ===== AVATAR BLOCK (bigger + nicer) ===== */
+  .ava-row{
+    display:flex;
+    align-items:center;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .ava{
+    width: 128px;
+    height: 128px;
+    border-radius: 28px;
+    border: 1px solid rgba(255,255,255,.14);
+    background: linear-gradient(145deg, rgba(99,102,241,.55), rgba(37,99,235,.30));
+    box-shadow:
+      0 18px 40px rgba(0,0,0,.38),
+      0 0 0 6px rgba(96,165,250,.08);
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight: 950;
+    font-size: 46px;
+    color:#fff;
+    position: relative;
+    flex: 0 0 auto;
+  }
+
+  .ava img{ width:100%; height:100%; object-fit:cover; display:block; }
+
+  .cam-badge{
+    position:absolute;
+    right: 10px;
+    bottom: 10px;
+    width: 36px;
+    height: 36px;
+    border-radius: 14px;
+    background: rgba(0,0,0,.55);
+    border: 1px solid rgba(255,255,255,.16);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+  }
+
+  .ava-meta{ flex:1; min-width: 260px; }
+
+  .hint{
+    color: rgba(148,163,184,.92);
+    font-weight: 800;
+    font-size: 12px;
+    margin: 0 0 8px;
+  }
+
+  /* ===== INPUTS ===== */
+  .inp, input, select, textarea{
+    width: 100%;
+    height: 46px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(2,6,23,.55);
+    color: var(--text);
+    padding: 0 12px;
+    outline: none;
+    font-weight: 800;
+    transition: .18s;
+  }
+  input:focus, select:focus, textarea:focus{
+    border-color: rgba(96,165,250,.55);
+    box-shadow: 0 0 0 3px rgba(96,165,250,.15);
+  }
+
+  .two{ display:grid; grid-template-columns: 1fr; gap: 12px; }
+
+  .field label{
+    display:block;
+    margin: 0 0 6px;
+    font-size: 11px;
+    letter-spacing: .9px;
+    text-transform: uppercase;
+    color: rgba(148,163,184,.92);
+    font-weight: 950;
+  }
+
+  /* ===== CUSTOM FILE UPLOAD (no Russian default) ===== */
+  .file-wrap{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .file-input{
+    position:absolute;
+    left:-9999px;
+    width:1px;
+    height:1px;
+    opacity:0;
+  }
+
+  .file-btn{
+    height: 42px;
+    padding: 0 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.14);
+    background: rgba(255,255,255,.06);
+    color: #e5e7eb;
+    font-weight: 950;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap: 10px;
+    transition:.18s;
+    user-select:none;
+  }
+  .file-btn:hover{
+    transform: translateY(-1px);
+    border-color: rgba(255,255,255,.20);
+    filter: brightness(1.06);
+  }
+
+  .file-name{
+    height: 42px;
+    display:flex;
+    align-items:center;
+    padding: 0 12px;
+    border-radius: 12px;
+    border: 1px dashed rgba(255,255,255,.14);
+    background: rgba(2,6,23,.35);
+    color: rgba(226,232,240,.86);
+    font-weight: 800;
+    font-size: 12.5px;
+    min-width: 220px;
+    flex: 1;
+  }
+
+  .file-mini{
+    margin-top: 8px;
+    color: rgba(148,163,184,.85);
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  /* ===== BUTTONS ===== */
+  .btn-row{
+    display:flex;
+    gap: 12px;
+    align-items:center;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+
+  .btnx{
+    height: 50px;
+    border-radius: 14px;
+    border: 0;
+    padding: 0 14px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap: 10px;
+    font-weight: 950;
+    cursor:pointer;
+    transition: .18s;
+    text-decoration:none;
+    white-space: nowrap;
+  }
+
+  .btn-save{
+    flex: 1;
+    min-width: 240px;
+    background: linear-gradient(90deg, rgba(16,185,129,1), rgba(5,150,105,1));
+    color: #04120c;
+    box-shadow: 0 18px 35px rgba(16,185,129,.18);
+  }
+  .btn-save:hover{ transform: translateY(-2px); filter: brightness(1.02); }
+
+  .btn-back{
+    flex: 1;
+    min-width: 240px;
+    background: rgba(255,255,255,.05);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,.12);
+  }
+  .btn-back:hover{ transform: translateY(-2px); border-color: rgba(255,255,255,.18); }
+
+  /* ===== TIP BOX ===== */
+  .tip{
+    margin-top: 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(245,158,11,.25);
+    background: rgba(245,158,11,.10);
+    padding: 12px 12px;
+    color: rgba(253,230,138,.95);
+    font-weight: 800;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  /* ===== errors ===== */
+  .err{
+    margin-top: 8px;
+    border: 1px solid rgba(239,68,68,.25);
+    background: rgba(239,68,68,.10);
+    color: rgba(254,202,202,.95);
+    padding: 10px 12px;
+    border-radius: 14px;
+    font-weight: 850;
+    font-size: 12.5px;
+    line-height: 1.35;
+  }
+</style>
+
+<div class="profile-page">
+
+  <div class="p-head">
+    <h1 class="p-title">
+      <i class="fa-regular fa-user" style="color:rgba(96,165,250,.95)"></i>
+      Profil
+    </h1>
+    <div class="p-sub">Rasm, ism/familiya va parolni shu yerdan boshqarasiz.</div>
+  </div>
+
+  <div class="p-grid">
+
+    <!-- LEFT: PROFILE UPDATE -->
+    <div class="p-card">
+      <div class="p-card-head">
+        <h3 class="p-card-title">
+          <i class="fa-regular fa-id-badge" style="color:rgba(245,158,11,.95)"></i>
+          Profil ma'lumotlari
+        </h3>
+      </div>
+
+      <div class="p-card-body">
+
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="profile">
+
+          <div class="ava-row">
+            <div class="ava" id="avaBox">
+              {% if request.user.avatar %}
+                <img id="avaImg" src="{{ request.user.avatar.url }}" alt="avatar">
+              {% else %}
+                <span id="avaLetter">{{ request.user.ism|default:"M"|first|upper }}</span>
+                <img id="avaImg" src="" alt="avatar" style="display:none;">
+              {% endif %}
+              <div class="cam-badge"><i class="fa-solid fa-camera"></i></div>
+            </div>
+
+            <div class="ava-meta">
+              <div class="hint">Avatar (JPG/PNG/WEBP)</div>
+
+              <!-- ✅ hidden real input -->
+{{ pform.avatar }}
+
+              <div class="file-wrap">
+                <label class="file-btn" for="id_avatar">
+                  <i class="fa-solid fa-upload"></i> Fayl tanlash
+                </label>
+                <div class="file-name" id="fileName">Fayl tanlanmagan</div>
+              </div>
+
+              <div class="file-mini">Tavsiya: 1:1 kvadrat rasm (masalan 600x600).</div>
+
+              {% if pform.avatar.errors %}
+                <div class="err">{{ pform.avatar.errors|striptags }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="two">
+            <div class="field">
+              <label>Ism</label>
+              {{ pform.ism }}
+              {% if pform.ism.errors %}<div class="err">{{ pform.ism.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="field">
+              <label>Familiya</label>
+              {{ pform.familya }}
+              {% if pform.familya.errors %}<div class="err">{{ pform.familya.errors|striptags }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btnx btn-save" type="submit">
+              <i class="fa-regular fa-floppy-disk"></i> Saqlash
+            </button>
+
+            <a class="btnx btn-back" href="{{ request.GET.next|default:'/' }}">
+              <i class="fa-solid fa-arrow-left"></i> Orqaga
+            </a>
+          </div>
+        </form>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: PASSWORD -->
+    <div class="p-card">
+      <div class="p-card-head">
+        <h3 class="p-card-title">
+          <i class="fa-solid fa-lock" style="color:rgba(245,158,11,.95)"></i>
+          Parolni o'zgartirish
+        </h3>
+      </div>
+
+      <div class="p-card-body">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="password">
+
+          <div class="two">
+            <div class="field">
+              <label>Eski parol</label>
+              {{ pass_form.old_password }}
+              {% if pass_form.old_password.errors %}<div class="err">{{ pass_form.old_password.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="field">
+              <label>Yangi parol</label>
+              {{ pass_form.new_password1 }}
+              {% if pass_form.new_password1.errors %}<div class="err">{{ pass_form.new_password1.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="field">
+              <label>Yangi parol (takror)</label>
+              {{ pass_form.new_password2 }}
+              {% if pass_form.new_password2.errors %}<div class="err">{{ pass_form.new_password2.errors|striptags }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btnx btn-save" type="submit">
+              <i class="fa-solid fa-rotate"></i> Yangilash
+            </button>
+          </div>
+
+          <div class="tip">
+            Maslahat: Xavfsizlikni ta’minlash uchun kamida 8 ta belgidan iborat,
+            katta va kichik harflar hamda raqamlar ishtirokidagi kuchli paroldan foydalaning.
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // inputlarni bir xil classga kiritib qo'yamiz
+  document.querySelectorAll("input, select, textarea").forEach(el=>{
+    if(!el.classList.contains("inp") && el.type !== "file") el.classList.add("inp");
+  });
+
+  // file name + avatar preview
+  const fileInput = document.getElementById("id_avatar");
+  const fileName  = document.getElementById("fileName");
+  const avaImg    = document.getElementById("avaImg");
+  const avaLetter = document.getElementById("avaLetter");
+
+  if(fileInput){
+    fileInput.addEventListener("change", function(){
+      const f = fileInput.files && fileInput.files[0];
+      if(!f){
+        if(fileName) fileName.textContent = "Fayl tanlanmagan";
+        return;
+      }
+      if(fileName) fileName.textContent = f.name;
+
+      // preview
+      try{
+        const url = URL.createObjectURL(f);
+        if(avaImg){
+          avaImg.src = url;
+          avaImg.style.display = "block";
+        }
+        if(avaLetter) avaLetter.style.display = "none";
+      }catch(e){}
+    });
+  }
+</script>
+
+{% endblock %}

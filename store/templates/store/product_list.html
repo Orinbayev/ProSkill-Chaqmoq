@@ -2,209 +2,364 @@
 {% block content %}
 
 <style>
-  :root {
-    --glass: rgba(255,255,255,0.06);
-    --card-bg: rgba(255,255,255,0.05);
-    --border: rgba(148,163,184,0.3);
-    --accent: #facc15;
-    --blue: #38bdf8;
-    --green1: #22c55e;
-    --green2: #16a34a;
-    --danger1: #ef4444;
-    --danger2: #b91c1c;
-    --text: #e2e8f0;
+  :root{
+    --bg:#0b1220;
+    --panel: rgba(17,24,39,.62);
+    --panel2: rgba(2,6,23,.42);
+    --line: rgba(255,255,255,.09);
+    --text:#e5e7eb;
+    --muted:#94a3b8;
+
+    --accent:#facc15;
+    --blue:#38bdf8;
+    --blue2:#2563eb;
+
+    --green:#22c55e;
+    --green2:#16a34a;
+
+    --red:#ef4444;
+    --red2:#b91c1c;
+
+    --shadow: 0 18px 55px rgba(0,0,0,.45);
   }
 
-  .products-wrapper {
-    height: calc(100vh - 110px);
-    overflow-y: auto;
-    padding: 25px 35px;
+  /* page wrapper */
+  .shop-page{
+    max-width: 1400px;
+    margin: 16px auto 26px;
+    padding: 0 16px 26px;
     color: var(--text);
   }
 
-  h3 {
+  /* header row */
+  .shop-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 18px 18px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--panel), var(--panel2));
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(12px);
+  }
+
+  .shop-left{
+    display:flex;
+    gap: 12px;
+    align-items:center;
+    min-width: 280px;
+  }
+
+  .shop-ico{
+    width:44px;height:44px;
+    border-radius: 16px;
+    display:grid;place-items:center;
+    background: rgba(250,204,21,.10);
+    border: 1px solid rgba(250,204,21,.22);
     color: var(--accent);
-    font-weight: 700;
-    margin-bottom: 25px;
-    letter-spacing: .5px;
-  }
-
-  .add-btn {
-    background: linear-gradient(90deg, var(--green1), var(--green2));
-    padding: 9px 20px;
-    border-radius: 10px;
-    color: #fff;
-    font-weight: 700;
-    text-decoration: none;
-    transition: .25s;
-  }
-  .add-btn:hover { opacity: .88; }
-
-  .delete-mode-btn {
-    background: linear-gradient(90deg, var(--danger1), var(--danger2));
-    padding: 9px 20px;
-    border-radius: 10px;
-    color: #fff;
-    font-weight: 700;
-    margin-left: 12px;
-    cursor: pointer;
-    transition: .25s;
-  }
-
-  .product-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(245px, 1fr));
-    gap: 22px;
-    margin-top: 18px;
-  }
-
-  .card {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    box-shadow: 0 0 18px rgba(56,189,248,0.18);
-    overflow: hidden;
-    transition: transform .25s, box-shadow .25s;
-    position: relative;
-  }
-  .card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 0 25px rgba(56,189,248,0.35);
-  }
-
-  .card img {
-    width: 100%;
-    height: 240px;
-    object-fit: cover;
-  }
-
-  .checkbox {
-    position: absolute;
-    top: 14px;
-    right: 16px;
-    transform: scale(1.7);
-    display: none;
-  }
-  .checkbox.active {
-    display: block;
-  }
-
-  .card-body {
-    padding: 14px 16px;
-  }
-
-  .card-title {
-    color: var(--accent);
-    font-weight: 700;
+    font-weight: 900;
     font-size: 18px;
   }
 
-  .card-text {
-    color: #cbd5e1;
-    margin-bottom: 4px;
+  .shop-title{
+    margin:0;
+    font-size: 30px;
+    font-weight: 950;
+    letter-spacing: .2px;
+    line-height: 1.1;
+  }
+  .shop-sub{
+    margin-top: 4px;
+    color: var(--muted);
+    font-weight: 800;
+    font-size: 13px;
   }
 
-  .btn-view {
-    display: block;
+  .shop-actions{
+    display:flex;
+    gap: 12px;
+    align-items:center;
+    flex-wrap: wrap;
+    margin-left:auto;
+  }
+
+  .btn-pill{
+    height: 44px;
+    padding: 0 16px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.10);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap: 10px;
+    font-weight: 900;
+    text-decoration:none;
+    cursor:pointer;
+    transition: .18s ease;
+    user-select:none;
+    white-space: nowrap;
+  }
+  .btn-pill:hover{ transform: translateY(-1px); filter: brightness(.98); }
+
+  .btn-green{
+    background: linear-gradient(135deg, var(--green) 0%, var(--green2) 100%);
+    color:#062312;
+    box-shadow: 0 14px 28px rgba(34,197,94,.18);
+    border-color: rgba(34,197,94,.18);
+  }
+  .btn-red{
+    background: linear-gradient(135deg, rgba(239,68,68,.18) 0%, rgba(185,28,28,.18) 100%);
+    color:#fecaca;
+    border-color: rgba(239,68,68,.28);
+  }
+  .btn-red.active{
+    background: linear-gradient(135deg, var(--red) 0%, var(--red2) 100%);
+    color:#fff;
+    border-color: rgba(239,68,68,.35);
+    box-shadow: 0 14px 28px rgba(239,68,68,.16);
+  }
+
+  /* grid */
+  .grid{
+    margin-top: 16px;
+    display:grid;
+    grid-template-columns: repeat(3, minmax(0,1fr));
+    gap: 16px;
+  }
+
+  .p-card{
+    border-radius: 22px;
+    overflow:hidden;
+    background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(2,6,23,.22));
+    border: 1px solid rgba(255,255,255,.10);
+    box-shadow: 0 18px 55px rgba(0,0,0,.35);
+    transition: .18s ease;
+    position: relative;
+    min-height: 420px;
+    display:flex;
+    flex-direction: column;
+  }
+  .p-card:hover{ transform: translateY(-3px); border-color: rgba(56,189,248,.22); }
+
+  .p-img{
+    height: 240px;
+    width:100%;
+    object-fit: cover;
+    display:block;
+  }
+
+  /* price badge (top-right) */
+  .p-badge{
+    position:absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(2,6,23,.70);
+    border: 1px solid rgba(255,255,255,.12);
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-weight: 950;
+    font-size: 12px;
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    box-shadow: 0 10px 24px rgba(0,0,0,.35);
+    backdrop-filter: blur(10px);
+  }
+  .p-badge .bolt{
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    display:grid;
+    place-items:center;
+    background: rgba(250,204,21,.12);
+    border: 1px solid rgba(250,204,21,.22);
+    color: var(--accent);
+    font-weight: 900;
+    font-size: 12px;
+  }
+
+  /* delete checkbox (only in delete mode) */
+  .p-check{
+    position:absolute;
+    top: 12px;
+    left: 12px;
+    width: 22px;
+    height: 22px;
+    display:none;
+    accent-color: #ef4444;
+    filter: drop-shadow(0 8px 16px rgba(0,0,0,.35));
+  }
+  .p-check.active{ display:block; }
+
+  .p-body{
+    padding: 16px 16px 14px;
+    display:flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1 1 auto;
+  }
+
+  .p-title{
+    margin:0;
+    font-weight: 950;
+    font-size: 18px;
+    color: var(--accent);
+    letter-spacing: .2px;
+    line-height: 1.2;
+  }
+
+  .p-row{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    color: rgba(226,232,240,.90);
+    font-weight: 850;
+    font-size: 13px;
+  }
+
+  .p-row.muted{
+    color: rgba(148,163,184,.90);
+    font-weight: 800;
+    font-size: 12px;
+  }
+
+  /* big bottom button (like your screenshot) */
+  .btn-view{
+    margin-top: auto;
+    height: 46px;
+    border-radius: 12px;
     width: 100%;
-    text-align: center;
-    background: var(--blue);
-    border-radius: 10px;
-    padding: 8px 12px;
-    color: #fff;
-    margin-top: 8px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: .25s;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap: 8px;
+    text-decoration:none;
+    font-weight: 950;
+    background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+    color: #06212e;
+    box-shadow: 0 18px 28px rgba(56,189,248,.16);
+    border: 1px solid rgba(56,189,248,.35);
+    transition: .18s ease;
   }
-  .btn-view:hover {
-    background: #60c8ff;
+  .btn-view:hover{ transform: translateY(-1px); filter: brightness(.98); }
+
+  /* delete panel */
+  .delete-actions{
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(239,68,68,.10), rgba(2,6,23,.22));
+    border: 1px solid rgba(239,68,68,.22);
+    box-shadow: var(--shadow);
+    display:none;
+    align-items:center;
+    justify-content:space-between;
+    gap: 12px;
+    flex-wrap: wrap;
   }
 
-  .delete-actions {
-    margin-top: 25px;
-    text-align: center;
-    display: none;
+  .danger-btn{
+    background: linear-gradient(135deg, var(--red) 0%, var(--red2) 100%);
+    color:#fff;
+    border:0;
+    padding: 10px 16px;
+    border-radius: 14px;
+    font-weight: 950;
+    cursor:pointer;
+  }
+  .ghost-btn{
+    background: transparent;
+    border: 1px solid rgba(255,255,255,.14);
+    color: rgba(226,232,240,.9);
+    padding: 10px 16px;
+    border-radius: 14px;
+    font-weight: 900;
+    cursor:pointer;
   }
 
-  .confirm-delete-btn {
-    background: var(--danger1);
-    border: none;
-    padding: 9px 22px;
-    font-weight: 700;
-    border-radius: 10px;
-    color: #fff;
-    cursor: pointer;
+  /* responsive */
+  @media (max-width: 1200px){
+    .grid{ grid-template-columns: repeat(2, minmax(0,1fr)); }
   }
-
-  .cancel-btn {
-    background: none;
-    border: 2px solid var(--blue);
-    color: var(--blue);
-    padding: 8px 20px;
-    margin-left: 12px;
-    border-radius: 10px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  @media (max-width: 540px) {
-    .products-wrapper { padding: 22px 15px; }
+  @media (max-width: 720px){
+    .grid{ grid-template-columns: 1fr; }
+    .btn-pill{ width: 100%; justify-content:center; }
+    .shop-actions{ width:100%; }
   }
 </style>
 
+<div class="shop-page">
 
-
-<div class="products-wrapper">
-
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h3>🛍️ Mahsulotlar</h3>
+  <!-- header -->
+  <div class="shop-head">
+    <div class="shop-left">
+      <div class="shop-ico">🧾</div>
+      <div>
+        <h1 class="shop-title">Mahsulotlar</h1>
+        <div class="shop-sub">Akademiya do‘koni mahsulotlarini boshqarish</div>
+      </div>
+    </div>
 
     {% if can_add %}
-    <div>
-      <a href="{% url 'store:product_create' %}" class="add-btn">+ Mahsulot qo‘shish</a>
-      <span id="toggleDelete" class="delete-mode-btn">🗑️ O‘chirish rejimi</span>
+    <div class="shop-actions">
+      <a href="{% url 'store:product_create' %}" class="btn-pill btn-green">➕ Mahsulot qo‘shish</a>
+      <button type="button" id="toggleDelete" class="btn-pill btn-red">🗑 O‘chirish rejimi</button>
     </div>
     {% endif %}
   </div>
 
-
   <form method="POST">
     {% csrf_token %}
 
-    <div class="product-grid">
+    <!-- grid -->
+    <div class="grid">
       {% for p in items %}
-      <div class="card">
+      <div class="p-card">
 
         {% with img=p.rasmlar.first %}
           {% if img %}
-            <img src="{{ img.rasm.url }}" alt="{{ p.nom }}">
+            <img class="p-img" src="{{ img.rasm.url }}" alt="{{ p.nom }}">
           {% else %}
-            <img src="https://placehold.co/400x400?text=No+Image" alt="no image">
+            <img class="p-img" src="https://placehold.co/1200x800?text=No+Image" alt="no image">
           {% endif %}
         {% endwith %}
 
+        <div class="p-badge" title="Narx (Chaqmoq)">
+          <span class="bolt">⚡</span> {{ p.narx_chaqmoq }}
+        </div>
+
         {% if can_add %}
-          <input type="checkbox" class="checkbox" name="selected_products" value="{{ p.id }}">
+          <input type="checkbox" class="p-check" name="selected_products" value="{{ p.id }}">
         {% endif %}
 
-        <div class="card-body">
-          <div class="card-title">{{ p.nom }}</div>
-          <div class="card-text">💰 {{ p.narx_chaqmoq }} Chaqmoq</div>
-          <div class="card-text">🛒 Sotib olish: {{ p.sale_set.count }}</div>
-          <a href="{% url 'store:product_detail' p.pk %}" class="btn-view">Ko‘rish</a>
+        <div class="p-body">
+          <h3 class="p-title">{{ p.nom }}</h3>
+
+          <div class="p-row"><span>⚡</span> {{ p.narx_chaqmoq }} Chaqmoq</div>
+          <div class="p-row muted"><span>🛒</span> Sotib olish: {{ p.sale_set.count }}</div>
+
+          <!-- ✅ only 1 button (NO eye icon + NO 3 dots on image) -->
+          <a class="btn-view" href="{% url 'store:product_detail' p.pk %}">Ko‘rish</a>
         </div>
+
       </div>
       {% empty %}
-      <p style="color:#94a3b8;">Mahsulot mavjud emas.</p>
+        <div style="padding:18px; color:var(--muted); font-weight:900;">
+          Mahsulot mavjud emas.
+        </div>
       {% endfor %}
     </div>
 
-
     {% if can_add %}
     <div id="deleteActions" class="delete-actions">
-      <button type="submit" class="confirm-delete-btn">🗑️ Tanlanganlarni o‘chirish</button>
-      <button type="button" id="cancelDelete" class="cancel-btn">Bekor qilish</button>
+      <div style="font-weight:950; color:#fecaca;">🗑 Tanlangan mahsulotlarni o‘chirasizmi?</div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button type="submit" class="danger-btn">🗑 Tanlanganlarni o‘chirish</button>
+        <button type="button" id="cancelDelete" class="ghost-btn">Bekor qilish</button>
+      </div>
     </div>
     {% endif %}
 
@@ -212,27 +367,31 @@
 
 </div>
 
-
-
 {% if can_add %}
 <script>
   const toggleBtn = document.getElementById("toggleDelete");
-  const checkboxes = document.querySelectorAll(".checkbox");
+  const checkboxes = document.querySelectorAll(".p-check");
   const panel = document.getElementById("deleteActions");
   let mode = false;
 
-  toggleBtn.addEventListener("click", () => {
-    mode = !mode;
-    checkboxes.forEach(cb => cb.classList.toggle("active", mode));
-    panel.style.display = mode ? "block" : "none";
-    toggleBtn.textContent = mode ? "❌ Rejimdan chiqish" : "🗑️ O‘chirish rejimi";
-  });
+  if (toggleBtn){
+    toggleBtn.addEventListener("click", () => {
+      mode = !mode;
+
+      checkboxes.forEach(cb => cb.classList.toggle("active", mode));
+      panel.style.display = mode ? "flex" : "none";
+
+      toggleBtn.classList.toggle("active", mode);
+      toggleBtn.textContent = mode ? "❌ O‘chirish rejimidan chiqish" : "🗑 O‘chirish rejimi";
+    });
+  }
 
   document.getElementById("cancelDelete")?.addEventListener("click", () => {
     mode = false;
     checkboxes.forEach(cb => { cb.checked = false; cb.classList.remove("active"); });
     panel.style.display = "none";
-    toggleBtn.textContent = "🗑️ O‘chirish rejimi";
+    toggleBtn.classList.remove("active");
+    toggleBtn.textContent = "🗑 O‘chirish rejimi";
   });
 </script>
 {% endif %}

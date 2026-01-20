@@ -1,230 +1,300 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h3 class="text-light mb-4 fw-bold">
-  👨‍🏫 O‘qituvchilar ro‘yxati
-</h3>
-
-<div class="table-wrapper">
-  <div class="table-responsive rounded shadow-lg">
-    <table class="table table-dark table-hover align-middle mb-0 teacher-table">
-      <thead>
-        <tr>
-          <th class="text-info">#</th>
-          <th class="text-info">F.I.Sh</th>
-          <th class="text-info">Telefon</th>
-          <th class="text-info">Ulushi (%)</th>
-          <th class="text-info">Guruh</th>
-          <th class="text-info text-center">Amallar</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for t in teachers %}
-        <tr>
-          <td class="fw-bold">{{ forloop.counter }}</td>
-          <td class="fw-semibold name-col">
-            {{ t.ism }}
-            {% if t.familya %}<br>{{ t.familya }}{% endif %}
-            {% if t.otchestvo %} {{ t.otchestvo }}{% endif %}
-          </td>
-          <td>{{ t.telefon1|default:"—" }}</td>
-          <td>
-            <span class="badge bg-info text-dark percent-badge">
-              {{ t.oqituvchi_foizi }}%
-            </span>
-          </td>
-          <td>
-            <span class="badge bg-warning text-dark group-badge">
-              {{ t.group_count }}
-            </span>
-          </td>
-<td class="text-center action-cell">
-
-  <a href="{% url 'core:teacher_detail' t.id %}"
-     class="icon-btn view"
-     title="Ko‘rish">
-     <i class="fa-solid fa-eye"></i>
-  </a>
-
-  <a href="{% url 'core:teacher_edit' t.id %}"
-     class="icon-btn edit"
-     title="Tahrirlash">
-     <i class="fa-solid fa-pen"></i>
-  </a>
-
-  <form method="post"
-        action="{% url 'core:teacher_delete' t.id %}"
-        class="d-inline"
-        onsubmit="return confirm('O‘qituvchini o‘chirishni tasdiqlaysizmi?');">
-    {% csrf_token %}
-    <button type="submit"
-            class="icon-btn delete"
-            title="O‘chirish">
-      <i class="fa-solid fa-trash"></i>
-    </button>
-  </form>
-
-</td>
-
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="6" class="text-center py-3 text-secondary">
-            ⚠️ O‘qituvchi topilmadi
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-
 <style>
-.table-wrapper {
-  width: 100%;
-  overflow-x: auto;
-  padding-bottom: 10px;
-}
+  :root{
+    --panel: rgba(17,24,39,.62);
+    --panel2: rgba(2,6,23,.55);
+    --line: rgba(255,255,255,.08);
+    --muted: #94a3b8;
+    --text: #e5e7eb;
 
-.teacher-table thead {
-  background: rgba(255,255,255,0.05);
-  backdrop-filter: blur(6px);
-}
-.teacher-table th {
-  white-space: nowrap;
-  padding: 12px 14px;
-  font-weight: 600;
-}
-
-.name-col {
-  white-space: normal !important;
-  word-wrap: break-word;
-}
-
-.percent-badge,
-.group-badge {
-  padding: 6px 12px;
-  border-radius: 10px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.action-cell {
-  white-space: nowrap;
-}
-
-@media (max-width: 768px) {
-  h3 {
-    font-size: 20px;
-    text-align: center;
+    --blue: #38bdf8;
+    --cyan: #06b6d4;
+    --yellow: #f59e0b;
+    --green: #22c55e;
+    --red: #ef4444;
   }
-  .teacher-table th,
-  .teacher-table td {
-    padding: 10px 8px;
-    font-size: 13px;
+
+  /* PAGE WRAP */
+  .page-wrap{
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 8px 12px 22px;
+    color: var(--text);
   }
-  .percent-badge,
-  .group-badge {
+
+  /* TITLE */
+  .page-title{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    justify-content:flex-start;
+    font-size: 34px;
+    font-weight: 900;
+    letter-spacing: .2px;
+    margin: 0 0 16px;
+  }
+  .page-title .emoji{
+    filter: drop-shadow(0 8px 18px rgba(0,0,0,.35));
+  }
+
+  /* CARD */
+  .card-panel{
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 0 18px 45px rgba(0,0,0,.40);
+    overflow: hidden;
+  }
+
+  /* TABLE */
+  .tbl{
+    width:100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .tbl thead th{
+    text-transform: uppercase;
     font-size: 12px;
-    padding: 4px 9px;
+    letter-spacing: .9px;
+    color: rgba(56,189,248,.95);
+    background: rgba(255,255,255,.05);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 16px;
+    white-space: nowrap;
   }
-  .name-col {
+
+  .tbl tbody td{
+    padding: 16px 16px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    vertical-align: middle;
+    color: var(--text);
+  }
+
+  .tbl tbody tr{
+    background: rgba(255,255,255,0.00);
+    transition: .18s ease;
+  }
+  .tbl tbody tr:hover{
+    background: rgba(255,255,255,.04);
+  }
+
+  .col-num{
+    width: 60px;
+    color: rgba(226,232,240,.9);
+    font-weight: 800;
+  }
+
+  .name{
+    font-weight: 800;
+    color: rgba(226,232,240,.95);
+    line-height: 1.15;
+  }
+  .name .sub{
+    display:block;
+    margin-top: 4px;
+    font-weight: 700;
+    color: rgba(56,189,248,.92);
+  }
+
+  .phone{
+    font-weight: 700;
+    color: rgba(226,232,240,.92);
+    white-space: nowrap;
+  }
+
+  /* PILL (Ulushi %) */
+  .pill{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-weight: 900;
     font-size: 13px;
+    letter-spacing: .2px;
+    border: 1px solid rgba(255,255,255,.10);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.18);
+    white-space: nowrap;
   }
-}
-
-@media (max-width: 480px) {
-  .btn-edit {
-    display: block;
-    width: 100%;
-    margin-bottom: 6px;
+  .pill.percent{
+    background: rgba(6,182,212,.18);
+    color: #7dd3fc;
   }
-  .action-cell {
-    width: 100px;
+
+  /* CIRCLE (Guruh) */
+  .circle{
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    font-weight: 900;
+    color: #111827;
+    background: rgba(245,158,11,.95);
+    box-shadow: 0 12px 24px rgba(245,158,11,.18);
   }
-}
 
-.btn-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  font-weight: 600;
-  border: none;
-  margin: 2px;
-  cursor: pointer;
-  transition: 0.2s;
-}
+  /* ACTIONS */
+  .actions{
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    white-space: nowrap;
+  }
+  .icon-btn{
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.10);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    text-decoration:none;
+    cursor:pointer;
+    transition: .18s ease;
+    font-size: 15px;
+  }
 
-.btn-view {
-  background: rgba(14,165,233,0.15);
-  color: #38bdf8;
-}
-.btn-view:hover {
-  background: rgba(14,165,233,0.3);
-}
+  .icon-btn.view{
+    background: rgba(59,130,246,.16);
+    color: #60a5fa;
+  }
+  .icon-btn.view:hover{
+    background: rgba(59,130,246,.28);
+    transform: translateY(-1px);
+    color: #fff;
+  }
 
-.btn-edit {
-  background: rgba(250,204,21,0.15);
-  color: #facc15;
-}
-.btn-edit:hover {
-  background: rgba(250,204,21,0.3);
-}
+  .icon-btn.edit{
+    background: rgba(245,158,11,.16);
+    color: #fbbf24;
+  }
+  .icon-btn.edit:hover{
+    background: rgba(245,158,11,.28);
+    transform: translateY(-1px);
+    color: #fff;
+  }
 
-.btn-delete {
-  background: rgba(239,68,68,0.15);
-  color: #ef4444;
-}
-.btn-delete:hover {
-  background: rgba(239,68,68,0.3);
-}
-.icon-btn {
-  width: 36px;
-  height: 36px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  margin: 0 3px;
-  transition: all 0.2s ease;
-}
+  .icon-btn.delete{
+    background: rgba(239,68,68,.16);
+    color: #f87171;
+  }
+  .icon-btn.delete:hover{
+    background: rgba(239,68,68,.28);
+    transform: translateY(-1px);
+    color: #fff;
+  }
 
-/* View */
-.icon-btn.view {
-  background-color: rgba(59, 130, 246, 0.15); /* blue bg */
-  color: #3b82f6;
-}
-.icon-btn.view:hover {
-  background-color: rgba(59, 130, 246, 0.3);
-  color: #ffffff;
-}
+  .btn-reset{
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
 
-/* Edit */
-.icon-btn.edit {
-  background-color: rgba(250, 204, 21, 0.15); /* yellow bg */
-  color: #facc15;
-}
-.icon-btn.edit:hover {
-  background-color: rgba(250, 204, 21, 0.3);
-  color: #ffffff;
-}
+  /* EMPTY */
+  .empty{
+    padding: 26px 16px;
+    text-align:center;
+    color: rgba(148,163,184,.9);
+    font-weight: 700;
+  }
 
-/* Delete */
-.icon-btn.delete {
-  background-color: rgba(239, 68, 68, 0.15); /* red bg */
-  color: #ef4444;
-}
-.icon-btn.delete:hover {
-  background-color: rgba(239, 68, 68, 0.3);
-  color: #ffffff;
-}
-
+  /* RESPONSIVE */
+  @media (max-width: 768px){
+    .page-title{ font-size: 26px; }
+    .tbl thead th{ font-size: 11px; padding: 12px 12px; }
+    .tbl tbody td{ padding: 12px 12px; font-size: 13px; }
+    .circle{ width: 30px; height: 30px; }
+    .icon-btn{ width: 34px; height: 34px; }
+  }
 </style>
+
+<div class="page-wrap">
+
+  <h2 class="page-title">
+    <span class="emoji">🧑‍🏫</span>
+    <span>O‘qituvchilar ro‘yxati</span>
+  </h2>
+
+  <div class="card-panel">
+    <div class="table-responsive" style="overflow-x:auto;">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th class="col-num">#</th>
+            <th>F.I.Sh</th>
+            <th>Telefon</th>
+            <th>Ulushi (%)</th>
+            <th>Guruh</th>
+            <th style="text-align:center;">Amallar</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for t in teachers %}
+          <tr>
+            <td class="col-num">{{ forloop.counter }}</td>
+
+            <td>
+              <div class="name">
+                {{ t.ism }}
+                {% if t.familya %}<span class="sub">{{ t.familya }}</span>{% endif %}
+                {% if t.otchestvo %}<span class="sub" style="color: rgba(226,232,240,.75); font-weight:700;">{{ t.otchestvo }}</span>{% endif %}
+              </div>
+            </td>
+
+            <td class="phone">{{ t.telefon1|default:"—" }}</td>
+
+            <td>
+              <span class="pill percent">{{ t.oqituvchi_foizi }}%</span>
+            </td>
+
+            <td>
+              <span class="circle">{{ t.group_count }}</span>
+            </td>
+
+            <td>
+              <div class="actions">
+
+                <a href="{% url 'core:teacher_detail' t.id %}"
+                   class="icon-btn view"
+                   title="Ko‘rish">
+                  <i class="fa-solid fa-eye"></i>
+                </a>
+
+                <a href="{% url 'core:teacher_edit' t.id %}"
+                   class="icon-btn edit"
+                   title="Tahrirlash">
+                  <i class="fa-solid fa-pen"></i>
+                </a>
+
+                <form method="post"
+                      action="{% url 'core:teacher_delete' t.id %}"
+                      class="d-inline"
+                      onsubmit="return confirm('O‘qituvchini o‘chirishni tasdiqlaysizmi?');">
+                  {% csrf_token %}
+                  <button type="submit" class="icon-btn delete btn-reset" title="O‘chirish">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </form>
+
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="empty">⚠️ O‘qituvchi topilmadi</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
 
 {% endblock %}

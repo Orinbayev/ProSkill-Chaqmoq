@@ -3,352 +3,565 @@
 {% block content %}
 
 <style>
-  body{
-    background: linear-gradient(180deg, #0b1224, #0f172a, #0b1224);
-    min-height: 100vh;
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Poppins", sans-serif;
-    color: #e5e7eb;
-  }
-  .page-wrap{ padding: 34px 0 70px; }
+  /* =========================
+     THEME (like screenshot)
+     ========================= */
+  :root{
+    --bg1:#0b1224;
+    --bg2:#0f172a;
+    --panel: rgba(17,24,39,.62);
+    --panel2: rgba(2,6,23,.55);
+    --line: rgba(255,255,255,.08);
 
-  /* Header */
-  .page-title{
+    --text:#e5e7eb;
+    --muted:#94a3b8;
+
+    --yellow:#facc15;
+    --blue:#3b82f6;
+    --blue2:#60a5fa;
+    --green:#22c55e;
+    --red:#ef4444;
+  }
+
+  body{
+    background: linear-gradient(180deg, var(--bg1), var(--bg2), var(--bg1));
+    min-height: 100vh;
+    color: var(--text);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Poppins", sans-serif;
+  }
+
+  .wrap{
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 22px 12px 70px;
+  }
+
+  /* =========================
+     Header
+     ========================= */
+  .topbar{
     display:flex;
-    align-items:flex-end;
+    align-items:center;
     justify-content:space-between;
     gap:14px;
+    flex-wrap:wrap;
     margin-bottom: 14px;
-    flex-wrap: wrap;
   }
-  .page-title h2{
-    margin:0;
-    font-weight: 900;
-    letter-spacing: .2px;
-    color:#facc15;
-    text-shadow: 0 2px 10px rgba(250,204,21,.25);
-  }
-  .subtext{ color:#94a3b8; font-weight:650; margin-top:4px; }
 
-  .meta-badges{
-    display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;
+  .titlebox{
+    display:flex;
+    align-items:center;
+    gap:12px;
   }
-  .meta-pill{
-    padding: 6px 12px;
+
+  .title-ic{
+    width:44px;
+    height:44px;
+    border-radius: 12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: rgba(59,130,246,.20);
+    border: 1px solid rgba(59,130,246,.28);
+    box-shadow: 0 12px 26px rgba(0,0,0,.35);
+    font-size: 18px;
+  }
+    /* Title icon svg */
+  .title-ic{
+    color: rgba(96,165,250,.95);
+  }
+  .title-svg{
+    width:22px;
+    height:22px;
+    display:block;
+  }
+
+  /* Action icons (better look) */
+  .icon{
+    position:relative;
+    overflow:hidden;
+    font-size: 0; /* emoji o'chadi */
+  }
+
+  .icon svg{
+    width:18px;
+    height:18px;
+    display:block;
+  }
+
+  .icon::after{
+    content:"";
+    position:absolute;
+    inset:-40%;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), transparent 55%);
+    opacity:0;
+    transform: rotate(20deg);
+    transition:.18s ease;
+  }
+  .icon:hover::after{ opacity:.9; }
+
+  .icon:active{
+    transform: translateY(0) scale(.98);
+  }
+
+
+  .titlebox h2{
+    margin:0;
+    font-weight: 950;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    color: var(--yellow);
+    text-shadow: 0 8px 24px rgba(250,204,21,.22);
+  }
+
+  .rightbox{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+
+  .btn-add{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding: 10px 16px;
+    border-radius: 14px;
+    text-decoration:none;
+    color:#fff !important;
+    font-weight: 900;
+    border: 1px solid rgba(255,255,255,.12);
+    background: linear-gradient(90deg, rgba(59,130,246,.95), rgba(96,165,250,.95));
+    box-shadow: 0 18px 40px rgba(59,130,246,.18);
+    transition: .18s ease;
+    white-space: nowrap;
+  }
+  .btn-add:hover{ transform: translateY(-1px); opacity:.98; }
+
+  .pill{
+    padding: 8px 12px;
     border-radius: 999px;
     background: rgba(255,255,255,.06);
     border: 1px solid rgba(255,255,255,.10);
     color:#cbd5e1;
-    font-weight: 650;
+    font-weight: 800;
     font-size: 13px;
-  }
-  .meta-pill b{ color:#fff; }
-
-  /* Add button */
-  .add-btn{
-    border-radius: 14px;
-    padding: 10px 16px;
-    font-weight: 850;
-    border: 1px solid rgba(255,255,255,.12);
-    background: linear-gradient(90deg, rgba(59,130,246,.95), rgba(96,165,250,.95));
-    color:#fff !important;
-    text-decoration:none;
-    transition:.2s;
     white-space: nowrap;
   }
-  .add-btn:hover{ transform: translateY(-1px); opacity:.98; }
+  .pill b{ color:#fff; }
 
-  /* Filters */
-  .filters{
+  /* =========================
+     Filter bar
+     ========================= */
+  .filterbar{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding: 12px;
+    border-radius: 16px;
     background: rgba(255,255,255,.05);
     border: 1px solid rgba(255,255,255,.08);
-    border-radius: 16px;
-    padding: 14px;
-    box-shadow: 0 10px 28px rgba(0,0,0,.35);
+    box-shadow: 0 12px 32px rgba(0,0,0,.35);
     backdrop-filter: blur(10px);
     margin-bottom: 14px;
   }
-  .filters .form-control{
-    background: rgba(255,255,255,.08);
-    border: 1px solid rgba(255,255,255,.10);
-    color: #e5e7eb;
-    border-radius: 12px;
-    padding: 10px 12px;
-  }
-  .filters .form-control::placeholder{ color:#9ca3af; }
-  .filters .btn-clear{
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,.12);
-    background: rgba(255,255,255,.06);
-    color:#e5e7eb;
-    padding: 10px 14px;
-    font-weight:750;
-    transition:.2s;
-  }
-  .filters .btn-clear:hover{
-    background: rgba(255,255,255,.10);
-    transform: translateY(-1px);
+
+  .search{
+    flex:1;
+    position:relative;
   }
 
-  /* List wrapper */
-  .list-box{
+  .search input{
+    width:100%;
+    height: 44px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(2,6,23,.35);
+    color: var(--text);
+    font-weight: 800;
+    padding: 0 14px 0 44px;
+    outline: none;
+    transition: .18s ease;
+  }
+  .search input::placeholder{ color: rgba(148,163,184,.85); font-weight: 750; }
+  .search input:focus{
+    border-color: rgba(59,130,246,.55);
+    box-shadow: 0 0 0 4px rgba(59,130,246,.12);
+    background: rgba(2,6,23,.45);
+  }
+
+  .search .ic{
+    position:absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity:.9;
+    color: rgba(147,197,253,.95);
+    font-size: 16px;
+    pointer-events:none;
+  }
+
+  .btn-clear{
+    height: 44px;
+    padding: 0 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.06);
+    color: var(--text);
+    font-weight: 900;
+    cursor:pointer;
+    transition: .18s ease;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    white-space: nowrap;
+  }
+  .btn-clear:hover{
+    transform: translateY(-1px);
+    background: rgba(255,255,255,.10);
+  }
+
+  /* =========================
+     Table card
+     ========================= */
+  .card{
+    border-radius: 18px;
+    overflow:hidden;
     background: rgba(255,255,255,.04);
     border: 1px solid rgba(255,255,255,.08);
-    border-radius: 18px;
-    overflow: hidden;
     box-shadow: 0 16px 40px rgba(0,0,0,.40);
   }
 
-  /* Columns */
-  .list-head{
+  .thead, .trow{
     display:grid;
-    grid-template-columns: 90px 1.2fr 1.8fr 160px 210px;
+    grid-template-columns: 80px 1.2fr 1.8fr 150px 200px;
     gap: 10px;
-    padding: 12px 14px;
-    background: rgba(59,130,246,.16);
-    border-bottom: 1px solid rgba(255,255,255,.10);
-    color:#bfdbfe;
-    font-weight: 800;
-    font-size: 13px;
+    align-items:center;
+    padding: 13px 14px;
   }
 
-  .list-row{
-    display:grid;
-    grid-template-columns: 90px 1.2fr 1.8fr 160px 210px;
-    gap: 10px;
-    padding: 14px 14px;
-    align-items: center;
+  .thead{
+    background: rgba(255,255,255,.04);
     border-bottom: 1px solid rgba(255,255,255,.08);
-    background: rgba(255,255,255,.02);
-    transition: .18s ease;
+    color: rgba(191,219,254,.95);
+    font-weight: 900;
+    font-size: 12px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
   }
-  .list-row:hover{ background: rgba(59,130,246,.10); }
 
-  .cell-muted{ color:#94a3b8; font-weight: 650; }
-  .cell-strong{ color:#e5e7eb; font-weight: 780; }
-  .cell-blue{ color:#60a5fa; font-weight: 900; }
+  .trow{
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    background: rgba(255,255,255,.02);
+    transition: .16s ease;
+    cursor:pointer;
+  }
+  .trow:hover{ background: rgba(59,130,246,.08); }
+  .trow:last-child{ border-bottom: none; }
 
-  /* group count pill */
-  .count-pill{
+  .muted{ color: var(--muted); font-weight: 750; }
+  .name{
+    color: rgba(96,165,250,.98);
+    font-weight: 950;
+    text-decoration:none;
+  }
+  .desc{
+    color: rgba(226,232,240,.78);
+    font-weight: 700;
+    font-style: italic;
+  }
+
+  .count{
     display:inline-flex;
     align-items:center;
-    gap:8px;
-    padding: 6px 10px;
-    border-radius: 999px;
-    border: 1px solid rgba(255,255,255,.10);
-    background: rgba(255,255,255,.06);
-    color:#e5e7eb;
-    font-weight: 800;
     justify-content:center;
+    gap:8px;
     min-width: 90px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(34,197,94,.12);
+    border: 1px solid rgba(34,197,94,.22);
+    color: rgba(187,247,208,.95);
+    font-weight: 950;
   }
-  .count-pill .dot{
-    width:8px; height:8px; border-radius:50%;
+  .count .dot{
+    width:8px;height:8px;border-radius:99px;
     background: rgba(34,197,94,.95);
-    box-shadow: 0 0 12px rgba(34,197,94,.45);
+    box-shadow: 0 0 12px rgba(34,197,94,.42);
   }
 
-  /* actions */
-  .actions{
+  .acts{
     display:flex;
     justify-content:flex-end;
     gap:10px;
-    flex-wrap: nowrap;
   }
 
-  .icon-btn{
-    width: 44px;
-    height: 38px;
+  .icon{
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.06);
     display:flex;
     align-items:center;
     justify-content:center;
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,.10);
-    background: rgba(255,255,255,.06);
     text-decoration:none;
-    transition:.18s;
-    color:#e5e7eb !important;
-    font-size: 16px;
-    cursor: pointer;
+    color: var(--text) !important;
+    font-size: 15px;
+    transition: .16s ease;
+    cursor:pointer;
   }
-  .icon-btn:hover{
-    transform: translateY(-1px);
-    background: rgba(255,255,255,.10);
-  }
-  .icon-btn:focus{ outline:none; box-shadow:none; }
+  .icon:hover{ transform: translateY(-1px); background: rgba(255,255,255,.10); }
 
-  .icon-view{ background: rgba(59,130,246,.22); border-color: rgba(59,130,246,.35); }
-  .icon-view:hover{ background: rgba(59,130,246,.30); }
-
-  .icon-edit{ background: rgba(34,197,94,.20); border-color: rgba(34,197,94,.35); }
-  .icon-edit:hover{ background: rgba(34,197,94,.28); }
-
-  .icon-del{ background: rgba(239,68,68,.18); border-color: rgba(239,68,68,.35); }
-  .icon-del:hover{ background: rgba(239,68,68,.26); }
+  .i-view{ background: rgba(59,130,246,.18); border-color: rgba(59,130,246,.28); }
+  .i-edit{ background: rgba(34,197,94,.16); border-color: rgba(34,197,94,.26); }
+  .i-del { background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.24); }
 
   .empty{
+    padding: 24px 14px;
     text-align:center;
-    color:#9ca3af;
-    padding: 30px 16px;
+    color: rgba(148,163,184,.9);
+    font-weight: 800;
   }
 
-  /* Mobile */
   @media (max-width: 992px){
-    .list-head{ display:none; }
-    .list-row{ grid-template-columns: 1fr; gap: 10px; }
-    .actions{ justify-content:flex-start; }
-    .mini-pill{
+    .thead{ display:none; }
+    .trow{
+      grid-template-columns: 1fr;
+      gap: 10px;
+      align-items: start;
+    }
+    .acts{ justify-content:flex-start; }
+    .mline{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      flex-wrap:wrap;
+    }
+    .badge-mini{
       padding: 6px 10px;
       border-radius: 999px;
       background: rgba(255,255,255,.06);
       border: 1px solid rgba(255,255,255,.10);
-      font-weight:800;
+      font-weight: 900;
       color:#cbd5e1;
       font-size: 12px;
-      display:inline-block;
-      margin-bottom: 6px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
     }
   }
 </style>
 
-<div class="container page-wrap">
+<div class="wrap">
 
-  <div class="page-title">
-    <div>
-      <h2>👥 Guruhlar bo‘limlari</h2>
-      <!-- <div class="subtext">Bo‘limlar ro‘yxati (qator-qator ko‘rinish) + filter</div> -->
+  <!-- TOP -->
+  <div class="topbar">
+    <div class="titlebox">
+      <div class="title-ic" aria-hidden="true">
+  <!-- Users / Groups icon (SVG) -->
+  <svg class="title-svg" viewBox="0 0 24 24" fill="none">
+    <path d="M16 11c1.66 0 3-1.57 3-3.5S17.66 4 16 4s-3 1.57-3 3.5S14.34 11 16 11Z"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M8 11c1.66 0 3-1.57 3-3.5S9.66 4 8 4 5 5.57 5 7.5 6.34 11 8 11Z"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M16 13c-2.2 0-4 1.34-4 3v2h8v-2c0-1.66-1.8-3-4-3Z"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M8 13c-2.2 0-4 1.34-4 3v2h8v-2c0-1.66-1.8-3-4-3Z"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</div>
+
+      <div>
+        <h2>Guruhlar bo'limlari</h2>
+      </div>
     </div>
 
-    <div class="d-flex gap-2 flex-wrap align-items-center justify-content-end">
-      {% if user.is_superuser or user.role in 'director manager' %}
-        <a href="{% url 'education:add_category' %}" class="add-btn">➕ Yangi bo‘lim qo‘shish</a>
+    <div class="rightbox">
+      {% if user.is_superuser or user.role == 'director' or user.role == 'manager' %}
+        <a href="{% url 'education:add_category' %}" class="btn-add">
+          <span>+</span> <span>Yangi bo‘lim qo‘shish</span>
+        </a>
       {% endif %}
 
-      <div class="meta-badges">
-        <div class="meta-pill">Jami bo‘lim: <b id="totalCount">{{ categories|length }}</b></div>
-        <!-- <div class="meta-pill">Ko‘rinayapti: <b id="visibleCount">{{ categories_count|default:categories|length }}</b></div> -->
-      </div>
+      <div class="pill">Jami bo‘lim: <b id="totalCount">{{ categories|length }}</b></div>
     </div>
   </div>
 
   <!-- FILTER -->
-  <div class="filters">
-    <div class="row g-2 align-items-center">
-      <div class="col-lg-10">
-        <input id="qAll" class="form-control" placeholder="🔎 Qidirish: bo‘lim nomi / tavsif">
-      </div>
-      <div class="col-lg-2 d-grid">
-        <button class="btn-clear" type="button" id="clearBtn">Tozalash ✖</button>
-      </div>
+  <div class="filterbar">
+    <div class="search">
+      <div class="ic">🔎</div>
+      <input id="qAll" type="text" placeholder="Qidirish: bo‘lim nomi / tavsif">
     </div>
+    <button class="btn-clear" type="button" id="clearBtn">Tozalash <span style="opacity:.8;">×</span></button>
   </div>
 
   <!-- LIST -->
-  <div class="list-box">
-    <div class="list-head">
-      <div>№</div>
+  <div class="card">
+    <div class="thead">
+      <div>No</div>
       <div>Bo‘lim nomi</div>
       <div>Tavsif</div>
       <div>Guruhlar</div>
-      <div class="text-end">Amallar</div>
+      <div style="text-align:right;">Amallar</div>
     </div>
 
     {% if categories %}
       {% for cat in categories %}
-      <div class="list-row cat-item"
-          role="button" tabindex="0"
-          onclick="goCategory(event, '{% url 'education:category_detail' cat.id %}')"
-          onkeydown="if(event.key==='Enter'){ goCategory(event, '{% url 'education:category_detail' cat.id %}'); }"
-          data-name="{{ cat.name|default_if_none:'' }}"
-          data-desc="{{ cat.description|default_if_none:'' }}">
+        <div class="trow cat-item"
+             role="button" tabindex="0"
+             onclick="goCategory(event, '{% url 'education:category_detail' cat.id %}')"
+             onkeydown="if(event.key==='Enter'){ goCategory(event, '{% url 'education:category_detail' cat.id %}'); }"
+             data-name="{{ cat.name|default_if_none:'' }}"
+             data-desc="{{ cat.description|default_if_none:'' }}">
 
-        <!-- Desktop -->
-        <div class="cell-muted d-none d-lg-block">{{ forloop.counter }}</div>
+          <!-- Desktop -->
+          <div class="muted d-none d-lg-block">{{ forloop.counter }}</div>
 
-        <div class="cell-strong d-none d-lg-block">
-          <span class="cell-blue">{{ cat.name }}</span>
-        </div>
-
-        <div class="cell-muted d-none d-lg-block">
-          {% if cat.description %}
-            {{ cat.description }}
-          {% else %}
-            — Tavsif yo‘q
-          {% endif %}
-        </div>
-
-        <div class="d-none d-lg-block">
-          <span class="count-pill" title="Ushbu bo‘limdagi guruhlar soni">
-            <span class="dot"></span>
-            {{ cat.groups_count }} ta
-          </span>
-        </div>
-
-        <div class="actions d-none d-lg-flex">
-          <a href="{% url 'education:category_detail' cat.id %}"
-             class="icon-btn icon-view" title="Ko‘rish" data-stop="1">👁</a>
-
-          {% if user.is_superuser or user.role in 'director manager' %}
-            <a href="{% url 'education:edit_category' cat.id %}"
-               class="icon-btn icon-edit" title="Tahrirlash" data-stop="1">✏️</a>
-
-            <form action="{% url 'education:delete_category' cat.id %}" method="post"
-                  style="display:inline;" data-stop="1">
-              {% csrf_token %}
-              <button type="submit" class="icon-btn icon-del"
-                      title="O‘chirish" data-stop="1"
-                      onclick="return confirm('🗑️ {{ cat.name }} bo‘limini o‘chirmoqchimisiz?');">🗑</button>
-            </form>
-          {% endif %}
-        </div>
-
-        <!-- Mobile -->
-        <div class="d-lg-none">
-          <span class="mini-pill">№ {{ forloop.counter }}</span>
-
-          <div class="cell-strong mb-1">
-            <span class="cell-blue">{{ cat.name }}</span>
+          <div class="d-none d-lg-block">
+            <a class="name" href="{% url 'education:category_detail' cat.id %}" data-stop="1">
+              {{ cat.name }}
+            </a>
           </div>
 
-          <div class="cell-muted mb-2">
+          <div class="d-none d-lg-block">
             {% if cat.description %}
-              {{ cat.description }}
+              <span class="desc">{{ cat.description }}</span>
             {% else %}
-              — Tavsif yo‘q
+              <span class="muted">— Tavsif yo‘q</span>
             {% endif %}
           </div>
 
-          <div class="mb-2">
-            <span class="count-pill">
-              <span class="dot"></span>
-              {{ cat.groups_count }} ta guruh
+          <div class="d-none d-lg-block">
+            <span class="count" title="Ushbu bo‘limdagi guruhlar soni">
+              <span class="dot"></span> {{ cat.groups_count }} ta
             </span>
           </div>
 
-          <div class="actions">
-            <a href="{% url 'education:category_detail' cat.id %}"
-               class="icon-btn icon-view" title="Ko‘rish" data-stop="1">👁</a>
+<div class="acts d-none d-lg-flex">
+  <!-- VIEW -->
+  <a href="{% url 'education:category_detail' cat.id %}"
+     class="icon i-view" title="Ko‘rish" data-stop="1" aria-label="Ko‘rish">
+    <svg viewBox="0 0 24 24" fill="none">
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </a>
 
-            {% if user.is_superuser or user.role in 'director manager' %}
-              <a href="{% url 'education:edit_category' cat.id %}"
-                 class="icon-btn icon-edit" title="Tahrirlash" data-stop="1">✏️</a>
+  {% if user.is_superuser or user.role == 'director' or user.role == 'manager' %}
+    <!-- EDIT -->
+    <a href="{% url 'education:edit_category' cat.id %}"
+       class="icon i-edit" title="Tahrirlash" data-stop="1" aria-label="Tahrirlash">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M12 20h9"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4 11.5-11.5Z"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
 
-              <form action="{% url 'education:delete_category' cat.id %}" method="post"
-                    style="display:inline;" data-stop="1">
-                {% csrf_token %}
-                <button type="submit" class="icon-btn icon-del"
-                        title="O‘chirish" data-stop="1"
-                        onclick="return confirm('🗑️ {{ cat.name }} bo‘limini o‘chirmoqchimisiz?');">🗑</button>
-              </form>
-            {% endif %}
+    <!-- DELETE -->
+    <form action="{% url 'education:delete_category' cat.id %}" method="post" style="display:inline;" data-stop="1">
+      {% csrf_token %}
+      <button type="submit"
+              class="icon i-del" title="O‘chirish" data-stop="1"
+              aria-label="O‘chirish"
+              onclick="return confirm('🗑️ {{ cat.name }} bo‘limini o‘chirmoqchimisiz?');">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M3 6h18"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M8 6V4h8v2"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M6 6l1 16h10l1-16"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M10 11v6M14 11v6"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </form>
+  {% endif %}
+</div>
+
+
+          <!-- Mobile -->
+          <div class="d-lg-none">
+            <div class="mline">
+              <span class="badge-mini">№ {{ forloop.counter }}</span>
+              <span class="count"><span class="dot"></span> {{ cat.groups_count }} ta</span>
+            </div>
+
+            <div style="margin-top:8px;">
+              <a class="name" href="{% url 'education:category_detail' cat.id %}" data-stop="1">
+                {{ cat.name }}
+              </a>
+            </div>
+
+            <div style="margin-top:6px;">
+              {% if cat.description %}
+                <span class="desc">{{ cat.description }}</span>
+              {% else %}
+                <span class="muted">— Tavsif yo‘q</span>
+              {% endif %}
+            </div>
+
+<div class="acts d-none d-lg-flex">
+  <!-- VIEW -->
+  <a href="{% url 'education:category_detail' cat.id %}"
+     class="icon i-view" title="Ko‘rish" data-stop="1" aria-label="Ko‘rish">
+    <svg viewBox="0 0 24 24" fill="none">
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </a>
+
+  {% if user.is_superuser or user.role == 'director' or user.role == 'manager' %}
+    <!-- EDIT -->
+    <a href="{% url 'education:edit_category' cat.id %}"
+       class="icon i-edit" title="Tahrirlash" data-stop="1" aria-label="Tahrirlash">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M12 20h9"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4 11.5-11.5Z"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+
+    <!-- DELETE -->
+    <form action="{% url 'education:delete_category' cat.id %}" method="post" style="display:inline;" data-stop="1">
+      {% csrf_token %}
+      <button type="submit"
+              class="icon i-del" title="O‘chirish" data-stop="1"
+              aria-label="O‘chirish"
+              onclick="return confirm('🗑️ {{ cat.name }} bo‘limini o‘chirmoqchimisiz?');">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M3 6h18"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M8 6V4h8v2"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M6 6l1 16h10l1-16"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M10 11v6M14 11v6"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </form>
+  {% endif %}
+</div>
+
           </div>
-        </div>
 
-      </div>
+        </div>
       {% endfor %}
     {% else %}
-      <div class="empty">
-        Bo‘limlar hali mavjud emas.
-      </div>
+      <div class="empty">Bo‘limlar hali mavjud emas.</div>
     {% endif %}
   </div>
 
@@ -363,20 +576,14 @@
   const qAll = document.getElementById("qAll");
   const clearBtn = document.getElementById("clearBtn");
   const items = Array.from(document.querySelectorAll(".cat-item"));
-  const visibleCountEl = document.getElementById("visibleCount");
 
   function applyFilter(){
     const s = (qAll.value || "").trim().toLowerCase();
-    let visible = 0;
-
     items.forEach(it => {
       const text = ((it.dataset.name || "") + " " + (it.dataset.desc || "")).toLowerCase();
       const ok = !s || text.includes(s);
       it.style.display = ok ? "" : "none";
-      if(ok) visible++;
     });
-
-    visibleCountEl.textContent = visible;
   }
 
   qAll.addEventListener("input", applyFilter);

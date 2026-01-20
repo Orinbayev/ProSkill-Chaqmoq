@@ -1,144 +1,524 @@
 {% extends 'base.html' %}
+
+{% block page_title %}{% endblock %}
+
 {% block content %}
 
 <style>
-.dashboard-title {
-    font-size: 28px;
-    font-weight: 700;
-    color: #fff;
-    margin-bottom: 25px;
-}
+  :root{
+    --bg1:#0b1220;
+    --bg2:#0f172a;
 
-/* 📌 GRID — barcha ekranlarga moslashadi */
-.stats-grid {
-    display: grid;
+    --panel: rgba(17,24,39,.55);
+    --panel2: rgba(17,24,39,.45);
+    --line: rgba(255,255,255,.08);
+
+    --text:#e5e7eb;
+    --muted:#94a3b8;
+
+    --blue:#38bdf8;
+    --orange:#f59e0b;
+  }
+
+  .dash-wrap{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 6px 6px 24px;
+    color: var(--text);
+  }
+
+  .dash-top{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
     gap: 18px;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-}
+    margin-bottom: 18px;
+  }
 
-/* 📌 PREMIUM KARTALAR */
-.stat-card {
-    background: #ffffff0d;
-    padding: 18px;
+  .dash-title{
+    margin: 0;
+    font-size: 30px;
+    font-weight: 900;
+    letter-spacing: .2px;
+    color: #fff;
+  }
+
+  .dash-sub{
+    margin: 6px 0 0;
+    font-size: 12.5px;
+    color: rgba(226,232,240,.70);
+    font-weight: 500;
+  }
+
+  .dash-actions{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    padding-top: 2px;
+  }
+
+  .search-pill{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    height: 40px;
+    min-width: 300px;
+    padding: 0 14px;
     border-radius: 14px;
-    text-decoration: none;
-    display: block;
-    color: white;
-    transition: 0.25s ease;
-    backdrop-filter: blur(6px);
-    border: 1px solid rgba(255,255,255,0.07);
-    min-height: 130px;
-}
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.08);
+    box-shadow: inset 0 0 18px rgba(0,0,0,.25);
+  }
 
-.stat-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.25);
-    border-color: rgba(0,150,255,0.4);
-}
-
-.stat-title {
+  .search-pill i{
     font-size: 14px;
-    opacity: 0.7;
+    color: rgba(226,232,240,.8);
+  }
+
+  .search-pill input{
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-size: 13.5px;
+  }
+
+  .icon-btn{
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.06);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition: .2s ease;
+    position: relative;
+
+    cursor:pointer;
+    pointer-events:auto;
+  }
+
+  .icon-btn:hover{
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,.16);
+  }
+
+  .icon-btn i{
+    font-size: 15px;
+    color: rgba(226,232,240,.92);
+  }
+
+  .notif-dot{
+    position:absolute;
+    top: 10px;
+    right: 10px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ef4444;
+    box-shadow: 0 0 10px rgba(239,68,68,.7);
+  }
+
+
+
+.avatar{
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;   /* ✅ dumaloq */
+  overflow: hidden;       /* ✅ rasm tashqariga chiqmasin */
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(37,99,235,.20);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight: 950;
+  color:#fff;
+
+  cursor:pointer;
+  box-shadow: 0 12px 26px rgba(0,0,0,.35);
+  transition: .18s ease;
+}
+.avatar:hover{
+  transform: translateY(-2px);
+  border-color: rgba(56,189,248,.45);
+  box-shadow: 0 16px 36px rgba(0,0,0,.45), 0 0 0 4px rgba(56,189,248,.10);
+}
+.avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+  border-radius: 999px;  /* ✅ rasm ham dumaloq */
 }
 
-.stat-value {
-    font-size: 28px;
-    font-weight: 600;
-    margin-top: 8px;
-}
 
-.stat-link {
-    font-size: 12px;
+  .stats-grid{
+    display:grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .stat-card{
+    position: relative;
+    display:block;
+    text-decoration:none;
+    color: var(--text);
+    padding: 18px 18px;
+    border-radius: 16px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    backdrop-filter: blur(10px);
+    min-height: 118px;
+    transition: .22s ease;
+    overflow:hidden;
+  }
+
+  .stat-card:hover{
+    transform: translateY(-3px);
+    border-color: rgba(255,255,255,.16);
+    box-shadow: 0 18px 45px rgba(0,0,0,.40);
+  }
+
+  .stat-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 14px;
+  }
+
+  .stat-label{
+    font-size: 11px;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    color: rgba(148,163,184,.85);
+    font-weight: 800;
+  }
+
+  .stat-value{
+    margin-top: 6px;
+    font-size: 34px;
+    font-weight: 950;
+    line-height: 1;
+    color: #fff;
+  }
+
+  .chev{
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border: 1px solid rgba(255,255,255,.06);
+    background: rgba(255,255,255,.03);
+    opacity: .55;
     margin-top: 10px;
-    color: #4db8ff !important;
-}
+  }
 
+  .stat-card:hover .chev{
+    opacity: .9;
+    border-color: rgba(255,255,255,.12);
+  }
 
-/* 📱📱📱  RESPONSIVE  📱📱📱 */
+  .chev i{
+    font-size: 13px;
+    color: rgba(226,232,240,.9);
+  }
 
-@media (max-width: 768px) {    /* PLANSHEET + TELEFON */
-    .dashboard-title {
-        font-size: 22px;
-        text-align: center;
-    }
+  .stat-foot{
+    margin-top: 10px;
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    font-size: 12px;
+    color: rgba(56,189,248,.95);
+    font-weight: 600;
+  }
 
-    .stats-grid {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 14px;
-    }
+  .blue-dot{
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--blue);
+    box-shadow: 0 0 10px rgba(56,189,248,.45);
+  }
 
-    .stat-card {
-        min-height: 110px;
-        padding: 14px;
-    }
+  .span-left{
+    grid-column: 1 / 2;
+  }
 
-    .stat-value {
-        font-size: 22px;
-    }
-}
+  @media (max-width: 992px){
+    .dash-top{ flex-direction: column; align-items: stretch; }
+    .dash-actions{ justify-content: flex-start; flex-wrap: wrap; }
+    .search-pill{ min-width: 0; width: 100%; }
+  }
 
-@media (max-width: 480px) {    /* TELEFON uchun */
-    .dashboard-title {
-        font-size: 20px;
-        margin-bottom: 20px;
-    }
+  @media (max-width: 720px){
+    .stats-grid{ grid-template-columns: 1fr; }
+    .span-left{ grid-column: auto; }
+  }
 
-    .stats-grid {
-        grid-template-columns: 1fr;  /* HAR QATORDA 1 TA */
-        gap: 12px;
-    }
+  /* ===== DROPDOWNS ===== */
+  .dd-wrap{ position: relative; }
 
-    .stat-card {
-        min-height: 100px;
-        padding: 12px;
-    }
+  .dd-menu{
+    position:absolute;
+    right:0;
+    top: 50px;
+    width: 240px;
+    background: rgba(17,24,39,.92);
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 16px;
+    box-shadow: 0 16px 40px rgba(0,0,0,.45);
+    backdrop-filter: blur(10px);
+    padding: 12px;
+    display:none;
 
-    .stat-title {
-        font-size: 13px;
-    }
+    /* ✅ MUHIM: sidebar(1000) va chat(1000) dan balandroq qildik */
+    z-index: 3000;
+  }
 
-    .stat-value {
-        font-size: 20px;
-    }
+  .dd-menu.show{ display:block; }
 
-    .stat-link {
-        font-size: 11px;
-    }
-}
+  .dd-title{
+    font-weight: 900;
+    font-size: 14px;
+    color:#e5e7eb;
+    margin-bottom: 6px;
+  }
+
+  .dd-text{
+    font-size: 12px;
+    color: rgba(255,255,255,.65);
+  }
+
+  .dd-logout{
+    width:100%;
+    border:none;
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: rgba(220,38,38,.12);
+    color:#f87171;
+    border: 1px solid rgba(248,113,113,.22);
+    font-weight:800;
+    cursor:pointer;
+    transition:.2s;
+  }
+
+  .dd-logout:hover{
+    background:#dc2626;
+    color:#fff;
+  }
 </style>
 
+<div class="dash-wrap">
 
-<h3 class="dashboard-title">Direktor paneli</h3>
+  <div class="dash-top">
+    <div>
+      <h1 class="dash-title">Boshqaruv paneli</h1>
+      <div class="dash-sub">Xush kelibsiz, bugungi holat bilan tanishing.</div>
+    </div>
 
-<!-- 🔥 GRID BOSHLANDI -->
-<div class="stats-grid">
+    <div class="dash-actions">
+
+      <div class="search-pill">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="dashSearch" type="text" placeholder="Qidiruv..." />
+      </div>
+
+      <!-- 🔔 NOTIFICATION -->
+      <div class="dd-wrap">
+        <button class="icon-btn" id="notifBtn" type="button" title="Bildirishnomalar">
+          <span class="notif-dot"></span>
+          <i class="fa-regular fa-bell"></i>
+        </button>
+
+        <div class="dd-menu" id="notifDD">
+          <div class="dd-title">Bildirishnomalar</div>
+          <div class="dd-text">Hozircha bildirishnoma yo‘q.</div>
+        </div>
+      </div>
+
+      <!-- 👤 PROFILE -->
+      <div class="dd-wrap">
+<button class="avatar" id="profileBtn2" type="button"
+        title="{{ request.user.ism }} {{ request.user.familya }}">
+  {% if request.user.avatar %}
+    <img src="{{ request.user.avatar.url }}" alt="avatar">
+  {% else %}
+    {{ request.user.ism|default:"D"|first|upper }}
+  {% endif %}
+</button>
+
+
+
+<div class="dd-menu" id="profileDD2">
+  <div class="dd-title">{{ request.user.ism }} {{ request.user.familya }}</div>
+  <div class="dd-text">{{ request.user.get_role_display }}</div>
+
+  <div style="margin-top:10px; display:grid; gap:10px;">
+
+    <a href="{% url 'core:profile' %}?next={{ request.path }}"
+       style="
+        display:flex; align-items:center; justify-content:center; gap:10px;
+        height:44px; border-radius:12px;
+        background: rgba(56,189,248,.10);
+        border:1px solid rgba(56,189,248,.25);
+        color:#e5e7eb; font-weight:900; text-decoration:none;
+       ">
+      <i class="fa-regular fa-user"></i> Profil
+    </a>
+
+    <form method="post" action="{% url 'logout' %}" style="margin:0;">
+      {% csrf_token %}
+      <button class="dd-logout" type="submit">
+        <i class="fa-solid fa-right-from-bracket me-1"></i> Chiqish
+      </button>
+    </form>
+
+  </div>
+</div>
+
+
+      </div>
+
+    </div>
+  </div>
+
+  <div class="stats-grid">
 
     <a class="stat-card" href="{% url 'core:stat_managers' %}">
-        <div class="stat-title">Managerlar</div>
-        <div class="stat-value">{{ stats.managers|default:0 }}</div>
+      <div class="stat-head">
+        <div>
+          <div class="stat-label">MANAGERLAR</div>
+          <div class="stat-value">{{ stats.managers|default:0 }}</div>
+        </div>
+        <div class="chev"><i class="fa-solid fa-chevron-right"></i></div>
+      </div>
     </a>
 
     <a class="stat-card" href="{% url 'core:teacher_list' %}">
-        <div class="stat-title">O‘qituvchilar</div>
-        <div class="stat-value">{{ stats.teachers|default:0 }}</div>
-        <div class="stat-link">📘 Tafsilotlar</div>
+      <div class="stat-head">
+        <div>
+          <div class="stat-label">O‘QITUVCHILAR</div>
+          <div class="stat-value">{{ stats.teachers|default:0 }}</div>
+<!-- 
+          <div class="stat-foot">
+            <span class="blue-dot"></span>
+            <span>Tafsilotlar</span>
+          </div> -->
+        </div>
+        <div class="chev"><i class="fa-solid fa-chevron-right"></i></div>
+      </div>
     </a>
 
     <a class="stat-card" href="{% url 'core:stat_students' %}">
-        <div class="stat-title">O‘quvchilar</div>
-        <div class="stat-value">{{ stats.students|default:0 }}</div>
+      <div class="stat-head">
+        <div>
+          <div class="stat-label">O‘QUVCHILAR</div>
+          <div class="stat-value">{{ stats.students|default:0 }}</div>
+        </div>
+        <div class="chev"><i class="fa-solid fa-chevron-right"></i></div>
+      </div>
     </a>
 
     <a class="stat-card" href="{% url 'core:stat_products' %}">
-        <div class="stat-title">Mahsulotlar</div>
-        <div class="stat-value">{{ stats.products|default:0 }}</div>
+      <div class="stat-head">
+        <div>
+          <div class="stat-label">MAHSULOTLAR</div>
+          <div class="stat-value">{{ stats.products|default:0 }}</div>
+        </div>
+        <div class="chev"><i class="fa-solid fa-chevron-right"></i></div>
+      </div>
     </a>
 
-    <a class="stat-card" href="{% url 'core:stat_requests' %}">
-        <div class="stat-title">Kutilayotgan so‘rov</div>
-        <div class="stat-value">{{ stats.pending_requests|default:0 }}</div>
+    <a class="stat-card span-left" href="{% url 'core:stat_requests' %}">
+      <div class="stat-head">
+        <div>
+          <div class="stat-label">KUTILAYOTGAN SO‘ROV</div>
+          <div class="stat-value">{{ stats.pending_requests|default:0 }}</div>
+        </div>
+        <div class="chev"><i class="fa-solid fa-chevron-right"></i></div>
+      </div>
     </a>
+
+  </div>
 
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+
+  // ===== DROPDOWNS =====
+  const notifBtn = document.getElementById("notifBtn");
+  const notifDD  = document.getElementById("notifDD");
+  const profBtn  = document.getElementById("profileBtn2");
+  const profDD   = document.getElementById("profileDD2");
+
+  function closeAll(){
+    if (notifDD) notifDD.classList.remove("show");
+    if (profDD)  profDD.classList.remove("show");
+  }
+
+  function toggle(dd){
+    if(!dd) return;
+    const isOpen = dd.classList.contains("show");
+    closeAll();
+    if(!isOpen) dd.classList.add("show");
+  }
+
+  if(notifBtn && notifDD){
+    notifBtn.addEventListener("click", function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      toggle(notifDD);
+    });
+    notifDD.addEventListener("click", function(e){ e.stopPropagation(); });
+  }
+
+  if(profBtn && profDD){
+    profBtn.addEventListener("click", function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      toggle(profDD);
+    });
+    profDD.addEventListener("click", function(e){ e.stopPropagation(); });
+  }
+
+  document.addEventListener("click", closeAll);
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape") closeAll();
+  });
+
+  // ===== SEARCH (sidebar + cards filter) =====
+  const input = document.getElementById("dashSearch");
+  if(input){
+    const sidebarItems = Array.from(document.querySelectorAll(".sidebar-item"));
+    const cards = Array.from(document.querySelectorAll(".stat-card"));
+
+    const norm = (s) => (s || "").toString().toLowerCase().trim();
+
+    input.addEventListener("input", function(){
+      const q = norm(input.value);
+
+      sidebarItems.forEach(a => {
+        const t = norm(a.innerText);
+        a.style.display = (!q || t.includes(q)) ? "" : "none";
+      });
+
+      cards.forEach(card => {
+        const t = norm(card.innerText);
+        card.style.display = (!q || t.includes(q)) ? "" : "none";
+      });
+    });
+  }
+
+});
+</script>
 {% endblock %}

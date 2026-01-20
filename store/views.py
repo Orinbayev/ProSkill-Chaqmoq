@@ -274,9 +274,10 @@ from django.db.models import Count, Q
 
 @login_required
 def lead_list(request):
-    status_id = request.GET.get('status')
+    status_id = (request.GET.get('status') or "").strip()
+    q = (request.GET.get('q') or "").strip()
 
-    # 1) Dropdown uchun: har bir status bo‘yicha count
+    # 1) Dropdown uchun: har bir status bo‘yicha count (umumiy)
     statuses = (
         LeadStatus.objects
         .annotate(
@@ -286,10 +287,21 @@ def lead_list(request):
         .order_by('id')
     )
 
-    # 2) Filter bo‘yicha leadlar
-    leads = Lead.objects.all().order_by('-qoshilgan_sana')
+    # 2) Leadlar (filter + qidiruv)
+    leads = Lead.objects.all()
+
     if status_id:
         leads = leads.filter(status_id=status_id)
+
+    if q:
+        leads = leads.filter(
+            Q(ism__icontains=q) |
+            Q(familya__icontains=q) |
+            Q(telefon1__icontains=q) |
+            Q(telefon2__icontains=q)
+        )
+
+    leads = leads.order_by('-qoshilgan_sana')
 
     # 3) Filter bo‘yicha ko‘rsatkichlar (ekrandagi)
     leads_count_filtered = leads.count()
@@ -303,12 +315,11 @@ def lead_list(request):
         'leads': leads,
         'statuses': statuses,
         'selected_status': status_id,
+        'q': q,  # ✅ template’da value qilib qo‘yamiz
 
-        # umumiy
         'total_count': total_count,
         'total_converted': total_converted,
 
-        # filter bo‘yicha (ekrandagi)
         'leads_count_filtered': leads_count_filtered,
         'converted_count_filtered': converted_count_filtered,
     }

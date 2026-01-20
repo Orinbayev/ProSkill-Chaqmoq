@@ -18,7 +18,12 @@ urlpatterns = [
     path("group-price/<int:pk>/", views.get_group_price, name="group_price"),
     path("groups/<int:pk>/bulk_remove/", views.group_bulk_remove, name="group_bulk_remove"),
     path('guruh/<int:g_id>/attend-all/', views.attend_all_students, name='group_attend_all'),
-   
+   path(
+    "guruh/<int:group_id>/attendance/export/",
+    views.group_month_attendance_export,
+    name="group_month_attendance_export"
+),
+
     path("tolov/oquvchilar/", views.tolov_oquvchilar, name="tolov_oquvchilar"),
     path("tolov/create/", views.create_payment, name="create_payment"),
 

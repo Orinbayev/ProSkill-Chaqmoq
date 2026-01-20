@@ -187,7 +187,11 @@
   /* =========================================================
      MONTH PICKER
      ========================================================= */
-  .monthpicker{ position:relative; }
+.monthpicker{
+  position: relative;
+  display: inline-block;   /* ✅ SHU MUHIM */
+  flex: 0 0 auto;          /* ✅ flex ichida cho‘zilmasin */
+}
   .month-btn{
     display:inline-flex;
     align-items:center;
@@ -209,7 +213,8 @@
   .month-menu{
     display:none;
     position:absolute;
-    right:0;
+    left:0;     
+    right:auto;
     margin-top:10px;
     width: 360px;
     border-radius:14px;
@@ -792,7 +797,7 @@ onclick="openPayModal('{{ s.enrollment.id }}',
                 </button>
 <a class="btn blue"
    href="{% url 'education:enrollment_edit' s.enrollment.id %}?next={{ request.get_full_path|urlencode }}&month={{ month_str }}">
-  ✏️ Tahrir
+  ✏️ Tahrirlash
 </a>
 
 

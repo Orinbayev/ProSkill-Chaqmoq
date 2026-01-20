@@ -2,131 +2,490 @@
 {% block content %}
 
 <style>
-/* === TITLE === */
-.dashboard-title {
-  color: #22c55e;
-  font-weight: 700;
-  font-size: 30px;
-  margin-bottom: 30px;
+:root{
+  --panel: rgba(17,24,39,.62);
+  --panel2: rgba(2,6,23,.55);
+  --line: rgba(255,255,255,.08);
+  --muted:#94a3b8;
+  --text:#e5e7eb;
+
+  --green:#22c55e;
+  --blue:#3b82f6;
+  --blue2:#2563eb;
+
+  --warn:#f59e0b;
+  --danger:#ef4444;
 }
 
-/* === GRID === */
-.panel-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 22px;
+/* ✅ PAGE WRAP */
+.tdash-wrap{
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 10px 12px 26px;
+  color: var(--text);
 }
 
-/* === CARD === */
-.panel-card {
-  background: rgba(17, 24, 39, 0.75);
-  border: 1px solid rgba(55, 65, 81, 0.4);
-  border-radius: 16px;
-  padding: 24px 26px;
-  transition: 0.28s ease;
+/* ✅ TOP HEADER (QIDIRUVSIZ) */
+.tdash-topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 14px;
+  padding: 18px 18px;
+  border-radius: 18px;
+  background: rgba(17,24,39,.62);
+  border: 1px solid rgba(255,255,255,.06);
   backdrop-filter: blur(12px);
-  box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+  box-shadow: 0 18px 45px rgba(0,0,0,.22);
+  margin: 10px 0 18px;
+
+  position: relative;
+  z-index: 50;
+  overflow: visible;
 }
 
-.panel-card:hover {
-  transform: translateY(-6px);
-  background: rgba(30, 41, 59, 0.85);
-  border-color: #22c55e;
-  box-shadow: 0 10px 28px rgba(34,197,94,0.25);
+.tdash-top-left{
+  display:flex;
+  align-items:center;
+  gap: 12px;
+  min-width: 260px;
 }
 
-.panel-title {
-  color: #e2e8f0;
-  font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 18px;
+.tdash-emoji{
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display:grid;
+  place-items:center;
+  background: rgba(34,197,94,.12);
+  border: 1px solid rgba(34,197,94,.22);
+  box-shadow: 0 10px 25px rgba(0,0,0,.25);
+  color: var(--green);
+  font-size: 18px;
 }
 
-/* === BUTTONS === */
-.panel-btn {
-  width: 100%;
-  padding: 14px;
-  font-size: 15px;
-  font-weight: 600;
-  border-radius: 12px;
-  text-align: center;
-  display: block;
-  transition: 0.25s ease;
+.tdash-title{
+  margin:0;
+  font-size: 34px;
+  font-weight: 950;
+  letter-spacing: .2px;
+  color: var(--green);
+  text-shadow: 0 6px 20px rgba(34,197,94,.18);
 }
 
-/* Blue button */
-.btn-main {
-  background: linear-gradient(90deg, #3b82f6, #2563eb);
-  color: white;
-  border: none;
-}
-.btn-main:hover {
-  background: linear-gradient(90deg, #2563eb, #1e40af);
-}
-
-/* Green button */
-.btn-green {
-  background: linear-gradient(90deg, #22c55e, #16a34a);
-  color: white;
-}
-.btn-green:hover {
-  background: linear-gradient(90deg, #16a34a, #15803d);
-}
-
-/* Disabled (if needed) */
-.btn-disabled {
-  background: #6b7280;
-  color: #e5e7eb;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-/* Notes */
-.panel-note {
+.tdash-sub{
+  margin-top: 4px;
+  color: var(--muted);
+  font-weight: 700;
   font-size: 13px;
-  color: #94a3b8;
-  margin-top: 14px;
 }
 
-/* === RESPONSIVE === */
-@media(max-width: 768px) {
-  .dashboard-title {
-    font-size: 26px;
-  }
-  .panel-card {
-    padding: 20px;
-  }
+/* ✅ RIGHT ICONS */
+.tdash-top-right{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  justify-content:flex-end;
+  position: relative;
+  z-index: 60;
+}
+
+.ticon-btn{
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(15,23,42,.75);
+  color: rgba(226,232,240,.78);
+  display:grid;
+  place-items:center;
+  transition:.2s;
+  position: relative;
+  cursor:pointer;
+}
+.ticon-btn:hover{
+  transform: translateY(-1px);
+  color:#fff;
+  border-color: rgba(255,255,255,.14);
+}
+
+/* ✅ small badge on bell */
+.notif-dot{
+  position:absolute;
+  top:9px; right:10px;
+  width:9px; height:9px;
+  border-radius:999px;
+  background: var(--danger);
+  box-shadow: 0 0 0 3px rgba(239,68,68,.14);
+  display:none;
+}
+
+/* ✅ avatar button (DUMALOQ + RASM) */
+.tavatar-btn{
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  overflow:hidden;
+  padding:0;
+
+  background: linear-gradient(135deg, var(--blue), var(--blue2));
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-weight: 950;
+  color:#fff;
+  border: 1px solid rgba(255,255,255,.14);
+  box-shadow: 0 12px 26px rgba(0,0,0,.35);
+  cursor:pointer;
+  transition:.18s ease;
+}
+.tavatar-btn:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px rgba(0,0,0,.45), 0 0 0 4px rgba(59,130,246,.12);
+  border-color: rgba(59,130,246,.45);
+}
+.tavatar-btn img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+  border-radius:999px;
+}
+
+/* ✅ dropdowns */
+.drop-wrap{ position: relative; z-index: 60; }
+
+.dropdown-menu{
+  position:absolute;
+  right:0;
+  top: 56px;
+  min-width: 270px;
+  border-radius: 16px;
+  background: rgba(2,6,23,.90);
+  border: 1px solid rgba(255,255,255,.10);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 45px rgba(0,0,0,.35);
+  padding: 10px;
+  display:none;
+  z-index: 99999;
+}
+.dropdown-menu.open{ display:block; }
+
+.dd-head{
+  padding: 10px 10px 8px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  margin-bottom: 8px;
+}
+.dd-title{
+  margin:0;
+  font-size: 13px;
+  font-weight: 950;
+  color:#e5e7eb;
+}
+.dd-sub{
+  margin-top:4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(148,163,184,.85);
+}
+
+.dd-item{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  text-decoration:none;
+  color: rgba(226,232,240,.85);
+  font-weight: 850;
+  transition:.15s;
+  border: 1px solid transparent;
+  background: transparent;
+}
+.dd-item:hover{
+  background: rgba(255,255,255,.05);
+  border-color: rgba(255,255,255,.08);
+  color:#fff;
+}
+
+.dd-item.danger{
+  color:#fecaca;
+  background: rgba(239,68,68,.10);
+  border-color: rgba(239,68,68,.18);
+}
+.dd-item.danger:hover{
+  background: rgba(239,68,68,.18);
+  border-color: rgba(239,68,68,.28);
+  color:#fff;
+}
+
+.dd-empty{
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(148,163,184,.08);
+  border: 1px solid rgba(148,163,184,.14);
+  color: rgba(226,232,240,.75);
+  font-weight: 800;
+  font-size: 13px;
+}
+
+/* ✅ GRID */
+.tdash-grid{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+
+  position: relative;
+  z-index: 1;
+}
+
+/* ✅ CARD */
+.tcard{
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 18px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 18px 45px rgba(0,0,0,.18);
+  transition: .2s ease;
+  position: relative;
+  z-index: 1;
+}
+.tcard:hover{
+  transform: translateY(-2px);
+  border-color: rgba(34,197,94,.22);
+}
+
+.tcard-top{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.tcard-ico{
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display:grid;
+  place-items:center;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(148,163,184,.10);
+  font-size: 18px;
+}
+
+.tcard-name{
+  margin:0;
+  font-weight: 950;
+  font-size: 18px;
+  color: #e2e8f0;
+}
+
+.tcard-desc{
+  margin: 8px 0 14px;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+/* ✅ BUTTONS */
+.tbtn{
+  width: 100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  font-weight: 950;
+  text-decoration:none;
+  border: 1px solid rgba(255,255,255,.10);
+  transition: .2s;
+}
+
+.tbtn-blue{
+  background: linear-gradient(90deg, var(--blue), var(--blue2));
+  color: #fff;
+  border-color: rgba(59,130,246,.35);
+}
+.tbtn-blue:hover{ filter: brightness(1.05); transform: translateY(-1px); }
+
+.tbtn-green{
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  color:#fff;
+  border-color: rgba(34,197,94,.35);
+}
+.tbtn-green:hover{ filter: brightness(1.05); transform: translateY(-1px); }
+
+/* ✅ RESPONSIVE */
+@media (max-width: 980px){
+  .tdash-grid{ grid-template-columns: 1fr; }
+  .tdash-title{ font-size: 26px; }
+  .tdash-topbar{ flex-direction: column; align-items: stretch; }
+  .tdash-top-right{ justify-content: flex-end; }
 }
 </style>
 
-<h3 class="dashboard-title">👨‍🏫 O‘qituvchi paneli</h3>
+<div class="tdash-wrap">
 
-<div class="panel-grid">
+  <div class="tdash-topbar">
+    <div class="tdash-top-left">
+      <div class="tdash-emoji">
+        <i class="fa-solid fa-chalkboard-user"></i>
+      </div>
+      <div>
+        <h3 class="tdash-title">O‘qituvchi paneli</h3>
+        <div class="tdash-sub">Guruhlar, reyting va do‘kon bo‘limlariga tez kirish</div>
+      </div>
+    </div>
 
-  <!-- 📘 Guruhlarim -->
-  <div class="panel-card">
-    <div class="panel-title">📘 Mening guruhlarim</div>
-    <a href="{% url 'education:men_guruhlarim' %}" class="panel-btn btn-main">
-      Guruhlarimni ko‘rish
-    </a>
+    <div class="tdash-top-right">
+
+      <!-- 🔔 Notifications -->
+      <div class="drop-wrap" id="notifWrap">
+        <button class="ticon-btn" type="button" title="Bildirishnomalar" id="notifBtn">
+          <span class="notif-dot" id="notifDot"></span>
+          <i class="fa-regular fa-bell"></i>
+        </button>
+
+        <div class="dropdown-menu" id="notifMenu">
+          <div class="dd-head">
+            <p class="dd-title">Bildirishnomalar</p>
+            <div class="dd-sub">So‘nggi xabarlar</div>
+          </div>
+          <div class="dd-empty">Hozircha bildirishnoma yo‘q.</div>
+        </div>
+      </div>
+
+      <!-- 👤 Profile dropdown (✅ RASM + Profil link core:profile) -->
+      <div class="drop-wrap" id="profileWrap">
+        <button class="tavatar-btn" type="button"
+                title="{{ request.user.get_full_name|default:request.user.email }}"
+                id="profileBtn">
+          {% if request.user.avatar %}
+            <img src="{{ request.user.avatar.url }}" alt="avatar">
+          {% else %}
+            {{ request.user.ism|default:"A"|first|upper }}
+          {% endif %}
+        </button>
+
+        <div class="dropdown-menu" id="profileMenu">
+          <div class="dd-head">
+            <p class="dd-title">{{ request.user.get_full_name|default:request.user.email }}</p>
+            <div class="dd-sub">{{ request.user.get_role_display }}</div>
+          </div>
+
+          <!-- ✅ Profil (core:profile) -->
+          <a class="dd-item" href="{% url 'core:profile' %}?next={{ request.path }}">
+            <i class="fa-regular fa-user"></i>
+            Profil
+          </a>
+
+          <!-- ✅ Logout -->
+          <form method="post" action="{% url 'logout' %}" style="margin:0;">
+            {% csrf_token %}
+            <button type="submit"
+                    class="dd-item danger"
+                    style="width:100%; border:none; text-align:left; cursor:pointer;">
+              <i class="fa-solid fa-right-from-bracket"></i>
+              Chiqish
+            </button>
+          </form>
+        </div>
+      </div>
+
+    </div>
   </div>
 
-  <!-- ⚡ Chaqmoq -->
-  <div class="panel-card">
-    <div class="panel-title">⚡ Chaqmoq</div>
-    <a href="{% url 'chaqmoq:reyting' %}" class="panel-btn btn-green">
-      Umumiy reyting
-    </a>
-  </div>
+  <!-- ✅ CARDS -->
+  <div class="tdash-grid">
 
-  <!-- 🛒 Do‘kon -->
-  <div class="panel-card">
-    <div class="panel-title">🛒 Do‘kon</div>
-    <a href="{% url 'store:products' %}" class="panel-btn btn-main">
-      Mahsulotlar (faqat ko‘rish)
-    </a>
-  </div>
+    <div class="tcard">
+      <div class="tcard-top">
+        <div class="tcard-ico">📘</div>
+        <p class="tcard-name">Mening guruhlarim</p>
+      </div>
 
+      <div class="tcard-desc">
+        O‘zingiz dars beradigan guruhlarni ko‘ring, tezda kirib tekshiring.
+      </div>
+
+      <a class="tbtn tbtn-blue" href="{% url 'education:men_guruhlarim' %}">
+        Guruhlarimni ko‘rish
+      </a>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-top">
+        <div class="tcard-ico">⚡</div>
+        <p class="tcard-name">Chaqmoq</p>
+      </div>
+
+      <div class="tcard-desc">
+        Umumiy chaqmoq reytingini ko‘ring (o‘quvchilar motivatsiyasi uchun).
+      </div>
+
+      <a class="tbtn tbtn-green" href="{% url 'chaqmoq:reyting' %}">
+        Umumiy reyting
+      </a>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-top">
+        <div class="tcard-ico">🛒</div>
+        <p class="tcard-name">Do‘kon</p>
+      </div>
+
+      <div class="tcard-desc">
+        Mahsulotlarni ko‘rish (o‘qituvchi uchun read-only bo‘lishi mumkin).
+      </div>
+
+      <a class="tbtn tbtn-blue" href="{% url 'store:products' %}">
+        Mahsulotlar (faqat ko‘rish)
+      </a>
+    </div>
+
+  </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const notifBtn  = document.getElementById("notifBtn");
+  const notifMenu = document.getElementById("notifMenu");
+  const profBtn   = document.getElementById("profileBtn");
+  const profMenu  = document.getElementById("profileMenu");
+
+  function closeAll(){
+    notifMenu?.classList.remove("open");
+    profMenu?.classList.remove("open");
+  }
+
+  notifBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const willOpen = !notifMenu.classList.contains("open");
+    closeAll();
+    if (willOpen) notifMenu.classList.add("open");
+  });
+
+  profBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const willOpen = !profMenu.classList.contains("open");
+    closeAll();
+    if (willOpen) profMenu.classList.add("open");
+  });
+
+  notifMenu?.addEventListener("click", (e)=> e.stopPropagation());
+  profMenu?.addEventListener("click", (e)=> e.stopPropagation());
+
+  document.addEventListener("click", closeAll);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeAll();
+  });
+});
+</script>`
 
 {% endblock %}

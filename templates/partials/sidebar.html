@@ -1,13 +1,13 @@
 <!-- ================================
-        📌 MOBILE TOP NAVBAR
+        📌 MOBILE TOPBAR
 ================================ -->
 <div class="mobile-topbar d-flex d-lg-none align-items-center justify-content-between">
   <div class="d-flex align-items-center mobile-logo">
-    ⚡ <span>Chaqmoq</span>
+    <span class="logo-bolt">⚡</span>
+    <span class="logo-text">Chaqmoq</span>
   </div>
-
-  <button class="mobile-menu-btn" onclick="toggleSidebar()">
-    ☰
+  <button class="mobile-menu-btn" type="button" onclick="toggleSidebar()">
+    <i class="fa-solid fa-bars"></i>
   </button>
 </div>
 
@@ -16,256 +16,230 @@
 ================================ -->
 <div id="sidebar" class="sidebar-wrapper">
 
-  <!-- ⚡ LOGO -->
-<a href="{% url 'core:home' %}" 
-   class="d-flex align-items-center mb-4 text-decoration-none sidebar-logo"
-   style="color: #f1a502;">
-    <span class="logo-icon me-2">⚡</span>
-    <span class="fs-4 fw-bold">Chaqmoq</span>
-</a>
-
+  <!-- LOGO -->
+  <a href="/" class="sidebar-logo">
+    <div class="logo-icon-bg">
+      <span class="logo-bolt">⚡</span>
+    </div>
+    <span class="logo-text">Chaqmoq</span>
+  </a>
 
   <!-- MENU -->
-  <div class="sidebar-card">
+  <div class="sidebar-scroll custom-scrollbar">
+    {% with vn=request.resolver_match.view_name|default:'' p=request.path %}
 
-    <a href="{% url 'core:home' %}" 
-       class="sidebar-item {% if request.path == '/' or 'core/home' in request.path %}active{% endif %}">
-      <span>🏠</span> <b>Boshqaruv</b>
-    </a>
+    {% if request.user.is_authenticated and request.user.role == 'teacher' %}
+      <!-- ✅ TEACHER: faqat 3 ta bo‘lim -->
+      <a href="/"
+         class="sidebar-item {% if p == '/' or vn == 'core:home' or vn == 'core:dashboard_teacher' %}active{% endif %}">
+        <span class="si-ico"><i class="fa-solid fa-table-columns"></i></span>
+        <span class="si-text">Boshqaruv</span>
+      </a>
 
-    {% if user.is_superuser or user.role == 'director' or user.role == 'manager' %}
-    <a href="{% url 'accounts:add_user' %}" 
-       class="sidebar-item {% if 'accounts/add_user' in request.path %}active{% endif %}">
-      <span>➕</span> O‘quvchi qo‘shish
-    </a>
-    {% endif %}
+      <a href="{% url 'store:products' %}"
+         class="sidebar-item {% if vn == 'store:products' or vn == 'store:product_detail' %}active{% endif %}">
+        <span class="si-ico"><i class="fa-solid fa-store"></i></span>
+        <span class="si-text">Do‘kon</span>
+      </a>
 
-    {% if user.is_superuser or user.role in 'director manager' %}
-    <a href="{% url 'education:groups_home' %}"
-       class="sidebar-item {% if 'groups_home' in request.path or 'education/groups' in request.path %}active{% endif %}">
-      <span>👥</span> Bo‘limlar
-    </a>
-    {% endif %}
+      <a href="{% url 'chaqmoq:reyting' %}"
+         class="sidebar-item {% if vn == 'chaqmoq:reyting' %}active{% endif %}">
+        <span class="si-ico"><i class="fa-solid fa-trophy"></i></span>
+        <span class="si-text">Reyting</span>
+      </a>
 
-        {% if user.is_superuser or user.role == 'director' or user.role == 'manager' %}
-    <a href="{% url 'education:attendance_groups' %}"
-       class="sidebar-item {% if 'attendance/groups' in request.path %}active{% endif %}">
-      <span>📅</span> Guruhlar
-    </a>
-    {% endif %}
+    {% elif request.user.is_authenticated and request.user.role == 'student' %}
+      <!-- ✅ STUDENT: faqat 3 ta bo‘lim -->
+      <a href="/"
+         class="sidebar-item {% if p == '/' or vn == 'core:home' or vn == 'core:dashboard_student' %}active{% endif %}">
+        <span class="si-ico"><i class="fa-solid fa-house"></i></span>
+        <span class="si-text">Asosiy</span>
+      </a>
 
-    
-    {% if request.user.role != 'teacher' and request.user.role != 'student' %}
-    <a href="{% url 'store:lead_list' %}" 
-       class="sidebar-item {% if 'lead' in request.path %}active{% endif %}">
-      <span>📞</span> Leadlar
-    </a>
-    {% endif %}
+      <a href="{% url 'store:products' %}"
+         class="sidebar-item {% if vn == 'store:products' or vn == 'store:product_detail' %}active{% endif %}">
+        <span class="si-ico"><i class="fa-solid fa-store"></i></span>
+        <span class="si-text">Do‘kon</span>
+      </a>
 
-    <a href="{% url 'store:products' %}" 
-       class="sidebar-item {% if 'products' in request.path %}active{% endif %}">
-      <span>🛍️</span> Do‘kon
-    </a>
-
-    {% if user.is_superuser or user.role == 'director' or user.role == 'manager' %}
-    <a href="{% url 'education:tolovlar_home' %}" 
-       class="sidebar-item {% if 'tolov' in request.path %}active{% endif %}">
-      <span>💰</span> To‘lov
-    </a>
-    {% endif %}
-
-    {% if user.is_superuser or user.role == 'director' %}
-    <a href="{% url 'education:teacher_salary_summary' %}" 
-       class="sidebar-item {% if 'teacher_salary' in request.path %}active{% endif %}">
-      <span>📊</span> Hisobot
-    </a>
-    {% endif %}
-
-    <a href="{% url 'chaqmoq:reyting' %}" 
-       class="sidebar-item {% if 'reyting' in request.path %}active{% endif %}">
-      <span>🏆</span> Reyting
-    </a>
-
-    {% if user.is_superuser or user.role == 'director' or user.role == 'manager' %}
-    <a href="{% url 'chaqmoq:berish' %}" 
-       class="sidebar-item {% if 'berish' in request.path %}active{% endif %}">
-      <span>⚡</span> Chaqmoq berish
-    </a>
-    {% endif %}
-
-    {% if user.is_superuser or user.role == 'director' %}
-    <a href="/admin/" class="sidebar-item {% if 'admin' in request.path %}active{% endif %}">
-      <span>⚙️</span> Admin Panel
-    </a>
-    {% endif %}
-
-  </div>
-
-  <!-- USER -->
-  <div class="sidebar-user mt-auto">
-    {% if request.user.is_authenticated %}
-      <div class="user-avatar">{{ request.user.ism|first|upper }}</div>
-
-      <div class="user-info">
-        <div class="fw-semibold">{{ request.user.ism }} {{ request.user.familya }}</div>
-        <small class="text-warning">{{ request.user.get_role_display }}</small>
-      </div>
-
-      <form method="post" action="{% url 'logout' %}">
-        {% csrf_token %}
-        <button type="submit" class="logout-btn">🚪 Chiqish</button>
-      </form>
+      <a href="{% url 'chaqmoq:reyting' %}"
+         class="sidebar-item {% if vn == 'chaqmoq:reyting' %}active{% endif %}">
+        <span class="si-ico"><i class="fa-solid fa-trophy"></i></span>
+        <span class="si-text">Reyting</span>
+      </a>
 
     {% else %}
-      <a href="{% url 'login' %}" class="btn-login">🔑 Kirish</a>
+      <!-- ✅ DIRECTOR/MANAGER: eski menyu (o‘zgarmadi) -->
+      <a href="/" class="sidebar-item {% if p == '/' or vn == 'core:home' %}active{% endif %}">
+        <span class="si-ico"><i class="fa-solid fa-table-columns"></i></span>
+        <span class="si-text">Boshqaruv</span>
+      </a>
+
+      <a href="{% url 'accounts:add_user' %}"
+         class="sidebar-item {% if vn == 'accounts:add_user' %}active{% endif %}">
+        <span class="si-ico"><i class="fa-solid fa-user-plus"></i></span>
+        <span class="si-text">O‘quvchi qo‘shish</span>
+      </a>
+
+      <a href="{% url 'education:groups_home' %}"
+         class="sidebar-item {% if vn == 'education:groups_home' %}active{% endif %}">
+        <span class="si-ico"><i class="fa-solid fa-layer-group"></i></span>
+        <span class="si-text">Bo‘limlar</span>
+      </a>
+
+<a href="{% url 'education:attendance_groups' %}"
+   class="sidebar-item {% if vn == 'education:attendance_groups' %}active{% endif %}">
+        <span class="si-ico"><i class="fa-solid fa-users"></i></span>
+        <span class="si-text">Guruhlar</span>
+      </a>
+
+      <a href="{% url 'store:lead_list' %}"
+         class="sidebar-item {% if vn == 'store:lead_list' or vn == 'store:lead_create' or vn == 'store:lead_update' or vn == 'store:lead_detail' %}active{% endif %}">
+        <span class="si-ico"><i class="fa-solid fa-phone-volume"></i></span>
+        <span class="si-text">Leadlar</span>
+      </a>
+
+      <a href="{% url 'store:products' %}"
+         class="sidebar-item {% if vn == 'store:products' or vn == 'store:product_detail' or vn == 'store:product_create' or vn == 'store:product_update' %}active{% endif %}">
+        <span class="si-ico"><i class="fa-solid fa-store"></i></span>
+        <span class="si-text">Do‘kon</span>
+      </a>
+
+      <a href="{% url 'education:tolovlar_home' %}"
+         class="sidebar-item {% if vn == 'education:tolovlar_home' or vn == 'education:tolov_add' or vn == 'education:tolov_edit' %}active{% endif %}">
+        <span class="si-ico"><i class="fa-solid fa-wallet"></i></span>
+        <span class="si-text">To‘lov</span>
+      </a>
+
+      <a href="{% url 'education:teacher_salary_summary' %}"
+         class="sidebar-item {% if vn == 'education:teacher_salary_summary' %}active{% endif %}">
+        <span class="si-ico"><i class="fa-solid fa-chart-line"></i></span>
+        <span class="si-text">Hisobot</span>
+      </a>
+
+      <a href="{% url 'chaqmoq:reyting' %}"
+         class="sidebar-item {% if vn == 'chaqmoq:reyting' %}active{% endif %}">
+        <span class="si-ico"><i class="fa-solid fa-trophy"></i></span>
+        <span class="si-text">Reyting</span>
+      </a>
+
+      <a href="{% url 'chaqmoq:berish' %}"
+         class="sidebar-item {% if vn == 'chaqmoq:berish' %}active{% endif %}">
+        <span class="si-ico"><i class="fa-solid fa-bolt"></i></span>
+        <span class="si-text">Chaqmoq berish</span>
+      </a>
+    {% endif %}
+
+    {% endwith %}
+  </div>
+
+  <!-- BOTTOM: ADMIN -->
+  <div class="sidebar-bottom">
+    {# ✅ teacher/student da admin ko‘rinmasin #}
+    {% if request.user.is_authenticated and request.user.role != 'teacher' and request.user.role != 'student' %}
+      {% if request.user.is_staff or request.user.is_superuser %}
+        <a href="/admin/" class="sidebar-item settings-item {% if '/admin' in request.path %}active{% endif %}">
+          <span class="si-ico"><i class="fa-solid fa-gear"></i></span>
+          <span class="si-text">Admin Panel</span>
+        </a>
+      {% endif %}
     {% endif %}
   </div>
 </div>
 
-
-
-<!-- ================================
-        📌 JS – MOBILE TOGGLE
-================================ -->
-<script>
-function toggleSidebar() {
-  document.getElementById("sidebar").classList.toggle("open");
-}
-</script>
-
-
-
-<!-- ================================
-        📌 STYLE
-================================ -->
 <style>
-
-.sidebar-wrapper {
-  width: 270px;
-  background: linear-gradient(180deg,#0f172a,#1e293b,#0f172a);
-  padding: 25px 20px;
-  min-height: 100vh;
-  color: #fff;
-  position: relative;
-}
-
-/* ============================
-   📱 MOBILE SIDEBAR (HIDDEN)
-==============================*/
-@media (max-width: 992px) {
-  .sidebar-wrapper {
-    position: fixed;
-    left: -100%;
-    top: 0;
-    height: 100vh;
-    width: 260px;
-    transition: 0.35s ease;
-    z-index: 9999;
+  .sidebar-wrapper{
+    width:270px;
+    height:100vh;
+    background:#0d121f;
+    padding:24px 16px;
+    display:flex;
+    flex-direction:column;
+    border-right:1px solid rgba(255,255,255,0.05);
+    position:fixed;
+    left:0; top:0;
+    z-index:6000;
+    pointer-events:auto;
   }
-  .sidebar-wrapper.open {
-    left: 0;
-    box-shadow: 0 0 25px rgba(0,0,0,0.6);
+
+  .sidebar-logo{
+    display:flex; align-items:center; gap:12px;
+    padding:0 12px 22px;
+    text-decoration:none;
   }
-}
 
-/* TOPBAR MOBILE */
-.mobile-topbar {
-  width: 100%;
-  background: #0f172a;
-  padding: 12px 16px;
-  color: #fff;
-  font-size: 19px;
-  font-weight: 600;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-.mobile-logo span { font-weight: 700; margin-left: 6px; }
-.mobile-menu-btn {
-  background: none;
-  border: none;
-  font-size: 28px;
-  color: #fff;
-}
+  .logo-icon-bg{
+    background:#f59e0b;
+    width:36px; height:36px;
+    border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 8px 16px rgba(245,158,11,0.2);
+  }
+  .logo-bolt{color:#fff;font-size:18px;}
+  .logo-text{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.5px;}
 
+  .sidebar-scroll{flex:1; overflow-y:auto; padding-right:4px;}
 
-/* =============== MENU =============== */
-.sidebar-card {
-  background: rgba(255,255,255,0.04);
-  padding: 10px;
-  border-radius: 18px;
-  backdrop-filter: blur(3px);
-}
+  .sidebar-item{
+    display:flex; align-items:center; gap:14px;
+    padding:12px 16px; margin-bottom:4px;
+    text-decoration:none;
+    color:#94a3b8;
+    border-radius:14px;
+    transition:.2s ease;
+    font-weight:600;
+    font-size:14px;
+    pointer-events:auto;
+    cursor:pointer;
+  }
 
-.sidebar-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(255,255,255,0.06);
-  color: #cbd5e1;
-  padding: 12px 15px;
-  margin: 7px 0;
-  text-decoration: none;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.06);
-  transition: 0.25s;
-  font-weight: 600;
-}
+  .sidebar-item:hover:not(.active){
+    background:rgba(255,255,255,0.03);
+    color:#fff;
+  }
 
-.sidebar-item:hover {
-  background: linear-gradient(90deg,#3b82f6,#60a5fa);
-  color: #fff;
-  transform: translateX(6px);
-}
+  .sidebar-item.active{
+    background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);
+    color:#fff;
+    box-shadow:0 10px 20px -5px rgba(217,119,6,0.3);
+  }
 
-.sidebar-item.active {
-  background: linear-gradient(90deg,#facc15,#fbbf24);
-  color: #000;
-  transform: translateX(4px);
-}
+  .si-ico{width:20px; display:flex; align-items:center; justify-content:center; font-size:18px;}
 
+  .sidebar-bottom{
+    padding-top:14px;
+    border-top:1px solid rgba(255,255,255,0.06);
+  }
 
-/* =============== USER =============== */
-.sidebar-user {
-  background: rgba(255,255,255,0.05);
-  padding: 20px 10px;
-  border-radius: 16px;
-  box-shadow: inset 0 0 15px rgba(0,0,0,0.4);
-}
+  /* Custom scrollbar */
+  .custom-scrollbar::-webkit-scrollbar{ width:4px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb{
+    background:rgba(255,255,255,0.06);
+    border-radius:10px;
+  }
 
-.user-avatar {
-  width: 58px;
-  height: 58px;
-  background: linear-gradient(135deg,#3b82f6,#facc15);
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: #fff;
-  font-size: 20px;
-  margin: 0 auto 8px;
-}
-
-.logout-btn {
-  width: 100%;
-  padding: 10px;
-  background: rgba(220,38,38,0.1);
-  color: #f87171;
-  border: 1px solid rgba(248,113,113,0.3);
-  border-radius: 10px;
-  transition: 0.35s;
-}
-.logout-btn:hover {
-  background: #dc2626;
-  color: #fff;
-}
-
-/* LOGIN BUTTON */
-.btn-login {
-  background: linear-gradient(90deg,#3b82f6,#60a5fa);
-  padding: 10px;
-  text-decoration: none;
-  color: #fff;
-  font-weight: 600;
-  display: block;
-  border-radius: 12px;
-}
+  /* Mobile */
+  @media (max-width: 992px){
+    .sidebar-wrapper{ left:-110%; transition:.3s; }
+    .sidebar-wrapper.open{ left:0; }
+    .mobile-topbar{
+      background:#0d121f;
+      padding:16px;
+      border-bottom:1px solid rgba(255,255,255,0.05);
+      position:sticky;
+      top:0;
+      z-index:7000;
+    }
+    .mobile-menu-btn{
+      background:none;border:none;color:#fff;
+      font-size:22px;
+    }
+  }
 </style>
+
+<script>
+  function toggleSidebar(){
+    const sb = document.getElementById("sidebar");
+    if(sb) sb.classList.toggle("open");
+  }
+</script>

@@ -1,1095 +1,975 @@
 {% extends 'base.html' %}
 {% block content %}
 
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
 <style>
+  :root{
+    --bg0:#050814;
+    --bg1:#070b14;
 
-@keyframes flashFade {
-  0% { opacity: 0; transform: translateY(-50%) scale(0.9); }
-  20% { opacity: 1; transform: translateY(-50%) scale(1); }
-  100% { opacity: 1; transform: translateY(-50%) scale(1); }
-}
+    --panelA: rgba(17,24,39,.62);
+    --panelB: rgba(2,6,23,.48);
 
-body {
-  background: linear-gradient(135deg, #eef4ff, #ffffff);
-  font-family: 'Poppins', sans-serif;
-  overflow-x: hidden;
-}
+    --line: rgba(255,255,255,.10);
+    --line2: rgba(255,255,255,.06);
 
-/* 🔹 Karta dizayni */
-.card {
-  border: none !important;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #ffffff, #f9fcff);
-  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
-  transition: all 0.3s ease;
-}
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(0,123,255,0.15);
-}
+    --text:#e5e7eb;
+    --muted:#94a3b8;
 
-/* 🔹 Tugmalar */
-.btn-primary {
-  background: linear-gradient(135deg, #007bff, #00aaff);
-  border: none;
-  font-weight: 600;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-}
-.btn-primary:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0,123,255,0.4);
-}
-.btn-outline-secondary { font-weight: 600; }
+    --blue:#0095ff;
+    --green:#16a34a;
+    --red:#ef4444;
+    --orange:#f97316;
+  }
 
-/* 🔹 Jadval */
-.table {
-  border-radius: 12px;
-  overflow: hidden;
-  font-size: 0.95rem;
-}
-.table thead {
-  background: linear-gradient(135deg, #007bff, #00aaff);
-  color: #fff;
-}
-.table th, .table td {
-  text-align: center;
-  vertical-align: middle;
-}
-.table-hover tbody tr:hover {
-  background-color: #f2f8ff;
-  transition: background 0.2s ease;
-}
+  *{ box-sizing:border-box; }
+  body{ font-family:'Inter',sans-serif; }
 
-/* 🔹 Chaqmoq badge */
-.balance-badge {
-  border-radius: 8px;
-  font-size: 0.9rem;
-  padding: 6px 10px;
-  font-weight: 600;
-  position: relative;
-}
+  .cq-page{
+    min-height: 100vh;
+    color: var(--text);
+    background:
+      radial-gradient(700px circle at 18% 0%, rgba(0,149,255,.08), transparent 48%),
+      radial-gradient(700px circle at 92% 10%, rgba(34,197,94,.06), transparent 52%),
+      linear-gradient(180deg, var(--bg1) 0%, var(--bg0) 60%, #04040c 100%);
+  }
 
-.remove-col {
-    width: 40px;
-    text-align: center;
-}
-.remove-check {
-    transform: scale(1.3);
-}
+  .cq-wrap{ max-width: 980px; margin: 0 auto; }
 
-/* 🔹 Animatsiya */
-.fade-in { animation: fadeIn 0.4s ease-in-out; }
-@keyframes fadeIn {
-  from {opacity: 0; transform: translateY(8px);}
-  to {opacity: 1; transform: translateY(0);}
-}
-
-
-.toast {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 18px;
-  margin-top: 10px;
-  border-radius: 10px;
-  color: #fff;
-  font-weight: 500;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.20);
-  animation: toastShow 0.4s ease;
-  backdrop-filter: blur(6px);
-}
-
-.toast-success {
-  background: linear-gradient(135deg,#16a34a,#22c55e);
-}
-
-.toast-error {
-  background: linear-gradient(135deg,#dc2626,#ef4444);
-}
-
-@keyframes toastShow {
-  from { opacity: 0; transform: translateX(50px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-/* 🔥 Remove Mode Button Group */
-.remove-actions {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    margin-bottom: 15px;
-}
-
-/* 🗑️ Mode Button */
-#remove-mode-btn {
-    background: #ffe8e8;
-    border: 1px solid #ff6b6b;
-    color: #c00000;
-    font-weight: 600;
-    border-radius: 10px;
-    padding: 7px 14px;
-    transition: all .25s ease;
-}
-
-#remove-mode-btn:hover {
-    background: #ff6b6b;
-    color: #fff;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(255,40,40,0.35);
-}
-
-#remove-mode-btn.active {
-    background: #ff3d3d;
-    color: #fff;
-    border-color: #ff0000;
-}
-
-/* ❌ Tanlanganlarni chiqarish */
-#remove-selected-btn {
-    background: linear-gradient(135deg, #ff3d3d, #c00000);
-    color: #fff;
-    border: none;
-    border-radius: 10px;
-    padding: 7px 18px;
-    font-weight: 600;
-    transition: all .25s ease;
-}
-
-#remove-selected-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255,0,0,0.4);
-}
-/* Jadval umumiy */
-#group-table {
+  .cq-card{
+    position: relative;
     border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: linear-gradient(180deg, var(--panelA), var(--panelB));
+    box-shadow: 0 10px 24px rgba(0,0,0,.38), 0 4px 10px rgba(0,0,0,.22);
+    backdrop-filter: blur(8px);
     overflow: hidden;
-}
+  }
+  .cq-card::before{
+    content:"";
+    position:absolute; inset:-1px;
+    background: radial-gradient(800px circle at 20% 10%, rgba(0,149,255,.10), transparent 52%),
+                radial-gradient(800px circle at 88% 18%, rgba(34,197,94,.08), transparent 58%);
+    opacity:.38;
+    pointer-events:none;
+  }
+  .cq-card > *{ position:relative; z-index:1; }
 
-/* Header */
-#group-table thead tr {
-    background: linear-gradient(135deg, #124dee, #007bff);
+  .cq-input, .cq-select{
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.04);
     color: #fff;
-}
+    outline: none;
+  }
+  .cq-input{ padding: 7px 10px; font-size: 12px; font-weight: 900; }
+  .cq-select{ padding: 6px 10px; font-size: 12px; font-weight: 900; }
+  .cq-input:focus, .cq-select:focus{
+    box-shadow: 0 0 0 4px rgba(0,149,255,.14);
+    border-color: rgba(0,149,255,.45);
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator{ filter: invert(1); cursor:pointer; }
 
-#group-table thead th {
-    font-weight: 600;
-    padding: 14px;
-    font-size: 0.9rem;
-}
-
-/* Qatorlar hover */
-#group-table tbody tr {
-    transition: background 0.25s ease, transform 0.1s ease;
-}
-
-#group-table tbody tr:hover {
-    background: #f3f7ff;
-    transform: scale(1.002);
-}
-
-/* Remove checkbox column */
-.remove-col {
-    width: 40px;
-}
-
-.remove-check {
-    transform: scale(1.4);
-    cursor: pointer;
-}
-
-/* Davomat header (checkbox bilan) */
-.attend-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-}
-
-/* Ball box */
-
-.ball-box button {
-    font-weight: 700;
-}
-
-/* General align fix */
-.card-body {
-    padding-top: 14px !important;
-    padding-bottom: 14px !important;
-}
-.remove-btn {
-    padding: 7px 14px;
+  .cq-btn{
+    height: 34px;
     border-radius: 10px;
-    font-weight: 600;
-    transition: .25s ease;
-}
-.remove-btn:hover {
-    background:#ff6b6b;
+    padding: 0 12px;
+    font-size: 11px;
+    font-weight: 900;
+    border: 1px solid rgba(255,255,255,.10);
+    transition: .14s ease;
+  }
+  .cq-btn:hover{ transform: translateY(-1px); }
+  .cq-btn:active{ transform: translateY(0px) scale(.99); }
+
+  .cq-btn-blue{
+    background: var(--blue);
+    color: #fff;
+    box-shadow: 0 12px 22px rgba(0,149,255,.16);
+  }
+  .cq-btn-blue:hover{ filter: brightness(1.06); }
+
+  .cq-btn-red-outline{
+    background: rgba(239,68,68,.10);
+    color: #ff7b7b;
+    border-color: rgba(239,68,68,.26);
+  }
+  .cq-btn-red-outline.rm-active{
+    background: rgba(239,68,68,.18);
+    border-color: rgba(239,68,68,.44);
+    color: #ffe1e1;
+  }
+
+  .cq-pill{ height: 30px !important; padding: 0 12px !important; font-size: 11px !important; border: none !important; }
+  .cq-btn-green-pill{ background: rgba(22,163,74,.92); color:#fff; box-shadow: 0 10px 18px rgba(22,163,74,.12); }
+  .cq-btn-red-pill{ background: rgba(239,68,68,.92); color:#fff; box-shadow: 0 10px 18px rgba(239,68,68,.12); }
+
+  .custom-checkbox{
+    -webkit-appearance:none;
+    appearance:none;
+    width:18px; height:18px;
+    border-radius:7px;
+    border: 1.8px solid rgba(255,255,255,.28);
+    background: rgba(255,255,255,.03);
+    cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center;
+    transition:.12s ease;
+  }
+  .custom-checkbox:checked{
+    background: var(--blue);
+    border-color: rgba(0,149,255,.95);
+  }
+  .custom-checkbox:checked::after{
+    content:"✓";
     color:#fff;
-}
+    font-weight:900;
+    font-size: 11px;
+    transform: translateY(-0.5px);
+  }
 
-.add-student-btn {
-    padding: 7px 16px;
+  .cq-table thead tr{
+    background: rgba(255,255,255,.04);
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .cq-th{ padding: 10px 12px; font-size: 10px; font-weight: 900; letter-spacing: .08em; color: rgba(229,231,235,.85); }
+  .cq-td{ padding: 10px 12px; }
+  .cq-row{
+    transition:.14s ease;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .cq-row:hover{ background: rgba(255,255,255,.03); }
+
+  .forced-row{ background-color: rgba(239,68,68,.06) !important; }
+  .d-none{ display:none !important; }
+
+  .balance-badge{
+    min-width: 52px;
+    padding: 4px 10px !important;
+    font-size: 12px;
+    font-weight: 900;
     border-radius: 10px;
-    font-weight: 600;
-    background: linear-gradient(135deg,#007bff,#00aaff);
-    border: none;
-    transition:.25s ease;
-}
-.add-student-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(0,123,255,0.4);
-}
-.select-rule {
-    border-radius: 8px;
-    padding: 4px 8px;
-    min-width: 180px;
-    max-width: 220px;   /* juda katta bo‘lib ketmasin */
-}
+    border: 1px solid rgba(255,255,255,.10);
+  }
 
-.attend-btn {
-    padding: 6px 14px;
-    border-radius: 8px;
-    font-weight: 600;
-    background: linear-gradient(135deg, #0d6efd, #0aa2ff);
-    border: none;
-}
-.attend-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(0,123,255,0.4);
-}
+  .flash-pill{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding: 2px 8px;
+    border-radius:999px;
+    font-weight:900;
+    font-size: 11px;
+    border:1px solid rgba(255,255,255,.10);
+    box-shadow: 0 8px 14px rgba(0,0,0,.22);
+  }
+  .flash-pill.plus{ color:#34d399; background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.22); }
+  .flash-pill.minus{ color:#fb7185; background: rgba(244,63,94,.12); border-color: rgba(244,63,94,.22); }
 
-/* Ball box */
-.ball-box .btn {
-    font-weight: 700;
-}
-.ball-box input {
-    font-weight: 600;
-    border-radius: 6px !important;
-}
-.card-body label {
-    margin-right: 4px;
+  .toast{ opacity:0; transform: translateX(20px); transition: all .25s ease; }
+  .toast.show{ opacity:1; transform: translateX(0); }
 
-}
-.select-rule {
-    min-width: 220px;
-}
+  /* =========================
+     ✅ NEW: 3-state attendance UI
+     ========================= */
+  .att-seg{
+    display:flex;
+    gap:6px;
+    align-items:center;
+    justify-content:center;
+  }
+  .att-btn{
+    height: 30px;
+    min-width: 74px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.04);
+    color: rgba(229,231,235,.85);
+    font-weight: 900;
+    font-size: 11px;
+    transition: .12s ease;
+  }
+  .att-btn:hover{ transform: translateY(-1px); filter: brightness(1.05); }
+  .att-seg[data-status="present"] .att-btn.present{
+    background: rgba(0,149,255,.92);
+    border-color: rgba(0,149,255,.50);
+    color: #fff;
+    box-shadow: 0 10px 18px rgba(0,149,255,.12);
+  }
+  .att-seg[data-status="forced"] .att-btn.forced{
+    background: rgba(239,68,68,.92);
+    border-color: rgba(239,68,68,.45);
+    color: #fff;
+    box-shadow: 0 10px 18px rgba(239,68,68,.12);
+  }
+  .att-seg.loading .att-btn{ opacity:.55; pointer-events:none; }
 
-.attend-btn {
-    white-space: nowrap;
-    padding: 6px 14px;
-    font-weight: 600;
-}
-
-.ball-box input {
-    font-weight: 600;
-}
-
-.card-body label {
-    margin-right: 4px;
-}
-/* === Davomat checkboxlarini to'liq custom qilish (hamma qatorda) === */
-.attend-toggle.form-check-input {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  border: 2px solid #cbd5e1;
-  background-color: #ffffff;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all .15s ease;
-}
-
-/* ✅ Oddiy kelgan o'quvchi – ko'k rang */
-.attend-toggle.form-check-input:checked {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
-}
-
-/* Ichidagi oq “galchik” */
-.attend-toggle.form-check-input:checked::after {
-  content: "";
-  width: 6px;
-  height: 10px;
-  border-right: 2px solid #ffffff;
-  border-bottom: 2px solid #ffffff;
-  transform: rotate(45deg);
-  margin-left: 2px;
-  margin-bottom: 1px;
-}
-/* 🧨 Kelmagan, lekin pul yozilgan qatordagi stil – YANGI TO'LIQ BLOK */
-/* Qator fonini och qizil qilamiz */
-.forced-row {
-  background: #fef2f2 !important;
-}
-
-.forced-row:hover {
-  background: #fee2e2 !important;
-}
-
-/* 🔴 Forced (kelmadi, pul yozilgan) o'quvchining checkbox'i – ICHI HAM QIZIL */
-.forced-row .attend-toggle.form-check-input {
-  border-color: #ef4444;
-  background-color: #fee2e2;                 /* kvadrat ichi qizg'ish */
-  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.35);
-}
-
-/* Agar baribir belgilab qo'ysang – odatdagi KO'K holatga qaytadi */
-.forced-row .attend-toggle.form-check-input:checked {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
-  box-shadow: none;
-}
-
-/* Chaqmoq badge ham biroz ogohlantiruvchi ko‘rinsin */
-.forced-row .balance-badge {
-  border: 1px solid #fecaca;
-}
-
-
-
+  /* ✅ present bo‘lmasa chaqmoq tugmalari xira bo‘lsin */
+  .row-not-present .btn-add,
+  .row-not-present .btn-sub{
+    opacity: .40;
+    filter: saturate(.7);
+    pointer-events: none;
+  }
 </style>
 
+<div class="cq-page px-4 lg:px-6 py-4">
+  <div id="toast-container" class="fixed top-5 right-5 z-[100] space-y-3 pointer-events-none"></div>
 
+  <div class="cq-wrap space-y-3">
 
-<div id="toast-container"
-     style="position: fixed; top: 20px; right: 20px; z-index: 99999;"></div>
-
-<!-- Guruh maʼlumotlari -->
-<div class="card mb-3 fade-in">
-  <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
-
-    <!-- LEFT (Group info) -->
-    <div>
-      <div class="h4 mb-1">{{ g.nom }}</div>
-      <div class="text-muted small">
-        Center: {{ g.center }} &nbsp;|&nbsp;
-        O‘qituvchi:
-        {% if g.oqituvchi %}
-          {{ g.oqituvchi.ism }} {{ g.oqituvchi.familya }}
-        {% else %} — {% endif %}
+    <!-- HEADER -->
+    <div class="cq-card p-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+      <div>
+        <h1 class="text-[22px] font-black text-white tracking-tight leading-tight">{{ g.nom }}</h1>
+        <div class="flex flex-wrap gap-2 mt-1 text-[12px] font-semibold text-slate-400">
+          <span>Center: <span class="text-slate-200">{{ g.center }}</span></span>
+          <span class="text-slate-600">|</span>
+          <span>O'qituvchi:
+            <span class="text-slate-200">
+              {% if g.oqituvchi %}{{ g.oqituvchi.ism }} {{ g.oqituvchi.familya }}{% else %}—{% endif %}
+            </span>
+          </span>
+        </div>
       </div>
-    </div>
 
-    <!-- RIGHT BUTTONS (remove mode + add student) -->
-    <div class="d-flex align-items-center gap-2">
-
+      <div class="flex gap-2 w-full md:w-auto">
         <button id="remove-mode-btn"
-                class="btn btn-outline-danger btn-sm remove-btn">
-            🗑️ O‘quvchilarni chiqarish rejimi
-        </button>
-
-        <button id="remove-selected-btn"
-                class="btn btn-danger btn-sm d-none">
-            ❌ Tanlanganlarni chiqarish
+                class="cq-btn cq-btn-red-outline flex-1 md:flex-none flex items-center justify-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+          </svg>
+          <span id="remove-mode-label">O'quvchilarni chiqarish</span>
         </button>
 
         {% if can_add_student %}
         <a href="{% url 'education:add_student_to_group' g.id %}"
-           class="btn btn-primary btn-sm add-student-btn">
-            ➕ O‘quvchi qo‘shish
+           class="cq-btn cq-btn-blue flex-1 md:flex-none flex items-center justify-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          O'quvchi qo'shish
         </a>
         {% endif %}
-
+      </div>
     </div>
 
-  </div>
-</div>
+    <!-- DATE BAR -->
+    <div class="cq-card p-3 flex flex-col md:flex-row justify-between items-center gap-3">
+      <div class="flex items-center gap-3 w-full md:w-auto">
+        <div class="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-[var(--blue)] font-black text-[12px] whitespace-nowrap">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+            <path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/>
+          </svg>
+          <span>Davomat sanasi:</span>
+        </div>
 
+        <input id="attendance-date" type="date" value="{{ selected_date|default:today }}"
+               class="cq-input w-full md:w-52">
+      </div>
 
-<!-- Sana tanlash -->
-<div class="card mb-3 fade-in">
-  <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <div class="d-flex align-items-center gap-2">
-      <h6 class="fw-bold mb-0 text-primary">📅 Davomat sanasi:</h6>
-      <input id="attendance-date" type="date" class="form-control form-control-sm" style="width:200px" value="{{ selected_date|default:today }}">
-    </div>
-    <div class="text-muted small">
-      Tanlangan sana: <strong id="selected-date-label">{{ selected_date|default:today }}</strong>
-    </div>
-  </div>
-</div>
-
-
-<!-- Qoida va ball paneli -->
-<div class="card mb-3 fade-in">
-  <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
-
-    <!-- LEFT SIDE (Qoida + umumiy tugmalar) -->
-    <div class="rule-box d-flex flex-wrap align-items-center gap-3">
-
-      <label class="fw-semibold mb-0">🧠 Qoida:</label>
-
-      <select id="rule-global"
-              class="form-select form-select-sm select-rule">
-        <option value="">— Qoida tanlang —</option>
-
-        <optgroup label="Qo‘shish sabablari">
-          {% for r in rules_plus %}
-            <option value="{{ r.id }}" data-type="+">{{ r.nom }}</option>
-          {% endfor %}
-        </optgroup>
-
-        <optgroup label="Ayirish sabablari">
-          {% for r in rules_minus %}
-            <option value="{{ r.id }}" data-type="-">{{ r.nom }}</option>
-          {% endfor %}
-        </optgroup>
-      </select>
-
-      <!-- 🔵 Joriy qilish tugmasi -->
-      <button id="points-all-btn" class="btn btn-success btn-sm attend-btn">
-        ⚡ Joriy qilish
-      </button>
-
-      <!-- 🟡 Kelmadi — Pul yozilsin tugmasi (shu yerga ko‘chirdik) -->
-<button id="force-absent-btn"
-        class="btn btn-danger btn-sm fw-semibold"
-        style="color:white; background-color:#dc3545; border-color:#dc3545;">
-    ❗ Darsga kelmagan
-</button>
-
+      <div class="text-[12px] font-bold text-slate-500">
+        Tanlangan sana:
+        <span class="text-white ml-1 font-black" id="label-date">{{ selected_date|default:today }}</span>
+      </div>
     </div>
 
-    <!-- RIGHT SIDE (BALL) -->
-    <div class="d-flex align-items-center gap-2">
-      <label class="fw-semibold mb-0">⚡ Ball:</label>
+    <!-- TOOLS BAR -->
+    <div class="cq-card p-3">
+      <div class="w-full flex flex-col lg:flex-row lg:flex-nowrap items-stretch lg:items-center gap-2">
 
-      <div class="input-group input-group-sm ball-box" style="width:120px;">
-        <button class="btn btn-outline-secondary" id="glob-minus">−</button>
-        <input id="amount-global" type="number" class="form-control text-center" value="3">
-        <button class="btn btn-outline-secondary" id="glob-plus">+</button>
+        <!-- Rule select -->
+        <div class="flex items-center gap-3 px-4 py-2 rounded-xl border border-white/10 bg-white/5 flex-1 lg:flex-none">
+          <svg class="text-pink-500" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04Z"/>
+            <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04Z"/>
+          </svg>
+
+          <span class="text-[12px] font-black text-slate-300 whitespace-nowrap">Qoida:</span>
+
+          <select id="rule-global" class="cq-select bg-transparent text-white min-w-[180px]">
+            <option value="" class="bg-[#0b1220]">— Qoida tanlang —</option>
+            <optgroup label="Qo‘shish" class="bg-[#0b1220]">
+              {% for r in rules_plus %}
+                <option value="{{ r.id }}" data-type="+" class="bg-[#0b1220]">{{ r.nom }}</option>
+              {% endfor %}
+            </optgroup>
+            <optgroup label="Ayirish" class="bg-[#0b1220]">
+              {% for r in rules_minus %}
+                <option value="{{ r.id }}" data-type="-" class="bg-[#0b1220]">{{ r.nom }}</option>
+              {% endfor %}
+            </optgroup>
+          </select>
+        </div>
+
+        <!-- Apply rule -->
+        <button id="points-all-btn" class="cq-btn cq-btn-blue gap-2 whitespace-nowrap">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+          Joriy qilish
+        </button>
+
+        <!-- ✅ NEW: Davomat tezkor -->
+        <button id="attend-all-present-btn"
+                class="cq-btn gap-2 bg-emerald-600 text-white border border-white/10 rounded-xl hover:brightness-110 transition-all whitespace-nowrap">
+          Hammasi keldi
+        </button>
+
+        <button id="attend-all-forced-btn"
+                class="cq-btn gap-2 bg-red-500 text-white border border-white/10 rounded-xl hover:brightness-110 transition-all whitespace-nowrap">
+          Kelmadi
+        </button>
+
+        <!-- Ball -->
+        <div class="lg:ml-auto flex items-center justify-between lg:justify-end gap-3">
+          <div class="flex items-center gap-2 text-[var(--orange)] font-black uppercase text-[11px] tracking-widest whitespace-nowrap">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+            BALL:
+          </div>
+
+          <div class="flex items-center border border-white/10 rounded-xl overflow-hidden h-[38px] bg-white/5">
+            <button id="glob-minus" class="px-3 hover:bg-white/5 transition-colors text-slate-200 font-black text-lg">−</button>
+            <input id="amount-global" type="number" value="3" min="1"
+                   class="w-14 bg-transparent text-center font-black text-white border-x border-white/10 text-base outline-none">
+            <button id="glob-plus" class="px-3 hover:bg-white/5 transition-colors text-slate-200 font-black text-lg">+</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="cq-card overflow-hidden">
+      <div class="overflow-x-auto">
+        <table id="group-table" class="cq-table w-full text-left border-collapse">
+          <thead>
+            <tr>
+              <th class="cq-th text-center remove-col d-none">
+                <button id="remove-selected-btn"
+                        class="d-none inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-red-600 text-white font-black text-[11px] hover:brightness-110 transition-all">
+                  Tanlanganlarni chiqarish
+                </button>
+              </th>
+
+              <th class="cq-th text-center w-10">#</th>
+              <th class="cq-th">O'QUVCHI F.I.SH</th>
+              <th class="cq-th text-center hidden sm:table-cell">TELEFON</th>
+
+              <th class="cq-th text-center">DAVOMAT</th>
+
+              <th class="cq-th text-center">
+                <span class="flex items-center justify-center gap-1 text-orange-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                  </svg>
+                  CHAQMOQ
+                </span>
+              </th>
+
+              <th class="cq-th text-center">AMAL</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for e in enrollments %}
+            {% with st="none" %}
+            <tr class="cq-row
+                {% if e.student.forced_today %}forced-row{% endif %}
+                {% if not e.student.present_today %}row-not-present{% endif %}">
+              <td class="cq-td text-center remove-col d-none">
+                <input type="checkbox" class="remove-check custom-checkbox" value="{{ e.id }}">
+              </td>
+
+              <td class="cq-td font-black text-slate-500 text-center text-sm">{{ forloop.counter }}</td>
+
+              <td class="cq-td">
+                <a href="{% url 'education:student_detail' e.student.id %}"
+                   class="font-black text-[var(--blue)] hover:opacity-90 transition-colors text-[14px] block leading-tight">
+                  {{ e.student.ism }}{% if e.student.familya %} {{ e.student.familya }}{% endif %}{% if e.student.otchestvo %} {{ e.student.otchestvo }}{% endif %}
+                </a>
+                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                  {{ e.student.email|default:e.student.username }}
+                </span>
+              </td>
+
+              <td class="cq-td text-center text-slate-200 font-black text-sm hidden sm:table-cell">
+                {{ e.student.telefon1|default:"—" }}
+              </td>
+
+              <!-- ✅ NEW: 3-state attendance -->
+              <td class="cq-td text-center">
+                <div class="att-seg"
+                     data-enrollment="{{ e.id }}"
+                     data-student="{{ e.student.id }}"
+                     data-status="{% if e.student.present_today %}present{% elif e.student.forced_today %}forced{% else %}none{% endif %}">
+                  <button type="button" class="att-btn present">KELDI</button>
+                  <button type="button" class="att-btn forced">KELMADI</button>
+                </div>
+              </td>
+
+              <td class="cq-td text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <div id="balance-{{ e.student.id }}"
+                       class="balance-badge inline-flex items-center justify-center text-white
+                       {% if e.student.balance >= 0 %}bg-emerald-600{% else %}bg-red-600{% endif %}">
+                    {{ e.student.balance|default:0 }}
+                  </div>
+                  <div id="flash-{{ e.student.id }}" class="min-h-[20px]"></div>
+                </div>
+              </td>
+
+              <td class="cq-td">
+                <div class="flex justify-center gap-2 flex-wrap md:flex-nowrap">
+                  <button type="button" class="btn-add cq-pill cq-btn-green-pill" data-student="{{ e.student.id }}">
+                    Qo'shish
+                  </button>
+                  <button type="button" class="btn-sub cq-pill cq-btn-red-pill" data-student="{{ e.student.id }}">
+                    Ayirish
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% endwith %}
+            {% endfor %}
+          </tbody>
+
+        </table>
       </div>
     </div>
 
   </div>
+
+  <!-- CSRF -->
+  <form id="csrf-form" class="hidden">{% csrf_token %}</form>
+
+  <!-- URLS -->
+  <div id="js-urls" class="hidden"
+       data-attend="{% url 'education:attendance_today' g.id %}"
+       data-points="{% url 'education:group_points' g.id %}"
+       data-remove="{% url 'education:group_bulk_remove' g.id %}"
+       data-attend-all="{% url 'education:group_attend_all' g.id %}"
+       data-group-id="{{ g.id }}">
+  </div>
 </div>
-
-<!-- JS URL manzillar -->
-
-<form id="csrf-form" class="d-none">{% csrf_token %}</form>
-
-<!-- Jadval -->
-<div class="table-responsive shadow-sm fade-in">
-  <table id="group-table" class="table table-hover align-middle mb-0">
-    <thead>
-      <tr>
-        <th class="remove-col d-none">❌</th>
-        <th>#</th>
-        <th>F.I.Sh</th>
-        <th>Telefon</th>
-        <th>
-            <div class="attend-header">
-                <span>Davomat</span>
-                <input type="checkbox" id="attend-all-checkbox" class="form-check-input">
-            </div>
-        </th>
-        <th>⚡ Chaqmoq</th>
-        <th>Amal</th>
-      </tr>
-    </thead>
-<tbody>
-{% for e in enrollments %}
-<tr class="{% if e.student.forced_today %}forced-row{% endif %}">
-    <!-- REMOVE CHECKBOX -->
-    <td class="remove-col d-none">
-        <input type="checkbox" class="remove-check" value="{{ e.id }}">
-    </td>
-
-    <td>{{ forloop.counter }}</td>
-
-    <td>
-        <a href="{% url 'education:student_detail' e.student.id %}"
-   class="fw-semibold text-decoration-none text-primary">
-    {{ e.student.ism }}
-    {% if e.student.familya %} {{ e.student.familya }} {% endif %}
-    {% if e.student.otchestvo %} {{ e.student.otchestvo }} {% endif %}
-</a>
-
-        <div class="text-muted small">{{ e.student.email|default:e.student.username }}</div>
-    </td>
-
-    <td>{{ e.student.telefon1|default:"—" }}</td>
-
-    <td>
-        <input type="checkbox" class="form-check-input attend-toggle"
-        data-enrollment="{{ e.id }}" {% if e.student.present_today %}checked{% endif %}>
-    </td>
-
-    <td>
-        <span class="badge balance-badge {% if e.student.balance >= 0 %}text-bg-success{% else %}text-bg-danger{% endif %}">
-            {{ e.student.balance|default:0 }}
-        </span>
-    </td>
-
-    <td>
-        <div class="d-flex gap-2 justify-content-end">
-            <button type="button" class="btn btn-sm btn-success btn-add" data-student="{{ e.student.id }}">Qo‘shish</button>
-            <button type="button" class="btn btn-sm btn-danger btn-sub" data-student="{{ e.student.id }}">Ayirish</button>
-        </div>
-    </td>
-
-</tr>
-{% endfor %}
-</tbody>
-
-  </table>
-</div>
-
-<div id="js-urls"
-     data-attend="{% url 'education:attendance_today' g.id %}"
-     data-points="{% url 'education:group_points' g.id %}"
-     data-remove="{% url 'education:group_bulk_remove' g.id %}"
-     data-attend-all="{% url 'education:group_attend_all' g.id %}">
-</div>
-<form id="csrf-form" class="d-none">{% csrf_token %}</form>
-
-<div id="remove-url" data-url="{% url 'education:group_bulk_remove' g.id %}"></div>
-<div id="group-id" data-id="{{ g.id }}"></div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    /* === CSRF TOKEN === */
-    function getCookie(name) {
-        const match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
-        return match ? decodeURIComponent(match.pop()) : '';
-    }
+document.addEventListener("DOMContentLoaded", () => {
 
-    const csrfToken =
-        document.querySelector('#csrf-form input[name=csrfmiddlewaretoken]')?.value ||
-        getCookie('csrftoken');
+  function getCookie(name) {
+    const match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return match ? decodeURIComponent(match.pop()) : '';
+  }
 
-    const urls = document.getElementById('js-urls');
-    const attendanceUrl = urls.dataset.attend;
-    const pointsUrl     = urls.dataset.points;
-    const removeUrl     = urls.dataset.remove;
-    const attendAllUrl  = urls.dataset.attendAll;
+  const csrfToken =
+    document.querySelector('#csrf-form input[name=csrfmiddlewaretoken]')?.value ||
+    getCookie('csrftoken');
 
-    const removeModeBtn     = document.getElementById("remove-mode-btn");
-    const removeSelectedBtn = document.getElementById("remove-selected-btn");
-    const dateInput         = document.getElementById('attendance-date');
-    const pointsAllBtn      = document.getElementById('points-all-btn');
-    const attendAllCheckbox = document.getElementById('attend-all-checkbox');
-    const groupIdElement    = document.getElementById('group-id');
-    const groupId           = groupIdElement ? groupIdElement.dataset.id : "0";
+  const urls = document.getElementById('js-urls').dataset;
+  const dateInput = document.getElementById('attendance-date');
+  const labelDate = document.getElementById('label-date');
 
-    const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+  const ruleSelect = document.getElementById('rule-global');
+  const amountInput = document.getElementById('amount-global');
 
-    function getFlashStorageKey() {
-        const dateVal = dateInput.value || "";
-        return `chaqmoq_flash_${groupId}_${dateVal}`;
-    }
+  const removeModeBtn = document.getElementById('remove-mode-btn');
+  const removeModeLabel = document.getElementById('remove-mode-label');
+  const removeSelectedBtn = document.getElementById('remove-selected-btn');
 
-    let flashState = {};
+  const pointsAllBtn = document.getElementById('points-all-btn');
 
-    function loadFlashState() {
-        const key = getFlashStorageKey();
-        flashState = {};
-        try {
-            const raw = localStorage.getItem(key);
-            if (!raw) return;
-            const parsed = JSON.parse(raw) || {};
-            const now = Date.now();
-            Object.keys(parsed).forEach(sid => {
-                const rec = parsed[sid];
-                if (!rec) return;
-                const updatedAt = rec.updatedAt || now;
-                if (now - updatedAt <= TWO_HOURS_MS && rec.amount) {
-                    flashState[sid] = {
-                        amount: rec.amount,
-                        updatedAt: updatedAt
-                    };
-                }
-            });
-            saveFlashState();
-        } catch (e) {
-            flashState = {};
-        }
-    }
+  const attendAllPresentBtn = document.getElementById('attend-all-present-btn');
+  const attendAllForcedBtn  = document.getElementById('attend-all-forced-btn');
 
-    function saveFlashState() {
-        const key = getFlashStorageKey();
-        try {
-            localStorage.setItem(key, JSON.stringify(flashState));
-        } catch (e) {}
-    }
+  function showToast(msg, type='success') {
+    const container = document.getElementById('toast-container');
+    const div = document.createElement('div');
+    div.className = `toast pointer-events-auto px-4 py-2.5 rounded-xl font-black shadow-2xl border border-white/10 flex items-center gap-3 ${type === 'success' ? 'bg-emerald-600' : 'bg-red-600'}`;
+    div.innerHTML = `<span>${type === 'success' ? '✓' : '✕'}</span><span>${msg}</span>`;
+    container.appendChild(div);
+    requestAnimationFrame(() => div.classList.add('show'));
+    setTimeout(() => {
+      div.classList.remove('show');
+      setTimeout(() => div.remove(), 250);
+    }, 2600);
+  }
 
-    function removeFlash(studentId) {
-        const rowBtn = document.querySelector(`button[data-student="${studentId}"]`);
-        if (rowBtn) {
-            const row = rowBtn.closest("tr");
-            if (row) {
-                const oldFlash = row.querySelector(".flash-change");
-                if (oldFlash) oldFlash.remove();
-            }
-        }
-        delete flashState[studentId];
-        saveFlashState();
-    }
+  function currentRule() {
+    const opt = ruleSelect.options[ruleSelect.selectedIndex];
+    const ruleId = opt?.value || "";
+    const ruleType = opt?.dataset?.type || "";
+    return { ruleId, ruleType };
+  }
 
-    function renderFlashForStudent(studentId) {
-        const data = flashState[studentId];
-        const rowBtn = document.querySelector(`button[data-student="${studentId}"]`);
-        if (!rowBtn) return;
-        const row = rowBtn.closest("tr");
-        if (!row) return;
-        const badge = row.querySelector(".balance-badge");
-        if (!badge) return;
+  /* =========================
+     Flash (2 soat)
+     ========================= */
+  const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+  const groupId = urls.groupId || "0";
 
-        const oldFlash = row.querySelector(".flash-change");
-        if (oldFlash) oldFlash.remove();
+  function flashStorageKey() {
+    const d = dateInput.value || "";
+    return `chaqmoq_flash_${groupId}_${d}`;
+  }
 
-        if (!data || !data.amount) return;
+  let flashState = {};
 
-        const net = data.amount;
-        const flash = document.createElement("span");
-        flash.className = "flash-change";
-        flash.textContent = net > 0 ? "+" + net : net;
-        flash.style.color = net > 0 ? "#22c55e" : "#ef4444";
-        flash.style.fontWeight = "700";
-        flash.style.position = "absolute";
-        flash.style.top = "50%";
-        flash.style.left = "calc(100% + 6px)";
-        flash.style.transform = "translateY(-50%)";
-        flash.style.fontSize = "0.9rem";
-        flash.style.animation = "flashFade 0.4s ease-out";
-        badge.parentElement.style.position = "relative";
-        badge.parentElement.appendChild(flash);
-    }
+  function loadFlashState() {
+    flashState = {};
+    try {
+      const raw = localStorage.getItem(flashStorageKey());
+      if (!raw) return;
+      const parsed = JSON.parse(raw) || {};
+      const now = Date.now();
 
-    function scheduleFlashCleanup(studentId) {
-        const rec = flashState[studentId];
+      Object.keys(parsed).forEach(sid => {
+        const rec = parsed[sid];
         if (!rec) return;
-        const now = Date.now();
-        const remaining = TWO_HOURS_MS - (now - rec.updatedAt);
-        if (remaining <= 0) {
-            removeFlash(studentId);
-            return;
+        const updatedAt = rec.updatedAt || now;
+        if (now - updatedAt <= TWO_HOURS_MS && rec.amount) {
+          flashState[sid] = { amount: rec.amount, updatedAt };
         }
-        setTimeout(() => {
-            const recNow = flashState[studentId];
-            if (!recNow) return;
-            const now2 = Date.now();
-            if (now2 - recNow.updatedAt >= TWO_HOURS_MS) {
-                removeFlash(studentId);
-            }
-        }, remaining);
+      });
+
+      saveFlashState();
+    } catch(e) {
+      flashState = {};
     }
+  }
 
-    function updateStudentFlash(studentId, delta) {
-        const now = Date.now();
-        const prev = flashState[studentId] || {amount: 0, updatedAt: now};
-        prev.amount = (prev.amount || 0) + delta;
-        prev.updatedAt = now;
+  function saveFlashState() {
+    try { localStorage.setItem(flashStorageKey(), JSON.stringify(flashState)); }
+    catch(e) {}
+  }
 
-        if (!prev.amount) {
-            delete flashState[studentId];
+  function removeFlash(studentId) {
+    const box = document.getElementById(`flash-${studentId}`);
+    if (box) box.innerHTML = "";
+    delete flashState[String(studentId)];
+    saveFlashState();
+  }
+
+  function renderFlash(studentId) {
+    const rec = flashState[String(studentId)];
+    const box = document.getElementById(`flash-${studentId}`);
+    if (!box) return;
+
+    box.innerHTML = "";
+    if (!rec || !rec.amount) return;
+
+    const amt = rec.amount;
+    const pill = document.createElement("span");
+    pill.className = `flash-pill ${amt > 0 ? 'plus' : 'minus'}`;
+    pill.textContent = (amt > 0 ? "+" : "") + amt;
+    box.appendChild(pill);
+  }
+
+  function scheduleFlashCleanup(studentId) {
+    const rec = flashState[String(studentId)];
+    if (!rec) return;
+
+    const now = Date.now();
+    const remaining = TWO_HOURS_MS - (now - rec.updatedAt);
+
+    if (remaining <= 0) { removeFlash(studentId); return; }
+
+    setTimeout(() => {
+      const r = flashState[String(studentId)];
+      if (!r) return;
+      if (Date.now() - r.updatedAt >= TWO_HOURS_MS) removeFlash(studentId);
+    }, remaining);
+  }
+
+  function updateFlash(studentId, delta) {
+    if (!delta) return;
+    const now = Date.now();
+    const key = String(studentId);
+    const prev = flashState[key] || { amount: 0, updatedAt: now };
+
+    prev.amount = (prev.amount || 0) + delta;
+    prev.updatedAt = now;
+
+    if (!prev.amount) delete flashState[key];
+    else flashState[key] = prev;
+
+    saveFlashState();
+    renderFlash(studentId);
+    scheduleFlashCleanup(studentId);
+  }
+
+  function initAllFlashes() {
+    loadFlashState();
+    Object.keys(flashState).forEach(sid => {
+      renderFlash(sid);
+      scheduleFlashCleanup(sid);
+    });
+  }
+
+  function setBalance(studentId, newBalance) {
+    const b = document.getElementById(`balance-${studentId}`);
+    if (!b || typeof newBalance === "undefined" || newBalance === null) return;
+    const nb = Number(newBalance);
+    if (Number.isNaN(nb)) return;
+
+    b.textContent = nb;
+    b.classList.remove("bg-emerald-600","bg-red-600");
+    if (nb >= 0) b.classList.add("bg-emerald-600");
+    else b.classList.add("bg-red-600");
+  }
+
+  function setRowStatusUI(segEl, status) {
+    segEl.dataset.status = status;
+
+    const row = segEl.closest("tr");
+    if (row) {
+      row.classList.toggle("forced-row", status === "forced");
+      row.classList.toggle("row-not-present", status !== "present");
+    }
+  }
+
+  function getStatusByStudent(studentId) {
+    const seg = document.querySelector(`.att-seg[data-student="${studentId}"]`);
+    return seg ? (seg.dataset.status || "none") : "none";
+  }
+
+  function isPresent(studentId) {
+    return getStatusByStudent(studentId) === "present";
+  }
+
+  async function sendAttendanceStatus(enrId, status) {
+    const fd = new FormData();
+    fd.append("enr_id", enrId);
+    fd.append("status", status);
+    fd.append("date", dateInput.value || "");
+
+    const res = await fetch(urls.attend, {
+      method: "POST",
+      headers: { "X-CSRFToken": csrfToken },
+      body: fd
+    });
+    return await res.json();
+  }
+
+  /* =========================
+     ✅ DAVOMAT: per-row 3-state
+     ========================= */
+  document.querySelectorAll(".att-seg").forEach(seg => {
+    const enrId = seg.dataset.enrollment;
+    const sid   = seg.dataset.student;
+
+    const btnPresent = seg.querySelector(".att-btn.present");
+    const btnForced  = seg.querySelector(".att-btn.forced");
+
+    async function apply(nextStatus) {
+      seg.classList.add("loading");
+      try {
+        const data = await sendAttendanceStatus(enrId, nextStatus);
+
+        if (!data.ok) {
+          showToast(data.error || "Xato yuz berdi", "error");
+          seg.classList.remove("loading");
+          return;
+        }
+
+        const newStatus = data.status || (data.present ? "present" : (data.forced ? "forced" : "none"));
+        setRowStatusUI(seg, newStatus);
+
+        // balans doim yangilansin
+        setBalance(sid, data.balance);
+
+        // ✅ Eng muhim FIX:
+        // davomat "present" bo'lmasa -> minus flash chiqarmaymiz, faqat tozalaymiz
+        if (newStatus !== "present") {
+          removeFlash(sid);
+
+          const removedSum = Number(data.removed_sum || 0);
+          const removedCount = Number(data.removed_count || 0);
+
+          if (removedCount > 0) {
+            showToast(`Davomat bekor qilindi — ${removedCount} ta chaqmoq qaytarildi (${Math.abs(removedSum)} ball)`, "error");
+          } else {
+            showToast(`Davomat: ${newStatus === "forced" ? "KELMADI (PUL)" : "—"} qilib belgilandi`, "error");
+          }
         } else {
-            flashState[studentId] = prev;
+          showToast("Davomat: KELDI ✅", "success");
         }
 
-        saveFlashState();
-        renderFlashForStudent(studentId);
-        scheduleFlashCleanup(studentId);
+      } catch (e) {
+        showToast("Server bilan aloqa yo'q", "error");
+      } finally {
+        seg.classList.remove("loading");
+      }
     }
 
-    function initAllFlashes() {
-        loadFlashState();
-        Object.keys(flashState).forEach(sid => {
-            renderFlashForStudent(sid);
-            scheduleFlashCleanup(sid);
-        });
-    }
-
-/* ============================
-   🔥 KELMADI — LEKIN PUL YOZILSIN
-   ============================ */
-const forceAbsentBtn = document.getElementById("force-absent-btn");
-
-if (forceAbsentBtn) {
-
-    forceAbsentBtn.addEventListener("click", function () {
-
-        const dateVal = dateInput.value || "";
-        if (!dateVal) return alert("Sana tanlanmagan!");
-
-        if (!confirm("Ushbu sanada kelmagan o‘quvchilarga avtomatik pul yozilsinmi?")) return;
-
-        fetch(`/talim/attendance/force/`, {
-            method: "POST",
-            headers: {
-                "X-CSRFToken": csrfToken,
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: "group_id=" + groupId + "&date=" + dateVal
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.ok) {
-                showToast(`✔ ${data.count} ta o‘quvchi forced qilindi`, "success");
-                location.reload();
-            } else {
-                alert("Xato: " + (data.error || "Server xatosi"));
-            }
-        })
-        .catch(() => alert("Server bilan aloqa yo‘q."));
+    btnPresent.addEventListener("click", () => {
+      const cur = seg.dataset.status || "none";
+      const next = (cur === "present") ? "none" : "present";
+      apply(next);
     });
-}
 
+    btnForced.addEventListener("click", () => {
+      const cur = seg.dataset.status || "none";
+      const next = (cur === "forced") ? "none" : "forced";
+      apply(next);
+    });
+  });
 
-    function showToast(message, type = "success") {
-        const box = document.getElementById("toast-container");
-        const div = document.createElement("div");
-        div.className = `toast toast-${type}`;
-        div.innerHTML = message;
-        box.appendChild(div);
-        setTimeout(() => {
-            div.style.opacity = "0";
-            div.style.transform = "translateX(50px)";
-            setTimeout(() => div.remove(), 300);
-        }, 3000);
-    }
+  /* =========================
+     HAMMASI KELDI (bulk)
+     ========================= */
+  if (attendAllPresentBtn) {
+    attendAllPresentBtn.addEventListener("click", async () => {
+      const dateVal = dateInput.value || "";
+      const fd = new FormData();
+      fd.append("date", dateVal);
 
-    /* 🔵 HEADER DAVOMAT CHECKBOX – BARCHA UCHUN */
-    if (attendAllCheckbox && attendAllUrl) {
-        attendAllCheckbox.addEventListener('change', function () {
-            const isChecked = this.checked;
-            const dateVal = dateInput.value || '';
-
-            if (isChecked) {
-                // HAMMASIGA DAVOMAT QO‘YISH
-                const params = new URLSearchParams();
-                params.append('date', dateVal);
-
-                fetch(attendAllUrl, {
-                    method: "POST",
-                    headers: {
-                        "X-CSRFToken": csrfToken,
-                        "Content-Type": "application/x-www-form-urlencoded"
-                    },
-                    body: params.toString()
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.ok) {
-                        document.querySelectorAll(".attend-toggle")
-                            .forEach(ch => ch.checked = true);
-
-                        showToast(`✔ ${data.count} ta o‘quvchi davomat qilindi`, "success");
-                    } else {
-                        showToast("Xato: " + (data.error || "Server xatosi"), "error");
-                        attendAllCheckbox.checked = false;
-                    }
-                })
-                .catch(() => {
-                    showToast("Server bilan aloqa yo‘q!", "error");
-                    attendAllCheckbox.checked = false;
-                });
-            } else {
-                // HAMMA DAVOMATNI BEKOR QILISH – har bir qator uchun "change" eventini chaqiramiz
-                const toggles = Array.from(document.querySelectorAll('.attend-toggle'));
-                if (!toggles.length) return;
-
-                let processed = 0;
-                toggles.forEach(ch => {
-                    if (!ch.checked) return; // faqat davomat bor bo‘lsa
-                    ch.checked = false;
-                    ch.dispatchEvent(new Event('change'));
-
-                    // shu o‘quvchi uchun 2 soatlik indikatorni ham tozalaymiz
-                    const row = ch.closest('tr');
-                    if (!row) return;
-                    const btn = row.querySelector('.btn-add, .btn-sub');
-                    if (!btn) return;
-                    const studentId = btn.dataset.student;
-                    if (studentId) {
-                        removeFlash(studentId);
-                    }
-                    processed++;
-                });
-
-                showToast(`✔ ${processed} ta o‘quvchidan davomat olindi`, "success");
-            }
+      try {
+        const res = await fetch(urls.attendAll, {
+          method: "POST",
+          headers: { "X-CSRFToken": csrfToken },
+          body: fd
         });
+        const data = await res.json();
 
-        // Sahifa ochilganda master-checkbox holatini tekshirish
-        const allToggles = Array.from(document.querySelectorAll('.attend-toggle'));
-        if (allToggles.length && allToggles.every(t => t.checked)) {
-            attendAllCheckbox.checked = true;
+        if (!data.ok) {
+          showToast(data.error || "Xato", "error");
+          return;
         }
+
+        document.querySelectorAll(".att-seg").forEach(seg => {
+          setRowStatusUI(seg, "present");
+        });
+
+        showToast(`${data.count} ta o'quvchi: KELDI ✅`, "success");
+      } catch (e) {
+        showToast("Aloqa xatosi", "error");
+      }
+    });
+  }
+
+  /* =========================
+     HAMMASI KELMADI (PUL) (bulk)
+     - present bo'lmaganlarni forced qilib qo'yadi
+     - shu paytda minus flash chiqarmaydi (faqat tozalaydi)
+     ========================= */
+  if (attendAllForcedBtn) {
+    attendAllForcedBtn.addEventListener("click", async () => {
+      if (!confirm("KELMADI (PUL) qilib belgilaymizmi? (Kelmaganlar uchun pul yoziladi)")) return;
+
+      const segs = Array.from(document.querySelectorAll(".att-seg"));
+      let changed = 0;
+
+      for (const seg of segs) {
+        const cur = seg.dataset.status || "none";
+        if (cur === "present") continue; // kelganlarni tegmaymiz
+        if (cur === "forced") continue;
+
+        const enrId = seg.dataset.enrollment;
+        const sid = seg.dataset.student;
+
+        try {
+          const data = await sendAttendanceStatus(enrId, "forced");
+          if (data.ok) {
+            setRowStatusUI(seg, "forced");
+            setBalance(sid, data.balance);
+            removeFlash(sid);
+            changed++;
+          }
+        } catch(e) {}
+      }
+
+      showToast(`${changed} ta o'quvchi: KELMADI (PUL)`, "success");
+    });
+  }
+
+  /* =========================
+     POINTS
+     ========================= */
+  async function sendPoints(studentId, amount, ruleId) {
+    const fd = new FormData();
+    fd.append("student_id", studentId);
+    fd.append("amount", amount);
+    fd.append("rule_id", ruleId);
+    fd.append("date", dateInput.value || "");
+
+    const res = await fetch(urls.points, {
+      method: "POST",
+      headers: { "X-CSRFToken": csrfToken },
+      body: fd
+    });
+    return await res.json();
+  }
+
+  async function handlePoint(studentId, mode) {
+    if (!isPresent(studentId)) {
+      showToast("Avval davomatni KELDI ✅ qiling!", "error");
+      return;
     }
 
-    /* === REMOVE MODE YOQILISHI === */
-    if (removeModeBtn && removeSelectedBtn) {
-        let removeMode = false;
+    const { ruleId, ruleType } = currentRule();
+    if (!ruleId) { showToast("Avval qoida tanlang!", "error"); return; }
 
-        removeModeBtn.addEventListener("click", function () {
-            removeMode = !removeMode;
+    let amount = Math.abs(parseInt(amountInput.value || "0", 10));
+    if (!amount) { showToast("Ball miqdorini kiriting!", "error"); return; }
 
-            document.querySelectorAll(".remove-col").forEach(col => {
-                col.classList.toggle("d-none", !removeMode);
-            });
+    if (mode === "minus") amount = -amount;
 
-            removeSelectedBtn.classList.toggle("d-none", !removeMode);
+    if (ruleType === "-" && amount > 0) amount = -amount;
+    if (ruleType === "+" && amount < 0) amount = Math.abs(amount);
 
-            if (removeMode) {
-                removeModeBtn.classList.remove("btn-outline-danger");
-                removeModeBtn.classList.add("btn-danger");
-                removeModeBtn.textContent = "❌ Chiqish";
-            } else {
-                removeModeBtn.classList.remove("btn-danger");
-                removeModeBtn.classList.add("btn-outline-danger");
-                removeModeBtn.textContent = "🗑️ Guruhdan chiqarish";
-            }
-        });
-
-        removeSelectedBtn.addEventListener("click", function () {
-            const checks = [...document.querySelectorAll(".remove-check:checked")];
-            if (!checks.length) {
-                showToast("⚠️ Hech bir o‘quvchi tanlanmagan!", "error");
-                return;
-            }
-
-            if (!confirm("Tanlangan o‘quvchilarni guruhdan chiqarishni tasdiqlaysizmi?"))
-                return;
-
-            const params = new URLSearchParams();
-            checks.forEach(c => params.append('enrollment_ids', c.value));
-
-            fetch(removeUrl, {
-                method: "POST",
-                headers: {
-                    "X-CSRFToken": csrfToken,
-                    "Content-Type": "application/x-www-form-urlencoded"
-                },
-                body: params.toString()
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.ok) {
-                    showToast(`${data.deleted} ta o‘quvchi guruhdan chiqarildi.`, "success");
-                    location.reload();
-                } else {
-                    showToast("Xato: " + data.msg, "error");
-                }
-            })
-            .catch(() => showToast("Server bilan aloqa yo‘q.", "error"));
-        });
+    try {
+      const data = await sendPoints(studentId, amount, ruleId);
+      if (data.ok) {
+        setBalance(studentId, data.balance);
+        updateFlash(studentId, amount);
+        showToast("Ball saqlandi", "success");
+      } else {
+        showToast(data.error || "Xato", "error");
+      }
+    } catch(err) {
+      showToast("Server bilan aloqa yo'q", "error");
     }
+  }
 
-    /* === SANA O‘ZGARGANDA URL GA QO‘YISH === */
-    dateInput.addEventListener('change', function() {
-        const d = this.value;
-        if (!d) return;
-        const u = new URL(window.location.href);
-        u.searchParams.set('date', d);
-        window.location.href = u.toString();
+  document.querySelectorAll(".btn-add").forEach(btn => {
+    btn.addEventListener("click", () => handlePoint(btn.dataset.student, "plus"));
+  });
+  document.querySelectorAll(".btn-sub").forEach(btn => {
+    btn.addEventListener("click", () => handlePoint(btn.dataset.student, "minus"));
+  });
+
+  if (pointsAllBtn) {
+    pointsAllBtn.addEventListener("click", async () => {
+      const { ruleId, ruleType } = currentRule();
+      if (!ruleId) { showToast("Avval qoida tanlang!", "error"); return; }
+
+      let amount = Math.abs(parseInt(amountInput.value || "0", 10));
+      if (!amount) { showToast("Ball miqdorini kiriting!", "error"); return; }
+      if (ruleType === "-") amount = -amount;
+
+      const presentSegs = Array.from(document.querySelectorAll('.att-seg[data-status="present"]'));
+      if (!presentSegs.length) { showToast("Davomat KELDI bo‘lgan o‘quvchi yo‘q!", "error"); return; }
+
+      let count = 0;
+      for (const seg of presentSegs) {
+        const sid = seg.dataset.student;
+        try {
+          const data = await sendPoints(sid, amount, ruleId);
+          if (data.ok) {
+            setBalance(sid, data.balance);
+            updateFlash(sid, amount);
+            count++;
+          }
+        } catch(e) {}
+      }
+
+      showToast(`${count} ta o'quvchiga qoida joriy qilindi`, "success");
     });
+  }
 
-    /* === QUYIDAGI QISM – chaqmoq qo‘shish/ayirish, davomat toggle === */
-    function isPresent(studentId) {
-        const row = document.querySelector(`button[data-student="${studentId}"]`).closest("tr");
-        const checkbox = row.querySelector(".attend-toggle");
-        return checkbox && checkbox.checked;
+  /* =========================
+     DATE CHANGE
+     ========================= */
+  dateInput.addEventListener("change", () => {
+    const u = new URL(window.location.href);
+    u.searchParams.set("date", dateInput.value);
+    window.location.href = u.toString();
+  });
+
+  if (labelDate) labelDate.textContent = dateInput.value || labelDate.textContent;
+
+  document.getElementById('glob-plus').onclick = () => {
+    amountInput.value = parseInt(amountInput.value || "0", 10) + 1;
+  };
+  document.getElementById('glob-minus').onclick = () => {
+    const v = Math.max(1, parseInt(amountInput.value || "0", 10) - 1);
+    amountInput.value = v;
+  };
+
+  /* =========================
+     REMOVE MODE
+     ========================= */
+  let removeMode = false;
+
+  removeModeBtn.addEventListener("click", () => {
+    removeMode = !removeMode;
+
+    removeModeBtn.classList.toggle("rm-active", removeMode);
+    document.querySelectorAll(".remove-col").forEach(c => c.classList.toggle("d-none", !removeMode));
+    removeSelectedBtn.classList.toggle("d-none", !removeMode);
+
+    if (removeModeLabel) {
+      removeModeLabel.textContent = removeMode ? "O'quvchilarni chiqarish rejimi" : "O'quvchilarni chiqarish";
     }
+  });
 
-    function sendPoints(studentId, amount, ruleId) {
-        const dateVal = dateInput.value || "";
-        const fd = new FormData();
-        fd.append("student_id", studentId);
-        fd.append("amount", amount);
-        fd.append("rule_id", ruleId);
-        fd.append("date", dateVal);
+  removeSelectedBtn.addEventListener("click", async () => {
+    const selected = Array.from(document.querySelectorAll(".remove-check:checked")).map(x => x.value);
+    if (!selected.length) { showToast("Hech kim tanlanmadi!", "error"); return; }
+    if (!confirm("Tanlangan o'quvchilarni guruhdan chiqarishni tasdiqlaysizmi?")) return;
 
-        fetch(pointsUrl, {
-            method: "POST",
-            headers: { "X-CSRFToken": csrfToken },
-            body: fd
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.ok) {
-                const row = document.querySelector(`button[data-student="${studentId}"]`).closest("tr");
-                const badge = row.querySelector(".balance-badge");
+    const params = new URLSearchParams();
+    selected.forEach(id => params.append("enrollment_ids", id));
 
-                badge.textContent = data.balance;
-                badge.className = 'badge balance-badge ' +
-                    (data.balance >= 0 ? 'text-bg-success' : 'text-bg-danger');
-
-                // 2 soatlik jamlanma indikatorini yangilash
-                updateStudentFlash(studentId, amount);
-            } else {
-                alert('❌ Xato: ' + (data.error || 'Server xatosi'));
-            }
-        })
-        .catch(() => alert('❌ Server bilan aloqa yo‘q.'));
+    try {
+      const res = await fetch(urls.remove, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrfToken,
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: params.toString()
+      });
+      const data = await res.json();
+      if (data.ok) {
+        showToast("Tanlanganlar chiqarildi", "success");
+        location.reload();
+      } else {
+        showToast(data.msg || "Xato", "error");
+      }
+    } catch(err) {
+      showToast("Server bilan aloqa yo'q", "error");
     }
+  });
 
-    /* 🔹 Har bir o‘quvchiga alohida Qo‘shish / Ayirish tugmalari */
-    document.querySelectorAll(".btn-add").forEach(btn => {
-        btn.addEventListener("click", function () {
-            const studentId = this.dataset.student;
-            if (!isPresent(studentId)) return alert("⚠️ Avval davomatni belgilang!");
-            const ruleId = document.getElementById("rule-global").value;
-            const amount = Math.abs(parseInt(document.getElementById("amount-global").value) || 0);
-            if (!ruleId) return alert("Qoida tanlanmagan.");
-            sendPoints(studentId, amount, ruleId);
-        });
+  /* rule button toggle */
+  function updateButtonsByRule() {
+    const opt = ruleSelect.options[ruleSelect.selectedIndex];
+    const ruleType = opt?.dataset?.type || "";
+
+    document.querySelectorAll("tbody tr").forEach(row => {
+      const addBtn = row.querySelector(".btn-add");
+      const subBtn = row.querySelector(".btn-sub");
+      if (!addBtn || !subBtn) return;
+
+      if (ruleType === "+") {
+        addBtn.style.display = "inline-flex";
+        subBtn.style.display = "none";
+      } else if (ruleType === "-") {
+        addBtn.style.display = "none";
+        subBtn.style.display = "inline-flex";
+      } else {
+        addBtn.style.display = "inline-flex";
+        subBtn.style.display = "inline-flex";
+      }
     });
+  }
+  ruleSelect.addEventListener("change", updateButtonsByRule);
 
-    document.querySelectorAll(".btn-sub").forEach(btn => {
-        btn.addEventListener("click", function () {
-            const studentId = this.dataset.student;
-            if (!isPresent(studentId)) return alert("⚠️ Avval davomatni belgilang!");
-            const ruleId = document.getElementById("rule-global").value;
-            const amount = -Math.abs(parseInt(document.getElementById("amount-global").value) || 0);
-            if (!ruleId) return alert("Qoida tanlanmagan.");
-            sendPoints(studentId, amount, ruleId);
-        });
-    });
-
-    document.getElementById('glob-plus').addEventListener('click', () => {
-        const input = document.getElementById('amount-global');
-        input.value = parseInt(input.value || '0', 10) + 1;
-    });
-
-    document.getElementById('glob-minus').addEventListener('click', () => {
-        const input = document.getElementById('amount-global');
-        const v = Math.max(1, parseInt(input.value || '0', 10) - 1);
-        input.value = v;
-    });
-
-    /* === BARCHA DAVOMAT OLINGAN O‘QUVCHILARGA BIR YO‘LA QOIDA JORIY QILISH (+/-) === */
-    if (pointsAllBtn) {
-        pointsAllBtn.addEventListener('click', function () {
-            const ruleSelect = document.getElementById("rule-global");
-            const selected   = ruleSelect.options[ruleSelect.selectedIndex];
-
-            if (!selected || !selected.value) {
-                alert("⚠️ Avval qoida tanlang.");
-                return;
-            }
-
-            const ruleId   = selected.value;
-            const ruleType = selected.dataset.type || "+"; // "+" yoki "-"
-
-            const amountInput = document.getElementById('amount-global');
-            let amount       = Math.abs(parseInt(amountInput.value || '0', 10));
-
-            if (!amount) {
-                alert("⚠️ Ball miqdorini kiriting.");
-                return;
-            }
-
-            if (ruleType === "-") {
-                amount = -amount;
-            }
-
-            const checked = Array.from(document.querySelectorAll('.attend-toggle:checked'));
-            if (!checked.length) {
-                alert("⚠️ Hech bir o‘quvchiga davomat olinmagan.");
-                return;
-            }
-
-            let count = 0;
-            checked.forEach(ch => {
-                const row = ch.closest('tr');
-                if (!row) return;
-                const btn = row.querySelector('.btn-add, .btn-sub');
-                if (!btn) return;
-                const studentId = btn.dataset.student;
-                if (!studentId) return;
-
-                sendPoints(studentId, amount, ruleId);
-                count++;
-            });
-
-            if (count > 0) {
-                showToast(`✔ ${count} ta o‘quvchiga qoida joriy qilindi`, "success");
-            }
-        });
-    }
-
-    /* === QOIDA TURIGA QARAB QO‘SHISH / AYIRISH TUGMALARINI KO‘RINISHINI O‘ZGARTIRISH === */
-    const ruleSelect = document.getElementById("rule-global");
-
-    function updateButtonsByRule() {
-        const selected = ruleSelect.options[ruleSelect.selectedIndex];
-        const type = selected.dataset.type; // "+" yoki "-"
-
-        document.querySelectorAll("tr").forEach(row => {
-            const addBtn = row.querySelector(".btn-add");
-            const subBtn = row.querySelector(".btn-sub");
-
-            if (!addBtn || !subBtn) return;
-
-            if (type === "+") {
-                addBtn.style.display = "inline-block";
-                subBtn.style.display = "none";
-            } else if (type === "-") {
-                addBtn.style.display = "none";
-                subBtn.style.display = "inline-block";
-            } else {
-                addBtn.style.display = "inline-block";
-                subBtn.style.display = "inline-block";
-            }
-        });
-    }
-
-    ruleSelect.addEventListener("change", updateButtonsByRule);
-
-    // sahifa ochilganda tekshirish
-    updateButtonsByRule();
-
-    document.querySelectorAll('.attend-toggle').forEach(box => {
-        box.addEventListener('change', function() {
-            const enrId = this.dataset.enrollment;
-            const present = this.checked ? "1" : "0";
-            const dateVal = dateInput.value || "";
-            const fd = new FormData();
-            fd.append("enr_id", enrId);
-            fd.append("present", present);
-            fd.append("date", dateVal);
-
-            const row = this.closest('tr');
-            const btn = row ? row.querySelector('.btn-add, .btn-sub') : null;
-            const studentId = btn ? btn.dataset.student : null;
-
-            fetch(attendanceUrl, {
-                method: "POST",
-                headers: { "X-CSRFToken": csrfToken },
-                body: fd
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.ok && !data.present && data.removed_points > 0) {
-                    alert("⚠️ O‘quvchi kelmaganligi uchun " + data.removed_points + " ta chaqmoq o‘chirildi.");
-
-                    // agar shu davomat tufayli chaqmoq o‘chirilgan bo‘lsa,
-                    // 2 soatlik indikator jamlanmasidan ham minus qilamiz
-                    if (studentId) {
-                        updateStudentFlash(studentId, -Math.abs(data.removed_points));
-                    }
-                }
-
-                // Har bir individual o‘zgarishdan keyin master-checkboxni yangilash
-                if (attendAllCheckbox) {
-                    const toggles = Array.from(document.querySelectorAll('.attend-toggle'));
-                    const allChecked = toggles.length && toggles.every(t => t.checked);
-                    attendAllCheckbox.checked = allChecked;
-                }
-            })
-            .catch(() => alert("❌ Server bilan aloqa yo‘q."));
-        });
-    });
-
-    // 2 soatlik chaqmoq indikatorlarini localStorage dan tiklash
-    initAllFlashes();
+  updateButtonsByRule();
+  initAllFlashes();
 });
 </script>
-
 
 {% endblock %}
