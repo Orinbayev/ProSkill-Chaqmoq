@@ -482,8 +482,10 @@ html{ color-scheme: dark; }   /* eng muhimi shu! */
         </table>
       </div>
 
-      <div style="padding: 12px 16px 16px 16px; border-top:1px solid var(--line);">
-        <div class="muted" style="font-weight:800;">Guruhlar:</div>
+{% if request.user.role != "student" %}
+<div style="padding: 12px 16px 16px 16px; border-top:1px solid var(--line);">
+  <div class="muted" style="font-weight:800;">Guruhlar:</div>
+
   <div class="groups-wrap">
     {% for e in enrolls %}
       <a class="group-pill" href="{% url 'education:group_detail' e.group.id %}">
@@ -493,8 +495,9 @@ html{ color-scheme: dark; }   /* eng muhimi shu! */
       <span class="muted">Guruh topilmadi.</span>
     {% endfor %}
   </div>
+</div>
+{% endif %}
 
-      </div>
 
     </div>
 
