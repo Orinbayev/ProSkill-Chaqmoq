@@ -2,400 +2,439 @@
 {% load humanize %}
 {% block content %}
 
+{# ✅ Bootstrap Icons (agar base.html’da bo‘lmasa, shu yerda ham ishlaydi) #}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
 <style>
   :root{
-  --bg1:#020617;
-  --bg2:#0b1226;
+    --bg1:#020617;
+    --bg2:#0b1226;
 
-  --panel: rgba(17,24,39,.62);
-  --panel2: rgba(2,6,23,.55);
-  --line: rgba(255,255,255,.09);
+    --panel: rgba(17,24,39,.62);
+    --panel2: rgba(2,6,23,.55);
+    --line: rgba(255,255,255,.09);
 
-  --text:#e5e7eb;
-  --muted:#94a3b8;
+    --text:#e5e7eb;
+    --muted:#94a3b8;
 
-  --blue1:#2563eb;
-  --blue2:#60a5fa;
+    --blue1:#2563eb;
+    --blue2:#60a5fa;
 
-  --present:#22c55e;
-  --absent:#fb7185;
-  --forced:#fbbf24;
+    --present:#22c55e;
+    --absent:#fb7185;
+    --forced:#fbbf24;
 
-  --shadow: 0 22px 70px rgba(0,0,0,.45);
-}
+    --shadow: 0 22px 70px rgba(0,0,0,.45);
 
-body{
-  background:
-    radial-gradient(900px 520px at 15% 0%, rgba(59,130,246,.18), transparent 55%),
-    radial-gradient(900px 520px at 85% 10%, rgba(34,197,94,.12), transparent 55%),
-    linear-gradient(180deg, var(--bg1), var(--bg2));
-  color: var(--text);
-  min-height: 100vh;
-}
+    /* ✅ responsive sizing */
+    --noW:56px;
+    --nameW:300px;
+    --cell:34px;
+    --cellRadius:12px;
+  }
 
-/* page width */
-.att-page{
-  max-width: 1180px;
-  margin: 18px auto;
-  padding: 0 14px 26px;
-}
+  body{
+    background:
+      radial-gradient(900px 520px at 15% 0%, rgba(59,130,246,.18), transparent 55%),
+      radial-gradient(900px 520px at 85% 10%, rgba(34,197,94,.12), transparent 55%),
+      linear-gradient(180deg, var(--bg1), var(--bg2));
+    color: var(--text);
+    min-height: 100vh;
+  }
 
-/* ===== Top bar ===== */
-.topbar{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap: 14px;
-  padding: 14px 16px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, var(--panel), var(--panel2));
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(12px);
-}
+  /* page width */
+  .att-page{
+    max-width: 1180px;
+    margin: 18px auto;
+    padding: 0 14px 26px;
+  }
 
-.tb-left{
-  display:flex;
-  align-items:flex-start;
-  gap: 12px;
-  min-width: 0;
-}
+  /* ===== Top bar ===== */
+  .topbar{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--panel), var(--panel2));
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(12px);
+  }
 
-.backbtn{
-  width:40px; height:40px;
-  border-radius: 14px;
-  display:grid; place-items:center;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.10);
-  color: rgba(229,231,235,.95);
-  text-decoration:none;
-  transition:.18s ease;
-  flex: 0 0 auto;
-}
-.backbtn:hover{
-  transform: translateY(-1px);
-  background: rgba(255,255,255,.09);
-}
+  .tb-left{
+    display:flex;
+    align-items:flex-start;
+    gap: 12px;
+    min-width: 0;
+  }
 
-.tb-title{
-  margin: 0;
-  font-weight: 900;
-  font-size: 22px;
-  line-height: 1.1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.tb-sub{
-  margin-top: 6px;
-  color: var(--muted);
-  font-weight: 700;
-  font-size: 12px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+  .backbtn{
+    width:40px; height:40px;
+    border-radius: 14px;
+    display:grid; place-items:center;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.10);
+    color: rgba(229,231,235,.95);
+    text-decoration:none;
+    transition:.18s ease;
+    flex: 0 0 auto;
+  }
+  .backbtn:hover{
+    transform: translateY(-1px);
+    background: rgba(255,255,255,.09);
+  }
 
-/* Right controls */
-.tb-right{
-  display:flex;
-  align-items:center;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content:flex-end;
-}
+  .tb-title{
+    margin: 0;
+    font-weight: 900;
+    font-size: 22px;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tb-sub{
+    margin-top: 6px;
+    color: var(--muted);
+    font-weight: 700;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
-.ctrl{
-  display:flex;
-  align-items:center;
-  gap: 10px;
-  padding: 9px 10px;
-  border-radius: 14px;
-  background: rgba(2,6,23,.30);
-  border: 1px solid rgba(255,255,255,.10);
-}
+  /* Right controls */
+  .tb-right{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content:flex-end;
+  }
 
-.ctrl select{
-  border:none !important;
-  outline:none !important;
-  background: transparent !important;
-  color: var(--text) !important;
-  font-weight: 900;
-  padding: 0 2px;
-  color-scheme: dark;
-}
+  .ctrl{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 14px;
+    background: rgba(2,6,23,.30);
+    border: 1px solid rgba(255,255,255,.10);
+  }
 
-.ctrl option{
-  background: rgba(2,6,23,.98);
-  color: var(--text);
-}
+  .ctrl select{
+    border:none !important;
+    outline:none !important;
+    background: transparent !important;
+    color: var(--text) !important;
+    font-weight: 900;
+    padding: 0 2px;
+    color-scheme: dark;
+  }
+  .ctrl option{
+    background: rgba(2,6,23,.98);
+    color: var(--text);
+  }
 
-.btn-view{
-  border:none;
-  border-radius: 14px;
-  padding: 10px 14px;
-  font-weight: 900;
-  color:#fff;
-  background: linear-gradient(90deg, var(--blue1), #3b82f6);
-  box-shadow: 0 14px 28px rgba(37,99,235,.22);
-  transition:.18s ease;
-}
-.btn-view:hover{ transform: translateY(-1px); filter:brightness(1.05); }
+  .btn-view{
+    border:none;
+    border-radius: 14px;
+    padding: 10px 14px;
+    font-weight: 900;
+    color:#fff;
+    background: linear-gradient(90deg, var(--blue1), #3b82f6);
+    box-shadow: 0 14px 28px rgba(37,99,235,.22);
+    transition:.18s ease;
+  }
+  .btn-view:hover{ transform: translateY(-1px); filter:brightness(1.05); }
 
-.btn-dl{
-  width:42px; height:42px;
-  border-radius: 14px;
-  display:grid; place-items:center;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.12);
-  color: rgba(229,231,235,.95);
-  text-decoration:none;
-  transition:.18s ease;
-}
-.btn-dl:hover{
-  transform: translateY(-1px);
-  background: rgba(255,255,255,.10);
-}
+  .btn-dl{
+    width:42px; height:42px;
+    border-radius: 14px;
+    display:grid; place-items:center;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.12);
+    color: rgba(229,231,235,.95);
+    text-decoration:none;
+    transition:.18s ease;
+  }
+  .btn-dl:hover{
+    transform: translateY(-1px);
+    background: rgba(255,255,255,.10);
+  }
 
-/* ===== Legend ===== */
-.legend{
-  display:flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin: 12px 2px 12px;
-}
+  /* ===== Legend ===== */
+  .legend{
+    display:flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 12px 2px 12px;
+  }
 
-.leg{
-  display:inline-flex;
-  align-items:center;
-  gap: 10px;
-  padding: 9px 12px;
-  border-radius: 999px;
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.10);
-  font-weight: 900;
-  font-size: 12px;
-  color: rgba(229,231,235,.95);
-}
+  .leg{
+    display:inline-flex;
+    align-items:center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.10);
+    font-weight: 900;
+    font-size: 12px;
+    color: rgba(229,231,235,.95);
+  }
 
-.dot{
-  width:10px; height:10px;
-  border-radius: 999px;
-}
-.dot.p{ background: var(--present); box-shadow: 0 0 10px rgba(34,197,94,.35); }
-.dot.a{ background: var(--absent);  box-shadow: 0 0 10px rgba(251,113,133,.35); }
-.dot.f{ background: var(--forced);  box-shadow: 0 0 10px rgba(251,191,36,.35); }
+  .dot{ width:10px; height:10px; border-radius: 999px; }
+  .dot.p{ background: var(--present); box-shadow: 0 0 10px rgba(34,197,94,.35); }
+  .dot.a{ background: var(--absent);  box-shadow: 0 0 10px rgba(251,113,133,.35); }
+  .dot.f{ background: var(--forced);  box-shadow: 0 0 10px rgba(251,191,36,.35); }
 
-/* ===== Table card ===== */
-.table-card{
-  border-radius: 20px;
-  background: linear-gradient(180deg, var(--panel), var(--panel2));
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
+  /* ===== Table card ===== */
+  .table-card{
+    border-radius: 20px;
+    background: linear-gradient(180deg, var(--panel), var(--panel2));
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
 
-/* scroller */
-.table-scroll{
-  overflow-x:auto;
-  background: rgba(2,6,23,.25);
-  padding-bottom: 10px; /* scrollbar joyi */
-}
+  /* scroller */
+  .table-scroll{
+    overflow-x:auto;
+    background: rgba(2,6,23,.25);
+    padding-bottom: 10px;
+    -webkit-overflow-scrolling: touch;
+  }
 
-/* nice scrollbar */
-.table-scroll::-webkit-scrollbar{ height: 8px; }
-.table-scroll::-webkit-scrollbar-track{
-  background: rgba(255,255,255,.05);
-  border-radius: 999px;
-  margin: 0 14px;
-}
-.table-scroll::-webkit-scrollbar-thumb{
-  background: linear-gradient(90deg, rgba(37,99,235,.80), rgba(96,165,250,.75));
-  border-radius: 999px;
-}
+  /* nice scrollbar */
+  .table-scroll::-webkit-scrollbar{ height: 8px; }
+  .table-scroll::-webkit-scrollbar-track{
+    background: rgba(255,255,255,.05);
+    border-radius: 999px;
+    margin: 0 14px;
+  }
+  .table-scroll::-webkit-scrollbar-thumb{
+    background: linear-gradient(90deg, rgba(37,99,235,.80), rgba(96,165,250,.75));
+    border-radius: 999px;
+  }
 
-/* table */
-.att-table{
-  width: 100%;
-  min-width: 1050px;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 13px;
-  color: var(--text);
-}
+  /* table */
+  .att-table{
+    width: 100%;
+    min-width: 1050px;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+    color: var(--text);
+  }
 
-/* header */
-.att-table thead th{
-  background: linear-gradient(90deg, rgba(37,99,235,.95), rgba(59,130,246,.95));
-  color:#fff;
-  font-weight: 900;
-  padding: 11px 10px;
-  border-right: 1px solid rgba(255,255,255,.12);
-  border-bottom: 1px solid rgba(255,255,255,.12);
-  white-space: nowrap;
-  text-align:center;
-}
+  /* header */
+  .att-table thead th{
+    background: linear-gradient(90deg, rgba(37,99,235,.95), rgba(59,130,246,.95));
+    color:#fff;
+    font-weight: 900;
+    padding: 11px 10px;
+    border-right: 1px solid rgba(255,255,255,.12);
+    border-bottom: 1px solid rgba(255,255,255,.12);
+    white-space: nowrap;
+    text-align:center;
+  }
 
-/* body */
-.att-table tbody td{
-  background: rgba(2,6,23,.22);
-  padding: 11px 10px;
-  text-align:center;
-  border-right: 1px solid rgba(148,163,184,.18);
-  border-bottom: 1px solid rgba(148,163,184,.18);
-}
+  /* body */
+  .att-table tbody td{
+    background: rgba(2,6,23,.22);
+    padding: 11px 10px;
+    text-align:center;
+    border-right: 1px solid rgba(148,163,184,.18);
+    border-bottom: 1px solid rgba(148,163,184,.18);
+  }
 
-/* ✅ col widths */
-.col-no{ width:56px; }
-.col-name{ min-width: 300px; text-align:left !important; padding-left: 14px !important; }
+  /* ✅ widths */
+  .col-no{ width: var(--noW); }
+  .col-name{
+    min-width: var(--nameW);
+    text-align:left !important;
+    padding-left: 14px !important;
+    white-space: nowrap;
+  }
 
-/* ✅ STICKY FIRST COLUMNS (NO overlap!) */
-.att-table thead th.sticky,
-.att-table tbody td.sticky{
-  position: sticky;
-  left: 0;
-  z-index: 20;
-}
+  /* ✅ STICKY FIRST COLUMNS */
+  .att-table thead th.sticky,
+  .att-table tbody td.sticky{
+    position: sticky;
+    left: 0;
+    z-index: 30;
+    width: var(--noW);
+    min-width: var(--noW);
+    max-width: var(--noW);
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
 
-.att-table thead th.sticky2,
-.att-table tbody td.sticky2{
-  position: sticky;
-  left: 56px; /* № width = 56px */
-  z-index: 20;
-}
+  .att-table thead th.sticky2,
+  .att-table tbody td.sticky2{
+    position: sticky;
+    left: var(--noW);
+    z-index: 30;
+  }
 
-/* sticky background must be solid */
-.att-table tbody td.sticky,
-.att-table tbody td.sticky2{
-  background: rgba(2,6,23,.45);
-  backdrop-filter: blur(8px);
-}
+  /* sticky bg */
+  .att-table tbody td.sticky,
+  .att-table tbody td.sticky2{
+    background: rgba(2,6,23,.45);
+    backdrop-filter: blur(8px);
+  }
 
-/* ✅ STICKY "DEVOR" (separator) */
-.att-table thead th.sticky,
-.att-table tbody td.sticky{
-  border-right: 1px solid rgba(255,255,255,.10);
-}
+  /* separator */
+  .att-table thead th.sticky,
+  .att-table tbody td.sticky{
+    border-right: 1px solid rgba(255,255,255,.10);
+  }
 
-.att-table thead th.sticky2,
-.att-table tbody td.sticky2{
-  border-right: 1px solid rgba(255,255,255,.10);
-}
+  .att-table thead th.sticky2,
+  .att-table tbody td.sticky2{
+    border-right: 1px solid rgba(255,255,255,.12);
+  }
 
-/* ✅ stronger separator with pseudo-element (never disappears) */
-.att-table thead th.sticky2::after,
-.att-table tbody td.sticky2::after{
-  content:"";
-  position:absolute;
-  top:0;
-  right:-1px;
-  width:14px;
-  height:100%;
-  pointer-events:none;
-  background: linear-gradient(90deg, rgba(0,0,0,.35), rgba(0,0,0,0));
-}
+  .att-table thead th.sticky2::after,
+  .att-table tbody td.sticky2::after{
+    content:"";
+    position:absolute;
+    top:0; right:-1px;
+    width: 6px;
+    height:100%;
+    pointer-events:none;
+    background: linear-gradient(90deg, rgba(0,0,0,.35), rgba(0,0,0,0));
+  }
 
-/* row hover */
-.att-table tbody tr:hover td{
-  background: rgba(59,130,246,.08);
-}
-.att-table tbody tr:hover td.sticky,
-.att-table tbody tr:hover td.sticky2{
-  background: rgba(2,6,23,.55);
-}
+  /* hover */
+  .att-table tbody tr:hover td{ background: rgba(59,130,246,.08); }
+  .att-table tbody tr:hover td.sticky,
+  .att-table tbody tr:hover td.sticky2{ background: rgba(2,6,23,.55); }
 
-/* day head */
-.dayhead{ padding: 10px 8px !important; }
-.daynum{ font-weight: 900; font-size: 13px; line-height: 1; }
-.daydow{ margin-top: 4px; font-size: 10px; opacity:.88; font-weight: 900; }
+  /* day head */
+  .dayhead{ padding: 10px 8px !important; }
+  .daynum{ font-weight: 900; font-size: 13px; line-height: 1; }
+  .daydow{ margin-top: 4px; font-size: 10px; opacity:.88; font-weight: 900; }
 
-/* markers */
-.mark{
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  display:inline-block;
-  opacity: .25;
-}
-.mark.p{ background: var(--present); opacity:1; box-shadow: 0 0 12px rgba(34,197,94,.30); }
-.mark.a{ background: var(--absent); opacity:1; box-shadow: 0 0 12px rgba(251,113,133,.30); }
-.mark.f{ background: var(--forced); opacity:1; box-shadow: 0 0 12px rgba(251,191,36,.30); }
+  /* ✅ status box (checkbox ko‘rinishi) */
+  .cellbtn{
+    border:0;
+    background: transparent;
+    cursor:pointer;
+    width: var(--cell);
+    height: var(--cell);
+    border-radius: var(--cellRadius);
+    display:inline-grid;
+    place-items:center;
+    transition:.14s ease;
+  }
+  .cellbtn:hover{
+    background: rgba(255,255,255,.06);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
+  }
+  .cellbtn:focus{
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(96,165,250,.18), inset 0 0 0 1px rgba(255,255,255,.14);
+  }
 
-/* clickable cell */
-.cellbtn{
-  border:0;
-  background: transparent;
-  cursor:pointer;
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
-  display:inline-grid;
-  place-items:center;
-  transition:.14s ease;
-}
-.cellbtn:hover{
-  background: rgba(255,255,255,.06);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
-}
-.cellbtn:focus{ outline:none; }
+  .sbox{
+    width: 22px;
+    height: 22px;
+    border-radius: 8px;
+    display:grid;
+    place-items:center;
+    border: 1px solid rgba(255,255,255,.14);
+    background: rgba(255,255,255,.04);
+    color: rgba(229,231,235,.92);
+  }
+  .sbox i{ font-size: 14px; line-height: 1; }
 
-/* empty */
-.empty{
-  text-align:center;
-  color: var(--muted);
-  padding: 18px;
-  font-weight: 900;
-}
+  .s-present{
+    border-color: rgba(34,197,94,.35);
+    background: rgba(34,197,94,.14);
+    color: #bbf7d0;
+    box-shadow: 0 0 12px rgba(34,197,94,.20);
+  }
+  .s-absent{
+    border-color: rgba(251,113,133,.35);
+    background: rgba(251,113,133,.14);
+    color: #fecaca;
+    box-shadow: 0 0 12px rgba(251,113,133,.18);
+  }
+  .s-none{
+    border-color: rgba(148,163,184,.20);
+    background: rgba(255,255,255,.03);
+    color: rgba(148,163,184,.95);
+  }
 
-/* mobile */
-@media (max-width: 720px){
-  .tb-right{ width:100%; justify-content:flex-start; }
-  .ctrl{ width:100%; justify-content:space-between; }
-  .btn-view{ width:100%; }
-}
+  /* ✅ forced (disabled checkbox style) */
+  .forced-wrap{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap: 6px;
+    width: var(--cell);
+    height: var(--cell);
+    border-radius: var(--cellRadius);
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.10);
+  }
+  .forced-check{
+    width: 16px;
+    height: 16px;
+    accent-color: var(--forced);
+    cursor: not-allowed;
+    opacity: .95;
+  }
+  .forced-ic{
+    color: rgba(251,191,36,.95);
+    font-size: 14px;
+    opacity: .95;
+  }
 
-/* ✅ hamma th/td width hisobida padding ham kirsin */
-.att-table th,
-.att-table td{ box-sizing: border-box; }
+  /* empty */
+  .empty{
+    text-align:center;
+    color: var(--muted);
+    padding: 18px;
+    font-weight: 900;
+  }
 
-/* ✅ № ustunini real width bo‘yicha qotirish (padding bilan ham 56pxdan oshmaydi) */
-.att-table thead th.sticky,
-.att-table tbody td.sticky{
-  width: 56px;
-  min-width: 56px;
-  max-width: 56px;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-}
+  /* ✅ responsive improvements */
+  @media (max-width: 980px){
+    :root{ --nameW:260px; }
+    .att-table{ min-width: 980px; }
+  }
 
-/* ✅ sticky2 left endi 56px aniq bo‘ladi */
-.att-table thead th.sticky2,
-.att-table tbody td.sticky2{
-  left: 56px;
-}
+  @media (max-width: 720px){
+    .att-page{ margin: 12px auto; }
+    .topbar{ flex-direction: column; align-items: stretch; }
+    .tb-right{ width:100%; justify-content:flex-start; }
+    .ctrl{ width:100%; justify-content:space-between; }
+    .btn-view{ width:100%; }
+    .btn-dl{ width:100%; height:44px; justify-content:center; }
 
-/* ✅ “devor”ni gap emas, ingichka separator qilish */
-.att-table thead th.sticky2::after,
-.att-table tbody td.sticky2::after{
-  content:"";
-  position:absolute;
-  top:0;
-  right:-1px;
-  width: 6px; /* oldin 14px edi — gap bo‘lib ko‘rinardi */
-  height:100%;
-  pointer-events:none;
-  background: linear-gradient(90deg,
-    rgba(0,0,0,.35),
-    rgba(0,0,0,0)
-  );
-}
+    /* compact sizes */
+    :root{
+      --noW:48px;
+      --nameW:220px;
+      --cell:32px;
+      --cellRadius:12px;
+    }
 
-/* ✅ separator yanada tiniq bo‘lsin */
-.att-table thead th.sticky2,
-.att-table tbody td.sticky2{
-  border-right: 1px solid rgba(255,255,255,.12);
-}
+    .tb-title{ font-size: 18px; }
+    .tb-sub{ font-size: 12px; }
 
+    .att-table{ min-width: 900px; font-size: 12.5px; }
+    .daydow{ display:none; } /* mobile’da faqat raqam qolsin */
+    .dayhead{ padding: 10px 6px !important; }
+  }
+
+  /* ✅ box sizing */
+  .att-table th, .att-table td{ box-sizing: border-box; }
 </style>
 
 <div class="att-page">
@@ -404,7 +443,10 @@ body{
   <div class="topbar">
 
     <div class="tb-left">
-      <a class="backbtn" href="{% url 'education:attendance_groups' %}" title="Ortga">←</a>
+      <a class="backbtn" href="{% url 'education:attendance_groups' %}" title="Ortga" aria-label="Ortga">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+
       <div style="min-width:0;">
         <h4 class="tb-title">{{ group.nom }}</h4>
         <div class="tb-sub">
@@ -417,25 +459,28 @@ body{
       <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
 
         <div class="ctrl" title="Yil / Oy tanlang">
-          <select name="year">
+          <select name="year" aria-label="Yil">
             {% for y in years %}
               <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
             {% endfor %}
           </select>
-          <select name="month">
+          <select name="month" aria-label="Oy">
             {% for m, name in months %}
               <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ name }}</option>
             {% endfor %}
           </select>
         </div>
 
-        <button type="submit" class="btn-view">Ko‘rish</button>
+        <button type="submit" class="btn-view">
+          <i class="bi bi-eye"></i> Ko‘rish
+        </button>
 
         <!-- ✅ Download (CSV) -->
         <a class="btn-dl"
            title="Saqlab olish (CSV)"
-           href="{% url 'education:group_month_attendance_export' group.id %}?year={{ year }}&month={{ month }}">
-          ⬇
+           href="{% url 'education:group_month_attendance_export' group.id %}?year={{ year }}&month={{ month }}"
+           aria-label="CSV yuklab olish">
+          <i class="bi bi-download"></i>
         </a>
       </form>
     </div>
@@ -487,19 +532,23 @@ body{
               {% for cell in row.cells %}
                 <td>
                   {% if cell.status == 'forced' %}
-                    <span class="mark f" title="Kelmadi, lekin pul yozilgan"></span>
+                    <div class="forced-wrap" title="Kelmadi, lekin pul yozilgan">
+                      <input class="form-check-input forced-check" type="checkbox" checked disabled>
+                      <i class="bi bi-lock-fill forced-ic"></i>
+                    </div>
                   {% else %}
                     <button type="button"
                             class="cellbtn att-cell-toggle"
                             data-student="{{ row.student.id }}"
                             data-date="{{ cell.date|date:'Y-m-d' }}"
-                            data-status="{{ cell.status }}">
+                            data-status="{{ cell.status }}"
+                            aria-label="Davomat o‘zgartirish">
                       {% if cell.status == 'present' %}
-                        <span class="mark p" title="Kelgan"></span>
+                        <span class="sbox s-present" title="Kelgan"><i class="bi bi-check-lg"></i></span>
                       {% elif cell.status == 'absent' %}
-                        <span class="mark a" title="Kelmadi"></span>
+                        <span class="sbox s-absent" title="Kelmadi"><i class="bi bi-x-lg"></i></span>
                       {% else %}
-                        <span class="mark" title="Belgilanmagan"></span>
+                        <span class="sbox s-none" title="Belgilanmagan"><i class="bi bi-dash-lg"></i></span>
                       {% endif %}
                     </button>
                   {% endif %}
@@ -508,7 +557,7 @@ body{
             </tr>
           {% empty %}
             <tr>
-              <td colspan="{{ 2|add:days|length }}" class="empty">
+              <td colspan="{{ days|length|add:'2' }}" class="empty">
                 Bu guruhda o‘quvchilar yo‘q.
               </td>
             </tr>
@@ -541,6 +590,16 @@ function getCookie(name) {
 }
 const csrftoken = getCookie("csrftoken");
 
+/* ✅ marker builder (new UI) */
+function renderStatusBox(status){
+  if (status === "present") {
+    return '<span class="sbox s-present" title="Kelgan"><i class="bi bi-check-lg"></i></span>';
+  } else if (status === "absent") {
+    return '<span class="sbox s-absent" title="Kelmadi"><i class="bi bi-x-lg"></i></span>';
+  }
+  return '<span class="sbox s-none" title="Belgilanmagan"><i class="bi bi-dash-lg"></i></span>';
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   document.querySelectorAll(".att-cell-toggle").forEach(btn => {
     btn.addEventListener("click", function () {
@@ -568,15 +627,8 @@ document.addEventListener("DOMContentLoaded", function () {
         const newStatus = data.status;
         this.dataset.status = newStatus;
 
-        // update marker
-        this.innerHTML = "";
-        if (newStatus === "present") {
-          this.innerHTML = '<span class="mark p" title="Kelgan"></span>';
-        } else if (newStatus === "absent") {
-          this.innerHTML = '<span class="mark a" title="Kelmadi"></span>';
-        } else {
-          this.innerHTML = '<span class="mark" title="Belgilanmagan"></span>';
-        }
+        /* ✅ update box */
+        this.innerHTML = renderStatusBox(newStatus);
       })
       .catch(err => console.error(err));
     });

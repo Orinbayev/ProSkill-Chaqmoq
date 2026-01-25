@@ -3,17 +3,45 @@
 
 <style>
   :root{
+    --bg0:#070b14;
+    --bg1:#0b1220;
+    --bg2:#0f1b33;
+
     --text:#e5e7eb;
     --muted:#94a3b8;
-    --line: rgba(255,255,255,.09);
+    --line: rgba(255,255,255,.10);
+
     --panel: rgba(17,24,39,.66);
     --panel2: rgba(2,6,23,.45);
     --shadow: 0 18px 55px rgba(0,0,0,.45);
+    --shadow2: 0 24px 70px rgba(0,0,0,.55);
 
     --accent:#facc15;
+    --amber:#f59e0b;
     --blue:#38bdf8;
+    --blue2:#60a5fa;
     --green:#22c55e;
     --red:#ef4444;
+
+    --radius: 22px;
+    --ring: 0 0 0 4px rgba(245,158,11,.18), 0 0 18px rgba(245,158,11,.28);
+  }
+
+  .pd-shell{
+    position: relative;
+    min-height: calc(100svh - 1px);
+    padding: clamp(14px, 2.5vw, 26px) 0;
+    color: var(--text);
+  }
+  .pd-bg{
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(900px 420px at 18% 10%, rgba(245,158,11,.12), transparent 60%),
+      radial-gradient(760px 380px at 85% 18%, rgba(56,189,248,.10), transparent 60%),
+      radial-gradient(980px 520px at 55% 92%, rgba(34,197,94,.08), transparent 62%),
+      linear-gradient(160deg, var(--bg0), var(--bg1) 45%, var(--bg2));
   }
 
   .pd-wrap{
@@ -32,17 +60,30 @@
   }
 
   .card{
-    border-radius: 22px;
+    border-radius: var(--radius);
     border: 1px solid rgba(255,255,255,.10);
     background: linear-gradient(180deg, var(--panel), var(--panel2));
-    box-shadow: var(--shadow);
+    box-shadow: var(--shadow2);
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
   }
+  .card::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(560px 260px at 10% 0%, rgba(250,204,21,.10), transparent 60%),
+      radial-gradient(560px 260px at 90% 0%, rgba(56,189,248,.08), transparent 62%),
+      radial-gradient(680px 320px at 60% 120%, rgba(34,197,94,.07), transparent 65%);
+    pointer-events:none;
+    opacity:.9;
+  }
+  .card > *{ position: relative; }
 
   /* LEFT: gallery */
-  .gallery{
-    padding: 14px;
-  }
+  .gallery{ padding: 14px; }
 
   .main-img{
     width:100%;
@@ -57,6 +98,7 @@
     height:100%;
     object-fit: cover;
     display:block;
+    transform: translateZ(0);
   }
 
   .thumbs{
@@ -65,8 +107,10 @@
     gap:10px;
     overflow-x:auto;
     padding-bottom: 6px;
+    scroll-snap-type: x mandatory;
   }
-  .thumbs::-webkit-scrollbar{ height: 8px; }
+  .thumbs::-webkit-scrollbar{ height: 9px; }
+  .thumbs::-webkit-scrollbar-track{ background: rgba(255,255,255,.05); }
   .thumbs::-webkit-scrollbar-thumb{ background: rgba(56,189,248,.45); border-radius: 999px; }
 
   .thumb{
@@ -78,22 +122,51 @@
     cursor:pointer;
     opacity:.82;
     flex: 0 0 auto;
+    scroll-snap-align: start;
+    transition: transform .16s ease, opacity .16s ease, border-color .16s ease, box-shadow .16s ease, filter .16s ease;
+    -webkit-tap-highlight-color: transparent;
   }
-  .thumb.active{ opacity:1; border-color: rgba(250,204,21,.35); }
+  .thumb.active{
+    opacity:1;
+    border-color: rgba(250,204,21,.40);
+    box-shadow: 0 14px 34px rgba(0,0,0,.35), 0 0 18px rgba(250,204,21,.10);
+    filter: saturate(1.02);
+  }
+  @media (hover:hover){
+    .thumb:hover{ transform: translateY(-2px); opacity: 1; border-color: rgba(56,189,248,.35); }
+  }
+  .thumb:focus-visible{ outline:none; box-shadow: var(--ring); }
   .thumb img{ width:100%; height:100%; object-fit: cover; display:block; }
 
   /* RIGHT: info */
-  .info{
-    padding: 16px;
-  }
+  .info{ padding: 16px; }
 
   .pd-title{
     margin: 0;
-    font-size: 28px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    font-size: clamp(1.25rem, 1.05rem + 1.1vw, 1.75rem);
     font-weight: 950;
     letter-spacing:.2px;
   }
-  .pd-title .gold{ color: var(--accent); }
+  .pd-name{
+    color: var(--accent);
+    text-transform: none;
+    text-shadow: 0 12px 34px rgba(0,0,0,.45);
+  }
+  .pd-badge{
+    background: rgba(250,204,21,.14);
+    border: 1px solid rgba(250,204,21,.35);
+    color: var(--accent);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-weight: 950;
+    font-size: 13px;
+    letter-spacing:.3px;
+    box-shadow: 0 10px 25px rgba(250,204,21,.10);
+  }
 
   .rating{
     margin-top: 8px;
@@ -114,42 +187,79 @@
     display:grid;
     gap:10px;
   }
-  .stat-row{
-    display:flex;
-    justify-content:space-between;
-    gap: 10px;
-    font-weight: 900;
-  }
-  .stat-row small{
-    color: var(--muted);
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing:.05em;
-  }
-  .stat-row b{ color: var(--accent); }
 
-.buy-btn{
-  margin-top: 12px;
-  width:100%;
-  border: 1px solid rgba(56,189,248,.25);
-  border-radius: 16px;
-  padding: 13px 14px;
-  font-weight: 950;
-  background: linear-gradient(90deg, rgba(56,189,248,.95), rgba(96,165,250,.95));
-  color:#04101a;
-  cursor:pointer;
-  text-decoration:none;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-  box-shadow: 0 16px 35px rgba(56,189,248,.20);
-  transition:.15s ease;
-}
-.buy-btn:hover{
-  transform: translateY(-1px);
-  filter: brightness(.98);
-}
+  .stat-card{
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,.10);
+    background:
+      radial-gradient(120% 120% at 10% 0%,
+        rgba(250,204,21,.10) 0%,
+        rgba(56,189,248,.08) 40%,
+        rgba(255,255,255,.02) 100%
+      );
+    padding: 12px 12px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 12px;
+  }
+
+  .stat-label{
+    color: rgba(148,163,184,.95);
+    font-weight: 950;
+    letter-spacing:.12em;
+    font-size: 12px;
+  }
+
+  .stat-value{
+    display:flex;
+    align-items:baseline;
+    gap: 8px;
+    font-weight: 950;
+  }
+
+  .stat-num{
+    color: var(--accent);
+    font-size: 20px;
+    letter-spacing:.2px;
+  }
+
+  .stat-unit{
+    color: rgba(250,204,21,.70);
+    font-weight: 950;
+    font-size: 12px;
+    letter-spacing:.10em;
+  }
+
+  .buy-btn{
+    margin-top: 12px;
+    width:100%;
+    border: 1px solid rgba(56,189,248,.25);
+    border-radius: 16px;
+    padding: 13px 14px;
+    font-weight: 950;
+    background: linear-gradient(90deg, rgba(56,189,248,.95), rgba(96,165,250,.95));
+    color:#04101a;
+    cursor:pointer;
+    text-decoration:none;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    box-shadow: 0 16px 35px rgba(56,189,248,.20);
+    transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 46px;
+  }
+  @media (hover:hover){
+    .buy-btn:hover{
+      transform: translateY(-2px);
+      filter: brightness(.98);
+      box-shadow: 0 22px 55px rgba(0,0,0,.55), 0 0 26px rgba(56,189,248,.18);
+    }
+  }
+  .buy-btn:active{ transform: translateY(0px) scale(.99); }
+  .buy-btn:focus-visible{ outline:none; box-shadow: var(--ring); }
 
   .alert{
     margin-top: 12px;
@@ -163,11 +273,25 @@
   .alert.bad{ border-color: rgba(239,68,68,.22); color: #fecaca; }
   .alert.info{ border-color: rgba(56,189,248,.22); color: #bae6fd; }
 
-  /* bottom tabs */
-  .bottom{
-    margin-top: 16px;
-    padding: 16px;
+  .btn-outline{
+    margin-top: 10px;
+    border-radius: 14px;
+    padding: 10px 12px;
+    border: 1px solid rgba(56,189,248,.45);
+    background: rgba(56,189,248,.10);
+    color: #e0f2fe;
+    font-weight: 950;
+    cursor:pointer;
+    transition: transform .16s ease, filter .16s ease, box-shadow .16s ease;
+    min-height: 44px;
   }
+  @media (hover:hover){
+    .btn-outline:hover{ transform: translateY(-1px); filter: brightness(.98); box-shadow: 0 18px 44px rgba(0,0,0,.45); }
+  }
+  .btn-outline:focus-visible{ outline:none; box-shadow: var(--ring); }
+
+  /* bottom tabs */
+  .bottom{ margin-top: 16px; padding: 16px; }
 
   .tabs{
     display:flex;
@@ -184,129 +308,24 @@
     border-radius: 14px;
     font-weight: 950;
     cursor:pointer;
+    transition: transform .14s ease, border-color .14s ease, background .14s ease, box-shadow .14s ease;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 42px;
   }
+  @media (hover:hover){
+    .tab:hover{ transform: translateY(-1px); border-color: rgba(245,158,11,.28); }
+  }
+  .tab:focus-visible{ outline:none; box-shadow: var(--ring); }
+
   .tab.active{
     border-color: rgba(56,189,248,.35);
     background: rgba(56,189,248,.10);
   }
 
   .tab-panels{ margin-top: 12px; }
-  .panel{ display:none; color: rgba(226,232,240,.92); font-weight: 750; line-height: 1.6; }
+  .panel{ display:none; color: rgba(226,232,240,.92); font-weight: 750; line-height: 1.65; }
   .panel.active{ display:block; }
 
-  /* comments */
-  .comments{
-    margin-top: 16px;
-    padding: 16px;
-  }
-  textarea{
-    width:100%;
-    border-radius: 14px;
-    padding: 12px;
-    background: rgba(2,6,23,.35);
-    color: var(--text);
-    border: 1px solid rgba(255,255,255,.10);
-    outline:none;
-    font-weight: 800;
-  }
-  textarea:focus{ border-color: rgba(56,189,248,.35); }
-
-  .btn-outline{
-    margin-top: 10px;
-    border-radius: 14px;
-    padding: 10px 12px;
-    border: 1px solid rgba(56,189,248,.45);
-    background: rgba(56,189,248,.10);
-    color: #e0f2fe;
-    font-weight: 950;
-    cursor:pointer;
-  }
-
-  .c-item{
-    margin-top: 12px;
-    border-radius: 18px;
-    padding: 12px 14px;
-    border: 1px solid rgba(255,255,255,.08);
-    background: rgba(255,255,255,.03);
-  }
-  .c-item b{ color: var(--accent); }
-  .reply{ margin-left: 26px; margin-top: 8px; opacity:.95; }
-
-  @media(max-width: 980px){
-    .pd-grid{ grid-template-columns: 1fr; }
-  }
-  .pd-title{
-  margin: 0;
-  display:flex;
-  align-items:center;
-  gap:10px;
-  flex-wrap:wrap;
-  font-size: 28px;
-  font-weight: 950;
-  letter-spacing:.2px;
-}
-.pd-name{
-  color: var(--accent); /* ✅ hammasi sariq */
-  text-transform: none;
-}
-.pd-badge{
-  background: rgba(250,204,21,.14);
-  border: 1px solid rgba(250,204,21,.35);
-  color: var(--accent); /* ✅ sariq */
-  padding: 6px 12px;
-  border-radius: 999px;
-  font-weight: 950;
-  font-size: 13px;
-  letter-spacing:.3px;
-  box-shadow: 0 10px 25px rgba(250,204,21,.10);
-}
-.stats{
-  margin-top: 12px;
-  padding: 14px;
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
-  display:grid;
-  gap:10px;
-}
-
-.stat-card{
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: radial-gradient(120% 120% at 10% 0%, rgba(250,204,21,.10) 0%, rgba(56,189,248,.08) 40%, rgba(255,255,255,.02) 100%);
-  padding: 12px 12px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap: 12px;
-}
-
-.stat-label{
-  color: rgba(148,163,184,.95);
-  font-weight: 950;
-  letter-spacing:.12em;
-  font-size: 12px;
-}
-
-.stat-value{
-  display:flex;
-  align-items:baseline;
-  gap: 8px;
-  font-weight: 950;
-}
-
-.stat-num{
-  color: var(--accent);     /* ✅ hammasi sariq */
-  font-size: 20px;
-  letter-spacing:.2px;
-}
-
-.stat-unit{
-  color: rgba(250,204,21,.70); /* ✅ sariqqa yaqin */
-  font-weight: 950;
-  font-size: 12px;
-  letter-spacing:.10em;
-}
   /* ===== TELEGRAM-LIKE DARK CHAT (PRODUCT COMMENTS) ===== */
   :root{
     --chat-bg: rgba(255,255,255,.03);
@@ -315,27 +334,38 @@
     --chat-text: #e5e7eb;
     --chat-muted: rgba(148,163,184,.85);
 
-    --me1: rgba(59,130,246,.26);   /* my bubble */
+    --me1: rgba(59,130,246,.26);
     --me2: rgba(59,130,246,.16);
-    --other1: rgba(255,255,255,.10); /* other bubble */
+    --other1: rgba(255,255,255,.10);
     --other2: rgba(255,255,255,.06);
 
-    --accent: #facc15;
     --send1: #38bdf8;
     --send2: #60a5fa;
   }
 
-  /* Chat wrapper */
   .tg-chat{
     margin-top: 18px;
     border-radius: 18px;
     border: 1px solid var(--chat-line);
     background: linear-gradient(180deg, var(--chat-bg), var(--chat-bg2));
-    box-shadow: 0 18px 55px rgba(0,0,0,.45);
+    box-shadow: var(--shadow2);
     overflow: hidden;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    position: relative;
   }
+  .tg-chat::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(900px 520px at 12% 0%, rgba(56,189,248,.10), transparent 62%),
+      radial-gradient(900px 520px at 88% 0%, rgba(250,204,21,.08), transparent 60%);
+    pointer-events:none;
+    opacity:.9;
+  }
+  .tg-chat > *{ position: relative; }
 
-  /* Header */
   .tg-head{
     padding: 14px 16px;
     border-bottom: 1px solid rgba(255,255,255,.08);
@@ -363,21 +393,20 @@
     margin-top:2px;
   }
 
-  /* Body (messages area) */
   .tg-body{
-    height: 520px;              /* kerak bo‘lsa o‘zgartirasiz */
+    height: 520px;
     overflow-y: auto;
     padding: 14px 14px 10px;
     background:
       radial-gradient(1200px 600px at 10% 0%, rgba(56,189,248,.10), transparent 60%),
       radial-gradient(900px 500px at 90% 10%, rgba(250,204,21,.08), transparent 55%),
       rgba(2,6,23,.18);
+    scroll-behavior: smooth;
   }
   .tg-body::-webkit-scrollbar{ width: 10px; }
   .tg-body::-webkit-scrollbar-track{ background: rgba(255,255,255,.04); }
   .tg-body::-webkit-scrollbar-thumb{ background: rgba(56,189,248,.45); border-radius: 999px; }
 
-  /* Date pill */
   .tg-day{
     display:inline-block;
     margin: 6px auto 12px;
@@ -392,7 +421,6 @@
   }
   .tg-day-wrap{ text-align:center; }
 
-  /* message row */
   .tg-row{
     display:flex;
     gap:10px;
@@ -401,7 +429,6 @@
   }
   .tg-row.me{ justify-content:flex-end; }
 
-  /* avatar */
   .tg-ava{
     width: 34px;height:34px;
     border-radius: 999px;
@@ -412,9 +439,8 @@
     color: #fff;
     flex: 0 0 auto;
   }
-  .tg-row.me .tg-ava{ display:none; } /* telegramda o‘zingizda ko‘pincha avatar bo‘lmaydi */
+  .tg-row.me .tg-ava{ display:none; }
 
-  /* bubble */
   .tg-bubble{
     max-width: 72%;
     padding: 10px 12px;
@@ -454,7 +480,6 @@
     font-weight: 900;
   }
 
-  /* reply */
   .tg-replies{
     margin-top: 8px;
     padding-left: 10px;
@@ -469,7 +494,6 @@
     border: 1px solid rgba(255,255,255,.08);
   }
 
-  /* input area */
   .tg-input{
     padding: 12px;
     border-top: 1px solid rgba(255,255,255,.08);
@@ -494,6 +518,12 @@
     outline:none;
   }
   .tg-textarea::placeholder{ color: rgba(148,163,184,.80); font-weight: 850; }
+  .tg-textarea:focus,
+  .tg-textarea:focus-visible{
+    border-color: rgba(245,158,11,.50);
+    box-shadow: var(--ring);
+  }
+
   .tg-send{
     height: 44px;
     padding: 0 16px;
@@ -508,8 +538,14 @@
     gap:8px;
     box-shadow: 0 16px 35px rgba(56,189,248,.18);
     white-space: nowrap;
+    transition: transform .16s ease, filter .16s ease, box-shadow .16s ease;
+    -webkit-tap-highlight-color: transparent;
   }
-  .tg-send:hover{ transform: translateY(-1px); filter: brightness(.98); }
+  @media (hover:hover){
+    .tg-send:hover{ transform: translateY(-2px); filter: brightness(.98); box-shadow: 0 22px 55px rgba(0,0,0,.55), 0 0 26px rgba(56,189,248,.16); }
+  }
+  .tg-send:active{ transform: translateY(0px) scale(.99); }
+  .tg-send:focus-visible{ outline:none; box-shadow: var(--ring); }
 
   .tg-note{
     margin-top: 8px;
@@ -518,245 +554,256 @@
     font-size: 12px;
   }
 
+  @media(max-width: 980px){
+    .pd-grid{ grid-template-columns: 1fr; }
+  }
   @media (max-width: 768px){
     .tg-body{ height: 480px; }
     .tg-bubble{ max-width: 86%; }
   }
+
+  @media (prefers-reduced-motion: reduce){
+    .thumb,.buy-btn,.btn-outline,.tab,.tg-send{ transition:none !important; }
+    .tg-body{ scroll-behavior:auto !important; }
+  }
 </style>
 
-<div class="pd-wrap">
+<main class="pd-shell">
+  <div class="pd-bg" aria-hidden="true"></div>
 
-  <div class="pd-grid">
+  <div class="pd-wrap">
 
-    <!-- LEFT -->
-    <div class="card gallery">
-      <div class="main-img">
-        {% with first=item.rasmlar.first %}
-          {% if first %}
-            <img id="mainPhoto" src="{{ first.rasm.url }}" alt="{{ item.nom }}">
-          {% else %}
-            <img id="mainPhoto" src="https://placehold.co/1200x675?text=No+Image" alt="no image">
-          {% endif %}
-        {% endwith %}
-      </div>
+    <div class="pd-grid">
 
-      <div class="thumbs" id="thumbs">
-        {% for img in item.rasmlar.all %}
-          <div class="thumb {% if forloop.first %}active{% endif %}" data-src="{{ img.rasm.url }}">
-            <img src="{{ img.rasm.url }}" alt="thumb">
+      <!-- LEFT -->
+      <section class="card gallery" aria-label="Mahsulot rasmlari">
+        <div class="main-img">
+          {% with first=item.rasmlar.first %}
+            {% if first %}
+              <img id="mainPhoto" src="{{ first.rasm.url }}" alt="{{ item.nom }}">
+            {% else %}
+              <img id="mainPhoto" src="https://placehold.co/1200x675?text=No+Image" alt="no image">
+            {% endif %}
+          {% endwith %}
+        </div>
+
+        <div class="thumbs" id="thumbs" aria-label="Kichik rasmlar">
+          {% for img in item.rasmlar.all %}
+            <div class="thumb {% if forloop.first %}active{% endif %}" data-src="{{ img.rasm.url }}" role="button" tabindex="0" aria-label="Rasmni tanlash">
+              <img src="{{ img.rasm.url }}" alt="thumb">
+            </div>
+          {% empty %}
+            <div style="color:var(--muted); font-weight:900; padding: 8px 2px;">Rasm mavjud emas.</div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <!-- RIGHT -->
+      <section class="card info" aria-label="Mahsulot ma’lumotlari">
+        <h2 class="pd-title">
+          <span class="pd-name">{{ item.nom }}</span>
+          <!-- <span class="pd-badge"></span> -->
+        </h2>
+
+        <div class="rating" aria-label="Reyting">
+          <!-- <span class="star">★ ★ ★ ★ ☆</span> -->
+          <!-- <span>4.8</span> -->
+          <!-- <span style="color:var(--muted); font-weight:900;">| 125 ta fikr</span> -->
+        </div>
+
+        <div class="stats" aria-label="Statistika">
+          <div class="stat-card">
+            <div class="stat-label">NARX</div>
+            <div class="stat-value">
+              <span class="stat-num">{{ item.narx_chaqmoq }}</span>
+              <span class="stat-unit">CHAQMOQ</span>
+            </div>
           </div>
-        {% empty %}
-          <div style="color:var(--muted); font-weight:900; padding: 8px 2px;">Rasm mavjud emas.</div>
-        {% endfor %}
-      </div>
-    </div>
 
-    <!-- RIGHT -->
-    <div class="card info">
-<h2 class="pd-title">
-  <span class="pd-name">{{ item.nom }}</span>
-  <!-- <span class="pd-badge"></span> -->
-</h2>
+          <div class="stat-card">
+            <div class="stat-label">SOTUVLAR</div>
+            <div class="stat-value">
+              <span class="stat-num">{{ sotib_olganlar_soni }}</span>
+              <span class="stat-unit">TA</span>
+            </div>
+          </div>
+        </div>
 
-      <div class="rating">
-        <!-- <span class="star">★ ★ ★ ★ ☆</span> -->
-        <!-- <span>4.8</span> -->
-        <!-- <span style="color:var(--muted); font-weight:900;">| 125 ta fikr</span> -->
-      </div>
+        {% if user.role == 'student' %}
 
-<div class="stats">
-  <div class="stat-card">
-    <div class="stat-label">NARX</div>
-    <div class="stat-value">
-      <span class="stat-num">{{ item.narx_chaqmoq }}</span>
-      <span class="stat-unit">CHAQMOQ</span>
-    </div>
-  </div>
+          {% if request_status == 'approved' %}
+            <div class="alert ok">✅ So‘rovingiz tasdiqlandi!</div>
+            <a href="{% url 'store:create_request' item.pk %}" class="buy-btn">🔁 Yana sotib olish</a>
 
-  <div class="stat-card">
-    <div class="stat-label">SOTUVLAR</div>
-    <div class="stat-value">
-      <span class="stat-num">{{ sotib_olganlar_soni }}</span>
-      <span class="stat-unit">TA</span>
-    </div>
-  </div>
-</div>
+          {% elif request_status == 'rejected' %}
+            <div class="alert bad">❌ Rad etildi.</div>
+            <a href="{% url 'store:create_request' item.pk %}" class="buy-btn">🔁 Qayta sinash</a>
 
+          {% elif request_status == 'pending' %}
+            <div class="alert info">⏳ So‘rovingiz tekshirilmoqda.</div>
 
-      {% if user.role == 'student' %}
-
-        {% if request_status == 'approved' %}
-          <div class="alert ok">✅ So‘rovingiz tasdiqlandi!</div>
-          <a href="{% url 'store:create_request' item.pk %}" class="buy-btn">🔁 Yana sotib olish</a>
-
-        {% elif request_status == 'rejected' %}
-          <div class="alert bad">❌ Rad etildi.</div>
-          <a href="{% url 'store:create_request' item.pk %}" class="buy-btn">🔁 Qayta sinash</a>
-
-        {% elif request_status == 'pending' %}
-          <div class="alert info">⏳ So‘rovingiz tekshirilmoqda.</div>
+          {% else %}
+            {% if yetarli %}
+              <form method="post" action="{% url 'store:create_request' item.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="buy-btn">⚡ Hozir sotib olish</button>
+              </form>
+            {% else %}
+              <div class="alert bad">❗ Yetarli chaqmoq yo‘q. ({{ user_chaqmoq }} / {{ item.narx_chaqmoq }})</div>
+            {% endif %}
+          {% endif %}
 
         {% else %}
-          {% if yetarli %}
-            <form method="post" action="{% url 'store:create_request' item.pk %}">
-              {% csrf_token %}
-              <button type="submit" class="buy-btn">⚡ Hozir sotib olish</button>
-            </form>
-          {% else %}
-            <div class="alert bad">❗ Yetarli chaqmoq yo‘q. ({{ user_chaqmoq }} / {{ item.narx_chaqmoq }})</div>
-          {% endif %}
+          <div class="alert info">📘 Faqat o‘quvchilar so‘rov yuborishi mumkin.</div>
         {% endif %}
 
-      {% else %}
-        <div class="alert info">📘 Faqat o‘quvchilar so‘rov yuborishi mumkin.</div>
-      {% endif %}
-
-      {% if user.is_staff %}
-        <div style="margin-top:12px;">
-          <a href="{% url 'store:product_edit' item.pk %}" class="btn-outline" style="display:inline-block; text-decoration:none;">
-            ✏️ Tahrirlash
-          </a>
-        </div>
-      {% endif %}
-    </div>
-
-  </div>
-
-  <!-- BOTTOM -->
-  <div class="card bottom">
-    <div class="tabs">
-      <button type="button" class="tab active" data-tab="desc">Mahsulot tavsifi</button>
-      <!-- <button type="button" class="tab" data-tab="tech">Texnik xususiyatlar</button> -->
-    </div>
-
-    <div class="tab-panels">
-      <div class="panel active" id="tab-desc">
-        {{ item.izoh|default:"Bu mahsulot bo‘yicha izoh mavjud emas." }}
-      </div>
-      <!-- <div class="panel" id="tab-tech">
-        • Darslar: video + materiallar <br>
-        • 24/7 kirish <br>
-        • Sertifikat (ixtiyoriy) <br>
-        • Yangilanishlar: mavjud
-      </div> -->
-    </div>
-  </div>
-
-  <!-- COMMENTS -->
-<!-- ===== TELEGRAM-LIKE COMMENTS CHAT ===== -->
-<div class="tg-chat" id="tgChat">
-
-  <div class="tg-head">
-    <div>
-      <div class="tg-title">
-        <span class="dot"></span>
-        <span>Fikrlar va Muhokama</span>
-      </div>
-      <div class="tg-sub">
-        Mahsulot haqida fikr yozing (hamma ko‘radi)
-      </div>
-    </div>
-
-    <div style="color:rgba(148,163,184,.9); font-weight:900; font-size:12px;">
-      {{ comments|length }} ta fikr
-    </div>
-  </div>
-
-  <div class="tg-body" id="tgBody">
-    <div class="tg-day-wrap"><span class="tg-day">BUGUN</span></div>
-
-    {% if comments %}
-      {% for c in comments %}
-        {# meniki yoki boshqaniki #}
-        <div class="tg-row {% if request.user.is_authenticated and c.user_id == request.user.id %}me{% endif %}">
-          <div class="tg-ava">
-            {{ c.user.ism|default:"U"|slice:":1" }}{{ c.user.familya|default:""|slice:":1" }}
+        {% if user.is_staff %}
+          <div style="margin-top:12px;">
+            <a href="{% url 'store:product_edit' item.pk %}" class="btn-outline" style="display:inline-block; text-decoration:none;">
+              ✏️ Tahrirlash
+            </a>
           </div>
+        {% endif %}
+      </section>
 
-          <div class="tg-bubble">
-            <div class="tg-name">
-              {% if request.user.is_authenticated and c.user_id == request.user.id %}
-                Siz
-              {% else %}
-                {{ c.user.ism }} {% if c.user.familya %}{{ c.user.familya }}{% endif %}
-              {% endif %}
-            </div>
+    </div>
 
-            <div class="tg-text">{{ c.text }}</div>
+    <!-- BOTTOM -->
+    <section class="card bottom" aria-label="Mahsulot tafsilotlari">
+      <div class="tabs" role="tablist" aria-label="Mahsulot tablari">
+        <button type="button" class="tab active" data-tab="desc" role="tab" aria-selected="true">Mahsulot tavsifi</button>
+        <!-- <button type="button" class="tab" data-tab="tech" role="tab" aria-selected="false">Texnik xususiyatlar</button> -->
+      </div>
 
-            <div class="tg-meta">
-              {% if c.created_at %}{{ c.created_at|date:"H:i" }}{% endif %}
-              {% if request.user.is_authenticated and c.user_id == request.user.id %}
-                ✅
-              {% endif %}
-            </div>
+      <div class="tab-panels">
+        <div class="panel active" id="tab-desc" role="tabpanel">
+          {{ item.izoh|default:"Bu mahsulot bo‘yicha izoh mavjud emas." }}
+        </div>
+        <!-- <div class="panel" id="tab-tech" role="tabpanel">
+          • Darslar: video + materiallar <br>
+          • 24/7 kirish <br>
+          • Sertifikat (ixtiyoriy) <br>
+          • Yangilanishlar: mavjud
+        </div> -->
+      </div>
+    </section>
 
-            {% if c.replies.all %}
-              <div class="tg-replies">
-                {% for r in c.replies.all %}
-                  <div class="tg-reply">
-                    <div class="tg-name" style="margin-bottom:4px;">
-                      {{ r.user.ism }} {% if r.user.familya %}{{ r.user.familya }}{% endif %}
-                    </div>
-                    <div class="tg-text">{{ r.text }}</div>
-                    <div class="tg-meta">
-                      {% if r.created_at %}{{ r.created_at|date:"H:i" }}{% endif %}
-                    </div>
-                  </div>
-                {% endfor %}
+    <!-- COMMENTS -->
+    <section class="tg-chat" id="tgChat" aria-label="Fikrlar va muhokama">
+      <div class="tg-head">
+        <div>
+          <div class="tg-title">
+            <span class="dot" aria-hidden="true"></span>
+            <span>Fikrlar va Muhokama</span>
+          </div>
+          <div class="tg-sub">Mahsulot haqida fikr yozing (hamma ko‘radi)</div>
+        </div>
+
+        <div style="color:rgba(148,163,184,.9); font-weight:900; font-size:12px;">
+          {{ comments|length }} ta fikr
+        </div>
+      </div>
+
+      <div class="tg-body" id="tgBody">
+        <div class="tg-day-wrap"><span class="tg-day">BUGUN</span></div>
+
+        {% if comments %}
+          {% for c in comments %}
+            <div class="tg-row {% if request.user.is_authenticated and c.user_id == request.user.id %}me{% endif %}">
+              <div class="tg-ava">
+                {{ c.user.ism|default:"U"|slice:":1" }}{{ c.user.familya|default:""|slice:":1" }}
               </div>
-            {% endif %}
 
+              <div class="tg-bubble">
+                <div class="tg-name">
+                  {% if request.user.is_authenticated and c.user_id == request.user.id %}
+                    Siz
+                  {% else %}
+                    {{ c.user.ism }} {% if c.user.familya %}{{ c.user.familya }}{% endif %}
+                  {% endif %}
+                </div>
+
+                <div class="tg-text">{{ c.text }}</div>
+
+                <div class="tg-meta">
+                  {% if c.created_at %}{{ c.created_at|date:"H:i" }}{% endif %}
+                  {% if request.user.is_authenticated and c.user_id == request.user.id %}
+                    ✅
+                  {% endif %}
+                </div>
+
+                {% if c.replies.all %}
+                  <div class="tg-replies">
+                    {% for r in c.replies.all %}
+                      <div class="tg-reply">
+                        <div class="tg-name" style="margin-bottom:4px;">
+                          {{ r.user.ism }} {% if r.user.familya %}{{ r.user.familya }}{% endif %}
+                        </div>
+                        <div class="tg-text">{{ r.text }}</div>
+                        <div class="tg-meta">
+                          {% if r.created_at %}{{ r.created_at|date:"H:i" }}{% endif %}
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div style="text-align:center; color:rgba(148,163,184,.85); font-weight:900; padding: 18px;">
+            Hozircha fikrlar yo‘q. Birinchi bo‘lib yozing 🙂
           </div>
-        </div>
-      {% endfor %}
-    {% else %}
-      <div style="text-align:center; color:rgba(148,163,184,.85); font-weight:900; padding: 18px;">
-        Hozircha fikrlar yo‘q. Birinchi bo‘lib yozing 🙂
+        {% endif %}
       </div>
-    {% endif %}
-  </div>
 
-  <div class="tg-input">
-    {% if request.user.is_authenticated %}
-      <form class="tg-form" method="post" action="{% url 'store:add_comment' item.pk %}">
-        {% csrf_token %}
-        <textarea class="tg-textarea" name="text" rows="1" placeholder="Xabar yozing..."></textarea>
-        <button class="tg-send" type="submit">➤ Yuborish</button>
-      </form>
-      <div class="tg-note">Enter bilan yozasiz, Shift+Enter = yangi qator</div>
-    {% else %}
-      <div class="tg-note">
-        Fikr yozish uchun tizimga kiring.
+      <div class="tg-input">
+        {% if request.user.is_authenticated %}
+          <form class="tg-form" method="post" action="{% url 'store:add_comment' item.pk %}">
+            {% csrf_token %}
+            <textarea class="tg-textarea" name="text" rows="1" placeholder="Xabar yozing..."></textarea>
+            <button class="tg-send" type="submit">➤ Yuborish</button>
+          </form>
+          <div class="tg-note">Enter bilan yozasiz, Shift+Enter = yangi qator</div>
+        {% else %}
+          <div class="tg-note">Fikr yozish uchun tizimga kiring.</div>
+        {% endif %}
       </div>
-    {% endif %}
+    </section>
+
   </div>
-
-</div>
-
-
-</div>
+</main>
 
 <script>
-  // thumbnails -> main image
   (function(){
     const main = document.getElementById('mainPhoto');
     const thumbs = document.getElementById('thumbs');
     if(!main || !thumbs) return;
 
+    function activateThumb(el){
+      thumbs.querySelectorAll('.thumb').forEach(x => x.classList.remove('active'));
+      el.classList.add('active');
+      const src = el.getAttribute('data-src');
+      if(src) main.src = src;
+    }
+
     thumbs.addEventListener('click', (e) => {
       const t = e.target.closest('.thumb');
       if(!t) return;
-      const src = t.getAttribute('data-src');
-      if(!src) return;
+      activateThumb(t);
+    });
 
-      thumbs.querySelectorAll('.thumb').forEach(x => x.classList.remove('active'));
-      t.classList.add('active');
-      main.src = src;
+    thumbs.addEventListener('keydown', (e) => {
+      const t = e.target.closest('.thumb');
+      if(!t) return;
+      if(e.key === 'Enter' || e.key === ' '){
+        e.preventDefault();
+        activateThumb(t);
+      }
     });
   })();
 
-  // tabs
   (function(){
     const tabs = document.querySelectorAll('.tab');
     tabs.forEach(btn => {
@@ -769,6 +816,34 @@
         document.getElementById('tab-' + key)?.classList.add('active');
       });
     });
+  })();
+</script>
+
+<script>
+  (function(){
+    const ta = document.querySelector('.tg-textarea');
+    if(!ta) return;
+
+    function autosize(){
+      ta.style.height = 'auto';
+      ta.style.height = Math.min(120, ta.scrollHeight) + 'px';
+    }
+
+    ta.addEventListener('input', autosize);
+    autosize();
+
+    ta.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter' && !e.shiftKey){
+        e.preventDefault();
+        ta.closest('form')?.requestSubmit?.();
+      }
+    });
+  })();
+
+  (function(){
+    const body = document.getElementById('tgBody');
+    if(!body) return;
+    body.scrollTop = body.scrollHeight;
   })();
 </script>
 

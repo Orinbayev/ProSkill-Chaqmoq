@@ -3,302 +3,301 @@
 
 <style>
   :root{
-    --bg:#070b14;
-    --bg2:#0b1220;
+    --bg0:#070b14;
+    --bg1:#0b1220;
+    --bg2:#0f172a;
+
+    --panel: rgba(255,255,255,.05);
+    --panel2: rgba(2,6,23,.55);
+    --line: rgba(255,255,255,.10);
 
     --text:#e5e7eb;
     --muted:#9aa4b2;
 
-    --line: rgba(255,255,255,.08);
+    --amber:#f59e0b;
+    --amber2:#facc15;
 
-    --gold:#facc15;
-    --goldSoft: rgba(250,204,21,.14);
+    --blue:#60a5fa;
+    --blue2:#2563eb;
 
-    --blueGlow: rgba(59,130,246,.20);
-    --greenGlow: rgba(34,197,94,.20);
+    --green:#22c55e;
+    --teal:#14b8a6;
+
+    --shadow: 0 22px 70px rgba(0,0,0,.62);
+    --r16:16px;
+    --r18:18px;
+    --r22:22px;
+    --r26:26px;
+
+    --focus: 0 0 0 3px rgba(56,189,248,.18), 0 0 0 6px rgba(250,204,21,.10);
   }
 
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
   body{
+    margin:0;
     background:
-      radial-gradient(900px 420px at 50% -120px, rgba(250,204,21,.12), transparent 60%),
-      radial-gradient(800px 500px at 25% 40%, rgba(56,189,248,.10), transparent 70%),
-      radial-gradient(800px 500px at 75% 55%, rgba(34,197,94,.10), transparent 70%),
-      linear-gradient(180deg, var(--bg), var(--bg2), var(--bg));
-    min-height: 100vh;
+      radial-gradient(1100px 520px at 50% -10%, rgba(96,165,250,.16), transparent 55%),
+      radial-gradient(900px 520px at 12% 18%, rgba(37,99,235,.12), transparent 58%),
+      radial-gradient(900px 520px at 92% 0%, rgba(245,158,11,.12), transparent 55%),
+      radial-gradient(800px 520px at 80% 70%, rgba(34,197,94,.10), transparent 60%),
+      linear-gradient(180deg, var(--bg1), var(--bg2), var(--bg1));
     color: var(--text);
     font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Poppins", sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
   }
 
-  /* =======================
-     PAGE LAYOUT (compact)
-     ======================= */
+  :focus-visible{
+    outline: 3px solid rgba(250, 204, 21, .28);
+    outline-offset: 3px;
+    border-radius: 12px;
+  }
+
   .pay-page{
-    width: 100%;
-    padding: 54px 18px 60px;
+    width:100%;
+    padding: clamp(18px, 6vw, 54px) clamp(12px, 3vw, 18px) clamp(22px, 6vw, 60px);
   }
 
-  /* container should NOT be too wide (to look like your screenshot) */
   .pay-container{
-    max-width: 980px;     /* <<< MUHIM: bu kattaroq bo‘lsa cho‘zilib ketadi */
+    max-width: 1040px;
     margin: 0 auto;
   }
 
-  /* =======================
-     PILL TITLE
-     ======================= */
   .pay-pill{
     width: fit-content;
-    margin: 0 auto 26px;
+    margin: 0 auto clamp(16px, 3.5vw, 26px);
     display: inline-flex;
     align-items: center;
     gap: 10px;
-
     padding: 10px 18px;
     border-radius: 999px;
 
-    color: var(--gold);
-    font-weight: 900;
-    font-size: 20px;
-    letter-spacing: .4px;
+    color: rgba(250,204,21,.98);
+    font-weight: 1000;
+    font-size: clamp(14px, 2.4vw, 18px);
+    letter-spacing: .5px;
     text-transform: uppercase;
 
-    background: rgba(0,0,0,.26);
+    background: rgba(255,255,255,.04);
     border: 1px solid rgba(250,204,21,.22);
-    box-shadow: 0 16px 40px rgba(0,0,0,.45);
-    backdrop-filter: blur(10px);
+    box-shadow: 0 16px 44px rgba(0,0,0,.48);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 
-  .pay-pill .pill-ico{
-    width: 30px;
-    height: 30px;
-    border-radius: 999px;
-    display: grid;
-    place-items: center;
-    background: var(--goldSoft);
-    border: 1px solid rgba(250,204,21,.22);
-    box-shadow: 0 10px 24px rgba(250,204,21,.10);
-    font-size: 14px;
-  }
-
-  /* =======================
-     GRID
-     ======================= */
   .pay-grid{
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 26px;
+    display:grid;
+    grid-template-columns: 1fr;
+    gap: clamp(12px, 3vw, 26px);
     align-items: stretch;
-    justify-content: center;
   }
 
-  /* =======================
-     CARD (look like screenshot)
-     ======================= */
   .pay-card{
     position: relative;
-    border-radius: 26px;
+    border-radius: var(--r26);
     overflow: hidden;
 
-    border: 1px solid var(--line);
-    box-shadow:
-      0 22px 70px rgba(0,0,0,.58),
-      inset 0 1px 0 rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.10);
+    box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.06);
 
     background: rgba(255,255,255,.03);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
 
-    /* <<< MUHIM: karta o‘lchami compact bo‘lsin */
-    min-height: 280px;
+    min-height: clamp(230px, 34vw, 300px);
+    transform: translateZ(0);
   }
 
-  /* inner */
   .pay-card .inner{
     height: 100%;
-    padding: 28px 26px 26px;
-    display: flex;
+    padding: clamp(18px, 3.8vw, 28px) clamp(16px, 3.6vw, 26px);
+    display:flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
     gap: 10px;
+    position: relative;
+    z-index: 2;
   }
 
-  /* glow gradient layer */
   .pay-card::before{
     content:"";
     position:absolute;
     inset:-2px;
     pointer-events:none;
-    opacity:.95;
+    opacity: .98;
   }
 
   .pay-card.teacher::before{
     background:
-      radial-gradient(560px 320px at 35% 25%, var(--blueGlow), transparent 62%),
-      radial-gradient(560px 320px at 80% 85%, rgba(37,99,235,.14), transparent 62%);
+      radial-gradient(620px 360px at 35% 25%, rgba(96,165,250,.22), transparent 62%),
+      radial-gradient(620px 360px at 82% 88%, rgba(37,99,235,.16), transparent 62%),
+      radial-gradient(520px 320px at 20% 110%, rgba(250,204,21,.08), transparent 65%);
   }
 
   .pay-card.student::before{
     background:
-      radial-gradient(560px 320px at 35% 25%, var(--greenGlow), transparent 62%),
-      radial-gradient(560px 320px at 80% 85%, rgba(20,184,166,.12), transparent 62%);
+      radial-gradient(620px 360px at 35% 25%, rgba(34,197,94,.22), transparent 62%),
+      radial-gradient(620px 360px at 82% 88%, rgba(20,184,166,.16), transparent 62%),
+      radial-gradient(520px 320px at 20% 110%, rgba(250,204,21,.08), transparent 65%);
   }
 
-  /* subtle vignette like screenshot */
   .pay-card::after{
     content:"";
     position:absolute;
     inset:0;
     pointer-events:none;
     background:
-      radial-gradient(800px 400px at 50% 10%, rgba(255,255,255,.05), transparent 55%),
-      linear-gradient(180deg, rgba(0,0,0,.00), rgba(0,0,0,.35));
-    opacity:.85;
+      radial-gradient(900px 420px at 50% 0%, rgba(255,255,255,.06), transparent 58%),
+      linear-gradient(180deg, rgba(0,0,0,.00), rgba(0,0,0,.40));
+    opacity:.92;
   }
 
-  /* icon tile */
   .pay-icon{
-    width: 62px;
-    height: 62px;
-    border-radius: 16px;
-    display: grid;
-    place-items: center;
-    font-size: 26px;
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    display:grid;
+    place-items:center;
+    font-size: 28px;
 
-    background: rgba(0,0,0,.20);
+    background: rgba(0,0,0,.18);
     border: 1px solid rgba(255,255,255,.10);
-    box-shadow: 0 18px 45px rgba(0,0,0,.55);
+    box-shadow: 0 18px 48px rgba(0,0,0,.58);
     backdrop-filter: blur(10px);
-    position: relative;
-    z-index: 2;
+    -webkit-backdrop-filter: blur(10px);
   }
 
-  /* title/sub */
   .pay-title{
     margin: 6px 0 0;
-    font-size: 28px;
-    font-weight: 900;
+    font-size: clamp(22px, 3.6vw, 30px);
+    font-weight: 1000;
     letter-spacing: .2px;
-    position: relative;
-    z-index: 2;
+    line-height: 1.1;
   }
 
   .pay-sub{
     margin: 0;
-    max-width: 360px;
-    color: var(--muted);
-    font-weight: 600;
-    font-size: 13px;
-    line-height: 1.45;
-    position: relative;
-    z-index: 2;
+    max-width: 44ch;
+    color: rgba(154,164,178,.95);
+    font-weight: 700;
+    font-size: clamp(12.5px, 2.2vw, 13.5px);
+    line-height: 1.55;
   }
 
-  /* button like screenshot */
   .pay-btn{
-    margin-top: 12px;
-    display: inline-flex;
-    align-items: center;
+    margin-top: 14px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
     gap: 10px;
 
-    padding: 10px 16px;
+    padding: 12px 16px;
+    min-height: 46px;
+
     border-radius: 999px;
-    text-decoration: none;
+    text-decoration:none;
     color: var(--text);
 
-    font-weight: 800;
+    font-weight: 900;
     font-size: 13px;
 
     background: rgba(255,255,255,.06);
-    border: 1px solid rgba(255,255,255,.10);
-    box-shadow: 0 16px 40px rgba(0,0,0,.45);
-    position: relative;
-    z-index: 2;
-
-    transition: .18s ease;
+    border: 1px solid rgba(255,255,255,.12);
+    box-shadow: 0 16px 44px rgba(0,0,0,.50);
+    transition: transform .18s ease, filter .18s ease, background .18s ease, border-color .18s ease;
+    will-change: transform;
   }
 
   .pay-btn .arr{
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
     border-radius: 999px;
-    display: grid;
-    place-items: center;
+    display:grid;
+    place-items:center;
 
-    background: rgba(0,0,0,.25);
-    border: 1px solid rgba(255,255,255,.10);
-    transition: .18s ease;
+    background: rgba(0,0,0,.22);
+    border: 1px solid rgba(255,255,255,.12);
+    transition: transform .18s ease, border-color .18s ease, background .18s ease;
   }
 
   .pay-card:hover{
-    border-color: rgba(250,204,21,.18);
+    border-color: rgba(250,204,21,.22);
+    transform: translateY(-1px);
   }
   .pay-card:hover .pay-btn{
-    border-color: rgba(250,204,21,.18);
+    border-color: rgba(250,204,21,.22);
     background: rgba(250,204,21,.10);
+    filter: brightness(1.06);
   }
   .pay-card:hover .pay-btn .arr{
     transform: translateX(2px);
-    border-color: rgba(250,204,21,.18);
+    border-color: rgba(250,204,21,.22);
+    background: rgba(250,204,21,.10);
   }
 
-  /* =======================
-     RESPONSIVE
-     ======================= */
-  @media (max-width: 980px){
-    .pay-container{ max-width: 820px; }
-    .pay-title{ font-size: 26px; }
+  .pay-btn:focus-visible{
+    box-shadow: var(--focus);
   }
 
-  @media (max-width: 860px){
-    .pay-grid{ grid-template-columns: 1fr; }
-    .pay-card{ min-height: 260px; }
+  @media (min-width: 860px){
+    .pay-grid{ grid-template-columns: 1fr 1fr; }
+  }
+
+  @media (min-width: 1440px){
+    .pay-container{ max-width: 1120px; }
+    .pay-card{ min-height: 310px; }
   }
 
   @media (max-width: 520px){
-    .pay-page{ padding: 46px 12px 54px; }
-    .pay-card .inner{ padding: 24px 18px; }
-    .pay-title{ font-size: 24px; }
-    .pay-sub{ font-size: 12.5px; }
+    .pay-btn{ width: 100%; }
+    .pay-sub{ max-width: 36ch; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ scroll-behavior: auto !important; transition: none !important; animation: none !important; }
   }
 </style>
 
-<div class="pay-page">
+<main class="pay-page">
   <div class="pay-container">
 
-   <center> <div class="pay-pill">
-      <!-- <div class="pill-ico"></div> -->
-      <div>💰 TO‘LOV TOIFASINI TANLANG</div>
-    </div></center>
+    <center>
+      <div class="pay-pill" role="heading" aria-level="1">
+        <div>💰 TO‘LOV TOIFASINI TANLANG</div>
+      </div>
+    </center>
 
-    <div class="pay-grid">
+    <div class="pay-grid" role="list" aria-label="To‘lov bo‘limlari">
 
-      <div class="pay-card teacher">
+      <div class="pay-card teacher" role="listitem">
         <div class="inner">
-          <div class="pay-icon">🧑‍🏫</div>
+          <div class="pay-icon" aria-hidden="true">🧑‍🏫</div>
           <h3 class="pay-title">O‘qituvchilar</h3>
           <p class="pay-sub">Oylik maoshlar va qo‘shimcha bonuslarni hisoblash bo‘limi</p>
 
-          <a class="pay-btn" href="{% url 'education:teacher_salary_list' %}">
-            Davom etish <span class="arr">→</span>
+          <a class="pay-btn" href="{% url 'education:teacher_salary_list' %}" aria-label="O‘qituvchilar bo‘limiga davom etish">
+            Davom etish <span class="arr" aria-hidden="true">→</span>
           </a>
         </div>
       </div>
 
-      <div class="pay-card student">
+      <div class="pay-card student" role="listitem">
         <div class="inner">
-          <div class="pay-icon">🎓</div>
+          <div class="pay-icon" aria-hidden="true">🎓</div>
           <h3 class="pay-title">O‘quvchilar</h3>
           <p class="pay-sub">Kurslar uchun to‘lovlar va chegirmalarni boshqarish bo‘limi</p>
 
-          <a class="pay-btn" href="{% url 'education:tolov_oquvchilar' %}">
-            Davom etish <span class="arr">→</span>
+          <a class="pay-btn" href="{% url 'education:tolov_oquvchilar' %}" aria-label="O‘quvchilar bo‘limiga davom etish">
+            Davom etish <span class="arr" aria-hidden="true">→</span>
           </a>
         </div>
       </div>
 
     </div>
   </div>
-</div>
+</main>
 
 {% endblock %}

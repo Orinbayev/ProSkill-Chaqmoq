@@ -1,24 +1,30 @@
+{% if request.user.is_authenticated %}
 <!-- ================================
         📌 MOBILE TOPBAR
 ================================ -->
-<div class="mobile-topbar d-flex d-lg-none align-items-center justify-content-between">
-  <div class="d-flex align-items-center mobile-logo">
-    <span class="logo-bolt">⚡</span>
+<div class="mobile-topbar d-flex d-lg-none align-items-center justify-content-between" role="banner">
+  <div class="d-flex align-items-center mobile-logo" aria-label="Chaqmoq">
+    <span class="logo-bolt" aria-hidden="true">⚡</span>
     <span class="logo-text">Chaqmoq</span>
   </div>
-  <button class="mobile-menu-btn" type="button" onclick="toggleSidebar()">
-    <i class="fa-solid fa-bars"></i>
+
+  <button class="mobile-menu-btn" type="button" onclick="toggleSidebar()"
+          aria-label="Menyuni ochish/yopish" aria-controls="sidebar" aria-expanded="false">
+    <i class="fa-solid fa-bars" aria-hidden="true"></i>
   </button>
 </div>
+
+<!-- ✅ MOBILE OVERLAY (telefon uchun) -->
+<div id="sidebarOverlay" class="sidebar-overlay d-lg-none" onclick="toggleSidebar(false)" aria-hidden="true"></div>
 
 <!-- ================================
         📌 SIDEBAR
 ================================ -->
-<div id="sidebar" class="sidebar-wrapper">
+<div id="sidebar" class="sidebar-wrapper" role="navigation" aria-label="Asosiy menyu">
 
   <!-- LOGO -->
-  <a href="/" class="sidebar-logo">
-    <div class="logo-icon-bg">
+  <a href="/" class="sidebar-logo" aria-label="Bosh sahifa">
+    <div class="logo-icon-bg" aria-hidden="true">
       <span class="logo-bolt">⚡</span>
     </div>
     <span class="logo-text">Chaqmoq</span>
@@ -29,7 +35,6 @@
     {% with vn=request.resolver_match.view_name|default:'' p=request.path %}
 
     {% if request.user.is_authenticated and request.user.role == 'teacher' %}
-      <!-- ✅ TEACHER: faqat 3 ta bo‘lim -->
       <a href="/"
          class="sidebar-item {% if p == '/' or vn == 'core:home' or vn == 'core:dashboard_teacher' %}active{% endif %}">
         <span class="si-ico"><i class="fa-solid fa-table-columns"></i></span>
@@ -49,7 +54,6 @@
       </a>
 
     {% elif request.user.is_authenticated and request.user.role == 'student' %}
-      <!-- ✅ STUDENT: faqat 3 ta bo‘lim -->
       <a href="/"
          class="sidebar-item {% if p == '/' or vn == 'core:home' or vn == 'core:dashboard_student' %}active{% endif %}">
         <span class="si-ico"><i class="fa-solid fa-house"></i></span>
@@ -69,7 +73,6 @@
       </a>
 
     {% else %}
-      <!-- ✅ DIRECTOR/MANAGER: eski menyu (o‘zgarmadi) -->
       <a href="/" class="sidebar-item {% if p == '/' or vn == 'core:home' %}active{% endif %}">
         <span class="si-ico"><i class="fa-solid fa-table-columns"></i></span>
         <span class="si-text">Boshqaruv</span>
@@ -87,8 +90,8 @@
         <span class="si-text">Bo‘limlar</span>
       </a>
 
-<a href="{% url 'education:attendance_groups' %}"
-   class="sidebar-item {% if vn == 'education:attendance_groups' %}active{% endif %}">
+      <a href="{% url 'education:attendance_groups' %}"
+         class="sidebar-item {% if vn == 'education:attendance_groups' %}active{% endif %}">
         <span class="si-ico"><i class="fa-solid fa-users"></i></span>
         <span class="si-text">Guruhlar</span>
       </a>
@@ -135,8 +138,7 @@
 
   <!-- BOTTOM: ADMIN -->
   <div class="sidebar-bottom">
-    {# ✅ teacher/student da admin ko‘rinmasin #}
-    {% if request.user.is_authenticated and request.user.role != 'teacher' and request.user.role != 'student' %}
+{% if request.user.is_authenticated and request.user.role != 'teacher' and request.user.role != 'student' and request.user.role != 'manager' %}
       {% if request.user.is_staff or request.user.is_superuser %}
         <a href="/admin/" class="sidebar-item settings-item {% if '/admin' in request.path %}active{% endif %}">
           <span class="si-ico"><i class="fa-solid fa-gear"></i></span>
@@ -148,98 +150,327 @@
 </div>
 
 <style>
+  :root{
+    --sb-text:#e5e7eb;
+    --sb-ring: 0 0 0 4px rgba(250,204,21,.16), 0 0 18px rgba(250,204,21,.22);
+  }
+
+  /* ===== SIDEBAR ===== */
   .sidebar-wrapper{
-    width:270px;
-    height:100vh;
-    background:#0d121f;
-    padding:24px 16px;
+    width: 286px;
+    height: 100vh;
+    padding: 18px 14px;
     display:flex;
     flex-direction:column;
-    border-right:1px solid rgba(255,255,255,0.05);
+
+    background:
+      radial-gradient(900px 520px at 0% 0%, rgba(56,189,248,.10), transparent 60%),
+      radial-gradient(760px 460px at 100% 10%, rgba(250,204,21,.08), transparent 60%),
+      linear-gradient(180deg, rgba(15,23,42,.96), rgba(2,6,23,.92));
+    border-right: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 18px 0 70px rgba(0,0,0,.35);
+
     position:fixed;
     left:0; top:0;
-    z-index:6000;
+
+    /* ✅ MUHIM: sidebar overlaydan yuqorida bo‘lsin (xiralashmasin) */
+    z-index: 7200;
+
     pointer-events:auto;
+    overflow: hidden;
+  }
+
+  .sidebar-wrapper::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(700px 300px at 14% 0%, rgba(250,204,21,.10), transparent 62%),
+      radial-gradient(700px 320px at 88% 10%, rgba(56,189,248,.10), transparent 62%);
+    pointer-events:none;
+    opacity:.9;
+  }
+
+  .sidebar-logo,
+  .sidebar-scroll,
+  .sidebar-bottom{
+    position: relative;
+    z-index: 1;
   }
 
   .sidebar-logo{
-    display:flex; align-items:center; gap:12px;
-    padding:0 12px 22px;
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    padding: 8px 12px 18px;
     text-decoration:none;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    margin-bottom: 10px;
   }
 
   .logo-icon-bg{
-    background:#f59e0b;
-    width:36px; height:36px;
-    border-radius:10px;
-    display:flex; align-items:center; justify-content:center;
-    box-shadow:0 8px 16px rgba(245,158,11,0.2);
-  }
-  .logo-bolt{color:#fff;font-size:18px;}
-  .logo-text{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.5px;}
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
 
-  .sidebar-scroll{flex:1; overflow-y:auto; padding-right:4px;}
+    background: linear-gradient(135deg, rgba(250,204,21,.95), rgba(245,158,11,.95));
+    box-shadow: 0 14px 30px rgba(250,204,21,.18);
+    border: 1px solid rgba(255,255,255,.12);
+  }
+
+  .logo-bolt{
+    color: #061018;
+    font-size: 18px;
+    font-weight: 950;
+  }
+  .logo-text{
+    font-size: 22px;
+    font-weight: 950;
+    color: var(--sb-text);
+    letter-spacing: -0.6px;
+    line-height: 1;
+  }
+
+  .sidebar-scroll{
+    flex:1;
+    overflow-y:auto;
+    padding-right: 6px;
+    padding-bottom: 6px;
+  }
 
   .sidebar-item{
-    display:flex; align-items:center; gap:14px;
-    padding:12px 16px; margin-bottom:4px;
+    display:flex;
+    align-items:center;
+    gap: 12px;
+
+    padding: 11px 12px;
+    margin: 5px 4px;
+
     text-decoration:none;
-    color:#94a3b8;
-    border-radius:14px;
-    transition:.2s ease;
-    font-weight:600;
-    font-size:14px;
+    color: rgba(148,163,184,.95);
+
+    border-radius: 14px;
+    transition: transform .16s ease, background .16s ease, color .16s ease, border-color .16s ease;
+    font-weight: 900;
+    font-size: 14px;
+
+    border: 1px solid transparent;
+    background: transparent;
+
     pointer-events:auto;
     cursor:pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
   }
 
   .sidebar-item:hover:not(.active){
-    background:rgba(255,255,255,0.03);
-    color:#fff;
+    background: rgba(255,255,255,.04);
+    border-color: rgba(255,255,255,.06);
+    color: #fff;
+    transform: translateY(-1px);
   }
 
   .sidebar-item.active{
-    background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);
-    color:#fff;
-    box-shadow:0 10px 20px -5px rgba(217,119,6,0.3);
+    background:
+      radial-gradient(140% 120% at 0% 0%, rgba(250,204,21,.18), transparent 55%),
+      linear-gradient(135deg, rgba(250,204,21,.95) 0%, rgba(245,158,11,.95) 60%, rgba(217,119,6,.95) 100%);
+    color: #061018;
+    border-color: rgba(255,255,255,.16);
+    box-shadow: 0 14px 28px rgba(250,204,21,.14);
   }
 
-  .si-ico{width:20px; display:flex; align-items:center; justify-content:center; font-size:18px;}
+  .sidebar-item:focus-visible{
+    outline: none;
+    box-shadow: var(--sb-ring);
+  }
+
+  .si-ico{
+    width: 32px;
+    height: 32px;
+    border-radius: 12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.08);
+
+    font-size: 16px;
+    color: rgba(226,232,240,.92);
+    flex: 0 0 auto;
+  }
+  .sidebar-item.active .si-ico{
+    background: rgba(2,6,23,.25);
+    border-color: rgba(2,6,23,.30);
+    color: #061018;
+  }
+
+  .si-text{
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
   .sidebar-bottom{
-    padding-top:14px;
-    border-top:1px solid rgba(255,255,255,0.06);
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,.06);
+    margin-top: 10px;
   }
 
-  /* Custom scrollbar */
-  .custom-scrollbar::-webkit-scrollbar{ width:4px; }
+  .custom-scrollbar::-webkit-scrollbar{ width: 8px; }
+  .custom-scrollbar::-webkit-scrollbar-track{ background: rgba(255,255,255,.04); border-radius: 999px; }
   .custom-scrollbar::-webkit-scrollbar-thumb{
-    background:rgba(255,255,255,0.06);
-    border-radius:10px;
+    background: rgba(56,189,248,.45);
+    border-radius: 999px;
   }
 
-  /* Mobile */
-  @media (max-width: 992px){
-    .sidebar-wrapper{ left:-110%; transition:.3s; }
-    .sidebar-wrapper.open{ left:0; }
-    .mobile-topbar{
-      background:#0d121f;
-      padding:16px;
-      border-bottom:1px solid rgba(255,255,255,0.05);
-      position:sticky;
-      top:0;
-      z-index:7000;
+  /* ===== MOBILE TOPBAR ===== */
+  .mobile-topbar{
+    background:
+      radial-gradient(900px 520px at 10% 0%, rgba(56,189,248,.12), transparent 60%),
+      radial-gradient(760px 460px at 90% 0%, rgba(250,204,21,.10), transparent 60%),
+      rgba(2,6,23,.88);
+    padding: 14px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    position: sticky;
+    top: 0;
+    z-index: 7000;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .mobile-logo{ gap: 10px; }
+  .mobile-logo .logo-bolt{
+    width: 32px;
+    height: 32px;
+    border-radius: 12px;
+    display:grid;
+    place-items:center;
+    background: linear-gradient(135deg, rgba(250,204,21,.95), rgba(245,158,11,.95));
+    color: #061018;
+    font-weight: 950;
+    box-shadow: 0 14px 30px rgba(250,204,21,.16);
+    border: 1px solid rgba(255,255,255,.12);
+  }
+  .mobile-logo .logo-text{
+    color: var(--sb-text);
+    font-weight: 950;
+    letter-spacing: -0.6px;
+    font-size: 18px;
+  }
+
+  .mobile-menu-btn{
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.06);
+    color: #fff;
+    font-size: 18px;
+    display:grid;
+    place-items:center;
+    cursor:pointer;
+    transition: transform .16s ease, filter .16s ease, border-color .16s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-menu-btn:hover{
+    transform: translateY(-1px);
+    filter: brightness(.98);
+    border-color: rgba(56,189,248,.22);
+  }
+  .mobile-menu-btn:focus-visible{
+    outline:none;
+    box-shadow: var(--sb-ring);
+  }
+
+  /* ===== MOBILE SIDEBAR DRAWER (off-canvas) ===== */
+  @media (max-width: 991.98px){
+    .sidebar-wrapper{
+      left: -110%;
+      transition: left .26s ease;
+      width: min(88vw, 330px);
+      box-shadow: 22px 0 80px rgba(0,0,0,.55);
     }
-    .mobile-menu-btn{
-      background:none;border:none;color:#fff;
-      font-size:22px;
-    }
+    .sidebar-wrapper.open{ left: 0; }
+  }
+
+  /* ===== MOBILE OVERLAY ===== */
+  .sidebar-overlay{
+    position: fixed;
+    inset: 0;
+
+    /* ✅ Crisp bo‘lsin: blur yo‘q */
+    background: rgba(0,0,0,.55);
+
+    /* ❌ xiralashishning 2-sababi shu edi */
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+
+    /* ✅ overlay sidebar ostida tursin */
+    z-index: 7100;
+
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .18s ease;
+  }
+  .sidebar-overlay.open{
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .sidebar-item, .mobile-menu-btn, .sidebar-wrapper, .sidebar-overlay{ transition: none !important; }
   }
 </style>
 
 <script>
-  function toggleSidebar(){
+  function toggleSidebar(force){
     const sb = document.getElementById("sidebar");
-    if(sb) sb.classList.toggle("open");
+    const ov = document.getElementById("sidebarOverlay");
+    const btn = document.querySelector(".mobile-menu-btn");
+    if(!sb) return;
+
+    const isOpen = sb.classList.contains("open");
+    const nextOpen = (typeof force === "boolean") ? force : !isOpen;
+
+    sb.classList.toggle("open", nextOpen);
+    if(ov) ov.classList.toggle("open", nextOpen);
+
+    if(btn){
+      btn.setAttribute("aria-expanded", nextOpen ? "true" : "false");
+    }
+
+    document.documentElement.classList.toggle("sb-lock", nextOpen);
+    document.body.classList.toggle("sb-lock", nextOpen);
   }
+
+  (function(){
+    const sb = document.getElementById("sidebar");
+    if(!sb) return;
+
+    document.addEventListener("keydown", (e)=>{
+      if(e.key === "Escape" && sb.classList.contains("open")){
+        toggleSidebar(false);
+      }
+    });
+
+    document.addEventListener("click", (e)=>{
+      if(window.matchMedia("(max-width: 991.98px)").matches){
+        const clickedLink = e.target.closest(".sidebar-item");
+        if(clickedLink && sb.classList.contains("open")){
+          toggleSidebar(false);
+        }
+      }
+    });
+  })();
 </script>
+
+<style>
+  .sb-lock{ overflow: hidden !important; }
+</style>
+{% endif %}

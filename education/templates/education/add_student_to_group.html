@@ -1,358 +1,283 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-
 <style>
   :root{
-    /* ===== 1-rasmga yaqin palette ===== */
-    --bg1:#020617;         /* deep navy */
-    --bg2:#0b1226;         /* gradient second */
-    --panel: rgba(17,24,39,.60);
+    --bg0:#020617;
+    --bg1:#0b1226;
+
+    --panel: rgba(17,24,39,.62);
     --panel2: rgba(2,6,23,.55);
-    --line: rgba(255,255,255,.09);
+    --glass: rgba(255,255,255,.05);
+    --border: rgba(255,255,255,.10);
+    --line: rgba(255,255,255,.08);
 
     --text:#e5e7eb;
     --muted:#94a3b8;
 
+    --amber:#f59e0b;
+    --amber2:#fbbf24;
     --blue:#38bdf8;
     --green:#22c55e;
     --green2:#16a34a;
-    --slate:#334155;
 
-    --shadow: 0 20px 70px rgba(0,0,0,.45);
-    --radius: 26px;
+    --shadow: 0 20px 70px rgba(0,0,0,.50);
+    --radius: 22px;
   }
 
+  /* Page background (premium dark) */
   body{
     background:
-      radial-gradient(900px 600px at 10% 0%, rgba(56,189,248,.16), transparent 55%),
-      radial-gradient(900px 600px at 90% 10%, rgba(34,197,94,.14), transparent 55%),
-      linear-gradient(180deg, var(--bg1), var(--bg2));
+      radial-gradient(900px 600px at 10% 0%, rgba(56,189,248,.18), transparent 55%),
+      radial-gradient(900px 600px at 90% 10%, rgba(245,158,11,.14), transparent 55%),
+      radial-gradient(900px 600px at 55% 95%, rgba(34,197,94,.12), transparent 55%),
+      linear-gradient(180deg, var(--bg0), var(--bg1));
     color: var(--text);
   }
 
-  /* ===== outer card ===== */
-  .add-wrap{
-    max-width: 860px;
-    margin: 26px auto;
-    padding: 0 12px 24px;
+  /* Prevent horizontal scroll everywhere */
+  html, body{ overflow-x: hidden; }
+  *, *::before, *::after{ box-sizing: border-box; }
+  img, svg{ max-width: 100%; height: auto; }
+
+  /* Layout shell */
+  .page-shell{
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 16px 12px 28px;
   }
 
-  .add-card{
-    background: linear-gradient(180deg, var(--panel), var(--panel2));
-    border: 1px solid var(--line);
+  /* Keep existing class name: .wrapper */
+  .wrapper{
+    max-width: 560px;
+    margin: 18px auto;
+    padding: 26px 18px;
     border-radius: var(--radius);
+    background: linear-gradient(180deg, var(--panel), var(--panel2));
+    border: 1px solid var(--border);
     box-shadow: var(--shadow);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    padding: 34px 34px 28px;
     position: relative;
     overflow: hidden;
   }
 
-  /* subtle border glow */
-  .add-card::before{
+  /* Subtle glow ring */
+  .wrapper::before{
     content:"";
     position:absolute;
     inset:-2px;
     background:
-      radial-gradient(650px 250px at 30% 0%, rgba(56,189,248,.20), transparent 65%),
-      radial-gradient(650px 250px at 75% 10%, rgba(34,197,94,.18), transparent 65%);
-    pointer-events:none;
-    opacity:.9;
+      radial-gradient(650px 240px at 25% 0%, rgba(56,189,248,.22), transparent 65%),
+      radial-gradient(650px 240px at 75% 10%, rgba(245,158,11,.18), transparent 65%),
+      radial-gradient(650px 240px at 50% 100%, rgba(34,197,94,.14), transparent 65%);
     filter: blur(18px);
+    opacity:.85;
+    pointer-events:none;
   }
-  .add-card > *{ position: relative; z-index: 2; }
+  .wrapper > *{ position: relative; z-index: 1; }
 
-  /* ===== header ===== */
-  .header{
-    display:flex;
-    align-items:flex-start;
-    gap:16px;
-    margin-bottom: 18px;
-  }
-
-  .header-icon{
-    width:54px;
-    height:54px;
-    border-radius:18px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background: rgba(56,189,248,.12);
-    border:1px solid rgba(56,189,248,.22);
-    box-shadow: 0 10px 26px rgba(56,189,248,.10);
-    flex: 0 0 auto;
-  }
-
-  .header-icon svg{ width:28px; height:28px; opacity:.95; }
-
-  .title{
-    margin:0;
-    font-size: 34px;
-    font-weight: 900;
+  /* Title (keep existing h2 element) */
+  h2{
+    margin: 0 0 16px;
+    text-align: left;
+    font-weight: 950;
     letter-spacing: .2px;
-    line-height: 1.05;
+    line-height: 1.12;
+    color: #fff;
+    font-size: clamp(20px, 3.8vw, 28px);
   }
-  .title .accent{ color: var(--blue); }
-
-  .subtitle{
-    margin:10px 0 0;
-    color: var(--muted);
-    font-size: 14px;
-    line-height: 1.45;
-  }
-
-  /* ===== section label row ===== */
-  .section-row{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    margin-top: 18px;
-    margin-bottom: 10px;
+  h2::after{
+    content:"";
+    display:block;
+    margin-top: 12px;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(56,189,248,.35), rgba(245,158,11,.30), rgba(34,197,94,.25), transparent);
   }
 
-  .section-label{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: .12em;
+  /* Form spacing */
+  form{
+    margin-top: 14px;
+  }
+
+  label{
+    color: rgba(226,232,240,.92);
     font-weight: 800;
-    font-size: 12px;
-  }
-
-  .count-badge{
-    font-size: 12px;
-    font-weight: 800;
-    color: rgba(229,231,235,.95);
-    background: rgba(56,189,248,.12);
-    border: 1px solid rgba(56,189,248,.22);
-    padding: 4px 10px;
-    border-radius: 999px;
-  }
-
-  /* ===== input panel ===== */
-  .input-panel{
-    border-radius: 18px;
-    border: 1px solid var(--line);
-    background: rgba(15,23,42,.35);
-    padding: 14px;
-  }
-
-  .hint{
-    margin: 10px 2px 0;
-    color: var(--muted);
+    margin: 0 0 8px;
+    display:block;
     font-size: 13px;
-    display:flex;
-    gap:8px;
-    align-items:center;
-  }
-  .hint .dot{
-    width:6px; height:6px; border-radius:999px;
-    background: rgba(56,189,248,.75);
-    box-shadow: 0 0 0 4px rgba(56,189,248,.12);
-    display:inline-block;
+    letter-spacing: .2px;
   }
 
-  /* ===== TomSelect: 1-rasmga yaqin ===== */
-  .ts-wrapper{ width:100%; }
+  /* Select control (keep existing <select> element) */
+  select{
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
 
-  .ts-control{
-    background: rgba(2,6,23,.35) !important;
-    border: 1px solid rgba(255,255,255,.10) !important;
-    border-radius: 16px !important;
-    color: var(--text) !important;
-    padding: 12px 12px !important;
-    min-height: 56px !important;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
-  }
-
-  .ts-control input{
-    color: #fff !important;
-    font-size: 15px !important;
-  }
-  .ts-control input::placeholder{
-    color: rgba(148,163,184,.9) !important;
-    opacity: .9 !important;
-  }
-
-  /* selected chips */
-  .ts-wrapper.multi .ts-control > div{
-    background: rgba(56,189,248,.16) !important;
-    border: 1px solid rgba(56,189,248,.30) !important;
-    color: #eaf6ff !important;
-    border-radius: 14px !important;
-    padding: 8px 10px !important;
-    margin: 4px 6px 4px 0 !important;
-    font-weight: 800 !important;
-    box-shadow: 0 10px 24px rgba(56,189,248,.10);
-  }
-
-  /* remove x */
-  .ts-wrapper.multi .ts-control > div .remove{
-    border-left: 0 !important;
-    margin-left: 8px !important;
-    color: rgba(229,231,235,.85) !important;
-    font-weight: 900 !important;
-    padding-left: 10px !important;
-  }
-
-  .ts-dropdown{
-    background: rgba(2,6,23,.96) !important;
-    border: 1px solid rgba(255,255,255,.10) !important;
-    border-radius: 16px !important;
-    overflow: hidden;
-  }
-  .ts-dropdown .option{
-    color: #e5e7eb !important;
-    padding: 12px 12px !important;
-    border-bottom: 1px solid rgba(255,255,255,.06);
-  }
-  .ts-dropdown .option:last-child{ border-bottom: none; }
-  .ts-dropdown .option.active,
-  .ts-dropdown .option:hover{
-    background: rgba(56,189,248,.10) !important;
-  }
-
-  /* ===== buttons row ===== */
-  .btn-row{
-    display:flex;
-    gap:14px;
-    margin-top: 22px;
-    justify-content: space-between;
-    flex-wrap: wrap;
-  }
-
-  .btn-main{
-    flex: 1 1 380px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:10px;
-    padding: 14px 18px;
+    padding: 14px 44px 14px 14px;
     border-radius: 16px;
-    font-weight: 900;
-    border: 1px solid rgba(255,255,255,.10);
-    transition: .18s ease;
-    text-decoration:none;
-    user-select:none;
+    background:
+      linear-gradient(180deg, rgba(2,6,23,.55), rgba(2,6,23,.35));
+    color: var(--text);
+
+    border: 1px solid rgba(255,255,255,.12);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
+    font-size: 15px;
+    line-height: 1.2;
+
+    margin-bottom: 16px;
+    outline: none;
+    transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
   }
 
-  .btn-success{
-    background: linear-gradient(90deg, var(--green), var(--green2));
-    color: #062314;
-    box-shadow: 0 18px 40px rgba(34,197,94,.18);
+  /* Custom dropdown arrow */
+  .select-wrap{
+    position: relative;
+  }
+  .select-wrap::after{
+    content:"";
+    position:absolute;
+    right: 14px;
+    top: 50%;
+    width: 10px;
+    height: 10px;
+    transform: translateY(-50%) rotate(45deg);
+    border-right: 2px solid rgba(226,232,240,.72);
+    border-bottom: 2px solid rgba(226,232,240,.72);
+    pointer-events:none;
+    opacity: .9;
+  }
+
+  select:hover{
+    border-color: rgba(56,189,248,.28);
+  }
+
+  select:focus{
+    border-color: rgba(56,189,248,.70);
+    box-shadow:
+      0 0 0 4px rgba(56,189,248,.14),
+      0 14px 40px rgba(56,189,248,.10);
+    transform: translateY(-1px);
+  }
+
+  select:disabled{
+    opacity: .65;
+    cursor: not-allowed;
+  }
+
+  /* Button (keep existing .btn-primary class) */
+  .btn-primary{
+    width: 100%;
     border: none;
-  }
-  .btn-success:hover{
-    transform: translateY(-1px);
-    filter: brightness(1.04);
+    border-radius: 16px;
+    padding: 14px 16px;
+    font-weight: 950;
+    letter-spacing: .2px;
+    color: #062314;
+    background: linear-gradient(90deg, var(--green), var(--green2));
+    box-shadow: 0 18px 44px rgba(34,197,94,.18);
+    cursor: pointer;
+    transition: transform .18s ease, filter .18s ease, box-shadow .18s ease;
+    min-height: 48px; /* touch friendly */
   }
 
-  .btn-cancel{
-    flex: 0 1 220px;
+  .btn-primary:hover{
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+    box-shadow: 0 22px 52px rgba(34,197,94,.22);
+  }
+
+  .btn-primary:focus-visible{
+    outline: none;
+    box-shadow:
+      0 0 0 4px rgba(245,158,11,.18),
+      0 0 0 1px rgba(245,158,11,.40) inset,
+      0 22px 52px rgba(34,197,94,.22);
+  }
+
+  /* Back link (keep existing .back-link class) */
+  .back-link{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+
+    width: 100%;
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 16px;
+
+    color: rgba(226,232,240,.95);
+    text-decoration: none;
+    font-weight: 900;
+
     background: rgba(148,163,184,.10);
-    color: rgba(229,231,235,.95);
     border: 1px solid rgba(255,255,255,.10);
-  }
-  .btn-cancel:hover{
-    background: rgba(148,163,184,.16);
-    transform: translateY(-1px);
+    transition: transform .18s ease, background .18s ease, border-color .18s ease, color .18s ease;
+    min-height: 48px; /* touch friendly */
   }
 
-  /* responsive */
-  @media (max-width: 520px){
-    .add-card{ padding: 22px 18px 18px; }
-    .title{ font-size: 28px; }
-    .btn-cancel{ flex: 1 1 220px; }
+  .back-link:hover{
+    background: rgba(148,163,184,.16);
+    border-color: rgba(56,189,248,.22);
+    transform: translateY(-1px);
+    color: #fff;
+  }
+
+  .back-link:focus-visible{
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(56,189,248,.14);
+  }
+
+  /* Tablet / desktop spacing */
+  @media (min-width: 768px){
+    .page-shell{ padding: 22px 18px 34px; }
+    .wrapper{ padding: 30px 30px 26px; }
+  }
+
+  /* Large desktop (1440px+) */
+  @media (min-width: 1440px){
+    .wrapper{ max-width: 620px; }
+  }
+
+  /* Small phones */
+  @media (max-width: 420px){
+    .wrapper{ padding: 22px 16px 18px; border-radius: 20px; }
+    select{ border-radius: 14px; padding: 13px 44px 13px 13px; }
+    .btn-primary, .back-link{ border-radius: 14px; }
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce){
+    *{ transition: none !important; scroll-behavior: auto !important; }
   }
 </style>
 
-<div class="add-wrap">
-  <div class="add-card">
+<div class="page-shell">
+  <main class="wrapper" role="main">
 
-    <div class="header">
-      <div class="header-icon" aria-hidden="true">
-        <!-- user-plus icon -->
-        <svg viewBox="0 0 24 24" fill="none">
-          <path d="M15 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z" stroke="rgba(56,189,248,.95)" stroke-width="2"/>
-          <path d="M3 20c0-3.2 3.6-5 8-5" stroke="rgba(56,189,248,.95)" stroke-width="2" stroke-linecap="round"/>
-          <path d="M18 8v6" stroke="rgba(56,189,248,.95)" stroke-width="2" stroke-linecap="round"/>
-          <path d="M15 11h6" stroke="rgba(56,189,248,.95)" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-      </div>
-
-      <div>
-        <h1 class="title">Guruhga o‘quvchi <span class="accent">qo‘shish</span></h1>
-        <p class="subtitle">
-          Guruh tarkibini shakllantirish uchun o‘quvchilarni qidirib toping.
-        </p>
-      </div>
-    </div>
+    <h2>👤 {{ group.nom }} guruhiga o‘quvchi qo‘shish</h2>
 
     <form method="post">
       {% csrf_token %}
 
-      <div class="section-row">
-        <div class="section-label">
-          <span style="display:inline-flex;align-items:center;gap:8px;">
-            <span style="color:rgba(56,189,248,.95)">✦</span>
-            TANLANGAN O‘QUVCHILAR
-          </span>
-        </div>
-        <span class="count-badge" id="selectedCount">0 ta</span>
-      </div>
-
-      <div class="input-panel">
-        <select id="students-select" name="student_ids" multiple required>
-          {% for s in students %}
-            <option value="{{ s.id }}">{{ s.ism }} {{ s.familya }} — {{ s.telefon1 }}</option>
+      <label for="student">O‘quvchini tanlang:</label>
+      <div class="select-wrap">
+        <select name="student_id" id="student" required>
+          {% for student in students %}
+            <option value="{{ student.id }}">{{ student.get_full_name }}</option>
           {% endfor %}
         </select>
-
-        <div class="hint">
-          <span class="dot"></span>
-          <span>Tizimdan mavjud o‘quvchini tanlash uchun ism kiriting</span>
-        </div>
       </div>
 
-      <div class="btn-row">
-        <button type="submit" class="btn-main btn-success">
-          <span style="font-size:18px;line-height:0;">＋</span>
-          O‘quvchini biriktirish
-        </button>
-
-        <a href="{% url 'education:group_detail' g.id %}" class="btn-main btn-cancel">
-          ← Bekor qilish
-        </a>
-      </div>
-
+      <button type="submit" class="btn-primary">➕ Qo‘shish</button>
     </form>
 
-  </div>
+    <a href="{% url 'education:group_detail' group.id %}" class="back-link">⬅️ Ortga qaytish</a>
+
+  </main>
 </div>
-
-<script>
-  const ts = new TomSelect("#students-select", {
-    plugins: ['remove_button'],
-    persist: false,
-    maxItems: null,
-    sortField: { field: "text", direction: "asc" },
-    placeholder: "Yana qo‘shish...",
-  });
-
-  const countEl = document.getElementById("selectedCount");
-  function updateCount(){
-    const n = ts.items.length;
-    countEl.textContent = `${n} ta`;
-  }
-  ts.on("change", updateCount);
-  updateCount();
-</script>
 
 {% endblock %}

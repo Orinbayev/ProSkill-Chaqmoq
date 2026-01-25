@@ -2,233 +2,504 @@
 {% block content %}
 
 <style>
-  :root {
-    --glass: rgba(255,255,255,0.06);
-    --border: rgba(148,163,184,0.2);
-    --yellow: #facc15;
-    --blue: #38bdf8;
-    --green1: #22c55e;
-    --green2: #16a34a;
-    --danger1: #ef4444;
-    --danger2: #b91c1c;
-    --text: #e2e8f0;
+  :root{
+    --bg0:#070b14;
+    --bg1:#0b1220;
+    --bg2:#0f1b33;
+
+    --panel: rgba(17,24,39,.62);
+    --panel2: rgba(2,6,23,.42);
+    --line: rgba(255,255,255,.10);
+
+    --text:#e5e7eb;
+    --muted:#94a3b8;
+
+    --accent:#facc15;
+    --amber:#f59e0b;
+
+    --blue:#38bdf8;
+    --blue2:#0ea5e9;
+
+    --green:#22c55e;
+    --green2:#16a34a;
+
+    --red:#ef4444;
+    --red2:#b91c1c;
+
+    --shadow: 0 18px 55px rgba(0,0,0,.45);
+    --shadow2: 0 26px 80px rgba(0,0,0,.55);
+    --radius: 22px;
+    --ring: 0 0 0 4px rgba(250,204,21,.16), 0 0 18px rgba(250,204,21,.22);
   }
 
-  .products-container {
-    padding: 25px 35px;
-    color: var(--text);
-    min-height: calc(100vh - 110px);
-  }
-
-  h3 {
-    color: var(--yellow);
-    font-weight: 700;
-    margin-bottom: 25px;
-  }
-
-  /* BUTTONS */
-  .add-btn {
-    background: linear-gradient(90deg, var(--green1), var(--green2));
-    padding: 9px 20px;
-    border-radius: 10px;
-    color: white;
-    font-weight: 700;
-    text-decoration: none;
-    transition: .25s;
-  }
-  .add-btn:hover { opacity: .88; }
-
-  .delete-mode-btn {
-    background: linear-gradient(90deg, var(--danger1), var(--danger2));
-    padding: 9px 20px;
-    border-radius: 10px;
-    color: white;
-    font-weight: 700;
-    margin-left: 10px;
-    transition: .25s;
-    cursor: pointer;
-  }
-
-  /* PRODUCT GRID */
-  .product-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
-    gap: 22px;
-  }
-
-  .card {
-    background: var(--glass);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 0 18px rgba(56,189,248,0.20);
-    transition: .25s;
+  .products-shell{
     position: relative;
+    min-height: calc(100svh - 1px);
+    padding: clamp(14px, 2.4vw, 28px) 0;
+    color: var(--text);
   }
-  .card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 0 25px rgba(56,189,248,0.35);
+  .products-bg{
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(900px 420px at 16% 10%, rgba(250,204,21,.10), transparent 60%),
+      radial-gradient(760px 380px at 85% 18%, rgba(56,189,248,.10), transparent 60%),
+      radial-gradient(980px 520px at 55% 92%, rgba(34,197,94,.08), transparent 62%),
+      linear-gradient(160deg, var(--bg0), var(--bg1) 45%, var(--bg2));
   }
 
-  .card img {
+  .products-container{
+    width:100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 16px 22px;
+    color: var(--text);
+  }
+
+  /* ====== HEADER ====== */
+  .p-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+
+    padding: 16px 16px;
+    border-radius: var(--radius);
+    background: linear-gradient(180deg, var(--panel), rgba(2,6,23,.48));
+    border: 1px solid rgba(255,255,255,.10);
+    box-shadow: var(--shadow2);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    position: relative;
+    overflow:hidden;
+  }
+  .p-head::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(820px 360px at 12% 0%, rgba(250,204,21,.09), transparent 62%),
+      radial-gradient(760px 340px at 92% 0%, rgba(56,189,248,.08), transparent 62%),
+      radial-gradient(980px 420px at 50% 140%, rgba(34,197,94,.08), transparent 65%);
+    pointer-events:none;
+    opacity:.95;
+  }
+  .p-head > *{ position: relative; }
+
+  .p-head-left{
+    display:flex;
+    gap: 12px;
+    align-items:center;
+    min-width: 260px;
+  }
+
+  .p-ico{
+    width:46px;height:46px;
+    border-radius: 16px;
+    display:grid;place-items:center;
+    background: rgba(250,204,21,.12);
+    border: 1px solid rgba(250,204,21,.22);
+    color: var(--accent);
+    font-weight: 950;
+    font-size: 18px;
+    box-shadow: 0 18px 44px rgba(0,0,0,.35);
+  }
+
+  h3{
+    margin:0;
+    font-size: clamp(1.22rem, 1rem + 1.2vw, 1.9rem);
+    font-weight: 950;
+    letter-spacing: .2px;
+    line-height: 1.1;
+    color: var(--text);
+  }
+  .p-sub{
+    margin-top: 4px;
+    color: rgba(148,163,184,.92);
+    font-weight: 850;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .p-actions{
+    display:flex;
+    gap: 10px;
+    align-items:center;
+    flex-wrap: wrap;
+    margin-left:auto;
+    width: auto;
+  }
+
+  .btn-pill{
+    min-height: 46px;
+    padding: 0 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,.12);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap: 10px;
+    font-weight: 950;
+    text-decoration:none;
+    cursor:pointer;
+    transition: transform .16s ease, filter .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
+    user-select:none;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    background: rgba(255,255,255,.06);
+    color: var(--text);
+  }
+  .btn-pill:focus-visible{ outline:none; box-shadow: var(--ring); }
+  @media (hover:hover){
+    .btn-pill:hover{ transform: translateY(-1px); filter: brightness(.98); }
+  }
+  .btn-pill:active{ transform: translateY(0px) scale(.99); }
+
+  .add-btn{
+    background: linear-gradient(135deg, rgba(34,197,94,.95) 0%, rgba(22,163,74,.95) 100%);
+    color:#061b10;
+    box-shadow: 0 14px 28px rgba(34,197,94,.14);
+    border-color: rgba(34,197,94,.18);
+  }
+
+  .delete-mode-btn{
+    background: rgba(239,68,68,.10);
+    color:#fecaca;
+    border-color: rgba(239,68,68,.26);
+  }
+  .delete-mode-btn.active{
+    background: linear-gradient(135deg, rgba(239,68,68,.95) 0%, rgba(185,28,28,.95) 100%);
+    color:#fff;
+    border-color: rgba(239,68,68,.35);
+    box-shadow: 0 14px 28px rgba(239,68,68,.14);
+  }
+
+  /* ====== GRID ====== */
+  .product-grid{
+    margin-top: 14px;
+    display:grid;
+    grid-template-columns: repeat(4, minmax(0,1fr));
+    gap: 14px;
+  }
+
+  .card{
+    background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(2,6,23,.22));
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 22px;
+    overflow: hidden;
+    box-shadow: 0 18px 55px rgba(0,0,0,.35);
+    transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, filter .16s ease;
+    position: relative;
+    display:flex;
+    flex-direction: column;
+    min-height: 420px;
+  }
+  .card:focus-within{
+    border-color: rgba(250,204,21,.28);
+    box-shadow: var(--shadow2);
+  }
+  @media (hover:hover){
+    .card:hover{
+      transform: translateY(-3px);
+      border-color: rgba(56,189,248,.22);
+      filter: brightness(.99);
+    }
+  }
+
+  .card img{
     width: 100%;
     height: 240px;
     object-fit: cover;
+    background: rgba(255,255,255,.04);
+    display:block;
   }
 
-  .checkbox {
+  /* checkbox for delete mode */
+  .checkbox{
     position: absolute;
-    top: 14px;
-    right: 16px;
-    transform: scale(1.6);
+    top: 12px;
+    left: 12px;
+    width: 22px;
+    height: 22px;
+    transform: none;
     display: none;
+    accent-color: #ef4444;
+    filter: drop-shadow(0 10px 18px rgba(0,0,0,.35));
   }
-  .checkbox.active { display: block; }
+  .checkbox.active{ display:block; }
 
-  .card-body {
-    padding: 14px 16px;
+  /* price badge (top-right) */
+  .price-badge{
+    position:absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(2,6,23,.70);
+    border: 1px solid rgba(255,255,255,.12);
+    padding: 7px 10px;
+    border-radius: 999px;
+    font-weight: 950;
+    font-size: 12px;
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    box-shadow: 0 10px 24px rgba(0,0,0,.35);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: rgba(226,232,240,.92);
+  }
+  .price-badge .bolt{
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    display:grid;
+    place-items:center;
+    background: rgba(250,204,21,.12);
+    border: 1px solid rgba(250,204,21,.22);
+    color: var(--accent);
+    font-weight: 950;
+    font-size: 12px;
   }
 
-  .card-title {
-    color: var(--yellow);
-    font-weight: 700;
+  .card-body{
+    padding: 16px 16px 14px;
+    display:flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1 1 auto;
+  }
+
+  .card-title{
+    color: var(--accent);
+    font-weight: 950;
     font-size: 18px;
-    margin-bottom: 8px;
+    letter-spacing: .2px;
+    line-height: 1.2;
+    margin:0;
   }
 
-  .card-text { color: #cbd5e1; }
+  .card-text{
+    color: rgba(226,232,240,.90);
+    font-weight: 850;
+    font-size: 13px;
+    margin:0;
+    display:flex;
+    align-items:center;
+    gap: 10px;
+  }
+  .card-text.muted{
+    color: rgba(148,163,184,.92);
+    font-weight: 850;
+    font-size: 12px;
+  }
 
-  .btn-view {
-    display: block;
+  .btn-view{
+    margin-top: auto;
+    min-height: 46px;
     width: 100%;
-    background: var(--blue);
-    color: #fff;
-    padding: 9px 16px;
-    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(56,189,248,.95) 0%, rgba(14,165,233,.95) 100%);
+    color: #04101a;
+    padding: 0 16px;
+    border-radius: 14px;
     text-align: center;
     text-decoration: none;
-    font-weight: 600;
-    margin-top: 10px;
-    transition: .25s;
+    font-weight: 950;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap: 8px;
+    border: 1px solid rgba(56,189,248,.35);
+    box-shadow: 0 18px 28px rgba(56,189,248,.14);
+    transition: transform .16s ease, filter .16s ease, box-shadow .16s ease;
+    -webkit-tap-highlight-color: transparent;
   }
-  .btn-view:hover { background: #5fd0ff; }
+  .btn-view:focus-visible{ outline:none; box-shadow: var(--ring); }
+  @media (hover:hover){
+    .btn-view:hover{ transform: translateY(-1px); filter: brightness(.98); box-shadow: 0 22px 36px rgba(56,189,248,.16); }
+  }
+  .btn-view:active{ transform: translateY(0px) scale(.99); }
 
-  .no-data {
-    color: #94a3b8;
+  .no-data{
+    color: rgba(148,163,184,.92);
     text-align: center;
-    padding: 60px;
-    font-size: 18px;
+    padding: 60px 14px;
+    font-size: 16px;
+    font-weight: 900;
+    border-radius: 20px;
+    border: 1px dashed rgba(148,163,184,.22);
+    background: rgba(255,255,255,.03);
   }
 
   /* DELETE PANEL */
-  .delete-actions {
-    display: none;
-    text-align: center;
-    margin-top: 25px;
+  .delete-actions{
+    display:none;
+    margin-top: 14px;
+    padding: 14px 16px;
+    border-radius: 20px;
+    background: linear-gradient(180deg, rgba(239,68,68,.10), rgba(2,6,23,.22));
+    border: 1px solid rgba(239,68,68,.22);
+    box-shadow: var(--shadow2);
+    align-items:center;
+    justify-content:space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    text-align:left;
   }
 
-  .confirm-delete-btn {
-    background: var(--danger1);
+  .confirm-delete-btn{
+    background: linear-gradient(135deg, rgba(239,68,68,.95) 0%, rgba(185,28,28,.95) 100%);
     color: white;
     border: none;
-    border-radius: 10px;
-    padding: 10px 22px;
-    font-weight: 700;
+    border-radius: 16px;
+    padding: 12px 16px;
+    font-weight: 950;
     cursor: pointer;
+    min-height: 46px;
+    transition: transform .16s ease, filter .16s ease, box-shadow .16s ease;
+    -webkit-tap-highlight-color: transparent;
   }
+  .confirm-delete-btn:focus-visible{ outline:none; box-shadow: var(--ring); }
+  @media (hover:hover){
+    .confirm-delete-btn:hover{ transform: translateY(-1px); filter: brightness(.98); box-shadow: 0 18px 40px rgba(239,68,68,.14); }
+  }
+  .confirm-delete-btn:active{ transform: translateY(0px) scale(.99); }
 
-  .cancel-btn {
-    background: none;
-    border: 2px solid var(--blue);
-    color: var(--blue);
-    padding: 8px 20px;
-    border-radius: 10px;
-    font-weight: 600;
-    margin-left: 12px;
+  .cancel-btn{
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.14);
+    color: rgba(226,232,240,.92);
+    padding: 12px 16px;
+    border-radius: 16px;
+    font-weight: 950;
+    margin-left: 0;
     cursor: pointer;
+    min-height: 46px;
+    transition: transform .16s ease, filter .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
+    -webkit-tap-highlight-color: transparent;
   }
+  .cancel-btn:focus-visible{ outline:none; box-shadow: var(--ring); }
+  @media (hover:hover){
+    .cancel-btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.20); box-shadow: 0 18px 44px rgba(0,0,0,.35); }
+  }
+  .cancel-btn:active{ transform: translateY(0px) scale(.99); }
 
-  @media (max-width: 540px) {
-    .products-container { padding: 20px; }
+  /* ====== RESPONSIVE ====== */
+  @media (max-width: 1200px){
+    .product-grid{ grid-template-columns: repeat(3, minmax(0,1fr)); }
+  }
+  @media (max-width: 900px){
+    .product-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+  }
+  @media (max-width: 720px){
+    .p-actions{ width: 100%; }
+    .btn-pill{ width: 100%; justify-content:center; }
+    .product-grid{ grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .btn-pill,.card,.btn-view,.confirm-delete-btn,.cancel-btn{ transition:none !important; }
   }
 </style>
 
+<main class="products-shell">
+  <div class="products-bg" aria-hidden="true"></div>
 
-<div class="products-container">
+  <div class="products-container">
 
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h3>🛍️ Mahsulotlar</h3>
-
-    <div>
-      {% if can_add %}
-      <a href="{% url 'store:product_create' %}" class="add-btn">+ Mahsulot qo‘shish</a>
-      {% endif %}
-
-      <button id="toggleDelete" class="delete-mode-btn">🗑️ O‘chirish rejimi</button>
-    </div>
-  </div>
-
-  <form method="POST">
-    {% csrf_token %}
-
-    <div class="product-grid">
-      {% for p in items %}
-      <div class="card">
-
-        {% with img=p.rasmlar.first %}
-          {% if img %}
-            <img src="{{ img.rasm.url }}" alt="{{ p.nom }}">
-          {% else %}
-            <img src="https://placehold.co/400x400?text=No+Image">
-          {% endif %}
-        {% endwith %}
-
-        <input type="checkbox" class="checkbox" name="selected_products" value="{{ p.id }}">
-
-        <div class="card-body">
-          <div class="card-title">{{ p.nom }}</div>
-          <div class="card-text">💰 {{ p.narx_chaqmoq }} Chaqmoq</div>
-          <a href="{% url 'store:product_detail' p.pk %}" class="btn-view">Ko‘rish</a>
+    <div class="p-head">
+      <div class="p-head-left">
+        <div class="p-ico">🛍️</div>
+        <div>
+          <h3>Mahsulotlar</h3>
+          <div class="p-sub">Do‘kon mahsulotlarini ko‘rish va boshqarish</div>
         </div>
-
       </div>
-      {% empty %}
-        <div class="no-data">Hozircha mahsulot yo‘q.</div>
-      {% endfor %}
+
+      <div class="p-actions">
+        {% if can_add %}
+          <a href="{% url 'store:product_create' %}" class="btn-pill add-btn">+ Mahsulot qo‘shish</a>
+        {% endif %}
+        <button id="toggleDelete" type="button" class="btn-pill delete-mode-btn">🗑️ O‘chirish rejimi</button>
+      </div>
     </div>
 
-    <div id="deleteActions" class="delete-actions">
-      <button type="submit" class="confirm-delete-btn">🗑️ Tanlanganlarni o‘chirish</button>
-      <button type="button" id="cancelDelete" class="cancel-btn">Bekor qilish</button>
-    </div>
+    <form method="POST">
+      {% csrf_token %}
 
-  </form>
+      <div class="product-grid">
+        {% for p in items %}
+        <div class="card">
 
-</div>
+          {% with img=p.rasmlar.first %}
+            {% if img %}
+              <img src="{{ img.rasm.url }}" alt="{{ p.nom }}">
+            {% else %}
+              <img src="https://placehold.co/1200x800?text=No+Image" alt="no image">
+            {% endif %}
+          {% endwith %}
 
+          <div class="price-badge" title="Narx (Chaqmoq)">
+            <span class="bolt">⚡</span> {{ p.narx_chaqmoq }}
+          </div>
+
+          <input type="checkbox" class="checkbox" name="selected_products" value="{{ p.id }}" aria-label="Mahsulotni tanlash: {{ p.nom }}">
+
+          <div class="card-body">
+            <div class="card-title">{{ p.nom }}</div>
+            <div class="card-text">💰 {{ p.narx_chaqmoq }} Chaqmoq</div>
+            <a href="{% url 'store:product_detail' p.pk %}" class="btn-view">Ko‘rish</a>
+          </div>
+
+        </div>
+        {% empty %}
+          <div class="no-data">Hozircha mahsulot yo‘q.</div>
+        {% endfor %}
+      </div>
+
+      <div id="deleteActions" class="delete-actions">
+        <div style="font-weight:950; color:#fecaca;">🗑️ Tanlangan mahsulotlarni o‘chirasizmi?</div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button type="submit" class="confirm-delete-btn">🗑️ Tanlanganlarni o‘chirish</button>
+          <button type="button" id="cancelDelete" class="cancel-btn">Bekor qilish</button>
+        </div>
+      </div>
+
+    </form>
+
+  </div>
+</main>
 
 <script>
-  const toggleBtn = document.getElementById("toggleDelete");
-  const checkboxes = document.querySelectorAll(".checkbox");
-  const actions = document.getElementById("deleteActions");
-  let mode = false;
+  (function(){
+    const toggleBtn = document.getElementById("toggleDelete");
+    const checkboxes = document.querySelectorAll(".checkbox");
+    const actions = document.getElementById("deleteActions");
+    const cancelBtn = document.getElementById("cancelDelete");
+    let mode = false;
 
-  toggleBtn.addEventListener("click", () => {
-    mode = !mode;
-    checkboxes.forEach(cb => cb.classList.toggle("active", mode));
-    actions.style.display = mode ? "block" : "none";
-    toggleBtn.textContent = mode ? "❌ Rejimdan chiqish" : "🗑️ O‘chirish rejimi";
-  });
+    if(!toggleBtn) return;
 
-  document.getElementById("cancelDelete").addEventListener("click", () => {
-    mode = false;
-    checkboxes.forEach(cb => {
-      cb.checked = false;
-      cb.classList.remove("active");
+    toggleBtn.addEventListener("click", () => {
+      mode = !mode;
+
+      checkboxes.forEach(cb => cb.classList.toggle("active", mode));
+      if (actions) actions.style.display = mode ? "flex" : "none";
+
+      toggleBtn.classList.toggle("active", mode);
+      toggleBtn.textContent = mode ? "❌ Rejimdan chiqish" : "🗑️ O‘chirish rejimi";
     });
-    actions.style.display = "none";
-    toggleBtn.textContent = "🗑️ O‘chirish rejimi";
-  });
+
+    cancelBtn?.addEventListener("click", () => {
+      mode = false;
+      checkboxes.forEach(cb => {
+        cb.checked = false;
+        cb.classList.remove("active");
+      });
+      if (actions) actions.style.display = "none";
+      toggleBtn.classList.remove("active");
+      toggleBtn.textContent = "🗑️ O‘chirish rejimi";
+    });
+  })();
 </script>
 
 {% endblock %}

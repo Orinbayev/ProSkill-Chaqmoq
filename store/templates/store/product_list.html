@@ -3,16 +3,22 @@
 
 <style>
   :root{
-    --bg:#0b1220;
+    --bg0:#070b14;
+    --bg1:#0b1220;
+    --bg2:#0f1b33;
+
     --panel: rgba(17,24,39,.62);
     --panel2: rgba(2,6,23,.42);
-    --line: rgba(255,255,255,.09);
+    --line: rgba(255,255,255,.10);
+
     --text:#e5e7eb;
     --muted:#94a3b8;
 
     --accent:#facc15;
+    --amber:#f59e0b;
+
     --blue:#38bdf8;
-    --blue2:#2563eb;
+    --blue2:#0ea5e9;
 
     --green:#22c55e;
     --green2:#16a34a;
@@ -21,13 +27,34 @@
     --red2:#b91c1c;
 
     --shadow: 0 18px 55px rgba(0,0,0,.45);
+    --shadow2: 0 24px 70px rgba(0,0,0,.55);
+    --radius: 22px;
+    --ring: 0 0 0 4px rgba(250,204,21,.16), 0 0 18px rgba(250,204,21,.22);
+  }
+
+  .pl-shell{
+    position: relative;
+    min-height: calc(100svh - 1px);
+    padding: clamp(14px, 2.4vw, 28px) 0;
+    color: var(--text);
+  }
+  .pl-bg{
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(900px 420px at 16% 10%, rgba(250,204,21,.10), transparent 60%),
+      radial-gradient(760px 380px at 85% 18%, rgba(56,189,248,.10), transparent 60%),
+      radial-gradient(980px 520px at 55% 92%, rgba(34,197,94,.08), transparent 62%),
+      linear-gradient(160deg, var(--bg0), var(--bg1) 45%, var(--bg2));
   }
 
   /* page wrapper */
   .shop-page{
+    width:100%;
     max-width: 1400px;
-    margin: 16px auto 26px;
-    padding: 0 16px 26px;
+    margin: 0 auto;
+    padding: 0 16px 22px;
     color: var(--text);
   }
 
@@ -36,98 +63,125 @@
     display:flex;
     align-items:flex-start;
     justify-content:space-between;
-    gap: 16px;
+    gap: 14px;
     flex-wrap: wrap;
-    padding: 18px 18px;
-    border-radius: 18px;
-    background: linear-gradient(180deg, var(--panel), var(--panel2));
-    border: 1px solid var(--line);
-    box-shadow: var(--shadow);
+
+    padding: 16px 16px;
+    border-radius: var(--radius);
+    background: linear-gradient(180deg, var(--panel), rgba(2,6,23,.48));
+    border: 1px solid rgba(255,255,255,.10);
+    box-shadow: var(--shadow2);
     backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    position: relative;
+    overflow:hidden;
   }
+  .shop-head::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(820px 360px at 12% 0%, rgba(250,204,21,.09), transparent 62%),
+      radial-gradient(760px 340px at 92% 0%, rgba(56,189,248,.08), transparent 62%),
+      radial-gradient(980px 420px at 50% 140%, rgba(34,197,94,.08), transparent 65%);
+    pointer-events:none;
+    opacity:.95;
+  }
+  .shop-head > *{ position: relative; }
 
   .shop-left{
     display:flex;
     gap: 12px;
     align-items:center;
-    min-width: 280px;
+    min-width: 260px;
   }
 
   .shop-ico{
-    width:44px;height:44px;
+    width:46px;height:46px;
     border-radius: 16px;
     display:grid;place-items:center;
-    background: rgba(250,204,21,.10);
+    background: rgba(250,204,21,.12);
     border: 1px solid rgba(250,204,21,.22);
     color: var(--accent);
-    font-weight: 900;
+    font-weight: 950;
     font-size: 18px;
+    box-shadow: 0 18px 44px rgba(0,0,0,.35);
   }
 
   .shop-title{
     margin:0;
-    font-size: 30px;
+    font-size: clamp(1.25rem, 1rem + 1.35vw, 1.95rem);
     font-weight: 950;
     letter-spacing: .2px;
     line-height: 1.1;
   }
   .shop-sub{
     margin-top: 4px;
-    color: var(--muted);
-    font-weight: 800;
-    font-size: 13px;
+    color: rgba(148,163,184,.92);
+    font-weight: 850;
+    font-size: 12px;
+    line-height: 1.35;
   }
 
   .shop-actions{
     display:flex;
-    gap: 12px;
+    gap: 10px;
     align-items:center;
     flex-wrap: wrap;
     margin-left:auto;
+    width: auto;
   }
 
   .btn-pill{
-    height: 44px;
+    min-height: 46px;
     padding: 0 16px;
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,.12);
     display:inline-flex;
     align-items:center;
     justify-content:center;
     gap: 10px;
-    font-weight: 900;
+    font-weight: 950;
     text-decoration:none;
     cursor:pointer;
-    transition: .18s ease;
+    transition: transform .16s ease, filter .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
     user-select:none;
     white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    background: rgba(255,255,255,.06);
+    color: var(--text);
   }
-  .btn-pill:hover{ transform: translateY(-1px); filter: brightness(.98); }
+  .btn-pill:focus-visible{ outline:none; box-shadow: var(--ring); }
+  @media (hover:hover){
+    .btn-pill:hover{ transform: translateY(-1px); filter: brightness(.98); }
+  }
+  .btn-pill:active{ transform: translateY(0px) scale(.99); }
 
   .btn-green{
-    background: linear-gradient(135deg, var(--green) 0%, var(--green2) 100%);
-    color:#062312;
-    box-shadow: 0 14px 28px rgba(34,197,94,.18);
+    background: linear-gradient(135deg, rgba(34,197,94,.95) 0%, rgba(22,163,74,.95) 100%);
+    color:#061b10;
+    box-shadow: 0 14px 28px rgba(34,197,94,.14);
     border-color: rgba(34,197,94,.18);
   }
+
   .btn-red{
-    background: linear-gradient(135deg, rgba(239,68,68,.18) 0%, rgba(185,28,28,.18) 100%);
+    background: rgba(239,68,68,.10);
     color:#fecaca;
-    border-color: rgba(239,68,68,.28);
+    border-color: rgba(239,68,68,.26);
   }
   .btn-red.active{
-    background: linear-gradient(135deg, var(--red) 0%, var(--red2) 100%);
+    background: linear-gradient(135deg, rgba(239,68,68,.95) 0%, rgba(185,28,28,.95) 100%);
     color:#fff;
     border-color: rgba(239,68,68,.35);
-    box-shadow: 0 14px 28px rgba(239,68,68,.16);
+    box-shadow: 0 14px 28px rgba(239,68,68,.14);
   }
 
   /* grid */
   .grid{
-    margin-top: 16px;
+    margin-top: 14px;
     display:grid;
     grid-template-columns: repeat(3, minmax(0,1fr));
-    gap: 16px;
+    gap: 14px;
   }
 
   .p-card{
@@ -136,19 +190,30 @@
     background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(2,6,23,.22));
     border: 1px solid rgba(255,255,255,.10);
     box-shadow: 0 18px 55px rgba(0,0,0,.35);
-    transition: .18s ease;
+    transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, filter .16s ease;
     position: relative;
     min-height: 420px;
     display:flex;
     flex-direction: column;
   }
-  .p-card:hover{ transform: translateY(-3px); border-color: rgba(56,189,248,.22); }
+  .p-card:focus-within{
+    border-color: rgba(250,204,21,.28);
+    box-shadow: var(--shadow2);
+  }
+  @media (hover:hover){
+    .p-card:hover{
+      transform: translateY(-3px);
+      border-color: rgba(56,189,248,.22);
+      filter: brightness(.99);
+    }
+  }
 
   .p-img{
     height: 240px;
     width:100%;
     object-fit: cover;
     display:block;
+    background: rgba(255,255,255,.04);
   }
 
   /* price badge (top-right) */
@@ -158,7 +223,7 @@
     right: 12px;
     background: rgba(2,6,23,.70);
     border: 1px solid rgba(255,255,255,.12);
-    padding: 6px 10px;
+    padding: 7px 10px;
     border-radius: 999px;
     font-weight: 950;
     font-size: 12px;
@@ -167,6 +232,7 @@
     gap: 8px;
     box-shadow: 0 10px 24px rgba(0,0,0,.35);
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
   .p-badge .bolt{
     width: 18px;
@@ -177,7 +243,7 @@
     background: rgba(250,204,21,.12);
     border: 1px solid rgba(250,204,21,.22);
     color: var(--accent);
-    font-weight: 900;
+    font-weight: 950;
     font-size: 12px;
   }
 
@@ -221,16 +287,16 @@
   }
 
   .p-row.muted{
-    color: rgba(148,163,184,.90);
-    font-weight: 800;
+    color: rgba(148,163,184,.92);
+    font-weight: 850;
     font-size: 12px;
   }
 
-  /* big bottom button (like your screenshot) */
+  /* big bottom button */
   .btn-view{
     margin-top: auto;
-    height: 46px;
-    border-radius: 12px;
+    min-height: 46px;
+    border-radius: 14px;
     width: 100%;
     display:flex;
     align-items:center;
@@ -238,22 +304,27 @@
     gap: 8px;
     text-decoration:none;
     font-weight: 950;
-    background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
-    color: #06212e;
-    box-shadow: 0 18px 28px rgba(56,189,248,.16);
+    background: linear-gradient(135deg, rgba(56,189,248,.95) 0%, rgba(14,165,233,.95) 100%);
+    color: #04101a;
+    box-shadow: 0 18px 28px rgba(56,189,248,.14);
     border: 1px solid rgba(56,189,248,.35);
-    transition: .18s ease;
+    transition: transform .16s ease, filter .16s ease, box-shadow .16s ease;
+    -webkit-tap-highlight-color: transparent;
   }
-  .btn-view:hover{ transform: translateY(-1px); filter: brightness(.98); }
+  .btn-view:focus-visible{ outline:none; box-shadow: var(--ring); }
+  @media (hover:hover){
+    .btn-view:hover{ transform: translateY(-1px); filter: brightness(.98); box-shadow: 0 22px 36px rgba(56,189,248,.16); }
+  }
+  .btn-view:active{ transform: translateY(0px) scale(.99); }
 
   /* delete panel */
   .delete-actions{
-    margin-top: 16px;
+    margin-top: 14px;
     padding: 14px 16px;
-    border-radius: 18px;
+    border-radius: 20px;
     background: linear-gradient(180deg, rgba(239,68,68,.10), rgba(2,6,23,.22));
     border: 1px solid rgba(239,68,68,.22);
-    box-shadow: var(--shadow);
+    box-shadow: var(--shadow2);
     display:none;
     align-items:center;
     justify-content:space-between;
@@ -262,23 +333,40 @@
   }
 
   .danger-btn{
-    background: linear-gradient(135deg, var(--red) 0%, var(--red2) 100%);
+    background: linear-gradient(135deg, rgba(239,68,68,.95) 0%, rgba(185,28,28,.95) 100%);
     color:#fff;
     border:0;
-    padding: 10px 16px;
-    border-radius: 14px;
+    padding: 12px 16px;
+    border-radius: 16px;
     font-weight: 950;
     cursor:pointer;
+    min-height: 46px;
+    transition: transform .16s ease, filter .16s ease, box-shadow .16s ease;
+    -webkit-tap-highlight-color: transparent;
   }
+  .danger-btn:focus-visible{ outline:none; box-shadow: var(--ring); }
+  @media (hover:hover){
+    .danger-btn:hover{ transform: translateY(-1px); filter: brightness(.98); box-shadow: 0 18px 40px rgba(239,68,68,.14); }
+  }
+  .danger-btn:active{ transform: translateY(0px) scale(.99); }
+
   .ghost-btn{
-    background: transparent;
+    background: rgba(255,255,255,.06);
     border: 1px solid rgba(255,255,255,.14);
-    color: rgba(226,232,240,.9);
-    padding: 10px 16px;
-    border-radius: 14px;
-    font-weight: 900;
+    color: rgba(226,232,240,.92);
+    padding: 12px 16px;
+    border-radius: 16px;
+    font-weight: 950;
     cursor:pointer;
+    min-height: 46px;
+    transition: transform .16s ease, filter .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
+    -webkit-tap-highlight-color: transparent;
   }
+  .ghost-btn:focus-visible{ outline:none; box-shadow: var(--ring); }
+  @media (hover:hover){
+    .ghost-btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.20); box-shadow: 0 18px 44px rgba(0,0,0,.35); }
+  }
+  .ghost-btn:active{ transform: translateY(0px) scale(.99); }
 
   /* responsive */
   @media (max-width: 1200px){
@@ -286,113 +374,121 @@
   }
   @media (max-width: 720px){
     .grid{ grid-template-columns: 1fr; }
+    .shop-actions{ width: 100%; }
     .btn-pill{ width: 100%; justify-content:center; }
-    .shop-actions{ width:100%; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .btn-pill,.p-card,.btn-view,.danger-btn,.ghost-btn{ transition:none !important; }
   }
 </style>
 
-<div class="shop-page">
+<main class="pl-shell">
+  <div class="pl-bg" aria-hidden="true"></div>
 
-  <!-- header -->
-  <div class="shop-head">
-    <div class="shop-left">
-      <div class="shop-ico">🧾</div>
-      <div>
-        <h1 class="shop-title">Mahsulotlar</h1>
-        <div class="shop-sub">Akademiya do‘koni mahsulotlarini boshqarish</div>
+  <div class="shop-page">
+
+    <div class="shop-head">
+      <div class="shop-left">
+        <div class="shop-ico">🧾</div>
+        <div>
+          <h1 class="shop-title">Mahsulotlar</h1>
+          <div class="shop-sub">Akademiya do‘koni mahsulotlarini boshqarish</div>
+        </div>
       </div>
+
+      {% if can_add %}
+      <div class="shop-actions">
+        <a href="{% url 'store:product_create' %}" class="btn-pill btn-green">➕ Mahsulot qo‘shish</a>
+        <button type="button" id="toggleDelete" class="btn-pill btn-red">🗑 O‘chirish rejimi</button>
+      </div>
+      {% endif %}
     </div>
 
-    {% if can_add %}
-    <div class="shop-actions">
-      <a href="{% url 'store:product_create' %}" class="btn-pill btn-green">➕ Mahsulot qo‘shish</a>
-      <button type="button" id="toggleDelete" class="btn-pill btn-red">🗑 O‘chirish rejimi</button>
-    </div>
-    {% endif %}
-  </div>
+    <form method="POST">
+      {% csrf_token %}
 
-  <form method="POST">
-    {% csrf_token %}
+      <div class="grid">
+        {% for p in items %}
+        <div class="p-card">
 
-    <!-- grid -->
-    <div class="grid">
-      {% for p in items %}
-      <div class="p-card">
+          {% with img=p.rasmlar.first %}
+            {% if img %}
+              <img class="p-img" src="{{ img.rasm.url }}" alt="{{ p.nom }}">
+            {% else %}
+              <img class="p-img" src="https://placehold.co/1200x800?text=No+Image" alt="no image">
+            {% endif %}
+          {% endwith %}
 
-        {% with img=p.rasmlar.first %}
-          {% if img %}
-            <img class="p-img" src="{{ img.rasm.url }}" alt="{{ p.nom }}">
-          {% else %}
-            <img class="p-img" src="https://placehold.co/1200x800?text=No+Image" alt="no image">
+          <div class="p-badge" title="Narx (Chaqmoq)">
+            <span class="bolt">⚡</span> {{ p.narx_chaqmoq }}
+          </div>
+
+          {% if can_add %}
+            <input type="checkbox" class="p-check" name="selected_products" value="{{ p.id }}" aria-label="Mahsulotni tanlash: {{ p.nom }}">
           {% endif %}
-        {% endwith %}
 
-        <div class="p-badge" title="Narx (Chaqmoq)">
-          <span class="bolt">⚡</span> {{ p.narx_chaqmoq }}
+          <div class="p-body">
+            <h3 class="p-title">{{ p.nom }}</h3>
+
+            <div class="p-row"><span>⚡</span> {{ p.narx_chaqmoq }} Chaqmoq</div>
+            <div class="p-row muted"><span>🛒</span> Sotib olish: {{ p.sale_set.count }}</div>
+
+            <a class="btn-view" href="{% url 'store:product_detail' p.pk %}">Ko‘rish</a>
+          </div>
+
         </div>
-
-        {% if can_add %}
-          <input type="checkbox" class="p-check" name="selected_products" value="{{ p.id }}">
-        {% endif %}
-
-        <div class="p-body">
-          <h3 class="p-title">{{ p.nom }}</h3>
-
-          <div class="p-row"><span>⚡</span> {{ p.narx_chaqmoq }} Chaqmoq</div>
-          <div class="p-row muted"><span>🛒</span> Sotib olish: {{ p.sale_set.count }}</div>
-
-          <!-- ✅ only 1 button (NO eye icon + NO 3 dots on image) -->
-          <a class="btn-view" href="{% url 'store:product_detail' p.pk %}">Ko‘rish</a>
-        </div>
-
+        {% empty %}
+          <div style="padding:18px; color:rgba(148,163,184,.92); font-weight:950;">
+            Mahsulot mavjud emas.
+          </div>
+        {% endfor %}
       </div>
-      {% empty %}
-        <div style="padding:18px; color:var(--muted); font-weight:900;">
-          Mahsulot mavjud emas.
+
+      {% if can_add %}
+      <div id="deleteActions" class="delete-actions">
+        <div style="font-weight:950; color:#fecaca;">🗑 Tanlangan mahsulotlarni o‘chirasizmi?</div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button type="submit" class="danger-btn">🗑 Tanlanganlarni o‘chirish</button>
+          <button type="button" id="cancelDelete" class="ghost-btn">Bekor qilish</button>
         </div>
-      {% endfor %}
-    </div>
-
-    {% if can_add %}
-    <div id="deleteActions" class="delete-actions">
-      <div style="font-weight:950; color:#fecaca;">🗑 Tanlangan mahsulotlarni o‘chirasizmi?</div>
-      <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <button type="submit" class="danger-btn">🗑 Tanlanganlarni o‘chirish</button>
-        <button type="button" id="cancelDelete" class="ghost-btn">Bekor qilish</button>
       </div>
-    </div>
-    {% endif %}
+      {% endif %}
 
-  </form>
+    </form>
 
-</div>
+  </div>
+</main>
 
 {% if can_add %}
 <script>
-  const toggleBtn = document.getElementById("toggleDelete");
-  const checkboxes = document.querySelectorAll(".p-check");
-  const panel = document.getElementById("deleteActions");
-  let mode = false;
+  (function(){
+    const toggleBtn = document.getElementById("toggleDelete");
+    const checkboxes = document.querySelectorAll(".p-check");
+    const panel = document.getElementById("deleteActions");
+    const cancelBtn = document.getElementById("cancelDelete");
+    let mode = false;
 
-  if (toggleBtn){
+    if (!toggleBtn) return;
+
     toggleBtn.addEventListener("click", () => {
       mode = !mode;
 
       checkboxes.forEach(cb => cb.classList.toggle("active", mode));
-      panel.style.display = mode ? "flex" : "none";
+      if (panel) panel.style.display = mode ? "flex" : "none";
 
       toggleBtn.classList.toggle("active", mode);
       toggleBtn.textContent = mode ? "❌ O‘chirish rejimidan chiqish" : "🗑 O‘chirish rejimi";
     });
-  }
 
-  document.getElementById("cancelDelete")?.addEventListener("click", () => {
-    mode = false;
-    checkboxes.forEach(cb => { cb.checked = false; cb.classList.remove("active"); });
-    panel.style.display = "none";
-    toggleBtn.classList.remove("active");
-    toggleBtn.textContent = "🗑 O‘chirish rejimi";
-  });
+    cancelBtn?.addEventListener("click", () => {
+      mode = false;
+      checkboxes.forEach(cb => { cb.checked = false; cb.classList.remove("active"); });
+      if (panel) panel.style.display = "none";
+      toggleBtn.classList.remove("active");
+      toggleBtn.textContent = "🗑 O‘chirish rejimi";
+    });
+  })();
 </script>
 {% endif %}
 

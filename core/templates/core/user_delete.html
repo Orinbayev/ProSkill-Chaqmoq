@@ -2,117 +2,200 @@
 {% block content %}
 
 <style>
+  :root{
+    --bg0:#070A12;
+    --bg1:#0B1220;
+    --bg2:#0F1B33;
 
-/*********************************************
-  DELETE BOX WRAPPER
-*********************************************/
-.delete-box {
+    --panel: rgba(255,255,255,.07);
+    --panel2: rgba(2,6,23,.55);
+    --line: rgba(255,255,255,.12);
+
+    --text:#e5e7eb;
+    --muted:#94a3b8;
+
+    --amber:#f59e0b;
+    --amber2:#fbbf24;
+
+    --danger:#ef4444;
+    --danger2:#dc2626;
+
+    --slate:#475569;
+    --slate2:#64748b;
+
+    --shadow: 0 26px 90px rgba(0,0,0,.58);
+    --shadow2: 0 14px 34px rgba(0,0,0,.42);
+
+    --ring-amber: 0 0 0 4px rgba(245,158,11,.22), 0 0 0 1px rgba(245,158,11,.35) inset;
+    --ring-red:   0 0 0 4px rgba(239,68,68,.18),   0 0 0 1px rgba(239,68,68,.32) inset;
+    --ring-slate: 0 0 0 4px rgba(148,163,184,.18), 0 0 0 1px rgba(148,163,184,.22) inset;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    background:
+      radial-gradient(1200px 700px at 10% -10%, rgba(245,158,11,.18), transparent 55%),
+      radial-gradient(900px 600px at 90% 10%, rgba(239,68,68,.12), transparent 55%),
+      radial-gradient(1000px 700px at 55% 120%, rgba(59,130,246,.10), transparent 60%),
+      linear-gradient(180deg, var(--bg0), var(--bg1) 55%, #050712);
+    color: var(--text);
+    overflow-x:hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  .delete-box{
     max-width: 520px;
-    margin: 80px auto;
-    background: rgba(255,255,255,0.06);
-    border-radius: 20px;
-    padding: 32px;
+    margin: clamp(34px, 7vh, 80px) auto;
+    background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.05));
+    border-radius: 22px;
+    padding: 28px;
     text-align: center;
-    color: white;
-    border: 1px solid rgba(255,255,255,0.10);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.45);
-}
+    color: var(--text);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    overflow:hidden;
+    position: relative;
+  }
 
-/*********************************************
-  TITLE + TEXT
-*********************************************/
-.delete-box h2 {
-    font-size: 26px;
-    margin-bottom: 12px;
-    font-weight: 700;
-}
+  .delete-box::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(520px 220px at 50% 0%, rgba(245,158,11,.18), transparent 60%),
+      radial-gradient(520px 220px at 50% 110%, rgba(239,68,68,.12), transparent 60%);
+    pointer-events:none;
+    opacity:.9;
+    filter: blur(0px);
+  }
+  .delete-box > *{ position: relative; }
 
-.delete-box p {
-    font-size: 16px;
-    opacity: 0.85;
-    margin-bottom: 15px;
-}
+  .delete-box h2{
+    font-size: clamp(20px, 3.4vw, 26px);
+    margin: 0 0 10px;
+    font-weight: 950;
+    letter-spacing: .2px;
+    color:#fff;
+    line-height: 1.15;
+  }
 
-/*********************************************
-  BUTTONS
-*********************************************/
-.btn-danger {
-    background: #dc2626;
-    border: none;
+  .delete-box p{
+    font-size: clamp(14px, 2.6vw, 16px);
+    opacity: .92;
+    margin: 0 0 16px;
+    color: rgba(226,232,240,.92);
+    line-height: 1.45;
+  }
+
+  /* keep existing classes but make them premium */
+  .text-info{
+    color: rgba(56,189,248,.95) !important;
+  }
+  .fw-bold{
+    font-weight: 950 !important;
+  }
+
+  form{
+    display:flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+    margin-top: 10px;
+  }
+
+  .btn-danger{
+    background: linear-gradient(135deg, var(--danger2), var(--danger));
+    border: 1px solid rgba(239,68,68,.35);
     padding: 12px 22px;
-    border-radius: 12px;
+    border-radius: 14px;
     color: #fff;
-    font-weight: 600;
-    transition: 0.2s;
-}
+    font-weight: 950;
+    transition: transform .15s ease, filter .15s ease, box-shadow .15s ease, border-color .15s ease;
+    cursor:pointer;
+    min-height: 46px;
+    box-shadow: 0 16px 34px rgba(239,68,68,.16);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .btn-danger:hover{
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+    border-color: rgba(239,68,68,.55);
+    box-shadow: 0 18px 40px rgba(239,68,68,.18);
+  }
+  .btn-danger:active{ transform: translateY(0); }
+  .btn-danger:focus-visible{
+    outline:none;
+    box-shadow: var(--ring-red), 0 18px 40px rgba(239,68,68,.18);
+  }
 
-.btn-danger:hover {
-    background: #ef4444;
-}
-
-.btn-secondary {
-    background: #475569;
-    border: none;
+  .btn-secondary{
+    background: rgba(148,163,184,.14);
+    border: 1px solid rgba(148,163,184,.22);
     padding: 12px 22px;
-    border-radius: 12px;
-    color: white;
-    font-weight: 600;
-    margin-left: 10px;
-    transition: 0.2s;
-}
+    border-radius: 14px;
+    color: rgba(226,232,240,.96);
+    font-weight: 950;
+    transition: transform .15s ease, background .15s ease, box-shadow .15s ease, border-color .15s ease, color .15s ease;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-height: 46px;
+    cursor:pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .btn-secondary:hover{
+    background: rgba(148,163,184,.22);
+    border-color: rgba(148,163,184,.30);
+    transform: translateY(-1px);
+    color:#fff;
+    box-shadow: var(--shadow2);
+  }
+  .btn-secondary:active{ transform: translateY(0); }
+  .btn-secondary:focus-visible{
+    outline:none;
+    box-shadow: var(--ring-slate);
+  }
 
-.btn-secondary:hover {
-    background: #64748b;
-}
-
-/*********************************************
-  MOBILE RESPONSIVE RULES
-*********************************************/
-@media (max-width: 600px) {
-
-    .delete-box {
-        margin: 40px 14px;
-        padding: 24px;
+  @media (min-width: 520px){
+    form{
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
     }
-
-    .delete-box h2 {
-        font-size: 22px;
+    .btn-danger, .btn-secondary{
+      width: auto;
+      min-width: 180px;
     }
+  }
 
-    .delete-box p {
-        font-size: 14px;
-    }
-
-    .btn-danger,
-    .btn-secondary {
-        width: 100%;
-        margin: 8px 0;
-        padding: 12px;
-        font-size: 15px;
-    }
-
-    .btn-secondary {
-        margin-left: 0;
-    }
-}
-
+  @media (prefers-reduced-motion: reduce){
+    *{ transition: none !important; scroll-behavior:auto !important; }
+  }
 </style>
 
-
 <div class="delete-box">
-    <h2>🗑 O‘chirishni tasdiqlaysizmi?</h2>
+  <h2>🗑 O‘chirishni tasdiqlaysizmi?</h2>
 
-    <p>
-        Siz <span class="text-info fw-bold">
-            {{ user.ism }} {{ user.familya }}
-        </span> foydalanuvchisini butunlay o‘chirmoqchisiz.
-    </p>
+  <p>
+    Siz <span class="text-info fw-bold">
+      {{ user.ism }} {{ user.familya }}
+    </span> foydalanuvchisini butunlay o‘chirmoqchisiz.
+  </p>
 
-    <form method="POST">
-        {% csrf_token %}
-        <button class="btn-danger">Ha, o‘chirish</button>
-        <a href="javascript:history.back()" class="btn-secondary">Bekor qilish</a>
-    </form>
+  <form method="POST">
+    {% csrf_token %}
+    <button class="btn-danger">Ha, o‘chirish</button>
+    <a href="javascript:history.back()" class="btn-secondary">Bekor qilish</a>
+  </form>
 </div>
 
 {% endblock %}

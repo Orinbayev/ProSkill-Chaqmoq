@@ -9,8 +9,8 @@
     --bg0:#050814;
     --bg1:#070b14;
 
-    --panelA: rgba(17,24,39,.62);
-    --panelB: rgba(2,6,23,.48);
+    --panelA: rgba(17,24,39,.66);
+    --panelB: rgba(2,6,23,.52);
 
     --line: rgba(255,255,255,.10);
     --line2: rgba(255,255,255,.06);
@@ -19,87 +19,151 @@
     --muted:#94a3b8;
 
     --blue:#0095ff;
+    --blue2:#38bdf8;
+
     --green:#16a34a;
     --red:#ef4444;
     --orange:#f97316;
+
+    --shadow: 0 26px 90px rgba(0,0,0,.55);
+    --r14:14px;
+    --r18:18px;
+    --r22:22px;
+
+    --ringBlue: 0 0 0 3px rgba(0,149,255,.18);
+    --ringAmber: 0 0 0 3px rgba(251,191,36,.18);
+    --ringRed: 0 0 0 3px rgba(239,68,68,.18);
+
+    --padX: clamp(12px, 2.6vw, 24px);
+    --padY: clamp(12px, 2.4vw, 20px);
   }
 
   *{ box-sizing:border-box; }
-  body{ font-family:'Inter',sans-serif; }
+  html, body{ height:100%; }
+  body{
+    font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    color: var(--text);
+    overflow-x: hidden;
+  }
+  :focus-visible{ outline: none; }
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; animation:none !important; scroll-behavior:auto !important; }
+  }
 
   .cq-page{
     min-height: 100vh;
     color: var(--text);
     background:
-      radial-gradient(700px circle at 18% 0%, rgba(0,149,255,.08), transparent 48%),
-      radial-gradient(700px circle at 92% 10%, rgba(34,197,94,.06), transparent 52%),
+      radial-gradient(900px circle at 12% -10%, rgba(0,149,255,.10), transparent 52%),
+      radial-gradient(900px circle at 92% 10%, rgba(34,197,94,.08), transparent 56%),
+      radial-gradient(900px circle at 55% 120%, rgba(249,115,22,.08), transparent 60%),
       linear-gradient(180deg, var(--bg1) 0%, var(--bg0) 60%, #04040c 100%);
   }
-/* ✅ kontent chegarasini kattalashtiradi (Render + Local bir xil) */
-.cq-wrap{
-  width: 100%;
-  max-width: 1600px;     /* xohlasang 1700/1800 ham qilasan */
-  margin: 0 auto;
-}
 
+  .cq-wrap{
+    width: min(1850px, 100%);
+    margin: 0 auto;
+  }
 
   .cq-card{
     position: relative;
-    border-radius: 14px;
+    border-radius: var(--r22);
     border: 1px solid rgba(255,255,255,.08);
     background: linear-gradient(180deg, var(--panelA), var(--panelB));
-    box-shadow: 0 10px 24px rgba(0,0,0,.38), 0 4px 10px rgba(0,0,0,.22);
-    backdrop-filter: blur(8px);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     overflow: hidden;
   }
   .cq-card::before{
     content:"";
-    position:absolute; inset:-1px;
-    background: radial-gradient(800px circle at 20% 10%, rgba(0,149,255,.10), transparent 52%),
-                radial-gradient(800px circle at 88% 18%, rgba(34,197,94,.08), transparent 58%);
-    opacity:.38;
+    position:absolute; inset:-2px;
+    background:
+      radial-gradient(900px circle at 18% 8%, rgba(0,149,255,.14), transparent 55%),
+      radial-gradient(900px circle at 88% 18%, rgba(34,197,94,.10), transparent 60%),
+      radial-gradient(900px circle at 60% 120%, rgba(249,115,22,.09), transparent 60%);
+    opacity:.42;
     pointer-events:none;
+    filter: blur(16px);
   }
   .cq-card > *{ position:relative; z-index:1; }
 
   .cq-input, .cq-select{
-    height: 34px;
-    border-radius: 10px;
-    border: 1px solid rgba(255,255,255,.10);
-    background: rgba(255,255,255,.04);
+    height: 44px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.05);
     color: #fff;
     outline: none;
+    transition: .14s ease;
   }
-  .cq-input{ padding: 7px 10px; font-size: 12px; font-weight: 900; }
-  .cq-select{ padding: 6px 10px; font-size: 12px; font-weight: 900; }
+  .cq-input{
+    padding: 10px 12px;
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: .2px;
+    width: 100%;
+    max-width: 100%;
+  }
+  .cq-select{
+    padding: 9px 12px;
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: .2px;
+    width: 100%;
+    max-width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image:
+      linear-gradient(45deg, transparent 50%, rgba(251,191,36,.95) 50%),
+      linear-gradient(135deg, rgba(251,191,36,.95) 50%, transparent 50%),
+      linear-gradient(to right, rgba(255,255,255,.12), rgba(255,255,255,.12));
+    background-position:
+      calc(100% - 18px) 50%,
+      calc(100% - 12px) 50%,
+      calc(100% - 42px) 50%;
+    background-size: 6px 6px, 6px 6px, 1px 22px;
+    background-repeat: no-repeat;
+    padding-right: 48px;
+  }
   .cq-input:focus, .cq-select:focus{
-    box-shadow: 0 0 0 4px rgba(0,149,255,.14);
+    box-shadow: var(--ringBlue);
     border-color: rgba(0,149,255,.45);
+    background: rgba(255,255,255,.07);
   }
   input[type="date"]::-webkit-calendar-picker-indicator{ filter: invert(1); cursor:pointer; }
 
   .cq-btn{
-    height: 34px;
-    border-radius: 10px;
-    padding: 0 12px;
-    font-size: 11px;
-    font-weight: 900;
+    height: 44px;
+    border-radius: 14px;
+    padding: 0 14px;
+    font-size: 12px;
+    font-weight: 950;
+    letter-spacing: .2px;
     border: 1px solid rgba(255,255,255,.10);
-    transition: .14s ease;
+    transition: transform .14s ease, filter .14s ease, box-shadow .14s ease, background .14s ease;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    user-select:none;
+    white-space:nowrap;
   }
   .cq-btn:hover{ transform: translateY(-1px); }
   .cq-btn:active{ transform: translateY(0px) scale(.99); }
+  .cq-btn:focus-visible{ box-shadow: var(--ringAmber); border-color: rgba(251,191,36,.35); }
 
   .cq-btn-blue{
-    background: var(--blue);
+    background: linear-gradient(180deg, rgba(0,149,255,.95), rgba(0,149,255,.82));
     color: #fff;
-    box-shadow: 0 12px 22px rgba(0,149,255,.16);
+    box-shadow: 0 18px 38px rgba(0,149,255,.16);
   }
   .cq-btn-blue:hover{ filter: brightness(1.06); }
+  .cq-btn-blue:focus-visible{ box-shadow: var(--ringBlue), 0 18px 38px rgba(0,149,255,.16); }
 
   .cq-btn-red-outline{
     background: rgba(239,68,68,.10);
-    color: #ff7b7b;
+    color: #ff8d8d;
     border-color: rgba(239,68,68,.26);
   }
   .cq-btn-red-outline.rm-active{
@@ -107,10 +171,26 @@
     border-color: rgba(239,68,68,.44);
     color: #ffe1e1;
   }
+  .cq-btn-red-outline:focus-visible{ box-shadow: var(--ringRed); border-color: rgba(239,68,68,.55); }
 
-  .cq-pill{ height: 30px !important; padding: 0 12px !important; font-size: 11px !important; border: none !important; }
-  .cq-btn-green-pill{ background: rgba(22,163,74,.92); color:#fff; box-shadow: 0 10px 18px rgba(22,163,74,.12); }
-  .cq-btn-red-pill{ background: rgba(239,68,68,.92); color:#fff; box-shadow: 0 10px 18px rgba(239,68,68,.12); }
+  .cq-pill{
+    height: 40px !important;
+    padding: 0 14px !important;
+    font-size: 12px !important;
+    border-radius: 999px !important;
+    border: 1px solid rgba(255,255,255,.10) !important;
+  }
+  .cq-btn-green-pill{
+    background: rgba(22,163,74,.92);
+    color:#fff;
+    box-shadow: 0 12px 22px rgba(22,163,74,.14);
+  }
+  .cq-btn-red-pill{
+    background: rgba(239,68,68,.92);
+    color:#fff;
+    box-shadow: 0 12px 22px rgba(239,68,68,.14);
+  }
+  .cq-pill:focus-visible{ box-shadow: var(--ringBlue); border-color: rgba(0,149,255,.35) !important; }
 
   .custom-checkbox{
     -webkit-appearance:none;
@@ -134,41 +214,51 @@
     font-size: 11px;
     transform: translateY(-0.5px);
   }
+  .custom-checkbox:focus-visible{ box-shadow: var(--ringBlue); }
 
   .cq-table thead tr{
     background: rgba(255,255,255,.04);
     border-bottom: 1px solid rgba(255,255,255,.08);
   }
-  .cq-th{ padding: 10px 12px; font-size: 10px; font-weight: 900; letter-spacing: .08em; color: rgba(229,231,235,.85); }
-  .cq-td{ padding: 10px 12px; }
+  .cq-th{
+    padding: 12px 12px;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .10em;
+    color: rgba(229,231,235,.85);
+    text-transform: uppercase;
+  }
+  .cq-td{ padding: 12px 12px; }
   .cq-row{
     transition:.14s ease;
     border-bottom: 1px solid rgba(255,255,255,.06);
   }
   .cq-row:hover{ background: rgba(255,255,255,.03); }
-
-  .forced-row{ background-color: rgba(239,68,68,.06) !important; }
+  .forced-row{ background-color: rgba(239,68,68,.07) !important; }
   .d-none{ display:none !important; }
 
   .balance-badge{
-    min-width: 52px;
-    padding: 4px 10px !important;
+    min-width: 54px;
+    padding: 6px 12px !important;
     font-size: 12px;
-    font-weight: 900;
-    border-radius: 10px;
+    font-weight: 950;
+    border-radius: 12px;
     border: 1px solid rgba(255,255,255,.10);
+    line-height: 1;
   }
 
   .flash-pill{
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    padding: 2px 8px;
+    padding: 3px 10px;
     border-radius:999px;
-    font-weight:900;
+    font-weight:950;
     font-size: 11px;
     border:1px solid rgba(255,255,255,.10);
-    box-shadow: 0 8px 14px rgba(0,0,0,.22);
+    box-shadow: 0 10px 18px rgba(0,0,0,.22);
+    line-height: 1;
+    letter-spacing: .2px;
   }
   .flash-pill.plus{ color:#34d399; background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.22); }
   .flash-pill.minus{ color:#fb7185; background: rgba(244,63,94,.12); border-color: rgba(244,63,94,.22); }
@@ -176,58 +266,83 @@
   .toast{ opacity:0; transform: translateX(20px); transition: all .25s ease; }
   .toast.show{ opacity:1; transform: translateX(0); }
 
-  /* =========================
-     ✅ NEW: 3-state attendance UI
-     ========================= */
   .att-seg{
     display:flex;
-    gap:6px;
+    gap:8px;
     align-items:center;
     justify-content:center;
+    flex-wrap: wrap;
   }
   .att-btn{
-    height: 30px;
-    min-width: 74px;
-    padding: 0 10px;
+    height: 40px;
+    min-width: 92px;
+    padding: 0 12px;
     border-radius: 999px;
     border: 1px solid rgba(255,255,255,.10);
     background: rgba(255,255,255,.04);
-    color: rgba(229,231,235,.85);
-    font-weight: 900;
-    font-size: 11px;
-    transition: .12s ease;
+    color: rgba(229,231,235,.88);
+    font-weight: 950;
+    font-size: 12px;
+    letter-spacing: .2px;
+    transition: transform .12s ease, filter .12s ease, box-shadow .12s ease, background .12s ease;
+    user-select:none;
   }
-  .att-btn:hover{ transform: translateY(-1px); filter: brightness(1.05); }
+  .att-btn:hover{ transform: translateY(-1px); filter: brightness(1.06); }
+  .att-btn:active{ transform: translateY(0) scale(.99); }
+  .att-btn:focus-visible{ box-shadow: var(--ringBlue); border-color: rgba(0,149,255,.45); }
+
   .att-seg[data-status="present"] .att-btn.present{
     background: rgba(0,149,255,.92);
     border-color: rgba(0,149,255,.50);
     color: #fff;
-    box-shadow: 0 10px 18px rgba(0,149,255,.12);
+    box-shadow: 0 12px 22px rgba(0,149,255,.14);
   }
   .att-seg[data-status="forced"] .att-btn.forced{
     background: rgba(239,68,68,.92);
     border-color: rgba(239,68,68,.45);
     color: #fff;
-    box-shadow: 0 10px 18px rgba(239,68,68,.12);
+    box-shadow: 0 12px 22px rgba(239,68,68,.14);
   }
   .att-seg.loading .att-btn{ opacity:.55; pointer-events:none; }
 
-  /* ✅ present bo‘lmasa chaqmoq tugmalari xira bo‘lsin */
   .row-not-present .btn-add,
   .row-not-present .btn-sub{
     opacity: .40;
     filter: saturate(.7);
     pointer-events: none;
   }
-  @media (min-width: 1536px){
-  .cq-wrap{ max-width: 1850px; }
-}
-.cq-wrap{
-  width: 100%;
-  max-width: 100%;
-  margin: 0 auto;
-}
 
+  #group-table{ width: 100%; }
+  #group-table tbody td{ vertical-align: middle; }
+  #group-table a{ word-break: break-word; }
+
+  .table-scroll{
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table-scroll::-webkit-scrollbar{ height: 10px; }
+  .table-scroll::-webkit-scrollbar-thumb{
+    background: rgba(255,255,255,.10);
+    border-radius: 999px;
+  }
+  .table-scroll::-webkit-scrollbar-track{ background: rgba(255,255,255,.05); }
+
+  @media (min-width: 768px){
+    .cq-input, .cq-select{ height: 38px; border-radius: 12px; }
+    .cq-btn{ height: 38px; border-radius: 12px; font-size: 11px; padding: 0 12px; }
+    .cq-pill{ height: 32px !important; padding: 0 12px !important; font-size: 11px !important; }
+    .att-btn{ height: 30px; min-width: 74px; font-size: 11px; }
+    .balance-badge{ padding: 4px 10px !important; border-radius: 10px; }
+    .cq-td{ padding: 10px 12px; }
+    .cq-th{ padding: 10px 12px; }
+  }
+
+  @media (max-width: 430px){
+    .cq-page{ padding-left: 12px !important; padding-right: 12px !important; }
+    .cq-card{ border-radius: 18px; }
+    .cq-th{ padding: 10px 10px; }
+    .cq-td{ padding: 10px 10px; }
+  }
 </style>
 
 <div class="cq-page px-4 lg:px-6 py-4">
@@ -235,7 +350,6 @@
 
   <div class="cq-wrap space-y-3">
 
-    <!-- HEADER -->
     <div class="cq-card p-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
       <div>
         <h1 class="text-[22px] font-black text-white tracking-tight leading-tight">{{ g.nom }}</h1>
@@ -274,7 +388,6 @@
       </div>
     </div>
 
-    <!-- DATE BAR -->
     <div class="cq-card p-3 flex flex-col md:flex-row justify-between items-center gap-3">
       <div class="flex items-center gap-3 w-full md:w-auto">
         <div class="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-[var(--blue)] font-black text-[12px] whitespace-nowrap">
@@ -296,11 +409,9 @@
       </div>
     </div>
 
-    <!-- TOOLS BAR -->
     <div class="cq-card p-3">
       <div class="w-full flex flex-col lg:flex-row lg:flex-nowrap items-stretch lg:items-center gap-2">
 
-        <!-- Rule select -->
         <div class="flex items-center gap-3 px-4 py-2 rounded-xl border border-white/10 bg-white/5 flex-1 lg:flex-none">
           <svg class="text-pink-500" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -325,7 +436,6 @@
           </select>
         </div>
 
-        <!-- Apply rule -->
         <button id="points-all-btn" class="cq-btn cq-btn-blue gap-2 whitespace-nowrap">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
@@ -333,7 +443,6 @@
           Joriy qilish
         </button>
 
-        <!-- ✅ NEW: Davomat tezkor -->
         <button id="attend-all-present-btn"
                 class="cq-btn gap-2 bg-emerald-600 text-white border border-white/10 rounded-xl hover:brightness-110 transition-all whitespace-nowrap">
           Hammasi keldi
@@ -344,7 +453,6 @@
           Kelmadi
         </button>
 
-        <!-- Ball -->
         <div class="lg:ml-auto flex items-center justify-between lg:justify-end gap-3">
           <div class="flex items-center gap-2 text-[var(--orange)] font-black uppercase text-[11px] tracking-widest whitespace-nowrap">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -353,10 +461,10 @@
             BALL:
           </div>
 
-          <div class="flex items-center border border-white/10 rounded-xl overflow-hidden h-[38px] bg-white/5">
+          <div class="flex items-center border border-white/10 rounded-xl overflow-hidden h-[44px] md:h-[38px] bg-white/5">
             <button id="glob-minus" class="px-3 hover:bg-white/5 transition-colors text-slate-200 font-black text-lg">−</button>
             <input id="amount-global" type="number" value="3" min="1"
-                   class="w-14 bg-transparent text-center font-black text-white border-x border-white/10 text-base outline-none">
+                   class="w-16 md:w-14 bg-transparent text-center font-black text-white border-x border-white/10 text-base outline-none">
             <button id="glob-plus" class="px-3 hover:bg-white/5 transition-colors text-slate-200 font-black text-lg">+</button>
           </div>
         </div>
@@ -364,9 +472,8 @@
       </div>
     </div>
 
-    <!-- TABLE -->
     <div class="cq-card overflow-hidden">
-      <div class="overflow-x-auto">
+      <div class="table-scroll">
         <table id="group-table" class="cq-table w-full text-left border-collapse">
           <thead>
             <tr>
@@ -422,7 +529,6 @@
                 {{ e.student.telefon1|default:"—" }}
               </td>
 
-              <!-- ✅ NEW: 3-state attendance -->
               <td class="cq-td text-center">
                 <div class="att-seg"
                      data-enrollment="{{ e.id }}"
@@ -465,10 +571,8 @@
 
   </div>
 
-  <!-- CSRF -->
   <form id="csrf-form" class="hidden">{% csrf_token %}</form>
 
-  <!-- URLS -->
   <div id="js-urls" class="hidden"
        data-attend="{% url 'education:attendance_today' g.id %}"
        data-points="{% url 'education:group_points' g.id %}"
@@ -526,9 +630,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return { ruleId, ruleType };
   }
 
-  /* =========================
-     Flash (2 soat)
-     ========================= */
   const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
   const groupId = urls.groupId || "0";
 
@@ -675,9 +776,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return await res.json();
   }
 
-  /* =========================
-     ✅ DAVOMAT: per-row 3-state
-     ========================= */
   document.querySelectorAll(".att-seg").forEach(seg => {
     const enrId = seg.dataset.enrollment;
     const sid   = seg.dataset.student;
@@ -699,11 +797,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const newStatus = data.status || (data.present ? "present" : (data.forced ? "forced" : "none"));
         setRowStatusUI(seg, newStatus);
 
-        // balans doim yangilansin
         setBalance(sid, data.balance);
 
-        // ✅ Eng muhim FIX:
-        // davomat "present" bo'lmasa -> minus flash chiqarmaymiz, faqat tozalaymiz
         if (newStatus !== "present") {
           removeFlash(sid);
 
@@ -739,9 +834,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  /* =========================
-     HAMMASI KELDI (bulk)
-     ========================= */
   if (attendAllPresentBtn) {
     attendAllPresentBtn.addEventListener("click", async () => {
       const dateVal = dateInput.value || "";
@@ -772,11 +864,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* =========================
-     HAMMASI KELMADI (PUL) (bulk)
-     - present bo'lmaganlarni forced qilib qo'yadi
-     - shu paytda minus flash chiqarmaydi (faqat tozalaydi)
-     ========================= */
   if (attendAllForcedBtn) {
     attendAllForcedBtn.addEventListener("click", async () => {
       if (!confirm("KELMADI (PUL) qilib belgilaymizmi? (Kelmaganlar uchun pul yoziladi)")) return;
@@ -786,7 +873,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       for (const seg of segs) {
         const cur = seg.dataset.status || "none";
-        if (cur === "present") continue; // kelganlarni tegmaymiz
+        if (cur === "present") continue;
         if (cur === "forced") continue;
 
         const enrId = seg.dataset.enrollment;
@@ -807,9 +894,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* =========================
-     POINTS
-     ========================= */
   async function sendPoints(studentId, amount, ruleId) {
     const fd = new FormData();
     fd.append("student_id", studentId);
@@ -892,9 +976,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* =========================
-     DATE CHANGE
-     ========================= */
   dateInput.addEventListener("change", () => {
     const u = new URL(window.location.href);
     u.searchParams.set("date", dateInput.value);
@@ -911,9 +992,6 @@ document.addEventListener("DOMContentLoaded", () => {
     amountInput.value = v;
   };
 
-  /* =========================
-     REMOVE MODE
-     ========================= */
   let removeMode = false;
 
   removeModeBtn.addEventListener("click", () => {
@@ -957,7 +1035,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  /* rule button toggle */
   function updateButtonsByRule() {
     const opt = ruleSelect.options[ruleSelect.selectedIndex];
     const ruleType = opt?.dataset?.type || "";

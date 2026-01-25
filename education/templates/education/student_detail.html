@@ -3,281 +3,735 @@
 
 {% block content %}
 
-<div class="container py-4">
-
-  <!-- 🔹 O'quvchi ma'lumotlari -->
-  <div class="card shadow mb-4">
-    <div class="card-body d-flex align-items-center">
-      <div class="me-4">
-        <i class="fa fa-user-circle fa-4x text-primary"></i>
-      </div>
-      <div>
-        <h3 class="fw-bold mb-1">{{ student.get_full_name }}</h3>
-        <p class="mb-0">
-          <i class="fa fa-phone text-muted"></i> {{ student.telefon }} &nbsp;&nbsp;
-          <i class="fa fa-envelope text-muted"></i> {{ student.email }}
-        </p>
-      </div>
-    </div>
-  </div>
 <style>
+  :root{
+    --bg0:#070b14;
+    --bg1:#0b1224;
+    --bg2:#0f172a;
 
-/* ==============================
-📱 GLOBAL RESPONSIVE FIXES
-============================== */
+    --panel: rgba(17, 24, 39, .62);
+    --panel2: rgba(2, 6, 23, .55);
+    --line: rgba(255,255,255,.10);
 
-/* Container – chetlar moslashadi */
-@media (max-width: 576px) {
-  .container {
-    padding-left: 12px !important;
-    padding-right: 12px !important;
-  }
-}
+    --text:#e5e7eb;
+    --muted:#94a3b8;
 
-/* 🔹 O'quvchi card – mobilga moslashtirish */
-@media (max-width: 576px) {
+    --amber:#f59e0b;
+    --amber2:#facc15;
 
-  .card-body.d-flex {
-    flex-direction: column !important;
-    text-align: center !important;
-  }
+    --blue:#3b82f6;
+    --blue2:#60a5fa;
 
-  .card-body .me-4 {
-    margin-right: 0 !important;
-    margin-bottom: 12px !important;
-  }
+    --green:#22c55e;
+    --green2:#4ade80;
 
-  .card-body h3 {
-    font-size: 1.25rem !important;
+    --red:#ef4444;
+    --red2:#fb7185;
+
+    --shadow: 0 24px 70px rgba(0,0,0,.55);
+    --radius: 18px;
   }
 
-  .card-body p {
-    font-size: 0.9rem !important;
-  }
-}
-
-/* 🔹 Accordion mobile view */
-@media (max-width: 576px) {
-
-  .accordion-button .d-flex {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 6px;
+  body{
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(245, 158, 11, .18), transparent 55%),
+      radial-gradient(900px 520px at 95% 0%, rgba(59, 130, 246, .18), transparent 55%),
+      radial-gradient(800px 520px at 30% 105%, rgba(34, 197, 94, .10), transparent 55%),
+      linear-gradient(180deg, var(--bg1), var(--bg2), var(--bg1));
+    color: var(--text);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Poppins", sans-serif;
+    min-height: 100vh;
   }
 
-  .accordion-button strong {
-    font-size: 1rem !important;
+  .student-wrap{
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: clamp(12px, 2.2vw, 22px) clamp(12px, 2.2vw, 18px) 28px;
+    color: var(--text);
   }
 
-  .accordion-button span.badge {
-    font-size: 0.75rem !important;
+  .shell{
+    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    position: relative;
   }
 
-  .accordion-button .text-success,
-  .accordion-button .text-danger {
-    font-size: 0.95rem !important;
-  }
-}
-
-/* 🔹 H4 Guruh title — kichik ekran */
-@media (max-width: 576px) {
-  h4.fw-bold {
-    font-size: 1.05rem !important;
-    text-align: left !important;
-  }
-}
-
-/* 🔹 Table — scroll + kichik font */
-@media (max-width: 768px) {
-
-  .table-responsive {
-    overflow-x: auto !important;
-    display: block;
+  .shell::before{
+    content:"";
+    position:absolute;
+    inset:-1px;
+    background:
+      radial-gradient(900px 340px at 20% 0%, rgba(245, 158, 11, .16), transparent 62%),
+      radial-gradient(850px 320px at 92% 10%, rgba(59, 130, 246, .16), transparent 62%),
+      radial-gradient(850px 320px at 40% 120%, rgba(34, 197, 94, .10), transparent 62%);
+    pointer-events:none;
+    opacity:.95;
   }
 
-  table.table {
-    font-size: 0.78rem !important;
-    min-width: 650px !important; /* jadval buzilmasin */
+  .shell-inner{
+    position: relative;
+    background: rgba(2, 6, 23, .35);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
   }
 
-  table.table th,
-  table.table td {
-    padding: 4px 6px !important;
-    white-space: nowrap !important;
-  }
-}
-
-/* 🔹 Progress bar */
-@media (max-width: 576px) {
-  .progress {
-    height: 14px !important;
-  }
-}
-
-/* 🔹 Modal dialog – mobilga moslash */
-@media (max-width: 576px) {
-
-  .modal-dialog {
-    margin: 12px !important;
-    max-width: 92% !important;
+  .profile-hero{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: clamp(14px, 2vw, 18px);
   }
 
-  .modal-body {
-    padding: 16px !important;
+  .profile-left{
+    display:flex;
+    align-items:center;
+    gap: 14px;
+    min-width: 0;
   }
 
-  .modal-header h5 {
-    font-size: 1rem !important;
+  .avatar{
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight: 1000;
+    letter-spacing: .6px;
+    color: #1b1304;
+    background: radial-gradient(circle at 30% 20%, var(--amber2), var(--amber));
+    position: relative;
+    flex: 0 0 auto;
+    box-shadow: 0 16px 40px rgba(245,158,11,.22);
   }
 
-  .chaqmoq-card {
-    padding: 12px !important;
+  .avatar::after{
+    content:"";
+    position:absolute;
+    right:-6px;
+    bottom:-6px;
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    background: var(--green);
+    border: 3px solid rgba(7, 11, 20, 1);
+    box-shadow: 0 10px 22px rgba(34,197,94,.22);
   }
 
-  .fs-5 {
-    font-size: 1rem !important;
+  .profile-meta{
+    min-width: 0;
   }
-}
 
-/* 🔹 Card ichidagi ikkilamchi info */
-@media (max-width: 576px) {
-  .small.text-secondary {
-    font-size: 0.8rem !important;
+  .profile-name{
+    font-size: clamp(18px, 2.2vw, 24px);
+    font-weight: 1000;
+    margin: 0;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: .2px;
   }
-}
 
-/* 🔹 Badge – mobil uchun mos */
-@media (max-width: 576px) {
-  .badge {
-    font-size: 0.75rem !important;
-    padding: 5px 8px !important;
+  .profile-contacts{
+    margin-top: 8px;
+    display:flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 13px;
   }
-}
 
+  .contact-chip{
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.04);
+    white-space: nowrap;
+  }
+
+  .contact-chip i{ opacity: .9; }
+
+  .profile-actions{
+    display:flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .btn-soft{
+    border-radius: 12px;
+    padding: 10px 14px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.04);
+    color: var(--text);
+    font-weight: 900;
+    font-size: 13px;
+    text-decoration: none;
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
+    user-select: none;
+  }
+  .btn-soft:hover{
+    transform: translateY(-1px);
+    background: rgba(255,255,255,.06);
+    border-color: rgba(255,255,255,.18);
+    box-shadow: 0 16px 40px rgba(0,0,0,.28);
+  }
+  .btn-soft:focus{ outline: none; }
+  .btn-soft:focus-visible{
+    outline: 3px solid rgba(250, 204, 21, .35);
+    outline-offset: 2px;
+  }
+
+  .btn-amber{
+    border-radius: 12px;
+    padding: 10px 14px;
+    border: 1px solid rgba(245,158,11,.35);
+    background: linear-gradient(90deg, var(--amber), var(--amber2));
+    color: #141006;
+    font-weight: 1000;
+    font-size: 13px;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    box-shadow: 0 18px 40px rgba(245,158,11,.18);
+    transition: transform .15s ease, box-shadow .15s ease;
+    user-select: none;
+  }
+  .btn-amber:hover{ transform: translateY(-1px); box-shadow: 0 22px 55px rgba(245,158,11,.22); }
+  .btn-amber:focus{ outline: none; }
+  .btn-amber:focus-visible{
+    outline: 3px solid rgba(250, 204, 21, .35);
+    outline-offset: 2px;
+  }
+
+  .divider{
+    height: 1px;
+    background: rgba(255,255,255,.08);
+    margin: 0;
+  }
+
+  .section-head{
+    margin-top: 14px;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .section-title{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .section-ico{
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: rgba(245,158,11,.10);
+    border: 1px solid rgba(245,158,11,.18);
+    color: var(--amber2);
+    flex: 0 0 auto;
+    box-shadow: 0 14px 35px rgba(245, 158, 11, .12);
+  }
+
+  .section-text h2{
+    margin: 0;
+    font-size: clamp(18px, 2vw, 22px);
+    font-weight: 1000;
+    line-height: 1.1;
+    letter-spacing: .2px;
+  }
+  .section-text p{
+    margin: 4px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .group-card{
+    margin-top: 12px;
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 22px;
+    overflow: hidden;
+    background: rgba(2, 6, 23, .20);
+    box-shadow: 0 20px 60px rgba(0,0,0,.35);
+  }
+
+  .group-top{
+    padding: 14px 16px;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+  }
+
+  .group-pill{
+    display:inline-flex;
+    align-items:center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(59,130,246,.30);
+    background: rgba(59,130,246,.10);
+    color: rgba(191, 219, 254, .95);
+    font-weight: 1000;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+    font-size: 12px;
+  }
+
+  .group-body{
+    padding: 10px 10px 14px;
+  }
+
+  .accordion{
+    --bs-accordion-bg: transparent;
+    --bs-accordion-border-color: transparent;
+  }
+
+  .accordion-item{
+    background: transparent !important;
+    border: 0 !important;
+    margin-bottom: 10px;
+  }
+
+  .month-btn{
+    border-radius: 18px !important;
+    border: 1px solid rgba(255,255,255,.10) !important;
+    background: rgba(255,255,255,.04) !important;
+    color: var(--text) !important;
+    box-shadow: none !important;
+    padding: 14px 14px !important;
+    transition: background .15s ease, border-color .15s ease, transform .15s ease;
+  }
+
+  .month-btn:hover{
+    background: rgba(255,255,255,.06) !important;
+    border-color: rgba(255,255,255,.14) !important;
+  }
+
+  .month-btn:focus{ box-shadow: none !important; }
+  .accordion-button::after{ display:none !important; }
+
+  .month-row{
+    width: 100%;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .month-left{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .month-title{
+    font-weight: 1000;
+    font-size: 15px;
+    white-space: nowrap;
+  }
+
+  .tag-green{
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(34,197,94,.22);
+    background: rgba(34,197,94,.10);
+    color: rgba(187, 247, 208, .95);
+    font-weight: 900;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .month-right{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    flex: 0 0 auto;
+  }
+
+  .plus{ color: rgba(74, 222, 128, .95); font-weight: 1000; }
+  .minus{ color: rgba(251, 113, 133, .95); font-weight: 1000; }
+  .sep{ color: rgba(255,255,255,.45); font-weight: 1000; }
+
+  .acc-chevron{
+    color: rgba(255,255,255,.55);
+    transition: .18s ease;
+    margin-left: 2px;
+  }
+  .accordion-button:not(.collapsed) .acc-chevron{ transform: rotate(180deg); }
+
+  .accordion-collapse .accordion-body{
+    margin-top: 10px;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.03);
+    padding: 14px;
+  }
+
+  .progress-head{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .progress-label{
+    color: rgba(255,255,255,.62);
+    font-size: 12px;
+    font-weight: 900;
+  }
+  .progress-value{
+    color: rgba(187, 247, 208, .95);
+    font-weight: 1000;
+    font-size: 12px;
+  }
+
+  .progress{
+    background: rgba(255,255,255,.06) !important;
+    border-radius: 999px !important;
+    height: 12px !important;
+    overflow: hidden;
+  }
+  .progress-bar{
+    background: linear-gradient(90deg, rgba(34,197,94,.92), rgba(16,185,129,.95)) !important;
+  }
+
+  .table-wrap{
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(8,12,22,.35);
+  }
+
+  .table-wrap .table{
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--text);
+    --bs-table-striped-bg: rgba(255,255,255,.03);
+    --bs-table-striped-color: var(--text);
+    --bs-table-hover-bg: rgba(255,255,255,.04);
+    --bs-table-hover-color: var(--text);
+    --bs-table-border-color: rgba(255,255,255,.06);
+    margin: 0 !important;
+    color: var(--text) !important;
+    font-size: 13px;
+  }
+
+  .table-wrap .table > :not(caption) > * > *{
+    background-color: transparent !important;
+    color: var(--text) !important;
+  }
+
+  .table-wrap .table thead{
+    background: rgba(255,255,255,.04) !important;
+  }
+
+  .table-wrap .table thead th{
+    color: rgba(255,255,255,.62) !important;
+    font-weight: 1000 !important;
+    border-bottom: 1px solid rgba(255,255,255,.08) !important;
+    padding: 10px 10px !important;
+    white-space: nowrap;
+  }
+
+  .table-wrap .table td{
+    border-top: 1px solid rgba(255,255,255,.06) !important;
+    padding: 10px 10px !important;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  .table-wrap .table tbody tr:hover{
+    background: rgba(255,255,255,.03);
+  }
+
+  .pill-ok, .pill-bad{
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-weight: 1000;
+    letter-spacing: .25px;
+    font-size: 12px;
+  }
+  .pill-ok{
+    color: rgba(187, 247, 208, .95);
+    background: rgba(34,197,94,.10);
+    border: 1px solid rgba(34,197,94,.20);
+  }
+  .pill-bad{
+    color: rgba(253, 164, 175, .95);
+    background: rgba(239,68,68,.10);
+    border: 1px solid rgba(239,68,68,.20);
+  }
+
+  .clickable{
+    text-decoration: none;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.03);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width: 64px;
+    transition: background .15s ease, border-color .15s ease, transform .15s ease;
+  }
+  .clickable:hover{
+    background: rgba(255,255,255,.06);
+    border-color: rgba(255,255,255,.16);
+    transform: translateY(-1px);
+  }
+  .clickable:focus{ outline:none; }
+  .clickable:focus-visible{
+    outline: 3px solid rgba(250, 204, 21, .35);
+    outline-offset: 2px;
+  }
+
+  .modal-content{
+    border-radius: 18px !important;
+    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)) !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  .modal-header{
+    border-bottom: 1px solid rgba(255,255,255,.12) !important;
+  }
+
+  .modal-footer{
+    border-top: 1px solid rgba(255,255,255,.12) !important;
+    background: rgba(255,255,255,.03) !important;
+  }
+
+  .chaqmoq-card{
+    background: rgba(255,255,255,.04) !important;
+    border: 1px solid rgba(255,255,255,.10) !important;
+    border-radius: 14px !important;
+    padding: 12px 12px !important;
+  }
+
+  @media (max-width: 768px){
+    .profile-hero{ flex-direction: column; align-items: flex-start; }
+    .profile-actions{ width: 100%; justify-content: flex-start; }
+    .month-row{ flex-direction: column; align-items: flex-start; }
+    .month-right{ width: 100%; justify-content: flex-start; }
+    .table-wrap{ overflow-x: auto; }
+    .table-wrap table.table{ min-width: 720px; }
+  }
+
+  @media (max-width: 420px){
+    .avatar{ width: 58px; height: 58px; }
+  }
 </style>
 
-  <!-- 🔹 Davomat va Chaqmoq bo‘limi -->
-  <div class="card shadow">
-    <div class="card-header bg-primary text-white fw-semibold">
-      <i class="fa fa-calendar-check"></i> Davomat va Chaqmoq (guruhlar bo‘yicha)
-    </div>
-    <div class="card-body">
+<div class="student-wrap">
 
-      {% regroup month_summaries by group as group_list %}
+  <div class="shell">
+    <div class="shell-inner">
 
-      {% for group in group_list %}
-      <div class="mb-4">
-        <h4 class="fw-bold text-info border-bottom pb-2">
-          <i class="fa fa-users"></i> {{ group.grouper }}
-        </h4>
+      <div class="profile-hero">
+        <div class="profile-left">
+          <div class="avatar" aria-hidden="true">
+            {% with a=student.ism|default:'' b=student.familya|default:'' %}
+              {{ a|slice:":1"|upper }}{{ b|slice:":1"|upper }}
+            {% endwith %}
+          </div>
 
-        {% for summary in group.list %}
-        <div class="accordion mb-3" id="accordion-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
-          <div class="accordion-item border-0 shadow-sm">
-            <h2 class="accordion-header" id="heading-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
-              <button class="accordion-button collapsed bg-light" type="button"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#collapse-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
-                      aria-expanded="false">
+          <div class="profile-meta">
+            <h3 class="profile-name">{{ student.get_full_name }}</h3>
 
-                <div class="d-flex justify-content-between w-100 align-items-center">
-                  <div>
-                    <strong>{{ summary.year }} - {{ summary.month_name }}</strong>
-                    <span class="badge bg-success ms-2">
-                      <i class="fa fa-user-check"></i> {{ summary.present_days }} marta kelgan
-                    </span>
-                  </div>
-                  <div>
-                    <span class="text-success fw-semibold">+{{ summary.plus }}</span> /
-                    <span class="text-danger fw-semibold">-{{ summary.minus }}</span>
-                  </div>
-                </div>
-              </button>
-            </h2>
-
-            <div id="collapse-{{ forloop.parentloop.counter }}-{{ forloop.counter }}" class="accordion-collapse collapse">
-              <div class="accordion-body">
-
-                {% with total_days=summary.days|length %}
-                {% if total_days > 0 %}
-                {% widthratio summary.present_days total_days 100 as percent %}
-                <div class="mb-3">
-                  <div class="small text-muted">Umumiy ishtirok foizi</div>
-                  <div class="progress" style="height: 18px;">
-                    <div class="progress-bar bg-success" style="width: {{ percent }}%">
-                      {{ percent }}%
-                    </div>
-                  </div>
-                </div>
-                {% endif %}
-                {% endwith %}
-
-                <table class="table table-sm table-striped align-middle text-center">
-                  <thead class="table-secondary">
-                    <tr>
-                      <th>#</th>
-                      <th>Sana</th>
-                      <th>Davomat</th>
-                      <th>Qo‘shilgan chaqmoq</th>
-                      <th>Ayirilgan chaqmoq</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for d in summary.days %}
-                    <tr>
-                      <td>{{ forloop.counter }}</td>
-                      <td>{{ d.date|date:"d-M-Y" }}</td>
-                      <td>
-                        {% if d.present %}
-                          <span class="badge bg-success"><i class="fa fa-check"></i> Kelgan</span>
-                        {% else %}
-                          <span class="badge bg-danger"><i class="fa fa-times"></i> Kelmadi</span>
-                        {% endif %}
-                      </td>
-                      <td>
-                        <span class="text-success fw-semibold clickable"
-                              style="cursor:pointer"
-                              data-type="plus"
-                              data-date="{{ d.date|date:'Y-m-d' }}"
-                              data-student="{{ student.id }}">
-                          +{{ d.plus }}
-                        </span>
-                      </td>
-                      <td>
-                        <span class="text-danger fw-semibold clickable"
-                              style="cursor:pointer"
-                              data-type="minus"
-                              data-date="{{ d.date|date:'Y-m-d' }}"
-                              data-student="{{ student.id }}">
-                          -{{ d.minus }}
-                        </span>
-                      </td>
-                    </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-
-              </div>
+            <div class="profile-contacts">
+              <div class="contact-chip"><i class="fa fa-phone"></i> <span>{{ student.telefon }}</span></div>
+              <div class="contact-chip"><i class="fa fa-envelope"></i> <span>{{ student.email }}</span></div>
             </div>
           </div>
         </div>
-        {% endfor %}
+
+        <div class="profile-actions">
+          <a class="btn-soft" href="{% url 'accounts:user_edit' student.id %}">
+            <i class="fa fa-pen"></i> Tahrirlash
+          </a>
+
+          <button class="btn-amber" type="button" disabled title="Hali qo‘shilmagan funksiya">
+            <i class="fa fa-exchange-alt"></i> Guruh almashtirish
+          </button>
+        </div>
       </div>
-      {% empty %}
-        <div class="alert alert-warning">Davomat ma'lumotlari topilmadi.</div>
-      {% endfor %}
+
+      <hr class="divider">
+
+      <div class="student-wrap" style="padding: 0; margin: 0;">
+        <div class="section-head">
+          <div class="section-title">
+            <div class="section-ico">
+              <i class="fa fa-calendar"></i>
+            </div>
+            <div class="section-text">
+              <h2>Davomat va Chaqmoq</h2>
+              <p>(guruhlar bo‘yicha)</p>
+            </div>
+          </div>
+        </div>
+
+        {% regroup month_summaries by group as group_list %}
+
+        {% for group in group_list %}
+          <div class="group-card">
+            <div class="group-top">
+              <div class="group-pill">
+                <i class="fa fa-users"></i>
+                {{ group.grouper }}
+              </div>
+            </div>
+
+            <div class="group-body">
+              {% for summary in group.list %}
+                <div class="accordion" id="accordion-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                  <div class="accordion-item">
+
+                    <h2 class="accordion-header" id="heading-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                      <button class="accordion-button collapsed month-btn"
+                              type="button"
+                              data-bs-toggle="collapse"
+                              data-bs-target="#collapse-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
+                              aria-expanded="false">
+
+                        <div class="month-row">
+                          <div class="month-left">
+                            <div class="month-title">{{ summary.year }} – {{ summary.month_name }}</div>
+                            <div class="tag-green">
+                              <i class="fa fa-user-check"></i> {{ summary.present_days }} marta kelgan
+                            </div>
+                          </div>
+
+                          <div class="month-right">
+                            <span class="plus">+{{ summary.plus }}</span>
+                            <span class="sep">/</span>
+                            <span class="minus">-{{ summary.minus }}</span>
+                            <i class="fa fa-chevron-down acc-chevron"></i>
+                          </div>
+                        </div>
+
+                      </button>
+                    </h2>
+
+                    <div id="collapse-{{ forloop.parentloop.counter }}-{{ forloop.counter }}" class="accordion-collapse collapse">
+                      <div class="accordion-body">
+
+                        {% with total_days=summary.days|length %}
+                          {% if total_days > 0 %}
+                            {% widthratio summary.present_days total_days 100 as percent %}
+
+                            <div class="progress-head">
+                              <div class="progress-label">Umumiy ishtirok foizi</div>
+                              <div class="progress-value">{{ percent }}%</div>
+                            </div>
+                            <div class="progress mb-3">
+                              <div class="progress-bar" style="width: {{ percent }}%"></div>
+                            </div>
+                          {% endif %}
+                        {% endwith %}
+
+                        <div class="table-wrap">
+                          <table class="table table-sm align-middle text-center">
+                            <thead>
+                              <tr>
+                                <th>#</th>
+                                <th>Sana</th>
+                                <th>Davomat</th>
+                                <th>Qo‘shilgan chaqmoq</th>
+                                <th>Ayirilgan chaqmoq</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {% for d in summary.days %}
+                                <tr>
+                                  <td>{{ forloop.counter }}</td>
+                                  <td>{{ d.date|date:"d-M-Y" }}</td>
+                                  <td>
+                                    {% if d.present %}
+                                      <span class="pill-ok"><i class="fa fa-check"></i> KELGAN</span>
+                                    {% else %}
+                                      <span class="pill-bad"><i class="fa fa-times"></i> KELMADI</span>
+                                    {% endif %}
+                                  </td>
+                                  <td>
+                                    <span class="clickable plus"
+                                          style="cursor:pointer"
+                                          data-type="plus"
+                                          data-date="{{ d.date|date:'Y-m-d' }}"
+                                          data-student="{{ student.id }}">
+                                      +{{ d.plus }}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    <span class="clickable minus"
+                                          style="cursor:pointer"
+                                          data-type="minus"
+                                          data-date="{{ d.date|date:'Y-m-d' }}"
+                                          data-student="{{ student.id }}">
+                                      -{{ d.minus }}
+                                    </span>
+                                  </td>
+                                </tr>
+                              {% endfor %}
+                            </tbody>
+                          </table>
+                        </div>
+
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% empty %}
+          <div class="mt-3 p-3"
+               style="border:1px solid rgba(255,255,255,.10); border-radius:16px; background: rgba(255,255,255,.03); color: rgba(255,255,255,.75);">
+            Davomat ma'lumotlari topilmadi.
+          </div>
+        {% endfor %}
+
+      </div>
+
     </div>
   </div>
+
 </div>
 
-<!-- ⚡ Chaqmoq tafsilotlari modal -->
 <div class="modal fade" id="pointsModal" tabindex="-1" aria-labelledby="pointsModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
     <div class="modal-content border-0 shadow-lg">
 
-      <!-- HEADER -->
       <div class="modal-header text-white border-0 py-3 px-4"
-           style="background: linear-gradient(90deg, #0d6efd, #6f42c1);
+           style="background: linear-gradient(90deg, rgba(37,99,235,.95), rgba(99,102,241,.95));
                   border-top-left-radius: 18px; border-top-right-radius: 18px;">
         <h5 class="modal-title fw-bold mb-0" id="pointsModalLabel">
           <i class="fa fa-bolt text-warning me-2"></i> Chaqmoq tafsilotlari
@@ -285,21 +739,18 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Yopish"></button>
       </div>
 
-      <!-- BODY -->
       <div class="modal-body p-4" id="modal-content-body" style="max-height:70vh; overflow-y:auto;">
-        <div class="text-center py-4 text-muted">
-          <i class="fa fa-spinner fa-spin text-primary fs-1 mb-2"></i><br>
+        <div class="text-center py-4" style="color: rgba(255,255,255,.7)">
+          <i class="fa fa-spinner fa-spin" style="font-size: 34px;"></i><br>
           Yuklanmoqda...
         </div>
       </div>
 
-      <!-- FOOTER -->
-      <div class="modal-footer border-0 justify-content-between align-items-center px-4 py-3"
-           style="background-color: #f7f9fc; border-bottom-left-radius: 18px; border-bottom-right-radius: 18px;">
-        <small class="text-secondary">
+      <div class="modal-footer border-0 justify-content-between align-items-center px-4 py-3">
+        <small style="color: rgba(255,255,255,.65)">
           <i class="fa fa-info-circle me-1"></i> Ma’lumotlar avtomatik ravishda yangilanadi.
         </small>
-        <button type="button" class="btn btn-outline-primary btn-sm px-3 fw-semibold" data-bs-dismiss="modal">
+        <button type="button" class="btn btn-outline-light btn-sm px-3 fw-semibold" data-bs-dismiss="modal">
           <i class="fa fa-times me-1"></i> Yopish
         </button>
       </div>
@@ -317,17 +768,14 @@ document.addEventListener("DOMContentLoaded", function () {
   const modalBody = document.getElementById("modal-content-body");
   const modal = new bootstrap.Modal(modalEl);
 
-  // ✅ Modal yopilganda scroll holatini tiklash
   modalEl.addEventListener('hidden.bs.modal', () => {
     document.body.style.overflow = 'auto';
   });
 
-  // ✅ Modal ochilganda interaktivlikni yo‘qotmaslik
   modalEl.addEventListener('shown.bs.modal', () => {
     document.body.style.pointerEvents = 'auto';
   });
 
-  // ⚡ Tafsilotlarni yuklash
   document.querySelectorAll(".clickable").forEach(el => {
     el.addEventListener("click", async () => {
       const studentId = el.dataset.student;
@@ -335,9 +783,9 @@ document.addEventListener("DOMContentLoaded", function () {
       const type = el.dataset.type;
 
       modalBody.innerHTML = `
-        <div class="text-center py-4">
-          <i class="fa fa-bolt fa-spin text-primary fs-1"></i>
-          <div class="text-muted mt-2">Yuklanmoqda...</div>
+        <div class="text-center py-4" style="color: rgba(255,255,255,.75)">
+          <i class="fa fa-bolt fa-spin text-warning" style="font-size: 34px;"></i>
+          <div style="margin-top:8px; color: rgba(255,255,255,.65)">Yuklanmoqda...</div>
         </div>`;
       modal.show();
 
@@ -348,7 +796,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (!details || details.length === 0) {
           modalBody.innerHTML = `
-            <div class="text-center py-4 text-muted">
+            <div class="text-center py-4" style="color: rgba(255,255,255,.7)">
               <i class="fa fa-exclamation-circle fa-2x mb-2"></i><br>
               Hech qanday tafsilot topilmadi.
             </div>`;
@@ -365,7 +813,7 @@ document.addEventListener("DOMContentLoaded", function () {
             ${details.map(d => `
               <div class="card chaqmoq-card mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-1">
-                  <h6 class="fw-semibold text-primary mb-0">
+                  <h6 class="fw-semibold mb-0" style="color: rgba(255,255,255,.92)">
                     <i class="fa fa-bolt text-warning me-1"></i>
                     ${d.rule || "Qoida ko‘rsatilmagan"}
                   </h6>
@@ -373,16 +821,16 @@ document.addEventListener("DOMContentLoaded", function () {
                     ${d.amount > 0 ? '+' + d.amount : d.amount}
                   </span>
                 </div>
-                
-                <div class="small text-secondary">
-                  <i class="fa fa-user text-muted"></i> ${d.teacher || "—"}
-                  ${d.group ? ` | <i class="fa fa-users text-muted"></i> ${d.group}` : ""}
-                  ${d.time ? ` | <i class="fa fa-clock text-muted"></i> ${d.time}` : ""}
+
+                <div class="small" style="color: rgba(255,255,255,.65)">
+                  <i class="fa fa-user" style="opacity:.85"></i> ${d.teacher || "—"}
+                  ${d.group ? ` | <i class="fa fa-users" style="opacity:.85"></i> ${d.group}` : ""}
+                  ${d.time ? ` | <i class="fa fa-clock" style="opacity:.85"></i> ${d.time}` : ""}
                 </div>
               </div>
             `).join('')}
           </div>
-          <hr class="mt-3 mb-2">
+          <hr class="mt-3 mb-2" style="border-color: rgba(255,255,255,.12)">
           <div class="text-end fw-bold fs-5 text-${color}">
             <i class="fa fa-bolt text-warning"></i> Jami: ${total > 0 ? '+' + total : total} ⚡
           </div>`;

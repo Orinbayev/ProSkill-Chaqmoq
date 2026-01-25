@@ -2,159 +2,415 @@
 {% block content %}
 
 <style>
-/* 📱 Mobil: Jadval o‘rniga card */
-@media (max-width: 768px) {
+  :root{
+    --bg0:#050812;
+    --bg1:#020617;
+    --bg2:#0b1226;
 
-  table.table {
-      display: none !important;
+    --panel: rgba(17,24,39,.62);
+    --panel2: rgba(2,6,23,.55);
+    --card: rgba(255,255,255,.06);
+    --card2: rgba(255,255,255,.085);
+    --line: rgba(255,255,255,.10);
+
+    --text:#e5e7eb;
+    --muted:#94a3b8;
+
+    --amber:#f59e0b;
+    --amber2:#facc15;
+    --blue:#60a5fa;
+    --cyan:#22d3ee;
+    --green:#22c55e;
+    --red:#ef4444;
+
+    --shadow: 0 22px 70px rgba(0,0,0,.55);
+    --shadow2: 0 14px 45px rgba(0,0,0,.45);
+    --radius: 18px;
   }
 
-  .mobile-card {
-      background: #ffffff0a;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 14px;
-      padding: 16px;
-      margin-bottom: 14px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.3);
-      color: #e2e8f0;
+  body{
+    background:
+      radial-gradient(900px 520px at 14% 0%, rgba(245,158,11,.16), transparent 55%),
+      radial-gradient(900px 520px at 86% 10%, rgba(34,211,238,.10), transparent 55%),
+      radial-gradient(900px 520px at 50% 100%, rgba(96,165,250,.10), transparent 55%),
+      linear-gradient(180deg, var(--bg0), var(--bg1) 25%, var(--bg2) 70%, var(--bg0));
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  .mc-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 6px;
+  :where(a, button, input, select, textarea):focus-visible{
+    outline: 2px solid color-mix(in oklab, var(--amber2) 75%, white 25%);
+    outline-offset: 3px;
   }
 
-  .mc-label {
-      font-weight: 600;
-      color: #94a3b8;
+  .gbc-wrap{
+    width: min(1200px, 100%);
+    margin: 18px auto;
+    padding: 0 14px 26px;
   }
-  .mc-value {
-      font-weight: 500;
-      color: #f1f5f9;
+
+  .gbc-top{
+    border-radius: 20px;
+    background: linear-gradient(180deg, var(--panel), var(--panel2));
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .gbc-top::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(700px 220px at 20% 0%, rgba(250,204,21,.16), transparent 60%),
+      radial-gradient(700px 220px at 85% 10%, rgba(96,165,250,.12), transparent 60%);
+    pointer-events:none;
+    opacity:.9;
+  }
+  .gbc-top > *{ position: relative; z-index: 1; }
+
+  .gbc-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .gbc-title{
+    margin: 0;
+    font-weight: 950;
+    font-size: clamp(18px, 2.2vw, 24px);
+    line-height: 1.12;
+    letter-spacing: .2px;
+  }
+
+  .gbc-sub{
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-weight: 750;
+    font-size: 12px;
+  }
+
+  .btn{
+    border-radius: 14px !important;
+    font-weight: 950;
+    letter-spacing: .1px;
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease, background-color .18s ease, border-color .18s ease;
+  }
+  .btn:active{ transform: translateY(1px); }
+
+  .btn-primary{
+    border: 1px solid rgba(250,204,21,.22) !important;
+    color: #101827 !important;
+    background: linear-gradient(90deg, var(--amber2), var(--amber)) !important;
+    box-shadow: 0 14px 28px rgba(245,158,11,.22);
+  }
+  .btn-primary:hover{
+    transform: translateY(-1px);
+    filter: brightness(1.03);
+    box-shadow: 0 18px 44px rgba(245,158,11,.26);
+  }
+
+  .btn-outline-primary{
+    background: rgba(96,165,250,.06) !important;
+    border: 1px solid rgba(96,165,250,.28) !important;
+    color: rgba(229,231,235,.98) !important;
+  }
+  .btn-outline-primary:hover{
+    transform: translateY(-1px);
+    background: rgba(96,165,250,.10) !important;
+    border-color: rgba(96,165,250,.42) !important;
+  }
+
+  .btn-outline-secondary{
+    background: rgba(255,255,255,.04) !important;
+    border: 1px solid rgba(255,255,255,.14) !important;
+    color: rgba(229,231,235,.96) !important;
+  }
+  .btn-outline-secondary:hover{
+    transform: translateY(-1px);
+    background: rgba(255,255,255,.08) !important;
+  }
+
+  .btn-outline-danger{
+    background: rgba(239,68,68,.05) !important;
+    border: 1px solid rgba(239,68,68,.26) !important;
+    color: rgba(239,68,68,.92) !important;
+  }
+  .btn-outline-danger:hover{
+    transform: translateY(-1px);
+    background: rgba(239,68,68,.09) !important;
+    border-color: rgba(239,68,68,.42) !important;
+  }
+
+  .table-card{
+    border-radius: 20px;
+    background: linear-gradient(180deg, var(--panel), var(--panel2));
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .table-responsive{
+    background: rgba(2,6,23,.22);
+  }
+
+  table.table{
+    margin: 0 !important;
+    color: var(--text);
+  }
+
+  .table > :not(caption) > * > *{
+    background: transparent !important;
+    border-bottom-color: rgba(255,255,255,.08) !important;
+    padding: 12px 12px;
+    vertical-align: middle;
+  }
+
+  .table thead th{
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: rgba(229,231,235,.95);
+    background:
+      linear-gradient(90deg, rgba(245,158,11,.14), rgba(96,165,250,.10)) !important;
+    border-bottom-color: rgba(255,255,255,.12) !important;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    white-space: nowrap;
+  }
+
+  .table tbody tr{
+    transition: background-color .18s ease, transform .18s ease;
+  }
+  .table-hover tbody tr:hover{
+    background: rgba(255,255,255,.04) !important;
+    transform: translateY(-1px);
+  }
+
+  .row-link{ cursor: pointer; }
+
+  .table a{
+    color: rgba(229,231,235,.98);
+    font-weight: 950;
+    text-decoration: none;
+  }
+  .table a:hover{
+    color: color-mix(in oklab, var(--amber2) 70%, white 30%);
+    text-decoration: underline;
+  }
+
+  /* Mobile cards (keep existing class names) */
+  .mobile-version{
+    display: none;
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .mobile-card{
+    background: linear-gradient(180deg, var(--card2), rgba(255,255,255,.03));
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 18px;
+    padding: 14px;
+    margin-bottom: 0;
+    box-shadow: var(--shadow2);
+    color: rgba(226,232,240,.98);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    position: relative;
+    overflow: hidden;
+  }
+  .mobile-card::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(520px 180px at 15% 0%, rgba(250,204,21,.12), transparent 60%),
+      radial-gradient(520px 180px at 90% 10%, rgba(96,165,250,.10), transparent 60%);
+    pointer-events:none;
+    opacity:.9;
+  }
+  .mobile-card > *{ position: relative; z-index: 1; }
+
+  .mc-row{
+    display:flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed rgba(255,255,255,.14);
+  }
+  .mc-row:last-child{
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  .mc-label{
+    font-weight: 900;
+    color: rgba(148,163,184,.95);
+    flex: 0 0 auto;
+  }
+  .mc-value{
+    font-weight: 850;
+    color: rgba(241,245,249,.98);
+    text-align: right;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .mc-actions a,
-  .mc-actions button {
-      width: 100%;
-      margin-top: 6px;
+  .mc-actions button{
+    width: 100%;
+    margin-top: 8px;
   }
-}
 
-/* 💻 Desktop */
-@media (min-width: 769px) {
-  .mobile-version { display: none !important; }
-}
+  @media (max-width: 768px){
+    table.table{ display:none !important; }
+    .desktop-version{ display:none !important; }
+    .mobile-version{ display:grid !important; }
+  }
+
+  @media (min-width: 769px){
+    .mobile-version{ display:none !important; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; scroll-behavior:auto !important; }
+    .table-hover tbody tr:hover{ transform:none !important; }
+    .btn:hover{ transform:none !important; }
+  }
 </style>
 
+<div class="gbc-wrap">
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h3 class="mb-0">👥 {% if category == "lang" %}Tillar{% else %}IT{% endif %} bo‘yicha guruhlar</h3>
-
-  {% if can_manage %}
-    {% if category == "lang" %}
-      <a class="btn btn-primary" href="{% url 'education:group_create_lang' %}">+ Yangi (Tillar)</a>
-    {% else %}
-      <a class="btn btn-primary" href="{% url 'education:group_create_it' %}">+ Yangi (IT)</a>
-    {% endif %}
-  {% endif %}
-</div>
-
-<!-- 💻 DESKTOP TABLE-->
-<div class="table-responsive desktop-version">
-  <table class="table table-hover align-middle">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Guruh</th>
-        <th>Center</th>
-        <th>O‘qituvchi</th>
-        <th>Talabalar</th>
-        <th>Amallar</th>
-      </tr>
-    </thead>
-
-    <tbody>
-      {% for g in rows %}
-      <tr class="row-link" data-href="{% url 'education:group_detail' g.id %}">
-        <td>{{ forloop.counter }}</td>
-        <td><a href="{% url 'education:group_detail' g.id %}">{{ g.nom }}</a></td>
-        <td>{{ g.center }}</td>
-        <td>{{ g.oqituvchi }}</td>
-        <td>{{ g.student_count }}</td>
-        <td>
-          <a class="btn btn-sm btn-outline-primary" href="{% url 'education:group_detail' g.id %}">Ko‘rish</a>
-
-          {% if can_manage %}
-            <a class="btn btn-sm btn-outline-secondary" href="{% url 'education:group_edit' g.id %}">Tahrirlash</a>
-
-            <form method="post" action="{% url 'education:group_delete' g.id %}"
-                  class="d-inline delete-form">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-sm btn-outline-danger">O‘chirish</button>
-            </form>
-          {% endif %}
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="6" class="text-muted text-center">Hozircha guruh yo‘q.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-
-
-<!-- 📱 MOBILE VERSION -->
-<div class="mobile-version">
-  {% for g in rows %}
-  <div class="mobile-card">
-
-    <div class="mc-row">
-      <span class="mc-label">📘 Guruh:</span>
-      <span class="mc-value">{{ g.nom }}</span>
-    </div>
-
-    <div class="mc-row">
-      <span class="mc-label">🏫 Center:</span>
-      <span class="mc-value">{{ g.center }}</span>
-    </div>
-
-    <div class="mc-row">
-      <span class="mc-label">👨‍🏫 O‘qituvchi:</span>
-      <span class="mc-value">{{ g.oqituvchi }}</span>
-    </div>
-
-    <div class="mc-row">
-      <span class="mc-label">👥 Talabalar:</span>
-      <span class="mc-value">{{ g.student_count }}</span>
-    </div>
-
-    <div class="mc-actions mt-2">
-      <a href="{% url 'education:group_detail' g.id %}"
-         class="btn btn-sm btn-outline-primary w-100">Ko‘rish</a>
+  <div class="gbc-top">
+    <div class="gbc-head">
+      <div style="min-width:0;">
+        <h3 class="gbc-title mb-0">👥 {% if category == "lang" %}Tillar{% else %}IT{% endif %} bo‘yicha guruhlar</h3>
+        <p class="gbc-sub mb-0">Premium dark • glassmorphism • mobil uchun card ko‘rinish</p>
+      </div>
 
       {% if can_manage %}
-      <a href="{% url 'education:group_edit' g.id %}"
-         class="btn btn-sm btn-outline-secondary w-100 mt-2">Tahrirlash</a>
-
-      <form method="post"
-            action="{% url 'education:group_delete' g.id %}"
-            class="delete-form w-100 mt-2">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-sm btn-outline-danger w-100">O‘chirish</button>
-      </form>
+        {% if category == "lang" %}
+          <a class="btn btn-primary" href="{% url 'education:group_create_lang' %}">+ Yangi (Tillar)</a>
+        {% else %}
+          <a class="btn btn-primary" href="{% url 'education:group_create_it' %}">+ Yangi (IT)</a>
+        {% endif %}
       {% endif %}
+    </div>
+  </div>
+
+  <div class="table-card">
+
+    <!-- 💻 DESKTOP TABLE-->
+    <div class="table-responsive desktop-version">
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Guruh</th>
+            <th>Center</th>
+            <th>O‘qituvchi</th>
+            <th>Talabalar</th>
+            <th>Amallar</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for g in rows %}
+          <tr class="row-link" data-href="{% url 'education:group_detail' g.id %}">
+            <td>{{ forloop.counter }}</td>
+            <td><a href="{% url 'education:group_detail' g.id %}">{{ g.nom }}</a></td>
+            <td>{{ g.center }}</td>
+            <td>{{ g.oqituvchi }}</td>
+            <td>{{ g.student_count }}</td>
+            <td>
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'education:group_detail' g.id %}">Ko‘rish</a>
+
+              {% if can_manage %}
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'education:group_edit' g.id %}">Tahrirlash</a>
+
+                <form method="post" action="{% url 'education:group_delete' g.id %}"
+                      class="d-inline delete-form">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-danger">O‘chirish</button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-muted text-center">Hozircha guruh yo‘q.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 📱 MOBILE VERSION -->
+    <div class="mobile-version">
+      {% for g in rows %}
+      <div class="mobile-card">
+
+        <div class="mc-row">
+          <span class="mc-label">📘 Guruh:</span>
+          <span class="mc-value">{{ g.nom }}</span>
+        </div>
+
+        <div class="mc-row">
+          <span class="mc-label">🏫 Center:</span>
+          <span class="mc-value">{{ g.center }}</span>
+        </div>
+
+        <div class="mc-row">
+          <span class="mc-label">👨‍🏫 O‘qituvchi:</span>
+          <span class="mc-value">{{ g.oqituvchi }}</span>
+        </div>
+
+        <div class="mc-row">
+          <span class="mc-label">👥 Talabalar:</span>
+          <span class="mc-value">{{ g.student_count }}</span>
+        </div>
+
+        <div class="mc-actions mt-2">
+          <a href="{% url 'education:group_detail' g.id %}"
+             class="btn btn-sm btn-outline-primary w-100">Ko‘rish</a>
+
+          {% if can_manage %}
+          <a href="{% url 'education:group_edit' g.id %}"
+             class="btn btn-sm btn-outline-secondary w-100 mt-2">Tahrirlash</a>
+
+          <form method="post"
+                action="{% url 'education:group_delete' g.id %}"
+                class="delete-form w-100 mt-2">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-danger w-100">O‘chirish</button>
+          </form>
+          {% endif %}
+        </div>
+
+      </div>
+      {% empty %}
+      <p class="text-muted">Hozircha guruh yo‘q.</p>
+      {% endfor %}
     </div>
 
   </div>
-  {% empty %}
-  <p class="text-muted">Hozircha guruh yo‘q.</p>
-  {% endfor %}
+
 </div>
 
-
 <script>
-// satr bosilganda detailsga o‘tish
 document.querySelectorAll('.row-link').forEach(tr=>{
   tr.style.cursor='pointer';
   tr.addEventListener('click', e=>{
@@ -163,7 +419,6 @@ document.querySelectorAll('.row-link').forEach(tr=>{
   });
 });
 
-// delete confirm
 document.querySelectorAll('.delete-form').forEach(form=>{
   form.addEventListener('submit', e=>{
     if(!confirm("Rostdan ham bu guruhni o‘chirmoqchimisiz?")) {

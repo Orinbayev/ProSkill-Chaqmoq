@@ -1,189 +1,338 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<div class="lead-wrapper container text-light">
+<main class="lead-shell" aria-labelledby="page-title">
+  <div class="lead-bg" aria-hidden="true"></div>
 
-  <h3 class="page-title">🧩 Yangi o‘quvchi qo‘shish</h3>
+  <section class="lead-wrapper container text-light">
+    <header class="lead-header">
+      <h3 class="page-title" id="page-title">🧩 Yangi o‘quvchi qo‘shish</h3>
+    </header>
 
-  <form method="POST" class="lead-form">
-    {% csrf_token %}
+    <form method="POST" class="lead-form" novalidate>
+      {% csrf_token %}
 
-    <div class="row g-3">
+      <div class="row g-3 lead-grid">
 
-      <div class="col-md-6 form-group">
-        {{ form.ism.label_tag }} 
-        {{ form.ism }}
+        <div class="col-md-6 form-group">
+          {{ form.ism.label_tag }}
+          {{ form.ism }}
+        </div>
+
+        <div class="col-md-6 form-group">
+          {{ form.familya.label_tag }}
+          {{ form.familya }}
+        </div>
+
+        <div class="col-md-6 form-group">
+          {{ form.telefon1.label_tag }}
+          {{ form.telefon1 }}
+        </div>
+
+        <div class="col-md-6 form-group">
+          {{ form.telefon2.label_tag }}
+          {{ form.telefon2 }}
+        </div>
+
+        <div class="col-md-4 form-group">
+          {{ form.yosh.label_tag }}
+          {{ form.yosh }}
+        </div>
+
+        <div class="col-md-4 form-group">
+          {{ form.manba.label_tag }}
+          {{ form.manba }}
+        </div>
+
+        <div class="col-md-4 form-group">
+          {{ form.yonalish.label_tag }}
+          {{ form.yonalish }}
+        </div>
+
+        <div class="col-12 form-group">
+          {{ form.comment.label_tag }}
+          {{ form.comment }}
+        </div>
+
+        <div class="col-md-6 form-group">
+          {{ form.address.label_tag }}
+          {{ form.address }}
+        </div>
+
+        <div class="col-md-6 form-group">
+          {{ form.status.label_tag }}
+          {{ form.status }}
+        </div>
+
       </div>
 
-      <div class="col-md-6 form-group">
-        {{ form.familya.label_tag }} 
-        {{ form.familya }}
+      <div class="lead-actions">
+        <button type="submit" class="btn btn-save">💾 Saqlash</button>
       </div>
-
-      <div class="col-md-6 form-group">
-        {{ form.telefon1.label_tag }} 
-        {{ form.telefon1 }}
-      </div>
-
-      <div class="col-md-6 form-group">
-        {{ form.telefon2.label_tag }} 
-        {{ form.telefon2 }}
-      </div>
-
-      <div class="col-md-4 form-group">
-        {{ form.yosh.label_tag }} 
-        {{ form.yosh }}
-      </div>
-
-      <div class="col-md-4 form-group">
-        {{ form.manba.label_tag }} 
-        {{ form.manba }}
-      </div>
-
-      <div class="col-md-4 form-group">
-        {{ form.yonalish.label_tag }} 
-        {{ form.yonalish }}
-      </div>
-
-      <div class="col-12 form-group">
-        {{ form.comment.label_tag }} 
-        {{ form.comment }}
-      </div>
-
-      <div class="col-md-6 form-group">
-        {{ form.address.label_tag }} 
-        {{ form.address }}
-      </div>
-
-      <div class="col-md-6 form-group">
-        {{ form.status.label_tag }} 
-        {{ form.status }}
-      </div>
-
-    </div>
-
-    <button type="submit" class="btn btn-save">💾 Saqlash</button>
-
-  </form>
-
-</div>
-
+    </form>
+  </section>
+</main>
 
 <style>
-/* SELECT OPTION — oq bo‘lib ketmasligi uchun */
-.lead-form select option {
-  background-color: rgba(30, 41, 59, 0.95); /* To‘q fon */
-  color: #e2e8f0; /* Oq-ish rangdagi matn */
-}
+  :root{
+    --bg0:#070b14;
+    --bg1:#0b1220;
+    --bg2:#0f1b33;
 
-/* ==========================
-     MAIN WRAPPER
-========================== */
-.lead-wrapper {
-  margin-top: 20px;
-  max-width: 900px;
-}
+    --card: rgba(255,255,255,0.06);
+    --card2: rgba(255,255,255,0.10);
+    --line: rgba(255,255,255,0.12);
 
-.page-title {
-  margin-bottom: 25px;
-  font-weight: 600;
-  font-size: 1.7rem;
-}
+    --text:#e5e7eb;
+    --muted:#9ca3af;
 
+    --amber:#f59e0b;
+    --amber2:#facc15;
+    --neon: rgba(245,158,11,0.45);
 
-/* ==========================
-     FORM CARD
-========================== */
-.lead-form {
-  background: rgba(255,255,255,0.03);
-  padding: 25px 25px 30px;
-  border-radius: 18px;
-  box-shadow: 0 0 25px rgba(0,0,0,0.28);
-  border: 1px solid rgba(255,255,255,0.08);
-  backdrop-filter: blur(6px);
-}
+    --ok:#22c55e;
+    --shadow: 0 24px 70px rgba(0,0,0,.55);
+    --radius: 18px;
 
-
-/* ==========================
-     FORM LABELS
-========================== */
-.lead-form label {
-  font-weight: 600;
-  margin-bottom: 6px;
-  color: #f1f5f9;
-  font-size: 0.95rem;
-}
-
-
-/* ==========================
-     INPUTS & SELECTS
-========================== */
-.lead-form input,
-.lead-form select,
-.lead-form textarea {
-  width: 100%;
-  background: rgba(255,255,255,0.06) !important;
-  border: 1px solid rgba(255,255,255,0.15) !important;
-  color: #e2e8f0 !important;
-  padding: 10px 12px;
-  border-radius: 10px;
-  font-size: 0.95rem;
-  transition: 0.25s ease;
-}
-
-.lead-form input:focus,
-.lead-form select:focus,
-.lead-form textarea:focus {
-  background: rgba(255,255,255,0.10) !important;
-  border-color: #38bdf8 !important;
-  box-shadow: 0 0 8px rgba(56,189,248,0.4);
-  outline: none !important;
-}
-
-
-/* ==========================
-     SAVE BUTTON
-========================== */
-.btn-save {
-  margin-top: 25px;
-  padding: 12px 25px;
-  border: none;
-  border-radius: 12px;
-  font-weight: 600;
-  background: linear-gradient(90deg,#22c55e,#4ade80);
-  color: #000;
-  box-shadow: 0 0 14px rgba(34,197,94,0.4);
-  transition: 0.25s;
-}
-
-@media (hover:hover) {
-  .btn-save:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0 20px rgba(34,197,94,0.6);
-  }
-}
-
-
-/* ==========================
-     MOBILE OPTIMIZATION
-========================== */
-@media (max-width: 576px) {
-
-  .lead-form {
-    padding: 20px 18px;
+    --ring: 0 0 0 4px rgba(245,158,11,.18), 0 0 18px rgba(245,158,11,.28);
   }
 
-  .page-title {
-    font-size: 1.45rem;
+  .lead-shell{
+    position: relative;
+    min-height: calc(100svh - 1px);
+    padding: clamp(14px, 2.5vw, 26px) 0;
+    color: var(--text);
   }
 
-  .btn-save {
+  .lead-bg{
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(900px 420px at 18% 10%, rgba(245,158,11,.14), transparent 60%),
+      radial-gradient(760px 380px at 85% 18%, rgba(56,189,248,.10), transparent 60%),
+      radial-gradient(980px 520px at 55% 92%, rgba(34,197,94,.08), transparent 62%),
+      linear-gradient(160deg, var(--bg0), var(--bg1) 45%, var(--bg2));
+  }
+
+  .lead-wrapper{
+    margin-top: 10px;
+    max-width: 980px;
+  }
+
+  .lead-header{
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .page-title{
+    margin: 0;
+    font-weight: 750;
+    letter-spacing: .2px;
+    font-size: clamp(1.25rem, 1rem + 1.2vw, 1.8rem);
+    line-height: 1.2;
+    text-shadow: 0 10px 30px rgba(0,0,0,.45);
+  }
+
+  .lead-form{
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+    padding: clamp(16px, 2.2vw, 26px);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .lead-form::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(420px 220px at 12% 10%, rgba(245,158,11,.10), transparent 58%),
+      radial-gradient(420px 220px at 88% 0%, rgba(250,204,21,.10), transparent 55%),
+      radial-gradient(560px 260px at 70% 110%, rgba(56,189,248,.08), transparent 60%);
+    pointer-events:none;
+    opacity: .95;
+  }
+
+  .lead-form > *{ position: relative; }
+
+  .form-group{
+    display: grid;
+    gap: 8px;
+  }
+
+  .lead-form label{
+    font-weight: 700;
+    color: rgba(241,245,249,0.95);
+    font-size: 0.95rem;
+    letter-spacing: .15px;
+  }
+
+  .lead-form input,
+  .lead-form select,
+  .lead-form textarea{
     width: 100%;
-    padding: 14px;
-    font-size: 1rem;
+    color: var(--text) !important;
+    background: rgba(255,255,255,0.06) !important;
+    border: 1px solid rgba(255,255,255,0.14) !important;
+    border-radius: 14px;
+    padding: 12px 12px;
+    font-size: 0.98rem;
+    line-height: 1.25;
+    transition: transform .16s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+    min-height: 44px;
   }
-}
 
+  .lead-form textarea{
+    min-height: 110px;
+    resize: vertical;
+  }
+
+  .lead-form input::placeholder,
+  .lead-form textarea::placeholder{
+    color: rgba(156,163,175,0.9) !important;
+  }
+
+  .lead-form select option{
+    background-color: rgba(15, 23, 42, 0.98);
+    color: #e2e8f0;
+  }
+
+  .lead-form input:hover,
+  .lead-form select:hover,
+  .lead-form textarea:hover{
+    border-color: rgba(245,158,11,0.32) !important;
+    background: rgba(255,255,255,0.075) !important;
+  }
+
+  .lead-form input:focus,
+  .lead-form select:focus,
+  .lead-form textarea:focus{
+    outline: none !important;
+    border-color: rgba(245,158,11,0.60) !important;
+    box-shadow: var(--ring);
+    background: rgba(255,255,255,0.10) !important;
+    transform: translateY(-1px);
+  }
+
+  .lead-form input:focus-visible,
+  .lead-form select:focus-visible,
+  .lead-form textarea:focus-visible,
+  .btn-save:focus-visible{
+    outline: none;
+    box-shadow: var(--ring);
+  }
+
+  .lead-form .errorlist{
+    margin: 6px 0 0;
+    padding-left: 18px;
+    color: #fecaca;
+    font-size: .92rem;
+  }
+
+  .lead-actions{
+    margin-top: 18px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+
+  .btn-save{
+    position: relative;
+    border: 1px solid rgba(245,158,11,0.35);
+    border-radius: 14px;
+    padding: 12px 18px;
+    font-weight: 800;
+    letter-spacing: .2px;
+    min-height: 46px;
+    color: #0a0a0a;
+    background:
+      linear-gradient(135deg, rgba(250,204,21,1), rgba(245,158,11,1));
+    box-shadow: 0 16px 40px rgba(0,0,0,.42), 0 0 26px rgba(245,158,11,.22);
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+    width: 100%;
+    max-width: 260px;
+  }
+
+  .btn-save::after{
+    content:"";
+    position:absolute;
+    inset:-1px;
+    border-radius: inherit;
+    background: radial-gradient(120px 60px at 30% 20%, rgba(255,255,255,.55), transparent 55%);
+    opacity: .35;
+    pointer-events:none;
+  }
+
+  @media (hover:hover){
+    .btn-save:hover{
+      transform: translateY(-2px);
+      filter: saturate(1.06);
+      box-shadow: 0 18px 55px rgba(0,0,0,.55), 0 0 34px rgba(245,158,11,.30);
+    }
+  }
+
+  .btn-save:active{
+    transform: translateY(0px) scale(.99);
+  }
+
+  /* GRID: works with or without Bootstrap */
+  .lead-grid{
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin: 0;
+  }
+
+  .lead-grid > [class*="col-"]{
+    width: 100%;
+    max-width: 100%;
+    flex: none;
+    padding: 0;
+  }
+
+  .lead-grid .col-12{ grid-column: 1 / -1; }
+
+  @media (min-width: 576px){
+    .lead-grid{ gap: 16px; }
+  }
+
+  @media (min-width: 768px){
+    .lead-grid{ grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
+    .lead-grid .col-md-6{ grid-column: span 6; }
+    .lead-grid .col-md-4{ grid-column: span 4; }
+    .lead-grid .col-12{ grid-column: 1 / -1; }
+  }
+
+  @media (min-width: 1200px){
+    .lead-wrapper{ max-width: 1040px; }
+    .lead-form{ padding: 28px; }
+  }
+
+  @media (max-width: 576px){
+    .btn-save{
+      max-width: 100%;
+      padding: 14px 16px;
+      font-size: 1rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .lead-form input,
+    .lead-form select,
+    .lead-form textarea,
+    .btn-save{
+      transition: none !important;
+    }
+  }
 </style>
 
+<!-- :contentReference[oaicite:0]{index=0} -->
 {% endblock %}

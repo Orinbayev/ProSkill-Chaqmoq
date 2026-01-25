@@ -203,19 +203,24 @@ def _staff_only(request):
     u = request.user
     return u.is_superuser or getattr(u, 'role', None) in ('manager','director')
 
-from django.core.paginator import Paginator
+
+
 
 @login_required
 def stat_managers(request):
-    if not _staff_only(request):
-        return render(request, 'core/dashboard_guest.html')
+    # ✅ Manager bu bo‘limga kirmasin (URL orqali ham)
+    if getattr(request.user, "role", None) == "manager":
+        return render(request, "no_permission.html", {
+            "message": "Sizda bu bo‘limga kirish huquqi yo‘q."
+        })
+
+    # ✅ faqat director/admin/superuser (o'zingizdagi rollarga moslab qo'ying)
+    if not (request.user.is_superuser or getattr(request.user, "role", None) in ("director", "admin")):
+        return render(request, "core/dashboard_guest.html")
 
     q = request.GET.get('q', '').strip()
 
-    # ❗ Managerda pagination yo‘q → page_size = 10 qat'iy (yoki hammasi)
-    page_size = 9999   # shunchaki hammasini chiqarib yuboradi
-
-    rows = U.objects.filter(role='manager')
+    rows = U.objects.filter(role='manager').order_by('ism', 'familya', 'id')
 
     if q:
         rows = rows.filter(
@@ -224,21 +229,23 @@ def stat_managers(request):
             Q(email__icontains=q)
         )
 
+    page_size = 9999
     paginator = Paginator(rows, page_size)
-    page_obj = paginator.get_page(1)  # ❗ har doim birinchi sahifa
-
+    page_obj = paginator.get_page(1)
     start_index = page_obj.start_index()
 
     return render(request, 'core/stats_users.html', {
         'title': 'Managerlar',
-        'rows': rows,
         'page_obj': page_obj,
         'page_size': page_size,
         'start_index': start_index,
-
-        # ❗ paginationni o‘chiradigan flag
         'no_pagination': True,
+
+        # ✅ template ichida manager layout yoqish uchun
+        'user_kind': 'managers',
     })
+
+
 
 
 from education.models import Group, Enrollment

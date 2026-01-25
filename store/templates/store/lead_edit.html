@@ -1,58 +1,189 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<style>
-  :root {
-    --bg:#0f172a;
-    --panel:#111827;
-    --muted:#9ca3af;
-    --text:#e5e7eb;
-    --line:#1f2937;
+<main class="le-shell" aria-labelledby="le-title">
+  <div class="le-bg" aria-hidden="true"></div>
 
-    --chip-ok:#22c55e;
-    --chip-bad:#ef4444;
-    --btn:#10b981;
-    --blue:#1d4ed8;
+  <section class="le-wrap container">
+    <header class="le-head">
+      <h1 class="page-title" id="le-title">✏️ Lead tahrirlash</h1>
+
+      <p class="page-sub">
+        <span style="color:var(--muted);">Lead:</span>
+        <strong style="color:var(--text);">{{ lead.ism }} {{ lead.familya|default:"" }}</strong>
+      </p>
+    </header>
+
+    <form method="POST" class="edit-form" novalidate>
+      {% csrf_token %}
+
+      <div class="form-head">
+        <div class="title">🧾 Asosiy ma’lumotlar</div>
+        <div class="hint">Maydonlarni to‘g‘rilang va <b>Saqlash</b> tugmasini bosing.</div>
+      </div>
+
+      <div class="row g-3 le-grid">
+        <div class="col-md-6 form-group">
+          {{ form.ism.label_tag }}
+          {{ form.ism }}
+        </div>
+
+        <div class="col-md-6 form-group">
+          {{ form.familya.label_tag }}
+          {{ form.familya }}
+        </div>
+
+        <div class="col-md-6 form-group">
+          {{ form.telefon1.label_tag }}
+          {{ form.telefon1 }}
+        </div>
+
+        <div class="col-md-6 form-group">
+          {{ form.telefon2.label_tag }}
+          {{ form.telefon2 }}
+        </div>
+
+        <div class="col-md-4 form-group">
+          {{ form.yosh.label_tag }}
+          {{ form.yosh }}
+        </div>
+
+        <div class="col-md-8 form-group">
+          {{ form.address.label_tag }}
+          {{ form.address }}
+        </div>
+
+        <div class="col-md-4 form-group">
+          {{ form.manba.label_tag }}
+          {{ form.manba }}
+        </div>
+
+        <div class="col-md-4 form-group">
+          {{ form.yonalish.label_tag }}
+          {{ form.yonalish }}
+        </div>
+
+        <div class="col-md-4 form-group">
+          {{ form.status.label_tag }}
+          {{ form.status }}
+        </div>
+
+        <div class="col-md-12 form-group">
+          {{ form.comment.label_tag }}
+          {{ form.comment }}
+        </div>
+      </div>
+
+      <div class="btnbar">
+        <a href="{% url 'store:lead_list' %}" class="btnx secondary">⬅️ Ortga</a>
+        <button type="submit" class="btnx primary">💾 Saqlash</button>
+      </div>
+    </form>
+  </section>
+</main>
+
+<style>
+  :root{
+    --bg0:#070b14;
+    --bg1:#0b1220;
+    --bg2:#0f1b33;
+
+    --card: rgba(255,255,255,0.06);
+    --card2: rgba(255,255,255,0.10);
+    --line: rgba(255,255,255,0.12);
+
+    --text:#e5e7eb;
+    --muted:#9ca3af;
+
+    --amber:#f59e0b;
+    --amber2:#facc15;
     --sky:#38bdf8;
+    --blue:#1d4ed8;
+
+    --ok:#22c55e;
+    --danger:#ef4444;
+
+    --shadow: 0 24px 70px rgba(0,0,0,.55);
+    --radius: 18px;
+
+    --ring: 0 0 0 4px rgba(245,158,11,.18), 0 0 18px rgba(245,158,11,.28);
+    --ring-sky: 0 0 0 4px rgba(56,189,248,.18), 0 0 18px rgba(56,189,248,.26);
   }
 
-  /* =====================
-       WRAPPER
-  ===================== */
-  .edit-wrapper{
-    margin-top: 18px;
-    max-width: 980px;
+  .le-shell{
+    position: relative;
+    min-height: calc(100svh - 1px);
+    padding: clamp(14px, 2.5vw, 26px) 0;
     color: var(--text);
   }
 
+  .le-bg{
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(900px 420px at 18% 10%, rgba(245,158,11,.14), transparent 60%),
+      radial-gradient(760px 380px at 85% 18%, rgba(56,189,248,.10), transparent 60%),
+      radial-gradient(980px 520px at 55% 92%, rgba(34,197,94,.08), transparent 62%),
+      linear-gradient(160deg, var(--bg0), var(--bg1) 45%, var(--bg2));
+  }
+
+  .le-wrap{
+    margin-top: 8px;
+    max-width: 980px;
+  }
+
+  .le-head{
+    margin-bottom: 14px;
+  }
+
   .page-title{
-    margin: 0 0 14px;
+    margin: 0 0 10px;
     font-weight: 900;
-    font-size: 1.45rem;
+    font-size: clamp(1.25rem, 1.05rem + 1.1vw, 1.75rem);
     letter-spacing: .2px;
     display:flex;
     align-items:center;
     gap:10px;
+    text-shadow: 0 10px 30px rgba(0,0,0,.45);
   }
 
   .page-sub{
-    color: var(--muted);
-    margin-bottom: 18px;
-    font-size: .95rem;
+    margin: 0;
+    color: rgba(203,213,225,0.95);
+    font-size: .98rem;
   }
 
   /* =====================
        FORM CARD
   ===================== */
   .edit-form{
-    background: rgba(255,255,255,0.03);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 18px;
-    box-shadow: 0 0 24px rgba(0,0,0,0.28);
+    position: relative;
+    background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: var(--radius);
+    padding: clamp(14px, 2.2vw, 20px);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    overflow: hidden;
   }
 
-  /* Section header inside card */
+  .edit-form::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(420px 220px at 12% 10%, rgba(245,158,11,.10), transparent 58%),
+      radial-gradient(420px 220px at 88% 0%, rgba(250,204,21,.10), transparent 55%),
+      radial-gradient(560px 260px at 70% 110%, rgba(56,189,248,.10), transparent 60%);
+    pointer-events:none;
+    opacity: .95;
+  }
+
+  .edit-form > *{ position: relative; }
+
+  /* Section header inside card (keep existing classes) */
   .form-head{
     display:flex;
     align-items:center;
@@ -61,31 +192,39 @@
     flex-wrap:wrap;
     padding: 12px 14px;
     border-radius: 14px;
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.10);
     margin-bottom: 14px;
   }
 
   .form-head .title{
     font-weight: 900;
     letter-spacing:.2px;
+    display:flex;
+    align-items:center;
+    gap:10px;
   }
 
   .form-head .hint{
-    color: var(--muted);
-    font-size: .9rem;
+    color: rgba(203,213,225,0.90);
+    font-size: .92rem;
   }
 
   /* =====================
        LABELS
   ===================== */
   .edit-form label{
-    font-weight: 900;
+    font-weight: 800;
     margin-bottom: 6px;
-    color: var(--muted);
-    font-size: .82rem;
-    text-transform: uppercase;
-    letter-spacing: .05em;
+    color: rgba(229,231,235,0.92);
+    font-size: .86rem;
+    letter-spacing: .15px;
+  }
+
+  .form-group{
+    display: grid;
+    gap: 8px;
+    margin-bottom: 0;
   }
 
   /* =====================
@@ -95,34 +234,58 @@
   .edit-form select,
   .edit-form textarea{
     width:100%;
-    background: rgba(255,255,255,0.04) !important;
-    border: 1px solid rgba(255,255,255,0.10) !important;
+    background: rgba(255,255,255,0.06) !important;
+    border: 1px solid rgba(255,255,255,0.14) !important;
     color: var(--text) !important;
-    padding: 10px 12px;
-    border-radius: 12px;
-    font-size: .95rem;
-    transition: 0.18s ease;
+    padding: 12px 12px;
+    border-radius: 14px;
+    font-size: .98rem;
+    line-height: 1.25;
+    transition: transform .16s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
     outline: none !important;
+    min-height: 44px;
   }
 
   .edit-form textarea{
-    min-height: 110px;
+    min-height: 120px;
     resize: vertical;
+  }
+
+  .edit-form input::placeholder,
+  .edit-form textarea::placeholder{
+    color: rgba(156,163,175,0.9) !important;
+  }
+
+  .edit-form select option{
+    background-color: rgba(15, 23, 42, 0.98);
+    color: #e2e8f0;
+  }
+
+  .edit-form input:hover,
+  .edit-form select:hover,
+  .edit-form textarea:hover{
+    border-color: rgba(245,158,11,0.30) !important;
+    background: rgba(255,255,255,0.075) !important;
   }
 
   .edit-form input:focus,
   .edit-form select:focus,
   .edit-form textarea:focus{
-    background: rgba(255,255,255,0.06) !important;
-    border-color: rgba(56,189,248,0.8) !important;
-    box-shadow: 0 0 0 3px rgba(56,189,248,0.18);
+    background: rgba(255,255,255,0.10) !important;
+    border-color: rgba(245,158,11,0.60) !important;
+    box-shadow: var(--ring);
+    transform: translateY(-1px);
   }
 
-  /* Nice spacing between groups */
-  .form-group{ margin-bottom: 6px; }
+  .edit-form input:focus-visible,
+  .edit-form select:focus-visible,
+  .edit-form textarea:focus-visible{
+    outline: none;
+    box-shadow: var(--ring);
+  }
 
   /* =====================
-       BUTTON BAR
+       BUTTON BAR (keep existing classes)
   ===================== */
   .btnbar{
     display:flex;
@@ -130,138 +293,103 @@
     gap:10px;
     margin-top: 14px;
     padding-top: 14px;
-    border-top: 1px solid rgba(255,255,255,0.06);
+    border-top: 1px solid rgba(255,255,255,0.12);
     flex-wrap:wrap;
   }
 
   .btnx{
-    border-radius: 12px;
-    padding: 10px 14px;
+    border-radius: 14px;
+    padding: 12px 16px;
     font-weight: 900;
-    border: 1px solid rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.14);
     text-decoration:none;
     display:inline-flex;
     align-items:center;
+    justify-content:center;
     gap:10px;
     cursor:pointer;
-    background: rgba(255,255,255,0.03);
+    background: rgba(255,255,255,0.06);
     color: var(--text);
-    transition: .15s ease;
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease, background .18s ease, border-color .18s ease;
     white-space:nowrap;
+    min-height: 46px;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  .btnx:hover{ filter: brightness(.98); transform: translateY(-1px); }
+  @media (hover:hover){
+    .btnx:hover{
+      transform: translateY(-2px);
+      box-shadow: 0 18px 60px rgba(0,0,0,.45);
+      filter: saturate(1.03);
+    }
+  }
+
+  .btnx:active{
+    transform: translateY(0px) scale(.99);
+  }
+
+  .btnx:focus-visible{
+    outline: none;
+    box-shadow: var(--ring);
+  }
 
   .btnx.primary{
-    background: var(--btn);
-    border-color: var(--btn);
-    color:#07110b;
+    color:#0a0a0a;
+    background: linear-gradient(135deg, rgba(250,204,21,1), rgba(245,158,11,1));
+    border-color: rgba(245,158,11,0.55);
+    box-shadow: 0 16px 42px rgba(0,0,0,.42), 0 0 28px rgba(245,158,11,.22);
   }
 
   .btnx.secondary{
-    background: rgba(255,255,255,0.04);
-    border-color: rgba(255,255,255,0.10);
-  }
-
-  .btnx.danger{
-    background: rgba(239,68,68,0.12);
-    border-color: rgba(239,68,68,0.30);
-    color:#fecaca;
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.14);
   }
 
   /* =====================
-       GRID LOOK POLISH
+       GRID (works with or without Bootstrap)
   ===================== */
-  .row.g-3{ --bs-gutter-y: 14px; }
+  .le-grid{
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin: 0;
+  }
+
+  .le-grid > [class*="col-"]{
+    width: 100%;
+    max-width: 100%;
+    flex: none;
+    padding: 0;
+  }
+
+  .le-grid .col-md-12{ grid-column: 1 / -1; }
+
+  @media (min-width: 768px){
+    .le-grid{
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .le-grid .col-md-6{ grid-column: span 6; }
+    .le-grid .col-md-4{ grid-column: span 4; }
+    .le-grid .col-md-8{ grid-column: span 8; }
+    .le-grid .col-md-12{ grid-column: 1 / -1; }
+  }
 
   /* =====================
        MOBILE
   ===================== */
   @media (max-width: 576px){
-    .edit-form{ padding: 14px; }
-    .page-title{ font-size: 1.25rem; }
-    .btnbar .btnx{ width:100%; justify-content:center; }
+    .btnbar .btnx{ width:100%; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .edit-form input,
+    .edit-form select,
+    .edit-form textarea,
+    .btnx{
+      transition: none !important;
+    }
   }
 </style>
-
-
-<div class="edit-wrapper container">
-
-  <div class="page-title">
-    ✏️ Lead tahrirlash
-  </div>
-  <div class="page-sub">
-    <span style="color:var(--muted);">Lead:</span>
-    <strong style="color:var(--text);">{{ lead.ism }} {{ lead.familya|default:"" }}</strong>
-  </div>
-
-  <form method="POST" class="edit-form">
-    {% csrf_token %}
-
-    <div class="form-head">
-      <div class="title">🧾 Asosiy ma’lumotlar</div>
-      <div class="hint">Maydonlarni to‘g‘rilang va <b>Saqlash</b> tugmasini bosing.</div>
-    </div>
-
-    <div class="row g-3">
-      <div class="col-md-6 form-group">
-        {{ form.ism.label_tag }}
-        {{ form.ism }}
-      </div>
-
-      <div class="col-md-6 form-group">
-        {{ form.familya.label_tag }}
-        {{ form.familya }}
-      </div>
-
-      <div class="col-md-6 form-group">
-        {{ form.telefon1.label_tag }}
-        {{ form.telefon1 }}
-      </div>
-
-      <div class="col-md-6 form-group">
-        {{ form.telefon2.label_tag }}
-        {{ form.telefon2 }}
-      </div>
-
-      <div class="col-md-4 form-group">
-        {{ form.yosh.label_tag }}
-        {{ form.yosh }}
-      </div>
-
-      <div class="col-md-8 form-group">
-        {{ form.address.label_tag }}
-        {{ form.address }}
-      </div>
-
-      <div class="col-md-4 form-group">
-        {{ form.manba.label_tag }}
-        {{ form.manba }}
-      </div>
-
-      <div class="col-md-4 form-group">
-        {{ form.yonalish.label_tag }}
-        {{ form.yonalish }}
-      </div>
-
-      <div class="col-md-4 form-group">
-        {{ form.status.label_tag }}
-        {{ form.status }}
-      </div>
-
-      <div class="col-md-12 form-group">
-        {{ form.comment.label_tag }}
-        {{ form.comment }}
-      </div>
-    </div>
-
-    <div class="btnbar">
-      <a href="{% url 'store:lead_list' %}" class="btnx secondary">⬅️ Ortga</a>
-      <button type="submit" class="btnx primary">💾 Saqlash</button>
-    </div>
-
-  </form>
-
-</div>
 
 {% endblock %}

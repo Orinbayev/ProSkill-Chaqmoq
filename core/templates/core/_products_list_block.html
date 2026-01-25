@@ -1,0 +1,195 @@
+<!-- DESKTOP/TABLET TABLE -->
+<div class="table-scroll">
+  <table class="chaq-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>NOM</th>
+        <th>NARX (CHAQMOQ)</th>
+        <th>YARATILGAN SANA</th>
+        <th class="text-end">AMALLAR</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for p in items %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+
+        {# ===== NAME (SAFE) ===== #}
+        <td class="name-cell"
+            title="{% if p.nom %}{{ p.nom }}{% elif p.name %}{{ p.name }}{% else %}—{% endif %}">
+          {% if p.nom %}
+            {{ p.nom }}
+          {% elif p.name %}
+            {{ p.name }}
+          {% else %}
+            —
+          {% endif %}
+        </td>
+
+        {# ===== PRICE (SAFE) ===== #}
+        <td>
+          <span class="price-pill">
+            {% if p.narx_chaqmoq %}
+              {{ p.narx_chaqmoq }}
+            {% elif p.price_chaqmoq %}
+              {{ p.price_chaqmoq }}
+            {% elif p.price %}
+              {{ p.price }}
+            {% else %}
+              0
+            {% endif %}
+          </span>
+        </td>
+
+        {# ===== DATE (SAFE) ===== #}
+        <td>
+          <span class="date-mono">
+            {% if p.yaratilgan %}
+              {{ p.yaratilgan|date:"Y-m-d" }}
+            {% elif p.created_at %}
+              {{ p.created_at|date:"Y-m-d" }}
+            {% elif p.created %}
+              {{ p.created|date:"Y-m-d" }}
+            {% else %}
+              —
+            {% endif %}
+          </span>
+        </td>
+
+        {# ===== ACTIONS (SAFE pk/id) ===== #}
+        <td class="actions-cell">
+          <div class="actions-cell-inner">
+            {% if p.pk %}
+              <a class="a-btn a-edit" href="{% url 'store:product_edit' p.pk %}" title="Tahrirlash">
+                <i class="fa-solid fa-pen"></i>
+              </a>
+
+              <form method="post"
+                    action="{% url 'store:product_delete' p.pk %}"
+                    class="d-inline"
+                    onsubmit="return confirm('Haqiqatan ham o‘chirmoqchimisiz?');">
+                {% csrf_token %}
+                <button type="submit" class="a-btn a-del" title="O‘chirish">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </form>
+
+            {% elif p.id %}
+              <a class="a-btn a-edit" href="{% url 'store:product_edit' p.id %}" title="Tahrirlash">
+                <i class="fa-solid fa-pen"></i>
+              </a>
+
+              <form method="post"
+                    action="{% url 'store:product_delete' p.id %}"
+                    class="d-inline"
+                    onsubmit="return confirm('Haqiqatan ham o‘chirmoqchimisiz?');">
+                {% csrf_token %}
+                <button type="submit" class="a-btn a-del" title="O‘chirish">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </form>
+
+            {% else %}
+              <span class="a-btn a-edit" style="opacity:.45; cursor:not-allowed" title="ID topilmadi">
+                <i class="fa-solid fa-pen"></i>
+              </span>
+              <span class="a-btn a-del" style="opacity:.45; cursor:not-allowed" title="ID topilmadi">
+                <i class="fa-solid fa-trash"></i>
+              </span>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" class="empty-row">Maʼlumot topilmadi.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- MOBILE CARDS -->
+<div class="prod-cards">
+  {% for p in items %}
+    <div class="pcard">
+      <div class="pcard-top">
+        <div class="pid">{{ forloop.counter }}</div>
+
+        <div style="min-width:0; flex:1;">
+          <div class="pname">
+            {% if p.nom %}
+              {{ p.nom }}
+            {% elif p.name %}
+              {{ p.name }}
+            {% else %}
+              —
+            {% endif %}
+          </div>
+
+          <div class="pmeta">
+            <span><i class="fa-solid fa-coins"></i>
+              {% if p.narx_chaqmoq %}
+                {{ p.narx_chaqmoq }}
+              {% elif p.price_chaqmoq %}
+                {{ p.price_chaqmoq }}
+              {% elif p.price %}
+                {{ p.price }}
+              {% else %}
+                0
+              {% endif %}
+            </span>
+
+            <span><i class="fa-regular fa-calendar"></i>
+              {% if p.yaratilgan %}
+                {{ p.yaratilgan|date:"Y-m-d" }}
+              {% elif p.created_at %}
+                {{ p.created_at|date:"Y-m-d" }}
+              {% elif p.created %}
+                {{ p.created|date:"Y-m-d" }}
+              {% else %}
+                —
+              {% endif %}
+            </span>
+          </div>
+
+          <div class="pactions">
+            {% if p.pk %}
+              <a class="a-btn a-edit" href="{% url 'store:product_edit' p.pk %}" title="Tahrirlash">
+                <i class="fa-solid fa-pen"></i>
+              </a>
+
+              <form method="post"
+                    action="{% url 'store:product_delete' p.pk %}"
+                    onsubmit="return confirm('Haqiqatan ham o‘chirmoqchimisiz?');">
+                {% csrf_token %}
+                <button type="submit" class="a-btn a-del" title="O‘chirish">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </form>
+
+            {% elif p.id %}
+              <a class="a-btn a-edit" href="{% url 'store:product_edit' p.id %}" title="Tahrirlash">
+                <i class="fa-solid fa-pen"></i>
+              </a>
+
+              <form method="post"
+                    action="{% url 'store:product_delete' p.id %}"
+                    onsubmit="return confirm('Haqiqatan ham o‘chirmoqchimisiz?');">
+                {% csrf_token %}
+                <button type="submit" class="a-btn a-del" title="O‘chirish">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </form>
+            {% endif %}
+          </div>
+
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <div class="empty-row">Maʼlumot topilmadi.</div>
+  {% endfor %}
+</div>

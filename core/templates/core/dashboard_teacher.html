@@ -3,9 +3,15 @@
 
 <style>
 :root{
+  --bg0:#070a12;
+  --bg1:#0b1220;
+  --bg2:#0f1b33;
+
   --panel: rgba(17,24,39,.62);
   --panel2: rgba(2,6,23,.55);
-  --line: rgba(255,255,255,.08);
+  --line: rgba(255,255,255,.10);
+  --line2: rgba(255,255,255,.16);
+
   --muted:#94a3b8;
   --text:#e5e7eb;
 
@@ -14,29 +20,62 @@
   --blue2:#2563eb;
 
   --warn:#f59e0b;
+  --warn2:#fbbf24;
   --danger:#ef4444;
+
+  --shadow: 0 18px 55px rgba(0,0,0,.45);
+  --shadow2: 0 10px 32px rgba(0,0,0,.38);
+
+  --radius: 22px;
+  --radius2: 18px;
+
+  --ring: 0 0 0 4px rgba(245,158,11,.18);
+  --ring2: 0 0 0 4px rgba(59,130,246,.18);
+}
+
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  background:
+    radial-gradient(1200px 700px at 10% -10%, rgba(245,158,11,.22), transparent 58%),
+    radial-gradient(900px 650px at 110% 10%, rgba(59,130,246,.18), transparent 60%),
+    radial-gradient(900px 650px at 40% 120%, rgba(34,197,94,.12), transparent 60%),
+    linear-gradient(180deg, var(--bg0), var(--bg1) 45%, var(--bg2));
+  color: var(--text);
+  overflow-x: hidden;
+}
+
+a{ color: inherit; text-decoration:none; }
+button, a, input, select, textarea{ font: inherit; color: inherit; }
+:focus{ outline: none; }
+:focus-visible{
+  box-shadow: var(--ring2);
+  border-color: rgba(59,130,246,.45) !important;
 }
 
 /* ✅ PAGE WRAP */
 .tdash-wrap{
   max-width: 1240px;
   margin: 0 auto;
-  padding: 10px 12px 26px;
+  padding: max(10px, env(safe-area-inset-top)) 12px 26px;
+  padding-left: max(12px, env(safe-area-inset-left));
+  padding-right: max(12px, env(safe-area-inset-right));
+  padding-bottom: max(26px, env(safe-area-inset-bottom));
   color: var(--text);
 }
 
-/* ✅ TOP HEADER (QIDIRUVSIZ) */
+/* ✅ TOP HEADER */
 .tdash-topbar{
   display:flex;
-  align-items:center;
+  align-items:flex-start;
   justify-content:space-between;
   gap: 14px;
-  padding: 18px 18px;
-  border-radius: 18px;
-  background: rgba(17,24,39,.62);
-  border: 1px solid rgba(255,255,255,.06);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 18px 45px rgba(0,0,0,.22);
+  padding: 16px 16px;
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
+  border: 1px solid rgba(255,255,255,.08);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow2);
   margin: 10px 0 18px;
 
   position: relative;
@@ -48,36 +87,39 @@
   display:flex;
   align-items:center;
   gap: 12px;
-  min-width: 260px;
+  min-width: 0;
 }
 
 .tdash-emoji{
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
   display:grid;
   place-items:center;
   background: rgba(34,197,94,.12);
   border: 1px solid rgba(34,197,94,.22);
-  box-shadow: 0 10px 25px rgba(0,0,0,.25);
+  box-shadow: 0 12px 30px rgba(0,0,0,.28);
   color: var(--green);
   font-size: 18px;
+  flex: 0 0 auto;
 }
 
 .tdash-title{
   margin:0;
-  font-size: 34px;
+  font-size: clamp(22px, 3.4vw, 34px);
   font-weight: 950;
   letter-spacing: .2px;
   color: var(--green);
-  text-shadow: 0 6px 20px rgba(34,197,94,.18);
+  text-shadow: 0 8px 24px rgba(34,197,94,.16);
+  line-height: 1.1;
 }
 
 .tdash-sub{
-  margin-top: 4px;
-  color: var(--muted);
-  font-weight: 700;
+  margin-top: 6px;
+  color: rgba(148,163,184,.95);
+  font-weight: 750;
   font-size: 13px;
+  line-height: 1.35;
 }
 
 /* ✅ RIGHT ICONS */
@@ -90,23 +132,32 @@
   z-index: 60;
 }
 
+/* icon buttons */
 .ticon-btn{
   width: 44px;
   height: 44px;
   border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.08);
-  background: rgba(15,23,42,.75);
-  color: rgba(226,232,240,.78);
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(15,23,42,.70);
+  color: rgba(226,232,240,.82);
   display:grid;
   place-items:center;
-  transition:.2s;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease, color .18s ease;
   position: relative;
   cursor:pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .ticon-btn:hover{
   transform: translateY(-1px);
   color:#fff;
-  border-color: rgba(255,255,255,.14);
+  border-color: rgba(255,255,255,.18);
+  box-shadow: 0 16px 36px rgba(0,0,0,.35);
+}
+.ticon-btn:active{ transform: translateY(0); }
+.ticon-btn:focus-visible{
+  box-shadow: var(--ring);
+  border-color: rgba(245,158,11,.45) !important;
 }
 
 /* ✅ small badge on bell */
@@ -127,23 +178,28 @@
   border-radius: 999px;
   overflow:hidden;
   padding:0;
-
   background: linear-gradient(135deg, var(--blue), var(--blue2));
   display:flex;
   align-items:center;
   justify-content:center;
-
   font-weight: 950;
   color:#fff;
   border: 1px solid rgba(255,255,255,.14);
-  box-shadow: 0 12px 26px rgba(0,0,0,.35);
+  box-shadow: 0 14px 32px rgba(0,0,0,.40);
   cursor:pointer;
-  transition:.18s ease;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .tavatar-btn:hover{
   transform: translateY(-2px);
-  box-shadow: 0 16px 36px rgba(0,0,0,.45), 0 0 0 4px rgba(59,130,246,.12);
+  box-shadow: 0 18px 44px rgba(0,0,0,.50), 0 0 0 4px rgba(59,130,246,.12);
   border-color: rgba(59,130,246,.45);
+}
+.tavatar-btn:active{ transform: translateY(0); }
+.tavatar-btn:focus-visible{
+  box-shadow: 0 18px 44px rgba(0,0,0,.50), var(--ring2);
+  border-color: rgba(59,130,246,.55) !important;
 }
 .tavatar-btn img{
   width:100%;
@@ -161,14 +217,16 @@
   right:0;
   top: 56px;
   min-width: 270px;
-  border-radius: 16px;
-  background: rgba(2,6,23,.90);
+  max-width: min(92vw, 360px);
+  border-radius: 18px;
+  background: rgba(2,6,23,.92);
   border: 1px solid rgba(255,255,255,.10);
-  backdrop-filter: blur(14px);
-  box-shadow: 0 18px 45px rgba(0,0,0,.35);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 22px 60px rgba(0,0,0,.50);
   padding: 10px;
   display:none;
   z-index: 99999;
+  overflow: hidden;
 }
 .dropdown-menu.open{ display:block; }
 
@@ -186,27 +244,34 @@
 .dd-sub{
   margin-top:4px;
   font-size: 12px;
-  font-weight: 700;
-  color: rgba(148,163,184,.85);
+  font-weight: 750;
+  color: rgba(148,163,184,.88);
 }
 
 .dd-item{
   display:flex;
   align-items:center;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 11px 12px;
   border-radius: 14px;
   text-decoration:none;
-  color: rgba(226,232,240,.85);
-  font-weight: 850;
-  transition:.15s;
+  color: rgba(226,232,240,.88);
+  font-weight: 900;
+  transition: background .15s ease, border-color .15s ease, transform .15s ease, color .15s ease;
   border: 1px solid transparent;
   background: transparent;
+  width: 100%;
 }
 .dd-item:hover{
-  background: rgba(255,255,255,.05);
-  border-color: rgba(255,255,255,.08);
+  background: rgba(255,255,255,.06);
+  border-color: rgba(255,255,255,.10);
   color:#fff;
+  transform: translateY(-1px);
+}
+.dd-item:active{ transform: translateY(0); }
+.dd-item:focus-visible{
+  box-shadow: var(--ring);
+  border-color: rgba(245,158,11,.45) !important;
 }
 
 .dd-item.danger{
@@ -225,36 +290,51 @@
   border-radius: 14px;
   background: rgba(148,163,184,.08);
   border: 1px solid rgba(148,163,184,.14);
-  color: rgba(226,232,240,.75);
-  font-weight: 800;
+  color: rgba(226,232,240,.80);
+  font-weight: 850;
   font-size: 13px;
 }
 
 /* ✅ GRID */
 .tdash-grid{
   display:grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
-
+  grid-template-columns: 1fr;
+  gap: 14px;
   position: relative;
   z-index: 1;
 }
 
 /* ✅ CARD */
 .tcard{
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 22px;
-  padding: 18px;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 18px 45px rgba(0,0,0,.18);
-  transition: .2s ease;
+  background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 24px;
+  padding: 16px;
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow);
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
   position: relative;
   z-index: 1;
+  overflow: hidden;
 }
+.tcard::before{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  pointer-events:none;
+  border-radius: 24px;
+  background:
+    radial-gradient(420px 220px at 18% 0%, rgba(245,158,11,.10), transparent 60%),
+    radial-gradient(420px 220px at 95% 30%, rgba(59,130,246,.10), transparent 60%),
+    radial-gradient(420px 220px at 50% 120%, rgba(34,197,94,.08), transparent 60%);
+  opacity: .95;
+}
+.tcard > *{ position:relative; z-index: 1; }
+
 .tcard:hover{
   transform: translateY(-2px);
-  border-color: rgba(34,197,94,.22);
+  border-color: rgba(245,158,11,.22);
+  box-shadow: 0 22px 70px rgba(0,0,0,.50);
 }
 
 .tcard-top{
@@ -265,14 +345,15 @@
 }
 
 .tcard-ico{
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
   display:grid;
   place-items:center;
-  border: 1px solid rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.12);
   background: rgba(148,163,184,.10);
   font-size: 18px;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.18);
 }
 
 .tcard-name{
@@ -280,14 +361,15 @@
   font-weight: 950;
   font-size: 18px;
   color: #e2e8f0;
+  letter-spacing: .15px;
 }
 
 .tcard-desc{
   margin: 8px 0 14px;
-  color: var(--muted);
-  font-weight: 700;
+  color: rgba(148,163,184,.96);
+  font-weight: 750;
   font-size: 13px;
-  line-height: 1.35;
+  line-height: 1.45;
 }
 
 /* ✅ BUTTONS */
@@ -301,38 +383,58 @@
   border-radius: 16px;
   font-weight: 950;
   text-decoration:none;
-  border: 1px solid rgba(255,255,255,.10);
-  transition: .2s;
+  border: 1px solid rgba(255,255,255,.12);
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease, border-color .18s ease;
+  min-height: 46px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.tbtn:focus-visible{
+  box-shadow: var(--ring);
+  border-color: rgba(245,158,11,.45) !important;
 }
 
 .tbtn-blue{
   background: linear-gradient(90deg, var(--blue), var(--blue2));
   color: #fff;
-  border-color: rgba(59,130,246,.35);
+  border-color: rgba(59,130,246,.38);
+  box-shadow: 0 18px 40px rgba(59,130,246,.16);
 }
-.tbtn-blue:hover{ filter: brightness(1.05); transform: translateY(-1px); }
+.tbtn-blue:hover{ filter: brightness(1.06); transform: translateY(-1px); }
+.tbtn-blue:active{ transform: translateY(0); }
 
 .tbtn-green{
   background: linear-gradient(90deg, #22c55e, #16a34a);
   color:#fff;
-  border-color: rgba(34,197,94,.35);
+  border-color: rgba(34,197,94,.38);
+  box-shadow: 0 18px 40px rgba(34,197,94,.14);
 }
-.tbtn-green:hover{ filter: brightness(1.05); transform: translateY(-1px); }
+.tbtn-green:hover{ filter: brightness(1.06); transform: translateY(-1px); }
+.tbtn-green:active{ transform: translateY(0); }
 
 /* ✅ RESPONSIVE */
+@media (min-width: 720px){
+  .tdash-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .tdash-topbar{ padding: 18px 18px; }
+  .tcard{ padding: 18px; }
+}
+@media (min-width: 1080px){
+  .tdash-grid{ grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+}
 @media (max-width: 980px){
-  .tdash-grid{ grid-template-columns: 1fr; }
-  .tdash-title{ font-size: 26px; }
   .tdash-topbar{ flex-direction: column; align-items: stretch; }
   .tdash-top-right{ justify-content: flex-end; }
 }
+@media (prefers-reduced-motion: reduce){
+  *{ transition: none !important; scroll-behavior: auto !important; }
+}
 </style>
 
-<div class="tdash-wrap">
+<main class="tdash-wrap" role="main" aria-label="O‘qituvchi paneli">
 
-  <div class="tdash-topbar">
+  <header class="tdash-topbar" role="banner" aria-label="Top bar">
     <div class="tdash-top-left">
-      <div class="tdash-emoji">
+      <div class="tdash-emoji" aria-hidden="true">
         <i class="fa-solid fa-chalkboard-user"></i>
       </div>
       <div>
@@ -341,16 +443,15 @@
       </div>
     </div>
 
-    <div class="tdash-top-right">
+    <div class="tdash-top-right" aria-label="Top actions">
 
-      <!-- 🔔 Notifications -->
       <div class="drop-wrap" id="notifWrap">
-        <button class="ticon-btn" type="button" title="Bildirishnomalar" id="notifBtn">
-          <span class="notif-dot" id="notifDot"></span>
+        <button class="ticon-btn" type="button" title="Bildirishnomalar" id="notifBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="notifMenu">
+          <span class="notif-dot" id="notifDot" aria-hidden="true"></span>
           <i class="fa-regular fa-bell"></i>
         </button>
 
-        <div class="dropdown-menu" id="notifMenu">
+        <div class="dropdown-menu" id="notifMenu" role="menu" aria-label="Bildirishnomalar" aria-hidden="true">
           <div class="dd-head">
             <p class="dd-title">Bildirishnomalar</p>
             <div class="dd-sub">So‘nggi xabarlar</div>
@@ -359,11 +460,13 @@
         </div>
       </div>
 
-      <!-- 👤 Profile dropdown (✅ RASM + Profil link core:profile) -->
       <div class="drop-wrap" id="profileWrap">
         <button class="tavatar-btn" type="button"
                 title="{{ request.user.get_full_name|default:request.user.email }}"
-                id="profileBtn">
+                id="profileBtn"
+                aria-haspopup="menu"
+                aria-expanded="false"
+                aria-controls="profileMenu">
           {% if request.user.avatar %}
             <img src="{{ request.user.avatar.url }}" alt="avatar">
           {% else %}
@@ -371,24 +474,23 @@
           {% endif %}
         </button>
 
-        <div class="dropdown-menu" id="profileMenu">
+        <div class="dropdown-menu" id="profileMenu" role="menu" aria-label="Profile" aria-hidden="true">
           <div class="dd-head">
             <p class="dd-title">{{ request.user.get_full_name|default:request.user.email }}</p>
             <div class="dd-sub">{{ request.user.get_role_display }}</div>
           </div>
 
-          <!-- ✅ Profil (core:profile) -->
-          <a class="dd-item" href="{% url 'core:profile' %}?next={{ request.path }}">
+          <a class="dd-item" href="{% url 'core:profile' %}?next={{ request.path }}" role="menuitem">
             <i class="fa-regular fa-user"></i>
             Profil
           </a>
 
-          <!-- ✅ Logout -->
           <form method="post" action="{% url 'logout' %}" style="margin:0;">
             {% csrf_token %}
             <button type="submit"
                     class="dd-item danger"
-                    style="width:100%; border:none; text-align:left; cursor:pointer;">
+                    style="border:none; text-align:left; cursor:pointer;"
+                    role="menuitem">
               <i class="fa-solid fa-right-from-bracket"></i>
               Chiqish
             </button>
@@ -397,14 +499,13 @@
       </div>
 
     </div>
-  </div>
+  </header>
 
-  <!-- ✅ CARDS -->
-  <div class="tdash-grid">
+  <section class="tdash-grid" aria-label="Quick cards">
 
     <div class="tcard">
       <div class="tcard-top">
-        <div class="tcard-ico">📘</div>
+        <div class="tcard-ico" aria-hidden="true">📘</div>
         <p class="tcard-name">Mening guruhlarim</p>
       </div>
 
@@ -419,7 +520,7 @@
 
     <div class="tcard">
       <div class="tcard-top">
-        <div class="tcard-ico">⚡</div>
+        <div class="tcard-ico" aria-hidden="true">⚡</div>
         <p class="tcard-name">Chaqmoq</p>
       </div>
 
@@ -434,7 +535,7 @@
 
     <div class="tcard">
       <div class="tcard-top">
-        <div class="tcard-ico">🛒</div>
+        <div class="tcard-ico" aria-hidden="true">🛒</div>
         <p class="tcard-name">Do‘kon</p>
       </div>
 
@@ -447,8 +548,9 @@
       </a>
     </div>
 
-  </div>
-</div>
+  </section>
+
+</main>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
@@ -457,9 +559,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const profBtn   = document.getElementById("profileBtn");
   const profMenu  = document.getElementById("profileMenu");
 
+  function setExpanded(btn, menu, isOpen){
+    if (!btn || !menu) return;
+    btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    menu.setAttribute("aria-hidden", isOpen ? "false" : "true");
+  }
+
   function closeAll(){
     notifMenu?.classList.remove("open");
     profMenu?.classList.remove("open");
+    setExpanded(notifBtn, notifMenu, false);
+    setExpanded(profBtn, profMenu, false);
   }
 
   notifBtn?.addEventListener("click", (e) => {
@@ -467,7 +577,10 @@ document.addEventListener("DOMContentLoaded", () => {
     e.stopPropagation();
     const willOpen = !notifMenu.classList.contains("open");
     closeAll();
-    if (willOpen) notifMenu.classList.add("open");
+    if (willOpen){
+      notifMenu.classList.add("open");
+      setExpanded(notifBtn, notifMenu, true);
+    }
   });
 
   profBtn?.addEventListener("click", (e) => {
@@ -475,7 +588,10 @@ document.addEventListener("DOMContentLoaded", () => {
     e.stopPropagation();
     const willOpen = !profMenu.classList.contains("open");
     closeAll();
-    if (willOpen) profMenu.classList.add("open");
+    if (willOpen){
+      profMenu.classList.add("open");
+      setExpanded(profBtn, profMenu, true);
+    }
   });
 
   notifMenu?.addEventListener("click", (e)=> e.stopPropagation());
@@ -486,6 +602,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.key === "Escape") closeAll();
   });
 });
-</script>`
+</script>
 
 {% endblock %}

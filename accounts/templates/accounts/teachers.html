@@ -2,127 +2,341 @@
 {% block content %}
 
 <style>
-.page-header {
-  font-size: 28px;
-  font-weight: 700;
-  color: #fbbf24;
-  text-shadow: 0 0 10px rgba(251,191,36,0.4);
-  margin-bottom: 25px;
-  font-family: 'Poppins', sans-serif;
-}
+  :root{
+    --bg0:#070A12;
+    --bg1:#081327;
+    --bg2:#0A0F1E;
 
-/* MAIN CARD */
-.ps-card {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 18px;
-  backdrop-filter: blur(16px);
-  padding: 25px;
-  box-shadow: 0 0 25px rgba(0,0,0,0.35);
-}
+    --card: rgba(255,255,255,.06);
+    --card2: rgba(255,255,255,.10);
+    --line: rgba(255,255,255,.12);
 
-/* TABLE */
-.ps-table {
-  width: 100%;
-  border-collapse: collapse;
-  color: #e2e8f0;
-  font-family: 'Poppins', sans-serif;
-}
+    --text:#EAF0FF;
+    --muted:#A7B0C7;
 
-.ps-table thead tr {
-  background: linear-gradient(90deg, #fbbf24, #f59e0b);
-  color: #1e293b;
-  font-weight: 600;
-}
+    --amber:#F59E0B;
+    --amber2:#FBBF24;
+    --neon:#22D3EE;
+    --blue:#3B82F6;
 
-.ps-table th,
-.ps-table td {
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
+    --shadow: 0 30px 80px rgba(0,0,0,.55);
+    --shadow2: 0 18px 55px rgba(0,0,0,.45);
+    --radius: 22px;
 
-.ps-table tbody tr {
-  transition: 0.25s ease;
-}
+    --ring-amber: 0 0 0 4px rgba(245,158,11,.16), 0 0 0 1px rgba(245,158,11,.55) inset;
+    --ring-neon:  0 0 0 4px rgba(34,211,238,.14), 0 0 0 1px rgba(34,211,238,.55) inset;
+  }
 
-.ps-table tbody tr:hover {
-  background: rgba(255,255,255,0.08);
-  transform: translateX(4px);
-  cursor: pointer;
-}
+  *{ box-sizing:border-box; }
+  html, body{ height:100%; }
 
-/* LINKS */
-.ps-table a {
-  color: #38bdf8;
-  font-weight: 600;
-  text-decoration: none;
-}
-.ps-table a:hover {
-  text-decoration: underline;
-}
+  .page-wrapper{
+    padding: 18px 14px 26px;
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    color: var(--text);
+    overflow-x:hidden;
+  }
 
-/* RESPONSIVE */
-@media(max-width: 768px) {
-  .ps-table th, .ps-table td {
-    padding: 10px;
+  .page-header{
+    position: relative;
+    border-radius: 22px;
+    padding: 16px 14px;
+    margin-bottom: 14px;
+
+    background:
+      radial-gradient(720px 260px at 14% 10%, rgba(34,211,238,.14), transparent 60%),
+      radial-gradient(620px 260px at 92% 18%, rgba(245,158,11,.13), transparent 60%),
+      linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    border: 1px solid rgba(255,255,255,.10);
+    box-shadow: var(--shadow2);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    overflow:hidden;
+  }
+  .page-header::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background: radial-gradient(900px 260px at 50% -10%, rgba(255,255,255,.12), transparent 55%);
+    opacity:.8;
+  }
+
+  .page-header h1{
+    position: relative;
+    z-index: 1;
+    margin: 0;
+    font-size: 18px;
+    font-weight: 950;
+    letter-spacing: .2px;
+    color: rgba(234,240,255,.98);
+    text-shadow: 0 10px 35px rgba(0,0,0,.45);
+    line-height: 1.25;
+  }
+
+  /* MAIN CARD */
+  .ps-card{
+    background: linear-gradient(180deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,.045) 100%);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: var(--radius);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: 12px;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .ps-card::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background: linear-gradient(120deg,
+      rgba(255,255,255,.05),
+      rgba(34,211,238,.12),
+      rgba(245,158,11,.10),
+      rgba(255,255,255,.05)
+    );
+    opacity:.5;
+    filter: blur(12px);
+    pointer-events:none;
+  }
+  .ps-card:hover{
+    transform: translateY(-2px);
+    border-color: rgba(34,211,238,.22);
+    box-shadow:
+      0 34px 90px rgba(0,0,0,.58),
+      0 0 36px rgba(34,211,238,.10),
+      0 0 34px rgba(245,158,11,.08);
+  }
+
+  /* TABLE WRAP */
+  .table-responsive{
+    position: relative;
+    z-index: 1;
+    width:100%;
+    overflow-x:auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 16px;
+    background: rgba(0,0,0,.18);
+    border: 1px solid rgba(255,255,255,.10);
+    box-shadow: var(--shadow2);
+  }
+
+  /* TABLE */
+  .ps-table{
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    color: rgba(234,240,255,.92);
     font-size: 13px;
+    min-width: 920px;
   }
-  .page-header {
-    font-size: 23px;
+
+  .ps-table thead tr{
+    background:
+      radial-gradient(18px 18px at 16% 30%, rgba(255,255,255,.22), transparent 55%),
+      linear-gradient(135deg, rgba(245,158,11,.95), rgba(34,211,238,.85));
+    color: #0B1226;
+    font-weight: 950;
   }
-}
+
+  .ps-table th,
+  .ps-table td{
+    padding: 12px 12px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    text-align:left;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .ps-table th{
+    font-size: 12px;
+    letter-spacing: .35px;
+    text-transform: uppercase;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  .ps-table tbody tr{
+    transition: background .16s ease, transform .16s ease;
+  }
+
+  .ps-table tbody tr:hover{
+    background: rgba(255,255,255,.06);
+    transform: translateX(2px);
+    cursor: pointer;
+  }
+
+  /* LINKS */
+  .ps-table a{
+    color: rgba(34,211,238,.95);
+    font-weight: 900;
+    text-decoration: none;
+    border-radius: 10px;
+    outline:none;
+  }
+  .ps-table a:hover{
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .ps-table a:focus-visible{
+    box-shadow: var(--ring-neon);
+  }
+
+  /* Mobile-first “card rows” */
+  @media (max-width: 760px){
+    .page-wrapper{ padding: 16px 12px 24px; }
+    .page-header{ padding: 14px 12px; }
+    .page-header h1{ font-size: 16px; }
+
+    .ps-card{ padding: 10px; }
+
+    .table-responsive{
+      overflow: hidden;
+    }
+
+    .ps-table{
+      min-width: 0;
+    }
+
+    .ps-table, .ps-table thead, .ps-table tbody, .ps-table th, .ps-table td, .ps-table tr{
+      display:block;
+      width:100%;
+    }
+    .ps-table thead{ display:none; }
+
+    .ps-table tbody tr{
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      padding: 10px 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
+    }
+    .ps-table tbody tr:hover{
+      transform: none;
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+    }
+
+    .ps-table td{
+      border: none;
+      padding: 8px 0;
+      display:flex;
+      align-items:flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      white-space: normal;
+    }
+
+    .ps-table td::before{
+      content: attr(data-label);
+      flex: 0 0 40%;
+      max-width: 40%;
+      font-size: 11px;
+      letter-spacing: .35px;
+      text-transform: uppercase;
+      color: rgba(231,238,255,.65);
+      padding-top: 2px;
+    }
+
+    .ps-table td > *{
+      flex: 1 1 auto;
+      min-width: 0;
+      text-align: right;
+    }
+  }
+
+  /* Tablet */
+  @media (min-width: 761px) and (max-width: 1023px){
+    .page-wrapper{ padding: 20px 16px 28px; }
+    .page-header h1{ font-size: 20px; }
+  }
+
+  /* Desktop */
+  @media (min-width: 1024px){
+    .page-wrapper{
+      padding: 22px 18px 34px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+    .page-header h1{ font-size: 26px; }
+    .ps-card{ padding: 14px; }
+  }
+
+  /* Large desktop */
+  @media (min-width: 1440px){
+    .page-wrapper{ max-width: 1360px; }
+  }
+
+  :where(a, button, input, select, textarea):focus-visible{ outline:none; }
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; scroll-behavior:auto !important; }
+  }
 </style>
 
-<div class="page-header">👨‍🏫 O‘qituvchilar ro‘yxati</div>
+<div class="page-wrapper">
 
-<div class="ps-card">
+  <header class="page-header" aria-label="Teachers page header">
+    <h1>👨‍🏫 O‘qituvchilar ro‘yxati</h1>
+  </header>
 
-  <div class="table-responsive">
-    <table class="ps-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>F.I.Sh</th>
-          <th>Email</th>
-          <th>Gmail</th>
-          <th>Telefon</th>
-          <th>Center</th>
-        </tr>
-      </thead>
+  <div class="ps-card">
 
-      <tbody>
-      {% for t in teachers %}
-        <tr class="row-link" data-href="{% url 'accounts:teacher_detail' t.id %}">
-          <td>{{ forloop.counter }}</td>
+    <div class="table-responsive">
+      <table class="ps-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>F.I.Sh</th>
+            <th>Email</th>
+            <th>Gmail</th>
+            <th>Telefon</th>
+            <th>Center</th>
+          </tr>
+        </thead>
 
-          <td>
-            <a href="{% url 'accounts:teacher_detail' t.id %}">
-              {{ t.ism }} {{ t.familya }}
-            </a>
-          </td>
+        <tbody>
+        {% for t in teachers %}
+          <tr class="row-link" data-href="{% url 'accounts:teacher_detail' t.id %}" tabindex="0" role="link" aria-label="Open teacher detail">
+            <td data-label="#">{{ forloop.counter }}</td>
 
-          <td>{{ t.email|default:"—" }}</td>
-          <td>{{ t.gmail|default:"—" }}</td>
+            <td data-label="F.I.Sh">
+              <a href="{% url 'accounts:teacher_detail' t.id %}">
+                {{ t.ism }} {{ t.familya }}
+              </a>
+            </td>
 
-          <td>
-            {{ t.telefon1|default:"—" }}
-            {% if t.telefon2 %} / {{ t.telefon2 }}{% endif %}
-          </td>
+            <td data-label="Email">{{ t.email|default:"—" }}</td>
+            <td data-label="Gmail">{{ t.gmail|default:"—" }}</td>
 
-          <td>{{ t.center|default:"—" }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
+            <td data-label="Telefon">
+              {{ t.telefon1|default:"—" }}
+              {% if t.telefon2 %} / {{ t.telefon2 }}{% endif %}
+            </td>
+
+            <td data-label="Center">{{ t.center|default:"—" }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
   </div>
 
 </div>
 
 <script>
 document.querySelectorAll('.row-link').forEach(tr=>{
+  tr.style.cursor = 'pointer';
   tr.addEventListener('click', e=>{
     if(e.target.closest('a')) return;
     location.href = tr.dataset.href;
+  });
+  tr.addEventListener('keydown', e=>{
+    if(e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if(e.target.closest('a')) return;
+      location.href = tr.dataset.href;
+    }
   });
 });
 </script>

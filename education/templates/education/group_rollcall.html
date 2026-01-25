@@ -2,211 +2,540 @@
 {% block content %}
 
 <style>
-/* 📱 MOBILDA — JADVAL O‘RNIGA CARD KO‘RINISH */
-@media (max-width: 768px) {
+  :root{
+    --bg0:#050812;
+    --bg1:#020617;
+    --bg2:#0b1226;
 
-  table.table {
-    display: none !important;
+    --panel: rgba(17,24,39,.62);
+    --panel2: rgba(2,6,23,.55);
+    --card: rgba(255,255,255,.06);
+    --card2: rgba(255,255,255,.085);
+    --line: rgba(255,255,255,.10);
+
+    --text:#e5e7eb;
+    --muted:#94a3b8;
+
+    --amber:#f59e0b;
+    --amber2:#facc15;
+    --blue:#60a5fa;
+    --cyan:#22d3ee;
+
+    --good:#22c55e;
+    --bad:#ef4444;
+
+    --shadow: 0 22px 70px rgba(0,0,0,.55);
+    --shadow2: 0 14px 45px rgba(0,0,0,.45);
+    --radius: 18px;
   }
 
-  .mobile-student {
-    background: #ffffff0a;
-    border: 1px solid #ffffff15;
+  body{
+    background:
+      radial-gradient(900px 520px at 14% 0%, rgba(245,158,11,.16), transparent 55%),
+      radial-gradient(900px 520px at 86% 10%, rgba(34,211,238,.10), transparent 55%),
+      radial-gradient(900px 520px at 50% 100%, rgba(96,165,250,.10), transparent 55%),
+      linear-gradient(180deg, var(--bg0), var(--bg1) 25%, var(--bg2) 70%, var(--bg0));
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  :where(a, button, input, select, textarea):focus-visible{
+    outline: 2px solid color-mix(in oklab, var(--amber2) 75%, white 25%);
+    outline-offset: 3px;
+  }
+
+  .roll-wrap{
+    width: min(1180px, 100%);
+    margin: 18px auto;
+    padding: 0 14px 26px;
+  }
+
+  .roll-top{
+    border-radius: 20px;
+    background: linear-gradient(180deg, var(--panel), var(--panel2));
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .roll-top::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(700px 220px at 20% 0%, rgba(250,204,21,.16), transparent 60%),
+      radial-gradient(700px 220px at 85% 10%, rgba(96,165,250,.12), transparent 60%);
+    pointer-events:none;
+    opacity:.9;
+  }
+  .roll-top > *{ position: relative; z-index: 1; }
+
+  .roll-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .roll-title{
+    margin: 0;
+    font-weight: 950;
+    font-size: clamp(18px, 2.2vw, 24px);
+    line-height: 1.12;
+    letter-spacing: .2px;
+  }
+
+  .roll-sub{
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-weight: 750;
+    font-size: 12px;
+  }
+
+  .datebar{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    flex-wrap: wrap;
+    width: 100%;
+    margin-top: 12px;
+  }
+
+  .dategrp{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    padding: 9px 10px;
     border-radius: 14px;
-    padding: 15px;
-    margin-bottom: 12px;
-    box-shadow: 0 3px 12px rgba(0,0,0,0.35);
-    backdrop-filter: blur(8px);
+    background: rgba(2,6,23,.30);
+    border: 1px solid rgba(255,255,255,.12);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    width: min(360px, 100%);
   }
 
-  .m-row {
-    display: flex;
+  .dategrp .input-group-text{
+    background: transparent !important;
+    border: 0 !important;
+    color: var(--muted) !important;
+    font-weight: 900;
+    padding-left: 6px;
+  }
+
+  .dategrp input[type="date"]{
+    background: transparent !important;
+    border: 0 !important;
+    color: var(--text) !important;
+    font-weight: 950;
+    color-scheme: dark;
+    box-shadow: none !important;
+    padding-left: 8px;
+  }
+
+  .table-card{
+    margin-top: 14px;
+    border-radius: 20px;
+    background: linear-gradient(180deg, var(--panel), var(--panel2));
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .table-responsive{
+    background: rgba(2,6,23,.22);
+  }
+
+  table.table{
+    margin: 0 !important;
+    color: var(--text);
+  }
+
+  .table > :not(caption) > * > *{
+    background: transparent !important;
+    border-bottom-color: rgba(255,255,255,.08) !important;
+    padding: 12px 12px;
+    vertical-align: middle;
+  }
+
+  .table thead th{
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: rgba(229,231,235,.95);
+    background:
+      linear-gradient(90deg, rgba(245,158,11,.14), rgba(96,165,250,.10)) !important;
+    border-bottom-color: rgba(255,255,255,.12) !important;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    white-space: nowrap;
+  }
+
+  .table tbody tr{
+    transition: background-color .18s ease, transform .18s ease;
+  }
+  .table-hover tbody tr:hover{
+    background: rgba(255,255,255,.04) !important;
+    transform: translateY(-1px);
+  }
+
+  .form-control,
+  .form-select{
+    background: rgba(2,6,23,.30) !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
+    color: var(--text) !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+  }
+  .form-control::placeholder{ color: rgba(148,163,184,.8); }
+  .form-select:focus,
+  .form-control:focus{
+    border-color: rgba(250,204,21,.40) !important;
+    box-shadow: 0 0 0 4px rgba(250,204,21,.12) !important;
+  }
+
+  .input-group-text{
+    background: rgba(255,255,255,.05) !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
+    color: rgba(229,231,235,.92) !important;
+    border-radius: 12px !important;
+    font-weight: 900;
+  }
+
+  .input-group.input-group-sm .btn,
+  .input-group.input-group-sm .form-control{
+    border-radius: 12px !important;
+  }
+
+  .btn{
+    border-radius: 14px !important;
+    font-weight: 900;
+    letter-spacing: .1px;
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease, background-color .18s ease, border-color .18s ease;
+  }
+  .btn:active{ transform: translateY(1px); }
+
+  .btn-primary{
+    border: 1px solid rgba(250,204,21,.22) !important;
+    color: #101827 !important;
+    background: linear-gradient(90deg, var(--amber2), var(--amber)) !important;
+    box-shadow: 0 14px 28px rgba(245,158,11,.22);
+  }
+  .btn-primary:hover{
+    transform: translateY(-1px);
+    filter: brightness(1.03);
+    box-shadow: 0 18px 44px rgba(245,158,11,.26);
+  }
+
+  .btn-secondary{
+    background: rgba(255,255,255,.06) !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
+    color: rgba(229,231,235,.95) !important;
+  }
+  .btn-secondary:hover{
+    transform: translateY(-1px);
+    background: rgba(255,255,255,.10) !important;
+  }
+
+  .btn-outline-secondary{
+    background: rgba(255,255,255,.02) !important;
+    border: 1px solid rgba(255,255,255,.16) !important;
+    color: rgba(229,231,235,.92) !important;
+  }
+  .btn-outline-secondary:hover{
+    background: rgba(255,255,255,.07) !important;
+    transform: translateY(-1px);
+  }
+
+  .badge{
+    font-weight: 950;
+    letter-spacing: .2px;
+    border: 1px solid rgba(255,255,255,.10);
+  }
+
+  /* checkbox premium */
+  input[type="checkbox"]{
+    width: 18px;
+    height: 18px;
+    accent-color: var(--amber2);
+    cursor: pointer;
+  }
+
+  .help{
+    color: rgba(148,163,184,.9) !important;
+    font-weight: 750;
+  }
+
+  /* ===== Mobile cards (keep existing structure and names) ===== */
+  .mobile-version{
+    display: none;
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .mobile-student{
+    background: linear-gradient(180deg, var(--card2), rgba(255,255,255,.03));
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 18px;
+    padding: 14px;
+    box-shadow: var(--shadow2);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    position: relative;
+    overflow: hidden;
+  }
+  .mobile-student::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(520px 180px at 15% 0%, rgba(250,204,21,.12), transparent 60%),
+      radial-gradient(520px 180px at 90% 10%, rgba(96,165,250,.10), transparent 60%);
+    pointer-events:none;
+    opacity:.9;
+  }
+  .mobile-student > *{ position: relative; z-index: 1; }
+
+  .m-row{
+    display:flex;
     justify-content: space-between;
-    margin-bottom: 6px;
+    gap: 12px;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px dashed rgba(255,255,255,.14);
   }
-  .m-label {
-    font-weight: 600;
-    color: #a1a1aa;
+  .m-row:last-child{
+    border-bottom: 0;
+    margin-bottom: 0;
+    padding-bottom: 0;
   }
-  .m-value {
-    color: #e2e8f0;
-    font-weight: 500;
+  .m-label{
+    font-weight: 900;
+    color: rgba(148,163,184,.95);
+    flex: 0 0 auto;
+  }
+  .m-value{
+    color: rgba(229,231,235,.98);
+    font-weight: 850;
+    text-align: right;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .att-input, .rule-select, .amt-box {
+  .amt-box .input-group{
     width: 100% !important;
-    margin-top: 8px;
   }
 
-  .amt-box .input-group {
-    width: 100% !important;
+  /* desktop vs mobile toggles */
+  @media (max-width: 768px){
+    table.table{ display:none !important; }
+    .mobile-version{ display:grid !important; }
+    .desktop-version{ display:none !important; }
+
+    .datebar{ margin-top: 12px; }
+    .dategrp{ width: 100%; }
+  }
+  @media (min-width: 769px){
+    .mobile-version{ display:none !important; }
   }
 
-  .badge {
-    font-size: 0.9rem;
-    padding: 6px 10px;
+  .actions{
+    display:flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 14px;
   }
-}
+  .actions .btn{
+    padding: 12px 16px;
+  }
+  @media (max-width: 520px){
+    .actions .btn{ width: 100%; }
+  }
 
-/* KATTA EKRANDA ESKI JADVAL QOLADI */
-@media (min-width: 769px) {
-  .mobile-version {
-    display: none !important;
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; scroll-behavior:auto !important; }
+    .table-hover tbody tr:hover{ transform:none !important; }
+    .btn:hover{ transform:none !important; }
   }
-}
 </style>
 
-<h3 class="mb-3">{{ g.nom }} — Davomat / Chaqmoq</h3>
+<div class="roll-wrap">
 
-<form method="post" class="mb-3">{% csrf_token %}
-  <div class="input-group" style="max-width:320px">
-    <span class="input-group-text">Sana</span>
-    <input type="date" name="date" class="form-control" value="{{ date }}">
-  </div>
-
-  <!-- 💻 DESKTOP TABLE -->
-  <div class="table-responsive mt-3 desktop-version">
-    <table class="table table-sm align-middle">
-      <thead class="table-light">
-        <tr>
-          <th>#</th>
-          <th>Talaba</th>
-          <th>Telefon</th>
-          <th class="text-center">Davomat</th>
-          <th>Qoida</th>
-          <th>Ball</th>
-          <th class="text-end">Jami</th>
-        </tr>
-      </thead>
-
-      <tbody>
-      {% for s in students %}
-      <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ s.ism }} {{ s.familya }}</td>
-        <td>{{ s.telefon1|default:"—" }}</td>
-
-        <td class="text-center">
-          <input type="checkbox" name="present_{{ s.id }}" {% if s.present %}checked{% endif %}>
-        </td>
-
-        <td>
-          <select name="rule_{{ s.id }}" class="form-select form-select-sm rule-select">
-            <option value="">—</option>
-            {% for r in rules %}
-              <option value="{{ r.id }}"
-                      data-min="{{ r.min_baho }}"
-                      data-max="{{ r.max_baho }}"
-                      data-type="{{ r.tur }}">
-                {{ r.nom }}
-                {% if r.tur == 'plus' %}
-                  (+{{ r.min_baho }}..+{{ r.max_baho }})
-                {% else %}
-                  (-{{ r.min_baho }}..-{{ r.max_baho }})
-                {% endif %}
-              </option>
-            {% endfor %}
-          </select>
-        </td>
-
-        <td>
-          <div class="input-group input-group-sm">
-            <button class="btn btn-outline-secondary minus" type="button">−</button>
-            <input name="ball_{{ s.id }}" type="number" class="form-control text-center amount" value="0" min="0" step="1">
-            <button class="btn btn-outline-secondary plus" type="button">+</button>
-          </div>
-          <div class="small mt-1 text-muted help"></div>
-        </td>
-
-        <td class="text-end">
-          {% if s.balance >= 0 %}
-            <span class="badge rounded-pill text-bg-success">{{ s.balance }}</span>
-          {% else %}
-            <span class="badge rounded-pill text-bg-danger">{{ s.balance }}</span>
-          {% endif %}
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="7" class="text-muted">Talaba yo‘q.</td></tr>
-      {% endfor %}
-      </tbody>
-
-    </table>
-  </div>
-
-
-  <!-- 📱 MOBIL VERSION (CARD KO‘RINISH) -->
-  <div class="mobile-version mt-3">
-    {% for s in students %}
-    <div class="mobile-student">
-
-      <div class="m-row">
-        <span class="m-label">👤 Talaba:</span>
-        <span class="m-value">{{ s.ism }} {{ s.familya }}</span>
+  <div class="roll-top">
+    <div class="roll-head">
+      <div style="min-width:0;">
+        <h3 class="roll-title mb-0">{{ g.nom }} — Davomat / Chaqmoq</h3>
+        <p class="roll-sub mb-0">Mobil va desktop uchun premium dark + glass ko‘rinish • tezkor kirish</p>
       </div>
-
-      <div class="m-row">
-        <span class="m-label">📞 Tel:</span>
-        <span class="m-value">{{ s.telefon1|default:"—" }}</span>
-      </div>
-
-      <div class="mt-2">
-        <label class="m-label">Davomat:</label><br>
-        <input type="checkbox" name="present_{{ s.id }}" {% if s.present %}checked{% endif %}>
-      </div>
-
-      <div class="mt-2">
-        <label class="m-label">Qoida tanlash:</label>
-        <select name="rule_{{ s.id }}" class="form-select rule-select mt-1">
-          <option value="">—</option>
-          {% for r in rules %}
-            <option value="{{ r.id }}"
-                    data-min="{{ r.min_baho }}"
-                    data-max="{{ r.max_baho }}"
-                    data-type="{{ r.tur }}">
-              {{ r.nom }}
-              {% if r.tur == 'plus' %}
-                (+{{ r.min_baho }}..+{{ r.max_baho }})
-              {% else %}
-                (-{{ r.min_baho }}..-{{ r.max_baho }})
-              {% endif %}
-            </option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <div class="amt-box mt-2">
-        <label class="m-label">Ball:</label>
-        <div class="input-group input-group-sm mt-1">
-          <button class="btn btn-outline-secondary minus" type="button">−</button>
-          <input name="ball_{{ s.id }}" type="number" class="form-control text-center amount" value="0">
-          <button class="btn btn-outline-secondary plus" type="button">+</button>
-        </div>
-        <div class="small mt-1 text-muted help"></div>
-      </div>
-
-      <div class="m-row mt-2">
-        <span class="m-label">Jami:</span>
-        <span class="m-value">
-          {% if s.balance >= 0 %}
-            <span class="badge bg-success">{{ s.balance }}</span>
-          {% else %}
-            <span class="badge bg-danger">{{ s.balance }}</span>
-          {% endif %}
-        </span>
-      </div>
-
     </div>
-    {% endfor %}
+
+    <form method="post" class="mb-0">{% csrf_token %}
+
+      <div class="datebar">
+        <div class="dategrp input-group" style="max-width:420px">
+          <span class="input-group-text">Sana</span>
+          <input type="date" name="date" class="form-control" value="{{ date }}" aria-label="Sana">
+        </div>
+      </div>
+
+      <div class="table-card mt-3">
+
+        <!-- 💻 DESKTOP TABLE -->
+        <div class="table-responsive desktop-version">
+          <table class="table table-sm table-hover align-middle">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Talaba</th>
+                <th>Telefon</th>
+                <th class="text-center">Davomat</th>
+                <th>Qoida</th>
+                <th>Ball</th>
+                <th class="text-end">Jami</th>
+              </tr>
+            </thead>
+
+            <tbody>
+            {% for s in students %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td>{{ s.ism }} {{ s.familya }}</td>
+              <td>{{ s.telefon1|default:"—" }}</td>
+
+              <td class="text-center">
+                <input type="checkbox" name="present_{{ s.id }}" {% if s.present %}checked{% endif %} aria-label="Davomat: {{ s.ism }} {{ s.familya }}">
+              </td>
+
+              <td>
+                <select name="rule_{{ s.id }}" class="form-select form-select-sm rule-select" aria-label="Qoida: {{ s.ism }} {{ s.familya }}">
+                  <option value="">—</option>
+                  {% for r in rules %}
+                    <option value="{{ r.id }}"
+                            data-min="{{ r.min_baho }}"
+                            data-max="{{ r.max_baho }}"
+                            data-type="{{ r.tur }}">
+                      {{ r.nom }}
+                      {% if r.tur == 'plus' %}
+                        (+{{ r.min_baho }}..+{{ r.max_baho }})
+                      {% else %}
+                        (-{{ r.min_baho }}..-{{ r.max_baho }})
+                      {% endif %}
+                    </option>
+                  {% endfor %}
+                </select>
+              </td>
+
+              <td>
+                <div class="input-group input-group-sm">
+                  <button class="btn btn-outline-secondary minus" type="button" aria-label="Minus">−</button>
+                  <input name="ball_{{ s.id }}" type="number" class="form-control text-center amount" value="0" min="0" step="1" inputmode="numeric" aria-label="Ball: {{ s.ism }} {{ s.familya }}">
+                  <button class="btn btn-outline-secondary plus" type="button" aria-label="Plus">+</button>
+                </div>
+                <div class="small mt-1 text-muted help"></div>
+              </td>
+
+              <td class="text-end">
+                {% if s.balance >= 0 %}
+                  <span class="badge rounded-pill text-bg-success">{{ s.balance }}</span>
+                {% else %}
+                  <span class="badge rounded-pill text-bg-danger">{{ s.balance }}</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-muted">Talaba yo‘q.</td></tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 📱 MOBIL VERSION (CARD KO‘RINISH) -->
+        <div class="mobile-version">
+          {% for s in students %}
+          <div class="mobile-student">
+
+            <div class="m-row">
+              <span class="m-label">👤 Talaba:</span>
+              <span class="m-value">{{ s.ism }} {{ s.familya }}</span>
+            </div>
+
+            <div class="m-row">
+              <span class="m-label">📞 Tel:</span>
+              <span class="m-value">{{ s.telefon1|default:"—" }}</span>
+            </div>
+
+            <div class="mt-2">
+              <label class="m-label">Davomat:</label><br>
+              <input type="checkbox" name="present_{{ s.id }}" {% if s.present %}checked{% endif %} aria-label="Davomat: {{ s.ism }} {{ s.familya }}">
+            </div>
+
+            <div class="mt-2">
+              <label class="m-label">Qoida tanlash:</label>
+              <select name="rule_{{ s.id }}" class="form-select rule-select mt-1" aria-label="Qoida: {{ s.ism }} {{ s.familya }}">
+                <option value="">—</option>
+                {% for r in rules %}
+                  <option value="{{ r.id }}"
+                          data-min="{{ r.min_baho }}"
+                          data-max="{{ r.max_baho }}"
+                          data-type="{{ r.tur }}">
+                    {{ r.nom }}
+                    {% if r.tur == 'plus' %}
+                      (+{{ r.min_baho }}..+{{ r.max_baho }})
+                    {% else %}
+                      (-{{ r.min_baho }}..-{{ r.max_baho }})
+                    {% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="amt-box mt-2">
+              <label class="m-label">Ball:</label>
+              <div class="input-group input-group-sm mt-1">
+                <button class="btn btn-outline-secondary minus" type="button" aria-label="Minus">−</button>
+                <input name="ball_{{ s.id }}" type="number" class="form-control text-center amount" value="0" inputmode="numeric" aria-label="Ball: {{ s.ism }} {{ s.familya }}">
+                <button class="btn btn-outline-secondary plus" type="button" aria-label="Plus">+</button>
+              </div>
+              <div class="small mt-1 text-muted help"></div>
+            </div>
+
+            <div class="m-row mt-2">
+              <span class="m-label">Jami:</span>
+              <span class="m-value">
+                {% if s.balance >= 0 %}
+                  <span class="badge bg-success">{{ s.balance }}</span>
+                {% else %}
+                  <span class="badge bg-danger">{{ s.balance }}</span>
+                {% endif %}
+              </span>
+            </div>
+
+          </div>
+          {% endfor %}
+        </div>
+
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary">Saqlash</button>
+        <a class="btn btn-secondary" href="{% url 'education:group_detail' g.id %}">Orqaga</a>
+      </div>
+
+    </form>
   </div>
 
-
-  <div class="d-flex gap-2 mt-3">
-    <button class="btn btn-primary">Saqlash</button>
-    <a class="btn btn-secondary" href="{% url 'education:group_detail' g.id %}">Orqaga</a>
-  </div>
-
-</form>
+</div>
 
 <script>
 (function(){
@@ -222,7 +551,7 @@
     function applyBounds(){
       const o = sel.options[sel.selectedIndex];
       if (!o || !o.dataset.min){
-        amount.min = 0; amount.max = ''; help.textContent='';
+        amount.min = 0; amount.max = ''; if(help) help.textContent='';
         return;
       }
 
@@ -232,9 +561,11 @@
 
       amount.min = 1;
       amount.max = max;
-      help.textContent = (typ === 'plus')
-        ? `+${min} .. +${max} oralig‘ida`
-        : `-${min} .. -${max} (musbat kiriting)`;
+      if(help){
+        help.textContent = (typ === 'plus')
+          ? `+${min} .. +${max} oralig‘ida`
+          : `-${min} .. -${max} (musbat kiriting)`;
+      }
 
       if(+amount.value < 1) amount.value = min;
     }

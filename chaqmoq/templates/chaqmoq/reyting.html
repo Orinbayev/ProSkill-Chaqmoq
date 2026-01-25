@@ -3,161 +3,267 @@
 
 <style>
   :root{
-    --bg1:#0b1220;
-    --bg2:#0f1b33;
+    --bg0:#070A12;
+    --bg1:#081327;
+    --bg2:#0A0F1E;
 
-    --card: rgba(255,255,255,0.05);
-    --card2: rgba(255,255,255,0.08);
-    --text:#e5e7eb;
-    --muted:#9ca3af;
-    --line: rgba(255,255,255,0.10);
+    --card: rgba(255,255,255,.06);
+    --card2: rgba(255,255,255,.10);
+    --line: rgba(255,255,255,.12);
 
-    /* Student detail hero ranglari */
-    --primary:#1d4ed8;
-    --primary2:#06b6d4;
+    --text:#EAF0FF;
+    --muted:#A7B0C7;
 
-    /* Chaqmoq accent */
-    --gold:#facc15;
+    --amber:#F59E0B;
+    --amber2:#FBBF24;
+    --neon:#22D3EE;
+    --blue:#3B82F6;
 
-    --shadow: 0 18px 55px rgba(0,0,0,.45);
-    --radius:18px;
+    --gold:#FACC15;
+
+    --shadow: 0 30px 80px rgba(0,0,0,.55);
+    --shadow2: 0 18px 55px rgba(0,0,0,.45);
+    --radius: 22px;
+
+    --ring-amber: 0 0 0 4px rgba(245,158,11,.16), 0 0 0 1px rgba(245,158,11,.55) inset;
+    --ring-neon:  0 0 0 4px rgba(34,211,238,.14), 0 0 0 1px rgba(34,211,238,.55) inset;
   }
+
+  *{ box-sizing:border-box; }
+  html, body{ height:100%; }
 
   body{
-    background: linear-gradient(160deg, var(--bg1), var(--bg2) 45%, var(--bg1));
+    background:
+      radial-gradient(1200px 520px at 12% 18%, rgba(34,211,238,.10), transparent 60%),
+      radial-gradient(1200px 520px at 88% 22%, rgba(245,158,11,.10), transparent 60%),
+      radial-gradient(900px 420px at 50% 110%, rgba(59,130,246,.08), transparent 60%),
+      linear-gradient(180deg, #070A12, #071129 40%, #070A12);
     color: var(--text);
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    overflow-x:hidden;
   }
 
-  .rb-wrap{ max-width: 980px; margin: 26px auto; padding: 0 14px; }
+  .rb-wrap{
+    max-width: 1100px;
+    margin: 14px auto 26px;
+    padding: 0 12px;
+  }
 
-  /* HERO (student_detail bilan bir xil vibe) */
+  /* HERO */
   .rb-hero{
-    border-radius: 22px;
+    border-radius: 24px;
     overflow: hidden;
     box-shadow: var(--shadow);
-    background: linear-gradient(120deg, var(--primary), var(--primary2));
+    background: linear-gradient(120deg, rgba(59,130,246,.95), rgba(34,211,238,.92));
     position: relative;
-    border: 1px solid rgba(255,255,255,.10);
+    border: 1px solid rgba(255,255,255,.12);
   }
-  .rb-hero:before{
+  .rb-hero::before{
     content:"";
     position:absolute; inset:0;
     background:
-      radial-gradient(circle at 20% 30%, rgba(255,255,255,.18), transparent 55%),
-      radial-gradient(circle at 80% 10%, rgba(255,255,255,.12), transparent 55%);
+      radial-gradient(circle at 18% 32%, rgba(255,255,255,.22), transparent 56%),
+      radial-gradient(circle at 82% 14%, rgba(255,255,255,.14), transparent 58%),
+      radial-gradient(circle at 50% 120%, rgba(245,158,11,.14), transparent 55%);
     pointer-events:none;
   }
   .rb-hero-inner{
     position:relative;
-    padding: 22px;
-    display:flex; align-items:center; justify-content:space-between;
+    padding: 16px;
+    display:flex; align-items:flex-start; justify-content:space-between;
     gap:12px;
     color:#fff;
     flex-wrap:wrap;
   }
-  .rb-title{ margin:0; font-weight:1000; letter-spacing:.2px; font-size: 1.35rem; }
-  .rb-sub{ margin:4px 0 0 0; opacity:.92; font-weight:650; }
+  .rb-title{
+    margin:0;
+    font-weight: 1000;
+    letter-spacing:.2px;
+    font-size: 1.1rem;
+    text-shadow: 0 18px 60px rgba(0,0,0,.45);
+  }
+  .rb-sub{
+    margin:6px 0 0 0;
+    opacity:.95;
+    font-weight: 850;
+  }
 
   .rb-actions a{
     text-decoration:none;
     background: rgba(255,255,255,.14);
     border:1px solid rgba(255,255,255,.22);
-    padding:10px 14px;
-    border-radius: 12px;
+    padding: 12px 14px;
+    border-radius: 14px;
     color:#fff;
-    font-weight:900;
-    transition:.2s;
+    font-weight: 1000;
+    transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
     display:inline-flex; align-items:center; gap:8px;
+    min-height: 44px;
+    -webkit-tap-highlight-color: transparent;
   }
-  .rb-actions a:hover{ transform: translateY(-1px); background: rgba(255,255,255,.20); }
+  .rb-actions a:hover{
+    transform: translateY(-1px);
+    background: rgba(255,255,255,.20);
+    box-shadow: 0 14px 36px rgba(0,0,0,.30);
+  }
+  .rb-actions a:focus-visible{
+    outline:none;
+    box-shadow: var(--ring-amber);
+  }
 
   /* MAIN CARD */
   .rb-card{
-    margin-top: 14px;
-    background: var(--card);
+    margin-top: 12px;
+    background: linear-gradient(180deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,.045) 100%);
     border-radius: var(--radius);
     box-shadow: var(--shadow);
     overflow:hidden;
-    border: 1px solid rgba(255,255,255,.10);
+    border: 1px solid rgba(255,255,255,.12);
     backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    position: relative;
+  }
+  .rb-card::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background: linear-gradient(120deg,
+      rgba(255,255,255,.05),
+      rgba(34,211,238,.10),
+      rgba(245,158,11,.09),
+      rgba(255,255,255,.05)
+    );
+    opacity:.45;
+    filter: blur(12px);
+    pointer-events:none;
   }
 
   .rb-toolbar{
-    padding: 14px;
+    position: relative;
+    z-index: 1;
+    padding: 12px;
     display:flex;
     gap:10px;
-    align-items:center;
+    align-items:flex-start;
     justify-content:space-between;
-    border-bottom:1px solid var(--line);
+    border-bottom:1px solid rgba(255,255,255,.10);
     flex-wrap: wrap;
   }
 
-  .rb-form{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; width:100%; }
+  .rb-form{
+    display:flex;
+    gap:10px;
+    align-items:stretch;
+    flex-wrap:wrap;
+    width:100%;
+  }
 
   .rb-input{
-    flex: 1 1 280px;
+    flex: 1 1 260px;
     display:flex; align-items:center;
-    background: rgba(255,255,255,0.06);
-    border:1px solid rgba(255,255,255,0.10);
-    border-radius: 14px;
-    padding: 10px 12px;
+    background: rgba(2, 6, 23, .22);
+    border:1px solid rgba(255,255,255,.14);
+    border-radius: 16px;
+    padding: 0 12px;
     gap:10px;
-    color: var(--muted);
+    color: rgba(167,176,199,.95);
+    min-height: 52px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.06) inset;
+    transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+  }
+  .rb-input:focus-within{
+    border-color: rgba(34,211,238,.62);
+    box-shadow: var(--ring-neon);
+    background: rgba(2, 6, 23, .30);
   }
   .rb-input input{
     border:0; outline:0; background:transparent;
     width:100%;
     color: var(--text);
-    font-weight:800;
+    font-weight: 900;
+    font-size: 15px;
   }
-  .rb-input input::placeholder{ color: rgba(229,231,235,.55); font-weight:700; }
+  .rb-input input::placeholder{
+    color: rgba(234,240,255,.55);
+    font-weight: 800;
+  }
 
   .rb-btn{
-    background: linear-gradient(90deg, var(--primary), var(--primary2));
-    color:#fff;
+    background:
+      radial-gradient(18px 18px at 18% 30%, rgba(255,255,255,.38), transparent 55%),
+      linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(34,211,238,.92) 55%, rgba(245,158,11,.98) 100%);
+    color:#071129;
     border:0;
-    padding:10px 14px;
-    border-radius: 14px;
-    font-weight:1000;
-    transition:.2s;
+    padding: 12px 14px;
+    border-radius: 16px;
+    font-weight: 1100;
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+    min-height: 52px;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow:
+      0 18px 40px rgba(34,211,238,.10),
+      0 18px 40px rgba(245,158,11,.08),
+      0 0 0 1px rgba(255,255,255,.14) inset;
   }
-  .rb-btn:hover{ transform: translateY(-1px); filter: brightness(1.05); }
+  .rb-btn:hover{
+    transform: translateY(-1px);
+    filter: brightness(1.03);
+    box-shadow:
+      0 24px 60px rgba(34,211,238,.14),
+      0 24px 60px rgba(245,158,11,.10),
+      0 0 0 1px rgba(255,255,255,.18) inset;
+  }
+  .rb-btn:focus-visible{
+    outline:none;
+    box-shadow:
+      0 24px 60px rgba(34,211,238,.14),
+      0 24px 60px rgba(245,158,11,.10),
+      var(--ring-amber);
+  }
 
-  /* CUSTOM DROPDOWN */
+  /* DROPDOWN */
   .rb-dd{ position:relative; }
   .rb-dd-btn{
     display:inline-flex;
     align-items:center;
     justify-content:space-between;
     gap:10px;
-    min-width: 92px;
-    height: 42px;
+    min-width: 104px;
+    height: 52px;
     padding: 0 14px;
-    border-radius: 14px;
-    border:1px solid rgba(255,255,255,0.10);
-    background: rgba(255,255,255,0.06);
+    border-radius: 16px;
+    border:1px solid rgba(255,255,255,.14);
+    background: rgba(2, 6, 23, .22);
     color: var(--text);
-    font-weight: 1000;
+    font-weight: 1100;
     cursor:pointer;
-    transition:.15s;
+    transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.06) inset;
   }
   .rb-dd-btn:hover{
-    background: rgba(255,255,255,0.09);
+    background: rgba(2, 6, 23, .30);
     transform: translateY(-1px);
+    border-color: rgba(255,255,255,.18);
   }
-  .rb-dd-caret{ opacity:.9; font-weight:1000; }
+  .rb-dd-btn:focus-visible{
+    outline:none;
+    box-shadow: var(--ring-neon);
+  }
+  .rb-dd-caret{ opacity:.95; font-weight:1100; }
 
   .rb-dd-menu{
     position:absolute;
     right:0;
-    top: 48px;
-    min-width: 160px;
+    top: 58px;
+    min-width: 180px;
     padding: 8px;
-    border-radius: 16px;
-    border:1px solid rgba(255,255,255,0.12);
-    background: rgba(15,23,42,0.98);
-    box-shadow: 0 18px 55px rgba(0,0,0,.55);
+    border-radius: 18px;
+    border:1px solid rgba(255,255,255,.14);
+    background: rgba(10,15,30,.92);
+    box-shadow: 0 22px 70px rgba(0,0,0,.65);
     backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
     z-index: 50;
   }
   .rb-dd-item{
@@ -165,85 +271,219 @@
     text-align:left;
     border:0;
     background: transparent;
-    color: var(--text);
+    color: rgba(234,240,255,.96);
     font-weight: 1000;
-    padding: 10px 12px;
-    border-radius: 12px;
+    padding: 12px 12px;
+    border-radius: 14px;
     cursor:pointer;
-    transition:.12s;
+    transition: background .14s ease, transform .14s ease;
+    min-height: 44px;
   }
-  .rb-dd-item:hover{ background: rgba(255,255,255,0.08); }
+  .rb-dd-item:hover{
+    background: rgba(255,255,255,.08);
+    transform: translateY(-1px);
+  }
   .rb-dd-item.active{
-    background: linear-gradient(90deg, var(--primary), var(--primary2));
-    color: #fff;
+    background:
+      radial-gradient(18px 18px at 18% 30%, rgba(255,255,255,.30), transparent 55%),
+      linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(34,211,238,.92) 55%, rgba(245,158,11,.98) 100%);
+    color: #071129;
   }
 
   /* TABLE */
-  table{ width:100%; border-collapse: collapse; }
-  thead th{
-    background: rgba(255,255,255,0.06);
-    color: var(--text);
-    font-weight:1000;
-    border-bottom:1px solid var(--line);
-    padding:14px 16px;
-    font-size:.92rem;
+  .rb-card table{
+    width:100%;
+    border-collapse: collapse;
+    position: relative;
+    z-index: 1;
   }
-  tbody td{
-    padding: 14px 16px;
-    border-bottom:1px solid rgba(255,255,255,0.06);
-    color: var(--text);
-    font-weight:800;
+  .rb-card thead th{
+    background: rgba(255,255,255,.06);
+    color: rgba(234,240,255,.92);
+    font-weight: 1100;
+    border-bottom:1px solid rgba(255,255,255,.10);
+    padding: 14px 14px;
+    font-size: .92rem;
+    white-space: nowrap;
   }
-  tbody tr{ transition:.15s; cursor:pointer; }
-  tbody tr:hover{ background: rgba(255,255,255,0.06); }
+  .rb-card tbody td{
+    padding: 14px 14px;
+    border-bottom:1px solid rgba(255,255,255,.07);
+    color: rgba(234,240,255,.92);
+    font-weight: 900;
+    vertical-align: middle;
+  }
+  .rb-card tbody tr{
+    transition: background .15s ease, transform .15s ease;
+    cursor:pointer;
+  }
+  .rb-card tbody tr:hover{
+    background: rgba(255,255,255,.06);
+  }
 
-  .rb-rank{ width:70px; text-align:center; font-weight:1000; color: var(--gold); }
-  .rb-score{ text-align:right; font-weight:1000; color: #60a5fa; }
+  .rb-rank{
+    width:70px;
+    text-align:center;
+    font-weight: 1100;
+    color: var(--gold);
+    text-shadow: 0 0 18px rgba(250,204,21,.14);
+  }
+  .rb-score{
+    text-align:right;
+    font-weight: 1100;
+    color: rgba(96,165,250,.98);
+    text-shadow: 0 0 18px rgba(96,165,250,.12);
+    white-space: nowrap;
+  }
 
-  .rb-name{ display:flex; align-items:center; gap:12px; }
+  .rb-name{ display:flex; align-items:center; gap:12px; min-width: 0; }
   .rb-avatar{
-    width:42px; height:42px; border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary), var(--primary2));
+    width:44px; height:44px; border-radius: 50%;
+    background: linear-gradient(135deg, rgba(59,130,246,1), rgba(34,211,238,.95));
     display:flex; align-items:center; justify-content:center;
-    color:#fff; font-weight:1000;
-    box-shadow: 0 12px 26px rgba(6,182,212,.18);
+    color:#fff;
+    font-weight: 1100;
+    box-shadow: 0 16px 34px rgba(34,211,238,.16);
     flex:0 0 auto;
   }
-  .rb-muted{ color: var(--muted); font-weight:750; }
+  .rb-muted{ color: rgba(167,176,199,.88); font-weight: 850; }
+
+  .rb-name > div{ min-width: 0; }
+  .rb-name > div > div:first-child{
+    overflow:hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
 
   /* PAGINATION */
   .rb-pagination{
-    padding: 14px;
+    position: relative;
+    z-index: 1;
+    padding: 12px;
     display:flex;
     justify-content:space-between;
     align-items:center;
     gap:10px;
     flex-wrap:wrap;
-    border-top:1px solid var(--line);
+    border-top:1px solid rgba(255,255,255,.10);
   }
-  .pg{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-
+  .pg{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
   .pg a, .pg span{
-    min-width:38px;
-    height:38px;
+    min-width:40px;
+    height:40px;
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    border-radius: 12px;
-    border:1px solid rgba(255,255,255,0.10);
-    background: rgba(255,255,255,0.05);
-    color: var(--text);
-    font-weight:1000;
+    border-radius: 14px;
+    border:1px solid rgba(255,255,255,.12);
+    background: rgba(2, 6, 23, .18);
+    color: rgba(234,240,255,.92);
+    font-weight: 1100;
     text-decoration:none;
-    padding: 0 10px;
+    padding: 0 12px;
+    transition: transform .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease;
+    -webkit-tap-highlight-color: transparent;
   }
-  .pg a:hover{ background: rgba(255,255,255,0.08); }
+  .pg a:hover{
+    background: rgba(2, 6, 23, .26);
+    border-color: rgba(255,255,255,.18);
+    transform: translateY(-1px);
+  }
+  .pg a:focus-visible{
+    outline:none;
+    box-shadow: var(--ring-neon);
+  }
   .pg .active{
-    background: linear-gradient(90deg, var(--primary), var(--primary2));
-    border-color: rgba(255,255,255,0.18);
-    color:#fff;
+    background:
+      radial-gradient(18px 18px at 18% 30%, rgba(255,255,255,.30), transparent 55%),
+      linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(34,211,238,.92) 55%, rgba(245,158,11,.98) 100%);
+    border-color: rgba(255,255,255,.18);
+    color:#071129;
   }
   .pg .disabled{ opacity:.45; pointer-events:none; }
+
+  /* Mobile-first table containment */
+  .rb-card{ overflow-x:auto; -webkit-overflow-scrolling: touch; }
+  .rb-card table{ min-width: 640px; }
+  @media (min-width: 768px){
+    .rb-card{ overflow: hidden; }
+    .rb-card table{ min-width: 100%; }
+  }
+
+  /* Responsive typography */
+  @media (min-width: 576px){
+    .rb-wrap{ padding: 0 14px; margin-top: 18px; }
+    .rb-hero-inner{ padding: 18px; }
+    .rb-title{ font-size: 1.25rem; }
+  }
+  @media (min-width: 992px){
+    .rb-wrap{ max-width: 1180px; }
+    .rb-hero-inner{ padding: 20px 22px; }
+    .rb-title{ font-size: 1.45rem; }
+  }
+  @media (min-width: 1440px){
+    .rb-wrap{ max-width: 1240px; }
+  }
+
+  :where(a, button, input, select, textarea):focus-visible{ outline:none; }
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; scroll-behavior:auto !important; }
+  }
+  /* ✅ MOBILE: jadvalni kichraytirib 3 ta ustun ham ko‘rinsin (SCROLLSIZ) */
+@media (max-width: 560px){
+
+  /* oldingi min-width:640px ni sindiramiz */
+  .rb-card{ overflow-x: hidden; }
+  .rb-card table{
+    min-width: 100% !important;
+    table-layout: fixed;   /* ustunlar ekranga sig‘adi */
+  }
+
+  /* padding/fontlarni kichraytiramiz */
+  .rb-card thead th{
+    padding: 10px 10px;
+    font-size: .82rem;
+  }
+  .rb-card tbody td{
+    padding: 10px 10px;
+    font-size: .92rem;
+  }
+
+  /* inline width(80px / 180px) ni override qilamiz */
+  .rb-card thead th:first-child{ width: 56px !important; }
+  .rb-card thead th:last-child{
+    width: 92px !important;
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis; /* "⚡ Ch..." bo‘lib ko‘rinadi */
+    white-space: nowrap;
+  }
+
+  .rb-rank{
+    width: 56px !important;
+    font-size: .9rem;
+  }
+  .rb-score{
+    width: 92px !important;
+    font-size: .92rem;
+    white-space: nowrap;
+  }
+
+  /* avatar/name ham siqilib, hammasi joyiga sig‘sin */
+  .rb-avatar{
+    width: 34px;
+    height: 34px;
+    font-size: .95rem;
+  }
+  .rb-name{ gap: 10px; }
+}
+
 </style>
 
 <div class="rb-wrap">
@@ -265,25 +505,24 @@
       <form class="rb-form" method="get">
 
         <div class="rb-input">
-          <span>🔎</span>
-          <input type="text" name="q" value="{{ q }}" placeholder="Ism yoki familiya bo‘yicha qidiring...">
+          <span aria-hidden="true">🔎</span>
+          <input type="text" name="q" value="{{ q }}" placeholder="Ism yoki familiya bo‘yicha qidiring..." aria-label="Ism yoki familiya bo‘yicha qidirish">
         </div>
 
-        <!-- PER PAGE (custom dropdown) -->
         <div class="rb-dd" id="perPageDD">
           <input type="hidden" name="per_page" id="perPageInput" value="{{ per_page }}">
           <input type="hidden" name="page" value="1">
 
-          <button type="button" class="rb-dd-btn" id="perPageBtn">
+          <button type="button" class="rb-dd-btn" id="perPageBtn" aria-haspopup="true" aria-expanded="false">
             <span id="perPageLabel">{{ per_page }} ta</span>
-            <span class="rb-dd-caret">▾</span>
+            <span class="rb-dd-caret" aria-hidden="true">▾</span>
           </button>
 
-          <div class="rb-dd-menu" id="perPageMenu" hidden>
-            <button type="button" class="rb-dd-item" data-val="10">10 ta</button>
-            <button type="button" class="rb-dd-item" data-val="20">20 ta</button>
-            <button type="button" class="rb-dd-item" data-val="50">50 ta</button>
-            <button type="button" class="rb-dd-item" data-val="100">100 ta</button>
+          <div class="rb-dd-menu" id="perPageMenu" hidden role="menu" aria-label="Sahifadagi yozuvlar soni">
+            <button type="button" class="rb-dd-item" data-val="10" role="menuitem">10 ta</button>
+            <button type="button" class="rb-dd-item" data-val="20" role="menuitem">20 ta</button>
+            <button type="button" class="rb-dd-item" data-val="50" role="menuitem">50 ta</button>
+            <button type="button" class="rb-dd-item" data-val="100" role="menuitem">100 ta</button>
           </div>
         </div>
 
@@ -303,26 +542,23 @@
       <tbody>
         {% for row in page_obj %}
         <tr data-href="{% url 'chaqmoq:student_detail' row.student__id %}">
-<td class="rb-rank">
-  {% if is_search %}
-    {# ✅ qidiruvda: umumiy reytingdagi REAL o‘rni #}
-    {% if row.rank == 1 %}🥇
-    {% elif row.rank == 2 %}🥈
-    {% elif row.rank == 3 %}🥉
-    {% else %}{{ row.rank }}
-    {% endif %}
-  {% else %}
-    {# ✅ oddiy ro‘yxatda: sahifalash bo‘yicha umumiy index #}
-    {% with pos=page_obj.start_index|add:forloop.counter0 %}
-      {% if pos == 1 %}🥇
-      {% elif pos == 2 %}🥈
-      {% elif pos == 3 %}🥉
-      {% else %}{{ pos }}
-      {% endif %}
-    {% endwith %}
-  {% endif %}
-</td>
-
+          <td class="rb-rank">
+            {% if is_search %}
+              {% if row.rank == 1 %}🥇
+              {% elif row.rank == 2 %}🥈
+              {% elif row.rank == 3 %}🥉
+              {% else %}{{ row.rank }}
+              {% endif %}
+            {% else %}
+              {% with pos=page_obj.start_index|add:forloop.counter0 %}
+                {% if pos == 1 %}🥇
+                {% elif pos == 2 %}🥈
+                {% elif pos == 3 %}🥉
+                {% else %}{{ pos }}
+                {% endif %}
+              {% endwith %}
+            {% endif %}
+          </td>
 
           <td>
             <div class="rb-name">
@@ -340,7 +576,7 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="3" style="padding:22px; text-align:center; color:#64748b; font-weight:800;">
+          <td colspan="3" style="padding:22px; text-align:center; color:#94a3b8; font-weight:900;">
             Hozircha reyting yo‘q.
           </td>
         </tr>
@@ -357,23 +593,23 @@
 
       <div class="pg">
         {% if page_obj.has_previous %}
-          <a href="?q={{ q }}&per_page={{ per_page }}&page={{ page_obj.previous_page_number }}">‹</a>
+          <a href="?q={{ q }}&per_page={{ per_page }}&page={{ page_obj.previous_page_number }}" aria-label="Oldingi sahifa">‹</a>
         {% else %}
-          <span class="disabled">‹</span>
+          <span class="disabled" aria-disabled="true">‹</span>
         {% endif %}
 
         {% for p in page_window %}
           {% if p == page_obj.number %}
-            <span class="active">{{ p }}</span>
+            <span class="active" aria-current="page">{{ p }}</span>
           {% else %}
-            <a href="?q={{ q }}&per_page={{ per_page }}&page={{ p }}">{{ p }}</a>
+            <a href="?q={{ q }}&per_page={{ per_page }}&page={{ p }}" aria-label="Sahifa {{ p }}">{{ p }}</a>
           {% endif %}
         {% endfor %}
 
         {% if page_obj.has_next %}
-          <a href="?q={{ q }}&per_page={{ per_page }}&page={{ page_obj.next_page_number }}">›</a>
+          <a href="?q={{ q }}&per_page={{ per_page }}&page={{ page_obj.next_page_number }}" aria-label="Keyingi sahifa">›</a>
         {% else %}
-          <span class="disabled">›</span>
+          <span class="disabled" aria-disabled="true">›</span>
         {% endif %}
       </div>
     </div>
@@ -382,12 +618,18 @@
 </div>
 
 <script>
-  // row click -> student profile
   document.querySelectorAll("tr[data-href]").forEach(tr => {
     tr.addEventListener("click", () => window.location.href = tr.dataset.href);
+    tr.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        window.location.href = tr.dataset.href;
+      }
+    });
+    tr.setAttribute("tabindex", "0");
+    tr.setAttribute("role", "link");
   });
 
-  // per_page dropdown
   (function () {
     const dd = document.getElementById("perPageDD");
     if (!dd) return;
@@ -398,8 +640,14 @@
     const label = document.getElementById("perPageLabel");
     const form = dd.closest("form");
 
-    function openMenu(){ menu.hidden = false; }
-    function closeMenu(){ menu.hidden = true; }
+    function openMenu(){
+      menu.hidden = false;
+      btn.setAttribute("aria-expanded", "true");
+    }
+    function closeMenu(){
+      menu.hidden = true;
+      btn.setAttribute("aria-expanded", "false");
+    }
 
     btn.addEventListener("click", (e) => {
       e.stopPropagation();

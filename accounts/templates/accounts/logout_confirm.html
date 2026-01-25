@@ -2,98 +2,283 @@
 
 {% block extra_css %}
 <style>
-.logout-page-container {
-  min-height: calc(100vh - 120px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: linear-gradient(135deg, #001f3f, #0077b6);
-  font-family: 'Poppins', sans-serif;
-}
+  :root{
+    --bg0:#070A12;
+    --bg1:#081327;
+    --bg2:#0A0F1E;
 
-/* Card */
-.logout-card {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(18px);
-  padding: 35px 40px;
-  border-radius: 20px;
-  color: #fff;
-  text-align: center;
-  width: 420px;
-  box-shadow: 0 0 25px rgba(0,0,0,0.25);
-  animation: fadeIn .5s ease;
-}
+    --card: rgba(255,255,255,.06);
+    --card2: rgba(255,255,255,.10);
+    --line: rgba(255,255,255,.12);
 
-.logout-card h3 {
-  font-weight: 700;
-  margin-bottom: 15px;
-  font-size: 24px;
-}
+    --text:#EAF0FF;
+    --muted:#A7B0C7;
 
-.logout-card p {
-  font-size: 15px;
-  opacity: .8;
-  margin-bottom: 28px;
-}
+    --amber:#F59E0B;
+    --amber2:#FBBF24;
+    --neon:#22D3EE;
 
-/* Buttons */
-.logout-card .btn-danger {
-  background: linear-gradient(135deg, #ff4d4d, #d90429);
-  border: none;
-  font-weight: 600;
-  padding: 12px 20px;
-  border-radius: 10px;
-}
+    --danger1:#ff4d4d;
+    --danger2:#d90429;
 
-.logout-card .btn-secondary {
-  background: rgba(255,255,255,0.2);
-  border: none;
-  margin-left: 10px;
-  font-weight: 500;
-  padding: 12px 16px;
-  border-radius: 10px;
-  backdrop-filter: blur(10px);
-  color: #fff;
-}
+    --shadow: 0 30px 80px rgba(0,0,0,.55);
+    --shadow2: 0 18px 55px rgba(0,0,0,.45);
+    --radius: 26px;
 
-.btn-secondary:hover {
-  background: rgba(255,255,255,0.35);
-}
-
-/* Responsive */
-@media (max-width: 480px) {
-  .logout-card {
-    width: 100%;
-    padding: 30px 25px;
+    --ring-amber: 0 0 0 4px rgba(245,158,11,.16), 0 0 0 1px rgba(245,158,11,.55) inset;
+    --ring-neon:  0 0 0 4px rgba(34,211,238,.14), 0 0 0 1px rgba(34,211,238,.55) inset;
   }
-  .logout-card h3 { font-size: 21px; }
-  .logout-card p { font-size: 14px; }
-}
 
-/* Animation */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+  *{ box-sizing:border-box; }
+  html, body{ height:100%; }
+
+  .logout-page-container{
+    min-height: calc(100vh - 120px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 18px 14px;
+    overflow:hidden;
+    color: var(--text);
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+
+    background:
+      radial-gradient(1100px 650px at 80% 18%, rgba(34,211,238,.18), transparent 60%),
+      radial-gradient(900px 560px at 18% 78%, rgba(245,158,11,.16), transparent 62%),
+      radial-gradient(1000px 600px at 55% 110%, rgba(59,130,246,.14), transparent 55%),
+      linear-gradient(180deg, var(--bg0) 0%, var(--bg1) 52%, var(--bg2) 100%);
+  }
+
+  .logout-page-container::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:
+      radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,.34), transparent 2px),
+      radial-gradient(1px 1px at 18% 72%, rgba(255,255,255,.22), transparent 2px),
+      radial-gradient(1px 1px at 36% 84%, rgba(255,255,255,.26), transparent 2px),
+      radial-gradient(1px 1px at 58% 35%, rgba(255,255,255,.30), transparent 2px),
+      radial-gradient(1px 1px at 76% 64%, rgba(255,255,255,.22), transparent 2px),
+      radial-gradient(1px 1px at 90% 25%, rgba(255,255,255,.22), transparent 2px);
+    opacity:.55;
+    filter: blur(.2px);
+    animation: starsDrift 14s ease-in-out infinite;
+  }
+
+  .logout-page-container::after{
+    content:"";
+    position:absolute;
+    inset:-40%;
+    pointer-events:none;
+    opacity:.28;
+    background: conic-gradient(
+      from 180deg,
+      rgba(34,211,238,.62),
+      rgba(59,130,246,.45),
+      rgba(245,158,11,.42),
+      rgba(34,211,238,.62)
+    );
+    filter: blur(46px);
+    animation: auroraSpin 18s linear infinite;
+  }
+
+  @keyframes auroraSpin{ from{ transform: rotate(0deg);} to{ transform: rotate(360deg);} }
+  @keyframes starsDrift{
+    0%,100%{ transform: translateY(0); opacity:.55; }
+    50%{ transform: translateY(-10px); opacity:.72; }
+  }
+
+  .logout-card{
+    width: min(520px, 100%);
+    position:relative;
+    z-index: 2;
+
+    background: linear-gradient(180deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,.045) 100%);
+    border: 1px solid rgba(255,255,255,.12);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    padding: 34px 18px 20px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    text-align:center;
+
+    animation: fadeIn .55s cubic-bezier(.2,.9,.2,1);
+    overflow:hidden;
+  }
+
+  .logout-card::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background: linear-gradient(120deg,
+      rgba(255,255,255,.05),
+      rgba(34,211,238,.12),
+      rgba(245,158,11,.10),
+      rgba(255,255,255,.05)
+    );
+    opacity:.55;
+    filter: blur(12px);
+    z-index:0;
+  }
+
+  .logout-card::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background: radial-gradient(700px 260px at 50% -10%, rgba(255,255,255,.12), transparent 55%);
+    z-index:0;
+  }
+
+  .logout-card > *{
+    position:relative;
+    z-index:1;
+  }
+
+  .logout-card h3{
+    margin: 0 0 10px;
+    font-weight: 950;
+    font-size: 22px;
+    letter-spacing: .2px;
+    color: rgba(234,240,255,.96);
+    text-shadow: 0 10px 35px rgba(0,0,0,.45);
+  }
+
+  .logout-card p{
+    margin: 0 0 18px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: rgba(226,232,240,.72);
+  }
+
+  .logout-card form{
+    margin:0;
+    display:flex;
+    gap: 10px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .logout-card .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:100%;
+    min-height: 52px;
+    border-radius: 16px;
+    font-weight: 900;
+    letter-spacing: .2px;
+    text-decoration:none;
+    border: 1px solid transparent;
+    cursor:pointer;
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease, background .18s ease, border-color .18s ease;
+    user-select:none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .logout-card .btn:active{ transform: translateY(0) scale(.99); }
+  .logout-card .btn:focus-visible{ outline:none; }
+
+  .logout-card .btn-danger{
+    color: #0B1226;
+    background:
+      radial-gradient(18px 18px at 18% 30%, rgba(255,255,255,.40), transparent 55%),
+      linear-gradient(135deg, rgba(255,77,77,1) 0%, rgba(217,4,41,1) 55%, rgba(255,77,77,1) 100%);
+    box-shadow:
+      0 20px 48px rgba(217,4,41,.16),
+      0 20px 48px rgba(255,77,77,.10),
+      0 0 0 1px rgba(255,255,255,.14) inset;
+  }
+
+  .logout-card .btn-danger:hover{
+    transform: translateY(-1px);
+    filter: saturate(1.05);
+    box-shadow:
+      0 26px 62px rgba(217,4,41,.18),
+      0 26px 62px rgba(255,77,77,.12),
+      0 0 0 1px rgba(255,255,255,.18) inset;
+  }
+
+  .logout-card .btn-danger:focus-visible{
+    box-shadow:
+      0 26px 62px rgba(217,4,41,.18),
+      0 26px 62px rgba(255,77,77,.12),
+      var(--ring-amber);
+  }
+
+  .logout-card .btn-secondary{
+    color: rgba(234,240,255,.94);
+    background: rgba(2, 6, 23, .18);
+    border-color: rgba(255,255,255,.14);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: var(--shadow2);
+  }
+
+  .logout-card .btn-secondary:hover{
+    background: rgba(2, 6, 23, .26);
+    border-color: rgba(255,255,255,.20);
+    transform: translateY(-1px);
+  }
+
+  .logout-card .btn-secondary:focus-visible{
+    box-shadow: var(--ring-neon);
+  }
+
+  @media (min-width: 520px){
+    .logout-card{
+      padding: 40px 44px 26px;
+      border-radius: 30px;
+    }
+    .logout-card h3{ font-size: 24px; }
+    .logout-card p{ font-size: 14px; }
+    .logout-card form{
+      flex-direction: row;
+      gap: 12px;
+    }
+    .logout-card .btn{
+      width: auto;
+      flex: 1 1 0;
+      min-height: 54px;
+    }
+  }
+
+  @media (min-width: 900px){
+    .logout-page-container{ padding: 24px; }
+    .logout-card{ width: min(560px, 92vw); }
+  }
+
+  @media (min-width: 1440px){
+    .logout-card{ width: 580px; }
+  }
+
+  @keyframes fadeIn{
+    from{ opacity:0; transform: translateY(14px) scale(.985); }
+    to{ opacity:1; transform: translateY(0) scale(1); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .logout-page-container::before,
+    .logout-page-container::after,
+    .logout-card{
+      animation:none !important;
+    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="logout-page-container">
-
-  <div class="logout-card">
+<main class="logout-page-container">
+  <section class="logout-card" role="region" aria-label="Logout confirmation">
     <h3>Tizimdan chiqmoqchimisiz?</h3>
     <p>ProSkill hisobingizdan chiqishdan oldin tasdiqlang.</p>
 
-    <form method="post" action="{% url 'accounts:logout' %}">
+    <form method="post" action="{% url 'accounts:logout' %}" aria-label="Logout confirmation form">
       {% csrf_token %}
 
-      <button class="btn btn-danger">Ha, chiqaman</button>
-      <a href="{% url 'core:home' %}" class="btn btn-secondary">Yo‘q, ortga</a>
+      <button class="btn btn-danger" type="submit" aria-label="Ha, chiqaman">Ha, chiqaman</button>
+      <a href="{% url 'core:home' %}" class="btn btn-secondary" aria-label="Yo‘q, ortga">Yo‘q, ortga</a>
     </form>
-  </div>
-
-</div>
+  </section>
+</main>
 {% endblock %}

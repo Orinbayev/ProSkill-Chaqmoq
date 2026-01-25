@@ -312,6 +312,127 @@
     background:#dc2626;
     color:#fff;
   }
+
+
+
+  /* ============================
+   ✅ RESPONSIVE PATCH (NO redesign)
+   faqat mobile/tablet uchun moslashuv
+============================ */
+
+/* Umumiy: kichik ekranlarda hover translate "silkinmasin" */
+@media (hover: none){
+  .icon-btn:hover,
+  .avatar:hover,
+  .stat-card:hover{
+    transform: none;
+  }
+}
+
+/* 📱 Telefon */
+@media (max-width: 576px){
+
+  .dash-wrap{
+    padding: 10px 10px 22px;
+  }
+
+  .dash-title{
+    font-size: 22px;
+    line-height: 1.15;
+  }
+
+  .dash-sub{
+    font-size: 12px;
+  }
+
+  .dash-actions{
+    gap: 10px;
+    padding-top: 8px;
+  }
+
+  /* Search to‘liq kenglik */
+  .search-pill{
+    width: 100%;
+    height: 44px;
+    border-radius: 14px;
+    padding: 0 12px;
+  }
+
+  .search-pill input{
+    font-size: 14px;
+  }
+
+  /* Icon tugmalar touch uchun qulayroq */
+  .icon-btn{
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+  }
+
+  .avatar{
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Dropdown ekranidan chiqib ketmasin */
+  .dd-menu{
+    width: min(92vw, 280px);
+    right: 0;
+    left: auto;
+  }
+
+  /* Stat kartalar: padding + text mos */
+  .stat-card{
+    padding: 16px;
+    min-height: 108px;
+  }
+
+  .stat-label{
+    font-size: 10px;
+    letter-spacing: .7px;
+  }
+
+  .stat-value{
+    font-size: 30px;
+  }
+
+  .chev{
+    width: 32px;
+    height: 32px;
+    border-radius: 12px;
+  }
+
+}
+
+/* 🧾 Tablet */
+@media (min-width: 577px) and (max-width: 992px){
+
+  .dash-wrap{
+    padding: 12px 14px 24px;
+  }
+
+  .dash-title{
+    font-size: 26px;
+  }
+
+  .search-pill{
+    width: 100%;
+    min-width: 0;
+  }
+
+  .dd-menu{
+    width: 260px;
+  }
+
+}
+
+/* 🖥️ Katta desktop — ozroq joylashuv */
+@media (min-width: 1200px){
+  .dash-wrap{
+    padding: 10px 6px 28px;
+  }
+}
+
 </style>
 
 <div class="dash-wrap">

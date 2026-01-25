@@ -1,182 +1,541 @@
 {% extends 'base.html' %}
+{% load humanize %}
 {% block content %}
 
 <style>
-body {
-  background: #0f172a;
-  font-family: 'Poppins', sans-serif;
-  color: #e2e8f0;
+:root{
+  --bg1:#0b1220;
+  --bg2:#0f172a;
+
+  --panel: rgba(255,255,255,0.06);
+  --panel2: rgba(2,6,23,0.55);
+  --line: rgba(255,255,255,0.10);
+
+  --text:#e5e7eb;
+  --muted:#94a3b8;
+
+  --blue1:#2563eb;
+  --blue2:#60a5fa;
+
+  --amber:#facc15;
+  --amber2:#fbbf24;
+
+  --green:#22c55e;
+  --red:#ef4444;
+  --rose:#fb7185;
+
+  --shadow: 0 22px 60px rgba(0,0,0,0.55);
 }
 
-.container {
-  max-width: 1150px;
-  margin: 40px auto;
-  background: rgba(255,255,255,0.05);
-  border-radius: 20px;
-  padding: 30px;
-  box-shadow: 0 0 40px rgba(59,130,246,0.15);
-  backdrop-filter: blur(12px);
+body{
+  background:
+    radial-gradient(1200px 520px at 50% -10%, rgba(96,165,250,0.18), transparent 55%),
+    radial-gradient(900px 520px at 10% 10%, rgba(37,99,235,0.14), transparent 55%),
+    radial-gradient(900px 520px at 92% 0%, rgba(245,158,11,0.12), transparent 55%),
+    linear-gradient(180deg, var(--bg1), var(--bg2), var(--bg1));
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, "Poppins", sans-serif;
+  min-height: 100vh;
+  color: var(--text);
 }
 
-/* Title */
-h2 {
-  color: #22c55e;
-  font-weight: 800;
-  text-align: center;
-  text-shadow: 0 0 15px rgba(34,197,94,0.5);
+.wrap{
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: clamp(14px, 2.4vw, 26px) 14px 34px;
 }
 
-/* Search */
-.search-box {
-  text-align: center;
-  margin-bottom: 20px;
-}
-.search-box input {
-  width: 60%;
-  padding: 10px 14px;
-  border-radius: 12px;
-  border: 1px solid #334155;
-  background: #1e293b;
-  color: #e2e8f0;
-  transition: .2s;
-}
-.search-box input:focus {
-  border-color: #22c55e;
-  box-shadow: 0 0 10px rgba(34,197,94,0.4);
+.shell{
+  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  box-shadow: var(--shadow);
+  overflow:hidden;
+  position: relative;
 }
 
-/* Filters */
-.filter-buttons {
-  display: flex;
-  justify-content: center;
+.shell::before{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  background:
+    radial-gradient(950px 360px at 20% 0%, rgba(96,165,250,.16), transparent 62%),
+    radial-gradient(900px 340px at 92% 12%, rgba(37,99,235,.12), transparent 62%),
+    radial-gradient(900px 360px at 50% 120%, rgba(245,158,11,.12), transparent 62%);
+  pointer-events:none;
+  opacity:.95;
+}
+
+.inner{
+  position: relative;
+  background: rgba(2, 6, 23, .35);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: clamp(14px, 2.2vw, 18px);
+}
+
+/* ===== Header ===== */
+.header{
+  display:flex;
+  flex-direction: column;
   gap: 12px;
-  margin-bottom: 20px;
-}
-.filter-buttons a {
-  padding: 8px 16px;
-  border-radius: 10px;
-  background: #1e293b;
-  color: #fff;
-  text-decoration: none;
-  font-weight: 600;
-  transition: .2s;
-}
-.filter-buttons a:hover {
-  background: #374151;
-}
-.filter-buttons a.active {
-  background: #22c55e;
-  box-shadow: 0 0 10px rgba(34,197,94,0.6);
+  margin-bottom: 14px;
 }
 
-/* Table */
-.table-wrapper {
-  overflow-x: auto;
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-  color: #e2e8f0;
+.title-card{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: linear-gradient(90deg, rgba(34,197,94,0.92), rgba(16,185,129,0.92));
+  border: 1px solid rgba(255,255,255,0.16);
+  box-shadow: 0 14px 40px rgba(34,197,94,0.22);
 }
 
-thead {
-  background: #22c55e;
-  color: #0f172a;
+.t-left{
+  display:flex;
+  align-items:center;
+  gap: 12px;
+  min-width: 0;
+}
+.t-ico{
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  display:grid;
+  place-items:center;
+  background: rgba(255,255,255,0.18);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14);
+  flex: 0 0 auto;
+}
+.t-ico svg{ width: 22px; height: 22px; opacity: .95; }
+
+.t-text{ min-width:0; }
+.t-title{
+  margin:0;
+  font-weight: 1000;
+  letter-spacing:.2px;
+  font-size: clamp(16px, 2.2vw, 20px);
+  color:#0b1220;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow:hidden;
+  text-overflow: ellipsis;
+}
+.t-sub{
+  margin-top: 4px;
+  font-size: 13px;
+  color: rgba(11,18,32,0.82);
   font-weight: 800;
 }
 
-td, th {
-  padding: 14px 12px;
-  text-align: center;
+.badge-pill{
+  display:inline-flex;
+  align-items:center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 999px;
+  font-weight: 1000;
+  color: #0b1220;
+  background: linear-gradient(90deg, rgba(250,204,21,0.95), rgba(251,191,36,0.95));
+  border: 1px solid rgba(255,255,255,0.18);
+  box-shadow: 0 12px 24px rgba(250,204,21,0.14);
   white-space: nowrap;
 }
 
-/* Row colors */
-tr.full { background: rgba(34,197,94,0.15); }
-tr.late { background: rgba(244,63,94,0.15); }
-tr.unpaid { background: rgba(250,204,21,0.15); }
-
-.status-badge {
-  font-weight: 700;
-  padding: 4px 12px;
-  border-radius: 8px;
+/* ===== Search + actions ===== */
+.toolbar{
+  display:flex;
+  align-items: stretch;
+  justify-content:center;
 }
 
-.status-full { background: #22c55e; color: #0f172a; }
-.status-late { background: #ef4444; }
-.status-unpaid { background: #facc15; color: #111; }
+.search-card{
+  width: 100%;
+  max-width: 980px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--line);
+  box-shadow: 0 18px 55px rgba(0,0,0,0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
 
+.search-form{
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content:center;
+}
+
+.input-wrap{
+  flex: 1 1 420px;
+  min-width: 260px;
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(15,23,42,0.55);
+  border: 1px solid rgba(255,255,255,0.12);
+  min-height: 48px;
+}
+
+.input-wrap:focus-within{
+  box-shadow: 0 0 0 3px rgba(34,197,94,0.20), 0 0 0 6px rgba(59,130,246,0.10);
+  border-color: rgba(34,197,94,0.42);
+}
+
+.input-ico{
+  width: 18px; height: 18px;
+  flex: 0 0 auto;
+  opacity: .9;
+}
+
+.search-input{
+  width: 100%;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  color: var(--text) !important;
+  font-weight: 800;
+}
+
+.search-input::placeholder{
+  color: rgba(148,163,184,0.85);
+  font-weight: 700;
+}
+
+.btn-cta{
+  min-height: 48px;
+  border-radius: 14px;
+  padding: 0 18px;
+  font-weight: 1000;
+  border: 1px solid rgba(34,197,94,0.35);
+  color:#0b1220;
+  background: linear-gradient(90deg, rgba(34,197,94,0.95), rgba(16,185,129,0.95));
+  box-shadow: 0 14px 26px rgba(34,197,94,0.20);
+  transition: .2s ease;
+  white-space: nowrap;
+}
+.btn-cta:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 18px 34px rgba(34,197,94,0.26);
+}
+.btn-cta:active{ transform: translateY(0); }
+
+/* ===== Filters ===== */
+.filters{
+  margin-top: 12px;
+  display:flex;
+  justify-content:center;
+}
+
+.filter-bar{
+  width: 100%;
+  max-width: 980px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--line);
+  box-shadow: 0 18px 55px rgba(0,0,0,0.28);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.filter-buttons{
+  display:flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content:center;
+}
+
+.filter-buttons a{
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.04);
+  color: rgba(229,231,235,0.92);
+  text-decoration:none;
+  font-weight: 900;
+  border: 1px solid rgba(255,255,255,0.10);
+  transition: .18s ease;
+  white-space: nowrap;
+}
+
+.filter-buttons a:hover{
+  transform: translateY(-1px);
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(96,165,250,0.28);
+}
+
+.filter-buttons a.active{
+  color: #0b1220;
+  background: linear-gradient(90deg, rgba(250,204,21,0.95), rgba(251,191,36,0.95));
+  border-color: rgba(255,255,255,0.18);
+  box-shadow: 0 14px 26px rgba(250,204,21,0.14);
+}
+
+/* ===== Table ===== */
+.table-card{
+  margin-top: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.06);
+  box-shadow: 0 18px 55px rgba(0,0,0,0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  overflow:hidden;
+}
+
+.table-head{
+  padding: 12px 14px;
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+}
+
+.table-title{
+  margin:0;
+  font-weight: 1000;
+  font-size: 14px;
+  color: rgba(255,255,255,0.92);
+}
+
+.table-note{
+  font-size: 12px;
+  color: rgba(148,163,184,0.90);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.table-wrapper{
+  overflow:auto;
+  background: rgba(15,23,42,0.55);
+}
+
+.table{
+  margin:0;
+  width: 100%;
+  min-width: 980px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Bootstrap white background kill */
+.table,
+.table thead,
+.table tbody,
+.table tr,
+.table td,
+.table th{
+  background: transparent !important;
+  color: #e5e7eb !important;
+}
+
+.table thead th{
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: linear-gradient(90deg, rgba(37,99,235,0.92), rgba(96,165,250,0.92)) !important;
+  color: #fff !important;
+  font-weight: 1000;
+  border-color: rgba(255,255,255,0.12) !important;
+  text-align:center;
+  padding: 12px 10px;
+  white-space: nowrap;
+}
+
+.table td{
+  padding: 12px 10px;
+  text-align:center;
+  border-color: rgba(255,255,255,0.10) !important;
+  white-space: nowrap;
+}
+
+.table tbody tr{
+  transition: .16s ease;
+}
+
+.table tbody tr:hover{
+  background: rgba(59,130,246,0.12) !important;
+  transform: scale(1.004);
+}
+
+/* Row colors */
+tr.full{ background: rgba(34,197,94,0.10) !important; }
+tr.late{ background: rgba(239,68,68,0.10) !important; }
+tr.unpaid{ background: rgba(250,204,21,0.08) !important; }
+
+/* Status badge */
+.status-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap: 8px;
+  font-weight: 1000;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+}
+
+.status-full{
+  background: rgba(34,197,94,0.14);
+  border-color: rgba(34,197,94,0.24);
+  color: #86efac;
+}
+.status-late{
+  background: rgba(239,68,68,0.14);
+  border-color: rgba(239,68,68,0.24);
+  color: #fda4af;
+}
+.status-unpaid{
+  background: rgba(250,204,21,0.14);
+  border-color: rgba(250,204,21,0.24);
+  color: #fde68a;
+}
+
+/* a11y */
+:focus-visible{
+  outline: 3px solid rgba(250, 204, 21, .26);
+  outline-offset: 3px;
+}
+
+/* Mobile */
+@media (max-width: 768px){
+  .badge-pill{ width: 100%; justify-content:center; }
+  .table{ min-width: 860px; }
+  .table-note{ display:none; }
+}
+
+@media (max-width: 430px){
+  .wrap{ padding-left: 12px; padding-right: 12px; }
+  .btn-cta{ width: 100%; justify-content:center; }
+  .input-wrap{ flex-basis: 100%; }
+}
 </style>
 
+<div class="wrap">
+  <div class="shell">
+    <div class="inner">
 
+      <header class="header">
+        <div class="title-card">
+          <div class="t-left">
+            <div class="t-ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#0b1220" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1v22"></path>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </div>
+            <div class="t-text">
+              <h2 class="t-title">💰 O‘quvchilar to‘lozorati</h2>
+              <div class="t-sub">F.I.Sh yoki email orqali qidiring — filtrlar bilan tez nazorat qiling</div>
+            </div>
+          </div>
 
-<div class="container">
+          <div class="badge-pill" aria-hidden="true">
+            ⚡ Premium Control Panel
+          </div>
+        </div>
 
-  <h2>💰 O‘quvchilar to‘lov nazorati</h2>
+        <div class="toolbar">
+          <div class="search-card">
+            <form method="get" class="search-form" role="search" aria-label="To‘lov nazorati qidiruv">
+              <div class="input-wrap">
+                <svg class="input-ico" viewBox="0 0 24 24" fill="none" stroke="rgba(229,231,235,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7"></circle>
+                  <path d="M21 21l-4.3-4.3"></path>
+                </svg>
+                <input class="search-input" type="text" name="q" value="{{ query }}" placeholder="🔍 F.I.Sh yoki email orqali izlash">
+              </div>
+              <button class="btn-cta" type="submit">Izlash</button>
+            </form>
+          </div>
+        </div>
 
-  <!-- Search -->
-  <form method="get" class="search-box">
-    <input type="text" name="q" value="{{ query }}" placeholder="🔍 F.I.Sh yoki email orqali izlash">
-    <button class="btn btn-success ms-2">Izlash</button>
-  </form>
+        <div class="filters">
+          <nav class="filter-bar" aria-label="Filtrlar">
+            <div class="filter-buttons">
+              <a href="?filter=" class="{% if not filter_type %}active{% endif %}">Hammasi</a>
+              <a href="?filter=full" class="{% if filter_type == 'full' %}active{% endif %}">To‘liq to‘laganlar ✅</a>
+              <a href="?filter=unpaid" class="{% if filter_type == 'unpaid' %}active{% endif %}">To‘lamaganlar ❌</a>
+              <a href="?filter=late" class="{% if filter_type == 'late' %}active{% endif %}">Kechiktirganlar ⏳</a>
+            </div>
+          </nav>
+        </div>
+      </header>
 
-  <!-- Filters -->
-  <div class="filter-buttons">
-    <a href="?filter=" class="{% if not filter_type %}active{% endif %}">Hammasi</a>
-    <a href="?filter=full" class="{% if filter_type == 'full' %}active{% endif %}">To‘liq to‘laganlar ✅</a>
-    <a href="?filter=unpaid" class="{% if filter_type == 'unpaid' %}active{% endif %}">To‘lamaganlar ❌</a>
-    <a href="?filter=late" class="{% if filter_type == 'late' %}active{% endif %}">Kechiktirganlar ⏳</a>
+      <section class="table-card" aria-label="To‘lov jadvali">
+        <div class="table-head">
+          <h3 class="table-title">📋 To‘lov holati jadvali</h3>
+          <div class="table-note">⬅ Jadvalni yon tomonga surib ko‘ring</div>
+        </div>
+
+        <div class="table-wrapper" role="region" aria-label="To‘lov jadvali" tabindex="0">
+          <table class="table table-bordered table-striped align-middle">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>F.I.Sh</th>
+                <th>Guruh</th>
+                <th>Kurs narxi</th>
+                <th>Jami to‘langan</th>
+                <th>Qoldiq</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {% for s in stats %}
+              <tr class="
+                {% if s.is_full %}full
+                {% elif s.is_late %}late
+                {% elif s.is_unpaid %}unpaid
+                {% endif %}
+              ">
+                <td>{{ forloop.counter }}</td>
+                <td>{{ s.student.ism }} {{ s.student.familya }}</td>
+                <td>{{ s.guruh.nom }}</td>
+                <td>{{ s.kurs_narhi|intcomma }} so‘m</td>
+                <td>{{ s.jami_tolangan|intcomma }} so‘m</td>
+                <td>{{ s.qoldiq|intcomma }} so‘m</td>
+
+                <td>
+                  {% if s.is_full %}
+                    <span class="status-badge status-full">To‘liq</span>
+                  {% elif s.is_late %}
+                    <span class="status-badge status-late">Kechiktirgan</span>
+                  {% else %}
+                    <span class="status-badge status-unpaid">To‘layotgan</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="7" class="text-center py-4" style="color: rgba(229,231,235,0.85); font-weight: 900;">
+                  Ma’lumot topilmadi.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
   </div>
-
-  <div class="table-wrapper">
-  <table class="table table-bordered table-striped">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>F.I.Sh</th>
-        <th>Guruh</th>
-        <th>Kurs narxi</th>
-        <th>Jami to‘langan</th>
-        <th>Qoldiq</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-
-    <tbody>
-      {% for s in stats %}
-      <tr class="
-        {% if s.is_full %}full
-        {% elif s.is_late %}late
-        {% elif s.is_unpaid %}unpaid
-        {% endif %}
-      ">
-        <td>{{ forloop.counter }}</td>
-        <td>{{ s.student.ism }} {{ s.student.familya }}</td>
-        <td>{{ s.guruh.nom }}</td>
-        <td>{{ s.kurs_narhi|intcomma }} so‘m</td>
-        <td>{{ s.jami_tolangan|intcomma }} so‘m</td>
-        <td>{{ s.qoldiq|intcomma }} so‘m</td>
-
-        <td>
-          {% if s.is_full %}
-            <span class="status-badge status-full">To‘liq</span>
-          {% elif s.is_late %}
-            <span class="status-badge status-late">Kechiktirgan</span>
-          {% else %}
-            <span class="status-badge status-unpaid">To‘layotgan</span>
-          {% endif %}
-        </td>
-      </tr>
-      {% empty %}
-      <tr>
-        <td colspan="7" class="text-center py-4">Ma’lumot topilmadi.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-
-  </table>
-  </div>
-
 </div>
 
 {% endblock %}

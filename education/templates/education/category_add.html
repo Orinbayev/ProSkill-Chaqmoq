@@ -3,122 +3,167 @@
 
 <style>
   :root{
-    --bg1:#020617;
+    --bg0:#020617;
+    --bg1:#070b16;
     --bg2:#0b1226;
 
-    --panel: rgba(17,24,39,.62);
-    --panel2: rgba(2,6,23,.55);
-    --line: rgba(255,255,255,.09);
+    --glass: rgba(17,24,39,.62);
+    --glass2: rgba(2,6,23,.55);
+    --stroke: rgba(255,255,255,.10);
+    --stroke2: rgba(255,255,255,.14);
 
     --text:#e5e7eb;
     --muted:#94a3b8;
 
-    --purple:#a855f7;
-    --purple2:#7c3aed;
+    --blue:#3b82f6;
+    --blue2:#60a5fa;
+
+    --amber:#fbbf24;
+    --amber2:#facc15;
+
+    --violet:#a855f7;
+    --violet2:#7c3aed;
+
     --green:#22c55e;
     --green2:#16a34a;
+
+    --shadow: 0 24px 80px rgba(0,0,0,.55);
+    --shadow2: 0 18px 42px rgba(0,0,0,.42);
+
+    --r14: 14px;
+    --r18: 18px;
+    --r22: 22px;
+    --r28: 28px;
+
+    --pad: clamp(14px, 2.6vw, 22px);
+    --gap: clamp(10px, 2.1vw, 14px);
+
+    --ring: 0 0 0 3px rgba(59,130,246,.22);
+    --ringA: 0 0 0 3px rgba(251,191,36,.18);
+    --ringV: 0 0 0 3px rgba(168,85,247,.18);
   }
 
+  *{ box-sizing:border-box; }
+  html, body{ height:100%; }
   body{
     background:
-      radial-gradient(900px 600px at 10% 0%, rgba(168,85,247,.15), transparent 55%),
-      radial-gradient(900px 600px at 90% 10%, rgba(34,197,94,.12), transparent 55%),
-      linear-gradient(180deg, var(--bg1), var(--bg2));
+      radial-gradient(950px 620px at 12% -10%, rgba(59,130,246,.18), transparent 55%),
+      radial-gradient(900px 620px at 90% 5%, rgba(251,191,36,.12), transparent 55%),
+      radial-gradient(900px 640px at 55% 120%, rgba(168,85,247,.14), transparent 60%),
+      linear-gradient(180deg, var(--bg0), var(--bg2));
     color: var(--text);
+    min-height:100vh;
+    overflow-x:hidden;
   }
 
-  /* ===== Page wrap ===== */
+  /* a11y */
+  .sr-only{
+    position:absolute !important;
+    width:1px !important;
+    height:1px !important;
+    padding:0 !important;
+    margin:-1px !important;
+    overflow:hidden !important;
+    clip:rect(0,0,0,0) !important;
+    white-space:nowrap !important;
+    border:0 !important;
+  }
+  :focus-visible{ outline:none; }
+
+  /* page */
   .page-wrap{
-    max-width: 980px;
-    margin: 18px auto;
-    padding: 0 12px 26px;
+    width: min(1080px, 100%);
+    margin: 0 auto;
+    padding: 16px 12px 28px;
   }
 
-  /* ===== Main card ===== */
+  /* card */
   .glass-card{
-    max-width: 720px;               /* ✅ kenglik “professional” */
+    width: min(760px, 100%);
     margin: 0 auto;
-    background: linear-gradient(180deg, var(--panel), var(--panel2));
-    border: 1px solid var(--line);
-    border-radius: 28px;
-    padding: 34px 34px 26px;
-    box-shadow: 0 20px 70px rgba(0,0,0,.45);
+    border-radius: var(--r28);
+    background: linear-gradient(180deg, var(--glass), var(--glass2));
+    border: 1px solid var(--stroke);
+    box-shadow: var(--shadow);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     position: relative;
-    overflow: hidden;
+    overflow:hidden;
+    padding: calc(var(--pad) + 6px);
   }
 
-  /* Soft glow */
   .glass-card::before{
     content:"";
     position:absolute;
     inset:-2px;
     background:
-      radial-gradient(650px 260px at 35% 0%, rgba(168,85,247,.18), transparent 65%),
-      radial-gradient(650px 260px at 75% 10%, rgba(34,197,94,.14), transparent 65%);
-    pointer-events:none;
+      radial-gradient(680px 280px at 30% 0%, rgba(168,85,247,.20), transparent 65%),
+      radial-gradient(680px 280px at 78% 10%, rgba(251,191,36,.14), transparent 65%),
+      radial-gradient(680px 280px at 55% 120%, rgba(59,130,246,.14), transparent 65%);
     filter: blur(18px);
     opacity:.95;
+    pointer-events:none;
   }
-  .glass-card > *{ position: relative; z-index: 2; }
+  .glass-card > *{ position:relative; z-index:2; }
 
-  /* ===== Header ===== */
+  /* header */
   .head{
     display:flex;
     align-items:flex-start;
-    gap:16px;
-    margin-bottom: 18px;
+    gap: 14px;
+    margin-bottom: 16px;
   }
 
   .head-icon{
-    width:58px;
-    height:58px;
+    width:56px;
+    height:56px;
     border-radius: 18px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background: rgba(168,85,247,.12);
-    border:1px solid rgba(168,85,247,.25);
-    box-shadow: 0 12px 30px rgba(168,85,247,.10);
+    display:grid;
+    place-items:center;
+    background: rgba(251,191,36,.10);
+    border: 1px solid rgba(251,191,36,.22);
+    box-shadow: 0 16px 36px rgba(250,204,21,.10);
     flex: 0 0 auto;
   }
 
   .head-icon .plus{
     width:34px; height:34px;
     border-radius: 14px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+    display:grid;
+    place-items:center;
     background: rgba(2,6,23,.45);
-    border:1px solid rgba(255,255,255,.08);
-    color: #e9d5ff;
-    font-weight: 900;
+    border:1px solid rgba(255,255,255,.10);
+    color: rgba(255,255,255,.92);
+    font-weight: 950;
     font-size: 20px;
     line-height: 1;
   }
 
   .title{
     margin:0;
-    font-size: 34px;
-    font-weight: 900;
+    font-size: clamp(24px, 4.4vw, 34px);
+    font-weight: 950;
     letter-spacing: .2px;
-    line-height: 1.05;
+    line-height: 1.06;
   }
-  .title .accent{ color: #c084fc; }
+  .title .accent{
+    color: var(--amber2);
+    text-shadow: 0 0 24px rgba(250,204,21,.16);
+  }
 
   .subtitle{
-    margin:10px 0 0;
+    margin: 10px 0 0;
     color: var(--muted);
-    font-size: 14px;
-    line-height: 1.45;
+    font-size: 13px;
+    line-height: 1.5;
+    font-weight: 700;
   }
 
-  /* ===== Form ===== */
+  /* form */
   .form-grid{
     display:grid;
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: var(--gap);
     margin-top: 12px;
   }
 
@@ -127,107 +172,115 @@
     align-items:center;
     gap:10px;
     color: rgba(229,231,235,.95);
-    font-weight: 800;
+    font-weight: 900;
     letter-spacing: .10em;
     text-transform: uppercase;
     font-size: 12px;
-    margin: 2px 2px 6px;
+    margin: 2px 2px 8px;
   }
+
   .label .mark{
     width: 8px; height: 8px;
     border-radius: 999px;
-    background: rgba(168,85,247,.85);
-    box-shadow: 0 0 0 4px rgba(168,85,247,.14);
+    background: rgba(250,204,21,.92);
+    box-shadow: 0 0 0 4px rgba(251,191,36,.14);
   }
 
-  .field{
-    width: 100%;
-    border-radius: 16px;
-    border: 1px solid rgba(255,255,255,.10);
-    background: rgba(2,6,23,.35);
-    padding: 13px 14px;
-    color: var(--text);
-    transition: .18s ease;
-    outline: none;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
-  }
-
-  .field:focus{
-    border-color: rgba(168,85,247,.55);
-    box-shadow:
-      0 0 0 4px rgba(168,85,247,.12),
-      inset 0 0 0 1px rgba(255,255,255,.03);
-  }
-
-  textarea.field{
-    min-height: 120px;
-    resize: vertical;
-  }
-
-  /* Django form widgets might not have .field class */
-  input[type="text"], input[type="file"], textarea{
+  /* Make Django widgets look consistent without renaming elements */
+  input[type="text"],
+  input[type="file"],
+  textarea,
+  select{
     width:100%;
-    border-radius: 16px;
+    border-radius: var(--r18);
     border: 1px solid rgba(255,255,255,.10);
-    background: rgba(2,6,23,.35);
+    background: rgba(2,6,23,.34);
     padding: 13px 14px;
     color: var(--text);
     outline:none;
-    transition:.18s ease;
+    transition: .18s ease;
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
+    font-weight: 750;
+    font-size: 14px;
+    color-scheme: dark;
   }
-  input[type="text"]:focus, textarea:focus{
-    border-color: rgba(168,85,247,.55);
-    box-shadow: 0 0 0 4px rgba(168,85,247,.12);
+
+  textarea{ min-height: 112px; resize: vertical; }
+
+  input::placeholder,
+  textarea::placeholder{
+    color: rgba(148,163,184,.85);
+    font-weight: 750;
+  }
+
+  input[type="text"]:focus,
+  input[type="file"]:focus,
+  textarea:focus,
+  select:focus{
+    border-color: rgba(250,204,21,.40);
+    box-shadow: var(--ringA), inset 0 0 0 1px rgba(255,255,255,.03);
   }
 
   /* file input nicer */
-  input[type="file"]{
-    padding: 11px 12px;
-  }
+  input[type="file"]{ padding: 11px 12px; }
   input[type="file"]::file-selector-button{
-    background: rgba(168,85,247,.18);
-    border: 1px solid rgba(168,85,247,.28);
-    color: #f5f3ff;
-    border-radius: 12px;
-    padding: 8px 12px;
+    background: rgba(251,191,36,.16);
+    border: 1px solid rgba(251,191,36,.26);
+    color: #fff7ed;
+    border-radius: 14px;
+    padding: 9px 12px;
     margin-right: 12px;
-    font-weight: 800;
+    font-weight: 900;
     cursor: pointer;
+    transition: filter .18s ease, transform .18s ease;
   }
   input[type="file"]::file-selector-button:hover{
     filter: brightness(1.08);
+    transform: translateY(-1px);
   }
 
-  /* Preview block */
+  /* Chrome autofill */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill{
+    -webkit-text-fill-color: #e5e7eb !important;
+    -webkit-box-shadow: 0 0 0 1000px rgba(2,6,23,.34) inset !important;
+    transition: background-color 9999s ease-in-out 0s !important;
+    caret-color: var(--amber2) !important;
+  }
+
+  /* preview */
   .preview{
     display:none;
     border: 1px solid rgba(255,255,255,.10);
-    background: rgba(15,23,42,.28);
-    border-radius: 18px;
+    background: rgba(15,23,42,.24);
+    border-radius: var(--r22);
     padding: 14px;
+    margin-top: 12px;
   }
+
   .preview-title{
     color: rgba(229,231,235,.95);
-    font-weight: 900;
+    font-weight: 950;
     margin: 0 0 10px;
     display:flex;
     gap:10px;
     align-items:center;
+    font-size: 13px;
   }
-  .preview-title .spark{
-    color:#c084fc;
-  }
+  .preview-title .spark{ color: var(--amber2); }
+
   .preview img{
     width: 100%;
-    max-width: 260px;
-    border-radius: 14px;
-    border: 1px solid rgba(168,85,247,.25);
-    box-shadow: 0 16px 38px rgba(168,85,247,.10);
+    max-width: 280px;
+    border-radius: var(--r18);
+    border: 1px solid rgba(251,191,36,.22);
+    box-shadow: 0 18px 44px rgba(250,204,21,.12);
     display:block;
   }
 
-  /* Buttons */
+  /* buttons */
   .btns{
     margin-top: 14px;
     display:grid;
@@ -236,26 +289,30 @@
 
   .btn-main{
     width:100%;
+    min-height: 52px;
     border: none;
-    border-radius: 16px;
+    border-radius: var(--r18);
     padding: 14px 16px;
-    font-weight: 900;
+    font-weight: 950;
     letter-spacing: .2px;
     cursor: pointer;
-    transition: .18s ease;
+    transition: transform .18s ease, filter .18s ease, background .18s ease, box-shadow .18s ease, border-color .18s ease;
     display:flex;
     align-items:center;
     justify-content:center;
     gap:10px;
     text-decoration:none;
+    user-select:none;
   }
 
   .btn-save{
-    background: linear-gradient(90deg, var(--green), var(--green2));
-    color: #062314;
-    box-shadow: 0 18px 40px rgba(34,197,94,.18);
+    background: linear-gradient(90deg, var(--amber), var(--amber2));
+    color: #0b1220;
+    box-shadow: 0 18px 40px rgba(250,204,21,.16);
   }
   .btn-save:hover{ transform: translateY(-1px); filter: brightness(1.04); }
+  .btn-save:active{ transform: translateY(0px) scale(.99); }
+  .btn-save:focus-visible{ box-shadow: var(--ringA), 0 18px 40px rgba(250,204,21,.16); }
 
   .btn-back{
     background: rgba(148,163,184,.10);
@@ -263,110 +320,40 @@
     border: 1px solid rgba(255,255,255,.10);
   }
   .btn-back:hover{ background: rgba(148,163,184,.16); transform: translateY(-1px); }
+  .btn-back:active{ transform: translateY(0px) scale(.99); }
+  .btn-back:focus-visible{ box-shadow: var(--ring); border-color: rgba(96,165,250,.35); }
+
+  /* layout upgrades */
+  @media (min-width: 820px){
+    .form-grid{
+      grid-template-columns: 1.1fr .9fr;
+      align-items:start;
+      gap: 16px;
+    }
+    .form-grid > div:last-child{
+      grid-column: 1 / -1;
+    }
+    .btns{
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+  }
 
   @media (max-width: 520px){
-    .glass-card{ padding: 22px 18px 18px; }
-    .title{ font-size: 28px; }
+    .glass-card{ padding: 20px 16px 18px; border-radius: 22px; }
+    .head-icon{ width:52px; height:52px; border-radius: 16px; }
+    .btn-main{ padding: 14px 14px; }
   }
-  /* ===== FIX: textarea oq bo‘lib qolmasin (majburiy) ===== */
-.glass-card textarea,
-.glass-card textarea.field,
-.glass-card #id_description{
-  background: rgba(2,6,23,.35) !important;
-  color: #e5e7eb !important;
-  border: 1px solid rgba(255,255,255,.10) !important;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.03) !important;
-}
 
-.glass-card textarea::placeholder,
-.glass-card #id_description::placeholder{
-  color: rgba(148,163,184,.85) !important;
-}
-
-/* Focus ham chiroyli */
-.glass-card textarea:focus,
-.glass-card #id_description:focus{
-  outline: none !important;
-  border-color: rgba(168,85,247,.55) !important;
-  box-shadow: 0 0 0 4px rgba(168,85,247,.12) !important;
-}
-
-/* ===== KICHIKLASHTIRISH: karta sal ixcham ===== */
-.glass-card{
-  max-width: 640px !important;   /* 720 -> 640 */
-  padding: 28px 28px 22px !important; /* 34 -> 28 */
-}
-
-.title{ font-size: 30px !important; }     /* 34 -> 30 */
-.subtitle{ font-size: 13px !important; }
-
-.head-icon{
-  width: 52px !important;
-  height: 52px !important;
-}
-
-input[type="text"], input[type="file"], textarea{
-  padding: 12px 13px !important;
-  border-radius: 14px !important;
-}
-
-textarea{
-  min-height: 105px !important; /* 120 -> 105 */
-}
-
-/* Tugmalar ham sal ixcham */
-.btn-main{
-  padding: 12px 14px !important;
-  border-radius: 14px !important;
-}
-
-/* ===== INPUT OQ BO‘LIB KETMASIN (YOZGANDA HAM) ===== */
-.glass-card input[type="text"],
-.glass-card input[type="text"]:focus,
-.glass-card input[type="text"]:active,
-.glass-card textarea,
-.glass-card textarea:focus,
-.glass-card textarea:active{
-  background: rgba(2,6,23,.35) !important;
-  color: #e5e7eb !important;
-  border: 1px solid rgba(255,255,255,.12) !important;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.03) !important;
-  caret-color: #c084fc !important; /* kursor rangi */
-}
-
-/* Placeholder */
-.glass-card input::placeholder,
-.glass-card textarea::placeholder{
-  color: rgba(148,163,184,.85) !important;
-}
-
-/* ===== CHROME AUTOFILL (ENG MUHIMI) ===== */
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-textarea:-webkit-autofill{
-  -webkit-text-fill-color: #e5e7eb !important;
-  -webkit-box-shadow: 0 0 0 1000px rgba(2,6,23,.35) inset !important;
-  transition: background-color 9999s ease-in-out 0s !important;
-  caret-color: #c084fc !important;
-}
-
-/* Focus glow */
-.glass-card input:focus,
-.glass-card textarea:focus{
-  outline: none !important;
-  border-color: rgba(168,85,247,.55) !important;
-  box-shadow:
-    0 0 0 4px rgba(168,85,247,.12),
-    inset 0 0 0 1px rgba(255,255,255,.03) !important;
-}
-
+  @media (min-width: 1440px){
+    .page-wrap{ padding-top: 18px; }
+  }
 </style>
 
-<div class="page-wrap">
-  <div class="glass-card">
+<main class="page-wrap">
+  <section class="glass-card" aria-label="Forma: bo‘lim qo‘shish">
 
-    <div class="head">
+    <header class="head">
       <div class="head-icon" aria-hidden="true">
         <div class="plus">＋</div>
       </div>
@@ -375,19 +362,19 @@ textarea:-webkit-autofill{
         <h1 class="title">Yangi <span class="accent">bo‘lim qo‘shish</span></h1>
         <p class="subtitle">O‘quv markaz uchun yangi yo‘nalish yoki bo‘lim yarating</p>
       </div>
-    </div>
+    </header>
 
     <form method="POST" enctype="multipart/form-data">
       {% csrf_token %}
 
       <div class="form-grid">
         <div>
-          <div class="label"><span class="mark"></span> Bo‘lim nomi</div>
+          <div class="label"><span class="mark" aria-hidden="true"></span> Bo‘lim nomi</div>
           {{ form.name }}
         </div>
 
         <div>
-          <div class="label"><span class="mark"></span> Bo‘lim rasmi (ixtiyoriy)</div>
+          <div class="label"><span class="mark" aria-hidden="true"></span> Bo‘lim rasmi (ixtiyoriy)</div>
           {{ form.image }}
 
           <div class="preview" id="imagePreview">
@@ -397,7 +384,7 @@ textarea:-webkit-autofill{
         </div>
 
         <div>
-          <div class="label"><span class="mark"></span> Tavsif</div>
+          <div class="label"><span class="mark" aria-hidden="true"></span> Tavsif</div>
           {{ form.description }}
         </div>
       </div>
@@ -414,8 +401,8 @@ textarea:-webkit-autofill{
       </div>
     </form>
 
-  </div>
-</div>
+  </section>
+</main>
 
 <script>
   const input = document.getElementById("id_image");

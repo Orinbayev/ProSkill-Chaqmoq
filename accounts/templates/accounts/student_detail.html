@@ -2,117 +2,391 @@
 
 {% block extra_css %}
 <style>
-.page-wrapper {
-  padding: 25px 10px;
-  font-family: 'Poppins', sans-serif;
-}
+  :root{
+    --bg0:#070A12;
+    --bg1:#081327;
+    --bg2:#0A0F1E;
 
-/* CARD STYLE */
-.ps-card {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 20px;
-  backdrop-filter: blur(15px);
-  box-shadow: 0 0 20px rgba(0,0,0,0.35);
-  overflow: hidden;
-  transition: .3s;
-}
-.ps-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 0 35px rgba(0,180,216,0.25);
-}
+    --card: rgba(255,255,255,.06);
+    --card2: rgba(255,255,255,.10);
+    --line: rgba(255,255,255,.12);
 
-/* CARD HEADER */
-.ps-card-header {
-  padding: 14px 20px;
-  background: linear-gradient(135deg, #00b4d8, #0077b6);
-  color: #fff;
-  font-weight: 600;
-  font-size: 17px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+    --text:#EAF0FF;
+    --muted:#A7B0C7;
 
-/* BODY */
-.ps-card-body {
-  padding: 18px 20px;
-}
+    --amber:#F59E0B;
+    --amber2:#FBBF24;
+    --neon:#22D3EE;
+    --blue:#3B82F6;
 
-/* TABLE */
-.ps-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-  color: #e2e8f0;
-}
+    --success:#22c55e;
+    --danger:#ff4d6d;
 
-.ps-table th {
-  padding: 10px;
-  background: rgba(255,255,255,0.12);
-  font-weight: 600;
-}
+    --shadow: 0 30px 80px rgba(0,0,0,.55);
+    --shadow2: 0 18px 55px rgba(0,0,0,.45);
+    --radius: 22px;
 
-.ps-table td {
-  padding: 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
-}
+    --ring-amber: 0 0 0 4px rgba(245,158,11,.16), 0 0 0 1px rgba(245,158,11,.55) inset;
+    --ring-neon:  0 0 0 4px rgba(34,211,238,.14), 0 0 0 1px rgba(34,211,238,.55) inset;
+  }
 
-.ps-table a {
-  color: #00b4d8;
-  text-decoration: none;
-}
-.ps-table a:hover {
-  text-decoration: underline;
-}
+  *{ box-sizing:border-box; }
+  html, body{ height:100%; }
+  .page-wrapper{
+    padding: 18px 14px 26px;
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    color: var(--text);
+    overflow-x:hidden;
+  }
 
-.text-success { color: #16db65 !important; }
-.text-danger  { color: #ff4d6d !important; }
+  .student-hero{
+    position: relative;
+    border-radius: 22px;
+    padding: 16px 14px;
+    margin-bottom: 14px;
 
-/* TITLE */
-.student-title {
-  font-size: 26px;
-  color: #fff;
-  font-weight: 700;
-  margin-bottom: 8px;
-}
+    background:
+      radial-gradient(700px 260px at 12% 10%, rgba(34,211,238,.14), transparent 60%),
+      radial-gradient(600px 260px at 92% 18%, rgba(245,158,11,.13), transparent 60%),
+      linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    border: 1px solid rgba(255,255,255,.10);
+    box-shadow: var(--shadow2);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    overflow:hidden;
+  }
 
-.student-sub {
-  color: #9ca3af;
-  font-size: 14px;
-  margin-bottom: 25px;
-}
+  .student-hero::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background: radial-gradient(900px 260px at 50% -10%, rgba(255,255,255,.12), transparent 55%);
+    opacity:.8;
+  }
 
-@media(max-width: 500px) {
-  .ps-card-header { font-size: 15px; }
-  .student-title { font-size: 22px; }
-}
+  .student-title{
+    position:relative;
+    z-index:1;
+    font-size: 18px;
+    color: rgba(234,240,255,.98);
+    font-weight: 950;
+    letter-spacing: .2px;
+    margin: 0 0 8px;
+    text-shadow: 0 10px 35px rgba(0,0,0,.45);
+    line-height: 1.25;
+  }
+
+  .student-sub{
+    position:relative;
+    z-index:1;
+    color: rgba(226,232,240,.72);
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .student-sub a{
+    color: rgba(34,211,238,.95);
+    font-weight: 850;
+    text-decoration:none;
+    border-radius: 10px;
+    outline: none;
+    padding: 2px 2px;
+  }
+  .student-sub a:hover{
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .student-sub a:focus-visible{
+    box-shadow: var(--ring-neon);
+  }
+
+  /* Bootstrap row/col already exist; we keep them. Ensure spacing works even without Bootstrap */
+  .row.g-4{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin: 0;
+  }
+  .col-lg-6{
+    min-width: 0;
+  }
+
+  /* CARD */
+  .ps-card{
+    background: linear-gradient(180deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,.045) 100%);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: var(--radius);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    position: relative;
+  }
+  .ps-card::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background: linear-gradient(120deg,
+      rgba(255,255,255,.05),
+      rgba(34,211,238,.12),
+      rgba(245,158,11,.10),
+      rgba(255,255,255,.05)
+    );
+    opacity:.5;
+    filter: blur(12px);
+    pointer-events:none;
+  }
+  .ps-card:hover{
+    transform: translateY(-2px);
+    border-color: rgba(34,211,238,.22);
+    box-shadow:
+      0 34px 90px rgba(0,0,0,.58),
+      0 0 36px rgba(34,211,238,.10),
+      0 0 34px rgba(245,158,11,.08);
+  }
+
+  /* HEADER */
+  .ps-card-header{
+    position: relative;
+    z-index: 1;
+    padding: 12px 14px;
+    color: rgba(234,240,255,.98);
+    font-weight: 950;
+    font-size: 15px;
+    display:flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+
+    background:
+      radial-gradient(18px 18px at 16% 30%, rgba(255,255,255,.24), transparent 55%),
+      linear-gradient(135deg, rgba(245,158,11,.95), rgba(34,211,238,.85));
+    border-bottom: 1px solid rgba(255,255,255,.10);
+  }
+
+  .ps-card-body{
+    position: relative;
+    z-index: 1;
+    padding: 12px 14px 14px;
+  }
+
+  /* Badge (keep existing classes) */
+  .badge.bg-light.text-dark.p-2{
+    background: rgba(255,255,255,.86) !important;
+    color: #0B1226 !important;
+    border-radius: 999px;
+    padding: 8px 10px !important;
+    font-weight: 950;
+    letter-spacing: .1px;
+    box-shadow: 0 10px 24px rgba(0,0,0,.25);
+    white-space: nowrap;
+  }
+
+  /* TABLE */
+  .table-responsive{
+    width:100%;
+    overflow-x:auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 16px;
+    background: rgba(0,0,0,.18);
+    border: 1px solid rgba(255,255,255,.10);
+    box-shadow: var(--shadow2);
+  }
+
+  .ps-table{
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+    color: rgba(234,240,255,.92);
+    min-width: 520px; /* keeps columns readable in scroll container */
+  }
+
+  .ps-table thead th{
+    padding: 12px 12px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    border-bottom: 1px solid rgba(255,255,255,.10);
+    font-weight: 950;
+    font-size: 12px;
+    letter-spacing: .35px;
+    text-transform: uppercase;
+    color: rgba(231,238,255,.78);
+    text-align:left;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .ps-table td{
+    padding: 12px 12px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    vertical-align: middle;
+    line-height: 1.35;
+  }
+
+  .ps-table tbody tr{
+    transition: background .16s ease, transform .16s ease;
+  }
+  .ps-table tbody tr:hover{
+    background: rgba(255,255,255,.06);
+  }
+
+  .ps-table a{
+    color: rgba(34,211,238,.95);
+    font-weight: 850;
+    text-decoration: none;
+    border-radius: 10px;
+    outline:none;
+  }
+  .ps-table a:hover{
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .ps-table a:focus-visible{
+    box-shadow: var(--ring-neon);
+  }
+
+  .text-success{ color: var(--success) !important; font-weight: 950; }
+  .text-danger{ color: var(--danger) !important; font-weight: 950; }
+  .text-muted{ color: rgba(167,176,199,.78) !important; }
+
+  .text-end{ text-align:right; }
+
+  /* Mobile-first: stack row/col and make tables card-like (no horizontal scroll needed) */
+  @media (max-width: 640px){
+    .page-wrapper{ padding: 16px 12px 24px; }
+
+    .student-title{ font-size: 16px; }
+    .student-sub{ font-size: 12.5px; }
+
+    .ps-card-header{ font-size: 14px; padding: 12px 12px; }
+    .ps-card-body{ padding: 12px 12px 14px; }
+
+    .table-responsive{
+      overflow: hidden;
+    }
+
+    .ps-table{
+      min-width: 0;
+    }
+
+    .ps-table, .ps-table thead, .ps-table tbody, .ps-table th, .ps-table td, .ps-table tr{
+      display:block;
+      width:100%;
+    }
+    .ps-table thead{ display:none; }
+
+    .ps-table tbody tr{
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      padding: 10px 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
+    }
+    .ps-table tbody tr:hover{
+      transform: none;
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+    }
+
+    .ps-table td{
+      border: none;
+      padding: 8px 0;
+      display:flex;
+      align-items:flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .ps-table td::before{
+      content: attr(data-label);
+      flex: 0 0 42%;
+      max-width: 42%;
+      font-size: 11px;
+      letter-spacing: .35px;
+      text-transform: uppercase;
+      color: rgba(231,238,255,.65);
+      padding-top: 2px;
+    }
+
+    .ps-table td > *{
+      flex: 1 1 auto;
+      min-width: 0;
+      text-align: right;
+    }
+
+    .text-end{
+      text-align:right;
+    }
+  }
+
+  /* Tablet */
+  @media (min-width: 641px) and (max-width: 1023px){
+    .page-wrapper{ padding: 20px 16px 28px; }
+    .student-title{ font-size: 20px; }
+    .ps-card-header{ font-size: 15px; }
+  }
+
+  /* Desktop: 2 columns */
+  @media (min-width: 1024px){
+    .page-wrapper{
+      padding: 22px 18px 34px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .student-title{ font-size: 24px; }
+    .row.g-4{
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .ps-card-body{ padding: 14px 14px 16px; }
+  }
+
+  /* Large desktop */
+  @media (min-width: 1440px){
+    .page-wrapper{ max-width: 1320px; }
+    .student-title{ font-size: 26px; }
+  }
+
+  /* Focus defaults */
+  :where(a, button, input, select, textarea):focus-visible{
+    outline: none;
+  }
+
+  /* Reduce motion */
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; scroll-behavior:auto !important; }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="page-wrapper">
 
-  <!-- TITLE -->
-  <div class="student-title">
-    👤 Talaba: {{ student.ism }} {{ student.familya }}
-  </div>
+  <section class="student-hero" aria-label="Student header">
+    <div class="student-title">
+      👤 Talaba: {{ student.ism }} {{ student.familya }}
+    </div>
 
-  <div class="student-sub">
-    Guruhlari:
-    {% for g in groups %}
-      <a href="{% url 'education:group_detail' g.id %}">{{ g.nom }}</a>{% if not forloop.last %}, {% endif %}
-    {% empty %}
-      — Guruhlarga biriktirilmagan.
-    {% endfor %}
-  </div>
+    <div class="student-sub">
+      Guruhlari:
+      {% for g in groups %}
+        <a href="{% url 'education:group_detail' g.id %}">{{ g.nom }}</a>{% if not forloop.last %}, {% endif %}
+      {% empty %}
+        — Guruhlarga biriktirilmagan.
+      {% endfor %}
+    </div>
+  </section>
 
   <div class="row g-4">
 
     <!-- ⚡ Chaqmoq -->
     <div class="col-lg-6">
       <div class="ps-card">
-        
+
         <div class="ps-card-header">
           ⚡ Chaqmoq
           <span class="badge bg-light text-dark p-2">Jami: {{ total }}</span>
@@ -131,15 +405,15 @@
               <tbody>
                 {% for t in tx %}
                   <tr>
-                    <td>{{ t.sana|date:"Y-m-d H:i" }}</td>
-                    <td class="text-end {% if t.ball > 0 %}text-success{% elif t.ball < 0 %}text-danger{% endif %}">
+                    <td data-label="Sana">{{ t.sana|date:"Y-m-d H:i" }}</td>
+                    <td data-label="Miqdor" class="text-end {% if t.ball > 0 %}text-success{% elif t.ball < 0 %}text-danger{% endif %}">
                       {% if t.ball > 0 %}+{% endif %}{{ t.ball }}
                     </td>
-                    <td>{{ t.rule.nom }}</td>
+                    <td data-label="Sabab">{{ t.rule.nom }}</td>
                   </tr>
                 {% empty %}
                   <tr>
-                    <td colspan="3" class="text-muted">Yozuvlar yo‘q.</td>
+                    <td data-label="Sana" colspan="3" class="text-muted">Yozuvlar yo‘q.</td>
                   </tr>
                 {% endfor %}
               </tbody>
@@ -153,7 +427,7 @@
     <!-- 📅 Davomat -->
     <div class="col-lg-6">
       <div class="ps-card">
-        
+
         <div class="ps-card-header">📅 Davomat</div>
 
         <div class="ps-card-body">
@@ -169,13 +443,13 @@
               <tbody>
                 {% for a in attendance %}
                   <tr>
-                    <td>{{ a.date|date:"Y-m-d" }}</td>
-                    <td>
+                    <td data-label="Sana">{{ a.date|date:"Y-m-d" }}</td>
+                    <td data-label="Guruh">
                       <a href="{% url 'education:group_detail' a.group.id %}">
                         {{ a.group.nom }}
                       </a>
                     </td>
-                    <td>
+                    <td data-label="Holat">
                       {% if a.present %}
                         <span class="text-success">keldi</span>
                       {% else %}
@@ -185,7 +459,7 @@
                   </tr>
                 {% empty %}
                   <tr>
-                    <td colspan="3" class="text-muted">Davomat yozuvlari yo‘q.</td>
+                    <td data-label="Sana" colspan="3" class="text-muted">Davomat yozuvlari yo‘q.</td>
                   </tr>
                 {% endfor %}
               </tbody>

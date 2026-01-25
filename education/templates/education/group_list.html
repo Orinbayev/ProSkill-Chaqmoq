@@ -1,147 +1,460 @@
 {% extends "base.html" %}
 {% block content %}
+<!-- :contentReference[oaicite:0]{index=0} -->
 
 <style>
-/* 📱 RESPONSIVE TABLE → CARD MODE */
+  :root{
+    --bg0:#070b14;
+    --bg1:#0a1224;
+    --bg2:#0b1733;
 
-@media (max-width: 768px) {
+    --panel: rgba(15, 23, 42, .62);
+    --panel2: rgba(2, 6, 23, .55);
+    --card: rgba(255,255,255,.06);
+    --card2: rgba(255,255,255,.085);
+    --line: rgba(255,255,255,.11);
 
-  table.table {
-      display: none !important;
+    --text:#e5e7eb;
+    --muted:#9ca3af;
+
+    --amber:#f59e0b;
+    --amber2:#facc15;
+    --cyan:#22d3ee;
+    --blue:#60a5fa;
+    --green:#22c55e;
+    --red:#ef4444;
+
+    --shadow: 0 22px 70px rgba(0,0,0,.55);
+    --shadow2: 0 10px 35px rgba(0,0,0,.45);
+    --radius: 18px;
   }
 
-  .mobile-card {
-      background: #ffffff10;
-      border: 1px solid #ffffff22;
-      padding: 15px;
-      border-radius: 12px;
-      margin-bottom: 12px;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-      backdrop-filter: blur(6px);
+  body{
+    background:
+      radial-gradient(900px 420px at 8% 8%, rgba(245,158,11,.16), transparent 60%),
+      radial-gradient(900px 420px at 92% 12%, rgba(34,211,238,.10), transparent 60%),
+      radial-gradient(700px 420px at 50% 100%, rgba(96,165,250,.10), transparent 55%),
+      linear-gradient(180deg, var(--bg0), var(--bg1) 30%, var(--bg2) 70%, var(--bg0));
+    min-height: 100vh;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  .mobile-card h5 {
-      margin: 0 0 8px;
-      font-size: 1.1rem;
-      color: #facc15;
+  :where(a, button, input, select, textarea):focus-visible{
+    outline: 2px solid color-mix(in oklab, var(--amber2) 75%, white 25%);
+    outline-offset: 3px;
   }
 
-  .mobile-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 6px;
-      border-bottom: 1px dashed #ffffff2e;
-      padding-bottom: 4px;
+  .page-wrap{
+    width: min(1200px, 100%);
+    margin: 0 auto;
+    padding: clamp(14px, 3vw, 28px);
   }
 
-  .mobile-label {
-      font-weight: 600;
-      color: #9ca3af;
+  .page-head{
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 14px;
   }
 
-  .mobile-value {
-      font-weight: 500;
-      color: #e5e7eb;
+  .title-stack{
+    display: grid;
+    gap: 6px;
+    min-width: 0;
   }
 
-  .mobile-actions button,
-  .mobile-actions a {
-      width: 100%;
-      margin-bottom: 6px;
+  .page-title{
+    margin: 0;
+    font-weight: 800;
+    letter-spacing: .2px;
+    font-size: clamp(18px, 2.4vw, 26px);
+    line-height: 1.15;
   }
-}
 
-/* 💻 Desktop (normal table) */
-@media (min-width: 769px) {
-  .mobile-version {
-      display: none !important;
+  .page-sub{
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.25;
   }
-}
+
+  .header-actions{
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .btn{
+    border-radius: 14px !important;
+    padding: 10px 14px !important;
+    font-weight: 650;
+    letter-spacing: .1px;
+    transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease, border-color .18s ease, color .18s ease;
+    will-change: transform;
+  }
+
+  .btn:active{ transform: translateY(1px); }
+
+  .btn.btn-primary{
+    border-color: rgba(245,158,11,.45) !important;
+    background:
+      linear-gradient(180deg, rgba(245,158,11,.22), rgba(245,158,11,.12));
+    color: var(--text) !important;
+    box-shadow:
+      0 0 0 1px rgba(245,158,11,.18) inset,
+      0 14px 36px rgba(245,158,11,.14);
+  }
+  .btn.btn-primary:hover{
+    border-color: rgba(250,204,21,.65) !important;
+    background:
+      linear-gradient(180deg, rgba(250,204,21,.26), rgba(245,158,11,.14));
+    box-shadow:
+      0 0 0 1px rgba(250,204,21,.22) inset,
+      0 18px 44px rgba(245,158,11,.18);
+    transform: translateY(-1px);
+  }
+
+  .btn.btn-outline-primary,
+  .btn.btn-outline-secondary,
+  .btn.btn-outline-danger{
+    background: rgba(255,255,255,.02) !important;
+    border-width: 1px !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .btn.btn-outline-primary{
+    border-color: rgba(96,165,250,.45) !important;
+    color: color-mix(in oklab, var(--blue) 86%, white 14%) !important;
+  }
+  .btn.btn-outline-primary:hover{
+    border-color: rgba(96,165,250,.70) !important;
+    box-shadow: 0 14px 40px rgba(96,165,250,.14);
+    transform: translateY(-1px);
+  }
+
+  .btn.btn-outline-secondary{
+    border-color: rgba(148,163,184,.38) !important;
+    color: color-mix(in oklab, var(--muted) 86%, white 14%) !important;
+  }
+  .btn.btn-outline-secondary:hover{
+    border-color: rgba(148,163,184,.60) !important;
+    box-shadow: 0 14px 40px rgba(148,163,184,.10);
+    transform: translateY(-1px);
+  }
+
+  .btn.btn-outline-danger{
+    border-color: rgba(239,68,68,.45) !important;
+    color: color-mix(in oklab, var(--red) 84%, white 16%) !important;
+  }
+  .btn.btn-outline-danger:hover{
+    border-color: rgba(239,68,68,.70) !important;
+    box-shadow: 0 14px 40px rgba(239,68,68,.14);
+    transform: translateY(-1px);
+  }
+
+  .surface{
+    background: linear-gradient(180deg, var(--panel), var(--panel2));
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    overflow: hidden;
+  }
+
+  .surface-inner{
+    padding: 14px;
+  }
+
+  .table-responsive.desktop-version{
+    border-radius: var(--radius);
+  }
+
+  table.table{
+    margin: 0;
+    color: var(--text);
+    border-color: transparent !important;
+  }
+
+  .table > :not(caption) > * > *{
+    background: transparent !important;
+    border-bottom-color: rgba(255,255,255,.08) !important;
+    padding: 14px 14px;
+    vertical-align: middle;
+  }
+
+  .table thead th{
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: color-mix(in oklab, var(--muted) 85%, white 15%);
+    border-bottom-color: rgba(255,255,255,.12) !important;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)) !important;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  .table tbody tr{
+    transition: background-color .18s ease, transform .18s ease;
+  }
+
+  .table-hover tbody tr:hover{
+    background: rgba(255,255,255,.04) !important;
+    transform: translateY(-1px);
+  }
+
+  .row-link a{
+    color: color-mix(in oklab, var(--amber2) 70%, white 30%);
+    text-decoration: none;
+    font-weight: 650;
+  }
+  .row-link a:hover{
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .table td:last-child{
+    white-space: nowrap;
+  }
+
+  .table .btn.btn-sm{
+    padding: 8px 10px !important;
+    border-radius: 12px !important;
+    font-weight: 650;
+  }
+
+  .badge-soft{
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+    padding: 7px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.04);
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .mobile-version{
+    display: grid;
+    gap: 12px;
+  }
+
+  .mobile-card{
+    background: linear-gradient(180deg, var(--card), rgba(255,255,255,.03));
+    border: 1px solid rgba(255,255,255,.12);
+    padding: 14px;
+    border-radius: 16px;
+    box-shadow: var(--shadow2);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .mobile-card h5{
+    margin: 0 0 10px;
+    font-size: 1.05rem;
+    letter-spacing: .2px;
+    color: color-mix(in oklab, var(--amber2) 82%, white 18%);
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .mobile-row{
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+    border-bottom: 1px dashed rgba(255,255,255,.14);
+    padding-bottom: 6px;
+  }
+
+  .mobile-label{
+    font-weight: 700;
+    color: var(--muted);
+    flex: 0 0 auto;
+  }
+
+  .mobile-value{
+    font-weight: 650;
+    color: var(--text);
+    text-align: right;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-actions{
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .mobile-actions .btn{
+    width: 100%;
+    padding: 12px 14px !important;
+    border-radius: 14px !important;
+    font-weight: 750;
+  }
+
+  @media (max-width: 768px){
+    table.table{ display: none !important; }
+  }
+
+  @media (min-width: 769px){
+    .mobile-version{ display: none !important; }
+    .surface-inner{ padding: 16px; }
+  }
+
+  @media (min-width: 1024px){
+    .page-head{ margin-bottom: 18px; }
+    .surface-inner{ padding: 18px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition: none !important; scroll-behavior: auto !important; }
+    .table-hover tbody tr:hover{ transform: none !important; }
+    .btn:hover{ transform: none !important; }
+  }
+
+  .modal-content{
+    background:
+      linear-gradient(180deg, rgba(15,23,42,.86), rgba(2,6,23,.78)) !important;
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,.12) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .modal-header{
+    border-bottom-color: rgba(255,255,255,.10) !important;
+  }
+
+  .modal-footer{
+    border-top-color: rgba(255,255,255,.10) !important;
+  }
+
+  .btn-close{
+    filter: invert(1);
+    opacity: .85;
+  }
+  .btn-close:hover{ opacity: 1; }
 </style>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h3 class="mb-0">👥 {% if category == "lang" %}Tillar{% else %}IT{% endif %} bo‘yicha guruhlar</h3>
+<div class="page-wrap">
 
-  {% if can_manage %}
-    {% if category == "lang" %}
-      <a class="btn btn-primary" href="{% url 'education:group_create_lang' %}">+ Yangi (Tillar)</a>
-    {% else %}
-      <a class="btn btn-primary" href="{% url 'education:group_create_it' %}">+ Yangi (IT)</a>
-    {% endif %}
-  {% endif %}
-</div>
+  <div class="page-head">
+    <div class="title-stack">
+      <h3 class="page-title">👥 {% if category == "lang" %}Tillar{% else %}IT{% endif %} bo‘yicha guruhlar</h3>
+      <p class="page-sub">Guruhlar ro‘yxati • mobil va kompyuterda premium ko‘rinish • tezkor amallar</p>
+    </div>
 
-<!-- 💻 Desktop Table -->
-<div class="table-responsive desktop-version">
-  <table class="table table-hover align-middle">
-    <thead>
-      <tr>
-        <th>#</th><th>Guruh</th><th>Center</th><th>O‘qituvchi</th><th>Talabalar</th><th>Amallar</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for g in rows %}
-        <tr class="row-link" data-href="{% url 'education:group_detail' g.id %}">
-          <td>{{ forloop.counter }}</td>
-          <td><a href="{% url 'education:group_detail' g.id %}">{{ g.nom }}</a></td>
-          <td>{{ g.center }}</td>
-          <td>{{ g.oqituvchi }}</td>
-          <td>{{ g.student_count }}</td>
-          <td>
-            <a class="btn btn-sm btn-outline-primary" href="{% url 'education:group_detail' g.id %}">Ko‘rish</a>
-            {% if can_manage %}
-              <a class="btn btn-sm btn-outline-secondary" href="{% url 'education:group_edit' g.id %}">Tahrirlash</a>
-              <button class="btn btn-sm btn-outline-danger delete-btn" data-id="{{ g.id }}" data-name="{{ g.nom }}">O‘chirish</button>
-            {% endif %}
-          </td>
-        </tr>
-      {% empty %}
-        <tr><td colspan="6" class="text-muted text-center py-4">Hozircha guruh yo‘q.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+    <div class="header-actions">
+      <span class="badge-soft" aria-hidden="true">
+        <span style="width:8px;height:8px;border-radius:999px;background:rgba(250,204,21,.9);box-shadow:0 0 0 6px rgba(250,204,21,.12);display:inline-block"></span>
+        Dark Glass UI
+      </span>
 
-<!-- 📱 Mobile Card Version -->
-<div class="mobile-version">
-  {% for g in rows %}
-    <div class="mobile-card">
-
-      <h5>{{ g.nom }}</h5>
-
-      <div class="mobile-row">
-        <span class="mobile-label">Markaz:</span>
-        <span class="mobile-value">{{ g.center }}</span>
-      </div>
-
-      <div class="mobile-row">
-        <span class="mobile-label">O‘qituvchi:</span>
-        <span class="mobile-value">{{ g.oqituvchi }}</span>
-      </div>
-
-      <div class="mobile-row">
-        <span class="mobile-label">Talabalar:</span>
-        <span class="mobile-value">{{ g.student_count }}</span>
-      </div>
-
-      <div class="mobile-actions mt-2">
-        <a class="btn btn-outline-primary btn-sm" href="{% url 'education:group_detail' g.id %}">Ko‘rish</a>
-
-        {% if can_manage %}
-          <a class="btn btn-outline-secondary btn-sm" href="{% url 'education:group_edit' g.id %}">Tahrirlash</a>
-
-          <button class="btn btn-outline-danger btn-sm delete-btn"
-            data-id="{{ g.id }}"
-            data-name="{{ g.nom }}">O‘chirish</button>
+      {% if can_manage %}
+        {% if category == "lang" %}
+          <a class="btn btn-primary" href="{% url 'education:group_create_lang' %}">+ Yangi (Tillar)</a>
+        {% else %}
+          <a class="btn btn-primary" href="{% url 'education:group_create_it' %}">+ Yangi (IT)</a>
         {% endif %}
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="surface">
+    <div class="surface-inner">
+
+      <!-- 💻 Desktop Table -->
+      <div class="table-responsive desktop-version">
+        <table class="table table-hover align-middle">
+          <thead>
+            <tr>
+              <th>#</th><th>Guruh</th><th>Center</th><th>O‘qituvchi</th><th>Talabalar</th><th>Amallar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for g in rows %}
+              <tr class="row-link" data-href="{% url 'education:group_detail' g.id %}" tabindex="0" role="link" aria-label="{{ g.nom }} guruhini ko‘rish">
+                <td>{{ forloop.counter }}</td>
+                <td><a href="{% url 'education:group_detail' g.id %}">{{ g.nom }}</a></td>
+                <td>{{ g.center }}</td>
+                <td>{{ g.oqituvchi }}</td>
+                <td>{{ g.student_count }}</td>
+                <td>
+                  <a class="btn btn-sm btn-outline-primary" href="{% url 'education:group_detail' g.id %}">Ko‘rish</a>
+                  {% if can_manage %}
+                    <a class="btn btn-sm btn-outline-secondary" href="{% url 'education:group_edit' g.id %}">Tahrirlash</a>
+                    <button class="btn btn-sm btn-outline-danger delete-btn" type="button" data-id="{{ g.id }}" data-name="{{ g.nom }}">O‘chirish</button>
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="6" class="text-muted text-center py-4">Hozircha guruh yo‘q.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 📱 Mobile Card Version -->
+      <div class="mobile-version" aria-label="Guruhlar ro‘yxati (mobil)">
+        {% for g in rows %}
+          <div class="mobile-card">
+
+            <h5>{{ g.nom }}</h5>
+
+            <div class="mobile-row">
+              <span class="mobile-label">Markaz:</span>
+              <span class="mobile-value">{{ g.center }}</span>
+            </div>
+
+            <div class="mobile-row">
+              <span class="mobile-label">O‘qituvchi:</span>
+              <span class="mobile-value">{{ g.oqituvchi }}</span>
+            </div>
+
+            <div class="mobile-row">
+              <span class="mobile-label">Talabalar:</span>
+              <span class="mobile-value">{{ g.student_count }}</span>
+            </div>
+
+            <div class="mobile-actions mt-2">
+              <a class="btn btn-outline-primary btn-sm" href="{% url 'education:group_detail' g.id %}">Ko‘rish</a>
+
+              {% if can_manage %}
+                <a class="btn btn-outline-secondary btn-sm" href="{% url 'education:group_edit' g.id %}">Tahrirlash</a>
+
+                <button class="btn btn-outline-danger btn-sm delete-btn"
+                  type="button"
+                  data-id="{{ g.id }}"
+                  data-name="{{ g.nom }}">O‘chirish</button>
+              {% endif %}
+            </div>
+
+          </div>
+        {% empty %}
+          <p class="text-center text-muted mt-4">Hozircha guruh yo‘q.</p>
+        {% endfor %}
       </div>
 
     </div>
-  {% empty %}
-    <p class="text-center text-muted mt-4">Hozircha guruh yo‘q.</p>
-  {% endfor %}
-</div>
+  </div>
 
+</div>
 
 <!-- Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
@@ -166,26 +479,33 @@
 </div>
 
 <script>
-document.querySelectorAll('.row-link').forEach(tr=>{
-  tr.style.cursor='pointer';
-  tr.addEventListener('click', e=>{
-    if(e.target.closest('a,button,form')) return;
-    location.href = tr.dataset.href;
+  document.querySelectorAll('.row-link').forEach(tr=>{
+    tr.style.cursor='pointer';
+    tr.addEventListener('click', e=>{
+      if(e.target.closest('a,button,form')) return;
+      location.href = tr.dataset.href;
+    });
+    tr.addEventListener('keydown', e=>{
+      if(e.key === 'Enter' || e.key === ' ') {
+        if(e.target.closest('a,button,form')) return;
+        e.preventDefault();
+        location.href = tr.dataset.href;
+      }
+    });
   });
-});
 
-const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
-document.querySelectorAll('.delete-btn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    const groupId = btn.dataset.id;
-    const groupName = btn.dataset.name;
-    document.getElementById('delete-text').textContent = 
-      `"${groupName}" guruhini o‘chirishni istaysizmi?`;
-    const form = document.getElementById('deleteForm');
-    form.action = `/education/group/${groupId}/delete/`;
-    modal.show();
+  const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+  document.querySelectorAll('.delete-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const groupId = btn.dataset.id;
+      const groupName = btn.dataset.name;
+      document.getElementById('delete-text').textContent =
+        `"${groupName}" guruhini o‘chirishni istaysizmi?`;
+      const form = document.getElementById('deleteForm');
+      form.action = `/education/group/${groupId}/delete/`;
+      modal.show();
+    });
   });
-});
 </script>
 
 {% endblock %}

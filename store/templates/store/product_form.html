@@ -2,329 +2,505 @@
 {% block content %}
 
 <style>
-:root{
-  --panel: rgba(17,24,39,.62);
-  --panel2: rgba(2,6,23,.55);
-  --line: rgba(255,255,255,.08);
-  --muted:#94a3b8;
-  --text:#e5e7eb;
+  :root{
+    --bg0:#070b14;
+    --bg1:#0b1220;
+    --bg2:#0f1b33;
 
-  --green:#22c55e;
-  --green2:#16a34a;
-}
+    --panel: rgba(17,24,39,.62);
+    --panel2: rgba(2,6,23,.55);
+    --line: rgba(255,255,255,.10);
 
-.form-page{max-width:1100px;margin:0 auto;padding:10px 12px 26px;color:var(--text);}
+    --text:#e5e7eb;
+    --muted:#94a3b8;
 
-.form-card{
-  border-radius:22px;
-  background:var(--panel);
-  border:1px solid var(--line);
-  backdrop-filter:blur(12px);
-  box-shadow:0 18px 45px rgba(0,0,0,.26);
-  overflow:hidden;
-}
+    --amber:#f59e0b;
+    --accent:#facc15;
+    --blue:#38bdf8;
+    --blue2:#60a5fa;
+    --green:#22c55e;
+    --green2:#16a34a;
+    --red:#ef4444;
 
-.form-head{
-  display:flex;align-items:flex-start;justify-content:space-between;gap:14px;
-  padding:18px 18px 12px;
-}
+    --shadow: 0 18px 55px rgba(0,0,0,.45);
+    --shadow2: 0 24px 70px rgba(0,0,0,.55);
+    --radius: 22px;
+    --ring: 0 0 0 4px rgba(250,204,21,.16), 0 0 18px rgba(250,204,21,.22);
+  }
 
-.head-left{display:flex;gap:12px;align-items:center;}
-.head-ic{
-  width:44px;height:44px;border-radius:14px;
-  display:grid;place-items:center;
-  background:rgba(34,197,94,.14);
-  border:1px solid rgba(34,197,94,.28);
-  color:#a7f3d0;font-size:18px;
-}
+  .pf-shell{
+    position: relative;
+    min-height: calc(100svh - 1px);
+    padding: clamp(16px, 2.6vw, 34px) 0;
+    color: var(--text);
+  }
+  .pf-bg{
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(900px 420px at 18% 10%, rgba(250,204,21,.10), transparent 60%),
+      radial-gradient(760px 380px at 85% 18%, rgba(56,189,248,.10), transparent 60%),
+      radial-gradient(980px 520px at 55% 92%, rgba(34,197,94,.08), transparent 62%),
+      linear-gradient(160deg, var(--bg0), var(--bg1) 45%, var(--bg2));
+  }
 
-.form-title{
-  margin:0;
-  font-size:28px;
-  font-weight:900;
-  color:var(--green);
-  text-shadow:0 10px 26px rgba(34,197,94,.18);
-}
-.form-sub{margin-top:6px;color:var(--muted);font-size:13px;}
+  .form-page{
+    width:100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 16px;
+    color: var(--text);
+  }
 
-.shop-badge{
-  display:inline-flex;align-items:center;gap:10px;
-  padding:10px 14px;border-radius:14px;
-  border:1px solid rgba(59,130,246,.25);
-  background:rgba(59,130,246,.10);
-  color:#dbeafe;font-weight:900;
-  white-space:nowrap;
-}
-.shop-badge i{color:#93c5fd;}
+  .form-card{
+    border-radius: var(--radius);
+    background: linear-gradient(180deg, var(--panel), var(--panel2));
+    border: 1px solid rgba(255,255,255,.10);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: var(--shadow2);
+    overflow:hidden;
+    position: relative;
+  }
+  .form-card::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(720px 340px at 10% 0%, rgba(250,204,21,.09), transparent 62%),
+      radial-gradient(720px 340px at 90% 0%, rgba(56,189,248,.08), transparent 62%),
+      radial-gradient(900px 420px at 50% 130%, rgba(34,197,94,.08), transparent 65%);
+    pointer-events:none;
+    opacity:.95;
+  }
+  .form-card > *{ position: relative; }
 
-.form-body{padding:14px 18px 18px;}
+  .form-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 14px;
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    flex-wrap: wrap;
+  }
 
-.field{margin-bottom:14px;}
-.field label{
-  display:block;
-  margin:0 0 8px;
-  font-size:13px;
-  color:#cbd5e1;
-  font-weight:800;
-}
+  .head-left{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    min-width: 240px;
+  }
 
-.form-body input,
-.form-body textarea,
-.form-body select{
-  width:100%;
-  border:1px solid rgba(148,163,184,.22);
-  border-radius:14px;
-  background:rgba(15,23,42,.72);
-  color:var(--text);
-  padding:12px 12px;
-  font-size:14px;
-  outline:none;
-  transition:.2s;
-}
-.form-body textarea{min-height:110px;resize:vertical;}
-.form-body input:focus,
-.form-body textarea:focus,
-.form-body select:focus{
-  border-color:rgba(34,197,94,.65);
-  box-shadow:0 0 0 4px rgba(34,197,94,.12);
-}
+  .head-ic{
+    width:46px;height:46px;border-radius:16px;
+    display:grid;place-items:center;
+    background: radial-gradient(140% 140% at 20% 0%, rgba(250,204,21,.18), rgba(34,197,94,.12) 55%, rgba(255,255,255,.02));
+    border: 1px solid rgba(255,255,255,.10);
+    color: var(--accent);
+    box-shadow: 0 18px 44px rgba(0,0,0,.40);
+  }
 
-.field-errors{
-  margin-top:8px;
-  padding:10px 12px;
-  border-radius:14px;
-  background:rgba(239,68,68,.12);
-  border:1px solid rgba(239,68,68,.25);
-  color:#fecaca;
-  font-weight:800;
-  font-size:13px;
-}
+  .form-title{
+    margin:0;
+    font-size: clamp(1.15rem, 1rem + 1.2vw, 1.7rem);
+    font-weight: 950;
+    letter-spacing:.2px;
+    color: var(--accent);
+    text-shadow: 0 10px 26px rgba(250,204,21,.14);
+    line-height: 1.15;
+  }
 
-/* Upload */
-.upload-card{
-  margin-top:6px;
-  border-radius:18px;
-  background:rgba(2,6,23,.35);
-  border:1px solid rgba(255,255,255,.06);
-  padding:14px;
-}
+  .form-sub{
+    margin-top: 6px;
+    color: rgba(148,163,184,.92);
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.35;
+  }
 
-.upload-title{
-  display:flex;align-items:center;gap:10px;
-  font-weight:900;color:#e5e7eb;margin-bottom:10px;
-}
-.upload-title i{color:#86efac;}
+  .shop-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 14px;
+    border-radius: 16px;
+    border:1px solid rgba(56,189,248,.25);
+    background: rgba(56,189,248,.10);
+    color:#dbeafe;
+    font-weight: 950;
+    white-space: nowrap;
+    min-height: 44px;
+  }
+  .shop-badge i{ color:#93c5fd; }
 
-.drop-zone{
-  border:2px dashed rgba(34,197,94,.45);
-  border-radius:18px;
-  padding:26px 16px;
-  text-align:center;
-  cursor:pointer;
-  transition:.2s;
-  position:relative;
-}
-.drop-zone:hover{
-  border-color:rgba(34,197,94,.80);
-  background:rgba(34,197,94,.06);
-  box-shadow:0 0 0 4px rgba(34,197,94,.10);
-}
+  .form-body{
+    padding: 14px 16px 16px;
+  }
 
-.plus{
-  width:54px;height:54px;border-radius:999px;
-  margin:0 auto 12px;
-  display:grid;place-items:center;
-  background:rgba(34,197,94,.12);
-  border:1px solid rgba(34,197,94,.25);
-  color:#bbf7d0;
-  font-size:24px;
-}
+  .field{
+    margin-bottom: 14px;
+    display:grid;
+    gap: 8px;
+  }
 
-.drop-zone .t1{font-weight:900;color:#d1fae5;}
-.drop-zone .t2{margin-top:6px;color:rgba(148,163,184,.9);font-size:13px;}
+  .field label{
+    display:block;
+    font-size: 12px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: rgba(148,163,184,.92);
+    font-weight: 950;
+  }
 
-.drop-zone input{display:none;}
+  .form-body input,
+  .form-body textarea,
+  .form-body select{
+    width:100%;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 16px;
+    background: rgba(255,255,255,.06);
+    color: var(--text);
+    padding: 12px 12px;
+    font-size: 14px;
+    font-weight: 850;
+    outline:none;
+    transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+    color-scheme: dark;
+  }
 
-.file-count{margin-top:10px;font-weight:900;color:#bbf7d0;}
+  .form-body textarea{
+    min-height: 120px;
+    resize: vertical;
+  }
 
-.preview-wrap{
-  margin-top:14px;
-  display:flex;gap:12px;flex-wrap:wrap;
-}
-.preview-wrap img{
-  width:92px;height:92px;
-  border-radius:16px;
-  object-fit:cover;
-  border:1px solid rgba(34,197,94,.30);
-  background:rgba(15,23,42,.55);
-  box-shadow:0 12px 22px rgba(0,0,0,.22);
-}
+  .form-body input:focus,
+  .form-body textarea:focus,
+  .form-body select:focus,
+  .form-body input:focus-visible,
+  .form-body textarea:focus-visible,
+  .form-body select:focus-visible{
+    border-color: rgba(250,204,21,.55);
+    box-shadow: var(--ring);
+    background: rgba(255,255,255,.08);
+  }
 
-/* Actions */
-.form-actions{
-  display:flex;
-  gap:12px;
-  padding:16px 18px;
-  border-top:1px solid rgba(255,255,255,.06);
-  align-items:center;
-}
-.btn-save{
-  flex:1;
-  border:none;
-  border-radius:16px;
-  padding:14px 18px;
-  font-weight:900;
-  color:#fff;
-  background:linear-gradient(90deg,var(--green),var(--green2));
-  box-shadow:0 14px 30px rgba(0,0,0,.22);
-  transition:.2s;
-}
-.btn-save i{margin-right:10px;}
-.btn-save:hover{transform:translateY(-1px);opacity:.96;}
+  .field-errors{
+    margin-top: 0;
+    padding: 10px 12px;
+    border-radius: 16px;
+    background: rgba(239,68,68,.12);
+    border: 1px solid rgba(239,68,68,.25);
+    color: #fecaca;
+    font-weight: 850;
+    font-size: 13px;
+  }
 
-.btn-back{
-  width:180px;
-  border-radius:16px;
-  padding:14px 16px;
-  font-weight:900;
-  text-decoration:none;
-  border:1px solid rgba(148,163,184,.25);
-  color:#cbd5e1;
-  background:rgba(148,163,184,.08);
-  transition:.2s;
-  display:inline-flex;align-items:center;justify-content:center;gap:10px;
-}
-.btn-back:hover{border-color:rgba(148,163,184,.40);background:rgba(148,163,184,.14);color:#fff;}
+  /* Upload */
+  .upload-card{
+    margin-top: 6px;
+    border-radius: 20px;
+    background: rgba(2,6,23,.35);
+    border: 1px solid rgba(255,255,255,.08);
+    padding: 14px;
+    box-shadow: 0 18px 44px rgba(0,0,0,.35);
+  }
 
-@media (max-width: 640px){
-  .form-head{flex-direction:column;align-items:flex-start;}
-  .form-actions{flex-direction:column;}
-  .btn-back{width:100%;}
-}
+  .upload-title{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-weight: 950;
+    color: rgba(226,232,240,.95);
+    margin-bottom: 10px;
+    letter-spacing:.2px;
+  }
+  .upload-title i{ color: #86efac; }
+
+  .drop-zone{
+    border: 1.5px dashed rgba(250,204,21,.55);
+    border-radius: 20px;
+    padding: 22px 16px;
+    text-align:center;
+    cursor:pointer;
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
+    position:relative;
+    background: rgba(255,255,255,.03);
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select:none;
+  }
+  .drop-zone:hover{
+    border-color: rgba(250,204,21,.80);
+    background: rgba(250,204,21,.05);
+    box-shadow: 0 0 0 4px rgba(250,204,21,.10), 0 18px 44px rgba(0,0,0,.35);
+    transform: translateY(-1px);
+  }
+  .drop-zone:focus-visible{
+    box-shadow: var(--ring);
+  }
+
+  .plus{
+    width:56px;height:56px;border-radius:999px;
+    margin: 0 auto 12px;
+    display:grid;place-items:center;
+    background: rgba(250,204,21,.14);
+    border: 1px solid rgba(250,204,21,.28);
+    color: var(--accent);
+    font-size: 26px;
+    box-shadow: 0 18px 44px rgba(0,0,0,.35);
+  }
+
+  .drop-zone .t1{
+    font-weight: 950;
+    color: rgba(226,232,240,.95);
+    letter-spacing:.2px;
+  }
+  .drop-zone .t2{
+    margin-top: 6px;
+    color: rgba(148,163,184,.92);
+    font-size: 12px;
+    font-weight: 850;
+    line-height: 1.35;
+  }
+
+  .drop-zone input{ display:none; }
+
+  .file-count{
+    margin-top: 10px;
+    font-weight: 950;
+    color: rgba(250,204,21,.92);
+    letter-spacing:.2px;
+    min-height: 18px;
+  }
+
+  .preview-wrap{
+    margin-top: 14px;
+    display:flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .preview-wrap img{
+    width: 92px;
+    height: 92px;
+    border-radius: 16px;
+    object-fit: cover;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.04);
+    box-shadow: 0 14px 32px rgba(0,0,0,.35);
+  }
+
+  /* Actions */
+  .form-actions{
+    display:flex;
+    gap: 12px;
+    padding: 16px;
+    border-top: 1px solid rgba(255,255,255,.08);
+    align-items:center;
+    flex-wrap: wrap;
+  }
+
+  .btn-save{
+    flex: 1;
+    border: none;
+    border-radius: 16px;
+    padding: 14px 18px;
+    font-weight: 950;
+    color: #061b10;
+    background: linear-gradient(90deg, rgba(34,197,94,.95), rgba(22,163,74,.95));
+    box-shadow: 0 14px 30px rgba(34,197,94,.14);
+    transition: transform .16s ease, filter .16s ease, box-shadow .16s ease;
+    cursor:pointer;
+    min-height: 46px;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+  }
+  .btn-save i{ margin-right: 10px; }
+  .btn-save:focus-visible{ outline:none; box-shadow: var(--ring); }
+  @media (hover:hover){
+    .btn-save:hover{ transform: translateY(-1px); filter: brightness(.98); box-shadow: 0 18px 44px rgba(34,197,94,.16); }
+  }
+  .btn-save:active{ transform: translateY(0px) scale(.99); }
+
+  .btn-back{
+    width: 190px;
+    border-radius: 16px;
+    padding: 14px 16px;
+    font-weight: 950;
+    text-decoration:none;
+    border: 1px solid rgba(56,189,248,.30);
+    color: #e0f2fe;
+    background: rgba(56,189,248,.10);
+    transition: transform .16s ease, filter .16s ease, box-shadow .16s ease, border-color .16s ease;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap: 10px;
+    min-height: 46px;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+  }
+  .btn-back:focus-visible{ outline:none; box-shadow: var(--ring); }
+  @media (hover:hover){
+    .btn-back:hover{
+      border-color: rgba(56,189,248,.45);
+      background: rgba(56,189,248,.14);
+      transform: translateY(-1px);
+      filter: brightness(.99);
+      box-shadow: 0 18px 44px rgba(0,0,0,.35);
+    }
+  }
+  .btn-back:active{ transform: translateY(0px) scale(.99); }
+
+  @media (max-width: 640px){
+    .form-head{ flex-direction: column; align-items:flex-start; }
+    .shop-badge{ width: 100%; justify-content:center; }
+    .form-actions{ flex-direction: column; }
+    .btn-back{ width: 100%; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .drop-zone,.btn-save,.btn-back{ transition:none !important; }
+  }
 </style>
 
-<div class="form-page">
-  <div class="form-card">
+<main class="pf-shell">
+  <div class="pf-bg" aria-hidden="true"></div>
 
-    <div class="form-head">
-      <div class="head-left">
-        <div class="head-ic"><i class="fa-solid fa-pen"></i></div>
-        <div>
-          <h3 class="form-title">{% if title %}{{ title }}{% else %}Mahsulotni tahrirlash{% endif %}</h3>
-          <div class="form-sub">Nom, narx va izohni kiriting. Xohlasangiz rasmlar ham yuklang.</div>
+  <div class="form-page">
+    <section class="form-card" aria-label="Mahsulot formasi">
+
+      <div class="form-head">
+        <div class="head-left">
+          <div class="head-ic"><i class="fa-solid fa-pen"></i></div>
+          <div>
+            <h3 class="form-title">{% if title %}{{ title }}{% else %}Mahsulotni tahrirlash{% endif %}</h3>
+            <div class="form-sub">Nom, narx va izohni kiriting. Xohlasangiz rasmlar ham yuklang.</div>
+          </div>
+        </div>
+
+        <div class="shop-badge">
+          <i class="fa-solid fa-store"></i> Do‘kon
         </div>
       </div>
 
-      <div class="shop-badge">
-        <i class="fa-solid fa-store"></i> Do‘kon
+      <div class="form-body">
+        <form method="POST" enctype="multipart/form-data">
+          {% csrf_token %}
+
+          <div class="field">
+            <label for="{{ form.nom.id_for_label }}">Nom</label>
+            {{ form.nom }}
+            {% if form.nom.errors %}<div class="field-errors">{{ form.nom.errors|striptags }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <label for="{{ form.narx_chaqmoq.id_for_label }}">Narx (Chaqmoq)</label>
+            {{ form.narx_chaqmoq }}
+            {% if form.narx_chaqmoq.errors %}<div class="field-errors">{{ form.narx_chaqmoq.errors|striptags }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <label for="{{ form.izoh.id_for_label }}">Izoh</label>
+            {{ form.izoh }}
+            {% if form.izoh.errors %}<div class="field-errors">{{ form.izoh.errors|striptags }}</div>{% endif %}
+          </div>
+
+          <div class="upload-card">
+            <div class="upload-title">
+              <i class="fa-regular fa-image"></i> Rasmlar
+            </div>
+
+            <div class="drop-zone" id="drop-area" role="button" tabindex="0" aria-label="Rasm yuklash zonasi">
+              <div class="plus">＋</div>
+              <div class="t1">Rasmlarni shu yerga tashlang yoki bosing</div>
+              <div class="t2">Bir nechta rasm tanlash mumkin (multiple)</div>
+
+              <input type="file" name="rasmlar" id="fileInput" multiple>
+              <div class="file-count" id="file-count"></div>
+            </div>
+
+            <div class="preview-wrap" id="preview-container" aria-label="Rasmlar preview"></div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-save">
+              <i class="fa-solid fa-floppy-disk"></i> Saqlash
+            </button>
+            <a href="{% url 'store:products' %}" class="btn-back">
+              <i class="fa-solid fa-arrow-left"></i> Orqaga
+            </a>
+          </div>
+
+        </form>
       </div>
-    </div>
 
-    <div class="form-body">
-      <form method="POST" enctype="multipart/form-data">
-        {% csrf_token %}
-
-        <div class="field">
-          <label for="{{ form.nom.id_for_label }}">Nom</label>
-          {{ form.nom }}
-          {% if form.nom.errors %}<div class="field-errors">{{ form.nom.errors|striptags }}</div>{% endif %}
-        </div>
-
-        <div class="field">
-          <label for="{{ form.narx_chaqmoq.id_for_label }}">Narx (Chaqmoq)</label>
-          {{ form.narx_chaqmoq }}
-          {% if form.narx_chaqmoq.errors %}<div class="field-errors">{{ form.narx_chaqmoq.errors|striptags }}</div>{% endif %}
-        </div>
-
-        <div class="field">
-          <label for="{{ form.izoh.id_for_label }}">Izoh</label>
-          {{ form.izoh }}
-          {% if form.izoh.errors %}<div class="field-errors">{{ form.izoh.errors|striptags }}</div>{% endif %}
-        </div>
-
-        <div class="upload-card">
-          <div class="upload-title">
-            <i class="fa-regular fa-image"></i> Rasmlar
-          </div>
-
-          <div class="drop-zone" id="drop-area">
-            <div class="plus">＋</div>
-            <div class="t1">Rasmlarni shu yerga tashlang yoki bosing</div>
-            <div class="t2">Bir nechta rasm tanlash mumkin (multiple)</div>
-
-            <input type="file" name="rasmlar" id="fileInput" multiple>
-            <div class="file-count" id="file-count"></div>
-          </div>
-
-          <div class="preview-wrap" id="preview-container"></div>
-        </div>
-
-        <div class="form-actions">
-          <button type="submit" class="btn-save">
-            <i class="fa-solid fa-floppy-disk"></i> Saqlash
-          </button>
-          <a href="{% url 'store:products' %}" class="btn-back">
-            <i class="fa-solid fa-arrow-left"></i> Orqaga
-          </a>
-        </div>
-
-      </form>
-    </div>
-
+    </section>
   </div>
-</div>
+</main>
 
 <script>
-  const dropArea = document.getElementById("drop-area");
-  const inputFile = document.getElementById("fileInput");
-  const previewContainer = document.getElementById("preview-container");
-  const fileCountText = document.getElementById("file-count");
+  (function(){
+    const dropArea = document.getElementById("drop-area");
+    const inputFile = document.getElementById("fileInput");
+    const previewContainer = document.getElementById("preview-container");
+    const fileCountText = document.getElementById("file-count");
+    if(!dropArea || !inputFile || !previewContainer || !fileCountText) return;
 
-  dropArea.addEventListener("click", () => inputFile.click());
+    function openPicker(){ inputFile.click(); }
 
-  ["dragenter","dragover"].forEach(evt=>{
-    dropArea.addEventListener(evt, (e)=>{
-      e.preventDefault();
-      dropArea.style.borderColor = "rgba(34,197,94,.85)";
-      dropArea.style.background = "rgba(34,197,94,.08)";
+    dropArea.addEventListener("click", openPicker);
+    dropArea.addEventListener("keydown", (e)=>{
+      if(e.key === "Enter" || e.key === " "){
+        e.preventDefault();
+        openPicker();
+      }
     });
-  });
 
-  ["dragleave","drop"].forEach(evt=>{
-    dropArea.addEventListener(evt, (e)=>{
-      e.preventDefault();
-      dropArea.style.borderColor = "rgba(34,197,94,.45)";
-      dropArea.style.background = "transparent";
+    ["dragenter","dragover"].forEach(evt=>{
+      dropArea.addEventListener(evt, (e)=>{
+        e.preventDefault();
+        dropArea.style.borderColor = "rgba(250,204,21,.85)";
+        dropArea.style.background = "rgba(250,204,21,.06)";
+        dropArea.style.boxShadow = "0 0 0 4px rgba(250,204,21,.10), 0 18px 44px rgba(0,0,0,.35)";
+      });
     });
-  });
 
-  dropArea.addEventListener("drop", (e)=>{
-    inputFile.files = e.dataTransfer.files;
-    showPreview();
-  });
+    ["dragleave","drop"].forEach(evt=>{
+      dropArea.addEventListener(evt, (e)=>{
+        e.preventDefault();
+        dropArea.style.borderColor = "rgba(250,204,21,.55)";
+        dropArea.style.background = "rgba(255,255,255,.03)";
+        dropArea.style.boxShadow = "none";
+      });
+    });
 
-  inputFile.addEventListener("change", showPreview);
+    dropArea.addEventListener("drop", (e)=>{
+      inputFile.files = e.dataTransfer.files;
+      showPreview();
+    });
 
-  function showPreview(){
-    previewContainer.innerHTML = "";
-    const files = [...inputFile.files];
+    inputFile.addEventListener("change", showPreview);
 
-    if(files.length){
-      fileCountText.textContent = files.length + " ta rasm tanlandi";
-    }else{
-      fileCountText.textContent = "";
+    function showPreview(){
+      previewContainer.innerHTML = "";
+      const files = [...inputFile.files];
+
+      fileCountText.textContent = files.length ? (files.length + " ta rasm tanlandi") : "";
+
+      files.forEach(file=>{
+        const reader = new FileReader();
+        reader.onload = (e)=>{
+          const img = document.createElement("img");
+          img.src = e.target.result;
+          img.alt = "preview";
+          previewContainer.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      });
     }
-
-    files.forEach(file=>{
-      const reader = new FileReader();
-      reader.onload = (e)=>{
-        const img = document.createElement("img");
-        img.src = e.target.result;
-        previewContainer.appendChild(img);
-      };
-      reader.readAsDataURL(file);
-    });
-  }
+  })();
 </script>
 
 {% endblock %}

@@ -1,43 +1,421 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-4">
-  <div class="card shadow-sm mb-4">
-    <div class="card-body">
-      <h4 class="fw-bold">{{ group.nom }}</h4>
-      <p>👩‍🏫 O‘qituvchi: <strong>{{ group.oqituvchi.get_full_name }}</strong></p>
-      <p>💰 Kurs narxi: {{ group.kurs_narxi|floatformat:0 }} so‘m | Foiz: {{ group.oqituvchi_foiz }}%</p>
-      <p>📅 Oy: {{ month }}/{{ year }}</p>
+
+<style>
+:root{
+  --bg1:#0b1220;
+  --bg2:#0f172a;
+
+  --panel: rgba(255,255,255,0.06);
+  --panel2: rgba(2,6,23,0.55);
+  --line: rgba(255,255,255,0.10);
+
+  --text:#e5e7eb;
+  --muted:#94a3b8;
+
+  --blue1:#2563eb;
+  --blue2:#60a5fa;
+
+  --amber:#facc15;
+  --amber2:#fbbf24;
+
+  --green:#22c55e;
+  --red:#ef4444;
+
+  --shadow: 0 22px 60px rgba(0,0,0,0.55);
+}
+
+body{
+  background:
+    radial-gradient(1200px 520px at 50% -10%, rgba(96,165,250,0.22), transparent 55%),
+    radial-gradient(900px 520px at 10% 10%, rgba(37,99,235,0.16), transparent 55%),
+    radial-gradient(900px 520px at 92% 0%, rgba(245,158,11,0.14), transparent 55%),
+    linear-gradient(180deg, var(--bg1), var(--bg2), var(--bg1));
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, "Poppins", sans-serif;
+  min-height: 100vh;
+  color: var(--text);
+}
+
+.page{
+  padding: clamp(14px, 2.4vw, 26px) 0 34px;
+}
+
+.page-wrap{
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 14px;
+}
+
+.shell{
+  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  position: relative;
+}
+
+.shell::before{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  background:
+    radial-gradient(950px 360px at 22% 0%, rgba(96,165,250,.16), transparent 62%),
+    radial-gradient(900px 340px at 92% 12%, rgba(37,99,235,.14), transparent 62%),
+    radial-gradient(900px 360px at 55% 120%, rgba(245,158,11,.12), transparent 62%);
+  pointer-events:none;
+  opacity:.95;
+}
+
+.shell-inner{
+  position: relative;
+  background: rgba(2, 6, 23, .35);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: clamp(14px, 2.2vw, 18px);
+}
+
+/* ===== Header Card ===== */
+.info-card{
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 18px 55px rgba(0,0,0,0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  overflow:hidden;
+}
+
+.info-top{
+  padding: 14px 16px;
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(90deg, rgba(37,99,235,0.92), rgba(96,165,250,0.92));
+}
+
+.info-title{
+  margin:0;
+  font-weight: 1000;
+  letter-spacing: .2px;
+  font-size: clamp(16px, 2.2vw, 20px);
+  color: #fff;
+}
+
+.badge-month{
+  display:inline-flex;
+  align-items:center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 999px;
+  font-weight: 1000;
+  color: #0b1220;
+  background: linear-gradient(90deg, rgba(250,204,21,0.95), rgba(251,191,36,0.95));
+  border: 1px solid rgba(255,255,255,0.18);
+  box-shadow: 0 12px 24px rgba(250,204,21,0.14);
+  white-space: nowrap;
+}
+
+.info-body{
+  padding: 14px 16px 16px;
+  display:grid;
+  grid-template-columns: 1.25fr .9fr;
+  gap: 14px;
+}
+
+.meta{
+  display:grid;
+  gap: 8px;
+  color: rgba(255,255,255,0.88);
+  font-weight: 800;
+}
+.meta p{
+  margin:0;
+  color: rgba(255,255,255,0.85);
+}
+.meta strong{
+  color: #fff;
+  font-weight: 1000;
+}
+
+.meta-row{
+  display:flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items:center;
+  color: rgba(255,255,255,0.85);
+}
+.meta-pill{
+  display:inline-flex;
+  align-items:center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(15,23,42,0.55);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: var(--text);
+  font-weight: 1000;
+  white-space: nowrap;
+}
+.meta-pill .k{
+  color: var(--muted);
+  font-weight: 900;
+}
+.meta-pill .v{
+  color: #fff;
+  font-weight: 1000;
+}
+.meta-pill .v-amber{ color: var(--amber2); }
+.meta-pill .v-blue{ color: #93c5fd; }
+
+.quick-total{
+  display:flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+.total-card{
+  border-radius: 18px;
+  border: 1px solid rgba(34,197,94,0.22);
+  background: rgba(34,197,94,0.10);
+  padding: 14px 14px;
+  box-shadow: 0 16px 40px rgba(34,197,94,0.12);
+}
+.total-label{
+  color: rgba(255,255,255,0.75);
+  font-weight: 900;
+  font-size: 12px;
+}
+.total-value{
+  margin-top: 6px;
+  font-weight: 1000;
+  font-size: clamp(18px, 2.4vw, 22px);
+  color: #86efac;
+  text-shadow: 0 8px 24px rgba(34,197,94,.18);
+}
+
+/* ===== Table ===== */
+.table-card{
+  margin-top: 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 18px 55px rgba(0,0,0,0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  overflow:hidden;
+}
+
+.table-head{
+  padding: 12px 14px;
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+}
+
+.table-title{
+  margin:0;
+  font-weight: 1000;
+  letter-spacing:.2px;
+  font-size: 14px;
+  color: rgba(255,255,255,0.9);
+}
+
+.table-wrap{
+  overflow:auto;
+  background: rgba(15,23,42,0.55);
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.table{
+  margin:0;
+  min-width: 820px;
+  color: var(--text) !important;
+}
+
+/* kill bootstrap whites */
+.table,
+.table thead,
+.table tbody,
+.table tr,
+.table td,
+.table th{
+  background: transparent !important;
+  color: var(--text) !important;
+}
+
+.table thead th{
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: linear-gradient(90deg, rgba(37,99,235,0.92), rgba(59,130,246,0.92)) !important;
+  color: #fff !important;
+  font-weight: 1000;
+  text-align:center;
+  border-color: rgba(255,255,255,0.12) !important;
+  white-space: nowrap;
+}
+
+.table td, .table th{
+  text-align:center;
+  border-color: rgba(255,255,255,0.10) !important;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.table tbody tr{
+  transition: .15s ease;
+}
+.table tbody tr:hover{
+  background: rgba(59,130,246,0.12) !important;
+}
+
+td strong{
+  color:#fff;
+}
+
+.money{
+  font-weight: 1000;
+  color: #86efac;
+}
+
+/* ===== Chart ===== */
+.chart-card{
+  margin-top: 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 18px 55px rgba(0,0,0,0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  overflow:hidden;
+}
+.chart-head{
+  padding: 12px 14px;
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+}
+.chart-title{
+  margin:0;
+  font-weight: 1000;
+  letter-spacing:.2px;
+  font-size: 14px;
+  color: rgba(255,255,255,0.9);
+}
+.chart-body{
+  padding: 14px;
+  background: rgba(15,23,42,0.55);
+}
+
+/* accessibility */
+a, button, input, select{
+  -webkit-tap-highlight-color: transparent;
+}
+:focus-visible{
+  outline: 3px solid rgba(250, 204, 21, .30);
+  outline-offset: 3px;
+}
+
+@media (max-width: 992px){
+  .info-body{ grid-template-columns: 1fr; }
+}
+
+@media (max-width: 576px){
+  .page-wrap{ padding: 0 12px; }
+  .table{ min-width: 760px; }
+}
+</style>
+
+<main class="page">
+  <div class="page-wrap">
+    <div class="shell">
+      <div class="shell-inner">
+
+        <div class="info-card mb-3">
+          <div class="info-top">
+            <h4 class="info-title">{{ group.nom }}</h4>
+            <div class="badge-month">📅 Oy: {{ month }}/{{ year }}</div>
+          </div>
+
+          <div class="info-body">
+            <div class="meta">
+              <p>👩‍🏫 O‘qituvchi: <strong>{{ group.oqituvchi.get_full_name }}</strong></p>
+
+              <div class="meta-row">
+                <div class="meta-pill">
+                  <span class="k">💰 Kurs narxi</span>
+                  <span class="v v-blue">{{ group.kurs_narxi|floatformat:0 }} so‘m</span>
+                </div>
+
+                <div class="meta-pill">
+                  <span class="k">Foiz</span>
+                  <span class="v v-amber">{{ group.oqituvchi_foiz }}%</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="quick-total">
+              <div class="total-card">
+                <div class="total-label">Jami o‘qituvchi daromadi</div>
+                <div class="total-value">{{ teacher_total_income|floatformat:0 }} so‘m</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-head">
+            <h6 class="table-title">📋 O‘quvchilar bo‘yicha hisobot</h6>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table table-sm table-hover align-middle">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>O‘quvchi</th>
+                  <th>Kelgan darslar</th>
+                  <th>O‘qituvchiga tushgan summa</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in student_summaries %}
+                  <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ s.student.get_full_name }}</td>
+                    <td>{{ s.attended }}</td>
+                    <td><strong class="money">{{ s.teacher_income|floatformat:0 }}</strong> so‘m</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-head">
+            <h6 class="chart-title">📊 O‘quvchilar kesimida daromad</h6>
+          </div>
+          <div class="chart-body">
+            <canvas id="incomeChart" height="110"></canvas>
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
-
-  <table class="table table-striped table-hover align-middle">
-    <thead class="table-light">
-      <tr>
-        <th>#</th>
-        <th>O‘quvchi</th>
-        <th>Kelgan darslar</th>
-        <th>O‘qituvchiga tushgan summa</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for s in student_summaries %}
-      <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ s.student.get_full_name }}</td>
-        <td>{{ s.attended }}</td>
-        <td><strong>{{ s.teacher_income|floatformat:0 }}</strong> so‘m</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  <div class="alert alert-success mt-3 fs-5">
-    <strong>Jami o‘qituvchi daromadi:</strong> {{ teacher_total_income|floatformat:0 }} so‘m
-  </div>
-
-  <!-- 📊 Chart.js -->
-  <canvas id="incomeChart" height="100"></canvas>
-</div>
+</main>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
@@ -49,18 +427,40 @@ const chart = new Chart(ctx, {
     datasets: [{
       label: 'O‘qituvchining o‘quvchidan olgan daromadi (so‘m)',
       data: [{% for s in student_summaries %}{{ s.teacher_income }},{% endfor %}],
-      backgroundColor: 'rgba(75, 192, 192, 0.6)',
-      borderColor: 'rgba(75, 192, 192, 1)',
+      backgroundColor: 'rgba(96, 165, 250, 0.55)',
+      borderColor: 'rgba(37, 99, 235, 1)',
       borderWidth: 1,
-      borderRadius: 6
+      borderRadius: 10
     }]
   },
   options: {
     responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: { color: 'rgba(229,231,235,0.85)', font: { weight: '700' } }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(2,6,23,0.92)',
+        titleColor: '#e5e7eb',
+        bodyColor: '#e5e7eb',
+        borderColor: 'rgba(255,255,255,0.12)',
+        borderWidth: 1
+      }
+    },
     scales: {
-      y: { beginAtZero: true }
+      x: {
+        ticks: { color: 'rgba(229,231,235,0.75)' },
+        grid: { color: 'rgba(255,255,255,0.06)' }
+      },
+      y: {
+        beginAtZero: true,
+        ticks: { color: 'rgba(229,231,235,0.75)' },
+        grid: { color: 'rgba(255,255,255,0.06)' }
+      }
     }
   }
 });
 </script>
+
 {% endblock %}

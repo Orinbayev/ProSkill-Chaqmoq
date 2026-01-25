@@ -2,87 +2,210 @@
 {% block content %}
 
 <style>
-/* --- Background --- */
-body {
-  background: radial-gradient(circle at top left, rgba(239,68,68,0.18), transparent),
-              radial-gradient(circle at bottom right, rgba(56,189,248,0.20), transparent),
-              #0f172a;
-  min-height: 100vh;
-  font-family: 'Poppins', sans-serif;
-  color: #f8fafc;
-}
+  :root{
+    --bg0:#020617;
+    --bg1:#070b16;
+    --bg2:#0b1226;
 
-/* --- Card --- */
-.delete-card {
-  max-width: 520px;
-  margin: 4rem auto;
-  padding: 2.2rem;
-  background: rgba(255,255,255,0.06);
-  border-radius: 20px;
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 12px 35px rgba(0,0,0,0.55);
-  backdrop-filter: blur(10px);
-  text-align: center;
-  animation: fadeIn 0.3s ease;
-}
+    --glass: rgba(17,24,39,.62);
+    --glass2: rgba(2,6,23,.55);
+    --stroke: rgba(255,255,255,.10);
 
-/* --- Warning Title --- */
-.delete-title {
-  font-size: 1.4rem;
-  font-weight: 800;
-  color: #f87171;
-  text-shadow: 0 0 10px rgba(248,113,113,0.4);
-}
+    --text:#e5e7eb;
+    --muted:#94a3b8;
 
-/* --- Buttons --- */
-.btn-cancel {
-  width: 48%;
-  padding: 10px;
-  border-radius: 10px;
-  font-weight: 600;
-  border: 1px solid rgba(255,255,255,0.25);
-  background: rgba(255,255,255,0.1);
-  color: #e2e8f0;
-  transition: 0.25s;
-}
-.btn-cancel:hover {
-  background: rgba(255,255,255,0.22);
-}
+    --amber:#fbbf24;
+    --amber2:#f59e0b;
 
-.btn-delete {
-  width: 48%;
-  padding: 10px;
-  border-radius: 10px;
-  font-weight: 700;
-  color: white;
-  background: linear-gradient(90deg,#ef4444,#dc2626);
-  box-shadow: 0 0 15px rgba(239,68,68,0.4);
-  border: none;
-  transition: 0.25s;
-}
-.btn-delete:hover {
-  transform: scale(1.05);
-  background: linear-gradient(90deg,#dc2626,#ef4444);
-}
+    --neon:#38bdf8;
+    --neon2:#0ea5e9;
 
-/* --- Fade In Animation --- */
-@keyframes fadeIn {
-  from { opacity:0; transform: translateY(12px); }
-  to   { opacity:1; transform: translateY(0); }
-}
+    --red:#ef4444;
+    --red2:#b91c1c;
+
+    --shadow: 0 26px 90px rgba(0,0,0,.55);
+
+    --r14:14px;
+    --r18:18px;
+    --r22:22px;
+    --r28:28px;
+
+    --pad: clamp(14px, 2.7vw, 22px);
+    --gap: clamp(10px, 2.2vw, 14px);
+
+    --ringA: 0 0 0 3px rgba(251,191,36,.18);
+    --ringN: 0 0 0 3px rgba(56,189,248,.18);
+    --ringR: 0 0 0 3px rgba(239,68,68,.18);
+  }
+
+  *{ box-sizing:border-box; }
+  html, body{ height:100%; }
+  body{
+    background:
+      radial-gradient(980px 640px at 12% -10%, rgba(239,68,68,.18), transparent 55%),
+      radial-gradient(980px 640px at 88% 0%, rgba(56,189,248,.18), transparent 55%),
+      radial-gradient(980px 680px at 55% 120%, rgba(251,191,36,.10), transparent 60%),
+      linear-gradient(180deg, var(--bg0), var(--bg2));
+    color: var(--text);
+    min-height:100vh;
+    overflow-x:hidden;
+    font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  }
+
+  :focus-visible{ outline:none; }
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; }
+  }
+
+  .page-wrap{
+    width: min(1100px, 100%);
+    margin: 0 auto;
+    padding: 16px 12px 28px;
+  }
+
+  /* keep class name */
+  .delete-card{
+    width: min(520px, 100%);
+    margin: 0 auto;
+    padding: calc(var(--pad) + 10px);
+    background: linear-gradient(180deg, var(--glass), var(--glass2));
+    border-radius: var(--r28);
+    border: 1px solid var(--stroke);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    text-align: center;
+    position: relative;
+    overflow:hidden;
+    animation: fadeIn .35s ease;
+  }
+
+  .delete-card::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(720px 280px at 20% 0%, rgba(239,68,68,.18), transparent 65%),
+      radial-gradient(720px 280px at 70% 10%, rgba(56,189,248,.16), transparent 65%),
+      radial-gradient(720px 280px at 55% 120%, rgba(251,191,36,.10), transparent 65%);
+    filter: blur(18px);
+    opacity:.95;
+    pointer-events:none;
+  }
+  .delete-card > *{ position:relative; z-index:2; }
+
+  /* keep class name */
+  .delete-title{
+    margin: 0 0 10px;
+    font-size: clamp(16px, 4.2vw, 22px);
+    font-weight: 950;
+    letter-spacing: .2px;
+    line-height: 1.15;
+    color: #fecaca;
+    text-shadow: 0 10px 34px rgba(239,68,68,.10);
+  }
+
+  .hint{
+    margin: 0 0 16px;
+    color: rgba(148,163,184,.95);
+    font-weight: 850;
+    line-height: 1.55;
+    font-size: 14px;
+  }
+  .hint b{ color:#e5e7eb; }
+  .hint .danger{ color:#fca5a5; font-weight: 950; }
+
+  /* keep class names */
+  .btn-cancel,
+  .btn-delete{
+    width: 100%;
+    min-height: 52px;
+    padding: 12px 14px;
+    border-radius: var(--r18);
+    font-weight: 950;
+    letter-spacing: .2px;
+    border: 0;
+    cursor: pointer;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    transition: transform .18s ease, filter .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease;
+    user-select:none;
+  }
+
+  .btn-cancel{
+    background: rgba(148,163,184,.10);
+    border: 1px solid rgba(255,255,255,.10);
+    color: rgba(229,231,235,.95);
+  }
+  .btn-cancel:hover{ background: rgba(148,163,184,.16); transform: translateY(-1px); }
+  .btn-cancel:active{ transform: translateY(0) scale(.99); }
+  .btn-cancel:focus-visible{ box-shadow: var(--ringA); border-color: rgba(251,191,36,.35); }
+
+  .btn-delete{
+    color: #fff;
+    background: linear-gradient(90deg, var(--red), var(--red2));
+    box-shadow: 0 18px 44px rgba(239,68,68,.18);
+  }
+  .btn-delete:hover{ transform: translateY(-1px); filter: brightness(1.03); }
+  .btn-delete:active{ transform: translateY(0) scale(.99); }
+  .btn-delete:focus-visible{ box-shadow: var(--ringR), 0 18px 44px rgba(239,68,68,.18); }
+
+  /* layout: keep bootstrap-ish classes but ensure responsive */
+  .d-flex{ display:flex !important; }
+  .justify-content-between{ justify-content: space-between !important; }
+  .mt-4{ margin-top: 16px !important; }
+
+  .actions{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  @media (min-width: 560px){
+    .actions{
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+  }
+
+  /* ensure your existing wrapper doesn't create overflow */
+  .delete-card .d-flex.justify-content-between{
+    width:100%;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .delete-card .d-flex.justify-content-between > *{
+    flex: 1 1 240px;
+    min-width: 0;
+  }
+
+  @media (max-width: 520px){
+    .delete-card{ padding: 20px 16px 18px; border-radius: 22px; }
+  }
+
+  @keyframes fadeIn{
+    from { opacity:0; transform: translateY(12px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
 </style>
 
+<main class="page-wrap">
+  <div class="delete-card">
+    <h4 class="delete-title">🗑️ "{{ group.nom }}" guruhini o‘chirmoqchimisiz?</h4>
 
-<div class="delete-card">
-  <h4 class="delete-title">🗑️ "{{ group.nom }}" guruhini o‘chirmoqchimisiz?</h4>
+    <form method="post" class="mt-4">
+      {% csrf_token %}
 
-  <form method="post" class="mt-4">
-    {% csrf_token %}
-    <div class="d-flex justify-content-between">
-      <a href="javascript:history.back()" class="btn-cancel">Bekor qilish</a>
-      <button type="submit" class="btn-delete">Ha, o‘chirish</button>
-    </div>
-  </form>
-</div>
+      <div class="d-flex justify-content-between">
+        <a href="javascript:history.back()" class="btn-cancel">Bekor qilish</a>
+        <button type="submit" class="btn-delete">Ha, o‘chirish</button>
+      </div>
+    </form>
+  </div>
+</main>
 
 {% endblock %}

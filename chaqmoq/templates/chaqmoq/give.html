@@ -2,122 +2,319 @@
 {% block content %}
 
 <style>
-/************************************************
-  GLOBAL PAGE DESIGN
-************************************************/
-body {
-  background: linear-gradient(180deg, #0f172a, #1e293b, #0f172a);
-  color: #e2e8f0;
-  font-family: 'Poppins', sans-serif;
-}
+  :root{
+    --bg0:#070A12;
+    --bg1:#081327;
+    --bg2:#0A0F1E;
 
-/************************************************
-  TITLE
-************************************************/
-.page-title {
-  text-align: center;
-  font-size: 2rem;
-  font-weight: 800;
-  color: #facc15;
-  margin-bottom: 30px;
-  text-shadow: 0 3px 12px rgba(250,204,21,0.35);
-}
+    --card: rgba(255,255,255,.06);
+    --card2: rgba(255,255,255,.10);
+    --line: rgba(255,255,255,.12);
 
-/************************************************
-  FORM CONTAINER (GLASS UI)
-************************************************/
-.give-box {
-  max-width: 900px;
-  margin: auto;
-  padding: 2.5rem;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 22px;
-  box-shadow: 0 18px 45px rgba(0,0,0,0.45);
-  backdrop-filter: blur(10px);
-  transition: 0.25s ease;
-}
+    --text:#EAF0FF;
+    --muted:#A7B0C7;
 
-.give-box:hover {
-  border-color: rgba(59,130,246,0.32);
-  box-shadow: 0 26px 55px rgba(59,130,246,0.35);
-}
+    --amber:#F59E0B;
+    --amber2:#FBBF24;
+    --neon:#22D3EE;
 
-/************************************************
-  LABELS
-************************************************/
-.form-label {
-  font-weight: 600;
-  color: #cbd5e1;
-}
+    --green:#22c55e;
+    --red:#ef4444;
 
-/************************************************
-  INPUT + SELECT STYLING
-************************************************/
-.form-control,
-.form-select {
-  background: rgba(255,255,255,0.08);
-  color: #fff;
-  border: 1px solid rgba(255,255,255,0.15);
-  padding: 12px 14px;
-  border-radius: 12px;
-  transition: 0.25s;
-}
+    --shadow: 0 30px 80px rgba(0,0,0,.55);
+    --shadow2: 0 18px 55px rgba(0,0,0,.45);
+    --radius: 22px;
 
-.form-control:focus,
-.form-select:focus {
-  border-color: #3b82f6;
-  background: rgba(255,255,255,0.15);
-  box-shadow: 0 0 12px rgba(59,130,246,0.35);
-}
+    --ring-amber: 0 0 0 4px rgba(245,158,11,.16), 0 0 0 1px rgba(245,158,11,.55) inset;
+    --ring-neon:  0 0 0 4px rgba(34,211,238,.14), 0 0 0 1px rgba(34,211,238,.55) inset;
+    --ring-green: 0 0 0 4px rgba(34,197,94,.14),  0 0 0 1px rgba(34,197,94,.55) inset;
+    --ring-red:   0 0 0 4px rgba(239,68,68,.14),   0 0 0 1px rgba(239,68,68,.55) inset;
+  }
 
-/* Option colors */
-.form-select option.text-success { background: #063a19 !important; }
-.form-select option.text-danger { background: #3f0a0a !important; }
+  *{ box-sizing:border-box; }
+  html, body{ height:100%; }
 
-/************************************************
-  BUTTONS
-************************************************/
-.btn-save {
-  background: linear-gradient(90deg, #22c55e, #16a34a);
-  color: #fff;
-  padding: 14px 24px;
-  font-weight: 700;
-  border-radius: 12px;
-  border: none;
-  transition: 0.25s ease;
-  width: 200px;
-}
+  body{
+    background:
+      radial-gradient(1200px 520px at 12% 18%, rgba(34,211,238,.10), transparent 60%),
+      radial-gradient(1200px 520px at 88% 22%, rgba(245,158,11,.10), transparent 60%),
+      radial-gradient(900px 420px at 50% 110%, rgba(34,197,94,.06), transparent 60%),
+      linear-gradient(180deg, #070A12, #071129 40%, #070A12);
+    min-height:100vh;
+    color: var(--text);
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    overflow-x:hidden;
+  }
 
-.btn-save:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 25px rgba(22,163,74,0.6);
-}
+  .container.py-4{
+    max-width: 1100px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
 
-.btn-outline {
-  border: 1px solid rgba(255,255,255,0.25);
-  padding: 14px 24px;
-  border-radius: 12px;
-  font-weight: 600;
-  color: #cbd5e1;
-}
+  .page-title{
+    text-align:center;
+    font-size: 20px;
+    font-weight: 1000;
+    color: rgba(234,240,255,.98);
+    margin: 10px 0 14px;
+    letter-spacing:.2px;
+    text-shadow: 0 18px 60px rgba(0,0,0,.55);
+  }
 
-.btn-outline:hover {
-  background: rgba(255,255,255,0.12);
-  transform: scale(1.05);
-  color: #fff;
-}
+  /* Glass form */
+  .give-box{
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 12px;
+    background: linear-gradient(180deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,.045) 100%);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    position: relative;
+    overflow:hidden;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .give-box::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background: linear-gradient(120deg,
+      rgba(255,255,255,.05),
+      rgba(34,211,238,.12),
+      rgba(245,158,11,.10),
+      rgba(255,255,255,.05)
+    );
+    opacity:.5;
+    filter: blur(12px);
+    pointer-events:none;
+  }
+  .give-box:hover{
+    transform: translateY(-2px);
+    border-color: rgba(34,211,238,.22);
+    box-shadow:
+      0 34px 90px rgba(0,0,0,.58),
+      0 0 36px rgba(34,211,238,.10),
+      0 0 34px rgba(245,158,11,.08);
+  }
 
-/************************************************
-  RESPONSIVE BOOST
-************************************************/
-@media (max-width: 768px) {
-  .give-box { padding: 1.6rem; }
-  .page-title { font-size: 1.6rem; }
-  .btn-save, .btn-outline { width: 100%; }
-}
+  .give-box .row.g-4{
+    position:relative;
+    z-index:1;
+    --bs-gutter-x: 12px;
+    --bs-gutter-y: 12px;
+  }
+
+  .form-label{
+    font-weight: 950;
+    color: rgba(226,232,240,.80);
+    font-size: 12.5px;
+    letter-spacing:.25px;
+    margin-bottom: 8px;
+  }
+  .form-label.text-success{ color: rgba(34,197,94,.95) !important; text-shadow: 0 0 18px rgba(34,197,94,.16); }
+  .form-label.text-danger{ color: rgba(239,68,68,.95) !important; text-shadow: 0 0 18px rgba(239,68,68,.16); }
+
+  .form-control,
+  .form-select{
+    background: rgba(2, 6, 23, .22) !important;
+    color: rgba(234,240,255,.95) !important;
+    border: 1px solid rgba(255,255,255,.14) !important;
+    border-radius: 16px !important;
+    padding: 14px 14px !important;
+    font-size: 15px;
+    font-weight: 850;
+    min-height: 52px;
+    outline:none;
+    transition: transform .14s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.06) inset;
+  }
+  .form-control:hover,
+  .form-select:hover{
+    background: rgba(2, 6, 23, .30) !important;
+    border-color: rgba(255,255,255,.18) !important;
+  }
+  .form-control:focus,
+  .form-select:focus{
+    border-color: rgba(34,211,238,.62) !important;
+    box-shadow: var(--ring-neon) !important;
+    background: rgba(2, 6, 23, .34) !important;
+  }
+
+  .form-select{
+    color-scheme: dark;
+  }
+  .form-select option{
+    background: #0A0F1E;
+    color: rgba(234,240,255,.95);
+  }
+  .form-select option.text-success{ background: #062A17 !important; color: #bbf7d0 !important; }
+  .form-select option.text-danger{ background: #2A0A0A !important; color: #fecaca !important; }
+
+  /* Keep original classes but upgrade visuals */
+  .form-select.border-success{
+    border-color: rgba(34,197,94,.55) !important;
+  }
+  .form-select.border-success:focus{
+    box-shadow: var(--ring-green) !important;
+    border-color: rgba(34,197,94,.68) !important;
+  }
+  .form-select.border-danger{
+    border-color: rgba(239,68,68,.55) !important;
+  }
+  .form-select.border-danger:focus{
+    box-shadow: var(--ring-red) !important;
+    border-color: rgba(239,68,68,.68) !important;
+  }
+
+  /* Input group polish (keep structure) */
+  .input-group{
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 18px 40px rgba(0,0,0,.25);
+  }
+  .input-group .input-group-text.bg-dark.text-light{
+    background: rgba(255,255,255,.06) !important;
+    color: rgba(234,240,255,.92) !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
+    border-right: none !important;
+    padding: 0 14px !important;
+    font-weight: 900;
+    min-height: 52px;
+  }
+  .input-group .form-control{
+    border-left: none !important;
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.06) inset;
+  }
+  .input-group .form-control:focus{
+    box-shadow: var(--ring-amber) !important;
+    border-color: rgba(245,158,11,.62) !important;
+  }
+
+  /* Buttons row */
+  .mt-4.d-flex.gap-3.flex-wrap{
+    position:relative;
+    z-index:1;
+    margin-top: 14px !important;
+    gap: 10px !important;
+  }
+
+  .btn-save{
+    background:
+      radial-gradient(18px 18px at 18% 30%, rgba(255,255,255,.40), transparent 55%),
+      linear-gradient(135deg, rgba(34,197,94,1) 0%, rgba(34,211,238,.92) 55%, rgba(245,158,11,.98) 100%);
+    color: #0B1226;
+    padding: 14px 18px;
+    font-weight: 1000;
+    border-radius: 16px;
+    border: none;
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+    min-height: 54px;
+    width: 100%;
+    box-shadow:
+      0 18px 40px rgba(34,197,94,.14),
+      0 18px 40px rgba(34,211,238,.10),
+      0 0 0 1px rgba(255,255,255,.14) inset;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    overflow:hidden;
+  }
+  .btn-save:hover{
+    transform: translateY(-1px);
+    filter: saturate(1.05);
+    box-shadow:
+      0 24px 60px rgba(34,197,94,.18),
+      0 24px 60px rgba(34,211,238,.14),
+      0 0 0 1px rgba(255,255,255,.18) inset;
+  }
+  .btn-save:focus-visible{
+    outline:none;
+    box-shadow:
+      0 24px 60px rgba(34,197,94,.18),
+      0 24px 60px rgba(34,211,238,.14),
+      var(--ring-green);
+  }
+  .btn-save::after{
+    content:"";
+    position:absolute;
+    top:-65%;
+    left:-50%;
+    width: 60%;
+    height: 240%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.38), transparent);
+    transform: rotate(18deg);
+    animation: btnShine 2.8s ease-in-out infinite;
+    opacity:.55;
+  }
+  @keyframes btnShine{
+    0%{ left:-65%; opacity:.0; }
+    28%{ opacity:.55; }
+    55%{ left: 125%; opacity:.0; }
+    100%{ left: 125%; opacity:0; }
+  }
+
+  .btn-outline{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap: 10px;
+    border: 1px solid rgba(255,255,255,.14);
+    padding: 14px 18px;
+    border-radius: 16px;
+    font-weight: 1000;
+    color: rgba(234,240,255,.92);
+    text-decoration:none;
+    background: rgba(2, 6, 23, .18);
+    min-height: 54px;
+    width: 100%;
+    box-shadow: var(--shadow2);
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease, background .18s ease, border-color .18s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-outline:hover{
+    background: rgba(2, 6, 23, .26);
+    border-color: rgba(255,255,255,.20);
+    transform: translateY(-1px);
+    filter: brightness(1.03);
+  }
+  .btn-outline:focus-visible{
+    outline:none;
+    box-shadow: var(--ring-amber);
+  }
+
+  /* Tablet / Desktop */
+  @media (min-width: 576px){
+    .page-title{ font-size: 24px; margin: 12px 0 16px; }
+    .give-box{ padding: 14px; }
+  }
+  @media (min-width: 768px){
+    .container.py-4{
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+    .page-title{ font-size: 28px; margin-bottom: 18px; }
+    .give-box{ padding: 18px; }
+    .btn-save, .btn-outline{ width: auto; min-width: 220px; }
+    .mt-4.d-flex.gap-3.flex-wrap{ justify-content: flex-start; }
+  }
+  @media (min-width: 992px){
+    .page-title{ font-size: 32px; }
+    .give-box{ padding: 22px; }
+  }
+  @media (min-width: 1440px){
+    .container.py-4{ max-width: 1200px; }
+  }
+
+  :where(a, button, input, select, textarea):focus-visible{ outline:none; }
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; scroll-behavior:auto !important; }
+    .btn-save::after{ animation:none !important; }
+  }
 </style>
-
 
 <div class="container py-4">
 
@@ -128,7 +325,6 @@ body {
 
     <div class="row g-4">
 
-      <!-- GROUP -->
       <div class="col-md-6">
         <label class="form-label">📘 Guruh (ixtiyoriy):</label>
         <select name="group" id="group" class="form-select shadow-sm">
@@ -142,7 +338,6 @@ body {
         </select>
       </div>
 
-      <!-- STUDENT -->
       <div class="col-md-6">
         <label class="form-label">🧑‍🎓 Student:</label>
         <div class="input-group mb-2">
@@ -158,7 +353,6 @@ body {
         </select>
       </div>
 
-      <!-- PLUS RULE -->
       <div class="col-12">
         <label class="form-label text-success">💚 Chaqmoq qo‘shish:</label>
         <select name="rule" id="rule" class="form-select border-success shadow-sm">
@@ -174,7 +368,6 @@ body {
         </select>
       </div>
 
-      <!-- MINUS RULE -->
       <div class="col-12">
         <label class="form-label text-danger">💔 Chaqmoq ayirish:</label>
         <select name="rule_minus" id="rule_minus" class="form-select border-danger shadow-sm">
@@ -190,7 +383,6 @@ body {
         </select>
       </div>
 
-      <!-- BALL -->
       <div class="col-md-6">
         <label class="form-label">⚡ Ball:</label>
         <input type="number" name="ball" id="ball"
@@ -200,7 +392,6 @@ body {
 
     </div>
 
-    <!-- BUTTONS -->
     <div class="mt-4 d-flex gap-3 flex-wrap">
       <button class="btn-save">💾 Saqlash</button>
       <a class="btn-outline" href="{% url 'chaqmoq:reyting' %}">📊 Reyting</a>
@@ -209,11 +400,6 @@ body {
   </form>
 </div>
 
-
-<!---------------------------------------------
-  JAVASCRIPT — group → student filter,
-  search filter, rule min/max validation
----------------------------------------------->
 <script>
 (function(){
   const groupSel = document.getElementById('group');
@@ -223,7 +409,6 @@ body {
   const ruleMinusSel = document.getElementById('rule_minus');
   const ballInp = document.getElementById('ball');
 
-  // GROUP → STUDENT FILTER LOAD
   function loadStudents() {
     const gid = groupSel.value;
     fetch(`{% url 'chaqmoq:students_json' %}?group=${gid}`)
@@ -242,7 +427,6 @@ body {
       });
   }
 
-  // SEARCH FILTER
   searchInp.addEventListener('input', function(){
     const q = this.value.toLowerCase();
     [...studentSel.options].forEach((opt, i) => {
@@ -251,7 +435,6 @@ body {
     });
   });
 
-  // APPLY MIN/MAX LIMITS
   function setBallLimits(sel) {
     const o = sel.options[sel.selectedIndex];
     if (!o || !o.dataset.min) return;

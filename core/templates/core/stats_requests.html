@@ -4,97 +4,104 @@
 <style>
 :root{
   --panel: rgba(17,24,39,.62);
-  --panel2: rgba(2,6,23,.55);
   --line: rgba(255,255,255,.08);
   --muted:#94a3b8;
   --text:#e5e7eb;
 
   --green:#22c55e;
-  --green2:#16a34a;
-
   --warn:#f59e0b;
   --red:#ef4444;
   --blue:#38bdf8;
+
+  --shadow: 0 18px 45px rgba(0,0,0,.22);
+  --r18:18px;
 }
 
-/* page */
-.req-wrap{max-width:1240px;margin:0 auto;padding:8px 12px 24px;color:var(--text);}
+/* ===== PAGE BACKGROUND (only this page) ===== */
+.req-page{ position:relative; color:var(--text); }
+.req-bg{
+  position:fixed; inset:0; z-index:-1;
+  background:
+    radial-gradient(1200px 700px at 12% -10%, rgba(34,197,94,.12), transparent 55%),
+    radial-gradient(950px 600px at 88% 8%, rgba(245,158,11,.10), transparent 55%),
+    radial-gradient(1000px 700px at 60% 120%, rgba(56,189,248,.10), transparent 60%),
+    linear-gradient(180deg, #070A12, #0B1220 55%, #050712);
+}
 
-/* header card */
+/* container */
+.req-wrap{max-width:1240px;margin:0 auto;padding:10px 14px 26px;}
+
+/* header */
 .req-head{
   display:flex;align-items:flex-start;justify-content:space-between;gap:14px;
   padding:18px 18px 12px;
-  border-radius:18px;
-  background:var(--panel);
+  border-radius:var(--r18);
+  background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.035));
   border:1px solid var(--line);
   backdrop-filter: blur(12px);
-  box-shadow:0 18px 45px rgba(0,0,0,.22);
+  box-shadow: var(--shadow);
 }
-.head-left{display:flex;align-items:center;gap:12px;}
+.head-left{display:flex;align-items:center;gap:12px;min-width:0;}
 .head-ic{
-  width:44px;height:44px;border-radius:14px;
-  display:grid;place-items:center;
+  width:44px;height:44px;border-radius:14px;display:grid;place-items:center;
   background:rgba(34,197,94,.14);
   border:1px solid rgba(34,197,94,.28);
-  color:#a7f3d0;font-size:18px;
+  color:#a7f3d0;font-size:18px;flex:0 0 auto;
 }
 .req-title{
   margin:0;
-  font-size:28px;
-  font-weight:900;
-  color:var(--green);
+  font-size: clamp(20px, 3vw, 30px);
+  font-weight: 950;
+  color: var(--green);
   text-shadow:0 10px 26px rgba(34,197,94,.18);
 }
 .req-sub{margin-top:6px;color:var(--muted);font-size:13px;}
 
 /* filter */
-.filter-box{min-width:220px;display:flex;justify-content:flex-end;}
+.filter-box{min-width:240px;display:flex;justify-content:flex-end;}
+.filter-box form{width:100%;}
 .filter-box select{
-  width: 220px;
-  height: 44px;
-  border-radius: 14px;
-  border: 1px solid rgba(148,163,184,.22);
+  width:240px;height:44px;border-radius:14px;
+  border:1px solid rgba(148,163,184,.22);
   background: rgba(15,23,42,.72);
   color: var(--text);
-  padding: 0 12px;
-  font-weight: 800;
-  outline: none;
-  cursor: pointer;
+  padding:0 12px;
+  font-weight: 900;
+  outline:none;
+  cursor:pointer;
 }
 .filter-box select:focus{
   border-color: rgba(34,197,94,.65);
   box-shadow: 0 0 0 4px rgba(34,197,94,.12);
 }
-.filter-box option{
-  background:#0b1220;
-  color:#e5e7eb;
-}
 
-/* table card */
+/* card */
 .table-card{
   margin-top:14px;
-  border-radius:18px;
-  background:var(--panel);
+  border-radius:var(--r18);
+  background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.035));
   border:1px solid var(--line);
   backdrop-filter: blur(12px);
-  box-shadow:0 18px 45px rgba(0,0,0,.22);
+  box-shadow: var(--shadow);
   overflow:hidden;
 }
 
 /* table */
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 .req-table{
   width:100%;
   border-collapse:separate;
   border-spacing:0;
-  background: rgba(15,23,42,.72);
+  background: rgba(15,23,42,.62);
+  min-width: 980px;
 }
 .req-table thead th{
   background: rgba(2,6,23,.95);
   color: var(--green);
-  font-size: 12.5px;
-  font-weight: 900;
+  font-size: 12px;
+  font-weight: 950;
   text-transform: uppercase;
-  letter-spacing: .4px;
+  letter-spacing: .45px;
   padding: 14px 14px;
   border-bottom: 1px solid rgba(255,255,255,.10);
   white-space: nowrap;
@@ -105,164 +112,299 @@
   border-bottom: 1px solid rgba(255,255,255,.06);
   vertical-align: middle;
 }
-.req-table tbody tr{background: rgba(15,23,42,.55);transition:.18s;}
-.req-table tbody tr:nth-child(even){background: rgba(15,23,42,.42);}
+.req-table tbody tr{background: rgba(15,23,42,.44);transition:.18s;}
+.req-table tbody tr:nth-child(even){background: rgba(15,23,42,.34);}
 .req-table tbody tr:hover{background: rgba(34,197,94,.10);}
 
-/* cells */
-.mono{
-  font-family: ui-monospace, Menlo, Consolas, monospace;
-  color:#cbd5e1;
-}
-.name-cell{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px;}
-.qty-pill{
-  display:inline-block;
-  padding:6px 12px;
-  border-radius:999px;
-  font-weight:900;
-  background: rgba(56,189,248,.12);
-  border: 1px solid rgba(56,189,248,.22);
+/* status-tinted rows */
+.req-table tbody tr.is-pending{ background: rgba(245,158,11,.07); }
+.req-table tbody tr.is-approved{ background: rgba(34,197,94,.07); }
+.req-table tbody tr.is-rejected{ background: rgba(239,68,68,.06); }
+
+/* date/time blocks */
+.dt{display:flex;flex-direction:column;gap:4px;line-height:1.05;}
+.dt-date{font-family:ui-monospace, Menlo, Consolas, monospace;color:#cbd5e1;font-weight:900;}
+.dt-time{font-family:ui-monospace, Menlo, Consolas, monospace;color:rgba(148,163,184,.95);font-weight:900;font-size:12px;}
+
+.name-cell{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px;}
+
+.qty-dot{
+  width:34px;height:34px;border-radius:999px;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-weight:950;
+  background: rgba(56,189,248,.10);
+  border: 1px solid rgba(56,189,248,.24);
   color: #bae6fd;
 }
 
 /* status pills */
 .status-pill{
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  padding:7px 12px;
-  border-radius:999px;
-  font-weight:900;
+  display:inline-flex;align-items:center;gap:8px;
+  padding:7px 12px;border-radius:999px;font-weight:950;
   border:1px solid rgba(255,255,255,.10);
+  white-space:nowrap;
 }
-.status-pending{
-  background: rgba(245,158,11,.12);
-  border-color: rgba(245,158,11,.22);
-  color: #fde68a;
-}
-.status-approved{
-  background: rgba(34,197,94,.14);
-  border-color: rgba(34,197,94,.26);
-  color:#bbf7d0;
-}
-.status-rejected{
-  background: rgba(239,68,68,.12);
-  border-color: rgba(239,68,68,.22);
-  color:#fecaca;
-}
+.status-pending{background: rgba(245,158,11,.12);border-color: rgba(245,158,11,.24);color:#fde68a;}
+.status-approved{background: rgba(34,197,94,.14);border-color: rgba(34,197,94,.26);color:#bbf7d0;}
+.status-rejected{background: rgba(239,68,68,.12);border-color: rgba(239,68,68,.22);color:#fecaca;}
 
 /* actions */
 .actions{white-space:nowrap;text-align:right;}
 .btn-mini{
-  height:36px;
-  padding:0 12px;
-  border-radius:12px;
-  font-weight:900;
+  height:36px;padding:0 12px;border-radius:12px;
+  font-weight:950;
   border:1px solid rgba(255,255,255,.08);
   background: rgba(255,255,255,.04);
   color:#e5e7eb;
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
+  display:inline-flex;align-items:center;gap:8px;
   text-decoration:none;
   transition:.18s;
 }
 .btn-mini:hover{transform:translateY(-1px);filter:brightness(1.12);color:#fff;}
+.btn-approve{border-color: rgba(34,197,94,.30);background: rgba(34,197,94,.14);color:#d1fae5;}
+.btn-reject{border-color: rgba(239,68,68,.28);background: rgba(239,68,68,.12);color:#fecaca;}
 
-.btn-approve{
-  border-color: rgba(34,197,94,.30);
-  background: rgba(34,197,94,.14);
-  color:#d1fae5;
-}
-.btn-reject{
-  border-color: rgba(239,68,68,.28);
-  background: rgba(239,68,68,.12);
-  color:#fecaca;
-}
+.mono{font-family: ui-monospace, Menlo, Consolas, monospace;color:#cbd5e1;font-weight:900;}
 
-/* empty state */
-.empty-box{
-  padding: 56px 18px;
-  text-align:center;
-  color: var(--muted);
-}
+/* empty */
+.empty-box{padding:56px 18px;text-align:center;color:var(--muted);}
 .empty-ic{
   width:64px;height:64px;border-radius:18px;
-  margin:0 auto 12px;
-  display:grid;place-items:center;
+  margin:0 auto 12px;display:grid;place-items:center;
   background: rgba(148,163,184,.08);
   border:1px solid rgba(148,163,184,.14);
   color: rgba(148,163,184,.85);
   font-size: 26px;
 }
-.empty-title{font-weight:900;color:#cbd5e1;}
+.empty-title{font-weight:950;color:#cbd5e1;}
 .empty-sub{margin-top:6px;font-size:13px;color:rgba(148,163,184,.9);}
 
-/* responsive */
+/* mobile cards */
+.req-cards{display:none;}
+.rcard{
+  padding:12px;border-radius:16px;
+  border:1px solid rgba(255,255,255,.08);
+  background: rgba(15,23,42,.55);
+  box-shadow: 0 10px 24px rgba(0,0,0,.22);
+}
+.rcard + .rcard{margin-top:10px;}
+.rc-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;}
+.rc-title{font-weight:950;color:#fff;line-height:1.15;}
+.rc-sub{color: rgba(148,163,184,.92);font-weight:800;font-size:12.5px;margin-top:4px;}
+.rc-meta{margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;}
+.rc-chip{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:7px 10px;border-radius:999px;
+  background: rgba(2,6,23,.35);
+  border:1px solid rgba(255,255,255,.08);
+  color: rgba(226,232,240,.92);
+  font-weight:900;font-size:12.5px;
+}
+.rc-actions{margin-top:12px;display:flex;gap:10px;}
+.rc-actions .btn-mini{flex:1;height:44px;justify-content:center;border-radius:14px;}
+
 @media (max-width: 900px){
   .req-head{flex-direction:column;align-items:flex-start;}
-  .filter-box{width:100%;justify-content:flex-start;}
+  .filter-box{width:100%;min-width:0;justify-content:flex-start;}
   .filter-box select{width:100%;}
 }
-@media (max-width: 720px){
-  .table-scroll{overflow-x:auto;}
-  .req-table{min-width:980px;}
+@media (max-width: 640px){
+  .table-scroll{display:none;}
+  .req-cards{display:block;}
 }
+/* Icon-only action buttons */
+.icon-btn{
+  width:38px;height:38px;
+  display:inline-flex;align-items:center;justify-content:center;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  color: rgba(229,231,235,.95);
+  text-decoration:none;
+  transition: .18s ease;
+  margin-left:8px;
+}
+
+.icon-btn i{font-size:18px; line-height:1;}
+
+.icon-btn:hover{
+  transform: translateY(-1px);
+  filter: brightness(1.12);
+  color:#fff;
+}
+
+/* approve / reject colors */
+.icon-approve{
+  border-color: rgba(34,197,94,.30);
+  background: rgba(34,197,94,.14);
+  color:#bbf7d0;
+}
+.icon-approve:hover{
+  box-shadow: 0 0 0 4px rgba(34,197,94,.12);
+}
+
+.icon-reject{
+  border-color: rgba(239,68,68,.28);
+  background: rgba(239,68,68,.12);
+  color:#fecaca;
+}
+.icon-reject:hover{
+  box-shadow: 0 0 0 4px rgba(239,68,68,.12);
+}
+
 </style>
 
-<div class="req-wrap">
+<div class="req-page">
+  <div class="req-bg" aria-hidden="true"></div>
 
-  <div class="req-head">
-    <div class="head-left">
-      <div class="head-ic"><i class="fa-regular fa-clock"></i></div>
-      <div>
-        <h3 class="req-title">{{ title|default:"Kutilayotgan so‘rovlar" }}</h3>
-        <div class="req-sub">Sotib olish so‘rovlarini tasdiqlang yoki rad eting.</div>
+  <div class="req-wrap">
+
+    <div class="req-head">
+      <div class="head-left">
+        <div class="head-ic"><i class="fa-regular fa-clock"></i></div>
+        <div style="min-width:0;">
+          <h3 class="req-title">{{ title|default:"Kutilayotgan so‘rovlar" }}</h3>
+          <div class="req-sub">Sotib olish so‘rovlarini tasdiqlang yoki rad eting.</div>
+        </div>
+      </div>
+
+      <div class="filter-box">
+        <form method="get">
+          <select name="status" onchange="this.form.submit()">
+            <option value="" {% if not status %}selected{% endif %}>— Barchasi —</option>
+            <option value="pending"  {% if status == 'pending' %}selected{% endif %}>Kutilmoqda</option>
+            <option value="approved" {% if status == 'approved' %}selected{% endif %}>Tasdiqlandi</option>
+            <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>Rad etildi</option>
+          </select>
+        </form>
       </div>
     </div>
 
-    <form class="filter-box">
-      <select name="status" onchange="this.form.submit()">
-        <option value="">— Barchasi —</option>
-        <option value="pending"  {% if status == 'pending' %}selected{% endif %}>Kutilmoqda</option>
-        <option value="approved" {% if status == 'approved' %}selected{% endif %}>Tasdiqlandi</option>
-        <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>Rad etildi</option>
-      </select>
-    </form>
-  </div>
+    <div class="table-card">
+      {% if rows %}
 
-  <div class="table-card">
-    {% if rows %}
-      <div class="table-scroll">
-        <table class="req-table">
-          <thead>
-            <tr>
-              <th>SANA</th>
-              <th>O‘QUVCHI</th>
-              <th>MAHSULOT</th>
-              <th>QTY</th>
-              <th>STATUS</th>
-              <th>TASDIQLOVCHI</th>
-              <th class="text-end">AMALLAR</th>
-            </tr>
-          </thead>
+        <!-- DESKTOP/TABLET TABLE -->
+        <div class="table-scroll">
+          <table class="req-table">
+            <thead>
+              <tr>
+                <th>SANA</th>
+                <th>O‘QUVCHI</th>
+                <th>MAHSULOT</th>
+                <th>QTY</th>
+                <th>STATUS</th>
+                <th>TASDIQLOVCHI</th>
+                <th class="text-end">AMALLAR</th>
+              </tr>
+            </thead>
 
-          <tbody>
-            {% for r in rows %}
-            <tr>
-              <td><span class="mono">{{ r.sana|date:"Y-m-d H:i" }}</span></td>
+            <tbody>
+              {% for r in rows %}
+              <tr class="{% if r.status == 'pending' %}is-pending{% elif r.status == 'approved' %}is-approved{% else %}is-rejected{% endif %}">
 
-              <td class="name-cell" title="{{ r.student.ism }} {{ r.student.familya }}">
-                {{ r.student.ism }} {{ r.student.familya }}
-              </td>
+                {# ✅ SANA/TIME: string slice YO'Q. Avval datetime fieldlar #}
+                <td>
+                  {% firstof r.created_at r.timestamp r.datetime r.created_on r.updated_at r.updated r.created r.sana r.date as dt %}
+                  {% if dt %}
+                    {% with d=dt|date:"d-F, Y" t=dt|date:"H:i" %}
+                      <div class="dt">
+                        <div class="dt-date">{% if d %}{{ d }}{% else %}{{ dt }}{% endif %}</div>
+                        <div class="dt-time">{% if t %}{{ t }}{% else %}{% endif %}</div>
+                      </div>
+                    {% endwith %}
+                  {% else %}
+                    <div class="dt">
+                      <div class="dt-date">—</div>
+                      <div class="dt-time">—</div>
+                    </div>
+                  {% endif %}
+                </td>
 
-              <td class="name-cell" title="{{ r.product.nom }}">
-                {{ r.product.nom }}
-              </td>
+                <td class="name-cell" title="{{ r.student.ism }} {{ r.student.familya }}">
+                  {{ r.student.ism }} {{ r.student.familya }}
+                </td>
 
-              <td><span class="qty-pill">{{ r.qty }}</span></td>
+                <td class="name-cell" title="{{ r.product.nom }}">
+                  {{ r.product.nom }}
+                </td>
 
-              <td>
+                <td><span class="qty-dot">{{ r.qty }}</span></td>
+
+                <td>
+                  {% if r.status == 'pending' %}
+                    <span class="status-pill status-pending"><i class="fa-solid fa-hourglass-half"></i> {{ r.get_status_display }}</span>
+                  {% elif r.status == 'approved' %}
+                    <span class="status-pill status-approved"><i class="fa-solid fa-circle-check"></i> {{ r.get_status_display }}</span>
+                  {% else %}
+                    <span class="status-pill status-rejected"><i class="fa-solid fa-circle-xmark"></i> {{ r.get_status_display }}</span>
+                  {% endif %}
+                </td>
+
+                <td>
+                  {% firstof r.manager r.confirmed_by r.approved_by r.checked_by as m %}
+                  {% if m %}
+                    {% firstof m.get_full_name m.full_name m as mname %}
+                    {{ mname }}
+                  {% else %}
+                    <span class="mono">—</span>
+                  {% endif %}
+                </td>
+
+<td class="actions">
+  {% if r.status == 'pending' %}
+    <a class="icon-btn icon-approve"
+       href="{% url 'store:request_approve' r.pk %}"
+       title="Tasdiqlash"
+       aria-label="Tasdiqlash">
+      <i class="bi bi-check2-circle"></i>
+    </a>
+
+    <a class="icon-btn icon-reject"
+       href="{% url 'store:request_reject' r.pk %}"
+       title="Rad etish"
+       aria-label="Rad etish">
+      <i class="bi bi-x-octagon"></i>
+    </a>
+  {% else %}
+    <span class="mono">—</span>
+  {% endif %}
+</td>
+
+
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- MOBILE CARDS -->
+        <div class="req-cards">
+          {% for r in rows %}
+            <div class="rcard">
+              <div class="rc-top">
+                <div style="min-width:0;">
+                  <div class="rc-title">{{ r.student.ism }} {{ r.student.familya }}</div>
+                  <div class="rc-sub">{{ r.product.nom }}</div>
+                </div>
+
+                <div style="text-align:right;flex:0 0 auto;">
+                  {% firstof r.created_at r.timestamp r.datetime r.created_on r.updated_at r.updated r.created r.sana r.date as dt %}
+                  {% if dt %}
+                    {% with d=dt|date:"d-F, Y" t=dt|date:"H:i" %}
+                      <div class="dt">
+                        <div class="dt-date">{% if d %}{{ d }}{% else %}{{ dt }}{% endif %}</div>
+                        <div class="dt-time">{% if t %}{{ t }}{% else %}—{% endif %}</div>
+                      </div>
+                    {% endwith %}
+                  {% else %}
+                    <div class="dt"><div class="dt-date">—</div><div class="dt-time">—</div></div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="rc-meta">
+                <span class="rc-chip"><i class="fa-solid fa-box"></i> QTY: {{ r.qty }}</span>
+
                 {% if r.status == 'pending' %}
                   <span class="status-pill status-pending"><i class="fa-solid fa-hourglass-half"></i> {{ r.get_status_display }}</span>
                 {% elif r.status == 'approved' %}
@@ -270,46 +412,41 @@
                 {% else %}
                   <span class="status-pill status-rejected"><i class="fa-solid fa-circle-xmark"></i> {{ r.get_status_display }}</span>
                 {% endif %}
-              </td>
 
-              <td>
-                {% if r.manager %}
-                  {{ r.manager.ism }} {{ r.manager.familya }}
-                {% else %}
-                  <span class="mono">—</span>
-                {% endif %}
-              </td>
+                {% firstof r.manager r.confirmed_by r.approved_by r.checked_by as m %}
+                <span class="rc-chip"><i class="fa-solid fa-user-check"></i>
+                  {% if m %}
+                    {% firstof m.get_full_name m.full_name m as mname %}{{ mname }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </span>
+              </div>
 
-              <td class="actions">
-                {% if r.status == 'pending' %}
-                  <a class="btn-mini btn-approve"
-                     href="{% url 'store:request_approve' r.pk %}">
+              {% if r.status == 'pending' %}
+                <div class="rc-actions">
+                  <a class="btn-mini btn-approve" href="{% url 'store:request_approve' r.pk %}">
                     <i class="fa-solid fa-check"></i> Tasdiqlash
                   </a>
-
-                  <a class="btn-mini btn-reject"
-                     href="{% url 'store:request_reject' r.pk %}">
+                  <a class="btn-mini btn-reject" href="{% url 'store:request_reject' r.pk %}">
                     <i class="fa-solid fa-xmark"></i> Rad etish
                   </a>
-                {% else %}
-                  <span class="mono">—</span>
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <!-- Empty state (rasmdagidek) -->
-      <div class="empty-box">
-        <div class="empty-ic"><i class="fa-solid fa-inbox"></i></div>
-        <div class="empty-title">Ma'lumot yo‘q</div>
-        <div class="empty-sub">Hozirda kutilayotgan so‘rovlar mavjud emas.</div>
-      </div>
-    {% endif %}
-  </div>
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
 
+      {% else %}
+        <div class="empty-box">
+          <div class="empty-ic"><i class="fa-solid fa-inbox"></i></div>
+          <div class="empty-title">Ma'lumot yo‘q</div>
+          <div class="empty-sub">Hozirda kutilayotgan so‘rovlar mavjud emas.</div>
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
 </div>
 
 {% endblock %}

@@ -3,141 +3,136 @@
 
 <style>
   :root{
-    --bg: #0d121f;
-    --panel: rgba(255,255,255,.04);
-    --panel2: rgba(255,255,255,.06);
-    --line: rgba(255,255,255,.08);
-    --text: #e5e7eb;
-    --muted: #94a3b8;
+    --bg0:#070A12;
+    --bg1:#0B1220;
+    --bg2:#0F1B33;
 
-    --blue: #3b82f6;
-    --blue2:#2563eb;
+    --glass: rgba(255,255,255,.06);
+    --glass2: rgba(255,255,255,.08);
+    --line: rgba(255,255,255,.10);
+    --line2: rgba(255,255,255,.14);
 
-    --green:#22c55e;
-    --green2:#16a34a;
+    --text:#E7EAF0;
+    --muted:#9AA4B2;
 
-    --yellow:#f59e0b;
-    --yellow2:#d97706;
+    --blue:#3B82F6;
+    --blue2:#2563EB;
 
-    --danger:#ef4444;
+    --green:#22C55E;
+    --green2:#16A34A;
+
+    --yellow:#F59E0B;
+    --yellow2:#D97706;
+
+    --danger:#EF4444;
+
+    --shadow: 0 24px 80px rgba(0,0,0,.55);
+    --shadow2: 0 14px 32px rgba(0,0,0,.38);
+
+    --r12:12px;
+    --r16:16px;
+    --r18:18px;
+    --r24:24px;
+
+    --pad: 14px;
+    --gap: 14px;
+
+    --max: 1240px;
+
+    --ring-amber: 0 0 0 4px rgba(245,158,11,.22), 0 0 0 1px rgba(245,158,11,.35) inset;
+    --ring-blue:  0 0 0 4px rgba(59,130,246,.22),  0 0 0 1px rgba(59,130,246,.35) inset;
   }
 
-  /* page */
-  .users-page{
+  /* ====== SCOPED PAGE BACKGROUND (other pages won't break) ====== */
+  .users-scope{
+    min-height: 100vh;
+    width:100%;
     color: var(--text);
+    background:
+      radial-gradient(1200px 700px at 10% -10%, rgba(245,158,11,.18), transparent 55%),
+      radial-gradient(900px 600px at 90% 10%, rgba(34,197,94,.10), transparent 55%),
+      radial-gradient(1000px 700px at 60% 120%, rgba(59,130,246,.12), transparent 60%),
+      linear-gradient(180deg, var(--bg0), var(--bg1) 55%, #050712);
+    overflow-x:hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
+  .users-scope *{ box-sizing:border-box; }
+
+  .sr-only{
+    position:absolute !important;
+    width:1px !important;
+    height:1px !important;
+    padding:0 !important;
+    margin:-1px !important;
+    overflow:hidden !important;
+    clip:rect(0,0,0,0) !important;
+    white-space:nowrap !important;
+    border:0 !important;
+  }
+
+  .users-page{
+    width:100%;
+    padding: calc(var(--pad) + env(safe-area-inset-top))
+             calc(var(--pad) + env(safe-area-inset-right))
+             calc(var(--pad) + env(safe-area-inset-bottom))
+             calc(var(--pad) + env(safe-area-inset-left));
+    max-width: var(--max);
+    margin: 0 auto;
+  }
+
+  /* ===== HEAD ===== */
   .users-head{
     display:flex;
-    align-items:flex-start;
-    justify-content:space-between;
-    gap:16px;
-    margin-bottom: 18px;
-    flex-wrap: wrap;
+    flex-direction:column;
+    gap: 12px;
+    margin-bottom: 14px;
   }
 
   .users-title{
     margin:0;
-    font-size: 32px;
+    font-size: clamp(22px, 3.2vw, 34px);
     font-weight: 950;
     letter-spacing: .2px;
     color: #fff;
   }
 
-.users-tools{
-  display:flex;
-  align-items:center;
-  justify-content:space-between; /* chapda search, o‘ngda tugmalar */
-  gap: 14px;
-  flex-wrap: wrap;
-  width: 100%;
-}
+  .users-tools{
+    display:grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: start;
+  }
 
-.tools-left{
-  display:flex;
-  align-items:center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.tools-right{
-  display:flex;
-  align-items:center;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content:flex-end;
-}
-
-/* qidiruv biroz kengroq va chiroyli */
-
-/* kichik ekranda pastga tushib ketmasin, o‘ng tugmalar o‘ngda qolsin */
-@media (max-width: 992px){
-  .users-tools{ justify-content:flex-start; }
-  .tools-right{ width:100%; justify-content:flex-end; }
-  .search-input{ width: 100%; max-width: 520px; }
-}
-
-  /* search */
   .search-form{
     display:flex;
     align-items:center;
     gap:10px;
     flex-wrap: wrap;
+    min-width: 0;
   }
-.search-input{
-  height: 40px;
-  width: clamp(220px, 26vw, 340px); /* ✅ 100% zoomga mos */
-  max-width: 60vw;
-  border-radius: 14px;
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.08);
-  color:#fff;
-  padding: 0 14px;
-  outline:none;
-  box-shadow: inset 0 0 18px rgba(0,0,0,.25);
-}
 
-  .search-input::placeholder{ color: rgba(226,232,240,.55); }
-
-  /* buttons */
-  .btn-pill{
-    height: 40px;
-    padding: 0 16px;
-    border-radius: 14px;
+  .search-input{
+    height: 44px;
+    width: min(560px, 100%);
+    border-radius: var(--r16);
+    background: rgba(2,6,23,.42);
     border: 1px solid rgba(255,255,255,.10);
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:10px;
-    font-weight: 900;
-    text-decoration:none;
-    cursor:pointer;
-    transition: .18s ease;
-    user-select:none;
-    white-space: nowrap;
-  }
-  .btn-pill:hover{ transform: translateY(-1px); }
-
-  .btn-blue{
-    background: linear-gradient(135deg, var(--blue) 0%, var(--blue2) 100%);
     color:#fff;
-    box-shadow: 0 14px 28px rgba(37,99,235,.22);
+    padding: 0 14px;
+    outline:none;
+    box-shadow: inset 0 0 18px rgba(0,0,0,.25);
+    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
   }
-
-  .btn-green{
-    background: linear-gradient(135deg, var(--green) 0%, var(--green2) 100%);
-    color:#fff;
-    box-shadow: 0 14px 28px rgba(34,197,94,.20);
-  }
-
-  .btn-yellow{
-    background: linear-gradient(135deg, var(--yellow) 0%, var(--yellow2) 100%);
-    color:#111827;
+  .search-input::placeholder{ color: rgba(226,232,240,.55); }
+  .search-input:focus{
     border-color: rgba(245,158,11,.45);
-    box-shadow: 0 14px 28px rgba(245,158,11,.18);
+    box-shadow: var(--ring-amber), inset 0 0 18px rgba(0,0,0,.25);
+    background: rgba(2,6,23,.55);
   }
 
-  /* right actions wrapper (file + import + excel) */
   .actions{
     display:flex;
     align-items:center;
@@ -146,198 +141,234 @@
     justify-content:flex-end;
   }
 
-  /* file pill like screenshot */
+  .btn-pill{
+    height: 44px;
+    padding: 0 16px;
+    border-radius: var(--r16);
+    border: 1px solid rgba(255,255,255,.12);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    font-weight: 900;
+    text-decoration:none;
+    cursor:pointer;
+    transition: transform .15s ease, filter .15s ease, border-color .15s ease;
+    user-select:none;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .btn-pill:hover{ transform: translateY(-1px); }
+  .btn-pill:active{ transform: translateY(0); }
+  .btn-pill:focus-visible{ outline:none; box-shadow: var(--ring-blue); }
+
+  .btn-blue{
+    background: linear-gradient(135deg, var(--blue) 0%, var(--blue2) 100%);
+    color:#fff;
+    box-shadow: 0 14px 28px rgba(37,99,235,.22);
+  }
+  .btn-green{
+    background: linear-gradient(135deg, var(--green) 0%, var(--green2) 100%);
+    color:#fff;
+    box-shadow: 0 14px 28px rgba(34,197,94,.20);
+  }
+  .btn-yellow{
+    background: linear-gradient(135deg, var(--yellow) 0%, var(--yellow2) 100%);
+    color:#111827;
+    border-color: rgba(245,158,11,.45);
+    box-shadow: 0 14px 28px rgba(245,158,11,.18);
+  }
+
+  /* Import pill */
   .file-pill{
     display:flex;
     align-items:center;
     gap:10px;
     padding: 0 12px;
-    height: 40px;
-    border-radius: 14px;
-    background: rgba(255,255,255,.05);
-    border: 1px solid rgba(255,255,255,.08);
+    height: 44px;
+    border-radius: var(--r16);
+    background: rgba(2,6,23,.38);
+    border: 1px solid rgba(255,255,255,.10);
     box-shadow: inset 0 0 18px rgba(0,0,0,.25);
+    max-width: 100%;
   }
 
   .file-btn{
-    height: 30px;
+    height: 32px;
     padding: 0 12px;
-    border-radius: 10px;
-    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.12);
     background: rgba(255,255,255,.06);
     color:#e5e7eb;
     display:inline-flex;
     align-items:center;
     gap:8px;
-    font-weight: 800;
+    font-weight: 900;
     cursor:pointer;
+    transition: transform .15s ease, border-color .15s ease, background .15s ease;
+    white-space: nowrap;
   }
+  .file-btn:hover{
+    transform: translateY(-1px);
+    border-color: rgba(255,255,255,.18);
+    background: rgba(255,255,255,.08);
+  }
+  .file-btn:focus-visible{ outline:none; box-shadow: var(--ring-blue); }
 
   .file-name{
-    max-width: 150px;
+    max-width: 220px;
     overflow:hidden;
     text-overflow:ellipsis;
     white-space:nowrap;
     font-size: 12px;
-    color: rgba(226,232,240,.65);
-    font-weight: 700;
+    color: rgba(226,232,240,.75);
+    font-weight: 850;
   }
 
-  /* table shell */
+  /* ===== TABLE ===== */
   .table-shell{
-    background: var(--panel);
-    border: 1px solid rgba(255,255,255,.08);
-    border-radius: 18px;
-    box-shadow: 0 10px 35px rgba(0,0,0,.45);
-    overflow: visible;
+    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: var(--r24);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    overflow: hidden;
+    min-width: 0;
   }
 
   .table-scroll{
-    border-radius: 18px;
+    width: 100%;
     overflow-x: auto;
-    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table-scroll::-webkit-scrollbar{ height: 10px; }
+  .table-scroll::-webkit-scrollbar-thumb{
+    background: rgba(255,255,255,.14);
+    border-radius: 999px;
+    border: 2px solid rgba(0,0,0,0);
+    background-clip: padding-box;
   }
 
-/* =========================
-   ✅ 100% ZOOM FIX (SIDEBAR BOR)
-   Jadval to‘liq sig‘adi
-   ========================= */
-
-.table-shell{
-  overflow: hidden; /* ichidan chiqib ketmasin */
-}
-
-.table-scroll{
-  overflow-x: hidden; /* scrollni o‘chir */
-}
-
-/* ✅ Endi jadval min-width bilan majburlamaymiz */
-table.users-table{
-  width:100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  min-width: 0;              /* ✅ eng muhimi */
-  table-layout: fixed;       /* ✅ sig‘diradi */
-}
-
-/* ✅ padding/fontni biroz kichraytirib, 100% zoomda ham joy beradi */
-table.users-table thead th{
-  padding: 12px 12px;
-  font-size: 10px;
-}
-
-table.users-table tbody td{
-  padding: 12px 12px;
-  font-size: 13px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap; /* default */
-}
-
-/* ✅ Ustun ENLARI: % bilan (sidebar bo‘lsa ham sig‘adi) */
-table.users-table thead th:nth-child(1),
-table.users-table tbody td:nth-child(1){ width: 6%; }   /* # */
-
-table.users-table thead th:nth-child(2),
-table.users-table tbody td:nth-child(2){ width: 22%; }  /* F.I.Sh */
-
-table.users-table thead th:nth-child(3),
-table.users-table tbody td:nth-child(3){ width: 26%; }  /* Login */
-
-table.users-table thead th:nth-child(4),
-table.users-table tbody td:nth-child(4){ width: 16%; }  /* Telefon */
-
-table.users-table thead th:nth-child(5),
-table.users-table tbody td:nth-child(5){ width: 10%; }  /* ⚡Chaqmoq */
-
-table.users-table thead th:nth-child(6),
-table.users-table tbody td:nth-child(6){ width: 16%; }  /* Guruhlar */
-
-table.users-table thead th:nth-child(7),
-table.users-table tbody td:nth-child(7){ width: 4%; }   /* menu */
-
-/* ✅ Uzun ism/email kesilib qolmasin: 2 qatordan foydalan */
-table.users-table tbody td:nth-child(2),
-table.users-table tbody td:nth-child(3){
-  white-space: normal;
-  line-height: 1.15;
-}
-
-/* ✅ Telefon ham 2 qatorda bo‘la olsin */
-table.users-table tbody td:nth-child(4){
-  white-space: normal;
-  line-height: 1.15;
-}
-
-/* ✅ Guruhlar “badge”lar joyi: wrap bo‘lsin */
-table.users-table tbody td:nth-child(6){
-  white-space: normal;
-  overflow: visible;
-}
-
-/* Kichikroq ekranlarda yana biroz ixchamlashtiramiz */
-@media (max-width: 1200px){
-  table.users-table thead th{ padding: 10px 10px; font-size: 9px; }
-  table.users-table tbody td{ padding: 10px 10px; font-size: 12px; }
-}
-
+  table.users-table{
+    width:100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+  }
 
   table.users-table thead th{
-    background: rgba(255,255,255,.05);
-    border-bottom: 1px solid rgba(255,255,255,.08);
-    padding: 14px 16px;
-    font-size: 11px;
+    background: rgba(2,6,23,.55);
+    border-bottom: 1px solid rgba(255,255,255,.10);
+    padding: 12px 12px;
+    font-size: 10px;
     letter-spacing: .9px;
     text-transform: uppercase;
-    color: rgba(148,163,184,.9);
-    font-weight: 900;
+    color: rgba(148,163,184,.92);
+    font-weight: 950;
+    white-space: nowrap;
   }
 
   table.users-table tbody td{
-    padding: 14px 16px;
+    padding: 12px 12px;
     border-bottom: 1px solid rgba(255,255,255,.06);
     color: rgba(226,232,240,.92);
     vertical-align: middle;
-    font-weight: 600;
+    font-weight: 650;
+    overflow:hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
-
   table.users-table tbody tr:hover td{
     background: rgba(255,255,255,.05);
     transition: .18s ease;
   }
 
-  /* name link */
+  /* column widths */
+  table.users-table thead th:nth-child(1),
+  table.users-table tbody td:nth-child(1){ width: 60px; }
+
+  table.users-table thead th:nth-child(2),
+  table.users-table tbody td:nth-child(2){ width: 22%; }
+
+  table.users-table thead th:nth-child(3),
+  table.users-table tbody td:nth-child(3){ width: 26%; }
+
+  table.users-table thead th:nth-child(4),
+  table.users-table tbody td:nth-child(4){ width: 16%; }
+
+  table.users-table thead th:nth-child(5),
+  table.users-table tbody td:nth-child(5){ width: 120px; }
+
+  table.users-table thead th:nth-child(6),
+  table.users-table tbody td:nth-child(6){ width: auto; }
+
+  table.users-table thead th:nth-child(7),
+  table.users-table tbody td:nth-child(7){ width: 70px; }
+
+  table.users-table tbody td:nth-child(2),
+  table.users-table tbody td:nth-child(3),
+  table.users-table tbody td:nth-child(4){
+    white-space: normal;
+    line-height: 1.18;
+  }
+
+  table.users-table tbody td:nth-child(6){
+    white-space: normal;
+    overflow: visible;
+  }
+
   .name-link{
     color: #38bdf8;
     text-decoration:none;
-    font-weight: 900;
+    font-weight: 950;
   }
   .name-link:hover{ text-decoration: underline; }
 
-  /* group badge */
   .badge-group{
-    background: #1e3a8a;
+    background: rgba(30,58,138,.75);
     color: #fff;
-    padding: 4px 10px;
+    padding: 5px 10px;
     border-radius: 999px;
     font-size: 12px;
     display: inline-block;
-    margin: 2px 4px 2px 0;
-    transition: 0.2s;
+    margin: 2px 6px 2px 0;
+    transition: transform .15s ease, background .15s ease, border-color .15s ease;
     text-decoration: none;
     border: 1px solid rgba(59,130,246,.25);
   }
   .badge-group:hover {
-    background: #2563eb;
+    background: rgba(37,99,235,.95);
     transform: translateY(-1px);
+    border-color: rgba(59,130,246,.45);
   }
 
-  /* chaqmoq colors */
-  .pos { color:#22c55e; font-weight: 900; }
-  .neg { color:#ef4444; font-weight: 900; }
-  .zero{ color:#94a3b8; font-weight: 800; }
+  .pos { color:#22c55e; font-weight: 950; }
+  .neg { color:#ef4444; font-weight: 950; }
+  .zero{ color:#94a3b8; font-weight: 900; }
 
-  /* menu */
+  .badge-role{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 950;
+    color:#e5e7eb;
+    background: rgba(56,189,248,.10);
+    border: 1px solid rgba(56,189,248,.25);
+    white-space: nowrap;
+  }
+
+  .muted-mini{
+    color: rgba(148,163,184,.85);
+    font-weight: 850;
+    font-size: 12.5px;
+  }
+
+  /* ===== MENU (3 dots) ===== */
   .menu-wrapper{
     position: relative;
     display:flex;
@@ -345,86 +376,55 @@ table.users-table tbody td:nth-child(6){
   }
 
   .menu-btn{
-    width: 34px;
-    height: 34px;
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,.10);
-    background: rgba(255,255,255,.05);
-    color: rgba(226,232,240,.75);
+    width: 38px;
+    height: 38px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.06);
+    color: rgba(226,232,240,.80);
     font-size: 22px;
     line-height: 0;
     cursor: pointer;
     display:flex;
     align-items:center;
     justify-content:center;
+    transition: transform .15s ease, border-color .15s ease, background .15s ease, color .15s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
-  .menu-btn:hover{ color:#fff; border-color: rgba(255,255,255,.18); }
+  .menu-btn:hover{
+    color:#fff;
+    border-color: rgba(255,255,255,.18);
+    background: rgba(255,255,255,.08);
+    transform: translateY(-1px);
+  }
+  .menu-btn:active{ transform: translateY(0); }
+  .menu-btn:focus-visible{ outline:none; box-shadow: var(--ring-blue); }
 
-  /* .menu-dropdown{
+  .menu-dropdown{
     display:none;
-    position:absolute;
-    right: 0;
-    top: 40px;
-    background: rgba(17,24,39,.92);
+    position: fixed; /* IMPORTANT: not clipped by table */
+    background: rgba(17,24,39,.96);
     border: 1px solid rgba(255,255,255,.10);
     padding: 6px 0;
     border-radius: 14px;
-    width: 170px;
-    z-index: 9999;
-    box-shadow: 0 16px 40px rgba(0,0,0,.45);
-    backdrop-filter: blur(10px);
-  } */
-   /* ✅ menu tugmaga birikadi */
-.menu-wrapper{
-  position: relative;
-  display:flex;
-  justify-content:flex-end;
-}
-
-.menu-dropdown{
-  display:none;
-  position:absolute;          /* ✅ fixed emas */
-  right: 0;                   /* ✅ tugmaning o‘ngiga yopishadi */
-  top: 44px;                  /* ✅ tugmadan pastga tushadi */
-  width: 190px;
-  background: rgba(17,24,39,.96);
-  border: 1px solid rgba(255,255,255,.10);
-  padding: 6px 0;
-  border-radius: 14px;
-  z-index: 99999;
-  box-shadow: 0 18px 50px rgba(0,0,0,.55);
-  backdrop-filter: blur(12px);
-}
-
-.menu-dropdown a{
-  display:block;
-  color:#e5e7eb;
-  padding: 10px 14px;
-  font-size: 14px;
-  text-decoration:none;
-  transition:.15s ease;
-  font-weight:800;
-}
-.menu-dropdown a:hover{
-  background: rgba(255,255,255,.10);
-  color:#fff;
-  padding-left: 18px;
-}
-
-/* ✅ table kesib tashlamasin */
-.table-shell,
-.table-scroll{
-  overflow: visible !important;
-}
+    width: 200px;
+    z-index: 99999;
+    box-shadow: 0 18px 50px rgba(0,0,0,.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transform-origin: top right;
+  }
+.menu-dropdown.open{ display:block !important; }
 
   .menu-dropdown a{
     display:block;
-    color: #e2e8f0;
+    color:#e5e7eb;
     padding: 10px 14px;
     font-size: 14px;
-    text-decoration: none;
-    transition: .15s ease;
-    font-weight: 700;
+    text-decoration:none;
+    transition: background .15s ease, padding-left .15s ease, color .15s ease;
+    font-weight:900;
   }
   .menu-dropdown a:hover{
     background: rgba(255,255,255,.10);
@@ -432,13 +432,13 @@ table.users-table tbody td:nth-child(6){
     padding-left: 18px;
   }
 
-  /* footer (pagination + size) */
+  /* ===== FOOTER ===== */
   .users-footer{
     display:flex;
     align-items:center;
     justify-content:space-between;
     gap: 12px;
-    margin-top: 16px;
+    margin-top: 14px;
     flex-wrap: wrap;
   }
 
@@ -446,22 +446,21 @@ table.users-table tbody td:nth-child(6){
     display:flex;
     align-items:center;
     gap: 10px;
-    color: rgba(226,232,240,.9);
-    font-weight: 800;
+    color: rgba(226,232,240,.92);
+    font-weight: 900;
   }
   .page-size-box select{
     background: rgba(255,255,255,.08);
     color: #fff;
-    padding: 6px 12px;
+    padding: 8px 12px;
     border-radius: 12px;
-    border: 1px solid rgba(255,255,255,.10);
-    font-weight: 900;
+    border: 1px solid rgba(255,255,255,.12);
+    font-weight: 950;
     outline:none;
+    min-height: 40px;
   }
-  .page-size-box option{
-    background: #0f172a;
-    color:#fff;
-  }
+  .page-size-box select:focus-visible{ box-shadow: var(--ring-blue); }
+  .page-size-box option{ background: #0f172a; color:#fff; }
 
   .pagination{
     display:flex;
@@ -473,160 +472,259 @@ table.users-table tbody td:nth-child(6){
     margin:0;
   }
   .pagination li a{
-    padding: 7px 14px;
+    padding: 9px 14px;
     background: rgba(255,255,255,.07);
     color: #fff;
     border-radius: 12px;
     border: 1px solid rgba(255,255,255,.10);
     text-decoration: none;
-    transition: .18s ease;
-    font-weight: 800;
+    transition: transform .15s ease, border-color .15s ease, background .15s ease;
+    font-weight: 900;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-height: 40px;
   }
-  .pagination li a:hover{ transform: translateY(-1px); }
+  .pagination li a:hover{
+    transform: translateY(-1px);
+    border-color: rgba(255,255,255,.16);
+    background: rgba(255,255,255,.09);
+  }
+  .pagination li a:focus-visible{ outline:none; box-shadow: var(--ring-blue); }
   .pagination .active a{
-    background: #4f46e5;
-    border-color: #4f46e5;
+    background: rgba(79,70,229,.95);
+    border-color: rgba(79,70,229,.95);
   }
 
-  /* responsive */
+  /* ===== MOBILE CARDS ===== */
+  .cards-shell{ display:none; margin-top: 12px; }
+  .user-card{
+    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 18px;
+    box-shadow: 0 18px 55px rgba(0,0,0,.45);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    padding: 12px;
+  }
+  .user-card + .user-card{ margin-top: 10px; }
+
+  .uc-top{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 10px;
+  }
+  .uc-id{
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    display:grid;
+    place-items:center;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.10);
+    color: rgba(226,232,240,.92);
+    font-weight: 950;
+    flex: 0 0 auto;
+  }
+  .uc-name{
+    min-width:0;
+    font-weight: 950;
+    color:#fff;
+    text-decoration:none;
+    display:block;
+    line-height: 1.15;
+  }
+  .uc-name:hover{ text-decoration: underline; }
+  .uc-sub{
+    margin-top: 4px;
+    color: rgba(148,163,184,.85);
+    font-weight: 800;
+    font-size: 12px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  .uc-grid{
+    margin-top: 10px;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .uc-item{
+    background: rgba(2,6,23,.35);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 14px;
+    padding: 10px 10px;
+    min-width:0;
+  }
+  .uc-k{
+    font-size: 10px;
+    letter-spacing: .9px;
+    text-transform: uppercase;
+    color: rgba(148,163,184,.88);
+    font-weight: 950;
+  }
+  .uc-v{
+    margin-top: 4px;
+    color: rgba(226,232,240,.92);
+    font-weight: 900;
+    font-size: 13px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  /* Responsive */
   @media (max-width: 992px){
-    .search-input{ width: 100%; max-width: 100%; }
-    table.users-table{ min-width: 820px; }
+    .users-tools{ grid-template-columns: 1fr; }
+    .actions{ justify-content:flex-start; }
+    .search-input{ width: 100%; max-width: 680px; }
   }
-  /* ✅ MENU DROPDOWN always visible (not cut by table overflow) */
-.menu-dropdown{
-  position: fixed;             /* ✅ table ichida emas, viewportda turadi */
-  background: rgba(17,24,39,.96);
-  border: 1px solid rgba(255,255,255,.10);
-  padding: 6px 0;
-  border-radius: 14px;
-  width: 180px;
-  z-index: 99999;              /* ✅ hammasidan tepada */
-  box-shadow: 0 18px 50px rgba(0,0,0,.55);
-  backdrop-filter: blur(12px);
-}
 
-/* dropdown itemlar */
-.menu-dropdown a{
-  display:block;
-  color:#e5e7eb;
-  padding: 10px 14px;
-  font-size: 14px;
-  text-decoration:none;
-  transition:.15s ease;
-  font-weight:800;
-}
-.menu-dropdown a:hover{
-  background: rgba(255,255,255,.10);
-  color:#fff;
-  padding-left: 18px;
-}
+  /* Hide big table on small phones, show cards */
+  @media (max-width: 640px){
+    .table-shell{ display:none; }
+    .cards-shell{ display:block; }
 
-/* ✅ table wrapper kesib tashlamasin (qo‘shimcha xavfsizlik) */
-.table-shell, .table-scroll{
-  overflow: visible !important;
-}
+    .search-form{
+      width:100%;
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:10px;
+      align-items:center;
+    }
+    .search-input{ width:100%; }
+    .actions{ width:100%; }
+    .btn-pill{ width:auto; }
+    .file-pill{ width:100%; }
+  }
 
+  @media (min-width: 640px){
+    :root{ --pad: 18px; --gap: 16px; }
+    table.users-table thead th{ padding: 12px 14px; font-size: 10px; }
+    table.users-table tbody td{ padding: 12px 14px; font-size: 13px; }
+  }
+
+  @media (min-width: 1200px){
+    table.users-table thead th{ padding: 14px 16px; font-size: 11px; }
+    table.users-table tbody td{ padding: 14px 16px; font-size: 13px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition: none !important; scroll-behavior: auto !important; }
+  }
 </style>
 
-<div class="users-page">
+<div class="users-scope">
+  <div class="users-page">
 
-  <div class="users-head">
-    <h1 class="users-title">{{ title }}</h1>
+    <div class="users-head">
+      <h1 class="users-title">{{ title }}</h1>
 
-<div class="users-tools">
+      <div class="users-tools">
+        <form class="search-form" method="get">
+          <label class="sr-only" for="usersSearchInput">Ism, familya yoki email</label>
+          <input id="usersSearchInput"
+                 class="search-input"
+                 type="search"
+                 name="q"
+                 value="{{ request.GET.q|default:'' }}"
+                 placeholder="Ism, familya yoki email"
+                 aria-label="Ism, familya yoki email">
+          <!-- <button class="btn-pill btn-blue" type="submit">
+            <i class="fa-solid fa-magnifying-glass"></i> Izlash
+          </button> -->
+        </form>
 
-  <div class="tools-left">
-    <!-- SEARCH -->
-    <form class="search-form" method="get">
-      <input class="search-input" name="q" value="{{ request.GET.q }}" placeholder="Ism, familya yoki email">
-      <button class="btn-pill btn-blue" type="submit">Izlash</button>
-    </form>
-  </div>
+        <div class="actions">
+          {% if title == "O‘quvchilar" %}
+          <form action="{% url 'core:students_import_excel' %}" method="post" enctype="multipart/form-data"
+                class="import-form" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            {% csrf_token %}
 
-  <div class="tools-right">
-    <!-- ACTIONS -->
-    <div class="actions">
+            <div class="file-pill">
+              <input id="excelFile" type="file" name="file" accept=".xlsx" hidden required>
+              <label for="excelFile" class="file-btn">
+                <i class="fa-regular fa-folder-open"></i> Fayl tanlash
+              </label>
+              <span class="file-name" id="excelFileName">Fayl tanlanmadi</span>
+            </div>
 
-      {% if title == "O‘quvchilar" %}
-      <form action="{% url 'core:students_import_excel' %}" method="post" enctype="multipart/form-data"
-            class="d-flex gap-2 flex-wrap align-items-center">
-        {% csrf_token %}
+            <button class="btn-pill btn-yellow" type="submit" title="Excel import">
+              <i class="fa-solid fa-arrow-up-from-bracket"></i> Import
+            </button>
+          </form>
 
-        <div class="file-pill">
-          <input id="excelFile" type="file" name="file" accept=".xlsx" hidden required>
-          <label for="excelFile" class="file-btn">
-            <i class="fa-regular fa-folder-open"></i> Выберите файл
-          </label>
-          <span class="file-name" id="excelFileName">файл...бран</span>
+          <a href="{% url 'core:students_export_excel' %}" class="btn-pill btn-green">
+            <i class="fa-solid fa-file-excel"></i> Excel
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if messages %}
+    <div class="mb-3" role="status" aria-live="polite">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} py-2 mb-2">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+
+    <div class="cards-shell">
+      {% for u in page_obj %}
+      <div class="user-card">
+
+        <div class="uc-top">
+          <div class="uc-id">{{ start_index|add:forloop.counter0 }}</div>
+
+          <div style="min-width:0; flex:1;">
+            <a href="/admin/accounts/user/{{ u.id }}/change/" class="uc-name">
+              {{ u.ism }}
+              {% if u.familya %} {{ u.familya }}{% endif %}
+              {% if u.otchestvo %} {{ u.otchestvo }}{% endif %}
+            </a>
+            <div class="uc-sub">{{ u.email|default:"—" }}</div>
+          </div>
+
+          <div class="menu-wrapper">
+            <button class="menu-btn" type="button" aria-label="Menyu" aria-haspopup="true" aria-expanded="false">⋮</button>
+            <div class="menu-dropdown" role="menu" aria-label="Row menu">
+              <a href="{% url 'core:user_edit' u.id %}" role="menuitem">📝 Tahrirlash</a>
+              <a href="{% url 'core:user_delete' u.id %}" role="menuitem">🗑 O‘chirish</a>
+            </div>
+          </div>
         </div>
 
-        <button class="btn-pill btn-yellow" type="submit" title="Excel import">
-          <i class="fa-solid fa-arrow-up-from-bracket"></i> Import
-        </button>
-      </form>
-      {% endif %}
-
-      <a href="{% url 'core:students_export_excel' %}" class="btn-pill btn-green">
-        <i class="fa-solid fa-file-excel"></i> Excel
-      </a>
-
-    </div>
-  </div>
-
-</div>
-
-  </div>
-
-  {% if messages %}
-  <div class="mb-3">
-    {% for message in messages %}
-      <div class="alert alert-{{ message.tags }} py-2 mb-2">
-        {{ message }}
-      </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-
-  <!-- TABLE -->
-  <div class="table-shell">
-    <div class="table-responsive table-scroll">
-      <table class="users-table">
-        <thead>
-          <tr>
-            <th style="width:60px;">#</th>
-            <th>F.I.Sh</th>
-            <th>Login</th>
-            <th>Telefon</th>
-            <th style="width:120px;">⚡Chaqmoq</th>
-            <th>Guruhlar</th>
-            <th style="width:70px;"></th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {% for u in page_obj %}
-          <tr>
-            <td>{{ start_index|add:forloop.counter0 }}</td>
-
-            <td>
-              <a href="/admin/accounts/user/{{ u.id }}/change/" class="name-link">
-                {{ u.ism }}
-                {% if u.familya %} {{ u.familya }}{% endif %}
-                {% if u.otchestvo %} {{ u.otchestvo }}{% endif %}
-              </a>
-            </td>
-
-            <td>{{ u.email }}</td>
-
-            <td>
+        <div class="uc-grid">
+          <div class="uc-item">
+            <div class="uc-k">Telefon</div>
+            <div class="uc-v">
               {{ u.telefon1|default:"—" }}
-              {% if u.telefon2 %}
-                <small style="color:rgba(148,163,184,.75); font-weight:700;"> / {{ u.telefon2 }}</small>
-              {% endif %}
-            </td>
+              {% if u.telefon2 %} / {{ u.telefon2 }}{% endif %}
+            </div>
+          </div>
 
-            <td>
+          {% if user_kind == "managers" or title == "Managerlar" %}
+          <div class="uc-item">
+            <div class="uc-k">Oxirgi kirish</div>
+            <div class="uc-v">
+              {% if u.last_login %}
+                {{ u.last_login|date:"Y-m-d H:i" }}
+              {% else %}
+                —
+              {% endif %}
+            </div>
+          </div>
+          {% else %}
+          <div class="uc-item">
+            <div class="uc-k">⚡ Chaqmoq</div>
+            <div class="uc-v">
               {% if u.jami_chaqmoq %}
                 {% if u.jami_chaqmoq < 0 %}
                   <span class="neg">{{ u.jami_chaqmoq }}</span>
@@ -636,109 +734,198 @@ table.users-table tbody td:nth-child(6){
               {% else %}
                 <span class="zero">0</span>
               {% endif %}
-            </td>
+            </div>
+          </div>
+          {% endif %}
+        </div>
 
-            <td>
-              {% for e in u.enrollment_set.all %}
-                <a href="{% url 'education:group_detail' e.group.id %}" class="badge-group">
-                  {{ e.group.nom }}
+        {% if user_kind != "managers" and title != "Managerlar" %}
+
+        <div style="margin-top:10px;">
+          <div class="uc-k" style="margin-bottom:6px;">Guruhlar</div>
+          <div>
+            {% for e in u.enrollment_set.all %}
+              <a href="{% url 'education:group_detail' e.group.id %}" class="badge-group">{{ e.group.nom }}</a>
+            {% empty %}
+              <span style="color:rgba(148,163,184,.75); font-weight:800;">— Guruh yo‘q</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="table-shell">
+      <div class="table-responsive table-scroll" role="region" aria-label="Users table" tabindex="0">
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>F.I.Sh</th>
+              <th>Login</th>
+              <th>Telefon</th>
+
+              {% if title == "Managerlar" %}
+                <th>Roli</th>
+                <th>Oxirgi kirish</th>
+              {% else %}
+                <th>⚡ Chaqmoq</th>
+                <th>Guruhlar</th>
+              {% endif %}
+
+              <th></th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for u in page_obj %}
+            <tr>
+              <td>{{ start_index|add:forloop.counter0 }}</td>
+
+              <td>
+                <a href="/admin/accounts/user/{{ u.id }}/change/" class="name-link">
+                  {{ u.ism }}
+                  {% if u.familya %} {{ u.familya }}{% endif %}
+                  {% if u.otchestvo %} {{ u.otchestvo }}{% endif %}
                 </a>
-              {% empty %}
-                <span style="color:rgba(148,163,184,.75); font-weight:700;">— Guruh yo‘q</span>
-              {% endfor %}
-            </td>
+              </td>
 
-            <td class="text-end">
-              <div class="menu-wrapper">
-                <button class="menu-btn" type="button" onclick="toggleMenu({{ u.id }})">⋮</button>
-                <div id="menu-{{ u.id }}" class="menu-dropdown">
-                  <a href="{% url 'core:user_edit' u.id %}">📝 Tahrirlash</a>
-                  <a href="{% url 'core:user_delete' u.id %}">🗑 O‘chirish</a>
+              <td>{{ u.email|default:"—" }}</td>
+
+              <td>
+                {{ u.telefon1|default:"—" }}
+                {% if u.telefon2 %}
+                  <small style="color:rgba(148,163,184,.75); font-weight:700;"> / {{ u.telefon2 }}</small>
+                {% endif %}
+              </td>
+
+              <td>
+                {% if title == "Managerlar" %}
+                  <span class="badge-role">{{ u.get_role_display|default:u.role }}</span>
+                {% else %}
+                  {% if u.jami_chaqmoq %}
+                    {% if u.jami_chaqmoq < 0 %}
+                      <span class="neg">{{ u.jami_chaqmoq }}</span>
+                    {% else %}
+                      <span class="pos">{{ u.jami_chaqmoq }}</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="zero">0</span>
+                  {% endif %}
+                {% endif %}
+              </td>
+
+              <td>
+                {% if title == "Managerlar" %}
+                  {% if u.last_login %}
+                    <span class="muted-mini">{{ u.last_login|date:"Y-m-d H:i" }}</span>
+                  {% else %}
+                    <span class="muted-mini">—</span>
+                  {% endif %}
+                {% else %}
+                  {% for e in u.enrollment_set.all %}
+                    <a href="{% url 'education:group_detail' e.group.id %}" class="badge-group">
+                      {{ e.group.nom }}
+                    </a>
+                  {% empty %}
+                    <span style="color:rgba(148,163,184,.75); font-weight:700;">— Guruh yo‘q</span>
+                  {% endfor %}
+                {% endif %}
+              </td>
+
+              <td class="text-end">
+                <div class="menu-wrapper">
+                  <button class="menu-btn" type="button" aria-label="Menyu" aria-haspopup="true" aria-expanded="false">⋮</button>
+                  <div class="menu-dropdown" role="menu" aria-label="Row menu">
+                    <a href="{% url 'core:user_edit' u.id %}" role="menuitem">📝 Tahrirlash</a>
+                    <a href="{% url 'core:user_delete' u.id %}" role="menuitem">🗑 O‘chirish</a>
+                  </div>
                 </div>
-              </div>
-            </td>
+              </td>
 
-          </tr>
-          {% endfor %}
-        </tbody>
-
-      </table>
-    </div>
-  </div>
-
-  <!-- PAGE SIZE + PAGINATION -->
-  {% if not no_pagination %}
-  <div class="users-footer">
-
-    <div class="page-size-box">
-      Ko‘rsatish:
-      <select onchange="
-        (function(sel){
-          const url = new URL(window.location.href);
-          url.searchParams.set('size', sel.value);
-          url.searchParams.set('page', 1);
-          window.location.href = url.toString();
-        })(this)
-      ">
-        <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
-        <option value="20" {% if page_size == 20 %}selected{% endif %}>20</option>
-        <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
-        <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
-      </select>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
 
-    <nav>
-      <ul class="pagination">
-        {% if page_obj.has_previous %}
-          <li><a href="?page={{ page_obj.previous_page_number }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">‹</a></li>
-        {% endif %}
+    {% if not no_pagination %}
+    <div class="users-footer">
 
-        <li class="{% if page_obj.number == 1 %}active{% endif %}">
-          <a href="?page=1&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">1</a>
-        </li>
+      <div class="page-size-box">
+        Ko‘rsatish:
+        <select onchange="
+          (function(sel){
+            const url = new URL(window.location.href);
+            url.searchParams.set('size', sel.value);
+            url.searchParams.set('page', 1);
+            window.location.href = url.toString();
+          })(this)
+        " aria-label="Page size">
+          <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
+          <option value="20" {% if page_size == 20 %}selected{% endif %}>20</option>
+          <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
+          <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
+        </select>
+      </div>
 
-        {% if page_obj.number > 2 %}
-          <li><a href="?page=2&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">2</a></li>
-        {% endif %}
+      <nav aria-label="Pagination">
+        <ul class="pagination">
+          {% if page_obj.has_previous %}
+            <li><a href="?page={{ page_obj.previous_page_number }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" aria-label="Previous page">‹</a></li>
+          {% endif %}
 
-        {% if page_obj.number > 4 %}
-          <li><a>…</a></li>
-        {% endif %}
-
-        {% if page_obj.number|add:-1 > 2 %}
-          <li><a href="?page={{ page_obj.number|add:-1 }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ page_obj.number|add:-1 }}</a></li>
-        {% endif %}
-
-        {% if page_obj.number != 1 and page_obj.number != page_obj.paginator.num_pages %}
-          <li class="active"><a href="?page={{ page_obj.number }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ page_obj.number }}</a></li>
-        {% endif %}
-
-        {% if page_obj.number|add:1 < page_obj.paginator.num_pages %}
-          <li><a href="?page={{ page_obj.number|add:1 }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ page_obj.number|add:1 }}</a></li>
-        {% endif %}
-
-        {% if page_obj.number < page_obj.paginator.num_pages|add:-2 %}
-          <li><a>…</a></li>
-        {% endif %}
-
-        {% if page_obj.paginator.num_pages > 1 %}
-          <li class="{% if page_obj.number == page_obj.paginator.num_pages %}active{% endif %}">
-            <a href="?page={{ page_obj.paginator.num_pages }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ page_obj.paginator.num_pages }}</a>
+          <li class="{% if page_obj.number == 1 %}active{% endif %}">
+            <a href="?page=1&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">1</a>
           </li>
-        {% endif %}
 
-        {% if page_obj.has_next %}
-          <li><a href="?page={{ page_obj.next_page_number }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">›</a></li>
-        {% endif %}
-      </ul>
-    </nav>
+          {% if page_obj.number > 2 %}
+            <li><a href="?page=2&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">2</a></li>
+          {% endif %}
+
+          {% if page_obj.number > 4 %}
+            <li><a aria-label="More pages">…</a></li>
+          {% endif %}
+
+          {% if page_obj.number|add:-1 > 2 %}
+            <li><a href="?page={{ page_obj.number|add:-1 }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ page_obj.number|add:-1 }}</a></li>
+          {% endif %}
+
+          {% if page_obj.number != 1 and page_obj.number != page_obj.paginator.num_pages %}
+            <li class="active"><a href="?page={{ page_obj.number }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ page_obj.number }}</a></li>
+          {% endif %}
+
+          {% if page_obj.number|add:1 < page_obj.paginator.num_pages %}
+            <li><a href="?page={{ page_obj.number|add:1 }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ page_obj.number|add:1 }}</a></li>
+          {% endif %}
+
+          {% if page_obj.number < page_obj.paginator.num_pages|add:-2 %}
+            <li><a aria-label="More pages">…</a></li>
+          {% endif %}
+
+          {% if page_obj.paginator.num_pages > 1 %}
+            <li class="{% if page_obj.number == page_obj.paginator.num_pages %}active{% endif %}">
+              <a href="?page={{ page_obj.paginator.num_pages }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ page_obj.paginator.num_pages }}</a>
+            </li>
+          {% endif %}
+
+          {% if page_obj.has_next %}
+            <li><a href="?page={{ page_obj.next_page_number }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" aria-label="Next page">›</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+
+    </div>
+    {% endif %}
+
   </div>
-  {% endif %}
-
 </div>
 
 <script>
-  // File name show like screenshot
+  // ===== File name preview (Uzbek) =====
   (function(){
     const f = document.getElementById("excelFile");
     const name = document.getElementById("excelFileName");
@@ -746,78 +933,100 @@ table.users-table tbody td:nth-child(6){
 
     f.addEventListener("change", function(){
       if(!f.files || !f.files.length){
-        name.textContent = "файл...бран";
+        name.textContent = "Fayl tanlanmadi";
         return;
       }
       name.textContent = f.files[0].name;
     });
   })();
 
-  // ✅ Menu dropdown (FIXED, always visible)
-  function toggleMenu(id) {
-    // boshqalarini yopamiz
-    document.querySelectorAll('.menu-dropdown').forEach(m => {
-      if (m.id !== 'menu-' + id) m.style.display = 'none';
+  // ===== 3 dots menu (ROBUST): clone dropdown to BODY so it never gets clipped =====
+  (function(){
+    let activeMenu = null;
+    let activeBtn  = null;
+
+    const closeAll = () => {
+      if(activeMenu){
+        activeMenu.remove();
+        activeMenu = null;
+      }
+      if(activeBtn){
+        activeBtn.setAttribute('aria-expanded','false');
+        activeBtn = null;
+      }
+    };
+
+    const placeMenu = (btn, menu) => {
+      const r = btn.getBoundingClientRect();
+      const dropW = menu.offsetWidth || 200;
+      const gap = 8;
+
+      let top  = r.bottom + gap;
+      let left = r.right - dropW;
+
+      if (left + dropW > window.innerWidth - 8) left = window.innerWidth - dropW - 8;
+      if (left < 8) left = 8;
+
+      const approxH = menu.offsetHeight || 120;
+      if (top + approxH > window.innerHeight - 8) top = r.top - approxH - gap;
+      if (top < 8) top = 8;
+
+      menu.style.left = left + 'px';
+      menu.style.top  = top  + 'px';
+    };
+
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.menu-btn');
+
+      // 1) Click on 3 dots
+      if(btn){
+        e.preventDefault();
+        e.stopPropagation();
+
+        const wrap = btn.closest('.menu-wrapper');
+        const template = wrap ? wrap.querySelector('.menu-dropdown') : null;
+        if(!template) return;
+
+        // if same button toggled -> close
+        if(activeBtn === btn){
+          closeAll();
+          return;
+        }
+
+        closeAll();
+
+        // clone dropdown and append to body
+        const clone = template.cloneNode(true);
+        clone.classList.add('open');
+        clone.style.position = 'fixed';
+        clone.style.display = 'block';
+        clone.style.zIndex = '999999';
+
+        document.body.appendChild(clone);
+        placeMenu(btn, clone);
+
+        activeMenu = clone;
+        activeBtn = btn;
+        btn.setAttribute('aria-expanded','true');
+        return;
+      }
+
+      // 2) Click inside opened menu -> allow click (do not close immediately)
+      if(activeMenu && e.target.closest('.menu-dropdown')){
+        return;
+      }
+
+      // 3) Click outside -> close
+      closeAll();
     });
 
-    const el = document.getElementById('menu-' + id);
-    if (!el) return;
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape') closeAll();
+    });
 
-    // toggle
-    const isOpen = el.style.display === 'block';
-    if (isOpen) {
-      el.style.display = 'none';
-      return;
-    }
-
-    // buttonni topamiz (id bo‘yicha eng yaqin menu-wrapper ichidagi tugma)
-    const btn = document.querySelector(`#menu-${id}`)?.parentElement?.querySelector('.menu-btn') 
-             || document.querySelector(`button[onclick="toggleMenu(${id})"]`);
-
-    if (!btn) {
-      el.style.display = 'block';
-      return;
-    }
-
-    // viewport bo‘yicha joylash
-    const r = btn.getBoundingClientRect();
-    const dropW = 180; // CSS width bilan bir xil
-    const gap = 8;
-
-    let top = r.bottom + gap;
-    let left = r.right - dropW;
-
-    // o‘ngdan chiqib ketmasin
-    if (left + dropW > window.innerWidth - 8) left = window.innerWidth - dropW - 8;
-    if (left < 8) left = 8;
-
-    // pastdan chiqib ketmasin (agar kerak bo‘lsa tepaga chiqaradi)
-    const approxH = 96; // 2ta item uchun taxminiy balandlik
-    if (top + approxH > window.innerHeight - 8) {
-      top = r.top - approxH - gap;
-    }
-    if (top < 8) top = 8;
-
-    el.style.left = left + 'px';
-    el.style.top = top + 'px';
-    el.style.display = 'block';
-  }
-
-  // tashqariga bosilsa yopilsin
-  document.addEventListener("click", function(e) {
-    if (!e.target.closest('.menu-wrapper') && !e.target.closest('.menu-dropdown')) {
-      document.querySelectorAll('.menu-dropdown').forEach(m => m.style.display = 'none');
-    }
-  });
-
-  // scroll/resize bo‘lsa ham yopib yuboramiz (layout buzilmasin)
-  window.addEventListener('scroll', () => {
-    document.querySelectorAll('.menu-dropdown').forEach(m => m.style.display = 'none');
-  }, true);
-
-  window.addEventListener('resize', () => {
-    document.querySelectorAll('.menu-dropdown').forEach(m => m.style.display = 'none');
-  });
+    window.addEventListener('scroll', closeAll, true);
+    window.addEventListener('resize', closeAll);
+  })();
 </script>
 
 

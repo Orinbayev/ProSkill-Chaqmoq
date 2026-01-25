@@ -2,174 +2,537 @@
 {% block content %}
 
 <style>
-body {
-  background: linear-gradient(180deg, #0f172a, #1e293b, #0f172a);
-  min-height: 100vh;
-  font-family: "Poppins", sans-serif;
-  color: #e2e8f0;
-}
+  :root{
+    --bg0:#050812;
+    --bg1:#0b1224;
+    --bg2:#0f172a;
 
-/* Title */
-.page-title {
-  font-weight: 800;
-  margin-bottom: 1.8rem;
-  color: #facc15;
-  text-shadow: 0 2px 6px rgba(250,204,21,0.35);
-}
+    --panel: rgba(17,24,39,.62);
+    --panel2: rgba(2,6,23,.55);
+    --card: rgba(255,255,255,.045);
+    --card2: rgba(255,255,255,.075);
+    --line: rgba(255,255,255,.10);
 
-/* FILTER BAR */
-.filter-bar {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-}
+    --text:#e5e7eb;
+    --muted:#94a3b8;
 
-.filter-bar a {
-  font-weight: 600;
-  border-radius: 8px;
-  padding: 0.35rem 0.8rem;
-  transition: .3s ease;
-}
+    --yellow:#facc15;
+    --amber:#f59e0b;
 
-.filter-bar a:hover {
-  transform: translateY(-3px);
-}
+    --blue:#3b82f6;
+    --blue2:#60a5fa;
 
-/* Add buttons (right side) */
-.filter-bar .right-actions {
-  margin-left: auto;
-  display: flex;
-  gap: 0.5rem;
-}
-
-.btn-add {
-  font-weight: 600 !important;
-  border-radius: 8px;
-  padding: 0.35rem 0.8rem !important;
-}
-
-/* TABLE */
-.table-container {
-  overflow-x: auto;
-}
-
-table {
-  color: #e2e8f0 !important;
-  border-radius: 14px;
-  overflow: hidden;
-}
-
-thead {
-  background: rgba(255,255,255,0.08);
-}
-
-.table-hover tbody tr:hover {
-  background: rgba(255,255,255,0.06);
-  cursor: pointer;
-  transition: .25s ease;
-}
-
-/* Category Badges */
-.badge-info {
-  background: #38bdf8 !important;
-}
-
-.badge-dark {
-  background: #334155 !important;
-}
-
-/* MOBILE RESPONSIVE ADJUSTMENTS */
-@media (max-width: 768px) {
-  .page-title {
-    text-align: center;
-    margin-bottom: 1.5rem;
+    --shadow: 0 22px 70px rgba(0,0,0,.55);
+    --shadow2: 0 14px 45px rgba(0,0,0,.45);
+    --radius: 18px;
   }
-  
-  .filter-bar {
-    flex-wrap: nowrap;
+
+  body{
+    background:
+      radial-gradient(900px 520px at 18% 0%, rgba(250,204,21,.12), transparent 56%),
+      radial-gradient(900px 520px at 86% 8%, rgba(96,165,250,.10), transparent 58%),
+      radial-gradient(900px 520px at 52% 100%, rgba(59,130,246,.08), transparent 60%),
+      linear-gradient(180deg, var(--bg1), var(--bg2), var(--bg1));
+    min-height: 100vh;
+    color: var(--text);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Poppins", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  :where(a, button, input, select):focus-visible{
+    outline: 2px solid color-mix(in oklab, var(--yellow) 70%, white 30%);
+    outline-offset: 3px;
+  }
+
+  .wrap{
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 22px 12px 70px;
+  }
+
+  /* ===== Header ===== */
+  .topbar{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+
+  .titlebox{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .title-ic{
+    width:44px;
+    height:44px;
+    border-radius: 14px;
+    display:grid;
+    place-items:center;
+    background: rgba(250,204,21,.12);
+    border: 1px solid rgba(250,204,21,.20);
+    box-shadow: 0 14px 34px rgba(0,0,0,.45);
+    position:relative;
+    overflow:hidden;
+    flex: 0 0 auto;
+  }
+  .title-ic::after{
+    content:"";
+    position:absolute;
+    inset:-50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.24), transparent 62%);
+    opacity:.75;
+    transform: rotate(18deg);
+    pointer-events:none;
+  }
+  .title-ic svg{ width:22px; height:22px; color: rgba(250,204,21,.95); position:relative; z-index:1; }
+
+  .page-title{
+    margin: 0;
+    font-weight: 950;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    color: var(--yellow);
+    text-shadow: 0 10px 28px rgba(250,204,21,.18);
+    font-size: clamp(18px, 2.2vw, 28px);
+    line-height: 1.12;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ===== Filter bar ===== */
+  .filterbar{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 12px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, var(--panel), var(--panel2));
+    border: 1px solid rgba(255,255,255,.10);
+    box-shadow: var(--shadow2);
+    backdrop-filter: blur(12px);
+    margin-bottom: 14px;
+  }
+
+  .tabs{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .tab{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.05);
+    color: rgba(229,231,235,.95);
+    text-decoration:none;
+    font-weight: 900;
+    font-size: 13px;
+    transition: transform .16s ease, background-color .16s ease, border-color .16s ease, filter .16s ease;
+    white-space: nowrap;
+  }
+  .tab:hover{
+    transform: translateY(-1px);
+    background: rgba(255,255,255,.09);
+    border-color: rgba(255,255,255,.16);
+  }
+
+  .right-actions{
+    margin-left: auto;
+    display:flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content:flex-end;
+  }
+
+  .btn-add{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap: 8px;
+    padding: 10px 14px !important;
+    border-radius: 14px;
+    text-decoration:none;
+    font-weight: 950 !important;
+    border: 1px solid rgba(255,255,255,.12);
+    color:#fff !important;
+    transition: transform .16s ease, filter .16s ease, background-color .16s ease;
+    white-space: nowrap;
+  }
+  .btn-add:hover{ transform: translateY(-1px); filter:brightness(1.05); }
+
+  .btn-add.lang{
+    background: linear-gradient(90deg, rgba(59,130,246,.95), rgba(96,165,250,.95));
+    box-shadow: 0 18px 40px rgba(59,130,246,.18);
+  }
+  .btn-add.it{
+    background: linear-gradient(90deg, rgba(250,204,21,.95), rgba(245,158,11,.95));
+    color: rgba(2,6,23,.92) !important;
+    box-shadow: 0 18px 40px rgba(250,204,21,.14);
+  }
+
+  /* ===== Table card ===== */
+  .table-card{
+    border-radius: 18px;
+    overflow: hidden;
+    background: linear-gradient(180deg, var(--panel), var(--panel2));
+    border: 1px solid rgba(255,255,255,.10);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(12px);
+  }
+
+  .table-scroll{
     overflow-x: auto;
-    padding-bottom: 0.4rem;
+    background: rgba(2,6,23,.20);
   }
 
-  .filter-bar::-webkit-scrollbar {
-    height: 4px;
+  .table-scroll::-webkit-scrollbar{ height: 10px; }
+  .table-scroll::-webkit-scrollbar-track{
+    background: rgba(255,255,255,.05);
+    border-radius: 999px;
+    margin: 0 12px;
+  }
+  .table-scroll::-webkit-scrollbar-thumb{
+    background: linear-gradient(90deg, rgba(250,204,21,.70), rgba(96,165,250,.60));
+    border-radius: 999px;
   }
 
-  .filter-bar::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.25);
-    border-radius: 10px;
+  table{
+    width:100%;
+    min-width: 980px;
+    border-collapse: separate;
+    border-spacing: 0;
+    color: var(--text) !important;
   }
 
-  .right-actions {
-    flex-wrap: nowrap;
+  thead th{
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: linear-gradient(90deg, rgba(250,204,21,.20), rgba(59,130,246,.16));
+    border-bottom: 1px solid rgba(255,255,255,.10);
+    color: rgba(226,232,240,.95);
+    font-weight: 950;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    font-size: 12px;
+    padding: 14px 14px;
+    white-space: nowrap;
   }
-}
+
+  tbody td{
+    padding: 14px 14px;
+    border-bottom: 1px solid rgba(148,163,184,.16);
+    background: rgba(255,255,255,.02);
+    font-weight: 750;
+    vertical-align: middle;
+  }
+
+  tbody tr{
+    transition: background-color .16s ease, transform .16s ease;
+    cursor: pointer;
+  }
+  tbody tr:hover{
+    background: rgba(59,130,246,.08);
+  }
+
+  tbody tr:hover td{
+    background: transparent;
+  }
+
+  /* link style */
+  tbody a{
+    color: rgba(191,219,254,.98);
+    font-weight: 950;
+    text-decoration: none;
+  }
+  tbody a:hover{ text-decoration: underline; }
+
+  /* badges */
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding: 7px 10px;
+    border-radius: 999px;
+    font-weight: 950;
+    font-size: 12px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.06);
+    color: rgba(226,232,240,.95);
+  }
+  .badge-info{
+    background: rgba(59,130,246,.16) !important;
+    border-color: rgba(59,130,246,.26) !important;
+    color: rgba(191,219,254,.98) !important;
+  }
+  .badge-dark{
+    background: rgba(148,163,184,.10) !important;
+    border-color: rgba(148,163,184,.20) !important;
+    color: rgba(226,232,240,.92) !important;
+  }
+
+  /* action button */
+  .btn-outline-secondary{
+    border-radius: 12px !important;
+    font-weight: 900 !important;
+    padding: 9px 12px !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
+    background: rgba(255,255,255,.06) !important;
+    color: rgba(229,231,235,.95) !important;
+    transition: transform .16s ease, background-color .16s ease, border-color .16s ease;
+  }
+  .btn-outline-secondary:hover{
+    transform: translateY(-1px);
+    background: rgba(255,255,255,.10) !important;
+    border-color: rgba(255,255,255,.16) !important;
+  }
+
+  /* empty */
+  .empty{
+    padding: 22px 14px;
+    text-align:center;
+    color: rgba(148,163,184,.92);
+    font-weight: 900;
+  }
+
+  /* Mobile: filterbar scroll & table->cards */
+  @media (max-width: 900px){
+    table{ min-width: 860px; }
+  }
+
+  @media (max-width: 768px){
+    .wrap{ padding: 18px 10px 70px; }
+    .filterbar{
+      gap: 10px;
+      padding: 10px;
+    }
+    .tabs{
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      max-width: 100%;
+    }
+    .tabs::-webkit-scrollbar{ height: 6px; }
+    .tabs::-webkit-scrollbar-thumb{
+      background: rgba(255,255,255,.18);
+      border-radius: 999px;
+    }
+
+    .right-actions{
+      width:100%;
+      margin-left: 0;
+    }
+    .btn-add{
+      width:100%;
+      justify-content:center;
+      padding: 12px 14px !important;
+    }
+
+    .table-card{ display:none; }
+  }
+
+  /* Mobile cards */
+  .m-list{ display:none; }
+  @media (max-width: 768px){
+    .m-list{ display:grid; gap: 12px; }
+    .m-card{
+      border-radius: 16px;
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: var(--shadow2);
+      backdrop-filter: blur(12px);
+      padding: 14px;
+    }
+    .m-top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 10px;
+    }
+    .m-name{
+      margin:0;
+      font-weight: 950;
+      color:#fff;
+      line-height:1.2;
+      font-size: 16px;
+    }
+    .m-meta{
+      margin-top: 6px;
+      color: rgba(148,163,184,.92);
+      font-weight: 800;
+      font-size: 12px;
+    }
+    .m-row{
+      display:flex;
+      justify-content:space-between;
+      gap: 10px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,.08);
+    }
+    .m-k{ color: rgba(148,163,184,.92); font-weight: 900; }
+    .m-v{ color: rgba(226,232,240,.95); font-weight: 900; }
+    .m-actions{
+      margin-top: 12px;
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .m-actions a{
+      width:100%;
+      text-align:center;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; scroll-behavior:auto !important; }
+  }
 </style>
 
-<h3 class="page-title">{{ filter_title|default:"Guruhlar" }}</h3>
+<div class="wrap">
 
-<div class="filter-bar">
-
-  <a href="{% url 'education:guruhlar' %}" class="btn btn-outline-secondary btn-sm">Barchasi</a>
-  <a href="{% url 'education:guruhlar_tillar' %}" class="btn btn-outline-secondary btn-sm">Tillar</a>
-  <a href="{% url 'education:guruhlar_it' %}" class="btn btn-outline-secondary btn-sm">IT</a>
-
-  {% if request.user.role in ['Director', 'Manager', 'Teacher'] %}
-  <div class="right-actions">
-    <a href="{% url 'education:group_create_lang' %}" class="btn btn-primary btn-sm btn-add">+ Tillar guruhi</a>
-    <a href="{% url 'education:group_create_it' %}" class="btn btn-primary btn-sm btn-add">+ IT guruhi</a>
+  <div class="topbar">
+    <div class="titlebox">
+      <div class="title-ic" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M16 11c1.66 0 3-1.57 3-3.5S17.66 4 16 4s-3 1.57-3 3.5S14.34 11 16 11Z"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M8 11c1.66 0 3-1.57 3-3.5S9.66 4 8 4 5 5.57 5 7.5 6.34 11 8 11Z"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M16 13c-2.2 0-4 1.34-4 3v2h8v-2c0-1.66-1.8-3-4-3Z"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M8 13c-2.2 0-4 1.34-4 3v2h8v-2c0-1.66-1.8-3-4-3Z"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div style="min-width:0;">
+        <h3 class="page-title">{{ filter_title|default:"Guruhlar" }}</h3>
+      </div>
+    </div>
   </div>
-  {% endif %}
-</div>
 
-<div class="table-container">
-  <table class="table table-hover align-middle">
-    <thead>
-      <tr>
-        <th>Guruh</th>
-        <th>Tur</th>
-        <th>Center</th>
-        <th>O‘qituvchi</th>
-        <th>Talabalar</th>
-        <th></th>
-      </tr>
-    </thead>
+  <div class="filterbar" role="navigation" aria-label="Guruhlar filtrlari">
+    <div class="tabs">
+      <a href="{% url 'education:guruhlar' %}" class="tab">Barchasi</a>
+      <a href="{% url 'education:guruhlar_tillar' %}" class="tab">Tillar</a>
+      <a href="{% url 'education:guruhlar_it' %}" class="tab">IT</a>
+    </div>
 
-    <tbody>
-      {% for g in rows %}
-      <tr class="row-link" data-href="{% url 'education:group_detail' g.id %}">
-        <td><a href="{% url 'education:group_detail' g.id %}">{{ g.nom }}</a></td>
+    {% if request.user.role in ['Director', 'Manager', 'Teacher'] %}
+      <div class="right-actions">
+        <a href="{% url 'education:group_create_lang' %}" class="btn-add lang">+ Tillar guruhi</a>
+        <a href="{% url 'education:group_create_it' %}" class="btn-add it">+ IT guruhi</a>
+      </div>
+    {% endif %}
+  </div>
 
-        <td>
-          {% if g.category == 'lang' %}
-            <span class="badge badge-info">Tillar</span>
-          {% else %}
-            <span class="badge badge-dark">IT</span>
-          {% endif %}
-        </td>
+  <!-- Desktop/tablet: table -->
+  <div class="table-card">
+    <div class="table-scroll">
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr>
+            <th>Guruh</th>
+            <th>Tur</th>
+            <th>Center</th>
+            <th>O‘qituvchi</th>
+            <th>Talabalar</th>
+            <th></th>
+          </tr>
+        </thead>
 
-        <td>{{ g.center }}</td>
-        <td>{{ g.oqituvchi|default:"—" }}</td>
-        <td>{{ g.student_count }}</td>
+        <tbody>
+          {% for g in rows %}
+          <tr class="row-link" data-href="{% url 'education:group_detail' g.id %}">
+            <td><a href="{% url 'education:group_detail' g.id %}">{{ g.nom }}</a></td>
 
-        <td>
-          {% if request.user.role in ["Director", "Manager", "Teacher"] %}
+            <td>
+              {% if g.category == 'lang' %}
+                <span class="badge badge-info">Tillar</span>
+              {% else %}
+                <span class="badge badge-dark">IT</span>
+              {% endif %}
+            </td>
+
+            <td>{{ g.center }}</td>
+            <td>{{ g.oqituvchi|default:"—" }}</td>
+            <td>{{ g.student_count }}</td>
+
+            <td style="text-align:right;">
+              {% if request.user.role in ["Director", "Manager", "Teacher"] %}
+                <a class="btn btn-sm btn-outline-secondary"
+                   href="{% url 'education:group_edit' g.id %}">
+                  Tahrirlash
+                </a>
+              {% endif %}
+            </td>
+          </tr>
+
+          {% empty %}
+          <tr>
+            <td colspan="6" class="empty">Guruhlar yo‘q.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Mobile: cards -->
+  <div class="m-list">
+    {% for g in rows %}
+      <div class="m-card row-link" data-href="{% url 'education:group_detail' g.id %}" role="button" tabindex="0">
+        <div class="m-top">
+          <div style="min-width:0;">
+            <p class="m-name">{{ g.nom }}</p>
+            <div class="m-meta">🏫 {{ g.center }}</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
+            {% if g.category == 'lang' %}
+              <span class="badge badge-info">Tillar</span>
+            {% else %}
+              <span class="badge badge-dark">IT</span>
+            {% endif %}
+            <span class="badge" title="Talabalar soni">👥 {{ g.student_count }}</span>
+          </div>
+        </div>
+
+        <div class="m-row">
+          <span class="m-k">O‘qituvchi</span>
+          <span class="m-v">{{ g.oqituvchi|default:"—" }}</span>
+        </div>
+
+        {% if request.user.role in ["Director", "Manager", "Teacher"] %}
+          <div class="m-actions">
             <a class="btn btn-sm btn-outline-secondary"
                href="{% url 'education:group_edit' g.id %}">
-               Tahrirlash
+              Tahrirlash
             </a>
-          {% endif %}
-        </td>
-      </tr>
+          </div>
+        {% endif %}
+      </div>
+    {% empty %}
+      <div class="m-card">
+        <div class="empty">Guruhlar yo‘q.</div>
+      </div>
+    {% endfor %}
+  </div>
 
-      {% empty %}
-      <tr>
-        <td colspan="6" class="text-muted text-center">Guruhlar yo‘q.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
 </div>
 
 <script>
@@ -177,6 +540,12 @@ document.querySelectorAll('.row-link').forEach(tr => {
   tr.addEventListener('click', e => {
     if (e.target.closest('a,button')) return;
     location.href = tr.dataset.href;
+  });
+  tr.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      if (e.target.closest('a,button')) return;
+      location.href = tr.dataset.href;
+    }
   });
 });
 </script>

@@ -1,84 +1,553 @@
-<tbody>
-  {% for s in students %}
-    <tr class="row-link student-row" data-href="{% url 'accounts:student_detail' s.id %}">
-      
-      <!-- TARTIB -->
-      <td class="text-center fw-bold">{{ forloop.counter }}</td>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Students</title>
 
-      <!-- AVATAR + ISM -->
-      <td>
-        <div class="d-flex align-items-center gap-2">
-          <div class="student-avatar">
-            {{ s.ism|first|upper }}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg0:#070A12;
+      --bg1:#0A1021;
+      --bg2:#0B1226;
+
+      --card: rgba(255,255,255,.06);
+      --card2: rgba(255,255,255,.09);
+      --line: rgba(255,255,255,.12);
+
+      --text:#EAF0FF;
+      --muted:#A7B0C7;
+
+      --amber:#F59E0B;
+      --amber2:#FBBF24;
+      --cyan:#22D3EE;
+      --blue:#3B82F6;
+
+      --shadow: 0 24px 70px rgba(0,0,0,.55);
+      --shadow2: 0 16px 45px rgba(0,0,0,.45);
+      --radius: 18px;
+
+      --ring: 0 0 0 3px rgba(245, 158, 11, .25), 0 0 0 1px rgba(245, 158, 11, .55) inset;
+      --ring-soft: 0 0 0 3px rgba(34, 211, 238, .18), 0 0 0 1px rgba(34, 211, 238, .45) inset;
+    }
+
+    *{ box-sizing:border-box; }
+    html, body{ height:100%; }
+    body{
+      margin:0;
+      color:var(--text);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(900px 520px at 18% 12%, rgba(34,211,238,.14), transparent 60%),
+        radial-gradient(900px 560px at 85% 22%, rgba(245,158,11,.15), transparent 60%),
+        radial-gradient(900px 520px at 70% 92%, rgba(59,130,246,.12), transparent 60%),
+        linear-gradient(180deg, var(--bg0) 0%, var(--bg1) 40%, var(--bg2) 100%);
+      overflow-x:hidden;
+    }
+
+    a{ color:inherit; }
+    .sr-only{
+      position:absolute !important;
+      width:1px !important;
+      height:1px !important;
+      padding:0 !important;
+      margin:-1px !important;
+      overflow:hidden !important;
+      clip:rect(0,0,0,0) !important;
+      white-space:nowrap !important;
+      border:0 !important;
+    }
+
+    .app{
+      min-height:100%;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .topbar{
+      position:sticky;
+      top:0;
+      z-index:50;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      background: linear-gradient(180deg, rgba(10,16,33,.76) 0%, rgba(10,16,33,.38) 100%);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .topbar-inner{
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 14px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
+
+    .brand-badge{
+      width: 36px;
+      height: 36px;
+      border-radius: 14px;
+      background:
+        radial-gradient(12px 12px at 30% 25%, rgba(255,255,255,.30), transparent 60%),
+        linear-gradient(135deg, rgba(245,158,11,.95), rgba(34,211,238,.85));
+      box-shadow:
+        0 10px 30px rgba(0,0,0,.45),
+        0 0 0 1px rgba(255,255,255,.10) inset,
+        0 0 22px rgba(245,158,11,.25),
+        0 0 26px rgba(34,211,238,.18);
+      flex: 0 0 auto;
+    }
+
+    .brand-title{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      min-width:0;
+    }
+
+    .brand-title h1{
+      margin:0;
+      font-size: 14px;
+      line-height: 1.2;
+      font-weight: 800;
+      letter-spacing: .2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .brand-title p{
+      margin:0;
+      font-size: 12px;
+      color: var(--muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .container{
+      width:100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 18px 16px 28px;
+      display:grid;
+      gap: 14px;
+    }
+
+    .panel{
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,.04) 100%);
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position: relative;
+    }
+
+    .panel::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(560px 260px at 20% 0%, rgba(245,158,11,.10), transparent 62%),
+        radial-gradient(520px 280px at 95% 20%, rgba(34,211,238,.10), transparent 60%);
+      pointer-events:none;
+      opacity:.9;
+    }
+
+    .panel-inner{
+      position:relative;
+      padding: 14px;
+    }
+
+    .panel-header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 12px;
+      padding: 4px 2px 12px;
+    }
+
+    .panel-header h2{
+      margin:0;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: .2px;
+      line-height: 1.25;
+    }
+
+    .panel-header .hint{
+      margin: 6px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .table-wrap{
+      border-radius: 16px;
+      background: rgba(0,0,0,.20);
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: var(--shadow2);
+      overflow: hidden;
+    }
+
+    table{
+      width:100%;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    thead th{
+      text-align:left;
+      font-size: 12px;
+      letter-spacing: .35px;
+      text-transform: uppercase;
+      color: rgba(231, 238, 255, .78);
+      padding: 12px 12px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    tbody td{
+      padding: 12px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      color: rgba(234, 240, 255, .92);
+      vertical-align: middle;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    tbody tr:last-child td{
+      border-bottom: none;
+    }
+
+    .text-center{ text-align:center; }
+    .fw-bold{ font-weight: 800; }
+    .text-muted{ color: var(--muted); }
+    .py-3{ padding-top: 14px; padding-bottom: 14px; }
+
+    .d-flex{ display:flex; }
+    .align-items-center{ align-items:center; }
+    .gap-2{ gap: 10px; }
+
+    .row-link:focus-visible{
+      outline: none;
+      box-shadow: var(--ring);
+    }
+
+    .student-name{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      color: rgba(34, 211, 238, .95);
+      text-decoration: none;
+      font-weight: 700;
+      letter-spacing: .1px;
+      max-width: 100%;
+    }
+
+    .student-name:hover{
+      text-decoration: underline;
+      text-underline-offset: 4px;
+    }
+
+    .student-name:focus-visible{
+      outline: none;
+      border-radius: 10px;
+      box-shadow: var(--ring-soft);
+    }
+
+    .student-avatar{
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 900;
+      color: rgba(10,16,33,.98);
+      background:
+        radial-gradient(14px 14px at 30% 30%, rgba(255,255,255,.45), transparent 60%),
+        linear-gradient(135deg, rgba(245,158,11,.95), rgba(34,211,238,.85));
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.10) inset,
+        0 12px 28px rgba(0,0,0,.45),
+        0 0 22px rgba(245,158,11,.18);
+      flex: 0 0 auto;
+      user-select:none;
+    }
+
+    .student-row{
+      transition: transform .18s ease, background .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+
+    .student-row:hover{
+      background: rgba(255,255,255,0.07);
+      transform: translateX(4px);
+    }
+
+    .student-row:active{
+      transform: translateX(2px) scale(.995);
+    }
+
+    .student-row:hover .student-avatar{
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.12) inset,
+        0 14px 34px rgba(0,0,0,.55),
+        0 0 26px rgba(245,158,11,.25),
+        0 0 22px rgba(34,211,238,.18);
+    }
+
+    /* Mobile-first: card-like table rows */
+    @media (max-width: 640px){
+      .panel-inner{ padding: 12px; }
+      .panel-header{ padding-bottom: 10px; }
+
+      table, thead, tbody, th, td, tr{ display:block; }
+      thead{ display:none; }
+
+      tbody tr{
+        margin: 0;
+        border-bottom: 1px solid rgba(255,255,255,.10);
+        padding: 12px 12px;
+        background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
+      }
+
+      tbody tr:hover{
+        transform: none;
+        background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+      }
+
+      tbody td{
+        border: none;
+        padding: 8px 0;
+        font-size: 14px;
+      }
+
+      tbody td.text-center{
+        text-align: left;
+      }
+
+      tbody td::before{
+        content: attr(data-label);
+        display:block;
+        font-size: 11px;
+        letter-spacing: .35px;
+        text-transform: uppercase;
+        color: rgba(231, 238, 255, .65);
+        margin-bottom: 4px;
+      }
+
+      tbody td:first-child::before{
+        content: "Tartib";
+      }
+
+      tbody td:nth-child(2)::before{
+        content: "Ism";
+      }
+
+      tbody td:nth-child(3)::before{
+        content: "Familya";
+      }
+
+      tbody td:nth-child(4)::before{
+        content: "Telefon";
+      }
+
+      .d-flex.align-items-center.gap-2{
+        gap: 12px;
+      }
+
+      .student-avatar{
+        width: 44px;
+        height: 44px;
+      }
+
+      .student-name{
+        font-size: 15px;
+      }
+    }
+
+    /* Tablet / Desktop improvements */
+    @media (min-width: 900px){
+      .container{
+        padding: 22px 18px 34px;
+      }
+      .panel-inner{
+        padding: 18px;
+      }
+      thead th, tbody td{
+        padding: 14px 14px;
+      }
+    }
+
+    /* Large desktop */
+    @media (min-width: 1440px){
+      .topbar-inner,
+      .container{
+        max-width: 1320px;
+      }
+    }
+
+    /* Reduce motion */
+    @media (prefers-reduced-motion: reduce){
+      *{ transition:none !important; scroll-behavior:auto !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <header class="topbar" role="banner">
+      <div class="topbar-inner">
+        <div class="brand" aria-label="Students">
+          <div class="brand-badge" aria-hidden="true"></div>
+          <div class="brand-title">
+            <h1>Students</h1>
+            <p>Premium dark / glass table</p>
           </div>
-          <a href="{% url 'accounts:student_detail' s.id %}" class="student-name">
-            {{ s.ism }}
-          </a>
         </div>
-      </td>
+      </div>
+    </header>
 
-      <!-- FAMILYA -->
-      <td>{{ s.familya }}</td>
+    <main class="container" role="main">
+      <section class="panel" aria-label="Students table panel">
+        <div class="panel-inner">
+          <div class="panel-header">
+            <div>
+              <h2>Students list</h2>
+              <p class="hint">Tap a row to open details. On mobile, rows become cards.</p>
+            </div>
+          </div>
 
-      <!-- TELEFON -->
-      <td>{{ s.telefon1|default:"—" }}</td>
+          <div class="table-wrap" role="region" aria-label="Students table">
+            <table aria-describedby="students-table-caption">
+              <caption id="students-table-caption" class="sr-only">
+                Table of students with order, name, surname, and phone.
+              </caption>
+              <thead>
+                <tr>
+                  <th class="text-center">#</th>
+                  <th>Name</th>
+                  <th>Surname</th>
+                  <th>Phone</th>
+                </tr>
+              </thead>
 
-    </tr>
-  {% empty %}
-    <tr>
-      <td colspan="4" class="text-muted text-center py-3">
-        Talaba yo‘q.
-      </td>
-    </tr>
-  {% endfor %}
-</tbody>
+              <tbody>
+                {% for s in students %}
+                  <tr class="row-link student-row" data-href="{% url 'accounts:student_detail' s.id %}" tabindex="0" role="link" aria-label="Open student details">
+                    
+                    <!-- TARTIB -->
+                    <td class="text-center fw-bold" data-label="Tartib">{{ forloop.counter }}</td>
 
-<!-- ---- CLICKABLE ROW SCRIPT ---- -->
-<script>
-document.querySelectorAll('.row-link').forEach(tr => {
-  tr.style.cursor = 'pointer';
-  tr.addEventListener('click', e => {
-    if (e.target.closest('a')) return;
-    location.href = tr.dataset.href;
+                    <!-- AVATAR + ISM -->
+                    <td data-label="Ism">
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="student-avatar">
+                          {{ s.ism|first|upper }}
+                        </div>
+                        <a href="{% url 'accounts:student_detail' s.id %}" class="student-name">
+                          {{ s.ism }}
+                        </a>
+                      </div>
+                    </td>
+
+                    <!-- FAMILYA -->
+                    <td data-label="Familya">{{ s.familya }}</td>
+
+                    <!-- TELEFON -->
+                    <td data-label="Telefon">{{ s.telefon1|default:"—" }}</td>
+
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td colspan="4" class="text-muted text-center py-3">
+                      Talaba yo‘q.
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ---- CLICKABLE ROW SCRIPT ---- -->
+  <script>
+  document.querySelectorAll('.row-link').forEach(tr => {
+    tr.style.cursor = 'pointer';
+    tr.addEventListener('click', e => {
+      if (e.target.closest('a')) return;
+      location.href = tr.dataset.href;
+    });
+
+    tr.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (document.activeElement && document.activeElement.closest('a')) return;
+        location.href = tr.dataset.href;
+      }
+    });
   });
-});
-</script>
+  </script>
 
-<!-- ---- STYLE ---- -->
-<style>
-.student-row {
-  transition: 0.25s ease;
-}
+  <!-- ---- STYLE ---- -->
+  <style>
+  .student-row {
+    transition: 0.25s ease;
+  }
 
-.student-row:hover {
-  background: rgba(255,255,255,0.07);
-  transform: translateX(4px);
-}
+  .student-row:hover {
+    background: rgba(255,255,255,0.07);
+    transform: translateX(4px);
+  }
 
-/* AVATAR */
-.student-avatar {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  color: #fff;
-  border-radius: 50%;
-  display: flex;
-  font-weight: 700;
-  justify-content: center;
-  align-items: center;
-  font-size: 1rem;
-  box-shadow: 0 0 10px rgba(29,78,216,0.4);
-}
+  /* AVATAR */
+  .student-avatar {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    font-weight: 700;
+    justify-content: center;
+    align-items: center;
+    font-size: 1rem;
+    box-shadow: 0 0 10px rgba(29,78,216,0.4);
+  }
 
-/* LINK SIFATIDA ISM */
-.student-name {
-  font-weight: 600;
-  font-size: 1rem;
-  color: #38bdf8;
-  text-decoration: none;
-}
+  /* LINK SIFATIDA ISM */
+  .student-name {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #38bdf8;
+    text-decoration: none;
+  }
 
-.student-name:hover {
-  text-decoration: underline;
-}
-</style>
+  .student-name:hover {
+    text-decoration: underline;
+  }
+  </style>
+</body>
+</html>

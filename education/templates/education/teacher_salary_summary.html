@@ -48,6 +48,7 @@
     box-shadow: 0 0 20px rgba(251, 191, 36, 0.15);
   }
 
+  /* --- TABLE --- */
   table {
     margin-top: 20px;
     border-collapse: collapse;
@@ -66,6 +67,12 @@
   th, td {
     padding: 14px 12px;
     text-align: center;
+    vertical-align: middle;
+  }
+
+  tbody tr {
+    transition: background .25s ease, transform .25s ease;
+    will-change: transform;
   }
 
   tbody tr:hover {
@@ -73,17 +80,131 @@
     transform: scale(1.01);
   }
 
+  .no-data{
+    padding: 18px 12px;
+    color:#cbd5e1;
+    text-align:center;
+  }
+
   canvas {
     border-radius: 16px;
     background: rgba(255,255,255,0.02);
     box-shadow: inset 0 0 10px rgba(59,130,246,0.1);
+    max-width: 100%;
+  }
+
+  /* ============================
+     ✅ RESPONSIVE (MOBILE FIRST)
+     Dizayn o‘zgarmaydi, faqat moslashadi
+  ============================ */
+
+  /* Filter blokini tartibga keltiramiz */
+  .filters-row{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .filters-row label{
+    margin:0;
+    white-space:nowrap;
+  }
+
+  /* Jadvalni mobileda scroll qilamiz */
+  .table-scroll{
+    width:100%;
+    overflow-x:auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 12px;
+    margin-top: 14px;
+  }
+  .table-scroll table{
+    margin-top: 0;
+    min-width: 860px; /* ustunlar siqilib ketmasin */
+  }
+
+  /* 📱 Telefon */
+  @media (max-width: 576px){
+    .dashboard-container{
+      max-width: 100%;
+      margin: 14px 10px;
+      padding: 16px;
+      border-radius: 18px;
+    }
+
+    h3{
+      font-size: 1.05rem;
+      margin-bottom: 16px;
+    }
+
+    /* Filterlar: ustma-ust va 100% */
+    .filters-row{
+      justify-content: stretch;
+      gap:10px;
+    }
+    .filters-row label{
+      display:block;
+      width:100%;
+      text-align:left;
+      font-weight:600;
+      color:#e5e7eb;
+    }
+    .filters-row select{
+      width:100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+    }
+
+    #report-title{
+      font-size: .95rem;
+      margin-bottom: 12px !important;
+    }
+
+    .card.p-3{
+      padding: 12px !important;
+      border-radius: 16px;
+    }
+
+    th, td{
+      padding: 10px 10px;
+      font-size: .92rem;
+    }
+
+    /* mobileda hover scale bo‘lmasin (silkinmasin) */
+    tbody tr:hover{
+      transform: none;
+    }
+  }
+
+  /* 🧾 Tablet */
+  @media (min-width: 577px) and (max-width: 991px){
+    .dashboard-container{
+      margin: 24px 18px;
+      padding: 22px;
+      border-radius: 22px;
+    }
+    th, td{
+      padding: 12px 10px;
+    }
+    /* tabletda ham hover scale yumshoqroq */
+    tbody tr:hover{
+      transform: scale(1.005);
+    }
+  }
+
+  /* 🖥️ Desktop: hover scale o‘z holida qolsin */
+  @media (min-width: 992px){
+    tbody tr:hover{
+      transform: scale(1.01);
+    }
   }
 </style>
 
 <div class="dashboard-container">
   <h3>📊 O‘qituvchilar Umumiy Oylik Hisobot Paneli</h3>
 
-  <div class="text-center mb-4">
+  <div class="text-center mb-4 filters-row">
     <label class="fw-semibold me-2">Yil:</label>
     <select id="year">
       {% for y in years %}
@@ -107,42 +228,45 @@
     <canvas id="incomeChart" height="120"></canvas>
   </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>👨‍🏫 O‘qituvchi</th>
-        <th>📚 Darslar</th>
-        <th>👥 Guruhlar</th>
-        <th>💰 O‘qituvchi Daromadi</th>
-        <th>🏫 Markaz foydasi</th>
-        <th>💵 Umumiy aylanma</th>
-      </tr>
-    </thead>
+  <!-- ✅ MOBILE: jadval kesilib qolmasin -->
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>👨‍🏫 O‘qituvchi</th>
+          <th>📚 Darslar</th>
+          <th>👥 Guruhlar</th>
+          <th>💰 O‘qituvchi Daromadi</th>
+          <th>🏫 Markaz foydasi</th>
+          <th>💵 Umumiy aylanma</th>
+        </tr>
+      </thead>
 
-    <tbody>
-      {% for t in teacher_data %}
-      <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ t.teacher }}</td>
-        <td>{{ t.lessons }}</td>
-        <td>{{ t.groups }}</td>
-        <td class="text-success">{{ t.teacher_income|floatformat:0 }} so‘m</td>
-        <td class="text-primary">{{ t.center_profit|floatformat:0 }} so‘m</td>
-        <td class="fw-bold">{{ t.total_turnover|floatformat:0 }} so‘m</td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="7" class="no-data">Ma’lumot topilmadi ⚡</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      <tbody>
+        {% for t in teacher_data %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ t.teacher }}</td>
+          <td>{{ t.lessons }}</td>
+          <td>{{ t.groups }}</td>
+          <td class="text-success">{{ t.teacher_income|floatformat:0 }} so‘m</td>
+          <td class="text-primary">{{ t.center_profit|floatformat:0 }} so‘m</td>
+          <td class="fw-bold">{{ t.total_turnover|floatformat:0 }} so‘m</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="no-data">Ma’lumot topilmadi ⚡</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-  
+
   const yearSelect   = document.getElementById("year");
   const monthSelect  = document.getElementById("month");
   const tableBody    = document.querySelector("tbody");

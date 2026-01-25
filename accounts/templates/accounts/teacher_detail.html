@@ -2,94 +2,308 @@
 
 {% block extra_css %}
 <style>
-.page-wrapper {
-  padding: 25px 10px;
-  font-family: 'Poppins', sans-serif;
-}
+  :root{
+    --bg0:#070A12;
+    --bg1:#081327;
+    --bg2:#0A0F1E;
 
-/* CARD STYLE */
-.ps-card {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 20px;
-  backdrop-filter: blur(15px);
-  box-shadow: 0 0 20px rgba(0,0,0,0.35);
-  overflow: hidden;
-  transition: .3s;
-}
-.ps-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 0 35px rgba(0,180,216,0.25);
-}
+    --card: rgba(255,255,255,.06);
+    --card2: rgba(255,255,255,.10);
+    --line: rgba(255,255,255,.12);
 
-/* HEADER */
-.teacher-title {
-  font-size: 28px;
-  color: #fff;
-  font-weight: 700;
-  margin-bottom: 5px;
-}
+    --text:#EAF0FF;
+    --muted:#A7B0C7;
 
-.teacher-sub {
-  color: #9ca3af;
-  font-size: 15px;
-  margin-bottom: 25px;
-}
+    --amber:#F59E0B;
+    --amber2:#FBBF24;
+    --neon:#22D3EE;
+    --blue:#3B82F6;
 
-/* TABLE DESIGN */
-.ps-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-  color: #e2e8f0;
-}
+    --success:#22c55e;
 
-.ps-table th {
-  background: rgba(255,255,255,0.12);
-  padding: 12px;
-  font-weight: 600;
-}
+    --shadow: 0 30px 80px rgba(0,0,0,.55);
+    --shadow2: 0 18px 55px rgba(0,0,0,.45);
+    --radius: 22px;
 
-.ps-table td {
-  padding: 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-}
+    --ring-amber: 0 0 0 4px rgba(245,158,11,.16), 0 0 0 1px rgba(245,158,11,.55) inset;
+    --ring-neon:  0 0 0 4px rgba(34,211,238,.14), 0 0 0 1px rgba(34,211,238,.55) inset;
+  }
 
-.ps-table tr:hover {
-  background: rgba(255,255,255,0.08);
-  cursor: pointer;
-}
+  *{ box-sizing:border-box; }
+  html, body{ height:100%; }
 
-.ps-table a {
-  color: #00b4d8;
-  text-decoration: none;
-  font-weight: 500;
-}
-.ps-table a:hover {
-  text-decoration: underline;
-}
+  .page-wrapper{
+    padding: 18px 14px 26px;
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    color: var(--text);
+    overflow-x:hidden;
+  }
 
-/* Responsive */
-@media(max-width: 540px){
-  .teacher-title { font-size: 22px; }
-  .ps-table td, .ps-table th { padding: 10px; font-size: 13px; }
-}
+  .teacher-hero{
+    position: relative;
+    border-radius: 22px;
+    padding: 16px 14px;
+    margin-bottom: 14px;
+
+    background:
+      radial-gradient(700px 260px at 12% 10%, rgba(34,211,238,.14), transparent 60%),
+      radial-gradient(600px 260px at 92% 18%, rgba(245,158,11,.13), transparent 60%),
+      linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    border: 1px solid rgba(255,255,255,.10);
+    box-shadow: var(--shadow2);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    overflow:hidden;
+  }
+  .teacher-hero::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background: radial-gradient(900px 260px at 50% -10%, rgba(255,255,255,.12), transparent 55%);
+    opacity:.8;
+  }
+
+  .teacher-title{
+    position:relative;
+    z-index:1;
+    font-size: 18px;
+    color: rgba(234,240,255,.98);
+    font-weight: 950;
+    letter-spacing: .2px;
+    margin: 0 0 6px;
+    text-shadow: 0 10px 35px rgba(0,0,0,.45);
+    line-height: 1.25;
+  }
+
+  .teacher-sub{
+    position:relative;
+    z-index:1;
+    color: rgba(226,232,240,.72);
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* CARD */
+  .ps-card{
+    background: linear-gradient(180deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,.045) 100%);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: var(--radius);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    position: relative;
+  }
+  .ps-card::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background: linear-gradient(120deg,
+      rgba(255,255,255,.05),
+      rgba(34,211,238,.12),
+      rgba(245,158,11,.10),
+      rgba(255,255,255,.05)
+    );
+    opacity:.5;
+    filter: blur(12px);
+    pointer-events:none;
+  }
+  .ps-card:hover{
+    transform: translateY(-2px);
+    border-color: rgba(34,211,238,.22);
+    box-shadow:
+      0 34px 90px rgba(0,0,0,.58),
+      0 0 36px rgba(34,211,238,.10),
+      0 0 34px rgba(245,158,11,.08);
+  }
+
+  .ps-card-body{
+    position: relative;
+    z-index: 1;
+    padding: 12px 14px 14px;
+  }
+
+  /* Table container */
+  .table-responsive{
+    width:100%;
+    overflow-x:auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 16px;
+    background: rgba(0,0,0,.18);
+    border: 1px solid rgba(255,255,255,.10);
+    box-shadow: var(--shadow2);
+  }
+
+  /* TABLE DESIGN */
+  .ps-table{
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+    color: rgba(234,240,255,.92);
+    min-width: 560px;
+  }
+
+  .ps-table th{
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    padding: 12px;
+    font-weight: 950;
+    font-size: 12px;
+    letter-spacing: .35px;
+    text-transform: uppercase;
+    color: rgba(231,238,255,.78);
+    text-align:left;
+    border-bottom: 1px solid rgba(255,255,255,.10);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .ps-table td{
+    padding: 12px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    line-height: 1.35;
+    vertical-align: middle;
+  }
+
+  .ps-table tr{
+    transition: background .16s ease, transform .16s ease;
+  }
+  .ps-table tr:hover{
+    background: rgba(255,255,255,.06);
+    cursor: pointer;
+  }
+
+  .ps-table a{
+    color: rgba(34,211,238,.95);
+    text-decoration: none;
+    font-weight: 900;
+    border-radius: 10px;
+    outline:none;
+  }
+  .ps-table a:hover{
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .ps-table a:focus-visible{
+    box-shadow: var(--ring-neon);
+  }
+
+  .text-muted{ color: rgba(167,176,199,.78) !important; }
+  .text-center{ text-align:center; }
+  .py-3{ padding-top: 14px; padding-bottom: 14px; }
+
+  /* Mobile-first: card rows */
+  @media (max-width: 640px){
+    .page-wrapper{ padding: 16px 12px 24px; }
+    .teacher-title{ font-size: 16px; }
+    .teacher-sub{ font-size: 12.5px; }
+
+    .ps-card-body{ padding: 12px 12px 14px; }
+
+    .table-responsive{
+      overflow: hidden;
+    }
+
+    .ps-table{
+      min-width: 0;
+    }
+
+    .ps-table, .ps-table thead, .ps-table tbody, .ps-table th, .ps-table td, .ps-table tr{
+      display:block;
+      width:100%;
+    }
+    .ps-table thead{ display:none; }
+
+    .ps-table tbody tr{
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      padding: 10px 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
+    }
+    .ps-table tbody tr:hover{
+      transform: none;
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+    }
+
+    .ps-table td{
+      border: none;
+      padding: 8px 0;
+      display:flex;
+      align-items:flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .ps-table td::before{
+      content: attr(data-label);
+      flex: 0 0 42%;
+      max-width: 42%;
+      font-size: 11px;
+      letter-spacing: .35px;
+      text-transform: uppercase;
+      color: rgba(231,238,255,.65);
+      padding-top: 2px;
+    }
+
+    .ps-table td > *{
+      flex: 1 1 auto;
+      min-width: 0;
+      text-align: right;
+    }
+  }
+
+  /* Tablet */
+  @media (min-width: 641px) and (max-width: 1023px){
+    .page-wrapper{ padding: 20px 16px 28px; }
+    .teacher-title{ font-size: 20px; }
+  }
+
+  /* Desktop */
+  @media (min-width: 1024px){
+    .page-wrapper{
+      padding: 22px 18px 34px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .teacher-title{ font-size: 24px; }
+    .ps-card-body{ padding: 14px 14px 16px; }
+  }
+
+  /* Large desktop */
+  @media (min-width: 1440px){
+    .page-wrapper{ max-width: 1320px; }
+    .teacher-title{ font-size: 26px; }
+  }
+
+  :where(a, button, input, select, textarea):focus-visible{
+    outline: none;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; scroll-behavior:auto !important; }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="page-wrapper">
 
-  <!-- TEACHER HEADER -->
-  <div class="teacher-title">
-    👨‍🏫 O‘qituvchi: {{ teacher.ism }} {{ teacher.familya }}
-  </div>
+  <section class="teacher-hero" aria-label="Teacher header">
+    <div class="teacher-title">
+      👨‍🏫 O‘qituvchi: {{ teacher.ism }} {{ teacher.familya }}
+    </div>
 
-  <div class="teacher-sub">
-    Rol: {{ teacher.get_role_display }}
-  </div>
+    <div class="teacher-sub">
+      Rol: {{ teacher.get_role_display }}
+    </div>
+  </section>
 
-  <!-- CARD -->
   <div class="ps-card">
 
     <div class="ps-card-body">
@@ -106,14 +320,14 @@
 
           <tbody>
             {% for g in groups %}
-              <tr class="row-link" data-href="{% url 'education:group_detail' g.id %}">
-                <td>
+              <tr class="row-link" data-href="{% url 'education:group_detail' g.id %}" tabindex="0" role="link" aria-label="Open group details">
+                <td data-label="Guruh">
                   <a href="{% url 'education:group_detail' g.id %}">
                     {{ g.nom }}
                   </a>
                 </td>
-                <td>{{ g.center }}</td>
-                <td>{{ g.student_count }}</td>
+                <td data-label="Center">{{ g.center }}</td>
+                <td data-label="Talabalar">{{ g.student_count }}</td>
               </tr>
             {% empty %}
               <tr>
@@ -133,9 +347,17 @@
 
 <script>
 document.querySelectorAll('.row-link').forEach(tr=>{
+  tr.style.cursor = 'pointer';
   tr.addEventListener('click', e=>{
     if(e.target.closest('a')) return;
     location.href = tr.dataset.href;
+  });
+  tr.addEventListener('keydown', e=>{
+    if(e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if(e.target.closest('a')) return;
+      location.href = tr.dataset.href;
+    }
   });
 });
 </script>

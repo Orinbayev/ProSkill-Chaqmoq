@@ -2,277 +2,487 @@
 {% block content %}
 
 <style>
+  :root{
+    --bg0:#070A12;
+    --bg1:#0B1220;
+    --bg2:#0F1B33;
 
-/***************************************
-  WRAPPER
-***************************************/
-.edit-box {
-    max-width: 900px;
-    margin: 20px auto;
-    background: rgba(255,255,255,0.05);
-    padding: 26px;
-    border-radius: 18px;
-    border: 1px solid rgba(255,255,255,0.10);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.45);
-    backdrop-filter: blur(6px);
-}
+    --panel: rgba(255,255,255,.07);
+    --panel2: rgba(2,6,23,.55);
+    --line: rgba(255,255,255,.12);
 
-/***************************************
-  TITLES
-***************************************/
-.edit-title {
-    font-size: 26px;
-    font-weight: 700;
+    --text:#e5e7eb;
+    --muted:#94a3b8;
+
+    --blue:#38bdf8;
+    --cyan:#06b6d4;
+
+    --amber:#f59e0b;
+    --amber2:#fbbf24;
+
+    --green:#22c55e;
+    --green2:#16a34a;
+
+    --danger:#ef4444;
+    --danger2:#dc2626;
+
+    --shadow: 0 26px 90px rgba(0,0,0,.58);
+    --shadow2: 0 14px 34px rgba(0,0,0,.42);
+
+    --r12:12px;
+    --r14:14px;
+    --r18:18px;
+    --r22:22px;
+
+    --ring-blue:  0 0 0 4px rgba(56,189,248,.22),  0 0 0 1px rgba(56,189,248,.34) inset;
+    --ring-amber: 0 0 0 4px rgba(245,158,11,.22), 0 0 0 1px rgba(245,158,11,.34) inset;
+    --ring-green: 0 0 0 4px rgba(34,197,94,.20),  0 0 0 1px rgba(34,197,94,.32) inset;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    background:
+      radial-gradient(1200px 700px at 10% -10%, rgba(245,158,11,.18), transparent 55%),
+      radial-gradient(900px 600px at 90% 10%, rgba(34,197,94,.10), transparent 55%),
+      radial-gradient(1000px 700px at 55% 120%, rgba(59,130,246,.10), transparent 60%),
+      linear-gradient(180deg, var(--bg0), var(--bg1) 55%, #050712);
+    color: var(--text);
+    overflow-x:hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* ===== WRAPPER (keep class) ===== */
+  .edit-box{
+    max-width: 980px;
+    margin: 18px auto;
+    padding: 18px;
+    border-radius: var(--r22);
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.05));
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    position: relative;
+    overflow:hidden;
+  }
+
+  .edit-box::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(620px 240px at 20% 0%, rgba(245,158,11,.18), transparent 60%),
+      radial-gradient(620px 240px at 85% 0%, rgba(56,189,248,.14), transparent 60%),
+      radial-gradient(720px 260px at 50% 110%, rgba(34,197,94,.10), transparent 60%);
+    pointer-events:none;
+    opacity:.9;
+  }
+  .edit-box > *{ position: relative; }
+
+  /* ===== TITLES ===== */
+  .edit-title{
+    font-size: clamp(20px, 3.2vw, 26px);
+    font-weight: 950;
     color: #fff;
-    margin-bottom: 18px;
-}
+    margin-bottom: 14px;
+    letter-spacing: .2px;
+    line-height: 1.15;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
 
-.section-title {
-    color: #e2e8f0;
+  .edit-title::before{
+    content:"✏️";
+    width: 38px;
+    height: 38px;
+    border-radius: 14px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    background: rgba(245,158,11,.16);
+    border: 1px solid rgba(245,158,11,.28);
+    color: var(--amber2);
+    box-shadow: 0 18px 40px rgba(0,0,0,.35);
+    flex: 0 0 auto;
+  }
+
+  .section-title{
+    color: rgba(226,232,240,.95);
     margin: 18px 0 12px;
-    font-size: 20px;
-    font-weight: 600;
-}
+    font-size: clamp(16px, 2.7vw, 20px);
+    font-weight: 900;
+    letter-spacing:.2px;
+  }
 
-/***************************************
-  INPUTS
-***************************************/
-.form-label {
-    color: #cbd5e1;
-    font-weight: 500;
-}
+  /* ===== GRID HELPERS (bootstrap-like rows exist) ===== */
+  .row{
+    --g: 14px;
+    margin-left: calc(var(--g) * -0.5);
+    margin-right: calc(var(--g) * -0.5);
+  }
+  .row > [class*="col-"]{
+    padding-left: calc(var(--g) * 0.5);
+    padding-right: calc(var(--g) * 0.5);
+  }
 
-.form-control {
-    background: rgba(255,255,255,0.08) !important;
-    color: white !important;
-    border: 1px solid rgba(255,255,255,0.15);
-    padding: 10px;
-    border-radius: 10px;
-}
+  /* ===== LABELS / INPUTS (keep existing classes) ===== */
+  .form-label{
+    color: rgba(203,213,225,.95);
+    font-weight: 850;
+    font-size: 13px;
+    letter-spacing: .2px;
+    margin-bottom: 8px;
+  }
 
-.form-control:focus {
-    border-color: #38bdf8 !important;
-    box-shadow: 0 0 0 3px rgba(56,189,248,0.4);
-}
+  .form-control{
+    background: rgba(2,6,23,.55) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255,255,255,.14) !important;
+    padding: 12px 12px !important;
+    border-radius: 14px !important;
+    width: 100%;
+    min-height: 44px;
+    box-shadow: inset 0 0 18px rgba(0,0,0,.22);
+    outline:none !important;
+    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease, transform .15s ease;
+  }
+  .form-control::placeholder{
+    color: rgba(148,163,184,.65);
+  }
+  .form-control:focus{
+    border-color: rgba(56,189,248,.62) !important;
+    box-shadow: var(--ring-blue) !important;
+    background: rgba(2,6,23,.62) !important;
+  }
 
-/***************************************
-  BUTTONS
-***************************************/
-.btn-save {
-    background: #22c55e;
-    padding: 12px 22px;
-    font-weight: 700;
-    color: white;
-    border-radius: 12px;
+  select.form-control{
+    appearance: none;
+    background-image:
+      linear-gradient(45deg, transparent 50%, rgba(226,232,240,.70) 50%),
+      linear-gradient(135deg, rgba(226,232,240,.70) 50%, transparent 50%),
+      linear-gradient(to right, rgba(255,255,255,.12), rgba(255,255,255,.12));
+    background-position:
+      calc(100% - 18px) calc(50% - 4px),
+      calc(100% - 13px) calc(50% - 4px),
+      calc(100% - 38px) 50%;
+    background-size: 6px 6px, 6px 6px, 1px 22px;
+    background-repeat: no-repeat;
+    padding-right: 46px !important;
+  }
+
+  input[type="number"].form-control{
+    font-variant-numeric: tabular-nums;
+  }
+
+  hr{
     border: none;
-}
+    border-top: 1px solid rgba(255,255,255,.12);
+    opacity: 1;
+  }
 
-.btn-save:hover {
-    background: #16a34a;
-}
-
-.btn-cancel {
-    background: rgba(255,255,255,0.15);
-    padding: 12px 22px;
-    font-weight: 700;
-    color: white;
-    border-radius: 12px;
-    border: none;
-}
-
-.btn-cancel:hover {
-    background: rgba(255,255,255,0.25);
-}
-
-/***************************************
-  GROUP BOX
-***************************************/
-.group-box {
-    background: rgba(255,255,255,0.06);
-    border-radius: 12px;
-    padding: 15px;
+  /* ===== GROUP BOX (keep class) ===== */
+  .group-box{
+    background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
+    border-radius: 16px;
+    padding: 14px;
     margin-bottom: 12px;
-}
+    border: 1px solid rgba(255,255,255,.12);
+    box-shadow: var(--shadow2);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
 
-.group-label {
-    color: #38bdf8;
-    font-weight: 600;
-    font-size: 16px;
-}
+  .group-label{
+    color: rgba(56,189,248,.95);
+    font-weight: 950;
+    font-size: 14px;
+    letter-spacing: .2px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    line-height: 1.2;
+  }
 
-/***************************************
-  RESPONSIVE FIXES
-***************************************/
-@media (max-width: 768px) {
-    .edit-box {
-        padding: 18px;
-        margin: 10px;
+  .group-label::before{
+    content:"⚡";
+    width: 30px;
+    height: 30px;
+    border-radius: 12px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    background: rgba(245,158,11,.14);
+    border: 1px solid rgba(245,158,11,.26);
+    color: var(--amber2);
+    flex: 0 0 auto;
+  }
+
+  /* checkbox area */
+  .form-check-input{
+    width: 18px;
+    height: 18px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,.22);
+    background: rgba(2,6,23,.55);
+    box-shadow: inset 0 0 12px rgba(0,0,0,.18);
+    accent-color: var(--danger);
+    cursor:pointer;
+  }
+  .form-check-input:focus-visible{
+    outline:none;
+    box-shadow: 0 0 0 4px rgba(239,68,68,.18);
+  }
+
+  .form-check-label{
+    color: rgba(226,232,240,.92);
+    font-weight: 850;
+    cursor:pointer;
+    user-select:none;
+  }
+  .text-danger{ color: #f87171 !important; }
+  .text-warning{ color: #fbbf24 !important; font-weight: 850; }
+
+  /* ===== BUTTONS (keep classes) ===== */
+  .btn-save{
+    background: linear-gradient(135deg, var(--green) 0%, var(--green2) 100%);
+    padding: 12px 22px;
+    font-weight: 950;
+    color: white;
+    border-radius: 14px;
+    border: 1px solid rgba(34,197,94,.28);
+    min-height: 46px;
+    cursor:pointer;
+    transition: transform .15s ease, filter .15s ease, box-shadow .15s ease, border-color .15s ease;
+    box-shadow: 0 16px 34px rgba(34,197,94,.14);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .btn-save:hover{
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+    border-color: rgba(34,197,94,.45);
+    box-shadow: 0 18px 40px rgba(34,197,94,.16);
+  }
+  .btn-save:active{ transform: translateY(0); }
+  .btn-save:focus-visible{
+    outline:none;
+    box-shadow: var(--ring-green), 0 18px 40px rgba(34,197,94,.16);
+  }
+
+  .btn-cancel{
+    background: rgba(148,163,184,.14);
+    padding: 12px 22px;
+    font-weight: 950;
+    color: rgba(226,232,240,.96);
+    border-radius: 14px;
+    border: 1px solid rgba(148,163,184,.22);
+    min-height: 46px;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    text-decoration:none;
+    transition: transform .15s ease, background .15s ease, box-shadow .15s ease, border-color .15s ease, color .15s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .btn-cancel:hover{
+    background: rgba(148,163,184,.22);
+    border-color: rgba(148,163,184,.30);
+    transform: translateY(-1px);
+    color:#fff;
+    box-shadow: var(--shadow2);
+  }
+  .btn-cancel:active{ transform: translateY(0); }
+  .btn-cancel:focus-visible{
+    outline:none;
+    box-shadow: 0 0 0 4px rgba(148,163,184,.18), 0 0 0 1px rgba(148,163,184,.22) inset;
+  }
+
+  /* ===== UTILITIES (bootstrap-ish) ===== */
+  .d-flex{ display:flex; }
+  .gap-3{ gap: 12px; }
+  .mt-4{ margin-top: 16px !important; }
+  .mt-2{ margin-top: 8px !important; }
+  .mb-3{ margin-bottom: 12px !important; }
+  .mb-2{ margin-bottom: 10px !important; }
+  .align-items-center{ align-items:center; }
+
+  /* Make button row responsive without changing markup */
+  .d-flex.gap-3.mt-4{
+    flex-wrap: wrap;
+  }
+  .d-flex.gap-3.mt-4 > .btn-save,
+  .d-flex.gap-3.mt-4 > .btn-cancel{
+    flex: 1 1 220px;
+  }
+
+  /* MOBILE FIRST */
+  @media (max-width: 768px){
+    .edit-box{
+      padding: 16px;
+      margin: 12px;
     }
-
-    .edit-title {
-        font-size: 22px;
-    }
-
-    .section-title {
-        font-size: 18px;
-    }
-
     .btn-save,
-    .btn-cancel {
-        width: 100%;
-        margin-bottom: 10px;
+    .btn-cancel{
+      width: 100%;
     }
-
-    .d-flex.gap-3 {
-        flex-direction: column;
+    .d-flex.gap-3{
+      flex-direction: column;
     }
-}
+  }
 
+  @media (prefers-reduced-motion: reduce){
+    *{ transition: none !important; scroll-behavior:auto !important; }
+  }
 </style>
-
 
 <div class="edit-box">
 
-    <!-- ===== EDIT TITLE ===== -->
-    <div class="edit-title">O‘quvchini tahrirlash</div>
+  <!-- ===== EDIT TITLE ===== -->
+  <div class="edit-title">O‘quvchini tahrirlash</div>
 
-    <form method="POST">
-        {% csrf_token %}
-        <input type="hidden" name="next" value="{{ request.GET.next|default:'' }}">
+  <form method="POST">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.GET.next|default:'' }}">
 
-        <div class="row">
+    <div class="row">
 
-            <!-- 1️⃣ Ism -->
-            <div class="col-md-4 col-12 mb-3">
-                <label class="form-label">Ism</label>
-                <input type="text" name="ism" value="{{ user_obj.ism }}" class="form-control">
-            </div>
+      <!-- 1️⃣ Ism -->
+      <div class="col-md-4 col-12 mb-3">
+        <label class="form-label">Ism</label>
+        <input type="text" name="ism" value="{{ user_obj.ism }}" class="form-control" aria-label="Ism">
+      </div>
 
-            <!-- 2️⃣ Familya -->
-            <div class="col-md-4 col-12 mb-3">
-                <label class="form-label">Familya</label>
-                <input type="text" name="familya" value="{{ user_obj.familya }}" class="form-control">
-            </div>
+      <!-- 2️⃣ Familya -->
+      <div class="col-md-4 col-12 mb-3">
+        <label class="form-label">Familya</label>
+        <input type="text" name="familya" value="{{ user_obj.familya }}" class="form-control" aria-label="Familya">
+      </div>
 
-            <!-- 3️⃣ Otchestvo -->
-            <div class="col-md-4 col-12 mb-3">
-                <label class="form-label">Otasining ismi</label>
-                <input type="text" name="otchestvo" value="{{ user_obj.otchestvo }}" class="form-control">
-            </div>
+      <!-- 3️⃣ Otchestvo -->
+      <div class="col-md-4 col-12 mb-3">
+        <label class="form-label">Otasining ismi</label>
+        <input type="text" name="otchestvo" value="{{ user_obj.otchestvo }}" class="form-control" aria-label="Otasining ismi">
+      </div>
 
-            <!-- 4️⃣ Email -->
-            <div class="col-md-6 col-12 mb-3">
-                <label class="form-label">Email (Login)</label>
-                <input type="email" name="email" value="{{ user_obj.email }}" class="form-control">
-            </div>
+      <!-- 4️⃣ Email -->
+      <div class="col-md-6 col-12 mb-3">
+        <label class="form-label">Email (Login)</label>
+        <input type="email" name="email" value="{{ user_obj.email }}" class="form-control" aria-label="Email (Login)">
+      </div>
 
-            <!-- 5️⃣ Password -->
-            <div class="col-md-6 col-12 mb-3">
-                <label class="form-label">Parol (ixtiyoriy)</label>
-                <input type="password" name="password" placeholder="Yangi parol..." class="form-control">
-            </div>
+      <!-- 5️⃣ Password -->
+      <div class="col-md-6 col-12 mb-3">
+        <label class="form-label">Parol (ixtiyoriy)</label>
+        <input type="password" name="password" placeholder="Yangi parol..." class="form-control" aria-label="Parol (ixtiyoriy)">
+      </div>
 
-            <!-- 6️⃣ Telefon 1 -->
-            <div class="col-md-6 col-12 mb-3">
-                <label class="form-label">Telefon 1</label>
-                <input type="text" name="telefon1" id="telefon1"
-                       value="{{ user_obj.telefon1 }}" class="form-control">
-            </div>
+      <!-- 6️⃣ Telefon 1 -->
+      <div class="col-md-6 col-12 mb-3">
+        <label class="form-label">Telefon 1</label>
+        <input type="text" name="telefon1" id="telefon1"
+               value="{{ user_obj.telefon1 }}" class="form-control" aria-label="Telefon 1">
+      </div>
 
-            <!-- 7️⃣ Telefon 2 -->
-            <div class="col-md-6 col-12 mb-3">
-                <label class="form-label">Telefon 2</label>
-                <input type="text" name="telefon2" id="telefon2"
-                       value="{{ user_obj.telefon2 }}" class="form-control">
-            </div>
+      <!-- 7️⃣ Telefon 2 -->
+      <div class="col-md-6 col-12 mb-3">
+        <label class="form-label">Telefon 2</label>
+        <input type="text" name="telefon2" id="telefon2"
+               value="{{ user_obj.telefon2 }}" class="form-control" aria-label="Telefon 2">
+      </div>
 
-            <!-- 8️⃣ Role -->
-            <div class="col-12 mb-3">
-                <label class="form-label">Role</label>
-                <select name="role" class="form-control">
-                    <option value="student"  {% if user_obj.role == "student" %}selected{% endif %}>O‘quvchi</option>
-                    <option value="teacher" {% if user_obj.role == "teacher" %}selected{% endif %}>O‘qituvchi</option>
-                    <option value="manager" {% if user_obj.role == "manager" %}selected{% endif %}>Manager</option>
-                    <option value="director" {% if user_obj.role == "director" %}selected{% endif %}>Direktor</option>
-                </select>
-            </div>
+      <!-- 8️⃣ Role -->
+      <div class="col-12 mb-3">
+        <label class="form-label">Role</label>
+        <select name="role" class="form-control" aria-label="Role">
+          <option value="student"  {% if user_obj.role == "student" %}selected{% endif %}>O‘quvchi</option>
+          <option value="teacher" {% if user_obj.role == "teacher" %}selected{% endif %}>O‘qituvchi</option>
+          <option value="manager" {% if user_obj.role == "manager" %}selected{% endif %}>Manager</option>
+          <option value="director" {% if user_obj.role == "director" %}selected{% endif %}>Direktor</option>
+        </select>
+      </div>
 
-        </div>
+    </div>
 
-        <hr class="mt-4 mb-3" style="border-color:#ffffff30">
+    <hr class="mt-4 mb-3" style="border-color:#ffffff30">
 
-        <!-- ===== GROUP SECTION ===== -->
-        <div class="section-title">📘 O‘quvchining guruhlari va kurs narxlari</div>
+    <!-- ===== GROUP SECTION ===== -->
+    <div class="section-title">📘 O‘quvchining guruhlari va kurs narxlari</div>
 
-        {% if enrollments %}
-            {% for e in enrollments %}
-                <div class="group-box">
+    {% if enrollments %}
+      {% for e in enrollments %}
+      <div class="group-box">
 
-                    <label class="group-label">
-                        {{ e.group.nom }} — {{ e.group.center }}
-                    </label>
+        <label class="group-label">
+          {{ e.group.nom }} — {{ e.group.center }}
+        </label>
 
-                    <div class="row mt-2">
+        <div class="row mt-2">
 
-                        <div class="col-md-8 col-12 mb-2">
-                            <input type="number"
-                                   name="kurs_narhi_{{ e.id }}"
-                                   class="form-control"
-                                   value="{{ e.kurs_narhi }}"
-                                   min="0">
-                        </div>
+          <div class="col-md-8 col-12 mb-2">
+            <input type="number"
+                   name="kurs_narhi_{{ e.id }}"
+                   class="form-control"
+                   value="{{ e.kurs_narhi }}"
+                   min="0"
+                   aria-label="Kurs narhi {{ e.group.nom }}">
+          </div>
 
-                        <div class="col-md-4 col-12 d-flex align-items-center">
-                            <input class="form-check-input me-2"
-                                   type="checkbox"
-                                   name="delete_group_{{ e.id }}"
-                                   id="del{{ e.id }}">
-                            <label for="del{{ e.id }}" class="form-check-label text-danger">
-                                ❌ O‘chirish
-                            </label>
-                        </div>
-
-                    </div>
-
-                </div>
-            {% endfor %}
-        {% else %}
-            <p class="text-warning">O‘quvchi hali hech qaysi guruhga yozilmagan.</p>
-        {% endif %}
-
-        <hr class="mt-4 mb-3" style="border-color:#ffffff30">
-
-        <!-- ===== ADD NEW GROUP ===== -->
-        <div class="section-title">➕ Yangi guruhga qo‘shish</div>
-
-        <div class="row">
-
-            <div class="col-md-6 col-12 mb-3">
-                <label class="form-label">Guruhni tanlang</label>
-                <select name="yangi_group_id" class="form-control">
-                    <option value="">— Tanlanmagan —</option>
-                    {% for g in groups %}
-                        <option value="{{ g.id }}">{{ g.nom }} — {{ g.center }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="col-md-6 col-12 mb-3">
-                <label class="form-label">Kurs narxi (so‘m)</label>
-                <input type="number" name="yangi_group_price" class="form-control" min="0">
-            </div>
+          <div class="col-md-4 col-12 d-flex align-items-center">
+            <input class="form-check-input me-2"
+                   type="checkbox"
+                   name="delete_group_{{ e.id }}"
+                   id="del{{ e.id }}">
+            <label for="del{{ e.id }}" class="form-check-label text-danger">
+              ❌ O‘chirish
+            </label>
+          </div>
 
         </div>
 
-        <!-- ===== BUTTONS ===== -->
-        <div class="d-flex gap-3 mt-4">
-            <button class="btn-save">💾 Saqlash</button>
-            <a href="/stat/students/" class="btn-cancel">Bekor qilish</a>
-        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="text-warning">O‘quvchi hali hech qaysi guruhga yozilmagan.</p>
+    {% endif %}
 
-    </form>
+    <hr class="mt-4 mb-3" style="border-color:#ffffff30">
+
+    <!-- ===== ADD NEW GROUP ===== -->
+    <div class="section-title">➕ Yangi guruhga qo‘shish</div>
+
+    <div class="row">
+
+      <div class="col-md-6 col-12 mb-3">
+        <label class="form-label">Guruhni tanlang</label>
+        <select name="yangi_group_id" class="form-control" aria-label="Guruhni tanlang">
+          <option value="">— Tanlanmagan —</option>
+          {% for g in groups %}
+            <option value="{{ g.id }}">{{ g.nom }} — {{ g.center }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-6 col-12 mb-3">
+        <label class="form-label">Kurs narxi (so‘m)</label>
+        <input type="number" name="yangi_group_price" class="form-control" min="0" aria-label="Kurs narxi (so‘m)">
+      </div>
+
+    </div>
+
+    <!-- ===== BUTTONS ===== -->
+    <div class="d-flex gap-3 mt-4">
+      <button class="btn-save">💾 Saqlash</button>
+      <a href="/stat/students/" class="btn-cancel">Bekor qilish</a>
+    </div>
+
+  </form>
 </div>
-
 
 <script>
 function formatPhone(el){

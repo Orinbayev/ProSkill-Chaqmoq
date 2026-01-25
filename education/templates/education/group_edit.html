@@ -1,139 +1,340 @@
 {% extends "base.html" %}
 {% block content %}
 
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
 <style>
-body {
-  background: radial-gradient(circle at top left, rgba(250,204,21,0.15), transparent),
-              radial-gradient(circle at bottom right, rgba(56,189,248,0.15), transparent),
-              #0f172a;
-  min-height: 100vh;
-  font-family: 'Poppins', sans-serif;
-  color: #e2e8f0;
-}
+  :root{
+    --bg0:#050814;
+    --bg1:#070b14;
 
-.form-container {
-  max-width: 650px;
-  margin: 3rem auto;
-  padding: 2rem 2.5rem;
-  border-radius: 18px;
-  background: rgba(255,255,255,0.05);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 10px 35px rgba(0,0,0,0.5);
-  animation: fadeIn 0.4s ease-in-out;
-}
+    --panelA: rgba(17,24,39,.66);
+    --panelB: rgba(2,6,23,.52);
 
-.form-container h3 {
-  text-align: center;
-  color: #facc15;
-  font-size: 1.8rem;
-  font-weight: 800;
-  margin-bottom: 1.5rem;
-  text-shadow: 0 2px 10px rgba(250,204,21,0.5);
-}
+    --line: rgba(255,255,255,.10);
+    --line2: rgba(255,255,255,.06);
 
-label {
-  font-weight: 600;
-  color: #cbd5e1;
-  margin-bottom: 6px;
-}
+    --text:#e5e7eb;
+    --muted:#94a3b8;
 
-input, select, textarea {
-  width: 100%;
-  padding: 12px 15px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.15);
-  background: rgba(255,255,255,0.06);
-  color: #e2e8f0;
-  font-size: 1rem;
-}
+    --amber:#fbbf24;
+    --amber2:#f59e0b;
 
-.btn-save {
+    --blue:#38bdf8;
+    --green:#22c55e;
+    --green2:#16a34a;
+
+    --shadow: 0 26px 90px rgba(0,0,0,.55);
+    --r16:16px;
+    --r18:18px;
+    --r22:22px;
+
+    --ringAmber: 0 0 0 4px rgba(251,191,36,.16);
+    --ringBlue: 0 0 0 4px rgba(56,189,248,.14);
+
+    --padX: clamp(14px, 2.8vw, 26px);
+    --padY: clamp(14px, 2.6vw, 22px);
+  }
+
+  *{ box-sizing:border-box; }
+  html, body{ height:100%; }
+  body{
+    font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(900px circle at 12% -10%, rgba(251,191,36,.14), transparent 55%),
+      radial-gradient(900px circle at 92% 10%, rgba(56,189,248,.14), transparent 56%),
+      radial-gradient(900px circle at 55% 120%, rgba(34,197,94,.09), transparent 60%),
+      linear-gradient(180deg, var(--bg1) 0%, var(--bg0) 60%, #04040c 100%);
+    overflow-x:hidden;
+    min-height:100vh;
+  }
+
+  :focus-visible{ outline:none; }
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; animation:none !important; scroll-behavior:auto !important; }
+  }
+
+  .page{
+    min-height: 100vh;
+    padding: clamp(14px, 2.6vw, 28px);
+  }
+
+  .form-container{
+    width: min(860px, 100%);
+    margin: clamp(18px, 3vw, 42px) auto;
+    padding: var(--padY) var(--padX);
+    border-radius: var(--r22);
+    background: linear-gradient(180deg, var(--panelA), var(--panelB));
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+    animation: fadeIn .38s ease-in-out;
+  }
+  .form-container::before{
+    content:"";
+    position:absolute; inset:-2px;
+    background:
+      radial-gradient(900px circle at 18% 6%, rgba(251,191,36,.18), transparent 55%),
+      radial-gradient(900px circle at 88% 20%, rgba(56,189,248,.14), transparent 58%),
+      radial-gradient(900px circle at 60% 120%, rgba(34,197,94,.10), transparent 60%);
+    opacity:.42;
+    pointer-events:none;
+    filter: blur(16px);
+  }
+  .form-container > *{ position:relative; z-index:1; }
+
+  @keyframes fadeIn{
+    from{ opacity:0; transform: translateY(10px); }
+    to{ opacity:1; transform: translateY(0); }
+  }
+
+  .form-container h3{
+    text-align:center;
+    font-size: clamp(20px, 2.4vw, 28px);
+    font-weight: 950;
+    letter-spacing: -.02em;
     color: #fff;
-    background: linear-gradient(90deg, #22c55e, #16a34a);
-}
-.btn-save, .btn-back {
+    margin: 0 0 14px 0;
+    text-shadow: 0 10px 30px rgba(0,0,0,.45);
+  }
+
+  .subline{
+    text-align:center;
+    margin: -4px 0 18px 0;
+    color: rgba(226,232,240,.70);
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .subline .dot{
+    display:inline-block;
+    width: 6px; height: 6px;
+    border-radius:999px;
+    background: rgba(251,191,36,.9);
+    box-shadow: 0 0 0 6px rgba(251,191,36,.10);
+    margin-right: 8px;
+    transform: translateY(-1px);
+  }
+
+  form{ width: 100%; }
+
+  .grid{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  @media (min-width: 900px){
+    .grid{
+      grid-template-columns: 1.05fr .95fr;
+      gap: 16px;
+      align-items: start;
+    }
+  }
+
+  .field{
+    display:flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  label{
+    font-weight: 850;
+    color: rgba(226,232,240,.82);
+    font-size: 12px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+
+  input, select, textarea{
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.05);
+    color: #e2e8f0;
+    font-size: 14px;
+    font-weight: 850;
+    letter-spacing: .2px;
+    transition: box-shadow .14s ease, border-color .14s ease, background .14s ease, transform .14s ease;
+  }
+
+  textarea{
+    min-height: 110px;
+    resize: vertical;
+    font-weight: 800;
+    line-height: 1.4;
+  }
+
+  select{
+    appearance: none;
+    -webkit-appearance: none;
+    background-image:
+      linear-gradient(45deg, transparent 50%, rgba(251,191,36,.95) 50%),
+      linear-gradient(135deg, rgba(251,191,36,.95) 50%, transparent 50%),
+      linear-gradient(to right, rgba(255,255,255,.12), rgba(255,255,255,.12));
+    background-position:
+      calc(100% - 18px) 50%,
+      calc(100% - 12px) 50%,
+      calc(100% - 42px) 50%;
+    background-size: 6px 6px, 6px 6px, 1px 22px;
+    background-repeat: no-repeat;
+    padding-right: 48px;
+  }
+
+  option{ color: #0b1220; }
+
+  input:focus, select:focus, textarea:focus{
+    outline:none;
+    border-color: rgba(251,191,36,.42);
+    box-shadow: var(--ringAmber);
+    background: rgba(255,255,255,0.07);
+  }
+
+  input:hover, select:hover, textarea:hover{
+    border-color: rgba(255,255,255,0.18);
+  }
+
+  .helper{
+    font-size: 12px;
+    color: rgba(148,163,184,.85);
+    font-weight: 700;
+  }
+
+  .actions{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  @media (min-width: 520px){
+    .actions{
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .btn-save, .btn-back{
     display: inline-flex;
     align-items: center;
     justify-content: center;
-
     width: 100%;
-    padding: 14px 0;         /* 👍 Ikkalasi bir xil balandlik */
-    font-size: 1rem;
-    font-weight: 700;
-
-    border-radius: 10px;
-    border: none;
+    min-height: 48px;
+    padding: 12px 14px;
+    font-size: 14px;
+    font-weight: 950;
+    letter-spacing: .2px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.10);
     text-decoration: none;
-}
+    transition: transform .14s ease, filter .14s ease, box-shadow .14s ease, background .14s ease, border-color .14s ease;
+    user-select:none;
+    white-space: nowrap;
+  }
 
-.btn-back {
-    background: rgba(255,255,255,0.12);
+  .btn-save{
+    color: #06210e;
+    background: linear-gradient(180deg, rgba(34,197,94,.95), rgba(22,163,74,.90));
+    box-shadow: 0 18px 38px rgba(22,163,74,.16);
+    border-color: rgba(34,197,94,.18);
+  }
+  .btn-save:hover{ transform: translateY(-1px); filter: brightness(1.05); }
+  .btn-save:active{ transform: translateY(0) scale(.99); }
+  .btn-save:focus-visible{
+    box-shadow: var(--ringBlue), 0 18px 38px rgba(22,163,74,.16);
+    border-color: rgba(56,189,248,.30);
+  }
+
+  .btn-back{
+    background: rgba(255,255,255,0.08);
     color: #e2e8f0;
-}
-select {
-    color: #e2e8f0 !important;  /* Oq emas, ko‘rinadigan rang */
-    background-color: rgba(255,255,255,0.06) !important;
-}
-option {
-    color: black;  /* Ochilish oynasi qora bo‘lib chiqadi */
-}
+  }
+  .btn-back:hover{
+    transform: translateY(-1px);
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(251,191,36,.22);
+  }
+  .btn-back:active{ transform: translateY(0) scale(.99); }
+  .btn-back:focus-visible{
+    box-shadow: var(--ringAmber);
+    border-color: rgba(251,191,36,.35);
+  }
 
+  .section{
+    border: 1px solid rgba(255,255,255,.06);
+    background: rgba(255,255,255,.03);
+    border-radius: 16px;
+    padding: 14px;
+  }
+
+  @media (max-width: 430px){
+    .page{ padding: 12px; }
+    input, select, textarea{ border-radius: 14px; }
+    .form-container{ border-radius: 18px; }
+  }
 </style>
 
+<div class="page">
+  <div class="form-container">
+    <h3>✏️ Guruhni tahrirlash</h3>
+    <div class="subline"><span class="dot"></span>Premium dark • glass • neon amber</div>
 
-<div class="form-container">
-  <h3>✏️ Guruhni tahrirlash</h3>
+    <form method="POST">
+      {% csrf_token %}
 
-  <form method="POST">
-    {% csrf_token %}
+      <div class="grid">
+        <div class="section">
+          <div class="field mb-3">
+            <label>Guruh nomi</label>
+            <input type="text" name="nom" value="{{ group.nom }}" required>
+            <div class="helper">Guruh nomini aniq va tushunarli kiriting.</div>
+          </div>
 
-    <!-- GROUP NAME -->
-    <div class="mb-3">
-      <label>Guruh nomi</label>
-      <input type="text" name="nom" value="{{ group.nom }}" required>
-    </div>
+          <div class="field mb-3">
+            <label>Izoh</label>
+            <textarea name="izoh" rows="3">{{ group.izoh }}</textarea>
+            <div class="helper">Qisqa izoh: daraja, jadval, maxsus eslatma.</div>
+          </div>
+        </div>
 
-    <!-- CENTER -->
-    <div class="mb-3">
-      <label for="id_center">O‘quv markazi</label>
-      <select name="center" id="id_center" class="form-select">
-        {% for c in centers %}
-          <option value="{{ c.id }}"
-            {% if group.center and group.center.id == c.id %}selected{% endif %}>
-            {{ c.nom }}
-          </option>
-        {% endfor %}
-      </select>
-    </div>
+        <div class="section">
+          <div class="field mb-3">
+            <label for="id_center">O‘quv markazi</label>
+            <select name="center" id="id_center" class="form-select">
+              {% for c in centers %}
+                <option value="{{ c.id }}"
+                  {% if group.center and group.center.id == c.id %}selected{% endif %}>
+                  {{ c.nom }}
+                </option>
+              {% endfor %}
+            </select>
+            <div class="helper">Guruh qaysi markazga tegishli ekanini tanlang.</div>
+          </div>
 
-    <!-- TEACHER -->
-    <div class="mb-3">
-      <label>O‘qituvchi</label>
-      <select name="oqituvchi" id="id_oqituvchi" class="form-select">
-        {% for t in teachers %}
-          <option value="{{ t.id }}" {% if group.oqituvchi.id == t.id %}selected{% endif %}>
-            {{ t.ism }} {{ t.familya }}
-          </option>
-        {% endfor %}
-      </select>
-    </div>
+          <div class="field mb-3">
+            <label>O‘qituvchi</label>
+            <select name="oqituvchi" id="id_oqituvchi" class="form-select">
+              {% for t in teachers %}
+                <option value="{{ t.id }}" {% if group.oqituvchi.id == t.id %}selected{% endif %}>
+                  {{ t.ism }} {{ t.familya }}
+                </option>
+              {% endfor %}
+            </select>
+            <div class="helper">Guruhga biriktirilgan o‘qituvchini belgilang.</div>
+          </div>
+        </div>
+      </div>
 
-    <!-- DESCRIPTION -->
-    <div class="mb-3">
-      <label>Izoh</label>
-      <textarea name="izoh" rows="3">{{ group.izoh }}</textarea>
-    </div>
-
-    <!-- BUTTONS -->
-  <div class="d-flex justify-content-between gap-2 mt-4">
-      <button type="submit" class="btn-save">💾 Saqlash</button>
-      <a href="{% url 'education:groups_all' %}" class="btn-back">⬅️ Orqaga</a>
+      <div class="actions d-flex justify-content-between gap-2 mt-4">
+        <button type="submit" class="btn-save">💾 Saqlash</button>
+        <a href="{% url 'education:groups_all' %}" class="btn-back">⬅️ Orqaga</a>
+      </div>
+    </form>
   </div>
-
-
-  </form>
 </div>
-
 
 {% endblock %}

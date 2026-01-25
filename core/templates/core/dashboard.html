@@ -1,137 +1,375 @@
+<!-- :contentReference[oaicite:0]{index=0} -->
 {% extends 'base.html' %}
 {% block content %}
 
 <style>
-.dashboard-title {
-    font-size: 28px;
+  :root{
+    color-scheme: dark;
+
+    /* Base */
+    --bg0:#070b14;
+    --bg1:#0b1220;
+    --bg2:#0f1b33;
+
+    /* Glass */
+    --glass: rgba(255,255,255,0.06);
+    --glass2: rgba(255,255,255,0.09);
+    --stroke: rgba(255,255,255,0.10);
+    --stroke2: rgba(255,255,255,0.14);
+
+    /* Text */
+    --text:#e5e7eb;
+    --muted:#98a2b3;
+
+    /* Accents */
+    --amber:#f59e0b;
+    --amber2:#facc15;
+    --neon:#22c55e;
+
+    /* Effects */
+    --shadow: 0 22px 60px rgba(0,0,0,.55);
+    --shadow2: 0 18px 38px rgba(0,0,0,.45);
+    --ring: 0 0 0 3px rgba(245,158,11,.22), 0 0 0 1px rgba(250,204,21,.18) inset;
+    --radius: 18px;
+    --radius2: 14px;
+
+    /* Layout */
+    --container: 1160px;
+    --pad: clamp(14px, 2.8vw, 28px);
+    --gap: clamp(12px, 2.2vw, 20px);
+  }
+
+  /* Page baseline */
+  .dashboard-page{
+    position: relative;
+    isolation: isolate;
+    min-height: calc(100dvh - 2px);
+    padding: clamp(16px, 3.2vw, 34px) 0;
+  }
+
+  .dashboard-page::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(1200px 520px at 12% -10%, rgba(245,158,11,.22), transparent 55%),
+      radial-gradient(900px 520px at 92% 0%, rgba(34,197,94,.18), transparent 55%),
+      radial-gradient(900px 620px at 60% 120%, rgba(250,204,21,.10), transparent 60%),
+      linear-gradient(180deg, var(--bg0), var(--bg1) 45%, var(--bg0));
+    z-index:-2;
+  }
+
+  .dashboard-page::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:
+      radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,.20), transparent 55%),
+      radial-gradient(1px 1px at 34% 22%, rgba(255,255,255,.16), transparent 55%),
+      radial-gradient(1px 1px at 68% 14%, rgba(255,255,255,.14), transparent 55%),
+      radial-gradient(1px 1px at 86% 28%, rgba(255,255,255,.16), transparent 55%),
+      radial-gradient(1px 1px at 20% 74%, rgba(255,255,255,.12), transparent 55%),
+      radial-gradient(1px 1px at 78% 72%, rgba(255,255,255,.12), transparent 55%);
+    opacity:.35;
+    pointer-events:none;
+    z-index:-1;
+    filter: blur(.2px);
+  }
+
+  .dashboard-container{
+    width: min(100% - (var(--pad) * 2), var(--container));
+    margin-inline: auto;
+  }
+
+  .dashboard-surface{
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.035));
+    border: 1px solid var(--stroke);
+    border-radius: calc(var(--radius) + 4px);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    overflow: clip;
+  }
+
+  .dashboard-header{
+    padding: clamp(16px, 2.8vw, 26px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    background:
+      radial-gradient(520px 220px at 12% 0%, rgba(245,158,11,.12), transparent 60%),
+      radial-gradient(520px 220px at 88% 0%, rgba(34,197,94,.10), transparent 60%);
+  }
+
+  .dashboard-title{
+    margin: 0;
+    font-size: clamp(18px, 2.6vw, 28px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: var(--text);
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5ch;
+    align-items: baseline;
+  }
+
+  .dashboard-title .role-badge{
+    display:inline-flex;
+    align-items:center;
+    gap: .5ch;
+    padding: .35rem .55rem;
+    border-radius: 999px;
+    font-size: .85rem;
     font-weight: 700;
-    color: #22c55e;
-    margin-bottom: 25px;
-}
+    color: rgba(255,255,255,.92);
+    background: rgba(245,158,11,.14);
+    border: 1px solid rgba(245,158,11,.26);
+    box-shadow: 0 0 0 1px rgba(250,204,21,.08) inset;
+  }
 
-/* GRID */
-.dashboard-grid {
+  .dashboard-subtitle{
+    margin: .55rem 0 0;
+    color: var(--muted);
+    font-size: clamp(12px, 1.6vw, 14px);
+    line-height: 1.5;
+    max-width: 70ch;
+  }
+
+  .dashboard-body{
+    padding: clamp(14px, 2.8vw, 26px);
+  }
+
+  /* GRID */
+  .dashboard-grid{
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 20px;
-}
+    grid-template-columns: 1fr; /* mobile-first */
+    gap: var(--gap);
+    margin: 0;
+  }
 
-/* CARD */
-.dashboard-card {
-    background: rgba(17, 24, 39, 0.75);
-    padding: 20px 22px;
-    border-radius: 14px;
-    border: 1px solid rgba(55, 65, 81, 0.4);
-    color: #e2e8f0;
+  @media (min-width: 640px){
+    .dashboard-grid{
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 1024px){
+    .dashboard-grid{
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 1440px){
+    .dashboard-grid{
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  /* CARD */
+  .dashboard-card{
+    position: relative;
+    display: grid;
+    gap: 8px;
+    padding: clamp(14px, 2.2vw, 18px);
+    border-radius: var(--radius);
+    border: 1px solid rgba(255,255,255,0.10);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.085), rgba(255,255,255,0.045));
+    color: var(--text);
     text-decoration: none;
-    transition: 0.25s ease;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 4px 14px rgba(0,0,0,0.2);
-}
+    box-shadow: var(--shadow2);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease, filter .18s ease;
+    min-height: 96px;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+  }
 
-.dashboard-card:hover {
-    transform: translateY(-6px);
-    background: rgba(30, 41, 59, 0.9);
-    border-color: #22c55e;
-    box-shadow: 0 8px 24px rgba(34,197,94,0.28);
-}
+  .dashboard-card::before{
+    content:"";
+    position:absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events:none;
+    background:
+      radial-gradient(520px 220px at 18% -10%, rgba(245,158,11,.18), transparent 60%),
+      radial-gradient(520px 240px at 90% 0%, rgba(34,197,94,.14), transparent 62%);
+    opacity:.55;
+    transition: opacity .18s ease;
+  }
 
-/* title */
-.card-title {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 6px;
-}
+  .dashboard-card::after{
+    content:"";
+    position:absolute;
+    inset:-1px;
+    border-radius: inherit;
+    pointer-events:none;
+    background: linear-gradient(90deg, rgba(245,158,11,.35), rgba(34,197,94,.22), rgba(250,204,21,.30));
+    opacity: 0;
+    filter: blur(10px);
+    transition: opacity .18s ease;
+    z-index:-1;
+  }
 
-/* description */
-.card-sub {
-    font-size: 13px;
-    color: #94a3b8;
-}
+  .dashboard-card:hover{
+    transform: translateY(-4px);
+    border-color: rgba(245,158,11,.36);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.055));
+    box-shadow: 0 26px 70px rgba(0,0,0,.55);
+  }
+
+  .dashboard-card:hover::before{ opacity:.75; }
+  .dashboard-card:hover::after{ opacity:.30; }
+
+  .dashboard-card:active{
+    transform: translateY(-1px);
+    filter: brightness(1.02);
+  }
+
+  /* Focus */
+  .dashboard-card:focus-visible{
+    box-shadow: var(--shadow2), var(--ring);
+    border-color: rgba(250,204,21,.42);
+  }
+
+  /* title */
+  .card-title{
+    margin: 0;
+    font-size: clamp(15px, 1.8vw, 16px);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+  }
+
+  /* description */
+  .card-sub{
+    margin: 0;
+    font-size: clamp(12px, 1.6vw, 13px);
+    color: rgba(229,231,235,.75);
+    line-height: 1.45;
+  }
+
+  /* Touch-friendly */
+  @media (max-width: 430px){
+    .dashboard-card{
+      padding: 16px;
+      min-height: 104px;
+    }
+    .card-title{
+      font-size: 15px;
+    }
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce){
+    .dashboard-card,
+    .dashboard-card::before,
+    .dashboard-card::after{
+      transition: none !important;
+    }
+    .dashboard-card:hover{ transform: none; }
+  }
 </style>
 
-<h3 class="dashboard-title">Dashboard — {{ user.get_role_display }}</h3>
+<main class="dashboard-page" aria-label="Dashboard">
+  <div class="dashboard-container">
+    <section class="dashboard-surface" aria-labelledby="dash-title">
+      <header class="dashboard-header">
+        <h3 id="dash-title" class="dashboard-title">
+          Dashboard —
+          <span class="role-badge" aria-label="User role">{{ user.get_role_display }}</span>
+        </h3>
+        <p class="dashboard-subtitle">
+          Tezkor bo‘limlar: kerakli sahifaga bosing. Mobil, planshet va kompyuterda qulay ishlaydi.
+        </p>
+      </header>
 
-<div class="dashboard-grid">
+      <div class="dashboard-body">
+        <nav class="dashboard-grid" aria-label="Dashboard quick actions">
 
-    {% if user.role == 'director' %}
+          {% if user.role == 'director' %}
 
-        <a class="dashboard-card" href="/hisob/manager/oquvchi-qoshish/">
-            <div class="card-title">🧑‍🎓 O‘quvchi qo‘shish</div>
-            <div class="card-sub">Yangi o‘quvchilarni ro‘yxatdan o‘tkazish</div>
-        </a>
+              <a class="dashboard-card" href="/hisob/manager/oquvchi-qoshish/" aria-label="O‘quvchi qo‘shish">
+                  <div class="card-title">🧑‍🎓 O‘quvchi qo‘shish</div>
+                  <div class="card-sub">Yangi o‘quvchilarni ro‘yxatdan o‘tkazish</div>
+              </a>
 
-        <a class="dashboard-card" href="/hisob/manager/oqituvchi-qoshish/">
-            <div class="card-title">👨‍🏫 O‘qituvchi qo‘shish</div>
-            <div class="card-sub">Yangi o‘qituvchilarni qo‘shish</div>
-        </a>
+              <a class="dashboard-card" href="/hisob/manager/oqituvchi-qoshish/" aria-label="O‘qituvchi qo‘shish">
+                  <div class="card-title">👨‍🏫 O‘qituvchi qo‘shish</div>
+                  <div class="card-sub">Yangi o‘qituvchilarni qo‘shish</div>
+              </a>
 
-        <a class="dashboard-card" href="/do'kon/mahsulotlar/">
-            <div class="card-title">🛒 Mahsulotlar</div>
-            <div class="card-sub">Do‘kondagi mahsulotlar</div>
-        </a>
+              <a class="dashboard-card" href="/do'kon/mahsulotlar/" aria-label="Mahsulotlar">
+                  <div class="card-title">🛒 Mahsulotlar</div>
+                  <div class="card-sub">Do‘kondagi mahsulotlar</div>
+              </a>
 
-        <a class="dashboard-card" href="/chaqmoq/reyting/">
-            <div class="card-title">⚡ Reyting</div>
-            <div class="card-sub">Talabalarning umumiy reytingi</div>
-        </a>
+              <a class="dashboard-card" href="/chaqmoq/reyting/" aria-label="Reyting">
+                  <div class="card-title">⚡ Reyting</div>
+                  <div class="card-sub">Talabalarning umumiy reytingi</div>
+              </a>
 
+          {% elif user.role == 'manager' %}
 
-    {% elif user.role == 'manager' %}
+              <a class="dashboard-card" href="/hisob/manager/oquvchi-qoshish/" aria-label="O‘quvchi qo‘shish">
+                  <div class="card-title">🧑‍🎓 O‘quvchi qo‘shish</div>
+                  <div class="card-sub">O‘quvchi ro‘yxatga olish</div>
+              </a>
 
-        <a class="dashboard-card" href="/hisob/manager/oquvchi-qoshish/">
-            <div class="card-title">🧑‍🎓 O‘quvchi qo‘shish</div>
-            <div class="card-sub">O‘quvchi ro‘yxatga olish</div>
-        </a>
+              <a class="dashboard-card" href="/hisob/manager/oqituvchi-qoshish/" aria-label="O‘qituvchi qo‘shish">
+                  <div class="card-title">👨‍🏫 O‘qituvchi qo‘shish</div>
+                  <div class="card-sub">O‘qituvchi qo‘shish sahifasi</div>
+              </a>
 
-        <a class="dashboard-card" href="/hisob/manager/oqituvchi-qoshish/">
-            <div class="card-title">👨‍🏫 O‘qituvchi qo‘shish</div>
-            <div class="card-sub">O‘qituvchi qo‘shish sahifasi</div>
-        </a>
+              <a class="dashboard-card" href="/ta'lim/guruhlar/" aria-label="Guruhlar">
+                  <div class="card-title">📚 Guruhlar</div>
+                  <div class="card-sub">Tillar va IT guruhlari</div>
+              </a>
 
-        <a class="dashboard-card" href="/ta'lim/guruhlar/">
-            <div class="card-title">📚 Guruhlar</div>
-            <div class="card-sub">Tillar va IT guruhlari</div>
-        </a>
+              <a class="dashboard-card" href="/do'kon/so'rovlar/" aria-label="Xarid so‘rovlari">
+                  <div class="card-title">🛒 Xarid so‘rovlari</div>
+                  <div class="card-sub">Tasdiqlash jarayoni</div>
+              </a>
 
-        <a class="dashboard-card" href="/do'kon/so'rovlar/">
-            <div class="card-title">🛒 Xarid so‘rovlari</div>
-            <div class="card-sub">Tasdiqlash jarayoni</div>
-        </a>
+              <a class="dashboard-card" href="/chaqmoq/reyting/" aria-label="Reyting">
+                  <div class="card-title">⚡ Reyting</div>
+                  <div class="card-sub">Talabalar reytingi</div>
+              </a>
 
-        <a class="dashboard-card" href="/chaqmoq/reyting/">
-            <div class="card-title">⚡ Reyting</div>
-            <div class="card-sub">Talabalar reytingi</div>
-        </a>
+          {% elif user.role == 'teacher' %}
 
+              <a class="dashboard-card" href="/ta'lim/guruhlar/meniki/" aria-label="Mening guruhlarim">
+                  <div class="card-title">📘 Mening guruhlarim</div>
+                  <div class="card-sub">O‘qitadigan guruhlaringiz</div>
+              </a>
 
-    {% elif user.role == 'teacher' %}
+              <a class="dashboard-card" href="/chaqmoq/reyting/" aria-label="Reyting">
+                  <div class="card-title">⚡ Reyting</div>
+                  <div class="card-sub">Umumiy reyting</div>
+              </a>
 
-        <a class="dashboard-card" href="/ta'lim/guruhlar/meniki/">
-            <div class="card-title">📘 Mening guruhlarim</div>
-            <div class="card-sub">O‘qitadigan guruhlaringiz</div>
-        </a>
+          {% elif user.role == 'student' %}
 
-        <a class="dashboard-card" href="/chaqmoq/reyting/">
-            <div class="card-title">⚡ Reyting</div>
-            <div class="card-sub">Umumiy reyting</div>
-        </a>
+              <a class="dashboard-card" href="/do'kon/" aria-label="Do‘kon">
+                  <div class="card-title">🛒 Do‘kon</div>
+                  <div class="card-sub">Mahsulotlar va narxlar</div>
+              </a>
 
+              <a class="dashboard-card" href="/chaqmoq/reyting/" aria-label="Reyting">
+                  <div class="card-title">⚡ Reyting</div>
+                  <div class="card-sub">Sizning o‘rningiz</div>
+              </a>
 
-    {% elif user.role == 'student' %}
+          {% endif %}
 
-        <a class="dashboard-card" href="/do'kon/">
-            <div class="card-title">🛒 Do‘kon</div>
-            <div class="card-sub">Mahsulotlar va narxlar</div>
-        </a>
-
-        <a class="dashboard-card" href="/chaqmoq/reyting/">
-            <div class="card-title">⚡ Reyting</div>
-            <div class="card-sub">Sizning o‘rningiz</div>
-        </a>
-
-    {% endif %}
-
-</div>
+        </nav>
+      </div>
+    </section>
+  </div>
+</main>
 
 {% endblock %}

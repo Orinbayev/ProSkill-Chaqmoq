@@ -2,127 +2,429 @@
 {% block content %}
 
 <style>
-body {
-  background: linear-gradient(180deg, #0f172a, #1e293b, #0f172a);
-  color: #e2e8f0;
-  font-family: "Poppins", sans-serif;
-}
+  :root{
+    --bg0:#050812;
+    --bg1:#0b1224;
+    --bg2:#0f172a;
 
-/* Title */
-.page-title {
-  font-weight: 800;
-  color: #facc15;
-  text-shadow: 0 2px 6px rgba(250, 204, 21, 0.45);
-  margin-bottom: 1.5rem;
-}
+    --panel: rgba(17,24,39,.62);
+    --panel2: rgba(2,6,23,.55);
+    --card: rgba(255,255,255,.045);
+    --card2: rgba(255,255,255,.075);
+    --line: rgba(255,255,255,.10);
 
-/* Table container */
-.table-container {
-  background: rgba(255,255,255,0.06);
-  border-radius: 16px;
-  padding: 1rem;
-  backdrop-filter: blur(6px);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
-}
+    --text:#e5e7eb;
+    --muted:#94a3b8;
 
-/* Table styling */
-.table-custom thead {
-  background: rgba(255,255,255,0.12);
-}
+    --yellow:#facc15;
+    --amber:#f59e0b;
 
-.table-custom tbody tr:hover {
-  background: rgba(255,255,255,0.10);
-  transition: 0.25s ease;
-}
+    --blue:#3b82f6;
+    --blue2:#60a5fa;
 
-/* Buttons */
-.btn-view {
-  border: 1px solid #3b82f6;
-  color: #3b82f6;
-  border-radius: 8px;
-  font-weight: 600;
-}
-.btn-view:hover {
-  background: #3b82f6;
-  color: #fff;
-}
+    --green:#22c55e;
+    --red:#ef4444;
 
-.btn-roll {
-  border: 1px solid #22c55e;
-  color: #22c55e;
-  border-radius: 8px;
-  font-weight: 600;
-}
-.btn-roll:hover {
-  background: #22c55e;
-  color: #fff;
-}
-
-/* Mobile optimized */
-@media (max-width: 768px) {
-  .table-container {
-    padding: 0.5rem;
+    --shadow: 0 22px 70px rgba(0,0,0,.55);
+    --shadow2: 0 14px 45px rgba(0,0,0,.45);
+    --radius: 18px;
   }
 
-  .btn-view, .btn-roll {
-    padding: 2px 6px;
-    font-size: 0.75rem;
+  body{
+    background:
+      radial-gradient(900px 520px at 18% 0%, rgba(250,204,21,.12), transparent 56%),
+      radial-gradient(900px 520px at 86% 8%, rgba(96,165,250,.10), transparent 58%),
+      radial-gradient(900px 520px at 52% 100%, rgba(59,130,246,.08), transparent 60%),
+      linear-gradient(180deg, var(--bg1), var(--bg2), var(--bg1));
+    min-height: 100vh;
+    color: var(--text);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Poppins", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-}
+
+  :where(a, button, input, select):focus-visible{
+    outline: 2px solid color-mix(in oklab, var(--yellow) 70%, white 30%);
+    outline-offset: 3px;
+  }
+
+  .wrap{
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 22px 12px 70px;
+  }
+
+  /* ===== Header ===== */
+  .topbar{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+
+  .titlebox{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .title-ic{
+    width:44px;
+    height:44px;
+    border-radius: 14px;
+    display:grid;
+    place-items:center;
+    background: rgba(250,204,21,.12);
+    border: 1px solid rgba(250,204,21,.20);
+    box-shadow: 0 14px 34px rgba(0,0,0,.45);
+    position:relative;
+    overflow:hidden;
+    flex: 0 0 auto;
+  }
+  .title-ic::after{
+    content:"";
+    position:absolute;
+    inset:-50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.24), transparent 62%);
+    opacity:.75;
+    transform: rotate(18deg);
+    pointer-events:none;
+  }
+  .title-ic svg{ width:22px; height:22px; color: rgba(250,204,21,.95); position:relative; z-index:1; }
+
+  .page-title{
+    margin: 0;
+    font-weight: 950;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    color: var(--yellow);
+    text-shadow: 0 10px 28px rgba(250,204,21,.18);
+    font-size: clamp(18px, 2.2vw, 28px);
+    line-height: 1.12;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .subtitle{
+    margin: 6px 0 0;
+    color: rgba(148,163,184,.92);
+    font-weight: 800;
+    font-size: 13px;
+  }
+
+  /* ===== Table card ===== */
+  .table-card{
+    border-radius: 18px;
+    overflow: hidden;
+    background: linear-gradient(180deg, var(--panel), var(--panel2));
+    border: 1px solid rgba(255,255,255,.10);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(12px);
+  }
+
+  .table-scroll{
+    overflow-x: auto;
+    background: rgba(2,6,23,.20);
+  }
+
+  .table-scroll::-webkit-scrollbar{ height: 10px; }
+  .table-scroll::-webkit-scrollbar-track{
+    background: rgba(255,255,255,.05);
+    border-radius: 999px;
+    margin: 0 12px;
+  }
+  .table-scroll::-webkit-scrollbar-thumb{
+    background: linear-gradient(90deg, rgba(250,204,21,.70), rgba(96,165,250,.60));
+    border-radius: 999px;
+  }
+
+  table{
+    width:100%;
+    min-width: 980px;
+    border-collapse: separate;
+    border-spacing: 0;
+    color: var(--text) !important;
+  }
+
+  thead th{
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: linear-gradient(90deg, rgba(250,204,21,.18), rgba(59,130,246,.14));
+    border-bottom: 1px solid rgba(255,255,255,.10);
+    color: rgba(226,232,240,.95);
+    font-weight: 950;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    font-size: 12px;
+    padding: 14px 14px;
+    white-space: nowrap;
+  }
+
+  tbody td{
+    padding: 14px 14px;
+    border-bottom: 1px solid rgba(148,163,184,.16);
+    background: rgba(255,255,255,.02);
+    font-weight: 780;
+    vertical-align: middle;
+  }
+
+  tbody tr{
+    transition: background-color .16s ease;
+  }
+  tbody tr:hover{
+    background: rgba(59,130,246,.08);
+  }
+  tbody tr:hover td{ background: transparent; }
+
+  .name{
+    color: rgba(191,219,254,.98);
+    font-weight: 950;
+  }
+
+  .muted{ color: rgba(148,163,184,.92) !important; font-weight: 850; }
+
+  /* Buttons (keep classes as-is: btn-view / btn-roll) */
+  .btn-view, .btn-roll{
+    border-radius: 12px !important;
+    font-weight: 950 !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
+    background: rgba(255,255,255,.06) !important;
+    transition: transform .16s ease, background-color .16s ease, border-color .16s ease, color .16s ease;
+    white-space: nowrap;
+  }
+
+  .btn-view{
+    border-color: rgba(59,130,246,.55) !important;
+    color: rgba(147,197,253,.98) !important;
+    background: rgba(59,130,246,.10) !important;
+  }
+  .btn-view:hover{
+    transform: translateY(-1px);
+    background: rgba(59,130,246,.18) !important;
+    border-color: rgba(59,130,246,.72) !important;
+    color:#fff !important;
+  }
+
+  .btn-roll{
+    border-color: rgba(34,197,94,.55) !important;
+    color: rgba(187,247,208,.98) !important;
+    background: rgba(34,197,94,.10) !important;
+  }
+  .btn-roll:hover{
+    transform: translateY(-1px);
+    background: rgba(34,197,94,.18) !important;
+    border-color: rgba(34,197,94,.72) !important;
+    color:#fff !important;
+  }
+
+  .empty{
+    padding: 22px 14px !important;
+    text-align:center;
+    color: rgba(148,163,184,.92) !important;
+    font-weight: 900;
+  }
+
+  /* ===== Mobile: table -> cards ===== */
+  .m-list{ display:none; }
+
+  @media (max-width: 768px){
+    .wrap{ padding: 18px 10px 70px; }
+    .table-card{ display:none; }
+
+    .m-list{ display:grid; gap: 12px; }
+    .m-card{
+      border-radius: 16px;
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: var(--shadow2);
+      backdrop-filter: blur(12px);
+      padding: 14px;
+    }
+
+    .m-top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 10px;
+    }
+
+    .m-title{
+      margin:0;
+      font-weight: 950;
+      font-size: 16px;
+      color: rgba(191,219,254,.98);
+      line-height: 1.2;
+    }
+
+    .m-grid{
+      margin-top: 12px;
+      display:grid;
+      gap: 10px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      padding-top: 10px;
+    }
+
+    .m-row{
+      display:flex;
+      justify-content:space-between;
+      gap: 10px;
+      align-items:center;
+      flex-wrap: wrap;
+    }
+    .m-k{ color: rgba(148,163,184,.92); font-weight: 900; }
+    .m-v{ color: rgba(226,232,240,.95); font-weight: 900; }
+
+    .m-actions{
+      margin-top: 12px;
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .m-actions a{
+      flex: 1 1 160px;
+      text-align:center;
+      justify-content:center;
+    }
+
+    .btn-view, .btn-roll{
+      width:100%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; scroll-behavior:auto !important; }
+  }
 </style>
 
-<div class="container py-4">
+<div class="wrap">
 
-  <h3 class="page-title">👥 Guruhlar ro‘yxati</h3>
+  <div class="topbar">
+    <div class="titlebox">
+      <div class="title-ic" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M16 11c1.66 0 3-1.57 3-3.5S17.66 4 16 4s-3 1.57-3 3.5S14.34 11 16 11Z"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M8 11c1.66 0 3-1.57 3-3.5S9.66 4 8 4 5 5.57 5 7.5 6.34 11 8 11Z"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M16 13c-2.2 0-4 1.34-4 3v2h8v-2c0-1.66-1.8-3-4-3Z"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M8 13c-2.2 0-4 1.34-4 3v2h8v-2c0-1.66-1.8-3-4-3Z"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
 
-  <div class="table-container">
-    <table class="table table-custom table-hover align-middle">
-      <thead>
-        <tr>
-          <th>Guruh</th>
-          <th>Center</th>
-          <th>O‘qituvchi</th>
-          <th>Talabalar</th>
-          <th class="text-center">Amallar</th>
-        </tr>
-      </thead>
+      <div style="min-width:0;">
+        <h3 class="page-title">👥 Guruhlar ro‘yxati</h3>
+        <div class="subtitle">Ko‘rish yoki davomat/chaqmoq qilish uchun guruhni tanlang</div>
+      </div>
+    </div>
+  </div>
 
-      <tbody>
-      {% for g in groups %}
-        <tr>
-          <td class="fw-semibold text-info">{{ g.nom }}</td>
+  <!-- Desktop / tablet table -->
+  <div class="table-card">
+    <div class="table-scroll">
+      <table class="table table-custom table-hover align-middle">
+        <thead>
+          <tr>
+            <th>Guruh</th>
+            <th>Center</th>
+            <th>O‘qituvchi</th>
+            <th>Talabalar</th>
+            <th class="text-center">Amallar</th>
+          </tr>
+        </thead>
 
-          <td>{{ g.center.nom }}</td>
+        <tbody>
+        {% for g in groups %}
+          <tr>
+            <td class="fw-semibold text-info name">{{ g.nom }}</td>
 
-          <td>
-            {% if g.oqituvchi %}
-              {{ g.oqituvchi.ism }} {{ g.oqituvchi.familya }}
-            {% else %}
-              <span class="text-muted">—</span>
-            {% endif %}
-          </td>
+            <td>{{ g.center.nom }}</td>
 
-          <td>{{ g.enrollments.count }}</td>
+            <td>
+              {% if g.oqituvchi %}
+                {{ g.oqituvchi.ism }} {{ g.oqituvchi.familya }}
+              {% else %}
+                <span class="muted">—</span>
+              {% endif %}
+            </td>
 
-          <td class="text-center text-nowrap">
-            <a href="{% url 'education:group_detail' g.pk %}"
-               class="btn btn-sm btn-view me-1">👁️ Ko‘rish</a>
+            <td>{{ g.enrollments.count }}</td>
 
-            <a href="{% url 'education:group_rollcall' g.pk %}"
-               class="btn btn-sm btn-roll">📋 Davomat / Chaqmoq</a>
-          </td>
-        </tr>
+            <td class="text-center text-nowrap">
+              <a href="{% url 'education:group_detail' g.pk %}"
+                 class="btn btn-sm btn-view me-1">👁️ Ko‘rish</a>
 
-      {% empty %}
-        <tr>
-          <td colspan="5" class="text-center text-muted py-4">
-            Guruh yo‘q.
-          </td>
-        </tr>
-      {% endfor %}
-      </tbody>
+              <a href="{% url 'education:group_rollcall' g.pk %}"
+                 class="btn btn-sm btn-roll">📋 Davomat / Chaqmoq</a>
+            </td>
+          </tr>
 
-    </table>
+        {% empty %}
+          <tr>
+            <td colspan="5" class="empty">
+              Guruh yo‘q.
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+
+      </table>
+    </div>
+  </div>
+
+  <!-- Mobile cards -->
+  <div class="m-list">
+    {% for g in groups %}
+      <div class="m-card">
+        <div class="m-top">
+          <div style="min-width:0;">
+            <p class="m-title">{{ g.nom }}</p>
+          </div>
+        </div>
+
+        <div class="m-grid">
+          <div class="m-row">
+            <span class="m-k">Center</span>
+            <span class="m-v">{{ g.center.nom }}</span>
+          </div>
+
+          <div class="m-row">
+            <span class="m-k">O‘qituvchi</span>
+            <span class="m-v">
+              {% if g.oqituvchi %}
+                {{ g.oqituvchi.ism }} {{ g.oqituvchi.familya }}
+              {% else %}
+                <span class="muted">—</span>
+              {% endif %}
+            </span>
+          </div>
+
+          <div class="m-row">
+            <span class="m-k">Talabalar</span>
+            <span class="m-v">{{ g.enrollments.count }}</span>
+          </div>
+        </div>
+
+        <div class="m-actions">
+          <a href="{% url 'education:group_detail' g.pk %}"
+             class="btn btn-sm btn-view">👁️ Ko‘rish</a>
+
+          <a href="{% url 'education:group_rollcall' g.pk %}"
+             class="btn btn-sm btn-roll">📋 Davomat / Chaqmoq</a>
+        </div>
+      </div>
+
+    {% empty %}
+      <div class="m-card">
+        <div class="empty">Guruh yo‘q.</div>
+      </div>
+    {% endfor %}
   </div>
 
 </div>

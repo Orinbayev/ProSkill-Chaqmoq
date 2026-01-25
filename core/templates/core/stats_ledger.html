@@ -2,161 +2,295 @@
 {% block content %}
 
 <style>
-/* TITLE */
-.page-title {
-    font-size: 28px;
-    font-weight: 700;
-    color: #22c55e;
-    margin-bottom: 25px;
-}
+  :root{
+    --bg0:#070a12;
+    --bg1:#0b1220;
+    --bg2:#0f1b33;
 
-/* SECTION TITLE */
-.section-title {
-    color: #e2e8f0;
-    font-size: 20px;
-    font-weight: 600;
-    margin-top: 30px;
+    --card: rgba(255,255,255,.055);
+    --card2: rgba(255,255,255,.085);
+    --line: rgba(255,255,255,.10);
+    --line2: rgba(255,255,255,.16);
+
+    --text:#e5e7eb;
+    --muted:#94a3b8;
+
+    --amber:#f59e0b;
+    --amber2:#fbbf24;
+    --neon:#22c55e;
+
+    --shadow: 0 22px 68px rgba(0,0,0,.55);
+    --shadow2: 0 12px 40px rgba(0,0,0,.40);
+    --radius: 22px;
+    --radius2: 18px;
+
+    --ringA: 0 0 0 3px rgba(245,158,11,.20);
+    --ringB: 0 0 0 3px rgba(34,197,94,.18);
+
+    --pad: clamp(12px, 2.2vw, 22px);
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{ overflow-x:hidden; }
+
+  .ledger-shell{
+    width: min(1240px, 100%);
+    margin: 0 auto;
+    padding: calc(var(--pad) + env(safe-area-inset-top)) var(--pad) calc(var(--pad) + env(safe-area-inset-bottom));
+    color: var(--text);
+    background:
+      radial-gradient(900px 520px at 12% 10%, rgba(245,158,11,.14), transparent 60%),
+      radial-gradient(900px 520px at 88% 14%, rgba(34,197,94,.12), transparent 60%),
+      radial-gradient(1100px 650px at 50% 110%, rgba(96,165,250,.10), transparent 60%),
+      linear-gradient(160deg, var(--bg0) 0%, var(--bg1) 45%, var(--bg2) 100%);
+    border-radius: 28px;
+  }
+
+  .ledger-top{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 14px;
     margin-bottom: 14px;
-}
+    padding: 16px 16px;
+    border-radius: var(--radius);
+    background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
+    border: 1px solid rgba(255,255,255,.10);
+    backdrop-filter: blur(14px);
+    box-shadow: var(--shadow2);
+    overflow:hidden;
+    position: relative;
+  }
+  .ledger-top::before{
+    content:"";
+    position:absolute; inset:-2px;
+    background:
+      radial-gradient(640px 220px at 18% 0%, rgba(245,158,11,.18), transparent 60%),
+      radial-gradient(640px 220px at 92% 10%, rgba(34,197,94,.14), transparent 60%);
+    pointer-events:none;
+    opacity:.65;
+  }
+  .ledger-top > *{ position:relative; z-index:1; }
 
-/* WRAPPERS */
-.table-wrapper {
-    background: rgba(17, 24, 39, 0.6);
-    border-radius: 14px;
-    padding: 18px;
-    border: 1px solid rgba(55,65,81,0.4);
-    backdrop-filter: blur(8px);
-    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
-}
+  .page-title{
+    margin:0;
+    font-weight: 950;
+    letter-spacing: .2px;
+    line-height: 1.1;
+    font-size: clamp(22px, 3.4vw, 34px);
+    color: var(--amber2);
+    text-shadow: 0 10px 30px rgba(245,158,11,.12);
+  }
+  .page-sub{
+    margin: 8px 0 0;
+    color: rgba(148,163,184,.94);
+    font-weight: 800;
+    font-size: 13px;
+    line-height: 1.35;
+  }
 
-/* TABLE STYLE */
-.table-modern {
+  .sum-pill{
+    display:inline-flex;
+    align-items:center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 999px;
+    background: rgba(2,6,23,.45);
+    border: 1px solid rgba(255,255,255,.10);
+    color: rgba(226,232,240,.92);
+    font-weight: 900;
+    white-space: nowrap;
+    box-shadow: 0 16px 40px rgba(0,0,0,.25);
+  }
+  .sum-pill b{ color:#fff; }
+  .sum-dot{
+    width: 10px; height: 10px; border-radius: 999px;
+    background: var(--neon);
+    box-shadow: 0 0 0 4px rgba(34,197,94,.12);
+  }
+
+  .section-title{
+    margin: 14px 0 10px;
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    color: rgba(226,232,240,.96);
+    font-size: 16px;
+    font-weight: 950;
+    letter-spacing: .2px;
+  }
+
+  .table-wrapper{
+    background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
+    border-radius: var(--radius);
+    padding: 14px;
+    border: 1px solid rgba(255,255,255,.10);
+    backdrop-filter: blur(14px);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  @media (min-width: 720px){
+    .table-wrapper{ padding: 16px; }
+  }
+
+  .table-modern{
     width: 100%;
     border-collapse: collapse;
-    color: #e5e7eb;
-}
+    color: rgba(226,232,240,.92);
+    table-layout: fixed;
+  }
 
-.table-modern thead th {
-    background: rgba(30,41,59,0.8);
-    padding: 12px;
-    font-size: 14px;
-    font-weight: 600;
+  .table-modern thead th{
+    background: rgba(2,6,23,.40);
+    padding: 12px 12px;
+    font-size: 12px;
+    font-weight: 950;
+    letter-spacing: .65px;
     text-transform: uppercase;
-    border-bottom: 2px solid #334155;
-}
+    border-bottom: 1px solid rgba(255,255,255,.12);
+    color: rgba(148,163,184,.95);
+    text-align: left;
+  }
 
-.table-modern tbody tr {
-    transition: 0.25s;
-}
+  .table-modern tbody tr{
+    transition: transform .15s ease, background .15s ease;
+  }
+  .table-modern tbody tr:hover{
+    background: rgba(255,255,255,.05);
+  }
 
-.table-modern tbody tr:hover {
-    background: rgba(55,65,81,0.35);
-}
+  .table-modern td{
+    padding: 12px 12px;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-.table-modern td {
-    padding: 12px;
-    border-bottom: 1px solid rgba(55,65,81,0.4);
-}
+  .score{
+    font-weight: 950;
+    color: var(--neon);
+    text-shadow: 0 10px 28px rgba(34,197,94,.12);
+  }
 
-/* VALUE COLORS */
-.score {
-    font-weight: 700;
-    color: #22c55e;
-}
-
-.empty {
+  .empty{
     text-align: center;
     padding: 16px;
-    color: #94a3b8;
-}
+    color: rgba(148,163,184,.92);
+    font-weight: 850;
+  }
 
-/* RESPONSIVE FIX */
-@media (max-width: 768px) {
-    .table-modern thead {
-        display: none;
+  .table-modern tbody tr:last-child td{ border-bottom: none; }
+
+  @media (max-width: 768px){
+    .table-wrapper{ padding: 12px; }
+    .table-modern thead{ display:none; }
+    .table-modern tr{
+      display:block;
+      margin-bottom: 12px;
+      border-radius: 18px;
+      background: rgba(2,6,23,.42);
+      border: 1px solid rgba(255,255,255,.08);
+      padding: 10px 10px;
     }
-    .table-modern tr {
-        display: block;
-        margin-bottom: 12px;
-        border-radius: 12px;
-        background: rgba(30,41,59,0.7);
-        padding: 10px;
+    .table-modern td{
+      display:flex;
+      justify-content:space-between;
+      gap: 10px;
+      padding: 9px 8px;
+      border-bottom: 1px dashed rgba(148,163,184,.18);
+      white-space: normal;
     }
-    .table-modern td {
-        display: flex;
-        justify-content: space-between;
-        padding: 8px 6px;
-        border-bottom: 1px dashed rgba(148,163,184,0.3);
+    .table-modern td:last-child{ border-bottom: none; }
+    .table-modern td::before{
+      content: attr(data-label);
+      font-weight: 950;
+      color: rgba(203,213,225,.92);
+      letter-spacing: .2px;
+      flex: 0 0 auto;
+      max-width: 45%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
-    .table-modern td:last-child {
-        border-bottom: none;
-    }
-    .table-modern td::before {
-        content: attr(data-label);
-        font-weight: 600;
-        color: #cbd5e1;
-    }
-}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; scroll-behavior:auto !important; }
+  }
 </style>
 
-<h3 class="page-title">⚡ Chaqmoq — umumiy: {{ sum_all }}</h3>
+<main class="ledger-shell" role="main" aria-label="Chaqmoq ledger">
 
-<!-- ⭐ LEADERBOARD -->
-<h4 class="section-title">🏆 Reyting</h4>
-<div class="table-wrapper">
-<table class="table-modern">
-  <thead>
-      <tr>
+  <header class="ledger-top" aria-label="Summary">
+    <div>
+      <h3 class="page-title">⚡ Chaqmoq — umumiy: {{ sum_all }}</h3>
+      <p class="page-sub">Reyting va oxirgi yozuvlar — barcha ekranlarda (mobile/tablet/desktop) ideal ko‘rinishda.</p>
+    </div>
+    <div class="sum-pill" aria-label="Umumiy chaqmoq">
+      <span class="sum-dot" aria-hidden="true"></span>
+      <span>Jami: <b>{{ sum_all }}</b></span>
+    </div>
+  </header>
+
+  <h4 class="section-title">🏆 Reyting</h4>
+  <div class="table-wrapper">
+    <table class="table-modern">
+      <thead>
+        <tr>
           <th>#</th>
           <th>Ism</th>
           <th>Familiya</th>
           <th>Jami</th>
-      </tr>
-  </thead>
-  <tbody>
-    {% for r in leaderboard %}
-      <tr>
-        <td data-label="#"> {{ forloop.counter }} </td>
-        <td data-label="Ism"> {{ r.student__ism }} </td>
-        <td data-label="Familiya"> {{ r.student__familya }} </td>
-        <td data-label="Jami" class="score"> {{ r.jami|default:0 }} </td>
-      </tr>
-    {% empty %}
-      <tr><td colspan="4" class="empty">Reyting bo‘sh.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
-</div>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in leaderboard %}
+          <tr>
+            <td data-label="#"> {{ forloop.counter }} </td>
+            <td data-label="Ism"> {{ r.student__ism }} </td>
+            <td data-label="Familiya"> {{ r.student__familya }} </td>
+            <td data-label="Jami" class="score"> {{ r.jami|default:0 }} </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4" class="empty">Reyting bo‘sh.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
-<!-- ⭐ LAST 50 RECORDS -->
-<h4 class="section-title">📝 Oxirgi 50 yozuv</h4>
-<div class="table-wrapper">
-<table class="table-modern">
-  <thead>
-    <tr>
-      <th>Sana</th>
-      <th>Talaba</th>
-      <th>Guruh</th>
-      <th>Qoida</th>
-      <th>Ball</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for l in last %}
-      <tr>
-        <td data-label="Sana">{{ l.sana|date:"Y-m-d H:i" }}</td>
-        <td data-label="Talaba">{{ l.student.ism }} {{ l.student.familya }}</td>
-        <td data-label="Guruh">
-          {% if l.group %}{{ l.group.nom }}{% else %}—{% endif %}
-        </td>
-        <td data-label="Qoida">{{ l.rule.nom }}</td>
-        <td data-label="Ball" class="score">{{ l.ball }}</td>
-      </tr>
-    {% empty %}
-      <tr><td colspan="5" class="empty">Yozuv yo‘q.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
-</div>
+  <h4 class="section-title" style="margin-top:16px;">📝 Oxirgi 50 yozuv</h4>
+  <div class="table-wrapper">
+    <table class="table-modern">
+      <thead>
+        <tr>
+          <th>Sana</th>
+          <th>Talaba</th>
+          <th>Guruh</th>
+          <th>Qoida</th>
+          <th>Ball</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in last %}
+          <tr>
+            <td data-label="Sana">{{ l.sana|date:"Y-m-d H:i" }}</td>
+            <td data-label="Talaba">{{ l.student.ism }} {{ l.student.familya }}</td>
+            <td data-label="Guruh">
+              {% if l.group %}{{ l.group.nom }}{% else %}—{% endif %}
+            </td>
+            <td data-label="Qoida">{{ l.rule.nom }}</td>
+            <td data-label="Ball" class="score">{{ l.ball }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="empty">Yozuv yo‘q.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</main>
 
 {% endblock %}

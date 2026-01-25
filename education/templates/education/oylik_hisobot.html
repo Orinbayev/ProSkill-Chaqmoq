@@ -3,119 +3,360 @@
 {% block content %}
 
 <style>
-body {
-  background: linear-gradient(180deg, #0f172a, #1e293b, #0f172a);
-  color: #e2e8f0;
-  font-family: 'Poppins', sans-serif;
-}
+  :root{
+    --bg1:#0b1224;
+    --bg2:#0f172a;
 
-/* Header */
-.report-title {
-  font-weight: 800;
-  color: #facc15;
-  text-shadow: 0 3px 10px rgba(250, 204, 21, .45);
-}
+    --panel: rgba(17, 24, 39, .62);
+    --panel2: rgba(2, 6, 23, .55);
+    --line: rgba(255,255,255,.10);
 
-/* Table container card */
-.report-card {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.08);
-  padding: 25px;
-  border-radius: 18px;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.4);
-  backdrop-filter: blur(8px);
-}
+    --text:#e5e7eb;
+    --muted:#94a3b8;
 
-/* Table style */
-.table-custom {
-  border-collapse: separate;
-  border-spacing: 0;
-}
+    --amber:#f59e0b;
+    --amber2:#facc15;
 
-.table-custom thead th {
-  background: #1e293b !important;
-  color: #f8fafc;
-  padding: 14px 10px;
-  border-bottom: 2px solid rgba(250,204,21,0.35);
-}
+    --blue:#3b82f6;
+    --blue2:#60a5fa;
 
-.table-custom tbody tr {
-  transition: 0.25s;
-}
+    --green:#22c55e;
+    --green2:#4ade80;
 
-.table-custom tbody tr:hover {
-  background: rgba(59,130,246,0.15);
-  transform: scale(1.01);
-}
-
-.table-custom td {
-  padding: 14px 10px;
-  color: #e5e7eb;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-
-/* Income color codes */
-.amount-teacher {
-  color: #22c55e;
-  font-weight: 700;
-  text-shadow: 0 2px 6px rgba(34,197,94,0.45);
-}
-
-.amount-center {
-  color: #60a5fa;
-  font-weight: 700;
-  text-shadow: 0 2px 6px rgba(96,165,250,0.45);
-}
-
-/* Responsive */
-@media (max-width: 576px) {
-  .table-custom th, .table-custom td {
-    font-size: 13px;
-    padding: 10px 6px;
+    --shadow: 0 24px 70px rgba(0,0,0,.55);
+    --radius: 18px;
   }
-}
+
+  body{
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(245, 158, 11, .18), transparent 55%),
+      radial-gradient(900px 520px at 95% 0%, rgba(59, 130, 246, .18), transparent 55%),
+      radial-gradient(800px 520px at 30% 105%, rgba(34, 197, 94, .10), transparent 55%),
+      linear-gradient(180deg, var(--bg1), var(--bg2), var(--bg1));
+    color: var(--text);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Poppins", sans-serif;
+    min-height: 100vh;
+  }
+
+  .page{
+    padding: clamp(14px, 2.5vw, 34px) 0;
+  }
+
+  .page-header{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+
+  .report-title{
+    margin:0;
+    font-weight: 900;
+    letter-spacing: .2px;
+    line-height: 1.15;
+    font-size: clamp(18px, 2.4vw, 28px);
+    color: var(--amber2);
+    text-shadow: 0 10px 30px rgba(250, 204, 21, .18);
+  }
+
+  .report-subtitle{
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 13.5px;
+  }
+
+  .chip{
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(245, 158, 11, .26);
+    background: rgba(245, 158, 11, .10);
+    color: rgba(250, 204, 21, .95);
+    font-weight: 800;
+    font-size: 12.5px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .shell{
+    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .shell::before{
+    content:"";
+    position:absolute;
+    inset:-1px;
+    background:
+      radial-gradient(800px 300px at 20% 0%, rgba(245, 158, 11, .16), transparent 60%),
+      radial-gradient(700px 260px at 90% 10%, rgba(59, 130, 246, .14), transparent 62%),
+      radial-gradient(700px 260px at 50% 120%, rgba(34, 197, 94, .10), transparent 62%);
+    pointer-events:none;
+    opacity:.95;
+  }
+
+  .shell-inner{
+    position: relative;
+    background: rgba(2, 6, 23, .35);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: clamp(12px, 2vw, 18px);
+  }
+
+  .table-wrap{
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    overflow: hidden;
+    background: rgba(15, 23, 42, .45);
+  }
+
+  .table{
+    margin: 0;
+    color: var(--text);
+  }
+
+  .table-custom{
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .table-custom thead th{
+    background: rgba(255,255,255,.08) !important;
+    color: rgba(229, 231, 235, .95);
+    padding: 14px 10px;
+    border-bottom: 1px solid rgba(250,204,21,0.26);
+    font-weight: 900;
+    letter-spacing: .2px;
+    white-space: nowrap;
+  }
+
+  .table-custom td{
+    padding: 12px 10px;
+    color: rgba(229, 231, 235, .92);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    vertical-align: middle;
+  }
+
+  .table-custom tbody tr{
+    transition: background .18s ease, transform .18s ease;
+  }
+
+  .table-custom tbody tr:hover{
+    background: rgba(59,130,246,0.12);
+  }
+
+  .amount-teacher{
+    color: rgba(74, 222, 128, .95);
+    font-weight: 900;
+    text-shadow: 0 10px 30px rgba(34,197,94,0.18);
+  }
+
+  .amount-center{
+    color: rgba(96, 165, 250, .95);
+    font-weight: 900;
+    text-shadow: 0 10px 30px rgba(96,165,250,0.16);
+  }
+
+  .muted{
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  .mono{
+    font-variant-numeric: tabular-nums;
+  }
+
+  .mobile-cards{
+    display:none;
+  }
+
+  .mobile-card{
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(2, 6, 23, .35);
+    border-radius: 16px;
+    padding: 12px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .mobile-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .mobile-title{
+    margin:0;
+    font-weight: 900;
+    color: rgba(229, 231, 235, .95);
+    line-height: 1.2;
+    font-size: 14.5px;
+  }
+
+  .pill-soft{
+    display:inline-flex;
+    align-items:center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 900;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.06);
+    color: rgba(229,231,235,.92);
+    white-space: nowrap;
+  }
+
+  .pill-idx{
+    border-color: rgba(245, 158, 11, .22);
+    background: rgba(245, 158, 11, .10);
+    color: rgba(254, 243, 199, .95);
+  }
+
+  .rows{
+    display:grid;
+    gap: 8px;
+  }
+
+  .row{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 10px;
+    font-size: 13.5px;
+  }
+
+  .row .k{
+    color: rgba(148, 163, 184, .95);
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  .row .v{
+    color: rgba(229, 231, 235, .92);
+    text-align:right;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    max-width: 70%;
+  }
+
+  .row .v.green{ color: rgba(74, 222, 128, .95); font-weight: 900; }
+  .row .v.blue{ color: rgba(96, 165, 250, .95); font-weight: 900; }
+
+  @media (max-width: 768px){
+    .table-wrap{ display:none; }
+    .mobile-cards{
+      display:grid;
+      gap: 12px;
+    }
+  }
+
+  @media (max-width: 576px){
+    .page-header{
+      align-items:flex-start;
+      flex-direction: column;
+    }
+  }
 </style>
 
-<div class="container py-5">
-  <h2 class="text-center report-title mb-4">
-    📘 O‘qituvchilar Umumiy Oylik Hisobot Paneli
-  </h2>
+<main class="page">
+  <div class="container">
 
-  <div class="report-card">
+    <header class="page-header">
+      <div>
+        <h2 class="report-title text-center text-md-start">
+          📘 O‘qituvchilar Umumiy Oylik Hisobot Paneli
+        </h2>
+        <p class="report-subtitle text-center text-md-start">
+          O‘qituvchi daromadi va markaz foydasi bo‘yicha umumiy ko‘rinish.
+        </p>
+      </div>
 
-    <table class="table table-custom w-100 text-center align-middle">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>👨‍🏫 O‘qituvchi</th>
-          <th>👥 Guruhlar</th>
-          <th>📚 Darslar</th>
-          <th>💰 O‘qituvchi Daromadi</th>
-          <th>🏫 Markaz Foydasi</th>
-        </tr>
-      </thead>
+      <span class="chip">⚡ Premium Dark • Glass UI</span>
+    </header>
 
-      <tbody>
-        {% for t in oylik_data %}
-        <tr>
-          <td>{{ forloop.counter }}</td>
-          <td>{{ t.oqituvchi }}</td>
-          <td>{{ t.guruhlar }}</td>
-          <td>{{ t.darslar }}</td>
+    <section class="shell" aria-label="Oylik hisobot">
+      <div class="shell-inner">
 
-          <td class="amount-teacher">
-            {{ t.daromad|intcomma }} so‘m
-          </td>
+        <div class="table-wrap" role="region" aria-label="Oylik hisobot jadvali" tabindex="0">
+          <table class="table table-custom w-100 text-center align-middle">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>👨‍🏫 O‘qituvchi</th>
+                <th>👥 Guruhlar</th>
+                <th>📚 Darslar</th>
+                <th>💰 O‘qituvchi Daromadi</th>
+                <th>🏫 Markaz Foydasi</th>
+              </tr>
+            </thead>
 
-          <td class="amount-center">
-            {{ t.markaz_foydasi|intcomma }} so‘m
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+            <tbody>
+              {% for t in oylik_data %}
+              <tr>
+                <td class="muted mono">{{ forloop.counter }}</td>
+                <td class="fw-bold">{{ t.oqituvchi }}</td>
+                <td class="mono">{{ t.guruhlar }}</td>
+                <td class="mono">{{ t.darslar }}</td>
+
+                <td class="amount-teacher mono">
+                  {{ t.daromad|intcomma }} so‘m
+                </td>
+
+                <td class="amount-center mono">
+                  {{ t.markaz_foydasi|intcomma }} so‘m
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mobile-cards" aria-label="Oylik hisobot (mobil)">
+          {% for t in oylik_data %}
+          <article class="mobile-card">
+            <div class="mobile-head">
+              <h3 class="mobile-title">👨‍🏫 {{ t.oqituvchi }}</h3>
+              <span class="pill-soft pill-idx">#{{ forloop.counter }}</span>
+            </div>
+
+            <div class="rows">
+              <div class="row">
+                <div class="k">👥 Guruhlar:</div>
+                <div class="v mono">{{ t.guruhlar }}</div>
+              </div>
+              <div class="row">
+                <div class="k">📚 Darslar:</div>
+                <div class="v mono">{{ t.darslar }}</div>
+              </div>
+              <div class="row">
+                <div class="k">💰 Daromad:</div>
+                <div class="v green mono">{{ t.daromad|intcomma }} so‘m</div>
+              </div>
+              <div class="row">
+                <div class="k">🏫 Markaz foydasi:</div>
+                <div class="v blue mono">{{ t.markaz_foydasi|intcomma }} so‘m</div>
+              </div>
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+
+      </div>
+    </section>
 
   </div>
-</div>
+</main>
 
 {% endblock %}

@@ -1,88 +1,709 @@
-{% extends 'base.html' %}
-{% block content %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <title>Add Student</title>
 
-<style>
-.guest-wrapper {
-    min-height: calc(100vh - 80px);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    padding: 25px;
-}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-/* Card */
-.guest-card {
-    background: #ffffff0d;
-    padding: 32px 36px;
-    border-radius: 16px;
-    max-width: 520px;
-    width: 100%;
-    backdrop-filter: blur(6px);
-    border: 1px solid rgba(255,255,255,0.08);
-    box-shadow: 0 6px 25px rgba(0,0,0,0.3);
-}
+  <style>
+    :root{
+      --bg0:#070A12;
+      --bg1:#0B1220;
+      --bg2:#0F172A;
 
-/* Title */
-.guest-card h3 {
-    color: #4ade80;
-    font-size: 26px;
-    font-weight: 700;
-    margin-bottom: 16px;
-}
+      --card: rgba(255,255,255,.06);
+      --card2: rgba(255,255,255,.04);
+      --line: rgba(255,255,255,.10);
+      --line2: rgba(255,255,255,.16);
 
-/* Text */
-.guest-card p {
-    color: #e5e7eb;
-    font-size: 15px;
-    line-height: 1.6;
-}
+      --text:#E5E7EB;
+      --muted:#94A3B8;
 
-/* Link button */
-.guest-btn {
-    display: inline-block;
-    margin-top: 20px;
-    padding: 10px 22px;
-    font-size: 15px;
-    font-weight: 600;
-    background: #22c55e;
-    color: #fff;
-    border-radius: 10px;
-    text-decoration: none;
-    transition: .25s ease;
-}
+      --amber:#F59E0B;
+      --amber2:#FBBF24;
+      --cyan:#38BDF8;
 
-.guest-btn:hover {
-    background: #16a34a;
-    transform: translateY(-3px);
-}
+      --danger:#EF4444;
+      --ok:#22C55E;
 
-/* RESPONSIV */
-@media (max-width: 480px) {
-    .guest-card {
-        padding: 24px 22px;
-        border-radius: 14px;
+      --radius:18px;
+      --radius2:14px;
+
+      --shadow: 0 18px 55px rgba(0,0,0,.55);
+      --shadow2: 0 10px 30px rgba(0,0,0,.45);
+
+      --ring: 0 0 0 4px rgba(245,158,11,.18);
+      --ring2: 0 0 0 4px rgba(56,189,248,.18);
+
+      --pad: 14px;
     }
-    .guest-card h3 {
-        font-size: 22px;
-    }
-    .guest-card p {
-        font-size: 14px;
-    }
-}
-</style>
 
-<div class="guest-wrapper">
-    <div class="guest-card">
-        <h3>🚫 Kirish cheklangan</h3>
-        <p>
-            Sizning akkauntingizga rol biriktirilmagan.<br>
-            Iltimos, administratorga murojaat qiling yoki quyidagi havola orqali
-            <br>admin panelga o‘ting va rol belgilang (director / manager / teacher / student).
-        </p>
-        <a href="/admin/" class="guest-btn">🔑 Admin panelga o‘tish</a>
-    </div>
-</div>
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 700px at 10% -10%, rgba(245,158,11,.22), transparent 60%),
+        radial-gradient(1000px 700px at 110% 10%, rgba(56,189,248,.18), transparent 60%),
+        radial-gradient(900px 600px at 50% 120%, rgba(251,191,36,.10), transparent 60%),
+        linear-gradient(180deg, var(--bg0), var(--bg1) 45%, var(--bg2));
+      overflow-x:hidden;
+    }
 
-{% endblock %}
+    .fx-noise{
+      position: fixed;
+      inset: 0;
+      pointer-events:none;
+      opacity:.10;
+      mix-blend-mode: overlay;
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E");
+      background-size: 240px 240px;
+    }
+
+    a{ color: inherit; }
+    img{ max-width:100%; height:auto; }
+
+    .app{
+      min-height: 100svh;
+      display:flex;
+      flex-direction: column;
+    }
+
+    .topbar{
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      padding: 12px 10px;
+      backdrop-filter: blur(12px);
+      background: linear-gradient(180deg, rgba(6,8,14,.72), rgba(6,8,14,.35));
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .topbar-inner{
+      max-width: 1180px;
+      margin: 0 auto;
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .brand-badge{
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: linear-gradient(135deg, rgba(245,158,11,.22), rgba(56,189,248,.12));
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 16px 42px rgba(0,0,0,.35);
+    }
+
+    .brand-badge::before{
+      content:"⚡";
+      font-size: 18px;
+      filter: drop-shadow(0 6px 16px rgba(245,158,11,.25));
+    }
+
+    .brand-text{
+      min-width: 0;
+    }
+
+    .brand-title{
+      margin:0;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: .2px;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .brand-sub{
+      margin: 2px 0 0;
+      font-size: 12px;
+      color: rgba(148,163,184,.95);
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .topbar-actions{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      flex: 0 0 auto;
+    }
+
+    .pill{
+      height: 42px;
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      padding: 0 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: inset 0 0 18px rgba(0,0,0,.28);
+      min-width: 0;
+    }
+
+    .pill svg{
+      width: 16px;
+      height: 16px;
+      opacity: .85;
+      flex: 0 0 auto;
+    }
+
+    .pill input{
+      width: 220px;
+      max-width: 38vw;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: var(--text);
+      font-size: 13.5px;
+      font-weight: 600;
+      min-width: 0;
+    }
+    .pill input::placeholder{ color: rgba(148,163,184,.9); font-weight: 600; }
+
+    .icon-btn{
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      cursor:pointer;
+      transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
+      box-shadow: 0 12px 26px rgba(0,0,0,.25);
+    }
+    .icon-btn:hover{
+      transform: translateY(-2px);
+      border-color: rgba(255,255,255,.18);
+      background: rgba(255,255,255,.08);
+    }
+    .icon-btn:active{ transform: translateY(0px); }
+
+    .icon-btn:focus-visible{
+      outline: none;
+      box-shadow: 0 12px 26px rgba(0,0,0,.25), var(--ring2);
+      border-color: rgba(56,189,248,.35);
+    }
+
+    .main{
+      flex: 1;
+      width: 100%;
+      padding: 14px 10px 26px;
+    }
+
+    .container{
+      max-width: 1180px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .hero{
+      display:flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 6px 0 14px;
+    }
+
+    .hero h1{
+      margin:0;
+      font-size: clamp(18px, 2.2vw, 28px);
+      font-weight: 950;
+      letter-spacing: .15px;
+      line-height: 1.15;
+      color: #fff;
+    }
+
+    .hero p{
+      margin:0;
+      font-size: 13px;
+      color: rgba(148,163,184,.95);
+      font-weight: 600;
+      line-height: 1.55;
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      overflow: hidden;
+    }
+
+    .card-inner{
+      padding: 14px;
+    }
+
+    @media (min-width: 480px){
+      .card-inner{ padding: 18px; }
+      .main{ padding: 16px 12px 30px; }
+      .topbar{ padding: 12px 12px; }
+    }
+
+    @media (min-width: 1024px){
+      .card-inner{ padding: 22px; }
+      .main{ padding: 18px 16px 36px; }
+      .topbar{ padding: 14px 16px; }
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      align-items: start;
+      min-width: 0;
+    }
+
+    @media (min-width: 760px){
+      .grid{
+        grid-template-columns: 1.2fr .8fr;
+        gap: 16px;
+      }
+    }
+
+    @media (min-width: 1100px){
+      .grid{
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+    }
+
+    .panel{
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: var(--radius2);
+      padding: 14px;
+      box-shadow: var(--shadow2);
+      min-width: 0;
+    }
+
+    @media (min-width: 480px){
+      .panel{ padding: 16px; }
+    }
+
+    .panel-title{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 0 0 10px;
+      min-width: 0;
+    }
+
+    .panel-title h2{
+      margin:0;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: .4px;
+      text-transform: uppercase;
+      color: rgba(226,232,240,.95);
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      height: 30px;
+      padding: 0 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(245,158,11,.22);
+      background: rgba(245,158,11,.10);
+      color: rgba(253,230,138,.98);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .2px;
+      white-space: nowrap;
+    }
+
+    form{
+      margin:0;
+    }
+
+    form :where(input, select, textarea){
+      width: 100%;
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      padding: 12px 12px;
+      font-size: 14px;
+      font-weight: 650;
+      outline: none;
+      transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease, background .18s ease;
+      min-width: 0;
+    }
+
+    form :where(textarea){
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    form :where(select){
+      appearance: none;
+      background-image:
+        linear-gradient(45deg, transparent 50%, rgba(229,231,235,.9) 50%),
+        linear-gradient(135deg, rgba(229,231,235,.9) 50%, transparent 50%);
+      background-position:
+        calc(100% - 18px) calc(50% - 2px),
+        calc(100% - 12px) calc(50% - 2px);
+      background-size: 6px 6px, 6px 6px;
+      background-repeat: no-repeat;
+      padding-right: 36px;
+    }
+
+    form :where(input, select, textarea)::placeholder{
+      color: rgba(148,163,184,.95);
+      font-weight: 650;
+    }
+
+    form :where(input, select, textarea):hover{
+      border-color: rgba(255,255,255,.16);
+      background: rgba(255,255,255,.07);
+    }
+
+    form :where(input, select, textarea):focus{
+      border-color: rgba(245,158,11,.40);
+      box-shadow: var(--ring);
+      background: rgba(255,255,255,.08);
+    }
+
+    form :where(input, select, textarea):focus-visible{
+      outline: none;
+    }
+
+    form :where(input[disabled], select[disabled], textarea[disabled]){
+      opacity: .55;
+      cursor: not-allowed;
+    }
+
+    label{
+      display:block;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .3px;
+      color: rgba(226,232,240,.88);
+      margin: 0 0 7px;
+      text-transform: uppercase;
+    }
+
+    .helptext, small, .muted{
+      display:block;
+      margin-top: 7px;
+      font-size: 12px;
+      font-weight: 650;
+      color: rgba(148,163,184,.92);
+      line-height: 1.4;
+    }
+
+    .errorlist, .error, .field-error{
+      margin: 8px 0 0;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(239,68,68,.25);
+      background: rgba(239,68,68,.12);
+      color: rgba(254,226,226,.98);
+      font-size: 12.5px;
+      font-weight: 750;
+      line-height: 1.35;
+      list-style: none;
+    }
+
+    .form-grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    @media (min-width: 640px){
+      .form-grid{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+    }
+
+    @media (min-width: 1024px){
+      .form-grid{
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+    }
+
+    .full{ grid-column: 1 / -1; }
+
+    .actions{
+      display:flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    @media (min-width: 640px){
+      .actions{
+        flex-direction: row;
+        align-items:center;
+        justify-content: flex-end;
+      }
+    }
+
+    button, .btn, input[type="submit"], input[type="button"]{
+      border: none;
+      cursor: pointer;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: .2px;
+      transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease, opacity .18s ease;
+      min-height: 46px;
+    }
+
+    .btn-primary, button[type="submit"], input[type="submit"]{
+      background: linear-gradient(135deg, rgba(245,158,11,.95), rgba(251,191,36,.92));
+      color: #0B1220;
+      box-shadow: 0 14px 32px rgba(245,158,11,.22);
+    }
+
+    .btn-primary:hover, button[type="submit"]:hover, input[type="submit"]:hover{
+      transform: translateY(-2px);
+      box-shadow: 0 18px 44px rgba(245,158,11,.28);
+    }
+
+    .btn-primary:active, button[type="submit"]:active, input[type="submit"]:active{
+      transform: translateY(0px);
+      opacity: .95;
+    }
+
+    .btn-primary:focus-visible, button[type="submit"]:focus-visible, input[type="submit"]:focus-visible{
+      outline: none;
+      box-shadow: 0 18px 44px rgba(245,158,11,.28), var(--ring);
+    }
+
+    .btn-ghost, button[type="button"], input[type="button"]{
+      background: rgba(255,255,255,.06);
+      color: rgba(226,232,240,.95);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 12px 26px rgba(0,0,0,.20);
+    }
+
+    .btn-ghost:hover, button[type="button"]:hover, input[type="button"]:hover{
+      transform: translateY(-2px);
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.18);
+    }
+
+    .btn-ghost:focus-visible, button[type="button"]:focus-visible, input[type="button"]:focus-visible{
+      outline: none;
+      box-shadow: 0 12px 26px rgba(0,0,0,.20), var(--ring2);
+      border-color: rgba(56,189,248,.35);
+    }
+
+    .btn-full{
+      width: 100%;
+    }
+
+    @media (max-width: 639px){
+      button, .btn, input[type="submit"], input[type="button"]{
+        width: 100%;
+      }
+    }
+
+    .divider{
+      height: 1px;
+      background: rgba(255,255,255,.08);
+      margin: 12px 0;
+    }
+
+    .aside-card{
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .aside-kv{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .kv{
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+      padding: 12px;
+      min-width: 0;
+    }
+
+    .kv .k{
+      font-size: 11px;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      color: rgba(148,163,184,.92);
+      font-weight: 900;
+      margin: 0 0 6px;
+    }
+
+    .kv .v{
+      font-size: 13px;
+      color: rgba(226,232,240,.95);
+      font-weight: 750;
+      margin: 0;
+      line-height: 1.35;
+    }
+
+    @media (min-width: 760px){
+      .aside-kv{ grid-template-columns: 1fr; }
+    }
+
+    @media (min-width: 1100px){
+      .aside-kv{ grid-template-columns: 1fr; }
+    }
+
+    :where(a, button, input, select, textarea):focus-visible{
+      scroll-margin-top: 90px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="fx-noise" aria-hidden="true"></div>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <div class="brand-badge" aria-hidden="true"></div>
+          <div class="brand-text">
+            <p class="brand-title">Admin • Add Student</p>
+            <p class="brand-sub">Premium dark • glass • neon/amber</p>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <div class="pill" role="search">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="2" opacity=".9"/>
+              <path d="M16.5 16.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".9"/>
+            </svg>
+            <input type="search" placeholder="Search..." aria-label="Search" />
+          </div>
+
+          <button class="icon-btn" type="button" aria-label="Notifications">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M15 17H6a2 2 0 0 1-2-2c0-1.3 1-2 1-2V9a7 7 0 1 1 14 0v4s1 .7 1 2a2 2 0 0 1-2 2h-1" stroke="currentColor" stroke-width="2" opacity=".9"/>
+              <path d="M10 20a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".9"/>
+            </svg>
+          </button>
+
+          <button class="icon-btn" type="button" aria-label="Profile">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" stroke="currentColor" stroke-width="2" opacity=".9"/>
+              <path d="M20 21a8 8 0 1 0-16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".9"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="container">
+        <div class="hero">
+          <h1>Add Student</h1>
+          <p>Mobile-first, responsive, glassmorphism, premium dark UI. Keep your existing form markup unchanged inside the card below.</p>
+        </div>
+
+        <section class="card" aria-label="Add student form">
+          <div class="card-inner">
+            <div class="grid">
+              <div class="panel">
+                <div class="panel-title">
+                  <h2>Student details</h2>
+                  <span class="chip">Amber • Neon</span>
+                </div>
+
+                <div class="form-grid">
+                  <div class="full">
+                    <div style="padding:12px; border-radius:14px; border:1px dashed rgba(255,255,255,.14); background: rgba(255,255,255,.03); color: rgba(148,163,184,.95); font-weight:700; line-height:1.5; font-size:13px;">
+                      Paste your existing <strong>add_student.html</strong> form markup here (unchanged). This template styles ALL existing inputs/buttons/labels without renaming anything.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="divider" role="separator" aria-hidden="true"></div>
+
+                <div class="actions">
+                  <button class="btn-ghost" type="button">Cancel</button>
+                  <button class="btn-primary" type="submit">Save</button>
+                </div>
+              </div>
+
+              <aside class="panel" aria-label="Tips">
+                <div class="panel-title">
+                  <h2>Usability</h2>
+                  <span class="chip">A11y</span>
+                </div>
+
+                <div class="aside-card">
+                  <div class="aside-kv">
+                    <div class="kv">
+                      <p class="k">Mobile</p>
+                      <p class="v">Single column, big touch targets, no horizontal scroll.</p>
+                    </div>
+                    <div class="kv">
+                      <p class="k">Tablet / Desktop</p>
+                      <p class="v">Auto multi-column feel via CSS, clean spacing & typography.</p>
+                    </div>
+                    <div class="kv">
+                      <p class="k">Focus</p>
+                      <p class="v">Strong amber/cyan focus rings for accessibility.</p>
+                    </div>
+                  </div>
+
+                  <div class="divider" role="separator" aria-hidden="true"></div>
+
+                  <div class="kv">
+                    <p class="k">Note</p>
+                    <p class="v">Buttons and inputs are styled globally (form-safe) without requiring any class changes.</p>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

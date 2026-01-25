@@ -142,7 +142,8 @@ def user_edit(request, pk: int):
         messages.success(request, "Foydalanuvchi ma’lumotlari yangilandi.")
         return redirect("accounts:user_edit", pk=obj.id)
 
-    return render(request, "accounts/user_edit.html", {"form": form, "obj": obj})
+    return render(request, "accounts/user_form.html", {"form": form, "obj": obj})
+
 
 from django.views.decorators.http import require_GET
 
