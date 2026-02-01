@@ -286,8 +286,8 @@ def tolov_oquvchilar(request):
     selected_month = parse_month_str(month_str) or first_day_of_current_month()
     month_str_out = selected_month.strftime("%Y-%m")
 
-    from core.tenant import get_request_center
-    center = get_request_center(request)
+    # from core.tenant import get_request_center
+    center = get_active_center(request)
     if not center and not request.user.is_superuser:
         return HttpResponseForbidden("Markaz biriktirilmagan")
 
@@ -594,8 +594,8 @@ def create_payment(request):
         messages.error(request, "Enrollment ID kelmadi.")
         return redirect(next_url)
 
-    from core.tenant import get_request_center
-    center = get_request_center(request)
+    # from core.tenant import get_request_center
+    center = get_active_center(request)
     qs = Enrollment.objects.all()
     if center:
         qs = qs.filter(center=center)
@@ -633,8 +633,8 @@ def payment_update(request, payment_id: int):
     if not user_can_manage_payments(request.user):
         return JsonResponse({"ok": False, "error": "forbidden"}, status=403)
 
-    from core.tenant import get_request_center
-    center = get_request_center(request)
+    # from core.tenant import get_request_center
+    center = get_active_center(request)
     qs = Payment.objects.select_related("enrollment")
     if center:
         qs = qs.filter(center=center)
@@ -732,8 +732,8 @@ def _first_day_of_month(d: date) -> date:
 
 @transaction.atomic
 def enrollment_edit(request, enrollment_id):
-    from core.tenant import get_request_center
-    center = get_request_center(request)
+    # from core.tenant import get_request_center
+    center = get_active_center(request)
     qs = Enrollment.objects.select_related("student", "group")
     if center:
         qs = qs.filter(center=center)
@@ -794,8 +794,8 @@ def enrollment_delete(request, enrollment_id: int):
         messages.error(request, "Ruxsat yo‘q.")
         return redirect("core:home")
 
-    from core.tenant import get_request_center
-    center = get_request_center(request)
+    # from core.tenant import get_request_center
+    center = get_active_center(request)
     qs = Enrollment.objects.select_related("student", "group")
     if center:
         qs = qs.filter(center=center)
