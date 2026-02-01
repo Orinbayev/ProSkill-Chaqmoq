@@ -33,7 +33,7 @@ INSTALLED_APPS = [
     "chaqmoq",
     "store",
     "core",
-    
+    "billing",
 ]
 JAZZMIN_SETTINGS = {
     "site_title": "⚡ Chaqmoq Admin",
