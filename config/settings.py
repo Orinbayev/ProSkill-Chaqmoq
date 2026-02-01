@@ -134,17 +134,31 @@ TEMPLATES = [
 ]
 
 # ===== Database =====
-DATABASES = {
-    "default": {
-        "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.postgresql"),
-        "NAME": os.getenv("DB_NAME"),
-        "USER": os.getenv("DB_USER"),
-        "PASSWORD": os.getenv("DB_PASSWORD"),
-        "HOST": os.getenv("DB_HOST"),
-        "PORT": os.getenv("DB_PORT", "5432"),
-        "OPTIONS": {"sslmode": os.getenv("DB_SSLMODE", "require")},
+# ===== Database Switcher =====
+MODE = os.getenv("MODE", "local")
+
+if MODE == "render":
+    DATABASES = {
+        "default": {
+            "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.postgresql"),
+            "NAME": os.getenv("DB_NAME"),
+            "USER": os.getenv("DB_USER"),
+            "PASSWORD": os.getenv("DB_PASSWORD"),
+            "HOST": os.getenv("DB_HOST"),
+            "PORT": os.getenv("DB_PORT", "5432"),
+            "OPTIONS": {"sslmode": os.getenv("DB_SSLMODE", "require")},
+        }
     }
-}
+else:  # Local development mode
+    DATABASES = {
+        "default": {
+            "ENGINE": os.getenv("LOCAL_DB_ENGINE", "django.db.backends.sqlite3"),
+            "NAME": BASE_DIR / os.getenv("LOCAL_DB_NAME", "db.sqlite3"),
+            "OPTIONS": {
+                "timeout": 60,
+            }
+        }
+    }
 
 # ===== Authentication =====
 AUTH_USER_MODEL = "accounts.User"
