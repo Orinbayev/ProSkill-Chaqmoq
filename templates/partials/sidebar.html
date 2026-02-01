@@ -155,7 +155,7 @@
       <span class="si-text">Guruhlar</span>
     </a>
 
-    {% if feature_leads %}
+    {% if feature_leads or request.user.is_superuser %}
     <a href="{% url 'store:lead_list' %}"
       class="sidebar-item {% if vn == 'store:lead_list' or vn == 'store:lead_create' or vn == 'store:lead_detail' %}active{% endif %}"
       data-title="Leadlar">
@@ -164,7 +164,7 @@
     </a>
     {% endif %}
 
-    {% if feature_store %}
+    {% if feature_store or request.user.is_superuser %}
     <a href="{% url 'store:products' %}"
       class="sidebar-item {% if vn == 'store:products' or vn == 'store:product_detail' or vn == 'store:product_create' or vn == 'store:product_update' %}active{% endif %}"
       data-title="Do‘kon">
@@ -173,7 +173,7 @@
     </a>
     {% endif %}
 
-    {% if feature_finance %}
+    {% if feature_finance or request.user.is_superuser %}
     <a href="{% url 'education:tolovlar_home' %}"
       class="sidebar-item {% if vn == 'education:tolovlar_home' or vn == 'education:tolov_add' or vn == 'education:tolov_edit' %}active{% endif %}"
       data-title="To‘lov">
@@ -182,7 +182,7 @@
     </a>
     {% endif %}
 
-    {% if feature_kpi %}
+    {% if feature_kpi or request.user.is_superuser %}
     <a href="{% url 'education:teacher_salary_summary' %}"
       class="sidebar-item {% if vn == 'education:teacher_salary_summary' %}active{% endif %}" data-title="Hisobot">
       <span class="si-ico"><i class="fa-solid fa-chart-pie"></i></span>
@@ -209,7 +209,8 @@
   <!-- BOTTOM: SETTINGS & SUB -->
   <div class="sidebar-bottom">
     <!-- 💳 MINI SUBSCRIPTION WIDGET -->
-    {% if sub_ui and request.user.role != 'student' and request.user.role != 'parent' and request.user.role != 'teacher'%}
+    {% if sub_ui and request.user.role != 'student' and request.user.role != 'parent' and request.user.role !=
+    'teacher'%}
     <div class="sidebar-sub-widget-mini">
       <div class="sub-header-mini">
         <div class="sub-icon-mini">
