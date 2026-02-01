@@ -526,9 +526,15 @@
       </button>
       {% endif %}
 
+      {% if user_kind == 'parents' %}
+      <a href="{% url 'core:parent_add' %}" class="btn-action btn-primary">
+        <i class="fa-solid fa-plus"></i> Yangi
+      </a>
+      {% else %}
       <a href="{% url 'accounts:add_user' %}?role={{ user_kind|default:'student' }}" class="btn-action btn-primary">
         <i class="fa-solid fa-plus"></i> Yangi
       </a>
+      {% endif %}
     </div>
   </div>
 
@@ -694,7 +700,7 @@
       <span>Ko‘rsatish:</span>
       <select class="size-select" onchange="updateQuery({size: this.value, page: 1})">
         <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
-        <option value="25" {% if page_size == 25 %}selected{% endif %}>25</option>
+        <option value="25" {% if page_size ==  25 %}selected{% endif %}>25</option>
         <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
         <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
       </select>
