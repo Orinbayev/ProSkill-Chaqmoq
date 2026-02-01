@@ -319,7 +319,10 @@ def lead_list(request):
     )
 
     # ✅ Tenant isolation: faqat shu center leadlari
-    leads = Lead.objects.filter(center=center)
+    if request.user.is_superuser:
+        leads = Lead.objects.all()
+    else:
+        leads = Lead.objects.filter(center=center)
 
     if status_id:
         leads = leads.filter(status_id=status_id)
