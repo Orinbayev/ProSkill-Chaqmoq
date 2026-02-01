@@ -7,7 +7,7 @@ from django.urls import reverse, NoReverseMatch
 
 # Setup Django
 if not settings.configured:
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "chaqmoq_academy.settings")
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
     django.setup()
 
 from django.test import Client
