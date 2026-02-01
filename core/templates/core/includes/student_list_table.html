@@ -1,0 +1,116 @@
+{% for u in page_obj %}
+<tr>
+    <td>
+        <a href="{% url 'core:user_view' u.id %}" style="color:white; text-decoration:none; font-weight:700;">
+            {{ u.ism }}
+        </a>
+        <div style="font-size:11px; color:#64748b; margin-top:2px;">{{ u.email|default:"" }}</div>
+    </td>
+    <td>{{ u.familya|default:"—" }}</td>
+    <td style="font-family:monospace; color:#94a3b8;">{{ u.telefon1|default:"—" }}</td>
+    {% if user_kind != 'managers' and user_kind != 'parents' %}
+    <td>
+        {% if u.gender == 'male' %}
+        <span class="badge-gender male">Erkak</span>
+        {% elif u.gender == 'female' %}
+        <span class="badge-gender female">Ayol</span>
+        {% else %}
+        —
+        {% endif %}
+    </td>
+    {% endif %}
+    {% if user_kind != 'parents' %}
+    <td>{{ u.birth_date|date:"m.d.Y"|default:"—" }}</td>
+    {% endif %}
+
+    {% if user_kind == 'students' %}
+    <td>
+        {% if u.jami_chaqmoq > 0 %}
+        <span class="badge-coin pos">+{{ u.jami_chaqmoq }}</span>
+        {% elif u.jami_chaqmoq < 0 %} <span class="badge-coin neg">{{ u.jami_chaqmoq }}</span>
+            {% else %}
+            <span class="badge-coin zero">0</span>
+            {% endif %}
+    </td>
+    <td>
+        <div class="group-chips">
+            {% for e in u.enrollment_set.all %}
+            <a href="{% url 'education:group_detail' e.group.id %}" class="chip-link">
+                <span class="chip">{{ e.group.nom }}</span>
+            </a>
+            {% empty %}
+            <span class="chip" style="opacity:0.5">—</span>
+            {% endfor %}
+        </div>
+    </td>
+    {% endif %}
+
+    {% if user_kind == 'parents' %}
+    <td>
+        <div class="group-chips">
+            {% for child in u.children.all %}
+            <span class="chip"
+                style="background: rgba(59, 130, 246, 0.1); color: #60a5fa; border-color: rgba(59, 130, 246, 0.2);">
+                {{ child.full_name }}
+            </span>
+            {% empty %}
+            <span class="chip" style="opacity:0.5">—</span>
+            {% endfor %}
+        </div>
+    </td>
+    {% endif %}
+
+    <td style="text-align:right;">
+        <div class="menu-wrapper">
+            <button class="menu-btn" type="button"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+            <div class="menu-dropdown">
+                <a href="{% url 'core:user_view' u.id %}"><i class="fa-solid fa-eye"></i> Ko‘rish</a>
+                {% if user_kind == 'parents' %}
+                <a href="{% url 'core:parent_edit' u.id %}"><i class="fa-solid fa-pen"></i> Tahrirlash</a>
+                {% else %}
+                <a href="{% url 'core:user_edit' u.id %}"><i class="fa-solid fa-pen"></i> Tahrirlash</a>
+                {% endif %}
+
+                {% if u.id != request.user.id %}
+                {% if user_kind == 'students' %}
+                {% if u.is_archived %}
+                <!-- Archived Actions -->
+                <a href="#" onclick="restoreStudent('{{ u.id }}'); return false;" style="color: var(--green);">
+                    <i class="fa-solid fa-rotate-left"></i> Qayta faollashtirish
+                </a>
+                <a href="#" onclick="hardDeleteStudent('{{ u.id }}'); return false;" class="text-red">
+                    <i class="fa-solid fa-trash-can"></i> Butunlay o‘chirish
+                </a>
+                {% else %}
+                <!-- Active Actions -->
+                <a href="#" onclick="archiveStudent('{{ u.id }}'); return false;" class="text-red">
+                    <i class="fa-solid fa-box-archive"></i> Arxivlash
+                </a>
+                {% endif %}
+                {% elif user_kind == 'parents' %}
+                <form action="{% url 'core:parent_delete' u.id %}" method="post" style="display:contents;">
+                    {% csrf_token %}
+                    <a href="#"
+                        onclick="if(confirm('Haqiqatan ham bu ota-onani o\'chirmoqchimisiz?')) this.parentNode.submit(); return false;"
+                        class="text-red">
+                        <i class="fa-solid fa-trash"></i> O‘chirish
+                    </a>
+                </form>
+                {% else %}
+                <!-- Other users (Managers/Teachers) -->
+                <a href="{% url 'core:user_delete' u.id %}" class="text-red">
+                    <i class="fa-solid fa-trash"></i> O‘chirish
+                </a>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="12" style="text-align:center; padding:40px; color:#64748b;">
+        Hech kim topilmadi 🤷‍♂️
+    </td>
+</tr>
+{% endfor %}

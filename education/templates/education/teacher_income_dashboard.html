@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+💰 Daromadim — Chaqmoq Academy
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 animate__animated animate__fadeIn">
+
+    <!-- HEADER -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="glass p-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="icon-box-success">
+                        <i class="fa-solid fa-hand-holding-dollar"></i>
+                    </div>
+                    <div>
+                        <h2 class="m-0 fw-black text-white" style="letter-spacing: -1px;">Mening daromadim</h2>
+                        <p class="m-0 text-white-50 small">Kunlik va oylik daromadlar tahlili</p>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-3 gap-md-4 flex-wrap justify-content-center">
+                    <!-- FILTERS -->
+                    <form method="get" class="d-flex gap-2 flex-wrap justify-content-center m-0">
+                        <select name="year" class="form-select-glass" onchange="this.form.submit()">
+                            {% for y in years %}
+                            <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}-yil</option>
+                            {% endfor %}
+                        </select>
+                        <select name="month" class="form-select-glass" onchange="this.form.submit()">
+                            {% for m_id, m_name in months_list %}
+                            <option value="{{ m_id }}" {% if m_id == selected_month %}selected{% endif %}>{{ m_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </form>
+
+                    <!-- USER PROFILE -->
+                    <div class="dropdown">
+                        <a href="#" class="d-block dropdown-toggle no-caret" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            {% if request.user.avatar %}
+                            <img src="{{ request.user.avatar.url }}" class="avatar-circle" alt="avatar">
+                            {% else %}
+                            <div class="avatar-placeholder">
+                                {{ request.user.ism|first|upper }}
+                            </div>
+                            {% endif %}
+                        </a>
+                        <ul
+                            class="dropdown-menu dropdown-menu-end glass-dropdown mt-2 animate__animated animate__fadeIn animate__faster">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'core:profile' %}">
+                                    <i class="fa-solid fa-user-circle me-2 opacity-50"></i> Profilim
+                                </a>
+                            </li>
+                            <li>
+                                <hr class="dropdown-divider border-white-10">
+                            </li>
+                            <li>
+                                <form action="{% url 'logout' %}" method="post" class="m-0">
+                                    {% csrf_token %}
+                                    <button type="submit" class="dropdown-item text-danger">
+                                        <i class="fa-solid fa-right-from-bracket me-2 opacity-50"></i> Chiqish
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STATS SUMMARY -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="glass p-4 h-100 position-relative overflow-hidden">
+                <div class="stats-bg-glow bg-success-glow"></div>
+                <div class="position-relative z-1">
+                    <div class="text-white-50 small mb-1">SHU OYIDAGI DAROMAD</div>
+                    <h1 class="fw-black text-white mb-0">{{ current_month_total|floatformat:0 }} <small
+                            class="fs-6 opacity-50">UZS</small></h1>
+                    <div class="mt-3">
+                        <span class="badge-mini bg-success-subtle text-success">
+                            <i class="fa-solid fa-chart-line me-1"></i> {{ selected_month }}-oy statistikasi
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="glass p-4 h-100 position-relative overflow-hidden">
+                <div class="stats-bg-glow bg-info-glow"></div>
+                <div class="position-relative z-1">
+                    <div class="text-white-50 small mb-1">YILLIK UMUMIY DAROMAD</div>
+                    <h1 class="fw-black text-white mb-0">{{ total_year_income|floatformat:0 }} <small
+                            class="fs-6 opacity-50">UZS</small></h1>
+                    <div class="mt-3">
+                        <span class="badge-mini bg-info-subtle text-info">
+                            <i class="fa-solid fa-calendar-check me-1"></i> {{ selected_year }}-yil yakuni
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHARTS SECTION -->
+    <div class="row g-4">
+        <!-- DAILY CHART -->
+        <div class="col-lg-8">
+            <div class="glass p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="m-0 fw-bold text-white">Kunlik daromad grafigi</h5>
+                    <div class="text-white-50 small">{{ selected_month }}-oy uchun</div>
+                </div>
+                <div style="height: 350px;">
+                    <canvas id="dailyChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- MONTHLY CHART -->
+        <div class="col-lg-4">
+            <div class="glass p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="m-0 fw-bold text-white">Oylik tahlil</h5>
+                    <div class="text-white-50 small">{{ selected_year }}-yil</div>
+                </div>
+                <div style="height: 350px;">
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --text-success: #22c55e;
+        --text-info: #38bdf8;
+        --white-5: rgba(255, 255, 255, 0.05);
+        --white-10: rgba(255, 255, 255, 0.1);
+    }
+
+    .glass {
+        background: rgba(15, 23, 42, 0.5);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .icon-box-success {
+        width: 60px;
+        height: 60px;
+        border-radius: 20px;
+        background: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-success);
+        font-size: 24px;
+        box-shadow: 0 10px 30px rgba(34, 197, 94, 0.1);
+    }
+
+    .form-select-glass {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: white;
+        border-radius: 14px;
+        padding: 10px 16px;
+        outline: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .form-select-glass:focus {
+        border-color: var(--text-success);
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .form-select-glass option {
+        background: #1e293b;
+        color: white;
+    }
+
+    .stats-bg-glow {
+        position: absolute;
+        top: -20px;
+        right: -20px;
+        width: 140px;
+        height: 140px;
+        filter: blur(60px);
+        opacity: 0.2;
+        border-radius: 50%;
+    }
+
+    .bg-success-glow {
+        background: #22c55e;
+    }
+
+    .bg-info-glow {
+        background: #38bdf8;
+    }
+
+    .badge-mini {
+        padding: 6px 14px;
+        border-radius: 99px;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .bg-success-subtle {
+        background: rgba(34, 197, 94, 0.1);
+    }
+
+    .bg-info-subtle {
+        background: rgba(56, 189, 248, 0.1);
+    }
+
+    /* DROPDOWN STYLES */
+    .no-caret::after {
+        display: none !important;
+    }
+
+    .glass-dropdown {
+        background: rgba(15, 23, 42, 0.95) !important;
+        backdrop-filter: blur(20px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 16px !important;
+        padding: 8px !important;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .glass-dropdown .dropdown-item {
+        color: white !important;
+        border-radius: 10px !important;
+        padding: 10px 16px !important;
+        font-weight: 600 !important;
+        transition: all 0.2s !important;
+        font-size: 0.9rem !important;
+    }
+
+    .glass-dropdown .dropdown-item:hover {
+        background: rgba(255, 255, 255, 0.1) !important;
+        color: #facc15 !important;
+    }
+
+    .glass-dropdown .dropdown-item.text-danger:hover {
+        background: rgba(239, 68, 68, 0.1) !important;
+        color: #f87171 !important;
+    }
+
+    .border-white-10 {
+        border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .avatar-placeholder {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: #facc15;
+        color: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+    }
+
+    .avatar-circle {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: 2px solid #facc15;
+        object-fit: cover;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                    titleColor: '#facc15',
+                    bodyColor: '#fff',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: false,
+                    callbacks: {
+                        label: (ctx) => 'Daromad: ' + ctx.parsed.y.toLocaleString() + ' UZS'
+                    }
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: 'rgba(255, 255, 255, 0.4)', font: { size: 10 } } },
+                x: { grid: { display: false }, ticks: { color: 'rgba(255, 255, 255, 0.4)', font: { size: 10 } } }
+            },
+            animation: { duration: 2000, easing: 'easeOutElastic' }
+        };
+
+        // DAILY CHART
+        const ctxD = document.getElementById('dailyChart').getContext('2d');
+        const gradD = ctxD.createLinearGradient(0, 0, 0, 400);
+        gradD.addColorStop(0, '#facc15');
+        gradD.addColorStop(1, '#f59e0b');
+
+        new Chart(ctxD, {
+            type: 'bar',
+            data: {
+                labels: {{ daily_labels| safe }},
+        datasets: [{
+            data: {{ daily_income| safe }},
+        backgroundColor: gradD,
+        borderRadius: 8,
+        hoverBackgroundColor: '#fff'
+        }]
+      },
+        options: commonOptions
+    });
+
+    // MONTHLY CHART
+    const ctxM = document.getElementById('monthlyChart').getContext('2d');
+    new Chart(ctxM, {
+        type: 'bar',
+        data: {
+            labels: {{ monthly_labels| safe }},
+        datasets: [{
+            data: {{ monthly_income| safe }},
+        backgroundColor: (ctx) => ctx.dataIndex === ({{ selected_month }} - 1) ? '#facc15' : 'rgba(56, 189, 248, 0.2)',
+        borderRadius: 8
+        }]
+      },
+    options: commonOptions
+    });
+  });
+</script>
+{% endblock %}

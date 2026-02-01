@@ -1,0 +1,880 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}
+O‘quvchi profili -
+{{ u.get_full_name }}
+{% endblock %}
+{% block content %}
+<div class="container-fluid py-4 animate__animated animate__fadeIn"> <!-- HEADER / HERO -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div
+                class="profile-hero-card glass p-3 p-md-3 d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+                <div class="d-flex align-items-center gap-4">
+                    <div class="profile-avatar-wrapper position-relative">
+                        {% if u.avatar %}
+                        <img src="
+{{ u.avatar.url }}
+" alt="
+{{ u.get_full_name }}
+" class="profile-avatar-img">
+                        {% else %}
+                        <div class="avatar-placeholder-large shadow-lg">
+                            {{ u.ism|first }}
+                            {{ u.familya|first }}
+                        </div>
+                        {% endif %}
+                        <span class="status-indicator online"></span>
+                    </div>
+                    <div>
+                        <h1 class="fs-2 fw-bold text-white mb-2">
+                            {{ u.get_full_name }}
+                        </h1>
+                        <div class="d-flex flex-wrap gap-2 align-items-center text-white-50"> <span
+                                class="badge border border-light-subtle px-3 py-2 rounded-pill">O‘quvchi</span>
+                            {% if u.center %}
+                            <span class="ms-2"><i class="fa-solid fa-building-columns me-1"></i>
+                                {{ u.center.name }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="balance-display text-center p-3 glass-light rounded-4">
+                    <div class="text-white-50 small text-uppercase ls-1 mb-1">Umumiy Chaqmoqlar</div>
+                    <div class="d-flex align-items-center justify-content-center gap-3"> <i
+                            class="fa-solid fa-bolt text-warning fs-1"></i> <span
+                            class="fs-1 fw-black text-warning counter">
+                            {{ balance }}
+                        </span> </div>
+                    <div class="mt-2 pt-2 border-top border-white-10 text-white-50 small">
+                        Markaz reytingida: <span class="text-white fw-bold">#{{ rank }}</span> - o‘rin
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> <!-- STATS CARDS -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="stat-card glass p-3 h-100 d-flex align-items-center gap-3">
+                <div class="ico-box bg-success-subtle text-success fs-3 rounded-4 p-3 anim-pulse"> <i
+                        class="fa-solid fa-calendar-check"></i> </div>
+                <div class="flex-grow-1" style="cursor: pointer;" data-bs-toggle="modal"
+                    data-bs-target="#attendanceDetailModal" title="Batafsil ko'rish uchun bosing">
+                    <div class="text-white-50 small mb-1">Davomat Ko‘rsatkichi</div>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <div class="fw-bold fs-4 text-white mb-2">
+                            {{ attendance_rate }}
+                            %</div>
+                        <div class="text-white-50 fs-mini">
+                            {{ present_days }}
+                            /
+                            {{ total_lessons }}
+                            dars</div>
+                    </div>
+                    <div class="progress bg-white-10" style="height: 6px;">
+                        <div class="progress-bar bg-success shadow-sm" style="--p: 
+{{ attendance_rate }}
+%; width: var(--p);"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card glass p-3 h-100 d-flex align-items-center gap-3">
+                <div class="ico-box bg-primary-subtle text-primary fs-3 rounded-4 p-3"> <i
+                        class="fa-solid fa-graduation-cap"></i> </div>
+                <div>
+                    <div class="text-white-50 small mb-1">Jami Kurslar</div>
+                    <div class="fw-bold fs-4 text-white">
+                        {{ enrollments.count }}
+                        ta</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card glass p-3 h-100 d-flex align-items-center gap-3">
+                <div class="ico-box bg-purple-subtle text-purple fs-3 rounded-4 p-3"> <i
+                        class="fa-solid fa-bolt-lightning"></i> </div>
+                <div>
+                    <div class="text-white-50 small mb-1">Oxirgi Harakatlar</div>
+                    <div class="fw-bold fs-4 text-white">
+                        {{ actions.paginator.count }}
+                        ta</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row g-4"> <!-- LEFT COLUMN: INFO & COURSES -->
+        <div class="col-lg-5">
+            <div class="glass p-3 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="m-0 fw-bold text-white"><i class="fa-solid fa-user-gear me-2 text-warning"></i> Shaxsiy
+                        ma‘lumotlar</h5>
+                    {% if request.user.role != 'parent' %}
+                    <div class="dropdown"> <button class="btn btn-sm btn-glass dropdown-toggle" type="button"
+                            data-bs-toggle="dropdown"> Amallar </button>
+                        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end animation-fade-in p-1">
+                            {% if u.role != 'manager' %}
+                            <li>
+                                <a class="dropdown-item py-2 px-3 small rounded-3"
+                                    href="{% if u.role == 'parent' %}{% url 'core:parent_edit' u.id %}{% else %}{% url 'core:user_edit' u.id %}{% endif %}">
+                                    <i class="fa-solid fa-pen me-2 fs-mini"></i> Tahrirlash
+                                </a>
+                            </li>
+                            {% endif %}
+                            <li>
+                                <hr class="dropdown-divider my-1 opacity-10">
+                            </li>
+                            <li><a class="dropdown-item text-warning py-2 px-3 small rounded-3" href="#"
+                                    data-bs-toggle="modal" data-bs-target="#passwordResetModal"><i
+                                        class="fa-solid fa-key me-2 fs-mini"></i> Parolni o‘zgartirish</a></li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="info-list-v2">
+                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5"> <span
+                            class="text-white-50">Login (Email)</span> <span class="text-white fw-bold">
+                            {{ u.email }}
+                        </span> </div>
+                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5"> <span
+                            class="text-white-50">Asosiy Telefon</span> <span class="text-white fw-medium">
+                            {{ u.telefon1|default:"Kiritilmagan" }}
+                        </span> </div>
+                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5"> <span
+                            class="text-white-50">Qo'shimcha Tel</span> <span class="text-white-50">
+                            {{ u.telefon2|default:"—" }}
+                        </span> </div>
+                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5"> <span
+                            class="text-white-50">Ro'yxatdan o'tgan</span> <span class="text-white-50">
+                            {{ u.date_joined|date:"d.m.Y" }}
+                        </span> </div>
+                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5"> <span
+                            class="text-white-50">Oxirgi kirish</span> <span class="text-white-50">
+                            {{ u.last_login|date:"d.m.Y, H:i"|default:"Hali kirmagan" }}
+                        </span> </div>
+
+                    <!-- ✅ Expansion -->
+                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5">
+                        <span class="text-white-50">Tug‘ilgan sana</span>
+                        <span class="text-white fw-medium">{{ u.birth_date|date:"d.m.Y"|default:"Kiritilmagan" }}</span>
+                    </div>
+                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5">
+                        <span class="text-white-50">Jinsi</span>
+                        <span class="text-white fw-medium">{{ u.get_gender_display|default:"Kiritilmagan" }}</span>
+                    </div>
+                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5">
+                        <span class="text-white-50">Passport ID</span>
+                        <span class="text-white fw-medium">{{ u.passport_id|default:"---" }}</span>
+                    </div>
+                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5">
+                        <span class="text-white-50">JSHR (PINFL)</span>
+                        <span class="text-white fw-medium">{{ u.jshr|default:"---" }}</span>
+                    </div>
+                    <div class="info-item-row flex-column py-3">
+                        <span class="text-white-50 mb-2">Manzil</span>
+                        <span class="text-white fw-medium small">{{ u.address|default:"Kiritilmagan" }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="glass p-3">
+                <h5 class="mb-4 fw-bold text-white"><i class="fa-solid fa-layer-group me-2 text-warning"></i> Faol
+                    Kurslar</h5>
+                <div class="groups-v2-list d-flex flex-column gap-3">
+                    {% for enr in enrollments %}
+                    <div class="group-v2-card p-3 rounded-4 border border-white-5 bg-white-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2"> <span
+                                class="small text-warning fw-bold">
+                                {{ enr.group.category_obj.icon|default:"📚" }}
+                                {{ enr.group.category_obj.name }}
+                            </span> <span class="badge 
+{% if enr.is_active %}
+bg-success-subtle text-success
+{% else %}
+bg-secondary-subtle text-secondary
+{% endif %}
+ rounded-pill small">
+                                {% if enr.is_active %}
+                                O‘qimoqda
+                                {% else %}
+                                Yakunlangan
+                                {% endif %}
+                            </span> </div>
+                        <div class="fs-5 fw-bold text-white mb-2">
+                            {{ enr.group.nom }}
+                        </div>
+                        <div class="d-flex gap-3 small text-white-50"> <span><i class="fa-solid fa-user-tie me-1"></i>
+                                {{ enr.group.oqituvchi.get_full_name }}
+                            </span> <span><i class="fa-solid fa-clock me-1"></i>
+                                {{ enr.created_at|date:"M Y" }}
+                            </span> </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-5 opacity-25"> <i class="fa-solid fa-inbox fs-1 mb-2"></i>
+                        <p>Kurslar topilmadi</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div> <!-- RIGHT COLUMN: TIMELINE (PAGINATED) -->
+        <div class="col-lg-7">
+            <div class="glass p-3 position-relative">
+                <h5 class="mb-4 fw-bold text-white d-flex align-items-center gap-2"> <i
+                        class="fa-solid fa-timeline text-warning"></i> Chaqmoqlar tarixi <span
+                        class="badge bg-white-10 text-white-50 fs-mini ms-auto">
+                        {{ actions.paginator.count }}
+                        jami</span> </h5>
+                <div class="timeline-v2 px-2 pb-3">
+                    {% for action in actions %}
+                    <div class="timeline-v2-item position-relative ps-4 pb-3 border-start border-white-10">
+                        <div class="timeline-v2-marker 
+{% if action.ball > 0 %}
+plus
+{% else %}
+minus
+{% endif %}
+ shadow"><i class="fa-solid 
+{% if action.ball > 0 %}
+fa-plus
+{% else %}
+fa-minus
+{% endif %}
+"></i></div>
+                        <div class="timeline-v2-content p-2 glass-light rounded-4 border border-white-5">
+                            <div class="d-flex justify-content-between align-items-center mb-1"> <span
+                                    class="fw-bold text-white small">
+                                    {{ action.rule_nom|default:"Ball belgilandi" }}
+                                </span> <span class="fw-black 
+{% if action.ball > 0 %}
+text-success
+{% else %}
+text-danger
+{% endif %}
+ small">
+                                    {% if action.ball > 0 %}
+                                    +
+                                    {% endif %}
+                                    {{ action.ball }}
+                                </span> </div>
+                            <div class="d-flex flex-wrap gap-2 text-white-50" style="font-size: 0.75rem;"> <span><i
+                                        class="fa-solid fa-user-pen me-1"></i>
+                                    {{ action.beruvchi.get_full_name|default:"Tizim" }}
+                                </span> <span><i class="fa-solid fa-calendar me-1"></i>
+                                    {{ action.sana|date:"d.m.Y, H:i" }}
+                                </span>
+                                {% if action.group %}
+                                <span><i class="fa-solid fa-users me-1 text-warning"></i>
+                                    {{ action.group.nom|safe }}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-5 opacity-25"> <i class="fa-solid fa-bolt-slash fs-1 mb-2"></i>
+                        <p>Harakatlar mavjud emas</p>
+                    </div>
+                    {% endfor %}
+                </div> <!-- PAGINATION CONTROLS -->
+                {% if actions.has_other_pages %}
+                <div
+                    class="pagination-footer pt-2 mt-2 border-top border-white-5 d-flex justify-content-center animate__animated animate__fadeInUp">
+                    <nav aria-label="Timeline pagination">
+                        <ul class="pagination pagination-sm m-0 gap-1">
+                            {% if actions.has_previous %}
+                            <li class="page-item"> <a class="page-link glass-link rounded-3 border-0 fw-bold px-3 py-2"
+                                    href="?page=
+{{ actions.previous_page_number }}
+" title="Oldingi"> <i class="fa-solid fa-chevron-left"></i> </a> </li>
+                            {% endif %}
+                            {% for num in actions.paginator.page_range %}
+                            {% if actions.number == num %}
+                            <li class="page-item active"> <span
+                                    class="page-link bg-warning text-dark border-0 fw-black rounded-3 px-3 py-2 shadow-warning">
+                                    {{ num }}
+                                </span> </li>
+                            {% elif num > actions.number|add:'-3' and num < actions.number|add:'3' %} <li
+                                class="page-item"> <a class="page-link glass-link rounded-3 border-0 fw-bold px-3 py-2"
+                                    href="?page=
+{{ num }}
+">
+                                    {{ num }}
+                                </a> </li>
+                                {% endif %}
+                                {% endfor %}
+                                {% if actions.has_next %}
+                                <li class="page-item"> <a
+                                        class="page-link glass-link rounded-3 border-0 fw-bold px-3 py-2" href="?page=
+{{ actions.next_page_number }}
+" title="Keyingi"> <i class="fa-solid fa-chevron-right"></i> </a> </li>
+                                {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}
+{% block modals %}
+<!-- PASSWORD RESET MODAL -->
+<div class="modal fade" id="passwordResetModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-dark border border-white-10 text-white rounded-4 shadow-3d">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-warning">Parolni o‘zgartirish</h5> <button type="button"
+                    class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <p class="small text-white-50 mb-4 text-center">O'quvchi uchun yangi parolni kiriting. Bu amal uning
+                        eski parolini bekor qiladi.</p>
+                    <div class="mb-3"> <label class="form-label small text-warning fw-bold">Yangi Parol</label>
+                        <div class="input-group input-group-premium"> <span
+                                class="input-group-text bg-glass-input border-glass"><i
+                                    class="fa-solid fa-lock text-warning"></i></span> <input type="password"
+                                name="new_password" id="id_new_password"
+                                class="form-control bg-glass-input border-glass text-white"
+                                placeholder="Kamida 6 ta belgi..." required minlength="6" autocomplete="new-password">
+                            <button class="btn btn-glass-action border-glass" type="button"
+                                onclick="togglePass('id_new_password')"><i
+                                    class="fa-solid fa-eye text-white-50"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0 justify-content-center gap-2"> <button type="button"
+                        class="btn btn-link text-white-50 text-decoration-none small" data-bs-dismiss="modal">Bekor
+                        qilish</button> <button type="submit"
+                        class="btn btn-warning px-5 rounded-pill fw-bold shadow-warning">Parolni Yangilash</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div> <!-- ATTENDANCE DETAIL MODAL -->
+<div class="modal fade" id="attendanceDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-dark border border-white-10 text-white rounded-4 shadow-3d">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-success"><i class="fa-solid fa-calendar-check me-2"></i> Batafsil
+                    Davomat</h5> <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 pt-2"> <!-- Month/Year Filter Form (Restored Size) -->
+                <form method="GET" class="mb-4 p-2 glass-light rounded-pill border border-white-5 shadow-sm">
+                    <div class="d-flex align-items-center gap-2 px-1">
+
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fs-mini text-white-50 text-nowrap">Oy:</span>
+
+                                <select name="month"
+                                    class="form-select form-select-sm bg-dark text-white border-white-10 rounded-pill px-2 py-0 fs-mini"
+                                    style="height: 32px;">
+                                    {% for month in available_months %}
+                                    <option value="{{ month.0 }}" {% if selected_month == month.0 %} selected{% endif %}>
+                                        {{ month.1 }}</option>
+                                    {% empty %}
+                                    <option value="">Oylar yo‘q</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fs-mini text-white-50 text-nowrap">Yil:</span>
+
+                                <select name="year"
+                                    class="form-select form-select-sm bg-dark text-white border-white-10 rounded-pill px-2 py-0 fs-mini"
+                                    style="height: 32px;">
+                                    {% for y in available_years %}
+                                    <option value="{{ y }}" {% if selected_year == y %} selected{% endif %}>{{ y }}
+                                    </option>
+                                    {% empty %}
+                                    <option value="">Yillar yo‘q</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-sm btn-success rounded-pill fw-bold fs-mini px-3 py-0"
+                            style="height: 30px;">OK</button>
+
+                    </div>
+                </form>
+
+                {% for enr in enrollments %}
+                <div class="mb-5 last-child-mb-0">
+                    <div class="d-flex justify-content-between align-items-center mb-3 px-2">
+                        <div>
+                            <h6 class="m-0 fw-bold text-white">
+                                {{ enr.group.nom }}
+                            </h6>
+                            <div class="text-white-50 fs-mini mt-1">
+                                {{ enr.current_month_name }}
+                            </div>
+                        </div> <span
+                            class="badge bg-success-subtle text-success rounded-pill fs-mini px-3 py-2 border border-success-subtle">
+                            {{ enr.rate }}
+                            % Davomat</span>
+                    </div>
+                    <div class="calendar-grid-container p-3 rounded-4 border border-white-5 bg-white-3">
+                        <!-- Weekday Headers -->
+                        <div class="calendar-header d-grid mb-3 text-center text-white-50 fw-bold fs-mini"
+                            style="grid-template-columns: repeat(7, 1fr);">
+                            <div>D</div>
+                            <div>S</div>
+                            <div>Ch</div>
+                            <div>P</div>
+                            <div>Ju</div>
+                            <div>Sh</div>
+                            <div>Y</div>
+                        </div> <!-- Month Grid -->
+                        <div class="calendar-body d-grid gap-2" style="grid-template-columns: repeat(7, 1fr);">
+                            {% for week in enr.calendar_grid %}
+                            {% for day_obj in week %}
+                            <div class="d-flex justify-content-center align-items-center">
+                                {% if day_obj.day %}
+                                <div class="calendar-day-circle 
+{{ day_obj.status }}
+{% if day_obj.is_today %}
+today
+{% endif %}
+" title="
+{{ day_obj.day }}
+.
+{{ month }}
+.
+{{ year }}
+: 
+{% if day_obj.status == 'present' %}
+Bor
+{% elif day_obj.status == 'absent' %}
+Yo'q
+{% else %}
+Dars yo'q
+{% endif %}
+">
+                                    {{ day_obj.day }}
+                                </div>
+                                {% else %}
+                                <div class="calendar-day-circle empty"></div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between text-white-50 fs-mini px-2 mt-2">
+                        <div class="d-flex gap-3"> <span>Kelgan: <b class="text-success">
+                                    {{ enr.month_present }}
+                                </b></span> <span>Kelmagan: <b class="text-danger">
+                                    {{ enr.month_absent }}
+                                </b></span> </div> <span>Jami darslar: <b>
+                                {{ enr.total }}
+                            </b></span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-5 opacity-25"> <i class="fa-solid fa-calendar-xmark fs-1 mb-2"></i>
+                    <p>Davomat ma'lumotlari mavjud emas</p>
+                </div>
+                {% endfor %}
+                <div class="mt-4 p-3 glass-light rounded-4 border border-white-5">
+                    <div class="d-flex flex-wrap gap-4 justify-content-center fs-mini text-white-50">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="calendar-day-circle present small-circle"></div> <span>Darsda Bor</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="calendar-day-circle absent small-circle"></div> <span>Darsda Yo'q</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="calendar-day-circle none small-circle"></div> <span>Dars Bo'lmagan</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0 justify-content-center"> <button type="button"
+                    class="btn btn-glass px-4 rounded-pill fs-mini" data-bs-dismiss="modal">Yopish</button> </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_css %}
+<style>
+    :root {
+        --text-warning: #facc15;
+        --purple-subtle: rgba(168, 85, 247, 0.1);
+        --purple: #c084fc;
+        --white-5: rgba(255, 255, 255, 0.05);
+        --white-10: rgba(255, 255, 255, 0.1);
+        --white-3: rgba(255, 255, 255, 0.03);
+    }
+
+    .glass {
+        background: rgba(15, 23, 42, 0.5);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .glass-light {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(10px);
+    }
+
+    .glass-dark {
+        background: rgba(15, 23, 42, 0.98);
+        backdrop-filter: blur(25px);
+    }
+
+    .dropdown-menu-dark {
+        background: #1e293b !important;
+        border: 1px solid rgba(250, 204, 21, 0.3) !important;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8) !important;
+        z-index: 1000 !important;
+        padding: 8px 0;
+    }
+
+    .dropdown-item {
+        padding: 12px 24px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.95) !important;
+        transition: all 0.2s;
+        border-radius: 8px;
+        margin: 0 8px;
+    }
+
+    .dropdown-item:hover {
+        background: rgba(250, 204, 21, 0.15) !important;
+        color: #facc15 !important;
+        transform: translateX(4px);
+    }
+
+    /* HERO ANIMATION */
+    .profile-hero-card {
+        background: linear-gradient(-45deg, rgba(250, 204, 21, 0.15), rgba(15, 23, 42, 0.95), rgba(250, 204, 21, 0.08), rgba(15, 23, 42, 0.95));
+        background-size: 400% 400%;
+        animation: gradientBG 10s ease infinite;
+        border: 1px solid rgba(250, 204, 21, 0.2);
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    }
+
+    @keyframes gradientBG {
+        0% {
+            background-position: 0% 50%;
+        }
+
+        50% {
+            background-position: 100% 50%;
+        }
+
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+
+    .profile-hero-card::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle at center, rgba(250, 204, 21, 0.05) 0%, transparent 50%);
+        animation: rotateGlow 15s linear infinite;
+        pointer-events: none;
+    }
+
+    @keyframes rotateGlow {
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .balance-display {
+        border: 1px solid rgba(250, 204, 21, 0.2);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        transition: transform 0.3s;
+    }
+
+    .balance-display:hover {
+        transform: scale(1.02);
+    }
+
+    .profile-avatar-img {
+        width: 100px;
+        height: 100px;
+        border-radius: 28px;
+        border: 4px solid var(--text-warning);
+        object-fit: cover;
+    }
+
+    .avatar-placeholder-large {
+        width: 100px;
+        height: 100px;
+        border-radius: 28px;
+        background: var(--text-warning);
+        color: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        font-weight: 900;
+    }
+
+    .status-indicator.online {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #22c55e;
+        border: 4px solid #1e293b;
+    }
+
+    .ico-box {
+        width: 64px;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-glass {
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 6px 15px;
+    }
+
+    .btn-glass:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #facc15;
+    }
+
+    .fw-black {
+        font-weight: 900;
+    }
+
+    .fs-mini {
+        font-size: 11px;
+    }
+
+    /* TIMELINE */
+    .timeline-v2-marker {
+        position: absolute;
+        left: -16px;
+        top: 0;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+        font-size: 12px;
+    }
+
+    .timeline-v2-marker.plus {
+        background: #22c55e;
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+    }
+
+    .timeline-v2-marker.minus {
+        background: #ef4444;
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+
+    .timeline-v2-content:hover {
+        transform: translateX(5px);
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .timeline-v2-item:last-child {
+        border-left: none !important;
+    }
+
+    .glass-link {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .glass-link:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+    }
+
+    .anim-pulse {
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.05);
+        }
+
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    .shadow-3d {
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .animation-fade-in {
+        animation: fadeIn 0.2s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .col-lg-5 {
+        position: relative;
+        z-index: 100;
+    }
+
+    .col-lg-7 {
+        position: relative;
+        z-index: 10;
+    }
+
+    .dropdown-menu {
+        z-index: 1000 !important;
+    }
+
+    /* Modal Input Fixes */
+    .bg-glass-input {
+        background: rgba(0, 0, 0, 0.2) !important;
+        backdrop-filter: blur(5px);
+    }
+
+    .border-glass {
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .modal-content .form-control {
+        color: #fff !important;
+        padding: 12px 16px;
+    }
+
+    .modal-content .form-control:focus {
+        background: rgba(0, 0, 0, 0.3) !important;
+        border-color: var(--text-warning) !important;
+        box-shadow: 0 0 20px rgba(250, 204, 21, 0.15) !important;
+    }
+
+    .btn-glass-action {
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+    }
+
+    .btn-glass-action:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-warning);
+    }
+
+    .shadow-warning {
+        box-shadow: 0 10px 25px rgba(250, 204, 21, 0.3);
+    }
+
+    .input-group-premium {
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    /* Autofill Fixes */
+    /* Attendance Modal Styles */
+    /* Calendar Attendance Styles */
+    .calendar-day-circle {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        background: rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.6);
+        transition: all 0.2s;
+    }
+
+    .calendar-day-circle.present {
+        background: #22c55e;
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+    }
+
+    .calendar-day-circle.absent {
+        background: #ef4444;
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    }
+
+    .calendar-day-circle.none {
+        background: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.3);
+    }
+
+    .calendar-day-circle.today {
+        border: 2px solid var(--text-warning);
+    }
+
+    .calendar-day-circle.empty {
+        background: transparent;
+        visibility: hidden;
+    }
+
+    .small-circle {
+        width: 14px;
+        height: 14px;
+        font-size: 0;
+    }
+
+    .last-child-mb-0:last-child {
+        margin-bottom: 0 !important;
+    }
+
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus {
+        -webkit-text-fill-color: #fff !important;
+        -webkit-box-shadow: 0 0 0px 1000px rgba(15, 23, 42, 1) inset !important;
+        transition: background-color 5000s ease-in-out 0s;
+    }
+</style>
+{% endblock %}
+{% block extra_js %}
+<script> function togglePass(id) { var x = document.getElementById(id); if (x.type === "password") { x.type = "text"; } else { x.type = "password"; } } // Auto-open modal if filter is used document.addEventListener("DOMContentLoaded", function () { const urlParams = new URLSearchParams(window.location.search); if (urlParams.has('month') || urlParams.has('year')) { const attModal = new bootstrap.Modal(document.getElementById('attendanceDetailModal')); attModal.show(); } }); </script>
+{% endblock %}

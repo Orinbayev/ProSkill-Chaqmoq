@@ -2,487 +2,355 @@
 {% block content %}
 
 <style>
-  :root{
-    --bg0:#070A12;
-    --bg1:#081327;
-    --bg2:#0A0F1E;
-
-    --card: rgba(255,255,255,.06);
-    --card2: rgba(255,255,255,.10);
-    --line: rgba(255,255,255,.12);
-
-    --text:#EAF0FF;
-    --muted:#A7B0C7;
-
-    --amber:#F59E0B;
-    --amber2:#FBBF24;
-    --neon:#22D3EE;
-    --blue:#3B82F6;
-
-    --gold:#FACC15;
-
-    --shadow: 0 30px 80px rgba(0,0,0,.55);
-    --shadow2: 0 18px 55px rgba(0,0,0,.45);
-    --radius: 22px;
-
-    --ring-amber: 0 0 0 4px rgba(245,158,11,.16), 0 0 0 1px rgba(245,158,11,.55) inset;
-    --ring-neon:  0 0 0 4px rgba(34,211,238,.14), 0 0 0 1px rgba(34,211,238,.55) inset;
+  :root {
+    --bg0: #020617;
+    --bg1: #070b16;
+    --bg2: #0b1226;
+    --glass: rgba(17, 24, 39, .58);
+    --glass2: rgba(2, 6, 23, .44);
+    --stroke: rgba(255, 255, 255, .10);
+    --text: #e5e7eb;
+    --muted: #94a3b8;
+    --blue: #3b82f6;
+    --cyan: #22d3ee;
+    --amber: #fbbf24;
+    --r16: 16px;
+    --r20: 20px;
+    --r24: 24px;
+    --pad: clamp(12px, 2.8vw, 18px);
   }
 
-  *{ box-sizing:border-box; }
-  html, body{ height:100%; }
+  * {
+    box-sizing: border-box;
+  }
 
-  body{
-    background:
-      radial-gradient(1200px 520px at 12% 18%, rgba(34,211,238,.10), transparent 60%),
-      radial-gradient(1200px 520px at 88% 22%, rgba(245,158,11,.10), transparent 60%),
-      radial-gradient(900px 420px at 50% 110%, rgba(59,130,246,.08), transparent 60%),
-      linear-gradient(180deg, #070A12, #071129 40%, #070A12);
+  body {
+    background: radial-gradient(1200px 520px at 12% 18%, rgba(34, 211, 238, .08), transparent 60%),
+      radial-gradient(1200px 520px at 88% 22%, rgba(59, 130, 246, .08), transparent 60%),
+      linear-gradient(180deg, var(--bg0), var(--bg2));
     color: var(--text);
-    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    overflow-x:hidden;
+    min-height: 100vh;
   }
 
-  .rb-wrap{
-    max-width: 1100px;
-    margin: 14px auto 26px;
-    padding: 0 12px;
+  .rb-wrap {
+    width: min(1140px, 100%);
+    margin: 0 auto;
+    padding: 16px 14px 26px;
   }
 
-  /* HERO */
-  .rb-hero{
-    border-radius: 24px;
+  /* ===== HERO HEADER ===== */
+  .rb-hero {
+    display: flex;
+    flex-direction: column;
+    padding: var(--pad);
+    border-radius: var(--r24);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.25) 0%, rgba(34, 211, 238, 0.1) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.3);
+    position: relative;
     overflow: hidden;
-    box-shadow: var(--shadow);
-    background: linear-gradient(120deg, rgba(59,130,246,.95), rgba(34,211,238,.92));
-    position: relative;
-    border: 1px solid rgba(255,255,255,.12);
-  }
-  .rb-hero::before{
-    content:"";
-    position:absolute; inset:0;
-    background:
-      radial-gradient(circle at 18% 32%, rgba(255,255,255,.22), transparent 56%),
-      radial-gradient(circle at 82% 14%, rgba(255,255,255,.14), transparent 58%),
-      radial-gradient(circle at 50% 120%, rgba(245,158,11,.14), transparent 55%);
-    pointer-events:none;
-  }
-  .rb-hero-inner{
-    position:relative;
-    padding: 16px;
-    display:flex; align-items:flex-start; justify-content:space-between;
-    gap:12px;
-    color:#fff;
-    flex-wrap:wrap;
-  }
-  .rb-title{
-    margin:0;
-    font-weight: 1000;
-    letter-spacing:.2px;
-    font-size: 1.1rem;
-    text-shadow: 0 18px 60px rgba(0,0,0,.45);
-  }
-  .rb-sub{
-    margin:6px 0 0 0;
-    opacity:.95;
-    font-weight: 850;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    margin-bottom: 20px;
+    gap: 16px;
   }
 
-  .rb-actions a{
-    text-decoration:none;
-    background: rgba(255,255,255,.14);
-    border:1px solid rgba(255,255,255,.22);
-    padding: 12px 14px;
-    border-radius: 14px;
-    color:#fff;
-    font-weight: 1000;
-    transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
-    display:inline-flex; align-items:center; gap:8px;
-    min-height: 44px;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .rb-actions a:hover{
-    transform: translateY(-1px);
-    background: rgba(255,255,255,.20);
-    box-shadow: 0 14px 36px rgba(0,0,0,.30);
-  }
-  .rb-actions a:focus-visible{
-    outline:none;
-    box-shadow: var(--ring-amber);
-  }
-
-  /* MAIN CARD */
-  .rb-card{
-    margin-top: 12px;
-    background: linear-gradient(180deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,.045) 100%);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    overflow:hidden;
-    border: 1px solid rgba(255,255,255,.12);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    position: relative;
-  }
-  .rb-card::before{
-    content:"";
-    position:absolute;
-    inset:-2px;
-    background: linear-gradient(120deg,
-      rgba(255,255,255,.05),
-      rgba(34,211,238,.10),
-      rgba(245,158,11,.09),
-      rgba(255,255,255,.05)
-    );
-    opacity:.45;
-    filter: blur(12px);
-    pointer-events:none;
-  }
-
-  .rb-toolbar{
-    position: relative;
+  .rb-hero-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
     z-index: 1;
-    padding: 12px;
-    display:flex;
-    gap:10px;
-    align-items:flex-start;
-    justify-content:space-between;
-    border-bottom:1px solid rgba(255,255,255,.10);
+    gap: 16px;
     flex-wrap: wrap;
   }
 
-  .rb-form{
-    display:flex;
-    gap:10px;
-    align-items:stretch;
-    flex-wrap:wrap;
-    width:100%;
+  .rb-title {
+    font-size: clamp(20px, 4vw, 28px);
+    font-weight: 950;
+    margin: 0;
+    background: linear-gradient(to bottom, #fff, #94a3b8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
-  .rb-input{
-    flex: 1 1 260px;
-    display:flex; align-items:center;
-    background: rgba(2, 6, 23, .22);
-    border:1px solid rgba(255,255,255,.14);
+  .rb-sub {
+    margin-top: 4px;
+    color: rgba(148, 163, 184, 0.9);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .btn-home {
+    padding: 10px 18px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-weight: 800;
+    font-size: 13px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+  }
+
+  .btn-home:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+  }
+
+  /* ===== CARDS / TOOLBAR ===== */
+  .rb-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--r24);
+    backdrop-filter: blur(12px);
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  }
+
+  .rb-toolbar {
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .rb-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .rb-input {
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 16px;
-    padding: 0 12px;
-    gap:10px;
-    color: rgba(167,176,199,.95);
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
     min-height: 52px;
-    box-shadow: 0 0 0 1px rgba(255,255,255,.06) inset;
-    transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
   }
-  .rb-input:focus-within{
-    border-color: rgba(34,211,238,.62);
-    box-shadow: var(--ring-neon);
-    background: rgba(2, 6, 23, .30);
+
+  .rb-input i {
+    color: var(--cyan);
   }
-  .rb-input input{
-    border:0; outline:0; background:transparent;
-    width:100%;
-    color: var(--text);
-    font-weight: 900;
-    font-size: 15px;
+
+  .rb-input input {
+    background: transparent;
+    border: none;
+    color: #fff;
+    width: 100%;
+    font-weight: 700;
+    outline: none;
   }
-  .rb-input input::placeholder{
-    color: rgba(234,240,255,.55);
+
+  .rb-btn {
+    min-height: 52px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    color: #0c1222;
+    border: none;
+    font-weight: 950;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .rb-btn:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+    box-shadow: 0 8px 20px rgba(34, 211, 238, 0.2);
+  }
+
+  /* ===== DROPDOWN ===== */
+  .rb-dd-btn {
+    height: 52px;
+    padding: 0 16px;
+    border-radius: 16px;
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #fff;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .rb-dd-menu {
+    position: absolute;
+    right: 0;
+    top: 58px;
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 8px;
+    width: 120px;
+    z-index: 100;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+  }
+
+  .rb-dd-item {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    text-align: left;
+    font-weight: 700;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+
+  .rb-dd-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+  }
+
+  .rb-dd-item.active {
+    background: var(--blue);
+    color: #fff;
+  }
+
+  /* ===== TABLE ===== */
+  .rb-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .rb-table th {
+    padding: 14px 16px;
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: rgba(255, 255, 255, 0.03);
+    color: #94a3b8;
     font-weight: 800;
   }
 
-  .rb-btn{
-    background:
-      radial-gradient(18px 18px at 18% 30%, rgba(255,255,255,.38), transparent 55%),
-      linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(34,211,238,.92) 55%, rgba(245,158,11,.98) 100%);
-    color:#071129;
-    border:0;
-    padding: 12px 14px;
-    border-radius: 16px;
-    font-weight: 1100;
-    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
-    min-height: 52px;
-    -webkit-tap-highlight-color: transparent;
-    box-shadow:
-      0 18px 40px rgba(34,211,238,.10),
-      0 18px 40px rgba(245,158,11,.08),
-      0 0 0 1px rgba(255,255,255,.14) inset;
-  }
-  .rb-btn:hover{
-    transform: translateY(-1px);
-    filter: brightness(1.03);
-    box-shadow:
-      0 24px 60px rgba(34,211,238,.14),
-      0 24px 60px rgba(245,158,11,.10),
-      0 0 0 1px rgba(255,255,255,.18) inset;
-  }
-  .rb-btn:focus-visible{
-    outline:none;
-    box-shadow:
-      0 24px 60px rgba(34,211,238,.14),
-      0 24px 60px rgba(245,158,11,.10),
-      var(--ring-amber);
-  }
-
-  /* DROPDOWN */
-  .rb-dd{ position:relative; }
-  .rb-dd-btn{
-    display:inline-flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-    min-width: 104px;
-    height: 52px;
-    padding: 0 14px;
-    border-radius: 16px;
-    border:1px solid rgba(255,255,255,.14);
-    background: rgba(2, 6, 23, .22);
-    color: var(--text);
-    font-weight: 1100;
-    cursor:pointer;
-    transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
-    -webkit-tap-highlight-color: transparent;
-    box-shadow: 0 0 0 1px rgba(255,255,255,.06) inset;
-  }
-  .rb-dd-btn:hover{
-    background: rgba(2, 6, 23, .30);
-    transform: translateY(-1px);
-    border-color: rgba(255,255,255,.18);
-  }
-  .rb-dd-btn:focus-visible{
-    outline:none;
-    box-shadow: var(--ring-neon);
-  }
-  .rb-dd-caret{ opacity:.95; font-weight:1100; }
-
-  .rb-dd-menu{
-    position:absolute;
-    right:0;
-    top: 58px;
-    min-width: 180px;
-    padding: 8px;
-    border-radius: 18px;
-    border:1px solid rgba(255,255,255,.14);
-    background: rgba(10,15,30,.92);
-    box-shadow: 0 22px 70px rgba(0,0,0,.65);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    z-index: 50;
-  }
-  .rb-dd-item{
-    width:100%;
-    text-align:left;
-    border:0;
-    background: transparent;
-    color: rgba(234,240,255,.96);
-    font-weight: 1000;
-    padding: 12px 12px;
-    border-radius: 14px;
-    cursor:pointer;
-    transition: background .14s ease, transform .14s ease;
-    min-height: 44px;
-  }
-  .rb-dd-item:hover{
-    background: rgba(255,255,255,.08);
-    transform: translateY(-1px);
-  }
-  .rb-dd-item.active{
-    background:
-      radial-gradient(18px 18px at 18% 30%, rgba(255,255,255,.30), transparent 55%),
-      linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(34,211,238,.92) 55%, rgba(245,158,11,.98) 100%);
-    color: #071129;
-  }
-
-  /* TABLE */
-  .rb-card table{
-    width:100%;
-    border-collapse: collapse;
-    position: relative;
-    z-index: 1;
-  }
-  .rb-card thead th{
-    background: rgba(255,255,255,.06);
-    color: rgba(234,240,255,.92);
-    font-weight: 1100;
-    border-bottom:1px solid rgba(255,255,255,.10);
-    padding: 14px 14px;
-    font-size: .92rem;
-    white-space: nowrap;
-  }
-  .rb-card tbody td{
-    padding: 14px 14px;
-    border-bottom:1px solid rgba(255,255,255,.07);
-    color: rgba(234,240,255,.92);
-    font-weight: 900;
+  .rb-table td {
+    padding: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     vertical-align: middle;
   }
-  .rb-card tbody tr{
-    transition: background .15s ease, transform .15s ease;
-    cursor:pointer;
-  }
-  .rb-card tbody tr:hover{
-    background: rgba(255,255,255,.06);
+
+  .rb-tr {
+    transition: all 0.2s;
+    cursor: pointer;
   }
 
-  .rb-rank{
-    width:70px;
-    text-align:center;
-    font-weight: 1100;
-    color: var(--gold);
-    text-shadow: 0 0 18px rgba(250,204,21,.14);
-  }
-  .rb-score{
-    text-align:right;
-    font-weight: 1100;
-    color: rgba(96,165,250,.98);
-    text-shadow: 0 0 18px rgba(96,165,250,.12);
-    white-space: nowrap;
+  .rb-tr:hover {
+    background: rgba(255, 255, 255, 0.04);
   }
 
-  .rb-name{ display:flex; align-items:center; gap:12px; min-width: 0; }
-  .rb-avatar{
-    width:44px; height:44px; border-radius: 50%;
-    background: linear-gradient(135deg, rgba(59,130,246,1), rgba(34,211,238,.95));
-    display:flex; align-items:center; justify-content:center;
-    color:#fff;
-    font-weight: 1100;
-    box-shadow: 0 16px 34px rgba(34,211,238,.16);
-    flex:0 0 auto;
-  }
-  .rb-muted{ color: rgba(167,176,199,.88); font-weight: 850; }
-
-  .rb-name > div{ min-width: 0; }
-  .rb-name > div > div:first-child{
-    overflow:hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 100%;
+  .rb-rank-cell {
+    font-weight: 900;
+    color: var(--amber);
+    font-size: 18px;
+    width: 60px;
+    text-align: center;
   }
 
-  /* PAGINATION */
-  .rb-pagination{
-    position: relative;
-    z-index: 1;
-    padding: 12px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:10px;
-    flex-wrap:wrap;
-    border-top:1px solid rgba(255,255,255,.10);
-  }
-  .pg{
-    display:flex;
-    gap:8px;
-    align-items:center;
-    flex-wrap:wrap;
-  }
-  .pg a, .pg span{
-    min-width:40px;
-    height:40px;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    border-radius: 14px;
-    border:1px solid rgba(255,255,255,.12);
-    background: rgba(2, 6, 23, .18);
-    color: rgba(234,240,255,.92);
-    font-weight: 1100;
-    text-decoration:none;
-    padding: 0 12px;
-    transition: transform .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .pg a:hover{
-    background: rgba(2, 6, 23, .26);
-    border-color: rgba(255,255,255,.18);
-    transform: translateY(-1px);
-  }
-  .pg a:focus-visible{
-    outline:none;
-    box-shadow: var(--ring-neon);
-  }
-  .pg .active{
-    background:
-      radial-gradient(18px 18px at 18% 30%, rgba(255,255,255,.30), transparent 55%),
-      linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(34,211,238,.92) 55%, rgba(245,158,11,.98) 100%);
-    border-color: rgba(255,255,255,.18);
-    color:#071129;
-  }
-  .pg .disabled{ opacity:.45; pointer-events:none; }
-
-  /* Mobile-first table containment */
-  .rb-card{ overflow-x:auto; -webkit-overflow-scrolling: touch; }
-  .rb-card table{ min-width: 640px; }
-  @media (min-width: 768px){
-    .rb-card{ overflow: hidden; }
-    .rb-card table{ min-width: 100%; }
-  }
-
-  /* Responsive typography */
-  @media (min-width: 576px){
-    .rb-wrap{ padding: 0 14px; margin-top: 18px; }
-    .rb-hero-inner{ padding: 18px; }
-    .rb-title{ font-size: 1.25rem; }
-  }
-  @media (min-width: 992px){
-    .rb-wrap{ max-width: 1180px; }
-    .rb-hero-inner{ padding: 20px 22px; }
-    .rb-title{ font-size: 1.45rem; }
-  }
-  @media (min-width: 1440px){
-    .rb-wrap{ max-width: 1240px; }
-  }
-
-  :where(a, button, input, select, textarea):focus-visible{ outline:none; }
-  @media (prefers-reduced-motion: reduce){
-    *{ transition:none !important; scroll-behavior:auto !important; }
-  }
-  /* ✅ MOBILE: jadvalni kichraytirib 3 ta ustun ham ko‘rinsin (SCROLLSIZ) */
-@media (max-width: 560px){
-
-  /* oldingi min-width:640px ni sindiramiz */
-  .rb-card{ overflow-x: hidden; }
-  .rb-card table{
-    min-width: 100% !important;
-    table-layout: fixed;   /* ustunlar ekranga sig‘adi */
-  }
-
-  /* padding/fontlarni kichraytiramiz */
-  .rb-card thead th{
-    padding: 10px 10px;
-    font-size: .82rem;
-  }
-  .rb-card tbody td{
-    padding: 10px 10px;
-    font-size: .92rem;
-  }
-
-  /* inline width(80px / 180px) ni override qilamiz */
-  .rb-card thead th:first-child{ width: 56px !important; }
-  .rb-card thead th:last-child{
-    width: 92px !important;
+  .rb-score-cell {
+    font-weight: 950;
+    font-size: 18px;
+    color: var(--cyan);
     text-align: right;
-    overflow: hidden;
-    text-overflow: ellipsis; /* "⚡ Ch..." bo‘lib ko‘rinadi */
-    white-space: nowrap;
+    width: 140px;
   }
 
-  .rb-rank{
-    width: 56px !important;
-    font-size: .9rem;
-  }
-  .rb-score{
-    width: 92px !important;
-    font-size: .92rem;
-    white-space: nowrap;
+  .rb-student {
+    display: flex;
+    align-items: center;
+    gap: 14px;
   }
 
-  /* avatar/name ham siqilib, hammasi joyiga sig‘sin */
-  .rb-avatar{
-    width: 34px;
-    height: 34px;
-    font-size: .95rem;
+  .rb-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.05));
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    display: grid;
+    place-items: center;
+    font-weight: 950;
+    color: #60a5fa;
+    font-size: 16px;
   }
-  .rb-name{ gap: 10px; }
-}
+
+  .rb-name-top {
+    font-weight: 900;
+    color: #fff;
+    font-size: 16px;
+  }
+
+  /* ===== PAGINATION ===== */
+  .rb-pagination {
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.02);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .pg {
+    display: flex;
+    gap: 6px;
+  }
+
+  .pg a,
+  .pg span {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #fff;
+    text-decoration: none;
+    font-weight: 800;
+  }
+
+  .pg a:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .pg .active {
+    background: var(--blue);
+    border-color: var(--blue);
+  }
+
+  /* RESPONSIVE */
+  @media (min-width: 768px) {
+    .rb-form {
+      grid-template-columns: 1fr auto auto;
+    }
+
+    .rb-hero {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .rb-table {
+      font-size: 14px;
+    }
+
+    .rb-score-cell {
+      width: 100px;
+    }
+  }
+</style>
 
 </style>
 
@@ -491,38 +359,35 @@
   <div class="rb-hero">
     <div class="rb-hero-inner">
       <div>
-        <h3 class="rb-title">🏆 Reyting — Chaqmoq</h3>
+        <h1 class="rb-title">🏆 Reyting — Chaqmoq</h1>
         <p class="rb-sub">O‘quvchilar umumiy ball bo‘yicha reyting</p>
       </div>
-      <div class="rb-actions">
-        <a href="{% url 'core:home' %}">🏠 Bosh sahifa</a>
-      </div>
+      <a href="{% url 'core:home' %}" class="btn-home">
+        <i class="fa-solid fa-house"></i> Bosh sahifa
+      </a>
     </div>
   </div>
 
   <div class="rb-card">
     <div class="rb-toolbar">
       <form class="rb-form" method="get">
-
         <div class="rb-input">
-          <span aria-hidden="true">🔎</span>
-          <input type="text" name="q" value="{{ q }}" placeholder="Ism yoki familiya bo‘yicha qidiring..." aria-label="Ism yoki familiya bo‘yicha qidirish">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" name="q" value="{{ q }}" placeholder="Ism yoki familiya bo‘yicha..." aria-label="Qidirish">
         </div>
 
-        <div class="rb-dd" id="perPageDD">
+        <div class="rb-dd" style="position: relative;" id="perPageDD">
           <input type="hidden" name="per_page" id="perPageInput" value="{{ per_page }}">
           <input type="hidden" name="page" value="1">
-
-          <button type="button" class="rb-dd-btn" id="perPageBtn" aria-haspopup="true" aria-expanded="false">
-            <span id="perPageLabel">{{ per_page }} ta</span>
-            <span class="rb-dd-caret" aria-hidden="true">▾</span>
+          <button type="button" class="rb-dd-btn" id="perPageBtn">
+            <span>{{ per_page }} ta</span>
+            <i class="fa-solid fa-chevron-down" style="font-size: 10px;"></i>
           </button>
-
-          <div class="rb-dd-menu" id="perPageMenu" hidden role="menu" aria-label="Sahifadagi yozuvlar soni">
-            <button type="button" class="rb-dd-item" data-val="10" role="menuitem">10 ta</button>
-            <button type="button" class="rb-dd-item" data-val="20" role="menuitem">20 ta</button>
-            <button type="button" class="rb-dd-item" data-val="50" role="menuitem">50 ta</button>
-            <button type="button" class="rb-dd-item" data-val="100" role="menuitem">100 ta</button>
+          <div class="rb-dd-menu" id="perPageMenu" hidden>
+            <button type="button" class="rb-dd-item" data-val="10">10 ta</button>
+            <button type="button" class="rb-dd-item" data-val="20">20 ta</button>
+            <button type="button" class="rb-dd-item" data-val="50">50 ta</button>
+            <button type="button" class="rb-dd-item" data-val="100">100 ta</button>
           </div>
         </div>
 
@@ -530,54 +395,52 @@
       </form>
     </div>
 
-    <table>
+    <table class="rb-table">
       <thead>
         <tr>
-          <th style="width:80px;">№</th>
+          <th style="width: 80px; text-align: center;">№</th>
           <th>O‘quvchi</th>
-          <th style="width:180px; text-align:right;">⚡ Chaqmoq</th>
+          <th style="text-align: right;">⚡ Chaqmoq</th>
         </tr>
       </thead>
-
       <tbody>
         {% for row in page_obj %}
-        <tr data-href="{% url 'chaqmoq:student_detail' row.student__id %}">
-          <td class="rb-rank">
+        <tr class="rb-tr" data-href="{% url 'chaqmoq:student_detail' row.student__id %}">
+          <td class="rb-rank-cell">
             {% if is_search %}
-              {% if row.rank == 1 %}🥇
-              {% elif row.rank == 2 %}🥈
-              {% elif row.rank == 3 %}🥉
-              {% else %}{{ row.rank }}
-              {% endif %}
+            {% if row.rank == 1 %}🥇
+            {% elif row.rank == 2 %}🥈
+            {% elif row.rank == 3 %}🥉
+            {% else %}{{ row.rank }}
+            {% endif %}
             {% else %}
-              {% with pos=page_obj.start_index|add:forloop.counter0 %}
-                {% if pos == 1 %}🥇
-                {% elif pos == 2 %}🥈
-                {% elif pos == 3 %}🥉
-                {% else %}{{ pos }}
-                {% endif %}
-              {% endwith %}
+            {% with pos=page_obj.start_index|add:forloop.counter0 %}
+            {% if pos == 1 %}🥇
+            {% elif pos == 2 %}🥈
+            {% elif pos == 3 %}🥉
+            {% else %}{{ pos }}
+            {% endif %}
+            {% endwith %}
             {% endif %}
           </td>
-
           <td>
-            <div class="rb-name">
+            <div class="rb-student">
               <div class="rb-avatar">{{ row.student__ism|first|upper }}</div>
               <div>
-                <div>{{ row.student__ism }} {{ row.student__familya|default:"" }}</div>
-                <div class="rb-muted"></div>
+                <div class="rb-name-top">{{ row.student__ism }} {{ row.student__familya|default:"" }}</div>
               </div>
             </div>
           </td>
-
-          <td class="rb-score">
+          <td class="rb-score-cell">
             {% if row.jami > 0 %}+{{ row.jami }}{% else %}{{ row.jami }}{% endif %}
           </td>
         </tr>
         {% empty %}
         <tr>
-          <td colspan="3" style="padding:22px; text-align:center; color:#94a3b8; font-weight:900;">
-            Hozircha reyting yo‘q.
+          <td colspan="3" style="padding: 40px; text-align: center; color: #94a3b8; font-weight: 800;">
+            <i class="fa-solid fa-trophy"
+              style="font-size: 30px; display: block; margin-bottom: 12px; opacity: 0.3;"></i>
+            Hozircha reyting ma'lumotlari mavjud emas.
           </td>
         </tr>
         {% endfor %}
@@ -585,36 +448,28 @@
     </table>
 
     <div class="rb-pagination">
-      <div class="rb-muted">
-        {% if page_obj.paginator.count %}
-          Jami: <b>{{ page_obj.paginator.count }}</b> ta
-        {% endif %}
+      <div style="color: #94a3b8; font-weight: 700; font-size: 13px;">
+        Jami: <b>{{ page_obj.paginator.count }}</b> ta
       </div>
-
       <div class="pg">
         {% if page_obj.has_previous %}
-          <a href="?q={{ q }}&per_page={{ per_page }}&page={{ page_obj.previous_page_number }}" aria-label="Oldingi sahifa">‹</a>
-        {% else %}
-          <span class="disabled" aria-disabled="true">‹</span>
+        <a href="?q={{ q }}&per_page={{ per_page }}&page={{ page_obj.previous_page_number }}">‹</a>
         {% endif %}
-
         {% for p in page_window %}
-          {% if p == page_obj.number %}
-            <span class="active" aria-current="page">{{ p }}</span>
-          {% else %}
-            <a href="?q={{ q }}&per_page={{ per_page }}&page={{ p }}" aria-label="Sahifa {{ p }}">{{ p }}</a>
-          {% endif %}
-        {% endfor %}
-
-        {% if page_obj.has_next %}
-          <a href="?q={{ q }}&per_page={{ per_page }}&page={{ page_obj.next_page_number }}" aria-label="Keyingi sahifa">›</a>
+        {% if p == page_obj.number %}
+        <span class="active">{{ p }}</span>
         {% else %}
-          <span class="disabled" aria-disabled="true">›</span>
+        <a href="?q={{ q }}&per_page={{ per_page }}&page={{ p }}">{{ p }}</a>
+        {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <a href="?q={{ q }}&per_page={{ per_page }}&page={{ page_obj.next_page_number }}">›</a>
         {% endif %}
       </div>
     </div>
-
   </div>
+
+</div>
 </div>
 
 <script>
@@ -640,11 +495,11 @@
     const label = document.getElementById("perPageLabel");
     const form = dd.closest("form");
 
-    function openMenu(){
+    function openMenu() {
       menu.hidden = false;
       btn.setAttribute("aria-expanded", "true");
     }
-    function closeMenu(){
+    function closeMenu() {
       menu.hidden = true;
       btn.setAttribute("aria-expanded", "false");
     }

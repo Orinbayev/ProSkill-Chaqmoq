@@ -2,425 +2,378 @@
 {% block content %}
 
 <style>
-  :root{
-    --bg0:#020617;
-    --bg1:#070b16;
-    --bg2:#0b1226;
+  :root {
+    --bg-dark: #050814;
+    --bg-card: rgba(17, 24, 39, 0.65);
+    --bg-input: rgba(7, 11, 22, 0.45);
 
-    --glass: rgba(17,24,39,.62);
-    --glass2: rgba(2,6,23,.55);
-    --stroke: rgba(255,255,255,.10);
-    --stroke2: rgba(255,255,255,.14);
+    --accent: #f59e0b;
+    /* Amber 500 */
+    --accent-glow: rgba(245, 158, 11, 0.25);
 
-    --text:#e5e7eb;
-    --muted:#94a3b8;
+    --text: #f3f4f6;
+    --text-muted: #94a3b8;
 
-    --blue:#3b82f6;
-    --blue2:#60a5fa;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-focus: rgba(245, 158, 11, 0.4);
 
-    --amber:#fbbf24;
-    --amber2:#facc15;
+    --radius-lg: 24px;
+    --radius-md: 16px;
 
-    --violet:#a855f7;
-    --violet2:#7c3aed;
-
-    --green:#22c55e;
-    --green2:#16a34a;
-
-    --shadow: 0 24px 80px rgba(0,0,0,.55);
-    --shadow2: 0 18px 42px rgba(0,0,0,.42);
-
-    --r14: 14px;
-    --r18: 18px;
-    --r22: 22px;
-    --r28: 28px;
-
-    --pad: clamp(14px, 2.6vw, 22px);
-    --gap: clamp(10px, 2.1vw, 14px);
-
-    --ring: 0 0 0 3px rgba(59,130,246,.22);
-    --ringA: 0 0 0 3px rgba(251,191,36,.18);
-    --ringV: 0 0 0 3px rgba(168,85,247,.18);
+    --font-main: 'Outfit', 'Inter', system-ui, sans-serif;
   }
 
-  *{ box-sizing:border-box; }
-  html, body{ height:100%; }
-  body{
-    background:
-      radial-gradient(950px 620px at 12% -10%, rgba(59,130,246,.18), transparent 55%),
-      radial-gradient(900px 620px at 90% 5%, rgba(251,191,36,.12), transparent 55%),
-      radial-gradient(900px 640px at 55% 120%, rgba(168,85,247,.14), transparent 60%),
-      linear-gradient(180deg, var(--bg0), var(--bg2));
+  /* --- Layout --- */
+  .page-container {
+    padding: 40px 20px;
+    max-width: 900px;
+    margin: 0 auto;
+    font-family: var(--font-main);
     color: var(--text);
-    min-height:100vh;
-    overflow-x:hidden;
+    min-height: calc(100vh - 80px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  /* a11y */
-  .sr-only{
-    position:absolute !important;
-    width:1px !important;
-    height:1px !important;
-    padding:0 !important;
-    margin:-1px !important;
-    overflow:hidden !important;
-    clip:rect(0,0,0,0) !important;
-    white-space:nowrap !important;
-    border:0 !important;
-  }
-  :focus-visible{ outline:none; }
-
-  /* page */
-  .page-wrap{
-    width: min(1080px, 100%);
-    margin: 0 auto;
-    padding: 16px 12px 28px;
-  }
-
-  /* card */
-  .glass-card{
-    width: min(760px, 100%);
-    margin: 0 auto;
-    border-radius: var(--r28);
-    background: linear-gradient(180deg, var(--glass), var(--glass2));
-    border: 1px solid var(--stroke);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+  /* --- Glass Card --- */
+  .premium-card {
     position: relative;
-    overflow:hidden;
-    padding: calc(var(--pad) + 6px);
-  }
-
-  .glass-card::before{
-    content:"";
-    position:absolute;
-    inset:-2px;
-    background:
-      radial-gradient(680px 280px at 30% 0%, rgba(168,85,247,.20), transparent 65%),
-      radial-gradient(680px 280px at 78% 10%, rgba(251,191,36,.14), transparent 65%),
-      radial-gradient(680px 280px at 55% 120%, rgba(59,130,246,.14), transparent 65%);
-    filter: blur(18px);
-    opacity:.95;
-    pointer-events:none;
-  }
-  .glass-card > *{ position:relative; z-index:2; }
-
-  /* header */
-  .head{
-    display:flex;
-    align-items:flex-start;
-    gap: 14px;
-    margin-bottom: 16px;
-  }
-
-  .head-icon{
-    width:56px;
-    height:56px;
-    border-radius: 18px;
-    display:grid;
-    place-items:center;
-    background: rgba(251,191,36,.10);
-    border: 1px solid rgba(251,191,36,.22);
-    box-shadow: 0 16px 36px rgba(250,204,21,.10);
-    flex: 0 0 auto;
-  }
-
-  .head-icon .plus{
-    width:34px; height:34px;
-    border-radius: 14px;
-    display:grid;
-    place-items:center;
-    background: rgba(2,6,23,.45);
-    border:1px solid rgba(255,255,255,.10);
-    color: rgba(255,255,255,.92);
-    font-weight: 950;
-    font-size: 20px;
-    line-height: 1;
-  }
-
-  .title{
-    margin:0;
-    font-size: clamp(24px, 4.4vw, 34px);
-    font-weight: 950;
-    letter-spacing: .2px;
-    line-height: 1.06;
-  }
-  .title .accent{
-    color: var(--amber2);
-    text-shadow: 0 0 24px rgba(250,204,21,.16);
-  }
-
-  .subtitle{
-    margin: 10px 0 0;
-    color: var(--muted);
-    font-size: 13px;
-    line-height: 1.5;
-    font-weight: 700;
-  }
-
-  /* form */
-  .form-grid{
-    display:grid;
-    grid-template-columns: 1fr;
-    gap: var(--gap);
-    margin-top: 12px;
-  }
-
-  .label{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    color: rgba(229,231,235,.95);
-    font-weight: 900;
-    letter-spacing: .10em;
-    text-transform: uppercase;
-    font-size: 12px;
-    margin: 2px 2px 8px;
-  }
-
-  .label .mark{
-    width: 8px; height: 8px;
-    border-radius: 999px;
-    background: rgba(250,204,21,.92);
-    box-shadow: 0 0 0 4px rgba(251,191,36,.14);
-  }
-
-  /* Make Django widgets look consistent without renaming elements */
-  input[type="text"],
-  input[type="file"],
-  textarea,
-  select{
-    width:100%;
-    border-radius: var(--r18);
-    border: 1px solid rgba(255,255,255,.10);
-    background: rgba(2,6,23,.34);
-    padding: 13px 14px;
-    color: var(--text);
-    outline:none;
-    transition: .18s ease;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
-    font-weight: 750;
-    font-size: 14px;
-    color-scheme: dark;
-  }
-
-  textarea{ min-height: 112px; resize: vertical; }
-
-  input::placeholder,
-  textarea::placeholder{
-    color: rgba(148,163,184,.85);
-    font-weight: 750;
-  }
-
-  input[type="text"]:focus,
-  input[type="file"]:focus,
-  textarea:focus,
-  select:focus{
-    border-color: rgba(250,204,21,.40);
-    box-shadow: var(--ringA), inset 0 0 0 1px rgba(255,255,255,.03);
-  }
-
-  /* file input nicer */
-  input[type="file"]{ padding: 11px 12px; }
-  input[type="file"]::file-selector-button{
-    background: rgba(251,191,36,.16);
-    border: 1px solid rgba(251,191,36,.26);
-    color: #fff7ed;
-    border-radius: 14px;
-    padding: 9px 12px;
-    margin-right: 12px;
-    font-weight: 900;
-    cursor: pointer;
-    transition: filter .18s ease, transform .18s ease;
-  }
-  input[type="file"]::file-selector-button:hover{
-    filter: brightness(1.08);
-    transform: translateY(-1px);
-  }
-
-  /* Chrome autofill */
-  input:-webkit-autofill,
-  input:-webkit-autofill:hover,
-  input:-webkit-autofill:focus,
-  textarea:-webkit-autofill{
-    -webkit-text-fill-color: #e5e7eb !important;
-    -webkit-box-shadow: 0 0 0 1000px rgba(2,6,23,.34) inset !important;
-    transition: background-color 9999s ease-in-out 0s !important;
-    caret-color: var(--amber2) !important;
-  }
-
-  /* preview */
-  .preview{
-    display:none;
-    border: 1px solid rgba(255,255,255,.10);
-    background: rgba(15,23,42,.24);
-    border-radius: var(--r22);
-    padding: 14px;
-    margin-top: 12px;
-  }
-
-  .preview-title{
-    color: rgba(229,231,235,.95);
-    font-weight: 950;
-    margin: 0 0 10px;
-    display:flex;
-    gap:10px;
-    align-items:center;
-    font-size: 13px;
-  }
-  .preview-title .spark{ color: var(--amber2); }
-
-  .preview img{
     width: 100%;
-    max-width: 280px;
-    border-radius: var(--r18);
-    border: 1px solid rgba(251,191,36,.22);
-    box-shadow: 0 18px 44px rgba(250,204,21,.12);
-    display:block;
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 40px;
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
   }
 
-  /* buttons */
-  .btns{
-    margin-top: 14px;
-    display:grid;
-    gap: 12px;
+  .premium-card::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, rgba(245, 158, 11, 0.05) 0%, transparent 40%);
+    pointer-events: none;
+    z-index: 0;
   }
 
-  .btn-main{
-    width:100%;
-    min-height: 52px;
+  .card-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* --- Header --- */
+  .form-header {
+    margin-bottom: 35px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .icon-box {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.05));
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  }
+
+  .icon-box i {
+    font-size: 24px;
+    color: var(--accent);
+    text-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+  }
+
+  .header-text h1 {
+    font-size: 32px;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.5px;
+  }
+
+  .header-text h1 span {
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+  }
+
+  .header-text p {
+    color: var(--text-muted);
+    margin: 5px 0 0;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  /* --- Form Inputs --- */
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 768px) {
+    .field-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .label {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 4px;
+  }
+
+  .label::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--accent);
+  }
+
+  .form-control,
+  textarea,
+  input[type="text"],
+  input[type="file"] {
+    width: 100% !important;
+    background: var(--bg-input) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-md) !important;
+    padding: 14px 18px !important;
+    color: var(--text) !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    outline: none !important;
+  }
+
+  textarea {
+    min-height: 120px;
+    resize: none;
+  }
+
+  .form-control:focus,
+  textarea:focus,
+  input[type="text"]:focus {
+    border-color: var(--border-focus) !important;
+    background: rgba(7, 11, 22, 0.6) !important;
+    box-shadow: 0 0 0 4px var(--accent-glow) !important;
+  }
+
+  /* File Input Customization */
+  input[type="file"] {
+    padding: 10px 12px !important;
+  }
+
+  input[type="file"]::file-selector-button {
+    background: var(--accent);
+    color: #000;
     border: none;
-    border-radius: var(--r18);
-    padding: 14px 16px;
-    font-weight: 950;
-    letter-spacing: .2px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-weight: 700;
     cursor: pointer;
-    transition: transform .18s ease, filter .18s ease, background .18s ease, box-shadow .18s ease, border-color .18s ease;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:10px;
-    text-decoration:none;
-    user-select:none;
+    margin-right: 15px;
+    transition: 0.2s;
   }
 
-  .btn-save{
-    background: linear-gradient(90deg, var(--amber), var(--amber2));
-    color: #0b1220;
-    box-shadow: 0 18px 40px rgba(250,204,21,.16);
+  input[type="file"]::file-selector-button:hover {
+    filter: brightness(1.1);
+    transform: scale(1.02);
   }
-  .btn-save:hover{ transform: translateY(-1px); filter: brightness(1.04); }
-  .btn-save:active{ transform: translateY(0px) scale(.99); }
-  .btn-save:focus-visible{ box-shadow: var(--ringA), 0 18px 40px rgba(250,204,21,.16); }
 
-  .btn-back{
-    background: rgba(148,163,184,.10);
-    color: rgba(229,231,235,.95);
-    border: 1px solid rgba(255,255,255,.10);
+  /* --- Actions --- */
+  .form-actions {
+    margin-top: 35px;
+    display: flex;
+    gap: 16px;
   }
-  .btn-back:hover{ background: rgba(148,163,184,.16); transform: translateY(-1px); }
-  .btn-back:active{ transform: translateY(0px) scale(.99); }
-  .btn-back:focus-visible{ box-shadow: var(--ring); border-color: rgba(96,165,250,.35); }
 
-  /* layout upgrades */
-  @media (min-width: 820px){
-    .form-grid{
-      grid-template-columns: 1.1fr .9fr;
-      align-items:start;
-      gap: 16px;
-    }
-    .form-grid > div:last-child{
-      grid-column: 1 / -1;
-    }
-    .btns{
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
+  @media (max-width: 480px) {
+    .form-actions {
+      flex-direction: column;
     }
   }
 
-  @media (max-width: 520px){
-    .glass-card{ padding: 20px 16px 18px; border-radius: 22px; }
-    .head-icon{ width:52px; height:52px; border-radius: 16px; }
-    .btn-main{ padding: 14px 14px; }
+  .btn-submit {
+    flex: 2;
+    background: linear-gradient(135deg, var(--accent), #ffb800);
+    color: #000;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 30px rgba(245, 158, 11, 0.2);
   }
 
-  @media (min-width: 1440px){
-    .page-wrap{ padding-top: 18px; }
+  .btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 40px rgba(245, 158, 11, 0.3);
+    filter: brightness(1.05);
+  }
+
+  .btn-submit:active {
+    transform: translateY(0);
+  }
+
+  .btn-cancel {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+
+  .btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--text-muted);
+  }
+
+  /* Image Preview */
+  .image-preview-container {
+    margin-top: 15px;
+    display: none;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: var(--radius-md);
+    border: 1px dashed var(--border);
+  }
+
+  .image-preview-container img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 12px;
+    display: block;
+    margin: 0 auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  }
+
+  .preview-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+    font-weight: 800;
+    text-align: center;
+  }
+
+  /* Utilities */
+  .full-width {
+    grid-column: 1 / -1;
   }
 </style>
 
-<main class="page-wrap">
-  <section class="glass-card" aria-label="Forma: bo‘lim qo‘shish">
-
-    <header class="head">
-      <div class="head-icon" aria-hidden="true">
-        <div class="plus">＋</div>
-      </div>
-
-      <div>
-        <h1 class="title">Yangi <span class="accent">bo‘lim qo‘shish</span></h1>
-        <p class="subtitle">O‘quv markaz uchun yangi yo‘nalish yoki bo‘lim yarating</p>
-      </div>
-    </header>
-
-    <form method="POST" enctype="multipart/form-data">
-      {% csrf_token %}
-
-      <div class="form-grid">
-        <div>
-          <div class="label"><span class="mark" aria-hidden="true"></span> Bo‘lim nomi</div>
-          {{ form.name }}
+<div class="page-container">
+  <div class="premium-card">
+    <div class="card-content">
+      <header class="form-header">
+        <div class="icon-box">
+          <i class="fa-solid fa-layer-group"></i>
         </div>
+        <div class="header-text">
+          <h1>Yangi <span>bo‘lim</span> qo‘shish</h1>
+          <p>O‘quv markazi uchun yangi yo‘nalish yoki bo‘lim yarating</p>
+        </div>
+      </header>
 
-        <div>
-          <div class="label"><span class="mark" aria-hidden="true"></span> Bo‘lim rasmi (ixtiyoriy)</div>
-          {{ form.image }}
+      <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
 
-          <div class="preview" id="imagePreview">
-            <p class="preview-title"><span class="spark">✦</span> Tanlangan rasm</p>
-            <img id="previewImg" src="#" alt="Preview">
+        <div class="field-row">
+          <div class="form-group">
+            <label class="label">Bo‘lim nomi</label>
+            {{ form.name }}
+          </div>
+
+          <div class="form-group">
+            <label class="label">Bo‘lim rasmi (ixtiyoriy)</label>
+            {{ form.image }}
+            <div id="imagePreview" class="image-preview-container">
+              <div class="preview-label">Tanlangan rasm</div>
+              <img id="previewImg" src="#" alt="Preview">
+            </div>
+          </div>
+
+          <div class="form-group full-width">
+            <label class="label">Bo‘lim haqida tavsif</label>
+            {{ form.description }}
           </div>
         </div>
 
-        <div>
-          <div class="label"><span class="mark" aria-hidden="true"></span> Tavsif</div>
-          {{ form.description }}
+        <div class="form-actions">
+          <button type="submit" class="btn-submit">
+            <i class="fa-solid fa-floppy-disk"></i>
+            Ma’lumotlarni saqlash
+          </button>
+          <a href="{% url 'education:groups_home' %}" class="btn-cancel">
+            <i class="fa-solid fa-arrow-left" style="margin-right: 8px;"></i>
+            Ortga qaytish
+          </a>
         </div>
-      </div>
-
-      <div class="btns">
-        <button type="submit" class="btn-main btn-save">
-          <span style="font-size:18px;line-height:0;">💾</span>
-          Ma’lumotlarni saqlash
-        </button>
-
-        <a href="{% url 'education:groups_home' %}" class="btn-main btn-back">
-          ← Ortga qaytish
-        </a>
-      </div>
-    </form>
-
-  </section>
-</main>
+      </form>
+    </div>
+  </div>
+</div>
 
 <script>
-  const input = document.getElementById("id_image");
-  const preview = document.getElementById("imagePreview");
-  const img = document.getElementById("previewImg");
+  document.addEventListener('DOMContentLoaded', function () {
+    const fileInput = document.querySelector('input[type="file"]');
+    const previewContainer = document.getElementById('imagePreview');
+    const previewImg = document.getElementById('previewImg');
 
-  if (input) {
-    input.addEventListener("change", function (event) {
-      const file = event.target.files[0];
-      if (file) {
-        preview.style.display = "block";
-        img.src = URL.createObjectURL(file);
-      } else {
-        preview.style.display = "none";
-        img.src = "#";
-      }
-    });
-  }
+    if (fileInput) {
+      fileInput.addEventListener('change', function () {
+        const file = this.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            previewImg.src = e.target.result;
+            previewContainer.style.display = 'block';
+          }
+          reader.readAsDataURL(file);
+        } else {
+          previewContainer.style.display = 'none';
+        }
+      });
+    }
+  });
 </script>
 
 {% endblock %}

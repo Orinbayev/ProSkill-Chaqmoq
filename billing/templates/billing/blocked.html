@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="p-4" style="max-width:760px;margin:0 auto;">
+  <div class="p-4" style="border-radius:18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);">
+    <h3 style="font-weight:900;">🔒 Hisob bloklangan</h3>
+    <p style="color:rgba(255,255,255,.75); margin-top:8px;">
+      Obuna muddati tugagan. Davom etish uchun tarifni yangilang.
+    </p>
+
+    {% if sub %}
+      <div style="margin-top:14px;color:rgba(255,255,255,.8);">
+        <div><b>Tarif:</b> {{ sub.plan_code }}</div>
+        <div><b>Tugash:</b> {{ sub.expires_at|date:"d-M-Y H:i" }}</div>
+        <div><b>Qolgan:</b> {{ sub.days_left }} kun</div>
+      </div>
+    {% endif %}
+
+    <div class="d-flex gap-2 mt-3">
+      <a href="{% url 'billing:plans' %}" class="btn btn-warning fw-bold">💳 To‘lov / Tarif</a>
+      <a href="{% url 'logout' %}" class="btn btn-outline-light">Chiqish</a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

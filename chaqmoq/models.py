@@ -12,9 +12,15 @@ class Rule(models.Model):
         (MINUS, '− Chaqmoq'),
     )
     nom = models.CharField(max_length=150)
+    center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True)
     tur = models.CharField(max_length=10, choices=TUR_CHOICES)
     min_baho = models.PositiveSmallIntegerField(default=1)
     max_baho = models.PositiveSmallIntegerField(default=10)
+
+    # Roles permissions
+    can_director = models.BooleanField(default=True, verbose_name="Director ishlata oladi")
+    can_manager = models.BooleanField(default=True, verbose_name="Manager ishlata oladi")
+    can_teacher = models.BooleanField(default=True, verbose_name="O'qituvchi ishlata oladi")
 
     class Meta:
         verbose_name = 'Chaqmoq qoida'

@@ -2,541 +2,502 @@
 {% block content %}
 
 <style>
-  :root{
-    --bg0:#070A12;
-    --bg1:#081327;
-    --bg2:#0A0F1E;
+  :root {
+    --bg0: #050814;
+    --bg1: #070b14;
 
-    --panel: rgba(255,255,255,.06);
-    --panel2: rgba(255,255,255,.10);
-    --line: rgba(255,255,255,.12);
+    --panelA: rgba(17, 24, 39, .66);
+    --panelB: rgba(2, 6, 23, .52);
 
-    --text:#EAF0FF;
-    --muted:#A7B0C7;
+    --text: #e5e7eb;
+    --muted: #94a3b8;
 
-    --amber:#F59E0B;
-    --amber2:#FBBF24;
-    --neon:#22D3EE;
-    --blue:#3B82F6;
-    --green:#22c55e;
+    --blue: #0095ff;
+    --green: #16a34a;
+    --red: #ef4444;
+    --amber: #f59e0b;
 
-    --danger-bg: rgba(239,68,68,.12);
-    --danger-line: rgba(239,68,68,.25);
-
-    --shadow: 0 30px 80px rgba(0,0,0,.55);
-    --shadow2: 0 18px 55px rgba(0,0,0,.45);
-    --radius: 22px;
-
-    --ring-amber: 0 0 0 4px rgba(245,158,11,.16), 0 0 0 1px rgba(245,158,11,.55) inset;
-    --ring-neon:  0 0 0 4px rgba(34,211,238,.14), 0 0 0 1px rgba(34,211,238,.55) inset;
-    --ring-blue:  0 0 0 4px rgba(59,130,246,.14),  0 0 0 1px rgba(59,130,246,.55) inset;
+    --shadow: 0 26px 90px rgba(0, 0, 0, .55);
+    --r22: 22px;
   }
 
-  *{ box-sizing:border-box; }
-  html, body{ height:100%; }
-
-  .uwrap{
-    max-width: 1200px;
+  /* Override Layout */
+  .uwrap {
+    max-width: 1100px;
     margin: 0 auto;
-    padding: 16px 12px 26px;
-    color: var(--text);
-    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    overflow-x: hidden;
+    padding: 24px;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .cq-card {
+    position: relative;
+    border-radius: var(--r22);
+    border: 1px solid rgba(255, 255, 255, .08);
+    background: linear-gradient(180deg, var(--panelA), var(--panelB));
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    overflow: hidden;
+    padding: 32px;
+  }
+
+  .cq-card::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    background:
+      radial-gradient(900px circle at 18% 8%, rgba(0, 149, 255, .08), transparent 55%),
+      radial-gradient(900px circle at 88% 18%, rgba(34, 197, 94, .06), transparent 60%);
+    opacity: .42;
+    pointer-events: none;
+    filter: blur(16px);
+    z-index: 0;
   }
 
   /* Header */
-  .uhead{
-    display:flex;
-    align-items:flex-start;
-    gap: 12px;
-    margin: 4px 0 14px;
-    padding: 14px 14px;
-    border-radius: 22px;
-
-    background:
-      radial-gradient(720px 260px at 14% 10%, rgba(34,211,238,.14), transparent 60%),
-      radial-gradient(620px 260px at 92% 18%, rgba(245,158,11,.13), transparent 60%),
-      linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-    border: 1px solid rgba(255,255,255,.10);
-    box-shadow: var(--shadow2);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    position: relative;
-    overflow:hidden;
-  }
-  .uhead::after{
-    content:"";
-    position:absolute;
-    inset:0;
-    pointer-events:none;
-    background: radial-gradient(900px 260px at 50% -10%, rgba(255,255,255,.12), transparent 55%);
-    opacity:.8;
+  .uhead {
+    margin-bottom: 32px;
   }
 
-  .uhead .ic{
-    position:relative;
-    z-index:1;
-    width: 42px;
-    height: 42px;
-    border-radius: 16px;
-    display:grid;
-    place-items:center;
-    background: rgba(245,158,11,.14);
-    border: 1px solid rgba(245,158,11,.22);
-    color: #fde68a;
-    box-shadow: 0 18px 40px rgba(0,0,0,.35);
-    flex: 0 0 auto;
-  }
-
-  .uhead h3{
-    position:relative;
-    z-index:1;
-    margin:0;
-    font-size: 18px;
-    font-weight: 1000;
-    color: rgba(234,240,255,.98);
-    letter-spacing: .2px;
-    line-height: 1.2;
-    text-shadow: 0 10px 35px rgba(0,0,0,.45);
-  }
-  .uhead .sub{
-    position:relative;
-    z-index:1;
-    margin-top: 6px;
-    color: rgba(226,232,240,.72);
-    font-size: 13px;
-    line-height: 1.6;
-  }
-
-  /* Errors */
-  .errbox{
-    margin: 10px 0 12px;
-    padding: 12px 14px;
-    border-radius: 18px;
-    background: var(--danger-bg);
-    border: 1px solid var(--danger-line);
-    color: #fecaca;
+  .uhead h3 {
+    font-size: 28px;
     font-weight: 900;
-    box-shadow: var(--shadow2);
-  }
-  .errbox ul{ margin:0; padding-left: 18px; }
-  .errbox li{ line-height: 1.35; margin: 4px 0; }
-
-  /* Card */
-  .card.user-form{
-    background: linear-gradient(180deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,.045) 100%);
-    border: 1px solid rgba(255,255,255,.12);
-    border-radius: var(--radius);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow: var(--shadow);
-    padding: 12px;
-    position: relative;
-    overflow: hidden;
-    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-  }
-  .card.user-form::before{
-    content:"";
-    position:absolute;
-    inset:-2px;
-    background: linear-gradient(120deg,
-      rgba(255,255,255,.05),
-      rgba(34,211,238,.12),
-      rgba(245,158,11,.10),
-      rgba(255,255,255,.05)
-    );
-    opacity:.5;
-    filter: blur(12px);
-    pointer-events:none;
-  }
-  .card.user-form:hover{
-    transform: translateY(-2px);
-    border-color: rgba(34,211,238,.22);
-    box-shadow:
-      0 34px 90px rgba(0,0,0,.58),
-      0 0 36px rgba(34,211,238,.10),
-      0 0 34px rgba(245,158,11,.08);
-  }
-
-  /* Sections */
-  .section{
-    position:relative;
-    z-index:1;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid rgba(255,255,255,.08);
-  }
-  .section:first-child{
-    margin-top: 0;
-    padding-top: 0;
-    border-top: none;
-  }
-
-  .stitle{
-    display:flex;
-    align-items:center;
-    gap: 10px;
-    font-weight: 1000;
-    color: rgba(231,238,255,.78);
-    text-transform: uppercase;
-    letter-spacing: .35px;
-    font-size: 12px;
-    margin-bottom: 10px;
-  }
-  .stitle .sic{
-    width: 28px;
-    height: 28px;
-    border-radius: 12px;
-    display:grid;
-    place-items:center;
-    background: rgba(34,197,94,.10);
-    border: 1px solid rgba(34,197,94,.18);
-    color: #bbf7d0;
-  }
-
-  /* Grid: mobile-first single column */
-  .grid{
-    display:grid;
-    grid-template-columns: 1fr;
+    color: #fff;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
     gap: 12px;
   }
 
-  .lbl{
-    font-weight: 950;
-    color: rgba(226,232,240,.78);
-    font-size: 12.5px;
-    letter-spacing: .25px;
-    margin: 6px 0 8px;
-    display:block;
+  .uhead p {
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 500;
   }
 
-  .control{
-    position:relative;
-  }
-
-  .control .ico{
-    position:absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: rgba(167,176,199,.9);
-    pointer-events:none;
+  /* Form Fields */
+  .field-group {
+    margin-bottom: 24px;
+    position: relative;
     z-index: 1;
   }
 
-  input, select{
-    width: 100% !important;
-    border: 1px solid rgba(255,255,255,.14) !important;
-    border-radius: 16px !important;
-    background: rgba(2, 6, 23, .22) !important;
-    color: rgba(234,240,255,.95) !important;
-    padding: 14px 14px 14px 42px !important;
-    min-height: 52px;
-    outline: none;
-    transition: transform .14s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease, filter .18s ease;
-    box-shadow: 0 0 0 1px rgba(255,255,255,.06) inset;
+  .field-group-title {
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--blue);
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
 
-  input:hover, select:hover{
-    background: rgba(2, 6, 23, .30) !important;
-    border-color: rgba(255,255,255,.18) !important;
+  .field-group-title::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
   }
 
-  input:focus, select:focus{
-    border-color: rgba(34,211,238,.62) !important;
-    box-shadow: var(--ring-neon) !important;
-    background: rgba(2, 6, 23, .34) !important;
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 20px;
   }
 
-  select{ padding-left: 42px !important; }
-
-  /* Keep browser arrows readable in dark */
-  select{
-    color-scheme: dark;
+  @media(min-width: 768px) {
+    .grid-3 {
+      grid-template-columns: repeat(2, 1fr);
+    }
   }
 
-  /* Password eye button (keep id and class) */
-  .eye-btn{
-    position:absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    border: 1px solid rgba(255,255,255,.12);
-    background: rgba(255,255,255,.06);
-    color: rgba(234,240,255,.92);
-    font-size: 15px;
-    padding: 8px 10px;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: transform .14s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease;
-    z-index: 2;
-  }
-  .eye-btn:hover{
-    background: rgba(255,255,255,.10);
-    border-color: rgba(255,255,255,.18);
-    transform: translateY(-50%) scale(1.02);
-  }
-  .eye-btn:focus-visible{
-    outline:none;
-    box-shadow: var(--ring-amber);
+  @media(min-width: 1024px) {
+    .grid-3 {
+      grid-template-columns: repeat(3, 1fr);
+    }
   }
 
-  /* Actions */
-  .actions{
-    position:relative;
-    z-index:1;
-    display:flex;
+  .inp-group {
+    display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-top: 14px;
+    gap: 8px;
   }
 
-  .btnx{
-    border:none;
+  label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  input,
+  select,
+  textarea {
+    height: 50px;
+    background: rgba(0, 0, 0, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 14px !important;
+    color: #fff !important;
+    padding: 0 16px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease;
+    width: 100%;
+    outline: none;
+  }
+
+  input:focus,
+  select:focus {
+    border-color: var(--blue) !important;
+    box-shadow: 0 0 0 4px rgba(0, 149, 255, 0.15) !important;
+    background: rgba(0, 0, 0, 0.4) !important;
+  }
+
+  /* Buttons */
+  .btn-save {
+    height: 54px;
+    padding: 0 32px;
+    background: var(--green);
+    color: #fff;
+    font-weight: 800;
     border-radius: 16px;
-    padding: 14px 16px;
-    font-weight: 1000;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
+    display: inline-flex;
+    align-items: center;
     gap: 10px;
-    text-decoration:none;
-    min-height: 54px;
-    -webkit-tap-highlight-color: transparent;
-    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease, background .18s ease, border-color .18s ease;
+    border: none;
     cursor: pointer;
+    box-shadow: 0 10px 30px -10px rgba(34, 197, 94, 0.6);
+    transition: all 0.2s;
   }
-  .btnx:active{ transform: translateY(0) scale(.99); }
-  .btnx:focus-visible{ outline:none; }
 
-  .btn-save{
-    flex:1;
-    color:#0B1226;
-    background:
-      radial-gradient(18px 18px at 18% 30%, rgba(255,255,255,.40), transparent 55%),
-      linear-gradient(135deg, rgba(245,158,11,1) 0%, rgba(34,211,238,.95) 55%, rgba(245,158,11,1) 100%);
-    box-shadow:
-      0 18px 40px rgba(245,158,11,.14),
-      0 18px 40px rgba(34,211,238,.10),
-      0 0 0 1px rgba(255,255,255,.14) inset;
+  .btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 40px -10px rgba(34, 197, 94, 0.8);
+  }
+
+  .btn-cancel {
+    height: 54px;
+    padding: 0 32px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--muted);
+    font-weight: 700;
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s;
+  }
+
+  .btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+
+  /* Error Box */
+  .error-box {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 24px;
+    color: #fca5a5;
+  }
+
+  .error-box li {
+    margin-bottom: 4px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  /* Autofill fix */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px #0f172a inset !important;
+    -webkit-text-fill-color: white !important;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+
+  /* Dark Dropdown Options */
+  select option {
+    background-color: #0f172a;
+    color: #fff;
+    padding: 10px;
+  }
+
+  /* Custom Gender Radio */
+  .gender-options {
+    display: flex;
+    gap: 15px;
+    height: 50px;
+  }
+
+  .gender-option {
+    flex: 1;
     position: relative;
-    overflow:hidden;
-  }
-  .btn-save:hover{
-    transform: translateY(-1px);
-    filter: saturate(1.05);
-    box-shadow:
-      0 24px 60px rgba(245,158,11,.18),
-      0 24px 60px rgba(34,211,238,.14),
-      0 0 0 1px rgba(255,255,255,.18) inset;
-  }
-  .btn-save:focus-visible{
-    box-shadow:
-      0 24px 60px rgba(245,158,11,.18),
-      0 24px 60px rgba(34,211,238,.14),
-      var(--ring-amber);
-  }
-  .btn-save::after{
-    content:"";
-    position:absolute;
-    top:-65%;
-    left:-50%;
-    width: 60%;
-    height: 240%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,.38), transparent);
-    transform: rotate(18deg);
-    animation: btnShine 2.8s ease-in-out infinite;
-    opacity:.55;
-  }
-  @keyframes btnShine{
-    0%{ left:-65%; opacity:.0; }
-    28%{ opacity:.55; }
-    55%{ left: 125%; opacity:.0; }
-    100%{ left: 125%; opacity:0; }
+    height: 100%;
   }
 
-  .btn-cancel{
-    border: 1px solid rgba(255,255,255,.14);
-    background: rgba(2, 6, 23, .18);
-    color: rgba(234,240,255,.92);
-    box-shadow: var(--shadow2);
-  }
-  .btn-cancel:hover{
-    background: rgba(2, 6, 23, .26);
-    border-color: rgba(255,255,255,.20);
-    transform: translateY(-1px);
-  }
-  .btn-cancel:focus-visible{
-    box-shadow: var(--ring-neon);
+  .gender-option input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
   }
 
-  /* Tablet */
-  @media (min-width: 640px){
-    .uwrap{ padding: 18px 16px 30px; }
-    .uhead{ padding: 16px 16px; }
-    .uhead h3{ font-size: 20px; }
-    .card.user-form{ padding: 14px; }
+  .gender-option label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 600;
+    color: var(--muted);
+    font-size: 14px;
+    margin: 0;
   }
 
-  /* Desktop layout */
-  @media (min-width: 980px){
-    .uwrap{ padding: 22px 18px 34px; }
-    .uhead h3{ font-size: 28px; }
-
-    .grid{
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px 14px;
-    }
-
-    .actions{
-      flex-direction: row;
-      align-items: center;
-    }
-    .btn-cancel{
-      width: 260px;
-    }
+  .gender-option input:checked+label {
+    background: rgba(0, 149, 255, 0.15);
+    /* Blue tint */
+    border-color: var(--blue);
+    color: #fff;
+    box-shadow: 0 0 0 1px var(--blue);
   }
 
-  /* Large desktop */
-  @media (min-width: 1440px){
-    .uwrap{ max-width: 1280px; }
+  .gender-option label:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
   }
 
-  :where(a, button, input, select, textarea):focus-visible{ outline:none; }
-  @media (prefers-reduced-motion: reduce){
-    *{ transition:none !important; scroll-behavior:auto !important; }
-    .btn-save::after{ animation:none !important; }
+  .gender-option label i {
+    font-size: 16px;
   }
 </style>
 
 <div class="uwrap">
 
   <div class="uhead">
-    <div class="ic"><i class="fa-solid fa-user-plus"></i></div>
-    <div>
-      <h3>{{ title }}</h3>
-      <div class="sub">Yangi foydalanuvchi ma’lumotlarini kiriting va rolini belgilang.</div>
-    </div>
+    <h3><i class="fa-solid fa-user-pen text-[var(--blue)]"></i> {{ title }}</h3>
+    <p>O'quvchi ma’lumotlarini kiriting yoki rolni belgilang.</p>
   </div>
 
   {% if form.errors %}
-    <div class="errbox">
-      <ul>
-        {% for field in form %}
-          {% for error in field.errors %}
-            <li><b>{{ field.label }}:</b> {{ error }}</li>
-          {% endfor %}
-        {% endfor %}
-        {% for error in form.non_field_errors %}
-          <li>{{ error }}</li>
-        {% endfor %}
-      </ul>
-    </div>
+  <div class="error-box">
+    <ul class="mb-0 pl-4 list-disc">
+      {% for field in form %}
+      {% for error in field.errors %}
+      <li>{{ field.label }}: {{ error }}</li>
+      {% endfor %}
+      {% endfor %}
+      {% for error in form.non_field_errors %}
+      <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+  </div>
   {% endif %}
 
-  <form method="post" class="card user-form">
+  <form method="post" class="cq-card">
     {% csrf_token %}
-
-    <div class="section">
-      <div class="stitle"><span class="sic"><i class="fa-solid fa-id-card"></i></span> Shaxsiy ma’lumotlar</div>
-      <div class="grid">
-        <div>
-          <label class="lbl">{{ form.ism.label }}</label>
-          <div class="control"><span class="ico"><i class="fa-solid fa-user"></i></span>{{ form.ism }}</div>
+    <div class="mb-5">
+      <label class="block mb-2 font-bold text-[13px] text-[#e5e7eb]">Foydalanuvchi roli</label>
+      {{ form.role }}
+    </div>
+    <!-- Shaxsiy Ma'lumotlar -->
+    <div class="field-group">
+      <div class="field-group-title"><i class="fa-solid fa-id-card"></i> Shaxsiy ma'lumotlar</div>
+      <div class="grid-3">
+        <div class="inp-group">
+          <label>Ism</label>
+          {{ form.ism }}
         </div>
-        <div>
-          <label class="lbl">{{ form.familya.label }}</label>
-          <div class="control"><span class="ico"><i class="fa-solid fa-user"></i></span>{{ form.familya }}</div>
+        <div class="inp-group">
+          <label>Familiya</label>
+          {{ form.familya }}
         </div>
-        <div>
-          <label class="lbl">{{ form.otchestvo.label }}</label>
-          <div class="control"><span class="ico"><i class="fa-solid fa-user"></i></span>{{ form.otchestvo }}</div>
+        <div class="inp-group">
+          <label>Otasining ismi (Otchestvo)</label>
+          {{ form.otchestvo }}
         </div>
       </div>
     </div>
 
-    <div class="section">
-      <div class="stitle"><span class="sic"><i class="fa-solid fa-phone"></i></span> Aloqa</div>
-      <div class="grid">
-        <div>
-          <label class="lbl">{{ form.telefon1.label }}</label>
-          <div class="control"><span class="ico"><i class="fa-solid fa-phone"></i></span>{{ form.telefon1 }}</div>
-        </div>
-        <div>
-          <label class="lbl">{{ form.telefon2.label }}</label>
-          <div class="control"><span class="ico"><i class="fa-solid fa-phone"></i></span>{{ form.telefon2 }}</div>
-        </div>
-        <div>
-          <label class="lbl">{{ form.center.label }}</label>
-          <div class="control"><span class="ico"><i class="fa-solid fa-building"></i></span>{{ form.center }}</div>
-        </div>
-      </div>
-    </div>
+    <!-- ✅ STUDENT EXTRA FIELDS (Hidden by default) -->
+    <div id="studentFieldsBlock" class="field-group" style="display:none;">
+      <div class="field-group-title"><i class="fa-solid fa-graduation-cap"></i> Student Anketasi</div>
 
-    <div class="section">
-      <div class="stitle"><span class="sic"><i class="fa-solid fa-lock"></i></span> Kirish ma’lumotlari</div>
-      <div class="grid">
-        <div>
-          <label class="lbl">{{ form.role.label }}</label>
-          <div class="control"><span class="ico"><i class="fa-solid fa-shield"></i></span>{{ form.role }}</div>
+      <!-- Row 1: Birth Date & Gender -->
+      <div class="grid-3">
+        <div class="inp-group">
+          <label>Tug‘ilgan sana <span style="color:var(--red);">*</span></label>
+          {{ form.birth_date }}
         </div>
-
-        <div>
-          <label class="lbl">{{ form.email.label }}</label>
-          <div class="control"><span class="ico"><i class="fa-solid fa-envelope"></i></span>{{ form.email }}</div>
-        </div>
-
-        <div>
-          <label class="lbl">{{ form.password.label }}</label>
-          <div class="control">
-            <span class="ico"><i class="fa-solid fa-key"></i></span>
-            {{ form.password }}
-            <button type="button" class="eye-btn" id="togglePassword" title="Parolni ko‘rsatish">
-              <i class="fa-solid fa-eye"></i>
-            </button>
+        <div class="inp-group">
+          <label>Jinsi <span style="color:var(--red);">*</span></label>
+          <div class="gender-options">
+            {% for radio in form.gender %}
+            {% if radio.data.value %}
+            <div class="gender-option">
+              {{ radio.tag }}
+              <label for="{{ radio.id_for_label }}">
+                {% if radio.data.value == "male" %}
+                <i class="fa-solid fa-person"></i>
+                {% else %}
+                <i class="fa-solid fa-person-dress"></i>
+                {% endif %}
+                {{ radio.choice_label }}
+              </label>
+            </div>
+            {% endif %}
+            {% endfor %}
           </div>
         </div>
       </div>
+
+      <!-- Row 2: Passport -->
+      <div class="grid-3" style="margin-top:20px;">
+        <div class="inp-group">
+          <label>Passport ID (Ixtiyoriy)</label>
+          {{ form.passport_id }}
+        </div>
+        <div class="inp-group">
+          <label>JSHR (Ixtiyoriy)</label>
+          {{ form.jshr }}
+        </div>
+      </div>
+
+      <!-- Row 3: Address -->
+      <div style="margin-top:20px;">
+        <div class="inp-group">
+          <label>Manzil (Ixtiyoriy)</label>
+          {{ form.address }}
+        </div>
+      </div>
     </div>
 
-    <div id="groupSelectBlock" class="section" style="display:none;">
-      <div class="stitle"><span class="sic"><i class="fa-solid fa-users"></i></span> Guruhga qo‘shish</div>
-      <label class="lbl">Guruhga qo‘shish (ixtiyoriy)</label>
-      <div class="control">
-        <span class="ico"><i class="fa-solid fa-layer-group"></i></span>
+    <!-- Aloqa -->
+    <div class="field-group">
+      <div class="field-group-title"><i class="fa-solid fa-phone"></i> Aloqa</div>
+      <div class="grid-3">
+        <div class="inp-group">
+          <label>Telefon (Asosiy)</label>
+          {{ form.telefon1 }}
+        </div>
+        <div class="inp-group">
+          <label>Telefon (Qo‘shimcha)</label>
+          {{ form.telefon2 }}
+        </div>
+        <div class="inp-group">
+          <label>O‘quv Markaz (Filial)</label>
+          {{ form.center }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Kirish (Login/Parol) -->
+    <div class="field-group">
+      <div class="field-group-title"><i class="fa-solid fa-lock"></i> Kirish ma'lumotlari</div>
+
+      <!-- Role Field (Full Width) -->
+
+
+      <!-- Login Fields (3 Columns) -->
+      <!-- Login Fields (3 Columns) -->
+      <div class="grid-3">
+        <div class="inp-group">
+          <label>Elektron pochta (Email)</label>
+          {{ form.email }}
+        </div>
+
+        {% if form.password %}
+        <!-- Add User Mode -->
+        <div class="inp-group">
+          <label>Parol</label>
+          <div class="relative w-full" style="position:relative;">
+            {{ form.password }}
+            <button type="button"
+              style="position:absolute; right:12px; top:50%; transform:translateY(-50%); border:none; background:transparent; cursor:pointer; z-index:5;"
+              onclick="const i=this.previousElementSibling; i.type=i.type==='password'?'text':'password'">
+              <i class="fa-solid fa-eye" style="color:#94a3b8; font-size:15px;"></i>
+            </button>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if form.password1 %}
+        <!-- Edit User Mode -->
+        <div class="inp-group">
+          <label>Yangi Parol (Ixtiyoriy)</label>
+          <div class="relative w-full" style="position:relative;">
+            {{ form.password1 }}
+            <button type="button"
+              style="position:absolute; right:12px; top:50%; transform:translateY(-50%); border:none; background:transparent; cursor:pointer; z-index:5;"
+              onclick="const i=this.previousElementSibling; i.type=i.type==='password'?'text':'password'">
+              <i class="fa-solid fa-eye" style="color:#94a3b8; font-size:15px;"></i>
+            </button>
+          </div>
+          <span class="text-[11px] text-slate-500 mt-1 pl-1 font-bold" style="white-space: nowrap;">
+            <!-- Bo‘sh qoldirilsa o‘zgarmaydi -->
+          </span>
+        </div>
+
+        <div class="inp-group">
+          <label>Parolni tasdiqlash</label>
+          {{ form.password2 }}
+          <!-- Spacer to align fields if needed -->
+          <span class="text-[11px] mt-1" style="visibility:hidden; white-space:nowrap;">placeholder</span>
+        </div>
+        {% endif %}
+      </div>
+
+    </div>
+
+    <!-- Dynamic Fields -->
+    <div id="groupSelectBlock" class="field-group" style="display:none;">
+      <div class="field-group-title"><i class="fa-solid fa-layer-group"></i> Guruhga biriktirish</div>
+      <div class="inp-group max-w-md">
+        <label>Guruhni tanlang (Ixtiyoriy)</label>
         <select name="group_id" id="group_id">
-          <option value="">— Guruh tanlang —</option>
+          <option value="">— Tanlang —</option>
           {% for g in groups %}
-            <option value="{{ g.id }}">{{ g.nom }} — {{ g.center }}</option>
+          <option value="{{ g.id }}">{{ g.nom }} — {{ g.center }}</option>
           {% endfor %}
         </select>
       </div>
     </div>
 
-    <div class="section" id="priceBlock" style="display:none;">
-      <div class="stitle"><span class="sic"><i class="fa-solid fa-money-bill"></i></span> Kurs narxi</div>
-      <label class="lbl">Kurs narxi (so‘m)</label>
-      <div class="control">
-        <span class="ico"><i class="fa-solid fa-coins"></i></span>
+    <div id="priceBlock" class="field-group" style="display:none;">
+      <div class="field-group-title"><i class="fa-solid fa-coins"></i> Kurs Narxi</div>
+      <div class="inp-group max-w-md">
+        <label>Narx (so‘m)</label>
         <input type="number" id="kursNarxiInput" name="kurs_narhi" min="0">
       </div>
     </div>
 
-    <div class="section" id="foizField" style="display:none;">
-      <div class="stitle"><span class="sic"><i class="fa-solid fa-percent"></i></span> O‘qituvchi ulushi</div>
-      <label class="lbl">O‘qituvchi ulushi (%)</label>
-      <div class="control">
-        <span class="ico"><i class="fa-solid fa-percent"></i></span>
+    <div id="foizField" class="field-group" style="display:none;">
+      <div class="field-group-title"><i class="fa-solid fa-percent"></i> O‘qituvchi ulushi</div>
+      <div class="inp-group max-w-md">
+        <label>Ulush foizi (%)</label>
         <input type="number" name="oqituvchi_foizi" id="id_oqituvchi_foizi" min="0" max="100">
       </div>
     </div>
 
-    <div class="actions">
-      <button class="btnx btn-save" type="submit">
-        <i class="fa-solid fa-floppy-disk"></i> Saqlash
+    <!-- Actions -->
+    <div class="flex flex-wrap items-center gap-4 mt-8 pt-6 border-t border-white/10">
+      <button type="submit" class="btn-save">
+        <i class="fa-solid fa-check"></i> SAQLASH
       </button>
-      <a class="btnx btn-cancel" href="{% url 'core:home' %}">
-        <i class="fa-solid fa-xmark"></i> Bekor qilish
+      <a href="{% url 'core:home' %}" class="btn-cancel">
+        Bekor qilish
       </a>
     </div>
 
@@ -544,87 +505,129 @@
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-  const role = document.getElementById("id_role");
-  const groupBlock = document.getElementById("groupSelectBlock");
-  const groupSelect = document.getElementById("group_id");
-  const priceBlock = document.getElementById("priceBlock");
-  const kursInput = document.getElementById("kursNarxiInput");
-  const foizField = document.getElementById("foizField");
+  document.addEventListener("DOMContentLoaded", () => {
+    const role = document.getElementById("id_role");
+    const groupBlock = document.getElementById("groupSelectBlock");
+    const groupSelect = document.getElementById("group_id");
+    const priceBlock = document.getElementById("priceBlock");
+    const kursInput = document.getElementById("kursNarxiInput");
+    const foizField = document.getElementById("foizField");
 
-  const ism = document.getElementById("id_ism");
-  const fam = document.getElementById("id_familya");
-  const email = document.getElementById("id_email");
-  const pass = document.getElementById("id_password");
-  const eyeBtn = document.getElementById("togglePassword");
+    if (role) {
+      const studentFields = document.getElementById("studentFieldsBlock");
 
-  const phones = [document.getElementById("id_telefon1"), document.getElementById("id_telefon2")];
+      function handleRole() {
+        const isStudent = role.value === "student";
+        const isTeacher = role.value === "teacher";
 
-  function handleRole() {
-    groupBlock.style.display = role.value === "student" ? "block" : "none";
-    priceBlock.style.display = "none";
-    foizField.style.display = role.value === "teacher" ? "block" : "none";
-  }
-  role.addEventListener("change", handleRole);
-  handleRole();
+        if (groupBlock) groupBlock.style.display = isStudent ? "block" : "none";
 
-  function loadPrice() {
-    const gid = groupSelect.value;
-    if (!gid) { priceBlock.style.display = "none"; return; }
+        // Toggle Student Fields
+        if (studentFields) studentFields.style.display = isStudent ? "block" : "none";
 
-    fetch(`/education/group-price/${gid}/`)
-      .then(r => r.json())
-      .then(data => {
-        kursInput.value = data.price;
-        priceBlock.style.display = "block";
-      })
-      .catch(() => {
-        kursInput.value = 0;
-        priceBlock.style.display = "block";
-      });
-  }
-  groupSelect.addEventListener("change", loadPrice);
-
-  eyeBtn.addEventListener("click", () => {
-    const isPass = pass.type === "password";
-    pass.type = isPass ? "text" : "password";
-    eyeBtn.innerHTML = isPass
-      ? '<i class="fa-solid fa-eye-slash"></i>'
-      : '<i class="fa-solid fa-eye"></i>';
-  });
-
-  function generateLogin() {
-    const i = ism.value.trim().toLowerCase();
-    const f = fam.value.trim().toLowerCase();
-
-    if (i && f) {
-      if (!email.value || email.dataset.auto === "1") {
-        email.value = `${i}${f}@gmail.com`;
-        email.dataset.auto = "1";
+        if (priceBlock) priceBlock.style.display = "none"; // Reset
+        if (foizField) foizField.style.display = isTeacher ? "block" : "none";
       }
-      if (!pass.value || pass.dataset.auto === "1") {
-        pass.value = `${i}_${f}${Math.floor(100+Math.random()*900)}`;
-        pass.dataset.auto = "1";
-      }
+      role.addEventListener("change", handleRole);
+      handleRole();
     }
-  }
-  ism.addEventListener("input", generateLogin);
-  fam.addEventListener("input", generateLogin);
 
-  phones.forEach(inp => {
-    if (!inp) return;
-    inp.addEventListener("focus", () => {
-      if (!inp.value.startsWith("+998")) inp.value = "+998";
-    });
-    inp.addEventListener("input", () => {
-      inp.value = inp.value.replace(/[^\d+]/g, "");
-      if (!inp.value.startsWith("+998"))
-        inp.value = "+998" + inp.value.replace(/^\+?998?/, "");
-      if (inp.value.length > 13)
-        inp.value = inp.value.slice(0, 13);
-    });
+    if (groupSelect) {
+      groupSelect.addEventListener("change", () => {
+        const gid = groupSelect.value;
+        if (!gid) { if (priceBlock) priceBlock.style.display = "none"; return; }
+
+        fetch(`/education/group-price/${gid}/`)
+          .then(r => r.json())
+          .then(data => {
+            if (kursInput) kursInput.value = data.price;
+            if (priceBlock) priceBlock.style.display = "block";
+          })
+          .catch(() => {
+            if (kursInput) kursInput.value = 0;
+            if (priceBlock) priceBlock.style.display = "block";
+          });
+      });
+    }
+
+    // ✅ Passport Mask: AB1234567
+    const passportInput = document.getElementById("id_passport_id");
+    if (passportInput) {
+      passportInput.addEventListener("input", (e) => {
+        let val = e.target.value.toUpperCase();
+
+        // Remove invalid chars (allow only A-Z and 0-9)
+        val = val.replace(/[^A-Z0-9]/g, '');
+
+        let formatted = "";
+        for (let i = 0; i < val.length; i++) {
+          if (i < 2) {
+            // First 2 chars: letters only
+            if (/[A-Z]/.test(val[i])) formatted += val[i];
+          } else {
+            // Rest: numbers only
+            if (/[0-9]/.test(val[i])) formatted += val[i];
+          }
+        }
+
+        // Max length 9 (2 letters + 7 digits)
+        e.target.value = formatted.substring(0, 9);
+      });
+    }
+
+    // ✅ JSHR Mask: 14 digits only
+    const jshrInput = document.getElementById("id_jshr");
+    if (jshrInput) {
+      jshrInput.addEventListener("input", (e) => {
+        // Allow only numbers, max 14
+        e.target.value = e.target.value.replace(/\D/g, '').substring(0, 14);
+      });
+    }
+
+    // ✅ AUTO LOGIN/PASSWORD GENERATOR
+    const ismInput = document.getElementById("id_ism");
+    const famInput = document.getElementById("id_familya");
+    const emailInput = document.getElementById("id_email");
+    const passInput = document.getElementById("id_password");
+
+    if (ismInput && famInput && emailInput && passInput) {
+      function transliterate(word) {
+        if (!word) return "";
+        const map = {
+          'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'j',
+          'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
+          'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'x', 'ц': 'ts',
+          'ч': 'ch', 'ш': 'sh', 'щ': 'sh', 'ъ': '', 'ы': 'i', 'ь': '', 'э': 'e', 'ю': 'yu',
+          'я': 'ya', 'o‘': 'o', 'g‘': 'g', 'sh': 'sh', 'ch': 'ch'
+        };
+        return word.toLowerCase().split('').map(c => map[c] || c).join('').replace(/[^a-z0-9]/g, '');
+      }
+
+      function generateCredentials() {
+        const ism = ismInput.value.trim();
+        const fam = famInput.value.trim();
+
+        if (ism && fam) {
+          // Generate Email if empty (Limit to ~20 chars total)
+          if (!emailInput.value) {
+            const iChar = transliterate(ism).charAt(0); // first char of name
+            const fPart = transliterate(fam).substring(0, 8); // first 8 chars of surname
+            const rand = Math.floor(Math.random() * 900) + 100; // 3 digits
+            emailInput.value = `${iChar}.${fPart}${rand}@gmail.com`;
+          }
+
+          // Generate Password if empty (8 digit random)
+          if (!passInput.value) {
+            const randomPass = Math.floor(10000000 + Math.random() * 90000000); // 8 digit number
+            passInput.value = randomPass;
+          }
+        }
+      }
+
+      ismInput.addEventListener("blur", generateCredentials);
+      famInput.addEventListener("blur", generateCredentials);
+    }
   });
-});
 </script>
 
 {% endblock %}

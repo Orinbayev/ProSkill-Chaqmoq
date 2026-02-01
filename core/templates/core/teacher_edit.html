@@ -2,274 +2,378 @@
 {% block content %}
 
 <style>
-  :root{
-    --bg0:#070A12;
-    --bg1:#0B1220;
-    --bg2:#0F1B33;
+  :root {
+    --bg-dark: #020617;
+    --bg-card: #0f172a;
+    --bg-hover: #1e293b;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-hover: rgba(255, 255, 255, 0.15);
 
-    --panel: rgba(255,255,255,.06);
-    --panel2: rgba(2,6,23,.55);
-    --line: rgba(255,255,255,.10);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
 
-    --muted:#94a3b8;
-    --text:#e5e7eb;
+    --primary: #f59e0b;
+    --primary-glow: rgba(245, 158, 11, 0.5);
 
-    --cyan:#38bdf8;
-    --green:#22c55e;
-    --orange:#f59e0b;
-    --danger:#ef4444;
+    --blue: #3b82f6;
+    --green: #22c55e;
+    --red: #ef4444;
 
-    --shadow: 0 24px 80px rgba(0,0,0,.55);
-    --shadow2: 0 14px 32px rgba(0,0,0,.38);
-
-    --r14:14px;
-    --r18:18px;
-    --r22:22px;
-
-    --pad: 14px;
-
-    --ring-amber: 0 0 0 4px rgba(245,158,11,.22), 0 0 0 1px rgba(245,158,11,.35) inset;
-    --ring-cyan:  0 0 0 4px rgba(56,189,248,.18),  0 0 0 1px rgba(56,189,248,.35) inset;
-    --ring-green: 0 0 0 4px rgba(34,197,94,.16),   0 0 0 1px rgba(34,197,94,.35) inset;
+    --glass: rgba(15, 23, 42, 0.7);
+    --radius: 16px;
   }
 
-  *{ box-sizing:border-box; }
-  html,body{ height:100%; }
-  body{
-    background:
-      radial-gradient(1200px 700px at 10% -10%, rgba(245,158,11,.18), transparent 55%),
-      radial-gradient(900px 600px at 90% 10%, rgba(34,197,94,.10), transparent 55%),
-      radial-gradient(1000px 700px at 60% 120%, rgba(59,130,246,.12), transparent 60%),
-      linear-gradient(180deg, var(--bg0), var(--bg1) 55%, #050712);
-    color: var(--text);
-    overflow-x:hidden;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
+  .edit-scope {
+    background: var(--bg-dark);
+    min-height: 100vh;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--text-main);
+    padding: 20px;
   }
 
-  .page-wrap{
-    max-width: 980px;
+  .edit-wrap {
+    max-width: 900px;
     margin: 0 auto;
-    padding: calc(var(--pad) + env(safe-area-inset-top)) calc(var(--pad) + env(safe-area-inset-right)) 22px calc(var(--pad) + env(safe-area-inset-left));
-    color: var(--text);
   }
 
-  .page-title{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    margin: 0 0 14px;
-    font-size: clamp(18px, 2.8vw, 28px);
-    font-weight: 950;
-    letter-spacing:.2px;
-    line-height: 1.15;
-    flex-wrap: wrap;
-  }
-
-  .title-badge{
-    width: 40px;
-    height: 40px;
-    border-radius: 14px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background: rgba(245,158,11,.18);
-    border: 1px solid rgba(245,158,11,.30);
-    box-shadow: 0 12px 28px rgba(0,0,0,.40);
-    color: #fbbf24;
-    flex: 0 0 auto;
-  }
-
-  .title-name{
-    color: var(--cyan);
-    font-weight: 950;
-  }
-
-  .edit-card{
-    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
-    border: 1px solid var(--line);
-    border-radius: var(--r22);
-    padding: 16px;
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    overflow:hidden;
-  }
-
-  .form-grid{
-    display:grid;
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-
-  .field{
-    display:flex;
-    flex-direction:column;
-    gap: 8px;
-    min-width: 0;
-  }
-
-  .field label{
-    color: rgba(165,191,217,.95);
-    font-weight: 900;
-    font-size: 13px;
-    letter-spacing: .15px;
-  }
-
-  .field input,
-  .field select,
-  .field textarea{
-    background: rgba(2,6,23,.50) !important;
-    border: 1px solid rgba(255,255,255,.12) !important;
-    color: #fff !important;
-    padding: 12px 12px !important;
-    border-radius: 14px !important;
-    width: 100%;
-    outline: none;
-    box-shadow: inset 0 0 18px rgba(0,0,0,.25) !important;
-    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
-    min-height: 44px;
-  }
-
-  .field textarea{ min-height: 110px; resize: vertical; }
-
-  .field input:focus,
-  .field select:focus,
-  .field textarea:focus{
-    border-color: rgba(56,189,248,.60) !important;
-    box-shadow: var(--ring-cyan), inset 0 0 18px rgba(0,0,0,.25) !important;
-    background: rgba(2,6,23,.62) !important;
-  }
-
-  .field input:focus-visible,
-  .field select:focus-visible,
-  .field textarea:focus-visible{
-    outline:none;
-  }
-
-  .err{
-    color: #f87171;
-    font-weight: 900;
-    font-size: 12px;
-    margin-top: 2px;
-  }
-
-  .actions{
-    display:flex;
-    align-items:center;
-    justify-content: space-between;
+  .page-header {
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
     gap: 12px;
-    margin-top: 16px;
-    flex-wrap: wrap;
   }
 
-  .btnx{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap: 10px;
-    border-radius: 14px;
-    padding: 12px 18px;
-    font-weight: 950;
-    text-decoration:none;
-    border: 1px solid rgba(255,255,255,.12);
-    transition: transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease;
-    min-height: 46px;
-    width: 100%;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-
-  .btnx:hover{ transform: translateY(-1px); }
-  .btnx:active{ transform: translateY(0); }
-
-  .btnx:focus-visible{
-    outline:none;
-    box-shadow: var(--ring-amber);
-  }
-
-  .btn-back{
-    background: rgba(148,163,184,.14);
-    border-color: rgba(148,163,184,.22);
-    color: rgba(226,232,240,.95);
-  }
-  .btn-back:hover{
-    background: rgba(148,163,184,.22);
+  .page-title {
+    font-size: 24px;
+    font-weight: 800;
     color: #fff;
-    box-shadow: 0 16px 36px rgba(0,0,0,.35);
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
 
-  .btn-save{
-    background: rgba(34,197,94,.18);
-    border-color: rgba(34,197,94,.30);
-    color: #86efac;
-  }
-  .btn-save:hover{
-    background: rgba(34,197,94,.28);
-    border-color: rgba(34,197,94,.45);
-    color: #fff;
-    box-shadow: 0 16px 36px rgba(0,0,0,.35);
+  .edit-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   }
 
-  .span-2{ grid-column: span 1; }
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
 
-  @media (min-width: 680px){
-    .edit-card{ padding: 22px; }
-    .form-grid{
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px 18px;
+  @media (max-width: 768px) {
+    .form-grid {
+      grid-template-columns: 1fr;
     }
-    .span-2{ grid-column: span 2; }
-    .btnx{ width: auto; min-width: 180px; }
-    .actions{ flex-wrap: nowrap; }
   }
 
-  @media (prefers-reduced-motion: reduce){
-    *{ transition: none !important; scroll-behavior: auto !important; }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .form-input,
+  .form-select,
+  .form-textarea {
+    background: rgba(2, 6, 23, 0.5) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 10px !important;
+    height: 48px;
+    padding: 0 16px !important;
+    color: white !important;
+    font-size: 14px;
+    outline: none;
+    width: 100%;
+    transition: 0.2s;
+  }
+
+  .form-textarea {
+    height: auto;
+    padding-top: 12px !important;
+  }
+
+  .form-input:focus,
+  .form-select:focus,
+  .form-textarea:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15) !important;
+  }
+
+  .actions {
+    display: flex;
+    gap: 16px;
+    margin-top: 32px;
+    justify-content: flex-end;
+  }
+
+  .btn {
+    height: 48px;
+    padding: 0 24px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: 0.2s;
+    border: none;
+    text-decoration: none;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+  }
+
+  .btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+
+  .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  .full-width {
+    grid-column: span 2;
+  }
+
+  @media (max-width: 768px) {
+    .full-width {
+      grid-column: span 1;
+    }
+  }
+
+  .password-group {
+    position: relative;
+  }
+
+  .password-toggle {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    cursor: pointer;
+    z-index: 2;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+
+  .password-toggle:hover {
+    color: white;
+  }
+
+  /* Remove default Django help texts and error styling quirks if needed */
+  ul.errorlist {
+    color: var(--red);
+    list-style: none;
+    padding: 0;
+    margin-top: 4px;
+    font-size: 12px;
   }
 </style>
 
-<div class="page-wrap">
+<div class="edit-scope">
+  <div class="edit-wrap">
 
-  <h2 class="page-title">
-    <span class="title-badge">
-      <i class="fa-solid fa-pen"></i>
-    </span>
-    <span>O‘qituvchini tahrirlash — <span class="title-name">{{ teacher.ism }} {{ teacher.familya }}</span></span>
-  </h2>
+    <div class="page-header">
+      <a href="{% url 'core:teacher_list' %}" class="btn btn-secondary"
+        style="width: 40px; height: 40px; padding: 0; justify-content: center; border-radius: 50%;">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <h2 class="page-title">
+        O‘qituvchini tahrirlash
+      </h2>
+    </div>
 
-  <div class="edit-card">
+    <div class="edit-card">
+      <form method="post">
+        {% csrf_token %}
 
-    <form method="post">
-      {% csrf_token %}
+        <div class="form-grid">
 
-      <div class="form-grid">
-        {% for field in form %}
-          <div class="field {% if field.name == 'oqituvchi_foizi' %}{% endif %}">
-            <label>{{ field.label }}</label>
-            {{ field }}
-            {% if field.errors %}
-              <div class="err">{{ field.errors|striptags }}</div>
-            {% endif %}
+          <div class="form-group">
+            <label class="form-label">Ism</label>
+            {{ form.ism }}
+            {{ form.ism.errors }}
           </div>
-        {% endfor %}
-      </div>
 
-      <div class="actions">
-        <a href="{% url 'core:teacher_detail' teacher.id %}" class="btnx btn-back">
-          <i class="fa-solid fa-arrow-left"></i> Ortga
-        </a>
+          <div class="form-group">
+            <label class="form-label">Familiya</label>
+            {{ form.familya }}
+            {{ form.familya.errors }}
+          </div>
 
-        <button type="submit" class="btnx btn-save">
-          <i class="fa-solid fa-floppy-disk"></i> Saqlash
-        </button>
-      </div>
+          <div class="form-group">
+            <label class="form-label">Otasining ismi</label>
+            {{ form.otchestvo }}
+            {{ form.otchestvo.errors }}
+          </div>
 
-    </form>
+          <div class="form-group">
+            <label class="form-label">Tug‘ilgan sana</label>
+            {{ form.birth_date }}
+            {{ form.birth_date.errors }}
+            <script>
+              // Ensure the date input works with Django's date format if prefilled
+              // Or force type date
+              document.getElementById('id_birth_date').type = 'date';
+            </script>
+          </div>
 
+          <div class="form-group">
+            <label class="form-label">Telefon 1</label>
+            {{ form.telefon1 }}
+            {{ form.telefon1.errors }}
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Email (Login)</label>
+            {{ form.email }}
+            {{ form.email.errors }}
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Passport ID</label>
+            {{ form.passport_id }}
+            {{ form.passport_id.errors }}
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">JSHSHIR (PINFL)</label>
+            {{ form.jshr }}
+            {{ form.jshr.errors }}
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">O‘qituvchi Ulushi (%)</label>
+            {{ form.oqituvchi_foizi }}
+            {{ form.oqituvchi_foizi.errors }}
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Markaz (Center)</label>
+            {{ form.center }}
+            {{ form.center.errors }}
+          </div>
+
+          <div class="form-group full-width">
+            <label class="form-label" style="display: flex; justify-content: space-between;">
+              <span>Parolni yangilash</span>
+              <span style="font-weight: 500; text-transform: none; color: var(--primary); font-size: 11px;">
+                Eski parol: mavjud (shifrlangan)
+              </span>
+            </label>
+            <div class="password-group">
+              <input type="password" name="new_password" id="new_password" class="form-input"
+                placeholder="Yangi parol (agar o‘zgartirmoqchi bo‘lsangiz)" autocomplete="new-password">
+              <button type="button" class="password-toggle" onclick="togglePassword()">
+                <i class="fa-solid fa-eye" id="toggleIcon"></i>
+              </button>
+            </div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">
+              Agar parolni o‘zgartirishni xohlamasangiz, bu maydonni bo‘sh qoldiring.
+            </div>
+          </div>
+
+        </div>
+
+        <div class="actions">
+          <a href="{% url 'core:teacher_list' %}" class="btn btn-secondary">
+            Bekor qilish
+          </a>
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-check"></i> Saqlash
+          </button>
+        </div>
+
+      </form>
+    </div>
   </div>
-
 </div>
+
+<script>
+  function togglePassword() {
+    const input = document.getElementById('new_password');
+    const icon = document.getElementById('toggleIcon');
+    if (input.type === "password") {
+      input.type = "text";
+      icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+      input.type = "password";
+      icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+  }
+
+  // Auto-apply styles to inputs generated by Django form
+  document.addEventListener('DOMContentLoaded', function () {
+    const inputs = document.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+      if (!input.classList.contains('form-input') && !input.classList.contains('form-select')) {
+        if (input.tagName === 'SELECT') {
+          input.classList.add('form-select');
+        } else {
+          input.classList.add('form-input');
+        }
+      }
+    });
+
+    // ✅ Passport Mask: AB1234567 (2 letters + 7 digits)
+    const passportInput = document.getElementById("id_passport_id");
+    if (passportInput) {
+      passportInput.addEventListener("input", (e) => {
+        let val = e.target.value.toUpperCase();
+        // Remove non-alphanumeric
+        val = val.replace(/[^A-Z0-9]/g, '');
+
+        let formatted = "";
+        for (let i = 0; i < val.length; i++) {
+          if (i < 2) {
+            // First 2 must be letters
+            if (/[A-Z]/.test(val[i])) formatted += val[i];
+          } else {
+            // Rest must be numbers
+            if (/[0-9]/.test(val[i])) formatted += val[i];
+          }
+        }
+        e.target.value = formatted.substring(0, 9);
+      });
+    }
+
+    // ✅ JSHR Mask: 14 digits only
+    const jshrInput = document.getElementById("id_jshr");
+    if (jshrInput) {
+      jshrInput.addEventListener("input", (e) => {
+        e.target.value = e.target.value.replace(/\D/g, '').substring(0, 14);
+      });
+    }
+  });
+</script>
 
 {% endblock %}

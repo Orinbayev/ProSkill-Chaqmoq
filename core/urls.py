@@ -12,17 +12,30 @@ urlpatterns = [
     path("user/<int:pk>/edit/", views.user_edit, name="user_edit"),
     path("user/<int:pk>/delete/", views.user_delete, name="user_delete"),
     path("user/<int:pk>/view/", views.user_view, name="user_view"),
-    path("students/export-excel/", views.stat_students_export_excel, name="students_export_excel"),
+    path("users/export-excel/", views.stat_users_export_excel, name="users_export_excel"),
     path('teachers/<int:pk>/delete/', views.teacher_delete, name='teacher_delete'),
 
 
     path('stat/managers/',  views.stat_managers,  name='stat_managers'),
     path('stat/teachers/',  views.stat_teachers,  name='stat_teachers'),
     path('stat/students/',  views.stat_students,  name='stat_students'),
+    path('stat/parents/',   views.stat_parents,   name='stat_parents'),
+    path('parents/add/',    views.parent_add,     name='parent_add'),
+    path('parents/<int:pk>/edit/', views.parent_edit, name='parent_edit'),
+    path('parents/<int:pk>/delete/', views.parent_delete, name='parent_delete'),
+    path('parents/settings/', views.update_center_donation_settings, name='update_center_donation_settings'),
+    path('dashboard/parent/', views.dashboard_parent, name='dashboard_parent'),
+    path('dashboard/parent/toggle/<int:student_id>/', views.toggle_child, name='toggle_child'),
     path('stat/products/',  views.stat_products,  name='stat_products'),
     path('stat/requests/',  views.stat_requests,  name='stat_requests'),
     path('stat/ledger/',    views.stat_ledger,    name='stat_ledger'),
-    path("students/import-excel/", views.students_import_excel, name="students_import_excel"),
+    path("users/import-excel/", views.users_import_excel, name="users_import_excel"),
+    path("users/download-template/", views.users_download_template, name="users_download_template"),
     path("profil/", views.profile_view, name="profile"),
+    
+    # ✅ Student Archive Actions
+    path("students/<int:pk>/archive/", views.archive_student, name="archive_student"),
+    path("students/<int:pk>/restore/", views.restore_student, name="restore_student"),
+    path("students/<int:pk>/hard-delete/", views.hard_delete_student, name="hard_delete_student"),
 ]
 

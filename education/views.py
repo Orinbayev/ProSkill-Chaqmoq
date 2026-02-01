@@ -66,9 +66,10 @@ from .models import (
     Student,           # agar sizda bor bo‘lsa; bo‘lmasa o‘chirib tashlang
     TuitionMonth,
 )
+from accounts.models import Center
 from .permissions import user_can_manage_payments
 from django.db import transaction
-from django.db.models.functions import ExtractYear, ExtractMonth  # student_detail dagi underline ham yo‘qoladi
+from django.db.models.functions import ExtractYear, ExtractMonth, ExtractDay  # student_detail dagi underline ham yo‘qoladi
 from urllib.parse import urlparse, parse_qs
 from django.db import transaction
 from urllib.parse import urlparse, parse_qs, unquote
@@ -160,10 +161,41 @@ def _can_give_points(user, g: Group):
         or (user.role == "teacher" and g.oqituvchi_id == user.id)
     )
 
-def _teacher_can(user, g: Group) -> bool:
     return user.is_superuser or user.role in ("director", "manager") or (
         user.role == "teacher" and g.oqituvchi_id == user.id
     )
+
+
+def get_active_center(request):
+    """
+    Returns the active center for the current request.
+    Priority:
+    1. request.user.center (if assigned)
+    2. request.session.get('center_id') (if superuser switching centers)
+    """
+    if not request.user.is_authenticated:
+        return None
+
+    # Normal user (Teacher, Manager, Student) -> Always use their assigned center
+    if request.user.role in ('teacher', 'manager', 'student') and request.user.center:
+        return request.user.center
+
+    # Superuser or Director -> Can potentially switch centers?
+    # For now, we stick to user.center or None (Global Admin)
+    # The prompt says: "Director ham faqat o‘z markazini ko‘rsin (agar superadmin bo‘lmasa)"
+    if request.user.role == 'director' and request.user.center:
+        return request.user.center
+
+    if request.user.is_superuser:
+        # Check session for switching context
+        center_id = request.session.get('active_center_id')
+        if center_id:
+            return get_object_or_404(Center, id=center_id)
+        # If no center selected, return None (Global View - use with caution)
+        return None
+
+    return request.user.center
+
 
 
 from chaqmoq.models import Ledger
@@ -247,12 +279,21 @@ def tolov_oquvchilar(request):
         per_page_raw = "10"
     per_page = int(per_page_raw)
 
+    per_page = int(per_page_raw)
+
     # selected_month = parse_month_str(month_str)
     # month_str_out = selected_month.strftime("%Y-%m")
     selected_month = parse_month_str(month_str) or first_day_of_current_month()
     month_str_out = selected_month.strftime("%Y-%m")
 
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    if not center and not request.user.is_superuser:
+        return HttpResponseForbidden("Markaz biriktirilmagan")
+
     enrollments = Enrollment.objects.select_related("student", "group")
+    if center:
+        enrollments = enrollments.filter(center=center)
 
     # ✅ QIDIRUV: ism + familya + otchestvo + email
     if q:
@@ -264,17 +305,20 @@ def tolov_oquvchilar(request):
         )
 
     # all-time stats
+    # Filter payments by center too
+    pay_qs = Payment.objects.filter(enrollment__in=enrollments)
+    if center:
+       pay_qs = pay_qs.filter(center=center)
+
     all_students_total = enrollments.count()
     all_paid_students = (
-        Payment.objects.filter(enrollment__in=enrollments)
-        .values("enrollment_id").distinct().count()
+        pay_qs.values("enrollment_id").distinct().count()
     )
     all_never_paid_students = max(0, all_students_total - all_paid_students)
     all_paid_total = (
-        Payment.objects.filter(enrollment__in=enrollments)
-        .aggregate(s=Sum("summa"))["s"] or 0
+        pay_qs.aggregate(s=Sum("summa"))["s"] or 0
     )
-    all_payments_count = Payment.objects.filter(enrollment__in=enrollments).count()
+    all_payments_count = pay_qs.count()
 
     # rows
     rows = []
@@ -550,7 +594,13 @@ def create_payment(request):
         messages.error(request, "Enrollment ID kelmadi.")
         return redirect(next_url)
 
-    enrollment = get_object_or_404(Enrollment, id=enrollment_id)
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Enrollment.objects.all()
+    if center:
+        qs = qs.filter(center=center)
+    
+    enrollment = get_object_or_404(qs, id=enrollment_id)
 
     cash_amount = int(Decimal(request.POST.get("cash_amount") or "0"))
     card_amount = int(Decimal(request.POST.get("card_amount") or "0"))
@@ -583,7 +633,13 @@ def payment_update(request, payment_id: int):
     if not user_can_manage_payments(request.user):
         return JsonResponse({"ok": False, "error": "forbidden"}, status=403)
 
-    p = get_object_or_404(Payment.objects.select_related("enrollment"), id=payment_id)
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Payment.objects.select_related("enrollment")
+    if center:
+        qs = qs.filter(center=center)
+
+    p = get_object_or_404(qs, id=payment_id)
     enrollment = getattr(p, "enrollment", None)
     if not enrollment:
         return JsonResponse({"ok": False, "error": "enrollment_not_found"}, status=400)
@@ -676,11 +732,17 @@ def _first_day_of_month(d: date) -> date:
 
 @transaction.atomic
 def enrollment_edit(request, enrollment_id):
-    enr = get_object_or_404(
-        Enrollment.objects.select_related("student", "group"),
-        id=enrollment_id
-    )
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Enrollment.objects.select_related("student", "group")
+    if center:
+        qs = qs.filter(center=center)
+        
+    enr = get_object_or_404(qs, id=enrollment_id)
+    
     groups = Group.objects.all()
+    if center:
+        groups = groups.filter(center=center)
 
     next_url = request.POST.get("next") or request.GET.get("next") or reverse("education:tolov_oquvchilar")
 
@@ -732,7 +794,13 @@ def enrollment_delete(request, enrollment_id: int):
         messages.error(request, "Ruxsat yo‘q.")
         return redirect("core:home")
 
-    enr = get_object_or_404(Enrollment.objects.select_related("student", "group"), id=enrollment_id)
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Enrollment.objects.select_related("student", "group")
+    if center:
+        qs = qs.filter(center=center)
+
+    enr = get_object_or_404(qs, id=enrollment_id)
     next_url = request.GET.get("next") or request.POST.get("next") or "education:tolov_oquvchilar"
 
     if request.method == "POST":
@@ -757,9 +825,14 @@ def payment_history_enrollment(request, enrollment_id: int):
     month_str = request.GET.get("month", "")
     selected_month = parse_month_str(month_str) or first_day_of_current_month()
 
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Enrollment.objects.select_related("student", "group")
+    if center:
+        qs = qs.filter(center=center)
 
     enrollment = get_object_or_404(
-        Enrollment.objects.select_related("student", "group"),
+        qs,
         id=enrollment_id
     )
 
@@ -877,8 +950,14 @@ def payment_receipt_pdf(request, payment_id: int):
     if not user_can_manage_payments(request.user):
         return HttpResponse("Forbidden", status=403)
 
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Payment.objects.select_related("enrollment__student", "enrollment__group")
+    if center:
+        qs = qs.filter(center=center)
+
     p = get_object_or_404(
-        Payment.objects.select_related("enrollment__student", "enrollment__group"),
+        qs,
         id=payment_id
     )
 
@@ -1120,7 +1199,14 @@ def attendance_groups(request):
 
 
     # ✅ Teacher dropdown uchun
-    teachers = User.objects.filter(role="teacher").order_by("ism", "familya")
+    teacher_qs = User.objects.filter(role="teacher").order_by("ism", "familya")
+    
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    if center:
+        teacher_qs = teacher_qs.filter(center=center)
+        
+    teachers = teacher_qs
 
     # ✅ Base queryset
     groups = (
@@ -1138,6 +1224,9 @@ def attendance_groups(request):
             )
         )
     )
+    
+    if center:
+        groups = groups.filter(center=center)
 
     # ✅ Filter: teacher
     if teacher_id:
@@ -1182,7 +1271,12 @@ from django.db.models import Min, Max
 
 @login_required
 def group_month_attendance(request, group_id):
-    group = get_object_or_404(Group, pk=group_id)
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Group.objects.all()
+    if center:
+        qs = qs.filter(center=center)
+    group = get_object_or_404(qs, pk=group_id)
 
     today = date.today()
     year = int(request.GET.get("year", today.year))
@@ -1269,7 +1363,12 @@ import calendar
 
 @login_required
 def group_month_attendance_export(request, group_id):
-    group = get_object_or_404(Group, pk=group_id)
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Group.objects.all()
+    if center:
+        qs = qs.filter(center=center)
+    group = get_object_or_404(qs, pk=group_id)
 
     today = date.today()
     year = int(request.GET.get("year", today.year))
@@ -1326,7 +1425,12 @@ def group_month_attendance_export(request, group_id):
 @require_POST
 @login_required
 def attendance_toggle_cell(request, group_id):
-    group = get_object_or_404(Group, pk=group_id)
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Group.objects.all()
+    if center:
+        qs = qs.filter(center=center)
+    group = get_object_or_404(qs, pk=group_id)
 
     student_id = request.POST.get("student_id")
     date_str = request.POST.get("date")
@@ -1336,7 +1440,11 @@ def attendance_toggle_cell(request, group_id):
     if not d or not student_id:
         return JsonResponse({"ok": False, "error": "Bad data"}, status=400)
 
-    student = get_object_or_404(User, pk=student_id, role="student")
+    user_qs = User.objects.filter(role="student")
+    if center:
+        user_qs = user_qs.filter(center=center)
+
+    student = get_object_or_404(user_qs, pk=student_id)
 
     att = Attendance.objects.filter(group=group, student=student, date=d).first()
 
@@ -1346,6 +1454,9 @@ def attendance_toggle_cell(request, group_id):
     if current_status == "none":
         if not att:
             att = Attendance(group=group, student=student, date=d, present=True)
+            # Center ID ni qo'shish (migrationdan keyin)
+            if hasattr(att, "center"):
+                att.center = group.center
         else:
             att.present = True
             att.forced = False
@@ -1357,6 +1468,8 @@ def attendance_toggle_cell(request, group_id):
     elif current_status == "present":
         if not att:
             att = Attendance(group=group, student=student, date=d, present=False)
+            if hasattr(att, "center"):
+                att.center = group.center
         else:
             att.present = False
             att.forced = False
@@ -1395,6 +1508,11 @@ def points_details(request):
     end = timezone.make_aware(datetime.combine(date_obj, datetime.max.time()), tz)
 
     qs = Ledger.objects.filter(student_id=student_id, sana__range=(start, end))
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    if center:
+        qs = qs.filter(student__center=center)
+
     if type_ == "plus":
         qs = qs.filter(ball__gt=0)
     elif type_ == "minus":
@@ -1450,7 +1568,13 @@ def payment_history(request, student_id):
     current_year = now.year
 
     # 🔹 Shu o‘quvchining to‘lovlari
-    payments = Payment.objects.filter(student_id=student_id).order_by('sana', 'vaqt')
+    qs = Payment.objects.filter(student_id=student_id).order_by('sana', 'vaqt')
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    if center:
+        qs = qs.filter(center=center)
+        
+    payments = qs
 
     if not payments.exists():
         return JsonResponse({
@@ -1508,7 +1632,11 @@ def payment_monitor(request):
     q = request.GET.get("q", "")
     filter_type = request.GET.get("filter", "")
 
+    from core.tenant import get_request_center
+    center = get_request_center(request)
     payments = Payment.objects.select_related("student", "group", "enrollment")
+    if center:
+        payments = payments.filter(center=center)
 
     if q:
         payments = payments.filter(
@@ -1569,7 +1697,12 @@ def groups_hub(request):
     })
 
 def group_delete_confirm(request, id):
-    group = get_object_or_404(Group, id=id)
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Group.objects.all()
+    if center:
+        qs = qs.filter(center=center)
+    group = get_object_or_404(qs, id=id)
     if request.method == "POST":
         group.delete()
         return redirect("education:groups_home")
@@ -1620,6 +1753,10 @@ def groups_by_category(request, category):
         .annotate(student_count=Count("enrollments"))
         .order_by("nom")
     )
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    if center:
+        rows = rows.filter(center=center)
     return render(
         request,
         "education/groups_by_category.html",
@@ -1642,6 +1779,12 @@ def create_group_for_category(request, category_id):
 
             # 🟢 To‘g‘ri maydon: ForeignKey bo‘lgan 'category_obj'
             group.category_obj = category
+
+            # Center assignment
+            from core.tenant import get_request_center
+            center = get_request_center(request)
+            if center:
+                group.center = center
 
             # Eski 'category' maydoni ham to‘ldirilsa yaxshi
             group.category = Group.IT  # yoki Group.LANG — kerakli turga qarab
@@ -1672,6 +1815,10 @@ def guruhlar(request):
         .annotate(student_count=Count("enrollments"))
         .order_by("nom")
     )
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    if center:
+        rows = rows.filter(center=center)
     return render(request, "education/groups.html", {"rows": rows, "can_manage": _can_manage(request.user)})
 
 
@@ -1688,7 +1835,12 @@ def guruhlar_it(request):
 # ---------- Bitta guruh (bitta sahifada hamma narsa) ----------
 @login_required
 def group_detail(request, pk: int):
-    g = get_object_or_404(Group, pk=pk)
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Group.objects.all()
+    if center:
+        qs = qs.filter(center=center)
+    g = get_object_or_404(qs, pk=pk)
 
     if request.user.role == "teacher" and g.oqituvchi != request.user:
         return HttpResponseForbidden("Siz bu guruhni ko‘ra olmaysiz.")
@@ -1700,7 +1852,7 @@ def group_detail(request, pk: int):
 
     enrollments = (
         Enrollment.objects
-        .filter(group=g)
+        .filter(group=g, is_active=True)
         .select_related("student", "group")   # ✅ MUHIM
         .order_by("student__ism", "student__familya")
     )
@@ -1739,11 +1891,20 @@ def group_detail(request, pk: int):
 
     can_add_student = request.user.role in ["director", "manager", "teacher"]
 
+    # ✅ Filter rules by center and role
+    rules_qs = Rule.objects.filter(Q(center=center) | Q(center__isnull=True))
+    if request.user.role == 'teacher':
+        rules_qs = rules_qs.filter(can_teacher=True)
+    elif request.user.role == 'manager':
+        rules_qs = rules_qs.filter(can_manager=True)
+    elif request.user.role == 'director':
+        rules_qs = rules_qs.filter(can_director=True)
+
     ctx = {
         "g": g,
         "enrollments": enrollments,
-        "rules_plus": Rule.objects.filter(tur=Rule.PLUS).order_by("nom"),
-        "rules_minus": Rule.objects.filter(tur=Rule.MINUS).order_by("nom"),
+        "rules_plus": rules_qs.filter(tur=Rule.PLUS).order_by("nom"),
+        "rules_minus": rules_qs.filter(tur=Rule.MINUS).order_by("nom"),
         "can_add_student": can_add_student,
         "selected_date": selected_date.isoformat(),
         "today": localdate().isoformat(),
@@ -1779,7 +1940,12 @@ def attendance_force(request):
         return JsonResponse({"ok": False, "error": "Sana noto‘g‘ri formatda"})
 
     # Guruhni olamiz
-    g = get_object_or_404(Group, pk=group_id)
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Group.objects.all()
+    if center:
+        qs = qs.filter(center=center)
+    g = get_object_or_404(qs, pk=group_id)
 
     # Shu guruhdagi barcha enrollments
     enrollments = Enrollment.objects.filter(group=g).select_related("student")
@@ -1813,6 +1979,7 @@ def attendance_force(request):
                 date=date_obj,
                 present=False,
                 forced=True,
+                center=g.center if hasattr(Attendance, 'center') else None
             )
             forced_count += 1
 
@@ -1827,7 +1994,12 @@ def attend_all(request, pk):
     if request.method != "POST":
         return JsonResponse({"ok": False, "error": "POST required"})
 
-    g = get_object_or_404(Group, pk=pk)
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Group.objects.all()
+    if center:
+        qs = qs.filter(center=center)
+    g = get_object_or_404(qs, pk=pk)
 
     # faqat direktor/manager/teacher
     if request.user.role == "teacher" and g.oqituvchi != request.user:
@@ -1855,7 +2027,12 @@ def attend_all(request, pk):
 @require_POST
 @login_required
 def attend_all_students(request, g_id):
-    g = get_object_or_404(Group, pk=g_id)
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Group.objects.all()
+    if center:
+        qs = qs.filter(center=center)
+    g = get_object_or_404(qs, pk=g_id)
 
     if request.user.role == "teacher" and g.oqituvchi != request.user:
         return JsonResponse({"ok": False, "error": "ruxsat yo‘q"})
@@ -1876,7 +2053,7 @@ def attend_all_students(request, g_id):
             group=g,
             student=e.student,
             date=selected_date,
-            defaults={"present": True, "forced": False, "teacher": request.user},
+            defaults={"present": True, "forced": False, "teacher": request.user, "center": g.center},
         )
 
         # Shu kunga qo‘yilgan adjustment bo‘lsa — delete → ball qaytadi
@@ -1913,6 +2090,11 @@ def attendance_today(request, pk: int):
     Backward compatible: present=1/0 yuborilsa ham ishlaydi.
     """
     g = get_object_or_404(Group, pk=pk)
+    # Check center (implicit in get_object_or_404 if we filter queryset, but let's do it explicitly if needed or use standard pattern)
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    if center and g.center_id != center.id:
+        return JsonResponse({"ok": False, "error": "Center mismatch"}, status=403)
 
     # faqat direktor/manager/teacher
     if request.user.role == "teacher" and g.oqituvchi != request.user:
@@ -1972,6 +2154,7 @@ def attendance_today(request, pk: int):
                 "teacher": request.user,
                 "present": True,
                 "forced": False,
+                "center": g.center,
             }
         )
         present = True
@@ -1986,6 +2169,7 @@ def attendance_today(request, pk: int):
                 "teacher": request.user,
                 "present": False,
                 "forced": True,
+                "center": g.center,
             }
         )
         present = False
@@ -2014,7 +2198,12 @@ def group_bulk_remove(request, pk):
     if request.method != "POST":
         return JsonResponse({"ok": False, "msg": "POST bo‘lishi shart."})
 
-    g = get_object_or_404(Group, pk=pk)
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Group.objects.all()
+    if center:
+         qs = qs.filter(center=center)
+    g = get_object_or_404(qs, pk=pk)
 
     # ruxsat tekshirish
     if request.user.role not in ["director", "manager", "teacher", "admin"]:
@@ -2049,7 +2238,13 @@ def group_points(request, pk: int):
     else:
         data = request.POST
 
-    g = get_object_or_404(Group, pk=pk)
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Group.objects.all()
+    if center:
+        qs = qs.filter(center=center)
+    g = get_object_or_404(qs, pk=pk)
+    
     if request.user.role == "teacher" and g.oqituvchi != request.user and not _teacher_can(request.user, g):
         return HttpResponseForbidden()
 
@@ -2077,6 +2272,14 @@ def group_points(request, pk: int):
             nom="Erkin ball", tur=Rule.PLUS, min_baho=1, max_baho=1000000
         )
 
+    # ✅ Rule range check
+    amount_abs = abs(amount)
+    if amount_abs < rule.min_baho or amount_abs > rule.max_baho:
+        return JsonResponse({
+            "ok": False,
+            "error": f"Ushbu qoida uchun ball oralig'i: {rule.min_baho}..{rule.max_baho}"
+        }, status=400)
+
     # sana
     if date_str:
         try:
@@ -2096,6 +2299,36 @@ def group_points(request, pk: int):
     if not present_exists:
         return JsonResponse({"ok": False, "error": "Avval davomatni belgilang (KELDI)!"}, status=400)
 
+    # ✅ Markazning kunlik chaqmoq limiti (Center limit)
+    if amount > 0 and g.center and g.center.max_daily_lightning > 0:
+        today_plus = Ledger.objects.filter(
+            student=student,
+            sana__date=parsed_date,
+            ball__gt=0
+        ).aggregate(s=Coalesce(Sum("ball"), 0))["s"] or 0
+
+        if int(today_plus) + amount > g.center.max_daily_lightning:
+            return JsonResponse({
+                "ok": False,
+                "error": f"Bugun ushbu o'quvchi uchun {g.center.max_daily_lightning} tadan ortiq chaqmoq berish mumkin emas."
+            }, status=400)
+
+    if amount < 0 and g.center and g.center.max_daily_deduction > 0:
+        # Note: amount is already negative, and ball will be negative in Ledger
+        # We check the absolute sum of negative balls
+        amount_abs = abs(amount)
+        today_minus_abs = abs(Ledger.objects.filter(
+            student=student,
+            sana__date=parsed_date,
+            ball__lt=0
+        ).aggregate(s=Coalesce(Sum("ball"), 0))["s"] or 0)
+
+        if int(today_minus_abs) + amount_abs > g.center.max_daily_deduction:
+            return JsonResponse({
+                "ok": False,
+                "error": f"Bugun ushbu o'quvchidan {g.center.max_daily_deduction} tadan ortiq chaqmoq ayirish mumkin emas."
+            }, status=400)
+
     # ✅ Kunlik chaqmoq limit
     from .models import DailyLightningSetting
     setting = DailyLightningSetting.objects.filter(date=parsed_date, active=True).first()
@@ -2112,8 +2345,9 @@ def group_points(request, pk: int):
                 "error": f"Bugun {setting.max_lightning} tadan ortiq chaqmoq berish mumkin emas."
             }, status=400)
 
-    # ledger create
-    sana = timezone.make_aware(datetime.combine(parsed_date, datetime.min.time()))
+    # sana
+    now_time = timezone.localtime(timezone.now()).time()
+    sana = timezone.make_aware(datetime.combine(parsed_date, now_time))
     record = Ledger.objects.create(
         student=student,
         beruvchi=request.user,
@@ -2141,8 +2375,16 @@ def group_points(request, pk: int):
 
 
 def category_detail(request, category_id):
+    from core.tenant import get_request_center
+    center = get_request_center(request)
     category = get_object_or_404(Category, id=category_id)
+    if center:
+        if category.center_id and category.center_id != center.id:
+            raise PermissionDenied("Bu bo'limga ruxsat yo'q")
+
     groups = Group.objects.filter(category_obj=category).order_by("id")
+    if center:
+        groups = groups.filter(center=center)
 
     return render(request, "education/category_detail.html", {
         "category": category,
@@ -2212,17 +2454,23 @@ def oylik_hisobot(request):
 
 @login_required
 def group_create_by_category(request, category_id):
+    from core.tenant import get_request_center
+    center = get_request_center(request)
     category = get_object_or_404(Category, id=category_id)
+    if center:
+        if category.center_id and category.center_id != center.id:
+            raise PermissionDenied("Bu bo'limga ruxsat yo'q")
 
     if request.method == "POST":
-        form = GroupForm(request.POST)
+        form = GroupForm(request.POST, center=center)
         if form.is_valid():
             group = form.save(commit=False)
             group.category_obj = category
+            group.center = center
             group.save()
             return redirect("education:category_detail", category_id=category.id)
     else:
-        form = GroupForm()
+        form = GroupForm(center=center)
 
     return render(request, "education/group_form.html", {
         "form": form,
@@ -2258,12 +2506,28 @@ class CategoryForm(forms.ModelForm):
 
 @login_required
 def groups_home(request):
+    # ✅ Tenant isolation
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    
     # kategoriyalar
-    categories = list(Category.objects.all().order_by("name"))
+    from django.db.models import Q
+    categories_qs = Category.objects.all().order_by("name")
+    if center:
+        # Shu center'ga tegishli YOKI hali hech qaysi centerga biriktirilmagan (Global) bo'limlarni ko'rsatamiz
+        categories_qs = categories_qs.filter(Q(center=center) | Q(center__isnull=True))
+        
+    categories = list(categories_qs)
 
     # har bir category uchun guruhlar sonini hisoblab map qilamiz
     counts_qs = (
         Group.objects
+    )
+    if center:
+        counts_qs = counts_qs.filter(center=center)
+        
+    counts_qs = (
+        counts_qs
         .values("category_obj")          # FK field nomi sizda shu: category_obj
         .annotate(c=Count("id"))
     )
@@ -2281,15 +2545,21 @@ def groups_home(request):
 
 @login_required
 def add_category(request):
+    from core.tenant import get_request_center
+    center = get_request_center(request)
     if request.method == "POST":
         form = CategoryForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
+            cat = form.save(commit=False)
+            cat.center = center
+            cat.save()
             messages.success(request, "Bo‘lim muvaffaqiyatli qo‘shildi ✅")
             return redirect("education:groups_home")
     else:
         form = CategoryForm()
     return render(request, "education/category_add.html", {"form": form})
+
+
 
 
 
@@ -2379,7 +2649,7 @@ def group_rollcall(request, pk):
         the_date = localdate()
 
     students = [
-        e.student for e in g.enrollments.select_related("student").order_by("student__ism", "student__familya")
+        e.student for e in g.enrollments.filter(is_active=True).select_related("student").order_by("student__ism", "student__familya")
     ]
 
     pres_map = {
@@ -2420,7 +2690,9 @@ def group_rollcall(request, pk):
                 abs_ball = abs(amount)
                 if rule.min_baho <= abs_ball <= rule.max_baho:
                     signed = abs_ball if rule.tur == Rule.PLUS else -abs_ball
-                    Ledger.objects.create(student=s, beruvchi=request.user, group=g, rule=rule, ball=signed)
+                    now_local = timezone.localtime(timezone.now()).time()
+                    sana = timezone.make_aware(datetime.combine(the_date, now_local))
+                    Ledger.objects.create(student=s, beruvchi=request.user, group=g, rule=rule, ball=signed, sana=sana)
                     saved += 1
         messages.success(request, f"Saqlash tugadi. {saved} ta chaqmoq yozildi.")
         return redirect(f"{request.path}?date={the_date.isoformat()}")
@@ -2445,8 +2717,13 @@ def teacher_salary_list(request):
         "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"
     ]
     month_name = month_names_uz[month - 1]
-
-    teachers = User.objects.filter(role="teacher").order_by("ism")
+    
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    teacher_qs = User.objects.filter(role="teacher")
+    if center:
+        teacher_qs = teacher_qs.filter(center=center)
+    teachers = teacher_qs.order_by("ism")
 
     teacher_rows = []
     total_all = 0
@@ -2484,8 +2761,13 @@ def teacher_salary_list(request):
 # 🔹 2. O‘qituvchining barcha guruhlari
 @login_required
 def teacher_groups(request, teacher_id):
-    teacher = get_object_or_404(User, id=teacher_id, role="teacher")
-
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = User.objects.filter(role="teacher")
+    if center:
+         qs = qs.filter(center=center)
+    teacher = get_object_or_404(qs, id=teacher_id)
+    
     now = timezone.localdate()
     year = _get_int(request.GET, "year", now.year)
     month = _get_int(request.GET, "month", now.month)
@@ -2512,10 +2794,17 @@ def teacher_groups(request, teacher_id):
             date__month=month
         ).filter(Q(present=True) | Q(forced=True))
 
+        # ✅ active/inactive hammasi kerak, chunki o'sha oyda o'qigan bo'lishi mumkin
         enrollments = []
         for enr in group.enrollments.all():
 
             attended = month_att.filter(student=enr.student).count()
+            # Agar bu oyda umuman darsga kelmagan bo'lsa va inactive bo'lsa -> ro'yxatda ko'rsatmasak ham mayli
+            # LEKIN: Agar attendance > 0 bo'lsa, albatta ko'rsatish shart.
+            
+            if not enr.is_active and attended == 0:
+                 continue
+
             daromad = enr.real_oqituvchi_daromadi(year=year, month=month)
 
             enrollments.append({
@@ -2548,8 +2837,17 @@ def teacher_groups(request, teacher_id):
 
 @login_required
 def teacher_salary_report(request, group_id):
-    group = get_object_or_404(Group, id=group_id)
-    enrollments = group.enrollments.select_related("student")
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Group.objects.all()
+    if center:
+        qs = qs.filter(center=center)
+    group = get_object_or_404(qs, id=group_id)
+    
+    # ✅ Arxivlangan (inactive) o‘quvchilar ham hisobga olinishi uchun:
+    # Biz .filter(is_active=True) ISHLATMAYMIZ. 
+    # Chunki o‘tgan darslar uchun pul to‘lanishi shart.
+    enrollments = group.enrollments.all().select_related("student")
 
     total_lessons = Attendance.objects.filter(group=group).values("date").distinct().count()
     per_lesson_income = group.dars_boshiga_tolov()
@@ -2609,8 +2907,15 @@ def teacher_salary_summary(request):
     # 1) Attendance: yil bo'yicha
     #    present=True VA forced=True ikkala holat ham dars hisoblanadi
     # ================================
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    att_qs = Attendance.objects.all()
+    if center:
+        # attendance -> group -> center
+        att_qs = att_qs.filter(group__center=center)
+
     attendance = (
-        Attendance.objects
+        att_qs
         .annotate(
             y=ExtractYear("date"),
             m=ExtractMonth("date"),
@@ -2630,16 +2935,25 @@ def teacher_salary_summary(request):
     # ================================
     # 2) O'qituvchilar + guruhlari + enrollment
     # ================================
+    user_qs = User.objects.filter(role="teacher")
+    if center:
+        user_qs = user_qs.filter(center=center)
+
+    # Guruhlar kvartirasi - faqat shu markazniki bo'lishi shart!
+    group_qs = Group.objects.all()
+    if center:
+        group_qs = group_qs.filter(center=center)
+
     teachers = (
-        User.objects
-        .filter(role="teacher")
+        user_qs
         .prefetch_related(
             Prefetch(
                 "group_set",
-                queryset=Group.objects.prefetch_related(
+                queryset=group_qs.prefetch_related(
                     Prefetch(
                         "enrollments",
-                        queryset=Enrollment.objects.select_related("student")
+                        # ✅ Tarixiy hisobda inactive enrollments ham qatnashishi kerak
+                        queryset=Enrollment.objects.all().select_related("student")
                     )
                 )
             )
@@ -2881,7 +3195,13 @@ def force_absent_attendance(request):
     group_id = request.POST.get("group_id")
     date_str = request.POST.get("date")
 
-    group = get_object_or_404(Group, id=group_id)
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Group.objects.all()
+    if center:
+        qs = qs.filter(center=center)
+    group = get_object_or_404(qs, id=group_id)
+
     date = parse_date(date_str)
 
     enrollments = Enrollment.objects.filter(group=group)
@@ -2968,7 +3288,7 @@ def teacher_salary_redirect(request):
 def group_create(request, category=None):
     if not _can_manage(request.user):
         messages.error(request, "Sizda guruh yaratish huquqi yo‘q.")
-        return redirect("education:guruhlar")
+        return redirect("education:groups_home")
 
     if category == Group.LANG:
         FormCls, title = LangGroupForm, "Tillar bo‘yicha guruh yaratish"
@@ -3021,8 +3341,14 @@ def group_edit(request, pk):
         messages.error(request, "Sizda ruxsat yo‘q.")
         return redirect("education:groups")
 
-    g = get_object_or_404(Group, pk=pk)
-    form = GroupForm(request.POST or None, instance=g)
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Group.objects.all()
+    if center:
+        qs = qs.filter(center=center)
+    g = get_object_or_404(qs, pk=pk)
+
+    form = GroupForm(request.POST or None, instance=g, center=center)
 
     if request.method == "POST" and form.is_valid():
         form.save()
@@ -3043,6 +3369,11 @@ def group_list(request):
     Barcha guruhlar ro‘yxati.
     """
     rows = Group.objects.select_related("center", "oqituvchi").all()
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    if center:
+        rows = rows.filter(center=center)
+
     can_manage = request.user.is_superuser or request.user.role in ["Director", "Manager", "Teacher"]
 
     context = {
@@ -3053,7 +3384,12 @@ def group_list(request):
 
 def get_group_price(request, pk):
     try:
-        group = Group.objects.get(pk=pk)
+        qs = Group.objects.all()
+        from core.tenant import get_request_center
+        center = get_request_center(request)
+        if center:
+            qs = qs.filter(center=center)
+        group = qs.get(pk=pk)
         return JsonResponse({"price": group.kurs_narhi})
     except Group.DoesNotExist:
         return JsonResponse({"price": 0})
@@ -3087,7 +3423,12 @@ def group_delete(request, pk):
     """
     Guruhni o‘chirish — tasdiq bilan.
     """
-    group = get_object_or_404(Group, pk=pk)
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Group.objects.all()
+    if center:
+        qs = qs.filter(center=center)
+    group = get_object_or_404(qs, pk=pk)
 
     if request.method == "POST":
         category = getattr(group, "category_obj", None)
@@ -3102,69 +3443,120 @@ def group_delete(request, pk):
 
 
 @login_required
+@transaction.atomic
 def add_student_to_group(request, pk: int):
-    g = get_object_or_404(Group, pk=pk)
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    
+    # Guruhni olish
+    qs = Group.objects.all()
+    if center:
+        qs = qs.filter(center=center)
+    g = get_object_or_404(qs, pk=pk)
 
+    # Ruxsat tekshirish
     allowed_roles = ['admin', 'manager', 'teacher', 'director']
     if request.user.role not in allowed_roles:
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse({"error": "Sizda ruxsat yo'q"}, status=403)
         return HttpResponseForbidden("❌ Sizda bu amalni bajarish uchun ruxsat yo‘q.")
 
-    students = (
-        User.objects
-        .filter(role="student")
-        .exclude(enrollment__group=g)
-        .order_by("ism", "familya")
-    )
+    # Markazni aniqlash (Guruh markazi asosiy hisoblanadi)
+    target_center = g.center
 
-    if request.method == "POST":
-        student_ids = request.POST.getlist("student_ids")
+    # AJAX Search
+    if request.method == "GET" and request.headers.get("x-requested-with") == "XMLHttpRequest":
+        query = request.GET.get("q", "").strip()
+        student_qs = User.objects.filter(role="student", center=target_center)
+        
+        if query:
+            # Ism, familya yoki telefon bo'yicha qidirish
+            student_qs = student_qs.filter(
+                Q(ism__icontains=query) | 
+                Q(familya__icontains=query) | 
+                Q(telefon1__icontains=query) |
+                Q(telefon2__icontains=query)
+            ).distinct()
+            limit = 15
+        else:
+            # Bo'sh bo'lsa barcha o'quvchilar (yoki dastlabki 30 tasi)
+            limit = 30
+            
+        results = []
+        for s in student_qs.order_by('ism', 'familya')[:limit]:
+            # Status aniqlash (Faqat shu markaz doirasida)
+            is_in_current = Enrollment.objects.filter(group=g, student=s).exists()
+            is_in_other = Enrollment.objects.filter(student=s, center=target_center).exclude(group=g).exists()
+            
+            results.append({
+                "id": s.id,
+                "full_name": s.get_full_name(),
+                "phone": s.telefon1 or s.telefon2 or "Telefon kiritilmagan",
+                "is_in_current": is_in_current,
+                "is_in_other": is_in_other,
+            })
+        
+        return JsonResponse({"results": results})
 
-        if not student_ids:
-            messages.error(request, "❌ Hech bo‘lmaganda bitta o‘quvchi tanlang!")
-            return redirect("education:add_student_to_group", pk=g.id)
+    # AJAX POST (Add student)
+    if request.method == "POST" and request.headers.get("x-requested-with") == "XMLHttpRequest":
+        import json
+        try:
+            data = json.loads(request.body)
+            student_id = data.get("student_id")
+        except:
+            student_id = request.POST.get("student_id")
 
-        qoshilganlar = []
-        mavjudlar = []
+        if not student_id:
+            return JsonResponse({"error": "O'quvchi tanlanmagan"}, status=400)
 
-        for sid in student_ids:
-            student = get_object_or_404(User, pk=sid, role="student")
+        student = get_object_or_404(User, pk=student_id, role="student", center=target_center)
 
-            # Agar bu guruhda bo‘lsa
-            if Enrollment.objects.filter(group=g, student=student).exists():
-                mavjudlar.append(f"{student.ism} {student.familya}")
-                continue
+        # Allaqachon guruhda bormi?
+        if Enrollment.objects.filter(group=g, student=student).exists():
+            return JsonResponse({
+                "status": "warning",
+                "message": f"'{student.get_full_name()}' allaqachon '{g.nom}' guruhida bor."
+            })
 
-            # ❗ KURS NARXNI STUDENTNING O‘ZIDAN OLAMIZ
-            existing_enrollment = Enrollment.objects.filter(student=student).first()
-            kurs_narhi = existing_enrollment.kurs_narhi if existing_enrollment else 0
+        # Kurs narxini aniqlash (studentning shu markazdagi boshqa guruhidan yoki default guruh narxi)
+        existing_enr = Enrollment.objects.filter(student=student, center=target_center).first()
+        kurs_narhi = existing_enr.kurs_narhi if existing_enr else g.kurs_narxi
 
-            Enrollment.objects.create(
-                group=g,
-                student=student,
-                kurs_narhi=kurs_narhi,
-                oqituvchi_foiz=g.oqituvchi.oqituvchi_foizi,
-            )
+        # Qo'shish
+        Enrollment.objects.create(
+            group=g,
+            student=student,
+            center=target_center,
+            kurs_narhi=kurs_narhi,
+            oqituvchi_foiz=g.oqituvchi_foiz or 40,
+        )
 
-            qoshilganlar.append(f"{student.ism} {student.familya}")
+        return JsonResponse({
+            "status": "success",
+            "message": f"'{student.get_full_name()}' muvaffaqiyatli qo'shildi ✅",
+            "student": {
+                "id": student.id,
+                "full_name": student.get_full_name(),
+                "phone": student.telefon1 or student.telefon2
+            }
+        })
 
-        if qoshilganlar:
-            messages.success(request, f"✅ {len(qoshilganlar)} ta o‘quvchi guruhga qo‘shildi!")
-
-        if mavjudlar:
-            messages.warning(request, "⚠️ Allaqachon guruhda bor: " + ", ".join(mavjudlar))
-
-        return redirect("education:group_detail", pk=g.id)
-
+    # Standart GET render
     return render(request, "education/add_student_to_group.html", {
-        "g": g,
-        "students": students
+        "group": g,
     })
 
 
 
 @login_required
 def teacher_groups_view(request, teacher_id):
-    teacher = get_object_or_404(User, id=teacher_id, role="teacher")
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = User.objects.filter(role="teacher")
+    if center:
+        qs = qs.filter(center=center)
+    teacher = get_object_or_404(qs, id=teacher_id)
 
     groups = (
         teacher.group_set
@@ -3208,6 +3600,11 @@ def toggle_attendance(request):
         date=date,
         defaults={"teacher": request.user}
     )
+    # Validate center
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    if center and att.group.center_id != center.id:
+        return JsonResponse({"error": "Center mismatch"}, status=403)
 
     # Belgini o‘zgartiramiz (agar bor bo‘lsa)
     att.present = not att.present
@@ -3226,13 +3623,24 @@ def toggle_attendance(request):
 # ---------- A'zolik va o'qituvchi sahifasi ----------
 @login_required
 def enrollment_remove(request, pk):
-    enr = get_object_or_404(Enrollment.objects.select_related("group", "student"), pk=pk)
+    qs = Enrollment.objects.select_related("group", "student")
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    if center:
+        # Enrollment has center now, or filter by group__center
+        qs = qs.filter(group__center=center)
+    enr = get_object_or_404(qs, pk=pk)
+    
     if not _can_manage(request.user):
         messages.error(request, "Sizda ruxsat yo‘q.")
         return redirect("education:group_detail", pk=enr.group_id)
+        
     if request.method == "POST":
-        enr.delete()
-        messages.success(request, "O‘quvchi guruhdan chiqarildi.")
+        # ✅ SOFT DELETE: Tarix saqlanib qolishi uchun o'chirmaymiz, faqat nofaol qilamiz.
+        enr.is_active = False
+        enr.save()
+        messages.success(request, "O‘quvchi guruhdan chiqarildi (Arxivlandi). Tarix saqlanib qoldi.")
+        
     return redirect("education:group_detail", pk=enr.group_id)
 
 
@@ -3244,4 +3652,98 @@ def my_groups(request):
         .annotate(student_count=Count("enrollments"))
         .order_by("nom")
     )
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    if center:
+        rows = rows.filter(center=center)
     return render(request, "education/my_groups.html", {"rows": rows})
+
+
+@login_required
+def teacher_income_dashboard(request):
+    """
+    O'qituvchining shaxsiy daromadlari panelini ko'rsatadi.
+    Kunlik va oylik daromadlarni diagramma uchun tayyorlab beradi.
+    """
+    if request.user.role != 'teacher':
+        messages.error(request, "Bu bo'lim faqat o'qituvchilar uchun.")
+        return redirect('core:home')
+    
+    teacher = request.user
+    today = timezone.localdate()
+    
+    # Tanlangan yil va oy (filterdan yoki joriydan)
+    selected_year = _get_int(request.GET, "year", today.year)
+    selected_month = _get_int(request.GET, "month", today.month)
+    
+    months_list = [
+        (1, "Yanvar"), (2, "Fevral"), (3, "Mart"), (4, "Aprel"),
+        (5, "May"), (6, "Iyun"), (7, "Iyul"), (8, "Avgust"),
+        (9, "Sentyabr"), (10, "Oktyabr"), (11, "Noyabr"), (12, "Dekabr"),
+    ]
+    
+    # 1) Davomat ma'lumotlarini olish (yil bo'yicha)
+    # present=True YOKI forced=True bo'lgan holatlar daromad hisoblanadi.
+    att_qs = Attendance.objects.filter(
+        teacher=teacher,
+        date__year=selected_year
+    ).filter(Q(present=True) | Q(forced=True))
+    
+    # 2) O'qituvchi guruhlari va o'quvchilar narxini xaritaga yig'ish
+    # Bu orqali har bir dars uchun qancha daromad tushishini bilib olamiz.
+    enrollment_map = {}
+    groups = Group.objects.filter(oqituvchi=teacher).prefetch_related('enrollments')
+    for g in groups:
+        for enr in g.enrollments.all():
+            enrollment_map[(g.id, enr.student_id)] = {
+                'kurs': enr.kurs_narhi or 0,
+                'foiz': (enr.oqituvchi_foiz or 0) / 100,
+                'lessons_per_month': g.oy_dars_soni or 12
+            }
+            
+    # Oylik daromad (12 oy uchun)
+    monthly_income = [0] * 12
+    # Kunlik daromad (tanlangan oy uchun)
+    _, num_days = calendar.monthrange(selected_year, selected_month)
+    daily_income = [0] * num_days
+    
+    # Davomatlarni hisoblab chiqamiz
+    attendances = att_qs.annotate(
+        m=ExtractMonth('date'),
+        d=ExtractDay('date')
+    ).values('group_id', 'student_id', 'm', 'd')
+    
+    for att in attendances:
+        info = enrollment_map.get((att['group_id'], att['student_id']))
+        if info:
+            # Bir dars uchun o'qituvchi ulushi
+            income_per_lesson = (info['kurs'] * info['foiz']) / info['lessons_per_month']
+            
+            # Oylik yig'indiga qo'shish
+            monthly_income[att['m'] - 1] += float(income_per_lesson)
+            
+            # Agar tanlangan oy bo'lsa, kunlik yig'indiga qo'shish
+            if att['m'] == selected_month:
+                daily_income[att['d'] - 1] += float(income_per_lesson)
+                
+    # Diagramma uchun belgilarni tayyorlash
+    daily_labels = [str(d) for d in range(1, num_days + 1)]
+    monthly_labels = [m[1] for m in months_list]
+    
+    # Hozirgi oy uchun umumiy daromad
+    current_month_total = monthly_income[selected_month - 1]
+    
+    ctx = {
+        'selected_year': selected_year,
+        'selected_month': selected_month,
+        'months_list': months_list,
+        'daily_income': daily_income,
+        'daily_labels': daily_labels,
+        'monthly_income': monthly_income,
+        'monthly_labels': monthly_labels,
+        'current_month_total': current_month_total,
+        'total_year_income': sum(monthly_income),
+        'years': range(today.year - 2, today.year + 2),
+    }
+    
+    return render(request, "education/teacher_income_dashboard.html", ctx)

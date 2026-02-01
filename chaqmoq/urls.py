@@ -16,4 +16,11 @@ urlpatterns = [
     path('berish/', views.berish, name='berish'),
     path('mening/', views.my_chaqmoq, name='my'),
 
+    # Qoidalarni boshqarish (Settings)
+    path('rules/', views.rule_list, name='rule_list'),
+    path('rules/settings/update/', views.rule_settings_update, name='rule_settings_update'),
+    path('rules/add/', views.rule_add, name='rule_add'),
+    path('rules/<int:pk>/edit/', views.rule_edit, name='rule_edit'),
+    path('rules/<int:pk>/delete/', views.rule_delete, name='rule_delete'),
+
 ]

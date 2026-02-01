@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --glass-bg: rgba(255, 255, 255, 0.03);
+        --glass-border: rgba(255, 255, 255, 0.08);
+        --accent: #38bdf8;
+        --muted: #94a3b8;
+    }
+
+    .form-container {
+        max-width: 600px;
+        margin: 2rem auto;
+        padding: 2.5rem;
+        border-radius: 24px;
+        background: linear-gradient(145deg, rgba(15, 23, 42, 0.4), rgba(2, 6, 23, 0.6));
+        border: 1px solid var(--glass-border);
+        backdrop-filter: blur(20px);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    h2 {
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 2rem;
+        font-size: 1.5rem;
+        text-align: center;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        color: #fff;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .form-control,
+    .form-select {
+        background: rgba(2, 6, 23, 0.5) !important;
+        border: 1px solid var(--glass-border) !important;
+        color: #fff !important;
+        border-radius: 12px !important;
+        padding: 0.75rem 1rem !important;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--accent) !important;
+        box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15) !important;
+        background: rgba(2, 6, 23, 0.8) !important;
+    }
+
+    .checkbox-group {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
+        background: rgba(255, 255, 255, 0.02);
+        padding: 1.25rem;
+        border-radius: 16px;
+        border: 1px solid var(--glass-border);
+        margin-top: 0.5rem;
+    }
+
+    .form-check {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+    }
+
+    .form-check-input {
+        width: 1.2rem;
+        height: 1.2rem;
+        cursor: pointer;
+        background-color: rgba(2, 6, 23, 0.5);
+        border: 1px solid var(--glass-border);
+    }
+
+    .form-check-label {
+        color: var(--muted);
+        font-weight: 500;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+
+    .form-check-input:checked+.form-check-label {
+        color: var(--accent);
+    }
+
+    .btn-save {
+        width: 100%;
+        padding: 12px;
+        border-radius: 14px;
+        background: var(--accent);
+        color: #0c4a6e;
+        border: none;
+        font-weight: 800;
+        margin-top: 1rem;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-save:hover {
+        filter: brightness(1.1);
+        transform: translateY(-2px);
+    }
+
+    .back-link {
+        display: block;
+        text-align: center;
+        margin-top: 1.5rem;
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 0.9rem;
+    }
+
+    .back-link:hover {
+        color: #fff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2>{{ title }}</h2>
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label>{{ form.nom.label }}</label>
+            {{ form.nom }}
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>{{ form.tur.label }}</label>
+                    {{ form.tur }}
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>Min</label>
+                    {{ form.min_baho }}
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>Max</label>
+                    {{ form.max_baho }}
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Ruxsat berilgan rollar:</label>
+            <div class="checkbox-group">
+                <div class="form-check">
+                    {{ form.can_director }}
+                    <label class="form-check-label" for="{{ form.can_director.id_for_label }}">Director</label>
+                </div>
+                <div class="form-check">
+                    {{ form.can_manager }}
+                    <label class="form-check-label" for="{{ form.can_manager.id_for_label }}">Manager</label>
+                </div>
+                <div class="form-check">
+                    {{ form.can_teacher }}
+                    <label class="form-check-label" for="{{ form.can_teacher.id_for_label }}">O'qituvchi</label>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-save">SAQLASH</button>
+        <a href="{% url 'chaqmoq:rule_list' %}" class="back-link">Qoidalarga qaytish</a>
+    </form>
+</div>
+{% endblock %}

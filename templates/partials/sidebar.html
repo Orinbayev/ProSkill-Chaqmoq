@@ -1,20 +1,28 @@
+{% load static %}
 {% if request.user.is_authenticated %}
 <!-- ================================
         📌 MOBILE TOPBAR
 ================================ -->
 <div class="mobile-topbar d-flex d-lg-none align-items-center justify-content-between" role="banner">
   <div class="d-flex align-items-center mobile-logo" aria-label="Chaqmoq">
-    <span class="logo-bolt" aria-hidden="true">⚡</span>
-    <span class="logo-text">Chaqmoq</span>
+    <div class="ultimate-bolt-container-mini">
+      <div class="spark-particle s1"></div>
+      <div class="spark-particle s2"></div>
+      <div class="spark-particle s3"></div>
+      <svg class="ultimate-bolt" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+      </svg>
+    </div>
+    <span class="logo-text">{{ request.center.name|default:"Chaqmoq" }}</span>
   </div>
 
-  <button class="mobile-menu-btn" type="button" onclick="toggleSidebar()"
-          aria-label="Menyuni ochish/yopish" aria-controls="sidebar" aria-expanded="false">
+  <button class="mobile-menu-btn" type="button" onclick="toggleSidebar()" aria-label="Menyuni ochish/yopish"
+    aria-controls="sidebar" aria-expanded="false">
     <i class="fa-solid fa-bars" aria-hidden="true"></i>
   </button>
 </div>
 
-<!-- ✅ MOBILE OVERLAY (telefon uchun) -->
+<!-- ✅ MOBILE OVERLAY -->
 <div id="sidebarOverlay" class="sidebar-overlay d-lg-none" onclick="toggleSidebar(false)" aria-hidden="true"></div>
 
 <!-- ================================
@@ -22,293 +30,502 @@
 ================================ -->
 <div id="sidebar" class="sidebar-wrapper" role="navigation" aria-label="Asosiy menyu">
 
-  <!-- LOGO -->
-  <a href="/" class="sidebar-logo" aria-label="Bosh sahifa">
-    <div class="logo-icon-bg" aria-hidden="true">
-      <span class="logo-bolt">⚡</span>
-    </div>
-    <span class="logo-text">Chaqmoq</span>
-  </a>
+  <!-- HEADER: LOGO + TOGGLE -->
+  <div class="sidebar-header">
+    <a href="{% if request.user.is_authenticated and request.user.is_superuser %}{% url 'accounts:center_picker' %}{% else %}/{% endif %}"
+      class="sidebar-logo" aria-label="Bosh sahifa" data-title="Bosh sahifa">
+      <div class="ultimate-bolt-container">
+        <div class="spark-particle s1"></div>
+        <div class="spark-particle s2"></div>
+        <div class="spark-particle s3"></div>
+        <div class="spark-particle s4"></div>
+        <svg class="ultimate-bolt" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+        </svg>
+      </div>
+      <div class="d-flex flex-column">
+        <span class="logo-text">Chaqmoq</span>
+        {% if request.center and request.center.name != "Chaqmoq" %}
+        <span class="center-tagline">{{ request.center.name }}</span>
+        {% endif %}
+      </div>
+    </a>
+
+    <button class="sb-toggle-btn" onclick="toggleSidebarDesktop()" aria-label="Toggle Sidebar">
+      <i class="fa-solid fa-chevron-left"></i>
+    </button>
+  </div>
 
   <!-- MENU -->
   <div class="sidebar-scroll custom-scrollbar">
     {% with vn=request.resolver_match.view_name|default:'' p=request.path %}
 
     {% if request.user.is_authenticated and request.user.role == 'teacher' %}
-      <a href="/"
-         class="sidebar-item {% if p == '/' or vn == 'core:home' or vn == 'core:dashboard_teacher' %}active{% endif %}">
-        <span class="si-ico"><i class="fa-solid fa-table-columns"></i></span>
-        <span class="si-text">Boshqaruv</span>
-      </a>
+    <a href="/"
+      class="sidebar-item {% if p == '/' or vn == 'core:home' or vn == 'core:dashboard_teacher' %}active{% endif %}"
+      data-title="Boshqaruv">
+      <span class="si-ico"><i class="fa-solid fa-table-columns"></i></span>
+      <span class="si-text">Boshqaruv</span>
+    </a>
 
-      <a href="{% url 'store:products' %}"
-         class="sidebar-item {% if vn == 'store:products' or vn == 'store:product_detail' %}active{% endif %}">
-        <span class="si-ico"><i class="fa-solid fa-store"></i></span>
-        <span class="si-text">Do‘kon</span>
-      </a>
+    <a href="{% url 'store:products' %}"
+      class="sidebar-item {% if vn == 'store:products' or vn == 'store:product_detail' %}active{% endif %}"
+      data-title="Do‘kon">
+      <span class="si-ico"><i class="fa-solid fa-store"></i></span>
+      <span class="si-text">Do‘kon</span>
+    </a>
 
-      <a href="{% url 'chaqmoq:reyting' %}"
-         class="sidebar-item {% if vn == 'chaqmoq:reyting' %}active{% endif %}">
-        <span class="si-ico"><i class="fa-solid fa-trophy"></i></span>
-        <span class="si-text">Reyting</span>
-      </a>
+    <a href="{% url 'chaqmoq:reyting' %}" class="sidebar-item {% if vn == 'chaqmoq:reyting' %}active{% endif %}"
+      data-title="Reyting">
+      <span class="si-ico"><i class="fa-solid fa-trophy"></i></span>
+      <span class="si-text">Reyting</span>
+    </a>
+
+    <a href="{% url 'education:teacher_income_dashboard' %}"
+      class="sidebar-item {% if vn == 'education:teacher_income_dashboard' %}active{% endif %}" data-title="Daromadim">
+      <span class="si-ico"><i class="fa-solid fa-wallet"></i></span>
+      <span class="si-text">Daromadim</span>
+    </a>
 
     {% elif request.user.is_authenticated and request.user.role == 'student' %}
-      <a href="/"
-         class="sidebar-item {% if p == '/' or vn == 'core:home' or vn == 'core:dashboard_student' %}active{% endif %}">
-        <span class="si-ico"><i class="fa-solid fa-house"></i></span>
-        <span class="si-text">Asosiy</span>
-      </a>
+    <a href="/"
+      class="sidebar-item {% if p == '/' or vn == 'core:home' or vn == 'core:dashboard_student' %}active{% endif %}"
+      data-title="Asosiy">
+      <span class="si-ico"><i class="fa-solid fa-house"></i></span>
+      <span class="si-text">Asosiy</span>
+    </a>
 
-      <a href="{% url 'store:products' %}"
-         class="sidebar-item {% if vn == 'store:products' or vn == 'store:product_detail' %}active{% endif %}">
-        <span class="si-ico"><i class="fa-solid fa-store"></i></span>
-        <span class="si-text">Do‘kon</span>
-      </a>
+    <a href="{% url 'store:products' %}"
+      class="sidebar-item {% if vn == 'store:products' or vn == 'store:product_detail' %}active{% endif %}"
+      data-title="Do‘kon">
+      <span class="si-ico"><i class="fa-solid fa-store"></i></span>
+      <span class="si-text">Do‘kon</span>
+    </a>
 
-      <a href="{% url 'chaqmoq:reyting' %}"
-         class="sidebar-item {% if vn == 'chaqmoq:reyting' %}active{% endif %}">
-        <span class="si-ico"><i class="fa-solid fa-trophy"></i></span>
-        <span class="si-text">Reyting</span>
-      </a>
+    <a href="{% url 'chaqmoq:reyting' %}" class="sidebar-item {% if vn == 'chaqmoq:reyting' %}active{% endif %}"
+      data-title="Reyting">
+      <span class="si-ico"><i class="fa-solid fa-trophy"></i></span>
+      <span class="si-text">Reyting</span>
+    </a>
+
+    {% elif request.user.is_authenticated and request.user.role == 'parent' %}
+    <a href="/"
+      class="sidebar-item {% if p == '/' or vn == 'core:home' or vn == 'core:dashboard_parent' %}active{% endif %}"
+      data-title="Asosiy">
+      <span class="si-ico"><i class="fa-solid fa-house"></i></span>
+      <span class="si-text">Asosiy panel</span>
+    </a>
 
     {% else %}
-      <a href="/" class="sidebar-item {% if p == '/' or vn == 'core:home' %}active{% endif %}">
-        <span class="si-ico"><i class="fa-solid fa-table-columns"></i></span>
-        <span class="si-text">Boshqaruv</span>
-      </a>
+    <a href="/" class="sidebar-item {% if p == '/' or vn == 'core:home' %}active{% endif %}" data-title="Boshqaruv">
+      <span class="si-ico"><i class="fa-solid fa-table-columns"></i></span>
+      <span class="si-text">Boshqaruv</span>
+    </a>
 
-      <a href="{% url 'accounts:add_user' %}"
-         class="sidebar-item {% if vn == 'accounts:add_user' %}active{% endif %}">
-        <span class="si-ico"><i class="fa-solid fa-user-plus"></i></span>
-        <span class="si-text">O‘quvchi qo‘shish</span>
-      </a>
+    {# Markazlar Link (Shown for Superadmin) #}
+    {% if request.user.is_superuser %}
+    <a href="{% url 'accounts:center_picker' %}"
+      class="sidebar-item {% if vn == 'accounts:center_picker' %}active{% endif %}" data-title="Markazlar">
+      <span class="si-ico"><i class="fa-solid fa-hotel"></i></span>
+      <span class="si-text">Markazlar</span>
+    </a>
+    {% endif %}
 
-      <a href="{% url 'education:groups_home' %}"
-         class="sidebar-item {% if vn == 'education:groups_home' %}active{% endif %}">
-        <span class="si-ico"><i class="fa-solid fa-layer-group"></i></span>
-        <span class="si-text">Bo‘limlar</span>
-      </a>
+    <a href="{% url 'core:stat_students' %}" class="sidebar-item {% if vn == 'core:stat_students' %}active{% endif %}"
+      data-title="O‘quvchilar">
+      <span class="si-ico"><i class="fa-solid fa-user-graduate"></i></span>
+      <span class="si-text">O‘quvchilar</span>
+    </a>
 
-      <a href="{% url 'education:attendance_groups' %}"
-         class="sidebar-item {% if vn == 'education:attendance_groups' %}active{% endif %}">
-        <span class="si-ico"><i class="fa-solid fa-users"></i></span>
-        <span class="si-text">Guruhlar</span>
-      </a>
+    <a href="{% url 'core:stat_parents' %}" class="sidebar-item {% if vn == 'core:stat_parents' %}active{% endif %}"
+      data-title="Ota-onalar">
+      <span class="si-ico"><i class="fa-sharp fa-solid fa-people-roof"></i></span>
+      <span class="si-text">Ota-onalar</span>
+    </a>
 
-      <a href="{% url 'store:lead_list' %}"
-         class="sidebar-item {% if vn == 'store:lead_list' or vn == 'store:lead_create' or vn == 'store:lead_update' or vn == 'store:lead_detail' %}active{% endif %}">
-        <span class="si-ico"><i class="fa-solid fa-phone-volume"></i></span>
-        <span class="si-text">Leadlar</span>
-      </a>
+    <a href="{% url 'education:groups_home' %}"
+      class="sidebar-item {% if vn == 'education:groups_home' %}active{% endif %}" data-title="Bo‘limlar">
+      <span class="si-ico"><i class="fa-solid fa-layer-group"></i></span>
+      <span class="si-text">Bo‘limlar</span>
+    </a>
 
-      <a href="{% url 'store:products' %}"
-         class="sidebar-item {% if vn == 'store:products' or vn == 'store:product_detail' or vn == 'store:product_create' or vn == 'store:product_update' %}active{% endif %}">
-        <span class="si-ico"><i class="fa-solid fa-store"></i></span>
-        <span class="si-text">Do‘kon</span>
-      </a>
+    <a href="{% url 'education:attendance_groups' %}"
+      class="sidebar-item {% if vn == 'education:attendance_groups' %}active{% endif %}" data-title="Guruhlar">
+      <span class="si-ico"><i class="fa-solid fa-people-roof"></i></span>
+      <span class="si-text">Guruhlar</span>
+    </a>
 
-      <a href="{% url 'education:tolovlar_home' %}"
-         class="sidebar-item {% if vn == 'education:tolovlar_home' or vn == 'education:tolov_add' or vn == 'education:tolov_edit' %}active{% endif %}">
-        <span class="si-ico"><i class="fa-solid fa-wallet"></i></span>
-        <span class="si-text">To‘lov</span>
-      </a>
+    {% if feature_leads %}
+    <a href="{% url 'store:lead_list' %}"
+      class="sidebar-item {% if vn == 'store:lead_list' or vn == 'store:lead_create' or vn == 'store:lead_detail' %}active{% endif %}"
+      data-title="Leadlar">
+      <span class="si-ico"><i class="fa-solid fa-phone-volume"></i></span>
+      <span class="si-text">Leadlar</span>
+    </a>
+    {% endif %}
 
-      <a href="{% url 'education:teacher_salary_summary' %}"
-         class="sidebar-item {% if vn == 'education:teacher_salary_summary' %}active{% endif %}">
-        <span class="si-ico"><i class="fa-solid fa-chart-line"></i></span>
-        <span class="si-text">Hisobot</span>
-      </a>
+    {% if feature_store %}
+    <a href="{% url 'store:products' %}"
+      class="sidebar-item {% if vn == 'store:products' or vn == 'store:product_detail' or vn == 'store:product_create' or vn == 'store:product_update' %}active{% endif %}"
+      data-title="Do‘kon">
+      <span class="si-ico"><i class="fa-solid fa-store"></i></span>
+      <span class="si-text">Do‘kon</span>
+    </a>
+    {% endif %}
 
-      <a href="{% url 'chaqmoq:reyting' %}"
-         class="sidebar-item {% if vn == 'chaqmoq:reyting' %}active{% endif %}">
-        <span class="si-ico"><i class="fa-solid fa-trophy"></i></span>
-        <span class="si-text">Reyting</span>
-      </a>
+    {% if feature_finance %}
+    <a href="{% url 'education:tolovlar_home' %}"
+      class="sidebar-item {% if vn == 'education:tolovlar_home' or vn == 'education:tolov_add' or vn == 'education:tolov_edit' %}active{% endif %}"
+      data-title="To‘lov">
+      <span class="si-ico"><i class="fa-solid fa-sack-dollar"></i></span>
+      <span class="si-text">To‘lov</span>
+    </a>
+    {% endif %}
 
-      <a href="{% url 'chaqmoq:berish' %}"
-         class="sidebar-item {% if vn == 'chaqmoq:berish' %}active{% endif %}">
-        <span class="si-ico"><i class="fa-solid fa-bolt"></i></span>
-        <span class="si-text">Chaqmoq berish</span>
-      </a>
+    {% if feature_kpi %}
+    <a href="{% url 'education:teacher_salary_summary' %}"
+      class="sidebar-item {% if vn == 'education:teacher_salary_summary' %}active{% endif %}" data-title="Hisobot">
+      <span class="si-ico"><i class="fa-solid fa-chart-pie"></i></span>
+      <span class="si-text">Hisobot</span>
+    </a>
+    {% endif %}
+
+    <a href="{% url 'chaqmoq:reyting' %}" class="sidebar-item {% if vn == 'chaqmoq:reyting' %}active{% endif %}"
+      data-title="Reyting">
+      <span class="si-ico"><i class="fa-solid fa-trophy"></i></span>
+      <span class="si-text">Reyting</span>
+    </a>
+
+    <a href="{% url 'chaqmoq:berish' %}" class="sidebar-item {% if vn == 'chaqmoq:berish' %}active{% endif %}"
+      data-title="Chaqmoq berish">
+      <span class="si-ico"><i class="fa-solid fa-bolt"></i></span>
+      <span class="si-text">Chaqmoq berish</span>
+    </a>
     {% endif %}
 
     {% endwith %}
   </div>
 
-  <!-- BOTTOM: ADMIN -->
+  <!-- BOTTOM: SETTINGS & SUB -->
   <div class="sidebar-bottom">
-{% if request.user.is_authenticated and request.user.role != 'teacher' and request.user.role != 'student' and request.user.role != 'manager' %}
-      {% if request.user.is_staff or request.user.is_superuser %}
-        <a href="/admin/" class="sidebar-item settings-item {% if '/admin' in request.path %}active{% endif %}">
-          <span class="si-ico"><i class="fa-solid fa-gear"></i></span>
-          <span class="si-text">Admin Panel</span>
-        </a>
-      {% endif %}
+    <!-- 💳 MINI SUBSCRIPTION WIDGET -->
+    {% if sub_ui and request.user.role != 'student' and request.user.role != 'parent' and request.user.role != 'teacher'%}
+    <div class="sidebar-sub-widget-mini">
+      <div class="sub-header-mini">
+        <div class="sub-icon-mini">
+          <i class="fa-solid fa-bolt-lightning"></i>
+        </div>
+        <div class="sub-info-mini">
+          <div class="sub-label-mini">Obuna: {{ sub_ui.plan_code }}</div>
+          <div class="sub-progress-text-mini">
+            {{ sub_ui.days_left }} kun qoldi ({{ sub_ui.progress }}%)
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-progress-bar-mini">
+        <div class="sub-progress-fill-mini {% if sub_ui.warn or sub_ui.blocked %}bg-danger{% endif %}"
+          style="--p: {{ sub_ui.progress|default:0 }}%; width: var(--p);"></div>
+      </div>
+
+      <a href="{% url 'billing:plans' %}" class="sub-upgrade-btn-mini"
+        data-title="Obuna: {{ sub_ui.plan_code }} ({{ sub_ui.progress }}%) | Uzatirish">
+        <i class="fa-solid fa-calendar-plus"></i> <span class="si-text">Uzatirish</span>
+      </a>
+    </div>
+    {% endif %}
+
+    {% if request.user.is_superuser %}
+    <a href="/admin/" class="sidebar-item settings-item {% if '/admin' in request.path %}active{% endif %}"
+      data-title="Admin Panel">
+      <span class="si-ico"><i class="fa-solid fa-gear"></i></span>
+      <span class="si-text">Admin Panel</span>
+    </a>
     {% endif %}
   </div>
 </div>
 
 <style>
-  :root{
-    --sb-text:#e5e7eb;
-    --sb-ring: 0 0 0 4px rgba(250,204,21,.16), 0 0 18px rgba(250,204,21,.22);
+  :root {
+    --sb-text: #e5e7eb;
+    --sb-ring: 0 0 0 4px rgba(250, 204, 21, .16), 0 0 18px rgba(250, 204, 21, .22);
   }
 
   /* ===== SIDEBAR ===== */
-  .sidebar-wrapper{
-    width: 286px;
+  .sidebar-wrapper {
+    width: var(--sb-w);
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     height: 100vh;
     padding: 18px 14px;
-    display:flex;
-    flex-direction:column;
+    display: flex;
+    flex-direction: column;
 
     background:
-      radial-gradient(900px 520px at 0% 0%, rgba(56,189,248,.10), transparent 60%),
-      radial-gradient(760px 460px at 100% 10%, rgba(250,204,21,.08), transparent 60%),
-      linear-gradient(180deg, rgba(15,23,42,.96), rgba(2,6,23,.92));
-    border-right: 1px solid rgba(255,255,255,0.06);
-    box-shadow: 18px 0 70px rgba(0,0,0,.35);
+      radial-gradient(900px 520px at 0% 0%, rgba(56, 189, 248, .10), transparent 60%),
+      radial-gradient(760px 460px at 100% 10%, rgba(250, 204, 21, .08), transparent 60%),
+      linear-gradient(180deg, rgba(15, 23, 42, .96), rgba(2, 6, 23, .92));
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 18px 0 70px rgba(0, 0, 0, .35);
 
-    position:fixed;
-    left:0; top:0;
-
-    /* ✅ MUHIM: sidebar overlaydan yuqorida bo‘lsin (xiralashmasin) */
+    position: fixed;
+    left: 0;
+    top: 0;
     z-index: 7200;
 
-    pointer-events:auto;
-    overflow: hidden;
+    pointer-events: auto;
+    overflow: visible;
   }
 
-  .sidebar-wrapper::before{
-    content:"";
-    position:absolute;
-    inset:-2px;
+  .sidebar-wrapper::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
     background:
-      radial-gradient(700px 300px at 14% 0%, rgba(250,204,21,.10), transparent 62%),
-      radial-gradient(700px 320px at 88% 10%, rgba(56,189,248,.10), transparent 62%);
-    pointer-events:none;
-    opacity:.9;
+      radial-gradient(700px 300px at 14% 0%, rgba(250, 204, 21, .10), transparent 62%),
+      radial-gradient(700px 320px at 88% 10%, rgba(56, 189, 248, .10), transparent 62%);
+    pointer-events: none;
+    opacity: .9;
   }
 
   .sidebar-logo,
   .sidebar-scroll,
-  .sidebar-bottom{
+  .sidebar-bottom {
     position: relative;
     z-index: 1;
   }
 
-  .sidebar-logo{
-    display:flex;
-    align-items:center;
+  .sidebar-logo {
+    display: flex;
+    align-items: center;
     gap: 12px;
     padding: 8px 12px 18px;
-    text-decoration:none;
-    border-bottom: 1px solid rgba(255,255,255,.06);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255, 255, 255, .06);
     margin-bottom: 10px;
   }
 
-  .logo-icon-bg{
-    width: 40px;
-    height: 40px;
-    border-radius: 14px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-
-    background: linear-gradient(135deg, rgba(250,204,21,.95), rgba(245,158,11,.95));
-    box-shadow: 0 14px 30px rgba(250,204,21,.18);
-    border: 1px solid rgba(255,255,255,.12);
+  /* ===== ULTIMATE BOLT (NO BOX) ===== */
+  .ultimate-bolt-container {
+    width: 46px;
+    height: 46px;
+    min-width: 46px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
   }
 
-  .logo-bolt{
-    color: #061018;
-    font-size: 18px;
-    font-weight: 950;
+  .ultimate-bolt-container-mini {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  .logo-text{
+
+  .ultimate-bolt {
+    width: 30px;
+    height: 30px;
+    color: #facc15;
+    filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.7)) drop-shadow(0 0 15px rgba(251, 191, 36, 0.4));
+    animation: boltFloat 2.4s ease-in-out infinite, boltGlow 1.2s infinite alternate;
+    z-index: 2;
+  }
+
+  .ultimate-bolt-container-mini .ultimate-bolt {
+    width: 22px;
+    height: 22px;
+  }
+
+  /* Sparks / Particles */
+  .spark-particle {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: #fde047;
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: 0 0 6px #facc15;
+  }
+
+  .s1 {
+    top: 10%;
+    left: 20%;
+    animation: particle1 3s infinite;
+  }
+
+  .s2 {
+    top: 70%;
+    right: 10%;
+    animation: particle2 2.5s infinite 0.5s;
+  }
+
+  .s3 {
+    bottom: 15%;
+    left: 15%;
+    animation: particle1 3.5s infinite 1.2s;
+  }
+
+  .s4 {
+    top: 30%;
+    right: 25%;
+    animation: particle2 4s infinite 0.8s;
+  }
+
+  @keyframes boltFloat {
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+
+  @keyframes boltGlow {
+    from {
+      filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.6));
+    }
+
+    to {
+      filter: drop-shadow(0 0 18px rgba(250, 204, 21, 1));
+    }
+  }
+
+  @keyframes particle1 {
+    0% {
+      transform: scale(0) translate(0, 0);
+      opacity: 0;
+    }
+
+    20% {
+      opacity: 1;
+    }
+
+    50% {
+      transform: scale(1.2) translate(-10px, -15px);
+      opacity: 0.8;
+    }
+
+    100% {
+      transform: scale(0) translate(-20px, -30px);
+      opacity: 0;
+    }
+  }
+
+  @keyframes particle2 {
+    0% {
+      transform: scale(0) translate(0, 0);
+      opacity: 0;
+    }
+
+    30% {
+      opacity: 1;
+    }
+
+    60% {
+      transform: scale(1.1) translate(12px, -12px);
+      opacity: 0.7;
+    }
+
+    100% {
+      transform: scale(0) translate(22px, -22px);
+      opacity: 0;
+    }
+  }
+
+  .logo-text {
     font-size: 22px;
     font-weight: 950;
     color: var(--sb-text);
     letter-spacing: -0.6px;
     line-height: 1;
+    text-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
   }
 
-  .sidebar-scroll{
-    flex:1;
-    overflow-y:auto;
+  .sidebar-scroll {
+    flex: 1;
+    overflow-y: auto;
     padding-right: 6px;
     padding-bottom: 6px;
   }
 
-  .sidebar-item{
-    display:flex;
-    align-items:center;
+  .sidebar-item {
+    display: flex;
+    align-items: center;
     gap: 12px;
-
     padding: 11px 12px;
     margin: 5px 4px;
-
-    text-decoration:none;
-    color: rgba(148,163,184,.95);
-
+    text-decoration: none;
+    color: rgba(148, 163, 184, .95);
     border-radius: 14px;
     transition: transform .16s ease, background .16s ease, color .16s ease, border-color .16s ease;
     font-weight: 900;
     font-size: 14px;
-
     border: 1px solid transparent;
     background: transparent;
-
-    pointer-events:auto;
-    cursor:pointer;
+    pointer-events: auto;
+    cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
   }
 
-  .sidebar-item:hover:not(.active){
-    background: rgba(255,255,255,.04);
-    border-color: rgba(255,255,255,.06);
+  .sidebar-item:hover:not(.active) {
+    background: rgba(255, 255, 255, .06);
+    border-color: rgba(255, 255, 255, .1);
     color: #fff;
+    transform: translateX(4px);
+  }
+
+  body.sidebar-collapsed .sidebar-item:hover:not(.active) {
+    transform: scale(1.05);
+  }
+
+  .sidebar-item.active {
+    background:
+      radial-gradient(140% 120% at 0% 0%, rgba(250, 204, 21, .18), transparent 55%),
+      linear-gradient(135deg, rgba(250, 204, 21, .98) 0%, rgba(245, 158, 11, .98) 60%, rgba(217, 119, 6, .98) 100%);
+    color: #121a21;
+    border-color: rgba(255, 255, 255, .25);
+    box-shadow: 0 10px 25px rgba(250, 204, 21, .2);
     transform: translateY(-1px);
   }
 
-  .sidebar-item.active{
-    background:
-      radial-gradient(140% 120% at 0% 0%, rgba(250,204,21,.18), transparent 55%),
-      linear-gradient(135deg, rgba(250,204,21,.95) 0%, rgba(245,158,11,.95) 60%, rgba(217,119,6,.95) 100%);
-    color: #061018;
-    border-color: rgba(255,255,255,.16);
-    box-shadow: 0 14px 28px rgba(250,204,21,.14);
+  .sidebar-item:focus,
+  .sidebar-item:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
   }
 
-  .sidebar-item:focus-visible{
-    outline: none;
-    box-shadow: var(--sb-ring);
-  }
-
-  .si-ico{
-    width: 32px;
-    height: 32px;
-    border-radius: 12px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-
-    background: rgba(255,255,255,.05);
-    border: 1px solid rgba(255,255,255,.08);
-
-    font-size: 16px;
-    color: rgba(226,232,240,.92);
+  .si-ico {
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, .05);
+    border: 1px solid rgba(255, 255, 255, .1);
+    font-size: 15px;
+    color: rgba(226, 232, 240, .85);
     flex: 0 0 auto;
-  }
-  .sidebar-item.active .si-ico{
-    background: rgba(2,6,23,.25);
-    border-color: rgba(2,6,23,.30);
-    color: #061018;
+    transition: all 0.2s ease;
   }
 
-  .si-text{
+  .sidebar-item.active .si-ico {
+    background: rgba(18, 26, 33, .12);
+    border-color: rgba(18, 26, 33, .20);
+    color: #121a21;
+    backdrop-filter: blur(4px);
+  }
+
+  .si-text {
     flex: 1 1 auto;
     min-width: 0;
     overflow: hidden;
@@ -316,27 +533,161 @@
     white-space: nowrap;
   }
 
-  .sidebar-bottom{
+  .sidebar-bottom {
     padding-top: 12px;
-    border-top: 1px solid rgba(255,255,255,.06);
+    border-top: 1px solid rgba(255, 255, 255, .06);
     margin-top: 10px;
   }
 
-  .custom-scrollbar::-webkit-scrollbar{ width: 8px; }
-  .custom-scrollbar::-webkit-scrollbar-track{ background: rgba(255,255,255,.04); border-radius: 999px; }
-  .custom-scrollbar::-webkit-scrollbar-thumb{
-    background: rgba(56,189,248,.45);
-    border-radius: 999px;
+  /* ===== MINI SUBSCRIPTION WIDGET ===== */
+  .sidebar-sub-widget-mini {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    padding: 14px;
+    margin: 10px 4px 15px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+  }
+
+  .sidebar-sub-widget-mini:hover {
+    border-color: rgba(250, 204, 21, 0.3);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+    transform: translateY(-2px);
+  }
+
+  .sub-header-mini {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .sub-icon-mini {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(250, 204, 21, 0.2), rgba(251, 191, 36, 0.1));
+    border: 1px solid rgba(250, 204, 21, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #facc15;
+    font-size: 15px;
+    flex-shrink: 0;
+    box-shadow: 0 0 15px rgba(250, 204, 21, 0.15);
+  }
+
+  .sub-info-mini .sub-label-mini {
+    font-size: 11px;
+    color: #fff;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+
+  .sub-info-mini .sub-progress-text-mini {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 600;
+  }
+
+  .sub-progress-bar-mini {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .sub-progress-fill-mini {
+    height: 100%;
+    background: linear-gradient(90deg, #f59e0b, #facc15, #fbbf24);
+    background-size: 200% 100%;
+    border-radius: 10px;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 12px rgba(250, 204, 21, 0.4);
+    animation: gradientFlow 3s linear infinite;
+  }
+
+  @keyframes gradientFlow {
+    0% {
+      background-position: 100% 0%;
+    }
+
+    100% {
+      background-position: -100% 0%;
+    }
+  }
+
+  .sub-progress-fill-mini.bg-danger {
+    background: linear-gradient(90deg, #ef4444, #f87171) !important;
+  }
+
+  .sub-upgrade-btn-mini {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px;
+    background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+    color: #0f172a;
+    text-decoration: none !important;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 800;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(255, 255, 255, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .sub-upgrade-btn-mini:hover {
+    transform: translateY(-2px) scale(1.02);
+    background: #ffffff;
+    box-shadow: 0 8px 20px rgba(255, 255, 255, 0.25), 0 0 0 2px rgba(250, 204, 21, 0.2);
+  }
+
+  .sub-upgrade-btn-mini i {
+    font-size: 12px;
+    color: #d97706;
+    animation: pulseIcon 2s infinite;
+  }
+
+  @keyframes pulseIcon {
+
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    50% {
+      transform: scale(1.2);
+      opacity: 0.8;
+    }
+  }
+
+  /* Hiding Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .custom-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 
   /* ===== MOBILE TOPBAR ===== */
-  .mobile-topbar{
+  .mobile-topbar {
     background:
-      radial-gradient(900px 520px at 10% 0%, rgba(56,189,248,.12), transparent 60%),
-      radial-gradient(760px 460px at 90% 0%, rgba(250,204,21,.10), transparent 60%),
-      rgba(2,6,23,.88);
+      radial-gradient(900px 520px at 10% 0%, rgba(56, 189, 248, .12), transparent 60%),
+      radial-gradient(760px 460px at 90% 0%, rgba(250, 204, 21, .10), transparent 60%),
+      rgba(2, 6, 23, .88);
     padding: 14px 14px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     position: sticky;
     top: 0;
     z-index: 7000;
@@ -344,133 +695,299 @@
     -webkit-backdrop-filter: blur(12px);
   }
 
-  .mobile-logo{ gap: 10px; }
-  .mobile-logo .logo-bolt{
-    width: 32px;
-    height: 32px;
-    border-radius: 12px;
-    display:grid;
-    place-items:center;
-    background: linear-gradient(135deg, rgba(250,204,21,.95), rgba(245,158,11,.95));
-    color: #061018;
-    font-weight: 950;
-    box-shadow: 0 14px 30px rgba(250,204,21,.16);
-    border: 1px solid rgba(255,255,255,.12);
-  }
-  .mobile-logo .logo-text{
-    color: var(--sb-text);
-    font-weight: 950;
-    letter-spacing: -0.6px;
-    font-size: 18px;
+  .mobile-logo {
+    gap: 10px;
   }
 
-  .mobile-menu-btn{
+  .mobile-menu-btn {
     width: 44px;
     height: 44px;
     border-radius: 14px;
-    border: 1px solid rgba(255,255,255,.10);
-    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255, 255, 255, .10);
+    background: rgba(255, 255, 255, .06);
     color: #fff;
     font-size: 18px;
-    display:grid;
-    place-items:center;
-    cursor:pointer;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
     transition: transform .16s ease, filter .16s ease, border-color .16s ease;
     -webkit-tap-highlight-color: transparent;
   }
-  .mobile-menu-btn:hover{
+
+  .mobile-menu-btn:hover {
     transform: translateY(-1px);
     filter: brightness(.98);
-    border-color: rgba(56,189,248,.22);
+    border-color: rgba(56, 189, 248, .22);
   }
-  .mobile-menu-btn:focus-visible{
-    outline:none;
+
+  .mobile-menu-btn:focus-visible {
+    outline: none;
     box-shadow: var(--sb-ring);
   }
 
-  /* ===== MOBILE SIDEBAR DRAWER (off-canvas) ===== */
-  @media (max-width: 991.98px){
-    .sidebar-wrapper{
+  /* ===== MOBILE SIDEBAR DRAWER ===== */
+  @media (max-width: 991.98px) {
+    .sidebar-wrapper {
       left: -110%;
       transition: left .26s ease;
       width: min(88vw, 330px);
-      box-shadow: 22px 0 80px rgba(0,0,0,.55);
+      box-shadow: 22px 0 80px rgba(0, 0, 0, .55);
     }
-    .sidebar-wrapper.open{ left: 0; }
+
+    .sidebar-wrapper.open {
+      left: 0;
+    }
   }
 
   /* ===== MOBILE OVERLAY ===== */
-  .sidebar-overlay{
+  .sidebar-overlay {
     position: fixed;
     inset: 0;
-
-    /* ✅ Crisp bo‘lsin: blur yo‘q */
-    background: rgba(0,0,0,.55);
-
-    /* ❌ xiralashishning 2-sababi shu edi */
+    background: rgba(0, 0, 0, .55);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-
-    /* ✅ overlay sidebar ostida tursin */
     z-index: 7100;
-
     opacity: 0;
     pointer-events: none;
     transition: opacity .18s ease;
   }
-  .sidebar-overlay.open{
+
+  .sidebar-overlay.open {
     opacity: 1;
     pointer-events: auto;
   }
 
-  @media (prefers-reduced-motion: reduce){
-    .sidebar-item, .mobile-menu-btn, .sidebar-wrapper, .sidebar-overlay{ transition: none !important; }
+  /* ===== COLLAPSE BUTTON ===== */
+  .sb-toggle-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    color: #0f172a;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: absolute;
+    right: 12px;
+    top: 18px;
+    z-index: 50;
+  }
+
+  .sb-toggle-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+    filter: brightness(1.1);
+  }
+
+  .sb-toggle-btn:active {
+    transform: scale(0.95);
+  }
+
+  /* ===== HEADER ===== */
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 0;
+    border-bottom: none;
+    padding-left: 12px;
+    padding-right: 12px;
+    position: relative;
+    height: 60px;
+  }
+
+  .sidebar-logo {
+    margin-bottom: 0;
+    border-bottom: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.3s ease;
+  }
+
+  /* ===== COLLAPSED STATE ===== */
+  body.sidebar-collapsed .logo-text,
+  body.sidebar-collapsed .si-text,
+  body.sidebar-collapsed .sub-info-mini,
+  body.sidebar-collapsed .sub-progress-bar-mini {
+    display: none !important;
+  }
+
+  body.sidebar-collapsed .sidebar-sub-widget-mini {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    overflow: visible;
+  }
+
+  body.sidebar-collapsed .sub-header-mini,
+  body.sidebar-collapsed .sidebar-sub-widget::after {
+    display: none !important;
+  }
+
+  body.sidebar-collapsed .sub-upgrade-btn-mini {
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border-radius: 12px;
+    background: rgba(250, 204, 21, 0.1);
+    border: 1px solid rgba(250, 204, 21, 0.3);
+    color: var(--amber);
+    box-shadow: 0 4px 15px rgba(250, 204, 21, 0.1);
+  }
+
+  body.sidebar-collapsed .sub-upgrade-btn-mini:hover {
+    background: var(--amber);
+    color: #000;
+    border-color: var(--amber);
+    box-shadow: 0 0 15px rgba(250, 204, 21, 0.5);
+  }
+
+  body.sidebar-collapsed .sub-upgrade-btn-mini i {
+    color: inherit;
+    font-size: 16px;
+  }
+
+  body.sidebar-collapsed .sidebar-header {
+    flex-direction: column;
+    gap: 12px;
+    padding-left: 0;
+    padding-right: 0;
+    justify-content: center;
+  }
+
+  body.sidebar-collapsed .sb-toggle-btn {
+    left: 100%;
+    top: 30px;
+    transform: translateX(-50%) rotate(180deg);
+    width: 28px;
+    height: 28px;
+    background: var(--amber);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #000;
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.5);
+    font-size: 11px;
+    z-index: 9999;
+  }
+
+  body.sidebar-collapsed .sidebar-item.active {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transform: none;
+  }
+
+  body.sidebar-collapsed .sidebar-item.active .si-ico {
+    background: rgba(250, 204, 21, 0.1);
+    border-color: rgba(250, 204, 21, 0.3);
+    color: var(--amber);
+    /* Only the icon remains yellow as a subtle indicator */
+  }
+
+  body.sidebar-collapsed .sidebar-item,
+  body.sidebar-collapsed .sidebar-logo,
+  body.sidebar-collapsed .sub-upgrade-btn-mini {
+    position: relative;
+    justify-content: center;
+  }
+
+  /* Tooltip */
+  body.sidebar-collapsed .sidebar-item::after,
+  body.sidebar-collapsed .sidebar-logo::after,
+  body.sidebar-collapsed .sub-upgrade-btn-mini::after {
+    content: attr(data-title);
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%) translateX(12px);
+    background: rgba(15, 23, 42, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 800;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    z-index: 99999;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+  }
+
+  body.sidebar-collapsed .sidebar-item:hover::after,
+  body.sidebar-collapsed .sidebar-logo:hover::after,
+  body.sidebar-collapsed .sub-upgrade-btn-mini:hover::after {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(-50%) translateX(20px);
+  }
+
+  body.sidebar-collapsed .sidebar-item::before,
+  body.sidebar-collapsed .sidebar-logo::before,
+  body.sidebar-collapsed .sub-upgrade-btn-mini::before {
+    content: "";
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%) translateX(6px);
+    border: 6px solid transparent;
+    border-right-color: rgba(255, 255, 255, 0.15);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 99998;
+  }
+
+  body.sidebar-collapsed .sidebar-item:hover::before,
+  body.sidebar-collapsed .sidebar-logo:hover::before,
+  body.sidebar-collapsed .sub-upgrade-btn-mini:hover::before {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(-50%) translateX(8px);
   }
 </style>
 
 <script>
-  function toggleSidebar(force){
-    const sb = document.getElementById("sidebar");
-    const ov = document.getElementById("sidebarOverlay");
-    const btn = document.querySelector(".mobile-menu-btn");
-    if(!sb) return;
-
-    const isOpen = sb.classList.contains("open");
-    const nextOpen = (typeof force === "boolean") ? force : !isOpen;
-
-    sb.classList.toggle("open", nextOpen);
-    if(ov) ov.classList.toggle("open", nextOpen);
-
-    if(btn){
-      btn.setAttribute("aria-expanded", nextOpen ? "true" : "false");
-    }
-
-    document.documentElement.classList.toggle("sb-lock", nextOpen);
-    document.body.classList.toggle("sb-lock", nextOpen);
+  function toggleSidebarDesktop() {
+    document.body.classList.toggle('sidebar-collapsed');
+    // Save state
+    const isCollapsed = document.body.classList.contains('sidebar-collapsed');
+    try { localStorage.setItem('sidebarCollapsed', isCollapsed ? '1' : '0'); } catch (e) { }
   }
 
-  (function(){
-    const sb = document.getElementById("sidebar");
-    if(!sb) return;
+  function toggleSidebar(forceState) {
+    const sb = document.getElementById('sidebar');
+    const ov = document.getElementById('sidebarOverlay');
+    const body = document.body;
 
-    document.addEventListener("keydown", (e)=>{
-      if(e.key === "Escape" && sb.classList.contains("open")){
-        toggleSidebar(false);
+    if (forceState !== undefined) {
+      if (forceState) {
+        sb.classList.add('open');
+        ov.classList.add('open');
+        body.classList.add('sb-lock');
+      } else {
+        sb.classList.remove('open');
+        ov.classList.remove('open');
+        body.classList.remove('sb-lock');
       }
-    });
-
-    document.addEventListener("click", (e)=>{
-      if(window.matchMedia("(max-width: 991.98px)").matches){
-        const clickedLink = e.target.closest(".sidebar-item");
-        if(clickedLink && sb.classList.contains("open")){
-          toggleSidebar(false);
-        }
-      }
-    });
-  })();
+    } else {
+      sb.classList.toggle('open');
+      ov.classList.toggle('open');
+      body.classList.toggle('sb-lock');
+    }
+  }
 </script>
-
-<style>
-  .sb-lock{ overflow: hidden !important; }
-</style>
 {% endif %}

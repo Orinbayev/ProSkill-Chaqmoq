@@ -1,17 +1,16 @@
 from django import forms
-from django.contrib.auth import get_user_model
-from .models import Ledger, Rule
-from education.models import Group
+from .models import Rule
 
-User = get_user_model()
-
-class ChaqmoqForm(forms.Form):
-    group = forms.ModelChoiceField(queryset=Group.objects.all(), required=False, label='Guruh (ixtiyoriy)')
-    student = forms.ModelChoiceField(queryset=User.objects.filter(role='student').order_by('ism','familya'))
-    rule = forms.ModelChoiceField(queryset=Rule.objects.all().order_by('nom'))
-    ball = forms.IntegerField(min_value=-100000, max_value=100000)
-
-    def __init__(self, *args, user=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        if user and getattr(user,'role',None) == 'teacher':
-            self.fields['group'].queryset = Group.objects.filter(oqituvchi=user)
+class RuleForm(forms.ModelForm):
+    class Meta:
+        model = Rule
+        fields = ['nom', 'tur', 'min_baho', 'max_baho', 'can_director', 'can_manager', 'can_teacher']
+        widgets = {
+            'nom': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Masalan: Darsda faollik'}),
+            'tur': forms.Select(attrs={'class': 'form-select'}),
+            'min_baho': forms.NumberInput(attrs={'class': 'form-control'}),
+            'max_baho': forms.NumberInput(attrs={'class': 'form-control'}),
+            'can_director': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'can_manager': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'can_teacher': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }

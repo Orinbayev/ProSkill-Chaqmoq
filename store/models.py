@@ -15,6 +15,9 @@ class Product(models.Model):
     sotilgan_soni = models.PositiveIntegerField(default=0, help_text="Jami sotilgan mahsulotlar soni")
     izoh = models.TextField(blank=True)
     yaratilgan = models.DateTimeField(auto_now_add=True)
+    
+    # ✅ Tenant isolation
+    center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True)
 
     class Meta:
         verbose_name = 'Mahsulot'
@@ -55,6 +58,7 @@ class ProductImage(models.Model):
 # 3️⃣ XARID SO‘ROVI
 # ===================================
 class PurchaseRequest(models.Model):
+    center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True)
     # ======== STATUS CHOICES ========
     PENDING = 'pending'
     APPROVED = 'approved'
@@ -124,6 +128,7 @@ class PurchaseRequest(models.Model):
 # 4️⃣ SOTUV MODELI
 # ===================================
 class Sale(models.Model):
+    center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True)
     student = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
     qty = models.PositiveIntegerField(default=1)
@@ -200,19 +205,34 @@ class Comment(models.Model):
 # 7️⃣ LEAD MODELLARI
 # ===================================
 class Yonalish(models.Model):
-    nom = models.CharField(max_length=100, unique=True)
+    nom = models.CharField(max_length=100)
+    center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True)
+    
+    class Meta:
+        unique_together = ('nom', 'center')
+        
     def __str__(self):
         return self.nom
 
 
 class Manba(models.Model):
-    nom = models.CharField(max_length=100, unique=True)
+    nom = models.CharField(max_length=100)
+    center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True)
+    
+    class Meta:
+        unique_together = ('nom', 'center')
+
     def __str__(self):
         return self.nom
 
 
 class LeadStatus(models.Model):
     nom = models.CharField(max_length=100)
+    center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True)
+    
+    class Meta:
+        unique_together = ('nom', 'center')
+
     def __str__(self):
         return self.nom
 
@@ -220,8 +240,14 @@ class LeadStatus(models.Model):
 
 
 class Lead(models.Model):
+    center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True)
     ism = models.CharField(max_length=100)
     familya = models.CharField(max_length=100, blank=True)
+    otchestvo = models.CharField(max_length=150, blank=True, null=True, verbose_name="Otasining ismi")
+    birth_date = models.DateField(null=True, blank=True, verbose_name="Tug'ilgan sana")
+    gender = models.CharField(max_length=10, choices=[('male', 'Erkak'), ('female', 'Ayol')], null=True, blank=True, verbose_name="Jinsi")
+    passport_id = models.CharField(max_length=20, blank=True, null=True, verbose_name="Passport ID")
+    jshr = models.CharField(max_length=14, blank=True, null=True, verbose_name="JSHR")
     telefon1 = models.CharField(max_length=20)
     telefon2 = models.CharField(max_length=20, blank=True)
     yosh = models.PositiveIntegerField()

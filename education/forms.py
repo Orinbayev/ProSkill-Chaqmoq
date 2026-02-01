@@ -8,7 +8,7 @@ class GroupForm(forms.ModelForm):
     class Meta:
         model = Group
         fields = [
-            "category", "center", "nom", "izoh", "oqituvchi",
+            "category_obj", "center", "nom", "izoh", "oqituvchi",
             "kurs_narxi", "oqituvchi_foiz", "oy_dars_soni"
         ]
         labels = {
@@ -19,21 +19,44 @@ class GroupForm(forms.ModelForm):
             "oy_dars_soni": "Bir oyda darslar soni",
             "izoh": "Izoh",
             "center": "Markaz",
-            "category": "Yo‘nalish",
+            "category_obj": "Bo‘lim",
         }
 
     def __init__(self, *args, **kwargs):
+        center = kwargs.pop("center", None)
         super().__init__(*args, **kwargs)
-        self.fields["oqituvchi"].queryset = User.objects.filter(role="teacher")
+        
+        # Filter teachers by center
+        if "oqituvchi" in self.fields:
+            teach_qs = User.objects.filter(role="teacher")
+            if center:
+                teach_qs = teach_qs.filter(center=center)
+            self.fields["oqituvchi"].queryset = teach_qs.order_by("ism", "familya")
+
+        # Filter categories by center
+        if "category_obj" in self.fields:
+            from .models import Category
+            cat_qs = Category.objects.all()
+            if center:
+                from django.db.models import Q
+                cat_qs = cat_qs.filter(Q(center=center) | Q(center__isnull=True))
+            self.fields["category_obj"].queryset = cat_qs.order_by("name")
+
+        # Restrict center choice
+        if center and "center" in self.fields:
+            from accounts.models import Center
+            self.fields["center"].queryset = Center.objects.filter(id=center.id)
+            self.fields["center"].initial = center
 
         # Bu maydonlar agar kiritilmasa ham xato bermaydi
-        for f in ["kurs_narxi", "oqituvchi_foiz", "oy_dars_soni", "category"]:
-            self.fields[f].required = False
+        for f in ["kurs_narxi", "oqituvchi_foiz", "oy_dars_soni", "category_obj", "center"]:
+            if f in self.fields:
+                self.fields[f].required = False
 
         # Default qiymatlar
-        self.fields["kurs_narxi"].initial = 500000
-        self.fields["oqituvchi_foiz"].initial = 40
-        self.fields["oy_dars_soni"].initial = 12
+        if "kurs_narxi" in self.fields: self.fields["kurs_narxi"].initial = 500000
+        if "oqituvchi_foiz" in self.fields: self.fields["oqituvchi_foiz"].initial = 40
+        if "oy_dars_soni" in self.fields: self.fields["oy_dars_soni"].initial = 12
 
 
 class LangGroupForm(GroupForm):

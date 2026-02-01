@@ -113,16 +113,22 @@ def _gen_default_password() -> str:
 
 
 def _gen_unique_gmail_like_email(ism: str, familya: str) -> str:
-    first = _clean_for_login(ism) or "user"
-    last = _clean_for_login(familya)
-    base = f"{first}.{last}" if last else first
+    first_char = _clean_for_login(ism)[:1] or "s"
+    last_part = _clean_for_login(familya)[:8]
+    base = f"{first_char}.{last_part}" if last_part else first_char
 
-    for _ in range(80):
-        suffix = secrets.randbelow(9000) + 1000
-        email = f"{base}{suffix}@gmail.com"
+    # 1. Asl holatda tekshirish (random raqamsiz)
+    email = f"{base}@gmail.com"
+    if not U.objects.filter(email=email).exists():
+        return email
+
+    # 2. Ketma-ket raqam qo'shish
+    for i in range(1, 1000):
+        email = f"{base}{i}@gmail.com"
         if not U.objects.filter(email=email).exists():
             return email
 
+    # 3. Juda kam holatda random
     token = secrets.token_hex(3)
     return f"{base}{token}@gmail.com"
 
@@ -159,6 +165,9 @@ def convert_lead_to_student(lead, converted_by=None):
 
         if user:
             # mavjud userni studentga moslab yangilab qo'yamiz
+            if not user.center:
+                user.center = lead.center
+            
             user.role = "student"
             user.ism = lead.ism
             user.familya = lead.familya
@@ -166,6 +175,15 @@ def convert_lead_to_student(lead, converted_by=None):
                 user.telefon1 = tel1
             if hasattr(user, "telefon2") and tel2:
                 user.telefon2 = tel2
+            
+            # ✅ Extended fields
+            if getattr(lead, "otchestvo", None): user.otchestvo = lead.otchestvo
+            if getattr(lead, "birth_date", None): user.birth_date = lead.birth_date
+            if getattr(lead, "gender", None): user.gender = lead.gender
+            if getattr(lead, "passport_id", None): user.passport_id = lead.passport_id
+            if getattr(lead, "jshr", None): user.jshr = lead.jshr
+            if getattr(lead, "address", None): user.address = lead.address
+
             user.save()
 
         else:
@@ -175,6 +193,7 @@ def convert_lead_to_student(lead, converted_by=None):
 
             user = U(email=email)
             user.role = "student"
+            user.center = lead.center
             user.ism = lead.ism
             user.familya = lead.familya
 
@@ -182,6 +201,14 @@ def convert_lead_to_student(lead, converted_by=None):
                 user.telefon1 = tel1
             if hasattr(user, "telefon2") and tel2:
                 user.telefon2 = tel2
+            
+            # ✅ Extended fields
+            user.otchestvo = getattr(lead, "otchestvo", "")
+            user.birth_date = getattr(lead, "birth_date", None)
+            user.gender = getattr(lead, "gender", "")
+            user.passport_id = getattr(lead, "passport_id", "")
+            user.jshr = getattr(lead, "jshr", "")
+            user.address = getattr(lead, "address", "")
 
             user.set_password(password)
             user.save()

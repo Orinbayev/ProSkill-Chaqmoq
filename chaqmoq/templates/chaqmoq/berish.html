@@ -1,198 +1,383 @@
 {% extends 'base.html' %}
 {% load tz %}
 {% block content %}
-
 <style>
-
-/**************************************
-  GLOBAL PAGE STYLE
-**************************************/
-body {
-  background: linear-gradient(180deg, #0f172a, #1e293b, #0f172a);
-  font-family: 'Poppins', sans-serif;
-  min-height: 100vh;
-  color: #e2e8f0;
-}
-
-/**************************************
-  TITLE
-**************************************/
-.page-title {
-  text-align: center;
-  font-weight: 800;
-  font-size: 2rem;
-  color: #facc15;
-  text-shadow: 0 3px 10px rgba(250,204,21,0.45);
-  margin-bottom: 2.5rem;
-}
-
-
-/**************************************
-  FORM WRAPPER
-**************************************/
-.form-wrapper {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 22px;
-  padding: 2.5rem;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.45);
-  backdrop-filter: blur(10px);
-  transition: 0.25s;
-}
-
-.form-wrapper:hover {
-  box-shadow: 0 16px 45px rgba(59,130,246,0.35);
-  border-color: rgba(59,130,246,0.32);
-}
-
-/**************************************
-  LABELS
-**************************************/
-.form-label {
-  font-weight: 600;
-  color: #cbd5e1;
-  margin-bottom: 6px;
-}
-
-/**************************************
-  INPUTS + SELECTS
-**************************************/
-.form-control,
-.form-select {
-  background: rgba(255,255,255,0.08);
-  color: #f8fafc;
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 12px;
-  padding: 12px 14px;
-  font-size: 15px;
-  transition: .25s ease;
-}
-
-.form-control:focus,
-.form-select:focus {
-  border-color: #3b82f6;
-  background: rgba(255,255,255,0.12);
-  box-shadow: 0 0 12px rgba(59,130,246,0.4);
-}
-
-/* SELECT ITEM COLOR FIX */
-.form-select option {
-  background: #0f172a;
-  color: #e2e8f0;
-}
-
-/**************************************
-  BUTTONS
-**************************************/
-.btn-save {
-  background: linear-gradient(90deg, #22c55e, #16a34a);
-  border: none;
-  padding: 13px 20px;
-  color: white;
-  font-weight: 700;
-  border-radius: 12px;
-  width: 100%;
-  box-shadow: 0 0 20px rgba(22,163,74,0.45);
-  transition: 0.25s;
-}
-
-.btn-save:hover {
-  transform: scale(1.05);
-  background: linear-gradient(90deg, #16a34a, #22c55e);
-  box-shadow: 0 0 28px rgba(22,163,74,0.6);
-}
-
-.btn-outline {
-  border: 1px solid rgba(255,255,255,0.25);
-  padding: 12px 20px;
-  border-radius: 12px;
-  color: #cbd5e1;
-  font-weight: 600;
-  transition: 0.25s;
-}
-
-.btn-outline:hover {
-  background: rgba(255,255,255,0.12);
-  color: #fff;
-  transform: scale(1.05);
-}
-
-/**************************************
-  RESPONSIVE FIXES
-**************************************/
-@media (max-width: 768px) {
-  .form-wrapper {
-    padding: 1.6rem;
+  :root {
+    --bg0: #020617;
+    --bg1: #070b16;
+    --bg2: #0b1226;
+    --glass: rgba(17, 24, 39, .58);
+    --glass2: rgba(2, 6, 23, .44);
+    --stroke: rgba(255, 255, 255, .10);
+    --text: #e5e7eb;
+    --muted: #94a3b8;
+    --blue: #3b82f6;
+    --cyan: #22d3ee;
+    --amber: #fbbf24;
+    --green: #22c55e;
+    --r16: 16px;
+    --r20: 20px;
+    --r24: 24px;
+    --pad: clamp(12px, 2.8vw, 18px);
   }
-  .page-title {
-    font-size: 1.6rem;
+
+  * {
+    box-sizing: border-box;
   }
-}
+
+  body {
+    background: radial-gradient(1200px 520px at 12% 18%, rgba(34, 211, 238, .05), transparent 60%),
+      radial-gradient(1200px 520px at 88% 22%, rgba(245, 158, 11, .05), transparent 60%),
+      linear-gradient(180deg, var(--bg0), var(--bg2));
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  .page-wrap {
+    width: min(900px, 100%);
+    margin: 0 auto;
+    padding: 24px 16px 40px;
+  }
+
+  /* ===== HERO TITLE ===== */
+  .hero-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .hero-title {
+    font-size: clamp(24px, 5vw, 36px);
+    font-weight: 950;
+    margin: 0;
+    background: linear-gradient(135deg, var(--amber), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+  }
+
+  .hero-title i {
+    font-size: 0.8em;
+    filter: drop-shadow(0 0 10px rgba(250, 204, 21, 0.4));
+  }
+
+  /* ===== GLASS CARD ===== */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--r24);
+    padding: var(--pad);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  }
+
+  /* ===== FORM ELEMENTS ===== */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  @media (min-width: 768px) {
+    .form-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .fg {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .fg-label {
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .fg-label i {
+    color: var(--cyan);
+    width: 16px;
+    text-align: center;
+  }
+
+  .inp-wrap {
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    transition: all 0.3s;
+  }
+
+  .inp-wrap:focus-within {
+    border-color: rgba(59, 130, 246, 0.5);
+    background: rgba(15, 23, 42, 0.6);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  }
+
+  .inp-wrap input,
+  .inp-wrap select {
+    background: transparent;
+    border: none;
+    color: #fff;
+    width: 100%;
+    font-weight: 700;
+    font-size: 15px;
+    outline: none;
+    color-scheme: dark;
+  }
+
+  .inp-wrap select option {
+    background: #0f172a;
+    color: #fff;
+  }
+
+  /* ===== CUSTOM AUTOCOMPLETE ===== */
+  .autocomplete-container {
+    position: relative;
+    width: 100%;
+  }
+
+  .autocomplete-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    margin-top: 8px;
+    max-height: 250px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+    display: none;
+  }
+
+  .autocomplete-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    font-weight: 700;
+    color: #94a3b8;
+    transition: all 0.2s;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .autocomplete-item:last-child {
+    border-bottom: none;
+  }
+
+  .autocomplete-item:hover,
+  .autocomplete-item.active {
+    background: rgba(34, 211, 238, 0.1);
+    color: var(--cyan);
+  }
+
+  /* ===== BUTTONS ===== */
+  .btn-primary {
+    min-height: 56px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--green), #16a34a);
+    color: #fff;
+    border: none;
+    font-weight: 950;
+    font-size: 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.2s;
+    width: 100%;
+    margin-top: 24px;
+    box-shadow: 0 10px 25px rgba(34, 197, 94, 0.2);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+    box-shadow: 0 15px 30px rgba(34, 197, 94, 0.3);
+  }
 </style>
 
+<main class="page-wrap">
+  <header class="hero-header">
+    <h1 class="hero-title">
+      <i class="fa-solid fa-bolt"></i>
+      Chaqmoq berish yoki ayirish
+    </h1>
+  </header>
 
-<div class="container mt-5 mb-5">
+  <div class="glass-card">
+    <form method="post" id="chaqmoq-form">
+      {% csrf_token %}
 
-  <h3 class="page-title">⚡ Chaqmoq berish yoki ayirish</h3>
+      <div class="form-grid">
+        <!-- DATE -->
+        <div class="fg">
+          <label class="fg-label">
+            <i class="fa-solid fa-calendar-day"></i> Davomat sanasi
+          </label>
+          <div class="inp-wrap">
+            <input type="date" name="davomat_sana" value="{{ request.GET.sana|default:today|date:'Y-m-d' }}" required>
+          </div>
+        </div>
 
-  <form method="post" class="form-wrapper">
-    {% csrf_token %}
+        <!-- RULE -->
+        <div class="fg">
+          <label class="fg-label">
+            <i class="fa-solid fa-scale-balanced"></i> Qoida
+          </label>
+          <div class="inp-wrap">
+            <select name="rule" required>
+              <option value="">— Qoidani tanlang —</option>
+              {% for r in rules %}
+              <option value="{{ r.id }}">{{ r.nom }} ({{ r.min_baho }}-{{ r.max_baho }})</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
 
-    <!-- ROW 1 -->
-    <div class="row mb-4">
-      <div class="col-md-6 col-12 mb-3">
-        <label class="form-label">📅 Davomat sanasi:</label>
-        <input type="date"
-               name="davomat_sana"
-               id="davomat_sana"
-               class="form-control"
-               value="{{ request.GET.sana|default:today|date:'Y-m-d' }}">
+        <!-- STUDENT SEARCH & SELECT -->
+        <div class="fg">
+          <label class="fg-label">
+            <i class="fa-solid fa-user-graduate"></i> O‘quvchini toping
+          </label>
+          <div class="autocomplete-container" id="student_autocomplete">
+            <div class="inp-wrap">
+              <i class="fa-solid fa-magnifying-glass" style="font-size: 14px; opacity: 0.5;"></i>
+              <input type="text" id="student_search_input" placeholder="Ism yoki familiya kiriting..."
+                autocomplete="off">
+              <input type="hidden" name="student" id="student_id_input" required>
+            </div>
+            <div class="autocomplete-results" id="student_results"></div>
+          </div>
+        </div>
+
+        <!-- POINTS -->
+        <div class="fg">
+          <label class="fg-label">
+            <i class="fa-solid fa-star"></i> Ball
+          </label>
+          <div class="inp-wrap">
+            <input type="number" name="ball" placeholder="Masalan: 5" required>
+          </div>
+        </div>
       </div>
 
-      <div class="col-md-6 col-12 mb-3">
-        <label class="form-label">⚖️ Qoida:</label>
-        <select name="rule" id="rule" class="form-select">
-          <option value="">— Qoidani tanlang —</option>
-          {% for r in rules %}
-            <option value="{{ r.id }}">{{ r.nom }}</option>
-          {% endfor %}
-        </select>
-      </div>
-    </div>
+      <button type="submit" class="btn-primary">
+        <i class="fa-solid fa-floppy-disk"></i> Saqlash
+      </button>
+    </form>
+  </div>
+</main>
 
-    <!-- ROW 2 -->
-    <div class="row mb-4">
+<script>
+  (function () {
+    const students = [
+      {% for s in students %}
+      { id: "{{ s.id }}", name: "{{ s.get_full_name }}" },
+  {% endfor %}
+    ];
 
-      <div class="col-md-6 col-12 mb-3">
-        <label class="form-label">🧑‍🎓 O‘quvchi:</label>
-        <select name="student" id="student" class="form-select">
-          <option value="">— O‘quvchini tanlang —</option>
-          {% for s in students %}
-            <option value="{{ s.id }}">{{ s.ism }} {{ s.familya }}</option>
-          {% endfor %}
-        </select>
-      </div>
+  const input = document.getElementById('student_search_input');
+  const idInput = document.getElementById('student_id_input');
+  const resultsDiv = document.getElementById('student_results');
+  let currentFocus = -1;
 
-      <div class="col-md-3 col-12 mb-3">
-        <label class="form-label">⚡ Ball:</label>
-        <input type="number" name="ball" id="ball" class="form-control" placeholder="Masalan: 5">
-      </div>
+  input.addEventListener('input', function () {
+    const val = this.value.toLowerCase().trim();
+    resultsDiv.innerHTML = '';
+    currentFocus = -1;
 
-      <div class="col-md-3 col-12 d-flex align-items-end">
-        <button type="submit" class="btn-save">💾 Saqlash</button>
-      </div>
+    if (!val) {
+      resultsDiv.style.display = 'none';
+      idInput.value = '';
+      return;
+    }
 
-    </div>
+    const filtered = students.filter(s => s.name.toLowerCase().includes(val));
 
-    <!-- REYTING BUTTON -->
-    <div class="text-end">
-      <a href="{% url 'chaqmoq:reyting' %}" class="btn-outline">
-        📊 Reytingni ko‘rish
-      </a>
-    </div>
+    if (filtered.length > 0) {
+      filtered.slice(0, 10).forEach((s, index) => {
+        const div = document.createElement('div');
+        div.className = 'autocomplete-item';
+        div.innerHTML = `<strong>${s.name.substr(0, val.length)}</strong>${s.name.substr(val.length)}`;
+        div.addEventListener('click', () => selectStudent(s));
+        resultsDiv.appendChild(div);
+      });
+      resultsDiv.style.display = 'block';
+    } else {
+      resultsDiv.style.display = 'none';
+    }
+  });
 
-  </form>
+  function selectStudent(s) {
+    input.value = s.name;
+    idInput.value = s.id;
+    resultsDiv.style.display = 'none';
+    input.blur();
+  }
 
-</div>
+  input.addEventListener('keydown', function (e) {
+    const items = resultsDiv.getElementsByClassName('autocomplete-item');
+    if (e.keyCode === 40) { // Down
+      currentFocus++;
+      addActive(items);
+    } else if (e.keyCode === 38) { // Up
+      currentFocus--;
+      addActive(items);
+    } else if (e.keyCode === 13) { // Enter
+      if (currentFocus > -1) {
+        e.preventDefault();
+        if (items[currentFocus]) items[currentFocus].click();
+      } else if (items.length > 0) {
+        // If no focus but items exist, select first one on enter
+        e.preventDefault();
+        items[0].click();
+      }
+    }
+  });
 
+  function addActive(items) {
+    if (!items) return false;
+    removeActive(items);
+    if (currentFocus >= items.length) currentFocus = 0;
+    if (currentFocus < 0) currentFocus = (items.length - 1);
+    items[currentFocus].classList.add('active');
+    items[currentFocus].scrollIntoView({ block: 'nearest' });
+  }
+
+  function removeActive(items) {
+    for (let i = 0; i < items.length; i++) {
+      items[i].classList.remove('active');
+    }
+  }
+
+  document.addEventListener('click', function (e) {
+    if (e.target !== input) {
+      resultsDiv.style.display = 'none';
+    }
+  });
+
+  // Handle initial state if needed
+  input.addEventListener('focus', function () {
+    if (this.value.trim().length > 0) {
+      this.dispatchEvent(new Event('input'));
+    }
+  });
+  }) ();
+</script>
 {% endblock %}

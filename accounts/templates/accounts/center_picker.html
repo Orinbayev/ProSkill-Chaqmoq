@@ -1,0 +1,1204 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+
+{% block title %}Markaz Tanlash{% endblock %}
+
+{% block content %}
+<style>
+  :root {
+    --primary-color: #3b82f6;
+    --secondary-color: #1e293b;
+    --accent-color: #f59e0b;
+    --success-color: #10b981;
+    --danger-color: #ef4444;
+    --bg-dark: #0f172a;
+    --card-bg: #1e293b;
+    --text-muted: #94a3b8;
+  }
+
+  body {
+    background-color: #020617;
+    font-family: 'Inter', sans-serif;
+    color: #fff;
+    min-height: 100vh;
+  }
+
+  /* --- HEADER --- */
+  .premium-toolbar {
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 0;
+    background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* --- BUTTONS --- */
+  .btn-premium {
+    background: var(--premium-gradient);
+    color: #fff;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .btn-premium:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(245, 158, 11, 0.5);
+    filter: brightness(1.1);
+  }
+
+  .btn-premium:active {
+    transform: translateY(1px);
+  }
+
+  .btn-select {
+    background: var(--primary-gradient);
+    color: #fff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+  }
+
+  .btn-select:hover {
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+    filter: brightness(1.1);
+  }
+
+  .btn-selected {
+    background: var(--emerald-gradient);
+    color: white !important;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+  }
+
+  .btn-selected:hover {
+    background: var(--danger-color);
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+  }
+
+  .btn-icon {
+    width: 42px;
+    height: 42px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
+  }
+
+  .btn-icon:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  }
+
+  .btn-icon.text-danger:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--danger-color);
+    border-color: rgba(239, 68, 68, 0.3);
+  }
+
+  .btn-global {
+    background: rgba(14, 165, 233, 0.1);
+    color: #7dd3fc;
+    border: 1px solid rgba(14, 165, 233, 0.2);
+    padding: 10px 20px;
+    border-radius: 14px;
+    font-weight: 700;
+    transition: all 0.3s;
+  }
+
+  .btn-global:hover {
+    background: rgba(14, 165, 233, 0.2);
+    box-shadow: 0 0 20px rgba(14, 165, 233, 0.2);
+    transform: translateY(-2px);
+  }
+
+  /* --- SEARCH & FILTER --- */
+  .search-container {
+    position: relative;
+    flex-grow: 1;
+    max-width: 400px;
+  }
+
+  .search-input {
+    width: 100%;
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    padding: 0.6rem 1rem 0.6rem 2.5rem;
+    border-radius: 10px;
+    transition: 0.2s;
+  }
+
+  .search-input:focus {
+    background: rgba(30, 41, 59, 0.9);
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+  }
+
+  .form-control-dark {
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border-radius: 10px;
+    padding: 0.6rem 1rem;
+  }
+
+  .form-control-dark:focus {
+    background: rgba(30, 41, 59, 0.9);
+    border-color: var(--primary-color);
+    outline: none;
+    color: #fff;
+  }
+
+  /* --- CARDS --- */
+  .center-card {
+    background: rgba(30, 41, 59, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 1.5rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .center-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    opacity: 0;
+    transition: 0.3s;
+  }
+
+  .center-card:hover {
+    transform: translateY(-5px);
+    background: rgba(30, 41, 59, 0.6);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+
+  .center-card:hover::before {
+    opacity: 1;
+  }
+
+  .card-active {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15), 0 10px 30px rgba(0, 0, 0, 0.3);
+    background: rgba(30, 41, 59, 0.7);
+  }
+
+  .status-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-block;
+  }
+
+  .badge-active {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+  }
+
+  .badge-blocked {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger-color);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+  }
+
+  .center-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 0.5rem;
+  }
+
+  .center-meta {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .info-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1rem 0;
+  }
+
+  .pill {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .card-actions {
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  /* --- MODAL --- */
+  .cm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 9000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .cm-modal {
+    width: 95%;
+    max-width: 950px;
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    height: 700px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cm-body {
+    display: flex;
+    flex-grow: 1;
+    overflow: hidden;
+  }
+
+  .section-title {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--accent-color);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(245, 158, 11, 0.1);
+  }
+
+  .info-box {
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  .total-calculation {
+    background: rgba(250, 204, 21, 0.05);
+    border: 1px solid rgba(250, 204, 21, 0.1);
+    border-radius: 14px;
+  }
+
+  .text-amber {
+    color: #fbbf24;
+    font-weight: 800;
+  }
+
+  .cm-sidebar {
+    width: 240px;
+    background: #0a0f1e;
+    padding: 1.5rem 0;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 1rem 1.5rem;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-weight: 700;
+    transition: all 0.3s;
+    border-left: 4px solid transparent;
+  }
+
+  .nav-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+  }
+
+  .nav-btn.active {
+    background: rgba(30, 41, 59, 0.5);
+    color: var(--primary-color);
+    border-left-color: var(--primary-color);
+  }
+
+  .cm-content {
+    flex-grow: 1;
+    padding: 2.5rem;
+    overflow-y: auto;
+    background: #0f172a;
+  }
+
+  /* Toggle Switch */
+  .toggle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    border: 1px solid transparent;
+  }
+
+  .toggle-row.checked {
+    border-color: rgba(16, 185, 129, 0.3);
+    background: rgba(16, 185, 129, 0.05);
+  }
+
+  .form-switch .form-check-input {
+    width: 2.5em;
+    height: 1.25em;
+    cursor: pointer;
+  }
+
+  /* Fade Animation */
+  .tab-pane {
+    display: none;
+    opacity: 0;
+    animation: fadeIn 0.3s forwards;
+  }
+
+  .tab-pane.active {
+    display: block;
+  }
+
+  @keyframes fadeIn {
+    to {
+      opacity: 1;
+    }
+  }
+
+  .del-modal {
+    max-width: 400px;
+    text-align: center;
+  }
+
+  /* --- CHAQMOQ ICON --- */
+  .chaqmoq-wrapper {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .chaqmoq-bolt {
+    font-size: 2.2rem;
+    color: #fbbf24;
+    filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.8));
+    z-index: 10;
+    animation: bolt-glow 2s infinite ease-in-out;
+  }
+
+  .chaqmoq-ring {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border: 1.5px solid rgba(251, 191, 36, 0.5);
+    border-radius: 50%;
+    transform: rotateX(65deg) rotateY(10deg);
+    animation: ring-spin 5s linear infinite;
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.2);
+  }
+
+  .sparkle-dot {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: #fff;
+    border-radius: 50%;
+    filter: blur(1px);
+    opacity: 0;
+    z-index: 5;
+  }
+
+  .sd-1 {
+    top: 10%;
+    left: 20%;
+    animation: particle-float 3s infinite 0.2s;
+  }
+
+  .sd-2 {
+    top: 70%;
+    left: 10%;
+    animation: particle-float 4s infinite 0.5s;
+  }
+
+  .sd-3 {
+    top: 30%;
+    right: 15%;
+    animation: particle-float 3.5s infinite 1s;
+  }
+
+  .sd-4 {
+    bottom: 15%;
+    right: 25%;
+    animation: particle-float 4.5s infinite 1.5s;
+  }
+
+  @keyframes bolt-glow {
+
+    0%,
+    100% {
+      filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.7));
+      transform: scale(1);
+    }
+
+    50% {
+      filter: drop-shadow(0 0 20px rgba(251, 191, 36, 1));
+      transform: scale(1.05);
+    }
+  }
+
+  @keyframes ring-spin {
+    from {
+      transform: rotateX(65deg) rotateY(10deg) rotateZ(0deg);
+    }
+
+    to {
+      transform: rotateX(65deg) rotateY(10deg) rotateZ(360deg);
+    }
+  }
+
+  @keyframes particle-float {
+    0% {
+      transform: translate(0, 0) scale(0);
+      opacity: 0;
+    }
+
+    50% {
+      transform: translate(5px, -10px) scale(1.2);
+      opacity: 0.8;
+    }
+
+    100% {
+      transform: translate(10px, -20px) scale(0);
+      opacity: 0;
+    }
+  }
+</style>
+
+<div class="container py-4">
+
+  <!-- Header -->
+  <div class="premium-toolbar">
+    <div class="d-flex align-items-center">
+      <!-- Ultimate Lightning Icon -->
+      <div class="chaqmoq-wrapper me-2">
+        <i class="bi bi-lightning-charge-fill chaqmoq-bolt"></i>
+        <div class="chaqmoq-ring"></div>
+        <div class="sparkle-dot sd-1"></div>
+        <div class="sparkle-dot sd-2"></div>
+        <div class="sparkle-dot sd-3"></div>
+        <div class="sparkle-dot sd-4"></div>
+      </div>
+      <div>
+        <h1 class="page-title mb-0">Mening Markazlarim</h1>
+        <div class="text-muted small mt-1">Super Admin Boshqaruv Paneli</div>
+      </div>
+    </div>
+    <div class="d-flex gap-3">
+      <form method="POST" action="{% url 'accounts:center_switch' %}" style="margin:0;">
+        {% csrf_token %}
+        <input type="hidden" name="center_id" value="NONE">
+        <button type="submit" class="btn-global d-flex align-items-center gap-2"
+          title="Markaz tanlamaslik (Global Dashboardga qaytish)">
+          <i class="bi bi-globe"></i> Global Boshqaruv
+        </button>
+      </form>
+
+      <!-- ADD BUTTON -->
+      <button onclick="openCreateModal()" class="btn-premium">
+        <i class="bi bi-plus-lg"></i> Markaz Qo‘shish
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter & Controls -->
+  <div class="d-flex flex-wrap gap-3 mb-4 align-items-center">
+    <form class="flex-grow-1 d-flex gap-3" method="get">
+      <div class="search-container">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" name="q" value="{{ request.GET.q }}" class="search-input"
+          placeholder="Qidirish... (nom, manzil)">
+      </div>
+
+      <select name="status" class="form-control-dark" style="width: 180px;" onchange="this.form.submit()">
+        <option value="">Holat: Barchasi</option>
+        {% for s_code, s_label in statuses %}
+        <option value="{{ s_code }}" {% if selected_status == s_code %}selected{% endif %}>{{ s_label }}</option>
+        {% endfor %}
+      </select>
+    </form>
+
+    <div class="text-muted small">Jami: {{ centers.count }} ta markaz</div>
+  </div>
+
+  <!-- Center List Grid -->
+  <div class="row g-4">
+    {% for c in centers %}
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="center-card {% if active_center_id == c.id %}card-active{% endif %}">
+
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <h5 class="center-title">{{ c.name }}</h5>
+            <!-- Status Badge -->
+            {% if c.status == 'ACTIVE' %}
+            <span class="status-badge badge-active"><i class="bi bi-check-circle-fill me-1"></i> ACTIVE</span>
+            {% else %}
+            <span class="status-badge badge-blocked"><i class="bi bi-slash-circle me-1"></i> {{ c.status }}</span>
+            {% endif %}
+          </div>
+          {% if active_center_id == c.id %}
+          <i class="bi bi-star-fill text-warning fs-5"></i>
+          {% endif %}
+        </div>
+
+        <div class="center-meta"><i class="bi bi-geo-alt"></i> {{ c.address|default:"Manzil kiritilmagan" }}</div>
+        <div class="center-meta"><i class="bi bi-telephone"></i> {{ c.phone|default:"-" }}</div>
+
+        <div class="info-pills">
+          <div class="pill"><i class="bi bi-bookmark-star"></i> {{ c.plan }}</div>
+          <div class="pill"><i class="bi bi-people"></i> {{ c.user_set.count }} ta</div> <!-- user count simple -->
+          <div class="pill"><i class="bi bi-credit-card"></i> {{ c.monthly_price|intcomma }} so‘m</div>
+          <div class="pill"><i class="bi bi-calendar-event"></i> Sana: {{ c.payment_day }}</div>
+        </div>
+
+        {% if c.trial_ends %}
+        <div class="mb-3 p-2 rounded border border-warning text-warning small bg-opacity-10 bg-warning text-center">
+          <i class="bi bi-hourglass-split"></i> Sinov davri: <b>{{ c.trial_ends|date:"d-M, Y" }}</b> gacha
+        </div>
+        {% endif %}
+
+        <div class="card-actions">
+          <!-- Switch Button -->
+          <form method="post" action="{% url 'accounts:center_switch' %}" class="flex-grow-1 me-2">
+            {% csrf_token %}
+            <input type="hidden" name="center_id" value="{{ c.id }}">
+            <input type="hidden" name="next" value="/">
+
+            {% if active_center_id == c.id %}
+            <!-- ✅ UNSELECT OPTION: Toggle to None -->
+            <button type="submit" class="w-100 h-100 btn-selected"
+              onclick="this.form.center_id.value='NONE'; return confirm('Chiqishni tasdiqlaysizmi?')"
+              title="Bekor qilish">
+              <i class="bi bi-check2-circle"></i> Tanlangan (Chiqish)
+            </button>
+            {% else %}
+            <button type="submit" class="w-100 h-100 btn-select">
+              Tanlash
+            </button>
+            {% endif %}
+          </form>
+
+          <button class="btn-icon" onclick="openEditModal('{{ c.id }}')" title="Tahrirlash">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn-icon text-danger" data-center-id="{{ c.id }}" data-center-name="{{ c.name }}"
+            onclick="handleDeleteClick(this)" title="O‘chirish">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="col-12 py-5 text-center">
+      <div class="text-muted mb-3" style="font-size: 3rem;"><i class="bi bi-inbox"></i></div>
+      <h5 class="text-muted">Afsuski, hech qanday markaz topilmadi.</h5>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+<!-- ================= MODAL: CREATE / EDIT ================= -->
+<div id="centerModal" class="cm-overlay">
+  <div class="cm-modal">
+    <div class="d-flex justify-content-between align-items-center p-4 border-bottom border-secondary">
+      <h5 class="text-white m-0" id="modalTitle">Markaz Ma'lumotlari</h5>
+      <button type="button" class="btn-close btn-close-white" onclick="closeModal('centerModal')"></button>
+    </div>
+
+    <div class="cm-body">
+      <!-- Sidebar -->
+      <div class="cm-sidebar">
+        <div class="px-4 mb-4 text-white fw-bold h5">Settings</div>
+        <button class="nav-btn active" onclick="switchTab('tab-main')"><i class="bi bi-grid"></i> Asosiy &
+          Direktor</button>
+        <button class="nav-btn" onclick="switchTab('tab-plan')"><i class="bi bi-sliders"></i> Tarif & Reja</button>
+        <button class="nav-btn" onclick="switchTab('tab-modules')"><i class="bi bi-plug"></i> Modullar</button>
+      </div>
+
+      <!-- Content -->
+      <div class="cm-content d-flex flex-column">
+        <form id="centerForm" class="flex-grow-1">
+          <input type="hidden" name="id" id="center_id">
+
+          <!-- TAB 1: Main & Director -->
+          <div id="tab-main" class="tab-pane active">
+            <div class="section-title"><i class="bi bi-building me-2"></i> Markaz Ma'lumotlari</div>
+            <div class="row g-3 mb-5">
+              <div class="col-md-12">
+                <label class="form-label">Markaz Nomi *</label>
+                <input type="text" name="name" id="inp_name" class="form-control-dark" required
+                  placeholder="Masalan: Chaqmoq Academy">
+              </div>
+              <div class="col-12">
+                <label class="form-label">Address</label>
+                <input type="text" name="address" id="inp_address" class="form-control-dark"
+                  placeholder="Gurlan tumani, Mustaqillik ko'chasi 5-uy">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Telefon</label>
+                <input type="text" name="phone" id="inp_phone" class="form-control-dark" placeholder="+998993845854">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Status</label>
+                <select name="status" id="inp_status" class="form-control-dark">
+                  <option value="ACTIVE">ACTIVE - Faol</option>
+                  <option value="BLOCKED">BLOCKED - Bloklangan</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="section-title"><i class="bi bi-person-badge me-2"></i> Direktor Ma'lumotlari</div>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Ismi</label>
+                <input type="text" name="director_ism" id="inp_dir_ism" class="form-control-dark" placeholder="Aziz">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Familiyasi</label>
+                <input type="text" name="director_familya" id="inp_dir_fam" class="form-control-dark"
+                  placeholder="Rahimov">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Passport ID</label>
+                <input type="text" name="director_passport" id="inp_dir_passport" class="form-control-dark"
+                  placeholder="AB1234567">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">JSHSHIR (PINFL)</label>
+                <input type="text" name="director_jshr" id="inp_dir_jshr" class="form-control-dark" maxlength="14"
+                  placeholder="32101901230011">
+              </div>
+              <div class="col-12">
+                <label class="form-label">Email (Login) <span class="text-muted small">(Tizimga kirish
+                    uchun)</span></label>
+                <input type="email" name="director_email" id="inp_dir_email" class="form-control-dark"
+                  placeholder="director@example.com">
+              </div>
+              <div class="col-12">
+                <label class="form-label">Parolni O'zgartirish <span class="text-muted small">(Bo'sh qolsa
+                    o'zgarmaydi)</span></label>
+                <input type="text" name="director_password" id="inp_dir_pass" class="form-control-dark"
+                  placeholder="Yangi parol">
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 2: Plan -->
+          <div id="tab-plan" class="tab-pane">
+            <div class="section-title"><i class="bi bi-sliders me-2"></i> Tarif & Reja Konfiguratsiyasi</div>
+            <div class="row g-3">
+              <div class="col-md-8">
+                <label class="form-label">Tarif Rejasi</label>
+                <select name="plan" id="inp_plan" class="form-control-dark" onchange="autoUpdatePrice()">
+                  <!-- JS orqali doldiriladi -->
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Muddat (Oy)</label>
+                <select id="inp_duration" class="form-control-dark" onchange="autoUpdatePrice(); calcExpiryDate();">
+                  <option value="1">1 Oy</option>
+                  <option value="3">3 Oy</option>
+                  <option value="6">6 Oy</option>
+                  <option value="9">9 Oy</option>
+                  <option value="12">12 Oy (1 Yil)</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Oylik To'lov (so'm)</label>
+                <input type="number" name="monthly_price" id="inp_monthly_price" class="form-control-dark" value="0">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">O'chish Sanasi (Muddat tugashi)</label>
+                <input type="date" name="expires_at" id="inp_expires_at" class="form-control-dark">
+              </div>
+            </div>
+            <div class="mt-5 p-4 total-calculation">
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="text-white opacity-75 fw-bold">JAMI TO'LOV:</span>
+                <h2 class="mb-0 text-amber" id="total_price_display">0 UZS</h2>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 3: Modules -->
+          <div id="tab-modules" class="tab-pane">
+            <div class="section-title"><i class="bi bi-plug me-2"></i> Modullar Boshqaruvi</div>
+            <div class="p-3 mb-4 info-box">
+              <i class="bi bi-cpu-fill me-2"></i> Direktor panelida ko'rinadigan bo'limlarni shu yerda boshqaring.
+            </div>
+            <div class="d-flex flex-column gap-3">
+              <!-- Finance -->
+              <div class="toggle-row" id="row_finance">
+                <label class="form-check-label d-flex align-items-center gap-3" for="chk_finance">
+                  <div class="icon-wrap bg-success bg-opacity-10 p-2 rounded-3">
+                    <i class="bi bi-cash-stack text-success fs-4"></i>
+                  </div>
+                  <div>
+                    <div class="fw-bold text-white">Moliya & Buxgalteriya</div>
+                    <div class="small text-muted">Kassa, harajatlar va moliyaviy hisobotlar</div>
+                  </div>
+                </label>
+                <div class="form-check form-switch m-0">
+                  <input class="form-check-input" type="checkbox" id="chk_finance"
+                    onchange="toggleRow(this, 'row_finance')">
+                </div>
+              </div>
+
+              <!-- Leads -->
+              <div class="toggle-row" id="row_leads">
+                <label class="form-check-label d-flex align-items-center gap-3" for="chk_leads">
+                  <div class="icon-wrap bg-warning bg-opacity-10 p-2 rounded-3">
+                    <i class="bi bi-funnel text-warning fs-4"></i>
+                  </div>
+                  <div>
+                    <div class="fw-bold text-white">Leadlar (CRM)</div>
+                    <div class="small text-muted">Arizalar va potentsial o'quvchilar</div>
+                  </div>
+                </label>
+                <div class="form-check form-switch m-0">
+                  <input class="form-check-input" type="checkbox" id="chk_leads"
+                    onchange="toggleRow(this, 'row_leads')">
+                </div>
+              </div>
+
+              <!-- Teacher KPI -->
+              <div class="toggle-row" id="row_kpi">
+                <label class="form-check-label d-flex align-items-center gap-3" for="chk_kpi">
+                  <div class="icon-wrap bg-info bg-opacity-10 p-2 rounded-3">
+                    <i class="bi bi-speedometer2 text-info fs-4"></i>
+                  </div>
+                  <div>
+                    <div class="fw-bold text-white">Teacher KPI</div>
+                    <div class="small text-muted">O'qituvchilar reytingi va samaradorligi</div>
+                  </div>
+                </label>
+                <div class="form-check form-switch m-0">
+                  <input class="form-check-input" type="checkbox" id="chk_kpi" onchange="toggleRow(this, 'row_kpi')">
+                </div>
+              </div>
+
+              <!-- Store -->
+              <div class="toggle-row" id="row_store">
+                <label class="form-check-label d-flex align-items-center gap-3" for="chk_store">
+                  <div class="icon-wrap bg-indigo bg-opacity-10 p-2 rounded-3">
+                    <i class="bi bi-shop text-indigo fs-4"></i>
+                  </div>
+                  <div>
+                    <div class="fw-bold text-white">Market (Store)</div>
+                    <div class="small text-muted">O'quvchilar uchun ichki do'kon tizimi</div>
+                  </div>
+                </label>
+                <div class="form-check form-switch m-0">
+                  <input class="form-check-input" type="checkbox" id="chk_store"
+                    onchange="toggleRow(this, 'row_store')">
+                </div>
+              </div>
+
+              <!-- Tasks/LMS -->
+              <div class="toggle-row" id="row_tasks">
+                <label class="form-check-label d-flex align-items-center gap-3" for="chk_tasks">
+                  <div class="icon-wrap bg-danger bg-opacity-10 p-2 rounded-3">
+                    <i class="bi bi-journal-check text-danger fs-4"></i>
+                  </div>
+                  <div>
+                    <div class="fw-bold text-white">Vazifalar (LMS)</div>
+                    <div class="small text-muted">O'quvchilar uchun topshiriqlar va nazorat</div>
+                  </div>
+                </label>
+                <div class="form-check form-switch m-0">
+                  <input class="form-check-input" type="checkbox" id="chk_tasks"
+                    onchange="toggleRow(this, 'row_tasks')">
+                </div>
+              </div>
+
+              <!-- SMS -->
+              <div class="toggle-row" id="row_sms">
+                <label class="form-check-label d-flex align-items-center gap-3" for="chk_sms">
+                  <div class="icon-wrap bg-primary bg-opacity-10 p-2 rounded-3">
+                    <i class="bi bi-chat-dots text-primary fs-4"></i>
+                  </div>
+                  <div>
+                    <div class="fw-bold text-white">SMS Xabarnomalar</div>
+                    <div class="small text-muted">Avtomatik va qo'lda SMS yuborish</div>
+                  </div>
+                </label>
+                <div class="form-check form-switch m-0">
+                  <input class="form-check-input" type="checkbox" id="chk_sms" onchange="toggleRow(this, 'row_sms')">
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </form>
+
+        <div class="mt-4 pt-3 border-top border-secondary d-flex justify-content-end gap-2 px-3 pb-3">
+          <button type="button" class="btn btn-outline-light" onclick="closeModal('centerModal')">Bekor qilish</button>
+          <button type="button" class="btn btn-primary px-4" onclick="submitCenter()">Saqlash</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div id="deleteModal" class="cm-overlay">
+  <div class="cm-modal del-modal p-4">
+    <div class="mb-3 text-danger display-1"><i class="bi bi-exclamation-circle"></i></div>
+    <h4 class="text-white mb-3">Markazni O‘chirish</h4>
+    <p class="text-muted mb-4">
+      Siz <b id="delName" class="text-white"></b> ni o'chirmoqchisiz.
+      Bu amalni ortga qaytarib bo'lmaydi. Barcha o'quvchilar va guruhlar o'chirilishi mumkin.
+    </p>
+    <div class="d-flex justify-content-center gap-3">
+      <button class="btn btn-secondary px-4" onclick="closeModal('deleteModal')">Yo'q</button>
+      <button class="btn btn-danger px-4" onclick="confirmDelete()">Ha, O'chirish</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  // Initialize plans from Django context if available
+  let availablePlans = [
+    {% for code, label in plans %}
+  {
+    code: "{{ code }}",
+      title: "{{ label }}",
+        monthly_price: {% if code == 'FREE' %} 0{% elif code == 'STANDARD' %} 300000{% elif code == 'PREMIUM' %} 500000{% elif code == 'PRO' %} 1000000{% else %} 0{% endif %}
+  } {% if not forloop.last %}, {% endif %}
+  {% endfor %}
+  ];
+
+  // Tab Switcher
+  function switchTab(tabId) {
+    document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+    const targetTab = document.getElementById(tabId);
+    if (targetTab) targetTab.classList.add('active');
+
+    // Update buttons
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.classList.remove('active');
+      if (btn.getAttribute('onclick').includes(tabId)) {
+        btn.classList.add('active');
+      }
+    });
+  }
+
+  function toggleRow(chk, rowId) {
+    const row = document.getElementById(rowId);
+    if (chk.checked) row.classList.add('checked');
+    else row.classList.remove('checked');
+  }
+
+  // Modals
+  function openCreateModal() {
+    document.getElementById('centerForm').reset();
+    document.getElementById('center_id').value = '';
+    document.getElementById('modalTitle').innerText = "Yangi Markaz Qo'shish";
+
+    // Ensure plans are populated even for new creation
+    // We can use the list from the last edit or fetch it
+    if (availablePlans.length === 0) {
+      // Fetch any one center just to get plans (or we could have a dedicated API)
+      // For now, let's assume we fetch it on first open
+      const firstCenterId = document.querySelector('.btn-icon')?.getAttribute('onclick')?.match(/'(\d+)'/)?.[1];
+      if (firstCenterId) {
+        fetch(`/hisob/api/centers/${firstCenterId}/`)
+          .then(res => res.json())
+          .then(data => {
+            availablePlans = data.available_plans;
+            populatePlanSelect();
+          });
+      }
+    } else {
+      populatePlanSelect();
+    }
+
+    document.getElementById('centerModal').style.display = 'flex';
+    switchTab('tab-main');
+  }
+
+  function populatePlanSelect(selectedCode) {
+    const planSel = document.getElementById('inp_plan');
+    if (!planSel) return;
+    planSel.innerHTML = '';
+    availablePlans.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.code;
+      opt.text = p.title;
+      if (p.code === selectedCode) opt.selected = true;
+      planSel.appendChild(opt);
+    });
+  }
+
+  function openEditModal(id) {
+    fetch(`/hisob/api/centers/${id}/`)
+      .then(res => res.json())
+      .then(data => {
+        availablePlans = data.available_plans;
+        populatePlanSelect(data.plan_code);
+
+        document.getElementById('center_id').value = data.id;
+        document.getElementById('inp_name').value = data.name;
+        document.getElementById('inp_address').value = data.address;
+        document.getElementById('inp_phone').value = data.phone;
+        document.getElementById('inp_status').value = data.status;
+        document.getElementById('inp_monthly_price').value = data.monthly_price;
+        document.getElementById('inp_expires_at').value = data.expires_at || "";
+
+        // Director
+        if (data.director) {
+          document.getElementById('inp_dir_ism').value = data.director.ism || "";
+          document.getElementById('inp_dir_fam').value = data.director.familya || "";
+          document.getElementById('inp_dir_email').value = data.director.email || "";
+          document.getElementById('inp_dir_passport').value = data.director.passport || "";
+          document.getElementById('inp_dir_jshr').value = data.director.jshr || "";
+          document.getElementById('inp_dir_pass').value = ""; // Clear password field
+        }
+
+        // Modules
+        const f = data.features || {};
+        document.getElementById('chk_finance').checked = f.finance === true;
+        toggleRow(document.getElementById('chk_finance'), 'row_finance');
+
+        document.getElementById('chk_leads').checked = f.leads === true;
+        toggleRow(document.getElementById('chk_leads'), 'row_leads');
+
+        document.getElementById('chk_kpi').checked = f.kpi === true;
+        toggleRow(document.getElementById('chk_kpi'), 'row_kpi');
+
+        document.getElementById('chk_store').checked = f.store === true;
+        toggleRow(document.getElementById('chk_store'), 'row_store');
+
+        document.getElementById('chk_tasks').checked = f.tasks === true;
+        toggleRow(document.getElementById('chk_tasks'), 'row_tasks');
+
+        document.getElementById('chk_sms').checked = f.sms === true;
+        toggleRow(document.getElementById('chk_sms'), 'row_sms');
+
+        document.getElementById('modalTitle').innerText = "Markazni Tahrirlash";
+        document.getElementById('centerModal').style.display = 'flex';
+        switchTab('tab-main');
+
+        // Don't call autoUpdatePrice here to avoid overwriting custom features
+        // But we need to update the TOTAL display
+        const duration = parseInt(document.getElementById('inp_duration').value) || 1;
+        const total = (data.monthly_price || 0) * duration;
+        document.getElementById('total_price_display').innerText = total.toLocaleString() + " UZS";
+      });
+  }
+
+  const PLAN_DEFAULT_FEATURES = {
+    "FREE": [],
+    "STANDARD": ["finance", "tasks"],
+    "PREMIUM": ["finance", "tasks", "leads"],
+    "PRO": ["finance", "tasks", "leads", "kpi", "store", "sms"]
+  };
+
+  function autoUpdatePrice() {
+    const planCode = document.getElementById('inp_plan').value;
+    const duration = parseInt(document.getElementById('inp_duration').value) || 1;
+    const plan = availablePlans.find(p => p.code === planCode);
+
+    if (plan) {
+      document.getElementById('inp_monthly_price').value = plan.monthly_price;
+      const total = plan.monthly_price * duration;
+      document.getElementById('total_price_display').innerText = total.toLocaleString() + " UZS";
+
+      // Auto-toggle features for this plan
+      const defaultFeatures = PLAN_DEFAULT_FEATURES[planCode] || [];
+
+      ['finance', 'leads', 'kpi', 'store', 'tasks', 'sms'].forEach(f => {
+        const chk = document.getElementById('chk_' + f);
+        if (chk) {
+          chk.checked = defaultFeatures.includes(f);
+          toggleRow(chk, 'row_' + f);
+        }
+      });
+    }
+  }
+
+  function calcExpiryDate() {
+    const duration = parseInt(document.getElementById('inp_duration').value) || 0;
+    if (duration > 0) {
+      const d = new Date();
+      d.setMonth(d.getMonth() + duration);
+      const iso = d.toISOString().split('T')[0];
+      document.getElementById('inp_expires_at').value = iso;
+    }
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).style.display = 'none';
+  }
+
+  function submitCenter() {
+    const form = document.getElementById('centerForm');
+    const formData = new FormData(form);
+    const id = formData.get('id');
+
+    // Collect features manually to JSON
+    const features = {
+      finance: document.getElementById('chk_finance').checked,
+      leads: document.getElementById('chk_leads').checked,
+      kpi: document.getElementById('chk_kpi').checked,
+      store: document.getElementById('chk_store').checked,
+      tasks: document.getElementById('chk_tasks').checked,
+      sms: document.getElementById('chk_sms').checked
+    };
+    formData.append('features', JSON.stringify(features));
+
+    const url = id ? `/hisob/api/centers/${id}/update/` : `/hisob/api/centers/create/`;
+
+    fetch(url, {
+      method: "POST",
+      body: formData,
+      headers: { "X-CSRFToken": "{{ csrf_token }}" }
+    })
+      .then(res => res.json())
+      .then(res => {
+        if (res.success) {
+          location.reload();
+        } else {
+          alert("Xatolik: " + (res.error || res.message));
+        }
+      });
+  }
+
+  // Delete
+  let deleteId = null;
+  function handleDeleteClick(btn) {
+    const id = btn.getAttribute('data-center-id');
+    const name = btn.getAttribute('data-center-name');
+    openDeleteModal(id, name);
+  }
+
+  function openDeleteModal(id, name) {
+    deleteId = id;
+    document.getElementById('delName').innerText = name;
+    document.getElementById('deleteModal').style.display = 'flex';
+  }
+
+  function confirmDelete() {
+    if (!deleteId) return;
+    fetch(`/hisob/api/centers/${deleteId}/delete/`, {
+      method: "POST",
+      headers: { "X-CSRFToken": "{{ csrf_token }}" }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("HTTP error " + res.status);
+        return res.json();
+      })
+      .then(res => {
+        if (res.success) {
+          location.reload();
+        } else {
+          alert("Xatolik: " + res.message);
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Xatolik yuz berdi. Markazni o'chirib bo'lmadi.");
+      });
+  }
+</script>
+{% endblock %}

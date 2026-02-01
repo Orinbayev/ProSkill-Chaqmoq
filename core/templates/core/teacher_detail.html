@@ -1,370 +1,350 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+👨‍🏫 {{ teacher.get_full_name }} — O‘qituvchi profili
+{% endblock %}
+
 {% block content %}
+<div class="container-fluid py-4 animate__animated animate__fadeIn">
 
-<style>
-  :root{
-    --bg0:#070A12;
-    --bg1:#0B1220;
-    --bg2:#0F1B33;
+  <!-- HERO SECTION -->
+  <div class="row g-4 mb-4">
+    <div class="col-12">
+      <div
+        class="profile-hero-card glass p-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-4">
+        <div class="d-flex align-items-center gap-4">
+          <div class="profile-avatar-wrapper position-relative">
+            {% if teacher.avatar %}
+            <img src="{{ teacher.avatar.url }}" alt="{{ teacher.get_full_name }}" class="profile-avatar-img">
+            {% else %}
+            <div class="avatar-placeholder-large shadow-lg">
+              {{ teacher.ism|first }}{{ teacher.familya|first }}
+            </div>
+            {% endif %}
+            <span class="status-indicator online"></span>
+          </div>
+          <div>
+            <h1 class="fs-2 fw-bold text-white mb-2">{{ teacher.get_full_name }}</h1>
+            <div class="d-flex flex-wrap gap-2 align-items-center text-white-50">
+              <span class="badge border border-light-subtle px-3 py-2 rounded-pill">O‘qituvchi</span>
+              {% if teacher.center %}
+              <span class="ms-2"><i class="fa-solid fa-building-columns me-1"></i> {{ teacher.center.name }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    --panel: rgba(255,255,255,.06);
-    --panel2: rgba(2,6,23,.55);
-    --line: rgba(255,255,255,.10);
-
-    --muted:#94a3b8;
-    --text:#e5e7eb;
-
-    --blue:#38bdf8;
-    --cyan:#06b6d4;
-    --green:#22c55e;
-    --yellow:#f59e0b;
-    --indigo:#4f46e5;
-
-    --shadow: 0 24px 80px rgba(0,0,0,.55);
-    --shadow2: 0 14px 32px rgba(0,0,0,.38);
-
-    --r14:14px;
-    --r18:18px;
-
-    --pad: 14px;
-
-    --ring-amber: 0 0 0 4px rgba(245,158,11,.22), 0 0 0 1px rgba(245,158,11,.35) inset;
-    --ring-blue:  0 0 0 4px rgba(56,189,248,.20),  0 0 0 1px rgba(56,189,248,.35) inset;
-  }
-
-  *{ box-sizing:border-box; }
-  html,body{ height:100%; }
-  body{
-    background:
-      radial-gradient(1200px 700px at 10% -10%, rgba(245,158,11,.18), transparent 55%),
-      radial-gradient(900px 600px at 90% 10%, rgba(34,197,94,.10), transparent 55%),
-      radial-gradient(1000px 700px at 60% 120%, rgba(59,130,246,.12), transparent 60%),
-      linear-gradient(180deg, var(--bg0), var(--bg1) 55%, #050712);
-    color: var(--text);
-    overflow-x:hidden;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-  }
-
-  .page-wrap{
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: calc(var(--pad) + env(safe-area-inset-top)) calc(var(--pad) + env(safe-area-inset-right)) 22px calc(var(--pad) + env(safe-area-inset-left));
-    color: var(--text);
-  }
-
-  .page-title{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    margin: 0 0 14px;
-    font-size: clamp(20px, 3.2vw, 32px);
-    font-weight: 950;
-    letter-spacing:.2px;
-    line-height: 1.15;
-  }
-  .page-title .emoji{
-    filter: drop-shadow(0 10px 18px rgba(0,0,0,.35));
-  }
-
-  .top-panel{
-    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
-    border: 1px solid var(--line);
-    border-radius: var(--r18);
-    padding: 14px;
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    overflow:hidden;
-  }
-
-  .info-grid{
-    display:grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-  }
-
-  .info-card{
-    background: rgba(255,255,255,.05);
-    border: 1px solid rgba(255,255,255,.10);
-    border-radius: var(--r14);
-    padding: 14px 14px;
-    display:flex;
-    gap: 12px;
-    align-items:flex-start;
-    min-width:0;
-    box-shadow: var(--shadow2);
-  }
-
-  .icn{
-    width: 40px;
-    height: 40px;
-    border-radius: 14px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    border: 1px solid rgba(255,255,255,.12);
-    flex: 0 0 auto;
-    font-size: 16px;
-    background: rgba(255,255,255,.04);
-    box-shadow: inset 0 0 18px rgba(0,0,0,.25);
-  }
-  .icn.blue { background: rgba(56,189,248,.14); color: var(--blue); border-color: rgba(56,189,248,.22); }
-  .icn.green{ background: rgba(34,197,94,.14);  color: var(--green); border-color: rgba(34,197,94,.22); }
-  .icn.purple{ background: rgba(99,102,241,.14); color: #a5b4fc; border-color: rgba(99,102,241,.22); }
-  .icn.orange{ background: rgba(245,158,11,.14); color: #fbbf24; border-color: rgba(245,158,11,.24); }
-
-  .meta{
-    display:flex;
-    flex-direction:column;
-    gap: 4px;
-    min-width: 0;
-  }
-  .meta .k{
-    font-size: 11px;
-    letter-spacing: .9px;
-    text-transform: uppercase;
-    color: rgba(148,163,184,.92);
-    font-weight: 900;
-  }
-  .meta .v{
-    font-size: 14px;
-    font-weight: 950;
-    color: rgba(226,232,240,.96);
-    line-height: 1.25;
-    word-break: break-word;
-  }
-
-  .section-title{
-    display:flex;
-    align-items:center;
-    gap: 10px;
-    margin: 16px 0 12px;
-    font-size: clamp(16px, 2.2vw, 22px);
-    font-weight: 950;
-    color: #fbbf24;
-    letter-spacing: .15px;
-  }
-
-  .table-card{
-    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
-    border: 1px solid var(--line);
-    border-radius: var(--r18);
-    overflow:hidden;
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-  }
-
-  .table-responsive{
-    width:100%;
-    overflow-x:auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .table-responsive::-webkit-scrollbar{ height: 10px; }
-  .table-responsive::-webkit-scrollbar-thumb{
-    background: rgba(255,255,255,.14);
-    border-radius: 999px;
-    border: 2px solid rgba(0,0,0,0);
-    background-clip: padding-box;
-  }
-
-  table.tbl{
-    width:100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    table-layout: auto;
-  }
-
-  .tbl thead th{
-    background: rgba(2,6,23,.55);
-    border-bottom: 1px solid var(--line);
-    color: rgba(56,189,248,.95);
-    font-size: 12px;
-    letter-spacing: .9px;
-    text-transform: uppercase;
-    padding: 14px 16px;
-    white-space: nowrap;
-  }
-
-  .tbl tbody td{
-    padding: 16px 16px;
-    border-bottom: 1px solid rgba(255,255,255,.06);
-    color: rgba(226,232,240,.95);
-    vertical-align: middle;
-  }
-
-  .tbl tbody tr{
-    transition: background .18s ease;
-  }
-  .tbl tbody tr:hover{
-    background: rgba(255,255,255,.05);
-  }
-
-  .num{
-    width: 60px;
-    font-weight: 950;
-  }
-
-  .group-name{
-    font-weight: 950;
-    color: rgba(226,232,240,.96);
-  }
-
-  .muted{
-    color: rgba(148,163,184,.95);
-    font-weight: 800;
-  }
-
-  .btn-view{
-    display:inline-flex;
-    align-items:center;
-    gap: 10px;
-    padding: 10px 14px;
-    border-radius: 14px;
-    border: 1px solid rgba(56,189,248,.35);
-    background: rgba(56,189,248,.14);
-    color: #7dd3fc;
-    font-weight: 950;
-    text-decoration:none;
-    transition: transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease;
-    white-space: nowrap;
-    min-height: 44px;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-  .btn-view:hover{
-    background: rgba(56,189,248,.24);
-    color: #fff;
-    transform: translateY(-1px);
-    border-color: rgba(56,189,248,.55);
-    box-shadow: 0 16px 36px rgba(0,0,0,.35);
-  }
-  .btn-view:active{ transform: translateY(0); }
-  .btn-view:focus-visible{
-    outline:none;
-    box-shadow: var(--ring-blue), 0 16px 36px rgba(0,0,0,.35);
-  }
-
-  .empty{
-    margin-top: 12px;
-    color: rgba(148,163,184,.95);
-    font-weight: 900;
-    padding: 10px 2px;
-  }
-
-  @media (max-width: 768px){
-    .info-grid{ grid-template-columns: 1fr; }
-    .tbl thead th{ padding: 12px 12px; font-size: 11px; }
-    .tbl tbody td{ padding: 12px 12px; font-size: 13px; }
-  }
-
-  @media (min-width: 900px){
-    .top-panel{ padding: 18px; }
-  }
-
-  @media (prefers-reduced-motion: reduce){
-    *{ transition: none !important; scroll-behavior: auto !important; }
-  }
-</style>
-
-<div class="page-wrap">
-
-  <h2 class="page-title">
-    <span class="emoji">🧑‍🏫</span>
-    <span>{{ teacher.full_name }} — O‘qituvchi profili</span>
-  </h2>
-
-  <div class="top-panel">
-    <div class="info-grid">
-
-      <div class="info-card">
-        <div class="icn blue">
+  <!-- STATS CARDS -->
+  <div class="row g-4 mb-4">
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card glass p-3 h-100 d-flex align-items-center gap-3">
+        <div class="ico-box bg-primary-subtle text-primary fs-3 rounded-4 p-3 anim-pulse">
           <i class="fa-solid fa-envelope"></i>
         </div>
-        <div class="meta">
-          <div class="k">EMAIL</div>
-          <div class="v">{{ teacher.email|default:"—" }}</div>
+        <div class="flex-grow-1">
+          <div class="text-white-50 small mb-1">EMAIL</div>
+          <div class="fw-bold text-white" style="word-break: break-all; font-size: 0.9rem;">{{ teacher.email|default:"—" }}</div>
         </div>
       </div>
+    </div>
 
-      <div class="info-card">
-        <div class="icn green">
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card glass p-3 h-100 d-flex align-items-center gap-3">
+        <div class="ico-box bg-success-subtle text-success fs-3 rounded-4 p-3">
           <i class="fa-solid fa-phone"></i>
         </div>
-        <div class="meta">
-          <div class="k">TELEFON</div>
-          <div class="v">{{ teacher.telefon1|default:"—" }}</div>
+        <div>
+          <div class="text-white-50 small mb-1">TELEFON</div>
+          <div class="fw-bold text-white">{{ teacher.telefon1|default:"—" }}</div>
         </div>
       </div>
+    </div>
 
-      <div class="info-card">
-        <div class="icn purple">
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card glass p-3 h-100 d-flex align-items-center gap-3">
+        <div class="ico-box bg-info-subtle text-info fs-3 rounded-4 p-3">
           <i class="fa-solid fa-building"></i>
         </div>
-        <div class="meta">
-          <div class="k">CENTER</div>
-          <div class="v">{{ teacher.center|default:"—" }}</div>
+        <div>
+          <div class="text-white-50 small mb-1">CENTER</div>
+          <div class="fw-bold text-white">{{ teacher.center|default:"—" }}</div>
         </div>
       </div>
+    </div>
 
-      <div class="info-card">
-        <div class="icn orange">
-          <i class="fa-solid fa-clock"></i>
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card glass p-3 h-100 d-flex align-items-center gap-3">
+        <div class="ico-box bg-warning-subtle text-warning fs-3 rounded-4 p-3">
+          <i class="fa-solid fa-percent"></i>
         </div>
-        <div class="meta">
-          <div class="k">OYLIK ULUSHI</div>
-          <div class="v">{{ teacher.oqituvchi_foizi|default:"0" }}%</div>
+        <div>
+          <div class="text-white-50 small mb-1">OYLIK ULUSHI</div>
+          <div class="fw-bold text-white">{{ teacher.oqituvchi_foizi|default:"0" }}%</div>
         </div>
       </div>
-
     </div>
   </div>
 
-  <div class="section-title">
-    <span>📚</span>
-    <span>O‘qituvchi guruhlari:</span>
-  </div>
+  <!-- GROUPS TABLE -->
+  <div class="row">
+    <div class="col-12">
+      <div class="glass p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h5 class="m-0 fw-bold text-white">
+            <i class="fa-solid fa-layer-group me-2 text-warning"></i> O‘qituvchi guruhlari
+          </h5>
+          <span class="badge bg-white-10 text-white-50 px-3 py-2 rounded-pill">{{ groups.count }} ta</span>
+        </div>
 
-  {% if groups %}
-    <div class="table-card">
-      <div class="table-responsive" style="overflow-x:auto;">
-        <table class="tbl">
-          <thead>
-            <tr>
-              <th class="num">#</th>
-              <th>Guruh nomi</th>
-              <th>Markaz</th>
-              <th>O‘quvchilar soni</th>
-              <th style="text-align:right;">Batafsil</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {% for g in groups %}
-            <tr>
-              <td class="num">{{ forloop.counter }}</td>
-              <td class="group-name">{{ g.nom }}</td>
-              <td class="muted">{{ g.center }}</td>
-              <td class="muted">{{ g.enrollments.count }}</td>
-              <td style="text-align:right;">
-                <a class="btn-view" href="{% url 'education:group_detail' g.id %}">
-                  <i class="fa-solid fa-eye"></i> Ko‘rish
-                </a>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-
-        </table>
+        {% if groups %}
+        <div class="table-responsive">
+          <table class="table table-dark-custom mb-0">
+            <thead>
+              <tr>
+                <th class="ps-4">#</th>
+                <th>Guruh Nomi</th>
+                <th>Markaz</th>
+                <th>O‘quvchilar soni</th>
+                <th class="text-end pe-4">Batafsil</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for g in groups %}
+              <tr class="align-middle">
+                <td class="ps-4 fw-bold text-white-50">{{ forloop.counter }}</td>
+                <td>
+                  <div class="fw-bold text-white">{{ g.nom }}</div>
+                </td>
+                <td>
+                  <span class="text-white-50">{{ g.center|default:"—" }}</span>
+                </td>
+                <td>
+                  <span class="badge bg-white-5 text-white-50 rounded-pill px-3">{{ g.enrollments.count }}</span>
+                </td>
+                <td class="text-end pe-4">
+                  <a href="{% url 'education:group_detail' g.id %}" class="btn btn-sm btn-glass rounded-pill px-3">
+                    <i class="fa-solid fa-eye me-1"></i> Ko‘rish
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 opacity-25">
+          <i class="fa-solid fa-inbox fs-1 mb-2"></i>
+          <p>Hozircha guruhlari yo‘q.</p>
+        </div>
+        {% endif %}
       </div>
     </div>
-  {% else %}
-    <div class="empty">Hozircha guruhlari yo‘q.</div>
-  {% endif %}
+  </div>
 
 </div>
+{% endblock %}
 
+{% block extra_css %}
+<style>
+  :root {
+    --text-warning: #facc15;
+    --white-5: rgba(255, 255, 255, 0.05);
+    --white-10: rgba(255, 255, 255, 0.1);
+    --white-3: rgba(255, 255, 255, 0.03);
+  }
+
+  .glass {
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  }
+
+  .profile-hero-card {
+    background: linear-gradient(-45deg, rgba(250, 204, 21, 0.15), rgba(15, 23, 42, 0.95), rgba(250, 204, 21, 0.08), rgba(15, 23, 42, 0.95));
+    background-size: 400% 400%;
+    animation: gradientBG 10s ease infinite;
+    border: 1px solid rgba(250, 204, 21, 0.2);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+  }
+
+  @keyframes gradientBG {
+    0% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
+    }
+
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  .profile-hero-card::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, rgba(250, 204, 21, 0.05) 0%, transparent 50%);
+    animation: rotateGlow 15s linear infinite;
+    pointer-events: none;
+  }
+
+  @keyframes rotateGlow {
+    from {
+      transform: rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .profile-avatar-img {
+    width: 100px;
+    height: 100px;
+    border-radius: 28px;
+    border: 4px solid var(--text-warning);
+    object-fit: cover;
+  }
+
+  .avatar-placeholder-large {
+    width: 100px;
+    height: 100px;
+    border-radius: 28px;
+    background: var(--text-warning);
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    font-weight: 900;
+  }
+
+  .status-indicator.online {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #22c55e;
+    border: 4px solid #1e293b;
+  }
+
+  .ico-box {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .bg-primary-subtle {
+    background: rgba(56, 189, 248, 0.1) !important;
+  }
+
+  .bg-success-subtle {
+    background: rgba(34, 197, 94, 0.1) !important;
+  }
+
+  .bg-info-subtle {
+    background: rgba(6, 182, 212, 0.1) !important;
+  }
+
+  .bg-warning-subtle {
+    background: rgba(245, 158, 11, 0.1) !important;
+  }
+
+  .text-primary {
+    color: #38bdf8 !important;
+  }
+
+  .text-success {
+    color: #22c55e !important;
+  }
+
+  .text-info {
+    color: #06b6d4 !important;
+  }
+
+  .text-warning {
+    color: #facc15 !important;
+  }
+
+  .btn-glass {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s;
+  }
+
+  .btn-glass:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-warning);
+    border-color: var(--text-warning);
+    transform: translateY(-2px);
+  }
+
+  .table-dark-custom {
+    --bs-table-bg: transparent;
+    --bs-table-color: rgba(255, 255, 255, 0.8);
+    --bs-table-border-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .table-dark-custom thead th {
+    background: rgba(0, 0, 0, 0.2);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #38bdf8;
+    padding: 16px 12px;
+    border: none;
+  }
+
+  .table-dark-custom tbody tr {
+    transition: background 0.3s;
+  }
+
+  .table-dark-custom tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .anim-pulse {
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+
+    50% {
+      transform: scale(1.05);
+    }
+
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  .bg-white-10 {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .bg-white-5 {
+    background: rgba(255, 255, 255, 0.05);
+  }
+</style>
 {% endblock %}

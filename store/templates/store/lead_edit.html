@@ -1,395 +1,329 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<main class="le-shell" aria-labelledby="le-title">
-  <div class="le-bg" aria-hidden="true"></div>
+<main class="lead-shell" aria-labelledby="page-title">
+  <div class="lead-bg" aria-hidden="true"></div>
 
-  <section class="le-wrap container">
-    <header class="le-head">
-      <h1 class="page-title" id="le-title">✏️ Lead tahrirlash</h1>
-
-      <p class="page-sub">
-        <span style="color:var(--muted);">Lead:</span>
-        <strong style="color:var(--text);">{{ lead.ism }} {{ lead.familya|default:"" }}</strong>
-      </p>
+  <section class="lead-wrapper container text-light">
+    <header class="lead-header">
+      <div>
+        <h3 class="page-title" id="page-title">✏️ Leadni tahrirlash</h3>
+        <p style="color:#94a3b8; margin:4px 0 0; font-weight:600;">{{ lead.ism }} {{ lead.familya }}</p>
+      </div>
+      <a href="{% url 'store:lead_list' %}" class="btn-back">⬅️ Ortga</a>
     </header>
 
-    <form method="POST" class="edit-form" novalidate>
+    <form method="POST" class="lead-form" novalidate>
       {% csrf_token %}
 
-      <div class="form-head">
-        <div class="title">🧾 Asosiy ma’lumotlar</div>
-        <div class="hint">Maydonlarni to‘g‘rilang va <b>Saqlash</b> tugmasini bosing.</div>
-      </div>
-
-      <div class="row g-3 le-grid">
-        <div class="col-md-6 form-group">
+      <!-- 1. SHAXSIY MA'LUMOTLAR -->
+      <h4 class="form-section-title">
+        <i class="fa-solid fa-address-card"></i> SHAXSIY MA'LUMOTLAR
+      </h4>
+      <div class="row g-3 lead-grid mb-4">
+        <div class="col-md-4 form-group">
           {{ form.ism.label_tag }}
           {{ form.ism }}
+          {{ form.ism.errors }}
         </div>
-
-        <div class="col-md-6 form-group">
+        <div class="col-md-4 form-group">
           {{ form.familya.label_tag }}
           {{ form.familya }}
+          {{ form.familya.errors }}
         </div>
+        <div class="col-md-4 form-group">
+          {{ form.otchestvo.label_tag }}
+          {{ form.otchestvo }}
+          {{ form.otchestvo.errors }}
+        </div>
+      </div>
 
+      <!-- 2. STUDENT ANKETASI -->
+      <h4 class="form-section-title">
+        <i class="fa-solid fa-graduation-cap"></i> STUDENT ANKETASI
+      </h4>
+      <div class="row g-3 lead-grid mb-4">
+        <div class="col-md-6 form-group">
+          {{ form.birth_date.label_tag }}
+          {{ form.birth_date }}
+          {{ form.birth_date.errors }}
+        </div>
+        <div class="col-md-6 form-group">
+          {{ form.gender.label_tag }}
+          {{ form.gender }}
+          {{ form.gender.errors }}
+        </div>
+        <div class="col-md-6 form-group">
+          {{ form.passport_id.label_tag }}
+          {{ form.passport_id }}
+          {{ form.passport_id.errors }}
+        </div>
+        <div class="col-md-6 form-group">
+          {{ form.jshr.label_tag }}
+          {{ form.jshr }}
+          {{ form.jshr.errors }}
+        </div>
+        <!-- Yosh input olib tashlandi (avtomatik hisoblanadi) -->
+      </div>
+
+      <!-- 3. ALOQA -->
+      <h4 class="form-section-title">
+        <i class="fa-solid fa-phone"></i> ALOQA
+      </h4>
+      <div class="row g-3 lead-grid mb-4">
         <div class="col-md-6 form-group">
           {{ form.telefon1.label_tag }}
           {{ form.telefon1 }}
+          {{ form.telefon1.errors }}
         </div>
-
         <div class="col-md-6 form-group">
           {{ form.telefon2.label_tag }}
           {{ form.telefon2 }}
+          {{ form.telefon2.errors }}
         </div>
-
-        <div class="col-md-4 form-group">
-          {{ form.yosh.label_tag }}
-          {{ form.yosh }}
-        </div>
-
-        <div class="col-md-8 form-group">
+        <div class="col-12 form-group">
           {{ form.address.label_tag }}
           {{ form.address }}
-        </div>
-
-        <div class="col-md-4 form-group">
-          {{ form.manba.label_tag }}
-          {{ form.manba }}
-        </div>
-
-        <div class="col-md-4 form-group">
-          {{ form.yonalish.label_tag }}
-          {{ form.yonalish }}
-        </div>
-
-        <div class="col-md-4 form-group">
-          {{ form.status.label_tag }}
-          {{ form.status }}
-        </div>
-
-        <div class="col-md-12 form-group">
-          {{ form.comment.label_tag }}
-          {{ form.comment }}
+          {{ form.address.errors }}
         </div>
       </div>
 
-      <div class="btnbar">
-        <a href="{% url 'store:lead_list' %}" class="btnx secondary">⬅️ Ortga</a>
-        <button type="submit" class="btnx primary">💾 Saqlash</button>
+      <!-- 4. QO'SHIMCHA -->
+      <h4 class="form-section-title">
+        <i class="fa-solid fa-filter"></i> QO'SHIMCHA MA'LUMOT
+      </h4>
+      <div class="row g-3 lead-grid mb-4">
+        <div class="col-md-4 form-group">
+          {{ form.manba.label_tag }}
+          {{ form.manba }}
+          {{ form.manba.errors }}
+        </div>
+        <div class="col-md-4 form-group">
+          {{ form.yonalish.label_tag }}
+          {{ form.yonalish }}
+          {{ form.yonalish.errors }}
+        </div>
+        <div class="col-md-4 form-group">
+          {{ form.status.label_tag }}
+          {{ form.status }}
+          {{ form.status.errors }}
+        </div>
+        <div class="col-12 form-group">
+          {{ form.comment.label_tag }}
+          {{ form.comment }}
+          {{ form.comment.errors }}
+        </div>
+      </div>
+
+      <div class="lead-actions">
+        <button type="submit" class="btn btn-save">💾 Saqlash</button>
       </div>
     </form>
   </section>
 </main>
 
 <style>
-  :root{
-    --bg0:#070b14;
-    --bg1:#0b1220;
-    --bg2:#0f1b33;
-
-    --card: rgba(255,255,255,0.06);
-    --card2: rgba(255,255,255,0.10);
-    --line: rgba(255,255,255,0.12);
-
-    --text:#e5e7eb;
-    --muted:#9ca3af;
-
-    --amber:#f59e0b;
-    --amber2:#facc15;
-    --sky:#38bdf8;
-    --blue:#1d4ed8;
-
-    --ok:#22c55e;
-    --danger:#ef4444;
-
-    --shadow: 0 24px 70px rgba(0,0,0,.55);
+  :root {
+    --bg0: #070b14;
+    --bg1: #0b1220;
+    --bg2: #0f1b33;
+    --line: rgba(255, 255, 255, 0.12);
+    --text: #e5e7eb;
+    --amber: #f59e0b;
+    --shadow: 0 24px 70px rgba(0, 0, 0, .55);
     --radius: 18px;
-
-    --ring: 0 0 0 4px rgba(245,158,11,.18), 0 0 18px rgba(245,158,11,.28);
-    --ring-sky: 0 0 0 4px rgba(56,189,248,.18), 0 0 18px rgba(56,189,248,.26);
+    --ring: 0 0 0 4px rgba(245, 158, 11, .18), 0 0 18px rgba(245, 158, 11, .28);
   }
 
-  .le-shell{
+  .lead-shell {
     position: relative;
     min-height: calc(100svh - 1px);
     padding: clamp(14px, 2.5vw, 26px) 0;
     color: var(--text);
   }
 
-  .le-bg{
+  .lead-bg {
     position: fixed;
     inset: 0;
     z-index: -1;
     background:
-      radial-gradient(900px 420px at 18% 10%, rgba(245,158,11,.14), transparent 60%),
-      radial-gradient(760px 380px at 85% 18%, rgba(56,189,248,.10), transparent 60%),
-      radial-gradient(980px 520px at 55% 92%, rgba(34,197,94,.08), transparent 62%),
+      radial-gradient(900px 420px at 18% 10%, rgba(245, 158, 11, .14), transparent 60%),
+      radial-gradient(760px 380px at 85% 18%, rgba(56, 189, 248, .10), transparent 60%),
+      radial-gradient(980px 520px at 55% 92%, rgba(34, 197, 94, .08), transparent 62%),
       linear-gradient(160deg, var(--bg0), var(--bg1) 45%, var(--bg2));
   }
 
-  .le-wrap{
-    margin-top: 8px;
+  .lead-wrapper {
+    margin-top: 10px;
     max-width: 980px;
   }
 
-  .le-head{
+  .lead-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
     margin-bottom: 14px;
-  }
-
-  .page-title{
-    margin: 0 0 10px;
-    font-weight: 900;
-    font-size: clamp(1.25rem, 1.05rem + 1.1vw, 1.75rem);
-    letter-spacing: .2px;
-    display:flex;
-    align-items:center;
-    gap:10px;
-    text-shadow: 0 10px 30px rgba(0,0,0,.45);
-  }
-
-  .page-sub{
-    margin: 0;
-    color: rgba(203,213,225,0.95);
-    font-size: .98rem;
-  }
-
-  /* =====================
-       FORM CARD
-  ===================== */
-  .edit-form{
-    position: relative;
-    background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: var(--radius);
-    padding: clamp(14px, 2.2vw, 20px);
-    box-shadow: var(--shadow);
+    background: rgba(15, 23, 42, 0.6);
+    padding: 16px 20px;
+    border-radius: 16px;
+    border: 1px solid var(--line);
     backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .page-title {
+    margin: 0;
+    font-weight: 750;
+    font-size: clamp(1.2rem, 1rem + 1vw, 1.5rem);
+    text-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+  }
+
+  .btn-back {
+    color: #cbd5e1;
+    text-decoration: none;
+    font-weight: 700;
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s;
+  }
+
+  .btn-back:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+  }
+
+  .lead-form {
+    position: relative;
     overflow: hidden;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
+    padding: clamp(16px, 2.2vw, 26px);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(10px);
   }
 
-  .edit-form::before{
-    content:"";
-    position:absolute;
-    inset:-2px;
-    background:
-      radial-gradient(420px 220px at 12% 10%, rgba(245,158,11,.10), transparent 58%),
-      radial-gradient(420px 220px at 88% 0%, rgba(250,204,21,.10), transparent 55%),
-      radial-gradient(560px 260px at 70% 110%, rgba(56,189,248,.10), transparent 60%);
-    pointer-events:none;
-    opacity: .95;
-  }
-
-  .edit-form > *{ position: relative; }
-
-  /* Section header inside card (keep existing classes) */
-  .form-head{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    flex-wrap:wrap;
-    padding: 12px 14px;
-    border-radius: 14px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.10);
-    margin-bottom: 14px;
-  }
-
-  .form-head .title{
-    font-weight: 900;
-    letter-spacing:.2px;
-    display:flex;
-    align-items:center;
-    gap:10px;
-  }
-
-  .form-head .hint{
-    color: rgba(203,213,225,0.90);
-    font-size: .92rem;
-  }
-
-  /* =====================
-       LABELS
-  ===================== */
-  .edit-form label{
+  .form-section-title {
+    color: #38bdf8;
+    font-size: 0.9rem;
     font-weight: 800;
-    margin-bottom: 6px;
-    color: rgba(229,231,235,0.92);
-    font-size: .86rem;
-    letter-spacing: .15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 24px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+    padding-bottom: 8px;
   }
 
-  .form-group{
+  .form-section-title i {
+    color: #facc15;
+  }
+
+  .form-section-title:first-child {
+    margin-top: 0;
+  }
+
+  .form-group {
     display: grid;
     gap: 8px;
-    margin-bottom: 0;
   }
 
-  /* =====================
-       INPUTS
-  ===================== */
-  .edit-form input,
-  .edit-form select,
-  .edit-form textarea{
-    width:100%;
-    background: rgba(255,255,255,0.06) !important;
-    border: 1px solid rgba(255,255,255,0.14) !important;
+  .lead-form label {
+    font-weight: 700;
+    color: rgba(241, 245, 249, 0.95);
+    font-size: 0.95rem;
+  }
+
+  .lead-form input,
+  .lead-form select,
+  .lead-form textarea {
+    width: 100%;
     color: var(--text) !important;
-    padding: 12px 12px;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
     border-radius: 14px;
-    font-size: .98rem;
-    line-height: 1.25;
-    transition: transform .16s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
-    outline: none !important;
+    padding: 12px 12px;
+    font-size: 0.98rem;
+    transition: all .16s ease;
     min-height: 44px;
   }
 
-  .edit-form textarea{
-    min-height: 120px;
+  .lead-form textarea {
+    min-height: 110px;
     resize: vertical;
   }
 
-  .edit-form input::placeholder,
-  .edit-form textarea::placeholder{
-    color: rgba(156,163,175,0.9) !important;
+  .lead-form input:focus,
+  .lead-form select:focus,
+  .lead-form textarea:focus {
+    outline: none !important;
+    border-color: rgba(245, 158, 11, 0.60) !important;
+    box-shadow: var(--ring);
+    background: rgba(255, 255, 255, 0.10) !important;
   }
 
-  .edit-form select option{
+  .lead-form select option {
     background-color: rgba(15, 23, 42, 0.98);
     color: #e2e8f0;
   }
 
-  .edit-form input:hover,
-  .edit-form select:hover,
-  .edit-form textarea:hover{
-    border-color: rgba(245,158,11,0.30) !important;
-    background: rgba(255,255,255,0.075) !important;
+  .lead-actions {
+    margin-top: 24px;
+    display: flex;
+    justify-content: flex-end;
   }
 
-  .edit-form input:focus,
-  .edit-form select:focus,
-  .edit-form textarea:focus{
-    background: rgba(255,255,255,0.10) !important;
-    border-color: rgba(245,158,11,0.60) !important;
-    box-shadow: var(--ring);
-    transform: translateY(-1px);
-  }
-
-  .edit-form input:focus-visible,
-  .edit-form select:focus-visible,
-  .edit-form textarea:focus-visible{
-    outline: none;
-    box-shadow: var(--ring);
-  }
-
-  /* =====================
-       BUTTON BAR (keep existing classes)
-  ===================== */
-  .btnbar{
-    display:flex;
-    justify-content:flex-end;
-    gap:10px;
-    margin-top: 14px;
-    padding-top: 14px;
-    border-top: 1px solid rgba(255,255,255,0.12);
-    flex-wrap:wrap;
-  }
-
-  .btnx{
+  .btn-save {
+    border: 1px solid rgba(245, 158, 11, 0.35);
     border-radius: 14px;
-    padding: 12px 16px;
-    font-weight: 900;
-    border: 1px solid rgba(255,255,255,0.14);
-    text-decoration:none;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:10px;
-    cursor:pointer;
-    background: rgba(255,255,255,0.06);
-    color: var(--text);
-    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease, background .18s ease, border-color .18s ease;
-    white-space:nowrap;
-    min-height: 46px;
-    -webkit-tap-highlight-color: transparent;
+    padding: 12px 24px;
+    font-weight: 800;
+    color: #0a0a0a;
+    background: linear-gradient(135deg, rgba(250, 204, 21, 1), rgba(245, 158, 11, 1));
+    box-shadow: 0 10px 30px rgba(245, 158, 11, .22);
+    transition: all 0.2s;
   }
 
-  @media (hover:hover){
-    .btnx:hover{
-      transform: translateY(-2px);
-      box-shadow: 0 18px 60px rgba(0,0,0,.45);
-      filter: saturate(1.03);
-    }
+  .btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 40px rgba(245, 158, 11, .3);
   }
 
-  .btnx:active{
-    transform: translateY(0px) scale(.99);
-  }
-
-  .btnx:focus-visible{
-    outline: none;
-    box-shadow: var(--ring);
-  }
-
-  .btnx.primary{
-    color:#0a0a0a;
-    background: linear-gradient(135deg, rgba(250,204,21,1), rgba(245,158,11,1));
-    border-color: rgba(245,158,11,0.55);
-    box-shadow: 0 16px 42px rgba(0,0,0,.42), 0 0 28px rgba(245,158,11,.22);
-  }
-
-  .btnx.secondary{
-    background: rgba(255,255,255,0.06);
-    border-color: rgba(255,255,255,0.14);
-  }
-
-  /* =====================
-       GRID (works with or without Bootstrap)
-  ===================== */
-  .le-grid{
+  /* Grid Responsive */
+  .lead-grid {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 16px;
     margin: 0;
   }
 
-  .le-grid > [class*="col-"]{
+  .lead-grid>[class*="col-"] {
     width: 100%;
-    max-width: 100%;
-    flex: none;
-    padding: 0;
   }
 
-  .le-grid .col-md-12{ grid-column: 1 / -1; }
-
-  @media (min-width: 768px){
-    .le-grid{
+  @media (min-width: 768px) {
+    .lead-grid {
       grid-template-columns: repeat(12, minmax(0, 1fr));
-      gap: 16px;
     }
-    .le-grid .col-md-6{ grid-column: span 6; }
-    .le-grid .col-md-4{ grid-column: span 4; }
-    .le-grid .col-md-8{ grid-column: span 8; }
-    .le-grid .col-md-12{ grid-column: 1 / -1; }
+
+    .lead-grid .col-md-6 {
+      grid-column: span 6;
+    }
+
+    .lead-grid .col-md-4 {
+      grid-column: span 4;
+    }
+
+    .lead-grid .col-12 {
+      grid-column: 1 / -1;
+    }
   }
 
-  /* =====================
-       MOBILE
-  ===================== */
-  @media (max-width: 576px){
-    .btnbar .btnx{ width:100%; }
-  }
-
-  @media (prefers-reduced-motion: reduce){
-    .edit-form input,
-    .edit-form select,
-    .edit-form textarea,
-    .btnx{
-      transition: none !important;
-    }
+  .mb-4 {
+    margin-bottom: 2rem !important;
   }
 </style>
-
 {% endblock %}

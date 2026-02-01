@@ -129,6 +129,7 @@ class Enrollment(models.Model):
         limit_choices_to={"role": "student"},
         verbose_name="O‘quvchi",
     )
+    center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, null=True, blank=True)
 
     # oy narxi (Enrollment darajasida saqlaymiz)
     kurs_narhi = models.PositiveIntegerField(
@@ -142,6 +143,8 @@ class Enrollment(models.Model):
         validators=[MinValueValidator(0), MaxValueValidator(100)],
         verbose_name="O‘qituvchi ulushi (%)",
     )
+
+    is_active = models.BooleanField(default=True, verbose_name="Faolmi?")
 
     # umumiy to‘langan (avto update bo‘ladi)
     jami_tolangan = models.PositiveIntegerField(
@@ -231,6 +234,7 @@ class Payment(models.Model):
         related_name="group_payments",
         verbose_name="Guruh",
     )
+    center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, null=True, blank=True)
 
     payment_type = models.CharField(max_length=10, choices=PAYMENT_TYPES, default="cash")
 
@@ -312,6 +316,7 @@ class Attendance(models.Model):
         limit_choices_to={'role': 'teacher'},
         verbose_name="O‘qituvchi"
     )
+    center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, null=True, blank=True)
 
     date = models.DateField(
         default=timezone.localdate,
@@ -376,13 +381,17 @@ class AttendanceHistory(models.Model):
 
 class Category(models.Model):
     """Guruhlar kategoriyasi (masalan: Tillar, IT, Dizayn...)"""
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100)
+    center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True)
     icon = models.CharField(max_length=10, blank=True, null=True, help_text="Emoji yoki belgi masalan 💻 📘 🎨")
     description = models.TextField(blank=True, null=True)
     image = models.ImageField(upload_to='category_images/', null=True, blank=True, verbose_name="Bo‘lim rasmi")
 
+    class Meta:
+        unique_together = ('name', 'center')
+
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.center.name if self.center else 'Global'})"
 
 
 class Student(models.Model):

@@ -1,384 +1,281 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+📘 Mening guruhlarim — Chaqmoq Academy
+{% endblock %}
+
 {% block content %}
+<div class="container-fluid py-4 animate__animated animate__fadeIn">
 
-<style>
-  :root{
-    --bg0:#070b14;
-    --bg1:#0b1224;
-    --bg2:#0f172a;
-
-    --panel: rgba(17, 24, 39, .62);
-    --panel2: rgba(2, 6, 23, .55);
-    --line: rgba(255,255,255,.10);
-
-    --text:#e5e7eb;
-    --muted:#94a3b8;
-
-    --amber:#f59e0b;
-    --amber2:#facc15;
-
-    --blue:#3b82f6;
-    --blue2:#60a5fa;
-
-    --shadow: 0 24px 70px rgba(0,0,0,.55);
-    --radius: 18px;
-  }
-
-  body{
-    background:
-      radial-gradient(1200px 600px at 10% -10%, rgba(245, 158, 11, .18), transparent 55%),
-      radial-gradient(900px 500px at 95% 0%, rgba(59, 130, 246, .18), transparent 55%),
-      radial-gradient(800px 500px at 30% 105%, rgba(34, 197, 94, .10), transparent 55%),
-      linear-gradient(180deg, var(--bg1), var(--bg2), var(--bg1));
-    color: var(--text);
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Poppins", sans-serif;
-    min-height: 100vh;
-  }
-
-  .page{
-    padding: clamp(14px, 2.2vw, 28px) 0;
-  }
-
-  .groups-header{
-    display:flex;
-    align-items:flex-end;
-    justify-content:space-between;
-    flex-wrap:wrap;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-
-  .title-wrap h3{
-    margin:0;
-    font-weight: 900;
-    letter-spacing: .2px;
-    line-height: 1.15;
-    font-size: clamp(20px, 2.2vw, 28px);
-    color: var(--amber2);
-    text-shadow: 0 10px 30px rgba(250, 204, 21, .18);
-  }
-
-  .title-wrap p{
-    margin: 6px 0 0;
-    color: var(--muted);
-    font-size: 13.5px;
-  }
-
-  .chip{
-    display:inline-flex;
-    align-items:center;
-    gap: 8px;
-    padding: 8px 10px;
-    border-radius: 999px;
-    border: 1px solid rgba(245, 158, 11, .26);
-    background: rgba(245, 158, 11, .10);
-    color: rgba(250, 204, 21, .95);
-    font-weight: 800;
-    font-size: 12.5px;
-    line-height: 1;
-    white-space: nowrap;
-  }
-
-  .group-search{
-    width: min(360px, 100%);
-    margin: 0;
-  }
-
-  .search-shell{
-    display:flex;
-    align-items:center;
-    gap: 10px;
-    padding: 10px 12px;
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,.10);
-    background: rgba(2, 6, 23, .35);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 18px 60px rgba(0,0,0,.35);
-  }
-
-  .search-ico{
-    width: 36px;
-    height: 36px;
-    display:grid;
-    place-items:center;
-    border-radius: 12px;
-    border: 1px solid rgba(59, 130, 246, .22);
-    background: rgba(59, 130, 246, .10);
-    color: rgba(191, 219, 254, .95);
-    font-weight: 900;
-    user-select: none;
-  }
-
-  .group-search input{
-    background: transparent;
-    border: 0;
-    color: var(--text);
-    width: 100%;
-    padding: 0;
-    outline: none;
-    font-size: 14px;
-  }
-
-  .group-search input::placeholder{
-    color: rgba(148, 163, 184, .85);
-  }
-
-  .search-shell:focus-within{
-    border-color: rgba(96, 165, 250, .55);
-    box-shadow:
-      0 0 0 4px rgba(59, 130, 246, .18),
-      0 18px 60px rgba(0,0,0,.35);
-  }
-
-  .groups-grid{
-    display:grid;
-    grid-template-columns: 1fr;
-    gap: 14px;
-    margin-top: 10px;
-  }
-
-  @media (min-width: 600px){
-    .groups-grid{
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
-    }
-  }
-
-  @media (min-width: 992px){
-    .groups-grid{
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 18px;
-    }
-  }
-
-  @media (min-width: 1440px){
-    .groups-grid{
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 20px;
-    }
-  }
-
-  .group-card{
-    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
-    border: 1px solid rgba(255,255,255,.10);
-    border-radius: 18px;
-    padding: 16px;
-    cursor: pointer;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0,0,0,.35);
-    min-height: 168px;
-  }
-
-  .group-card::before{
-    content:"";
-    position:absolute;
-    inset:-1px;
-    background:
-      radial-gradient(700px 280px at 15% 0%, rgba(245, 158, 11, .16), transparent 62%),
-      radial-gradient(700px 280px at 95% 10%, rgba(59, 130, 246, .18), transparent 62%);
-    opacity: .9;
-    pointer-events:none;
-  }
-
-  .group-card::after{
-    content:"";
-    position:absolute;
-    top:-45%;
-    left:-55%;
-    width: 210%;
-    height: 210%;
-    background: radial-gradient(circle at center, rgba(59,130,246,.22), transparent 55%);
-    opacity: 0;
-    transition: opacity .22s ease;
-    pointer-events:none;
-  }
-
-  .group-card:hover{
-    transform: translateY(-4px);
-    border-color: rgba(96, 165, 250, .55);
-    box-shadow:
-      0 24px 80px rgba(0,0,0,.52),
-      0 16px 50px rgba(59, 130, 246, .12);
-  }
-
-  .group-card:hover::after{
-    opacity: 1;
-  }
-
-  .group-card:focus{
-    outline: none;
-  }
-
-  .group-card:focus-visible{
-    outline: 3px solid rgba(250, 204, 21, .35);
-    outline-offset: 3px;
-  }
-
-  .card-inner{
-    position: relative;
-    z-index: 1;
-    display:flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .group-title{
-    font-size: 18px;
-    font-weight: 900;
-    color: rgba(96, 165, 250, .95);
-    margin: 0;
-    text-shadow: 0 10px 30px rgba(59, 130, 246, .12);
-    letter-spacing: .2px;
-    line-height: 1.15;
-  }
-
-  .info-list{
-    display:grid;
-    gap: 8px;
-    margin-top: 2px;
-  }
-
-  .group-info{
-    display:flex;
-    align-items:flex-start;
-    justify-content:space-between;
-    gap: 10px;
-    font-size: 13.5px;
-    color: rgba(229, 231, 235, .92);
-  }
-
-  .group-info span{
-    color: rgba(148, 163, 184, .95);
-    font-weight: 800;
-    white-space: nowrap;
-  }
-
-  .value{
-    color: rgba(229, 231, 235, .92);
-    text-align: right;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 70%;
-  }
-
-  .meta-row{
-    display:flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-top: 6px;
-  }
-
-  .badge-soft{
-    display:inline-flex;
-    align-items:center;
-    gap: 6px;
-    padding: 6px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 900;
-    border: 1px solid rgba(255,255,255,.10);
-    background: rgba(255,255,255,.06);
-    color: rgba(229,231,235,.92);
-    white-space: nowrap;
-  }
-
-  .badge-students{
-    border-color: rgba(34, 197, 94, .20);
-    background: rgba(34, 197, 94, .10);
-    color: rgba(187, 247, 208, .95);
-  }
-
-  .badge-center{
-    border-color: rgba(245, 158, 11, .22);
-    background: rgba(245, 158, 11, .10);
-    color: rgba(254, 243, 199, .95);
-  }
-
-  .empty-text{
-    color: var(--muted);
-    font-size: 1.05rem;
-    margin-top: 18px;
-    font-weight: 800;
-  }
-
-  @media (max-width: 576px){
-    .groups-header{
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 10px;
-    }
-    .group-card{
-      padding: 14px;
-      min-height: 0;
-    }
-    .group-title{
-      font-size: 17px;
-    }
-    .group-search{
-      max-width: 100%;
-    }
-    .value{
-      max-width: 64%;
-    }
-  }
-</style>
-
-<main class="page">
-  <div class="container">
-
-    <div class="groups-header">
-      <div class="title-wrap">
-        <h3>📘 Mening guruhlarim</h3>
-        <p>Guruhlarni ko‘rish uchun kartani bosing.</p>
-      </div>
-
-      <div class="d-flex align-items-center gap-2 flex-wrap">
-        <span class="chip">⚡ Premium Dark • Glass UI</span>
-
-        <form method="get" class="group-search" aria-label="Guruh izlash">
-          <div class="search-shell">
-            <div class="search-ico" aria-hidden="true">🔍</div>
-            <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Guruh izlash...">
+  <!-- HEADER SECTION -->
+  <div class="row g-4 mb-4">
+    <div class="col-12">
+      <div
+        class="glass p-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-4 border-amber-soft">
+        <div class="d-flex align-items-center gap-3">
+          <div class="icon-box-amber">
+            <i class="fa-solid fa-layer-group"></i>
           </div>
-        </form>
-      </div>
-    </div>
-
-    <div class="groups-grid">
-      {% for g in rows %}
-      <div class="group-card" role="link" tabindex="0"
-           onclick="location.href='{% url 'education:group_detail' g.id %}'"
-           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();location.href='{% url 'education:group_detail' g.id %}'}">
-
-        <div class="card-inner">
-          <h4 class="group-title">{{ g.nom }}</h4>
-
-          <div class="meta-row">
-            <span class="badge-soft badge-center">🏫 {{ g.center }}</span>
-            <span class="badge-soft badge-students">👥 {{ g.student_count }}</span>
-          </div>
-
-          <div class="info-list">
-            <div class="group-info">
-              <span>👨‍🏫 O‘qituvchi:</span>
-              <div class="value">{{ g.oqituvchi|default:"—" }}</div>
-            </div>
+          <div>
+            <h2 class="m-0 fw-black text-white" style="letter-spacing: -1px;">Mening guruhlarim</h2>
+            <p class="m-0 text-white-50 small">Siz dars beradigan barcha faol guruhlar ro'yxati</p>
           </div>
         </div>
 
+        <div class="d-flex align-items-center gap-3 w-100-mobile">
+          <form method="get" class="search-form-premium" aria-label="Guruh izlash">
+            <div class="search-input-wrapper">
+              <i class="fa-solid fa-magnifying-glass search-icon"></i>
+              <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Guruh nomini kiriting...">
+            </div>
+          </form>
+        </div>
       </div>
-      {% empty %}
-        <p class="empty-text">Hozircha guruhlar yo‘q.</p>
-      {% endfor %}
     </div>
-
   </div>
-</main>
 
+  <!-- GROUPS GRID -->
+  <div class="row g-4">
+    {% for g in rows %}
+    <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
+      <div class="group-premium-card glass h-100" onclick="location.href='{% url 'education:group_detail' g.id %}'">
+        <div class="card-glow"></div>
+        <div class="p-4 position-relative z-1 d-flex flex-column h-100">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <h4 class="group-name m-0">{{ g.nom }}</h4>
+            <div class="center-badge">
+              <i class="fa-solid fa-building-columns me-1"></i> {{ g.center|default:"Markaz" }}
+            </div>
+          </div>
+
+          <div class="stats-row d-flex gap-2 mb-4">
+            <div class="stat-mini-pill">
+              <i class="fa-solid fa-user-graduate me-1 text-info"></i> {{ g.student_count }} o'quvchi
+            </div>
+            {% if g.category_obj %}
+            <div class="stat-mini-pill">
+              <i class="fa-solid fa-tag me-1 text-warning"></i> {{ g.category_obj.name }}
+            </div>
+            {% endif %}
+          </div>
+
+          <div class="teacher-info-row mt-auto pt-3 border-top border-white-5">
+            <div class="d-flex align-items-center gap-2 text-white-50 small">
+              <div class="avatar-mini">
+                {{ g.oqituvchi.ism|first|upper }}{{ g.oqituvchi.familya|first|upper }}
+              </div>
+              <span>{{ g.oqituvchi.get_full_name }}</span>
+            </div>
+          </div>
+
+          <div class="card-footer-action mt-3">
+            <div class="btn btn-sm btn-glass-blue w-100 rounded-pill py-2">
+              <i class="fa-solid fa-eye me-2"></i> Batafsil
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+      <div class="glass p-5 text-center opacity-75">
+        <div class="fs-1 mb-3">📭</div>
+        <h4 class="text-white">Guruhlar topilmadi</h4>
+        <p class="text-white-50">Hozircha sizga biriktirilgan faol guruhlar mavjud emas.</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root {
+    --text-warning: #facc15;
+    --white-5: rgba(255, 255, 255, 0.05);
+    --white-10: rgba(255, 255, 255, 0.1);
+    --blue-glow: rgba(56, 189, 248, 0.2);
+    --amber-glow: rgba(250, 204, 21, 0.15);
+  }
+
+  .glass {
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  }
+
+  .border-amber-soft {
+    border-color: rgba(250, 204, 21, 0.2) !important;
+  }
+
+  .icon-box-amber {
+    width: 60px;
+    height: 60px;
+    border-radius: 20px;
+    background: rgba(250, 204, 21, 0.1);
+    border: 1px solid rgba(250, 204, 21, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-warning);
+    font-size: 24px;
+    box-shadow: 0 10px 30px rgba(250, 204, 21, 0.1);
+  }
+
+  /* Search Styles */
+  .search-form-premium {
+    width: 320px;
+  }
+
+  .search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 16px;
+    color: var(--text-warning);
+    opacity: 0.7;
+  }
+
+  .search-form-premium input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 12px 16px 12px 48px;
+    color: white;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.3s;
+  }
+
+  .search-form-premium input:focus {
+    border-color: var(--text-warning);
+    background: rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.1);
+  }
+
+  /* Card Styles */
+  .group-premium-card {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .group-premium-card:hover {
+    transform: translateY(-8px);
+    border-color: rgba(56, 189, 248, 0.3);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  }
+
+  .card-glow {
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, rgba(56, 189, 248, 0.1) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.4s;
+    pointer-events: none;
+  }
+
+  .group-premium-card:hover .card-glow {
+    opacity: 1;
+    animation: rotateGlow 8s linear infinite;
+  }
+
+  @keyframes rotateGlow {
+    from {
+      transform: rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .group-name {
+    color: #fff;
+    font-weight: 800;
+    font-size: 1.2rem;
+    letter-spacing: -0.5px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .center-badge {
+    padding: 4px 12px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-warning);
+    white-space: nowrap;
+  }
+
+  .stat-mini-pill {
+    padding: 6px 14px;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 12px;
+    font-weight: 700;
+    color: #e2e8f0;
+  }
+
+  .avatar-mini {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--text-warning);
+    color: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 900;
+  }
+
+  .btn-glass-blue {
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    color: #38bdf8;
+    font-weight: 800;
+    transition: all 0.3s;
+  }
+
+  .group-premium-card:hover .btn-glass-blue {
+    background: #38bdf8;
+    color: #fff;
+    box-shadow: 0 10px 20px rgba(56, 189, 248, 0.2);
+  }
+
+  .border-white-5 {
+    border-color: rgba(255, 255, 255, 0.05) !important;
+  }
+
+  @media (max-width: 768px) {
+    .w-100-mobile {
+      width: 100% !important;
+    }
+
+    .search-form-premium {
+      width: 100%;
+    }
+  }
+</style>
 {% endblock %}

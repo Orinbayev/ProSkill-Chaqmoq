@@ -17,6 +17,8 @@ urlpatterns = [
     # 🔹 Apps
     path('', include(('core.urls', 'core'), namespace='core')),
     path('hisob/', include(('accounts.urls', 'accounts'), namespace='accounts')),
+    path('hisob/billing/', include(('billing.urls', 'billing'), namespace='billing')),
+
     path('chaqmoq/', include(('chaqmoq.urls', 'chaqmoq'), namespace='chaqmoq')),
 
     # ✅ faqat BIRTA variant qoldir:

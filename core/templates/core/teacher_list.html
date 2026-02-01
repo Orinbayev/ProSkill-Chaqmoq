@@ -1,472 +1,718 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+{% load static %}
 {% block content %}
 
 <style>
-  :root{
-    --bg0:#070A12;
-    --bg1:#0B1220;
-    --bg2:#0F1B33;
+  :root {
+    --bg-dark: #020617;
+    --bg-card: #0f172a;
+    --bg-hover: #1e293b;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-hover: rgba(255, 255, 255, 0.15);
 
-    --panel: rgba(255,255,255,.06);
-    --panel2: rgba(2,6,23,.55);
-    --line: rgba(255,255,255,.10);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
 
-    --muted: #94a3b8;
-    --text: #e5e7eb;
+    --primary: #f59e0b;
+    --primary-glow: rgba(245, 158, 11, 0.5);
 
-    --blue: #38bdf8;
-    --cyan: #06b6d4;
-    --yellow: #f59e0b;
+    --blue: #3b82f6;
     --green: #22c55e;
     --red: #ef4444;
 
-    --shadow: 0 24px 80px rgba(0,0,0,.55);
-    --shadow2: 0 14px 32px rgba(0,0,0,.38);
-
-    --r14:14px;
-    --r18:18px;
-    --r22:22px;
-
-    --pad: 14px;
-
-    --ring-amber: 0 0 0 4px rgba(245,158,11,.22), 0 0 0 1px rgba(245,158,11,.35) inset;
-    --ring-blue:  0 0 0 4px rgba(56,189,248,.20),  0 0 0 1px rgba(56,189,248,.35) inset;
-    --ring-red:   0 0 0 4px rgba(239,68,68,.18),    0 0 0 1px rgba(239,68,68,.35) inset;
+    --glass: rgba(15, 23, 42, 0.7);
+    --radius: 16px;
   }
 
-  .teach-scope{
-    min-height: 100vh;
-    width: 100%;
-    color: var(--text);
-    background:
-      radial-gradient(1200px 700px at 10% -10%, rgba(245,158,11,.18), transparent 55%),
-      radial-gradient(900px 600px at 90% 10%, rgba(34,197,94,.10), transparent 55%),
-      radial-gradient(1000px 700px at 60% 120%, rgba(59,130,246,.12), transparent 60%),
-      linear-gradient(180deg, var(--bg0), var(--bg1) 55%, #050712);
-    overflow-x:hidden;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-    padding: calc(var(--pad) + env(safe-area-inset-top))
-             calc(var(--pad) + env(safe-area-inset-right))
-             22px
-             calc(var(--pad) + env(safe-area-inset-left));
+  /* BUTTONS & ACTIONS */
+  .action-group {
+    display: flex;
+    gap: 10px;
   }
 
-  .teach-wrap{
-    max-width: 1100px;
-    margin: 0 auto;
+  .btn-action {
+    height: 44px;
+    padding: 0 20px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    border: 1px solid transparent;
   }
 
-  .page-title{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    justify-content:flex-start;
-    font-size: clamp(22px, 3.2vw, 34px);
-    font-weight: 950;
-    letter-spacing: .2px;
-    margin: 0 0 14px;
-    line-height: 1.15;
-  }
-  .page-title .emoji{
-    filter: drop-shadow(0 8px 18px rgba(0,0,0,.35));
+  .btn-primary {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  .card-panel{
-    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
-    border: 1px solid var(--line);
-    border-radius: var(--r22);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    overflow: hidden;
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+    filter: brightness(1.1);
   }
 
-  /* ===== TABLE (desktop/tablet) ===== */
-  .table-responsive{
-    width:100%;
-    overflow-x:auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  .table-responsive::-webkit-scrollbar{ height: 10px; }
-  .table-responsive::-webkit-scrollbar-thumb{
-    background: rgba(255,255,255,.14);
-    border-radius: 999px;
-    border: 2px solid rgba(0,0,0,0);
-    background-clip: padding-box;
+  .btn-outline {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
   }
 
-  .tbl{
-    width:100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    table-layout: auto;
+  .btn-outline:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
   }
 
-  .tbl thead th{
-    text-transform: uppercase;
-    font-size: 12px;
-    letter-spacing: .9px;
-    color: rgba(56,189,248,.95);
-    background: rgba(2,6,23,.55);
-    border-bottom: 1px solid var(--line);
-    padding: 14px 16px;
-    white-space: nowrap;
-    font-weight: 950;
+  .btn-excel {
+    background: rgba(34, 197, 94, 0.1);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.2);
   }
 
-  .tbl tbody td{
-    padding: 16px 16px;
-    border-bottom: 1px solid rgba(255,255,255,.06);
-    vertical-align: middle;
-    color: var(--text);
+  .btn-excel:hover {
+    background: rgba(34, 197, 94, 0.2);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
   }
 
-  .tbl tbody tr{ transition: background .18s ease; }
-  .tbl tbody tr:hover{ background: rgba(255,255,255,.05); }
-
-  .col-num{
-    width: 60px;
-    color: rgba(226,232,240,.92);
-    font-weight: 900;
-  }
-
-  .name{
-    font-weight: 950;
-    color: rgba(226,232,240,.96);
-    line-height: 1.15;
-  }
-  .name .sub{
-    display:block;
-    margin-top: 4px;
-    font-weight: 800;
-    color: rgba(56,189,248,.92);
-  }
-
-  .phone{
-    font-weight: 800;
-    color: rgba(226,232,240,.92);
-    white-space: nowrap;
-  }
-
-  .pill{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    padding: 8px 14px;
-    border-radius: 999px;
-    font-weight: 950;
-    font-size: 13px;
-    letter-spacing: .2px;
-    border: 1px solid rgba(255,255,255,.12);
-    box-shadow: inset 0 0 18px rgba(0,0,0,.18);
-    white-space: nowrap;
-    min-height: 36px;
-  }
-  .pill.percent{
-    background: rgba(6,182,212,.18);
-    color: #7dd3fc;
-    border-color: rgba(6,182,212,.26);
-  }
-
-  .circle{
-    width: 36px;
-    height: 36px;
-    border-radius: 999px;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    font-weight: 950;
-    color: #111827;
-    background: rgba(245,158,11,.95);
-    box-shadow: 0 12px 24px rgba(245,158,11,.18);
-    border: 1px solid rgba(245,158,11,.45);
-  }
-
-  .actions{
-    display:flex;
-    justify-content:center;
-    gap:10px;
-    white-space: nowrap;
+  /* FILTERS */
+  .filter-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 24px;
     flex-wrap: wrap;
   }
 
-  .icon-btn{
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,.12);
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    text-decoration:none;
-    cursor:pointer;
-    transition: transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease;
-    font-size: 15px;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-  .icon-btn:hover{ transform: translateY(-1px); }
-  .icon-btn:active{ transform: translateY(0); }
-
-  .icon-btn:focus-visible{ outline:none; box-shadow: var(--ring-blue); }
-
-  .icon-btn.view{
-    background: rgba(59,130,246,.16);
-    color: #60a5fa;
-    border-color: rgba(59,130,246,.24);
-  }
-  .icon-btn.view:hover{
-    background: rgba(59,130,246,.28);
-    color: #fff;
-    border-color: rgba(59,130,246,.38);
-    box-shadow: 0 16px 36px rgba(0,0,0,.35);
+  .search-box {
+    flex: 1;
+    position: relative;
+    min-width: 280px;
   }
 
-  .icon-btn.edit{
-    background: rgba(245,158,11,.16);
-    color: #fbbf24;
-    border-color: rgba(245,158,11,.24);
+  .search-box i {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
   }
-  .icon-btn.edit:hover{
-    background: rgba(245,158,11,.28);
-    color: #fff;
-    border-color: rgba(245,158,11,.38);
-    box-shadow: 0 16px 36px rgba(0,0,0,.35);
-  }
-  .icon-btn.edit:focus-visible{ box-shadow: var(--ring-amber); }
 
-  .icon-btn.delete{
-    background: rgba(239,68,68,.16);
-    color: #f87171;
-    border-color: rgba(239,68,68,.24);
+  .filter-input {
+    width: 100%;
+    background: rgba(2, 6, 23, 0.5);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    height: 42px;
+    padding: 0 16px 0 38px;
+    color: white;
+    font-size: 14px;
+    outline: none;
+    transition: 0.2s;
   }
-  .icon-btn.delete:hover{
-    background: rgba(239,68,68,.28);
-    color: #fff;
-    border-color: rgba(239,68,68,.38);
-    box-shadow: 0 16px 36px rgba(0,0,0,.35);
+
+  .filter-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
   }
-  .icon-btn.delete:focus-visible{ box-shadow: var(--ring-red); }
 
-  .btn-reset{ background: transparent; border: none; padding: 0; }
+  .btn-reset {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: 0.2s;
+    border: 1px solid transparent;
+  }
 
-  .empty{
-    padding: 26px 16px;
-    text-align:center;
-    color: rgba(148,163,184,.92);
+  .btn-reset:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--red);
+    border-color: rgba(239, 68, 68, 0.3);
+  }
+
+  .users-scope {
+    background: var(--bg-dark);
+    min-height: 100vh;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--text-main);
+    padding: 20px;
+  }
+
+  /* HEAD & HEADER */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .page-title {
+    font-size: 24px;
     font-weight: 800;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    letter-spacing: -0.5px;
   }
 
-  /* ===== MOBILE CARDS ===== */
-  .cards{ display:none; }
-  .tcard{
-    padding: 12px;
-    border-bottom: 1px solid rgba(255,255,255,.06);
+  /* TABLE */
+  .table-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    position: relative;
+    margin-bottom: 20px;
   }
-  .tcard:last-child{ border-bottom: none; }
 
-  .tcard-top{
-    display:flex;
-    gap: 10px;
-    align-items:flex-start;
-    justify-content:space-between;
+  .table-responsive-wrapper {
+    overflow-x: auto;
+    width: 100%;
+    padding-bottom: 60px;
+    margin-bottom: -60px;
   }
-  .tcard-left{ min-width:0; flex: 1; }
 
-  .tbadge{
-    width: 34px;
-    height: 34px;
-    border-radius: 12px;
-    display:grid;
-    place-items:center;
-    background: rgba(255,255,255,.06);
-    border: 1px solid rgba(255,255,255,.10);
-    color: rgba(226,232,240,.92);
-    font-weight: 950;
-    flex: 0 0 auto;
+  .custom-table {
+    width: 100%;
+    border-collapse: collapse;
+    white-space: normal;
   }
-  .tname{
-    font-weight: 950;
-    color:#fff;
-    line-height:1.15;
+
+  .custom-table thead th {
+    background: rgba(255, 255, 255, 0.02);
+    padding: 16px 12px;
+    text-align: left;
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 700;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .custom-table tbody td {
+    padding: 16px 12px;
+    word-break: break-word;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-main);
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .custom-table tbody tr:hover {
+    background: var(--bg-hover);
+  }
+
+  /* Custom Cells */
+  .badge-gender {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .badge-gender.male {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+  }
+
+  .badge-gender.female {
+    background: rgba(236, 72, 153, 0.15);
+    color: #f472b6;
+  }
+
+  .col-num {
+    width: 40px;
+    color: var(--text-muted);
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .name {
+    font-weight: 700;
+    color: white;
+  }
+
+  .sub {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
     margin-top: 2px;
   }
-  .tmeta{
-    margin-top: 6px;
-    color: rgba(148,163,184,.90);
-    font-weight: 800;
+
+  .badge-percent {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 99px;
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    font-weight: 700;
+    font-size: 12px;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+  }
+
+  .circle-badge {
+    width: 30px;
+    height: 30px;
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    color: var(--primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
     font-size: 13px;
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-  }
-  .tmeta span{
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    padding: 6px 10px;
-    border-radius: 999px;
-    background: rgba(2,6,23,.35);
-    border: 1px solid rgba(255,255,255,.08);
-    box-shadow: inset 0 0 18px rgba(0,0,0,.18);
-    white-space: nowrap;
   }
 
-  .tcard-actions{
-    display:flex;
-    gap:8px;
-    justify-content:flex-end;
-    flex-wrap:wrap;
-    margin-top: 10px;
-  }
-  .tcard-actions .icon-btn{ width: 44px; height: 44px; border-radius: 14px; }
-
-  /* Responsive */
-  @media (max-width: 640px){
-    .table-responsive{ display:none; }
-    .cards{ display:block; }
-    .card-panel{ border-radius: 18px; }
+  /* ACTIONS DROPDOWN */
+  .menu-wrapper {
+    position: relative;
+    display: inline-block;
+    z-index: 10;
   }
 
-  @media (max-width: 768px){
-    .tbl thead th{ font-size: 11px; padding: 12px 12px; }
-    .tbl tbody td{ padding: 12px 12px; font-size: 13px; }
-    .circle{ width: 32px; height: 32px; }
-    .icon-btn{ width: 38px; height: 38px; }
+  .menu-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: 0.2s;
   }
 
-  @media (prefers-reduced-motion: reduce){
-    *{ transition: none !important; scroll-behavior: auto !important; }
+  .menu-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  .menu-dropdown {
+    display: none;
+    position: fixed;
+    background: #1e293b;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 6px;
+    min-width: 140px;
+    z-index: 99999;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    pointer-events: auto;
+  }
+
+  .menu-dropdown.open {
+    display: block;
+    animation: menuFadeIn 0.2s ease-out;
+  }
+
+  @keyframes menuFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .menu-dropdown a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    color: var(--text-main);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: 0.2s;
+  }
+
+  .menu-dropdown button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    color: var(--text-main);
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: 0.2s;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .menu-dropdown a i,
+  .menu-dropdown button i {
+    width: 16px;
+    font-size: 14px;
+    text-align: center;
+  }
+
+  .menu-dropdown a:hover,
+  .menu-dropdown button:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--primary);
+  }
+
+  .menu-dropdown button.text-red:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--red);
+  }
+
+  .text-red {
+    color: var(--red) !important;
+  }
+
+  .empty-state {
+    padding: 40px;
+    text-align: center;
+    color: var(--text-muted);
   }
 </style>
 
-<div class="teach-scope">
-  <div class="teach-wrap">
+<div class="users-scope">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="page-title">
+      <i class="fa-solid fa-chalkboard-user" style="color: var(--primary);"></i>
+      O‘qituvchilar <span
+        style="font-size: 14px; background: rgba(255,255,255,0.05); padding: 4px 12px; border-radius: 20px; color: var(--text-muted); margin-left: 12px; border: 1px solid rgba(255,255,255,0.05);">
+        {{ teachers_count }} ta</span>
+    </div>
+    <div class="action-group">
+      <button onclick="openImportModal()" class="btn-action btn-outline">
+        <i class="fa-solid fa-file-import"></i> Import
+      </button>
 
-    <h2 class="page-title">
-      <span class="emoji">🧑‍🏫</span>
-      <span>O‘qituvchilar ro‘yxati</span>
-    </h2>
+      <a href="{% url 'accounts:add_user' %}?role=teacher" class="btn-action btn-primary">
+        <i class="fa-solid fa-plus"></i> Yangi o‘qituvchi
+      </a>
 
-    <div class="card-panel">
+      <a href="{% url 'core:users_export_excel' %}?role=teacher" class="btn-action btn-excel">
+        <i class="fa-solid fa-file-excel"></i>
+      </a>
+    </div>
+  </div>
 
-      <!-- MOBILE CARDS -->
-      <div class="cards">
-        {% for t in teachers %}
-          <div class="tcard">
-            <div class="tcard-top">
-              <div class="tbadge">{{ forloop.counter }}</div>
+  <div class="filter-panel">
+    <form class="search-box" method="get">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" name="q" class="filter-input" placeholder="Ism, familiya yoki telefon..."
+        value="{{ request.GET.q }}">
+    </form>
 
-              <div class="tcard-left">
-                <div class="tname">
-                  {{ t.ism }}
-                  {% if t.familya %} {{ t.familya }}{% endif %}
-                  {% if t.otchestvo %} {{ t.otchestvo }}{% endif %}
-                </div>
+    <button type="button" class="btn-reset" onclick="location.href='?'" title="Tozalash">
+      <i class="fa-solid fa-arrows-rotate"></i>
+    </button>
+  </div>
 
-                <div class="tmeta">
-                  <span><i class="fa-solid fa-phone"></i> {{ t.telefon1|default:"—" }}</span>
-                  <span><i class="fa-solid fa-percent"></i> {{ t.oqituvchi_foizi }}%</span>
-                  <span><i class="fa-solid fa-users"></i> Guruh: {{ t.group_count }}</span>
-                </div>
-
-                <div class="tcard-actions">
-                  <a href="{% url 'core:teacher_detail' t.id %}" class="icon-btn view" title="Ko‘rish">
-                    <i class="fa-solid fa-eye"></i>
+  <!-- Table -->
+  <div class="table-container">
+    <div class="table-responsive-wrapper">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th class="col-num">#</th>
+            <th>F.I.SH</th>
+            <th>Telefon</th>
+            <th>Tug‘ilgan sana</th>
+            <th>Ulushi (%)</th>
+            <th>Guruh</th>
+            <th style="width: 50px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in teachers %}
+          <tr>
+            <td class="col-num">{{ forloop.counter }}</td>
+            <td>
+              <div class="name">{{ t.ism }}</div>
+              {% if t.familya %}
+              <div class="sub">{{ t.familya }}</div>
+              {% endif %}
+            </td>
+            <td>
+              <span style="font-family: monospace; color: var(--text-muted);">{{ t.telefon1|default:"—" }}</span>
+            </td>
+            <td>
+              <span style="font-family: monospace; color: white;">{{ t.birth_date|date:"d.m.Y"|default:"—" }}</span>
+            </td>
+            <td>
+              <span class="badge-percent">{{ t.oqituvchi_foizi }}%</span>
+            </td>
+            <td>
+              <div class="circle-badge">{{ t.group_count|default:0 }}</div>
+            </td>
+            <td style="text-align: right;">
+              <div class="menu-wrapper">
+                <button class="menu-btn" type="button" aria-label="Menu">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="menu-dropdown">
+                  <a href="{% url 'core:teacher_detail' t.id %}">
+                    <i class="fa-solid fa-eye"></i> Ko‘rish
                   </a>
-
-                  <a href="{% url 'core:teacher_edit' t.id %}" class="icon-btn edit" title="Tahrirlash">
-                    <i class="fa-solid fa-pen"></i>
+                  <a href="{% url 'core:teacher_edit' t.id %}">
+                    <i class="fa-solid fa-pen"></i> Tahrirlash
                   </a>
-
-                  <form method="post"
-                        action="{% url 'core:teacher_delete' t.id %}"
-                        onsubmit="return confirm('O‘qituvchini o‘chirishni tasdiqlaysizmi?');">
+                  <form method="post" action="{% url 'core:teacher_delete' t.id %}"
+                    onsubmit="return confirm('O‘qituvchini o‘chirishni tasdiqlaysizmi?');" style="margin:0;">
                     {% csrf_token %}
-                    <button type="submit" class="icon-btn delete btn-reset" title="O‘chirish">
-                      <i class="fa-solid fa-trash"></i>
+                    <button type="submit" class="text-red">
+                      <i class="fa-solid fa-trash"></i> O‘chirish
                     </button>
                   </form>
                 </div>
               </div>
-            </div>
-          </div>
-        {% empty %}
-          <div class="empty">⚠️ O‘qituvchi topilmadi</div>
-        {% endfor %}
-      </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="empty-state">
+              Ma'lumotlar topilmadi
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
-      <!-- TABLE (tablet/desktop) -->
-      <div class="table-responsive">
-        <table class="tbl">
-          <thead>
-            <tr>
-              <th class="col-num">#</th>
-              <th>F.I.Sh</th>
-              <th>Telefon</th>
-              <th>Ulushi (%)</th>
-              <th>Guruh</th>
-              <th style="text-align:center;">Amallar</th>
-            </tr>
-          </thead>
+<script>
+  /* Menu Dropdown Logic */
+  function closeAllMenus() {
+    document.querySelectorAll('.menu-dropdown').forEach(m => m.classList.remove('open'));
+  }
 
-          <tbody>
-            {% for t in teachers %}
-            <tr>
-              <td class="col-num">{{ forloop.counter }}</td>
+  // Scroll yoki resize bo‘lganda fixed menyuni yopish
+  window.addEventListener('scroll', closeAllMenus, { passive: true });
+  window.addEventListener('resize', closeAllMenus, { passive: true });
 
-              <td>
-                <div class="name">
-                  {{ t.ism }}
-                  {% if t.familya %}<span class="sub">{{ t.familya }}</span>{% endif %}
-                  {% if t.otchestvo %}<span class="sub" style="color: rgba(226,232,240,.75); font-weight:700;">{{ t.otchestvo }}</span>{% endif %}
-                </div>
-              </td>
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.menu-btn');
+    if (btn) {
+      const currentMenu = btn.nextElementSibling;
+      const isOpen = currentMenu.classList.contains('open');
 
-              <td class="phone">{{ t.telefon1|default:"—" }}</td>
+      closeAllMenus();
 
-              <td>
-                <span class="pill percent">{{ t.oqituvchi_foizi }}%</span>
-              </td>
+      if (!isOpen) {
+        currentMenu.classList.add('open');
 
-              <td>
-                <span class="circle">{{ t.group_count }}</span>
-              </td>
+        // Position Logic
+        const rect = btn.getBoundingClientRect();
+        const menuRect = currentMenu.getBoundingClientRect();
+        const vh = window.innerHeight;
+        const vw = window.innerWidth;
 
-              <td>
-                <div class="actions">
-                  <a href="{% url 'core:teacher_detail' t.id %}" class="icon-btn view" title="Ko‘rish">
-                    <i class="fa-solid fa-eye"></i>
-                  </a>
+        let top = rect.bottom + 8;
+        let left = rect.right - menuRect.width;
 
-                  <a href="{% url 'core:teacher_edit' t.id %}" class="icon-btn edit" title="Tahrirlash">
-                    <i class="fa-solid fa-pen"></i>
-                  </a>
+        if (top + menuRect.height > vh) {
+          top = rect.top - menuRect.height - 8;
+        }
 
-                  <form method="post"
-                        action="{% url 'core:teacher_delete' t.id %}"
-                        onsubmit="return confirm('O‘qituvchini o‘chirishni tasdiqlaysizmi?');">
-                    {% csrf_token %}
-                    <button type="submit" class="icon-btn delete btn-reset" title="O‘chirish">
-                      <i class="fa-solid fa-trash"></i>
-                    </button>
-                  </form>
-                </div>
-              </td>
-            </tr>
-            {% empty %}
-            <tr>
-              <td colspan="6" class="empty">⚠️ O‘qituvchi topilmadi</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+        if (left < 10) {
+          left = 10;
+        } else if (left + menuRect.width > vw - 10) {
+          left = vw - menuRect.width - 10;
+        }
 
+        currentMenu.style.top = top + 'px';
+        currentMenu.style.left = left + 'px';
+      }
+    } else if (!e.target.closest('.menu-dropdown')) {
+      closeAllMenus();
+    }
+  });
+
+  /* Import Modal Logic */
+  function openImportModal() {
+    document.getElementById('importModal').classList.add('open');
+    resetImportModal();
+  }
+
+  function closeImportModal() {
+    document.getElementById('importModal').classList.remove('open');
+  }
+
+  function resetImportModal() {
+    const fileInput = document.getElementById('fileInput');
+    const dropArea = document.getElementById('dropArea');
+    const uploadText = document.getElementById('uploadText');
+    const uploadIcon = document.getElementById('uploadIcon');
+    const actions = document.getElementById('modalActions');
+
+    fileInput.value = '';
+    dropArea.style.borderColor = 'rgba(255,255,255,0.1)';
+    dropArea.style.background = 'rgba(2,6,23,0.3)';
+    dropArea.dataset.selected = "";
+    uploadText.innerText = "Tayyor faylni yuklang";
+    uploadText.style.color = "white";
+    uploadIcon.innerHTML = '<i class="fa-solid fa-cloud-arrow-up" style="font-size:24px; color:var(--primary);"></i>';
+    actions.style.display = 'none';
+  }
+
+  function handleFileSelect(input) {
+    const dropArea = document.getElementById('dropArea');
+    const uploadText = document.getElementById('uploadText');
+    const uploadIcon = document.getElementById('uploadIcon');
+    const actions = document.getElementById('modalActions');
+
+    if (input.files && input.files[0]) {
+      const fileName = input.files[0].name;
+      dropArea.style.borderColor = 'var(--primary)';
+      dropArea.style.background = 'rgba(245,158,11,0.05)';
+      dropArea.dataset.selected = "true";
+      uploadText.innerText = "Tanlangan fayl: " + fileName;
+      uploadText.style.color = "var(--primary)";
+      uploadIcon.innerHTML = '<i class="fa-solid fa-file-excel" style="font-size:24px; color:var(--green);"></i>';
+
+      actions.style.display = 'flex';
+      actions.style.animation = 'fadeIn 0.3s ease';
+    }
+  }
+</script>
+
+<!-- Import Modal -->
+<div id="importModal"
+  style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1050; display: none; align-items: center; justify-content: center; backdrop-filter: blur(8px); background: rgba(0, 0, 0, 0.6); opacity: 0; transition: opacity 0.3s ease;">
+  <style>
+    #importModal.open {
+      display: flex !important;
+      opacity: 1 !important;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(20px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .import-content {
+      animation: slideUp 0.3s ease-out;
+    }
+  </style>
+
+  <div class="import-content"
+    style="background: #0f172a; width: 100%; max-width: 500px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); padding: 32px; position: relative; margin: 20px;">
+
+    <!-- Modal Header -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+      <div style="font-size: 20px; font-weight: 800; color: white;">Import qilish</div>
+      <button onclick="closeImportModal()"
+        style="background:rgba(255,255,255,0.05); border:none; color:#94a3b8; width:32px; height:32px; border-radius:50%; display:grid; place-items:center; cursor:pointer; transition:0.2s;">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     </div>
 
+    <!-- Steps Progress -->
+    <div style="display:flex; gap:12px; margin-bottom:24px;">
+      <div style="flex:1; height:4px; border-radius:2px; background:var(--primary);"></div>
+      <div style="flex:1; height:4px; border-radius:2px; background:var(--primary);"></div>
+      <div style="flex:1; height:4px; border-radius:2px; background:rgba(255,255,255,0.1);"></div>
+    </div>
+
+    <!-- Instruction List -->
+    <div style="display:grid; gap:20px; margin-bottom:30px;">
+      <div style="display:flex; gap:16px;">
+        <div
+          style="width:32px; height:32px; background:rgba(245,158,11,0.1); color:var(--primary); border-radius:50%; display:grid; place-items:center; flex-shrink:0; font-weight:800; font-size:14px;">
+          1</div>
+        <div>
+          <div style="color:white; font-weight:700; font-size:15px; margin-bottom:4px;">Shablonni yuklab oling</div>
+          <p style="color:var(--text-muted); font-size:13px; line-height:1.5; margin-bottom:10px;">
+            Import to‘g‘ri ishlashi uchun maxsus Excel shablonidan foydalaning.
+          </p>
+          <a href="{% url 'core:users_download_template' %}?role=teacher" class="btn-action btn-outline"
+            style="height:36px; padding:0 14px; font-size:13px; display:inline-flex; border-color:rgba(245,158,11,0.3); color:var(--primary);">
+            <i class="fa-solid fa-download"></i> Shablonni yuklab olish
+          </a>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:16px;">
+        <div
+          style="width:32px; height:32px; background:rgba(245,158,11,0.1); color:var(--primary); border-radius:50%; display:grid; place-items:center; flex-shrink:0; font-weight:800; font-size:14px;">
+          2</div>
+        <div>
+          <div style="color:white; font-weight:700; font-size:15px; margin-bottom:4px;">Ma'lumotlarni to‘ldiring</div>
+          <p style="color:var(--text-muted); font-size:13px; line-height:1.5;">
+            Yuklab olingan Excel faylga o‘qituvchilar ma'lumotlarini namunadagidek kiriting.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload Area -->
+    <form id="importForm" action="{% url 'core:users_import_excel' %}?role=teacher" method="post"
+      enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" name="role" value="teacher">
+      <input type="file" name="file" id="fileInput" accept=".xlsx" hidden onchange="handleFileSelect(this)">
+
+      <label for="fileInput" id="dropArea"
+        style="border: 2px dashed rgba(255,255,255,0.1); border-radius:16px; padding:32px; display:flex; flex-direction:column; align-items:center; cursor:pointer; transition:all 0.3s ease; background:rgba(2,6,23,0.3); margin-bottom:10px;"
+        onmouseover="this.style.borderColor='var(--primary)'; this.style.background='rgba(245,158,11,0.03)';"
+        onmouseout="if(!this.dataset.selected) { this.style.borderColor='rgba(255,255,255,0.1)'; this.style.background='rgba(2,6,23,0.3)'; }">
+        <div id="uploadIcon"
+          style="width:56px; height:56px; background:rgba(255,255,255,0.05); border-radius:50%; display:grid; place-items:center; margin-bottom:16px;">
+          <i class="fa-solid fa-cloud-arrow-up" style="font-size:24px; color:var(--primary);"></i>
+        </div>
+        <span id="uploadText" style="color:white; font-weight:700; font-size:16px;">Tayyor faylni yuklang</span>
+        <span id="uploadSubtext" style="color:var(--text-muted); font-size:12px; margin-top:6px;">Faqat .xlsx formatdagi
+          fayllar</span>
+      </label>
+
+      <!-- Modal Footer Actions -->
+      <div id="modalActions"
+        style="display:none; justify-content: flex-end; gap: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05);">
+        <button type="button" onclick="closeImportModal()" class="btn-action btn-outline" style="border:none;">
+          Bekor qilish
+        </button>
+        <button type="submit" class="btn-action btn-primary" style="padding: 0 30px;">
+          <i class="fa-solid fa-check"></i> Saqlash
+        </button>
+      </div>
+    </form>
   </div>
 </div>
 

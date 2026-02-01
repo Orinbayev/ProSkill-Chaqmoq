@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% load billing_extras %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div>
+    <h2 class="m-0" style="font-weight:950;">Oylik tariflar</h2>
+    <div style="color:rgba(255,255,255,.70)">Kerakli tarifni tanlang va uzaytiring.</div>
+  </div>
+
+  <button class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#promoModal">
+    ➕ Promokod
+  </button>
+</div>
+
+<div class="mt-3 d-flex gap-2 flex-wrap">
+  {% for m in durations %}
+    <a class="btn {% if m == duration %}btn-warning fw-bold{% else %}btn-outline-light{% endif %}"
+       href="?m={{ m }}{% if promo %}&promo={{ promo }}{% endif %}">
+      {{ m }} oy
+    </a>
+  {% endfor %}
+</div>
+
+{% if promo %}
+  <div class="mt-3 p-3" style="border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);">
+    ✅ Promokod qo‘llandi: <b>{{ promo }}</b>
+    <a class="ms-2 text-decoration-underline" href="?m={{ duration }}">Bekor qilish</a>
+  </div>
+{% endif %}
+
+<div class="row mt-4 g-3">
+  {% for p in plans %}
+    {% with pr=pricing|get_item:p.code %}
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="p-4 h-100" style="border-radius:18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);">
+        <div class="d-flex justify-content-between align-items-center">
+          <h4 class="m-0" style="font-weight:950;">{{ p.title }}</h4>
+          {% if p.is_popular %}<span class="badge text-bg-warning">Popular</span>{% endif %}
+        </div>
+
+        <div class="mt-2" style="font-size:32px;font-weight:950;">
+          {{ pr.final|intcomma }} so‘m
+        </div>
+        <div style="color:rgba(255,255,255,.70)">{{ duration }} oy</div>
+
+        {% if pr.discount_percent %}
+          <div class="mt-2" style="color:rgba(250,204,21,.95); font-weight:800;">
+            Chegirma: -{{ pr.discount_percent }}%
+          </div>
+        {% endif %}
+
+        <div class="mt-3" style="color:rgba(255,255,255,.75)">
+          Limit: {{ p.max_students }} o‘quvchi · {{ p.max_users }} user · {{ p.max_groups }} guruh
+        </div>
+
+        <form method="post" action="{% url 'billing:order_create' %}" class="mt-3">
+          {% csrf_token %}
+          <input type="hidden" name="plan" value="{{ p.code }}">
+          <input type="hidden" name="months" value="{{ duration }}">
+          <input type="hidden" name="promo" value="{{ promo }}">
+          <button class="btn btn-warning w-100 fw-bold">⚡ Uzaytirish</button>
+        </form>
+
+        {% if request.user.is_superuser %}
+          <div class="mt-2" style="opacity:.8;">
+            <small>Superadmin: demo confirm link order yaratilgandan keyin chiqadi (message’da #id)</small>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endwith %}
+  {% endfor %}
+</div>
+
+<!-- PROMO MODAL -->
+<div class="modal fade" id="promoModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content" style="background:rgba(2,6,23,.92); border:1px solid rgba(255,255,255,.10); border-radius:18px;">
+      <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,.08)">
+        <h5 class="modal-title fw-bold text-white">Promokod</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="get" action="">
+        <div class="modal-body">
+          <input type="hidden" name="m" value="{{ duration }}">
+          <label class="text-white-50">Promokodni kiriting</label>
+          <input class="form-control mt-2" name="promo" value="{{ promo }}" placeholder="MASALAN: PRO10">
+          <div class="text-white-50 mt-2" style="font-size:13px;">Chegirma avtomatik hisoblanadi.</div>
+        </div>
+        <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,.08)">
+          <button class="btn btn-outline-light" data-bs-dismiss="modal" type="button">Yopish</button>
+          <button class="btn btn-warning fw-bold" type="submit">Qo‘llash</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

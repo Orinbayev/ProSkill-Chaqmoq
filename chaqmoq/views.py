@@ -15,6 +15,16 @@ from django.db.models.functions import Coalesce, Abs
 
 
 User = get_user_model()
+from .forms import RuleForm
+
+
+def get_active_center(request):
+    """Helper: active center ni topish"""
+    if hasattr(request, "center") and request.center:
+        return request.center
+    if hasattr(request.user, "center") and request.user.center:
+        return request.user.center
+    return None
 
 
 def reyting(request):
@@ -29,7 +39,11 @@ def reyting(request):
     if per_page not in (10, 20, 50, 100):
         per_page = 50
 
+    # ✅ Tenant isolation
+    center = get_active_center(request)
     base = Ledger.objects.filter(student__role="student")
+    if center:
+        base = base.filter(student__center=center)
 
     # ✅ Umumiy leaderboard (hamma o‘quvchi)
     leaderboard_all = (
@@ -88,11 +102,22 @@ def student_detail(request, pk):
 
     per_page = per_page_raw if per_page_raw == "all" else int(per_page_raw)
 
+    # ✅ Tenant Isolation (Data Isolation)
+    center = get_active_center(request)
+    
     enrolls = Enrollment.objects.filter(student=student).select_related('group')
+    if center:
+        enrolls = enrolls.filter(group__center=center)
 
     led_qs = (
         Ledger.objects
         .filter(student=student)
+    )
+    if center:
+        led_qs = led_qs.filter(Q(group__center=center) | Q(rule__center=center))
+
+    led_qs = (
+        led_qs
         .select_related('group', 'rule', 'beruvchi')
         .order_by('-created_at')
     )
@@ -188,8 +213,20 @@ from datetime import date
 
 @login_required
 def berish(request):
+    # ✅ Tenant isolation
+    center = get_active_center(request)
     groups = Group.objects.select_related('oqituvchi', 'center').order_by('nom')
-    rules = Rule.objects.order_by('nom')
+    if center:
+        groups = groups.filter(center=center)
+    
+    rules = Rule.objects.filter(Q(center=center) | Q(center__isnull=True))
+    if request.user.role == 'teacher':
+        rules = rules.filter(can_teacher=True)
+    elif request.user.role == 'manager':
+        rules = rules.filter(can_manager=True)
+    elif request.user.role == 'director':
+        rules = rules.filter(can_director=True)
+    rules = rules.order_by('nom')
 
     # O‘qituvchi faqat o‘z guruhlarini ko‘radi
     if request.user.role == 'teacher':
@@ -298,11 +335,17 @@ def my_chaqmoq(request):
         if per_page_int not in (10, 20, 50, 100):
             per_page_int = 20
 
+    center = get_active_center(request)
     enrolls = Enrollment.objects.filter(student=student).select_related("group")
+    if center:
+        enrolls = enrolls.filter(group__center=center)
+
+    teacher_stats_qs = Ledger.objects.filter(student=student)
+    if center:
+        teacher_stats_qs = teacher_stats_qs.filter(Q(group__center=center) | Q(rule__center=center))
 
     teacher_stats = (
-        Ledger.objects
-        .filter(student=student)
+        teacher_stats_qs
         .values("beruvchi__id", "beruvchi__ism", "beruvchi__familya")
         .annotate(
             coin_plus=Coalesce(Sum(
@@ -315,7 +358,11 @@ def my_chaqmoq(request):
         .order_by("-coin_plus", "beruvchi__ism")
     )
 
-    totals = Ledger.objects.filter(student=student).aggregate(
+    totals_qs = Ledger.objects.filter(student=student)
+    if center:
+        totals_qs = totals_qs.filter(Q(group__center=center) | Q(rule__center=center))
+
+    totals = totals_qs.aggregate(
         total_plus=Coalesce(Sum(
             Case(When(ball__gt=0, then=F("ball")), default=Value(0), output_field=IntegerField())
         ), 0),
@@ -328,6 +375,12 @@ def my_chaqmoq(request):
     led_qs = (
         Ledger.objects
         .filter(student=student)
+    )
+    if center:
+        led_qs = led_qs.filter(Q(group__center=center) | Q(rule__center=center))
+
+    led_qs = (
+        led_qs
         .select_related("group", "rule", "beruvchi")
         .order_by("-sana")
     )
@@ -360,3 +413,103 @@ def my_chaqmoq(request):
         "per_page": "all" if per_page_int is None else per_page_int,
     }
     return render(request, "chaqmoq/student_detail.html", ctx)
+@login_required
+def rule_list(request):
+    center = get_active_center(request)
+    if request.user.role not in ['director', 'manager'] and not request.user.is_superuser:
+        messages.error(request, "Sizda ruxsat yo'q")
+        return redirect("education:groups_home")
+    
+    rules = Rule.objects.all()
+    if center:
+        rules = rules.filter(center=center)
+    else:
+        # Superadmin center tanlamagan bo'lsa global qoidalarni ko'radi
+        rules = rules.filter(center__isnull=True)
+    
+    return render(request, "chaqmoq/rule_settings.html", {
+        "rules": rules,
+        "center_limit": center.max_daily_lightning if center else 0,
+        "center_deduction_limit": center.max_daily_deduction if center else 0,
+    })
+
+@login_required
+def rule_settings_update(request):
+    center = get_active_center(request)
+    if request.user.role not in ['director', 'manager'] and not request.user.is_superuser:
+        return JsonResponse({"ok": False, "error": "Ruxsat yo'q"}, status=403)
+    
+    if request.method == "POST":
+        try:
+            limit_plus = int(request.POST.get("max_daily_lightning", 0))
+            limit_minus = int(request.POST.get("max_daily_deduction", 0))
+            if center:
+                center.max_daily_lightning = limit_plus
+                center.max_daily_deduction = limit_minus
+                center.save()
+                messages.success(request, "Sozlamalar yangilandi ✅")
+        except ValueError:
+            messages.error(request, "Noto'g'ri qiymat kiritildi")
+            
+    return redirect("chaqmoq:rule_list")
+
+@login_required
+def rule_add(request):
+    center = get_active_center(request)
+    if request.user.role not in ['director', 'manager'] and not request.user.is_superuser:
+        messages.error(request, "Sizda ruxsat yo'q")
+        return redirect("education:groups_home")
+
+    if request.method == "POST":
+        form = RuleForm(request.POST)
+        if form.is_valid():
+            rule = form.save(commit=False)
+            rule.center = center
+            rule.save()
+            messages.success(request, "Qoida saqlandi ✅")
+            return redirect("chaqmoq:rule_list")
+    else:
+        form = RuleForm()
+    
+    return render(request, "chaqmoq/rule_form.html", {"form": form, "title": "Yangi qoida qo'shish"})
+
+@login_required
+def rule_edit(request, pk):
+    center = get_active_center(request)
+    rule = get_object_or_404(Rule, pk=pk)
+    
+    # Isolation check
+    if center and rule.center != center and not request.user.is_superuser:
+        messages.error(request, "Ruxsat yo'q")
+        return redirect("chaqmoq:rule_list")
+
+    if request.user.role not in ['director', 'manager'] and not request.user.is_superuser:
+        messages.error(request, "Sizda ruxsat yo'q")
+        return redirect("education:groups_home")
+
+    if request.method == "POST":
+        form = RuleForm(request.POST, instance=rule)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Qoida yangilandi ✅")
+            return redirect("chaqmoq:rule_list")
+    else:
+        form = RuleForm(instance=rule)
+    
+    return render(request, "chaqmoq/rule_form.html", {"form": form, "title": "Qoidani tahrirlash"})
+
+@login_required
+def rule_delete(request, pk):
+    center = get_active_center(request)
+    rule = get_object_or_404(Rule, pk=pk)
+    
+    # Isolation check
+    if center and rule.center != center and not request.user.is_superuser:
+        return JsonResponse({"ok": False, "error": "Ruxsat yo'q"}, status=403)
+
+    if request.user.role not in ['director', 'manager'] and not request.user.is_superuser:
+        return JsonResponse({"ok": False, "error": "Ruxsat yo'q"}, status=403)
+
+    rule.delete()
+    messages.success(request, "Qoida o'chirildi 🗑️")
+    return redirect("chaqmoq:rule_list")

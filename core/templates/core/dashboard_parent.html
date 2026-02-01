@@ -1,0 +1,436 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<style>
+    :root {
+        --bg-dark: #020617;
+        --bg-card: #0f172a;
+        --border: rgba(255, 255, 255, 0.08);
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+        --primary: #f59e0b;
+        --radius: 20px;
+    }
+
+    .parent-scope {
+        background: var(--bg-dark);
+        min-height: 100vh;
+        padding: 24px;
+        color: var(--text-main);
+        font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    .header-section {
+        margin-bottom: 32px;
+    }
+
+    .welcome-text {
+        font-size: 24px;
+        font-weight: 800;
+        margin-bottom: 8px;
+    }
+
+    .center-name {
+        font-size: 14px;
+        color: var(--primary);
+        font-weight: 600;
+    }
+
+    .children-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 24px;
+        margin-bottom: 40px;
+    }
+
+    .child-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+        transition: 0.3s;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .child-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--primary);
+    }
+
+    .child-info {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .child-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: rgba(245, 158, 11, 0.1);
+        display: grid;
+        place-items: center;
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--primary);
+    }
+
+    .child-name {
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    .stats-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+    }
+
+    .stat-box {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+        padding: 12px;
+        text-align: center;
+    }
+
+    .stat-value {
+        font-size: 20px;
+        font-weight: 800;
+        display: block;
+    }
+
+    .stat-label {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        font-weight: 700;
+    }
+
+    .search-section {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+    }
+
+    .search-box {
+        position: relative;
+        margin-bottom: 20px;
+    }
+
+    .search-input {
+        width: 100%;
+        height: 54px;
+        background: rgba(2, 6, 23, 0.5);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0 54px;
+        color: white;
+        font-size: 16px;
+        outline: none;
+        transition: 0.2s;
+    }
+
+    .search-input:focus {
+        border-color: var(--primary);
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+    }
+
+    .result-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        border-bottom: 1px solid var(--border);
+        transition: 0.2s;
+    }
+
+    .result-item:last-child {
+        border-bottom: none;
+    }
+
+    .result-item:hover {
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .view-btn {
+        padding: 8px 16px;
+        background: var(--primary);
+        color: black;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 13px;
+    }
+</style>
+
+<div class="parent-scope">
+    <div class="header-section"
+        style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+        <div>
+            <h1 class="welcome-text" style="margin: 0; font-weight: 800; font-size: 26px;">Assalomu alaykum, {{ request.user.ism }}! 👋</h1>
+            <p class="center-name" style="margin-top: 6px; color: var(--primary); font-weight: 700; font-size: 14px;">
+                <i class="fa-solid fa-location-dot"></i> {{ center.name }}
+            </p>
+        </div>
+        {% if center.donation_enabled %}
+        <div style="padding-top: 5px;">
+            <button type="button" class="btn-action btn-primary" onclick="openParentDonationModal()"
+                style="background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); border: none; height: 46px; padding: 0 24px; border-radius: 14px;">
+                <i class="fa-solid fa-heart"></i> Donat
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="dashboard-content" style="display: grid; grid-template-columns: 1fr; gap: 24px; align-items: start;">
+        <!-- Main Content -->
+        <div class="main-column">
+
+            <h2 style="margin-bottom: 20px; font-size: 20px; display: flex; align-items: center; gap: 10px;">
+                <i class="fa-solid fa-children" style="color: var(--primary);"></i>
+                Mening farzandlarim
+            </h2>
+            <div class="children-grid">
+                {% for child in children %}
+                <div class="child-card">
+                    <div class="dropdown" style="position: absolute; top: 20px; right: 20px; z-index: 10;">
+                        <button class="btn btn-link text-white-50 p-0" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fa-solid fa-ellipsis-vertical fs-5"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end"
+                            style="background: #1e293b; border: 1px solid rgba(255,255,255,0.1);">
+                            <li>
+                                <button class="dropdown-item text-danger d-flex align-items-center gap-2 small"
+                                    type="button"
+                                    onclick="confirmAction('{{ child.get_full_name|escapejs }}', 'remove', '{% url 'core:toggle_child' child.id %}')">
+                                    <i class="fa-solid fa-trash"></i> Farzandlardan chiqarish
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="child-info">
+                        <div class="child-avatar">
+                            {{ child.ism|slice:":1" }}{{ child.familya|slice:":1" }}
+                        </div>
+                        <div>
+                            <div class="child-name">{{ child.get_full_name }}</div>
+                        </div>
+                    </div>
+
+                    <div class="stats-row">
+                        <div class="stat-box">
+                            <span class="stat-value" style="color: #4ade80;">#{{ child.calculated_rank }}</span>
+                            <span class="stat-label">Reyting O'rni</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-value" style="color: var(--primary);">{{ child.calculated_balance }}</span>
+                            <span class="stat-label">Chaqmoqlar</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-value" style="color: #60a5fa;">{{ child.enrollment_set.count }}</span>
+                            <span class="stat-label">Guruhlar</span>
+                        </div>
+                    </div>
+
+                    <a href="{% url 'core:user_view' child.id %}"
+                        style="margin-top: 20px; width: 100%; justify-content: center; background: rgba(245, 158, 11, 0.1); color: var(--primary); border: 1px solid rgba(245, 158, 11, 0.2); text-decoration: none; padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 8px; font-weight: 700; transition: 0.2s;">
+                        <i class="fa-solid fa-chart-line"></i> Reyting & Davomat
+                    </a>
+                </div>
+                {% empty %}
+                <div class="child-card"
+                    style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;">
+                    <i class="fa-solid fa-user-slash" style="font-size: 40px; margin-bottom: 16px; opacity: 0.3;"></i>
+                    <p>Sizga birortala ham farzand biriktirilmagan.</p>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="search-section">
+                <h2 style="margin-bottom: 20px; font-size: 20px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-user-group" style="color: var(--primary);"></i>
+                    Boshqa o'quvchilarni qidirish
+                </h2>
+                <form method="get" class="search-box">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" name="q" value="{{ request.GET.q|default:'' }}" class="search-input"
+                        placeholder="O'quvchi ismi yoki familiyasi...">
+                </form>
+
+                {% if request.GET.q %}
+                <div class="search-results">
+                    {% for result in search_results %}
+                    <div class="result-item">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div
+                                style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.05); display: grid; place-items: center; font-size: 14px; font-weight: 700;">
+                                {{ result.ism|slice:":1" }}
+                            </div>
+                            <div>
+                                <span style="font-weight: 700;">{{ result.get_full_name }}</span>
+                                <div style="font-size: 11px; color: var(--text-muted);">O'quvchi</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 24px;">
+                            <div style="text-align: right;">
+                                <div style="font-weight: 800; color: #4ade80;">#{{ result.calculated_rank }}</div>
+                                <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">
+                                    Reyting O'rni
+                                </div>
+                            </div>
+
+                            <div style="display: flex; gap: 10px;">
+                                <a href="{% url 'core:user_view' result.id %}" class="view-btn">
+                                    <i class="fa-solid fa-eye"></i> Ko'rish
+                                </a>
+
+                                {% if result.is_my_child %}
+                                <button type="button" class="view-btn"
+                                    style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 16px; cursor: pointer;"
+                                    onclick="confirmAction('{{ result.get_full_name|escapejs }}', 'remove', '{% url 'core:toggle_child' result.id %}')">
+                                    <i class="fa-solid fa-user-minus"></i> Olib tashlash
+                                </button>
+                                {% else %}
+                                <button type="button" class="view-btn"
+                                    style="background: rgba(34, 197, 94, 0.2); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.3); padding: 8px 16px; cursor: pointer;"
+                                    onclick="confirmAction('{{ result.get_full_name|escapejs }}', 'add', '{% url 'core:toggle_child' result.id %}')">
+                                    <i class="fa-solid fa-user-plus"></i> Qo'shish
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <i class="fa-solid fa-face-sad-tear"
+                            style="font-size: 30px; margin-bottom: 12px; opacity: 0.3;"></i>
+                        <p>Hech kim topilmadi.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- Custom Confirmation Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true" style="z-index: 100000;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: #1e293b; border: 1px solid rgba(255,255,255,0.1); color: white;">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="confirmModalTitle">Tasdiqlash</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmModalText" class="mb-0"></p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Bekor
+                    qilish</button>
+                <form id="confirmActionForm" method="post" action="">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary btn-sm" id="confirmModalBtn">Tasdiqlash</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function confirmAction(name, action, url) {
+        const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+        const form = document.getElementById('confirmActionForm');
+        const text = document.getElementById('confirmModalText');
+        const btn = document.getElementById('confirmModalBtn');
+        const title = document.getElementById('confirmModalTitle');
+
+        form.action = url;
+
+        if (action === 'add') {
+            title.innerText = "Farzand qo'shish";
+            text.innerHTML = `<span class="fw-bold text-warning">${name}</span> ni farzandlaringiz qatoriga qo‘shishni hohlaysizmi?`;
+            btn.className = 'btn btn-success btn-sm';
+            btn.innerText = "Ha, qo‘shish";
+        } else {
+            title.innerText = "Farzandni o'chirish";
+            text.innerHTML = `<span class="fw-bold text-warning">${name}</span> ni farzandlaringiz safidan olib tashlamoqchimisiz?`;
+            btn.className = 'btn btn-danger btn-sm';
+            btn.innerText = "Ha, o'chirish";
+        }
+
+        modal.show();
+    }
+
+    function openParentDonationModal() {
+        const modal = new bootstrap.Modal(document.getElementById('parentDonationModal'));
+        modal.show();
+    }
+</script>
+
+{% if center.donation_enabled %}
+<div class="modal fade" id="parentDonationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass"
+            style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 24px; color: white; overflow: hidden;">
+            <div class="modal-header border-0 bg-transparent p-4 pb-0">
+                <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-heart text-danger"></i> Qo'llab-quvvatlash
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div class="mb-4">
+                    <h3 class="fw-bold mb-1">Markazni qo'llab-quvvatlash</h3>
+                    <p class="text-white-50 small">Sizning yordamingiz biz uchun muhim!</p>
+                </div>
+
+                {% if center.donation_qr_image %}
+                <div class="p-3 bg-white rounded-4 mb-4 d-inline-block shadow-lg">
+                    <img src="{{ center.donation_qr_image.url }}" alt="QR Code"
+                        style="width: 100%; max-width: 240px; border-radius: 12px;">
+                </div>
+                {% endif %}
+
+                {% if center.donation_card_number %}
+                <div
+                    class="card-details bg-dark bg-opacity-50 p-4 rounded-4 border border-white border-opacity-10 text-start">
+                    <div class="text-white-50 small text-uppercase fw-bold mb-2 ls-1" style="font-size: 10px;">Karta
+                        raqami</div>
+                    <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                        <span class="fs-4 fw-bold text-white font-monospace">{{ center.donation_card_number }}</span>
+                        <button type="button" class="btn btn-outline-warning btn-sm border-0"
+                            onclick="navigator.clipboard.writeText('{{ center.donation_card_number }}'); alert('Nusxalandi!')">
+                            <i class="fa-regular fa-copy fs-5"></i>
+                        </button>
+                    </div>
+                    {% if center.donation_card_holder %}
+                    <div class="text-white-50 fw-600">{{ center.donation_card_holder }}</div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer border-0 p-4 pt-0">
+                <button type="button" class="btn btn-secondary w-100 rounded-3 py-2 fw-bold"
+                    data-bs-dismiss="modal">Yopish</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -2,440 +2,380 @@
 {% block content %}
 
 <style>
-  :root{
-    --bg0:#070b14;
-    --bg1:#0b1220;
-    --bg2:#0f1b33;
+  :root {
+    --bg: #0b1220;
+    --panel: rgba(17, 24, 39, .66);
+    --panel2: rgba(2, 6, 23, .45);
+    --muted: #9ca3af;
+    --text: #e5e7eb;
+    --line: rgba(255, 255, 255, .09);
 
-    --panel: rgba(17,24,39,.62);
-    --panel2: rgba(2,6,23,.42);
-    --line: rgba(255,255,255,.10);
+    --chip-warn: #facc15;
+    --chip-ok: #22c55e;
+    --chip-bad: #ef4444;
+    --chip-alt: #6b7280;
 
-    --text:#e5e7eb;
-    --muted:#94a3b8;
-
-    --accent:#facc15;
-    --blue:#38bdf8;
-    --blue2:#0ea5e9;
-
-    --green:#22c55e;
-    --green2:#16a34a;
-
-    --red:#ef4444;
-    --red2:#b91c1c;
-
-    --shadow: 0 18px 55px rgba(0,0,0,.45);
-    --shadow2: 0 26px 80px rgba(0,0,0,.55);
-    --radius: 22px;
-    --ring: 0 0 0 4px rgba(250,204,21,.16), 0 0 18px rgba(250,204,21,.22);
+    --btn: #10b981;
+    --blue: #1d4ed8;
+    --shadow: 0 18px 55px rgba(0, 0, 0, .45);
   }
 
-  .rq-shell{
-    position: relative;
-    min-height: calc(100svh - 1px);
-    padding: clamp(14px, 2.4vw, 28px) 0;
-    color: var(--text);
-  }
-  .rq-bg{
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    background:
-      radial-gradient(900px 420px at 16% 10%, rgba(250,204,21,.10), transparent 60%),
-      radial-gradient(760px 380px at 85% 18%, rgba(56,189,248,.10), transparent 60%),
-      radial-gradient(980px 520px at 55% 92%, rgba(34,197,94,.08), transparent 62%),
-      linear-gradient(160deg, var(--bg0), var(--bg1) 45%, var(--bg2));
-  }
-
-  .requests-wrapper{
-    width:100%;
+  .page-container {
+    width: 100%;
     max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 16px 22px;
+    margin: 16px auto 28px;
+    padding: 0 16px;
     color: var(--text);
   }
 
-  /* ===== HEADER ===== */
-  .rq-head{
-    display:flex;
-    align-items:flex-start;
-    justify-content:space-between;
+  /* ===== TOP TOOLBAR ===== */
+  .toolbar {
+    display: flex;
     gap: 14px;
+    align-items: center;
+    justify-content: space-between;
     flex-wrap: wrap;
 
-    padding: 16px 16px;
-    border-radius: var(--radius);
-    background: linear-gradient(180deg, var(--panel), rgba(2,6,23,.48));
-    border: 1px solid rgba(255,255,255,.10);
-    box-shadow: var(--shadow2);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    position: relative;
-    overflow:hidden;
+    padding: 16px 18px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--panel), var(--panel2));
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(10px);
   }
-  .rq-head::before{
-    content:"";
-    position:absolute;
-    inset:-2px;
-    background:
-      radial-gradient(820px 360px at 12% 0%, rgba(250,204,21,.09), transparent 62%),
-      radial-gradient(760px 340px at 92% 0%, rgba(56,189,248,.08), transparent 62%),
-      radial-gradient(980px 420px at 50% 140%, rgba(34,197,94,.08), transparent 65%);
-    pointer-events:none;
-    opacity:.95;
-  }
-  .rq-head > *{ position: relative; }
 
-  .rq-left{
-    display:flex;
+  .toolbar-left {
+    display: flex;
+    align-items: center;
     gap: 12px;
-    align-items:center;
     min-width: 260px;
   }
 
-  .rq-ico{
-    width:46px;height:46px;
-    border-radius: 16px;
-    display:grid;place-items:center;
-    background: rgba(250,204,21,.12);
-    border: 1px solid rgba(250,204,21,.22);
-    color: var(--accent);
-    font-weight: 950;
+  .page-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid rgba(255, 255, 255, .10);
     font-size: 18px;
-    box-shadow: 0 18px 44px rgba(0,0,0,.35);
   }
 
-  h3{
-    margin:0;
-    font-size: clamp(1.22rem, 1rem + 1.2vw, 1.9rem);
-    font-weight: 950;
-    letter-spacing: .2px;
-    line-height: 1.1;
+  .page-title {
+    margin: 0;
+    font-weight: 900;
+    font-size: 24px;
+    line-height: 1.15;
   }
-  .rq-sub{
+
+  .page-sub {
     margin-top: 4px;
-    color: rgba(148,163,184,.92);
-    font-weight: 850;
+    color: var(--muted);
+    font-weight: 700;
     font-size: 12px;
-    line-height: 1.35;
+    opacity: .95;
   }
 
-  .rq-meta{
-    display:flex;
-    align-items:center;
-    gap: 10px;
+  .toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     flex-wrap: wrap;
-    margin-left:auto;
+    margin-left: auto;
   }
 
-  .pill{
+  .pill {
     min-height: 40px;
-    padding: 0 12px;
-    border-radius: 999px;
-    border: 1px solid rgba(255,255,255,.12);
-    background: rgba(255,255,255,.06);
-    color: rgba(226,232,240,.92);
-    font-weight: 950;
-    font-size: 12px;
-    display:inline-flex;
-    align-items:center;
+    padding: 0 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, .1);
+    background: rgba(255, 255, 255, .05);
+    color: var(--text);
+    font-weight: 900;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
     gap: 8px;
-    user-select:none;
-    white-space: nowrap;
-  }
-  .pill .dot{
-    width:10px;height:10px;border-radius:999px;
-    background: rgba(250,204,21,.95);
-    box-shadow: 0 0 0 4px rgba(250,204,21,.12);
   }
 
-  /* ===== TABLE BOX ===== */
-  .table-box{
+  .pill .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #facc15;
+    box-shadow: 0 0 0 3px rgba(250, 204, 21, .2);
+  }
+
+  /* ===== TABLE CARD ===== */
+  .table-card {
     margin-top: 14px;
-    background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(2,6,23,.22));
-    border: 1px solid rgba(255,255,255,.10);
-    border-radius: var(--radius);
-    padding: 14px;
-    box-shadow: var(--shadow2);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--panel), var(--panel2));
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
     overflow: hidden;
   }
 
-  .table-scroll{
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    border-radius: 16px;
-  }
-  .table-scroll::-webkit-scrollbar{ height: 10px; }
-  .table-scroll::-webkit-scrollbar-track{ background: rgba(255,255,255,.04); border-radius: 999px; }
-  .table-scroll::-webkit-scrollbar-thumb{ background: rgba(56,189,248,.45); border-radius: 999px; }
-
-  table{
+  .table-responsive {
     width: 100%;
-    margin: 0;
-    border-collapse: collapse;
-    color: #e2e8f0;
-    min-width: 860px;
+    overflow-x: auto;
+    background: rgba(2, 6, 23, .18);
   }
 
-  thead tr{
-    background: rgba(255,255,255,0.06);
-    border-bottom: 1px solid rgba(255,255,255,.10);
+  .table-responsive::-webkit-scrollbar {
+    height: 9px;
   }
 
-  thead th{
-    padding: 12px 12px;
-    font-weight: 950;
-    color: var(--accent);
-    white-space: nowrap;
-    text-align:left;
-    letter-spacing: .06em;
-    font-size: 12px;
-    text-transform: uppercase;
+  .table-responsive::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, .05);
   }
 
-  tbody tr{
-    transition: background .18s ease, transform .18s ease;
-  }
-  tbody tr:hover{
-    background: rgba(255,255,255,0.04);
-  }
-
-  td{
-    padding: 12px 12px;
-    border-bottom: 1px solid rgba(255,255,255,.08);
-    vertical-align: middle;
-    white-space: nowrap;
-    font-weight: 850;
-    color: rgba(226,232,240,.92);
-  }
-
-  /* ===== BADGES ===== */
-  .badge{
-    padding: 7px 10px;
+  .table-responsive::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, .65);
     border-radius: 999px;
-    font-size: 12px;
-    font-weight: 950;
-    display:inline-flex;
-    align-items:center;
-    gap: 8px;
-    border: 1px solid rgba(255,255,255,.12);
-  }
-  .badge i{
-    width: 18px;height: 18px;
-    border-radius: 999px;
-    display:grid;place-items:center;
-    font-style: normal;
-    font-weight: 950;
-    font-size: 12px;
   }
 
-  .bg-success{
-    background: rgba(34,197,94,0.16);
-    color: #bbf7d0;
-    border-color: rgba(34,197,94,.28);
-  }
-  .bg-success i{
-    background: rgba(34,197,94,.18);
-    border: 1px solid rgba(34,197,94,.28);
-    color: #86efac;
+  .tbl {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 800px;
   }
 
-  .bg-danger{
-    background: rgba(239,68,68,0.14);
-    color: #fecaca;
-    border-color: rgba(239,68,68,.26);
-  }
-  .bg-danger i{
-    background: rgba(239,68,68,.16);
-    border: 1px solid rgba(239,68,68,.26);
-    color: #fca5a5;
-  }
-
-  .bg-warning{
-    background: rgba(250,204,21,0.14);
-    color: #fde68a;
-    border-color: rgba(250,204,21,.28);
-  }
-  .bg-warning i{
-    background: rgba(250,204,21,.16);
-    border: 1px solid rgba(250,204,21,.28);
-    color: var(--accent);
-  }
-
-  /* ===== ACTION BUTTONS ===== */
-  .btn-approve,
-  .btn-reject{
-    border: none;
-    padding: 9px 12px;
-    border-radius: 14px;
-    color: white;
-    font-size: 13px;
-    font-weight: 950;
-    transition: transform .16s ease, filter .16s ease, box-shadow .16s ease;
-    text-decoration: none;
-    display:inline-flex;
-    align-items:center;
-    gap: 8px;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .btn-approve:focus-visible,
-  .btn-reject:focus-visible{
-    outline:none;
-    box-shadow: var(--ring);
-  }
-  .btn-approve{
-    background: linear-gradient(135deg, var(--green) 0%, var(--green2) 100%);
-    box-shadow: 0 16px 35px rgba(34,197,94,.14);
-    color:#061b10;
-  }
-  .btn-reject{
-    background: linear-gradient(135deg, var(--red) 0%, var(--red2) 100%);
-    box-shadow: 0 16px 35px rgba(239,68,68,.12);
-    margin-left: 8px;
-  }
-
-  @media (hover:hover){
-    .btn-approve:hover,
-    .btn-reject:hover{
-      transform: translateY(-1px);
-      filter: brightness(.98);
-    }
-  }
-  .btn-approve:active,
-  .btn-reject:active{
-    transform: translateY(0px) scale(.99);
-  }
-
-  .muted-dash{
-    color: rgba(148,163,184,.9);
+  .tbl thead th {
+    background: rgba(2, 6, 23, .35);
+    color: rgba(148, 163, 184, .95);
     font-weight: 900;
+    padding: 16px 16px;
+    text-transform: uppercase;
+    font-size: 12px;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+    letter-spacing: .05em;
+    text-align: left;
+  }
+
+  .tbl tbody td {
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, .06);
+    color: var(--text);
+    font-weight: 800;
+    vertical-align: middle;
+  }
+
+  .tbl tbody tr {
+    transition: .12s ease;
+  }
+
+  .tbl tbody tr:hover {
+    background: rgba(255, 255, 255, .04);
+  }
+
+  /* Badges */
+  .badge {
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 900;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid transparent;
+  }
+
+  .badge.warn {
+    background: rgba(250, 204, 21, 0.14);
+    color: #fde047;
+    border-color: rgba(250, 204, 21, .25);
+  }
+
+  .badge.success {
+    background: rgba(34, 197, 94, 0.14);
+    color: #86efac;
+    border-color: rgba(34, 197, 94, .25);
+  }
+
+  .badge.danger {
+    background: rgba(239, 68, 68, 0.14);
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, .25);
+  }
+
+  /* Actions */
+  .btn-approve,
+  .btn-reject {
+    border: none;
+    padding: 8px 14px;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 900;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: .15s ease;
+  }
+
+  .btn-approve {
+    background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+    box-shadow: 0 4px 15px rgba(34, 197, 94, .3);
+  }
+
+  .btn-reject {
+    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+    box-shadow: 0 4px 15px rgba(239, 68, 68, .3);
+  }
+
+  .btn-approve:hover,
+  .btn-reject:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+  }
+
+  .date-mono {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    color: rgba(226, 232, 240, .85);
     font-size: 13px;
   }
 
-  /* ===== MOBILE CARDS (keep logic intact) ===== */
-  @media (max-width: 640px){
-    .table-box{ padding: 12px; }
-    .table-scroll{ overflow: visible; }
+  .empty-row {
+    text-align: center;
+    padding: 40px !important;
+    color: var(--muted);
+    font-size: 14px;
+  }
 
-    table{ min-width: 0; }
-    thead{ display:none; }
-    table, tbody, tr, td{ display:block; width:100%; }
-    tr{
-      margin-bottom: 12px;
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 18px;
-      padding: 12px 12px;
-      background: rgba(255,255,255,.03);
-      box-shadow: 0 18px 55px rgba(0,0,0,.22);
-    }
-    td{
+  /* Mobile */
+  @media (max-width: 768px) {
+    .table-responsive {
       border: none;
-      padding: 8px 2px;
-      white-space: normal;
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap: 12px;
+      background: transparent;
     }
-    td::before{
+
+    .tbl {
+      display: block;
+      min-width: 0;
+    }
+
+    .tbl thead {
+      display: none;
+    }
+
+    .tbl tbody {
+      display: block;
+    }
+
+    .tbl tr {
+      display: block;
+      background: rgba(15, 23, 42, .6);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, .2);
+    }
+
+    .tbl td {
+      display: flex;
+      justify-content: space-between;
+      border: none;
+      padding: 6px 0;
+      text-align: right;
+    }
+
+    .tbl td::before {
       content: attr(data-label);
-      color: rgba(148,163,184,.92);
       font-weight: 950;
+      color: var(--muted);
       font-size: 12px;
       text-transform: uppercase;
-      letter-spacing: .06em;
-      flex: 0 0 42%;
-      max-width: 42%;
+      margin-right: 12px;
+      text-align: left;
     }
-    td > *{ flex: 1 1 auto; text-align:right; }
-    td:last-child > *{ text-align:right; }
-    .btn-reject{ margin-left: 8px; }
-  }
 
-  @media (prefers-reduced-motion: reduce){
-    .btn-approve,.btn-reject,tbody tr{ transition:none !important; }
+    .tbl td:last-child {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, .1);
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .tbl td:last-child::before {
+      display: none;
+    }
   }
 </style>
 
-<main class="rq-shell">
-  <div class="rq-bg" aria-hidden="true"></div>
+<div class="page-container">
 
-  <div class="requests-wrapper">
-
-    <div class="rq-head">
-      <div class="rq-left">
-        <div class="rq-ico">⚡</div>
-        <div>
-          <h3>⚡ Xarid so‘rovlari</h3>
-          <div class="rq-sub">So‘rovlarni tezda ko‘rib chiqing va tasdiqlang yoki rad eting</div>
-        </div>
-      </div>
-
-      <div class="rq-meta">
-        <span class="pill"><span class="dot"></span> {{ items|length }} ta</span>
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <div class="page-icon">⚡</div>
+      <div>
+        <h3 class="page-title">Xarid so‘rovlari</h3>
+        <div class="page-sub">So‘rovlarni tezda ko‘rib chiqing va tasdiqlang yoki rad eting</div>
       </div>
     </div>
 
-    <div class="table-box">
-      <div class="table-scroll" role="region" aria-label="Xarid so‘rovlari jadvali" tabindex="0">
-        <table>
-          <thead>
-            <tr>
-              <th>Sana</th>
-              <th>O‘quvchi</th>
-              <th>Mahsulot</th>
-              <th>Qty</th>
-              <th>Status</th>
-              <th>Amallar</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {% for r in items %}
-            <tr>
-              <td data-label="Sana">{{ r.sana|date:"Y-m-d H:i" }}</td>
-
-              <td data-label="O‘quvchi">{{ r.student.ism }} {{ r.student.familya }}</td>
-
-              <td data-label="Mahsulot">{{ r.product.nom }}</td>
-
-              <td data-label="Qty">{{ r.qty }}</td>
-
-              <td data-label="Status">
-                {% if r.status == 'pending' %}
-                  <span class="badge bg-warning"><i>⏳</i> Kutilmoqda…</span>
-                {% elif r.status == 'approved' %}
-                  <span class="badge bg-success"><i>✓</i> Tasdiqlandi</span>
-                {% elif r.status == 'rejected' %}
-                  <span class="badge bg-danger"><i>✕</i> Rad etildi</span>
-                {% endif %}
-              </td>
-
-              <td data-label="Amallar">
-                {% if r.status == 'pending' %}
-                  <a href="{% url 'store:request_approve' r.pk %}" class="btn-approve">Tasdiqlash</a>
-                  <a href="{% url 'store:request_reject' r.pk %}" class="btn-reject">Rad etish</a>
-                {% else %}
-                  <span class="muted-dash">—</span>
-                {% endif %}
-              </td>
-            </tr>
-
-            {% empty %}
-            <tr>
-              <td colspan="6" style="text-align:center; padding: 22px; color: rgba(148,163,184,.95); font-weight: 950;">
-                So‘rovlar mavjud emas.
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+    <div class="toolbar-right">
+      <div class="pill">
+        <span class="dot"></span> {{ items|length }} ta so‘rov
       </div>
     </div>
-
   </div>
-</main>
+
+  <!-- TABLE -->
+  <div class="table-card">
+    <div class="table-responsive">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Sana</th>
+            <th>O‘quvchi</th>
+            <th>Mahsulot</th>
+            <th>Qty</th>
+            <th>Status</th>
+            <th>Amallar</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in items %}
+          <tr>
+            <td data-label="Sana" class="date-mono">{{ r.sana|date:"d.m.Y H:i" }}</td>
+            <td data-label="O‘quvchi" style="color:#fff;">{{ r.student.ism }} {{ r.student.familya }}</td>
+            <td data-label="Mahsulot">{{ r.product.nom }}</td>
+            <td data-label="Qty">{{ r.qty }}</td>
+            <td data-label="Status">
+              {% if r.status == 'pending' %}
+              <span class="badge warn"><i class="fa-regular fa-clock"></i> Kutilmoqda</span>
+              {% elif r.status == 'approved' %}
+              <span class="badge success"><i class="fa-solid fa-check"></i> Tasdiqlandi</span>
+              {% elif r.status == 'rejected' %}
+              <span class="badge danger"><i class="fa-solid fa-xmark"></i> Rad etildi</span>
+              {% endif %}
+            </td>
+            <td data-label="Amallar">
+              {% if r.status == 'pending' %}
+              <a href="{% url 'store:request_approve' r.pk %}" class="btn-approve">Tasdiqlash</a>
+              <a href="{% url 'store:request_reject' r.pk %}" class="btn-reject" style="margin-left:6px;">Rad etish</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="empty-row">So‘rovlar mavjud emas.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
 
 {% endblock %}

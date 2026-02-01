@@ -1,1033 +1,983 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
 
 <style>
-  :root{
-    --bg0:#070A12;
-    --bg1:#0B1220;
-    --bg2:#0F1B33;
+  :root {
+    --bg-dark: #020617;
+    --bg-card: #0f172a;
+    --bg-hover: #1e293b;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-hover: rgba(255, 255, 255, 0.15);
 
-    --glass: rgba(255,255,255,.06);
-    --glass2: rgba(255,255,255,.08);
-    --line: rgba(255,255,255,.10);
-    --line2: rgba(255,255,255,.14);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
 
-    --text:#E7EAF0;
-    --muted:#9AA4B2;
+    --primary: #f59e0b;
+    --primary-glow: rgba(245, 158, 11, 0.5);
 
-    --blue:#3B82F6;
-    --blue2:#2563EB;
+    --blue: #3b82f6;
+    --green: #22c55e;
+    --red: #ef4444;
 
-    --green:#22C55E;
-    --green2:#16A34A;
-
-    --yellow:#F59E0B;
-    --yellow2:#D97706;
-
-    --danger:#EF4444;
-
-    --shadow: 0 24px 80px rgba(0,0,0,.55);
-    --shadow2: 0 14px 32px rgba(0,0,0,.38);
-
-    --r12:12px;
-    --r16:16px;
-    --r18:18px;
-    --r24:24px;
-
-    --pad: 14px;
-    --gap: 14px;
-
-    --max: 1240px;
-
-    --ring-amber: 0 0 0 4px rgba(245,158,11,.22), 0 0 0 1px rgba(245,158,11,.35) inset;
-    --ring-blue:  0 0 0 4px rgba(59,130,246,.22),  0 0 0 1px rgba(59,130,246,.35) inset;
+    --glass: rgba(15, 23, 42, 0.7);
+    --radius: 16px;
   }
 
-  /* ====== SCOPED PAGE BACKGROUND (other pages won't break) ====== */
-  .users-scope{
+  .users-scope {
+    background: var(--bg-dark);
     min-height: 100vh;
-    width:100%;
-    color: var(--text);
-    background:
-      radial-gradient(1200px 700px at 10% -10%, rgba(245,158,11,.18), transparent 55%),
-      radial-gradient(900px 600px at 90% 10%, rgba(34,197,94,.10), transparent 55%),
-      radial-gradient(1000px 700px at 60% 120%, rgba(59,130,246,.12), transparent 60%),
-      linear-gradient(180deg, var(--bg0), var(--bg1) 55%, #050712);
-    overflow-x:hidden;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--text-main);
+    padding: 20px;
   }
 
-  .users-scope *{ box-sizing:border-box; }
-
-  .sr-only{
-    position:absolute !important;
-    width:1px !important;
-    height:1px !important;
-    padding:0 !important;
-    margin:-1px !important;
-    overflow:hidden !important;
-    clip:rect(0,0,0,0) !important;
-    white-space:nowrap !important;
-    border:0 !important;
-  }
-
-  .users-page{
-    width:100%;
-    padding: calc(var(--pad) + env(safe-area-inset-top))
-             calc(var(--pad) + env(safe-area-inset-right))
-             calc(var(--pad) + env(safe-area-inset-bottom))
-             calc(var(--pad) + env(safe-area-inset-left));
-    max-width: var(--max);
-    margin: 0 auto;
-  }
-
-  /* ===== HEAD ===== */
-  .users-head{
-    display:flex;
-    flex-direction:column;
-    gap: 12px;
-    margin-bottom: 14px;
-  }
-
-  .users-title{
-    margin:0;
-    font-size: clamp(22px, 3.2vw, 34px);
-    font-weight: 950;
-    letter-spacing: .2px;
-    color: #fff;
-  }
-
-  .users-tools{
-    display:grid;
-    grid-template-columns: 1fr auto;
-    gap: 12px;
-    align-items: start;
-  }
-
-  .search-form{
-    display:flex;
-    align-items:center;
-    gap:10px;
+  /* HEAD & HEADER */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
     flex-wrap: wrap;
-    min-width: 0;
+    gap: 16px;
   }
 
-  .search-input{
-    height: 44px;
-    width: min(560px, 100%);
-    border-radius: var(--r16);
-    background: rgba(2,6,23,.42);
-    border: 1px solid rgba(255,255,255,.10);
-    color:#fff;
-    padding: 0 14px;
-    outline:none;
-    box-shadow: inset 0 0 18px rgba(0,0,0,.25);
-    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
-  }
-  .search-input::placeholder{ color: rgba(226,232,240,.55); }
-  .search-input:focus{
-    border-color: rgba(245,158,11,.45);
-    box-shadow: var(--ring-amber), inset 0 0 18px rgba(0,0,0,.25);
-    background: rgba(2,6,23,.55);
-  }
-
-  .actions{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    flex-wrap: wrap;
-    justify-content:flex-end;
-  }
-
-  .btn-pill{
-    height: 44px;
-    padding: 0 16px;
-    border-radius: var(--r16);
-    border: 1px solid rgba(255,255,255,.12);
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:10px;
-    font-weight: 900;
-    text-decoration:none;
-    cursor:pointer;
-    transition: transform .15s ease, filter .15s ease, border-color .15s ease;
-    user-select:none;
-    white-space: nowrap;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-  .btn-pill:hover{ transform: translateY(-1px); }
-  .btn-pill:active{ transform: translateY(0); }
-  .btn-pill:focus-visible{ outline:none; box-shadow: var(--ring-blue); }
-
-  .btn-blue{
-    background: linear-gradient(135deg, var(--blue) 0%, var(--blue2) 100%);
-    color:#fff;
-    box-shadow: 0 14px 28px rgba(37,99,235,.22);
-  }
-  .btn-green{
-    background: linear-gradient(135deg, var(--green) 0%, var(--green2) 100%);
-    color:#fff;
-    box-shadow: 0 14px 28px rgba(34,197,94,.20);
-  }
-  .btn-yellow{
-    background: linear-gradient(135deg, var(--yellow) 0%, var(--yellow2) 100%);
-    color:#111827;
-    border-color: rgba(245,158,11,.45);
-    box-shadow: 0 14px 28px rgba(245,158,11,.18);
-  }
-
-  /* Import pill */
-  .file-pill{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    padding: 0 12px;
-    height: 44px;
-    border-radius: var(--r16);
-    background: rgba(2,6,23,.38);
-    border: 1px solid rgba(255,255,255,.10);
-    box-shadow: inset 0 0 18px rgba(0,0,0,.25);
-    max-width: 100%;
-  }
-
-  .file-btn{
-    height: 32px;
-    padding: 0 12px;
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,.12);
-    background: rgba(255,255,255,.06);
-    color:#e5e7eb;
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    font-weight: 900;
-    cursor:pointer;
-    transition: transform .15s ease, border-color .15s ease, background .15s ease;
-    white-space: nowrap;
-  }
-  .file-btn:hover{
-    transform: translateY(-1px);
-    border-color: rgba(255,255,255,.18);
-    background: rgba(255,255,255,.08);
-  }
-  .file-btn:focus-visible{ outline:none; box-shadow: var(--ring-blue); }
-
-  .file-name{
-    max-width: 220px;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-    font-size: 12px;
-    color: rgba(226,232,240,.75);
-    font-weight: 850;
-  }
-
-  /* ===== TABLE ===== */
-  .table-shell{
-    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
-    border: 1px solid rgba(255,255,255,.10);
-    border-radius: var(--r24);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    overflow: hidden;
-    min-width: 0;
-  }
-
-  .table-scroll{
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  .table-scroll::-webkit-scrollbar{ height: 10px; }
-  .table-scroll::-webkit-scrollbar-thumb{
-    background: rgba(255,255,255,.14);
-    border-radius: 999px;
-    border: 2px solid rgba(0,0,0,0);
-    background-clip: padding-box;
-  }
-
-  table.users-table{
-    width:100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    table-layout: fixed;
-  }
-
-  table.users-table thead th{
-    background: rgba(2,6,23,.55);
-    border-bottom: 1px solid rgba(255,255,255,.10);
-    padding: 12px 12px;
-    font-size: 10px;
-    letter-spacing: .9px;
-    text-transform: uppercase;
-    color: rgba(148,163,184,.92);
-    font-weight: 950;
-    white-space: nowrap;
-  }
-
-  table.users-table tbody td{
-    padding: 12px 12px;
-    border-bottom: 1px solid rgba(255,255,255,.06);
-    color: rgba(226,232,240,.92);
-    vertical-align: middle;
-    font-weight: 650;
-    overflow:hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  table.users-table tbody tr:hover td{
-    background: rgba(255,255,255,.05);
-    transition: .18s ease;
-  }
-
-  /* column widths */
-  table.users-table thead th:nth-child(1),
-  table.users-table tbody td:nth-child(1){ width: 60px; }
-
-  table.users-table thead th:nth-child(2),
-  table.users-table tbody td:nth-child(2){ width: 22%; }
-
-  table.users-table thead th:nth-child(3),
-  table.users-table tbody td:nth-child(3){ width: 26%; }
-
-  table.users-table thead th:nth-child(4),
-  table.users-table tbody td:nth-child(4){ width: 16%; }
-
-  table.users-table thead th:nth-child(5),
-  table.users-table tbody td:nth-child(5){ width: 120px; }
-
-  table.users-table thead th:nth-child(6),
-  table.users-table tbody td:nth-child(6){ width: auto; }
-
-  table.users-table thead th:nth-child(7),
-  table.users-table tbody td:nth-child(7){ width: 70px; }
-
-  table.users-table tbody td:nth-child(2),
-  table.users-table tbody td:nth-child(3),
-  table.users-table tbody td:nth-child(4){
-    white-space: normal;
-    line-height: 1.18;
-  }
-
-  table.users-table tbody td:nth-child(6){
-    white-space: normal;
-    overflow: visible;
-  }
-
-  .name-link{
-    color: #38bdf8;
-    text-decoration:none;
-    font-weight: 950;
-  }
-  .name-link:hover{ text-decoration: underline; }
-
-  .badge-group{
-    background: rgba(30,58,138,.75);
-    color: #fff;
-    padding: 5px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    display: inline-block;
-    margin: 2px 6px 2px 0;
-    transition: transform .15s ease, background .15s ease, border-color .15s ease;
-    text-decoration: none;
-    border: 1px solid rgba(59,130,246,.25);
-  }
-  .badge-group:hover {
-    background: rgba(37,99,235,.95);
-    transform: translateY(-1px);
-    border-color: rgba(59,130,246,.45);
-  }
-
-  .pos { color:#22c55e; font-weight: 950; }
-  .neg { color:#ef4444; font-weight: 950; }
-  .zero{ color:#94a3b8; font-weight: 900; }
-
-  .badge-role{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    padding: 6px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 950;
-    color:#e5e7eb;
-    background: rgba(56,189,248,.10);
-    border: 1px solid rgba(56,189,248,.25);
-    white-space: nowrap;
-  }
-
-  .muted-mini{
-    color: rgba(148,163,184,.85);
-    font-weight: 850;
-    font-size: 12.5px;
-  }
-
-  /* ===== MENU (3 dots) ===== */
-  .menu-wrapper{
-    position: relative;
-    display:flex;
-    justify-content:flex-end;
-  }
-
-  .menu-btn{
-    width: 38px;
-    height: 38px;
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,.12);
-    background: rgba(255,255,255,.06);
-    color: rgba(226,232,240,.80);
-    font-size: 22px;
-    line-height: 0;
-    cursor: pointer;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    transition: transform .15s ease, border-color .15s ease, background .15s ease, color .15s ease;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-  .menu-btn:hover{
-    color:#fff;
-    border-color: rgba(255,255,255,.18);
-    background: rgba(255,255,255,.08);
-    transform: translateY(-1px);
-  }
-  .menu-btn:active{ transform: translateY(0); }
-  .menu-btn:focus-visible{ outline:none; box-shadow: var(--ring-blue); }
-
-  .menu-dropdown{
-    display:none;
-    position: fixed; /* IMPORTANT: not clipped by table */
-    background: rgba(17,24,39,.96);
-    border: 1px solid rgba(255,255,255,.10);
-    padding: 6px 0;
-    border-radius: 14px;
-    width: 200px;
-    z-index: 99999;
-    box-shadow: 0 18px 50px rgba(0,0,0,.55);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    transform-origin: top right;
-  }
-.menu-dropdown.open{ display:block !important; }
-
-  .menu-dropdown a{
-    display:block;
-    color:#e5e7eb;
-    padding: 10px 14px;
-    font-size: 14px;
-    text-decoration:none;
-    transition: background .15s ease, padding-left .15s ease, color .15s ease;
-    font-weight:900;
-  }
-  .menu-dropdown a:hover{
-    background: rgba(255,255,255,.10);
-    color:#fff;
-    padding-left: 18px;
-  }
-
-  /* ===== FOOTER ===== */
-  .users-footer{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap: 12px;
-    margin-top: 14px;
-    flex-wrap: wrap;
-  }
-
-  .page-size-box{
-    display:flex;
-    align-items:center;
-    gap: 10px;
-    color: rgba(226,232,240,.92);
-    font-weight: 900;
-  }
-  .page-size-box select{
-    background: rgba(255,255,255,.08);
-    color: #fff;
-    padding: 8px 12px;
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,.12);
-    font-weight: 950;
-    outline:none;
-    min-height: 40px;
-  }
-  .page-size-box select:focus-visible{ box-shadow: var(--ring-blue); }
-  .page-size-box option{ background: #0f172a; color:#fff; }
-
-  .pagination{
-    display:flex;
-    gap:6px;
-    padding-left:0;
-    list-style:none;
-    white-space: nowrap;
-    align-items:center;
-    margin:0;
-  }
-  .pagination li a{
-    padding: 9px 14px;
-    background: rgba(255,255,255,.07);
-    color: #fff;
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,.10);
-    text-decoration: none;
-    transition: transform .15s ease, border-color .15s ease, background .15s ease;
-    font-weight: 900;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    min-height: 40px;
-  }
-  .pagination li a:hover{
-    transform: translateY(-1px);
-    border-color: rgba(255,255,255,.16);
-    background: rgba(255,255,255,.09);
-  }
-  .pagination li a:focus-visible{ outline:none; box-shadow: var(--ring-blue); }
-  .pagination .active a{
-    background: rgba(79,70,229,.95);
-    border-color: rgba(79,70,229,.95);
-  }
-
-  /* ===== MOBILE CARDS ===== */
-  .cards-shell{ display:none; margin-top: 12px; }
-  .user-card{
-    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
-    border: 1px solid rgba(255,255,255,.10);
-    border-radius: 18px;
-    box-shadow: 0 18px 55px rgba(0,0,0,.45);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    padding: 12px;
-  }
-  .user-card + .user-card{ margin-top: 10px; }
-
-  .uc-top{
-    display:flex;
-    align-items:flex-start;
-    justify-content:space-between;
-    gap: 10px;
-  }
-  .uc-id{
-    width: 34px;
-    height: 34px;
-    border-radius: 12px;
-    display:grid;
-    place-items:center;
-    background: rgba(255,255,255,.06);
-    border: 1px solid rgba(255,255,255,.10);
-    color: rgba(226,232,240,.92);
-    font-weight: 950;
-    flex: 0 0 auto;
-  }
-  .uc-name{
-    min-width:0;
-    font-weight: 950;
-    color:#fff;
-    text-decoration:none;
-    display:block;
-    line-height: 1.15;
-  }
-  .uc-name:hover{ text-decoration: underline; }
-  .uc-sub{
-    margin-top: 4px;
-    color: rgba(148,163,184,.85);
+  .page-title {
+    font-size: 28px;
     font-weight: 800;
-    font-size: 12px;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #fff;
+    letter-spacing: -0.5px;
   }
 
-  .uc-grid{
-    margin-top: 10px;
-    display:grid;
-    grid-template-columns: 1fr 1fr;
+  /* ACTION BUTTONS */
+  .action-group {
+    display: flex;
     gap: 10px;
   }
-  .uc-item{
-    background: rgba(2,6,23,.35);
-    border: 1px solid rgba(255,255,255,.08);
-    border-radius: 14px;
-    padding: 10px 10px;
-    min-width:0;
+
+  .btn-action {
+    height: 44px;
+    padding: 0 20px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    border: 1px solid transparent;
   }
-  .uc-k{
-    font-size: 10px;
-    letter-spacing: .9px;
+
+  .btn-primary {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+    filter: brightness(1.1);
+  }
+
+  .btn-outline {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  .btn-outline:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .btn-excel {
+    background: rgba(34, 197, 94, 0.1);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+  }
+
+  /* FILTERS PANEL */
+  .filter-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .filter-input {
+    background: rgba(2, 6, 23, 0.5);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    height: 42px;
+    padding: 0 16px;
+    color: white;
+    font-size: 14px;
+    outline: none;
+    transition: 0.2s;
+  }
+
+  .search-box {
+    flex: 1;
+    position: relative;
+    min-width: 280px;
+  }
+
+  .search-box i {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+  }
+
+  .search-box input {
+    width: 100%;
+    padding-left: 38px;
+  }
+
+  .filter-select {
+    min-width: 140px;
+    cursor: pointer;
+  }
+
+  .btn-reset {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: 0.2s;
+    border: 1px solid transparent;
+  }
+
+  .btn-reset:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--red);
+    border-color: rgba(239, 68, 68, 0.3);
+  }
+
+  /* TABLE */
+  .table-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .table-responsive-wrapper {
+    overflow-x: auto;
+    width: 100%;
+  }
+
+  .custom-table {
+    width: 100%;
+    border-collapse: collapse;
+    white-space: normal;
+  }
+
+  .custom-table thead th {
+    background: rgba(255, 255, 255, 0.02);
+    padding: 16px 12px;
+    text-align: left;
+    font-size: 12px;
     text-transform: uppercase;
-    color: rgba(148,163,184,.88);
-    font-weight: 950;
-  }
-  .uc-v{
-    margin-top: 4px;
-    color: rgba(226,232,240,.92);
-    font-weight: 900;
-    font-size: 13px;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
+    color: var(--text-muted);
+    font-weight: 700;
+    border-bottom: 1px solid var(--border);
   }
 
-  /* Responsive */
-  @media (max-width: 992px){
-    .users-tools{ grid-template-columns: 1fr; }
-    .actions{ justify-content:flex-start; }
-    .search-input{ width: 100%; max-width: 680px; }
+  .custom-table tbody td {
+    padding: 16px 12px;
+    word-break: break-word;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-main);
+    font-size: 14px;
+    font-weight: 500;
   }
 
-  /* Hide big table on small phones, show cards */
-  @media (max-width: 640px){
-    .table-shell{ display:none; }
-    .cards-shell{ display:block; }
+  .custom-table tbody tr:hover {
+    background: var(--bg-hover);
+  }
 
-    .search-form{
-      width:100%;
-      display:grid;
-      grid-template-columns: 1fr auto;
-      gap:10px;
-      align-items:center;
+  /* Custom Cells */
+  .badge-gender {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .badge-gender.male {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+  }
+
+  .badge-gender.female {
+    background: rgba(236, 72, 153, 0.15);
+    color: #f472b6;
+  }
+
+  .badge-coin {
+    font-family: monospace;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .badge-coin.pos {
+    color: var(--green);
+    text-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
+  }
+
+  .badge-coin.neg {
+    color: var(--red);
+    text-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+  }
+
+  .badge-coin.zero {
+    color: var(--text-muted);
+  }
+
+  .group-chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .chip {
+    padding: 4px 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  /* ACTIONS DROPDOWN */
+  .menu-wrapper {
+    position: relative;
+    display: inline-block;
+    z-index: 10;
+  }
+
+  .menu-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+
+  .menu-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  .menu-dropdown {
+    display: none;
+    position: fixed;
+    background: #1e293b;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 6px;
+    min-width: 160px;
+    z-index: 9999;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+  }
+
+  .menu-dropdown.open {
+    display: block;
+    animation: menuFadeIn 0.2s ease-out;
+  }
+
+  @keyframes menuFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
     }
-    .search-input{ width:100%; }
-    .actions{ width:100%; }
-    .btn-pill{ width:auto; }
-    .file-pill{ width:100%; }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
-  @media (min-width: 640px){
-    :root{ --pad: 18px; --gap: 16px; }
-    table.users-table thead th{ padding: 12px 14px; font-size: 10px; }
-    table.users-table tbody td{ padding: 12px 14px; font-size: 13px; }
+  .menu-dropdown a,
+  .menu-dropdown button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    color: var(--text-main);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: 0.2s;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
   }
 
-  @media (min-width: 1200px){
-    table.users-table thead th{ padding: 14px 16px; font-size: 11px; }
-    table.users-table tbody td{ padding: 14px 16px; font-size: 13px; }
+  .menu-dropdown a:hover,
+  .menu-dropdown button:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--primary);
   }
 
-  @media (prefers-reduced-motion: reduce){
-    *{ transition: none !important; scroll-behavior: auto !important; }
+  .menu-dropdown .text-red:hover {
+    background: rgba(239, 68, 68, 0.1) !important;
+    color: var(--red) !important;
+  }
+
+  /* MODALS */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    z-index: 2000;
+    display: none;
+    place-items: center;
+  }
+
+  .modal-overlay.open {
+    display: grid;
+  }
+
+  .modal-box {
+    background: #0f172a;
+    width: 90%;
+    max-width: 500px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    padding: 32px;
+    position: relative;
+  }
+
+  /* PAGINATION */
+  .footer-actions {
+    margin-top: 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  .size-select {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 8px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .pagination-v2 {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .page-link {
+    min-width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 700;
+    transition: 0.2s;
+  }
+
+  .page-link:hover:not(.disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  .page-link.active {
+    background: var(--primary);
+    color: black;
+    box-shadow: 0 4px 12px var(--primary-glow);
+  }
+
+  .page-link.disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  /* TABS */
+  .tabs-container {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .tab-btn {
+    padding: 10px 24px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-muted);
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+
+  .tab-btn.active {
+    background: var(--primary);
+    color: black;
+  }
+
+  /* GLASS MODAL */
+  .glass-modal {
+    background: rgba(15, 23, 42, 0.8) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  .modal-form-control {
+    background: rgba(2, 6, 23, 0.5) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 12px !important;
+    color: white !important;
+    padding: 12px 16px !important;
+    transition: 0.2s;
+  }
+
+  .modal-form-control:focus {
+    background: rgba(2, 6, 23, 0.8) !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2) !important;
+    outline: none;
+  }
+
+  /* CUSTOM SWITCH */
+  .form-check-input:checked {
+    background-color: var(--primary) !important;
+    border-color: var(--primary) !important;
   }
 </style>
 
 <div class="users-scope">
-  <div class="users-page">
-
-    <div class="users-head">
-      <h1 class="users-title">{{ title }}</h1>
-
-      <div class="users-tools">
-        <form class="search-form" method="get">
-          <label class="sr-only" for="usersSearchInput">Ism, familya yoki email</label>
-          <input id="usersSearchInput"
-                 class="search-input"
-                 type="search"
-                 name="q"
-                 value="{{ request.GET.q|default:'' }}"
-                 placeholder="Ism, familya yoki email"
-                 aria-label="Ism, familya yoki email">
-          <!-- <button class="btn-pill btn-blue" type="submit">
-            <i class="fa-solid fa-magnifying-glass"></i> Izlash
-          </button> -->
-        </form>
-
-        <div class="actions">
-          {% if title == "O‘quvchilar" %}
-          <form action="{% url 'core:students_import_excel' %}" method="post" enctype="multipart/form-data"
-                class="import-form" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-            {% csrf_token %}
-
-            <div class="file-pill">
-              <input id="excelFile" type="file" name="file" accept=".xlsx" hidden required>
-              <label for="excelFile" class="file-btn">
-                <i class="fa-regular fa-folder-open"></i> Fayl tanlash
-              </label>
-              <span class="file-name" id="excelFileName">Fayl tanlanmadi</span>
-            </div>
-
-            <button class="btn-pill btn-yellow" type="submit" title="Excel import">
-              <i class="fa-solid fa-arrow-up-from-bracket"></i> Import
-            </button>
-          </form>
-
-          <a href="{% url 'core:students_export_excel' %}" class="btn-pill btn-green">
-            <i class="fa-solid fa-file-excel"></i> Excel
-          </a>
-          {% endif %}
-        </div>
-      </div>
+  <!-- HEADER -->
+  <div class="page-header">
+    <div class="page-title">
+      {% if user_kind == 'managers' %}<i class="fa-solid fa-user-tie" style="color: var(--primary);"></i>
+      {% elif user_kind == 'teachers' %}<i class="fa-solid fa-chalkboard-user" style="color: var(--primary);"></i>
+      {% elif user_kind == 'parents' %}<i class="fa-sharp fa-solid fa-people-roof" style="color: var(--primary);"></i>
+      {% else %}<i class="fa-solid fa-graduation-cap" style="color: var(--primary);"></i>{% endif %}
+      {{ title|default:"Foydalanuvchilar" }}
+      <span
+        style="font-size: 14px; background: rgba(255,255,255,0.05); padding: 4px 12px; border-radius: 20px; color: var(--text-muted); margin-left: 12px; border: 1px solid rgba(255,255,255,0.05);">
+        {{ total_count|default:0 }} ta
+      </span>
     </div>
 
-    {% if messages %}
-    <div class="mb-3" role="status" aria-live="polite">
-      {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} py-2 mb-2">
-          {{ message }}
-        </div>
-      {% endfor %}
+    <div class="action-group">
+      {% if user_kind == 'students' or user_kind == 'teachers' or user_kind == 'managers' %}
+      <button onclick="openImportModal()" class="btn-action btn-outline">
+        <i class="fa-solid fa-file-import"></i> Import
+      </button>
+
+      <a href="{% url 'core:users_export_excel' %}?role={{ user_kind|default:'student' }}"
+        class="btn-action btn-outline"
+        style="color: #22c55e; border-color: rgba(34, 197, 94, 0.2); background: rgba(34, 197, 94, 0.05);">
+        <i class="fa-solid fa-file-excel"></i> Excel
+      </a>
+      {% endif %}
+
+      {% if user_kind == 'parents' %}
+      <button onclick="openDonationSettings()" class="btn-action btn-outline">
+        <i class="fa-solid fa-gear"></i> Donat sozlamalari
+      </button>
+      {% endif %}
+
+      <a href="{% url 'accounts:add_user' %}?role={{ user_kind|default:'student' }}" class="btn-action btn-primary">
+        <i class="fa-solid fa-plus"></i> Yangi
+      </a>
     </div>
+  </div>
+
+  <!-- TABS (Students only) -->
+  {% if user_kind == 'students' %}
+  <div class="tabs-container">
+    <button class="tab-btn {% if current_status != 'archived' %}active{% endif %}"
+      onclick="switchTab('active')">Faol</button>
+    <button class="tab-btn {% if current_status == 'archived' %}active{% endif %}"
+      onclick="switchTab('archived')">Arxiv</button>
+  </div>
+  {% endif %}
+
+  <!-- FILTERS -->
+  <form method="get" class="filter-panel" id="filterForm">
+    <div class="search-box">
+      <i class="fa-solid fa-magnifying-glass" onclick="document.getElementById('filterForm').submit()"
+        style="cursor:pointer"></i>
+      <input type="text" name="q" value="{{ request.GET.q|default:'' }}" class="filter-input"
+        placeholder="Ism, familiya yoki telefon...">
+    </div>
+
+    {% if user_kind != 'managers' and user_kind != 'parents' %}
+    <select name="gender" class="filter-input filter-select" onchange="this.form.submit()">
+      <option value="">Jinsi: Barchasi</option>
+      <option value="male" {% if request.GET.gender == 'male' %}selected{% endif %}>Erkak</option>
+      <option value="female" {% if request.GET.gender == 'female' %}selected{% endif %}>Ayol</option>
+    </select>
     {% endif %}
 
-
-    <div class="cards-shell">
-      {% for u in page_obj %}
-      <div class="user-card">
-
-        <div class="uc-top">
-          <div class="uc-id">{{ start_index|add:forloop.counter0 }}</div>
-
-          <div style="min-width:0; flex:1;">
-            <a href="/admin/accounts/user/{{ u.id }}/change/" class="uc-name">
-              {{ u.ism }}
-              {% if u.familya %} {{ u.familya }}{% endif %}
-              {% if u.otchestvo %} {{ u.otchestvo }}{% endif %}
-            </a>
-            <div class="uc-sub">{{ u.email|default:"—" }}</div>
-          </div>
-
-          <div class="menu-wrapper">
-            <button class="menu-btn" type="button" aria-label="Menyu" aria-haspopup="true" aria-expanded="false">⋮</button>
-            <div class="menu-dropdown" role="menu" aria-label="Row menu">
-              <a href="{% url 'core:user_edit' u.id %}" role="menuitem">📝 Tahrirlash</a>
-              <a href="{% url 'core:user_delete' u.id %}" role="menuitem">🗑 O‘chirish</a>
-            </div>
-          </div>
-        </div>
-
-        <div class="uc-grid">
-          <div class="uc-item">
-            <div class="uc-k">Telefon</div>
-            <div class="uc-v">
-              {{ u.telefon1|default:"—" }}
-              {% if u.telefon2 %} / {{ u.telefon2 }}{% endif %}
-            </div>
-          </div>
-
-          {% if user_kind == "managers" or title == "Managerlar" %}
-          <div class="uc-item">
-            <div class="uc-k">Oxirgi kirish</div>
-            <div class="uc-v">
-              {% if u.last_login %}
-                {{ u.last_login|date:"Y-m-d H:i" }}
-              {% else %}
-                —
-              {% endif %}
-            </div>
-          </div>
-          {% else %}
-          <div class="uc-item">
-            <div class="uc-k">⚡ Chaqmoq</div>
-            <div class="uc-v">
-              {% if u.jami_chaqmoq %}
-                {% if u.jami_chaqmoq < 0 %}
-                  <span class="neg">{{ u.jami_chaqmoq }}</span>
-                {% else %}
-                  <span class="pos">{{ u.jami_chaqmoq }}</span>
-                {% endif %}
-              {% else %}
-                <span class="zero">0</span>
-              {% endif %}
-            </div>
-          </div>
-          {% endif %}
-        </div>
-
-        {% if user_kind != "managers" and title != "Managerlar" %}
-
-        <div style="margin-top:10px;">
-          <div class="uc-k" style="margin-bottom:6px;">Guruhlar</div>
-          <div>
-            {% for e in u.enrollment_set.all %}
-              <a href="{% url 'education:group_detail' e.group.id %}" class="badge-group">{{ e.group.nom }}</a>
-            {% empty %}
-              <span style="color:rgba(148,163,184,.75); font-weight:800;">— Guruh yo‘q</span>
-            {% endfor %}
-          </div>
-        </div>
-        {% endif %}
-
-      </div>
+    {% if user_kind == 'students' %}
+    <select name="section" class="filter-input filter-select" onchange="this.form.submit()">
+      <option value="">Bo‘lim: Barchasi</option>
+      {% for cat in categories %}
+      <option value="{{ cat.id }}" {% if request.GET.section|default:'' == cat.id|stringformat:'s' %}selected{% endif %}>
+        {{ cat.name }}</option>
       {% endfor %}
-    </div>
+    </select>
+    {% endif %}
 
-    <div class="table-shell">
-      <div class="table-responsive table-scroll" role="region" aria-label="Users table" tabindex="0">
-        <table class="users-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>F.I.Sh</th>
-              <th>Login</th>
-              <th>Telefon</th>
+    <a href="?{% if page_size %}size={{ page_size }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}"
+      class="btn-reset" title="Tozalash">
+      <i class="fa-solid fa-arrows-rotate"></i>
+    </a>
+  </form>
 
-              {% if title == "Managerlar" %}
-                <th>Roli</th>
-                <th>Oxirgi kirish</th>
-              {% else %}
-                <th>⚡ Chaqmoq</th>
-                <th>Guruhlar</th>
-              {% endif %}
-
-              <th></th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {% for u in page_obj %}
-            <tr>
-              <td>{{ start_index|add:forloop.counter0 }}</td>
-
-              <td>
-                <a href="/admin/accounts/user/{{ u.id }}/change/" class="name-link">
-                  {{ u.ism }}
-                  {% if u.familya %} {{ u.familya }}{% endif %}
-                  {% if u.otchestvo %} {{ u.otchestvo }}{% endif %}
-                </a>
-              </td>
-
-              <td>{{ u.email|default:"—" }}</td>
-
-              <td>
-                {{ u.telefon1|default:"—" }}
-                {% if u.telefon2 %}
-                  <small style="color:rgba(148,163,184,.75); font-weight:700;"> / {{ u.telefon2 }}</small>
-                {% endif %}
-              </td>
-
-              <td>
-                {% if title == "Managerlar" %}
-                  <span class="badge-role">{{ u.get_role_display|default:u.role }}</span>
-                {% else %}
-                  {% if u.jami_chaqmoq %}
-                    {% if u.jami_chaqmoq < 0 %}
-                      <span class="neg">{{ u.jami_chaqmoq }}</span>
-                    {% else %}
-                      <span class="pos">{{ u.jami_chaqmoq }}</span>
-                    {% endif %}
-                  {% else %}
-                    <span class="zero">0</span>
+  <!-- TABLE -->
+  <div class="table-container">
+    <div class="table-responsive-wrapper">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>FOYDALANUVCHI</th>
+            <th>TELEFON</th>
+            {% if user_kind != 'managers' and user_kind != 'parents' %}<th>JINSI</th>{% endif %}
+            {% if user_kind == 'students' %}
+            <th>COIN</th>
+            <th>GURUHLAR</th>
+            {% endif %}
+            {% if user_kind == 'parents' %}<th>FARZANDLARI</th>{% endif %}
+            <th width="50"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in page_obj %}
+          <tr>
+            <td>
+              <div style="font-weight:800; color:white;">{{ u.get_full_name }}</div>
+              <div style="font-size:12px; color:var(--text-muted); font-weight:500;">{{ u.email|default:u.username }}
+              </div>
+            </td>
+            <td>
+              <span style="font-family: monospace; color: var(--text-muted);">{{ u.telefon1|default:"—" }}</span>
+            </td>
+            {% if user_kind != 'managers' and user_kind != 'parents' %}
+            <td>
+              {% if u.gender %}
+              <span class="badge-gender {{ u.gender }}">{% if u.gender == 'male' %}ERKAK{% else %}AYOL{% endif %}</span>
+              {% else %}<span style="color:var(--text-muted)">—</span>{% endif %}
+            </td>
+            {% endif %}
+            {% if user_kind == 'students' %}
+            <td>
+              <span
+                class="badge-coin {% if u.jami_chaqmoq > 0 %}pos{% elif u.jami_chaqmoq < 0 %}neg{% else %}zero{% endif %}">
+                {{ u.jami_chaqmoq|default:0 }}
+              </span>
+            </td>
+            <td>
+              <div class="group-chips">
+                {% for enr in u.enrollment_set.all %}
+                <span class="chip">{{ enr.group.nom }}</span>
+                {% empty %}<span style="color:var(--text-muted)">—</span>{% endfor %}
+              </div>
+            </td>
+            {% endif %}
+            {% if user_kind == 'parents' %}
+            <td>
+              <div class="group-chips">
+                {% for child in u.children.all %}
+                <span class="chip">{{ child.get_full_name }}</span>
+                {% empty %}<span style="color:var(--text-muted)">—</span>{% endfor %}
+              </div>
+            </td>
+            {% endif %}
+            <td style="text-align: right;">
+              <div class="menu-wrapper">
+                <button class="menu-btn" type="button"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                <div class="menu-dropdown">
+                  {% if user_kind != 'managers' %}
+                  <a href="{% url 'core:user_view' u.id %}"><i class="fa-solid fa-eye"></i> Ko'rish</a>
                   {% endif %}
-                {% endif %}
-              </td>
-
-              <td>
-                {% if title == "Managerlar" %}
-                  {% if u.last_login %}
-                    <span class="muted-mini">{{ u.last_login|date:"Y-m-d H:i" }}</span>
+                  {% if user_kind == 'parents' %}
+                  <a href="{% url 'core:parent_edit' u.id %}"><i class="fa-solid fa-pen"></i> Tahrirlash</a>
+                  {% elif user_kind == 'teachers' %}
+                  <a href="{% url 'core:teacher_edit' u.id %}"><i class="fa-solid fa-pen"></i> Tahrirlash</a>
                   {% else %}
-                    <span class="muted-mini">—</span>
+                  <a href="{% url 'core:user_edit' u.id %}"><i class="fa-solid fa-pen"></i> Tahrirlash</a>
                   {% endif %}
-                {% else %}
-                  {% for e in u.enrollment_set.all %}
-                    <a href="{% url 'education:group_detail' e.group.id %}" class="badge-group">
-                      {{ e.group.nom }}
-                    </a>
-                  {% empty %}
-                    <span style="color:rgba(148,163,184,.75); font-weight:700;">— Guruh yo‘q</span>
-                  {% endfor %}
-                {% endif %}
-              </td>
-
-              <td class="text-end">
-                <div class="menu-wrapper">
-                  <button class="menu-btn" type="button" aria-label="Menyu" aria-haspopup="true" aria-expanded="false">⋮</button>
-                  <div class="menu-dropdown" role="menu" aria-label="Row menu">
-                    <a href="{% url 'core:user_edit' u.id %}" role="menuitem">📝 Tahrirlash</a>
-                    <a href="{% url 'core:user_delete' u.id %}" role="menuitem">🗑 O‘chirish</a>
-                  </div>
+                  {% if user_kind == 'students' %}
+                  {% if current_status != 'archived' %}
+                  <button onclick="archiveStudent({{ u.id }})" class="text-red">
+                    <i class="fa-solid fa-box-archive"></i> Arxivlash
+                  </button>
+                  {% else %}
+                  <button onclick="restoreStudent({{ u.id }})" style="color:var(--green)">
+                    <i class="fa-solid fa-rotate-left"></i> Tiklash
+                  </button>
+                  {% endif %}
+                  {% endif %}
+                  {% if user_kind == 'parents' %}
+                  <a href="{% url 'core:parent_delete' u.id %}" class="text-red"
+                    onclick="return confirm('Ishonchingiz komilmi?')">
+                    <i class="fa-solid fa-trash"></i> O'chirish
+                  </a>
+                  {% elif user_kind == 'teachers' %}
+                  <a href="{% url 'core:teacher_delete' u.id %}" class="text-red"
+                    onclick="return confirm('Ishonchingiz komilmi?')">
+                    <i class="fa-solid fa-trash"></i> O'chirish
+                  </a>
+                  {% else %}
+                  <a href="{% url 'core:user_delete' u.id %}" class="text-red"
+                    onclick="return confirm('Ishonchingiz komilmi?')">
+                    <i class="fa-solid fa-trash"></i> O'chirish
+                  </a>
+                  {% endif %}
                 </div>
-              </td>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" style="text-align:center; padding:40px; color:var(--text-muted)">Ma'lumotlar topilmadi.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+  <div class="footer-actions">
+    <div class="size-selector">
+      <span>Ko‘rsatish:</span>
+      <select class="size-select" onchange="updateQuery({size: this.value, page: 1})">
+        <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
+        <option value="25" {% if page_size == 25 %}selected{% endif %}>25</option>
+        <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
+        <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
+      </select>
     </div>
 
-    {% if not no_pagination %}
-    <div class="users-footer">
+    <div class="pagination-v2">
+      {% if page_obj.has_previous %}
+      <a href="javascript:void(0)" onclick="updateQuery({page: {{ page_obj.previous_page_number }}})" class="page-link">
+        <i class="fa-solid fa-chevron-left"></i>
+      </a>
+      {% endif %}
 
-      <div class="page-size-box">
-        Ko‘rsatish:
-        <select onchange="
-          (function(sel){
-            const url = new URL(window.location.href);
-            url.searchParams.set('size', sel.value);
-            url.searchParams.set('page', 1);
-            window.location.href = url.toString();
-          })(this)
-        " aria-label="Page size">
-          <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
-          <option value="20" {% if page_size == 20 %}selected{% endif %}>20</option>
-          <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
-          <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
-        </select>
-      </div>
+      {% for n in page_obj.paginator.page_range %}
+      {% if n == page_obj.number %}
+      <span class="page-link active">{{ n }}</span>
+      {% elif n > page_obj.number|add:'-3' and n < page_obj.number|add:'3' %} <a href="javascript:void(0)"
+        onclick="updateQuery({page: {{ n }}})" class="page-link">{{ n }}</a>
+        {% endif %}
+        {% endfor %}
 
-      <nav aria-label="Pagination">
-        <ul class="pagination">
-          {% if page_obj.has_previous %}
-            <li><a href="?page={{ page_obj.previous_page_number }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" aria-label="Previous page">‹</a></li>
-          {% endif %}
-
-          <li class="{% if page_obj.number == 1 %}active{% endif %}">
-            <a href="?page=1&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">1</a>
-          </li>
-
-          {% if page_obj.number > 2 %}
-            <li><a href="?page=2&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">2</a></li>
-          {% endif %}
-
-          {% if page_obj.number > 4 %}
-            <li><a aria-label="More pages">…</a></li>
-          {% endif %}
-
-          {% if page_obj.number|add:-1 > 2 %}
-            <li><a href="?page={{ page_obj.number|add:-1 }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ page_obj.number|add:-1 }}</a></li>
-          {% endif %}
-
-          {% if page_obj.number != 1 and page_obj.number != page_obj.paginator.num_pages %}
-            <li class="active"><a href="?page={{ page_obj.number }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ page_obj.number }}</a></li>
-          {% endif %}
-
-          {% if page_obj.number|add:1 < page_obj.paginator.num_pages %}
-            <li><a href="?page={{ page_obj.number|add:1 }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ page_obj.number|add:1 }}</a></li>
-          {% endif %}
-
-          {% if page_obj.number < page_obj.paginator.num_pages|add:-2 %}
-            <li><a aria-label="More pages">…</a></li>
-          {% endif %}
-
-          {% if page_obj.paginator.num_pages > 1 %}
-            <li class="{% if page_obj.number == page_obj.paginator.num_pages %}active{% endif %}">
-              <a href="?page={{ page_obj.paginator.num_pages }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ page_obj.paginator.num_pages }}</a>
-            </li>
-          {% endif %}
-
-          {% if page_obj.has_next %}
-            <li><a href="?page={{ page_obj.next_page_number }}&size={{ page_size }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" aria-label="Next page">›</a></li>
-          {% endif %}
-        </ul>
-      </nav>
-
+        {% if page_obj.has_next %}
+        <a href="javascript:void(0)" onclick="updateQuery({page: {{ page_obj.next_page_number }}})" class="page-link">
+          <i class="fa-solid fa-chevron-right"></i>
+        </a>
+        {% endif %}
     </div>
-    {% endif %}
-
   </div>
 </div>
 
 <script>
-  // ===== File name preview (Uzbek) =====
-  (function(){
-    const f = document.getElementById("excelFile");
-    const name = document.getElementById("excelFileName");
-    if(!f || !name) return;
+  function closeAllMenus() { document.querySelectorAll('.menu-dropdown').forEach(m => m.classList.remove('open')); }
+  window.addEventListener('scroll', closeAllMenus, { passive: true });
+  window.addEventListener('resize', closeAllMenus, { passive: true });
 
-    f.addEventListener("change", function(){
-      if(!f.files || !f.files.length){
-        name.textContent = "Fayl tanlanmadi";
-        return;
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.menu-btn');
+    if (btn) {
+      const menu = btn.nextElementSibling;
+      const isOpen = menu.classList.contains('open');
+      closeAllMenus();
+      if (!isOpen) {
+        menu.classList.add('open');
+        const rect = btn.getBoundingClientRect();
+        const menuRect = menu.getBoundingClientRect();
+        const vh = window.innerHeight;
+        const vw = window.innerWidth;
+
+        let top = rect.bottom + 8;
+        let left = rect.right - 160;
+
+        if (top + 120 > vh) top = rect.top - 120 - 8;
+        if (left < 10) left = 10;
+        else if (left + 160 > vw - 10) left = vw - 160 - 10;
+
+        menu.style.top = top + 'px';
+        menu.style.left = left + 'px';
       }
-      name.textContent = f.files[0].name;
-    });
-  })();
+    } else if (!e.target.closest('.menu-dropdown')) {
+      closeAllMenus();
+    }
+  });
 
-  // ===== 3 dots menu (ROBUST): clone dropdown to BODY so it never gets clipped =====
-  (function(){
-    let activeMenu = null;
-    let activeBtn  = null;
+  function updateQuery(params) {
+    const url = new URL(window.location);
+    for (const [key, value] of Object.entries(params)) {
+      if (value === null) url.searchParams.delete(key);
+      else url.searchParams.set(key, value);
+    }
+    window.location.href = url.toString();
+  }
 
-    const closeAll = () => {
-      if(activeMenu){
-        activeMenu.remove();
-        activeMenu = null;
-      }
-      if(activeBtn){
-        activeBtn.setAttribute('aria-expanded','false');
-        activeBtn = null;
-      }
-    };
+  function switchTab(status) { updateQuery({ status: status, page: 1 }); }
 
-    const placeMenu = (btn, menu) => {
-      const r = btn.getBoundingClientRect();
-      const dropW = menu.offsetWidth || 200;
-      const gap = 8;
+  function openImportModal() { document.getElementById('importModal').classList.add('open'); }
+  function closeImportModal() { document.getElementById('importModal').classList.remove('open'); }
 
-      let top  = r.bottom + gap;
-      let left = r.right - dropW;
+  function openDonationSettings() {
+    const el = document.getElementById('donationSettingsModal');
+    const modal = bootstrap.Modal.getOrCreateInstance(el);
+    modal.show();
+  }
 
-      if (left + dropW > window.innerWidth - 8) left = window.innerWidth - dropW - 8;
-      if (left < 8) left = 8;
+  async function archiveStudent(id) {
+    if (!confirm('Ushbu o‘quvchini arxivlamoqchimisiz?')) return;
+    try {
+      const resp = await fetch(`/students/${id}/archive/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+      });
+      if (resp.ok) window.location.reload();
+      else alert('Xatolik yuz berdi.');
+    } catch (e) { console.error(e); alert('Tarmoq xatosi.'); }
+  }
 
-      const approxH = menu.offsetHeight || 120;
-      if (top + approxH > window.innerHeight - 8) top = r.top - approxH - gap;
-      if (top < 8) top = 8;
+  async function restoreStudent(id) {
+    try {
+      const resp = await fetch(`/students/${id}/restore/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+      });
+      if (resp.ok) window.location.reload();
+      else alert('Xatolik yuz berdi.');
+    } catch (e) { console.error(e); alert('Tarmoq xatosi.'); }
+  }
 
-      menu.style.left = left + 'px';
-      menu.style.top  = top  + 'px';
-    };
+  function handleAction(role, action, id) {
+    // Implement specific actions if needed
+  }
 
-    document.addEventListener('click', (e) => {
-      const btn = e.target.closest('.menu-btn');
+  function updateFileName(input) {
+    const statusText = document.getElementById('fileStatusText');
+    const dropZone = document.getElementById('dropZone');
+    const uploadIcon = document.getElementById('fileUploadIcon');
 
-      // 1) Click on 3 dots
-      if(btn){
-        e.preventDefault();
-        e.stopPropagation();
-
-        const wrap = btn.closest('.menu-wrapper');
-        const template = wrap ? wrap.querySelector('.menu-dropdown') : null;
-        if(!template) return;
-
-        // if same button toggled -> close
-        if(activeBtn === btn){
-          closeAll();
-          return;
-        }
-
-        closeAll();
-
-        // clone dropdown and append to body
-        const clone = template.cloneNode(true);
-        clone.classList.add('open');
-        clone.style.position = 'fixed';
-        clone.style.display = 'block';
-        clone.style.zIndex = '999999';
-
-        document.body.appendChild(clone);
-        placeMenu(btn, clone);
-
-        activeMenu = clone;
-        activeBtn = btn;
-        btn.setAttribute('aria-expanded','true');
-        return;
-      }
-
-      // 2) Click inside opened menu -> allow click (do not close immediately)
-      if(activeMenu && e.target.closest('.menu-dropdown')){
-        return;
-      }
-
-      // 3) Click outside -> close
-      closeAll();
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if(e.key === 'Escape') closeAll();
-    });
-
-    window.addEventListener('scroll', closeAll, true);
-    window.addEventListener('resize', closeAll);
-  })();
+    if (input.files && input.files[0]) {
+      const fileName = input.files[0].name;
+      statusText.innerText = fileName;
+      statusText.style.color = 'var(--primary)';
+      dropZone.style.borderColor = 'var(--primary)';
+      dropZone.style.background = 'rgba(245, 158, 11, 0.05)';
+      uploadIcon.innerHTML = '<i class="fa-solid fa-file-excel"></i>';
+      uploadIcon.style.transform = 'scale(1.1)';
+    } else {
+      statusText.innerText = 'Faylni tanlang yoki shu yerga tashlang';
+      statusText.style.color = 'white';
+      dropZone.style.borderColor = 'rgba(255,255,255,0.15)';
+      dropZone.style.background = 'rgba(2, 6, 23, 0.4)';
+      uploadIcon.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i>';
+      uploadIcon.style.transform = 'scale(1)';
+    }
+  }
 </script>
 
+{% endblock %}
 
+{% block modals %}
+<!-- Import Modal (Compact & Premium) -->
+<div id="importModal" class="modal-overlay">
+  <div class="modal-box glass-modal"
+    style="max-width: 600px; padding: 32px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1);">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <h3 style="margin: 0; font-size: 22px; font-weight: 700; color: white;">O'quvchilarni import qilish</h3>
+      <button onclick="closeImportModal()"
+        style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.05); border: none; color: #94a3b8; cursor: pointer; display: grid; place-items: center; transition: 0.2s;">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- Stepper Line Indicator -->
+    <div style="display: flex; gap: 6px; margin-bottom: 24px;">
+      <div style="flex: 1; height: 4px; border-radius: 2px; background: var(--primary);"></div>
+      <div style="flex: 1; height: 4px; border-radius: 2px; background: var(--primary);"></div>
+      <div style="flex: 1; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.1);"></div>
+    </div>
+
+    <!-- Steps -->
+    <div style="display: flex; flex-direction: column; gap: 24px; margin-bottom: 30px;">
+      <!-- Step 1 -->
+      <div style="display: flex; gap: 16px;">
+        <div
+          style="width: 28px; height: 28px; border-radius: 50%; background: rgba(245,158,11,0.15); color: var(--primary); display: grid; place-items: center; font-weight: 800; font-size: 13px; flex-shrink: 0; border: 1px solid rgba(245,158,11,0.2);">
+          1</div>
+        <div>
+          <div style="color: white; font-weight: 700; font-size: 15px; margin-bottom: 4px;">Shablonni yuklab oling</div>
+          <p style="color: var(--text-muted); font-size: 13px; line-height: 1.5; margin-bottom: 12px;">Import to'g'ri
+            ishlashi uchun maxsus Excel shablonidan foydalaning.</p>
+          <a href="{% url 'core:users_download_template' %}?role={{ user_kind|default:'student' }}" class="btn-action"
+            style="height: 34px; padding: 0 16px; font-size: 12px; border: 1px solid var(--primary); color: var(--primary); background: transparent; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; cursor: pointer; text-decoration: none;"
+            onmouseover="this.style.background='rgba(245,158,11,0.05)'"
+            onmouseout="this.style.background='transparent'">
+            <i class="fa-solid fa-download"></i> Shablonni yuklab olish
+          </a>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div style="display: flex; gap: 16px;">
+        <div
+          style="width: 28px; height: 28px; border-radius: 50%; background: rgba(245,158,11,0.15); color: var(--primary); display: grid; place-items: center; font-weight: 800; font-size: 13px; flex-shrink: 0; border: 1px solid rgba(245,158,11,0.2);">
+          2</div>
+        <div style="flex: 1;">
+          <div style="color: white; font-weight: 700; font-size: 15px; margin-bottom: 4px;">Ma'lumotlarni to'ldiring
+          </div>
+          <p style="color: var(--text-muted); font-size: 13px; line-height: 1.5;">Yuklab olingan Excel faylga
+            o'quvchilar ism-familiyasi va telefon raqamlarini namunadagidek kiriting.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dropzone Area -->
+    <form action="{% url 'core:users_import_excel' %}?role={{ user_kind|default:'student' }}" method="post"
+      enctype="multipart/form-data">
+      {% csrf_token %}
+      <div style="position: relative; margin-bottom: 24px;">
+        <input type="file" name="file" accept=".xlsx"
+          style="position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 2;"
+          onchange="updateFileName(this)">
+        <div id="dropZone"
+          style="border: 2px dashed var(--primary); border-radius: 20px; padding: 40px 20px; text-align: center; background: rgba(245,158,11,0.03); transition: 0.3s; z-index: 1;">
+          <div id="fileUploadIcon" style="font-size: 32px; color: var(--primary); margin-bottom: 12px;">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+          </div>
+          <div id="fileStatusText" style="color: white; font-weight: 700; font-size: 16px; margin-bottom: 4px;">Tayyor
+            faylni yuklang</div>
+          <div style="color: var(--text-muted); font-size: 13px;">Faqat .xlsx formatdagi fayllar</div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button type="button" onclick="closeImportModal()" class="btn-action"
+          style="border: none; background: rgba(255,255,255,0.05); height: 44px; padding: 0 24px; color: var(--text-muted); border-radius: 12px; cursor: pointer;">
+          Bekor qilish
+        </button>
+        <button type="submit" class="btn-action btn-primary"
+          style="height: 44px; padding: 0 40px; box-shadow: 0 8px 16px var(--primary-glow); border-radius: 12px;">
+          <i class="fa-solid fa-upload"></i> Yuklash
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- DONATION SETTINGS MODAL -->
+<div class="modal fade" id="donationSettingsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content glass-modal" style="border-radius: 24px;">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
+          <div
+            style="width: 36px; height: 36px; border-radius: 10px; background: rgba(245, 158, 11, 0.1); display: flex; align-items: center; justify-content: center;">
+            <i class="fa-solid fa-hand-holding-dollar text-warning" style="font-size: 18px;"></i>
+          </div>
+          Donat Sozlamalari
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{% url 'core:update_center_donation_settings' %}" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-body py-4">
+          <div class="form-check form-switch mb-4 p-3 rounded-4"
+            style="background: rgba(255,255,255,0.03); padding-left: 3.8rem !important; border: 1px solid rgba(255,255,255,0.05);">
+            <input class="form-check-input" type="checkbox" role="switch" id="donationEnabled" name="donation_enabled"
+              {% if center.donation_enabled %}checked{% endif %} style="transform: scale(1.4); cursor: pointer;">
+            <label class="form-check-label ms-2 fw-bold" for="donationEnabled"
+              style="cursor: pointer; font-size: 15px;">Donat bo'limini yoqish</label>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted small text-uppercase fw-bold mb-2 ml-1">Karta raqami</label>
+            <input type="text" name="donation_card_number" class="modal-form-control w-100"
+              value="{{ center.donation_card_number|default:'' }}" placeholder="8600 0000 0000 0000">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted small text-uppercase fw-bold mb-2 ml-1">Karta egasi</label>
+            <input type="text" name="donation_card_holder" class="modal-form-control w-100"
+              value="{{ center.donation_card_holder|default:'' }}" placeholder="ABBOS A.">
+          </div>
+
+          <div class="mb-0">
+            <label class="form-label text-muted small text-uppercase fw-bold mb-2 ml-1">QR Kod rasmi</label>
+            <div class="p-3 rounded-3"
+              style="background: rgba(2, 6, 23, 0.3); border: 1px dashed rgba(255,255,255,0.1);">
+              <input type="file" name="donation_qr_image" class="form-control bg-transparent border-0 text-white"
+                style="font-size: 14px;">
+              {% if center.donation_qr_image %}
+              <div class="mt-2 small text-success d-flex align-items-center gap-1">
+                <i class="fa-solid fa-circle-check"></i> QR kod mavjud
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-action btn-outline" data-bs-dismiss="modal" style="border:none;">Bekor
+            qilish</button>
+          <button type="submit" class="btn btn-action btn-primary"
+            style="background: linear-gradient(135deg, #f59e0b, #d97706); border:none; padding: 0 32px;">Saqlash</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}

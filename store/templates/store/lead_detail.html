@@ -1,0 +1,347 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<main class="lead-shell" aria-labelledby="page-title">
+    <div class="lead-bg" aria-hidden="true"></div>
+
+    <section class="lead-wrapper container text-light">
+        <!-- HEADER -->
+        <header class="lead-header">
+            <div class="header-content">
+                <h3 class="page-title">{{ lead.ism }} {{ lead.familya }}</h3>
+                <div class="header-badges">
+                    <span class="status-badge status-{{ lead.status.nom|slugify }}">
+                        {{ lead.status.nom|default:"Yangi" }}
+                    </span>
+                    {% if lead.converted_user %}
+                    <span class="status-badge status-converted">
+                        <i class="fa-solid fa-check-circle"></i> O'quvchi
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="header-actions">
+                {% if not lead.converted_user %}
+                <form method="POST" action="{% url 'store:lead_convert' lead.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-convert"
+                        onclick="return confirm('O‘quvchiga aylantirilsinmi?')">
+                        <i class="fa-solid fa-user-plus"></i> Tasdiqlash & O'tkazish
+                    </button>
+                </form>
+                {% else %}
+                <a href="{% url 'accounts:student_detail' lead.converted_user.id %}" class="btn btn-view-student">
+                    <i class="fa-solid fa-user-graduate"></i> O'quvchini ko'rish
+                </a>
+                {% endif %}
+
+                <a href="{% url 'store:lead_edit' lead.id %}" class="btn btn-edit">
+                    <i class="fa-solid fa-pen"></i> Tahrirlash
+                </a>
+
+                <form method="POST" action="{% url 'store:lead_delete' lead.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button class="btn btn-delete" onclick="return confirm('Haqiqatan ham o‘chirmoqchimisiz?')">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </form>
+            </div>
+        </header>
+
+        <!-- CONTENT GRID -->
+        <div class="lead-detail-grid">
+
+            <!-- 1. SHAXSIY -->
+            <div class="detail-card">
+                <h4 class="card-title"><i class="fa-solid fa-address-card"></i> Shaxsiy Ma'lumotlar</h4>
+                <div class="info-row">
+                    <span class="label">F.I.SH:</span>
+                    <span class="value">{{ lead.familya }} {{ lead.ism }} {{ lead.otchestvo|default:"" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Tug'ilgan sana:</span>
+                    <span class="value">{{ lead.birth_date|default:"-" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Yosh:</span>
+                    <span class="value">{{ lead.yosh }} yosh</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Jinsi:</span>
+                    <span class="value">
+                        {% if lead.gender == 'male' %}Erkak <i class="fa-solid fa-mars"></i>{% elif lead.gender ==
+                        'female' %}Ayol <i class="fa-solid fa-venus"></i>{% else %}-{% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <!-- 2. ANKETA -->
+            <div class="detail-card">
+                <h4 class="card-title"><i class="fa-solid fa-id-card"></i> Hujjatlar</h4>
+                <div class="info-row">
+                    <span class="label">Passport ID:</span>
+                    <span class="value">{{ lead.passport_id|default:"-" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">JSHR:</span>
+                    <span class="value">{{ lead.jshr|default:"-" }}</span>
+                </div>
+            </div>
+
+            <!-- 3. ALOQA -->
+            <div class="detail-card">
+                <h4 class="card-title"><i class="fa-solid fa-phone"></i> Aloqa</h4>
+                <div class="info-row">
+                    <span class="label">Telefon 1:</span>
+                    <span class="value link"><a href="tel:{{ lead.telefon1 }}">{{ lead.telefon1 }}</a></span>
+                </div>
+                {% if lead.telefon2 %}
+                <div class="info-row">
+                    <span class="label">Telefon 2:</span>
+                    <span class="value link"><a href="tel:{{ lead.telefon2 }}">{{ lead.telefon2 }}</a></span>
+                </div>
+                {% endif %}
+                <div class="info-row">
+                    <span class="label">Manzil:</span>
+                    <span class="value">{{ lead.address|default:"-" }}</span>
+                </div>
+            </div>
+
+            <!-- 4. INFO -->
+            <div class="detail-card">
+                <h4 class="card-title"><i class="fa-solid fa-info-circle"></i> Qo'shimcha</h4>
+                <div class="info-row">
+                    <span class="label">Manba:</span>
+                    <span class="value">{{ lead.manba|default:"-" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Yo'nalish:</span>
+                    <span class="value">{{ lead.yonalish|default:"-" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Status:</span>
+                    <span class="value">{{ lead.status|default:"-" }}</span>
+                </div>
+                {% if lead.comment %}
+                <div class="info-row vertical">
+                    <span class="label">Izoh:</span>
+                    <span class="value comment-box">{{ lead.comment }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if lead.converted_user %}
+            <!-- 5. CONVERSION INFO -->
+            <div class="detail-card full-width converted-card">
+                <h4 class="card-title"><i class="fa-solid fa-check-double"></i> Konvertatsiya Tarixi</h4>
+                <div class="info-row">
+                    <span class="label">O'tkazilgan vaqt:</span>
+                    <span class="value">{{ lead.converted_at|date:"d.m.Y H:i" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Kim tomonidan:</span>
+                    <span class="value">{{ lead.converted_by|default:"-" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Bog'langan Student:</span>
+                    <span class="value">{{ lead.converted_user.email }}</span>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </section>
+</main>
+
+<style>
+    :root {
+        --bg0: #070b14;
+        --text: #e5e7eb;
+        --card-bg: rgba(255, 255, 255, 0.03);
+        --border: rgba(255, 255, 255, 0.08);
+        --amber: #f59e0b;
+        --blue: #38bdf8;
+        --green: #22c55e;
+    }
+
+    .lead-shell {
+        min-height: calc(100vh - 60px);
+        padding: 20px 0;
+    }
+
+    .lead-wrapper {
+        max-width: 1000px;
+    }
+
+    .lead-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        background: rgba(15, 23, 42, 0.6);
+        padding: 20px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        backdrop-filter: blur(10px);
+    }
+
+    .page-title {
+        margin: 0;
+        font-weight: 800;
+        font-size: 1.5rem;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn {
+        padding: 10px 16px;
+        border-radius: 10px;
+        font-weight: 600;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+
+    .btn-convert {
+        background: var(--green);
+        color: #000;
+    }
+
+    .btn-convert:hover {
+        filter: brightness(1.1);
+        transform: translateY(-2px);
+    }
+
+    .btn-view-student {
+        background: var(--blue);
+        color: #000;
+    }
+
+    .btn-edit {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+    }
+
+    .btn-edit:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-delete {
+        background: rgba(239, 68, 68, 0.2);
+        color: #fca5a5;
+        padding: 10px 14px;
+    }
+
+    .btn-delete:hover {
+        background: rgba(239, 68, 68, 0.4);
+        color: #fff;
+    }
+
+    .lead-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+
+    .detail-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px;
+    }
+
+    .detail-card.full-width {
+        grid-column: 1 / -1;
+    }
+
+    .converted-card {
+        border-color: rgba(34, 197, 94, 0.3);
+        background: rgba(34, 197, 94, 0.05);
+    }
+
+    .card-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--amber);
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .info-row.vertical {
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .label {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    .value {
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .value.link a {
+        color: var(--blue);
+        text-decoration: none;
+    }
+
+    .value.link a:hover {
+        text-decoration: underline;
+    }
+
+    .comment-box {
+        background: rgba(0, 0, 0, 0.2);
+        padding: 10px;
+        border-radius: 8px;
+        margin-top: 4px;
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    @media(max-width: 768px) {
+        .lead-header {
+            flex-direction: column;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .header-actions {
+            width: 100%;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            flex: 1;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}

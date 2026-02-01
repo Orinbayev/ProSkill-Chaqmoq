@@ -64,7 +64,8 @@
     font-weight: 700;
   }
 
-  th, td {
+  th,
+  td {
     padding: 14px 12px;
     text-align: center;
     vertical-align: middle;
@@ -80,16 +81,16 @@
     transform: scale(1.01);
   }
 
-  .no-data{
+  .no-data {
     padding: 18px 12px;
-    color:#cbd5e1;
-    text-align:center;
+    color: #cbd5e1;
+    text-align: center;
   }
 
   canvas {
     border-radius: 16px;
-    background: rgba(255,255,255,0.02);
-    box-shadow: inset 0 0 10px rgba(59,130,246,0.1);
+    background: rgba(255, 255, 255, 0.02);
+    box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.1);
     max-width: 100%;
   }
 
@@ -99,103 +100,112 @@
   ============================ */
 
   /* Filter blokini tartibga keltiramiz */
-  .filters-row{
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    flex-wrap:wrap;
-    gap:12px;
+  .filters-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
   }
-  .filters-row label{
-    margin:0;
-    white-space:nowrap;
+
+  .filters-row label {
+    margin: 0;
+    white-space: nowrap;
   }
 
   /* Jadvalni mobileda scroll qilamiz */
-  .table-scroll{
-    width:100%;
-    overflow-x:auto;
+  .table-scroll {
+    width: 100%;
+    overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     border-radius: 12px;
     margin-top: 14px;
   }
-  .table-scroll table{
+
+  .table-scroll table {
     margin-top: 0;
-    min-width: 860px; /* ustunlar siqilib ketmasin */
+    min-width: 860px;
+    /* ustunlar siqilib ketmasin */
   }
 
   /* 📱 Telefon */
-  @media (max-width: 576px){
-    .dashboard-container{
+  @media (max-width: 576px) {
+    .dashboard-container {
       max-width: 100%;
       margin: 14px 10px;
       padding: 16px;
       border-radius: 18px;
     }
 
-    h3{
+    h3 {
       font-size: 1.05rem;
       margin-bottom: 16px;
     }
 
     /* Filterlar: ustma-ust va 100% */
-    .filters-row{
+    .filters-row {
       justify-content: stretch;
-      gap:10px;
+      gap: 10px;
     }
-    .filters-row label{
-      display:block;
-      width:100%;
-      text-align:left;
-      font-weight:600;
-      color:#e5e7eb;
+
+    .filters-row label {
+      display: block;
+      width: 100%;
+      text-align: left;
+      font-weight: 600;
+      color: #e5e7eb;
     }
-    .filters-row select{
-      width:100%;
+
+    .filters-row select {
+      width: 100%;
       padding: 10px 12px;
       border-radius: 12px;
     }
 
-    #report-title{
+    #report-title {
       font-size: .95rem;
       margin-bottom: 12px !important;
     }
 
-    .card.p-3{
+    .card.p-3 {
       padding: 12px !important;
       border-radius: 16px;
     }
 
-    th, td{
+    th,
+    td {
       padding: 10px 10px;
       font-size: .92rem;
     }
 
     /* mobileda hover scale bo‘lmasin (silkinmasin) */
-    tbody tr:hover{
+    tbody tr:hover {
       transform: none;
     }
   }
 
   /* 🧾 Tablet */
-  @media (min-width: 577px) and (max-width: 991px){
-    .dashboard-container{
+  @media (min-width: 577px) and (max-width: 991px) {
+    .dashboard-container {
       margin: 24px 18px;
       padding: 22px;
       border-radius: 22px;
     }
-    th, td{
+
+    th,
+    td {
       padding: 12px 10px;
     }
+
     /* tabletda ham hover scale yumshoqroq */
-    tbody tr:hover{
+    tbody tr:hover {
       transform: scale(1.005);
     }
   }
 
   /* 🖥️ Desktop: hover scale o‘z holida qolsin */
-  @media (min-width: 992px){
-    tbody tr:hover{
+  @media (min-width: 992px) {
+    tbody tr:hover {
       transform: scale(1.01);
     }
   }
@@ -208,14 +218,14 @@
     <label class="fw-semibold me-2">Yil:</label>
     <select id="year">
       {% for y in years %}
-        <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+      <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
       {% endfor %}
     </select>
 
     <label class="fw-semibold ms-4 me-2">Oy:</label>
     <select id="month">
       {% for num, name in months %}
-        <option value="{{ num }}" {% if num == selected_month %}selected{% endif %}>{{ name }}</option>
+      <option value="{{ num }}" {% if num == selected_month %}selected{% endif %}>{{ name }}</option>
       {% endfor %}
     </select>
   </div>
@@ -255,7 +265,9 @@
           <td class="fw-bold">{{ t.total_turnover|floatformat:0 }} so‘m</td>
         </tr>
         {% empty %}
-        <tr><td colspan="7" class="no-data">Ma’lumot topilmadi ⚡</td></tr>
+        <tr>
+          <td colspan="7" class="no-data">Ma’lumot topilmadi ⚡</td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
@@ -265,39 +277,39 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-document.addEventListener("DOMContentLoaded", function () {
+  document.addEventListener("DOMContentLoaded", function () {
 
-  const yearSelect   = document.getElementById("year");
-  const monthSelect  = document.getElementById("month");
-  const tableBody    = document.querySelector("tbody");
-  const reportTitle  = document.getElementById("report-title");
-  const ctx          = document.getElementById("incomeChart");
+    const yearSelect = document.getElementById("year");
+    const monthSelect = document.getElementById("month");
+    const tableBody = document.querySelector("tbody");
+    const reportTitle = document.getElementById("report-title");
+    const ctx = document.getElementById("incomeChart");
 
-  let chartInstance = null;
+    let chartInstance = null;
 
-  function formatNum(num) {
-    return Number(num).toLocaleString("uz-UZ") + " so‘m";
-  }
+    function formatNum(num) {
+      return Number(num).toLocaleString("uz-UZ") + " so‘m";
+    }
 
-  function loadData() {
-    const year = yearSelect.value;
-    const month = monthSelect.value;
+    function loadData() {
+      const year = yearSelect.value;
+      const month = monthSelect.value;
 
-    fetch(`/talim/teacher-salary/summary/?year=${year}&month=${month}`, {
-      headers: { "X-Requested-With": "XMLHttpRequest" }
-    })
-    .then(res => res.json())
-    .then(data => {
+      fetch(`/talim/teacher-salary/summary/?year=${year}&month=${month}`, {
+        headers: { "X-Requested-With": "XMLHttpRequest" }
+      })
+        .then(res => res.json())
+        .then(data => {
 
-      reportTitle.innerHTML = `Hisobot — <strong>${data.year}</strong> yil`;
+          reportTitle.innerHTML = `Hisobot — <strong>${data.year}</strong> yil`;
 
-      tableBody.innerHTML = "";
+          tableBody.innerHTML = "";
 
-      if (data.teacher_data.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="7" class="no-data">Ma’lumot topilmadi ⚡</td></tr>`;
-      } else {
-        data.teacher_data.forEach((t, i) => {
-          tableBody.insertAdjacentHTML("beforeend", `
+          if (data.teacher_data.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="7" class="no-data">Ma’lumot topilmadi ⚡</td></tr>`;
+          } else {
+            data.teacher_data.forEach((t, i) => {
+              tableBody.insertAdjacentHTML("beforeend", `
             <tr>
               <td>${i + 1}</td>
               <td>${t.teacher}</td>
@@ -308,42 +320,42 @@ document.addEventListener("DOMContentLoaded", function () {
               <td class="fw-bold">${formatNum(t.total_turnover)}</td>
             </tr>
           `);
-        });
+            });
+          }
+
+          if (chartInstance) chartInstance.destroy();
+
+          chartInstance = new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels: {{ chart_labels| safe }},
+    datasets: [
+      {
+        label: "O‘qituvchi daromadi",
+        data: data.chart_teacher_income,
+        backgroundColor: "rgba(34, 197, 94, 0.6)",
+        borderColor: "#22c55e",
+        borderWidth: 1.5,
+        borderRadius: 6,
+      },
+      {
+        label: "Markaz foydasi",
+        data: data.chart_center_income,
+        backgroundColor: "rgba(56, 189, 248, 0.6)",
+        borderColor: "#38bdf8",
+        borderWidth: 1.5,
+        borderRadius: 6,
+      },
+      {
+        label: "Umumiy aylanma",
+        data: data.chart_total_turnover,
+        backgroundColor: "rgba(251, 191, 36, 0.6)",
+        borderColor: "#fbbf24",
+        borderWidth: 1.5,
+        borderRadius: 6,
       }
-
-      if (chartInstance) chartInstance.destroy();
-
-      chartInstance = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels: {{ chart_labels|safe }},
-          datasets: [
-            {
-              label: "O‘qituvchi daromadi",
-              data: data.chart_teacher_income,
-              backgroundColor: "rgba(34, 197, 94, 0.6)",
-              borderColor: "#22c55e",
-              borderWidth: 1.5,
-              borderRadius: 6,
-            },
-            {
-              label: "Markaz foydasi",
-              data: data.chart_center_income,
-              backgroundColor: "rgba(56, 189, 248, 0.6)",
-              borderColor: "#38bdf8",
-              borderWidth: 1.5,
-              borderRadius: 6,
-            },
-            {
-              label: "Umumiy aylanma",
-              data: data.chart_total_turnover,
-              backgroundColor: "rgba(251, 191, 36, 0.6)",
-              borderColor: "#fbbf24",
-              borderWidth: 1.5,
-              borderRadius: 6,
-            }
-          ]
-        }
+    ]
+  }
       });
 
     });

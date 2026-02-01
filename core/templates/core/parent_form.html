@@ -1,0 +1,402 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    :root {
+        --bg-dark: #020617;
+        --bg-card: #0f172a;
+        --bg-hover: #1e293b;
+        --border: rgba(255, 255, 255, 0.08);
+        --border-hover: rgba(255, 255, 255, 0.15);
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+        --primary: #f59e0b;
+        --primary-glow: rgba(245, 158, 11, 0.5);
+        --radius: 16px;
+    }
+
+    .edit-scope {
+        background: var(--bg-dark);
+        min-height: 100vh;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        color: var(--text-main);
+        padding: 20px;
+    }
+
+    .edit-wrap {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .page-header {
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .page-title {
+        font-size: 24px;
+        font-weight: 800;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .edit-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 24px;
+    }
+
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-label {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .form-input,
+    .form-select,
+    .select2-container--default .select2-selection--multiple {
+        background: rgba(2, 6, 23, 0.5) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 10px !important;
+        height: 48px;
+        padding: 0 16px !important;
+        color: white !important;
+        font-size: 14px;
+        outline: none;
+        width: 100%;
+        transition: 0.2s;
+    }
+
+    .select2-container .select2-selection--single {
+        background: rgba(2, 6, 23, 0.5) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 10px !important;
+        height: 48px !important;
+        display: flex !important;
+        align-items: center !important;
+        padding: 0 16px !important;
+        color: white !important;
+    }
+
+    .select2-container--default .select2-selection--multiple {
+        background: rgba(2, 6, 23, 0.5) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 10px !important;
+        min-height: 48px !important;
+        display: flex !important;
+        align-items: center !important;
+        padding: 4px 12px !important;
+        color: white !important;
+    }
+
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        background-color: var(--primary) !important;
+        color: black !important;
+        border: none !important;
+        border-radius: 6px !important;
+        font-weight: 700 !important;
+        margin: 2px !important;
+        padding: 2px 10px !important;
+    }
+
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+        color: black !important;
+        margin-right: 5px !important;
+        border: none !important;
+    }
+
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+        background: none !important;
+        color: #000 !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: white !important;
+        padding: 0 !important;
+        line-height: normal !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 46px !important;
+        right: 12px !important;
+    }
+
+    .select2-dropdown {
+        background: #0f172a !important;
+        border: 1px solid var(--border) !important;
+        color: white !important;
+        border-radius: 12px !important;
+        overflow: hidden !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .select2-search--dropdown {
+        padding: 10px !important;
+    }
+
+    .select2-search--dropdown .select2-search__field {
+        background: rgba(2, 6, 23, 0.8) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 8px !important;
+        color: white !important;
+        padding: 8px 12px !important;
+    }
+
+    .select2-results__option {
+        padding: 10px 16px !important;
+        font-size: 14px !important;
+    }
+
+    .select2-results__option--highlighted[aria-selected] {
+        background-color: var(--primary) !important;
+        color: black !important;
+    }
+
+    .select2-results__option[aria-selected=true] {
+        background-color: rgba(245, 158, 11, 0.2) !important;
+    }
+
+    .select2-container--default .select2-results__option--selected {
+        background-color: rgba(245, 158, 11, 0.3) !important;
+        color: white !important;
+    }
+
+    .actions {
+        display: flex;
+        gap: 16px;
+        margin-top: 32px;
+        justify-content: flex-end;
+    }
+
+    .password-wrap {
+        position: relative;
+    }
+
+    .pass-toggle {
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        cursor: pointer;
+        background: none;
+        border: none;
+        padding: 0;
+        z-index: 5;
+        transition: 0.2s;
+    }
+
+    .pass-toggle:hover {
+        color: var(--primary);
+    }
+
+    .btn {
+        height: 48px;
+        padding: 0 24px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: 0.2s;
+        border: none;
+        text-decoration: none;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    }
+
+    .full-width {
+        grid-column: span 2;
+    }
+
+    @media (max-width: 768px) {
+        .full-width {
+            grid-column: span 1;
+        }
+    }
+</style>
+
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<div class="edit-scope">
+    <div class="edit-wrap">
+        <div class="page-header">
+            <h2 class="page-title">
+                <i class="fa-sharp fa-solid fa-people-roof" style="color: var(--primary);"></i>
+                {{ title }}
+            </h2>
+        </div>
+
+        <div class="edit-card">
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Ism</label>
+                        {{ form.ism }}
+                        {{ form.ism.errors }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Familya</label>
+                        {{ form.familya }}
+                        {{ form.familya.errors }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Telefon 1</label>
+                        {{ form.telefon1 }}
+                        {{ form.telefon1.errors }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Telefon 2</label>
+                        {{ form.telefon2 }}
+                        {{ form.telefon2.errors }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Login (Email)</label>
+                        {{ form.email }}
+                        {{ form.email.errors }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Parol {% if is_edit %}(O'zgartirish uchun kiriting){% endif %}</label>
+                        <div class="password-wrap">
+                            {{ form.password }}
+                            <button type="button" class="pass-toggle"
+                                onclick="togglePasswordVisibility('id_password', this)">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                        {{ form.password.errors }}
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Farzandlarini tanlang</label>
+                        {{ form.children_ids }}
+                        {{ form.children_ids.errors }}
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <a href="{% url 'core:stat_parents' %}" class="btn btn-secondary"
+                        style="background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--border);">
+                        Bekor qilish
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-check"></i> Saqlash
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        // Initialize Select2
+        $('.select2').select2({
+            placeholder: "Farzandlarini qidirish va tanlang",
+            allowClear: true,
+            width: '100%'
+        });
+
+        // Apply custom class to standard inputs
+        $('input:not(.select2-search__field)').addClass('form-input');
+
+        // ✅ Phone auto-prefix (+998)
+        function applyPhoneLogic(id) {
+            const input = document.getElementById(id);
+            if (!input) return;
+
+            input.addEventListener('focus', function () {
+                if (!input.value) {
+                    input.value = '+998';
+                }
+            });
+
+            input.addEventListener('input', function () {
+                if (!input.value.startsWith('+998')) {
+                    input.value = '+998';
+                }
+            });
+        }
+        applyPhoneLogic('id_telefon1');
+        applyPhoneLogic('id_telefon2');
+
+        // ✅ Auto-generate Login (email) and Password
+        const ismInput = document.getElementById('id_ism');
+        const famInput = document.getElementById('id_familya');
+        const emailInput = document.getElementById('id_email');
+        const passInput = document.getElementById('id_password');
+        const isEditMode = "{{ is_edit|lower|default:'false' }}" === "true";
+
+        function handleAutoFill() {
+            if (isEditMode) return; // Don't touch if editing existing user
+
+            const ismVal = ismInput.value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+            const famVal = famInput.value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+
+            if (ismVal && famVal) {
+                // Email: ism.fam@chaqmoq.uz
+                emailInput.value = ismVal + '.' + famVal + '@chaqmoq.uz';
+
+                // Password: Ism2026
+                const capIsm = ismVal.charAt(0).toUpperCase() + ismVal.slice(1);
+                passInput.value = capIsm + '2026';
+            }
+        }
+
+        if (ismInput && famInput) {
+            ismInput.addEventListener('input', handleAutoFill);
+            famInput.addEventListener('input', handleAutoFill);
+        }
+
+        // ✅ Toggle Password Visibility
+        window.togglePasswordVisibility = function (inputId, btn) {
+            const input = document.getElementById(inputId);
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        };
+    });
+</script>
+{% endblock %}

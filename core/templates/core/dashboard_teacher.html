@@ -1,607 +1,379 @@
 {% extends "base.html" %}
+{% block title %}
+👨‍🏫 O'qituvchi paneli — Chaqmoq Academy
+{% endblock %}
+
 {% block content %}
-
 <style>
-:root{
-  --bg0:#070a12;
-  --bg1:#0b1220;
-  --bg2:#0f1b33;
+  :root {
+    --text-warning: #facc15;
+    --white-5: rgba(255, 255, 255, 0.05);
+    --white-10: rgba(255, 255, 255, 0.1);
+    --white-3: rgba(255, 255, 255, 0.03);
+    --green-glow: rgba(34, 197, 94, 0.15);
+  }
 
-  --panel: rgba(17,24,39,.62);
-  --panel2: rgba(2,6,23,.55);
-  --line: rgba(255,255,255,.10);
-  --line2: rgba(255,255,255,.16);
+  .glass {
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  }
 
-  --muted:#94a3b8;
-  --text:#e5e7eb;
+  .header-card {
+    background: linear-gradient(-45deg, rgba(34, 197, 94, 0.15), rgba(15, 23, 42, 0.95), rgba(34, 197, 94, 0.08), rgba(15, 23, 42, 0.95));
+    background-size: 400% 400%;
+    animation: gradientBG 10s ease infinite;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    position: relative;
+    /* overflow: hidden; REMOVED to allow dropdowns to spill out */
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    border-radius: 28px;
+    z-index: 10;
+  }
 
-  --green:#22c55e;
-  --blue:#3b82f6;
-  --blue2:#2563eb;
+  /* Added wrapper to contain the glow since header-card is no longer overflow:hidden */
+  .header-glow-wrapper {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+  }
 
-  --warn:#f59e0b;
-  --warn2:#fbbf24;
-  --danger:#ef4444;
+  .header-content-wrapper {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
 
-  --shadow: 0 18px 55px rgba(0,0,0,.45);
-  --shadow2: 0 10px 32px rgba(0,0,0,.38);
+  @media (min-width: 768px) {
+    .header-content-wrapper {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+  }
 
-  --radius: 22px;
-  --radius2: 18px;
+  @keyframes gradientBG {
+    0% {
+      background-position: 0% 50%;
+    }
 
-  --ring: 0 0 0 4px rgba(245,158,11,.18);
-  --ring2: 0 0 0 4px rgba(59,130,246,.18);
-}
+    50% {
+      background-position: 100% 50%;
+    }
 
-*{ box-sizing:border-box; }
-html,body{ height:100%; }
-body{
-  background:
-    radial-gradient(1200px 700px at 10% -10%, rgba(245,158,11,.22), transparent 58%),
-    radial-gradient(900px 650px at 110% 10%, rgba(59,130,246,.18), transparent 60%),
-    radial-gradient(900px 650px at 40% 120%, rgba(34,197,94,.12), transparent 60%),
-    linear-gradient(180deg, var(--bg0), var(--bg1) 45%, var(--bg2));
-  color: var(--text);
-  overflow-x: hidden;
-}
+    100% {
+      background-position: 0% 50%;
+    }
+  }
 
-a{ color: inherit; text-decoration:none; }
-button, a, input, select, textarea{ font: inherit; color: inherit; }
-:focus{ outline: none; }
-:focus-visible{
-  box-shadow: var(--ring2);
-  border-color: rgba(59,130,246,.45) !important;
-}
+  .header-glow-wrapper::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, rgba(34, 197, 94, 0.05) 0%, transparent 50%);
+    animation: rotateGlow 15s linear infinite;
+    pointer-events: none;
+  }
 
-/* ✅ PAGE WRAP */
-.tdash-wrap{
-  max-width: 1240px;
-  margin: 0 auto;
-  padding: max(10px, env(safe-area-inset-top)) 12px 26px;
-  padding-left: max(12px, env(safe-area-inset-left));
-  padding-right: max(12px, env(safe-area-inset-right));
-  padding-bottom: max(26px, env(safe-area-inset-bottom));
-  color: var(--text);
-}
+  @keyframes rotateGlow {
+    from {
+      transform: rotate(0deg);
+    }
 
-/* ✅ TOP HEADER */
-.tdash-topbar{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap: 14px;
-  padding: 16px 16px;
-  border-radius: var(--radius);
-  background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
-  border: 1px solid rgba(255,255,255,.08);
-  backdrop-filter: blur(14px);
-  box-shadow: var(--shadow2);
-  margin: 10px 0 18px;
+    to {
+      transform: rotate(360deg);
+    }
+  }
 
-  position: relative;
-  z-index: 50;
-  overflow: visible;
-}
+  .icon-box {
+    width: 60px;
+    height: 60px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+    font-size: 24px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  }
 
-.tdash-top-left{
-  display:flex;
-  align-items:center;
-  gap: 12px;
-  min-width: 0;
-}
+  .dashboard-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 100%;
+  }
 
-.tdash-emoji{
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
-  display:grid;
-  place-items:center;
-  background: rgba(34,197,94,.12);
-  border: 1px solid rgba(34,197,94,.22);
-  box-shadow: 0 12px 30px rgba(0,0,0,.28);
-  color: var(--green);
-  font-size: 18px;
-  flex: 0 0 auto;
-}
+  .dashboard-card:hover {
+    transform: translateY(-8px);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+  }
 
-.tdash-title{
-  margin:0;
-  font-size: clamp(22px, 3.4vw, 34px);
-  font-weight: 950;
-  letter-spacing: .2px;
-  color: var(--green);
-  text-shadow: 0 8px 24px rgba(34,197,94,.16);
-  line-height: 1.1;
-}
+  .card-icon-large {
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    font-size: 20px;
+  }
 
-.tdash-sub{
-  margin-top: 6px;
-  color: rgba(148,163,184,.95);
-  font-weight: 750;
-  font-size: 13px;
-  line-height: 1.35;
-}
+  .bg-blue-subtle {
+    background: rgba(56, 189, 248, 0.1);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+  }
 
-/* ✅ RIGHT ICONS */
-.tdash-top-right{
-  display:flex;
-  align-items:center;
-  gap: 10px;
-  justify-content:flex-end;
-  position: relative;
-  z-index: 60;
-}
+  .bg-green-subtle {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+  }
 
-/* icon buttons */
-.ticon-btn{
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(15,23,42,.70);
-  color: rgba(226,232,240,.82);
-  display:grid;
-  place-items:center;
-  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease, color .18s ease;
-  position: relative;
-  cursor:pointer;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-.ticon-btn:hover{
-  transform: translateY(-1px);
-  color:#fff;
-  border-color: rgba(255,255,255,.18);
-  box-shadow: 0 16px 36px rgba(0,0,0,.35);
-}
-.ticon-btn:active{ transform: translateY(0); }
-.ticon-btn:focus-visible{
-  box-shadow: var(--ring);
-  border-color: rgba(245,158,11,.45) !important;
-}
+  .bg-purple-subtle {
+    background: rgba(168, 85, 247, 0.1);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.2);
+  }
 
-/* ✅ small badge on bell */
-.notif-dot{
-  position:absolute;
-  top:9px; right:10px;
-  width:9px; height:9px;
-  border-radius:999px;
-  background: var(--danger);
-  box-shadow: 0 0 0 3px rgba(239,68,68,.14);
-  display:none;
-}
+  .btn-premium {
+    width: 100%;
+    padding: 12px;
+    border-radius: 14px;
+    font-weight: 800;
+    transition: all 0.2s;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
 
-/* ✅ avatar button (DUMALOQ + RASM) */
-.tavatar-btn{
-  width: 48px;
-  height: 48px;
-  border-radius: 999px;
-  overflow:hidden;
-  padding:0;
-  background: linear-gradient(135deg, var(--blue), var(--blue2));
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight: 950;
-  color:#fff;
-  border: 1px solid rgba(255,255,255,.14);
-  box-shadow: 0 14px 32px rgba(0,0,0,.40);
-  cursor:pointer;
-  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-.tavatar-btn:hover{
-  transform: translateY(-2px);
-  box-shadow: 0 18px 44px rgba(0,0,0,.50), 0 0 0 4px rgba(59,130,246,.12);
-  border-color: rgba(59,130,246,.45);
-}
-.tavatar-btn:active{ transform: translateY(0); }
-.tavatar-btn:focus-visible{
-  box-shadow: 0 18px 44px rgba(0,0,0,.50), var(--ring2);
-  border-color: rgba(59,130,246,.55) !important;
-}
-.tavatar-btn img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  display:block;
-  border-radius:999px;
-}
+  .btn-blue-glass {
+    background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
+    color: white;
+    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
+  }
 
-/* ✅ dropdowns */
-.drop-wrap{ position: relative; z-index: 60; }
+  .btn-green-glass {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    color: white;
+    box-shadow: 0 10px 20px rgba(34, 197, 94, 0.2);
+  }
 
-.dropdown-menu{
-  position:absolute;
-  right:0;
-  top: 56px;
-  min-width: 270px;
-  max-width: min(92vw, 360px);
-  border-radius: 18px;
-  background: rgba(2,6,23,.92);
-  border: 1px solid rgba(255,255,255,.10);
-  backdrop-filter: blur(16px);
-  box-shadow: 0 22px 60px rgba(0,0,0,.50);
-  padding: 10px;
-  display:none;
-  z-index: 99999;
-  overflow: hidden;
-}
-.dropdown-menu.open{ display:block; }
+  .btn-premium:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+  }
 
-.dd-head{
-  padding: 10px 10px 8px;
-  border-bottom: 1px solid rgba(255,255,255,.08);
-  margin-bottom: 8px;
-}
-.dd-title{
-  margin:0;
-  font-size: 13px;
-  font-weight: 950;
-  color:#e5e7eb;
-}
-.dd-sub{
-  margin-top:4px;
-  font-size: 12px;
-  font-weight: 750;
-  color: rgba(148,163,184,.88);
-}
+  .top-right-actions {
+    display: flex;
+    gap: 12px;
+  }
 
-.dd-item{
-  display:flex;
-  align-items:center;
-  gap: 10px;
-  padding: 11px 12px;
-  border-radius: 14px;
-  text-decoration:none;
-  color: rgba(226,232,240,.88);
-  font-weight: 900;
-  transition: background .15s ease, border-color .15s ease, transform .15s ease, color .15s ease;
-  border: 1px solid transparent;
-  background: transparent;
-  width: 100%;
-}
-.dd-item:hover{
-  background: rgba(255,255,255,.06);
-  border-color: rgba(255,255,255,.10);
-  color:#fff;
-  transform: translateY(-1px);
-}
-.dd-item:active{ transform: translateY(0); }
-.dd-item:focus-visible{
-  box-shadow: var(--ring);
-  border-color: rgba(245,158,11,.45) !important;
-}
+  .icon-btn-glass {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
 
-.dd-item.danger{
-  color:#fecaca;
-  background: rgba(239,68,68,.10);
-  border-color: rgba(239,68,68,.18);
-}
-.dd-item.danger:hover{
-  background: rgba(239,68,68,.18);
-  border-color: rgba(239,68,68,.28);
-  color:#fff;
-}
+  .icon-btn-glass:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-warning);
+    border-color: var(--text-warning);
+    transform: translateY(-2px);
+  }
 
-.dd-empty{
-  padding: 12px;
-  border-radius: 14px;
-  background: rgba(148,163,184,.08);
-  border: 1px solid rgba(148,163,184,.14);
-  color: rgba(226,232,240,.80);
-  font-weight: 850;
-  font-size: 13px;
-}
+  .avatar-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--text-warning);
+    object-fit: cover;
+  }
 
-/* ✅ GRID */
-.tdash-grid{
-  display:grid;
-  grid-template-columns: 1fr;
-  gap: 14px;
-  position: relative;
-  z-index: 1;
-}
+  .avatar-placeholder {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--text-warning);
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+  }
 
-/* ✅ CARD */
-.tcard{
-  background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
-  border: 1px solid rgba(255,255,255,.10);
-  border-radius: 24px;
-  padding: 16px;
-  backdrop-filter: blur(14px);
-  box-shadow: var(--shadow);
-  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
-  position: relative;
-  z-index: 1;
-  overflow: hidden;
-}
-.tcard::before{
-  content:"";
-  position:absolute;
-  inset:-1px;
-  pointer-events:none;
-  border-radius: 24px;
-  background:
-    radial-gradient(420px 220px at 18% 0%, rgba(245,158,11,.10), transparent 60%),
-    radial-gradient(420px 220px at 95% 30%, rgba(59,130,246,.10), transparent 60%),
-    radial-gradient(420px 220px at 50% 120%, rgba(34,197,94,.08), transparent 60%);
-  opacity: .95;
-}
-.tcard > *{ position:relative; z-index: 1; }
+  /* DROPDOWN STYLES */
+  .no-caret::after {
+    display: none !important;
+  }
 
-.tcard:hover{
-  transform: translateY(-2px);
-  border-color: rgba(245,158,11,.22);
-  box-shadow: 0 22px 70px rgba(0,0,0,.50);
-}
+  .glass-dropdown {
+    background: rgba(15, 23, 42, 0.95) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 16px !important;
+    padding: 8px !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
+  }
 
-.tcard-top{
-  display:flex;
-  align-items:center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
+  .glass-dropdown .dropdown-item {
+    color: white !important;
+    border-radius: 10px !important;
+    padding: 10px 16px !important;
+    font-weight: 600 !important;
+    transition: all 0.2s !important;
+    font-size: 0.9rem !important;
+  }
 
-.tcard-ico{
-  width: 44px;
-  height: 44px;
-  border-radius: 16px;
-  display:grid;
-  place-items:center;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(148,163,184,.10);
-  font-size: 18px;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,.18);
-}
+  .glass-dropdown .dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: var(--text-warning) !important;
+  }
 
-.tcard-name{
-  margin:0;
-  font-weight: 950;
-  font-size: 18px;
-  color: #e2e8f0;
-  letter-spacing: .15px;
-}
+  .glass-dropdown .dropdown-item.text-danger:hover {
+    background: rgba(239, 68, 68, 0.1) !important;
+    color: #f87171 !important;
+  }
 
-.tcard-desc{
-  margin: 8px 0 14px;
-  color: rgba(148,163,184,.96);
-  font-weight: 750;
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-/* ✅ BUTTONS */
-.tbtn{
-  width: 100%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: 16px;
-  font-weight: 950;
-  text-decoration:none;
-  border: 1px solid rgba(255,255,255,.12);
-  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease, border-color .18s ease;
-  min-height: 46px;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-.tbtn:focus-visible{
-  box-shadow: var(--ring);
-  border-color: rgba(245,158,11,.45) !important;
-}
-
-.tbtn-blue{
-  background: linear-gradient(90deg, var(--blue), var(--blue2));
-  color: #fff;
-  border-color: rgba(59,130,246,.38);
-  box-shadow: 0 18px 40px rgba(59,130,246,.16);
-}
-.tbtn-blue:hover{ filter: brightness(1.06); transform: translateY(-1px); }
-.tbtn-blue:active{ transform: translateY(0); }
-
-.tbtn-green{
-  background: linear-gradient(90deg, #22c55e, #16a34a);
-  color:#fff;
-  border-color: rgba(34,197,94,.38);
-  box-shadow: 0 18px 40px rgba(34,197,94,.14);
-}
-.tbtn-green:hover{ filter: brightness(1.06); transform: translateY(-1px); }
-.tbtn-green:active{ transform: translateY(0); }
-
-/* ✅ RESPONSIVE */
-@media (min-width: 720px){
-  .tdash-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-  .tdash-topbar{ padding: 18px 18px; }
-  .tcard{ padding: 18px; }
-}
-@media (min-width: 1080px){
-  .tdash-grid{ grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
-}
-@media (max-width: 980px){
-  .tdash-topbar{ flex-direction: column; align-items: stretch; }
-  .tdash-top-right{ justify-content: flex-end; }
-}
-@media (prefers-reduced-motion: reduce){
-  *{ transition: none !important; scroll-behavior: auto !important; }
-}
+  .border-white-10 {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
 </style>
 
-<main class="tdash-wrap" role="main" aria-label="O‘qituvchi paneli">
+<div class="container-fluid py-4 animate__animated animate__fadeIn">
 
-  <header class="tdash-topbar" role="banner" aria-label="Top bar">
-    <div class="tdash-top-left">
-      <div class="tdash-emoji" aria-hidden="true">
-        <i class="fa-solid fa-chalkboard-user"></i>
+  <!-- HEADER -->
+  <div class="header-card p-4 mb-4">
+    <div class="header-glow-wrapper"></div>
+    <div class="header-content-wrapper d-flex flex-column flex-md-row justify-content-between align-items-center gap-4">
+      <div class="d-flex align-items-center gap-3">
+        <div class="icon-box">
+          <i class="fa-solid fa-chalkboard-user"></i>
+        </div>
+        <div>
+          <h2 class="m-0 fw-black text-white" style="letter-spacing: -1px;">O‘qituvchi paneli</h2>
+          <p class="m-0 text-white-50 small">Guruhlar, reyting va do‘kon bo‘limlariga tez kirish</p>
+        </div>
       </div>
-      <div>
-        <h3 class="tdash-title">O‘qituvchi paneli</h3>
-        <div class="tdash-sub">Guruhlar, reyting va do‘kon bo‘limlariga tez kirish</div>
-      </div>
-    </div>
 
-    <div class="tdash-top-right" aria-label="Top actions">
-
-      <div class="drop-wrap" id="notifWrap">
-        <button class="ticon-btn" type="button" title="Bildirishnomalar" id="notifBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="notifMenu">
-          <span class="notif-dot" id="notifDot" aria-hidden="true"></span>
+      <div class="top-right-actions">
+        <button class="icon-btn-glass position-relative" title="Bildirishnomalar">
           <i class="fa-regular fa-bell"></i>
+          <span
+            class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"
+            style="display:none;"></span>
         </button>
 
-        <div class="dropdown-menu" id="notifMenu" role="menu" aria-label="Bildirishnomalar" aria-hidden="true">
-          <div class="dd-head">
-            <p class="dd-title">Bildirishnomalar</p>
-            <div class="dd-sub">So‘nggi xabarlar</div>
-          </div>
-          <div class="dd-empty">Hozircha bildirishnoma yo‘q.</div>
-        </div>
-      </div>
-
-      <div class="drop-wrap" id="profileWrap">
-        <button class="tavatar-btn" type="button"
-                title="{{ request.user.get_full_name|default:request.user.email }}"
-                id="profileBtn"
-                aria-haspopup="menu"
-                aria-expanded="false"
-                aria-controls="profileMenu">
-          {% if request.user.avatar %}
-            <img src="{{ request.user.avatar.url }}" alt="avatar">
-          {% else %}
-            {{ request.user.ism|default:"A"|first|upper }}
-          {% endif %}
-        </button>
-
-        <div class="dropdown-menu" id="profileMenu" role="menu" aria-label="Profile" aria-hidden="true">
-          <div class="dd-head">
-            <p class="dd-title">{{ request.user.get_full_name|default:request.user.email }}</p>
-            <div class="dd-sub">{{ request.user.get_role_display }}</div>
-          </div>
-
-          <a class="dd-item" href="{% url 'core:profile' %}?next={{ request.path }}" role="menuitem">
-            <i class="fa-regular fa-user"></i>
-            Profil
+        <div class="dropdown">
+          <a href="#" class="d-block dropdown-toggle no-caret" data-bs-toggle="dropdown" aria-expanded="false">
+            {% if request.user.avatar %}
+            <img src="{{ request.user.avatar.url }}" class="avatar-circle" alt="avatar">
+            {% else %}
+            <div class="avatar-placeholder">
+              {{ request.user.ism|first|upper }}
+            </div>
+            {% endif %}
           </a>
-
-          <form method="post" action="{% url 'logout' %}" style="margin:0;">
-            {% csrf_token %}
-            <button type="submit"
-                    class="dd-item danger"
-                    style="border:none; text-align:left; cursor:pointer;"
-                    role="menuitem">
-              <i class="fa-solid fa-right-from-bracket"></i>
-              Chiqish
-            </button>
-          </form>
+          <ul
+            class="dropdown-menu dropdown-menu-end glass-dropdown mt-2 animate__animated animate__fadeIn animate__faster">
+            <li>
+              <a class="dropdown-item" href="{% url 'core:profile' %}">
+                <i class="fa-solid fa-user-circle me-2 opacity-50"></i> Profilim
+              </a>
+            </li>
+            <li>
+              <hr class="dropdown-divider border-white-10">
+            </li>
+            <li>
+              <form action="{% url 'logout' %}" method="post" class="m-0">
+                {% csrf_token %}
+                <button type="submit" class="dropdown-item text-danger">
+                  <i class="fa-solid fa-right-from-bracket me-2 opacity-50"></i> Chiqish
+                </button>
+              </form>
+            </li>
+          </ul>
         </div>
       </div>
-
     </div>
-  </header>
+  </div>
 
-  <section class="tdash-grid" aria-label="Quick cards">
-
-    <div class="tcard">
-      <div class="tcard-top">
-        <div class="tcard-ico" aria-hidden="true">📘</div>
-        <p class="tcard-name">Mening guruhlarim</p>
+  <!-- DASHBOARD GRID -->
+  <div class="row g-4">
+    <!-- GROUPS -->
+    <div class="col-md-4">
+      <div class="dashboard-card glass p-4">
+        <div class="card-icon-large bg-blue-subtle">
+          <i class="fa-solid fa-book"></i>
+        </div>
+        <h4 class="fw-bold text-white mb-3">Mening guruhlarim</h4>
+        <p class="text-white-50 small mb-4">
+          O‘zingiz dars beradigan guruhlarni ko‘ring, davomat va oyliklarni tekshiring.
+        </p>
+        <a href="{% url 'education:men_guruhlarim' %}" class="btn-premium btn-blue-glass">
+          Guruhlarimni ko‘rish
+          <i class="fa-solid fa-chevron-right fs-mini"></i>
+        </a>
       </div>
-
-      <div class="tcard-desc">
-        O‘zingiz dars beradigan guruhlarni ko‘ring, tezda kirib tekshiring.
-      </div>
-
-      <a class="tbtn tbtn-blue" href="{% url 'education:men_guruhlarim' %}">
-        Guruhlarimni ko‘rish
-      </a>
-    </div>
-
-    <div class="tcard">
-      <div class="tcard-top">
-        <div class="tcard-ico" aria-hidden="true">⚡</div>
-        <p class="tcard-name">Chaqmoq</p>
-      </div>
-
-      <div class="tcard-desc">
-        Umumiy chaqmoq reytingini ko‘ring (o‘quvchilar motivatsiyasi uchun).
-      </div>
-
-      <a class="tbtn tbtn-green" href="{% url 'chaqmoq:reyting' %}">
-        Umumiy reyting
-      </a>
     </div>
 
-    <div class="tcard">
-      <div class="tcard-top">
-        <div class="tcard-ico" aria-hidden="true">🛒</div>
-        <p class="tcard-name">Do‘kon</p>
+    <!-- CHAQMOK -->
+    <div class="col-md-4">
+      <div class="dashboard-card glass p-4">
+        <div class="card-icon-large bg-green-subtle">
+          <i class="fa-solid fa-bolt"></i>
+        </div>
+        <h4 class="fw-bold text-white mb-3">Chaqmoq</h4>
+        <p class="text-white-50 small mb-4">
+          Umumiy chaqmoq reytingini ko‘ring. O‘quvchilarni motivatsiya qilish uchun eng yaxshi usul.
+        </p>
+        <a href="{% url 'chaqmoq:reyting' %}" class="btn-premium btn-green-glass">
+          Umumiy reyting
+          <i class="fa-solid fa-trophy fs-mini"></i>
+        </a>
       </div>
-
-      <div class="tcard-desc">
-        Mahsulotlarni ko‘rish (o‘qituvchi uchun read-only bo‘lishi mumkin).
-      </div>
-
-      <a class="tbtn tbtn-blue" href="{% url 'store:products' %}">
-        Mahsulotlar (faqat ko‘rish)
-      </a>
     </div>
 
-  </section>
+    <!-- STORE -->
+    <div class="col-md-4">
+      <div class="dashboard-card glass p-4">
+        <div class="card-icon-large bg-purple-subtle">
+          <i class="fa-solid fa-shop"></i>
+        </div>
+        <h4 class="fw-bold text-white mb-3">Do‘kon</h4>
+        <p class="text-white-50 small mb-4">
+          Do‘kondagi mahsulotlarni ko‘rish. O‘quvchilar ballarini nimalarga almashishini bilib oling.
+        </p>
+        <a href="{% url 'store:products' %}" class="btn-premium btn-blue-glass">
+          Mahsulotlar
+          <i class="fa-solid fa-eye fs-mini"></i>
+        </a>
+      </div>
+    </div>
+  </div>
 
-</main>
-
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  const notifBtn  = document.getElementById("notifBtn");
-  const notifMenu = document.getElementById("notifMenu");
-  const profBtn   = document.getElementById("profileBtn");
-  const profMenu  = document.getElementById("profileMenu");
-
-  function setExpanded(btn, menu, isOpen){
-    if (!btn || !menu) return;
-    btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
-    menu.setAttribute("aria-hidden", isOpen ? "false" : "true");
-  }
-
-  function closeAll(){
-    notifMenu?.classList.remove("open");
-    profMenu?.classList.remove("open");
-    setExpanded(notifBtn, notifMenu, false);
-    setExpanded(profBtn, profMenu, false);
-  }
-
-  notifBtn?.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const willOpen = !notifMenu.classList.contains("open");
-    closeAll();
-    if (willOpen){
-      notifMenu.classList.add("open");
-      setExpanded(notifBtn, notifMenu, true);
-    }
-  });
-
-  profBtn?.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const willOpen = !profMenu.classList.contains("open");
-    closeAll();
-    if (willOpen){
-      profMenu.classList.add("open");
-      setExpanded(profBtn, profMenu, true);
-    }
-  });
-
-  notifMenu?.addEventListener("click", (e)=> e.stopPropagation());
-  profMenu?.addEventListener("click", (e)=> e.stopPropagation());
-
-  document.addEventListener("click", closeAll);
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeAll();
-  });
-});
-</script>
-
+</div>
 {% endblock %}

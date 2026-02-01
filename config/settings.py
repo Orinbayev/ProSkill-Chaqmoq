@@ -228,6 +228,7 @@ CACHES = {
 #     "chaqmoq",
 #     "store",
 #     "core",
+#     "billing",
     
 # ]
 # JAZZMIN_SETTINGS = {
@@ -307,6 +308,9 @@ CACHES = {
 #     "django.contrib.auth.middleware.AuthenticationMiddleware",
 #     "django.contrib.messages.middleware.MessageMiddleware",
 #     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+#     "core.middleware.TenantMiddleware",
+#     "billing.middleware.SubscriptionMiddleware",
+
 # ]
 
 # ROOT_URLCONF = "config.urls"
@@ -324,6 +328,7 @@ CACHES = {
 #                 "django.template.context_processors.request",
 #                 "django.contrib.auth.context_processors.auth",
 #                 "django.contrib.messages.context_processors.messages",
+#                 "core.context_processors.tenant_context",
 #             ],
 #         },
 #     },
@@ -349,6 +354,9 @@ CACHES = {
 #         "default": {
 #             "ENGINE": os.getenv("LOCAL_DB_ENGINE", "django.db.backends.sqlite3"),
 #             "NAME": BASE_DIR / os.getenv("LOCAL_DB_NAME", "db.sqlite3"),
+#             "OPTIONS": {
+#                 "timeout": 60,
+#             }
 #         }
 #     }
 

@@ -9,15 +9,28 @@ from chaqmoq.models import Ledger
 from .services import convert_lead_to_student  # tepaga import qiling
 from django.views.decorators.http import require_POST
 from django.urls import reverse
+from django.shortcuts import get_object_or_404
+from core.tenant import require_center, ensure_obj_center
+from .models import Lead
+from billing.decorators import require_feature
+from django.utils import timezone
 
 
-
+def lead_detail(request, pk):
+    center = require_center(request)
+    lead = get_object_or_404(Lead, pk=pk)
+    ensure_obj_center(request, lead.center_id)
+    return render(request, "store/lead_detail.html", {"lead": lead})
 
 # ✅ Mahsulotlar ro‘yxati
 @login_required
 def products(request):
     """Mahsulotlar ro‘yxati va tanlab o‘chirish funksiyasi"""
-    items = Product.objects.all().order_by('-yaratilgan')
+    from django.db.models import Q
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    
+    items = Product.objects.filter(Q(center=center) | Q(center__isnull=True)).order_by('-yaratilgan')
 
     # 🔹 Faqat manager, director yoki superuser qo‘sha / o‘chira oladi
     can_add = request.user.role in ('manager', 'director') or request.user.is_superuser
@@ -26,7 +39,8 @@ def products(request):
     if request.method == "POST":
         selected_ids = request.POST.getlist("selected_products")
         if selected_ids:
-            Product.objects.filter(id__in=selected_ids).delete()
+            # ✅ Xavfsizlik: faqat shu center mahsulotlarini o'chirish
+            Product.objects.filter(id__in=selected_ids, center=center).delete()
             messages.success(request, f"{len(selected_ids)} ta mahsulot o‘chirildi ✅")
             return redirect('store:products')
         else:
@@ -42,7 +56,8 @@ User = get_user_model()
 
 @login_required
 def product_detail(request, pk):
-    item = get_object_or_404(Product, pk=pk)
+    center = require_center(request)
+    item = get_object_or_404(Product, pk=pk, center=center)
     user = request.user
     request_status = None
 
@@ -156,10 +171,11 @@ def create_request(request, pk):
 # ✅ Manager/Direktor uchun so‘rovlar ro‘yxati
 @login_required
 def request_list(request):
+    center = require_center(request)
     if request.user.role not in ('manager', 'director'):
         messages.error(request, 'Ruxsat yo‘q.')
         return redirect('core:home')
-    items = PurchaseRequest.objects.order_by('-sana')
+    items = PurchaseRequest.objects.filter(center=center).order_by('-sana')
     return render(request, 'store/requests.html', {'items': items})
 
 
@@ -170,7 +186,8 @@ def request_approve(request, pk):
         messages.error(request, 'Ruxsat yo‘q.')
         return redirect(request.META.get('HTTP_REFERER', 'store:requests'))
 
-    pr = get_object_or_404(PurchaseRequest, pk=pk)
+    center = require_center(request)
+    pr = get_object_or_404(PurchaseRequest, pk=pk, center=center)
     ok, msg = approve_purchase(pr, request.user)
     (messages.success if ok else messages.error)(request, msg)
 
@@ -201,7 +218,10 @@ def product_create(request):
 
     form = ProductForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
-        product = form.save()
+        center = require_center(request)
+        product = form.save(commit=False)
+        product.center = center
+        product.save()
         # Rasmlar yuklash
         files = request.FILES.getlist('rasmlar')
         for file in files:
@@ -213,13 +233,14 @@ def product_create(request):
 
 
 def product_list(request):
-    products = Product.objects.all()
+    center = require_center(request)
+    products = Product.objects.filter(center=center)
 
     # 🔹 Tanlanganlarni o‘chirish
     if request.method == "POST":
         ids = request.POST.getlist('selected_products')
         if ids:
-            Product.objects.filter(id__in=ids).delete()
+            Product.objects.filter(id__in=ids, center=center).delete()
             messages.success(request, "Tanlangan mahsulotlar muvaffaqiyatli o‘chirildi ✅")
             return redirect('store:products')
 
@@ -233,10 +254,17 @@ def product_edit(request, pk):
         messages.error(request, 'Ruxsat yo‘q.')
         return redirect('store:products')
 
-    obj = get_object_or_404(Product, pk=pk)
+    center = require_center(request)
+    obj = get_object_or_404(Product, pk=pk, center=center)
     form = ProductForm(request.POST or None, request.FILES or None, instance=obj)
     if request.method == 'POST' and form.is_valid():
-        form.save()
+        product = form.save()
+        
+        # ✅ FIX: Rasmlarni tahrirlash paytida ham yuklash
+        files = request.FILES.getlist('rasmlar')
+        for file in files:
+            ProductImage.objects.create(product=product, rasm=file)
+            
         messages.success(request, 'Mahsulot saqlandi!')
         return redirect('store:products')
 
@@ -250,7 +278,8 @@ def product_delete(request, pk):
         messages.error(request, 'Ruxsat yo‘q.')
         return redirect('store:products')
 
-    obj = get_object_or_404(Product, pk=pk)
+    center = require_center(request)
+    obj = get_object_or_404(Product, pk=pk, center=center)
     if request.method == 'POST':
         obj.delete()
         messages.success(request, 'Mahsulot o‘chirildi!')
@@ -273,13 +302,15 @@ from .models import Lead, LeadStatus
 from django.db.models import Count, Q
 
 @login_required
+@require_feature("leads")
 def lead_list(request):
+    center = require_center(request)
+
     status_id = (request.GET.get('status') or "").strip()
     q = (request.GET.get('q') or "").strip()
 
-    # 1) Dropdown uchun: har bir status bo‘yicha count (umumiy)
     statuses = (
-        LeadStatus.objects
+        LeadStatus.objects.filter(center=center)
         .annotate(
             leads_count=Count('lead', distinct=True),
             converted_count=Count('lead', filter=Q(lead__converted_user__isnull=False), distinct=True),
@@ -287,8 +318,8 @@ def lead_list(request):
         .order_by('id')
     )
 
-    # 2) Leadlar (filter + qidiruv)
-    leads = Lead.objects.all()
+    # ✅ Tenant isolation: faqat shu center leadlari
+    leads = Lead.objects.filter(center=center)
 
     if status_id:
         leads = leads.filter(status_id=status_id)
@@ -303,52 +334,63 @@ def lead_list(request):
 
     leads = leads.order_by('-qoshilgan_sana')
 
-    # 3) Filter bo‘yicha ko‘rsatkichlar (ekrandagi)
-    leads_count_filtered = leads.count()
-    converted_count_filtered = leads.filter(converted_user__isnull=False).count()
-
-    # 4) Umumiy ko‘rsatkichlar (hammasi)
-    total_count = Lead.objects.count()
-    total_converted = Lead.objects.filter(converted_user__isnull=False).count()
-
     context = {
         'leads': leads,
         'statuses': statuses,
         'selected_status': status_id,
-        'q': q,  # ✅ template’da value qilib qo‘yamiz
-
-        'total_count': total_count,
-        'total_converted': total_converted,
-
-        'leads_count_filtered': leads_count_filtered,
-        'converted_count_filtered': converted_count_filtered,
+        'q': q,
+        'total_count': Lead.objects.filter(center=center).count(),
+        'total_converted': Lead.objects.filter(center=center, converted_user__isnull=False).count(),
+        'leads_count_filtered': leads.count(),
+        'converted_count_filtered': leads.filter(converted_user__isnull=False).count(),
     }
     return render(request, 'store/lead_list.html', context)
 
 
 @login_required
+@require_feature("leads")
 def lead_create(request):
+    center = require_center(request)
     if request.method == 'POST':
-        form = LeadForm(request.POST)
+        form = LeadForm(request.POST, center=center)
         if form.is_valid():
-            form.save()
+            lead = form.save(commit=False)
+            lead.center = center
+            
+            # Auto-calculate age
+            if lead.birth_date:
+                lead.yosh = timezone.now().year - lead.birth_date.year
+            else:
+                lead.yosh = 0
+                
+            lead.save()
             messages.success(request, "✅ Yangi o‘quvchi (lead) qo‘shildi!")
             return redirect('store:lead_list')
     else:
-        form = LeadForm()
+        form = LeadForm(center=center)
     return render(request, 'store/lead_create.html', {'form': form})
 
 
 # ✏️ Leadni tahrirlash
 
 @login_required
+@require_feature("leads")
 def lead_edit(request, pk):
-    lead = get_object_or_404(Lead, pk=pk)
+    center = require_center(request)
+    lead = get_object_or_404(Lead, pk=pk, center=center)
 
     if request.method == 'POST':
-        form = LeadForm(request.POST, instance=lead)
+        form = LeadForm(request.POST, instance=lead, center=center)
         if form.is_valid():
-            lead = form.save()
+            lead = form.save(commit=False)
+            
+            # Auto-calculate age
+            if lead.birth_date:
+                lead.yosh = timezone.now().year - lead.birth_date.year
+            elif not lead.yosh:
+                lead.yosh = 0
+                
+            lead.save()
 
             # ✅ STATUS "Tasdiqlandi" bo'lsa avtomatik studentga o'tkazamiz
             if lead.status and (lead.status.nom or "").strip().lower() == "tasdiqlandi":
@@ -369,15 +411,18 @@ def lead_edit(request, pk):
 
             return redirect('store:lead_list')
     else:
-        form = LeadForm(instance=lead)
+        form = LeadForm(instance=lead, center=center)
 
     return render(request, 'store/lead_edit.html', {'form': form, 'lead': lead})
 
 
 # 🗑️ Leadni o‘chirish
 @login_required
+@require_feature("leads")
 def lead_delete(request, pk):
-    lead = get_object_or_404(Lead, pk=pk)
+    center = require_center(request)
+    lead = get_object_or_404(Lead, pk=pk, center=center)
+
     if request.method == 'POST':
         lead.delete()
         messages.warning(request, "🗑️ Lead o‘chirildi!")
@@ -387,7 +432,12 @@ def lead_delete(request, pk):
 
 
 
-
+@login_required
+@require_feature("leads")
+def lead_detail(request, pk):
+    center = require_center(request)
+    lead = get_object_or_404(Lead, pk=pk, center=center)
+    return render(request, "store/lead_detail.html", {"lead": lead})
 
 
 
