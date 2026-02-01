@@ -309,20 +309,27 @@ def lead_list(request):
     status_id = (request.GET.get('status') or "").strip()
     q = (request.GET.get('q') or "").strip()
 
+    # ✅ Tenant isolation: faqat shu center leadlari
+    if request.user.is_superuser:
+        leads = Lead.objects.all()
+    else:
+        leads = Lead.objects.filter(center=center)
+
+    if request.user.is_superuser:
+         # Superuser uchun: faqat mavjud leadlarda ishlatilgan statuslarni chiqaramiz
+         used_ids = leads.values_list('status', flat=True).distinct()
+         statuses_qs = LeadStatus.objects.filter(id__in=used_ids)
+    else:
+         statuses_qs = LeadStatus.objects.filter(center=center)
+
     statuses = (
-        LeadStatus.objects.filter(center=center)
+        statuses_qs
         .annotate(
             leads_count=Count('lead', distinct=True),
             converted_count=Count('lead', filter=Q(lead__converted_user__isnull=False), distinct=True),
         )
         .order_by('id')
     )
-
-    # ✅ Tenant isolation: faqat shu center leadlari
-    if request.user.is_superuser:
-        leads = Lead.objects.all()
-    else:
-        leads = Lead.objects.filter(center=center)
 
     if status_id:
         leads = leads.filter(status_id=status_id)
@@ -380,7 +387,10 @@ def lead_create(request):
 @require_feature("leads")
 def lead_edit(request, pk):
     center = require_center(request)
-    lead = get_object_or_404(Lead, pk=pk, center=center)
+    if request.user.is_superuser:
+        lead = get_object_or_404(Lead, pk=pk)
+    else:
+        lead = get_object_or_404(Lead, pk=pk, center=center)
 
     if request.method == 'POST':
         form = LeadForm(request.POST, instance=lead, center=center)
@@ -424,7 +434,10 @@ def lead_edit(request, pk):
 @require_feature("leads")
 def lead_delete(request, pk):
     center = require_center(request)
-    lead = get_object_or_404(Lead, pk=pk, center=center)
+    if request.user.is_superuser:
+        lead = get_object_or_404(Lead, pk=pk)
+    else:
+        lead = get_object_or_404(Lead, pk=pk, center=center)
 
     if request.method == 'POST':
         lead.delete()
@@ -439,7 +452,10 @@ def lead_delete(request, pk):
 @require_feature("leads")
 def lead_detail(request, pk):
     center = require_center(request)
-    lead = get_object_or_404(Lead, pk=pk, center=center)
+    if request.user.is_superuser:
+        lead = get_object_or_404(Lead, pk=pk)
+    else:
+        lead = get_object_or_404(Lead, pk=pk, center=center)
     return render(request, "store/lead_detail.html", {"lead": lead})
 
 
