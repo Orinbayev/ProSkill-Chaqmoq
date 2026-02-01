@@ -133,7 +133,7 @@ def _gen_unique_gmail_like_email(ism: str, familya: str) -> str:
     return f"{base}{token}@gmail.com"
 
 
-def convert_lead_to_student(lead, converted_by=None):
+def convert_lead_to_student(lead, converted_by=None, target_center=None):
     """
     Lead status 'Tasdiqlandi' bo'lsa studentga o'tkazadi.
 
@@ -166,7 +166,7 @@ def convert_lead_to_student(lead, converted_by=None):
         if user:
             # mavjud userni studentga moslab yangilab qo'yamiz
             if not user.center:
-                user.center = lead.center
+                user.center = target_center or lead.center
             
             user.role = "student"
             user.ism = lead.ism
@@ -193,7 +193,7 @@ def convert_lead_to_student(lead, converted_by=None):
 
             user = U(email=email)
             user.role = "student"
-            user.center = lead.center
+            user.center = target_center or lead.center
             user.ism = lead.ism
             user.familya = lead.familya
 

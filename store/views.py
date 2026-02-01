@@ -476,7 +476,21 @@ def lead_convert(request, pk):
         lead.status = tasdiq
         lead.save(update_fields=["status"])
 
-    user, password, created = convert_lead_to_student(lead, request.user)
+    # ✅ Center logic: 
+    # Agar superuser bo'lsa va leadning markazi bo'lmasa yoki boshqa center bo'lsa,
+    # biz ayni vaqtda qaysi centerda turgan bo'lsak, o'sha centerni target qilib beramiz.
+    
+    from core.tenant import get_request_center
+    current_center = get_request_center(request)
+    
+    # Agar superuser bo'lsa, current_center None bo'lishi mumkin (agar center pickerda bo'lsa).
+    # Bunday holda lead.center ishlatiladi (default).
+    
+    user, password, created = convert_lead_to_student(
+        lead, 
+        converted_by=request.user, 
+        target_center=current_center
+    )
 
     if created:
         messages.success(request, f"✅ O‘tkazildi! Login: {user.email} | Parol: {password}")
