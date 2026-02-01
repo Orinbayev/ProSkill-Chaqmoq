@@ -344,13 +344,19 @@ def lead_list(request):
 
     leads = leads.order_by('-qoshilgan_sana')
 
+    # Statistics context
+    if request.user.is_superuser:
+        base_leads_qs = Lead.objects.all()
+    else:
+        base_leads_qs = Lead.objects.filter(center=center)
+
     context = {
         'leads': leads,
         'statuses': statuses,
         'selected_status': status_id,
         'q': q,
-        'total_count': Lead.objects.filter(center=center).count(),
-        'total_converted': Lead.objects.filter(center=center, converted_user__isnull=False).count(),
+        'total_count': base_leads_qs.count(),
+        'total_converted': base_leads_qs.filter(converted_user__isnull=False).count(),
         'leads_count_filtered': leads.count(),
         'converted_count_filtered': leads.filter(converted_user__isnull=False).count(),
     }
