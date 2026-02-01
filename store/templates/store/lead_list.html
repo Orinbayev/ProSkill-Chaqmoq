@@ -685,11 +685,11 @@
       <form method="get" class="lead-filter-form">
         <select name="status" class="filter" onchange="this.form.submit()">
           <option value="">
-            Barcha statuslar | {{ total_converted }}
+            Barcha statuslar | {{ total_count }}
           </option>
           {% for s in statuses %}
           <option value="{{ s.id }}" {% if s.id|stringformat:"s" == selected_status %}selected{% endif %}>
-            {{ s.nom }} | {{ s.converted_count }}
+            {{ s.nom }} | {{ s.leads_count }}
           </option>
           {% endfor %}
         </select>
@@ -808,8 +808,7 @@
                   </div>
 
                   <div class="head-right">
-                    {% if request.user.is_superuser or request.user.role == 'manager' or request.user.role == 'director'
-                    %}
+                    {% if request.user.is_superuser or request.user.role == 'manager' or request.user.role == 'director' %}
                     {% if not l.converted_user %}
                     <form method="post" action="{% url 'store:lead_convert' l.id %}" style="display:inline;">
                       {% csrf_token %}
