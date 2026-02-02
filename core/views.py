@@ -883,19 +883,11 @@ def user_view(request, pk):
             messages.success(request, f"{user.get_full_name()} paroli muvaffaqiyatli o'zgartirildi.")
             return redirect("core:user_view", pk=user.pk)
 
-    # ✅ Chaqmoq balance (ONLY FOR THIS CENTER)
-    balance = Ledger.objects.filter(
-        student=user
-    ).filter(
-        Q(group__center=center) | Q(rule__center=center)
-    ).aggregate(Sum('ball'))['ball__sum'] or 0
+    # ✅ Chaqmoq balance (GLOBAL - matches Reyting)
+    balance = Ledger.objects.filter(student=user).aggregate(Sum('ball'))['ball__sum'] or 0
     
-    # ✅ Chaqmoq history with Pagination (ONLY FOR THIS CENTER)
-    all_actions = Ledger.objects.filter(
-        student=user
-    ).filter(
-        Q(group__center=center) | Q(rule__center=center)
-    ).select_related('beruvchi', 'group').order_by("-id")
+    # ✅ Chaqmoq history (GLOBAL - matches Reyting)
+    all_actions = Ledger.objects.filter(student=user).select_related('beruvchi', 'group').order_by("-id")
     page_number = request.GET.get('page', 1)
     paginator = Paginator(all_actions, 10)  # 10 items per page
     actions_page = paginator.get_page(page_number)
@@ -980,12 +972,17 @@ def user_view(request, pk):
         enr.calendar_grid = grid
         enr.selected_month_name = next(m[1] for m in available_months if m[0] == selected_month)
     
-    # ✅ Rank Calculation
-    rank = Ledger.objects.filter(
-        Q(group__center=center) | Q(rule__center=center),
-        student__role='student'
-    ).values('student').annotate(
-        total_points=Sum('ball')
+    # ✅ Rank Calculation (Matches Reyting logic)
+    # 1. Base query: students in this center (just like Reyting)
+    rank_qs = Ledger.objects.filter(student__role='student')
+    if center:
+        rank_qs = rank_qs.filter(student__center=center)
+        
+    # 2. Annotate global balance for each student
+    # 3. Count how many have more points than current user
+    from django.db.models.functions import Coalesce
+    rank = rank_qs.values('student').annotate(
+        total_points=Coalesce(Sum('ball'), 0)
     ).filter(total_points__gt=balance).count() + 1
 
     context = {
