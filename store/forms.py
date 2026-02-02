@@ -39,7 +39,8 @@ class LeadForm(forms.ModelForm):
         center = kwargs.pop('center', None)
         super().__init__(*args, **kwargs)
         if center:
+            from django.db.models import Q
             from .models import Manba, Yonalish, LeadStatus
-            self.fields['manba'].queryset = Manba.objects.filter(center=center)
-            self.fields['yonalish'].queryset = Yonalish.objects.filter(center=center)
-            self.fields['status'].queryset = LeadStatus.objects.filter(center=center)
+            self.fields['manba'].queryset = Manba.objects.filter(Q(center=center) | Q(center__isnull=True))
+            self.fields['yonalish'].queryset = Yonalish.objects.filter(Q(center=center) | Q(center__isnull=True))
+            self.fields['status'].queryset = LeadStatus.objects.filter(Q(center=center) | Q(center__isnull=True))

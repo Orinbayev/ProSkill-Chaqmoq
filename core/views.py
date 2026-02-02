@@ -718,7 +718,7 @@ def stat_students(request):
     # ✅ Isolate data by center (Coins and Groups)
     rows = rows.annotate(
         jami_chaqmoq=Coalesce(
-            Sum("ledger__ball", filter=Q(ledger__group__center=center) | Q(ledger__rule__center=center)), 
+            Sum("ledger__ball"),
             0
         )
     ).prefetch_related(
