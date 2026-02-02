@@ -113,8 +113,7 @@ def student_detail(request, pk):
         Ledger.objects
         .filter(student=student)
     )
-    if center:
-        led_qs = led_qs.filter(Q(group__center=center) | Q(rule__center=center))
+    # ✅ Global ledger (removed center filter)
 
     led_qs = (
         led_qs
@@ -341,12 +340,11 @@ def my_chaqmoq(request):
         enrolls = enrolls.filter(group__center=center)
 
     teacher_stats_qs = Ledger.objects.filter(student=student)
-    if center:
-        teacher_stats_qs = teacher_stats_qs.filter(Q(group__center=center) | Q(rule__center=center))
-
+    # ✅ Global stats
+    
     teacher_stats = (
         teacher_stats_qs
-        .values("beruvchi__id", "beruvchi__ism", "beruvchi__familya")
+        .values("beruvchi__id", "beruvchi__ism", "beruvchi__familya", "beruvchi__role")
         .annotate(
             coin_plus=Coalesce(Sum(
                 Case(When(ball__gt=0, then=F("ball")), default=Value(0), output_field=IntegerField())
@@ -359,8 +357,7 @@ def my_chaqmoq(request):
     )
 
     totals_qs = Ledger.objects.filter(student=student)
-    if center:
-        totals_qs = totals_qs.filter(Q(group__center=center) | Q(rule__center=center))
+    # ✅ Global totals
 
     totals = totals_qs.aggregate(
         total_plus=Coalesce(Sum(
@@ -376,8 +373,7 @@ def my_chaqmoq(request):
         Ledger.objects
         .filter(student=student)
     )
-    if center:
-        led_qs = led_qs.filter(Q(group__center=center) | Q(rule__center=center))
+    # ✅ Global ledger
 
     led_qs = (
         led_qs
