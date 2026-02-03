@@ -76,34 +76,53 @@ def get_feature_flags(center: Center) -> set[str]:
     return features
 
 
-def validate_promocode(code: str, plan: SubscriptionPlan) -> PromoCode | None:
+def validate_promocode(code: str, plan: SubscriptionPlan, center: Center | None = None) -> PromoCode | None:
     code = (code or "").strip().upper()
     if not code:
         return None
     promo = PromoCode.objects.filter(code=code).first()
     if not promo or not promo.is_valid_now():
         return None
+    
     # agar promo.plans bo‘sh bo‘lmasa — faqat shularga
     if promo.plans.exists() and not promo.plans.filter(id=plan.id).exists():
         return None
+
+    # ✅ Yangi: Bir marta ishlata olishni tekshirish
+    if center and promo.once_per_center:
+        # Paid orderlarda shu promo ishlatilganmi?
+        already_used = SubscriptionOrder.objects.filter(
+            center=center, 
+            promo=promo, 
+            status=SubscriptionOrder.Status.PAID
+        ).exists()
+        if already_used:
+            return None
+
     return promo
 
 
-def calculate_price(plan: SubscriptionPlan, months: int, promo_code: str | None) -> PricingResult:
+def calculate_price(plan: SubscriptionPlan, months: int, promo_code: str | None, center: Center | None = None) -> PricingResult:
     months = int(months or 1)
     if months not in DURATIONS:
         months = 1
 
     base_price = plan.monthly_price * months
-    promo = validate_promocode(promo_code or "", plan)
-    discount_percent = promo.percent_off if promo else 0
-    final_price = int(base_price * (100 - discount_percent) / 100)
-    return PricingResult(base_price, discount_percent, final_price, promo)
+    promo = validate_promocode(promo_code or "", plan, center=center)
+    
+    # Plan discount + Promo discount (capped at 100%)
+    plan_discount = getattr(plan, 'discount_percent', 0) or 0
+    promo_discount = promo.percent_off if promo else 0
+    
+    total_discount = min(plan_discount + promo_discount, 100)
+    
+    final_price = int(base_price * (100 - total_discount) / 100)
+    return PricingResult(base_price, total_discount, final_price, promo)
 
 
 @transaction.atomic
 def create_order(center: Center, plan: SubscriptionPlan, months: int, promo_code: str | None) -> SubscriptionOrder:
-    pricing = calculate_price(plan, months, promo_code)
+    pricing = calculate_price(plan, months, promo_code, center=center)
     order = SubscriptionOrder.objects.create(
         center=center,
         plan=plan,
@@ -162,17 +181,26 @@ def get_subscription_ui_state(center: Center) -> dict:
     days_left = sub.days_left()
     blocked = sub.is_blocked()
 
-    # progress: trial/paid periodni aniq bilish qiyin bo‘lgani uchun 30 kunlik scale qildim
-    total_days = 30
-    progress = int(max(min(days_left / total_days, 1), 0) * 100)
+    # Progress calculation based on actual duration
+    total_duration = (sub.expires_at - sub.started_at).days
+    if total_duration <= 0:
+        total_duration = 30 # Fallback default
+    
+    progress = int(max(min(days_left / total_duration, 1), 0) * 100)
+    percent_left = progress
 
     warn = (days_left <= 7 and not blocked)
 
+    # Get proper plan title
+    plan_title = sub.plan.title if sub.plan else center.plan
+    plan_code = sub.plan.code if sub.plan else center.plan
+
     return {
-        "plan_code": sub.plan.code if sub.plan else center.plan,
+        "plan_code": plan_code,
+        "plan_title": plan_title,
         "expires_at": sub.expires_at,
         "days_left": days_left,
         "blocked": blocked,
         "warn": warn,
-        "progress": progress,
+        "progress": progress, # This is now percent LEFT
     }

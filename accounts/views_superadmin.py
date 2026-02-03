@@ -18,7 +18,7 @@ def superadmin_dashboard(request):
     from education.models import Group, Enrollment
     from billing.models import SubscriptionOrder
     
-    centers = Center.objects.annotate(
+    centers = Center.objects.filter(is_deleted=False).annotate(
         user_count=Count('user', distinct=True),
         group_count=Count('group', distinct=True),
         student_count=Count('group__enrollments__student', distinct=True),
@@ -28,10 +28,16 @@ def superadmin_dashboard(request):
     total_revenue = SubscriptionOrder.objects.filter(
         status=SubscriptionOrder.Status.PAID
     ).aggregate(total=Sum('final_price'))['total'] or 0
+
+    # Pending Orders
+    pending_orders = SubscriptionOrder.objects.filter(
+        status=SubscriptionOrder.Status.PENDING
+    ).select_related('center', 'plan').order_by('-created_at')
     
     return render(request, 'accounts/superadmin_dashboard.html', {
         'centers': centers,
         'total_revenue': total_revenue,
+        'pending_orders': pending_orders,
     })
 
 

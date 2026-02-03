@@ -1,330 +1,427 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+{% load static humanize %}
+
+{% block title %}{{ center.name }} - Statistikasi{% endblock %}
+
 {% block content %}
-<style>
-    :root {
-        --bg-glass: rgba(255, 255, 255, 0.05);
-        --border-glass: rgba(255, 255, 255, 0.1);
-        --accent: #f59e0b;
-        --accent-glow: rgba(245, 158, 11, 0.4);
-    }
-
-    .glass-panel {
-        background: var(--bg-glass);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid var(--border-glass);
-        border-radius: 16px;
-    }
-
-    .kpi-card {
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 12px;
-        padding: 16px;
-        transition: transform 0.2s;
-    }
-
-    .kpi-card:hover {
-        transform: translateY(-2px);
-        border-color: var(--accent);
-    }
-
-    .kpi-value {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #fff;
-    }
-
-    .kpi-label {
-        font-size: 0.85rem;
-        color: #9ca3af;
-    }
-
-    .kpi-trend {
-        font-size: 0.75rem;
-    }
-
-    .text-accent {
-        color: var(--accent);
-    }
-
-    .table-glass {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0 4px;
-    }
-
-    .table-glass th {
-        padding: 12px;
-        text-align: left;
-        color: #9ca3af;
-        font-weight: 500;
-        font-size: 0.85rem;
-    }
-
-    .table-glass td {
-        background: rgba(255, 255, 255, 0.02);
-        padding: 12px;
-        color: #e5e7eb;
-        font-size: 0.9rem;
-    }
-
-    .table-glass tr td:first-child {
-        border-top-left-radius: 8px;
-        border-bottom-left-radius: 8px;
-    }
-
-    .table-glass tr td:last-child {
-        border-top-right-radius: 8px;
-        border-bottom-right-radius: 8px;
-    }
-
-    /* Loading Spinner */
-    .spinner {
-        width: 40px;
-        height: 40px;
-        border: 4px solid rgba(255, 255, 255, 0.1);
-        border-left-color: var(--accent);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin: 50px auto;
-    }
-
-    @keyframes spin {
-        100% {
-            transform: rotate(360deg);
-        }
-    }
-</style>
-
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="container py-5">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-5">
         <div>
-            <h2 class="fw-bold mb-1">{{ center.name }} Statistika</h2>
-            <div class="text-muted small">SuperAdmin Dashboard</div>
+            <div class="d-flex align-items-center gap-3 mb-1">
+                <a href="{% url 'accounts:superadmin_dashboard' %}"
+                    class="btn btn-outline-secondary btn-sm rounded-circle">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h2 class="text-white fw-bold m-0">{{ center.name }} Statistikasi</h2>
+            </div>
+            <p class="text-secondary ms-5 ps-2 m-0">Markaz faoliyati bo'yicha batafsil hisobot</p>
         </div>
-        <div>
-            <a href="{% url 'accounts:center_picker' %}" class="btn btn-outline-light btn-sm">
-                ← Markazlar
-            </a>
+        <div class="d-flex gap-2">
+            <button onclick="fetchStats()" class="btn btn-outline-light">
+                <i class="bi bi-arrow-clockwise"></i> Yangilash
+            </button>
         </div>
     </div>
 
-    <!-- KPI GRID -->
-    <div id="loading-kpi" class="spinner"></div>
-    <div id="kpi-grid" class="row g-3 mb-4 d-none">
-        <!-- Rendered via JS -->
+    <!-- Main Financial KPIs -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="p-4 rounded-4 border border-secondary bg-dark position-relative overflow-hidden h-100">
+                <div class="position-absolute top-0 end-0 p-3 opacity-10">
+                    <i class="bi bi-wallet2 display-1 text-primary"></i>
+                </div>
+                <div class="position-relative">
+                    <div class="text-secondary fw-semibold mb-2">Umumiy Abarot</div>
+                    <h2 class="text-white fw-bold display-6 mb-1" id="kpi-revenue">...</h2>
+                    <div class="d-flex align-items-center text-success small">
+                        <i class="bi bi-arrow-up-right me-1"></i>
+                        <span id="kpi-monthly-revenue">...</span> (bu oy)
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="p-4 rounded-4 border border-secondary bg-dark position-relative overflow-hidden h-100">
+                <div class="position-absolute top-0 end-0 p-3 opacity-10">
+                    <i class="bi bi-cash-stack display-1 text-success"></i>
+                </div>
+                <div class="position-relative">
+                    <div class="text-secondary fw-semibold mb-2">Sof Foyda (Taxminiy)</div>
+                    <h2 class="text-success fw-bold display-6 mb-1" id="kpi-profit">...</h2>
+                    <small class="text-secondary">Daromad - Chiqim</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="p-4 rounded-4 border border-secondary bg-dark position-relative overflow-hidden h-100">
+                <div class="position-absolute top-0 end-0 p-3 opacity-10">
+                    <i class="bi bi-graph-down display-1 text-danger"></i>
+                </div>
+                <div class="position-relative">
+                    <div class="text-secondary fw-semibold mb-2">Chiqimlar</div>
+                    <h2 class="text-danger fw-bold display-6 mb-1" id="kpi-expenses">...</h2>
+                    <small class="text-secondary">O'qituvchi haqi va boshqalar</small>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- CHARTS -->
-    <div class="row g-4 mb-4">
-        <div class="col-lg-6">
-            <div class="glass-panel p-3 h-100">
-                <h5 class="mb-3">Aylanma (Revenue)</h5>
-                <canvas id="chartRevenue"></canvas>
+    <!-- Secondary KPIs -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-3 col-6">
+            <div class="p-3 rounded-4 border border-secondary bg-dark text-center">
+                <div class="mb-2 text-primary opacity-75"><i class="bi bi-people-fill fs-3"></i></div>
+                <div class="h4 text-white fw-bold m-0" id="kpi-students">...</div>
+                <div class="small text-secondary">Jami O'quvchilar</div>
             </div>
         </div>
-        <div class="col-lg-6">
-            <div class="glass-panel p-3 h-100">
-                <h5 class="mb-3">Yangi O‘quvchilar</h5>
-                <canvas id="chartStudents"></canvas>
+        <div class="col-md-3 col-6">
+            <div class="p-3 rounded-4 border border-secondary bg-dark text-center">
+                <div class="mb-2 text-warning opacity-75"><i class="bi bi-person-video3 fs-3"></i></div>
+                <div class="h4 text-white fw-bold m-0" id="kpi-teachers">...</div>
+                <div class="small text-secondary">O'qituvchilar</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="p-3 rounded-4 border border-secondary bg-dark text-center">
+                <div class="mb-2 text-info opacity-75"><i class="bi bi-collection fs-3"></i></div>
+                <div class="h4 text-white fw-bold m-0" id="kpi-groups">...</div>
+                <div class="small text-secondary">Guruhlar</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="p-3 rounded-4 border border-secondary bg-dark text-center">
+                <div class="mb-2 text-success opacity-75"><i class="bi bi-check-circle fs-3"></i></div>
+                <div class="h4 text-white fw-bold m-0" id="kpi-attendance">...%</div>
+                <div class="small text-secondary">Davomat Foizi</div>
             </div>
         </div>
     </div>
 
-    <!-- STUDENTS TABLE -->
-    <div class="glass-panel p-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0">O‘quvchilar</h5>
-
-            <div class="d-flex gap-2">
-                <input type="text" id="filter-search"
-                    class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Qidirish...">
-                <select id="filter-status" class="form-select form-select-sm bg-dark text-light border-secondary"
-                    style="width: auto;">
-                    <option value="">Barchasi</option>
-                    <option value="active">Active</option>
-                    <option value="blocked">Blocked</option>
-                </select>
-                <button class="btn btn-sm btn-warning" onclick="loadStudents()">Filter</button>
+    <!-- Detailed Tables Section -->
+    <div class="card bg-dark border-secondary mb-5">
+        <div class="card-header border-secondary p-0">
+            <ul class="nav nav-tabs nav-fill border-0" id="statsTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active py-3 text-white border-0 bg-transparent opacity-75" id="students-tab"
+                        data-bs-toggle="tab" data-bs-target="#students-pane" type="button" role="tab"
+                        onclick="loadTab('students')">
+                        <i class="bi bi-people me-2"></i> O'quvchilar
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link py-3 text-white border-0 bg-transparent opacity-75" id="groups-tab"
+                        data-bs-toggle="tab" data-bs-target="#groups-pane" type="button" role="tab"
+                        onclick="loadTab('groups')">
+                        <i class="bi bi-collection me-2"></i> Guruhlar
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link py-3 text-white border-0 bg-transparent opacity-75" id="payments-tab"
+                        data-bs-toggle="tab" data-bs-target="#payments-pane" type="button" role="tab"
+                        onclick="loadTab('payments')">
+                        <i class="bi bi-currency-dollar me-2"></i> To'lovlar
+                    </button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body p-0">
+            <div class="tab-content" id="statsTabsContent">
+                <!-- Students Pane -->
+                <div class="tab-pane fade show active p-4" id="students-pane" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover align-middle">
+                            <thead>
+                                <tr class="text-secondary small">
+                                    <th>F.I.SH</th>
+                                    <th>Telefon</th>
+                                    <th>Guruhlar</th>
+                                    <th>Status</th>
+                                    <th>Oxirgi To'lov</th>
+                                    <th>Qo'shilgan Sana</th>
+                                </tr>
+                            </thead>
+                            <tbody id="students-table-body">
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-secondary">Yuklanmoqda...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Groups Pane -->
+                <div class="tab-pane fade p-4" id="groups-pane" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover align-middle">
+                            <thead>
+                                <tr class="text-secondary small">
+                                    <th>Guruh Nomi</th>
+                                    <th>O'qituvchi</th>
+                                    <th>Yo'nalish</th>
+                                    <th>O'quvchilar Soni</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="groups-table-body">
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-secondary">Yuklanmoqda...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Payments Pane -->
+                <div class="tab-pane fade p-4" id="payments-pane" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover align-middle">
+                            <thead>
+                                <tr class="text-secondary small">
+                                    <th>ID</th>
+                                    <th>O'quvchi</th>
+                                    <th>Summa</th>
+                                    <th>Sana</th>
+                                    <th>Turi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="payments-table-body">
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-secondary">Yuklanmoqda...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
+    </div>
 
-        <div class="table-responsive">
-            <table class="table-glass">
-                <thead>
-                    <tr>
-                        <th>F.I.SH</th>
-                        <th>Telefon</th>
-                        <th>Guruhlar</th>
-                        <th>Status</th>
-                        <th>Oxirgi to'lov</th>
-                        <th>Profile</th>
-                    </tr>
-                </thead>
-                <tbody id="students-body">
-                    <!-- Students JS -->
-                </tbody>
-            </table>
-            <div id="loading-students" class="text-center py-3 d-none">
-                <div class="spinner" style="width: 24px; height: 24px; margin: 0 auto;"></div>
+    <!-- Charts Section -->
+    <div class="row g-4 mb-5">
+        <div class="col-lg-8">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-header border-secondary py-3">
+                    <h5 class="card-title text-white m-0">Oylik Tushum Dinamikasi (6 oy)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="revenueChart" style="height: 300px; width: 100%;"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-header border-secondary py-3">
+                    <h5 class="card-title text-white m-0">O'quvchilar O'sishi</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="studentsChart" style="height: 300px; width: 100%;"></canvas>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
+<style>
+    .nav-tabs .nav-link.active {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+        opacity: 1 !important;
+        border-bottom: 2px solid var(--amber) !important;
+    }
+</style>
+
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-    const CENTER_ID = Number("{{ center.id }}");
-    const API_STATS = "{% url 'accounts:api_center_stats' center.id %}";
-    const API_STUDENTS = "{% url 'accounts:api_center_students' center.id %}";
+    const CENTER_ID = "{{ center.id }}";
+    const API_BASE = `/hisob/api/centers/${CENTER_ID}`;
 
-    let chartRevInst = null;
-    let chartStuInst = null;
+    let chartInstanceRevenue = null;
+    let chartInstanceStudents = null;
 
-    async function loadStats() {
-        document.getElementById('loading-kpi').classList.remove('d-none');
-        document.getElementById('kpi-grid').classList.add('d-none');
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchStats();
+        loadTab('students');
+    });
 
+    async function fetchStats() {
         try {
-            const res = await fetch(API_STATS);
-            if (!res.ok) throw new Error("Stats load failed");
-            const data = await res.json();
-            renderKPI(data.kpi);
-            renderCharts(data.charts);
-        } catch (e) {
-            console.error(e);
-            alert("Statistikani yuklashda xatolik!");
-        } finally {
-            document.getElementById('loading-kpi').classList.add('d-none');
-            document.getElementById('kpi-grid').classList.remove('d-none');
-        }
-    }
+            const response = await fetch(`${API_BASE}/stats/`);
+            const data = await response.json();
 
-    function renderKPI(kpi) {
-        const items = [
-            { label: "Jami O‘quvchilar", val: kpi.total_students, sub: "Student" },
-            { label: "Aktiv O‘quvchilar", val: kpi.active_students, sub: "Active", color: "text-success" },
-            { label: "Yangi (30 kun)", val: "+" + kpi.new_students_30d, sub: "New Trend", color: "text-accent" },
-            { label: "Guruhlar", val: kpi.total_groups, sub: "Groups" },
-            { label: "O‘qituvchilar", val: kpi.total_teachers, sub: "Teachers" },
-            { label: "Oylik Tushum (Revenue)", val: formatMoney(kpi.monthly_revenue), sub: "This Month", color: "text-accent" },
-            { label: "Jami Tushum", val: formatMoney(kpi.total_revenue), sub: "Lifetime" },
-            { label: "O‘rtacha chek", val: formatMoney(kpi.avg_payment), sub: "Avg Payment" },
-            // { label: "Qarzdorlik", val: formatMoney(kpi.total_debt), sub: "Debt", color: "text-danger" },
-            { label: "Davomat %", val: kpi.attendance_rate + "%", sub: "Last 30 days" },
-        ];
-
-        let html = "";
-        items.forEach(i => {
-            html += `
-        <div class="col-6 col-md-3 col-xl-2.4"> <!-- Custom grid -->
-            <div class="kpi-card h-100">
-                <div class="kpi-label mb-1">${i.label}</div>
-                <div class="kpi-value ${i.color || ''}">${i.val}</div>
-                <div class="kpi-trend text-muted">${i.sub}</div>
-            </div>
-        </div>
-        `;
-        });
-        document.getElementById('kpi-grid').innerHTML = html;
-    }
-
-    function renderCharts(charts) {
-        // Revenue
-        const ctxRev = document.getElementById('chartRevenue').getContext('2d');
-        if (chartRevInst) chartRevInst.destroy();
-        chartRevInst = new Chart(ctxRev, {
-            type: 'line',
-            data: {
-                labels: charts.revenue.map(x => x.label),
-                datasets: [{
-                    label: "Revenue",
-                    data: charts.revenue.map(x => x.value),
-                    borderColor: '#f59e0b',
-                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-        });
-
-        // Students
-        const ctxStu = document.getElementById('chartStudents').getContext('2d');
-        if (chartStuInst) chartStuInst.destroy();
-        chartStuInst = new Chart(ctxStu, {
-            type: 'bar',
-            data: {
-                labels: charts.students.map(x => x.label),
-                datasets: [{
-                    label: "New Students",
-                    data: charts.students.map(x => x.value),
-                    backgroundColor: '#3b82f6',
-                }]
-            },
-            options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-        });
-    }
-
-    async function loadStudents() {
-        const q = document.getElementById('filter-search').value;
-        const s = document.getElementById('filter-status').value;
-        const url = `${API_STUDENTS}?search=${encodeURIComponent(q)}&status=${s}`;
-
-        document.getElementById('loading-students').classList.remove('d-none');
-        const tbody = document.getElementById('students-body');
-        tbody.innerHTML = "";
-
-        try {
-            const res = await fetch(url);
-            const data = await res.json();
-
-            if (data.students.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">Ma'lumot topilmadi</td></tr>`;
-                return;
+            if (!response.ok || data.error) {
+                throw new Error(data.error || "Server xatosi");
             }
 
-            let html = "";
-            data.students.forEach(u => {
-                html += `
-            <tr>
-                <td>
-                    <div class="fw-bold">${u.full_name}</div>
-                    <div class="small text-muted" style="font-size:0.75rem">Reg: ${u.joined_at}</div>
-                </td>
-                <td>${u.phone || '-'}</td>
-                <td>${u.groups.join(', ') || '<span class="text-muted">–</span>'}</td>
-                <td>
-                    <span class="badge ${u.status === 'Active' ? 'bg-success' : 'bg-danger'}">${u.status}</span>
-                </td>
-                <td>${u.last_payment}</td>
-                <td>
-                    <a href="/accounts/talaba/${u.id}/" class="btn btn-xs btn-outline-info">View</a>
-                </td>
-            </tr>
-            `;
-            });
-            tbody.innerHTML = html;
-
-        } catch (e) {
-            console.error(e);
-            tbody.innerHTML = `<tr><td colspan="6" class="text-danger text-center">Xatolik</td></tr>`;
-        } finally {
-            document.getElementById('loading-students').classList.add('d-none');
+            updateUI(data.kpi);
+            renderCharts(data.charts);
+        } catch (error) {
+            console.error(error);
+            alert("Xatolik: " + error.message);
         }
     }
 
-    function formatMoney(amount) {
-        return new Intl.NumberFormat('uz-UZ').format(amount);
+    async function loadTab(type) {
+        const body = document.getElementById(`${type}-table-body`);
+        try {
+            // Clear previous content and show loading
+            body.innerHTML = `<tr><td colspan="${type === 'students' ? 6 : type === 'groups' ? 5 : 5}" class="text-center py-4 text-secondary">Yuklanmoqda...</td></tr>`;
+
+            const response = await fetch(`${API_BASE}/${type}/`);
+            const data = await response.json();
+
+            if (type === 'students') renderStudents(data.students);
+            if (type === 'groups') renderGroups(data.groups);
+            if (type === 'payments') renderPayments(data.payments);
+        } catch (error) {
+            console.error(`Error loading ${type} tab:`, error);
+            body.innerHTML = `<tr><td colspan="${type === 'students' ? 6 : type === 'groups' ? 5 : 5}" class="text-center text-danger">Ma'lumot yuklashda xatolik</td></tr>`;
+        }
     }
 
-    // Init
-    document.addEventListener("DOMContentLoaded", () => {
-        loadStats();
-        loadStudents();
-    });
+    function renderStudents(students) {
+        const body = document.getElementById('students-table-body');
+        if (!students || students.length === 0) {
+            body.innerHTML = '<tr><td colspan="6" class="text-center py-4">O\'quvchilar yo\'q</td></tr>';
+            return;
+        }
+        body.innerHTML = students.map(s => `
+            <tr>
+                <td class="fw-bold">${s.full_name}</td>
+                <td class="text-secondary">${s.phone}</td>
+                <td>${s.groups.join(', ') || '-'}</td>
+                <td><span class="badge bg-${s.status === 'Active' ? 'success' : 'danger'} bg-opacity-10 text-${s.status === 'Active' ? 'success' : 'danger'}">${s.status}</span></td>
+                <td class="text-secondary">${s.last_payment}</td>
+                <td class="text-secondary">${s.joined_at}</td>
+            </tr>
+        `).join('');
+    }
+
+    function renderGroups(groups) {
+        const body = document.getElementById('groups-table-body');
+        if (!groups || groups.length === 0) {
+            body.innerHTML = '<tr><td colspan="5" class="text-center py-4">Guruhlar yo\'q</td></tr>';
+            return;
+        }
+        body.innerHTML = groups.map(g => `
+            <tr>
+                <td class="fw-bold text-primary">${g.name}</td>
+                <td class="text-secondary">${g.teacher}</td>
+                <td class="text-secondary">${g.category}</td>
+                <td class="fw-bold">${g.students_count}</td>
+                <td><span class="badge border border-secondary text-secondary">${g.status}</span></td>
+            </tr>
+        `).join('');
+    }
+
+    function renderPayments(payments) {
+        const body = document.getElementById('payments-table-body');
+        if (!payments || payments.length === 0) {
+            body.innerHTML = '<tr><td colspan="5" class="text-center py-4">To\'lovlar yo\'q</td></tr>';
+            return;
+        }
+        body.innerHTML = payments.map(p => `
+            <tr>
+                <td class="text-secondary">#${p.id}</td>
+                <td class="fw-bold">${p.student_name}</td>
+                <td class="text-success fw-bold">${new Intl.NumberFormat('uz-UZ').format(p.amount)} so'm</td>
+                <td class="text-secondary">${p.date}</td>
+                <td class="text-secondary">${p.method}</td>
+            </tr>
+        `).join('');
+    }
+
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('uz-UZ', {
+            style: 'currency',
+            currency: 'UZS',
+            maximumFractionDigits: 0
+        }).format(amount);
+    }
+
+    function updateUI(kpi) {
+        document.getElementById('kpi-revenue').textContent = formatCurrency(kpi.total_revenue);
+        document.getElementById('kpi-monthly-revenue').textContent = formatCurrency(kpi.monthly_revenue);
+        document.getElementById('kpi-profit').textContent = formatCurrency(kpi.net_profit);
+        document.getElementById('kpi-expenses').textContent = formatCurrency(kpi.total_expenses);
+
+        document.getElementById('kpi-students').textContent = kpi.total_students;
+        document.getElementById('kpi-teachers').textContent = kpi.total_teachers;
+        document.getElementById('kpi-groups').textContent = kpi.active_groups;
+        document.getElementById('kpi-attendance').textContent = kpi.attendance_rate + '%';
+    }
+
+    function renderCharts(chartsData) {
+        // Revenue Chart
+        const ctxRev = document.getElementById('revenueChart').getContext('2d');
+        if (chartInstanceRevenue) chartInstanceRevenue.destroy();
+
+        chartInstanceRevenue = new Chart(ctxRev, {
+            type: 'line',
+            data: {
+                labels: chartsData.revenue.map(d => d.label),
+                datasets: [{
+                    label: "Tushum (so'm)",
+                    data: chartsData.revenue.map(d => d.value),
+                    borderColor: '#10b981', // Tailwind emerald-500
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#059669',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: '#9ca3af' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#9ca3af' }
+                    }
+                }
+            }
+        });
+
+        // Students Chart
+        const ctxStu = document.getElementById('studentsChart').getContext('2d');
+        if (chartInstanceStudents) chartInstanceStudents.destroy();
+
+        chartInstanceStudents = new Chart(ctxStu, {
+            type: 'bar',
+            data: {
+                labels: chartsData.students.map(d => d.label),
+                datasets: [{
+                    label: "Yangi O'quvchilar",
+                    data: chartsData.students.map(d => d.value),
+                    backgroundColor: '#3b82f6', // Tailwind blue-500
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: '#9ca3af', stepSize: 1 }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#9ca3af' }
+                    }
+                }
+            }
+        });
+    }
 </script>
 {% endblock %}

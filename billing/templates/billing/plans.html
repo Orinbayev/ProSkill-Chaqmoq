@@ -1,101 +1,461 @@
 {% extends "base.html" %}
 {% load humanize %}
 {% load billing_extras %}
+{% block title %}Tariflar{% endblock %}
+
 {% block content %}
+<style>
+  :root {
+    --bg-dark: #020617;
+    --card-dark: #ffffff05;
+    --border-dark: rgba(255, 255, 255, 0.08);
+    --primary-purple: #7c3aed;
+    --primary-hover: #6d28d9;
+    --text-muted: #94a3b8;
+  }
 
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-  <div>
-    <h2 class="m-0" style="font-weight:950;">Oylik tariflar</h2>
-    <div style="color:rgba(255,255,255,.70)">Kerakli tarifni tanlang va uzaytiring.</div>
+  body {
+    background-color: var(--bg-dark);
+  }
+
+  /* Header Section */
+  .plans-header {
+    margin-bottom: 40px;
+  }
+
+  .plans-title {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+
+  .plans-subtitle {
+    color: var(--text-muted);
+    font-size: 1rem;
+    max-width: 600px;
+  }
+
+  /* Controls Row */
+  .controls-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  /* Duration Switcher */
+  .switcher-wrapper {
+    background: #ffffff03;
+    border: 1px solid var(--border-dark);
+    padding: 4px;
+    border-radius: 12px;
+    display: inline-flex;
+  }
+
+  .dur-btn {
+    padding: 8px 24px;
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .dur-btn:hover {
+    color: #fff;
+  }
+
+  .dur-btn.active {
+    background: #fff;
+    color: #020617;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Plan Card - Compact Version */
+  .plan-card {
+    background: #ffffff02;
+    border: 1px solid var(--border-dark);
+    border-radius: 20px;
+    padding: 24px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    /* We use z-index 1 for default state */
+    z-index: 1;
+    transition: transform 0.3s ease, border-color 0.3s ease;
+  }
+
+  /* CRITICAL: Disable transform when modal is open to avoid stacking context issues */
+  body.modal-open .plan-card {
+    transform: none !important;
+    z-index: 0 !important;
+  }
+
+  .plan-card:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+    transform: translateY(-3px);
+    z-index: 2;
+    /* Elevate on hover */
+  }
+
+  .plan-card.popular {
+    border-color: var(--primary-purple);
+  }
+
+  /* Popular Badge - Smaller */
+  .popular-label {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ede9fe;
+    color: var(--primary-purple);
+    padding: 2px 12px;
+    border-radius: 100px;
+    font-size: 0.65rem;
+    font-weight: 700;
+  }
+
+  /* Typography */
+  .plan-type {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 16px;
+  }
+
+  .limit-text {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+  }
+
+  .price-box {
+    margin-bottom: 16px;
+  }
+
+  .old-price {
+    color: var(--text-muted);
+    text-decoration: line-through;
+    font-size: 0.95rem;
+    margin-bottom: 2px;
+    opacity: 0.5;
+  }
+
+  .price-text {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+    letter-spacing: -0.5px;
+  }
+
+  .period-text {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+  }
+
+  .caption-text {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    line-height: 1.4;
+    margin-bottom: 24px;
+    min-height: 40px;
+  }
+
+  /* Buttons */
+  .btn-primary-plan {
+    background: var(--primary-purple);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 12px;
+    font-weight: 700;
+    width: 100%;
+    margin-bottom: 8px;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+  }
+
+  .btn-primary-plan:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 20px -4px rgba(124, 58, 237, 0.4);
+  }
+
+  .btn-secondary-plan {
+    background: transparent;
+    border: 1px solid var(--border-dark);
+    color: #fff;
+    border-radius: 12px;
+    padding: 12px;
+    font-weight: 600;
+    width: 100%;
+    text-align: center;
+    text-decoration: none;
+    display: block;
+    transition: all 0.2s;
+    font-size: 0.85rem;
+  }
+
+  .btn-secondary-plan:hover {
+    background: #ffffff05;
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Promokod Button */
+  .btn-promo-action {
+    background: transparent;
+    border: 1px solid var(--border-dark);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .btn-promo-action:hover {
+    background: #ffffff05;
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .btn-promo-action i {
+    color: var(--primary-purple);
+    font-size: 1.1rem;
+  }
+
+  /* --------------------------------------------------- */
+  /* BULLETPROOF MODAL FIXES */
+  /* --------------------------------------------------- */
+
+  /* Ensure modal is above everything */
+  .modal {
+    z-index: 1060 !important;
+  }
+
+  .modal-backdrop {
+    z-index: 1050 !important;
+  }
+
+  .modal-content-dark {
+    background: #0f172a !important;
+    border: 1px solid var(--border-dark) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  .form-control-promo {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid var(--border-dark) !important;
+    color: #fff !important;
+    border-radius: 12px !important;
+    padding: 12px 16px !important;
+    width: 100%;
+  }
+
+  .form-control-promo:focus {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: var(--primary-purple) !important;
+    box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1) !important;
+    outline: none !important;
+  }
+</style>
+
+<div class="container py-5">
+  <!-- Header Section -->
+  <div class="plans-header">
+    <h1 class="plans-title">Oylik tariflar</h1>
+    <p class="plans-subtitle">Kerakli tarifni tanlang va to'lov qiling. Chaqmoq bilan ta'lim markazingizni
+      rivojlantiring.</p>
   </div>
 
-  <button class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#promoModal">
-    ➕ Promokod
-  </button>
-</div>
+  <!-- Controls Row -->
+  <div class="controls-row">
+    <!-- Duration Selector -->
+    <div class="switcher-wrapper">
+      {% for m in durations %}
+      <a href="?m={{ m }}{% if promo %}&promo={{ promo }}{% endif %}"
+        class="dur-btn {% if m == duration %}active{% endif %}">
+        {{ m }} oy
+      </a>
+      {% endfor %}
+    </div>
 
-<div class="mt-3 d-flex gap-2 flex-wrap">
-  {% for m in durations %}
-    <a class="btn {% if m == duration %}btn-warning fw-bold{% else %}btn-outline-light{% endif %}"
-       href="?m={{ m }}{% if promo %}&promo={{ promo }}{% endif %}">
-      {{ m }} oy
-    </a>
-  {% endfor %}
-</div>
-
-{% if promo %}
-  <div class="mt-3 p-3" style="border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);">
-    ✅ Promokod qo‘llandi: <b>{{ promo }}</b>
-    <a class="ms-2 text-decoration-underline" href="?m={{ duration }}">Bekor qilish</a>
+    <!-- Promo Button -->
+    <button class="btn-promo-action" data-bs-toggle="modal" data-bs-target="#promoModal">
+      <i class="bi bi-plus-circle-fill"></i>
+      Promokod
+    </button>
   </div>
-{% endif %}
 
-<div class="row mt-4 g-3">
-  {% for p in plans %}
+  <!-- Active Promo Alert -->
+  {% if promo %}
+  <div class="alert alert-success d-flex align-items-center gap-3 mb-5"
+    style="background: rgba(124, 58, 237, 0.1); border-color: rgba(124, 58, 237, 0.2); color: #a78bfa; border-radius: 16px;">
+    <i class="bi bi-check-circle-fill fs-5"></i>
+    <div>Promokod faollashtirildi: <span class="fw-bold text-white">{{ promo }}</span></div>
+    <a href="?m={{ duration }}" class="ms-auto text-decoration-none text-white opacity-50">Bekor qilish</a>
+  </div>
+  {% endif %}
+
+  <!-- Plans Grid -->
+  <div class="row g-4">
+    {% for p in plans %}
+    {% with code=p.code|upper %}
     {% with pr=pricing|get_item:p.code %}
     <div class="col-12 col-md-6 col-xl-4">
-      <div class="p-4 h-100" style="border-radius:18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);">
-        <div class="d-flex justify-content-between align-items-center">
-          <h4 class="m-0" style="font-weight:950;">{{ p.title }}</h4>
-          {% if p.is_popular %}<span class="badge text-bg-warning">Popular</span>{% endif %}
-        </div>
+      <div class="plan-card {% if p.is_popular or code == 'PRO' %}popular{% endif %}">
 
-        <div class="mt-2" style="font-size:32px;font-weight:950;">
-          {{ pr.final|intcomma }} so‘m
-        </div>
-        <div style="color:rgba(255,255,255,.70)">{{ duration }} oy</div>
-
-        {% if pr.discount_percent %}
-          <div class="mt-2" style="color:rgba(250,204,21,.95); font-weight:800;">
-            Chegirma: -{{ pr.discount_percent }}%
-          </div>
+        <!-- Popular Badge -->
+        {% if p.is_popular or code == 'PRO' %}
+        <div class="popular-label">Popular</div>
         {% endif %}
 
-        <div class="mt-3" style="color:rgba(255,255,255,.75)">
-          Limit: {{ p.max_students }} o‘quvchi · {{ p.max_users }} user · {{ p.max_groups }} guruh
+        <!-- Title -->
+        <h3 class="plan-type">
+          {% if code == "STANDARD" %}STANDART
+          {% elif code == "PREMIUM" %}PREMIUM
+          {% else %}{{ p.title }}
+          {% endif %}
+        </h3>
+
+        <!-- Limits -->
+        <div class="limit-text">
+          {% if p.max_students > 10000 %}Cheksiz{% else %}1–{{ p.max_students }}{% endif %} o'quvchi
         </div>
 
-        <form method="post" action="{% url 'billing:order_create' %}" class="mt-3">
-          {% csrf_token %}
-          <input type="hidden" name="plan" value="{{ p.code }}">
-          <input type="hidden" name="months" value="{{ duration }}">
-          <input type="hidden" name="promo" value="{{ promo }}">
-          <button class="btn btn-warning w-100 fw-bold">⚡ Uzaytirish</button>
-        </form>
-
-        {% if request.user.is_superuser %}
-          <div class="mt-2" style="opacity:.8;">
-            <small>Superadmin: demo confirm link order yaratilgandan keyin chiqadi (message’da #id)</small>
+        <!-- Price -->
+        <div class="price-box">
+          {% if code != "FREE" and pr.discount_percent %}
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="old-price">{{ pr.base_price|intcomma }} so'm</span>
+            <span class="badge"
+              style="background: rgba(34, 197, 94, 0.1); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.2); padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 700;">-{{pr.discount_percent}}%</span>
           </div>
-        {% endif %}
+          {% endif %}
+          <div class="price-text">
+            {% if code == "FREE" %}BEPUL{% else %}{{ pr.final_price|intcomma }} so'm{% endif %}
+          </div>
+        </div>
+
+        <!-- Duration -->
+        <div class="period-text">
+          {% if code == "FREE" %}7 kunlik sinov muddati{% else %}{{ duration }} oy{% endif %}
+        </div>
+
+        <!-- Caption -->
+        <div class="caption-text">
+          {% if p.caption %}
+          {{ p.caption }}
+          {% else %}
+          {{ p.title }} reja oyi — {{ p.max_students }} tagacha o'quvchi uchun mo'ljallangan
+          {% endif %}
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="mt-auto">
+          {% if code == sub.plan_code %}
+          <form method="post" action="{% url 'billing:order_create' %}">
+            {% csrf_token %}
+            <input type="hidden" name="plan" value="{{ p.code }}">
+            <input type="hidden" name="months" value="{{ duration }}">
+            <input type="hidden" name="promo" value="{{ promo }}">
+            <button class="btn-primary-plan">Uzaytirish</button>
+          </form>
+
+          <a href="https://t.me/de_amirxon" target="_blank" class="btn-secondary-plan mt-1">
+            Savdo bo'yicha suhbat
+          </a>
+
+          <div class="text-center small mt-2" style="font-size: 0.75rem; color: #94a3b8;">
+            {{ sub.days_left }} kun qoldi ({{ sub.expires_at|date:"d.m.Y" }})
+          </div>
+          {% else %}
+          <form method="post" action="{% url 'billing:order_create' %}">
+            {% csrf_token %}
+            <input type="hidden" name="plan" value="{{ p.code }}">
+            <input type="hidden" name="months" value="{{ duration }}">
+            <input type="hidden" name="promo" value="{{ promo }}">
+            <button class="btn-primary-plan">Tanlash</button>
+          </form>
+
+          <a href="https://t.me/de_amirxon" target="_blank" class="btn-secondary-plan mt-1">
+            Savdo bo'yicha suhbat
+          </a>
+          {% endif %}
+        </div>
+
       </div>
     </div>
     {% endwith %}
-  {% endfor %}
+    {% endwith %}
+    {% endfor %}
+  </div>
+
+  <!-- Bottom CTA -->
+  <div class="mt-5 pt-5 text-center">
+    <p class="text-secondary mb-3">Savollaringiz bormi yoki maxsus tarif kerakmi?</p>
+    <a href="https://t.me/de_amirxon" target="_blank" class="btn d-inline-flex align-items-center gap-3 px-5 py-3"
+      style="background: rgba(124, 58, 237, 0.1); color: var(--primary-purple); border: 1px solid rgba(124, 58, 237, 0.2); border-radius: 16px; font-weight: 700; text-decoration: none; transition: all 0.3s;">
+      <i class="bi bi-telegram fs-4"></i>
+      <span>Admin bilan bog'lanish</span>
+    </a>
+  </div>
 </div>
 
-<!-- PROMO MODAL -->
+<!-- Promo Modal (Moved outside containers for z-index purposes) -->
 <div class="modal fade" id="promoModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content" style="background:rgba(2,6,23,.92); border:1px solid rgba(255,255,255,.10); border-radius:18px;">
-      <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,.08)">
-        <h5 class="modal-title fw-bold text-white">Promokod</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content modal-content-dark">
+      <div class="modal-header border-bottom border-secondary border-opacity-20">
+        <h5 class="modal-title text-white">Promokod</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <form method="get" action="">
+      <form method="get">
         <div class="modal-body">
           <input type="hidden" name="m" value="{{ duration }}">
-          <label class="text-white-50">Promokodni kiriting</label>
-          <input class="form-control mt-2" name="promo" value="{{ promo }}" placeholder="MASALAN: PRO10">
-          <div class="text-white-50 mt-2" style="font-size:13px;">Chegirma avtomatik hisoblanadi.</div>
+          <label class="form-label text-white-50 mb-3">Promokodni kiriting</label>
+          <input type="text" name="promo" class="form-control-promo" placeholder="Masalan: START2026"
+            value="{{ promo }}" autocomplete="off">
+          <div class="mt-3 text-white-50 small">
+            Promokodni kiritganingizdan so'ng narxlar avtomatik ravishda yangilanadi.
+          </div>
         </div>
-        <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,.08)">
-          <button class="btn btn-outline-light" data-bs-dismiss="modal" type="button">Yopish</button>
-          <button class="btn btn-warning fw-bold" type="submit">Qo‘llash</button>
+        <div class="modal-footer border-top border-secondary border-opacity-20">
+          <button type="button" class="btn btn-link text-white-50 text-decoration-none" data-bs-dismiss="modal">Bekor
+            qilish</button>
+          <button type="submit" class="btn btn-primary px-4 fw-bold"
+            style="background: var(--primary-purple); border: none;">Qo'llash</button>
         </div>
       </form>
     </div>
   </div>
 </div>
 
+<script>
+  // Ensure the modal is a direct child of body for safe stacking context
+  document.addEventListener('DOMContentLoaded', function () {
+    const promoModal = document.getElementById('promoModal');
+    if (promoModal) {
+      document.body.appendChild(promoModal);
+
+      // Focus the input when modal opens
+      promoModal.addEventListener('shown.bs.modal', function () {
+        const input = promoModal.querySelector('input[name="promo"]');
+        if (input) input.focus();
+      });
+    }
+  });
+</script>
 {% endblock %}

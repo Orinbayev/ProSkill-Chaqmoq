@@ -8,15 +8,43 @@
 {% block content %}
 <div class="container-fluid py-4 animate__animated animate__fadeIn">
 
-  <!-- SIMPLIFIED HEADER (MATCHING DASHBOARD.HTML) -->
+  <!-- ✨ PREMIUM HEADER WITH PROFILE & LOGOUT -->
   <section class="dashboard-surface mb-4">
-    <header class="dashboard-header d-flex justify-content-between align-items-center">
-      <div>
-        <h3 class="dashboard-title">
-          Manager paneli —
-          <span class="role-badge">{{ request.user.get_role_display }}</span>
-        </h3>
-        <p class="dashboard-subtitle">Markaz faoliyati va statistikasi bo‘limi</p>
+    <header class="dashboard-header">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+          <h3 class="dashboard-title">
+            Manager paneli —
+            <span class="role-badge">{{ request.user.get_role_display }}</span>
+          </h3>
+          <p class="dashboard-subtitle">Markaz faoliyati va statistikasi bo'limi</p>
+        </div>
+
+        <!-- RIGHT SIDE: PROFILE & ACTIONS -->
+        <div class="d-flex align-items-center gap-3">
+          <!-- Profile Info -->
+          <div class="profile-card d-none d-md-flex align-items-center gap-3">
+            <div class="profile-avatar">
+              {% if request.user.profile_picture %}
+              <img src="{{ request.user.profile_picture.url }}" alt="Profile" />
+              {% else %}
+              <div class="avatar-placeholder">
+                {{ request.user.first_name.0|upper|default:"U" }}
+              </div>
+              {% endif %}
+            </div>
+            <div class="profile-info">
+              <div class="profile-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+              <div class="profile-email">{{ request.user.email|default:"" }}</div>
+            </div>
+          </div>
+
+          <!-- Logout Button -->
+          <a href="{% url 'accounts:logout' %}" class="logout-btn" title="Chiqish">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span class="d-none d-lg-inline">Chiqish</span>
+          </a>
+        </div>
       </div>
     </header>
   </section>
@@ -188,6 +216,112 @@
     position: relative;
     overflow: hidden;
   }
+
+  /* ===== DASHBOARD SURFACE ===== */
+  .dashboard-surface {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 24px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .dashboard-surface::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  }
+
+  /* ===== DASHBOARD HEADER ===== */
+  .dashboard-header {
+    padding: clamp(20px, 3vw, 32px);
+    background:
+      radial-gradient(600px 300px at 15% 0%, rgba(250, 204, 21, 0.12), transparent 65%),
+      radial-gradient(600px 300px at 85% 0%, rgba(56, 189, 248, 0.10), transparent 65%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    position: relative;
+  }
+
+  .dashboard-title {
+    margin: 0;
+    font-size: clamp(20px, 3vw, 32px);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    color: white;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .dashboard-subtitle {
+    margin: 8px 0 0;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: clamp(13px, 1.8vw, 15px);
+    line-height: 1.5;
+    max-width: 600px;
+    font-weight: 600;
+  }
+
+  .role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 800;
+    color: #000;
+    background: linear-gradient(135deg, var(--amber), var(--amber2));
+    border: 1px solid rgba(250, 204, 21, 0.3);
+    box-shadow: 0 4px 15px rgba(250, 204, 21, 0.3);
+  }
+
+  /* ===== DASHBOARD CARD ===== */
+  .dashboard-card {
+    display: block;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    padding: 20px;
+    text-decoration: none;
+    color: white;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .dashboard-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(600px 300px at 50% 0%, rgba(250, 204, 21, 0.05), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .dashboard-card:hover {
+    transform: translateY(-8px);
+    border-color: rgba(250, 204, 21, 0.4);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 40px rgba(250, 204, 21, 0.15);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+  }
+
+  .dashboard-card:hover::before {
+    opacity: 1;
+  }
+
 
   /* HEADER CARD */
   .header-card {
@@ -525,6 +659,98 @@
     transform: translateY(-2px);
     border-color: rgba(255, 255, 255, 0.3);
     color: var(--amber);
+  }
+
+  /* ===== PROFILE CARD ===== */
+  .profile-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 8px 16px 8px 8px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: all 0.3s ease;
+  }
+
+  .profile-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .profile-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--amber);
+    box-shadow: 0 4px 12px rgba(250, 204, 21, 0.3);
+  }
+
+  .profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--amber), var(--amber2));
+    color: #000;
+    font-weight: 900;
+    font-size: 18px;
+  }
+
+  .profile-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .profile-name {
+    font-size: 14px;
+    font-weight: 800;
+    color: white;
+    line-height: 1.2;
+  }
+
+  .profile-email {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 600;
+  }
+
+  /* ===== LOGOUT BUTTON ===== */
+  .logout-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.1));
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 800;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .logout-btn:hover {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border-color: #ef4444;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+  }
+
+  .logout-btn i {
+    font-size: 16px;
   }
 </style>
 {% endblock %}

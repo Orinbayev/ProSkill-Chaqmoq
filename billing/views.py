@@ -46,13 +46,8 @@ def plans(request):
     # pricing table
     pricing_map = {}
     for p in plans:
-        pr = calculate_price(p, duration, promo)
-        pricing_map[p.code] = {
-            "base": pr.base_price,
-            "discount_percent": pr.discount_percent,
-            "final": pr.final_price,
-            "has_promo": bool(pr.promo),
-        }
+        pr = calculate_price(p, duration, promo, center=center)
+        pricing_map[p.code] = pr
 
     context = {
         "sub": ui,
@@ -89,7 +84,7 @@ def order_create(request):
 
     messages.success(
         request,
-        f"So‘rov yuborildi ✅ (Order #{order.id}). Admin tasdiqlagach obunangiz yangilanadi."
+        "So'rov yuborildi ✅ Admin tasdiqlagach obunangiz yangilanadi."
     )
     return redirect("billing:plans")
 
@@ -104,5 +99,5 @@ def order_confirm_demo(request, pk: int):
 
     order = get_object_or_404(SubscriptionOrder, pk=pk)
     mark_order_paid(order)
-    messages.success(request, f"Order #{order.id} PAID qilindi ✅")
-    return redirect("billing:plans")
+    messages.success(request, "To'lov tasdiqlandi ✅")
+    return redirect("accounts:superadmin_dashboard")

@@ -46,7 +46,7 @@
       <div class="d-flex flex-column">
         <span class="logo-text">Chaqmoq</span>
         {% if request.center and request.center.name != "Chaqmoq" %}
-        <span class="center-tagline">{{ request.center.name }}</span>
+        <!-- span class="center-tagline">{{ request.center.name }}</span -->
         {% endif %}
       </div>
     </a>
@@ -210,13 +210,13 @@
   <div class="sidebar-bottom">
     <!-- 💳 MINI SUBSCRIPTION WIDGET -->
     {% if sub_ui and request.user.role != 'student' and request.user.role != 'parent' and request.user.role != 'teacher'%}
-    <div class="sidebar-sub-widget-mini">
+    <div class="sidebar-sub-widget-mini {% if sub_ui.warn %}warn-border{% endif %}">
       <div class="sub-header-mini">
         <div class="sub-icon-mini">
           <i class="fa-solid fa-bolt-lightning"></i>
         </div>
         <div class="sub-info-mini">
-          <div class="sub-label-mini">Obuna: {{ sub_ui.plan_code }}</div>
+          <div class="sub-label-mini">Obuna: {{ sub_ui.plan_title }}</div>
           <div class="sub-progress-text-mini">
             {{ sub_ui.days_left }} kun qoldi ({{ sub_ui.progress }}%)
           </div>
@@ -229,8 +229,8 @@
       </div>
 
       <a href="{% url 'billing:plans' %}" class="sub-upgrade-btn-mini"
-        data-title="Obuna: {{ sub_ui.plan_code }} ({{ sub_ui.progress }}%) | Uzatirish">
-        <i class="fa-solid fa-calendar-plus"></i> <span class="si-text">Uzatirish</span>
+        data-title="Obuna: {{ sub_ui.plan_title }} ({{ sub_ui.progress }}% qoldi) | Uzatirish">
+        <i class="fa-solid fa-calendar-plus"></i> <span class="si-text">Uzaytirish</span>
       </a>
     </div>
     {% endif %}
@@ -578,6 +578,11 @@
     font-size: 15px;
     flex-shrink: 0;
     box-shadow: 0 0 15px rgba(250, 204, 21, 0.15);
+  }
+
+  .sidebar-sub-widget-mini.warn-border {
+    border-color: rgba(239, 68, 68, 0.5);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(239, 68, 68, 0.02) 100%);
   }
 
   .sub-info-mini .sub-label-mini {

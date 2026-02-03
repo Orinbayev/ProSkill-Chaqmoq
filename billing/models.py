@@ -21,6 +21,8 @@ class SubscriptionPlan(models.Model):
     max_students = models.PositiveIntegerField(default=100)
 
     is_popular = models.BooleanField(default=False)
+    discount_percent = models.PositiveIntegerField(default=0, validators=[MaxValueValidator(100)])
+    caption = models.TextField(blank=True, default="", verbose_name="Qo'shimcha ma'lumot")  # ✅ Yangi field
     active = models.BooleanField(default=True)
 
     class Meta:
@@ -78,6 +80,7 @@ class PromoCode(models.Model):
 
     max_uses = models.PositiveIntegerField(null=True, blank=True)
     used_count = models.PositiveIntegerField(default=0)
+    once_per_center = models.BooleanField(default=True)  # ✅ Yangi: Har bir markaz faqat 1 marta ishlata olsin
 
     # qaysi planlarga ishlasin (bo'sh bo'lsa hammasiga)
     plans = models.ManyToManyField(SubscriptionPlan, blank=True, related_name="promocodes")

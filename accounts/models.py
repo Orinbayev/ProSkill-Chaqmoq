@@ -48,6 +48,13 @@ class Center(models.Model):
     donation_card_holder = models.CharField(max_length=100, blank=True, default="")
     donation_qr_image = models.ImageField(upload_to="center/qr/", blank=True, null=True)
 
+    # Promo Settings
+    promo_code = models.CharField(max_length=50, blank=True, null=True)
+    discount_amount = models.PositiveIntegerField(default=0)
+    discount_percent = models.PositiveIntegerField(default=0)
+    promo_start = models.DateField(null=True, blank=True)
+    promo_end = models.DateField(null=True, blank=True)
+
 
     STATUS_ACTIVE = "ACTIVE"
     STATUS_BLOCKED = "BLOCKED"

@@ -9,16 +9,19 @@
     </p>
 
     {% if sub %}
-      <div style="margin-top:14px;color:rgba(255,255,255,.8);">
-        <div><b>Tarif:</b> {{ sub.plan_code }}</div>
-        <div><b>Tugash:</b> {{ sub.expires_at|date:"d-M-Y H:i" }}</div>
-        <div><b>Qolgan:</b> {{ sub.days_left }} kun</div>
-      </div>
+    <div style="margin-top:14px;color:rgba(255,255,255,.8);">
+      <div><b>Tarif:</b> {{ sub.plan_code }}</div>
+      <div><b>Tugash:</b> {{ sub.expires_at|date:"d-M-Y H:i" }}</div>
+      <div><b>Qolgan:</b> {{ sub.days_left }} kun</div>
+    </div>
     {% endif %}
 
     <div class="d-flex gap-2 mt-3">
       <a href="{% url 'billing:plans' %}" class="btn btn-warning fw-bold">💳 To‘lov / Tarif</a>
-      <a href="{% url 'logout' %}" class="btn btn-outline-light">Chiqish</a>
+      <form action="{% url 'logout' %}" method="post" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-light">Chiqish</button>
+      </form>
     </div>
   </div>
 </div>

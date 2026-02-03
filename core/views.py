@@ -718,7 +718,7 @@ def stat_students(request):
     # ✅ Isolate data by center (Coins and Groups)
     rows = rows.annotate(
         jami_chaqmoq=Coalesce(
-            Sum("ledger__ball"),
+            Sum("ledger__ball", filter=Q(ledger__group__center=center) | Q(ledger__rule__center=center)),
             0
         )
     ).prefetch_related(
@@ -883,11 +883,14 @@ def user_view(request, pk):
             messages.success(request, f"{user.get_full_name()} paroli muvaffaqiyatli o'zgartirildi.")
             return redirect("core:user_view", pk=user.pk)
 
-    # ✅ Chaqmoq balance (GLOBAL - matches Reyting)
-    balance = Ledger.objects.filter(student=user).aggregate(Sum('ball'))['ball__sum'] or 0
+    # ✅ Chaqmoq balance (Tenant Scoped)
+    balance_qs = Ledger.objects.filter(student=user)
+    if center:
+        balance_qs = balance_qs.filter(Q(group__center=center) | Q(rule__center=center))
+    balance = balance_qs.aggregate(Sum('ball'))['ball__sum'] or 0
     
-    # ✅ Chaqmoq history (GLOBAL - matches Reyting)
-    all_actions = Ledger.objects.filter(student=user).select_related('beruvchi', 'group').order_by("-id")
+    # ✅ Chaqmoq history (Tenant Scoped)
+    all_actions = balance_qs.select_related('beruvchi', 'group').order_by("-id")
     page_number = request.GET.get('page', 1)
     paginator = Paginator(all_actions, 10)  # 10 items per page
     actions_page = paginator.get_page(page_number)

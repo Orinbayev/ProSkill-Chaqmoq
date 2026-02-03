@@ -45,10 +45,10 @@ def reyting(request):
     if center:
         base = base.filter(student__center=center)
 
-    # ✅ Umumiy leaderboard (hamma o‘quvchi)
+    # ✅ Umumiy leaderboard (Tenant Scoped)
     leaderboard_all = (
         base.values("student__id", "student__ism", "student__familya")
-        .annotate(jami=Coalesce(Sum("ball"), 0))
+        .annotate(jami=Coalesce(Sum("ball", filter=Q(group__center=center) | Q(rule__center=center)) if center else Sum("ball"), 0))
         .order_by("-jami", "student__ism", "student__id")
     )
 
@@ -113,7 +113,8 @@ def student_detail(request, pk):
         Ledger.objects
         .filter(student=student)
     )
-    # ✅ Global ledger (removed center filter)
+    if center:
+        led_qs = led_qs.filter(Q(group__center=center) | Q(rule__center=center))
 
     led_qs = (
         led_qs
@@ -340,7 +341,8 @@ def my_chaqmoq(request):
         enrolls = enrolls.filter(group__center=center)
 
     teacher_stats_qs = Ledger.objects.filter(student=student)
-    # ✅ Global stats
+    if center:
+        teacher_stats_qs = teacher_stats_qs.filter(Q(group__center=center) | Q(rule__center=center))
     
     teacher_stats = (
         teacher_stats_qs
@@ -357,7 +359,8 @@ def my_chaqmoq(request):
     )
 
     totals_qs = Ledger.objects.filter(student=student)
-    # ✅ Global totals
+    if center:
+        totals_qs = totals_qs.filter(Q(group__center=center) | Q(rule__center=center))
 
     totals = totals_qs.aggregate(
         total_plus=Coalesce(Sum(
@@ -373,7 +376,8 @@ def my_chaqmoq(request):
         Ledger.objects
         .filter(student=student)
     )
-    # ✅ Global ledger
+    if center:
+        led_qs = led_qs.filter(Q(group__center=center) | Q(rule__center=center))
 
     led_qs = (
         led_qs

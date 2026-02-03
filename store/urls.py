@@ -25,5 +25,10 @@ urlpatterns = [
     path('leads/<int:pk>/edit/', views.lead_edit, name='lead_edit'),
     path('leads/<int:pk>/delete/', views.lead_delete, name='lead_delete'),
     path("leads/<int:pk>/convert/", views.lead_convert, name="lead_convert"),
+    
+    # Lead Settings
+    path('leads/settings/', views.lead_settings, name='lead_settings'),
+    path('leads/settings/add/', views.lead_config_add, name='lead_config_add'),
+    path('leads/settings/<str:type_code>/<int:pk>/delete/', views.lead_config_delete, name='lead_config_delete'),
 
 ]

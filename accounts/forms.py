@@ -57,16 +57,20 @@ class AddUserForm(forms.ModelForm):
 
         # ✅ Director/Manager center tanlay olmasin (UI dan olib tashlaymiz)
         u = getattr(self.request, "user", None) if self.request else None
-        if u and (not u.is_superuser) and getattr(u, "role", None) in ("director", "manager"):
-            self.fields.pop("center", None)
-
-        # ✅ Active Center Logic (Apply to Superuser too if context exists)
+        
+        # ✅ Active Center Logic (Applies to ALL users, including Superadmin)
         if self.request:
             active_center = getattr(self.request, "center", None)
             if active_center and "center" in self.fields:
+                # ✅ Faqat active centerga filter qilamiz (Superadmin ham faqat o'sha markazni ko'radi)
                 self.fields["center"].queryset = Center.objects.filter(id=active_center.id)
                 self.fields["center"].initial = active_center
-                self.fields["center"].empty_label = None
+                self.fields["center"].disabled = True  # O'zgartirib bo'lmaydi
+                self.fields["center"].empty_label = None  # Bo'sh option yo'q
+            elif u and (not u.is_superuser) and getattr(u, "role", None) in ("director", "manager"):
+                # Agar active center yo'q bo'lsa va Director/Manager bo'lsa, center fieldni olib tashlaymiz
+                self.fields.pop("center", None)
+
 
 
     def clean(self):

@@ -35,9 +35,11 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, redirect
 from accounts.models import Center
 from django.http import HttpResponseForbidden
+from billing.models import SubscriptionPlan
 
 def is_superadmin(user):
     return user.is_authenticated and user.is_superuser
+
 
 @login_required
 def center_picker(request):
@@ -59,10 +61,14 @@ def center_picker(request):
     centers = centers.order_by("name")
     active_center_id = request.session.get("active_center_id")
 
+    # Fetch dynamic plans
+    db_plans = SubscriptionPlan.objects.filter(active=True).order_by("monthly_price")
+
     return render(request, "accounts/center_picker.html", {
         "centers": centers,
         "active_center_id": active_center_id,
-        "plans": Center.Plan.choices,
+        "plans": Center.Plan.choices, # Keep for backward compatibility if needed, or remove
+        "db_plans": db_plans,         # New dynamic list
         "statuses": Center.STATUS_CHOICES,
         "selected_status": status,
     })
@@ -207,7 +213,7 @@ def add_user(request):
     if not _can_add(request.user):
         return HttpResponseForbidden("Ruxsat yo'q.")
 
-    form = AddUserForm(request.POST or None)
+    form = AddUserForm(request.POST or None, request=request)
     if request.method == "POST" and form.is_valid():
         user = form.save(commit=False)
         user.center = request.center

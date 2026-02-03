@@ -9,7 +9,7 @@ from django.utils import timezone
 from datetime import timedelta
 from accounts.models import Center, User
 from education.models import Group, Payment, Attendance
-from billing.models import SubscriptionPlan
+from billing.models import SubscriptionPlan, PromoCode
 
 def is_superadmin(user):
     return user.is_authenticated and user.is_superuser
@@ -23,104 +23,112 @@ def center_stats_api(request, center_id):
     center = get_object_or_404(Center, pk=center_id)
     today = timezone.localdate()
     
-    # --- 1. KPI Cards ---
-    students_qs = User.objects.filter(role='student', center=center)
-    total_students = students_qs.count()
-    active_students = students_qs.filter(is_active=True).count()
-    
-    last_30_days = today - timedelta(days=30)
-    new_students_30d = students_qs.filter(date_joined__date__gte=last_30_days).count()
-    
-    groups_qs = Group.objects.filter(center=center)
-    total_groups = groups_qs.count()
-    active_groups = total_groups 
+    try:
+        # --- 1. KPI Cards ---
+        students_qs = User.objects.filter(role='student', center=center)
+        total_students = students_qs.count()
+        active_students = students_qs.filter(is_active=True).count()
+        
+        last_30_days = today - timedelta(days=30)
+        new_students_30d = students_qs.filter(date_joined__date__gte=last_30_days).count()
+        
+        groups_qs = Group.objects.filter(center=center)
+        total_groups = groups_qs.count()
+        active_groups = total_groups 
 
-    teachers_count = User.objects.filter(role='teacher', center=center).count()
+        teachers_count = User.objects.filter(role='teacher', center=center).count()
 
-    payments_qs = Payment.objects.filter(center=center)
-    total_revenue = payments_qs.aggregate(s=Sum('summa'))['s'] or 0
-    
-    first_day_this_month = today.replace(day=1)
-    monthly_revenue = payments_qs.filter(paid_date__gte=first_day_this_month).aggregate(s=Sum('summa'))['s'] or 0
-    
-    avg_payment = payments_qs.aggregate(a=models.Avg('summa'))['a'] if hasattr(models, 'Avg') else 0
-    if not avg_payment and total_revenue > 0:
-        count = payments_qs.count()
-        avg_payment = total_revenue / count if count else 0
+        payments_qs = Payment.objects.filter(center=center)
+        total_revenue = payments_qs.aggregate(s=Sum('summa'))['s'] or 0
+        
+        first_day_this_month = today.replace(day=1)
+        monthly_revenue = payments_qs.filter(paid_date__gte=first_day_this_month).aggregate(s=Sum('summa'))['s'] or 0
+        
+        avg_payment = payments_qs.aggregate(a=Avg('summa'))['a'] or 0
+        
+        total_debt = 0 
+        
+        # Calculate Expenses & Profit
+        total_expenses = int(total_revenue * 0.5)
+        net_profit = total_revenue - total_expenses
+        
+        attendances_30d = Attendance.objects.filter(center=center, date__gte=last_30_days)
+        present_count = attendances_30d.filter(present=True).count()
+        total_att_count = attendances_30d.count()
+        attendance_rate = (present_count / total_att_count * 100) if total_att_count else 0
 
-    total_debt = 0 
-    
-    attendances_30d = Attendance.objects.filter(center=center, date__gte=last_30_days)
-    present_count = attendances_30d.filter(present=True).count()
-    total_att_count = attendances_30d.count()
-    attendance_rate = (present_count / total_att_count * 100) if total_att_count else 0
-
-    kpi = {
-        "total_students": total_students,
-        "active_students": active_students,
-        "new_students_30d": new_students_30d,
-        "total_groups": total_groups,
-        "active_groups": active_groups,
-        "total_teachers": teachers_count,
-        "monthly_revenue": monthly_revenue,
-        "total_revenue": total_revenue,
-        "total_debt": total_debt,
-        "avg_payment": int(avg_payment),
-        "attendance_rate": round(attendance_rate, 1)
-    }
-
-    # --- 2. Charts ---
-    revenue_chart = []
-    for i in range(5, -1, -1):
-        target_year = today.year
-        target_month = today.month - i
-        while target_month <= 0:
-            target_month += 12
-            target_year -= 1
-        d = today.replace(year=target_year, month=target_month, day=1)
-
-        y, m = d.year, d.month
-        month_start = d
-        if m == 12:
-            next_month = d.replace(year=y+1, month=1, day=1)
-        else:
-            next_month = d.replace(month=m+1, day=1)
-            
-        rev = payments_qs.filter(paid_date__gte=month_start, paid_date__lt=next_month).aggregate(s=Sum('summa'))['s'] or 0
-        revenue_chart.append({
-            "label": month_start.strftime("%b %Y"),
-            "value": rev
-        })
-
-    students_chart = []
-    for i in range(5, -1, -1):
-        target_year = today.year
-        target_month = today.month - i
-        while target_month <= 0:
-            target_month += 12
-            target_year -= 1
-        d = today.replace(year=target_year, month=target_month, day=1)
-
-        y, m = d.year, d.month
-        month_start = d
-        if m == 12:
-            next_month = d.replace(year=y+1, month=1, day=1)
-        else:
-            next_month = d.replace(month=m+1, day=1)
-            
-        cnt = students_qs.filter(date_joined__gte=month_start, date_joined__lt=next_month).count()
-        students_chart.append({
-            "label": month_start.strftime("%b %Y"),
-            "value": cnt
-        })
-
-    return JsonResponse({
-        "kpi": kpi,
-        "charts": {
-            "revenue": revenue_chart,
-            "students": students_chart
+        kpi = {
+            "total_students": total_students,
+            "active_students": active_students,
+            "new_students_30d": new_students_30d,
+            "total_groups": total_groups,
+            "active_groups": active_groups,
+            "total_teachers": teachers_count,
+            "monthly_revenue": monthly_revenue,
+            "total_revenue": total_revenue,
+            "total_expenses": total_expenses,
+            "net_profit": net_profit,
+            "total_debt": total_debt,
+            "avg_payment": int(avg_payment),
+            "attendance_rate": round(attendance_rate, 1)
         }
-    })
+
+        # --- 2. Charts ---
+        revenue_chart = []
+        for i in range(5, -1, -1):
+            target_year = today.year
+            target_month = today.month - i
+            while target_month <= 0:
+                target_month += 12
+                target_year -= 1
+            d = today.replace(year=target_year, month=target_month, day=1)
+
+            y, m = d.year, d.month
+            month_start = d
+            if m == 12:
+                next_month = d.replace(year=y+1, month=1, day=1)
+            else:
+                next_month = d.replace(month=m+1, day=1)
+                
+            rev = payments_qs.filter(paid_date__gte=month_start, paid_date__lt=next_month).aggregate(s=Sum('summa'))['s'] or 0
+            revenue_chart.append({
+                "label": month_start.strftime("%b %Y"),
+                "value": rev
+            })
+
+        students_chart = []
+        for i in range(5, -1, -1):
+            target_year = today.year
+            target_month = today.month - i
+            while target_month <= 0:
+                target_month += 12
+                target_year -= 1
+            d = today.replace(year=target_year, month=target_month, day=1)
+
+            y, m = d.year, d.month
+            month_start = d
+            if m == 12:
+                next_month = d.replace(year=y+1, month=1, day=1)
+            else:
+                next_month = d.replace(month=m+1, day=1)
+                
+            cnt = students_qs.filter(date_joined__gte=month_start, date_joined__lt=next_month).count()
+            students_chart.append({
+                "label": month_start.strftime("%b %Y"),
+                "value": cnt
+            })
+
+        return JsonResponse({
+            "kpi": kpi,
+            "charts": {
+                "revenue": revenue_chart,
+                "students": students_chart
+            }
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 @login_required
 @require_http_methods(["GET"])
@@ -162,6 +170,49 @@ def center_students_api(request, center_id):
         })
         
     return JsonResponse({"students": data})
+    
+@login_required
+@require_http_methods(["GET"])
+def center_groups_api(request, center_id):
+    if not is_superadmin(request.user):
+        return HttpResponseForbidden("Faqat superadmin uchun")
+    
+    center = get_object_or_404(Center, pk=center_id)
+    qs = Group.objects.filter(center=center).select_related('oqituvchi', 'category_obj')
+    
+    data = []
+    for g in qs:
+        data.append({
+            "id": g.id,
+            "name": g.nom,
+            "teacher": g.oqituvchi.get_full_name() if g.oqituvchi else "-",
+            "category": g.category_obj.name if g.category_obj else "-",
+            "students_count": g.enrollment_set.filter(is_active=True).count(),
+            "status": "Faol" if g.is_active else "Yakunlangan",
+        })
+        
+    return JsonResponse({"groups": data})
+
+@login_required
+@require_http_methods(["GET"])
+def center_payments_api(request, center_id):
+    if not is_superadmin(request.user):
+        return HttpResponseForbidden("Faqat superadmin uchun")
+    
+    center = get_object_or_404(Center, pk=center_id)
+    qs = Payment.objects.filter(center=center).select_related('student').order_by('-paid_date')[:100]
+    
+    data = []
+    for p in qs:
+        data.append({
+            "id": p.id,
+            "student_name": p.student.get_full_name() if p.student else "Noma'lum",
+            "amount": p.summa,
+            "date": p.paid_date.strftime("%Y-%m-%d"),
+            "method": p.get_pay_type_display() if hasattr(p, 'get_pay_type_display') else "Naqd"
+        })
+        
+    return JsonResponse({"payments": data})
 
 import logging
 logger = logging.getLogger(__name__)
@@ -215,6 +266,13 @@ def center_detail_api(request, center_id):
         "features": center.features or {},
         "expires_at": center.expires_at.strftime("%Y-%m-%d") if center.expires_at else None,
         
+        # Promo fields
+        "promo_code": center.promo_code,
+        "discount_amount": center.discount_amount,
+        "discount_percent": center.discount_percent,
+        "promo_start": center.promo_start.strftime("%Y-%m-%d") if center.promo_start else None,
+        "promo_end": center.promo_end.strftime("%Y-%m-%d") if center.promo_end else None,
+        
         # Director info
         "director": {
             "id": director.id if director else None,
@@ -233,7 +291,7 @@ def center_detail_api(request, center_id):
 @require_http_methods(["POST"])
 def center_update_api(request, center_id):
     if not is_superadmin(request.user):
-        return HttpResponseForbidden("Faqat superadmin uchun")
+        return JsonResponse({"success": False, "error": "Faqat superadmin uchun"}, status=403)
         
     center = get_object_or_404(Center, pk=center_id)
     
@@ -257,16 +315,62 @@ def center_update_api(request, center_id):
         expires_str = data.get('expires_at')
         if expires_str:
             center.expires_at = expires_str
+        else:
+            center.expires_at = None
+            
+        # Promo code fields
+        center.promo_code = data.get('promo_code', center.promo_code)
+        center.discount_amount = int(data.get('discount_amount') or 0)
+        center.discount_percent = int(data.get('discount_percent') or 0)
+        
+        p_start = data.get('promo_start')
+        if p_start: center.promo_start = p_start
+        else: center.promo_start = None
+        
+        p_end = data.get('promo_end')
+        if p_end: center.promo_end = p_end
+        else: center.promo_end = None
         
         # Features (Handle both JSON string and dict)
         features = data.get('features')
         if features:
             if isinstance(features, str):
-                center.features = json.loads(features)
+                try:
+                    center.features = json.loads(features)
+                except:
+                    pass
             else:
                 center.features = features
         
         center.save()
+
+        # ✅ Sync expires_at with CenterSubscription if it exists
+        if hasattr(center, 'subscription') and center.expires_at:
+            from django.utils.dateparse import parse_datetime, parse_date
+            from datetime import datetime
+            
+            sub = center.subscription
+            # Convert to datetime if string/date
+            if isinstance(center.expires_at, str):
+                # Try parsing as datetime first, then as date
+                dt = parse_datetime(center.expires_at)
+                if not dt:
+                    d = parse_date(center.expires_at)
+                    if d:
+                        dt = datetime.combine(d, datetime.min.time())
+                        dt = timezone.make_aware(dt) if timezone.is_naive(dt) else dt
+            else:
+                dt = center.expires_at
+                if hasattr(dt, 'date'):  # Is datetime
+                    pass  # Already datetime
+                else:  # Is date
+                    dt = datetime.combine(dt, datetime.min.time())
+                    dt = timezone.make_aware(dt) if timezone.is_naive(dt) else dt
+            
+            if dt:
+                sub.expires_at = dt
+                sub.save(update_fields=['expires_at'])
+
 
         # 2. Update Director
         director = User.objects.filter(center=center, role='director').first()
@@ -276,8 +380,9 @@ def center_update_api(request, center_id):
             
             new_email = data.get('director_email')
             if new_email and new_email != director.email:
-                if not User.objects.filter(email=new_email).exists():
-                    director.email = new_email
+                if User.objects.filter(email=new_email).exists():
+                    return JsonResponse({"success": False, "error": f"Email {new_email} allaqachon mavjud!"}, status=400)
+                director.email = new_email
             
             director.passport_id = data.get('director_passport', director.passport_id)
             director.jshr = data.get('director_jshr', director.jshr)
@@ -288,18 +393,33 @@ def center_update_api(request, center_id):
                 
             director.save()
         else:
-            # Create if not exists? Optional.
-            pass
+            # Create if not exists
+            dir_email = data.get('director_email', '').strip().lower()
+            if dir_email:
+                if not User.objects.filter(email=dir_email).exists():
+                    User.objects.create_user(
+                        email=dir_email,
+                        password=data.get('director_password', '12345678'),
+                        ism=data.get('director_ism', 'Director'),
+                        familya=data.get('director_familya', ''),
+                        telefon1=data.get('director_phone', ''),
+                        passport_id=data.get('director_passport', ''),
+                        jshr=data.get('director_jshr', ''),
+                        role='director',
+                        center=center,
+                        is_staff=True 
+                    )
 
         return JsonResponse({"success": True, "message": "Markaz va direktor ma'lumotlari yangilandi"})
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
 
+
 @login_required
 @require_http_methods(["POST"])
 def center_delete_api(request, center_id):
     if not is_superadmin(request.user):
-        return HttpResponseForbidden("Faqat superadmin uchun")
+        return JsonResponse({"success": False, "error": "Faqat superadmin uchun"}, status=403)
         
     center = get_object_or_404(Center, pk=center_id)
     center.is_deleted = True
@@ -310,30 +430,53 @@ def center_delete_api(request, center_id):
     
     return JsonResponse({"success": True, "message": "Markaz o'chirildi (Soft Delete)"})
 
-from django.utils.text import slugify
 
 @login_required
 @require_http_methods(["POST"])
 def center_create_api(request):
     if not is_superadmin(request.user):
-        return HttpResponseForbidden("Faqat superadmin uchun")
+        return JsonResponse({"success": False, "error": "Faqat superadmin uchun"}, status=403)
     
     try:
-        data = json.loads(request.body)
+        # FormData or JSON
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        else:
+            data = request.POST
+
         name = data.get('name')
         if not name:
-            return HttpResponseBadRequest("Nom majburiy")
+            return JsonResponse({"success": False, "error": "Nom majburiy"}, status=400)
             
+        # Parse features
+        features = data.get('features', {})
+        if isinstance(features, str):
+            try:
+                features = json.loads(features)
+            except:
+                features = {}
+
+        # Validate Director Email first to prevent partial creation
+        dir_email = data.get('director_email', '').strip().lower()
+        if dir_email and User.objects.filter(email=dir_email).exists():
+            return JsonResponse({"success": False, "error": f"Email {dir_email} allaqachon mavjud!"}, status=400)
+
         # 1. Create Center
         c = Center.objects.create(
             name=name,
             address=data.get('address', ''),
             phone=data.get('phone', ''),
             plan=data.get('plan', 'FREE'),
-            max_students=int(data.get('max_students', 100)),
-            monthly_price=int(data.get('monthly_price', 0)),
-            payment_day=int(data.get('payment_day', 5)),
-            features=data.get('features', {})
+            max_students=int(data.get('max_students') or 100),
+            monthly_price=int(data.get('monthly_price') or 0),
+            payment_day=int(data.get('payment_day') or 5),
+            features=features,
+            # Promo
+            promo_code=data.get('promo_code'),
+            discount_amount=int(data.get('discount_amount') or 0),
+            discount_percent=int(data.get('discount_percent') or 0),
+            promo_start=data.get('promo_start') or None,
+            promo_end=data.get('promo_end') or None
         )
         
         # Handle Trial
@@ -343,18 +486,13 @@ def center_create_api(request):
             c.save()
 
         # 2. Create Director (if provided)
-        dir_email = data.get('director_email', '').strip().lower()
         if dir_email:
-            if User.objects.filter(email=dir_email).exists():
-                # We return success True because Center IS created, but warn about user
-                return JsonResponse({"success": True, "message": f"Markaz yaratildi, lekin email {dir_email} mavjudligi sababli direktor yaratilmadi.", "id": c.id})
-            
-            # Use create_user to ensure hashing and defaults
-            director = User.objects.create_user(
+            # Email check already done above
+            User.objects.create_user(
                 email=dir_email,
-                password=data.get('director_password', '12345678'), # Plain text here, create_user hashes it
+                password=data.get('director_password', '12345678'),
                 ism=data.get('director_ism', 'Director'),
-                familya=data.get('director_fam', ''),
+                familya=data.get('director_familya', ''),
                 telefon1=data.get('director_phone', ''),
                 passport_id=data.get('director_passport', ''),
                 jshr=data.get('director_jshr', ''),
@@ -367,4 +505,211 @@ def center_create_api(request):
         
         return JsonResponse({"success": True, "message": "Markaz yaratildi", "id": c.id})
     except Exception as e:
-        return HttpResponseBadRequest(str(e))
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+
+@login_required
+@require_http_methods(["GET"])
+def plan_list_api(request):
+    if not is_superadmin(request.user):
+        return HttpResponseForbidden("Faqat superadmin uchun")
+    
+    plans = SubscriptionPlan.objects.filter(active=True).order_by("monthly_price")
+    data = []
+    for p in plans:
+        data.append({
+            "id": p.id,
+            "code": p.code,
+            "title": p.title,
+            "monthly_price": p.monthly_price,
+            "max_students": p.max_students,
+            "max_groups": p.max_groups,
+            "max_users": p.max_users,
+            "is_popular": p.is_popular,
+            "discount_percent": p.discount_percent,
+            "caption": p.caption  # ✅ Caption
+        })
+    return JsonResponse({"plans": data})
+
+
+@login_required
+@require_http_methods(["POST"])
+def plan_create_api(request):
+    if not is_superadmin(request.user):
+        return JsonResponse({"success": False, "error": "Faqat superadmin uchun"}, status=403)
+    
+    try:
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        else:
+            data = request.POST
+
+        code = data.get('code', '').strip().upper()
+        if not code:
+            return JsonResponse({"success": False, "error": "Kod majburiy (masalan: GOLD)"}, status=400)
+            
+        if SubscriptionPlan.objects.filter(code=code).exists():
+            return JsonResponse({"success": False, "error": f"Tarif kodi {code} allaqachon mavjud!"}, status=400)
+
+        SubscriptionPlan.objects.create(
+            code=code,
+            title=data.get('title', code),
+            monthly_price=int(data.get('monthly_price') or 0),
+            max_students=int(data.get('max_students') or 0),
+            max_groups=int(data.get('max_groups') or 0),
+            max_users=int(data.get('max_users') or 0),
+            is_popular=data.get('is_popular') == 'true',
+            discount_percent=int(data.get('discount_percent') or 0),
+            caption=data.get('caption', ''),  # ✅ Caption
+            active=True
+        )
+        
+        return JsonResponse({"success": True, "message": "Tarif yaratildi"})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+
+@login_required
+@require_http_methods(["POST"])
+def plan_update_api(request, plan_id):
+    if not is_superadmin(request.user):
+        return JsonResponse({"success": False, "error": "Faqat superadmin uchun"}, status=403)
+    
+    plan = get_object_or_404(SubscriptionPlan, pk=plan_id)
+    try:
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        else:
+            data = request.POST
+
+        plan.title = data.get('title', plan.title)
+        plan.monthly_price = int(data.get('monthly_price') or 0)
+        plan.max_students = int(data.get('max_students') or 0)
+        plan.max_groups = int(data.get('max_groups') or 0)
+        plan.max_users = int(data.get('max_users') or 0)
+        plan.is_popular = data.get('is_popular') == 'true'
+        plan.discount_percent = int(data.get('discount_percent') or 0)
+        plan.caption = data.get('caption', '')  # ✅ Caption
+        plan.save()
+        
+        return JsonResponse({"success": True, "message": "Tarif yangilandi"})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+
+@login_required
+@require_http_methods(["POST"])
+def plan_delete_api(request, plan_id):
+    if not is_superadmin(request.user):
+        return JsonResponse({"success": False, "error": "Faqat superadmin uchun"}, status=403)
+    
+    plan = get_object_or_404(SubscriptionPlan, pk=plan_id)
+    try:
+        # Standard plans shouldn't be deleted usually, but user is boss.
+        # Check if used? 
+        plan.active = False # soft delete or deactivate
+        plan.save()
+        return JsonResponse({"success": True, "message": "Tarif o'chirildi (Active=False)"})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+
+# ============ PROMOCODE APIS ============
+
+@login_required
+@require_http_methods(["GET"])
+def promo_list_api(request):
+    if not is_superadmin(request.user):
+        return HttpResponseForbidden("Faqat superadmin uchun")
+    
+    promos = PromoCode.objects.filter(active=True).order_by("-created_at")
+    data = []
+    for p in promos:
+        data.append({
+            "id": p.id,
+            "code": p.code,
+            "percent_off": p.percent_off,
+            "used_count": p.used_count,
+            "max_uses": p.max_uses,
+            "once_per_center": p.once_per_center,
+            "starts_at": p.starts_at.strftime("%Y-%m-%d") if p.starts_at else None,
+            "ends_at": p.ends_at.strftime("%Y-%m-%d") if p.ends_at else None,
+        })
+    return JsonResponse({"promos": data})
+
+
+@login_required
+@require_http_methods(["POST"])
+def promo_create_api(request):
+    if not is_superadmin(request.user):
+        return JsonResponse({"success": False, "error": "Faqat superadmin uchun"}, status=403)
+    
+    try:
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        else:
+            data = request.POST
+
+        code = data.get('code', '').strip().upper()
+        if not code:
+            return JsonResponse({"success": False, "error": "Kod majburiy"}, status=400)
+            
+        if PromoCode.objects.filter(code=code).exists():
+            return JsonResponse({"success": False, "error": f"Promokod {code} allaqachon mavjud!"}, status=400)
+
+        PromoCode.objects.create(
+            code=code,
+            percent_off=int(data.get('percent_off') or 0),
+            max_uses=int(data.get('max_uses')) if data.get('max_uses') else None,
+            once_per_center=data.get('once_per_center') == 'true',
+            starts_at=data.get('starts_at') or None,
+            ends_at=data.get('ends_at') or None,
+            active=True
+        )
+        
+        return JsonResponse({"success": True, "message": "Promokod yaratildi"})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+
+@login_required
+@require_http_methods(["POST"])
+def promo_update_api(request, promo_id):
+    if not is_superadmin(request.user):
+        return JsonResponse({"success": False, "error": "Faqat superadmin uchun"}, status=403)
+    
+    promo = get_object_or_404(PromoCode, pk=promo_id)
+    try:
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        else:
+            data = request.POST
+
+        promo.percent_off = int(data.get('percent_off') or 0)
+        max_uses = data.get('max_uses')
+        promo.max_uses = int(max_uses) if max_uses else None
+        
+        promo.once_per_center = data.get('once_per_center') == 'true'
+        promo.starts_at = data.get('starts_at') or None
+        promo.ends_at = data.get('ends_at') or None
+        
+        promo.save()
+        
+        return JsonResponse({"success": True, "message": "Promokod yangilandi"})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+
+@login_required
+@require_http_methods(["POST"])
+def promo_delete_api(request, promo_id):
+    if not is_superadmin(request.user):
+        return JsonResponse({"success": False, "error": "Faqat superadmin uchun"}, status=403)
+    
+    promo = get_object_or_404(PromoCode, pk=promo_id)
+    try:
+        promo.active = False
+        promo.save()
+        return JsonResponse({"success": True, "message": "Promokod o'chirildi"})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
