@@ -46,9 +46,10 @@ def reyting(request):
         base = base.filter(student__center=center)
 
     # ✅ Umumiy leaderboard (Tenant Scoped)
+    # Biz global qoidalarni (center=None) ham hisobga olamiz
     leaderboard_all = (
         base.values("student__id", "student__ism", "student__familya")
-        .annotate(jami=Coalesce(Sum("ball", filter=Q(group__center=center) | Q(rule__center=center)) if center else Sum("ball"), 0))
+        .annotate(jami=Coalesce(Sum("ball", filter=Q(group__center=center) | Q(rule__center=center) | Q(rule__center__isnull=True)) if center else Sum("ball"), 0))
         .order_by("-jami", "student__ism", "student__id")
     )
 
@@ -114,7 +115,7 @@ def student_detail(request, pk):
         .filter(student=student)
     )
     if center:
-        led_qs = led_qs.filter(Q(group__center=center) | Q(rule__center=center))
+        led_qs = led_qs.filter(Q(group__center=center) | Q(rule__center=center) | Q(rule__center__isnull=True))
 
     led_qs = (
         led_qs
@@ -270,8 +271,6 @@ def berish(request):
         group = Group.objects.filter(pk=selected_gid).first() if selected_gid else None
 
         # 🔹 Tanlangan sanani olish
-        # davomat_sana_str = request.POST.get('davomat_sana')
-# 🔹 Tanlangan sanani olish
         davomat_sana_str = request.POST.get('davomat_sana')
 
         if davomat_sana_str:
@@ -342,7 +341,7 @@ def my_chaqmoq(request):
 
     teacher_stats_qs = Ledger.objects.filter(student=student)
     if center:
-        teacher_stats_qs = teacher_stats_qs.filter(Q(group__center=center) | Q(rule__center=center))
+        teacher_stats_qs = teacher_stats_qs.filter(Q(group__center=center) | Q(rule__center=center) | Q(rule__center__isnull=True))
     
     teacher_stats = (
         teacher_stats_qs
@@ -360,7 +359,7 @@ def my_chaqmoq(request):
 
     totals_qs = Ledger.objects.filter(student=student)
     if center:
-        totals_qs = totals_qs.filter(Q(group__center=center) | Q(rule__center=center))
+        totals_qs = totals_qs.filter(Q(group__center=center) | Q(rule__center=center) | Q(rule__center__isnull=True))
 
     totals = totals_qs.aggregate(
         total_plus=Coalesce(Sum(
@@ -377,7 +376,7 @@ def my_chaqmoq(request):
         .filter(student=student)
     )
     if center:
-        led_qs = led_qs.filter(Q(group__center=center) | Q(rule__center=center))
+        led_qs = led_qs.filter(Q(group__center=center) | Q(rule__center=center) | Q(rule__center__isnull=True))
 
     led_qs = (
         led_qs
@@ -413,6 +412,8 @@ def my_chaqmoq(request):
         "per_page": "all" if per_page_int is None else per_page_int,
     }
     return render(request, "chaqmoq/student_detail.html", ctx)
+
+
 @login_required
 def rule_list(request):
     center = get_active_center(request)

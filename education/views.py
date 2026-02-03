@@ -1712,10 +1712,18 @@ def group_delete_confirm(request, id):
 
 @login_required
 def edit_category(request, id):
-    # ✅ Strict isolation but allow global legacy data
+    # ✅ Strict isolation: Only the center's own or global (if primary center)
     from core.tenant import get_request_center
     center = get_request_center(request)
-    cat = get_object_or_404(Category, Q(center=center) | Q(center__isnull=True), id=id)
+    first_center = Center.objects.order_by("id").first()
+    
+    if first_center and center and center.id == first_center.id:
+        # Primary center can edit its own and global orphans
+        cat = get_object_or_404(Category, Q(center=center) | Q(center__isnull=True), id=id)
+    else:
+        # Other centers can only edit their own
+        cat = get_object_or_404(Category, center=center, id=id)
+        
     if request.method == "POST":
         name = request.POST.get("name")
         description = request.POST.get("description")
@@ -1737,10 +1745,16 @@ def edit_category(request, id):
 
 @login_required
 def delete_category(request, id):
-    # ✅ Strict isolation but allow global legacy data
+    # ✅ Strict isolation: Only the center's own or global (if primary center)
     from core.tenant import get_request_center
     center = get_request_center(request)
-    cat = get_object_or_404(Category, Q(center=center) | Q(center__isnull=True), id=id)
+    first_center = Center.objects.order_by("id").first()
+    
+    if first_center and center and center.id == first_center.id:
+        cat = get_object_or_404(Category, Q(center=center) | Q(center__isnull=True), id=id)
+    else:
+        cat = get_object_or_404(Category, center=center, id=id)
+
     if request.method == "POST":
         cat.delete()
         messages.success(request, "Bo‘lim o‘chirildi 🗑️")
@@ -2520,9 +2534,14 @@ def groups_home(request):
     from django.db.models import Q
     categories_qs = Category.objects.all().order_by("name")
     if center:
-        # ✅ Isolation: Faqat shu center'ga tegishli YOKI Global (Legacy) bo'limlarni ko'rsatamiz
-        # Bu asosiy markazdagi ma'lumotlarni qaytaradi
-        categories_qs = categories_qs.filter(Q(center=center) | Q(center__isnull=True))
+        # ✅ Smart Isolation: 
+        # 1. Faqat shu center'ga tegishli bo'limlarni ko'rsatamiz.
+        # 2. Agar bu ASOSIY (birinchi yaratilgan) markaz bo'lsa, Global (Legacy) bo'limlarni ham chiqaramiz.
+        first_center = Center.objects.order_by("id").first()
+        if first_center and center.id == first_center.id:
+            categories_qs = categories_qs.filter(Q(center=center) | Q(center__isnull=True))
+        else:
+            categories_qs = categories_qs.filter(center=center)
         
     categories = list(categories_qs)
 
