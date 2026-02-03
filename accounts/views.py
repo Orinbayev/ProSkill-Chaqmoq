@@ -173,13 +173,13 @@ def center_manage(request, pk: int):
                 return redirect("accounts:center_manage", pk=center.id)
 
             u = User.objects.create_user(
-                username=email,
                 email=email,
                 password=password,
                 role="director",
-                first_name=ism,
-                last_name=familya,
-                center=center  # ✅ birdan biriktiramiz
+                ism=ism,
+                familya=familya,
+                center=center,
+                is_staff=True  # Director bo'lsa staff bo'lishi kerak
             )
             messages.success(request, f"✅ Yangi director yaratildi: {email}")
             return redirect("accounts:center_manage", pk=center.id)
@@ -216,7 +216,14 @@ def add_user(request):
     form = AddUserForm(request.POST or None, request=request)
     if request.method == "POST" and form.is_valid():
         user = form.save(commit=False)
-        user.center = request.center
+        # ✅ request.center bo'lsa o'shani o'rnatamiz, bo'lmasa form dagi center qoladi
+        if hasattr(request, 'center') and request.center:
+            user.center = request.center
+        
+        # ✅ Manager/Director bo'lsa staff=True
+        if user.role in ("manager", "director"):
+            user.is_staff = True
+            
         user.save()
         messages.success(request, "Foydalanuvchi qo‘shildi.")
         return redirect("core:home")  # redirect to appropriate dashboard
