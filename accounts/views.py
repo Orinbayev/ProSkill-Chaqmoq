@@ -9,8 +9,9 @@ from django.db.models import Count, Sum
 from django.db.models.functions import Coalesce
 
 from .forms import AddUserForm, TeacherForm
-from accounts.models import User                     # kerak bo‘lsa
-from education.models import Group, Enrollment, Attendance  # ✅ to‘g‘ri joydan import
+from accounts.models import User, Center
+from education.models import Group, Enrollment, Attendance
+from core.tenant import get_request_center
 from django.db.models import Q
 
 
@@ -213,18 +214,24 @@ def add_user(request):
     if not _can_add(request.user):
         return HttpResponseForbidden("Ruxsat yo'q.")
 
-    # ✅ Center ni aniqlaymiz (Guruhlar ro'yxati uchun)
-    center = getattr(request, "center", None)
+    # ✅ Center ni aniqlaymiz (Robust method)
+    center = get_request_center(request)
     
-    # ✅ Guruhlarni filtrlaymiz (faqat shu markazniki)
-    groups = Group.objects.none()
+    # ✅ Guruhlarni filtrlaymiz
     if center:
+        # Markaz xodimi: Faqat o'z markazi guruhlari
         groups = Group.objects.filter(center=center).order_by("nom")
+    elif request.user.is_superuser:
+        # Superadmin (Global mode): Hamma guruhlar (bu asosiyda chiqmaslik muammosini hal qiladi)
+        groups = Group.objects.all().order_by("nom")
+    else:
+        groups = Group.objects.none()
 
     form = AddUserForm(request.POST or None, request=request)
     if request.method == "POST" and form.is_valid():
         user = form.save(commit=False)
-        # ✅ request.center bo'lsa o'shani o'rnatamiz
+        
+        # ✅ Agar markaz tanlangan bo'lsa (yoki subdomen/sessionda bo'lsa) - o'shani o'rnatamiz
         if center:
             user.center = center
         
@@ -234,25 +241,36 @@ def add_user(request):
             
         user.save()
         
-        # ✅ Agar o'quvchi bo'lsa va guruh tanlangan bo'lsa - Enrollment yaratamiz
+        # ✅ Guruhga biriktirish (Enrollment)
         group_id = request.POST.get("group_id")
         if user.role == "student" and group_id:
             try:
-                target_group = Group.objects.get(id=group_id, center=center)
+                # Superadmin hamma guruhni ko'ra oladi, Manager esa faqat o'zinikini
+                if center:
+                    target_group = Group.objects.get(id=group_id, center=center)
+                else:
+                    target_group = Group.objects.get(id=group_id)
+                
+                # Agar superadmin bo'lsa va center hali set qilinmagan bo'lsa (global mode)
+                # user.center ni guruhni centeriga moslaymiz
+                if not user.center:
+                    user.center = target_group.center
+                    user.save(update_fields=['center'])
+
                 Enrollment.objects.get_or_create(
                     group=target_group, 
                     student=user,
                     defaults={
                         'kurs_narhi': target_group.kurs_narxi,
                         'oqituvchi_foiz': target_group.oqituvchi_foiz,
-                        'center': center
+                        'center': target_group.center
                     }
                 )
             except Exception as e:
                 import logging
                 logging.error(f"Enrollment error in add_user: {e}")
 
-        messages.success(request, "Foydalanuvchi qo‘shildi.")
+        messages.success(request, f"✅ Foydalanuvchi {user.email} muvaffaqiyatli qo‘shildi.")
         return redirect("core:home")
 
     return render(request, "accounts/user_form.html", {
