@@ -32,7 +32,7 @@ class PricingResult:
     promo: PromoCode | None
 
 
-def ensure_center_subscription(center: Center) -> CenterSubscription:
+def ensure_center_subscription(center: Center) -> CenterSubscription | None:
     """
     Center uchun subscription yo‘q bo‘lsa yaratib beradi.
     Planni center.plan ga qarab moslaydi.
@@ -41,10 +41,14 @@ def ensure_center_subscription(center: Center) -> CenterSubscription:
     if sub:
         return sub
 
-    plan_code = center.plan if center.plan in ("START", "STANDARD", "PRO", "PREMIUM", "ENTERPRISE") else "START"
+    plan_code = center.plan if center.plan in ("START", "STANDARD", "PRO", "PREMIUM", "ENTERPRISE") else "FREE"
     plan = SubscriptionPlan.objects.filter(code=plan_code, active=True).first()
     if not plan:
         plan = SubscriptionPlan.objects.order_by("monthly_price").first()
+
+    if not plan:
+        # ✅ Safety: No plans in database yet
+        return None
 
     return CenterSubscription.objects.create(center=center, plan=plan)
 

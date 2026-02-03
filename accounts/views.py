@@ -216,7 +216,7 @@ def add_user(request):
     form = AddUserForm(request.POST or None, request=request)
     if request.method == "POST" and form.is_valid():
         user = form.save(commit=False)
-        # ✅ request.center bo'lsa o'shani o'rnatamiz, bo'lmasa form dagi center qoladi
+        # ✅ request.center bo'lsa o'shani o'rnatamiz
         if hasattr(request, 'center') and request.center:
             user.center = request.center
         
