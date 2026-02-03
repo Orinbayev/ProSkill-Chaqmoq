@@ -5,6 +5,7 @@ import re
 import secrets
 import string
 import datetime
+import logging
 from datetime import date
 
 import openpyxl
@@ -34,6 +35,7 @@ from store.models import Product, PurchaseRequest, Sale
 from .forms import ProfileForm
 
 U = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -1227,34 +1229,27 @@ def _normalize_gender(val: str) -> str | None:
 @require_POST
 def _process_user_import(request, role="student"):
     """
-    Generic User Import logic.
+    Generic User Import logic. 
+    Overhauled for robustness and performance.
     """
-    mode = "create_only"
-
     # Normalize role (handle plurals)
-    role_map = {
-        "students": "student",
-        "teachers": "teacher",
-        "managers": "manager"
-    }
-    role = role_map.get(role, role)
-
-    # Determie redirect URL
+    role_map = {"students": "student", "teachers": "teacher", "managers": "manager"}
+    normalized_role = role_map.get(role, role)
+    
+    # Determine redirect URL
     redirect_map = {
         "student": "core:stat_students",
         "teacher": "core:teacher_list",
         "manager": "core:stat_managers"
     }
-    # Fallback to Referer if role not found, then Home
-    default_url = request.META.get("HTTP_REFERER", "core:home")
-    success_url = redirect_map.get(role, default_url)
+    success_url = redirect_map.get(normalized_role, "core:home")
 
     if not _staff_only(request):
         return render(request, "core/dashboard_guest.html")
 
     center = _get_center(request)
     if not center:
-        messages.error(request, "Active center tanlanmagan.")
+        messages.error(request, "Aktiv markaz tanlanmagan.")
         return redirect(success_url)
 
     f = request.FILES.get("file")
@@ -1262,36 +1257,28 @@ def _process_user_import(request, role="student"):
         messages.error(request, "Excel fayl tanlanmadi.")
         return redirect(success_url)
 
-    if not f.name.lower().endswith(".xlsx"):
-        messages.error(request, "Faqat .xlsx format qabul qilinadi.")
-        return redirect(success_url)
-
     try:
         wb = load_workbook(filename=f, data_only=True)
         ws = wb.active
-        found_ws = False
-        for sn in wb.sheetnames:
-            sheet = wb[sn]
-            sample_rows = list(sheet.iter_rows(max_row=10, values_only=True))
-            for r in sample_rows:
-                row_str = " ".join([str(x).lower() for x in r if x])
-                if any(k in row_str for k in ["ism", "familya", "f.i.sh", "name"]):
-                    ws = sheet
-                    found_ws = True
+        # Look for a sheet with data if active one looks empty
+        if ws.max_row < 2:
+            for sn in wb.sheetnames:
+                if wb[sn].max_row >= 2:
+                    ws = wb[sn]
                     break
-            if found_ws: break
     except Exception as e:
-        messages.error(request, f"Excel xatosi: {e}")
+        logger.error(f"Excel load error for center {center.id}: {e}")
+        messages.error(request, f"Excel faylni o'qishda xatolik: {str(e)[:100]}")
         return redirect(success_url)
 
     all_rows = list(ws.iter_rows(values_only=True))
-    if not all_rows:
-        messages.error(request, "Excel bo‘sh.")
+    if len(all_rows) < 2:
+        messages.error(request, "Excel fayl bo'sh yoki ma'lumot yetarli emas.")
         return redirect(success_url)
 
-    # Header detection
+    # Header detection (scan first 10 rows)
     headers_map = {}
-    header_idx = 0
+    header_idx = -1
     for i in range(min(15, len(all_rows))):
         temp_map = {}
         for idx, val in enumerate(all_rows[i]):
@@ -1302,143 +1289,115 @@ def _process_user_import(request, role="student"):
             headers_map = temp_map
             break
 
-    col_ism = _pick_col(headers_map, "ism", "firstname", "name")
-    col_fam = _pick_col(headers_map, "familya", "familiya", "lastname")
-    col_fish = _pick_col(headers_map, "fish", "f.i.sh", "fullname")
-    col_otch = _pick_col(headers_map, "otchestvo", "middlename")
-    col_tel1 = _pick_col(headers_map, "telefon", "telefon1", "phone", "tel")
-    col_tel2 = _pick_col(headers_map, "telefon2", "phone2", "tel2")
-    col_birth_date = _pick_col(headers_map, "tugilgankun", "birthdate", "birth date", "tug'ilgan sana")
-    col_gender = _pick_col(headers_map, "jinsi", "gender")
-    col_email = _pick_col(headers_map, "email", "login")
-    col_pass = _pick_col(headers_map, "parol", "password")
-    col_chaqmoq = _pick_col(headers_map, "chaqmoq", "coins", "ball")
-    col_lavozim = _pick_col(headers_map, "lavozim", "position", "role")
+    if header_idx == -1:
+        messages.error(request, "Excel ustunlari aniqlanmadi. Namuna fayldan foydalanishni tavsiya qilamiz.")
+        return redirect(success_url)
 
-    created = 0
-    updated = 0
-    skipped = 0
-    skipped_names = [] 
+    # Mapping columns
+    col_map = {
+        "ism": _pick_col(headers_map, "ism", "firstname", "name"),
+        "fam": _pick_col(headers_map, "familya", "familiya", "lastname"),
+        "fish": _pick_col(headers_map, "fish", "f.i.sh", "fullname"),
+        "otch": _pick_col(headers_map, "otchestvo", "middlename"),
+        "tel1": _pick_col(headers_map, "telefon", "telefon1", "phone", "tel"),
+        "birth": _pick_col(headers_map, "tugilgankun", "birthdate", "birthdate", "tug'ilgansana", "sana"),
+        "gender": _pick_col(headers_map, "jinsi", "gender"),
+        "email": _pick_col(headers_map, "email", "login"),
+        "pass": _pick_col(headers_map, "parol", "password"),
+        "chaqmoq": _pick_col(headers_map, "chaqmoq", "coins", "ball"),
+    }
+
+    created, skipped, errors = 0, 0, 0
     problems = []
+    
+    # ✅ Case-insensitive email check: hamma emaillarni lower() qilib olamiz
+    all_known_emails = set(e.lower() for e in U.objects.values_list("email", flat=True) if e)
 
-    center_users = U.objects.filter(role=role, center=center)
-    by_email = {s.email.lower(): s for s in center_users if s.email}
-    all_known_emails = set(U.objects.values_list("email", flat=True))
-
-    total_data_rows = 0
     for r_i, r in enumerate(all_rows[header_idx + 1:], start=header_idx + 2):
         if not r or all(v is None for v in r): continue
-        total_data_rows += 1
-
-        ism = _cell_to_str(r[col_ism]) if (col_ism is not None and col_ism < len(r)) else ""
-        fam = _cell_to_str(r[col_fam]) if (col_fam is not None and col_fam < len(r)) else ""
-        otch = _cell_to_str(r[col_otch]) if (col_otch is not None and col_otch < len(r)) else ""
         
-        if col_fish is not None and not ism:
-            fish = _cell_to_str(r[col_fish])
-            if fish:
-                parts = fish.split()
-                ism = parts[0] if len(parts) > 0 else ""
-                fam = parts[1] if len(parts) > 1 else ""
-                otch = " ".join(parts[2:]) if len(parts) > 2 else ""
-
-        if not ism or not fam:
-            skipped += 1
-            problems.append(f"{r_i}-qator: Ism/Familiya yo'q.")
-            continue
-
-        tel1 = _cell_to_str(r[col_tel1]) if (col_tel1 is not None and col_tel1 < len(r)) else ""
-        norm_tel1 = _normalize_phone(tel1)
-        email_val = _cell_to_str(r[col_email]) if (col_email is not None and col_email < len(r)) else ""
-
-        # Identification
-        u = None
-        if email_val: u = by_email.get(email_val.lower())
-
-        # Skip if exists in same center/role
-        if u:
-            skipped += 1
-            skipped_names.append(f"{ism} {fam}")
-            continue
-
         try:
+            ism = _cell_to_str(r[col_map["ism"]]) if (col_map["ism"] is not None and col_map["ism"] < len(r)) else ""
+            fam = _cell_to_str(r[col_map["fam"]]) if (col_map["fam"] is not None and col_map["fam"] < len(r)) else ""
+            
+            if col_map["fish"] is not None and not ism:
+                fish = _cell_to_str(r[col_map["fish"]])
+                if fish:
+                    parts = fish.split()
+                    ism = parts[0] if len(parts) > 0 else "Noma'lum"
+                    fam = parts[1] if len(parts) > 1 else "User"
+
+            if not ism:
+                skipped += 1
+                continue
+
+            # Identify or create email
+            email_val = _cell_to_str(r[col_map["email"]]).lower() if (col_map["email"] is not None and col_map["email"] < len(r)) else ""
+            
+            # ✅ Qat'iy tekshiruv: email bo'sh bo'lsa yoki bazada bo'lsa - yangi generatsiya
+            if not email_val or email_val in all_known_emails:
+                prefix = _clean_for_login(ism) or "user"
+                # Takrorlanmaslik uchun tasodifiy sonni oshiramiz
+                suffix = secrets.randbelow(90000) + 10000 
+                cand = f"{prefix}{suffix}@chaqmoq.uz"
+                while cand in all_known_emails:
+                    suffix = secrets.randbelow(90000) + 10000
+                    cand = f"{prefix}{suffix}@chaqmoq.uz"
+                email_val = cand
+
+            tel1 = _normalize_phone(_cell_to_str(r[col_map["tel1"]])) if (col_map["tel1"] is not None and col_map["tel1"] < len(r)) else ""
+            
             with transaction.atomic():
-                # Global Uniqueness check
-                # Global Uniqueness check
-                if email_val and email_val.lower() in all_known_emails:
-                    # Instead of skipping, let's make email unique
-                    prefix = email_val.split('@')[0]
-                    cand = f"{prefix}{secrets.randbelow(9000)+1000}@gmail.com"
-                    while cand in all_known_emails:
-                        cand = f"{prefix}{secrets.randbelow(9000)+1000}@gmail.com"
-                    email_val = cand
-
-                if not email_val:
-                    prefix = _clean_for_login(ism) or role
-                    cand = f"{prefix}{secrets.randbelow(9000)+1000}@gmail.com"
-                    while cand in all_known_emails:
-                        cand = f"{prefix}{secrets.randbelow(9000)+1000}@gmail.com"
-                    email_val = cand
-                
                 u = U.objects.create(
-                    email=email_val, role=role, center=center,
+                    email=email_val, role=normalized_role, center=center,
                     ism=ism, familya=fam, first_name=ism, last_name=fam,
-                    otchestvo=otch, telefon1=tel1
+                    telefon1=tel1
                 )
-                all_known_emails.add(email_val.lower())
-
-                # Lavozim (if applicable)
-                lav = _cell_to_str(r[col_lavozim]) if (col_lavozim is not None and col_lavozim < len(r)) else ""
-                if lav:
-                    u.lavozim = lav
-
-                # Birth, Gender
-                gv = _cell_to_str(r[col_gender]) if (col_gender is not None and col_gender < len(r)) else ""
-                norm_g = _normalize_gender(gv)
-                if norm_g: u.gender = norm_g
                 
-                # Date parsing logic
-                bv = r[col_birth_date] if (col_birth_date is not None and col_birth_date < len(r)) else None
-                if isinstance(bv, (datetime.date, datetime.datetime)): 
-                    u.birth_date = bv
-                elif isinstance(bv, str) and bv.strip():
-                    for fmt in ["%m.%d.%Y", "%d.%m.%Y", "%Y-%m-%d", "%Y.%m.%d"]:
-                        try:
-                            u.birth_date = datetime.datetime.strptime(bv.strip(), fmt).date()
-                            break
-                        except: continue
-
-                # Chaqmoq (Only for students usually, but logic can stay)
-                cv = _cell_to_str(r[col_chaqmoq]) if (col_chaqmoq is not None and col_chaqmoq < len(r)) else ""
-                try:
-                    ball = int(float(cv))
-                    if ball != 0:
-                        Ledger.objects.create(student=u, ball=ball, beruvchi=request.user, rule_nom="Excel Import")
-                except: pass
+                # Secondary fields
+                if col_map["otch"] is not None and col_map["otch"] < len(r):
+                    u.otchestvo = _cell_to_str(r[col_map["otch"]])
+                
+                if col_map["gender"] is not None and col_map["gender"] < len(r):
+                    u.gender = _normalize_gender(r[col_map["gender"]])
+                
+                if col_map["birth"] is not None and col_map["birth"] < len(r):
+                    bv = r[col_map["birth"]]
+                    if isinstance(bv, (datetime.date, datetime.datetime)):
+                        u.birth_date = bv
+                    elif isinstance(bv, str):
+                        for fmt in ("%Y-%m-%d", "%d.%m.%Y", "%Y.%m.%d"):
+                            try:
+                                u.birth_date = datetime.datetime.strptime(bv.strip(), fmt).date()
+                                break
+                            except: continue
 
                 # Password
-                pv = _cell_to_str(r[col_pass]) if (col_pass is not None and col_pass < len(r)) else ""
-                final_p = pv if pv and pv != "***" else _gen_default_password()
-                u.set_password(final_p)
+                pv = _cell_to_str(r[col_map["pass"]]) if (col_map["pass"] is not None and col_map["pass"] < len(r)) else ""
+                u.set_password(pv if len(pv) >= 4 else _gen_default_password())
                 u.save()
+                
+                # Coins
+                if normalized_role == "student" and col_map["chaqmoq"] is not None and col_map["chaqmoq"] < len(r):
+                    try:
+                        ball = int(float(_cell_to_str(r[col_map["chaqmoq"]])))
+                        if ball != 0:
+                            Ledger.objects.create(student=u, ball=ball, beruvchi=request.user, rule_nom="Excel Import")
+                    except: pass
+                
+                all_known_emails.add(email_val)
                 created += 1
 
         except Exception as e:
-            skipped += 1
-            problems.append(f"{r_i}-qator: {str(e)[:30]}")
+            errors += 1
+            if len(problems) < 5:
+                problems.append(f"{r_i}-qator: {str(e)[:50]}")
+            logger.error(f"Import row {r_i} error: {e}")
 
-    # Results
-    messages.success(request, f"Import yakunlandi: {total_data_rows} ta qator topildi.")
-    messages.info(request, f"📊 Natija: Yangi: {created}, O‘tkazib yuborildi: {skipped}")
-
-    if skipped_names:
-        names_text = ", ".join(skipped_names[:15])
-        if len(skipped_names) > 15: names_text += f"... (+{len(skipped_names)-15} ta)"
-        messages.warning(request, f"⚠️ Mavjud bo'lgani uchun tashlab ketildi: {names_text}")
-
-    if problems:
-        messages.error(request, f"⚠️ Xatolar: {' | '.join(problems[:5])}")
-
+    messages.success(request, f"🚀 Import yakunlandi! {created} ta yangi foydalanuvchi qo'shildi.")
+    if skipped: messages.info(request, f"ℹ️ {skipped} ta qator ism yo'qligi sabab tashlab o'tildi.")
+    if errors: messages.warning(request, f"⚠️ {errors} ta qatorda texnik xatolik: {', '.join(problems[:3])}")
+    
     return redirect(success_url)
 
 

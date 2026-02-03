@@ -1712,7 +1712,10 @@ def group_delete_confirm(request, id):
 
 @login_required
 def edit_category(request, id):
-    cat = get_object_or_404(Category, id=id)
+    # ✅ Strict isolation
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    cat = get_object_or_404(Category, id=id, center=center)
     if request.method == "POST":
         name = request.POST.get("name")
         description = request.POST.get("description")
@@ -1734,7 +1737,10 @@ def edit_category(request, id):
 
 @login_required
 def delete_category(request, id):
-    cat = get_object_or_404(Category, id=id)
+    # ✅ Strict isolation
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    cat = get_object_or_404(Category, id=id, center=center)
     if request.method == "POST":
         cat.delete()
         messages.success(request, "Bo‘lim o‘chirildi 🗑️")
@@ -2514,8 +2520,8 @@ def groups_home(request):
     from django.db.models import Q
     categories_qs = Category.objects.all().order_by("name")
     if center:
-        # Shu center'ga tegishli YOKI hali hech qaysi centerga biriktirilmagan (Global) bo'limlarni ko'rsatamiz
-        categories_qs = categories_qs.filter(Q(center=center) | Q(center__isnull=True))
+        # ✅ Qat'iy isolation: Faqat shu center'ga tegishli bo'limlarni ko'rsatamiz
+        categories_qs = categories_qs.filter(center=center)
         
     categories = list(categories_qs)
 

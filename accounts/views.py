@@ -213,22 +213,53 @@ def add_user(request):
     if not _can_add(request.user):
         return HttpResponseForbidden("Ruxsat yo'q.")
 
+    # ✅ Center ni aniqlaymiz (Guruhlar ro'yxati uchun)
+    center = getattr(request, "center", None)
+    
+    # ✅ Guruhlarni filtrlaymiz (faqat shu markazniki)
+    groups = Group.objects.none()
+    if center:
+        groups = Group.objects.filter(center=center).order_by("nom")
+
     form = AddUserForm(request.POST or None, request=request)
     if request.method == "POST" and form.is_valid():
         user = form.save(commit=False)
         # ✅ request.center bo'lsa o'shani o'rnatamiz
-        if hasattr(request, 'center') and request.center:
-            user.center = request.center
+        if center:
+            user.center = center
         
         # ✅ Manager/Director bo'lsa staff=True
         if user.role in ("manager", "director"):
             user.is_staff = True
             
         user.save()
-        messages.success(request, "Foydalanuvchi qo‘shildi.")
-        return redirect("core:home")  # redirect to appropriate dashboard
+        
+        # ✅ Agar o'quvchi bo'lsa va guruh tanlangan bo'lsa - Enrollment yaratamiz
+        group_id = request.POST.get("group_id")
+        if user.role == "student" and group_id:
+            try:
+                target_group = Group.objects.get(id=group_id, center=center)
+                Enrollment.objects.get_or_create(
+                    group=target_group, 
+                    student=user,
+                    defaults={
+                        'kurs_narhi': target_group.kurs_narxi,
+                        'oqituvchi_foiz': target_group.oqituvchi_foiz,
+                        'center': center
+                    }
+                )
+            except Exception as e:
+                import logging
+                logging.error(f"Enrollment error in add_user: {e}")
 
-    return render(request, "accounts/user_form.html", {'form': form})
+        messages.success(request, "Foydalanuvchi qo‘shildi.")
+        return redirect("core:home")
+
+    return render(request, "accounts/user_form.html", {
+        'form': form,
+        'groups': groups,
+        'title': "Yangi foydalanuvchi"
+    })
 
 @login_required
 def user_edit(request, pk):
