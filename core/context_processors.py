@@ -10,11 +10,16 @@ def tenant_context(request):
     features = set()
 
     # 1. Obunani aniqlash (faqat center tanlangan bo'lsa)
-    if user and user.is_authenticated and center:
-        # Superadmin uchun ham sub_ui kerak bo'lishi mumkin (infobar uchun)
-        ensure_center_subscription(center)
-        sub_ui = get_subscription_ui_state(center)
-        features = get_feature_flags(center)
+    try:
+        if user and user.is_authenticated and center:
+            # Superadmin uchun ham sub_ui kerak bo'lishi mumkin (infobar uchun)
+            ensure_center_subscription(center)
+            sub_ui = get_subscription_ui_state(center)
+            features = get_feature_flags(center)
+    except Exception as e:
+        import logging
+        logging.error(f"tenant_context error: {str(e)}")
+        # Continue with defaults
 
     # 2. Flaglarni shakllantirish
     if is_super:
@@ -33,6 +38,7 @@ def tenant_context(request):
         }
     else:
         # Oddiy foydalanuvchilar (Director/Manager) uchun planga qarab
+        # Agar sub_ui None bo'lsa (yangi center), default flaglar bo'sh bo'ladi
         res = {
             "request_center": center,
             "is_superadmin": False,

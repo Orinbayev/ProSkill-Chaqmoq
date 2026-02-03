@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from django.utils import timezone
 from django.db import transaction
-# billing/services.py tepasiga qo‘sh
 from django.db import models
 
 from accounts.models import Center
@@ -37,20 +36,33 @@ def ensure_center_subscription(center: Center) -> CenterSubscription | None:
     Center uchun subscription yo‘q bo‘lsa yaratib beradi.
     Planni center.plan ga qarab moslaydi.
     """
-    sub = getattr(center, "subscription", None)
-    if sub:
+    try:
+        # Check if already exists to avoid RelatedObjectDoesNotExist exception logic
+        sub = getattr(center, "subscription", None)
+        if sub:
+            return sub
+
+        # Fallback plan code
+        allowed_plans = ["FREE", "STANDARD", "PREMIUM", "PRO", "START", "ENTERPRISE"]
+        plan_code = center.plan if center.plan in allowed_plans else "FREE"
+        
+        plan = SubscriptionPlan.objects.filter(code=plan_code, active=True).first()
+        if not plan:
+            plan = SubscriptionPlan.objects.order_by("monthly_price").first()
+
+        if not plan:
+            return None
+
+        # Use get_or_create to avoid IntegrityErrors in concurrent environments
+        sub, created = CenterSubscription.objects.get_or_create(
+            center=center, 
+            defaults={"plan": plan}
+        )
         return sub
-
-    plan_code = center.plan if center.plan in ("START", "STANDARD", "PRO", "PREMIUM", "ENTERPRISE") else "FREE"
-    plan = SubscriptionPlan.objects.filter(code=plan_code, active=True).first()
-    if not plan:
-        plan = SubscriptionPlan.objects.order_by("monthly_price").first()
-
-    if not plan:
-        # ✅ Safety: No plans in database yet
+    except Exception as e:
+        import logging
+        logging.error(f"ensure_center_subscription error for center {getattr(center, 'id', 'unknown')}: {str(e)}")
         return None
-
-    return CenterSubscription.objects.create(center=center, plan=plan)
 
 
 def get_feature_flags(center: Center) -> set[str]:
@@ -162,13 +174,16 @@ def mark_order_paid(order: SubscriptionOrder) -> None:
     center = order.center
     sub = ensure_center_subscription(center)
 
+    if not sub:
+        return
+
     # plan update
     sub.plan = order.plan
     sub.status = CenterSubscription.Status.ACTIVE
     sub.manual_block = False
 
     # expires extend: agar expired bo‘lsa, bugundan; bo‘lmasa, o‘sha expires_at’dan
-    start_from = sub.expires_at if sub.expires_at > now else now
+    start_from = sub.expires_at if sub.expires_at and sub.expires_at > now else now
     sub.expires_at = start_from + timezone.timedelta(days=30 * int(order.duration_months))
     sub.save()
 
@@ -180,31 +195,38 @@ def mark_order_paid(order: SubscriptionOrder) -> None:
     center.save(update_fields=["plan", "max_users", "max_groups", "max_students"])
 
 
-def get_subscription_ui_state(center: Center) -> dict:
-    sub = ensure_center_subscription(center)
-    days_left = sub.days_left()
-    blocked = sub.is_blocked()
+def get_subscription_ui_state(center: Center) -> dict | None:
+    try:
+        sub = ensure_center_subscription(center)
+        if not sub:
+            return None
+            
+        days_left = sub.days_left()
+        blocked = sub.is_blocked()
 
-    # Progress calculation based on actual duration
-    total_duration = (sub.expires_at - sub.started_at).days
-    if total_duration <= 0:
-        total_duration = 30 # Fallback default
-    
-    progress = int(max(min(days_left / total_duration, 1), 0) * 100)
-    percent_left = progress
+        # Progress calculation based on actual duration
+        diff = (sub.expires_at - sub.started_at).days
+        total_duration = max(diff, 30)
+        
+        progress = int(max(min(days_left / total_duration, 1), 0) * 100)
+        percent_left = progress
 
-    warn = (days_left <= 7 and not blocked)
+        warn = (days_left <= 7 and not blocked)
 
-    # Get proper plan title
-    plan_title = sub.plan.title if sub.plan else center.plan
-    plan_code = sub.plan.code if sub.plan else center.plan
+        # Get proper plan title
+        plan_title = sub.plan.title if sub.plan else center.plan
+        plan_code = sub.plan.code if sub.plan else center.plan
 
-    return {
-        "plan_code": plan_code,
-        "plan_title": plan_title,
-        "expires_at": sub.expires_at,
-        "days_left": days_left,
-        "blocked": blocked,
-        "warn": warn,
-        "progress": progress, # This is now percent LEFT
-    }
+        return {
+            "plan_code": plan_code,
+            "plan_title": plan_title,
+            "expires_at": sub.expires_at,
+            "days_left": days_left,
+            "blocked": blocked,
+            "warn": warn,
+            "progress": progress, # This is now percent LEFT
+        }
+    except Exception as e:
+        import logging
+        logging.error(f"get_subscription_ui_state error for center {getattr(center, 'id', 'unknown')}: {str(e)}")
+        return None
