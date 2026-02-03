@@ -62,11 +62,14 @@ class AddUserForm(forms.ModelForm):
         if self.request:
             active_center = getattr(self.request, "center", None)
             if active_center and "center" in self.fields:
-                # ✅ Faqat active centerga filter qilamiz (Superadmin ham faqat o'sha markazni ko'radi)
+                # ✅ Qat'iy isolation: Faqat aktiv markazni ko'rsatamiz
                 self.fields["center"].queryset = Center.objects.filter(id=active_center.id)
                 self.fields["center"].initial = active_center
-                self.fields["center"].disabled = True  # O'zgartirib bo'lmaydi
-                self.fields["center"].empty_label = None  # Bo'sh option yo'q
+                self.fields["center"].required = True
+                
+                # Agar bittagina markaz bo'lsa, tanlashga hojat yo'q, avtomat qo'yamiz
+                if self.fields["center"].queryset.count() == 1:
+                    self.fields["center"].initial = self.fields["center"].queryset.first()
             elif u and (not u.is_superuser) and getattr(u, "role", None) in ("director", "manager"):
                 # Agar active center yo'q bo'lsa va Director/Manager bo'lsa, center fieldni olib tashlaymiz
                 self.fields.pop("center", None)

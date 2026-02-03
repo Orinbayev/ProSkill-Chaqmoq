@@ -41,7 +41,7 @@ class SubscriptionMiddleware(MiddlewareMixin):
             return None
 
         # blocked bo‘lsa redirect
-        if sub.is_blocked():
+        if sub and sub.is_blocked():
             return redirect("billing:blocked")
 
         return None
