@@ -192,7 +192,12 @@ def mark_order_paid(order: SubscriptionOrder) -> None:
     center.max_users = order.plan.max_users
     center.max_groups = order.plan.max_groups
     center.max_students = order.plan.max_students
-    center.save(update_fields=["plan", "max_users", "max_groups", "max_students"])
+    
+    # ✅ MUAMMO 2: To'lov tasdiqlanganda center ACTIVE bo'lishi kerak
+    center.status = Center.STATUS_ACTIVE
+    center.expires_at = sub.expires_at  # Subscription bilan bir xil
+    
+    center.save(update_fields=["plan", "max_users", "max_groups", "max_students", "status", "expires_at"])
 
 
 def get_subscription_ui_state(center: Center) -> dict | None:

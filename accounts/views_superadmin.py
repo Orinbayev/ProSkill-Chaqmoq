@@ -21,7 +21,8 @@ def superadmin_dashboard(request):
     centers = Center.objects.filter(is_deleted=False).annotate(
         user_count=Count('user', distinct=True),
         group_count=Count('group', distinct=True),
-        student_count=Count('group__enrollments__student', distinct=True),
+        # ✅ O'quvchilar sonini User modelidan olamiz (faqat role='student')
+        student_count=Count('user', filter=Q(user__role='student', user__is_archived=False), distinct=True),
     ).order_by('-created_at')
     
     # Revenue statistics

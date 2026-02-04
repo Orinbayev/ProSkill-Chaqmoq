@@ -22,14 +22,14 @@ def blocked(request):
 
 @login_required
 def plans(request):
-    # Only staff/admins should see billing
-    role = getattr(request.user, "role", None)
-    if role in ("student", "parent"):
-        return redirect("core:home")
-
     center = getattr(request, "center", None)
     if not center:
         messages.error(request, "Center topilmadi.")
+        return redirect("core:home")
+
+    # ✅ Faqat director/manager billing qilishi mumkin, lekin blocked holat uchun hamma ko'rishi mumkin
+    role = getattr(request.user, "role", None)
+    if role in ("student", "parent") and center.status != "BLOCKED":
         return redirect("core:home")
 
     ensure_center_subscription(center)

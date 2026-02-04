@@ -108,6 +108,26 @@ class Center(models.Model):
             return False
         return timezone.now() >= self.expires_at
 
+    @property
+    def get_counts(self):
+        """O'quvchilar va guruhlar sonini hisoblash"""
+        from education.models import Group
+        from accounts.models import User
+        
+        # ✅ User modelidan to'g'ridan-to'g'ri o'quvchilar sonini olamiz
+        students_count = User.objects.filter(
+            center=self,
+            role='student',
+            is_archived=False
+        ).count()
+        
+        groups_count = Group.objects.filter(center=self).count()
+        
+        return {
+            'students': students_count,
+            'groups': groups_count
+        }
+
 
 
 

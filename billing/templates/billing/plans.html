@@ -273,6 +273,33 @@
 </style>
 
 <div class="container py-5">
+  <!-- ⚠️ BLOCKED CENTER WARNING -->
+  {% if request.center and request.center.status == 'BLOCKED' %}
+  <div class="alert d-flex align-items-start gap-3 mb-5 p-4" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.05) 100%); 
+           border: 2px solid rgba(239, 68, 68, 0.3); 
+           border-radius: 20px; 
+           box-shadow: 0 8px 24px -8px rgba(239, 68, 68, 0.3);">
+    <div style="flex-shrink: 0; width: 48px; height: 48px; 
+                background: rgba(239, 68, 68, 0.15); 
+                border-radius: 12px; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center;">
+      <i class="bi bi-exclamation-triangle-fill" style="color: #ef4444; font-size: 1.5rem;"></i>
+    </div>
+    <div class="flex-grow-1">
+      <h5 class="text-white fw-bold mb-2" style="font-size: 1.15rem;">
+        <i class="bi bi-lock-fill text-danger me-2"></i>
+        Markazingiz bloklangan
+      </h5>
+      <p class="text-white-50 mb-0" style="font-size: 0.95rem; line-height: 1.6;">
+        Markazingiz to'lov amalga oshirilmaganligi sababli yoki boshqa sabablar tufayli bloklangan.
+        Tizimni davom ettirish uchun quyidagi tariflardan birini tanlang va to'lovni amalga oshiring.
+      </p>
+    </div>Markazingiz to'lov amalga oshirilmaganligi sababli bloklangan
+  </div>
+  {% endif %}
+
   <!-- Header Section -->
   <div class="plans-header">
     <h1 class="plans-title">Oylik tariflar</h1>
