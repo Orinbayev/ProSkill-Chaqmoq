@@ -735,10 +735,10 @@ def stat_students(request):
         
     if section_id:
         if section_id.isdigit():
-             rows = rows.filter(enrollment__group__category_obj__id=int(section_id)).distinct()
+             rows = rows.filter(enrollments__group__category_obj__id=int(section_id)).distinct()
         else:
              # Fallback for string names
-             rows = rows.filter(enrollment__group__category_obj__name=section_id).distinct()
+             rows = rows.filter(enrollments__group__category_obj__name=section_id).distinct()
 
     paginator = Paginator(rows, page_size)
     page_obj = paginator.get_page(request.GET.get("page"))
