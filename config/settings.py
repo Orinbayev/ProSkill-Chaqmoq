@@ -16,7 +16,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("SECRET_KEY", "unsafe-secret-key")
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 # ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
-ALLOWED_HOSTS = ['a1b2c3d4.ngrok-free.app', '127.0.0.1']
+ALLOWED_HOSTS = ['a1b2c3d4.ngrok-free.app', '127.0.0.1', 'proskill-chaqmoq.onrender.com']
 
 # ===== Installed Apps =====
 INSTALLED_APPS = [
