@@ -258,8 +258,10 @@ class User(AbstractUser):
         verbose_name_plural = "Foydalanuvchilar"
 
     def full_name(self) -> str:
-        parts = [self.ism, self.familya, self.otchestvo]
-        return " ".join([p for p in parts if p]).strip()
+        parts = [self.ism, self.familya]
+        if self.otchestvo and str(self.otchestvo).strip().lower() != 'none':
+            parts.append(self.otchestvo)
+        return " ".join([str(p).strip() for p in parts if p]).strip()
 
     def get_full_name(self) -> str:
         return self.full_name()
