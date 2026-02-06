@@ -3064,6 +3064,7 @@ def teacher_salary_summary(request):
             "year": selected_year,
             "month": selected_month,
             "teacher_data": teacher_data,
+            "chart_labels": chart_labels,
             "chart_teacher_income": chart_teacher_income,
             "chart_center_income": chart_center_income,
             "chart_total_turnover": chart_total_turnover,

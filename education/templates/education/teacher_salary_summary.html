@@ -325,10 +325,14 @@
 
           if (chartInstance) chartInstance.destroy();
 
-          let labels = [];
-          try {
-            labels = JSON.parse(ctx.dataset.labels || '[]');
-          } catch (e) { console.error(e); }
+          let labels = data.chart_labels || [];
+          if (labels.length === 0) {
+            try {
+              // Fallback (ehtiyot shart)
+              const raw = ctx.dataset.labels;
+              if (raw) labels = JSON.parse(raw.replace(/'/g, '"')); // Python list fix
+            } catch (e) { console.error(e); }
+          }
 
           chartInstance = new Chart(ctx, {
             type: "bar",
