@@ -147,6 +147,16 @@
     padding-left: 38px;
   }
 
+  /* Fix for select dropdown options in dark mode */
+  .filter-input option,
+  .size-select option {
+    background: #1e293b;
+    /* Dark background */
+    color: #f8fafc;
+    /* White text */
+    padding: 10px;
+  }
+
   .filter-select {
     min-width: 140px;
     cursor: pointer;
@@ -711,7 +721,7 @@
     <div class="size-selector">
       <span>Ko‘rsatish:</span>
       <select class="size-select" onchange="updateQuery({size: this.value, page: 1})">
-        <option value="10" {% if page_size  == 10 %}selected{% endif %}>10</option>
+        <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
         <option value="25" {% if page_size == 25 %}selected{% endif %}>25</option>
         <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
         <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
