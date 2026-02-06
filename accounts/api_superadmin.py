@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from datetime import timedelta
 from accounts.models import Center, User
-from education.models import Group, Payment, Attendance
+from education.models import Group, Payment, Attendance, TeacherIncome
 from billing.models import SubscriptionPlan, PromoCode
 
 def is_superadmin(user):
@@ -48,8 +48,15 @@ def center_stats_api(request, center_id):
         
         total_debt = 0 
         
-        # Calculate Expenses & Profit
-        total_expenses = int(total_revenue * 0.5)
+        # Calculate Expenses (Based on Teacher Salaries) & Profit
+        # Agar TeacherIncome ishlatilmasa, fallback varianti kerak bo'lishi mumkin.
+        # Hozircha TeacherIncome modelidan foydalanamiz:
+        teacher_expenses = TeacherIncome.objects.filter(group__center=center).aggregate(s=Sum('amount'))['s'] or 0
+        
+        # Boshqa chiqimlar uchun (hozircha 0, keyinchalik Expense model qo'shilsa shu yerga yoziladi)
+        other_expenses = 0 
+        
+        total_expenses = teacher_expenses + other_expenses
         net_profit = total_revenue - total_expenses
         
         attendances_30d = Attendance.objects.filter(center=center, date__gte=last_30_days)
@@ -155,7 +162,7 @@ def center_students_api(request, center_id):
     data = []
     for u in qs:
         # We manually query groups for each student due to simple API structure
-        groups = u.enrollment_set.all().values_list('group__nom', flat=True)
+        groups = u.enrollments.all().values_list('group__nom', flat=True)
         last_pay = Payment.objects.filter(student=u).order_by('-paid_date').first()
         
         data.append({
@@ -187,8 +194,8 @@ def center_groups_api(request, center_id):
             "name": g.nom,
             "teacher": g.oqituvchi.get_full_name() if g.oqituvchi else "-",
             "category": g.category_obj.name if g.category_obj else "-",
-            "students_count": g.enrollment_set.filter(is_active=True).count(),
-            "status": "Faol" if g.is_active else "Yakunlangan",
+            "students_count": g.enrollments.filter(is_active=True).count(),
+            "status": "Faol",
         })
         
     return JsonResponse({"groups": data})
@@ -422,6 +429,14 @@ def center_delete_api(request, center_id):
         return JsonResponse({"success": False, "error": "Faqat superadmin uchun"}, status=403)
         
     center = get_object_or_404(Center, pk=center_id)
+    
+    # ✅ HIMOYA: System center'ni o'chirish mumkin emas!
+    if getattr(center, 'is_system', False):
+        return JsonResponse({
+            "success": False, 
+            "error": "❌ Bu asosiy tizim markazi! O'chirish mumkin emas."
+        }, status=400)
+    
     center.is_deleted = True
     center.status = Center.STATUS_BLOCKED
     center.save()
@@ -429,6 +444,28 @@ def center_delete_api(request, center_id):
     logger.info(f"AUDIT: User {request.user.id} soft-deleted Center {center.id} ({center.name})")
     
     return JsonResponse({"success": True, "message": "Markaz o'chirildi (Soft Delete)"})
+
+
+@login_required
+@require_http_methods(["POST"])
+def center_archive_api(request, center_id):
+    if not is_superadmin(request.user):
+        return JsonResponse({"success": False, "error": "Faqat superadmin uchun"}, status=403)
+        
+    center = get_object_or_404(Center, pk=center_id)
+    action = request.POST.get("action", "archive")
+
+    if action == "restore":
+        center.status = Center.STATUS_ACTIVE
+        msg = "Markaz arxivdan chiqarildi"
+    else:
+        center.status = Center.STATUS_ARCHIVED
+        msg = "Markaz arxivlandi"
+    
+    center.save()
+    logger.info(f"AUDIT: User {request.user.id} {action}d Center {center.id}")
+    
+    return JsonResponse({"success": True, "message": msg})
 
 
 @login_required

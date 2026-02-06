@@ -58,13 +58,18 @@ class Center(models.Model):
 
     STATUS_ACTIVE = "ACTIVE"
     STATUS_BLOCKED = "BLOCKED"
+    STATUS_ARCHIVED = "ARCHIVED"
     STATUS_CHOICES = [
         (STATUS_ACTIVE, "ACTIVE"),
         (STATUS_BLOCKED, "BLOCKED"),
+        (STATUS_ARCHIVED, "ARCHIVED"),
     ]
     status = models.CharField(max_length=12, choices=STATUS_CHOICES, default=STATUS_ACTIVE)
     expires_at = models.DateTimeField(null=True, blank=True)
-    is_deleted = models.BooleanField(default=False) 
+    is_deleted = models.BooleanField(default=False)
+    
+    # ✅ System Center - o'chirib bo'lmaydi (asosiy markaz)
+    is_system = models.BooleanField(default=False, help_text="Tizim markazi - o'chirib bo'lmaydi") 
 
 
 

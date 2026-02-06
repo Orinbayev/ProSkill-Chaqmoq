@@ -27,10 +27,13 @@ def plans(request):
         messages.error(request, "Center topilmadi.")
         return redirect("core:home")
 
-    # ✅ Faqat director/manager billing qilishi mumkin, lekin blocked holat uchun hamma ko'rishi mumkin
+    # ✅ Faqat admin va manager billing sahifasini ko'rishi mumkin
     role = getattr(request.user, "role", None)
-    if role in ("student", "parent") and center.status != "BLOCKED":
-        return redirect("core:home")
+    if role in ("student", "parent", "teacher"):  # Teacher ham billing ko'rmasin
+        # Redirect qilmasdan, to'g'ridan-to'g'ri error ko'rsatamiz (loop oldini olish)
+        return render(request, "billing/permission_denied.html", {
+            "message": "Sizda bu sahifaga kirish huquqi yo'q. Bu sahifa faqat administrator va menejerlar uchun."
+        })
 
     ensure_center_subscription(center)
     ui = get_subscription_ui_state(center)
@@ -100,4 +103,19 @@ def order_confirm_demo(request, pk: int):
     order = get_object_or_404(SubscriptionOrder, pk=pk)
     mark_order_paid(order)
     messages.success(request, "To'lov tasdiqlandi ✅")
+    return redirect("accounts:superadmin_dashboard")
+
+
+@login_required
+def order_reject_demo(request, pk: int):
+    """
+    DEMO: superadmin to'lov so'rovini rad etishi uchun.
+    """
+    if not request.user.is_superuser:
+        return redirect("billing:plans")
+
+    order = get_object_or_404(SubscriptionOrder, pk=pk)
+    order.status = SubscriptionOrder.Status.CANCELED
+    order.save()
+    messages.warning(request, "To'lov so'rovi rad etildi ❌")
     return redirect("accounts:superadmin_dashboard")

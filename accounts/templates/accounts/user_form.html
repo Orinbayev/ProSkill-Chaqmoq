@@ -396,10 +396,14 @@
           <label>Telefon (Qo‘shimcha)</label>
           {{ form.telefon2 }}
         </div>
+        {% if form.center.field.widget.input_type != 'hidden' %}
         <div class="inp-group">
           <label>O‘quv Markaz (Filial)</label>
           {{ form.center }}
         </div>
+        {% else %}
+        {{ form.center }}
+        {% endif %}
       </div>
     </div>
 

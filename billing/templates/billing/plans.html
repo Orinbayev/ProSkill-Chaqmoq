@@ -270,11 +270,47 @@
     box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1) !important;
     outline: none !important;
   }
+
+  /* Modal har doim hamma narsadan ustun bo'lishi kerak */
+  .modal-backdrop {
+    z-index: 1040 !important;
+  }
+
+  .modal {
+    z-index: 1050 !important;
+  }
+
+  /* Agar karta modalga xalaqit bersa, ularni pastga tushiramiz */
+  .plan-card {
+    position: relative;
+    z-index: 1;
+    /* Buni 1 qiling */
+  }
+
+  /* Majburiy tuzatish: Sahifa qotib qolishini oldini olish */
+  body:not(.modal-open) .modal-backdrop {
+    display: none !important;
+  }
+
+  /* Loaderlarni majburan yashirish (agar ular bloklayotgan bo'lsa) */
+  .preloader,
+  #global-loader,
+  .loader-wrapper {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  /* Modal ochiq bo'lganda skroll ishlashi uchun */
+  body.modal-open {
+    overflow: auto !important;
+    padding-right: 0 !important;
+  }
 </style>
 
 <div class="container py-5">
-  <!-- ⚠️ BLOCKED CENTER WARNING -->
-  {% if request.center and request.center.status == 'BLOCKED' %}
+  <!-- ⚠️ BLOCKED CENTER WARNING (Only for Admin & Manager) -->
+  {% if request.center and request.center.status == 'BLOCKED' and request.user.role in 'admin,manager' %}
   <div class="alert d-flex align-items-start gap-3 mb-5 p-4" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.05) 100%); 
            border: 2px solid rgba(239, 68, 68, 0.3); 
            border-radius: 20px; 
@@ -296,7 +332,21 @@
         Markazingiz to'lov amalga oshirilmaganligi sababli yoki boshqa sabablar tufayli bloklangan.
         Tizimni davom ettirish uchun quyidagi tariflardan birini tanlang va to'lovni amalga oshiring.
       </p>
-    </div>Markazingiz to'lov amalga oshirilmaganligi sababli bloklangan
+
+      <!-- ✅ Action Buttons for Blocked Users -->
+      <div class="mt-4 d-flex gap-3 flex-wrap">
+        <a href="{% url 'accounts:center_picker' %}" class="btn btn-sm btn-outline-light px-3 py-2"
+          style="border-radius: 10px;">
+          <i class="bi bi-grid-fill me-2"></i>Boshqa markaz tanlash
+        </a>
+        <form action="{% url 'accounts:logout' %}" method="post" class="d-inline">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-danger px-3 py-2" style="border-radius: 10px;">
+            <i class="bi bi-box-arrow-right me-2"></i>Tizimdan chiqish
+          </button>
+        </form>
+      </div>
+    </div>
   </div>
   {% endif %}
 
@@ -471,18 +521,40 @@
 </div>
 
 <script>
-  // Ensure the modal is a direct child of body for safe stacking context
   document.addEventListener('DOMContentLoaded', function () {
     const promoModal = document.getElementById('promoModal');
+
+    // 1. Modalni body oxiriga ko'chirish
     if (promoModal) {
       document.body.appendChild(promoModal);
 
-      // Focus the input when modal opens
       promoModal.addEventListener('shown.bs.modal', function () {
         const input = promoModal.querySelector('input[name="promo"]');
         if (input) input.focus();
       });
     }
+
+    // 2. AGRESSIV TOZALASH (Sahifa yuklanganda hamma narsani ochish)
+    function clearAllOverlays() {
+      // Barcha loaderlarni o'chirish
+      document.querySelectorAll('.preloader, #global-loader, .loader, .loader-wrapper').forEach(el => {
+        el.remove(); // Shunchaki yashirmaymiz, DOMdan o'chirib tashlaymiz
+      });
+
+      // Agar modal ochiq bo'lmasa, barcha backdrop (qora fon) larni o'chirish
+      if (!document.body.classList.contains('modal-open')) {
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        document.body.style.pointerEvents = 'auto';
+        document.body.style.overflow = 'auto';
+      }
+
+      console.log('🛡️ Billing page forced clear.');
+    }
+
+    // Bir necha marta tekshirib o'chiradi (ba'zi scriptlar kechroq ishga tushishi mumkin)
+    clearAllOverlays();
+    setTimeout(clearAllOverlays, 300);
+    setTimeout(clearAllOverlays, 1000);
   });
 </script>
 {% endblock %}

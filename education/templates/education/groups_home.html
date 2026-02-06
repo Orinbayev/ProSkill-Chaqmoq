@@ -570,9 +570,9 @@
 
     {% if categories %}
     {% for cat in categories %}
-    <div class="trow cat-item" role="button" tabindex="0"
-      onclick="goCategory(event, '{% url 'education:category_detail' cat.id %}')"
-      onkeydown="if(event.key==='Enter'){ goCategory(event, '{% url 'education:category_detail' cat.id %}'); }"
+    <div class="trow cat-item" role="button" tabindex="0" data-url="{% url 'education:category_detail' cat.id %}"
+      onclick="goCategory(event, this.dataset.url)"
+      onkeydown="if(event.key==='Enter'){ goCategory(event, this.dataset.url); }"
       data-name="{{ cat.name|default_if_none:'' }}" data-desc="{{ cat.description|default_if_none:'' }}">
 
       <!-- Desktop -->

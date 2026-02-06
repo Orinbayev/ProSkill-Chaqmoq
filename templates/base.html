@@ -317,6 +317,38 @@
         filter: drop-shadow(0 0 15px rgba(253, 224, 71, 1));
       }
     }
+
+    /* 🔥 AGRESSIV TUZATISH: EKRAN QOTISHINI ECHISH 🔥 */
+    body,
+    html {
+      overflow-x: hidden;
+      height: 100%;
+      pointer-events: auto !important;
+      /* Hamma joyda click ishlashini ta'minlash */
+    }
+
+    /* Barcha Overlaylarni majburan o'chirish (modal-backdrop excluded) */
+    .preloader,
+    #global-loader,
+    .sidebar-overlay,
+    .overlay-wrapper {
+      display: none !important;
+      visibility: hidden !important;
+      width: 0 !important;
+      height: 0 !important;
+      pointer-events: none !important;
+      opacity: 0 !important;
+      z-index: -1 !important;
+    }
+
+    /* Content wrapper click qabul qilishini ta'minlash */
+    .content-wrapper,
+    .main-content,
+    .app-shell {
+      position: relative;
+      z-index: 5;
+      pointer-events: auto !important;
+    }
   </style>
 
   {% block extra_css %}{% endblock %}
@@ -326,48 +358,15 @@
   class="{% if request.user.is_authenticated %}layout-auth{% else %}layout-guest{% endif %} {% block body_class %}{% endblock %}">
 
   <!-- LOADER HTML -->
-  <div id="global-loader">
-    <div class="loader-content">
-      <div class="icon-container">
-        <div class="rotating-ring"></div>
-        <div class="pulsing-ring"></div>
-        <div class="icon-content">
-          <svg class="lightning-icon" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-          </svg>
-        </div>
-        <div class="glow-effect"></div>
-      </div>
-      <div class="loader-text text-center">
-        <h1>Chaqmoq</h1>
-        <p>Yuklanmoqda...</p>
-      </div>
-    </div>
-  </div>
+  <!-- LOADER REMOVED -->
 
+  <!-- Loader Script Disabled to Prevent Blocking -->
   <script>
     (function () {
       const loader = document.getElementById("global-loader");
-      if (!loader) return;
-
-      // 2 sekunddan keyin ko'rsatish (agar load bo'lmasa)
-      const timer = setTimeout(() => {
-        loader.classList.add("show-loader");
-      }, 2000);
-
-      window.addEventListener("load", function () {
-        clearTimeout(timer); // Agar 2s dan oldin load bo'lsa, bekor qilamiz
-
-        if (loader.classList.contains("show-loader")) {
-          // Agar ko'rsatilgan bo'lsa, chiroyli yashiramiz
-          loader.classList.remove("show-loader");
-          loader.classList.add("fade-out");
-          setTimeout(() => { loader.style.display = "none"; }, 600);
-        } else {
-          // Agar ko'rsatilmagan bo'lsa, shunchaki olib tashlaymiz
-          loader.style.display = "none";
-        }
-      });
+      if (loader) {
+        loader.style.display = "none";
+      }
     })();
   </script>
 

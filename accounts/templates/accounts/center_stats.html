@@ -27,14 +27,14 @@
     <!-- Main Financial KPIs -->
     <div class="row g-4 mb-5">
         <div class="col-md-4">
-            <div class="p-4 rounded-4 border border-secondary bg-dark position-relative overflow-hidden h-100">
-                <div class="position-absolute top-0 end-0 p-3 opacity-10">
-                    <i class="bi bi-wallet2 display-1 text-primary"></i>
+            <div class="p-3 rounded-4 border border-secondary bg-dark position-relative overflow-hidden h-100">
+                <div class="position-absolute top-0 end-0 p-2 opacity-10">
+                    <i class="bi bi-wallet2 display-4 text-primary"></i>
                 </div>
                 <div class="position-relative">
-                    <div class="text-secondary fw-semibold mb-2">Umumiy Abarot</div>
-                    <h2 class="text-white fw-bold display-6 mb-1" id="kpi-revenue">...</h2>
-                    <div class="d-flex align-items-center text-success small">
+                    <div class="text-secondary fw-semibold mb-1 small">Umumiy Abarot</div>
+                    <h3 class="text-white fw-bold mb-1" id="kpi-revenue">...</h3>
+                    <div class="d-flex align-items-center text-success small" style="font-size: 0.8rem;">
                         <i class="bi bi-arrow-up-right me-1"></i>
                         <span id="kpi-monthly-revenue">...</span> (bu oy)
                     </div>
@@ -42,26 +42,26 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="p-4 rounded-4 border border-secondary bg-dark position-relative overflow-hidden h-100">
-                <div class="position-absolute top-0 end-0 p-3 opacity-10">
-                    <i class="bi bi-cash-stack display-1 text-success"></i>
+            <div class="p-3 rounded-4 border border-secondary bg-dark position-relative overflow-hidden h-100">
+                <div class="position-absolute top-0 end-0 p-2 opacity-10">
+                    <i class="bi bi-cash-stack display-4 text-success"></i>
                 </div>
                 <div class="position-relative">
-                    <div class="text-secondary fw-semibold mb-2">Sof Foyda (Taxminiy)</div>
-                    <h2 class="text-success fw-bold display-6 mb-1" id="kpi-profit">...</h2>
-                    <small class="text-secondary">Daromad - Chiqim</small>
+                    <div class="text-secondary fw-semibold mb-1 small">Sof Foyda (Taxminiy)</div>
+                    <h3 class="text-success fw-bold mb-1" id="kpi-profit">...</h3>
+                    <small class="text-secondary" style="font-size: 0.75rem;">Daromad - Chiqim</small>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="p-4 rounded-4 border border-secondary bg-dark position-relative overflow-hidden h-100">
-                <div class="position-absolute top-0 end-0 p-3 opacity-10">
-                    <i class="bi bi-graph-down display-1 text-danger"></i>
+            <div class="p-3 rounded-4 border border-secondary bg-dark position-relative overflow-hidden h-100">
+                <div class="position-absolute top-0 end-0 p-2 opacity-10">
+                    <i class="bi bi-graph-down display-4 text-danger"></i>
                 </div>
                 <div class="position-relative">
-                    <div class="text-secondary fw-semibold mb-2">Chiqimlar</div>
-                    <h2 class="text-danger fw-bold display-6 mb-1" id="kpi-expenses">...</h2>
-                    <small class="text-secondary">O'qituvchi haqi va boshqalar</small>
+                    <div class="text-secondary fw-semibold mb-1 small">Chiqimlar</div>
+                    <h3 class="text-danger fw-bold mb-1" id="kpi-expenses">...</h3>
+                    <small class="text-secondary" style="font-size: 0.75rem;">O'qituvchi haqi va boshqalar</small>
                 </div>
             </div>
         </div>
@@ -130,11 +130,34 @@
             <div class="tab-content" id="statsTabsContent">
                 <!-- Students Pane -->
                 <div class="tab-pane fade show active p-4" id="students-pane" role="tabpanel">
+                    <!-- Controls -->
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-secondary small fw-bold">KO'RSATISH:</span>
+                            <select class="form-select form-select-sm bg-dark text-white border-secondary rounded-3"
+                                style="width: 80px;" onchange="updatePageSize('students', this.value)">
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                                <option value="all">Barchasi</option>
+                            </select>
+                        </div>
+                        <div class="position-relative flex-grow-1" style="max-width: 400px;">
+                            <i
+                                class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary"></i>
+                            <input type="text"
+                                class="form-control form-control-sm bg-dark text-white border-secondary ps-5 py-2 rounded-3"
+                                placeholder="F.I.SH yoki telefon bo'yicha qidirish..."
+                                oninput="updateSearch('students', this.value)">
+                        </div>
+                    </div>
+
                     <div class="table-responsive">
-                        <table class="table table-dark table-hover align-middle">
+                        <table class="table table-dark table-hover align-middle mb-0">
                             <thead>
-                                <tr class="text-secondary small">
-                                    <th>F.I.SH</th>
+                                <tr class="text-secondary small text-uppercase fw-bold" style="letter-spacing: 0.5px;">
+                                    <th class="py-3">F.I.SH</th>
                                     <th>Telefon</th>
                                     <th>Guruhlar</th>
                                     <th>Status</th>
@@ -144,19 +167,47 @@
                             </thead>
                             <tbody id="students-table-body">
                                 <tr>
-                                    <td colspan="6" class="text-center py-4 text-secondary">Yuklanmoqda...</td>
+                                    <td colspan="6" class="text-center py-5 text-secondary">
+                                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                        Yuklanmoqda...
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
+                    <!-- Pagination -->
+                    <div id="students-pagination" class="d-flex justify-content-between align-items-center mt-4"></div>
                 </div>
                 <!-- Groups Pane -->
                 <div class="tab-pane fade p-4" id="groups-pane" role="tabpanel">
+                    <!-- Controls -->
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-secondary small fw-bold">KO'RSATISH:</span>
+                            <select class="form-select form-select-sm bg-dark text-white border-secondary rounded-3"
+                                style="width: 80px;" onchange="updatePageSize('groups', this.value)">
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                                <option value="all">Barchasi</option>
+                            </select>
+                        </div>
+                        <div class="position-relative flex-grow-1" style="max-width: 400px;">
+                            <i
+                                class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary"></i>
+                            <input type="text"
+                                class="form-control form-control-sm bg-dark text-white border-secondary ps-5 py-2 rounded-3"
+                                placeholder="Guruh nomi yoki o'qituvchi bo'yicha..."
+                                oninput="updateSearch('groups', this.value)">
+                        </div>
+                    </div>
+
                     <div class="table-responsive">
-                        <table class="table table-dark table-hover align-middle">
+                        <table class="table table-dark table-hover align-middle mb-0">
                             <thead>
-                                <tr class="text-secondary small">
-                                    <th>Guruh Nomi</th>
+                                <tr class="text-secondary small text-uppercase fw-bold">
+                                    <th class="py-3">Guruh Nomi</th>
                                     <th>O'qituvchi</th>
                                     <th>Yo'nalish</th>
                                     <th>O'quvchilar Soni</th>
@@ -165,19 +216,44 @@
                             </thead>
                             <tbody id="groups-table-body">
                                 <tr>
-                                    <td colspan="5" class="text-center py-4 text-secondary">Yuklanmoqda...</td>
+                                    <td colspan="5" class="text-center py-5 text-secondary">Yuklanmoqda...</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
+                    <!-- Pagination -->
+                    <div id="groups-pagination" class="d-flex justify-content-between align-items-center mt-4"></div>
                 </div>
                 <!-- Payments Pane -->
                 <div class="tab-pane fade p-4" id="payments-pane" role="tabpanel">
+                    <!-- Controls -->
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-secondary small fw-bold">KO'RSATISH:</span>
+                            <select class="form-select form-select-sm bg-dark text-white border-secondary rounded-3"
+                                style="width: 80px;" onchange="updatePageSize('payments', this.value)">
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                                <option value="all">Barchasi</option>
+                            </select>
+                        </div>
+                        <div class="position-relative flex-grow-1" style="max-width: 400px;">
+                            <i
+                                class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary"></i>
+                            <input type="text"
+                                class="form-control form-control-sm bg-dark text-white border-secondary ps-5 py-2 rounded-3"
+                                placeholder="O'quvchi ismi yoki ID bo'yicha..."
+                                oninput="updateSearch('payments', this.value)">
+                        </div>
+                    </div>
+
                     <div class="table-responsive">
-                        <table class="table table-dark table-hover align-middle">
+                        <table class="table table-dark table-hover align-middle mb-0">
                             <thead>
-                                <tr class="text-secondary small">
-                                    <th>ID</th>
+                                <tr class="text-secondary small text-uppercase fw-bold">
+                                    <th class="py-3">ID</th>
                                     <th>O'quvchi</th>
                                     <th>Summa</th>
                                     <th>Sana</th>
@@ -186,11 +262,13 @@
                             </thead>
                             <tbody id="payments-table-body">
                                 <tr>
-                                    <td colspan="5" class="text-center py-4 text-secondary">Yuklanmoqda...</td>
+                                    <td colspan="5" class="text-center py-5 text-secondary">Yuklanmoqda...</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
+                    <!-- Pagination -->
+                    <div id="payments-pagination" class="d-flex justify-content-between align-items-center mt-4"></div>
                 </div>
             </div>
         </div>
@@ -261,74 +339,168 @@
         }
     }
 
+    const state = {
+        students: { data: [], filtered: [], pageSize: 10, currentPage: 1, query: '' },
+        groups: { data: [], filtered: [], pageSize: 10, currentPage: 1, query: '' },
+        payments: { data: [], filtered: [], pageSize: 10, currentPage: 1, query: '' }
+    };
+
     async function loadTab(type) {
+        if (state[type].data.length > 0) {
+            applyFilters(type);
+            return;
+        }
+
         const body = document.getElementById(`${type}-table-body`);
         try {
-            // Clear previous content and show loading
-            body.innerHTML = `<tr><td colspan="${type === 'students' ? 6 : type === 'groups' ? 5 : 5}" class="text-center py-4 text-secondary">Yuklanmoqda...</td></tr>`;
+            body.innerHTML = `<tr><td colspan="10" class="text-center py-5 text-secondary"><div class="spinner-border spinner-border-sm me-2"></div> Yuklanmoqda...</td></tr>`;
 
             const response = await fetch(`${API_BASE}/${type}/`);
             const data = await response.json();
 
-            if (type === 'students') renderStudents(data.students);
-            if (type === 'groups') renderGroups(data.groups);
-            if (type === 'payments') renderPayments(data.payments);
+            state[type].data = data[type] || [];
+            applyFilters(type);
         } catch (error) {
             console.error(`Error loading ${type} tab:`, error);
-            body.innerHTML = `<tr><td colspan="${type === 'students' ? 6 : type === 'groups' ? 5 : 5}" class="text-center text-danger">Ma'lumot yuklashda xatolik</td></tr>`;
+            body.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-danger">Ma'lumot yuklashda xatolik</td></tr>`;
         }
     }
 
-    function renderStudents(students) {
-        const body = document.getElementById('students-table-body');
-        if (!students || students.length === 0) {
-            body.innerHTML = '<tr><td colspan="6" class="text-center py-4">O\'quvchilar yo\'q</td></tr>';
-            return;
-        }
-        body.innerHTML = students.map(s => `
-            <tr>
-                <td class="fw-bold">${s.full_name}</td>
-                <td class="text-secondary">${s.phone}</td>
-                <td>${s.groups.join(', ') || '-'}</td>
-                <td><span class="badge bg-${s.status === 'Active' ? 'success' : 'danger'} bg-opacity-10 text-${s.status === 'Active' ? 'success' : 'danger'}">${s.status}</span></td>
-                <td class="text-secondary">${s.last_payment}</td>
-                <td class="text-secondary">${s.joined_at}</td>
-            </tr>
-        `).join('');
+    function updatePageSize(type, size) {
+        state[type].pageSize = size === 'all' ? state[type].filtered.length : parseInt(size);
+        state[type].currentPage = 1;
+        renderTable(type);
     }
 
-    function renderGroups(groups) {
-        const body = document.getElementById('groups-table-body');
-        if (!groups || groups.length === 0) {
-            body.innerHTML = '<tr><td colspan="5" class="text-center py-4">Guruhlar yo\'q</td></tr>';
-            return;
-        }
-        body.innerHTML = groups.map(g => `
-            <tr>
-                <td class="fw-bold text-primary">${g.name}</td>
-                <td class="text-secondary">${g.teacher}</td>
-                <td class="text-secondary">${g.category}</td>
-                <td class="fw-bold">${g.students_count}</td>
-                <td><span class="badge border border-secondary text-secondary">${g.status}</span></td>
-            </tr>
-        `).join('');
+    function updateSearch(type, query) {
+        state[type].query = query.toLowerCase().trim();
+        state[type].currentPage = 1;
+        applyFilters(type);
     }
 
-    function renderPayments(payments) {
-        const body = document.getElementById('payments-table-body');
-        if (!payments || payments.length === 0) {
-            body.innerHTML = '<tr><td colspan="5" class="text-center py-4">To\'lovlar yo\'q</td></tr>';
+    function applyFilters(type) {
+        const query = state[type].query;
+        if (!query) {
+            state[type].filtered = [...state[type].data];
+        } else {
+            state[type].filtered = state[type].data.filter(item => {
+                if (type === 'students') {
+                    return item.full_name.toLowerCase().includes(query) || item.phone.includes(query);
+                } else if (type === 'groups') {
+                    return item.name.toLowerCase().includes(query) || item.teacher.toLowerCase().includes(query);
+                } else if (type === 'payments') {
+                    return item.student_name.toLowerCase().includes(query) || String(item.id).includes(query);
+                }
+                return false;
+            });
+        }
+        renderTable(type);
+    }
+
+    function renderTable(type) {
+        const body = document.getElementById(`${type}-table-body`);
+        const pgn = document.getElementById(`${type}-pagination`);
+        const { filtered, pageSize, currentPage } = state[type];
+
+        if (filtered.length === 0) {
+            body.innerHTML = `<tr><td colspan="10" class="text-center py-5 text-secondary">Ma'lumot topilmadi</td></tr>`;
+            pgn.innerHTML = '';
             return;
         }
-        body.innerHTML = payments.map(p => `
-            <tr>
-                <td class="text-secondary">#${p.id}</td>
-                <td class="fw-bold">${p.student_name}</td>
-                <td class="text-success fw-bold">${new Intl.NumberFormat('uz-UZ').format(p.amount)} so'm</td>
-                <td class="text-secondary">${p.date}</td>
-                <td class="text-secondary">${p.method}</td>
-            </tr>
-        `).join('');
+
+        const start = (currentPage - 1) * pageSize;
+        const end = pageSize === 'all' ? filtered.length : start + pageSize;
+        const paginated = filtered.slice(start, end);
+
+        if (type === 'students') {
+            body.innerHTML = paginated.map(s => `
+                <tr>
+                    <td class="fw-bold text-white py-3">${s.full_name}</td>
+                    <td class="text-secondary small font-monospace">${s.phone}</td>
+                    <td><div class="d-flex flex-wrap gap-1">${s.groups.map(g => `<span class="badge border border-secondary text-secondary small">${g}</span>`).join('') || '-'}</div></td>
+                    <td><span class="badge bg-${s.status === 'Active' ? 'success' : 'danger'} bg-opacity-10 text-${s.status === 'Active' ? 'success' : 'danger'} px-3 rounded-pill" style="font-size: 0.7rem;">${s.status.toUpperCase()}</span></td>
+                    <td class="text-secondary small">${s.last_payment || '-'}</td>
+                    <td class="text-secondary small">${s.joined_at}</td>
+                </tr>
+            `).join('');
+        } else if (type === 'groups') {
+            body.innerHTML = paginated.map(g => `
+                <tr>
+                    <td class="fw-bold text-primary py-3">${g.name}</td>
+                    <td class="text-white small">${g.teacher}</td>
+                    <td class="text-secondary small">${g.category}</td>
+                    <td class="fw-bold text-white">${g.students_count} <i class="bi bi-people text-secondary ms-1 small"></i></td>
+                    <td><span class="badge border border-secondary text-secondary px-3 rounded-pill" style="font-size: 0.7rem;">${g.status.toUpperCase()}</span></td>
+                </tr>
+            `).join('');
+        } else if (type === 'payments') {
+            body.innerHTML = paginated.map((p, i) => `
+                <tr>
+                    <td class="text-secondary small font-monospace">#${start + i + 1}</td>
+                    <td class="fw-bold text-white py-3">${p.student_name}</td>
+                    <td class="text-success fw-bold">${new Intl.NumberFormat('uz-UZ').format(p.amount)} so'm</td>
+                    <td class="text-secondary small">${p.date}</td>
+                    <td class="text-secondary small">${p.method}</td>
+                </tr>
+            `).join('');
+        }
+
+        renderPagination(type);
+    }
+
+    function renderPagination(type) {
+        const pgn = document.getElementById(`${type}-pagination`);
+        const { filtered, pageSize, currentPage } = state[type];
+
+        if (pageSize === 'all' || filtered.length <= pageSize) {
+            pgn.innerHTML = `<div class="text-secondary small">Jami: <b>${filtered.length}</b> ta</div>`;
+            return;
+        }
+
+        const totalPages = Math.ceil(filtered.length / pageSize);
+        const startIdx = (currentPage - 1) * pageSize + 1;
+        const endIdx = Math.min(currentPage * pageSize, filtered.length);
+
+        let html = `
+            <div class="text-secondary small">
+                Ko'rsatilmoqda: <b>${startIdx}-${endIdx}</b> / <b>${filtered.length}</b>
+            </div>
+            <nav>
+                <ul class="pagination pagination-sm m-0">
+                    <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                        <button class="page-link bg-dark border-secondary text-white" onclick="changePage('${type}', ${currentPage - 1})">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                    </li>
+        `;
+
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+                html += `
+                    <li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <button class="page-link ${i === currentPage ? 'bg-primary border-primary' : 'bg-dark border-secondary'} text-white" onclick="changePage('${type}', ${i})">${i}</button>
+                    </li>
+                `;
+            } else if (i === currentPage - 2 || i === currentPage + 2) {
+                html += `<li class="page-item disabled"><span class="page-link bg-dark border-secondary text-secondary">...</span></li>`;
+            }
+        }
+
+        html += `
+                    <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                        <button class="page-link bg-dark border-secondary text-white" onclick="changePage('${type}', ${currentPage + 1})">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+        `;
+        pgn.innerHTML = html;
+    }
+
+    function changePage(type, page) {
+        state[type].currentPage = page;
+        renderTable(type);
     }
 
     function formatCurrency(amount) {

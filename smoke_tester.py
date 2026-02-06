@@ -94,11 +94,11 @@ def run_test():
             dur_str = f"{duration:.4f}s"
             warn = ""
             if duration > 1.5:
-                warn = "🔴 JUDA SEKIN!"
+                warn = "[!!!] JUDA SEKIN!"
             elif duration > 0.8:
-                warn = "🟠 Sekin"
+                warn = "[!] Sekin"
             elif duration < 0.1:
-                warn = "🟢 Tez"
+                warn = "[OK] Tez"
             
             print(f"{label:<30} | {dur_str:<10} | {status_str} {warn}")
             
@@ -110,7 +110,7 @@ def run_test():
     # Summary
     if results:
         results.sort(key=lambda x: x['duration'], reverse=True)
-        print("\n🚨 ENG SEKIN 3 TA BO'LIM:")
+        print("\n[SLOW] ENG SEKIN 3 TA BO'LIM:")
         for i, r in enumerate(results[:3], 1):
              print(f"{i}. {r['label']} ({r['path']}): {r['duration']:.4f} sekund")
 

@@ -10,7 +10,8 @@ from .services import ensure_center_subscription
 class SubscriptionMiddleware(MiddlewareMixin):
     """
     TenantMiddleware request.center ni topgandan keyin ishlaydi.
-    Center BLOCKED bo‘lsa: faqat billing sahifalari ochiq.
+    Center BLOCKED bo'lsa: faqat admin va manager uchun billing sahifalari majburiy.
+    Student, parent, teacher bloklangan markazda ham o'z dashboardlarini ko'rishi mumkin.
     """
 
     def process_request(self, request):
@@ -40,8 +41,12 @@ class SubscriptionMiddleware(MiddlewareMixin):
         if any(request.path.startswith(p) for p in allowed_prefixes):
             return None
 
-        # blocked bo‘lsa redirect
+        # blocked bo'lsa redirect - FAQAT admin va manager uchun
+        # Student, parent, teacher bloklangan markazda ham ishlashi mumkin (billing ko'rmaydi)
+        user_role = getattr(user, "role", None)
         if sub and sub.is_blocked():
-            return redirect("billing:blocked")
+            # Faqat admin va manager'larni blocking sahifasiga yo'naltirish
+            if user_role not in ("student", "parent", "teacher"):
+                return redirect("billing:blocked")
 
         return None

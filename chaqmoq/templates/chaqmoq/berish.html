@@ -51,6 +51,7 @@
     margin: 0;
     background: linear-gradient(135deg, var(--amber), var(--cyan));
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     display: flex;
     align-items: center;
@@ -287,9 +288,7 @@
 <script>
   (function () {
     const students = [
-      {% for s in students %}
-      { id: "{{ s.id }}", name: "{{ s.get_full_name }}" },
-  {% endfor %}
+      {% for s in students %}{ id: "{{ s.id }}", name: "{{ s.get_full_name|escapejs }}" }, {% endfor %}
     ];
 
   const input = document.getElementById('student_search_input');

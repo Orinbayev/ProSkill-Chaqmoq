@@ -41,6 +41,7 @@ urlpatterns = [
     path("api/centers/<int:center_id>/payments/", api_superadmin.center_payments_api, name="api_center_payments"),
     path("api/centers/<int:center_id>/update/", api_superadmin.center_update_api, name="api_center_update"),
     path("api/centers/<int:center_id>/delete/", api_superadmin.center_delete_api, name="api_center_delete"),
+    path("api/centers/<int:center_id>/archive/", api_superadmin.center_archive_api, name="api_center_archive"),
     path("api/plans/create/", api_superadmin.plan_create_api, name="api_plan_create"),
     path("api/plans/list/", api_superadmin.plan_list_api, name="api_plan_list"),
     path("api/plans/<int:plan_id>/update/", api_superadmin.plan_update_api, name="api_plan_update"),

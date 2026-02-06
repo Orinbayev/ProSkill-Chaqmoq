@@ -11,4 +11,5 @@ urlpatterns = [
 
     # demo confirm (superadmin)
     path("order/<int:pk>/confirm-demo/", views.order_confirm_demo, name="order_confirm_demo"),
+    path("order/<int:pk>/reject-demo/", views.order_reject_demo, name="order_reject_demo"),
 ]

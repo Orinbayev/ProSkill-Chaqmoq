@@ -323,10 +323,18 @@ def logout_view(request):
     logout(request)
     return redirect("login")
 
-@login_required
 def logout_now(request):
+    from django.contrib.auth import logout
+    from django.conf import settings
     logout(request)
-    return redirect("login")
+    try:
+        request.session.flush()
+    except:
+        pass
+    
+    response = redirect("login")
+    response.delete_cookie(settings.SESSION_COOKIE_NAME)
+    return response
 
 @login_required
 def center_stats_view(request, pk):

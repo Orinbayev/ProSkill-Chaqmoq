@@ -52,24 +52,30 @@ class AddUserForm(forms.ModelForm):
         self.request = kwargs.pop("request", None)
         super().__init__(*args, **kwargs)
 
-        # 🔥 O‘QITUVCHI FOIZI → MAJBURIY EMAS
+        # 🔥 O'QITUVCHI FOIZI → MAJBURIY EMAS
         self.fields["oqituvchi_foizi"].required = False
 
         # ✅ Director/Manager center tanlay olmasin (UI dan olib tashlaymiz)
         u = getattr(self.request, "user", None) if self.request else None
         
-        # ✅ Active Center Logic (Applies to ALL users, including Superadmin)
+        # ✅ Active Center Logic
         if self.request:
             active_center = getattr(self.request, "center", None)
+            
+            # Agar active_center yo'q bo'lsa, lekin user Superadmin bo'lsa:
+            # System Center (yoki birinchi markaz) ni default qilamiz
+            if not active_center and u and u.is_superuser:
+                active_center = Center.objects.filter(is_system=True).first()
+                if not active_center:
+                    active_center = Center.objects.filter(is_deleted=False).first()
+
             if active_center and "center" in self.fields:
-                # ✅ Qat'iy isolation: Faqat aktiv markazni ko'rsatamiz
+                # ✅ QAT'IY ISOLATION: Faqat bitta markaz bo'lsin
                 self.fields["center"].queryset = Center.objects.filter(id=active_center.id)
                 self.fields["center"].initial = active_center
                 self.fields["center"].required = True
+                self.fields["center"].empty_label = None # "-------" ni olib tashlaymiz
                 
-                # Agar bittagina markaz bo'lsa, tanlashga hojat yo'q, avtomat qo'yamiz
-                if self.fields["center"].queryset.count() == 1:
-                    self.fields["center"].initial = self.fields["center"].queryset.first()
             elif u and (not u.is_superuser) and getattr(u, "role", None) in ("director", "manager"):
                 # Agar active center yo'q bo'lsa va Director/Manager bo'lsa, center fieldni olib tashlaymiz
                 self.fields.pop("center", None)

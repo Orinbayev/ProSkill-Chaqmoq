@@ -53,7 +53,7 @@
           <ul
             class="dropdown-menu dropdown-menu-end glass-dropdown mt-2 animate__animated animate__fadeIn animate__faster">
             <li class="px-3 py-2 border-bottom border-white-10 mb-2">
-              <div class="fw-bold text-white small">{{ request.user.ism }} {{ request.user.familya }}</div>
+              <div class="fw-bold text-white small"> {{ request.user.ism }} {{ request.user.familya }}</div>
               <div class="text-white-50 xs-text text-uppercase">{{ request.user.get_role_display }}</div>
             </li>
             <li>
@@ -415,12 +415,19 @@
   /* STAT CARDS */
   .stat-card-premium {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    /* ✅ Explicitly show clickable */
+    position: relative;
+    z-index: 10;
+    /* ✅ Fix overlay issues */
   }
 
   .stat-card-premium:hover {
     transform: translateY(-8px);
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.12);
+    /* Brighter hover */
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    border-color: rgba(255, 255, 255, 0.3) !important;
   }
 
   .border-blue:hover {
@@ -560,6 +567,29 @@
         });
       });
     }
+
+    // ✅ FIX: Stuck Overlays / Loaders remover
+    setTimeout(() => {
+      // 1. Remove loaders
+      document.querySelectorAll('.preloader, #global-loader, .loader').forEach(el => {
+        el.style.display = 'none';
+        el.style.opacity = '0';
+        el.style.pointerEvents = 'none';
+      });
+
+      // 2. Remove modal backdrops
+      document.querySelectorAll('.modal-backdrop, .sidebar-overlay').forEach(el => {
+        el.classList.remove('show', 'open');
+        el.style.display = 'none';
+      });
+
+      // 3. Unlock body scroll
+      document.body.classList.remove('modal-open', 'sidebar-open');
+      document.body.style.overflow = 'auto';
+      document.body.style.paddingRight = '0px';
+
+      console.log('🛡️ Safety script: Cleaned up overlays.');
+    }, 800);
   });
 </script>
 {% endblock %}

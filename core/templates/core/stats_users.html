@@ -656,30 +656,42 @@
                   {% endif %}
                   {% if user_kind == 'students' %}
                   {% if current_status != 'archived' %}
-                  <button onclick="archiveStudent({{ u.id }})" class="text-red">
+                  <button onclick="archiveStudent('{{ u.id }}')" class="text-red">
                     <i class="fa-solid fa-box-archive"></i> Arxivlash
                   </button>
                   {% else %}
-                  <button onclick="restoreStudent({{ u.id }})" style="color:var(--green)">
+                  <button onclick="restoreStudent('{{ u.id }}')" style="color:var(--green)">
                     <i class="fa-solid fa-rotate-left"></i> Tiklash
                   </button>
                   {% endif %}
                   {% endif %}
                   {% if user_kind == 'parents' %}
-                  <a href="{% url 'core:parent_delete' u.id %}" class="text-red"
-                    onclick="return confirm('Ishonchingiz komilmi?')">
-                    <i class="fa-solid fa-trash"></i> O'chirish
-                  </a>
+                  <form method="post" action="{% url 'core:parent_delete' u.id %}" style="display:inline;"
+                    onsubmit="return confirm('Ishonchingiz komilmi?');">
+                    {% csrf_token %}
+                    <button type="submit" class="text-red"
+                      style="background:none;border:none;width:100%;text-align:left;cursor:pointer;padding:10px 16px;color:inherit;font-size:13px;font-weight:500;border-radius:8px;display:flex;align-items:center;gap:10px;">
+                      <i class="fa-solid fa-trash"></i> O'chirish
+                    </button>
+                  </form>
                   {% elif user_kind == 'teachers' %}
-                  <a href="{% url 'core:teacher_delete' u.id %}" class="text-red"
-                    onclick="return confirm('Ishonchingiz komilmi?')">
-                    <i class="fa-solid fa-trash"></i> O'chirish
-                  </a>
+                  <form method="post" action="{% url 'core:teacher_delete' u.id %}" style="display:inline;"
+                    onsubmit="return confirm('Ishonchingiz komilmi?');">
+                    {% csrf_token %}
+                    <button type="submit" class="text-red"
+                      style="background:none;border:none;width:100%;text-align:left;cursor:pointer;padding:10px 16px;color:inherit;font-size:13px;font-weight:500;border-radius:8px;display:flex;align-items:center;gap:10px;">
+                      <i class="fa-solid fa-trash"></i> O'chirish
+                    </button>
+                  </form>
                   {% else %}
-                  <a href="{% url 'core:user_delete' u.id %}" class="text-red"
-                    onclick="return confirm('Ishonchingiz komilmi?')">
-                    <i class="fa-solid fa-trash"></i> O'chirish
-                  </a>
+                  <form method="post" action="{% url 'core:user_delete' u.id %}" style="display:inline;"
+                    onsubmit="return confirm('Ishonchingiz komilmi?');">
+                    {% csrf_token %}
+                    <button type="submit" class="text-red"
+                      style="background:none;border:none;width:100%;text-align:left;cursor:pointer;padding:10px 16px;color:inherit;font-size:13px;font-weight:500;border-radius:8px;display:flex;align-items:center;gap:10px;">
+                      <i class="fa-solid fa-trash"></i> O'chirish
+                    </button>
+                  </form>
                   {% endif %}
                 </div>
               </div>
@@ -699,8 +711,8 @@
     <div class="size-selector">
       <span>Ko‘rsatish:</span>
       <select class="size-select" onchange="updateQuery({size: this.value, page: 1})">
-        <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
-        <option value="25" {% if page_size ==  25 %}selected{% endif %}>25</option>
+        <option value="10" {% if page_size  == 10 %}selected{% endif %}>10</option>
+        <option value="25" {% if page_size == 25 %}selected{% endif %}>25</option>
         <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
         <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
       </select>
@@ -708,7 +720,8 @@
 
     <div class="pagination-v2">
       {% if page_obj.has_previous %}
-      <a href="javascript:void(0)" onclick="updateQuery({page: {{ page_obj.previous_page_number }}})" class="page-link">
+      <a href="javascript:void(0)" onclick="updateQuery({page: '{{ page_obj.previous_page_number }}'})"
+        class="page-link">
         <i class="fa-solid fa-chevron-left"></i>
       </a>
       {% endif %}
@@ -717,12 +730,12 @@
       {% if n == page_obj.number %}
       <span class="page-link active">{{ n }}</span>
       {% elif n > page_obj.number|add:'-3' and n < page_obj.number|add:'3' %} <a href="javascript:void(0)"
-        onclick="updateQuery({page: {{ n }}})" class="page-link">{{ n }}</a>
+        onclick="updateQuery({page: '{{ n }}'})" class="page-link">{{ n }}</a>
         {% endif %}
         {% endfor %}
 
         {% if page_obj.has_next %}
-        <a href="javascript:void(0)" onclick="updateQuery({page: {{ page_obj.next_page_number }}})" class="page-link">
+        <a href="javascript:void(0)" onclick="updateQuery({page: '{{ page_obj.next_page_number }}'})" class="page-link">
           <i class="fa-solid fa-chevron-right"></i>
         </a>
         {% endif %}

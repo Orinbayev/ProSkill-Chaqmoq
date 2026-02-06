@@ -75,15 +75,30 @@ class TenantMiddleware:
                     p_billing_blocked = _safe_reverse("billing:blocked", default="/billing/blocked/")
                     p_billing_order = _safe_reverse("billing:order_create", default="/billing/order/create/")
                     
+                    # ✅ Center navigatsiya
+                    p_center_picker = _safe_reverse("accounts:center_picker", default="/hisob/center-picker/")
+                    p_center_switch = _safe_reverse("accounts:center_switch", default="/hisob/center-switch/")
+                    p_center_create = _safe_reverse("accounts:center_create", default="/hisob/superadmin/center/create/")
+                    
+                    # ✅ Logout paths (Both global and app-specific)
+                    p_logout_global = _safe_reverse("logout", default="/logout/")
+                    p_logout_accounts = _safe_reverse("accounts:logout", default="/hisob/logout/")
+
                     billing_allowed = (
                         p_billing_plans,
                         p_billing_blocked,
                         p_billing_order,
                         "/billing/",
-                        p_logout,
+                        p_logout_global,
+                        p_logout_accounts,
                         p_login,
                         "/static/",
                         "/media/",
+                        # ✅ Blocked bo'lsa ham markaz almashtirish/yaratishga ruxsat:
+                        p_center_picker,
+                        p_center_switch,
+                        p_center_create,
+                        "/hisob/api/", # APIga ruxsat (create/archive uchun)
                     )
                     
                     # ✅ MUAMMO 1: Pul tugasa avtomatik BLOCKED qilish
@@ -95,14 +110,28 @@ class TenantMiddleware:
                             user_center.save(update_fields=['status'])
                     
                     # Status tekshirish
-                    if user_center.status == Center.STATUS_BLOCKED:
-                        # ✅ Faqat billing sahifalariga ruxsat beramiz
-                        if not path.startswith(billing_allowed):
-                            messages.warning(request, f"⚠️ Markazingiz bloklangan. To'lovni amalga oshiring.")
-                            return redirect(p_billing_plans)
-                        
-                        # Blocked center'ni request'ga qo'yamiz (billing sahifalarida kerak bo'ladi)
-                        request.center = user_center
+                    if user_center.status != Center.STATUS_ACTIVE:
+                        # 1. Agar Arxivlangan bo'lsa -> To'liq chiqish yoki Center Picker
+                        if user_center.status == Center.STATUS_ARCHIVED:
+                            messages.error(request, "⚠️ Ushbu markaz arxivlangan. Tizimga kirish vaqtincha to'xtatilgan.")
+                            
+                            # Ruxsat berilgan yo'llar: Logout (x2) va Center Picker
+                            if not path.startswith(p_logout_global) and \
+                               not path.startswith(p_logout_accounts) and \
+                               not path.startswith(p_center_picker):
+                                
+                                # Robust logout ga yo'naltiramiz
+                                return redirect(p_logout_accounts)
+
+                        # 2. Agar Blocked bo'lsa -> Billing
+                        elif user_center.status == Center.STATUS_BLOCKED:
+                            # ✅ Faqat billing va center navigation sahifalariga ruxsat beramiz
+                            if not path.startswith(billing_allowed):
+                                messages.warning(request, f"⚠️ Markazingiz bloklangan. To'lovni amalga oshiring yoki boshqa markaz tanlang.")
+                                return redirect(p_billing_plans)
+                            
+                            # Blocked center'ni request'ga qo'yamiz (billing sahifalarida kerak bo'ladi)
+                            request.center = user_center
                     else:
                         # Student limit tekshirish (faqat student role uchun)
                         if request.user.role == 'student':

@@ -65,8 +65,7 @@
             <table class="table table-dark table-hover mb-0">
                 <thead>
                     <tr class="text-secondary small text-uppercase">
-                        <th class="ps-4">ID</th>
-                        <th>Markaz</th>
+                        <th class="ps-4">Markaz</th>
                         <th>Tarif</th>
                         <th>Muddat</th>
                         <th>Summa</th>
@@ -77,17 +76,23 @@
                 <tbody>
                     {% for order in pending_orders %}
                     <tr>
-                        <td class="ps-4 text-secondary">#{{ order.id }}</td>
-                        <td class="fw-bold">{{ order.center.name }}</td>
+                        <td class="ps-4 fw-bold">{{ order.center.name }}</td>
                         <td><span class="badge bg-primary bg-opacity-10 text-primary">{{ order.plan.code }}</span></td>
                         <td>{{ order.months }} oy</td>
                         <td class="fw-bold text-success">{{ order.final_price|intcomma }} so'm</td>
                         <td class="text-secondary">{{ order.created_at|date:"d-M-Y H:i" }}</td>
                         <td class="text-end pe-4">
-                            <a href="{% url 'billing:order_confirm_demo' order.id %}" class="btn btn-sm btn-success"
-                                onclick="return confirm('To\'lovni tasdiqlaysizmi?')">
-                                <i class="bi bi-check-lg"></i> Tasdiqlash
-                            </a>
+                            <div class="d-flex gap-2 justify-content-end">
+                                <a href="{% url 'billing:order_confirm_demo' order.id %}" class="btn btn-sm btn-success"
+                                    onclick="return confirm('To\'lovni tasdiqlaysizmi?')">
+                                    <i class="bi bi-check-lg"></i> Tasdiqlash
+                                </a>
+                                <a href="{% url 'billing:order_reject_demo' order.id %}"
+                                    class="btn btn-sm btn-outline-danger"
+                                    onclick="return confirm('To\'lovni rad etasizmi?')">
+                                    <i class="bi bi-x-lg"></i> Rad etish
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -130,6 +135,13 @@
                             {% else %}
                             <span class="badge bg-danger bg-opacity-10 text-danger">{{ c.status }}</span>
                             {% endif %}
+
+                            {% if c.is_system %}
+                            <span class="badge bg-warning bg-opacity-10 text-warning ms-1"
+                                title="Tizim markazi - o'chirib bo'lmaydi">
+                                <i class="bi bi-shield-lock-fill"></i> Sistema
+                            </span>
+                            {% endif %}
                         </td>
                         <td>
                             {% if c.director %}
@@ -162,15 +174,18 @@
                                             <i class="bi bi-gear-fill text-primary me-2"></i> Boshqaruv
                                         </a>
                                     </li>
+
+                                    {% if not c.is_system %}
                                     <li>
                                         <hr class="dropdown-divider border-secondary">
                                     </li>
                                     <li>
-                                        <button class="dropdown-item py-2 text-danger"
-                                            onclick="deleteCenter({{ c.id }})">
+                                        <button class="dropdown-item py-2 text-danger btn-delete-center"
+                                            data-id="{{ c.id }}" data-name="{{ c.name }}">
                                             <i class="bi bi-trash-fill me-2"></i> O'chirish
                                         </button>
                                     </li>
+                                    {% endif %}
                                 </ul>
                             </div>
                         </td>
@@ -183,8 +198,18 @@
 </div>
 
 <script>
-    async function deleteCenter(centerId) {
-        if (!confirm("Haqiqatan ham bu markazni o'chirmoqchimisiz?")) {
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.btn-delete-center').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const id = this.dataset.id;
+                const name = this.dataset.name;
+                deleteCenter(id, name);
+            });
+        });
+    });
+
+    async function deleteCenter(centerId, centerName) {
+        if (!confirm(`Haqiqatan ham "${centerName}" markazini o'chirmoqchimisiz?`)) {
             return;
         }
 

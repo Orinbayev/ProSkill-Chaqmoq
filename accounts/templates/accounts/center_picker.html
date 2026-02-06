@@ -180,16 +180,37 @@
     padding: 24px;
     position: relative;
     transition: transform 0.2s, box-shadow 0.2s;
+    overflow: visible !important;
+    /* Ensure dropdowns are not clipped */
   }
 
   .center-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.3);
     border-color: #334155;
+    z-index: 20;
+  }
+
+  .center-card:focus-within {
+    z-index: 30;
+  }
+
+  .center-card.archived {
+    opacity: 0.6;
+    filter: grayscale(1);
+    border-style: dashed;
+  }
+
+  .center-card.archived:hover {
+    opacity: 1;
+    filter: grayscale(0);
+    border-style: solid;
   }
 
   .card-header-row {
     margin-bottom: 20px;
+    position: relative;
+    z-index: 10;
   }
 
   .center-name {
@@ -608,6 +629,118 @@
     }
   }
 
+  /* --- DELETE MODAL STYLES --- */
+  .del-modal {
+    max-width: 480px !important;
+    height: auto !important;
+    max-height: none !important;
+    background: rgba(15, 23, 42, 0.8) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 28px !important;
+    padding: 2.5rem !important;
+    text-align: center;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5) !important;
+    animation: modalScaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes modalScaleUp {
+    from {
+      opacity: 0;
+      transform: scale(0.9) translateY(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  .del-icon-wrap {
+    width: 80px;
+    height: 80px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    color: #ef4444;
+    font-size: 2.5rem;
+    animation: iconShake 1s infinite alternate;
+  }
+
+  @keyframes iconShake {
+    0% {
+      transform: rotate(-5deg);
+    }
+
+    100% {
+      transform: rotate(5deg);
+    }
+  }
+
+  .del-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 0.75rem;
+  }
+
+  .del-desc {
+    color: #94a3b8;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+  }
+
+  .del-desc b {
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .del-actions {
+    display: flex;
+    gap: 12px;
+  }
+
+  .btn-del-cancel {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    font-weight: 700;
+    padding: 12px;
+    border-radius: 14px;
+    transition: all 0.2s;
+  }
+
+  .btn-del-cancel:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .btn-del-confirm {
+    flex: 2;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border: none;
+    color: white;
+    font-weight: 800;
+    padding: 12px;
+    border-radius: 14px;
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+    transition: all 0.2s;
+  }
+
+  .btn-del-confirm:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+    box-shadow: 0 12px 25px rgba(239, 68, 68, 0.4);
+  }
+
   /* Table styling for modals */
   .table-premium {
     background: transparent !important;
@@ -701,12 +834,13 @@
       <input type="text" class="search-input" placeholder="Qidirish... (nom, manzil)" id="searchInput">
     </div>
 
-    <form method="get" id="statusForm">
-      <select name="status" class="status-select" onchange="this.form.submit()">
-        <option value="">Status: Barchasi</option>
+    <form method="get" class="status-filter">
+      <select name="status" id="statusFilter" class="form-select bg-dark text-white border-secondary"
+        onchange="this.form.submit()">
+        <option value="" {% if not selected_status %}selected{% endif %}>Status: Barchasi</option>
         {% for s_code, s_label in statuses %}
         <option value="{{ s_code }}" {% if selected_status == s_code %}selected{% endif %}>
-          {{ s_label }}
+          Status: {{ s_label }}
         </option>
         {% endfor %}
       </select>
@@ -720,15 +854,52 @@
   <!-- Centers Grid -->
   <div class="center-grid" id="centerGrid">
     {% for c in centers %}
-    <div class="center-card" data-name="{{ c.name|default:'' }}" data-address="{{ c.address|default:'' }}">
-      <div class="card-header-row">
-        <div class="center-name">{{ c.name }}</div>
+    <div class="center-card {% if c.status == 'ARCHIVED' %}archived{% endif %}" data-name="{{ c.name|default:'' }}"
+      data-address="{{ c.address|default:'' }}">
+      <div class="card-header-row mb-3" style="position: relative;">
+        <div>
+          <div class="center-name h4 mb-1">{{ c.name }}</div>
 
-        {% if c.status == 'ACTIVE' %}
-        <div class="status-badge status-active">Active</div>
-        {% else %}
-        <div class="status-badge status-blocked">{{ c.status }}</div>
-        {% endif %}
+          {% if c.status == 'ACTIVE' %}
+          <div
+            class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 rounded-pill px-3">
+            Active</div>
+          {% elif c.status == 'ARCHIVED' %}
+          <div
+            class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-25 rounded-pill px-3">
+            Archived</div>
+          {% else %}
+          <div
+            class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25 rounded-pill px-3">
+            {{ c.status }}</div>
+          {% endif %}
+        </div>
+
+
+        <div class="dropdown" style="position: absolute; top: 0; right: 0; z-index: 1050;">
+          <button class="btn btn-icon btn-sm text-secondary hover-white p-0" type="button" data-bs-toggle="dropdown"
+            aria-expanded="false">
+            <i class="bi bi-three-dots-vertical fs-5"></i>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow-lg border-secondary"
+            style="z-index: 1055;">
+            {% if c.status == 'ARCHIVED' %}
+            <li>
+              <a class="dropdown-item" href="#"
+                onclick="event.preventDefault(); toggleArchive('{{ c.id }}', 'restore'); return false;">
+                <i class="bi bi-arrow-counterclockwise me-2 text-success"></i> Arxivdan chiqarish
+              </a>
+            </li>
+            {% else %}
+            <li>
+              <a class="dropdown-item" href="#"
+                onclick="event.preventDefault(); toggleArchive('{{ c.id }}', 'archive'); return false;">
+                <i class="bi bi-archive me-2 text-info"></i> Arxivlash
+              </a>
+            </li>
+            {% endif %}
+          </ul>
+        </div>
       </div>
 
       <div class="info-row">
@@ -748,7 +919,15 @@
         <div class="stat-chip"><i class="bi bi-wallet2"></i> {{ c.monthly_price|intcomma }} so'm</div>
       </div>
 
+
       <div class="action-row">
+        {% if c.status == 'ARCHIVED' %}
+        {# Arxivlangan markaz uchun - faqat disabled tugma #}
+        <button type="button" class="w-100 btn-select" disabled style="opacity: 0.4; cursor: not-allowed;">
+          Arxivlangan
+        </button>
+        {% else %}
+        {# Faol markaz uchun - oddiy Select tugma #}
         <form method="post" action="{% url 'accounts:center_switch' %}" class="flex-grow-1">
           {% csrf_token %}
           <input type="hidden" name="center_id" value="{{ c.id }}">
@@ -760,6 +939,7 @@
         <button type="button" class="btn-icon-sq" onclick="openEditModal('{{ c.id }}')">
           <i class="bi bi-pencil"></i>
         </button>
+        {% endif %}
 
         <button type="button" class="btn-icon-sq delete" data-center-id="{{ c.id }}" data-center-name="{{ c.name }}"
           onclick="handleDeleteClick(this)">
@@ -1263,18 +1443,25 @@
 
 <!-- DELETE MODAL -->
 <div id="deleteModal" class="cm-overlay">
-  <div class="cm-modal del-modal p-4">
-    <div class="mb-3 text-danger display-1"><i class="bi bi-exclamation-circle"></i></div>
-    <h4 class="text-white mb-3">Markazni O‘chirish</h4>
-    <p class="text-muted mb-4">
-      Siz <b id="delName" class="text-white"></b>ni o'chirmoqchisiz.
-      Bu amalni ortga qaytarib bo'lmaydi.
+  <div class="cm-modal del-modal">
+    <div class="del-icon-wrap">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+    </div>
+    <h2 class="del-title">Markazni O‘chirish</h2>
+    <p class="del-desc">
+      Siz haqiqatdan ham <b id="delName"></b> markazini o'chirmoqchimisiz?
+      <br>Bu amalni ortga qaytarib bo'lmaydi.
     </p>
-    <div class="d-flex justify-content-center gap-3">
-      <button type="button" class="btn btn-secondary px-4" onclick="closeModal('deleteModal')">Yo'q</button>
-      <button type="button" class="btn btn-danger px-4" onclick="confirmDelete()">Ha, O'chirish</button>
+    <div class="del-actions">
+      <button type="button" class="btn-del-cancel" onclick="closeModal('deleteModal')">Yo'q, qolsin</button>
+      <button type="button" class="btn-del-confirm" onclick="confirmDelete()">Ha, O'chirish</button>
     </div>
   </div>
+</div>
+
+<!-- Hidden data for JavaScript -->
+<div id="plans-data" style="display:none;"
+  data-plans='[{% for p in db_plans %}{"code": "{{ p.code|escapejs }}", "title": "{{ p.title|escapejs }}", "monthly_price": {{ p.monthly_price|default:0 }}, "discount_percent": {{ p.discount_percent|default:0 }}}{% if not forloop.last %},{% endif %}{% endfor %}]'>
 </div>
 
 <script>
@@ -1297,16 +1484,9 @@
 
 
 
-let availablePlans = [
-  {% for p in db_plans %}
-  {
-    code: "{{ p.code|escapejs }}",
-    title: "{{ p.title|escapejs }}",
-    monthly_price: {{ p.monthly_price|default:0 }},
-    discount_percent: {{ p.discount_percent|default:0 }}
-  }{% if not forloop.last %},{% endif %}
-  {% endfor %}
-];
+  const plansDataEl = document.getElementById('plans-data');
+  let availablePlans = JSON.parse(plansDataEl?.dataset.plans || '[]');
+
 
 
 
@@ -1893,6 +2073,44 @@ let availablePlans = [
       .then(res => { if (res.success) { fetchPlans(); location.reload(); } else alert("Xatolik: " + res.error); })
       .catch(err => alert("Xatolik: " + err));
   }
+
+
+
+
+</script>
+
+</script>
+
+<script>
+  // ✅ Archive Function in Isolated Script Block
+  function toggleArchive(centerId, action) {
+    if (!confirm(action === 'archive' ? "Markazni arxivlashni istaysizmi?" : "Markazni arxivdan chiqarishni istaysizmi?")) return;
+
+    const formData = new FormData();
+    formData.append('action', action);
+
+    fetch(`/hisob/api/centers/${centerId}/archive/`, {
+      method: 'POST',
+      body: formData,
+      headers: { "X-CSRFToken": "{{ csrf_token }}" }
+    })
+      .then(res => res.json())
+      .then(res => {
+        if (res.success) {
+          // Redirect to appropriate status page
+          const currentUrl = new URL(window.location.href);
+          currentUrl.searchParams.set('status', action === 'archive' ? 'ARCHIVED' : 'ACTIVE');
+          window.location.href = currentUrl.toString();
+        } else {
+          alert("Xatolik: " + (res.error || res.message));
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Server bilan bog'lanishda xato!");
+      });
+  }
+  window.toggleArchive = toggleArchive; // Ensure global access
 </script>
 
 {% endblock %}

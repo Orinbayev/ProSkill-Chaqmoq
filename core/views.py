@@ -17,7 +17,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth.forms import PasswordChangeForm, SetPasswordForm
 from django.core.exceptions import FieldError, PermissionDenied
 from django.core.paginator import Paginator
 from django.db import transaction
@@ -724,7 +724,7 @@ def stat_students(request):
             0
         )
     ).prefetch_related(
-        Prefetch("enrollment_set", queryset=Enrollment.objects.filter(group__center=center).select_related("group"))
+        Prefetch("enrollments", queryset=Enrollment.objects.filter(group__center=center).select_related("group"))
     ).order_by("-id")
 
     if q:
@@ -1682,8 +1682,8 @@ def profile_view(request):
     user = request.user
 
     pform = ProfileForm(instance=user)
-    pass_form = PasswordChangeForm(user=user)
-
+    pass_form = SetPasswordForm(user=user)
+    
     if request.method == "POST":
         action = request.POST.get("action")
 
@@ -1697,7 +1697,7 @@ def profile_view(request):
                 messages.error(request, "❌ Profilni saqlashda xatolik bor")
 
         elif action == "password":
-            pass_form = PasswordChangeForm(user=user, data=request.POST)
+            pass_form = SetPasswordForm(user=user, data=request.POST)
             if pass_form.is_valid():
                 u = pass_form.save()
                 update_session_auth_hash(request, u)

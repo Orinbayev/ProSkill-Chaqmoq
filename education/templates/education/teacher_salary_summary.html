@@ -235,7 +235,7 @@
   </p>
 
   <div class="card p-3 mb-4">
-    <canvas id="incomeChart" height="120"></canvas>
+    <canvas id="incomeChart" height="120" data-labels="{{ chart_labels|safe }}"></canvas>
   </div>
 
   <!-- ✅ MOBILE: jadval kesilib qolmasin -->
@@ -325,47 +325,52 @@
 
           if (chartInstance) chartInstance.destroy();
 
+          let labels = [];
+          try {
+            labels = JSON.parse(ctx.dataset.labels || '[]');
+          } catch (e) { console.error(e); }
+
           chartInstance = new Chart(ctx, {
             type: "bar",
             data: {
-              labels: {{ chart_labels| safe }},
-    datasets: [
-      {
-        label: "O‘qituvchi daromadi",
-        data: data.chart_teacher_income,
-        backgroundColor: "rgba(34, 197, 94, 0.6)",
-        borderColor: "#22c55e",
-        borderWidth: 1.5,
-        borderRadius: 6,
-      },
-      {
-        label: "Markaz foydasi",
-        data: data.chart_center_income,
-        backgroundColor: "rgba(56, 189, 248, 0.6)",
-        borderColor: "#38bdf8",
-        borderWidth: 1.5,
-        borderRadius: 6,
-      },
-      {
-        label: "Umumiy aylanma",
-        data: data.chart_total_turnover,
-        backgroundColor: "rgba(251, 191, 36, 0.6)",
-        borderColor: "#fbbf24",
-        borderWidth: 1.5,
-        borderRadius: 6,
-      }
-    ]
-  }
-      });
+              labels: labels,
+              datasets: [
+                {
+                  label: "O‘qituvchi daromadi",
+                  data: data.chart_teacher_income,
+                  backgroundColor: "rgba(34, 197, 94, 0.6)",
+                  borderColor: "#22c55e",
+                  borderWidth: 1.5,
+                  borderRadius: 6,
+                },
+                {
+                  label: "Markaz foydasi",
+                  data: data.chart_center_income,
+                  backgroundColor: "rgba(56, 189, 248, 0.6)",
+                  borderColor: "#38bdf8",
+                  borderWidth: 1.5,
+                  borderRadius: 6,
+                },
+                {
+                  label: "Umumiy aylanma",
+                  data: data.chart_total_turnover,
+                  backgroundColor: "rgba(251, 191, 36, 0.6)",
+                  borderColor: "#fbbf24",
+                  borderWidth: 1.5,
+                  borderRadius: 6,
+                }
+              ]
+            }
+          });
 
-    });
-  }
+        });
+    }
 
-  yearSelect.addEventListener("change", loadData);
-  monthSelect.addEventListener("change", loadData);
+    yearSelect.addEventListener("change", loadData);
+    monthSelect.addEventListener("change", loadData);
 
-  loadData();
-});
+    loadData();
+  });
 </script>
 
 {% endblock %}

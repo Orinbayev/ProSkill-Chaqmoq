@@ -2,562 +2,378 @@
 {% block content %}
 
 <style>
-  *, *::before, *::after { box-sizing: border-box; }
-  html, body { height: 100%; }
-  body { overflow-x: hidden; }
-
-  :root{
-    --bg0:#070a12;
-    --bg1:#0b1220;
-    --bg2:#0b1730;
-
-    --card: rgba(255,255,255,.055);
-    --card2: rgba(255,255,255,.08);
-    --line: rgba(255,255,255,.12);
-
-    --text:#e5e7eb;
-    --muted:#94a3b8;
-
-    --amber:#f59e0b;
-    --amber2:#fbbf24;
-
-    --neon:#38bdf8;
-    --neon2:#60a5fa;
-
-    --ok:#10b981;
-    --ok2:#059669;
-
-    --danger:#ef4444;
-
-    --shadow: 0 24px 70px rgba(0,0,0,.55);
-    --radius: 18px;
-
-    --ring: 0 0 0 3px rgba(56,189,248,.18);
-    --ring-amber: 0 0 0 3px rgba(245,158,11,.16);
-
-    --pad: clamp(12px, 2.2vw, 22px);
+  :root {
+    --glass-bg: rgba(15, 23, 42, 0.6);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    --accent: #38bdf8;
+    --accent-hover: #0ea5e9;
+    --text-main: #e2e8f0;
+    --text-muted: #94a3b8;
+    --danger: #ef4444;
+    --success: #10b981;
   }
 
-  .profile-shell{
-    min-height: calc(100vh - 80px);
-    padding: calc(var(--pad) + env(safe-area-inset-top)) var(--pad) calc(var(--pad) + env(safe-area-inset-bottom));
-    color: var(--text);
-    background:
-      radial-gradient(900px 520px at 15% 12%, rgba(56,189,248,.14), transparent 60%),
-      radial-gradient(900px 520px at 85% 18%, rgba(245,158,11,.14), transparent 60%),
-      radial-gradient(1000px 600px at 50% 105%, rgba(16,185,129,.10), transparent 60%),
-      linear-gradient(160deg, var(--bg0) 0%, var(--bg1) 45%, var(--bg2) 100%);
+  .profile-container {
+    max-width: 900px;
+    /* Reduced width */
+    margin: 30px auto;
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
   }
 
-  .profile-page{
-    width: min(1180px, 100%);
-    margin: 0 auto;
+  /* Compact Header */
+  .profile-header {
+    margin-bottom: 10px;
+    text-align: center;
   }
 
-  .p-head{
-    display:flex;
-    align-items:flex-start;
-    justify-content:space-between;
-    gap: 14px;
-    margin-bottom: 14px;
-  }
-
-  .p-title{
-    display:flex; align-items:center; gap: 10px;
-    margin: 0;
-    font-weight: 950;
-    font-size: clamp(22px, 3.2vw, 32px);
-    letter-spacing: .2px;
-    line-height: 1.1;
-  }
-
-  .p-sub{
-    margin: 8px 0 0;
-    color: rgba(148,163,184,.92);
-    font-weight: 750;
-    font-size: 13px;
-    line-height: 1.4;
-    max-width: 66ch;
-  }
-
-  .p-grid{
-    display:grid;
-    grid-template-columns: 1fr;
-    gap: 14px;
-    margin-top: 12px;
-  }
-  @media (min-width: 980px){
-    .p-grid{ grid-template-columns: 1fr 1fr; gap: 16px; }
-  }
-
-  .p-card{
-    position: relative;
-    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.035));
-    border: 1px solid rgba(255,255,255,.12);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    overflow:hidden;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    isolation: isolate;
-  }
-  .p-card::before{
-    content:"";
-    position:absolute; inset:-2px;
-    background:
-      radial-gradient(650px 220px at 18% 6%, rgba(56,189,248,.22), transparent 60%),
-      radial-gradient(650px 220px at 82% 0%, rgba(245,158,11,.18), transparent 60%);
-    opacity:.55;
-    pointer-events:none;
-    z-index:-1;
-    filter: blur(10px);
-  }
-
-  .p-card-head{
-    padding: 14px 16px;
-    border-bottom: 1px solid rgba(255,255,255,.10);
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap: 12px;
-  }
-
-  .p-card-title{
-    display:flex;
-    align-items:center;
-    gap: 10px;
-    font-weight: 950;
-    margin:0;
-    font-size: 14px;
-    letter-spacing: .3px;
+  .profile-header h1 {
+    font-size: 1.8rem;
+    /* Smaller font */
+    font-weight: 700;
+    margin-bottom: 6px;
     color: #fff;
   }
 
-  .p-card-body{ padding: 16px; }
-
-  .ava-row{
-    display:flex;
-    align-items:center;
-    gap: 14px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
+  .profile-header p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
   }
 
-  .ava{
-    width: 112px;
-    height: 112px;
-    border-radius: 26px;
-    border: 1px solid rgba(255,255,255,.16);
-    background:
-      radial-gradient(140px 140px at 30% 30%, rgba(56,189,248,.35), transparent 58%),
-      linear-gradient(145deg, rgba(245,158,11,.22), rgba(37,99,235,.18));
-    box-shadow:
-      0 18px 42px rgba(0,0,0,.44),
-      0 0 0 6px rgba(245,158,11,.06);
-    overflow:hidden;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-weight: 950;
-    font-size: 42px;
-    color:#fff;
-    position: relative;
-    flex: 0 0 auto;
-  }
-  @media (min-width: 480px){
-    .ava{ width: 128px; height: 128px; border-radius: 28px; font-size: 46px; }
-  }
-
-  .ava img{ width:100%; height:100%; object-fit:cover; display:block; }
-
-  .cam-badge{
-    position:absolute;
-    right: 10px;
-    bottom: 10px;
-    width: 36px;
-    height: 36px;
-    border-radius: 14px;
-    background: rgba(0,0,0,.55);
-    border: 1px solid rgba(255,255,255,.18);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    color:#fff;
-    box-shadow: 0 12px 30px rgba(0,0,0,.45);
-  }
-
-  .ava-meta{ flex:1; min-width: min(420px, 100%); }
-
-  .hint{
-    color: rgba(148,163,184,.92);
-    font-weight: 850;
-    font-size: 12px;
-    margin: 0 0 10px;
-  }
-
-  .inp, input, select, textarea{
-    width: 100%;
-    min-height: 48px;
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,.14);
-    background: rgba(2,6,23,.60);
-    color: var(--text);
-    padding: 10px 12px;
-    outline: none;
-    font-weight: 800;
-    transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease, background .18s ease;
-  }
-
-  input::placeholder, textarea::placeholder{
-    color: rgba(148,163,184,.70);
-    font-weight: 750;
-  }
-
-  input:focus, select:focus, textarea:focus{
-    border-color: rgba(245,158,11,.55);
-    box-shadow: var(--ring-amber);
-    background: rgba(2,6,23,.72);
-  }
-
-  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible, label:focus-visible{
-    outline: none;
-  }
-
-  .two{
-    display:grid;
+  /* Grid Layout */
+  .profile-grid {
+    display: grid;
     grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  @media (min-width: 980px){
-    .two{ grid-template-columns: 1fr 1fr; }
+    gap: 20px;
   }
 
-  .field label{
-    display:block;
-    margin: 0 0 8px;
-    font-size: 11px;
-    letter-spacing: .9px;
-    text-transform: uppercase;
-    color: rgba(148,163,184,.92);
-    font-weight: 950;
+  @media (min-width: 768px) {
+    .profile-grid {
+      grid-template-columns: 1fr 1fr;
+    }
   }
 
-  .file-wrap{
-    display:flex;
-    align-items:stretch;
+  /* Sleek Glass Card */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    /* Reduced radius */
+    padding: 24px;
+    /* Reduced padding */
+    box-shadow: var(--glass-shadow);
+  }
+
+  .card-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
     gap: 10px;
-    flex-wrap: wrap;
+    color: var(--text-main);
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 12px;
   }
 
-  .file-btn{
-    min-height: 48px;
-    padding: 0 14px;
-    border-radius: 14px;
-    border: 1px solid rgba(245,158,11,.26);
-    background: linear-gradient(180deg, rgba(245,158,11,.20), rgba(245,158,11,.10));
-    color: rgba(255,244,220,.98);
-    font-weight: 950;
-    cursor:pointer;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap: 10px;
-    transition: transform .18s ease, filter .18s ease, border-color .18s ease, box-shadow .18s ease;
-    user-select:none;
-    flex: 1 1 200px;
-    box-shadow: 0 16px 36px rgba(245,158,11,.10);
-  }
-  .file-btn:hover{
-    transform: translateY(-1px);
-    border-color: rgba(245,158,11,.42);
-    filter: brightness(1.06);
-  }
-  .file-btn:active{ transform: translateY(0px); }
-
-  .file-btn:focus{
-    box-shadow: var(--ring-amber);
-    border-color: rgba(245,158,11,.55);
+  /* Avatar Section - Compact */
+  .avatar-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
   }
 
-  .file-name{
-    min-height: 48px;
-    display:flex;
-    align-items:center;
-    padding: 0 12px;
-    border-radius: 14px;
-    border: 1px dashed rgba(255,255,255,.16);
-    background: rgba(2,6,23,.38);
-    color: rgba(226,232,240,.86);
-    font-weight: 800;
-    font-size: 12.5px;
-    min-width: 220px;
-    flex: 2 1 280px;
+  .avatar-wrapper {
+    position: relative;
+    width: 100px;
+    /* Smaller avatar */
+    height: 100px;
+    border-radius: 50%;
+    cursor: pointer;
+    background: #1e293b;
+    border: 2px solid rgba(255, 255, 255, 0.1);
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    transition: all 0.2s ease;
   }
 
-  .file-mini{
-    margin-top: 10px;
-    color: rgba(148,163,184,.85);
-    font-size: 12px;
-    font-weight: 800;
-    line-height: 1.35;
+  .avatar-wrapper:hover {
+    border-color: var(--accent);
   }
 
-  .btn-row{
-    display:flex;
-    gap: 12px;
-    align-items:stretch;
-    margin-top: 14px;
-    flex-wrap: wrap;
+  .avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
-  .btnx{
-    min-height: 52px;
-    border-radius: 16px;
-    border: 0;
-    padding: 0 14px;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap: 10px;
-    font-weight: 950;
-    cursor:pointer;
-    transition: transform .18s ease, filter .18s ease, box-shadow .18s ease, border-color .18s ease;
-    text-decoration:none;
-    white-space: nowrap;
-    flex: 1 1 240px;
-    touch-action: manipulation;
+  .avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.2);
   }
 
-  .btn-save{
-    background:
-      radial-gradient(420px 160px at 30% 20%, rgba(56,189,248,.25), transparent 60%),
-      linear-gradient(90deg, rgba(16,185,129,1), rgba(5,150,105,1));
-    color: #04120c;
-    box-shadow: 0 18px 40px rgba(16,185,129,.16);
-  }
-  .btn-save:hover{ transform: translateY(-2px); filter: brightness(1.03); }
-  .btn-save:focus{ box-shadow: 0 0 0 3px rgba(16,185,129,.16), 0 0 0 6px rgba(16,185,129,.06); }
-
-  .btn-back{
-    background: rgba(255,255,255,.06);
-    color: var(--text);
-    border: 1px solid rgba(255,255,255,.14);
-  }
-  .btn-back:hover{ transform: translateY(-2px); border-color: rgba(255,255,255,.22); filter: brightness(1.05); }
-  .btn-back:focus{ box-shadow: var(--ring); border-color: rgba(56,189,248,.38); }
-
-  .tip{
-    margin-top: 12px;
-    border-radius: 16px;
-    border: 1px solid rgba(245,158,11,.26);
-    background:
-      radial-gradient(520px 220px at 12% 20%, rgba(245,158,11,.18), transparent 55%),
-      rgba(245,158,11,.10);
-    padding: 12px 12px;
-    color: rgba(253,230,138,.95);
-    font-weight: 850;
-    font-size: 12px;
-    line-height: 1.45;
+  .avatar-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
   }
 
-  .err{
-    margin-top: 8px;
-    border: 1px solid rgba(239,68,68,.25);
-    background: rgba(239,68,68,.10);
-    color: rgba(254,202,202,.95);
+  .avatar-wrapper:hover .avatar-overlay {
+    opacity: 1;
+  }
+
+  .camera-icon {
+    font-size: 1.5rem;
+    color: #fff;
+  }
+
+  /* Compact Forms */
+  input[type="file"] {
+    display: none;
+  }
+
+  .form-group {
+    margin-bottom: 14px;
+  }
+
+  .form-label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .form-control {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
     padding: 10px 12px;
-    border-radius: 14px;
-    font-weight: 900;
-    font-size: 12.5px;
-    line-height: 1.35;
+    /* Compact padding */
+    height: 42px;
+    /* Fixed height */
+    color: #fff !important;
+    font-size: 0.9rem;
+    transition: border-color 0.2s;
   }
 
-  @media (prefers-reduced-motion: reduce){
-    * { transition: none !important; scroll-behavior: auto !important; }
+  .form-control:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff !important;
+  }
+
+  /* Fix AutoFill Background & Text Color */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px #1e293b inset !important;
+    -webkit-text-fill-color: #fff !important;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+
+  /* Fix Selection Color */
+  .form-control::selection {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  /* Compact Buttons */
+  .btn-primary {
+    width: 100%;
+    background: var(--accent);
+    color: #0f172a;
+    font-weight: 700;
+    padding: 10px;
+    height: 42px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: filter 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .btn-primary:hover {
+    filter: brightness(1.1);
+  }
+
+  .btn-success {
+    background: var(--success);
+    color: #fff;
+  }
+
+  .alert-box {
+    margin-top: 16px;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    color: #bae6fd;
+    display: flex;
+    gap: 8px;
+  }
+
+  .text-danger {
+    color: var(--danger);
+    font-size: 0.8rem;
+    margin-top: 4px;
   }
 </style>
 
-<main class="profile-shell" role="main">
-  <div class="profile-page">
+<div class="profile-container">
 
-    <header class="p-head">
-      <div>
-        <h1 class="p-title">
-          <i class="fa-regular fa-user" style="color:rgba(56,189,248,.95)"></i>
-          Profil
-        </h1>
-        <p class="p-sub">Rasm, ism/familiya va parolni shu yerdan boshqarasiz.</p>
-      </div>
-    </header>
-
-    <div class="p-grid">
-
-      <section class="p-card" aria-label="Profil ma'lumotlari">
-        <div class="p-card-head">
-          <h2 class="p-card-title">
-            <i class="fa-regular fa-id-badge" style="color:rgba(245,158,11,.95)"></i>
-            Profil ma'lumotlari
-          </h2>
-        </div>
-
-        <div class="p-card-body">
-
-          <form method="post" enctype="multipart/form-data" novalidate>
-            {% csrf_token %}
-            <input type="hidden" name="action" value="profile">
-
-            <div class="ava-row">
-              <div class="ava" id="avaBox" aria-label="Avatar">
-                {% if request.user.avatar %}
-                  <img id="avaImg" src="{{ request.user.avatar.url }}" alt="avatar">
-                {% else %}
-                  <span id="avaLetter">{{ request.user.ism|default:"M"|first|upper }}</span>
-                  <img id="avaImg" src="" alt="avatar" style="display:none;">
-                {% endif %}
-                <div class="cam-badge" aria-hidden="true"><i class="fa-solid fa-camera"></i></div>
-              </div>
-
-              <div class="ava-meta">
-                <div class="hint">Avatar (JPG/PNG/WEBP)</div>
-
-                {{ pform.avatar }}
-
-                <div class="file-wrap" role="group" aria-label="Avatar fayl yuklash">
-                  <label class="file-btn" for="id_avatar" tabindex="0">
-                    <i class="fa-solid fa-upload" aria-hidden="true"></i> Fayl tanlash
-                  </label>
-                  <div class="file-name" id="fileName" aria-live="polite">Fayl tanlanmagan</div>
-                </div>
-
-                <div class="file-mini">Tavsiya: 1:1 kvadrat rasm (masalan 600x600).</div>
-
-                {% if pform.avatar.errors %}
-                  <div class="err" role="alert">{{ pform.avatar.errors|striptags }}</div>
-                {% endif %}
-              </div>
-            </div>
-
-            <div class="two">
-              <div class="field">
-                <label for="id_ism">Ism</label>
-                {{ pform.ism }}
-                {% if pform.ism.errors %}<div class="err" role="alert">{{ pform.ism.errors|striptags }}</div>{% endif %}
-              </div>
-
-              <div class="field">
-                <label for="id_familya">Familiya</label>
-                {{ pform.familya }}
-                {% if pform.familya.errors %}<div class="err" role="alert">{{ pform.familya.errors|striptags }}</div>{% endif %}
-              </div>
-            </div>
-
-            <div class="btn-row">
-              <button class="btnx btn-save" type="submit">
-                <i class="fa-regular fa-floppy-disk" aria-hidden="true"></i> Saqlash
-              </button>
-
-              <a class="btnx btn-back" href="{{ request.GET.next|default:'/' }}">
-                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Orqaga
-              </a>
-            </div>
-          </form>
-
-        </div>
-      </section>
-
-      <section class="p-card" aria-label="Parolni o'zgartirish">
-        <div class="p-card-head">
-          <h2 class="p-card-title">
-            <i class="fa-solid fa-lock" style="color:rgba(245,158,11,.95)"></i>
-            Parolni o'zgartirish
-          </h2>
-        </div>
-
-        <div class="p-card-body">
-          <form method="post" novalidate>
-            {% csrf_token %}
-            <input type="hidden" name="action" value="password">
-
-            <div class="two" style="grid-template-columns:1fr;">
-              <div class="field">
-                <label for="id_old_password">Eski parol</label>
-                {{ pass_form.old_password }}
-                {% if pass_form.old_password.errors %}<div class="err" role="alert">{{ pass_form.old_password.errors|striptags }}</div>{% endif %}
-              </div>
-
-              <div class="field">
-                <label for="id_new_password1">Yangi parol</label>
-                {{ pass_form.new_password1 }}
-                {% if pass_form.new_password1.errors %}<div class="err" role="alert">{{ pass_form.new_password1.errors|striptags }}</div>{% endif %}
-              </div>
-
-              <div class="field">
-                <label for="id_new_password2">Yangi parol (takror)</label>
-                {{ pass_form.new_password2 }}
-                {% if pass_form.new_password2.errors %}<div class="err" role="alert">{{ pass_form.new_password2.errors|striptags }}</div>{% endif %}
-              </div>
-            </div>
-
-            <div class="btn-row">
-              <button class="btnx btn-save" type="submit">
-                <i class="fa-solid fa-rotate" aria-hidden="true"></i> Yangilash
-              </button>
-            </div>
-
-            <div class="tip" role="note">
-              Maslahat: Xavfsizlikni ta’minlash uchun kamida 8 ta belgidan iborat,
-              katta va kichik harflar hamda raqamlar ishtirokidagi kuchli paroldan foydalaning.
-            </div>
-
-          </form>
-        </div>
-      </section>
-
-    </div>
+  <div class="profile-header">
+    <h1>Mening Profilim</h1>
+    <p>Shaxsiy ma'lumotlar va xavfsizlik</p>
   </div>
-</main>
+
+  <div class="profile-grid">
+
+    <!-- Profile Info Card -->
+    <div class="glass-card">
+      <div class="card-title">
+        <i class="bi bi-person-circle"></i> Profil ma'lumotlari
+      </div>
+
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="profile">
+
+        <!-- Compact Avatar -->
+        <div class="avatar-section">
+          <label for="id_avatar" class="avatar-wrapper" title="Rasmni o'zgartirish">
+            {% if request.user.avatar %}
+            <img id="avatarPreview" src="{{ request.user.avatar.url }}" class="avatar-img" alt="Avatar">
+            {% else %}
+            <div id="avatarPlaceholder" class="avatar-placeholder">
+              {{ request.user.ism|default:"U"|first|upper }}
+            </div>
+            <img id="avatarPreview" src="" class="avatar-img" style="display:none;" alt="Avatar">
+            {% endif %}
+            <div class="avatar-overlay"><i class="bi bi-camera camera-icon"></i></div>
+          </label>
+          {{ pform.avatar }}
+          <div style="font-size: 0.8rem; color: var(--text-muted);">Rasmni o'zgartirish</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="id_ism">Ism</label>
+          {{ pform.ism }}
+          {% if pform.ism.errors %}<div class="text-danger">{{ pform.ism.errors|striptags }}</div>{% endif %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="id_familya">Familiya</label>
+          {{ pform.familya }}
+          {% if pform.familya.errors %}<div class="text-danger">{{ pform.familya.errors|striptags }}</div>{% endif %}
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i class="bi bi-save"></i> Saqlash
+        </button>
+      </form>
+    </div>
+
+    <!-- Password Change Card -->
+    <div class="glass-card">
+      <div class="card-title">
+        <i class="bi bi-key-fill"></i> Parolni yangilash
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="password">
+
+        <!-- Removed Old Password Field -->
+        <!-- Only New Passwords -->
+
+        <div class="form-group">
+          <label class="form-label" for="id_new_password1">Yangi parol</label>
+          {{ pass_form.new_password1 }}
+          {% if pass_form.new_password1.errors %}<div class="text-danger">{{ pass_form.new_password1.errors|striptags }}
+          </div>{% endif %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="id_new_password2">Yangi parol (takror)</label>
+          {{ pass_form.new_password2 }}
+          {% if pass_form.new_password2.errors %}<div class="text-danger">{{ pass_form.new_password2.errors|striptags }}
+          </div>{% endif %}
+        </div>
+
+        <button type="submit" class="btn-primary btn-success">
+          <i class="bi bi-check-circle"></i> Yangilash
+        </button>
+
+        <div class="alert-box">
+          <i class="bi bi-info-circle"></i>
+          <div>Kamida 8 ta belgi. Katta/kichik harf va raqamlar bo'lishi tavsiya etiladi.</div>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
 
 <script>
-  document.querySelectorAll("input, select, textarea").forEach(el=>{
-    if(!el.classList.contains("inp") && el.type !== "file") el.classList.add("inp");
+  // Add styling classes to Django rendered inputs
+  document.querySelectorAll('input, select, textarea').forEach(el => {
+    if (el.type !== 'file' && !el.classList.contains('form-control')) {
+      el.classList.add('form-control');
+    }
   });
 
+  // Avatar preview logic
   const fileInput = document.getElementById("id_avatar");
-  const fileName  = document.getElementById("fileName");
-  const avaImg    = document.getElementById("avaImg");
-  const avaLetter = document.getElementById("avaLetter");
+  const avatarPreview = document.getElementById("avatarPreview");
+  const avatarPlaceholder = document.getElementById("avatarPlaceholder");
 
-  if(fileInput){
-    fileInput.addEventListener("change", function(){
-      const f = fileInput.files && fileInput.files[0];
-      if(!f){
-        if(fileName) fileName.textContent = "Fayl tanlanmagan";
-        return;
+  if (fileInput) {
+    fileInput.addEventListener("change", function (e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          if (avatarPreview) {
+            avatarPreview.src = e.target.result;
+            avatarPreview.style.display = "block";
+          }
+          if (avatarPlaceholder) {
+            avatarPlaceholder.style.display = "none";
+          }
+        }
+        reader.readAsDataURL(file);
       }
-      if(fileName) fileName.textContent = f.name;
-
-      try{
-        const url = URL.createObjectURL(f);
-        if(avaImg){
-          avaImg.src = url;
-          avaImg.style.display = "block";
-        }
-        if(avaLetter) avaLetter.style.display = "none";
-      }catch(e){}
     });
-
-    const fileBtn = document.querySelector('label.file-btn[for="id_avatar"]');
-    if(fileBtn){
-      fileBtn.addEventListener("keydown", (e)=>{
-        if(e.key === "Enter" || e.key === " "){
-          e.preventDefault();
-          fileInput.click();
-        }
-      });
-    }
   }
 </script>
 

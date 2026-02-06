@@ -126,6 +126,7 @@ class Enrollment(models.Model):
     student = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
+        related_name="enrollments",
         limit_choices_to={"role": "student"},
         verbose_name="O‘quvchi",
     )
@@ -275,7 +276,14 @@ class Payment(models.Model):
             if not self.group_id:
                 self.group_id = self.enrollment.group_id
 
-        # 2) Umumiy summa
+        # 2) Center ni avtomatik aniqlash
+        if not self.center_id:
+            if self.group_id and hasattr(self.group, 'center'):
+                self.center = self.group.center
+            elif self.enrollment_id and hasattr(self.enrollment, 'group'):
+                self.center = self.enrollment.group.center
+
+        # 3) Umumiy summa
         self.summa = int(self.cash_amount or 0) + int(self.card_amount_som or 0)
 
         super().save(*args, **kwargs)

@@ -15,7 +15,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ===== Core =====
 SECRET_KEY = os.getenv("SECRET_KEY", "unsafe-secret-key")
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
+# ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
+ALLOWED_HOSTS = ['a1b2c3d4.ngrok-free.app', '127.0.0.1']
 
 # ===== Installed Apps =====
 INSTALLED_APPS = [
@@ -114,7 +115,8 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "core.middleware.TenantMiddleware",
-    "billing.middleware.SubscriptionMiddleware",
+    # "billing.middleware.SubscriptionMiddleware",  # ❌ Vaqtinchalik o'chirildi - redirect loop
+    # "core.middleware_rbac.RoleBasedAccessMiddleware",  # ❌ Vaqtinchalik o'chirildi
 ]
 
 ROOT_URLCONF = "config.urls"

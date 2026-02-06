@@ -2,122 +2,352 @@
 {% block content %}
 
 <style>
-  :root{
-    --panel: rgba(255,255,255,.06);
-    --line: rgba(255,255,255,.10);
-    --text:#e5e7eb;
-    --muted:#94a3b8;
-    --amber:#f59e0b;
-    --shadow: 0 18px 60px rgba(0,0,0,.55);
-    --r18:18px;
+  :root {
+    --bg-dark: #020617;
+    --card-bg: rgba(15, 23, 42, 0.6);
+    --border-color: rgba(255, 255, 255, 0.08);
+    --text-primary: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent-amber: #f59e0b;
+    --accent-emerald: #10b981;
+    --primary-blue: #3b82f6;
   }
-  .glass{
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: var(--r18);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(10px);
+
+  .manage-scope {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
   }
-  .text-muted2{ color: var(--muted)!important; }
+
+  /* --- HEADER --- */
+  .manage-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2.5rem;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+  }
+
+  .header-brand h1 {
+    font-size: 2rem;
+    font-weight: 950;
+    color: white;
+    margin: 0;
+    letter-spacing: -1px;
+  }
+
+  .header-brand p {
+    color: var(--text-muted);
+    font-weight: 600;
+    margin: 5px 0 0;
+    font-size: 0.95rem;
+  }
+
+  .btn-action-outline {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    padding: 10px 18px;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s;
+  }
+
+  .btn-action-outline:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    color: white;
+  }
+
+  /* --- GLASS CARDS --- */
+  .m-glass {
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    padding: 1.75rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    height: 100%;
+    transition: transform 0.3s ease;
+  }
+
+  .card-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .card-title i {
+    color: var(--primary-blue);
+    font-size: 1.3rem;
+  }
+
+  /* --- FORMS --- */
+  .m-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .m-input,
+  .m-select {
+    width: 100%;
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    color: white;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .m-input:focus,
+  .m-select:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    background: rgba(15, 23, 42, 0.6);
+  }
+
+  .m-select option {
+    background: #1e293b;
+    color: white;
+  }
+
+  .btn-m-primary {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #121a21;
+    font-weight: 800;
+    border: none;
+    padding: 0.85rem;
+    border-radius: 14px;
+    width: 100%;
+    font-size: 1rem;
+    box-shadow: 0 10px 20px rgba(245, 158, 11, 0.25);
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .btn-m-primary:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+    box-shadow: 0 15px 25px rgba(245, 158, 11, 0.35);
+  }
+
+  .btn-m-success {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    font-weight: 800;
+    border: none;
+    padding: 0.85rem;
+    border-radius: 14px;
+    width: 100%;
+    font-size: 1rem;
+    box-shadow: 0 10px 20px rgba(16, 185, 129, 0.25);
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .btn-m-success:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+    box-shadow: 0 15px 25px rgba(16, 185, 129, 0.35);
+  }
+
+  /* --- TABLES --- */
+  .m-table-wrap {
+    margin-top: 1rem;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .m-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+  }
+
+  .m-table th {
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .m-table td {
+    padding: 14px 16px;
+    color: #cbd5e1;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .m-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .role-badge {
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--primary-blue);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
 </style>
 
-<div class="container py-4">
-  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-    <div>
-      <h3 class="fw-bold mb-1">{{ center.name }}</h3>
-      <div class="text-muted2">Center boshqaruvi: director biriktirish / yaratish</div>
+<div class="manage-scope">
+  <!-- Header -->
+  <div class="manage-header">
+    <div class="header-brand">
+      <h1>{{ center.name }}</h1>
+      <p><i class="fa-solid fa-users-gear me-2"></i>Center boshqaruvi: director biriktirish / yaratish</p>
     </div>
 
-    <div class="d-flex gap-2">
-      <a class="btn btn-outline-light" href="{% url 'accounts:center_picker' %}">⬅ Centerlar</a>
-      <a class="btn btn-outline-light" href="/admin/accounts/center/{{ center.id }}/change/">Admin edit</a>
+    <div class="d-flex gap-3">
+      <a class="btn-action-outline" href="{% url 'accounts:center_picker' %}">
+        <i class="fa-solid fa-arrow-left"></i> Centerlar
+      </a>
+      <a class="btn-action-outline" href="/admin/accounts/center/{{ center.id }}/change/" target="_blank">
+        <i class="fa-solid fa-cog"></i> Admin edit
+      </a>
     </div>
   </div>
 
-  <div class="row g-3">
+  <div class="row g-4">
+    <!-- Assign Section -->
     <div class="col-12 col-lg-6">
-      <div class="glass p-3">
-        <div class="fw-bold mb-2">Mavjud directordan biriktirish</div>
+      <div class="m-glass">
+        <h3 class="card-title">
+          <i class="fa-solid fa-user-plus"></i> Mavjud directordan biriktirish
+        </h3>
 
         <form method="post">
           {% csrf_token %}
           <input type="hidden" name="action" value="assign_existing">
-          <div class="mb-2">
-            <label class="form-label text-muted2">Director</label>
-            <select class="form-select" name="director_id" required>
-              <option value="">— Tanlang —</option>
+          <div class="mb-4">
+            <label class="m-label">Director tanlang</label>
+            <select class="m-select" name="director_id" required>
+              <option value="">— Direktorlar ro'yxati —</option>
               {% for u in all_directors %}
-                <option value="{{ u.id }}">
-                  {{ u.id }} — {{ u.email }}{% if u.center %} ({{ u.center.name }}){% endif %}
-                </option>
+              <option value="{{ u.id }}">
+                {{ u.get_full_name|default:u.email }}{% if u.center %} ({{ u.center.name }}){% endif %}
+              </option>
               {% endfor %}
             </select>
           </div>
-          <button class="btn btn-warning fw-bold w-100">Biriktirish</button>
+          <button type="submit" class="btn-m-primary">
+            <i class="fa-solid fa-link me-2"></i> Biriktirish
+          </button>
         </form>
-      </div>
 
-      <div class="glass p-3 mt-3">
-        <div class="fw-bold mb-2">Bu center staff ro‘yxati</div>
-
-        <div class="table-responsive">
-          <table class="table table-dark table-sm align-middle mb-0">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Role</th>
-                <th>Email</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for u in staff %}
-                <tr>
-                  <td>{{ u.id }}</td>
-                  <td>{{ u.role }}</td>
-                  <td>{{ u.email }}</td>
-                </tr>
-              {% empty %}
-                <tr><td colspan="3" class="text-muted2">Hali director/manager biriktirilmagan</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
+        <div class="mt-5">
+          <h3 class="card-title" style="margin-bottom: 1rem;">
+            <i class="fa-solid fa-list-check"></i> Center xodimlari
+          </h3>
+          <div class="m-table-wrap">
+            <div class="table-responsive">
+              <table class="m-table">
+                <thead>
+                  <tr>
+                    <th>Role</th>
+                    <th>Email / Ism</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for u in staff %}
+                  <tr>
+                    <td><span class="role-badge">{{ u.role }}</span></td>
+                    <td>
+                      <div style="color: white;">{{ u.get_full_name|default:"Nomlanmagan" }}</div>
+                      <div style="font-size: 0.75rem; color: var(--text-muted);">{{ u.email }}</div>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="3" class="text-center py-4" style="color: var(--text-muted);">
+                      <i class="fa-solid fa-user-slash d-block mb-2 fs-3"></i>
+                      Hali xodimlar biriktirilmagan
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-
       </div>
     </div>
 
+    <!-- Create Section -->
     <div class="col-12 col-lg-6">
-      <div class="glass p-3">
-        <div class="fw-bold mb-2">Yangi director yaratish</div>
+      <div class="m-glass">
+        <h3 class="card-title">
+          <i class="fa-solid fa-user-tie"></i> Yangi direktor yaratish
+        </h3>
 
         <form method="post">
           {% csrf_token %}
           <input type="hidden" name="action" value="create_new">
 
-          <div class="row g-2">
-            <div class="col-12 col-md-6">
-              <label class="form-label text-muted2">Ism</label>
-              <input class="form-control" name="ism" required>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="m-label">Ism</label>
+              <input class="m-input" name="ism" placeholder="Ibrohim" required>
             </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label text-muted2">Familya</label>
-              <input class="form-control" name="familya" required>
+            <div class="col-md-6">
+              <label class="m-label">Familya</label>
+              <input class="m-input" name="familya" placeholder="Karimov" required>
             </div>
           </div>
 
-          <div class="mt-2">
-            <label class="form-label text-muted2">Email (ixtiyoriy)</label>
-            <input class="form-control" name="email" placeholder="director@gmail.com">
+          <div class="mb-3">
+            <label class="m-label">Email / Login</label>
+            <input class="m-input" name="email" placeholder="director@chaqmoq.uz">
           </div>
 
-          <div class="mt-2">
-            <label class="form-label text-muted2">Parol</label>
-            <input class="form-control" name="password" type="password" required>
+          <div class="mb-4">
+            <label class="m-label">Parol</label>
+            <input class="m-input" name="password" type="password" placeholder="••••••••" required>
           </div>
 
-          <button class="btn btn-success fw-bold w-100 mt-3">Yaratish va biriktirish</button>
-          <div class="text-muted2 small mt-2">
-            Eslatma: role=director va center avtomatik biriktiriladi.
+          <button type="submit" class="btn-m-success">
+            <i class="fa-solid fa-user-check me-2"></i> Yaratish va biriktirish
+          </button>
+
+          <div
+            style="background: rgba(16, 185, 129, 0.05); border: 1px dashed rgba(16, 185, 129, 0.2); border-radius: 12px; padding: 1rem; margin-top: 1.5rem;">
+            <p
+              style="color: #6ee7b7; font-size: 0.85rem; font-weight: 700; margin: 0; display: flex; align-items: flex-start; gap: 8px;">
+              <i class="fa-solid fa-circle-info mt-1"></i>
+              <span>Eslatma: Foydalanuvchi roli avtomatik ravishda "director" sifatida o'rnatiladi va ushbu markazga
+                bog'lanadi.</span>
+            </p>
           </div>
         </form>
       </div>

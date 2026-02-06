@@ -10,8 +10,8 @@ urlpatterns = [
     # 🔹 Admin panel
     path('admin/', admin.site.urls),
 
-    # 🔹 Auth
-    path('hisob/login/', auth_views.LoginView.as_view(template_name='accounts/login.html'), name='login'),
+    # 🔹 Auth (Secure version - ignores ?next parameter)
+    path('hisob/login/', include('accounts.auth_urls')),  # Custom secure login
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
 
     # 🔹 Apps
