@@ -103,10 +103,15 @@ class TenantMiddleware:
                     
                     # ✅ MUAMMO 1: Pul tugasa avtomatik BLOCKED qilish
                     from django.utils import timezone
-                    if user_center.expires_at and timezone.now() >= user_center.expires_at:
-                        if user_center.status == Center.STATUS_ACTIVE:
-                            # Avtomatik block qilamiz (bir marta)
-                            user_center.status = Center.STATUS_BLOCKED
+                    if user_center.expires_at:
+                        if timezone.now() >= user_center.expires_at:
+                            if user_center.status == Center.STATUS_ACTIVE:
+                                # Avtomatik block qilamiz
+                                user_center.status = Center.STATUS_BLOCKED
+                                user_center.save(update_fields=['status'])
+                        elif user_center.status == Center.STATUS_BLOCKED:
+                            # ✅ Agar vaqti uzaytirilsa avtomatik ACTIVE qilamiz
+                            user_center.status = Center.STATUS_ACTIVE
                             user_center.save(update_fields=['status'])
                     
                     # Status tekshirish
@@ -160,12 +165,23 @@ class TenantMiddleware:
                 if active_center_id:
                     center = Center.objects.filter(id=active_center_id).first()
                     
+                    if not center:
+                        # ✅ Agar center o'chirilgan bo'lsa sessionni tozalaymiz
+                        del request.session["active_center_id"]
+                        request.session.modified = True
+                        return redirect(p_center_picker)
+                    
                     # ✅ MUAMMO 1: Superadmin rejimida ham avtomatik expiration tekshirish
                     if center:
                         from django.utils import timezone
-                        if center.expires_at and timezone.now() >= center.expires_at:
-                            if center.status == Center.STATUS_ACTIVE:
-                                center.status = Center.STATUS_BLOCKED
+                        if center.expires_at:
+                            if timezone.now() >= center.expires_at:
+                                if center.status == Center.STATUS_ACTIVE:
+                                    center.status = Center.STATUS_BLOCKED
+                                    center.save(update_fields=['status'])
+                            elif center.status == Center.STATUS_BLOCKED:
+                                # ✅ Time extended -> Auto UNBLOCK
+                                center.status = Center.STATUS_ACTIVE
                                 center.save(update_fields=['status'])
                     
                     # ✅ MUAMMO 2: Superadmin uchun ham status tekshirish

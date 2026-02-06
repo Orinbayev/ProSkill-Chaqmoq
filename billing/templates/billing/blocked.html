@@ -17,7 +17,9 @@
     {% endif %}
 
     <div class="d-flex gap-2 mt-3">
+      {% if not readonly %}
       <a href="{% url 'billing:plans' %}" class="btn btn-warning fw-bold">💳 To‘lov / Tarif</a>
+      {% endif %}
       <form action="{% url 'logout' %}" method="post" style="display:inline;">
         {% csrf_token %}
         <button type="submit" class="btn btn-outline-light">Chiqish</button>

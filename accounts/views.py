@@ -60,6 +60,11 @@ def center_picker(request):
         centers = centers.filter(status=status)
 
     centers = centers.order_by("name")
+    
+    # ✅ Exclude user's own attached center (Asosiy markaz) if requested
+    if request.user.center:
+        centers = centers.exclude(id=request.user.center.id)
+
     active_center_id = request.session.get("active_center_id")
 
     # Fetch dynamic plans

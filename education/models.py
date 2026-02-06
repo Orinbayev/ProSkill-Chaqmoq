@@ -53,6 +53,8 @@ class Group(models.Model):
     kurs_narxi = models.PositiveIntegerField(default=500000, help_text="Bir oylik to‘lov (so‘mda)")
     oqituvchi_foiz = models.PositiveIntegerField(default=40, help_text="O‘qituvchi foizi (%)")
     oy_dars_soni = models.PositiveIntegerField(default=12, help_text="Bir oyda nechta dars bo‘ladi")
+    
+    is_archived = models.BooleanField(default=False, verbose_name="Arxivlangan")
 
     class Meta:
         verbose_name = "Guruh"

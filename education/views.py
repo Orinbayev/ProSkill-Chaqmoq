@@ -1210,7 +1210,7 @@ def attendance_groups(request):
 
     # ✅ Base queryset
     groups = (
-        Group.objects
+        Group.objects.filter(is_archived=False)
         .select_related("center", "oqituvchi")
         .annotate(
             attendance_count=Count("attendances", distinct=True),
@@ -2406,11 +2406,41 @@ def category_detail(request, category_id):
     if center:
         groups = groups.filter(center=center)
 
+    # Filter by status (default: active)
+    status = request.GET.get('status', 'active')
+    if status == 'archived':
+        groups = groups.filter(is_archived=True)
+    else:
+        groups = groups.filter(is_archived=False)
+
     return render(request, "education/category_detail.html", {
         "category": category,
         "groups": groups,
         "groups_count": groups.count(),
+        "status": status,
     })
+
+
+@login_required
+def group_toggle_archive(request, pk):
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Group.objects.all()
+    if center:
+        qs = qs.filter(center=center)
+    group = get_object_or_404(qs, pk=pk)
+
+    if not _can_manage(request.user):
+         messages.error(request, "Ruxsat yo‘q.")
+         return redirect("education:category_detail", category_id=group.category_obj.id)
+         
+    if request.method == "POST":
+        group.is_archived = not group.is_archived
+        group.save()
+        status_msg = "arxivlandi" if group.is_archived else "faollashtirildi"
+        messages.success(request, f"Guruh muvaffaqiyatli {status_msg} ✅")
+        
+    return redirect("education:category_detail", category_id=group.category_obj.id)
 
 from datetime import datetime
 from django.contrib.auth.decorators import login_required

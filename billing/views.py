@@ -27,13 +27,20 @@ def plans(request):
         messages.error(request, "Center topilmadi.")
         return redirect("core:home")
 
-    # ✅ Faqat admin va manager billing sahifasini ko'rishi mumkin
+    # Agar bloklangan bo'lsa, to'lov qilishga ruxsat beramiz (barchaga)
     role = getattr(request.user, "role", None)
-    if role in ("student", "parent", "teacher"):  # Teacher ham billing ko'rmasin
+    if not request.user.is_superuser and center.status != 'BLOCKED' and role in ("student", "parent", "teacher"):
         # Redirect qilmasdan, to'g'ridan-to'g'ri error ko'rsatamiz (loop oldini olish)
         return render(request, "billing/permission_denied.html", {
             "message": "Sizda bu sahifaga kirish huquqi yo'q. Bu sahifa faqat administrator va menejerlar uchun."
         })
+
+    # ✅ Agar teacher/student/parent bo'lsa va center BLOCKED bo'lsa -> ularga plan tanlash chiqmasligi kerak
+    if role in ("student", "parent", "teacher"):
+         return render(request, "billing/blocked.html", {
+             "sub": get_subscription_ui_state(center),
+             "readonly": True
+         })
 
     ensure_center_subscription(center)
     ui = get_subscription_ui_state(center)

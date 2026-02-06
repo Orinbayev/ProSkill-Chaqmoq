@@ -57,6 +57,7 @@ urlpatterns = [
     path('category/<int:id>/edit/', views.edit_category, name='edit_category'),
     path('category/<int:id>/delete/', views.delete_category, name='delete_category'),
     path('guruh/<int:id>/delete/', views.group_delete_confirm, name='group_delete_confirm'),
+    path('guruh/<int:pk>/archive/', views.group_toggle_archive, name='group_toggle_archive'),
     path("groups/", views.group_list, name="groups"),
     path("groups/add/", views.group_add, name="group_add"),
     path("groups/<int:pk>/edit/", views.group_edit, name="group_edit"),

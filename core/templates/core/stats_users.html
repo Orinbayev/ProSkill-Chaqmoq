@@ -635,7 +635,7 @@
             </td>
             <td>
               <div class="group-chips">
-                {% for enr in u.enrollment_set.all %}
+                {% for enr in u.enrollments.all %}
                 <span class="chip">{{ enr.group.nom }}</span>
                 {% empty %}<span style="color:var(--text-muted)">—</span>{% endfor %}
               </div>
