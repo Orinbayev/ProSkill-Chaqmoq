@@ -6,347 +6,34 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4 animate__animated animate__fadeIn">
-
-  <!-- ✨ PREMIUM HEADER WITH PROFILE & LOGOUT -->
-  <section class="dashboard-surface mb-4">
-    <header class="dashboard-header">
-      <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-        <div>
-          <h3 class="dashboard-title">
-            Manager paneli —
-            <span class="role-badge">{{ request.user.get_role_display }}</span>
-          </h3>
-          <p class="dashboard-subtitle">Markaz faoliyati va statistikasi bo'limi</p>
-        </div>
-
-        <!-- RIGHT SIDE: PROFILE & ACTIONS -->
-        <div class="d-flex align-items-center gap-3">
-          <!-- Profile Info -->
-          <div class="profile-card d-none d-md-flex align-items-center gap-3">
-            <div class="profile-avatar">
-              {% if request.user.profile_picture %}
-              <img src="{{ request.user.profile_picture.url }}" alt="Profile" />
-              {% else %}
-              <div class="avatar-placeholder">
-                {{ request.user.first_name.0|upper|default:"U" }}
-              </div>
-              {% endif %}
-            </div>
-            <div class="profile-info">
-              <div class="profile-name">{{ request.user.get_full_name|default:request.user.username }}</div>
-              <div class="profile-email">{{ request.user.email|default:"" }}</div>
-            </div>
-          </div>
-
-          <!-- Logout Button -->
-          <a href="{% url 'accounts:logout' %}" class="logout-btn" title="Chiqish">
-            <i class="fa-solid fa-right-from-bracket"></i>
-            <span class="d-none d-lg-inline">Chiqish</span>
-          </a>
-        </div>
-      </div>
-    </header>
-  </section>
-
-  <!-- STATS GRID (SIMPLIFIED) -->
-  <div class="row g-3 mb-4">
-    <!-- TEACHERS -->
-    <div class="col-6 col-md-3">
-      <a href="{% url 'core:stat_teachers' %}" class="dashboard-card text-center p-3 h-100">
-        <div class="text-white-50 xs-text fw-bold mb-1">O'QITUVCHILAR</div>
-        <div class="h3 m-0 text-white fw-black">{{ stats.teachers|default:0 }}</div>
-      </a>
-    </div>
-
-    <!-- STUDENTS -->
-    <div class="col-6 col-md-3">
-      <a href="{% url 'core:stat_students' %}" class="dashboard-card text-center p-3 h-100">
-        <div class="text-white-50 xs-text fw-bold mb-1">O'QUVCHILAR</div>
-        <div class="h3 m-0 text-white fw-black">{{ stats.students|default:0 }}</div>
-      </a>
-    </div>
-
-    <!-- PRODUCTS -->
-    <div class="col-6 col-md-3">
-      <a href="/do'kon/mahsulotlar/" class="dashboard-card text-center p-3 h-100">
-        <div class="text-white-50 xs-text fw-bold mb-1">MAHSULOTLAR</div>
-        <div class="h3 m-0 text-white fw-black">{{ stats.products|default:0 }}</div>
-      </a>
-    </div>
-
-    <!-- REQUESTS -->
-    <div class="col-6 col-md-3">
-      <a href="/do'kon/so'rovlar/" class="dashboard-card text-center p-3 h-100">
-        <div class="text-white-50 xs-text fw-bold mb-1">SO'ROVLAR</div>
-        <div class="h3 m-0 text-white fw-black">{{ stats.requests|default:0 }}</div>
-      </a>
-    </div>
-  </div>
-
-  <!-- SECTIONS GRID -->
-  <div class="row g-4">
-    <!-- Education & Groups -->
-    <div class="col-lg-6">
-      <div class="section-card-premium glass p-4 h-100">
-        <div class="d-flex align-items-center gap-3 mb-4">
-          <div class="section-icon-bg bg-primary-gradient">
-            <i class="fa-solid fa-graduation-cap"></i>
-          </div>
-          <div>
-            <h5 class="m-0 fw-bold text-white">O'quvchilar & Guruhlar</h5>
-            <p class="m-0 text-white-50 small">O'quv jarayonini boshqarish</p>
-          </div>
-        </div>
-        <div class="d-flex flex-wrap gap-2">
-          <a href="{% url 'core:stat_students' %}" class="pill-btn-premium">
-            <i class="fa-solid fa-users-viewfinder"></i> O‘quvchilar
-          </a>
-          <a href="{% url 'education:groups_home' %}" class="pill-btn-premium">
-            <i class="fa-solid fa-layer-group"></i> Guruhlar
-          </a>
-          <a href="{% url 'education:attendance_groups' %}" class="pill-btn-premium">
-            <i class="fa-solid fa-clipboard-check"></i> Davomat
-          </a>
-        </div>
-      </div>
-    </div>
-
-    <!-- Teachers & Payroll -->
-    <div class="col-lg-6">
-      <div class="section-card-premium glass p-4 h-100">
-        <div class="d-flex align-items-center gap-3 mb-4">
-          <div class="section-icon-bg bg-success-gradient">
-            <i class="fa-solid fa-user-tie"></i>
-          </div>
-          <div>
-            <h5 class="m-0 fw-bold text-white">O'qituvchilar</h5>
-            <p class="m-0 text-white-50 small">Xodimlar va moliyaviy hisob</p>
-          </div>
-        </div>
-        <div class="d-flex flex-wrap gap-2">
-          <a href="{% url 'core:stat_teachers' %}" class="pill-btn-premium">
-            <i class="fa-solid fa-list-check"></i> Ro'yxat
-          </a>
-          <a href="{% url 'education:teacher_salary_list' %}" class="pill-btn-premium">
-            <i class="fa-solid fa-money-check-dollar"></i> Oyliklar
-          </a>
-        </div>
-      </div>
-    </div>
-
-    <!-- Store & Inventory -->
-    <div class="col-lg-6">
-      <div class="section-card-premium glass p-4 h-100">
-        <div class="d-flex align-items-center gap-3 mb-4">
-          <div class="section-icon-bg bg-amber-gradient">
-            <i class="fa-solid fa-store"></i>
-          </div>
-          <div>
-            <h5 class="m-0 fw-bold text-white">Ombor & Do'kon</h5>
-            <p class="m-0 text-white-50 small">Mahsulotlar va sotuvlar</p>
-          </div>
-        </div>
-        <div class="d-flex flex-wrap gap-2">
-          <a href="{% url 'core:stat_products' %}" class="pill-btn-premium">
-            <i class="fa-solid fa-boxes-stacked"></i> Mahsulotlar
-          </a>
-          <a href="{% url 'core:stat_requests' %}" class="pill-btn-premium">
-            <i class="fa-solid fa-hourglass-half"></i> So'rovlar
-          </a>
-          <a href="{% url 'store:products' %}" class="pill-btn-premium">
-            <i class="fa-solid fa-eye"></i> Do'kon ko'rinishi
-          </a>
-        </div>
-      </div>
-    </div>
-
-    <!-- Finance & Payments -->
-    <div class="col-lg-6">
-      <div class="section-card-premium glass p-4 h-100">
-        <div class="d-flex align-items-center gap-3 mb-4">
-          <div class="section-icon-bg bg-danger-gradient">
-            <i class="fa-solid fa-sack-dollar"></i>
-          </div>
-          <div>
-            <h5 class="m-0 fw-bold text-white">To'lovlar & Moliya</h5>
-            <p class="m-0 text-white-50 small">Kirim-chiqim nazorati</p>
-          </div>
-        </div>
-        <div class="d-flex flex-wrap gap-2">
-          <a href="{% url 'education:tolov_oquvchilar' %}" class="pill-btn-premium">
-            <i class="fa-solid fa-file-invoice-dollar"></i> To'lovlar ro'yxati
-          </a>
-          <a href="{% url 'education:tolovlar_home' %}" class="pill-btn-premium">
-            <i class="fa-solid fa-vault"></i> G'azna
-          </a>
-          <a href="{% url 'core:stat_ledger' %}" class="pill-btn-premium">
-            <i class="fa-solid fa-clock-rotate-left"></i> Moliyaviy tarix
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-{% endblock %}
-
-{% block extra_css %}
 <style>
   :root {
+    --text-warning: #facc15;
+    --text-info: #38bdf8;
+    --text-success: #22c55e;
+    --text-danger: #ef4444;
     --white-5: rgba(255, 255, 255, 0.05);
     --white-10: rgba(255, 255, 255, 0.1);
-    --white-15: rgba(255, 255, 255, 0.15);
-    --amber: #facc15;
-    --blue: #38bdf8;
-    --success: #22c55e;
-    --danger: #ef4444;
-  }
-
-  .xs-text {
-    font-size: 10px;
-    letter-spacing: 1px;
   }
 
   .glass {
-    background: rgba(15, 23, 42, 0.5);
+    background: rgba(15, 23, 42, 0.6);
     backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 24px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-    position: relative;
-    overflow: hidden;
   }
-
-  /* ===== DASHBOARD SURFACE ===== */
-  .dashboard-surface {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 24px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    overflow: hidden;
-    position: relative;
-  }
-
-  .dashboard-surface::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  }
-
-  /* ===== DASHBOARD HEADER ===== */
-  .dashboard-header {
-    padding: clamp(20px, 3vw, 32px);
-    background:
-      radial-gradient(600px 300px at 15% 0%, rgba(250, 204, 21, 0.12), transparent 65%),
-      radial-gradient(600px 300px at 85% 0%, rgba(56, 189, 248, 0.10), transparent 65%);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    position: relative;
-  }
-
-  .dashboard-title {
-    margin: 0;
-    font-size: clamp(20px, 3vw, 32px);
-    font-weight: 900;
-    letter-spacing: -0.02em;
-    line-height: 1.2;
-    color: white;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    align-items: center;
-  }
-
-  .dashboard-subtitle {
-    margin: 8px 0 0;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: clamp(13px, 1.8vw, 15px);
-    line-height: 1.5;
-    max-width: 600px;
-    font-weight: 600;
-  }
-
-  .role-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    border-radius: 12px;
-    font-size: 14px;
-    font-weight: 800;
-    color: #000;
-    background: linear-gradient(135deg, var(--amber), var(--amber2));
-    border: 1px solid rgba(250, 204, 21, 0.3);
-    box-shadow: 0 4px 15px rgba(250, 204, 21, 0.3);
-  }
-
-  /* ===== DASHBOARD CARD ===== */
-  .dashboard-card {
-    display: block;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 18px;
-    padding: 20px;
-    text-decoration: none;
-    color: white;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .dashboard-card::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(600px 300px at 50% 0%, rgba(250, 204, 21, 0.05), transparent 70%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  .dashboard-card:hover {
-    transform: translateY(-8px);
-    border-color: rgba(250, 204, 21, 0.4);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 40px rgba(250, 204, 21, 0.15);
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
-  }
-
-  .dashboard-card:hover::before {
-    opacity: 1;
-  }
-
 
   /* HEADER CARD */
   .header-card {
-    background: linear-gradient(-45deg, rgba(56, 189, 248, 0.12), rgba(15, 23, 42, 0.95), rgba(250, 204, 21, 0.08), rgba(15, 23, 42, 0.95));
+    background: linear-gradient(-45deg, rgba(34, 197, 94, 0.1), rgba(15, 23, 42, 0.95), rgba(56, 189, 248, 0.1), rgba(15, 23, 42, 0.95));
     background-size: 400% 400%;
     animation: gradientBG 15s ease infinite;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 28px;
     position: relative;
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
-    z-index: 100;
-  }
-
-  @keyframes gradientBG {
-    0% {
-      background-position: 0% 50%;
-    }
-
-    50% {
-      background-position: 100% 50%;
-    }
-
-    100% {
-      background-position: 0% 50%;
-    }
+    z-index: 10;
   }
 
   .header-glow-wrapper {
@@ -365,8 +52,22 @@
     left: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle at center, rgba(56, 189, 248, 0.05) 0%, transparent 60%);
+    background: radial-gradient(circle at center, rgba(34, 197, 94, 0.05) 0%, transparent 60%);
     animation: rotateGlow 20s linear infinite;
+  }
+
+  @keyframes gradientBG {
+    0% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
+    }
+
+    100% {
+      background-position: 0% 50%;
+    }
   }
 
   @keyframes rotateGlow {
@@ -379,77 +80,61 @@
     }
   }
 
-  .header-content-wrapper {
-    position: relative;
-    z-index: 2;
-  }
-
-  .header-icon-box {
-    width: 54px;
-    height: 54px;
-    background: rgba(56, 189, 248, 0.15);
-    border: 1px solid rgba(56, 189, 248, 0.3);
-    border-radius: 16px;
+  .icon-box {
+    width: 60px;
+    height: 60px;
+    border-radius: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--blue);
-    font-size: 22px;
-    box-shadow: 0 8px 20px rgba(56, 189, 248, 0.15);
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+    font-size: 24px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
   }
 
-  /* SEARCH BOX */
-  .search-box-glass {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 14px;
-    padding: 0 16px;
-    height: 44px;
+  /* ACTIONS & PROFILE */
+  .top-right-actions {
+    display: flex;
     align-items: center;
     gap: 12px;
-    width: 280px;
-    transition: all 0.3s;
   }
 
-  .search-box-glass:focus-within {
-    border-color: var(--blue);
-    background: rgba(255, 255, 255, 0.1);
-    width: 320px;
-  }
-
-  .search-box-glass i {
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 14px;
-  }
-
-  .search-box-glass input {
-    background: transparent;
-    border: none;
-    outline: none;
+  .icon-btn-glass {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: white;
-    font-size: 14px;
-    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    position: relative;
   }
 
-  /* AVATAR & DROPDOWN */
+  .icon-btn-glass:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-warning);
+    border-color: var(--text-warning);
+    transform: translateY(-2px);
+  }
+
   .avatar-circle {
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    border: 2px solid var(--amber);
+    border: 2px solid var(--text-warning);
     object-fit: cover;
-    transition: all 0.2s;
-  }
-
-  .avatar-circle:hover {
-    transform: scale(1.05);
   }
 
   .avatar-placeholder {
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: var(--amber);
+    background: var(--text-warning);
     color: #000;
     display: flex;
     align-items: center;
@@ -457,323 +142,352 @@
     font-weight: 900;
   }
 
-  .icon-btn-glass {
-    width: 44px;
-    height: 44px;
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-  }
-
-  .icon-btn-glass:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateY(-2px);
-    border-color: var(--amber);
-    color: var(--amber);
-  }
-
-  .notification-dot {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    width: 8px;
-    height: 8px;
-    background: var(--danger);
-    border-radius: 50%;
-    border: 2px solid #0f172a;
+  /* DROPDOWN */
+  .no-caret::after {
+    display: none !important;
   }
 
   .glass-dropdown {
     background: rgba(15, 23, 42, 0.95) !important;
     backdrop-filter: blur(20px) !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 20px !important;
-    padding: 10px !important;
-    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6) !important;
-    min-width: 220px;
+    border-radius: 16px !important;
+    padding: 8px !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
+    min-width: 200px;
   }
 
   .glass-dropdown .dropdown-item {
     color: white !important;
-    border-radius: 12px !important;
-    padding: 10px 15px !important;
+    border-radius: 10px !important;
+    padding: 10px 16px !important;
     font-weight: 600 !important;
     transition: all 0.2s !important;
-    font-size: 13.5px !important;
+    font-size: 0.9rem !important;
   }
 
   .glass-dropdown .dropdown-item:hover {
-    background: rgba(255, 255, 255, 0.08) !important;
-    color: var(--amber) !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: var(--text-warning) !important;
   }
 
-  /* STAT CARDS */
-  .stat-card-premium {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  .glass-dropdown .dropdown-item.text-danger:hover {
+    background: rgba(239, 68, 68, 0.1) !important;
+    color: #f87171 !important;
   }
 
-  .stat-card-premium:hover {
-    transform: translateY(-8px);
+  /* MINI STATS CARDS */
+  .stat-card-mini {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+  }
+
+  .stat-card-mini:hover {
     background: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    transform: translateY(-5px);
+    border-color: rgba(255, 255, 255, 0.2);
   }
 
-  .border-blue:hover {
-    border-color: var(--blue) !important;
+  .stat-label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 5px;
   }
 
-  .border-success:hover {
-    border-color: var(--success) !important;
-  }
-
-  .border-amber:hover {
-    border-color: var(--amber) !important;
-  }
-
-  .border-danger:hover {
-    border-color: var(--danger) !important;
-  }
-
-  .stat-number {
-    font-size: 38px;
-    font-weight: 950;
-    font-family: 'Inter', sans-serif;
-    letter-spacing: -1px;
-  }
-
-  .stat-icon-box {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-  }
-
-  .bg-blue-subtle {
-    background: rgba(56, 189, 248, 0.1);
-    color: var(--blue);
-  }
-
-  .bg-success-subtle {
-    background: rgba(34, 197, 94, 0.1);
-    color: var(--success);
-  }
-
-  .bg-amber-subtle {
-    background: rgba(250, 204, 21, 0.1);
-    color: var(--amber);
-  }
-
-  .bg-danger-subtle {
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--danger);
-  }
-
-  .stats-glow {
-    position: absolute;
-    top: -30px;
-    right: -30px;
-    width: 120px;
-    height: 120px;
-    filter: blur(50px);
-    opacity: 0.15;
-    border-radius: 50%;
-  }
-
-  .bg-blue-glow {
-    background: var(--blue);
-  }
-
-  .bg-success-glow {
-    background: var(--success);
-  }
-
-  .bg-amber-glow {
-    background: var(--amber);
-  }
-
-  .bg-danger-glow {
-    background: var(--danger);
+  .stat-value {
+    font-size: 28px;
+    font-weight: 900;
+    color: white;
+    line-height: 1;
   }
 
   /* SECTION CARDS */
-  .section-card-premium {
-    transition: all 0.3s;
+  .section-card {
+    height: 100%;
+    transition: all 0.3s ease;
   }
 
-  .section-card-premium:hover {
-    border-color: rgba(255, 255, 255, 0.2);
+  .section-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(255, 255, 255, 0.15);
   }
 
   .section-icon-bg {
     width: 50px;
     height: 50px;
-    border-radius: 16px;
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 22px;
     color: white;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
   }
 
-  .bg-primary-gradient {
+  .bg-blue-gradient {
     background: linear-gradient(135deg, #38bdf8, #2563eb);
   }
 
-  .bg-success-gradient {
+  .bg-green-gradient {
     background: linear-gradient(135deg, #22c55e, #16a34a);
   }
 
   .bg-amber-gradient {
-    background: linear-gradient(135deg, #facc15, #f59e0b);
+    background: linear-gradient(135deg, #facc15, #d97706);
   }
 
-  .bg-danger-gradient {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
+  .bg-red-gradient {
+    background: linear-gradient(135deg, #f87171, #dc2626);
   }
 
-  .pill-btn-premium {
-    display: inline-flex;
+  .action-btn {
+    display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 18px;
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
+    gap: 10px;
+    padding: 10px 16px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 13px;
+    font-weight: 600;
     text-decoration: none;
-    font-size: 13.5px;
-    font-weight: 700;
     transition: all 0.2s;
   }
 
-  .pill-btn-premium:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.3);
-    color: var(--amber);
-  }
-
-  /* ===== PROFILE CARD ===== */
-  .profile-card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    padding: 8px 16px 8px 8px;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    transition: all 0.3s ease;
-  }
-
-  .profile-card:hover {
+  .action-btn:hover {
     background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.15);
-  }
-
-  .profile-avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 2px solid var(--amber);
-    box-shadow: 0 4px 12px rgba(250, 204, 21, 0.3);
-  }
-
-  .profile-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .avatar-placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, var(--amber), var(--amber2));
-    color: #000;
-    font-weight: 900;
-    font-size: 18px;
-  }
-
-  .profile-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .profile-name {
-    font-size: 14px;
-    font-weight: 800;
     color: white;
-    line-height: 1.2;
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateX(3px);
   }
 
-  .profile-email {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.6);
-    font-weight: 600;
-  }
-
-  /* ===== LOGOUT BUTTON ===== */
-  .logout-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 18px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.1));
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #ef4444;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 800;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-  }
-
-  .logout-btn:hover {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    border-color: #ef4444;
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
-  }
-
-  .logout-btn i {
-    font-size: 16px;
+  .action-btn i {
+    opacity: 0.7;
   }
 </style>
-{% endblock %}
 
-{% block extra_js %}
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const searchInput = document.getElementById('dashboardSearch');
-    if (searchInput) {
-      const cards = document.querySelectorAll('.stat-card-premium, .section-card-premium');
-      searchInput.addEventListener('input', function (e) {
-        const query = e.target.value.toLowerCase();
-        cards.forEach(card => {
-          const text = card.innerText.toLowerCase();
-          const col = card.closest('[class*="col-"]');
-          if (text.includes(query)) {
-            col.style.display = 'block';
-          } else {
-            col.style.display = 'none';
-          }
-        });
-      });
-    }
-  });
-</script>
+<div class="container-fluid py-4 animate__animated animate__fadeIn">
+
+  <!-- HEADER -->
+  <div class="header-card p-4 mb-4">
+    <div class="header-glow-wrapper"></div>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-4 position-relative z-1">
+
+      <!-- Left: Title -->
+      <div class="d-flex align-items-center gap-3">
+        <div class="icon-box">
+          <i class="fa-solid fa-briefcase"></i>
+        </div>
+        <div>
+          <h2 class="m-0 fw-black text-white" style="letter-spacing: -1px;">Manager paneli</h2>
+          <div class="d-flex align-items-center gap-2 mt-1">
+            <span class="badge bg-warning text-dark fw-bold px-2 py-1 rounded-3">Manager</span>
+            <p class="m-0 text-white-50 small">Markaz faoliyati va statistikasi</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Actions -->
+      <div class="top-right-actions">
+        <!-- Notification Bell -->
+        <button class="icon-btn-glass" title="Bildirishnomalar">
+          <i class="fa-regular fa-bell"></i>
+          <span
+            class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-dark rounded-circle"
+            style="display:none;"></span>
+        </button>
+
+        <!-- Profile Dropdown -->
+        <div class="dropdown">
+          <a href="#" class="d-block dropdown-toggle no-caret" data-bs-toggle="dropdown">
+            {% if request.user.avatar %}
+            <img src="{{ request.user.avatar.url }}" class="avatar-circle" alt="avatar">
+            {% else %}
+            <div class="avatar-placeholder">
+              {{ request.user.ism|first|upper }}
+            </div>
+            {% endif %}
+          </a>
+          <ul
+            class="dropdown-menu dropdown-menu-end glass-dropdown mt-3 animate__animated animate__fadeIn animate__faster">
+            <li>
+              <div class="px-3 py-2 border-bottom border-white-10 mb-2">
+                <div class="text-white fw-bold">{{ request.user.get_full_name }}</div>
+                <div class="text-white-50 small">{{ request.user.email }}</div>
+              </div>
+            </li>
+            <li>
+              <a class="dropdown-item" href="{% url 'core:profile' %}">
+                <i class="fa-solid fa-user-circle me-2 opacity-50"></i> Profilim
+              </a>
+            </li>
+            <li>
+              <hr class="dropdown-divider border-white-10">
+            </li>
+            <li>
+              <form action="{% url 'logout' %}" method="post" class="m-0">
+                {% csrf_token %}
+                <button type="submit" class="dropdown-item text-danger">
+                  <i class="fa-solid fa-right-from-bracket me-2 opacity-50"></i> Chiqish
+                </button>
+              </form>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- STATS OVERVIEW -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <a href="{% url 'core:stat_teachers' %}" class="d-block text-decoration-none">
+        <div class="stat-card-mini">
+          <div class="stat-label">O'qituvchilar</div>
+          <div class="stat-value">{{ stats.teachers|default:0 }}</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-lg-3">
+      <a href="{% url 'core:stat_students' %}" class="d-block text-decoration-none">
+        <div class="stat-card-mini">
+          <div class="stat-label">O'quvchilar</div>
+          <div class="stat-value">{{ stats.students|default:0 }}</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-lg-3">
+      <a href="/do'kon/mahsulotlar/" class="d-block text-decoration-none">
+        <div class="stat-card-mini">
+          <div class="stat-label">Mahsulotlar</div>
+          <div class="stat-value">{{ stats.products|default:0 }}</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-lg-3">
+      <a href="/do'kon/so'rovlar/" class="d-block text-decoration-none">
+        <div class="stat-card-mini">
+          <div class="stat-label">So'rovlar</div>
+          <div class="stat-value">{{ stats.requests|default:0 }}</div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- MAIN SECTIONS -->
+  <div class="row g-4">
+
+    <!-- Education -->
+    <div class="col-md-6">
+      <div class="glass p-4 section-card d-flex flex-column">
+        <div class="d-flex align-items-center gap-3 mb-4">
+          <div class="section-icon-bg bg-blue-gradient">
+            <i class="fa-solid fa-graduation-cap"></i>
+          </div>
+          <div>
+            <h5 class="m-0 fw-bold text-white">Ta'lim & Guruhlar</h5>
+            <p class="m-0 text-white-50 small">O'quvchilar hisobi va guruhlar nazorati</p>
+          </div>
+        </div>
+        <div class="mt-auto d-grid gap-2">
+          <a href="{% url 'core:stat_students' %}" class="action-btn">
+            <i class="fa-solid fa-users text-info"></i> Barcha o'quvchilar
+          </a>
+          <a href="{% url 'education:groups_home' %}" class="action-btn">
+            <i class="fa-solid fa-layer-group text-info"></i> Guruhlar ro'yxati
+          </a>
+          <a href="{% url 'education:attendance_groups' %}" class="action-btn">
+            <i class="fa-solid fa-clipboard-user text-info"></i> Davomatni tekshirish
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Teachers -->
+    <div class="col-md-6">
+      <div class="glass p-4 section-card d-flex flex-column">
+        <div class="d-flex align-items-center gap-3 mb-4">
+          <div class="section-icon-bg bg-green-gradient">
+            <i class="fa-solid fa-chalkboard-user"></i>
+          </div>
+          <div>
+            <h5 class="m-0 fw-bold text-white">O'qituvchilar</h5>
+            <p class="m-0 text-white-50 small">Xodimlar ro'yxati va oyliklar</p>
+          </div>
+        </div>
+        <div class="mt-auto d-grid gap-2">
+          <a href="{% url 'core:stat_teachers' %}" class="action-btn">
+            <i class="fa-solid fa-user-tie text-success"></i> O'qituvchilar ro'yxati
+          </a>
+          <a href="{% url 'education:teacher_salary_list' %}" class="action-btn">
+            <i class="fa-solid fa-money-bill-wave text-success"></i> Oylik maoshlar
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Store -->
+    <div class="col-md-6">
+      <div class="glass p-4 section-card d-flex flex-column">
+        <div class="d-flex align-items-center gap-3 mb-4">
+          <div class="section-icon-bg bg-amber-gradient">
+            <i class="fa-solid fa-store"></i>
+          </div>
+          <div>
+            <h5 class="m-0 fw-bold text-white">Ombor & Do'kon</h5>
+            <p class="m-0 text-white-50 small">Mahsulotlar va so'rovlar menejmenti</p>
+          </div>
+        </div>
+        <div class="mt-auto d-grid gap-2">
+          <a href="{% url 'core:stat_products' %}" class="action-btn">
+            <i class="fa-solid fa-box-open text-warning"></i> Mahsulotlar ombori
+          </a>
+          <a href="{% url 'core:stat_requests' %}" class="action-btn">
+            <i class="fa-solid fa-hand-holding-dollar text-warning"></i> Xarid so'rovlari
+          </a>
+          <a href="{% url 'store:products' %}" class="action-btn">
+            <i class="fa-solid fa-eye text-warning"></i> Do'kon vitrinasi
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Finance -->
+    <div class="col-md-6">
+      <div class="glass p-4 section-card d-flex flex-column">
+        <div class="d-flex align-items-center gap-3 mb-4">
+          <div class="section-icon-bg bg-red-gradient">
+            <i class="fa-solid fa-wallet"></i>
+          </div>
+          <div>
+            <h5 class="m-0 fw-bold text-white">Moliya & Kassa</h5>
+            <p class="m-0 text-white-50 small">Tushumlar va chiqimlar nazorati</p>
+          </div>
+        </div>
+        <div class="mt-auto d-grid gap-2">
+          <a href="{% url 'education:tolov_oquvchilar' %}" class="action-btn">
+            <i class="fa-solid fa-receipt text-danger"></i> To'lovlar tarixi
+          </a>
+          <a href="{% url 'education:tolovlar_home' %}" class="action-btn">
+            <i class="fa-solid fa-sack-dollar text-danger"></i> Umumiy g'azna
+          </a>
+          <a href="{% url 'core:stat_ledger' %}" class="action-btn">
+            <i class="fa-solid fa-chart-line text-danger"></i> Moliyaviy hisobot
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
 {% endblock %}

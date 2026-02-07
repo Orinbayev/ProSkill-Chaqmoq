@@ -196,6 +196,8 @@ def home(request):
     }
 
     if role == "director":
+        from .director_stats import _build_director_stats
+        ctx.update(_build_director_stats(center))
         return render(request, "core/dashboard_director.html", ctx)
 
     if role == "manager":

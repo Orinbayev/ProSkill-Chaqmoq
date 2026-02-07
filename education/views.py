@@ -2408,16 +2408,23 @@ def category_detail(request, category_id):
 
     # Filter by status (default: active)
     status = request.GET.get('status', 'active')
-    if status == 'archived':
-        groups = groups.filter(is_archived=True)
-    else:
+    
+    # ✅ TEACHERLAR UCHUN "ARXIV" YOPIQ
+    if request.user.role == 'teacher':
+        status = 'active'
         groups = groups.filter(is_archived=False)
+    else:
+        if status == 'archived':
+            groups = groups.filter(is_archived=True)
+        else:
+            groups = groups.filter(is_archived=False)
 
     return render(request, "education/category_detail.html", {
         "category": category,
         "groups": groups,
         "groups_count": groups.count(),
         "status": status,
+        "is_teacher": request.user.role == 'teacher', # Template uchun
     })
 
 
@@ -3704,7 +3711,7 @@ def enrollment_remove(request, pk):
 @login_required
 def my_groups(request):
     rows = (
-        Group.objects.filter(oqituvchi=request.user)
+        Group.objects.filter(oqituvchi=request.user, is_archived=False)
         .select_related("center", "oqituvchi")
         .annotate(student_count=Count("enrollments"))
         .order_by("nom")
