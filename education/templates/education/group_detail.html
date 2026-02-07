@@ -523,16 +523,26 @@
   <div class="cq-wrap space-y-3">
 
     <div class="cq-card p-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
-      <div>
-        <h1 class="text-[22px] font-black text-white tracking-tight leading-tight">{{ g.nom }}</h1>
-        <div class="flex flex-wrap gap-2 mt-1 text-[12px] font-semibold text-slate-400">
-          <span>Center: <span class="text-slate-200">{{ g.center }}</span></span>
-          <span class="text-slate-600">|</span>
-          <span>O'qituvchi:
-            <span class="text-slate-200">
-              {% if g.oqituvchi %}{{ g.oqituvchi.ism }} {{ g.oqituvchi.familya }}{% else %}—{% endif %}
+      <div class="flex items-center gap-4">
+        <a href="javascript:history.back()"
+          class="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 group">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+            class="text-slate-400 group-hover:text-white transition-colors">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </a>
+        <div>
+          <h1 class="text-[22px] font-black text-white tracking-tight leading-tight">{{ g.nom }}</h1>
+          <div class="flex flex-wrap gap-2 mt-1 text-[12px] font-semibold text-slate-400">
+            <span>Center: <span class="text-slate-200">{{ g.center }}</span></span>
+            <span class="text-slate-600">|</span>
+            <span>O'qituvchi:
+              <span class="text-slate-200">
+                {% if g.oqituvchi %}{{ g.oqituvchi.ism }} {{ g.oqituvchi.familya }}{% else %}—{% endif %}
+              </span>
             </span>
-          </span>
+          </div>
         </div>
       </div>
 

@@ -11,70 +11,87 @@
   <!-- HEADER SECTION -->
   <div class="row g-4 mb-4">
     <div class="col-12">
-      <div
-        class="glass p-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-4 border-amber-soft">
-        <div class="d-flex align-items-center gap-3">
-          <div class="icon-box-amber">
-            <i class="fa-solid fa-layer-group"></i>
-          </div>
-          <div>
-            <h2 class="m-0 fw-black text-white" style="letter-spacing: -1px;">Mening guruhlarim</h2>
-            <p class="m-0 text-white-50 small">Siz dars beradigan barcha faol guruhlar ro'yxati</p>
-          </div>
-        </div>
+      <div class="glass p-4 border-amber-soft">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-4">
 
-        <div class="d-flex align-items-center gap-3 w-100-mobile">
-          <form method="get" class="search-form-premium" aria-label="Guruh izlash">
-            <div class="search-input-wrapper">
-              <i class="fa-solid fa-magnifying-glass search-icon"></i>
-              <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Guruh nomini kiriting...">
+          <!-- Title & Back Button -->
+          <div class="d-flex align-items-center gap-4 w-100-mobile">
+            <a href="javascript:history.back()"
+              class="btn btn-glass-back d-flex align-items-center justify-content-center">
+              <i class="fa-solid fa-arrow-left"></i>
+            </a>
+
+            <div class="d-flex align-items-center gap-3">
+              <div class="icon-box-amber">
+                <i class="fa-solid fa-layer-group"></i>
+              </div>
+              <div>
+                <h2 class="m-0 fw-black text-white" style="letter-spacing: -1px;">Mening guruhlarim</h2>
+                <p class="m-0 text-white-50 small">Siz dars beradigan barcha faol guruhlar ro'yxati</p>
+              </div>
             </div>
-          </form>
+          </div>
+
+          <!-- Search -->
+          <div class="d-flex align-items-center gap-3 w-100-mobile justify-content-end">
+            <form method="get" class="search-form-premium" aria-label="Guruh izlash">
+              <div class="search-input-wrapper">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Guruh nomini kiriting...">
+              </div>
+            </form>
+          </div>
+
         </div>
       </div>
     </div>
   </div>
 
-  <!-- GROUPS GRID -->
-  <div class="row g-4">
+  <!-- GROUPS LIST (HORIZONTAL) -->
+  <div class="row g-3">
     {% for g in rows %}
-    <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
-      <div class="group-premium-card glass h-100" onclick="location.href='{% url 'education:group_detail' g.id %}'">
+    <div class="col-12">
+      <div
+        class="group-list-card glass p-3 px-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-4"
+        onclick="location.href='{% url 'education:group_detail' g.id %}'">
+
         <div class="card-glow"></div>
-        <div class="p-4 position-relative z-1 d-flex flex-column h-100">
-          <div class="d-flex justify-content-between align-items-start mb-3">
-            <h4 class="group-name m-0">{{ g.nom }}</h4>
-            <div class="center-badge">
-              <i class="fa-solid fa-building-columns me-1"></i> {{ g.center|default:"Markaz" }}
-            </div>
+
+        <!-- Group Info -->
+        <div class="d-flex align-items-center gap-4 z-1 flex-grow-1">
+          <div class="group-icon-circle">
+            {{ g.nom|slice:":1" }}
           </div>
 
-          <div class="stats-row d-flex gap-2 mb-4">
-            <div class="stat-mini-pill">
-              <i class="fa-solid fa-user-graduate me-1 text-info"></i> {{ g.student_count }} o'quvchi
-            </div>
-            {% if g.category_obj %}
-            <div class="stat-mini-pill">
-              <i class="fa-solid fa-tag me-1 text-warning"></i> {{ g.category_obj.name }}
-            </div>
-            {% endif %}
-          </div>
-
-          <div class="teacher-info-row mt-auto pt-3 border-top border-white-5">
-            <div class="d-flex align-items-center gap-2 text-white-50 small">
-              <div class="avatar-mini">
-                {{ g.oqituvchi.ism|first|upper }}{{ g.oqituvchi.familya|first|upper }}
+          <div class="d-flex flex-column">
+            <h4 class="group-name m-0 mb-1">{{ g.nom }}</h4>
+            <div class="d-flex align-items-center gap-3 flex-wrap text-white-50 small">
+              <div class="d-flex align-items-center gap-1">
+                <i class="fa-solid fa-building-columns text-warning"></i>
+                <span>{{ g.center|default:"Markaz" }}</span>
               </div>
-              <span>{{ g.oqituvchi.get_full_name }}</span>
-            </div>
-          </div>
-
-          <div class="card-footer-action mt-3">
-            <div class="btn btn-sm btn-glass-blue w-100 rounded-pill py-2">
-              <i class="fa-solid fa-eye me-2"></i> Batafsil
+              <span class="opacity-25 d-none d-md-block">|</span>
+              <div class="d-flex align-items-center gap-1">
+                <i class="fa-solid fa-user-graduate text-info"></i>
+                <span>{{ g.student_count }} o'quvchi</span>
+              </div>
+              {% if g.category_obj %}
+              <span class="opacity-25 d-none d-md-block">|</span>
+              <div class="badge-category">
+                {{ g.category_obj.name }}
+              </div>
+              {% endif %}
             </div>
           </div>
         </div>
+
+        <!-- Actions -->
+        <div class="z-1 d-flex align-items-center gap-3 justify-content-end w-100-mobile">
+          <button class="btn btn-glass-blue rounded-pill px-4 py-2 w-100-mobile text-nowrap">
+            <i class="fa-solid fa-eye me-2"></i> Batafsil
+          </button>
+        </div>
+
       </div>
     </div>
     {% empty %}
@@ -95,18 +112,18 @@
 <style>
   :root {
     --text-warning: #facc15;
+    --text-info: #38bdf8;
     --white-5: rgba(255, 255, 255, 0.05);
     --white-10: rgba(255, 255, 255, 0.1);
-    --blue-glow: rgba(56, 189, 248, 0.2);
-    --amber-glow: rgba(250, 204, 21, 0.15);
   }
 
   .glass {
-    background: rgba(15, 23, 42, 0.5);
+    background: rgba(15, 23, 42, 0.6);
     backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 24px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    border-radius: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
   }
 
   .border-amber-soft {
@@ -116,7 +133,7 @@
   .icon-box-amber {
     width: 60px;
     height: 60px;
-    border-radius: 20px;
+    border-radius: 16px;
     background: rgba(250, 204, 21, 0.1);
     border: 1px solid rgba(250, 204, 21, 0.2);
     display: flex;
@@ -127,7 +144,26 @@
     box-shadow: 0 10px 30px rgba(250, 204, 21, 0.1);
   }
 
-  /* Search Styles */
+  /* Back Button */
+  .btn-glass-back {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 18px;
+    transition: all 0.3s;
+  }
+
+  .btn-glass-back:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateX(-3px);
+    color: white;
+  }
+
+  /* Search */
   .search-form-premium {
     width: 320px;
   }
@@ -143,6 +179,7 @@
     left: 16px;
     color: var(--text-warning);
     opacity: 0.7;
+    pointer-events: none;
   }
 
   .search-form-premium input {
@@ -163,91 +200,66 @@
     box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.1);
   }
 
-  /* Card Styles */
-  .group-premium-card {
+  /* List Card */
+  .group-list-card {
     position: relative;
     overflow: hidden;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 18px;
     cursor: pointer;
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
-  .group-premium-card:hover {
-    transform: translateY(-8px);
+  .group-list-card:hover {
+    transform: translateY(-4px);
     border-color: rgba(56, 189, 248, 0.3);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    background: rgba(15, 23, 42, 0.8);
   }
 
   .card-glow {
     position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle at center, rgba(56, 189, 248, 0.1) 0%, transparent 60%);
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at right, rgba(56, 189, 248, 0.1) 0%, transparent 60%);
     opacity: 0;
     transition: opacity 0.4s;
     pointer-events: none;
   }
 
-  .group-premium-card:hover .card-glow {
+  .group-list-card:hover .card-glow {
     opacity: 1;
-    animation: rotateGlow 8s linear infinite;
   }
 
-  @keyframes rotateGlow {
-    from {
-      transform: rotate(0deg);
-    }
-
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  .group-name {
-    color: #fff;
-    font-weight: 800;
-    font-size: 1.2rem;
-    letter-spacing: -0.5px;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .center-badge {
-    padding: 4px 12px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text-warning);
-    white-space: nowrap;
-  }
-
-  .stat-mini-pill {
-    padding: 6px 14px;
-    border-radius: 99px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    font-size: 12px;
-    font-weight: 700;
-    color: #e2e8f0;
-  }
-
-  .avatar-mini {
-    width: 28px;
-    height: 28px;
+  /* Group Icon */
+  .group-icon-circle {
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
-    background: var(--text-warning);
-    color: black;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(37, 99, 235, 0.1));
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    color: #38bdf8;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
-    font-weight: 900;
+    font-size: 24px;
+    font-weight: 800;
+  }
+
+  .group-name {
+    color: white;
+    font-weight: 700;
+    font-size: 1.25rem;
+  }
+
+  .badge-category {
+    padding: 4px 12px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 0.75rem;
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .btn-glass-blue {
@@ -258,23 +270,28 @@
     transition: all 0.3s;
   }
 
-  .group-premium-card:hover .btn-glass-blue {
+  .group-list-card:hover .btn-glass-blue {
     background: #38bdf8;
-    color: #fff;
+    color: white;
     box-shadow: 0 10px 20px rgba(56, 189, 248, 0.2);
-  }
-
-  .border-white-5 {
-    border-color: rgba(255, 255, 255, 0.05) !important;
   }
 
   @media (max-width: 768px) {
     .w-100-mobile {
       width: 100% !important;
+      justify-content: space-between;
     }
 
     .search-form-premium {
       width: 100%;
+    }
+
+    .group-list-card {
+      align-items: flex-start !important;
+    }
+
+    .d-none-mobile {
+      display: none !important;
     }
   }
 </style>
