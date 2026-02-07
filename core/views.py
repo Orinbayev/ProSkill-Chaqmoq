@@ -28,7 +28,7 @@ from django.views.decorators.http import require_POST
 
 from accounts.models import User
 from accounts.forms import TeacherForm, ParentForm
-from chaqmoq.models import Ledger
+from chaqmoq.models import Ledger, Rule
 from education.models import Group, Enrollment, TuitionMonth, Category
 from store.models import Product, PurchaseRequest, Sale
 
@@ -1163,7 +1163,8 @@ def user_edit(request, pk):
 def _normalize_header(x: str) -> str:
     return (str(x or "").strip().lower()
             .replace("’", "").replace("'", "").replace("`", "")
-            .replace(" ", "").replace("_", "").replace("-", ""))
+            .replace(" ", "").replace("_", "").replace("-", "")
+            .replace("(", "").replace(")", "").replace("/", ""))
 
 
 def _pick_col(headers_map, *aliases):
@@ -1216,14 +1217,24 @@ def _gen_unique_gmail_like_email(UModel, ism: str, familya: str) -> str:
     return f"{base}{token}@gmail.com"
 
 
-def _normalize_gender(val: str) -> str | None:
+def _normalize_gender(val):
     if not val:
         return None
     s = str(val).strip().lower()
-    if s in ["erkak", "male", "o'gil", "o‘gil", "m"]:
-        return "male"
-    if s in ["ayol", "female", "qiz", "f"]:
+    
+    # Check for Female first (safe exact matches)
+    if s in ["ayol", "female", "qiz", "f", "jenskiy", "zhenskiy"]:
         return "female"
+    # Check for Male (safe exact matches)
+    if s in ["erkak", "male", "o'g'il", "o'gil", "ogil", "o‘g‘il", "m", "mujskoy"]:
+        return "male"
+
+    # Startswith checks
+    if s.startswith("ayol") or s.startswith("fem") or s.startswith("qiz"):
+        return "female"
+    if s.startswith("erk") or s.startswith("mal") or s.startswith("o'g") or s.startswith("og"):
+        return "male"
+
     return None
 
 
@@ -1303,17 +1314,33 @@ def _process_user_import(request, role="student"):
         "otch": _pick_col(headers_map, "otchestvo", "middlename"),
         "tel1": _pick_col(headers_map, "telefon", "telefon1", "phone", "tel"),
         "birth": _pick_col(headers_map, "tugilgankun", "birthdate", "birthdate", "tug'ilgansana", "sana"),
-        "gender": _pick_col(headers_map, "jinsi", "gender"),
+        "gender": _pick_col(headers_map, "jinsi", "gender", "jinsimalefemale", "pol", "jinsierkakayol"),
         "email": _pick_col(headers_map, "email", "login"),
         "pass": _pick_col(headers_map, "parol", "password"),
-        "chaqmoq": _pick_col(headers_map, "chaqmoq", "coins", "ball"),
+        "chaqmoq": _pick_col(headers_map, "chaqmoq", "coins", "coin", "ball"),
     }
 
-    created, skipped, errors = 0, 0, 0
+    logger.info(f"User Import Debug: Role={normalized_role}")
+    logger.info(f"Detected Headers: {list(headers_map.keys())}")
+    logger.info(f"Column Map: {col_map}")
+
+    created, skipped, errors, coins_added = 0, 0, 0, 0
     problems = []
-    
+
     # ✅ Case-insensitive email check: hamma emaillarni lower() qilib olamiz
     all_known_emails = set(e.lower() for e in U.objects.values_list("email", flat=True) if e)
+
+    import_rule = None
+    if center and normalized_role == "student":
+        import_rule, _ = Rule.objects.get_or_create(
+            center=center,
+            nom="Excel Import",
+            defaults={
+                "tur": Rule.PLUS,
+                "min_baho": 1,
+                "max_baho": 1000
+            }
+        )
 
     for r_i, r in enumerate(all_rows[header_idx + 1:], start=header_idx + 2):
         if not r or all(v is None for v in r): continue
@@ -1361,7 +1388,11 @@ def _process_user_import(request, role="student"):
                     u.otchestvo = _cell_to_str(r[col_map["otch"]])
                 
                 if col_map["gender"] is not None and col_map["gender"] < len(r):
-                    u.gender = _normalize_gender(r[col_map["gender"]])
+                    g_raw = r[col_map["gender"]]
+                    u.gender = _normalize_gender(g_raw)
+                    # Debug log
+                    if r_i <= header_idx + 5:
+                       logger.info(f"Gender Debug Row {r_i}: Raw='{g_raw}' -> Norm='{u.gender}' Col={col_map['gender']}")
                 
                 if col_map["birth"] is not None and col_map["birth"] < len(r):
                     bv = r[col_map["birth"]]
@@ -1382,11 +1413,28 @@ def _process_user_import(request, role="student"):
                 # Coins
                 if normalized_role == "student" and col_map["chaqmoq"] is not None and col_map["chaqmoq"] < len(r):
                     try:
-                        ball = int(float(_cell_to_str(r[col_map["chaqmoq"]])))
-                        if ball != 0:
-                            Ledger.objects.create(student=u, ball=ball, beruvchi=request.user, rule_nom="Excel Import")
-                    except: pass
-                
+                        raw_val = _cell_to_str(r[col_map["chaqmoq"]])
+                        if raw_val:
+                            # Try simple conversion first
+                            try:
+                                ball = int(float(raw_val))
+                            except ValueError:
+                                # Fallback: extract digits using pre-imported re
+                                digits = re.sub(r"[^\d.-]", "", raw_val)
+                                ball = int(float(digits)) if digits else 0
+                            
+                            if ball != 0:
+                                Ledger.objects.create(
+                                    student=u, 
+                                    ball=ball, 
+                                    beruvchi=request.user, 
+                                    rule=import_rule,   # ✅ LINK TO CENTER RULE
+                                    rule_nom="Excel Import"
+                                )
+                                coins_added += 1
+                    except Exception as e:
+                        logger.error(f"Coin import error row {r_i}: {e}")
+
                 all_known_emails.add(email_val)
                 created += 1
 
@@ -1396,7 +1444,11 @@ def _process_user_import(request, role="student"):
                 problems.append(f"{r_i}-qator: {str(e)[:50]}")
             logger.error(f"Import row {r_i} error: {e}")
 
-    messages.success(request, f"🚀 Import yakunlandi! {created} ta yangi foydalanuvchi qo'shildi.")
+    msg = f"🚀 Import yakunlandi! {created} ta yangi foydalanuvchi qo'shildi."
+    if coins_added > 0:
+        msg += f" {coins_added} ta o'quvchiga chaqmoq berildi."
+    
+    messages.success(request, msg)
     if skipped: messages.info(request, f"ℹ️ {skipped} ta qator ism yo'qligi sabab tashlab o'tildi.")
     if errors: messages.warning(request, f"⚠️ {errors} ta qatorda texnik xatolik: {', '.join(problems[:3])}")
     
@@ -1494,8 +1546,9 @@ def stat_users_export_excel(request):
     ws.title = role.capitalize() + "lar"
 
     # Define headers based on role
+    # Define headers based on role
     if role == "student":
-        headers = ["Ism", "Familya", "Otchestvo", "Telefon", "Telefon2", "Tug'ilgan sana", "Jinsi (male/female)", "Email", "Parol", "Chaqmoq"]
+        headers = ["Ism", "Familya", "Otchestvo", "Telefon", "Telefon2", "Tug'ilgan sana", "Jinsi (Erkak/Ayol)", "Email", "Parol", "Chaqmoq"]
     else:
         # Teachers / Managers
         headers = ["Ism", "Familya", "Otchestvo", "Telefon", "Telefon2", "Tug'ilgan sana", "Email", "Parol"]
@@ -1512,13 +1565,18 @@ def stat_users_export_excel(request):
         ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = 20
 
     # Data
+    gender_map = {"male": "Erkak", "female": "Ayol"}
+    
     for u in rows:
         if role == "student":
+            g_disp = gender_map.get(u.gender, "")
+            
             ws.append([
                 u.ism, u.familya, u.otchestvo or "", 
                 u.telefon1 or "", u.telefon2 or "", 
                 u.birth_date.strftime("%Y-%m-%d") if u.birth_date else "",
-                u.gender or "", u.email, "***", u.jami_chaqmoq or 0
+                g_disp, 
+                u.email, "***", u.jami_chaqmoq or 0
             ])
         else:
             ws.append([
@@ -1548,9 +1606,9 @@ def users_download_template(request):
     ws = wb.active
     ws.title = "Shablon"
 
-    if role == "student":
-        headers = ["Ism", "Familya", "Otchestvo", "Telefon", "Telefon2", "Tug'ilgan sana", "Jinsi (male/female)", "Email", "Parol"]
-        sample = ["Amirxon", "O'rinbayev", "Temur o'g'li", "901234567", "", "2005-05-15", "male", "amirxon@gmail.com", "12345678"]
+    if role in ("student", "students"):
+        headers = ["Ism", "Familya", "Otchestvo", "Telefon", "Telefon2", "Tug'ilgan sana", "Jinsi (Erkak/Ayol)", "Email", "Parol", "Chaqmoq"]
+        sample = ["Amirxon", "O'rinbayev", "Temur o'g'li", "901234567", "", "2005-05-15", "Erkak", "amirxon@gmail.com", "12345678", 100]
     else:
         # Teachers / Managers
         headers = ["Ism", "Familya", "Otchestvo", "Telefon", "Telefon2", "Tug'ilgan sana", "Email", "Parol"]

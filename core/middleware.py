@@ -130,12 +130,19 @@ class TenantMiddleware:
 
                         # 2. Agar Blocked bo'lsa -> Billing
                         elif user_center.status == Center.STATUS_BLOCKED:
-                            # ✅ Faqat billing va center navigation sahifalariga ruxsat beramiz
-                            if not path.startswith(billing_allowed):
-                                messages.warning(request, f"⚠️ Markazingiz bloklangan. To'lovni amalga oshiring yoki boshqa markaz tanlang.")
-                                return redirect(p_billing_plans)
+                            # ✅ Teachers, Students, Parents SHOULD NOT be redirected to billing
+                            if request.user.role in ['teacher', 'student', 'parent']:
+                                # Agarda ular billing pagega kirmoqchi bo'lsa -> home ga otamiz
+                                if path.startswith(billing_allowed) and not path.startswith((p_logout_global, p_logout_accounts, p_login, "/static/", "/media/", "/hisob/api/")):
+                                     return redirect(p_home)
+                                # Boshqa holatda dashboardga kirishi mumkin, redirect qilmaymiz
+                            else:
+                                # ✅ Admin/Manager uchun to'lov majburiy
+                                if not path.startswith(billing_allowed):
+                                    messages.warning(request, f"⚠️ Markazingiz bloklangan. To'lovni amalga oshiring yoki boshqa markaz tanlang.")
+                                    return redirect(p_billing_plans)
                             
-                            # Blocked center'ni request'ga qo'yamiz (billing sahifalarida kerak bo'ladi)
+                            # Blocked center'ni request'ga qo'yamiz
                             request.center = user_center
                     else:
                         # Student limit tekshirish (faqat student role uchun)

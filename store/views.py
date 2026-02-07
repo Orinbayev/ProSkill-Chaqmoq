@@ -154,8 +154,10 @@ def create_request(request, pk):
 
     # ✅ 4. So‘rovni yaratish
     with transaction.atomic():
+        req_center = user.center if user.center else product.center
+        
         PurchaseRequest.objects.create(
-            center=product.center,  # ✅ Markazni biriktirish
+            center=req_center,
             student=user,
             product=product,
             qty=1,
