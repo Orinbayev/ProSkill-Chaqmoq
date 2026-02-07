@@ -567,7 +567,7 @@
         placeholder="Ism, familiya yoki telefon...">
     </div>
 
-    {% if user_kind != 'managers' and user_kind != 'parents' %}
+    {% if user_kind != 'parents' %}
     <select name="gender" class="filter-input filter-select" onchange="this.form.submit()">
       <option value="">Jinsi: Barchasi</option>
       <option value="male" {% if request.GET.gender == 'male' %}selected{% endif %}>Erkak</option>
@@ -599,7 +599,7 @@
           <tr>
             <th>FOYDALANUVCHI</th>
             <th>TELEFON</th>
-            {% if user_kind != 'managers' and user_kind != 'parents' %}<th>JINSI</th>{% endif %}
+            {% if user_kind != 'parents' %}<th>JINSI</th>{% endif %}
             {% if user_kind == 'students' %}
             <th>COIN</th>
             <th>GURUHLAR</th>
@@ -619,7 +619,7 @@
             <td>
               <span style="font-family: monospace; color: var(--text-muted);">{{ u.telefon1|default:"—" }}</span>
             </td>
-            {% if user_kind != 'managers' and user_kind != 'parents' %}
+            {% if user_kind != 'parents' %}
             <td>
               {% if u.gender %}
               <span class="badge-gender {{ u.gender }}">{% if u.gender == 'male' %}ERKAK{% else %}AYOL{% endif %}</span>
@@ -725,7 +725,7 @@
       <span>Ko‘rsatish:</span>
       <select class="size-select" onchange="updateQuery({size: this.value, page: 1})">
         <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
-        <option value="25" {% if page_size == 25 %}selected{% endif %}>25</option>
+        <option value="25" {% if page_size ==  25 %}selected{% endif %}>25</option>
         <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
         <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
       </select>

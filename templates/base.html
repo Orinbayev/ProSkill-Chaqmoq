@@ -1,4 +1,5 @@
 <!doctype html>
+{% load static humanize %}
 <html lang="uz">
 
 <head>
@@ -426,6 +427,215 @@
   </div>
 
   {% block modals %}{% endblock %}
+
+  <!-- 🔔 NOTIFICATION SIDEBAR -->
+  <div id="notificationSidebar" class="notification-sidebar">
+    <div class="ns-header">
+      <h5 class="m-0 fw-bold text-white"><i class="fa-regular fa-bell me-2"></i> Xabarnoma</h5>
+      <button onclick="toggleNotificationSidebar()" class="btn-close btn-close-white"></button>
+    </div>
+    <div class="ns-body custom-scrollbar">
+      {% if latest_notifications %}
+      <div class="d-flex flex-column gap-2">
+        {% for n in latest_notifications %}
+        <div class="ns-item {% if not n.is_read %}unread{% endif %}">
+          <div
+            class="ns-icon {% if n.type == 'coin' %}text-warning bg-warning-subtle{% elif n.type == 'purchase' %}text-success bg-success-subtle{% elif n.type == 'broadcast' %}text-primary bg-primary-subtle{% else %}text-secondary bg-secondary-subtle{% endif %}">
+            {% if n.type == 'coin' %}<i class="fa-solid fa-bolt"></i>
+            {% elif n.type == 'purchase' %}<i class="fa-solid fa-cart-shopping"></i>
+            {% elif n.type == 'broadcast' %}<i class="fa-solid fa-bullhorn"></i>
+            {% else %}<i class="fa-solid fa-circle-info"></i>{% endif %}
+          </div>
+          <div class="ns-content">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="ns-title">{{ n.title }}</span>
+              <span class="ns-time fw-bold" style="font-size: 0.7rem; color: #94a3b8;">{{ n.created_at|date:"d.m.Y
+                H:i"}}</span>
+            </div>
+            <p class="ns-msg mb-1">{{ n.message|safe|truncatewords_html:15 }}</p>
+            {% if n.sender %}
+            <div class="d-flex align-items-center mt-1 notification-sender">
+              <i class="fa-solid fa-user-circle me-1" style="font-size: 0.75rem;"></i>
+              <span>{{ n.sender.get_full_name }}</span>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="text-center py-5 text-secondary">
+        <i class="fa-regular fa-bell-slash fs-1 mb-3 opacity-25"></i>
+        <p>Yangi xabarlar yo‘q</p>
+      </div>
+      {% endif %}
+    </div>
+    <div class="ns-footer">
+      <a href="{% url 'core:notifications' %}" class="btn btn-primary w-100 rounded-pill">Barchasini ko‘rish</a>
+    </div>
+  </div>
+  <div id="nsOverlay" onclick="toggleNotificationSidebar()" class="ns-overlay"></div>
+
+  <style>
+    /* Notification Sidebar Styles */
+    .notification-sidebar {
+      position: fixed;
+      top: 0;
+      right: -400px;
+      /* Hidden */
+      width: 380px;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+      z-index: 9999;
+      transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .notification-sidebar.open {
+      right: 0;
+    }
+
+    .ns-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 9990;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s;
+      backdrop-filter: blur(2px);
+    }
+
+    .ns-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .ns-header {
+      padding: 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .ns-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    .ns-footer {
+      padding: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .ns-item {
+      display: flex;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: all 0.2s;
+    }
+
+    .ns-item:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .ns-item.unread {
+      background: rgba(59, 130, 246, 0.1);
+      border-color: rgba(59, 130, 246, 0.2);
+    }
+
+    .ns-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .bg-warning-subtle {
+      background: rgba(234, 179, 8, 0.15) !important;
+    }
+
+    .bg-success-subtle {
+      background: rgba(34, 197, 94, 0.15) !important;
+    }
+
+    .bg-primary-subtle {
+      background: rgba(59, 130, 246, 0.15) !important;
+    }
+
+    .bg-secondary-subtle {
+      background: rgba(148, 163, 184, 0.15) !important;
+    }
+
+    .ns-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .ns-title {
+      font-weight: 700;
+      color: #fff;
+      font-size: 0.9rem;
+    }
+
+    .ns-time {
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+
+    .ns-msg {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* Hide timestamp inside message body for existing notifications */
+    .ns-msg small.text-muted {
+      display: none !important;
+    }
+
+    .notification-sender {
+      font-size: 0.75rem;
+      color: #60a5fa;
+      /* bright blue */
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 576px) {
+      .notification-sidebar {
+        width: 100%;
+        right: -100%;
+        top: 0;
+        height: 100%;
+      }
+    }
+  </style>
+
+  <script>
+    function toggleNotificationSidebar() {
+      document.getElementById('notificationSidebar').classList.toggle('open');
+      document.getElementById('nsOverlay').classList.toggle('open');
+    }
+  </script>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 

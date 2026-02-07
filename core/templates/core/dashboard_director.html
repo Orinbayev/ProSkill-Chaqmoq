@@ -35,9 +35,11 @@
           <input type="text" id="dashboardSearch" placeholder="Qidiruv...">
         </div>
 
-        <button class="icon-btn-glass position-relative" title="Bildirishnomalar">
+        <button class="icon-btn-glass position-relative" title="Bildirishnomalar" onclick="toggleNotificationSidebar()">
           <i class="fa-regular fa-bell"></i>
+          {% if unread_notifications_count > 0 %}
           <span class="notification-dot"></span>
+          {% endif %}
         </button>
 
         <div class="dropdown">

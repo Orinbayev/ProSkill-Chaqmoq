@@ -150,7 +150,7 @@ class AddUserForm(forms.ModelForm):
 class TeacherForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ['ism', 'familya', 'otchestvo', 'email', 'telefon1', 'center', 'oqituvchi_foizi', 'passport_id', 'jshr', 'birth_date']
+        fields = ['ism', 'familya', 'otchestvo', 'email', 'telefon1', 'center', 'oqituvchi_foizi', 'passport_id', 'jshr', 'birth_date', 'gender', 'telefon2']
 
 
 class CenterAdminForm(forms.ModelForm):

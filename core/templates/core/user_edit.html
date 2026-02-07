@@ -128,6 +128,8 @@
     flex: 1;
     position: relative;
     height: 100%;
+    min-width: 0;
+    /* Fix for flex items overflowing */
   }
 
   .gender-option input {
@@ -142,6 +144,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
+    width: 100%;
     height: 100%;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--border);
@@ -439,7 +442,7 @@
         <label class="form-label">Role</label>
         <select name="role" class="form-control" aria-label="Role">
           <option value="student" {% if user_obj.role == "student" %}selected{% endif %}>O‘quvchi</option>
-          <option value="teacher" {% if user_obj.role  == "teacher" %}selected{% endif %}>O‘qituvchi</option>
+          <option value="teacher" {% if user_obj.role ==   "teacher" %}selected{% endif %}>O‘qituvchi</option>
           <option value="manager" {% if user_obj.role == "manager" %}selected{% endif %}>Manager</option>
           <option value="director" {% if user_obj.role == "director" %}selected{% endif %}>Direktor</option>
         </select>
@@ -449,9 +452,8 @@
 
     <hr class="mt-4 mb-3" style="border-color: rgba(255,255,255,0.08);">
 
-    <!-- ===== ANKETA SECTION (Student & Manager) ===== -->
-    <div id="anketaSection" {% if user_obj.role != 'student' and user_obj.role != 'manager' %}style="display:none;"
-      {%endif %}>
+    <!-- ===== ANKETA SECTION (Student, Manager & Teacher) ===== -->
+    <div id="anketaSection" {% if user_obj.role != 'student' and user_obj.role != 'manager' and user_obj.role != 'teacher'%}style="display:none;" {% endif %}>
       <div class="section-title">🆔 Shaxsiy ma'lumotlar</div>
       <div class="row">
         <!-- Tug'ilgan sana -->
@@ -462,22 +464,38 @@
         </div>
 
         <!-- Jinsi -->
+        <!-- Jinsi -->
         <div class="col-md-6 col-12 mb-3">
           <label class="form-label">Jinsi <span class="text-danger">*</span></label>
-          <div class="gender-options">
-            <div class="gender-option">
-              <input type="radio" name="gender" value="male" id="gender_male" {% if user_obj.gender == 'male' %}checked{%
-                endif %}>
-              <label for="gender_male"><i class="fa-solid fa-person"></i> Erkak</label>
+          <div class="gender-options" style="display: flex; gap: 10px; width: 100%;">
+
+            <div class="gender-option" style="flex: 1; position: relative;">
+              <input type="radio" name="gender" value="male" id="gender_male"
+                style="position:absolute; opacity:0; width:0; height:0;" {% if user_obj.gender == 'male' %}checked{% endif %}>
+              <label for="gender_male"
+                style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:10px; cursor:pointer; color:#94a3b8; font-weight:600;">
+                <i class="fa-solid fa-person"></i> Erkak
+              </label>
             </div>
 
-            <div class="gender-option">
-              <input type="radio" name="gender" value="female" id="gender_female" {% if user_obj.gender == 'female'
-                %}checked{% endif %}>
-              <label for="gender_female"><i class="fa-solid fa-person-dress"></i> Ayol</label>
+            <div class="gender-option" style="flex: 1; position: relative;">
+              <input type="radio" name="gender" value="female" id="gender_female"
+                style="position:absolute; opacity:0; width:0; height:0;" {% if user_obj.gender == 'female' %}checked{% endif %}>
+              <label for="gender_female"
+                style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:10px; cursor:pointer; color:#94a3b8; font-weight:600;">
+                <i class="fa-solid fa-person-dress"></i> Ayol
+              </label>
             </div>
+
           </div>
-
+          <style>
+            #gender_male:checked+label,
+            #gender_female:checked+label {
+              background: rgba(59, 130, 246, 0.15) !important;
+              border-color: #3b82f6 !important;
+              color: #fff !important;
+            }
+          </style>
         </div>
       </div>
 
@@ -607,7 +625,8 @@
   const anketaSection = document.getElementById('anketaSection');
   if (roleSelect && anketaSection) {
     roleSelect.addEventListener('change', (e) => {
-      const showSection = e.target.value === 'student' || e.target.value === 'manager';
+      // Show for student, manager, and teacher
+      const showSection = ['student', 'manager', 'teacher'].includes(e.target.value);
       anketaSection.style.display = showSection ? 'block' : 'none';
     });
   }

@@ -37,5 +37,10 @@ urlpatterns = [
     path("students/<int:pk>/archive/", views.archive_student, name="archive_student"),
     path("students/<int:pk>/restore/", views.restore_student, name="restore_student"),
     path("students/<int:pk>/hard-delete/", views.hard_delete_student, name="hard_delete_student"),
+    
+    # Notifications
+    path('notifications/', views.notifications_view, name="notifications"),
+    path('notifications/read/', views.notifications_mark_read, name="notifications_mark_read"),
+    path('notifications/broadcast/', views.notification_broadcast, name="notification_broadcast"),
 ]
 

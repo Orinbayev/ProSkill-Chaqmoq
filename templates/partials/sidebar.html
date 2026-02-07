@@ -60,6 +60,20 @@
   <div class="sidebar-scroll custom-scrollbar">
     {% with vn=request.resolver_match.view_name|default:'' p=request.path %}
 
+
+    <style>
+      .notification-dot {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        width: 8px;
+        height: 8px;
+        background-color: #ef4444;
+        border-radius: 50%;
+        box-shadow: 0 0 5px #ef4444;
+      }
+    </style>
+
     {% if request.user.is_authenticated and request.user.role == 'teacher' %}
     <a href="/"
       class="sidebar-item {% if p == '/' or vn == 'core:home' or vn == 'core:dashboard_teacher' %}active{% endif %}"
@@ -222,6 +236,11 @@
   <a href="{% url 'chaqmoq:berish' %}" class="floating-item">
     <div class="fi-icon"><i class="fa-solid fa-bolt"></i></div>
     <span>Chaqmoq berish</span>
+  </a>
+
+  <a href="{% url 'core:notifications' %}" class="floating-item">
+    <div class="fi-icon"><i class="fa-solid fa-paper-plane"></i></div>
+    <span>Xabar yuborish</span>
   </a>
 
   {% if feature_finance or request.user.is_superuser %}

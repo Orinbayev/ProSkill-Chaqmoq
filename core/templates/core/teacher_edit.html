@@ -241,16 +241,50 @@
             {{ form.birth_date }}
             {{ form.birth_date.errors }}
             <script>
-              // Ensure the date input works with Django's date format if prefilled
-              // Or force type date
               document.getElementById('id_birth_date').type = 'date';
             </script>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Jinsi</label>
+            <div class="gender-options" style="display: flex; gap: 10px; width: 100%;">
+              <div class="gender-option" style="flex: 1; position: relative;">
+                <input type="radio" name="gender" value="male" id="gender_male"
+                  style="position:absolute; opacity:0; width:0; height:0;" {% if form.instance.gender == 'male' %}checked{% endif %}>
+                <label for="gender_male"
+                  style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:10px; cursor:pointer; color:#94a3b8; font-weight:600;">
+                  <i class="fa-solid fa-person"></i> Erkak
+                </label>
+              </div>
+              <div class="gender-option" style="flex: 1; position: relative;">
+                <input type="radio" name="gender" value="female" id="gender_female"
+                  style="position:absolute; opacity:0; width:0; height:0;" {% if form.instance.gender == 'female' %}checked{% endif %}>
+                <label for="gender_female"
+                  style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:10px; cursor:pointer; color:#94a3b8; font-weight:600;">
+                  <i class="fa-solid fa-person-dress"></i> Ayol
+                </label>
+              </div>
+            </div>
+            <style>
+              #gender_male:checked+label,
+              #gender_female:checked+label {
+                background: rgba(59, 130, 246, 0.15) !important;
+                border-color: #3b82f6 !important;
+                color: #fff !important;
+              }
+            </style>
           </div>
 
           <div class="form-group">
             <label class="form-label">Telefon 1</label>
             {{ form.telefon1 }}
             {{ form.telefon1.errors }}
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Telefon 2</label>
+            {{ form.telefon2 }}
+            {{ form.telefon2.errors }}
           </div>
 
           <div class="form-group">
@@ -305,7 +339,7 @@
         </div>
 
         <div class="actions">
-          <a href="{% url 'core:teacher_list' %}" class="btn btn-secondary">
+          <a href="{% url 'core:stat_teachers' %}" class="btn btn-secondary">
             Bekor qilish
           </a>
           <button type="submit" class="btn btn-primary">

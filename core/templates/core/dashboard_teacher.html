@@ -280,11 +280,11 @@
       </div>
 
       <div class="top-right-actions">
-        <button class="icon-btn-glass position-relative" title="Bildirishnomalar">
+        <button class="icon-btn-glass position-relative" title="Bildirishnomalar" onclick="toggleNotificationSidebar()">
           <i class="fa-regular fa-bell"></i>
-          <span
-            class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"
-            style="display:none;"></span>
+          {% if unread_notifications_count > 0 %}
+          <span class="notification-dot"></span>
+          {% endif %}
         </button>
 
         <div class="dropdown">

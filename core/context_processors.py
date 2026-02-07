@@ -51,4 +51,23 @@ def tenant_context(request):
             "feature_tasks": "tasks" in features,
             "feature_sms": "sms" in features,
         }
+    # 3. Notification Logic
+    unread_count = 0
+    latest_notifications = []
+    try:
+        if user and user.is_authenticated:
+            from core.models import Notification
+            qs = Notification.objects.filter(recipient=user)
+            unread_count = qs.filter(is_read=False).count()
+            latest_notifications = qs.order_by('-created_at')[:5]
+    except Exception as e:
+        import logging
+        logging.error(f"Notification context error: {e}")
+
+    # Add to existing response
+    res.update({
+        "unread_notifications_count": unread_count,
+        "latest_notifications": latest_notifications,
+    })
+
     return res

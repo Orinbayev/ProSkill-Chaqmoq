@@ -310,7 +310,7 @@ def teacher_edit(request, pk):
                 if _has_field(Enrollment, "oqituvchi_foiz"):
                     Enrollment.objects.filter(group__oqituvchi=teacher).update(oqituvchi_foiz=yangi_foiz)
 
-            return redirect("core:teacher_list")
+            return redirect("core:stat_teachers")
     else:
         form = TeacherForm(instance=teacher)
 
@@ -1770,3 +1770,109 @@ def profile_view(request):
         "pform": pform,
         "pass_form": pass_form,
     })
+
+
+# =============================================================================
+# NOTIFICATIONS
+# =============================================================================
+from core.models import Notification
+
+@login_required
+@login_required
+def notifications_view(request):
+    from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+    
+    # 1. Barcha xabarlar (order_by created_at)
+    qs = Notification.objects.filter(recipient=request.user).order_by('-created_at')
+    
+    # 2. Per page
+    per_page = request.GET.get('per_page', '10')
+    paginator_size = 10
+    
+    if per_page == 'all':
+        paginator_size = qs.count() if qs.count() > 0 else 10
+    elif per_page in ['10', '20', '50', '100']:
+        paginator_size = int(per_page)
+    else:
+        per_page = '10' # Default fallback for invalid input
+        paginator_size = 10
+    
+    paginator = Paginator(qs, paginator_size)
+    page = request.GET.get('page')
+    
+    try:
+        notifications = paginator.page(page)
+    except PageNotAnInteger:
+        notifications = paginator.page(1)
+    except EmptyPage:
+        notifications = paginator.page(paginator.num_pages)
+        
+    return render(request, "core/notifications.html", {
+        "notifications": notifications,
+        "per_page": per_page
+    })
+
+@login_required
+def notifications_mark_read(request):
+    Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+    messages.success(request, "Barcha xabarlar o‘qildi deb belgilandi.")
+    return redirect("core:notifications")
+
+@login_required
+def notification_broadcast(request):
+    # Only Directors/Managers
+    if request.user.role not in ('director', 'manager') and not request.user.is_superuser:
+        messages.error(request, "Sizga ruxsat yo‘q.")
+        return redirect("core:home")
+
+    if request.method == "POST":
+        target = request.POST.get("target") # 'students', 'teachers', 'all'
+        message = request.POST.get("message")
+        title = request.POST.get("title", "Muhim xabar")
+        
+        center = _get_center(request)
+        if not center:
+            messages.error(request, "Markaz tanlanmagan.")
+            return redirect("core:notifications")
+
+        if target == "students":
+            recipients = U.objects.filter(role="student", center=center, is_archived=False)
+        elif target == "students_parents":
+            recipients = U.objects.filter(role__in=["student", "parent"], center=center, is_archived=False)
+        elif target == "teachers":
+            recipients = U.objects.filter(role="teacher", center=center, is_archived=False)
+        elif target == "all":
+            recipients = U.objects.filter(center=center, is_archived=False)
+        
+        count = 0
+        bulk_list = []
+        for r in recipients:
+            if r == request.user: continue
+            bulk_list.append(Notification(
+                recipient=r,
+                sender=request.user,
+                center=center,
+                title=title,
+                message=message,
+                type='broadcast'
+            ))
+            count += 1
+        
+        if bulk_list:
+            Notification.objects.bulk_create(bulk_list)
+            
+            # ✅ Senderga ham nusxa (history uchun)
+            Notification.objects.create(
+                recipient=request.user,
+                sender=request.user,
+                center=center,
+                title=f"Yuborildi: {title}",
+                message=f"<b>Kimlarga:</b> {target}<br>{message}",
+                type='broadcast',
+                is_read=True
+            )
+            
+        messages.success(request, f"{count} ta foydalanuvchiga xabar yuborildi.")
+        return redirect("core:notifications")
+    
+    return redirect("core:notifications")
