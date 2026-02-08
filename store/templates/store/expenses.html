@@ -1,0 +1,941 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block content %}
+
+<!-- HEADER -->
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 fw-bold text-white mb-2">Moliya</h1>
+        <div class="d-flex gap-4 border-bottom border-secondary border-opacity-25 pb-3">
+            <!-- <a href="#" class="text-secondary text-decoration-none">To'lovlar</a>
+                <a href="#" class="text-secondary text-decoration-none">Qarzdorlar</a> -->
+            <a href="#"
+                class="text-white text-decoration-none border-bottom border-primary border-2 pb-3 fw-bold">Xarajatlar</a>
+            <!-- <a href="#" class="text-secondary text-decoration-none">To'lov usullari</a> -->
+        </div>
+    </div>
+</div>
+
+<!-- STATS & CHART -->
+<div class="row g-4 mb-4">
+    <!-- Left Stats Cards -->
+    <div class="col-md-3 d-flex flex-column gap-3">
+        <!-- Total Expense -->
+        <div class="card bg-dark border border-white border-opacity-10 rounded-4 flex-grow-1">
+            <div class="card-body p-4 d-flex flex-column justify-content-center">
+                <p class="text-secondary fw-bold mb-2">Umumiy harajat</p>
+                <h2 class="mb-0 fw-bold text-white">{{ total_sum|default:0|intcomma }} so'm</h2>
+            </div>
+        </div>
+        <!-- Filtered Expense -->
+        <div class="card bg-dark border border-white border-opacity-10 rounded-4 flex-grow-1">
+            <div class="card-body p-4 d-flex flex-column justify-content-center">
+                <p class="text-secondary fw-bold mb-2">Filter bo'yicha umumiy harajat</p>
+                <h2 class="mb-0 fw-bold text-white">{{ filtered_sum|default:0|intcomma }} so'm</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Chart -->
+    <div class="col-md-9">
+        <div class="card bg-dark border border-white border-opacity-10 rounded-4 h-100">
+            <div class="card-body p-3">
+                <div id="expenseChart" style="min-height: 250px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FILTERS -->
+<div class="card bg-dark border border-white border-opacity-10 rounded-4 mb-4 p-4">
+    <style>
+        /* Global Font & Input Styling to match 14px requirement */
+        .fs-14 {
+            font-size: 14px !important;
+        }
+
+        .form-control,
+        .form-select,
+        .btn,
+        .table,
+        .form-label {
+            font-size: 14px !important;
+        }
+
+        /* Dropdown options styling */
+        select option {
+            background-color: #1f2937;
+            color: white;
+        }
+
+        /* Table Action Buttons Hover */
+        .btn-action-hover:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+    <form method="get" class="row g-4">
+        <!-- Inputs Column (9/12) -->
+        <div class="col-lg-9">
+            <div class="row g-3">
+                <!-- Row 1 -->
+                <div class="col-md-4">
+                    <label class="form-label text-secondary fw-bold mb-1">Sana dan</label>
+                    <div class="input-group">
+                        <span
+                            class="input-group-text bg-black bg-opacity-25 border-white border-opacity-10 text-secondary"><i
+                                class="fa-regular fa-calendar"></i></span>
+                        <input type="date" name="sana_dan"
+                            class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                            value="{{ sana_dan|default:'' }}" onchange="this.form.submit()">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label text-secondary fw-bold mb-1">Sana gacha</label>
+                    <div class="input-group">
+                        <span
+                            class="input-group-text bg-black bg-opacity-25 border-white border-opacity-10 text-secondary"><i
+                                class="fa-regular fa-calendar"></i></span>
+                        <input type="date" name="sana_gacha"
+                            class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                            value="{{ sana_gacha|default:'' }}" onchange="this.form.submit()">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label text-secondary fw-bold mb-1">Xarajatlar toifasi</label>
+                    <select name="category"
+                        class="form-select bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                        onchange="this.form.submit()">
+                        <option value="">Barchasi</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if selected_cat == cat.id %}selected{% endif %}>{{ cat.nom }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Row 2 -->
+                <div class="col-md-4">
+                    <label class="form-label text-secondary fw-bold mb-1">Hodim</label>
+                    <select name="worker"
+                        class="form-select bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                        onchange="this.form.submit()">
+                        <option value="">Barchasi</option>
+                        {% for w in workers %}
+                        <option value="{{ w.id }}" {% if selected_worker == w.id %}selected{% endif %}>
+                            {{w.get_full_name|default:w.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label text-secondary fw-bold mb-1">To'lov usuli</label>
+                    <select name="payment_method"
+                        class="form-select bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                        onchange="this.form.submit()">
+                        <option value="">Barchasi</option>
+                        <option value="naqd" {% if selected_method == 'naqd' %}selected{% endif %}>Naqd</option>
+                        <option value="plastik" {% if selected_method == 'plastik' %}selected{% endif %}>Plastik</option>
+                        <option value="otkazma" {% if selected_method == 'otkazma' %}selected{% endif %}>O'tkazma</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label text-secondary fw-bold mb-1">Qabul qiluvchi</label>
+                    <input type="text" name="q"
+                        class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                        placeholder="Qidirish..." value="{{ q|default:'' }}" onchange="this.form.submit()">
+                </div>
+            </div>
+        </div>
+
+        <!-- Buttons Column (3/12) -->
+        <div class="col-lg-3 d-flex flex-column gap-2 justify-content-end">
+            <button type="button" class="btn btn-primary w-100 fw-bold rounded-3 py-2 text-nowrap shadow-lg"
+                data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+                + Xarajat qo'shish
+            </button>
+            <button type="button"
+                class="btn btn-outline-secondary w-100 fw-bold rounded-3 py-2 bg-white bg-opacity-10 text-white border-white border-opacity-10 text-nowrap hover-scale"
+                data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                + Toifa
+            </button>
+            {% url 'store:expenses' as base_url %}
+            <a href="{{ base_url|safe }}"
+                class="btn btn-outline-light w-100 fw-bold rounded-3 py-2 text-nowrap hover-scale d-flex align-items-center justify-content-center">
+                <i class="fa-solid fa-rotate me-1"></i> Filtrlarni yangilash
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- DATA TABLE -->
+<div class="card bg-dark border-0 shadow-lg rounded-4 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0" style="font-size: 14px;">
+            <thead class="bg-black bg-opacity-25 border-bottom border-white border-opacity-10">
+                <tr class="text-secondary text-uppercase fw-bold align-middle">
+                    <th class="ps-4 py-3 text-nowrap" style="width: 50px;">
+                        №
+                    </th>
+                    <th class="py-3 text-nowrap">
+                        Sana
+                    </th>
+                    <th class="py-3 text-nowrap">
+                        Xarajat nomi
+                    </th>
+                    <th class="py-3 text-nowrap">
+                        Kategoriya
+                    </th>
+                    <th class="py-3 text-nowrap">
+                        Qabul qiluvchi
+                    </th>
+                    <th class="py-3 text-nowrap">
+                        To'lov usuli
+                    </th>
+                    <th class="py-3 text-nowrap">
+                        Summa
+                    </th>
+                    <th class="py-3 text-nowrap">
+                        Hodim
+                    </th>
+                    <th class="py-3 pe-4 text-end text-nowrap">
+                        Harakatlar
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td class="ps-4 py-3 text-secondary border-bottom border-white border-opacity-10 text-nowrap">{{   forloop.counter }}</td>
+
+                    <!-- Sana -->
+                    <td class="py-3 border-bottom border-white border-opacity-10 text-nowrap text-secondary">
+                        {{ item.sana|date:"d.m.Y" }}
+                    </td>
+
+                    <!-- Xarajat nomi (Izoh) -->
+                    <td class="py-3 border-bottom border-white border-opacity-10 fw-bold text-white text-nowrap">
+                        {{ item.izoh }}
+                    </td>
+
+                    <!-- Kategoriya -->
+                    <td class="py-3 border-bottom border-white border-opacity-10 text-nowrap">
+                        {% if item.category %}
+                        <span class="text-primary fw-bold">
+                            {{ item.category.nom }}
+                        </span>
+                        {% else %}
+                        <span class="text-secondary opacity-50">-</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Qabul qiluvchi -->
+                    <td class="py-3 border-bottom border-white border-opacity-10 text-secondary text-nowrap">
+                        {% if item.receiver %}
+                        {{ item.receiver }}
+                        {% else %}
+                        <span class="opacity-50">-</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- To'lov usuli -->
+                    <td
+                        class="py-3 border-bottom border-white border-opacity-10 text-nowrap text-uppercase small fw-bold">
+                        {% if item.payment_method == 'naqd' %}
+                        <span class="text-success"><i class="fa-solid fa-money-bill me-1"></i> NAQD</span>
+                        {% elif item.payment_method == 'plastik' %}
+                        <span class="text-info"><i class="fa-regular fa-credit-card me-1"></i> PLASTIK</span>
+                        {% else %}
+                        <span class="text-warning"><i class="fa-solid fa-money-bill-transfer me-1"></i> O'TKAZMA</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Summa -->
+                    <td class="py-3 border-bottom border-white border-opacity-10 fw-bolder text-white text-nowrap">
+                        {{ item.summa|intcomma }} so'm
+                    </td>
+
+                    <!-- Hodim -->
+                    <td class="py-3 border-bottom border-white border-opacity-10 text-nowrap">
+                        {% if item.worker %}
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="small text-secondary fw-bold">
+                                {{ item.worker.get_full_name|default:item.worker.username }}
+                            </span>
+                        </div>
+                        {% else %}
+                        <span class="text-secondary opacity-50">-</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Harakatlar -->
+                    <td class="py-3 pe-4 text-end border-bottom border-white border-opacity-10">
+                        <div class="d-flex justify-content-end gap-2">
+                            <!-- Ko'rish -->
+                            <button type="button"
+                                class="btn btn-sm text-secondary hover-text-primary p-0 btn-action-hover transition-all"
+                                title="Ko'rish" data-bs-toggle="modal" data-bs-target="#viewExpenseModal"
+                                data-id="{{ item.id }}" data-sana="{{ item.sana|date:'d.m.Y' }}"
+                                data-izoh="{{ item.izoh }}" data-category="{{ item.category.nom|default:'-' }}"
+                                data-receiver="{{ item.receiver|default:'-' }}" data-payment="{{ item.payment_method }}"
+                                data-summa="{{ item.summa|intcomma }}"
+                                data-worker="{% if item.worker %}{{ item.worker.get_full_name|default:item.worker.username }}{% else %}-{% endif %}">
+                                <i class="fa-regular fa-eye fs-6"></i>
+                            </button>
+
+                            <!-- Izoh -->
+                            <button type="button"
+                                class="btn btn-sm text-secondary hover-text-warning p-0 btn-action-hover transition-all"
+                                title="Izoh qoldirish" data-bs-toggle="modal" data-bs-target="#commentExpenseModal"
+                                data-id="{{ item.id }}" data-izoh="{{ item.izoh }}">
+                                <i class="fa-regular fa-comment fs-6"></i>
+                            </button>
+
+                            <!-- Tahrirlash -->
+                            <button type="button"
+                                class="btn btn-sm text-secondary hover-text-success p-0 btn-action-hover transition-all"
+                                title="Tahrirlash" data-bs-toggle="modal" data-bs-target="#editExpenseModal"
+                                data-id="{{ item.id }}" data-sana="{{ item.sana|date:'Y-m-d' }}"
+                                data-izoh="{{ item.izoh }}" data-category-id="{{ item.category.id|default:'' }}"
+                                data-receiver="{{ item.receiver|default:'' }}" data-payment="{{ item.payment_method }}"
+                                data-summa="{{ item.summa }}">
+                                <i class="fa-solid fa-pen fs-6"></i>
+                            </button>
+
+                            <!-- O'chirish -->
+                            <button type="button"
+                                class="btn btn-sm text-secondary hover-text-danger p-0 btn-action-hover transition-all"
+                                title="O'chirish" data-bs-toggle="modal" data-bs-target="#deleteExpenseModal"
+                                data-id="{{ item.id }}">
+                                <i class="fa-regular fa-trash-can fs-6"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10" class="text-center py-5 text-muted">
+                        <div class="py-4">
+                            <i class="fa-solid fa-filter fs-1 mb-3 opacity-25 d-block"></i>
+                            Ma'lumot topilmadi
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block modals %}
+
+<!-- Modal: Add Category -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border border-white border-opacity-10 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom border-white border-opacity-10">
+                <h5 class="modal-title fw-bold text-white">Yangi xarajat toifasi</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            {% url 'store:expense_category_create' as url_cat_create %}
+            <form action="{{ url_cat_create|safe }}" method="post">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <p class="text-secondary small mb-3">Yangi xarajat toifasi nomini kiriting</p>
+
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-bold">Toifa nomi <span
+                                class="text-danger">*</span></label>
+                        <input type="text" name="nom"
+                            class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white"
+                            placeholder="Masalan: Ofis ijarasi" required>
+                    </div>
+
+                </div>
+                <div class="modal-footer border-top border-white border-opacity-10">
+                    <button type="button" class="btn btn-outline-light border-0" data-bs-dismiss="modal">Bekor
+                        qilish</button>
+                    <button type="submit" class="btn btn-primary px-4 fw-bold">Saqlash</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add Expense -->
+<div class="modal fade" id="addExpenseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark text-white border border-white border-opacity-10 shadow-lg rounded-4"
+            style="backdrop-filter: blur(10px); background-color: rgba(20, 20, 20, 0.95);">
+            <div class="modal-header border-bottom border-white border-opacity-10">
+                <h5 class="modal-title fw-bold">Yangi xarajat qo'shish</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            {% url 'store:expense_create' as url_exp_create %}
+            <form action="{{ url_exp_create|safe }}" method="post">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small text-uppercase fw-bold">Sana</label>
+                            <input type="date" name="sana"
+                                class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                                value="{% now 'Y-m-d' %}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small text-uppercase fw-bold">Summa</label>
+                            <div class="input-group">
+                                <input type="number" name="summa"
+                                    class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                                    placeholder="Summani kiriting" required>
+                                <span
+                                    class="input-group-text bg-black bg-opacity-25 border-white border-opacity-10 text-secondary">so'm</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small text-uppercase fw-bold">Kategoriya</label>
+                            <select name="category"
+                                class="form-select bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                                required>
+                                <option value="" disabled selected>Xarajat turini tanlang</option>
+                                {% for cat in categories %}
+                                <option value="{{ cat.id }}">{{ cat.nom }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small text-uppercase fw-bold">To'lov usuli</label>
+                            <select name="payment_method"
+                                class="form-select bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                                required>
+                                <option value="naqd" selected>Naqd</option>
+                                <option value="plastik">Plastik</option>
+                                <option value="otkazma">O'tkazma</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label text-secondary small text-uppercase fw-bold">Qabul qiluvchi
+                                (ixtiyoriy)</label>
+                            <input type="text" name="receiver"
+                                class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                                placeholder="Ism familiya">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-secondary small text-uppercase fw-bold">Izoh (Nomi)</label>
+                            <textarea name="izoh"
+                                class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                                rows="3" placeholder="Xarajat haqida izoh..." required></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-white border-opacity-10">
+                    <button type="button" class="btn btn-outline-light border-0 px-4 rounded-3 hover-scale"
+                        data-bs-dismiss="modal">Bekor
+                        qilish</button>
+                    <button type="submit"
+                        class="btn btn-primary px-4 fw-bold rounded-3 shadow-lg hover-scale">Qo'shish</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- VIEW MODAL -->
+<div class="modal fade" id="viewExpenseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border border-white border-opacity-10 shadow-lg rounded-4"
+            style="backdrop-filter: blur(10px); background-color: rgba(20, 20, 20, 0.95);">
+            <div class="modal-header border-bottom border-white border-opacity-10">
+                <h5 class="modal-title fw-bold">Xarajat ma'lumotlari</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="vstack gap-3">
+                    <div
+                        class="d-flex justify-content-between align-items-center border-bottom border-white border-opacity-10 pb-2">
+                        <span class="text-secondary small text-uppercase fw-bold">Sana</span>
+                        <span class="fw-bold fs-14" id="view_sana"></span>
+                    </div>
+                    <div
+                        class="d-flex justify-content-between align-items-center border-bottom border-white border-opacity-10 pb-2">
+                        <span class="text-secondary small text-uppercase fw-bold">Summa</span>
+                        <span class="fw-bold fs-14 text-white" id="view_summa"></span>
+                    </div>
+                    <div
+                        class="d-flex justify-content-between align-items-center border-bottom border-white border-opacity-10 pb-2">
+                        <span class="text-secondary small text-uppercase fw-bold">To'lov usuli</span>
+                        <span class="fw-bold fs-14" id="view_payment"></span>
+                    </div>
+                    <div
+                        class="d-flex justify-content-between align-items-center border-bottom border-white border-opacity-10 pb-2">
+                        <span class="text-secondary small text-uppercase fw-bold">Kategoriya</span>
+                        <span class="fw-bold fs-14" id="view_category"></span>
+                    </div>
+                    <div
+                        class="d-flex justify-content-between align-items-center border-bottom border-white border-opacity-10 pb-2">
+                        <span class="text-secondary small text-uppercase fw-bold">Qabul qiluvchi</span>
+                        <span class="fw-bold fs-14" id="view_receiver"></span>
+                    </div>
+                    <div
+                        class="d-flex justify-content-between align-items-center border-bottom border-white border-opacity-10 pb-2">
+                        <span class="text-secondary small text-uppercase fw-bold">Hodim</span>
+                        <span class="fw-bold fs-14" id="view_worker"></span>
+                    </div>
+                    <div>
+                        <span class="text-secondary small text-uppercase fw-bold d-block mb-1">Izoh (Nomi)</span>
+                        <div class="bg-white bg-opacity-10 p-3 rounded-3 border border-white border-opacity-10">
+                            <span class="fw-medium fs-14 d-block text-break" id="view_izoh"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top border-white border-opacity-10 justify-content-center">
+                <button type="button" class="btn btn-primary w-100 py-2 fw-bold rounded-3 shadow-lg hover-scale"
+                    onclick="downloadCheck()">
+                    <i class="fa-solid fa-download me-2"></i> Chekni yuklab olish
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- COMMENT MODAL -->
+<div class="modal fade" id="commentExpenseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border border-white border-opacity-10 shadow-lg rounded-4"
+            style="backdrop-filter: blur(10px); background-color: rgba(20, 20, 20, 0.95);">
+            <form id="commentExpenseForm" method="post" action="">
+                {% csrf_token %}
+                <div class="modal-header border-bottom border-white border-opacity-10">
+                    <h5 class="modal-title fw-bold"> <i class="fa-regular fa-comment-dots text-warning me-2"></i> Izoh
+                        qoldirish</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small text-uppercase fw-bold">Izoh</label>
+                        <textarea name="izoh" id="comment_izoh" rows="4"
+                            class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                            placeholder="Izoh yozing..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-white border-opacity-10">
+                    <button type="button" class="btn btn-outline-light border-0 px-4 rounded-3 hover-scale"
+                        data-bs-dismiss="modal">Bekor
+                        qilish</button>
+                    <button type="submit"
+                        class="btn btn-warning px-4 fw-bold text-dark rounded-3 shadow-lg hover-scale">Saqlash</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal fade" id="editExpenseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark text-white border border-white border-opacity-10 shadow-lg rounded-4"
+            style="backdrop-filter: blur(10px); background-color: rgba(20, 20, 20, 0.95);">
+            <form id="editExpenseForm" method="post" action="">
+                {% csrf_token %}
+                <div class="modal-header border-bottom border-white border-opacity-10">
+                    <h5 class="modal-title fw-bold">Xarajatni tahrirlash</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small text-uppercase fw-bold">Sana</label>
+                            <input type="date" name="sana" id="edit_sana"
+                                class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                                required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small text-uppercase fw-bold">Summa</label>
+                            <div class="input-group">
+                                <input type="number" name="summa" id="edit_summa"
+                                    class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                                    required>
+                                <span
+                                    class="input-group-text bg-black bg-opacity-25 border-white border-opacity-10 text-secondary">so'm</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small text-uppercase fw-bold">Kategoriya</label>
+                            <select name="category_id" id="edit_category"
+                                class="form-select bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none">
+                                <option value="">Umumiy xarajat</option>
+                                {% for cat in categories %}
+                                <option value="{{ cat.id }}">{{ cat.nom }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small text-uppercase fw-bold">To'lov usuli</label>
+                            <select name="payment_method" id="edit_payment"
+                                class="form-select bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none">
+                                <option value="naqd">Naqd</option>
+                                <option value="plastik">Plastik</option>
+                                <option value="otkazma">O'tkazma</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label text-secondary small text-uppercase fw-bold">Qabul qiluvchi
+                                (ixtiyoriy)</label>
+                            <input type="text" name="receiver" id="edit_receiver"
+                                class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                                placeholder="Ism familiya">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-secondary small text-uppercase fw-bold">Izoh (Nomi)</label>
+                            <textarea name="izoh" id="edit_izoh" rows="2"
+                                class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                                required></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-white border-opacity-10">
+                    <button type="button" class="btn btn-outline-light border-0 px-4 rounded-3 hover-scale"
+                        data-bs-dismiss="modal">Bekor
+                        qilish</button>
+                    <button type="submit"
+                        class="btn btn-success px-4 fw-bold rounded-3 shadow-lg hover-scale">Saqlash</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal fade" id="deleteExpenseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border border-white border-opacity-10 shadow-lg rounded-4"
+            style="backdrop-filter: blur(10px); background-color: rgba(20, 20, 20, 0.95);">
+            <form id="deleteExpenseForm" method="post" action="">
+                {% csrf_token %}
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-danger ps-2">Xarajatni o'chirish</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <div class="mb-4 d-flex justify-content-center">
+                        <div class="rounded-circle bg-danger bg-opacity-10 d-flex justify-content-center align-items-center"
+                            style="width: 80px; height: 80px;">
+                            <i class="fa-regular fa-trash-can text-danger display-4"></i>
+                        </div>
+                    </div>
+                    <h4 class="fw-bold mb-2">Haqiqatan ham o'chirmoqchimisiz?</h4>
+                    <p class="text-secondary small mb-0">Ushbu xarajat butunlay o'chiriladi va<br>bu amalni ortga
+                        qaytarib bo'lmaydi.</p>
+                </div>
+                <div class="modal-footer border-0 justify-content-center pb-4">
+                    <button type="button"
+                        class="btn btn-outline-light border-white border-opacity-10 px-4 py-2 rounded-3 hover-scale"
+                        data-bs-dismiss="modal">
+                        Bekor qilish
+                    </button>
+                    <button type="submit" class="btn btn-danger px-5 py-2 fw-bold rounded-3 shadow-lg hover-scale">
+                        O'chirish
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{{ chart_data|default:"[]"|json_script:"chart_data_json" }}
+{{ chart_labels|default:"[]"|json_script:"chart_labels_json" }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+    // Hidden receipt template for PDF generation
+    const receiptHTML = `
+    <div id="receipt_content" style="padding: 20px; font-family: sans-serif; max-width: 400px; margin: 0 auto; color: #000;">
+        <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 15px; margin-bottom: 20px;">
+            <h2 style="margin: 0; font-size: 24px; font-weight: bold;">Chaqmoq Academy</h2>
+            <p style="margin: 5px 0 0; font-size: 14px; text-transform: uppercase;">Xarajat Cheki</p>
+        </div>
+        
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 20px;">
+            <tr>
+                <td style="padding: 8px 0; font-weight: bold; width: 40%;">Sana:</td>
+                <td style="padding: 8px 0; text-align: right;" id="pdf_sana"></td>
+            </tr>
+            <tr>
+                <td style="padding: 8px 0; font-weight: bold;">Summa:</td>
+                <td style="padding: 8px 0; text-align: right; font-size: 16px; font-weight: bold;" id="pdf_summa"></td>
+            </tr>
+            <tr>
+                <td style="padding: 8px 0; font-weight: bold;">To'lov usuli:</td>
+                <td style="padding: 8px 0; text-align: right;" id="pdf_payment"></td>
+            </tr>
+            <tr>
+                <td style="padding: 8px 0; font-weight: bold;">Kategoriya:</td>
+                <td style="padding: 8px 0; text-align: right;" id="pdf_category"></td>
+            </tr>
+            <tr>
+                <td style="padding: 8px 0; font-weight: bold;">Qabul qiluvchi:</td>
+                <td style="padding: 8px 0; text-align: right;" id="pdf_receiver"></td>
+            </tr>
+            <tr>
+                <td style="padding: 8px 0; font-weight: bold;">Hodim:</td>
+                <td style="padding: 8px 0; text-align: right;" id="pdf_worker"></td>
+            </tr>
+             <tr>
+                <td style="padding: 8px 0; font-weight: bold; vertical-align: top;">Izoh (Nomi):</td>
+                <td style="padding: 8px 0; text-align: right;" id="pdf_izoh"></td>
+            </tr>
+        </table>
+        
+        <div style="text-align: center; border-top: 2px dashed #000; padding-top: 15px;">
+            <p style="font-size: 12px; margin: 0; font-style: italic;">Tizim orqali yaratildi</p>
+        </div>
+    </div>
+    `;
+
+    // Global variable to store current expense data
+    let currentExpenseData = {};
+
+    function downloadCheck() {
+        // Create a temporary container
+        const container = document.createElement('div');
+        container.innerHTML = receiptHTML;
+        document.body.appendChild(container);
+
+        // Populate data
+        container.querySelector('#pdf_sana').innerText = currentExpenseData.sana || '-';
+        container.querySelector('#pdf_summa').innerText = currentExpenseData.summa || '-';
+        container.querySelector('#pdf_izoh').innerText = currentExpenseData.izoh || '-';
+        container.querySelector('#pdf_category').innerText = currentExpenseData.category || '-';
+        container.querySelector('#pdf_receiver').innerText = currentExpenseData.receiver || '-';
+        container.querySelector('#pdf_worker').innerText = currentExpenseData.worker || '-';
+
+        let paymentText = 'Naqd';
+        if (currentExpenseData.payment === 'plastik') paymentText = 'Plastik';
+        else if (currentExpenseData.payment === 'otkazma') paymentText = "O'tkazma";
+
+        container.querySelector('#pdf_payment').innerText = paymentText;
+
+        // Generate PDF
+        const element = container.querySelector('#receipt_content');
+        const opt = {
+            margin: 10,
+            filename: 'xarajat_cheki.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a5', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            document.body.removeChild(container);
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        // View Modal Logic
+        var viewExpenseModal = document.getElementById('viewExpenseModal');
+        viewExpenseModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+
+            var sana = button.getAttribute('data-sana');
+            var summa = button.getAttribute('data-summa') + " so'm";
+            var izoh = button.getAttribute('data-izoh');
+            var category = button.getAttribute('data-category');
+            var receiver = button.getAttribute('data-receiver');
+            var worker = button.getAttribute('data-worker');
+            var payment = button.getAttribute('data-payment');
+
+            document.getElementById('view_sana').textContent = sana;
+            document.getElementById('view_summa').textContent = summa;
+            document.getElementById('view_izoh').textContent = izoh;
+            document.getElementById('view_category').textContent = category;
+            document.getElementById('view_receiver').textContent = receiver;
+            document.getElementById('view_worker').textContent = worker;
+
+            var paymentEl = document.getElementById('view_payment');
+            if (payment === 'naqd') paymentEl.innerHTML = '<i class="fa-solid fa-money-bill text-success me-1"></i> Naqd';
+            else if (payment === 'plastik') paymentEl.innerHTML = '<i class="fa-regular fa-credit-card text-info me-1"></i> Plastik';
+            else paymentEl.innerHTML = '<i class="fa-solid fa-money-bill-transfer text-warning me-1"></i> O\'tkazma';
+
+            // Store data for PDF
+            currentExpenseData = {
+                sana: sana,
+                summa: summa,
+                izoh: izoh,
+                category: category,
+                receiver: receiver,
+                worker: worker,
+                payment: payment
+            };
+        });
+
+        // Comment Modal Logic
+        var commentExpenseModal = document.getElementById('commentExpenseModal');
+        commentExpenseModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var id = button.getAttribute('data-id');
+            var izoh = button.getAttribute('data-izoh');
+
+            document.getElementById('comment_izoh').value = izoh;
+            var form = document.getElementById('commentExpenseForm');
+            {% url 'store:expense_comment' 0 as url_comment %}
+            form.action = "{{ url_comment|safe }}".replace('0', id);
+        });
+
+        // Edit Modal Logic
+        var editExpenseModal = document.getElementById('editExpenseModal');
+        editExpenseModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+
+            var id = button.getAttribute('data-id');
+
+            // Helper to safe set value
+            function setVal(id, val) {
+                var el = document.getElementById(id);
+                if (el) el.value = val;
+            }
+
+            setVal('edit_sana', button.getAttribute('data-sana'));
+            // Remove ' so'm' or spaces if they exist, though input type=number handles some clean up, 
+            // explicit cleaning is better if formatted.
+            // But we will fix the data attribute in the HTML in a separate step or assume it's fixed.
+            setVal('edit_summa', button.getAttribute('data-summa').replace(/[^0-9.]/g, ''));
+
+            setVal('edit_izoh', button.getAttribute('data-izoh'));
+            setVal('edit_receiver', button.getAttribute('data-receiver'));
+            setVal('edit_category', button.getAttribute('data-category-id'));
+            setVal('edit_payment', button.getAttribute('data-payment'));
+
+            var form = document.getElementById('editExpenseForm');
+            {% url 'store:expense_edit' 0 as url_edit %}
+            form.action = "{{ url_edit|safe }}".replace('0', id);
+        });
+
+        // Delete Modal Logic
+        var deleteExpenseModal = document.getElementById('deleteExpenseModal');
+        deleteExpenseModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var id = button.getAttribute('data-id');
+            var form = document.getElementById('deleteExpenseForm');
+            {% url 'store:expense_delete' 0 as url_delete %}
+            form.action = "{{ url_delete|safe }}".replace('0', id);
+        });
+
+        // Chart Logic - FIXED & STYLED
+        var chartData = JSON.parse(document.getElementById('chart_data_json').textContent);
+        var chartLabels = JSON.parse(document.getElementById('chart_labels_json').textContent);
+
+        if (document.querySelector("#expenseChart")) {
+            var options = {
+                series: [{
+                    name: 'Xarajatlar',
+                    data: chartData
+                }],
+                chart: {
+                    height: 350,
+                    type: 'area',
+                    toolbar: { show: false },
+                    fontFamily: 'Plus Jakarta Sans, sans-serif',
+                    zoom: { enabled: false },
+                    animations: {
+                        enabled: true,
+                        easing: 'easeinout',
+                        speed: 1000
+                    },
+                    dropShadow: {
+                        enabled: true,
+                        top: 10,
+                        left: 0,
+                        blur: 8,
+                        color: '#f59e0b',
+                        opacity: 0.1
+                    }
+                },
+                colors: ['#f59e0b'], // Amber/Gold color for "Chaqmoq"
+                dataLabels: { enabled: false },
+                stroke: {
+                    curve: 'smooth',
+                    width: 4,
+                    lineCap: 'round'
+                },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shadeIntensity: 1,
+                        opacityFrom: 0.45,
+                        opacityTo: 0.02,
+                        stops: [0, 80, 100],
+                        colorStops: [
+                            { offset: 0, color: "#f59e0b", opacity: 0.4 },
+                            { offset: 100, color: "#f59e0b", opacity: 0 }
+                        ]
+                    }
+                },
+                markers: {
+                    size: 5,
+                    colors: ['#f59e0b'],
+                    strokeColors: '#ffffff',
+                    strokeWidth: 3,
+                    hover: {
+                        size: 8,
+                        sizeOffset: 3
+                    }
+                },
+                xaxis: {
+                    categories: chartLabels,
+                    axisBorder: { show: false },
+                    axisTicks: { show: false },
+                    labels: {
+                        style: {
+                            colors: '#94a3b8',
+                            fontSize: '12px',
+                            fontWeight: 500
+                        },
+                        offsetY: 5
+                    }
+                },
+                yaxis: {
+                    labels: {
+                        style: {
+                            colors: '#94a3b8',
+                            fontSize: '12px',
+                            fontWeight: 500
+                        },
+                        formatter: function (value) {
+                            if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                            if (value >= 1000) return (value / 1000).toFixed(0) + 'k';
+                            return value;
+                        }
+                    }
+                },
+                grid: {
+                    show: true,
+                    borderColor: 'rgba(255, 255, 255, 0.05)',
+                    strokeDashArray: 4,
+                    padding: { left: 20, right: 20 }
+                },
+                theme: { mode: 'dark' },
+                tooltip: {
+                    theme: 'dark',
+                    y: {
+                        formatter: function (val) {
+                            return new Intl.NumberFormat('uz-UZ').format(val) + " so'm";
+                        }
+                    }
+                }
+            };
+
+            var chart = new ApexCharts(document.querySelector("#expenseChart"), options);
+            chart.render();
+        }
+    });
+</script>
+{% endblock %}

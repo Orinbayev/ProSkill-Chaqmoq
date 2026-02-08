@@ -351,6 +351,7 @@
       z-index: 5;
       pointer-events: auto !important;
     }
+    
   </style>
 
   {% block extra_css %}{% endblock %}
@@ -449,8 +450,7 @@
           <div class="ns-content">
             <div class="d-flex justify-content-between mb-1">
               <span class="ns-title">{{ n.title }}</span>
-              <span class="ns-time fw-bold" style="font-size: 0.7rem; color: #94a3b8;">{{ n.created_at|date:"d.m.Y
-                H:i"}}</span>
+              <span class="ns-time fw-bold" style="font-size: 0.7rem; color: #94a3b8;">{{ n.created_at|date:"d.m.Y  H:i"}}</span>
             </div>
             <p class="ns-msg mb-1">{{ n.message|safe|truncatewords_html:15 }}</p>
             {% if n.sender %}

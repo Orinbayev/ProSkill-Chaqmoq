@@ -306,13 +306,23 @@
           {% if form.nom.errors %}<div class="error-box">{{ form.nom.errors|striptags }}</div>{% endif %}
         </div>
 
-<div class="field">
-  <label for="{{ form.narx_chaqmoq.id_for_label }}">Narx (Chaqmoq)</label>
-  {{ form.narx_chaqmoq }}
-  {% if form.narx_chaqmoq.errors %}
-    <div class="error-box">{{ form.narx_chaqmoq.errors|striptags }}</div>
-  {% endif %}
-</div>
+        <div style="display: flex; gap: 16px;">
+          <div class="field" style="flex: 1;">
+            <label for="{{ form.narx_chaqmoq.id_for_label }}">Narx (Chaqmoq)</label>
+            {{ form.narx_chaqmoq }}
+            {% if form.narx_chaqmoq.errors %}
+            <div class="error-box">{{ form.narx_chaqmoq.errors|striptags }}</div>
+            {% endif %}
+          </div>
+
+          <div class="field" style="flex: 1;">
+            <label for="{{ form.narx_som.id_for_label }}">Narx (So'm)</label>
+            {{ form.narx_som }}
+            {% if form.narx_som.errors %}
+            <div class="error-box">{{ form.narx_som.errors|striptags }}</div>
+            {% endif %}
+          </div>
+        </div>
 
 
         <div class="field">

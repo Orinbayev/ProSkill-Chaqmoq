@@ -48,13 +48,12 @@ def center_stats_api(request, center_id):
         
         total_debt = 0 
         
-        # Calculate Expenses (Based on Teacher Salaries) & Profit
-        # Agar TeacherIncome ishlatilmasa, fallback varianti kerak bo'lishi mumkin.
-        # Hozircha TeacherIncome modelidan foydalanamiz:
+        # Calculate Expenses (Teacher salaries + Other expenses)
         teacher_expenses = TeacherIncome.objects.filter(group__center=center).aggregate(s=Sum('amount'))['s'] or 0
         
-        # Boshqa chiqimlar uchun (hozircha 0, keyinchalik Expense model qo'shilsa shu yerga yoziladi)
-        other_expenses = 0 
+        # ✅ Fetch from Expense model
+        from store.models import Expense
+        other_expenses = Expense.objects.filter(center=center).aggregate(s=Sum('summa'))['s'] or 0
         
         total_expenses = teacher_expenses + other_expenses
         net_profit = total_revenue - total_expenses

@@ -30,5 +30,12 @@ urlpatterns = [
     path('leads/settings/', views.lead_settings, name='lead_settings'),
     path('leads/settings/add/', views.lead_config_add, name='lead_config_add'),
     path('leads/settings/<str:type_code>/<int:pk>/delete/', views.lead_config_delete, name='lead_config_delete'),
-
+    
+    # Expenses (Test)
+    path('expenses/', views.expenses, name='expenses'),
+    path('expenses/create/', views.expense_create, name='expense_create'),
+    path('expenses/category/create/', views.expense_category_create, name='expense_category_create'),
+    path('expenses/<int:pk>/edit/', views.expense_edit, name='expense_edit'),
+    path('expenses/<int:pk>/delete/', views.expense_delete, name='expense_delete'),
+    path('expenses/<int:pk>/comment/', views.expense_comment, name='expense_comment'),
 ]

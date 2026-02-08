@@ -5,7 +5,7 @@ from .models import Lead
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
-        fields = ['nom', 'narx_chaqmoq', 'izoh']
+        fields = ['nom', 'narx_chaqmoq', 'narx_som', 'izoh']
 
 class ProductImageForm(forms.ModelForm):
     class Meta:

@@ -255,6 +255,11 @@
     <div class="fi-icon"><i class="fa-solid fa-store"></i></div>
     <span>Do‘kon</span>
   </a>
+
+  <a href="{% url 'store:expenses' %}" class="floating-item">
+    <div class="fi-icon"><i class="fa-solid fa-receipt"></i></div>
+    <span>Xarajatlar</span>
+  </a>
   {% endif %}
 
   <div class="floating-header mt-2">Tuzilma</div>
@@ -1047,6 +1052,7 @@
   /* ===== COLLAPSED STATE ===== */
   body.sidebar-collapsed .logo-text,
   body.sidebar-collapsed .si-text,
+  body.sidebar-collapsed .arrow-icon,
   body.sidebar-collapsed .sub-info-mini,
   body.sidebar-collapsed .sub-progress-bar-mini {
     display: none !important;

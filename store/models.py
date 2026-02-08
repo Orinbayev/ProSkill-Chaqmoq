@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -12,6 +13,7 @@ User = get_user_model()
 class Product(models.Model):
     nom = models.CharField(max_length=150)
     narx_chaqmoq = models.PositiveIntegerField(help_text="Mahsulot narxi (chaqmoqda)")
+    narx_som = models.PositiveIntegerField(default=0, help_text="Mahsulot narxi (so‘mda)")
     sotilgan_soni = models.PositiveIntegerField(default=0, help_text="Jami sotilgan mahsulotlar soni")
     izoh = models.TextField(blank=True)
     yaratilgan = models.DateTimeField(auto_now_add=True)
@@ -133,6 +135,7 @@ class Sale(models.Model):
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
     qty = models.PositiveIntegerField(default=1)
     narx_chaqmoq = models.PositiveIntegerField()
+    narx_som = models.PositiveIntegerField(default=0)
     manager = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='sotuv_manager')
     sana = models.DateTimeField(auto_now_add=True)
 
@@ -199,6 +202,49 @@ class Comment(models.Model):
 
     def __str__(self):
         return f"{self.user.username} → {self.product.nom}"
+
+
+# ===================================
+# 6.1️⃣ XARAJATLAR (EXPENSE) - TEST UCHUN
+# ===================================
+class ExpenseCategory(models.Model):
+    nom = models.CharField(max_length=100)
+    center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True)
+
+    class Meta:
+        unique_together = ('nom', 'center')
+        verbose_name = "Xarajat toifasi"
+        verbose_name_plural = "Xarajat toifalari"
+    
+    def __str__(self):
+        return self.nom
+
+
+class Expense(models.Model):
+    center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True)
+    summa = models.PositiveIntegerField(verbose_name="Summa (so'm)")
+    izoh = models.CharField(max_length=255, verbose_name="Izoh")
+    sana = models.DateTimeField(default=timezone.now)
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True)
+
+    # ✅ Yangi maydonlar
+    category = models.ForeignKey(ExpenseCategory, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Toifa")
+    payment_method = models.CharField(
+        max_length=20, 
+        choices=[('naqd', 'Naqd'), ('plastik', 'Plastik'), ('otkazma', 'O‘tkazma')],
+        default='naqd',
+        verbose_name="To‘lov usuli"
+    )
+    receiver = models.CharField(max_length=150, blank=True, null=True, verbose_name="Qabul qiluvchi")
+    worker = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Hodim")
+
+    class Meta:
+        verbose_name = "Xarajat"
+        verbose_name_plural = "Xarajatlar"
+        ordering = ['-sana']
+
+    def __str__(self):
+        return f"{self.summa} so'm - {self.izoh}"
 
 
 # ===================================

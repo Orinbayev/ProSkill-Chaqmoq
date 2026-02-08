@@ -581,3 +581,226 @@ def lead_config_delete(request, type_code, pk):
             messages.success(request, "O'chirildi!")
     
     return redirect('store:lead_settings')
+
+
+# ===================================
+# 8️⃣ XARAJATLAR (EXPENSE) - TEST UCHUN
+# ===================================
+from .models import Expense
+from django.db.models import Sum
+
+@login_required
+def expenses(request):
+    center = require_center(request)
+    if request.user.role not in ('manager', 'director') and not request.user.is_superuser:
+        messages.error(request, "Ruxsat yo'q")
+        return redirect('core:home')
+    
+    from .models import ExpenseCategory
+    from django.db.models.functions import TruncMonth
+    from django.db.models import Count
+    
+    # 1. Base QuerySet
+    items = Expense.objects.filter(center=center).select_related('category', 'worker', 'product').order_by('-sana')
+
+    # 2. Filters
+    sana_dan = request.GET.get('sana_dan')
+    sana_gacha = request.GET.get('sana_gacha')
+    category_id = request.GET.get('category')
+    payment_method = request.GET.get('payment_method')
+    worker_id = request.GET.get('worker')
+    q = request.GET.get('q')
+
+    if sana_dan:
+        items = items.filter(sana__date__gte=sana_dan)
+    if sana_gacha:
+        items = items.filter(sana__date__lte=sana_gacha)
+    if category_id and category_id.isdigit():
+        items = items.filter(category_id=category_id)
+    if payment_method:
+        items = items.filter(payment_method=payment_method)
+    if worker_id and worker_id.isdigit():
+        items = items.filter(worker_id=worker_id)
+    if q:
+        items = items.filter(Q(izoh__icontains=q) | Q(receiver__icontains=q))
+
+    # 3. Aggregations
+    total_sum = Expense.objects.filter(center=center).aggregate(Sum('summa'))['summa__sum'] or 0
+    filtered_sum = items.aggregate(Sum('summa'))['summa__sum'] or 0
+
+    # 4. Chart Data (Last 12 months)
+    import datetime
+    today = timezone.now().date()
+    start_date = today - datetime.timedelta(days=365)
+    
+    chart_qs = (
+        Expense.objects.filter(center=center, sana__date__gte=start_date)
+        .annotate(month=TruncMonth('sana'))
+        .values('month')
+        .annotate(total=Sum('summa'))
+        .order_by('month')
+    )
+    
+    chart_labels = []
+    chart_data = []
+    
+    for entry in chart_qs:
+        chart_labels.append(entry['month'].strftime('%b'))
+        chart_data.append(entry['total'])
+        
+    # 5. Context
+    # Ensure "Do'kon" category exists so it shows in the filter
+    ExpenseCategory.objects.get_or_create(nom="Do'kon", center=center)
+    categories = ExpenseCategory.objects.filter(center=center)
+    workers = User.objects.filter(center=center, role__in=['manager', 'director'])
+    
+    context = {
+        'items': items,
+        'total_sum': total_sum,
+        'filtered_sum': filtered_sum,
+        'categories': categories,
+        'workers': workers,
+        'chart_labels': chart_labels,
+        'chart_data': chart_data,
+        # filters
+        'sana_dan': sana_dan,
+        'sana_gacha': sana_gacha,
+        'selected_cat': int(category_id) if category_id and category_id.isdigit() else None,
+        'selected_method': payment_method,
+        'selected_worker': int(worker_id) if worker_id and worker_id.isdigit() else None,
+        'q': q,
+    }
+
+    return render(request, 'store/expenses.html', context)
+
+
+@login_required
+def expense_create(request):
+    """
+    Yangi xarajat qo'shish
+    """
+    if request.method == 'POST':
+        center = require_center(request)
+        from .models import Expense
+        from django.utils import timezone
+        
+        summa = request.POST.get('summa', 0)
+        izoh = request.POST.get('izoh', '')
+        category_id = request.POST.get('category')
+        payment_method = request.POST.get('payment_method', 'naqd')
+        sana = request.POST.get('sana')
+        
+        if not summa or int(summa) <= 0:
+            messages.error(request, "Summa noto'g'ri kiritildi")
+            return redirect('store:expenses')
+            
+        receiver = request.POST.get('receiver', '')
+
+        if not sana:
+            sana = timezone.now()
+            
+        Expense.objects.create(
+            center=center,
+            summa=summa,
+            izoh=izoh,
+            receiver=receiver,
+            category_id=category_id if category_id else None,
+            payment_method=payment_method,
+            sana=sana,
+            worker=request.user 
+        )
+        messages.success(request, "Xarajat qo'shildi")
+        
+    return redirect('store:expenses')
+
+
+@login_required
+def expense_category_create(request):
+    """
+    Yangi xarajat toifasi (category) qo'shish
+    """
+    if request.method == 'POST':
+        center = require_center(request)
+        from .models import ExpenseCategory
+        
+        nom = request.POST.get('nom', '').strip()
+        
+        if nom:
+            ExpenseCategory.objects.create(center=center, nom=nom)
+            messages.success(request, "Yangi toifa qo'shildi")
+        else:
+            messages.error(request, "Toifa nomi kiritilmadi")
+            
+    return redirect('store:expenses')
+
+@login_required
+def expense_edit(request, pk):
+    center = require_center(request)
+    from .models import Expense, ExpenseCategory
+    
+    expense = get_object_or_404(Expense, pk=pk, center=center)
+    
+    if request.method == 'POST':
+        summa = request.POST.get('summa', '')
+        izoh = request.POST.get('izoh', '')
+        sana_str = request.POST.get('sana', '')
+        category_id = request.POST.get('category_id') # ID string bo'lishi mumkin
+        payment_method = request.POST.get('payment_method')
+        receiver = request.POST.get('receiver', '')
+        
+        if not summa or int(summa) <= 0:
+            messages.error(request, "Summa noto'g'ri")
+            return redirect('store:expenses')
+            
+        expense.summa = summa
+        expense.izoh = izoh
+        expense.receiver = receiver
+        expense.payment_method = payment_method
+        
+        if sana_str:
+            expense.sana = sana_str
+            
+        if category_id:
+            try:
+                cat = ExpenseCategory.objects.get(pk=category_id, center=center)
+                expense.category = cat
+            except ExpenseCategory.DoesNotExist:
+                 expense.category = None
+        else:
+            expense.category = None
+            
+        expense.save()
+        messages.success(request, "Xarajat tahrirlandi")
+        
+    return redirect('store:expenses')
+
+@login_required
+def expense_delete(request, pk):
+    center = require_center(request)
+    from .models import Expense
+    
+    if request.method == 'POST':
+        expense = get_object_or_404(Expense, pk=pk, center=center)
+        expense.delete()
+        messages.success(request, "Xarajat o'chirildi")
+        
+    return redirect('store:expenses')
+
+
+@login_required
+def expense_comment(request, pk):
+    """
+    Faqat izohni o'zgartirish (Comment funksiyasi uchun)
+    """
+    center = require_center(request)
+    from .models import Expense
+    
+    if request.method == 'POST':
+        expense = get_object_or_404(Expense, pk=pk, center=center)
+        izoh = request.POST.get('izoh', '').strip()
+        if izoh:
+            expense.izoh = izoh
+            expense.save()
+            messages.success(request, "Izoh yangilandi")
+        
+    return redirect('store:expenses')

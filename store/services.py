@@ -1,5 +1,5 @@
 from django.db import transaction
-from .models import PurchaseRequest, Sale
+from .models import PurchaseRequest, Sale, Expense
 from chaqmoq.models import Ledger, Rule
 import re
 import secrets
@@ -48,8 +48,28 @@ def approve_purchase(pr: PurchaseRequest, manager):
         product=product,
         qty=pr.qty,
         narx_chaqmoq=product.narx_chaqmoq,
+        narx_som=product.narx_som,
         manager=manager
     )
+
+    # ✅ 6. Xarajat yozish (agar narx_som > 0 bo'lsa)
+    if product.narx_som > 0:
+        from .models import ExpenseCategory
+        cat, _ = ExpenseCategory.objects.get_or_create(
+            nom="Do'kon", 
+            center=manager.center if manager.center else product.center
+        )
+        
+        Expense.objects.create(
+            center=manager.center if manager.center else product.center,
+            summa=product.narx_som * pr.qty,
+            izoh=f"{product.nom} (x{pr.qty})",
+            product=product,
+            category=cat,
+            receiver=f"{student.ism} {student.familya}".strip(),
+            worker=manager,
+            payment_method='naqd' # Default
+        )
 
     # ✅ 5. Mahsulot statistikasi
     if hasattr(product, 'sotilgan_soni'):
