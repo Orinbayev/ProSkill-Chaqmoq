@@ -70,7 +70,7 @@ def product_detail(request, pk):
             request_status = last_request.status
 
     from chaqmoq.models import Ledger
-    user_chaqmoq = Ledger.student_balansi(user.id)
+    user_chaqmoq = Ledger.student_balansi(user.id, center=center)
 
     sotib_olganlar_soni = PurchaseRequest.objects.filter(
         product=item,
@@ -143,7 +143,7 @@ def create_request(request, pk):
 
 
     # ✅ 3. Ledger orqali foydalanuvchining real chaqmoq balansini olish
-    user_chaqmoq = Ledger.student_balansi(user.id)
+    user_chaqmoq = Ledger.student_balansi(user.id, center=product.center)
 
     if user_chaqmoq < product.narx_chaqmoq:
         messages.error(
@@ -292,10 +292,10 @@ def product_delete(request, pk):
 
 
 # 🔒 Talabaning balansini tekshirish
-def _student_has_enough(user, price: int) -> bool:
+def _student_has_enough(user, price: int, center=None) -> bool:
     if getattr(user, 'role', None) != 'student':
         return True
-    bal = Ledger.student_balansi(user.id)
+    bal = Ledger.student_balansi(user.id, center=center)
     return bal >= price
 
 from .models import Lead

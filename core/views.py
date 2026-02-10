@@ -207,7 +207,7 @@ def home(request):
         return render(request, "core/dashboard_teacher.html", ctx)
 
     if role == "student":
-        balance = Ledger.student_balansi(u.id)
+        balance = Ledger.student_balansi(u.id, center=center)
         last_actions = _student_last_actions(u.id, center=center)
         return render(request, "core/dashboard_student.html", {
             "balance": balance,
@@ -542,12 +542,12 @@ def dashboard_parent(request):
         child.calculated_balance = Ledger.objects.filter(
             student=child
         ).filter(
-            Q(group__center=center) | Q(rule__center=center)
+            Q(group__center=center) | Q(rule__center=center) | Q(rule__center__isnull=True)
         ).aggregate(Sum('ball'))['ball__sum'] or 0
 
         # Rank
         child.calculated_rank = Ledger.objects.filter(
-            Q(group__center=center) | Q(rule__center=center),
+            Q(group__center=center) | Q(rule__center=center) | Q(rule__center__isnull=True),
             student__role='student'
         ).values('student').annotate(
             total_points=Sum('ball')
@@ -569,13 +569,13 @@ def dashboard_parent(request):
             s_balance = Ledger.objects.filter(
                 student=s
             ).filter(
-                Q(group__center=center) | Q(rule__center=center)
+                Q(group__center=center) | Q(rule__center=center) | Q(rule__center__isnull=True)
             ).aggregate(Sum('ball'))['ball__sum'] or 0
             
             s.calculated_balance = s_balance
 
             s.calculated_rank = Ledger.objects.filter(
-                Q(group__center=center) | Q(rule__center=center),
+                Q(group__center=center) | Q(rule__center=center) | Q(rule__center__isnull=True),
                 student__role='student'
             ).values('student').annotate(
                 total_points=Sum('ball')
@@ -722,7 +722,7 @@ def stat_students(request):
     # ✅ Isolate data by center (Coins and Groups)
     rows = rows.annotate(
         jami_chaqmoq=Coalesce(
-            Sum("ledger__ball", filter=Q(ledger__group__center=center) | Q(ledger__rule__center=center)),
+            Sum("ledger__ball", filter=Q(ledger__group__center=center) | Q(ledger__rule__center=center) | Q(ledger__rule__center__isnull=True)),
             0
         )
     ).prefetch_related(
@@ -890,7 +890,7 @@ def user_view(request, pk):
     # ✅ Chaqmoq balance (Tenant Scoped)
     balance_qs = Ledger.objects.filter(student=user)
     if center:
-        balance_qs = balance_qs.filter(Q(group__center=center) | Q(rule__center=center))
+        balance_qs = balance_qs.filter(Q(group__center=center) | Q(rule__center=center) | Q(rule__center__isnull=True))
     balance = balance_qs.aggregate(Sum('ball'))['ball__sum'] or 0
     
     # ✅ Chaqmoq history (Tenant Scoped)

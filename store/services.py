@@ -19,7 +19,7 @@ def approve_purchase(pr: PurchaseRequest, manager):
     student = pr.student
 
     # ✅ 1. Balansni tekshirish
-    balans = Ledger.student_balansi(student.id)
+    balans = Ledger.student_balansi(student.id, center=pr.center)
     umumiy_narx = product.narx_chaqmoq * pr.qty
 
     if balans < umumiy_narx:

@@ -66,7 +66,10 @@ class Ledger(models.Model):
         super().save(*args, **kwargs)
 
     @staticmethod
-    def student_balansi(student_id: int) -> int:
-        from django.db.models import Sum
-        s = Ledger.objects.filter(student_id=student_id).aggregate(Sum('ball'))['ball__sum']
+    def student_balansi(student_id: int, center=None) -> int:
+        from django.db.models import Sum, Q
+        qs = Ledger.objects.filter(student_id=student_id)
+        if center:
+            qs = qs.filter(Q(group__center=center) | Q(rule__center=center) | Q(rule__center__isnull=True))
+        s = qs.aggregate(Sum('ball'))['ball__sum']
         return s or 0
