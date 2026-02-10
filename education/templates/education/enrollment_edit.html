@@ -2,347 +2,269 @@
 {% block content %}
 
 <style>
-  :root{
-    --bg0:#020617;
-    --bg1:#070b16;
-    --bg2:#0b1226;
-
-    --glass: rgba(17,24,39,.62);
-    --glass2: rgba(2,6,23,.55);
-    --stroke: rgba(255,255,255,.10);
-
-    --text:#e5e7eb;
-    --muted:#94a3b8;
-
-    --amber:#fbbf24;
-    --amber2:#f59e0b;
-
-    --neon:#38bdf8;
-    --neon2:#0ea5e9;
-
-    --green:#22c55e;
-    --green2:#16a34a;
-
-    --shadow: 0 26px 90px rgba(0,0,0,.55);
-
-    --r14:14px;
-    --r18:18px;
-    --r22:22px;
-    --r28:28px;
-
-    --pad: clamp(14px, 2.7vw, 22px);
-    --gap: clamp(10px, 2.2vw, 14px);
-
-    --ringA: 0 0 0 3px rgba(251,191,36,.18);
-    --ringN: 0 0 0 3px rgba(56,189,248,.18);
-    --ringG: 0 0 0 3px rgba(34,197,94,.18);
+  :root {
+    --glass-bg: rgba(17, 24, 39, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --accent-blue: #38bdf8;
+    --accent-green: #22c55e;
+    --accent-amber: #f59e0b;
   }
 
-  *{ box-sizing:border-box; }
-  html, body{ height:100%; }
-  body{
-    background:
-      radial-gradient(980px 640px at 12% -10%, rgba(56,189,248,.16), transparent 55%),
-      radial-gradient(980px 640px at 88% 0%, rgba(251,191,36,.14), transparent 55%),
-      radial-gradient(980px 680px at 55% 120%, rgba(34,197,94,.12), transparent 60%),
-      linear-gradient(180deg, var(--bg0), var(--bg2));
-    color: var(--text);
-    min-height:100vh;
-    overflow-x:hidden;
+  .edit-container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
   }
 
-  :focus-visible{ outline:none; }
-  @media (prefers-reduced-motion: reduce){
-    *{ transition:none !important; }
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 28px;
+    padding: 40px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.4s ease-out;
   }
 
-  /* page */
-  .box{
-    width: min(1100px, 100%);
-    margin: 0 auto;
-    padding: 16px 12px 28px;
-    color:#e5e7eb;
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
-  /* glass card */
-  .card{
-    width: min(820px, 100%);
-    margin: 0 auto;
-    background: linear-gradient(180deg, var(--glass), var(--glass2));
-    border: 1px solid var(--stroke);
-    border-radius: var(--r28);
-    padding: calc(var(--pad) + 6px);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    position: relative;
-    overflow:hidden;
-    animation: fadeIn .35s ease;
+  .header-section {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 35px;
   }
 
-  .card::before{
-    content:"";
-    position:absolute;
-    inset:-2px;
-    background:
-      radial-gradient(720px 280px at 20% 0%, rgba(56,189,248,.18), transparent 65%),
-      radial-gradient(720px 280px at 70% 10%, rgba(251,191,36,.14), transparent 65%),
-      radial-gradient(720px 280px at 55% 120%, rgba(34,197,94,.14), transparent 65%);
-    filter: blur(18px);
-    opacity:.95;
-    pointer-events:none;
-  }
-  .card > *{ position:relative; z-index:2; }
-
-  /* header */
-  .head{
-    display:flex;
-    align-items:flex-start;
-    gap: 14px;
-    margin-bottom: 14px;
-    flex-wrap:wrap;
-  }
-  .head-icon{
-    width:56px;
-    height:56px;
+  .icon-box {
+    width: 64px;
+    height: 64px;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.2);
     border-radius: 18px;
-    display:grid;
-    place-items:center;
-    background: rgba(251,191,36,.10);
-    border: 1px solid rgba(251,191,36,.22);
-    box-shadow: 0 16px 36px rgba(251,191,36,.10);
-    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-amber);
+    font-size: 24px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
   }
-  .head-icon .pen{
-    width:34px; height:34px;
-    border-radius: 14px;
-    display:grid;
-    place-items:center;
-    background: rgba(2,6,23,.45);
-    border: 1px solid rgba(255,255,255,.08);
+
+  .title-area h2 {
     color: #fde68a;
-    font-weight: 950;
-    font-size: 18px;
-    line-height: 1;
+    font-weight: 800;
+    margin-bottom: 5px;
+    font-size: 28px;
   }
 
-  h3{
-    margin:0;
-    font-weight: 1000;
-    font-size: clamp(18px, 3.8vw, 28px);
-    letter-spacing: .2px;
-    line-height: 1.06;
-    color:#fde68a;
-    text-shadow: 0 10px 34px rgba(251,191,36,.12);
+  .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 500;
   }
 
-  .meta{
-    color: rgba(148,163,184,.95);
-    font-weight: 900;
-    margin-top: 8px;
-    line-height: 1.5;
-    font-size: 13px;
-  }
-
-  /* layout */
-  .row{
-    display:grid;
-    grid-template-columns: 1fr;
-    gap: var(--gap);
-    margin-top: 12px;
-  }
-  .col{ min-width: 0; }
-
-  @media (min-width: 820px){
-    .row{
-      grid-template-columns: 1fr 1fr;
-      gap: 14px 16px;
-    }
-  }
-
-  /* labels */
-  label{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    font-weight: 900;
-    letter-spacing: .10em;
+  .form-label {
+    color: rgba(229, 231, 235, 0.9);
+    font-weight: 700;
     text-transform: uppercase;
-    font-size: 12px;
-    margin: 10px 2px 8px;
-    color: rgba(229,231,235,.92);
-  }
-  label::before{
-    content:"";
-    width: 8px; height: 8px;
-    border-radius: 999px;
-    background: rgba(56,189,248,.92);
-    box-shadow: 0 0 0 4px rgba(56,189,248,.14);
-    flex: 0 0 auto;
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
-  /* inputs */
-  input, select{
-    width:100%;
-    height: 48px;
-    border-radius: var(--r18);
-    border: 1px solid rgba(255,255,255,.12);
-    background: rgba(2,6,23,.35) !important;
-    color: #e5e7eb !important;
-    padding: 0 14px;
-    outline:none;
-    font-weight: 850;
-    transition: .18s ease;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
-    color-scheme: dark;
+  .form-label::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    background: var(--accent-blue);
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 10px var(--accent-blue);
   }
 
-  input::placeholder{ color: rgba(148,163,184,.88); font-weight: 750; }
-
-  input:focus, select:focus{
-    border-color: rgba(56,189,248,.55) !important;
-    box-shadow: var(--ringN), inset 0 0 0 1px rgba(255,255,255,.03) !important;
+  .custom-input,
+  .custom-select {
+    background: rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid var(--glass-border) !important;
+    color: white !important;
+    border-radius: 16px !important;
+    height: 52px !important;
+    padding: 0 18px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
   }
 
-  /* select arrow */
-  select{
-    appearance:none;
-    -webkit-appearance:none;
-    background-image:
-      linear-gradient(45deg, transparent 50%, rgba(251,191,36,.9) 50%),
-      linear-gradient(135deg, rgba(251,191,36,.9) 50%, transparent 50%),
-      linear-gradient(to right, rgba(255,255,255,.10), rgba(255,255,255,.10));
-    background-position:
-      calc(100% - 18px) calc(50% - 3px),
-      calc(100% - 12px) calc(50% - 3px),
-      calc(100% - 42px) 50%;
-    background-size: 6px 6px, 6px 6px, 1px 22px;
-    background-repeat: no-repeat;
-    padding-right: 48px;
+  .custom-input:focus,
+  .custom-select:focus {
+    border-color: var(--accent-blue) !important;
+    box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15) !important;
+    background: rgba(0, 0, 0, 0.4) !important;
+    outline: none;
   }
 
-  /* buttons */
-  .btn{
-    min-height: 52px;
-    border:0;
-    border-radius: var(--r18);
-    padding: 0 16px;
-    font-weight: 1000;
-    cursor:pointer;
-    text-decoration:none;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:10px;
-    white-space:nowrap;
-    transition: transform .18s ease, filter .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease;
-    width: 100%;
-    user-select:none;
+  .custom-select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 18px center !important;
+    background-size: 20px !important;
   }
 
-  .btn.green{
-    background: linear-gradient(90deg, var(--green), var(--green2));
-    color: #062314;
-    box-shadow: 0 18px 44px rgba(34,197,94,.18);
+  .action-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 40px;
   }
-  .btn.green:hover{ transform: translateY(-1px); filter: brightness(1.04); }
-  .btn.green:active{ transform: translateY(0) scale(.99); }
-  .btn.green:focus-visible{ box-shadow: var(--ringG), 0 18px 44px rgba(34,197,94,.18); }
 
-  .btn.gray{
-    background: rgba(148,163,184,.10);
-    color: rgba(229,231,235,.95);
-    border: 1px solid rgba(255,255,255,.10);
-  }
-  .btn.gray:hover{ background: rgba(148,163,184,.16); transform: translateY(-1px); }
-  .btn.gray:active{ transform: translateY(0) scale(.99); }
-  .btn.gray:focus-visible{ box-shadow: var(--ringA); border-color: rgba(251,191,36,.35); }
-
-  .actions{
-    display:grid;
+  .btn-save {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    border: none;
+    border-radius: 18px;
+    height: 56px;
+    font-weight: 800;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     gap: 12px;
-    margin-top: 16px;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 20px rgba(34, 197, 94, 0.2);
   }
 
-  @media (min-width: 720px){
-    .actions{
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      align-items:stretch;
+  .btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 30px rgba(34, 197, 94, 0.3);
+    filter: brightness(1.1);
+    color: white;
+  }
+
+  .btn-back {
+    background: rgba(30, 41, 59, 0.5);
+    color: var(--text);
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    height: 56px;
+    font-weight: 800;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+  }
+
+  .btn-back:hover {
+    background: rgba(30, 41, 59, 0.8);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 640px) {
+    .action-buttons {
+      grid-template-columns: 1fr;
     }
-  }
 
-  @media (max-width: 520px){
-    .card{ padding: 20px 16px 18px; border-radius: 22px; }
-    .head-icon{ width:52px; height:52px; border-radius: 16px; }
-    input, select{ height: 50px; border-radius: 16px; }
-    .btn{ border-radius: 16px; }
-  }
+    .edit-container {
+      margin-top: 20px;
+    }
 
-  @keyframes fadeIn{
-    from {opacity:0; transform: translateY(12px);}
-    to {opacity:1; transform: translateY(0);}
+    .glass-card {
+      padding: 25px;
+    }
   }
 </style>
 
-<div class="box">
-  <div class="card">
-    <div class="head">
-      <div class="head-icon" aria-hidden="true"><div class="pen">✏️</div></div>
-      <div style="min-width:0;">
-        <h3 style="margin:0 0 10px; font-weight:1000;">✏️ O‘quvchini tahrirlash</h3>
-        <div class="meta">
-          {{ enr.student.ism }} {{ enr.student.familya }} • Guruh: {{ enr.group.nom }}
+<div class="edit-container">
+  <div class="glass-card">
+    <div class="header-section">
+      <div class="icon-box">
+        <i class="fas fa-pencil-alt"></i>
+      </div>
+      <div class="title-area">
+        <h2><i class="fas fa-edit me-2" style="font-size: 24px;"></i> O‘quvchini tahrirlash</h2>
+        <div class="subtitle">
+          {{ enr.student.get_full_name }} • Guruh: {{ enr.group.nom }}
         </div>
       </div>
     </div>
 
     <form method="post">
       {% csrf_token %}
-
       <input type="hidden" name="next" value="{{ next }}">
       <input type="hidden" name="month" value="{{ month }}">
 
-      <div class="row">
-        <div class="col">
-          <label>Ism</label>
-          <input name="ism" value="{{ enr.student.ism }}">
+      <div class="row g-4">
+        <!-- Ism -->
+        <div class="col-md-6">
+          <label class="form-label">Ism</label>
+          <input type="text" name="ism" value="{{ enr.student.ism }}" class="form-control custom-input"
+            placeholder="Ismni kiriting" required>
         </div>
-        <div class="col">
-          <label>Familya</label>
-          <input name="familya" value="{{ enr.student.familya }}">
-        </div>
-      </div>
 
-      <div class="row">
-        <div class="col">
-          <label>Email</label>
-          <input name="email" value="{{ enr.student.email }}">
+        <!-- Familya -->
+        <div class="col-md-6">
+          <label class="form-label">Familya</label>
+          <input type="text" name="familya" value="{{ enr.student.familya }}" class="form-control custom-input"
+            placeholder="Familyani kiriting" required>
         </div>
-        <div class="col">
-          <label>Guruh</label>
-          <select name="group_id">
+
+        <!-- Email -->
+        <div class="col-md-6">
+          <label class="form-label">Email</label>
+          <input type="email" name="email" value="{{ enr.student.email }}" class="form-control custom-input"
+            placeholder="Email kiriting">
+        </div>
+
+        <!-- Guruh -->
+        <div class="col-md-6">
+          <label class="form-label">Guruh</label>
+          <select name="group_id" class="form-select custom-select">
             {% for g in groups %}
-              <option value="{{ g.id }}" {% if g.id == enr.group.id %}selected{% endif %}>{{ g.nom }}</option>
+            <option value="{{ g.id }}" {% if g.id == enr.group.id %}selected{% endif %}>{{ g.nom }}</option>
             {% endfor %}
           </select>
         </div>
+
+        <!-- Kurs Narxi -->
+        <div class="col-md-6">
+          <label class="form-label">Kurs narxi (so‘m)</label>
+          <input type="number" name="kurs_narhi" min="0" value="{{ enr.kurs_narhi|default:'0' }}"
+            class="form-control custom-input" placeholder="Summani kiriting">
+        </div>
+
+        <!-- O'qituvchi Foizi -->
+        <div class="col-md-6">
+          <label class="form-label">O‘qituvchi foizi (%)</label>
+          <input type="number" name="oqituvchi_foiz" min="0" max="100" value="{{ enr.oqituvchi_foiz|default:'40' }}"
+            class="form-control custom-input" placeholder="Foizni kiriting">
+        </div>
       </div>
 
-      <div class="row">
-        <div class="col">
-          <label>Kurs narxi (so‘m)</label>
-          <input name="kurs_narhi" type="number" min="0" value="{{ enr.kurs_narhi|default_if_none:'' }}">
-        </div>
-        <div class="col">
-          <label>O‘qituvchi foizi (%)</label>
-          <input name="oqituvchi_foiz" type="number" min="0" max="100" value="{{ enr.oqituvchi_foiz|default_if_none:'' }}">
-        </div>
-      </div>
-
-      <div class="actions">
-        <button class="btn green" type="submit">✅ Saqlash</button>
-        <a class="btn gray" href="{{ next }}">↩️ Orqaga</a>
+      <div class="action-buttons">
+        <button type="submit" class="btn btn-save">
+          <i class="fas fa-check-circle"></i> Saqlash
+        </button>
+        <a href="{{ next }}" class="btn btn-back">
+          <i class="fas fa-arrow-left"></i> Orqaga
+        </a>
       </div>
     </form>
   </div>

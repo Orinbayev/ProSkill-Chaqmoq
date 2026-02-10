@@ -12,14 +12,17 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Count, F, Min, Max, Prefetch, Q, Sum
-from django.db.models.functions import Coalesce
+from django.db.models import (
+    Count, F, Min, Max, Prefetch, Q, Sum, OuterRef, Subquery
+)
+from django.db.models.functions import Coalesce, TruncMonth
 from django.http import (
     Http404,
     HttpResponse,
     HttpResponseForbidden,
     JsonResponse,
 )
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -34,12 +37,15 @@ from education.services.tuition import (
     month_first_day,
     ensure_tuition_month,
     get_month_paid,
+    tuition_month_fee_field,
+    tuition_month_fee,
+    ensure_all_tuition_months_since_start,
     create_payment_and_allocate,
     update_payment_and_reallocate,
+    _allocate_amount_forward,
     sync_tuition_fee,
-    tuition_month_fee,
-    tuition_month_fee_field,
 )
+
 
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -205,7 +211,6 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from chaqmoq.models import Ledger
 from django.db.models import Count, Max, Q, Case, When, Value, IntegerField, F
-from education.services.tuition import month_first_day, ensure_tuition_month, get_month_paid, create_payment_and_allocate
 
 
 from .models import Enrollment, TuitionMonth, PaymentAllocation
@@ -248,12 +253,26 @@ def parse_month_str(s: str) -> date | None:
 
 from urllib.parse import urlparse, parse_qs
 
+
 def _get_month_from_next(next_url: str, fallback: date) -> date:
     try:
         qs = parse_qs(urlparse(next_url).query)
+
+        # 1) eng to‘g‘risi: month=YYYY-MM
         m = (qs.get("month", [""])[0] or "").strip()
         if m:
             return parse_month_str(m) or fallback
+
+        # 2) sizda ishlayotgan variant: pay_month=1..12
+        pm = (qs.get("pay_month", [""])[0] or "").strip()
+        if pm.isdigit():
+            mm = int(pm)
+            if 1 <= mm <= 12:
+                # year bo‘lmasa joriy yil
+                yy = (qs.get("year", [""])[0] or "").strip()
+                yy = int(yy) if yy.isdigit() else fallback.year
+                return date(yy, mm, 1)
+
         return fallback
     except Exception:
         return fallback
@@ -263,146 +282,6 @@ from django.core.paginator import Paginator
 
 
 
-@login_required
-def tolov_oquvchilar(request):
-    if not user_can_manage_payments(request.user):
-        messages.error(request, "Ruxsat yo‘q.")
-        return redirect("core:home")
-
-    q = (request.GET.get("q") or "").strip()
-    status_filter = (request.GET.get("status") or "").strip()   # full|partial|unpaid|""
-    month_str = (request.GET.get("month") or "").strip()        # YYYY-MM
-    per_page_raw = (request.GET.get("per_page") or "10").strip()
-
-    allowed_per_page = {"10", "20", "50", "100"}
-    if per_page_raw not in allowed_per_page:
-        per_page_raw = "10"
-    per_page = int(per_page_raw)
-
-    per_page = int(per_page_raw)
-
-    # selected_month = parse_month_str(month_str)
-    # month_str_out = selected_month.strftime("%Y-%m")
-    selected_month = parse_month_str(month_str) or first_day_of_current_month()
-    month_str_out = selected_month.strftime("%Y-%m")
-
-    # from core.tenant import get_request_center
-    center = get_active_center(request)
-    if not center and not request.user.is_superuser:
-        return HttpResponseForbidden("Markaz biriktirilmagan")
-
-    enrollments = Enrollment.objects.select_related("student", "group")
-    if center:
-        enrollments = enrollments.filter(center=center)
-
-    # ✅ QIDIRUV: ism + familya + otchestvo + email
-    if q:
-        enrollments = enrollments.filter(
-            Q(student__ism__icontains=q) |
-            Q(student__familya__icontains=q) |
-            Q(student__otchestvo__icontains=q) |   # ✅ OTСHESTVO QO‘SHILDI
-            Q(student__email__icontains=q)
-        )
-
-    # all-time stats
-    # Filter payments by center too
-    pay_qs = Payment.objects.filter(enrollment__in=enrollments)
-    if center:
-       pay_qs = pay_qs.filter(center=center)
-
-    all_students_total = enrollments.count()
-    all_paid_students = (
-        pay_qs.values("enrollment_id").distinct().count()
-    )
-    all_never_paid_students = max(0, all_students_total - all_paid_students)
-    all_paid_total = (
-        pay_qs.aggregate(s=Sum("summa"))["s"] or 0
-    )
-    all_payments_count = pay_qs.count()
-
-    # rows
-    rows = []
-    month_fee_total = 0
-    month_paid_total = 0
-    month_left_total = 0
-
-    for e in enrollments:
-        tm = ensure_tuition_month(e, selected_month)
-        fee = int(getattr(tm, "fee_amount", 0) or 0)
-        paid_this_month = int(get_month_paid(e, selected_month) or 0)
-
-        if fee <= 0:
-            status = "unpaid"
-            qoldiq = 0
-            fee_missing = True
-        else:
-            fee_missing = False
-            qoldiq = max(0, fee - paid_this_month)
-            if paid_this_month >= fee:
-                status = "full"
-            elif paid_this_month > 0:
-                status = "partial"
-            else:
-                status = "unpaid"
-
-        month_fee_total += fee
-        month_paid_total += paid_this_month
-        month_left_total += qoldiq
-
-        rows.append({
-            "enrollment": e,
-            "student": e.student,
-            "group": e.group,
-            "month": selected_month,
-            "fee": fee,
-            "paid_this_month": paid_this_month,
-            "qoldiq": qoldiq,
-            "status": status,
-            "jami_tolangan": int(getattr(e, "jami_tolangan", 0) or 0),
-            "fee_missing": fee_missing,
-        })
-
-    total = len(rows)
-    full_count = sum(1 for x in rows if x["status"] == "full")
-    partial_count = sum(1 for x in rows if x["status"] == "partial")
-    unpaid_count = sum(1 for x in rows if x["status"] == "unpaid")
-
-    if status_filter in ("full", "partial", "unpaid"):
-        data_rows = [x for x in rows if x["status"] == status_filter]
-    else:
-        status_filter = ""
-        data_rows = rows
-
-    paginator = Paginator(data_rows, per_page)
-    page_obj = paginator.get_page(request.GET.get("page"))
-
-    return render(request, "education/tolov_oquvchilar.html", {
-        "data": page_obj.object_list,
-        "query": q,
-        "selected_month": selected_month,
-        "month_str": month_str_out,
-        "status_filter": status_filter,
-
-        "total": total,
-        "full_count": full_count,
-        "partial_count": partial_count,
-        "unpaid_count": unpaid_count,
-
-        "page_obj": page_obj,
-        "paginator": paginator,
-        "is_paginated": paginator.num_pages > 1,
-        "per_page": per_page_raw,
-
-        "month_fee_total": month_fee_total,
-        "month_paid_total": month_paid_total,
-        "month_left_total": month_left_total,
-
-        "all_students_total": all_students_total,
-        "all_paid_students": all_paid_students,
-        "all_never_paid_students": all_never_paid_students,
-        "all_paid_total": all_paid_total,
-        "all_payments_count": all_payments_count,
-    })
 
 
 def _can_manage(u: User) -> bool:
@@ -581,42 +460,105 @@ def _model_has_field(model, field_name: str) -> bool:
 def create_payment(request):
     if not user_can_manage_payments(request.user):
         messages.error(request, "Ruxsat yo‘q.")
-        return redirect("education:tolov_oquvchilar")
+        return redirect("education:tolovlar_home")
 
-    enrollment_id = request.POST.get("enrollment_id")
-    month_str = (request.POST.get("month") or "").strip()
-    next_url = request.POST.get("next") or "education:tolov_oquvchilar"
-# fallback oy: hozirgi oyning 1-kuni
-    fallback = date(timezone.localdate().year, timezone.localdate().month, 1)
-
-    start_month = parse_month_str(month_str) if month_str else _get_month_from_next(next_url, fallback)
-    if not enrollment_id:
-        messages.error(request, "Enrollment ID kelmadi.")
-        return redirect(next_url)
-
-    # from core.tenant import get_request_center
-    center = get_active_center(request)
-    qs = Enrollment.objects.all()
-    if center:
-        qs = qs.filter(center=center)
+    next_url = request.POST.get("next") or "education:tolovlar_home"
     
-    enrollment = get_object_or_404(qs, id=enrollment_id)
+    enrollment_id = request.POST.get("enrollment_id")
+    student_id = request.POST.get("student_id")
+    month_str = request.POST.get("month")
 
+    fallback = first_day_of_current_month()
+    start_month = parse_month_str(month_str) if month_str else _get_month_from_next(next_url, fallback)
+    
     cash_amount = int(Decimal(request.POST.get("cash_amount") or "0"))
     card_amount = int(Decimal(request.POST.get("card_amount") or "0"))
+    note = (request.POST.get("note") or "").strip()
 
-    try:
-        # start_month = parse_month_str(month_str)
-        create_payment_and_allocate(
-            enrollment=enrollment,
-            cash_amount=cash_amount,
-            card_amount_som=card_amount,
-            created_by=request.user,
-            start_month=start_month,
-        )
-        messages.success(request, "✅ To‘lov saqlandi va oylar bo‘yicha taqsimlandi!")
-    except Exception as e:
-        messages.error(request, f"❌ Xatolik: {e}")
+    if not enrollment_id and not student_id:
+        messages.error(request, "ID kelmadi.")
+        return redirect(next_url)
+
+    center = get_active_center(request)
+
+    if enrollment_id:
+        qs = Enrollment.objects.all()
+        if center: qs = qs.filter(center=center)
+        enrollment = get_object_or_404(qs, id=enrollment_id)
+        
+        try:
+            with transaction.atomic():
+                create_payment_and_allocate(
+                    enrollment=enrollment,
+                    cash_amount=cash_amount,
+                    card_amount_som=card_amount,
+                    created_by=request.user,
+                    start_month=start_month,
+                    note=note,
+                )
+            messages.success(request, f"✅ {enrollment.group.nom} uchun to‘lov saqlandi!")
+        except Exception as e:
+            messages.error(request, f"❌ Xatolik: {e}")
+            
+    elif student_id:
+        # ✅ CONSOLIDATED DISTRIBUTION LOGIC
+        user_qs = User.objects.filter(role="student")
+        if center: user_qs = user_qs.filter(center=center)
+        student = get_object_or_404(user_qs, id=student_id)
+        
+        enrollments = Enrollment.objects.filter(student=student, is_active=True).order_by('id')
+        if not enrollments.exists():
+            messages.error(request, "O‘quvchida faol kurslar topilmadi.")
+            return redirect(next_url)
+            
+        try:
+            with transaction.atomic():
+                # One check for the whole payment
+                main_payment = Payment.objects.create(
+                    student=student,
+                    cash_amount=cash_amount,
+                    card_amount=card_amount,
+                    summa=cash_amount + card_amount,
+                    created_by=request.user,
+                    paid_date=localdate(),
+                    center=center,
+                    note=note,
+                    payment_type="mixed" if (cash_amount > 0 and card_amount > 0) else ("card" if card_amount > 0 else "cash")
+                )
+
+                remaining_sum = cash_amount + card_amount
+                
+                # 1. First, pay off current month debts for all active enrollments
+                for e in enrollments:
+                    if remaining_sum <= 0: break
+                    
+                    tm = ensure_tuition_month(e, start_month)
+                    fee = int(getattr(tm, "fee_amount", 0) or 0)
+                    paid = int(get_month_paid(e, start_month) or 0)
+                    debt = max(0, fee - paid)
+                    
+                    if debt > 0:
+                        take = min(remaining_sum, debt)
+                        _allocate_amount_forward(
+                            enrollment=e,
+                            payment=main_payment,
+                            amount=take,
+                            start_month=start_month
+                        )
+                        remaining_sum -= take
+                
+                # 2. If money still remains, apply it to the first enrollment (forward allocation)
+                if remaining_sum > 0:
+                    _allocate_amount_forward(
+                        enrollment=enrollments[0],
+                        payment=main_payment,
+                        amount=remaining_sum,
+                        start_month=start_month
+                    )
+            
+            messages.success(request, f"✅ {student.get_full_name()} uchun umumiy to‘lov saqlandi!")
+        except Exception as e:
+            messages.error(request, f"❌ Xatolik: {e}")
 
     return redirect(next_url)
 
@@ -624,8 +566,6 @@ def create_payment(request):
 from decimal import Decimal, InvalidOperation
 from django.db.models import Sum, F, Value
 
-from education.services.tuition import parse_month_str  # sizda bo‘lmasa, views dagi parse_month_str ni ishlating
-from education.services.tuition import update_payment_and_reallocate
 
 @require_POST
 @login_required
@@ -646,6 +586,17 @@ def payment_update(request, payment_id: int):
 
     old_total = int(getattr(p, "summa", 0) or 0)
 
+    cash_raw = request.POST.get("cash_amount")
+    card_raw = request.POST.get("card_amount")
+    paid_date_raw = request.POST.get("paid_date")
+
+    if cash_raw is None and card_raw is None and paid_date_raw is None:
+        note = request.POST.get("note")
+        if note is not None:
+            p.note = note.strip()   # bo'sh bo'lsa ham "" bo'lib saqlanadi
+            p.save(update_fields=["note"])
+        return JsonResponse({"ok": True, "payment_id": p.id, "note": p.note or ""})
+
     from decimal import Decimal, InvalidOperation
     try:
         cash_amount = int(Decimal((request.POST.get("cash_amount") or "0").strip()))
@@ -657,11 +608,25 @@ def payment_update(request, payment_id: int):
         return JsonResponse({"ok": False, "error": "summa_manfiy_bolmaydi"}, status=400)
 
     new_total = cash_amount + card_amount
-    if new_total <= 0:
-        return JsonResponse({"ok": False, "error": "summa_0_bolmaydi"}, status=400)
+    if new_total < 0:
+        return JsonResponse({"ok": False, "error": "summa_manfiy_bolmaydi"}, status=400)
 
     month_str = (request.POST.get("month") or "").strip()
     start_month = parse_month_str(month_str) if month_str else None
+
+    # Update metadata
+    note = request.POST.get("note")
+    if note is not None:
+        p.note = note.strip()
+    
+    paid_date_str = request.POST.get("paid_date")
+    if paid_date_str:
+        try:
+            p.paid_date = parse_date(paid_date_str)
+        except Exception:
+            pass
+            
+    p.save()
 
     try:
         update_payment_and_reallocate(
@@ -744,7 +709,7 @@ def enrollment_edit(request, enrollment_id):
     if center:
         groups = groups.filter(center=center)
 
-    next_url = request.POST.get("next") or request.GET.get("next") or reverse("education:tolov_oquvchilar")
+    next_url = request.POST.get("next") or request.GET.get("next") or reverse("education:qarzdorlar_home")
 
     # month string: ?month=2026-01
     month_str = (request.GET.get("month") or request.POST.get("month") or "").strip()
@@ -778,6 +743,7 @@ def enrollment_edit(request, enrollment_id):
         if new_price != old_price:
             sync_tuition_fee(enr, start_month, new_price)
 
+        messages.success(request, "O'quvchi ma'lumotlari muvaffaqiyatli yangilandi!")
         return redirect(next_url)
 
     return render(request, "education/enrollment_edit.html", {
@@ -801,7 +767,7 @@ def enrollment_delete(request, enrollment_id: int):
         qs = qs.filter(center=center)
 
     enr = get_object_or_404(qs, id=enrollment_id)
-    next_url = request.GET.get("next") or request.POST.get("next") or "education:tolov_oquvchilar"
+    next_url = request.GET.get("next") or request.POST.get("next") or "education:tolovlar_home"
 
     if request.method == "POST":
         student_name = f"{enr.student.ism} {enr.student.familya}"
@@ -822,49 +788,68 @@ def payment_history_enrollment(request, enrollment_id: int):
     if not user_can_manage_payments(request.user):
         return JsonResponse({"error": "forbidden"}, status=403)
 
+    today = timezone.localdate()
+    cur_month = today.replace(day=1)
+    
     month_str = request.GET.get("month", "")
-    selected_month = parse_month_str(month_str) or first_day_of_current_month()
+    selected_month = parse_month_str(month_str) or cur_month
 
-    from core.tenant import get_request_center
-    center = get_request_center(request)
+    center = get_active_center(request)
     qs = Enrollment.objects.select_related("student", "group")
     if center:
         qs = qs.filter(center=center)
 
-    enrollment = get_object_or_404(
-        qs,
-        id=enrollment_id
+    enrollment = get_object_or_404(qs, id=enrollment_id)
+    fee_field = tuition_month_fee_field()
+
+    # 1. Summary Data (up to today)
+    ensure_tuition_month(enrollment, cur_month)
+    tms_summary = TuitionMonth.objects.filter(enrollment=enrollment, month__lte=cur_month)
+    agg_summary = tms_summary.aggregate(
+        total_fee=Coalesce(Sum(fee_field), 0),
+        total_paid=Coalesce(Sum("allocations__amount"), 0)
     )
+    total_fee_needed = agg_summary["total_fee"] or 0
+    total_paid_so_far = agg_summary["total_paid"] or 0
+    overall_debt = total_fee_needed - total_paid_so_far
 
-    tm = ensure_tuition_month(enrollment, selected_month)
-    fee = tuition_month_fee(tm)
+    # 2. Monthly Breakdown (All months including future if they have allocations)
+    breakdown = []
+    # Get all tuition months for this enrollment
+    all_tms = TuitionMonth.objects.filter(enrollment=enrollment).order_by("month")
+    
+    for tm in all_tms:
+        tm_fee = getattr(tm, fee_field, 0) or 0
+        tm_paid = tm.allocations.aggregate(s=Sum("amount"))["s"] or 0
+        tm_debt = max(0, tm_fee - tm_paid)
+        
+        breakdown.append({
+            "month": tm.month.strftime("%Y-%m"),
+            "fee": tm_fee,
+            "paid": tm_paid,
+            "debt": tm_debt,
+            "is_future": tm.month > cur_month
+        })
 
-    paid_this_month = int(get_month_paid(enrollment, selected_month) or 0)
-    qoldiq = 0 if fee <= 0 else max(0, fee - paid_this_month)
-
+    # 3. Specific payments history
     payments_qs = Payment.objects.filter(enrollment=enrollment).order_by("-id")
-
     payments = []
     for p in payments_qs:
         allocations = []
-        alloc_rel = getattr(p, "allocations", None)
-        if alloc_rel is not None:
-            for a in alloc_rel.select_related("tuition_month").all():
-                allocations.append({
-                    "month": a.tuition_month.month.strftime("%Y-%m"),
-                    "amount": int(a.amount or 0),
-                })
+        for a in p.allocations.select_related("tuition_month").all():
+            allocations.append({
+                "month": a.tuition_month.month.strftime("%Y-%m"),
+                "amount": int(a.amount or 0),
+            })
 
-        # vaqt
-        paid_at_dt = getattr(p, "paid_at", None)
+        # paid_at robust check
+        paid_at_dt = getattr(p, "paid_at", None) or p.created_at
         if not paid_at_dt:
             sana = getattr(p, "sana", None)
             vaqt = getattr(p, "vaqt", None)
             if sana:
-                if vaqt:
-                    paid_at_dt = timezone.make_aware(datetime.combine(sana, vaqt))
-                else:
-                    paid_at_dt = timezone.make_aware(datetime.combine(sana, datetime.min.time()))
+                dt = datetime.combine(sana, vaqt or datetime.min.time())
+                paid_at_dt = timezone.make_aware(dt)
             else:
                 paid_at_dt = timezone.now()
 
@@ -879,16 +864,17 @@ def payment_history_enrollment(request, enrollment_id: int):
             "card": card,
             "total": total,
             "allocations": allocations,
-            "receipt_url": f"/talim/tolov/chek/{p.id}/",
+            "receipt_url": reverse("education:payment_receipt_pdf", args=[p.id]),
         })
 
     return JsonResponse({
-        "student": f"{enrollment.student.ism} {enrollment.student.familya}",
-        "group": getattr(enrollment.group, "nom", ""),
-        "month": selected_month.strftime("%Y-%m"),
-        "fee": fee,
-        "paid_this_month": paid_this_month,
-        "qoldiq": qoldiq,
+        "student": enrollment.student.get_full_name(),
+        "group": enrollment.group.nom,
+        "monthly_fee": enrollment.kurs_narhi,
+        "total_fee_needed": total_fee_needed,
+        "total_paid_so_far": total_paid_so_far,
+        "overall_debt": overall_debt,
+        "breakdown": breakdown,
         "payments": payments,
     })
 
@@ -1121,10 +1107,15 @@ def payment_receipt_pdf(request, payment_id: int):
     # Row spacing (siqilganroq, hammasi sig'sin)
     GAP = 10 * mm
 
+    teacher = getattr(group, "oqituvchi", None)
+    teacher_name = teacher.get_full_name() if teacher else "-"
+    teacher_name = _ellipsis(teacher_name, 38)
+
     yy = y + card_h - 98*mm
     row("Tranzaksiya turi:", pay_type, yy); yy -= GAP
     row("O'quvchi:", student_name, yy); yy -= GAP
     row("Guruh:", group_name, yy); yy -= GAP
+    row("O'qituvchi:", teacher_name, yy); yy -= GAP
     row("Naqd:", f"{_fmt(cash)} so'm", yy); yy -= GAP
     row("Karta:", f"{_fmt(card_som)} so'm", yy); yy -= GAP
     # row("Chek ID:", f"#{p.id}", yy); yy -= GAP
@@ -1157,10 +1148,16 @@ def payment_receipt_pdf(request, payment_id: int):
     else:
         c.setFillColor(colors.HexColor("#0F172A"))
         for a in allocations[:max_lines]:
-            m = getattr(getattr(a, "tuition_month", None), "month", None)
+            tm = getattr(a, "tuition_month", None)
+            m = getattr(tm, "month", None)
+            enr = getattr(tm, "enrollment", None)
+            g_nom = getattr(getattr(enr, "group", None), "nom", "")[:15]
+            
             m_txt = m.strftime("%Y-%m") if m else "—"
             amt_txt = _fmt(int(getattr(a, "amount", 0) or 0))
-            c.drawString(x + 14*mm, yy, f"• {m_txt} — {amt_txt} so'm")
+            
+            prefix = f"• {g_nom} ({m_txt})" if g_nom else f"• {m_txt}"
+            c.drawString(x + 14*mm, yy, f"{prefix} — {amt_txt} so'm")
             yy -= line_h
 
         if len(allocations) > max_lines:
@@ -1321,6 +1318,8 @@ def group_month_attendance(request, group_id):
             a = att_map.get((student.id, d))
             if not a:
                 status = "none"
+
+
             elif getattr(a, "present", False):
                 status = "present"
                 present_count += 1
@@ -1355,6 +1354,153 @@ def group_month_attendance(request, group_id):
     })
 
 
+# ==========================================
+#  QARZDORLAR (YOZILAYOTGAN YANGI PAGE)
+# ==========================================
+
+@login_required
+def qarzdorlar_home(request):
+    from core.tenant import get_request_center
+
+    if not user_can_manage_payments(request.user):
+        messages.error(request, "Ruxsat yo‘q.")
+        return redirect("core:home")
+
+    center = get_request_center(request)
+
+    # --- FILTERS ---
+    q = (request.GET.get("q") or "").strip()
+    group_id = _get_int(request.GET, "group", 0)
+    min_debt = _get_int(request.GET, "min_debt", 0)
+    max_debt = _get_int(request.GET, "max_debt", 0)
+
+    start_date_str = request.GET.get("start_date")
+    end_date_str = request.GET.get("end_date")
+
+    # Base Query: Active Enrollments (student archived bo'lmagan)
+    enrollments = (
+        Enrollment.objects
+        .select_related("student", "group", "group__oqituvchi")
+        .filter(is_active=True, student__is_archived=False)
+    )
+
+    if center:
+        enrollments = enrollments.filter(center=center)
+
+    if group_id:
+        enrollments = enrollments.filter(group_id=group_id)
+
+    if q:
+        enrollments = enrollments.filter(
+            Q(student__ism__icontains=q) |
+            Q(student__familya__icontains=q) |
+            Q(student__phone__icontains=q)
+        )
+
+    # --- DEBT CALCULATION ---
+    today = timezone.localdate()
+    cur_month = today.replace(day=1)
+    fee_field = tuition_month_fee_field()
+
+    # Step 1: Optimization - Accurate Global Totals & Queryset Filter
+    total_fee_sub = TuitionMonth.objects.filter(
+        enrollment=OuterRef("pk"), month__lte=cur_month
+    ).values("enrollment").annotate(s=Sum(fee_field)).values("s")
+
+    # [FIX] PaymentAllocation should NOT be limited by month__lte=cur_month
+    # If a student pays in advance, they are not a debtor.
+    total_paid_sub = PaymentAllocation.objects.filter(
+        tuition_month__enrollment=OuterRef("pk")
+    ).values("tuition_month__enrollment").annotate(s=Sum("amount")).values("s")
+
+    # Global total for Center (all active enrollments under this center)
+    center_qs = Enrollment.objects.filter(is_active=True, student__is_archived=False)
+    if center: center_qs = center_qs.filter(center=center)
+    
+    total_center_debt = center_qs.annotate(
+        f=Coalesce(Subquery(total_fee_sub), 0),
+        p=Coalesce(Subquery(total_paid_sub), 0)
+    ).annotate(d=F("f")-F("p")).filter(d__gt=0).aggregate(total=Sum("d"))["total"] or 0
+
+    # Apply filter to Main Queryset
+    enrollments = enrollments.annotate(
+        f=Coalesce(Subquery(total_fee_sub), 0),
+        p=Coalesce(Subquery(total_paid_sub), 0)
+    ).annotate(calculated_debt=F("f")-F("p")).filter(calculated_debt__gt=0)
+
+    # Filtered total (for the summary stats)
+    filtered_debt = enrollments.aggregate(total=Sum("calculated_debt"))["total"] or 0
+    
+    rows = []
+    graph_map = {m: 0 for m in range(1, 13)}
+
+    for e in enrollments:
+        # 1. Sync all months to ensure accuracy (freshly created months included)
+        ensure_all_tuition_months_since_start(e, cur_month)
+        
+        # 2. Get real-time sum (SAFE: separate queries avoid join multiplication)
+        # We RE-CALCULATE here because e.calculated_debt might be stale after sync
+        total_fee = TuitionMonth.objects.filter(enrollment=e, month__lte=cur_month).aggregate(s=Sum(fee_field))["s"] or 0
+        total_paid = PaymentAllocation.objects.filter(tuition_month__enrollment=e).aggregate(s=Sum("amount"))["s"] or 0
+        debt = total_fee - total_paid
+
+        if debt <= 0:
+            continue
+
+        if min_debt and debt < min_debt:
+            continue
+        if max_debt and debt > max_debt:
+            continue
+
+        rows.append({
+            "enrollment": e,
+            "created_at": e.created_at or timezone.now(),
+            "student": e.student,
+            "group": e.group,
+            "total_fee": total_fee,
+            "total_paid": total_paid,
+            "debt": debt,
+            "staff": getattr(e.group, "oqituvchi", None),
+        })
+
+        # Update graph (using student month as a proxy for now, or today's month if newer)
+        e_date = (e.created_at.date() if getattr(e, "created_at", None) else today)
+        m_idx = e_date.month
+        if m_idx in graph_map:
+            graph_map[m_idx] += debt
+
+    # Paginator
+    from django.core.paginator import Paginator
+    paginator = Paginator(rows, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    # Groups for filter
+    groups = Group.objects.filter(is_archived=False)
+    if center:
+        groups = groups.filter(center=center)
+
+    # Chart data format: [Jan..Dec]
+    chart_series = [graph_map[m] for m in range(1, 13)]
+
+    context = {
+        "page_obj": page_obj,
+        "groups": groups,
+        "selected_group": group_id,
+        "total_debt": total_center_debt,
+        "filtered_debt": filtered_debt,
+        "chart_data": chart_series,
+
+        # filters
+        "q": q,
+        "min_debt": min_debt if min_debt else "",
+        "max_debt": max_debt if max_debt else "",
+        "start_date": start_date_str,
+        "end_date": end_date_str,
+    }
+
+    return render(request, "education/qarzdorlar.html", context)
+    
 import csv
 from django.http import HttpResponse
 from datetime import date, timedelta
@@ -1546,80 +1692,537 @@ from education.models import Enrollment
 from .models import Payment
 from datetime import date
 
+def _last_12_month_starts():
+    """Oxirgi 12 oy (shu oy ham kiradi), tartib: eski -> yangi"""
+    today = timezone.localdate().replace(day=1)
+    months = []
+    for i in range(11, -1, -1):
+        y = today.year
+        m = today.month - i
+        while m <= 0:
+            m += 12
+            y -= 1
+        months.append(date(y, m, 1))
+    return months
+
+def _month_start(d: date) -> date:
+    return d.replace(day=1)
+
+def _add_months(d: date, n: int) -> date:
+    # month arithmetic
+    y = d.year + (d.month - 1 + n) // 12
+    m = (d.month - 1 + n) % 12 + 1
+    return date(y, m, 1)
+
+def _last_12_ending(anchor: date) -> list[date]:
+    # anchor included, return 12 month starts ending at anchor
+    anchor = _month_start(anchor)
+    return [_add_months(anchor, -11 + i) for i in range(12)]
+
+
+
+@login_required
 def tolovlar_home(request):
-    return render(request, "education/tolovlar_home.html")
+    if not user_can_manage_payments(request.user):
+        messages.error(request, "Ruxsat yo‘q.")
+        return redirect("core:home")
 
+    center = get_active_center(request)
+    if not center and not request.user.is_superuser:
+        return HttpResponseForbidden("Markaz biriktirilmagan")
 
-
-# education/views.py
-
-
-# education/views.py
-
-
-
-
-def payment_history(request, student_id):
-    """
-    O‘quvchining to‘lov tarixini, joriy oy uchun to‘lov va kurs narxini qaytaradi.
-    """
-    now = timezone.now()
-    current_month = now.month
-    current_year = now.year
-
-    # 🔹 Shu o‘quvchining to‘lovlari
-    qs = Payment.objects.filter(student_id=student_id).order_by('sana', 'vaqt')
-    from core.tenant import get_request_center
-    center = get_request_center(request)
+    # -----------------------------
+    # 1) BASE QS (faqat markaz bo‘yicha)
+    # -----------------------------
+    base_qs = Payment.objects.select_related(
+        "student",
+        "group",
+        "group__oqituvchi",
+        "group__category_obj",
+        "created_by",
+    )
     if center:
-        qs = qs.filter(center=center)
-        
-    payments = qs
+        base_qs = base_qs.filter(center=center)
 
-    if not payments.exists():
-        return JsonResponse({
-            "kurs_narhi": 0,
-            "this_month_paid": 0,
-            "qoldiq": 0,
-            "month": current_month,
-            "year": current_year,
-            "payments": []
-        }, safe=False)
+    # Umumiy daromad (filtrlardan mustaqil)
+    total_income = base_qs.aggregate(s=Sum("summa"))["s"] or 0
 
-    # 🔹 Kurs narxi
-    first_payment = payments.first()
-    kurs_narhi = 0
-    if first_payment.enrollment and first_payment.enrollment.kurs_narhi:
-        kurs_narhi = first_payment.enrollment.kurs_narhi
-    elif first_payment.group and hasattr(first_payment.group, 'kurs_narxi'):
-        kurs_narhi = first_payment.group.kurs_narxi
+    # -----------------------------
+    # 2) FILTERS (jadval + chart + filtered_income shu QSdan)
+    # -----------------------------
+    payment_qs = base_qs
 
-    # 🔹 Hozirgi oy uchun jami to‘lov
-    this_month_paid = payments.filter(
-        sana__month=current_month,
-        sana__year=current_year
-    ).aggregate(total=Sum('summa'))['total'] or 0
+    q = (request.GET.get("q") or "").strip()
+    if q:
+        payment_qs = payment_qs.filter(
+            Q(student__ism__icontains=q) |
+            Q(student__familya__icontains=q) |
+            Q(student__phone__icontains=q)
+        )
 
-    # 🔹 Qoldiq
-    qoldiq = max(kurs_narhi - this_month_paid, 0)
+    filters = ["group", "teacher", "course", "staff", "payment_type"]
+    filter_map = {
+        "group": "group_id",
+        "teacher": "group__oqituvchi_id",
+        "course": "group__category_obj_id",
+        "staff": "created_by_id",
+        "payment_type": "payment_type",
+    }
+    for key in filters:
+        val = request.GET.get(key)
+        if val:
+            payment_qs = payment_qs.filter(**{filter_map[key]: val})
 
-    # 🔹 To‘lovlar ro‘yxati
-    data = [{
-        "sana": p.sana.strftime("%d.%m.%Y"),
-        "vaqt": p.vaqt.strftime("%H:%M") if p.vaqt else "",
-        "cash_amount": int(p.cash_amount or 0),
-        "card_amount": int(p.card_amount or 0),
-        "kurs_narhi": kurs_narhi
-    } for p in payments]
+    date_from = request.GET.get("date_from")
+    date_to = request.GET.get("date_to")
+    if date_from and date_from != "None":
+        payment_qs = payment_qs.filter(paid_date__gte=date_from)
+    if date_to and date_to != "None":
+        payment_qs = payment_qs.filter(paid_date__lte=date_to)
+
+    # -----------------------------
+    # 2.5) OY / MUDDAT FILTRLARI (ALLOCATION BO'YICHA)
+    # -----------------------------
+    pay_month = request.GET.get("pay_month")  # 1..12
+    tm_filter = request.GET.get("month")      # YYYY-MM
+
+    month_filter_active = False
+    f_mm, f_tm_y, f_tm_m = None, None, None
+
+    # chart uchun anchor oy (tanlangan oygacha 12 oy ko‘rsatamiz)
+    today_anchor = date.today().replace(day=1)
+    chart_anchor = today_anchor
+
+    if tm_filter and tm_filter not in ["None", ""]:
+        try:
+            y_str, m_str = tm_filter.split("-")
+            f_tm_y, f_tm_m = int(y_str), int(m_str)
+
+            payment_qs = payment_qs.filter(
+                allocations__tuition_month__month__year=f_tm_y,
+                allocations__tuition_month__month__month=f_tm_m
+            ).distinct()
+
+            month_filter_active = True
+            chart_anchor = date(f_tm_y, f_tm_m, 1)
+        except Exception:
+            pass
+
+    elif pay_month and pay_month.isdigit():
+        f_mm = int(pay_month)
+        if 1 <= f_mm <= 12:
+            payment_qs = payment_qs.filter(
+                allocations__tuition_month__month__month=f_mm
+            ).distinct()
+
+            month_filter_active = True
+
+            # ✅ MUHIM: chart diapazoni tanlangan oyga mos bo‘lsin.
+            # Avtomatik year tanlash:
+            # agar tanlangan oy hozirgi oydan katta bo‘lsa, odatda u keyingi oy (future) bo‘ladi.
+            # Lekin payments bo‘lgan eng yaqin tuition_month yilini olib qo‘yamiz.
+            # (Agar topilmasa, joriy yil ishlaydi)
+            alloc_months = (PaymentAllocation.objects
+                .filter(payment__in=payment_qs)
+                .filter(tuition_month__month__month=f_mm)
+                .values_list("tuition_month__month", flat=True)
+                .order_by("-tuition_month__month")[:1]
+            )
+            if alloc_months:
+                # alloc_months[0] -> datetime.date
+                chart_anchor = alloc_months[0].replace(day=1)
+            else:
+                chart_anchor = date(date.today().year, f_mm, 1)
+
+    # payment_ids (distinct + join Sum ko‘payib ketmasin)
+    payment_ids = list(payment_qs.values_list("id", flat=True))
+
+    # -----------------------------
+    # 3) FILTERED INCOME (allocation bo‘yicha)
+    # -----------------------------
+    if month_filter_active:
+        alloc_qs = PaymentAllocation.objects.filter(payment_id__in=payment_ids)
+        if f_tm_y and f_tm_m:
+            alloc_qs = alloc_qs.filter(
+                tuition_month__month__year=f_tm_y,
+                tuition_month__month__month=f_tm_m
+            )
+        elif f_mm:
+            alloc_qs = alloc_qs.filter(tuition_month__month__month=f_mm)
+
+        filtered_income = alloc_qs.aggregate(s=Sum("amount"))["s"] or 0
+    else:
+        # oy tanlanmagan bo‘lsa: filterlangan payments yig‘indisi
+        filtered_income = Payment.objects.filter(id__in=payment_ids).aggregate(s=Sum("summa"))["s"] or 0
+
+    # -----------------------------
+    # 4) CHART (tanlangan oyga mos 12 oy)
+    # -----------------------------
+    month_starts = _last_12_ending(chart_anchor)  # ✅ end=tanlangan oy
+    m_min, m_max = month_starts[0], month_starts[-1]
+
+    # m_max oxirgi kunini olish
+    last_day_of_max = (_add_months(m_max, 1) - timedelta(days=1))
+
+    chart_qs = (
+        PaymentAllocation.objects.filter(
+            payment_id__in=payment_ids,
+            tuition_month__month__gte=m_min,
+            tuition_month__month__lte=last_day_of_max
+        )
+        .annotate(m=TruncMonth("tuition_month__month"))
+        .values("m")
+        .annotate(total=Sum("amount"))
+        .order_by("m")
+    )
+
+    db_map = {}
+    for row in chart_qs:
+        m = row["m"]
+        if not m:
+            continue
+        # TruncMonth -> datetime
+        key = m.date().replace(day=1) if hasattr(m, "date") else m.replace(day=1)
+        db_map[key] = int(row["total"] or 0)
+
+    chart_labels = [m.strftime("%b") for m in month_starts]
+    chart_data = [db_map.get(m, 0) for m in month_starts]
+    show_chart = True
+
+    # -----------------------------
+    # 5) LIST (collapse)
+    # -----------------------------
+    # Agar oy filter active bo‘lsa, collapse tuition_month bo‘yicha bo‘lsin
+    if month_filter_active:
+        # Allocation filterlangan asosiy alloclar
+        alloc_base = PaymentAllocation.objects.filter(payment_id__in=payment_ids)
+
+        if f_tm_y and f_tm_m:
+            alloc_base = alloc_base.filter(
+                tuition_month__month__year=f_tm_y,
+                tuition_month__month__month=f_tm_m
+            )
+        elif f_mm:
+            alloc_base = alloc_base.filter(tuition_month__month__month=f_mm)
+
+        # Har bir (student, group, tuition_month) uchun eng oxirgi payment_id ni olish
+        latest_payment_subq = (PaymentAllocation.objects
+            .filter(
+                payment__student_id=OuterRef("payment__student_id"),
+                payment__group_id=OuterRef("payment__group_id"),
+                tuition_month_id=OuterRef("tuition_month_id"),
+            )
+            .order_by("-payment__paid_date", "-payment_id")
+            .values("payment_id")[:1]
+        )
+
+        alloc_latest = alloc_base.annotate(_latest_payment_id=Subquery(latest_payment_subq)).filter(
+            payment_id=F("_latest_payment_id")
+        )
+
+        latest_ids = list(alloc_latest.values_list("payment_id", flat=True))
+
+        payments_list_qs = (Payment.objects
+            .filter(id__in=latest_ids)
+            .select_related("student", "group", "group__oqituvchi", "group__category_obj", "created_by")
+            .order_by("-paid_date", "-id")
+        )
+
+    else:
+        # eski usul: paid_date oy/yil bo‘yicha collapse
+        list_qs = Payment.objects.filter(id__in=payment_ids).select_related(
+            "student", "group", "group__oqituvchi", "group__category_obj", "created_by"
+        )
+
+        latest_id_subq = Payment.objects.filter(
+            student_id=OuterRef("student_id"),
+            group_id=OuterRef("group_id"),
+            paid_date__month=OuterRef("paid_date__month"),
+            paid_date__year=OuterRef("paid_date__year"),
+        ).order_by("-paid_date", "-id").values("id")[:1]
+
+        payments_list_qs = list_qs.annotate(
+            _latest_id=Subquery(latest_id_subq)
+        ).filter(id=F("_latest_id")).order_by("-paid_date", "-id")
+
+    # -----------------------------
+    # 6) PAGINATION
+    # -----------------------------
+    allowed_page_sizes = [10, 20, 50, 100]
+    try:
+        page_size = int(request.GET.get("page_size", 10))
+    except (TypeError, ValueError):
+        page_size = 10
+    if page_size not in allowed_page_sizes:
+        page_size = 10
+
+    paginator = Paginator(payments_list_qs, page_size)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    query_params = request.GET.copy()
+    query_params.pop("page", None)
+
+    # -----------------------------
+    # 7) FILTER OPTIONS
+    # -----------------------------
+    groups = Group.objects.filter(is_archived=False).only("id", "nom")
+    if center:
+        groups = groups.filter(center=center)
+
+    teachers_qs = User.objects.filter(role="teacher", is_active=True).only("id", "ism", "familya", "otchestvo")
+    if center:
+        teachers_qs = teachers_qs.filter(center=center)
+
+    courses = Category.objects.all().only("id", "name")
+
+    staffs = User.objects.filter(role__in=["manager", "admin", "director"], is_active=True).only(
+        "id", "ism", "familya", "otchestvo", "email"
+    )
+    if center:
+        staffs = staffs.filter(center=center)
+
+    return render(request, "education/tolovlar_list.html", {
+        "page_obj": page_obj,
+        "payments": page_obj,
+        "total_count": paginator.count,
+
+        "total_income": total_income,
+        "filtered_income": filtered_income,
+
+        "chart_data": chart_data,
+        "chart_labels": chart_labels,
+        "show_chart": show_chart,
+
+        "groups": groups,
+        "teachers": teachers_qs,
+        "courses": courses,
+        "staffs": staffs,
+
+        "q": q,
+        "date_from": date_from,
+        "date_to": date_to,
+        "month": tm_filter,
+
+        "selected_group": request.GET.get("group"),
+        "selected_teacher": request.GET.get("teacher"),
+        "selected_course": request.GET.get("course"),
+        "selected_type": request.GET.get("payment_type"),
+        "selected_staff": request.GET.get("staff"),
+        "pay_month": pay_month,
+
+        "page_size": page_size,
+        "allowed_page_sizes": allowed_page_sizes,
+        "query_string": query_params.urlencode(),
+        "is_paginated": page_obj.has_other_pages(),
+    })
+
+@login_required
+def get_payment_details(request):
+    """
+    Returns full transaction history for a specific TuitionMonth as JSON.
+    """
+    tuition_month_id = request.GET.get('tuition_month_id')
+    student_id = request.GET.get('student_id')
+    group_id = request.GET.get('group_id')
+    
+    if tuition_month_id:
+        allocs = PaymentAllocation.objects.filter(
+            tuition_month_id=tuition_month_id
+        ).select_related('payment', 'payment__student', 'payment__group', 'payment__created_by')
+    elif student_id and group_id:
+        allocs = PaymentAllocation.objects.filter(
+            payment__student_id=student_id,
+            payment__group_id=group_id
+        ).select_related('payment', 'payment__student', 'payment__group', 'payment__created_by')
+    else:
+        return JsonResponse({'ok': False, 'error': 'Missing identifiers'}, status=400)
+
+    if not allocs.exists():
+        return JsonResponse({'ok': True, 'payments': [], 'total_sum': 0})
+
+    first = allocs.first()
+    data = []
+    total = 0
+    for a in allocs.order_by('-payment__paid_date', '-id'):
+        total += a.amount
+        data.append({
+            'id': a.payment.id,
+            'amount': a.amount,
+            'cash_amount': a.payment.cash_amount,
+            'card_amount_som': a.payment.card_amount_som,
+            'date': a.payment.paid_date.strftime("%d.%m.%Y"),
+            'raw_date': a.payment.paid_date.strftime("%Y-%m-%d"),
+            'time': a.payment.paid_time.strftime("%H:%M") if a.payment.paid_time else "--:--",
+            'method': a.payment.get_payment_type_display(),
+            'staff': a.payment.created_by.get_full_name() if a.payment.created_by else '—',
+            'note': a.payment.note or ''
+        })
 
     return JsonResponse({
-        "kurs_narhi": kurs_narhi,
-        "this_month_paid": this_month_paid,
-        "qoldiq": qoldiq,
-        "month": current_month,
-        "year": current_year,
-        "payments": data
-    }, safe=False)
+        'ok': True,
+        'student_name': first.payment.student.get_full_name(),
+        'group_name': first.payment.group.nom,
+        'teacher_name': first.payment.group.oqituvchi.get_full_name() if first.payment.group.oqituvchi else "—",
+        'total_sum': total,
+        'payments': data
+    })
+
+
+@login_required
+def student_payments_pdf(request):
+    """
+    Generates a professional printable HTML summary of payments for a student.
+    """
+    student_id = request.GET.get('student_id')
+    group_id = request.GET.get('group_id')
+
+    if not student_id or not group_id:
+        return HttpResponse("Missing student_id or group_id", status=400)
+
+    center = get_active_center(request)
+    student = get_object_or_404(User, id=student_id)
+    group = get_object_or_404(Group, id=group_id)
+    enrollment = Enrollment.objects.filter(student=student, group=group).first()
+
+    if not enrollment:
+        return HttpResponse("Enrollment topilmadi", status=404)
+
+    payments_qs = Payment.objects.filter(enrollment=enrollment).select_related('created_by').order_by('paid_date', 'paid_time')
+    
+    total_paid = payments_qs.aggregate(s=Sum('summa'))['s'] or 0
+    
+    # Calculate total expected fee from TuitionMonths
+    tms = TuitionMonth.objects.filter(enrollment=enrollment).order_by('month')
+    total_expected = tms.aggregate(s=Sum('fee_amount'))['s'] or 0
+    
+    # Balance calculations
+    remaining_debt = max(0, total_expected - total_paid)
+    overpayment = max(0, total_paid - total_expected)
+
+    # Monthly breakdown
+    monthly_data = []
+    for tm in tms:
+        paid_amount = tm.allocations.aggregate(s=Sum('amount'))['s'] or 0
+        monthly_data.append({
+            'month': tm.month,
+            'fee': tm.fee_amount,
+            'paid': paid_amount,
+            'debt': max(0, tm.fee_amount - paid_amount),
+            'overpaid': max(0, paid_amount - tm.fee_amount),
+        })
+
+    context = {
+        'center': center,
+        'student': student,
+        'group': group,
+        'enrollment': enrollment,
+        'payments': payments_qs,
+        'total_paid': total_paid,
+        'total_expected': total_expected,
+        'remaining_debt': remaining_debt,
+        'overpayment': overpayment,
+        'monthly_data': monthly_data,
+        'print_time': timezone.now(),
+        'staff_name': request.user.get_full_name() or request.user.email,
+    }
+    
+    return render(request, "education/receipt.html", context)
+
+@require_POST
+@login_required
+def payment_delete(request, payment_id):
+    if not user_can_manage_payments(request.user):
+        messages.error(request, "Ruxsat yo‘q.")
+        return redirect("education:tolovlar_home")
+
+    center = get_active_center(request)
+    # Payment modelini aniqlashimiz kerak. 'Payment' import qilingan deb faraz qilamiz.
+    qs = Payment.objects.all()
+    if center:
+        qs = qs.filter(center=center)
+    
+    payment = get_object_or_404(qs, id=payment_id)
+    enrollment = payment.enrollment
+    
+    try:
+        with transaction.atomic():
+            payment.delete()
+            # Recalculate jami_tolangan if enrollment exists
+            if enrollment:
+                agg = Payment.objects.filter(enrollment=enrollment).aggregate(s=Sum("summa"))
+                current_sum = agg.get("s") or 0
+                enrollment.jami_tolangan = current_sum
+                enrollment.save(update_fields=["jami_tolangan"])
+                 
+        messages.success(request, "To'lov o'chirildi.")
+    except Exception as e:
+        messages.error(request, f"Xatolik: {e}")
+    
+    return redirect("education:tolovlar_home")
+
+
+
+
+# education/views.py
+
+
+# education/views.py
+
+
+
+
+@login_required
+def payment_history(request, student_id):
+    """
+    O‘quvchining (barcha kurslari bo‘yicha) to‘lov tarixini va joriy oy holatini xisoblaydi.
+    """
+    month_str = request.GET.get("month")
+    selected_month = parse_month_str(month_str) or first_day_of_current_month()
+    
+    # 1. Barcha enrollments
+    enrs = Enrollment.objects.filter(student_id=student_id, is_active=True)
+    
+    total_fee = 0
+    total_paid_this_month = 0
+    
+    for e in enrs:
+        tm = ensure_tuition_month(e, selected_month)
+        total_fee += int(getattr(tm, "fee_amount", 0) or 0)
+        total_paid_this_month += int(get_month_paid(e, selected_month) or 0)
+    
+    total_qoldiq = max(0, total_fee - total_paid_this_month)
+    
+    # 2. Barcha to'lovlar
+    qs = Payment.objects.filter(student_id=student_id).order_by('-paid_date', '-paid_time')
+    from core.tenant import get_request_center
+    center = get_active_center(request)
+    if center:
+        qs = qs.filter(center=center)
+    
+    payments_data = []
+    for p in qs:
+        # Har bir to'lov qaysi oylarga tushganini ham ko'rsatishimiz mumkin
+        allocs = PaymentAllocation.objects.filter(payment=p).select_related("tuition_month")
+        alloc_list = [{"month": a.tuition_month.month.strftime("%Y-%m"), "amount": a.amount} for a in allocs]
+        
+        payments_data.append({
+            "id": p.id,
+            "paid_at": f"{p.paid_date.strftime('%d.%m.%Y')} {p.paid_time.strftime('%H:%M')}",
+            "cash": int(p.cash_amount or 0),
+            "card": int(getattr(p, 'card_amount_som', 0) or getattr(p, 'card_amount', 0) or 0),
+            "total": int(p.summa or 0),
+            "allocations": alloc_list,
+            "receipt_url": reverse("education:payment_receipt_pdf", args=[p.id]) if p.id else None
+        })
+
+    return JsonResponse({
+        "month": selected_month.strftime("%Y-%m"),
+        "fee": total_fee,
+        "paid_this_month": total_paid_this_month,
+        "qoldiq": total_qoldiq,
+        "payments": payments_data
+    })
 
 
 
@@ -1628,60 +2231,6 @@ def tolov_oqituvchilar(request):
     # whatever you already show for teachers (your groups_home, etc.)
     return render(request, "education/groups_home.html", {})  # or your real context
 
-def payment_monitor(request):
-    q = request.GET.get("q", "")
-    filter_type = request.GET.get("filter", "")
-
-    from core.tenant import get_request_center
-    center = get_request_center(request)
-    payments = Payment.objects.select_related("student", "group", "enrollment")
-    if center:
-        payments = payments.filter(center=center)
-
-    if q:
-        payments = payments.filter(
-            Q(student__ism__icontains=q) |
-            Q(student__familya__icontains=q) |
-            Q(student__email__icontains=q)
-        )
-
-    if filter_type == "card":
-        payments = payments.filter(note__icontains="karta")
-    elif filter_type == "cash":
-        payments = payments.filter(note__icontains="naqd")
-    elif filter_type == "full":
-        payments = payments.filter(enrollment__jami_tolangan__gte=F('enrollment__kurs_narhi'))
-    elif filter_type == "unpaid":
-        payments = payments.filter(enrollment__jami_tolangan__lt=F('enrollment__kurs_narhi'))
-
-    stats = []
-    today = date.today()
-
-    for p in payments:
-        jamlangan = p.enrollment.jami_tolangan if p.enrollment else 0
-        kurs_narhi = p.enrollment.kurs_narhi if p.enrollment else 0
-        qoldiq = max(kurs_narhi - jamlangan, 0)
-        is_full = jamlangan >= kurs_narhi
-        is_late = (not is_full) and (p.sana.month < today.month or p.sana.year < today.year)
-
-        stats.append({
-            "id": p.id,
-            "student": p.student,
-            "group": p.group,
-            "kurs_narhi": kurs_narhi,
-            "jami_tolangan": jamlangan,
-            "qoldiq": qoldiq,
-            "note": getattr(p, "note", ""),
-            "is_full": is_full,
-            "is_late": is_late,
-            "sana": p.sana,
-        })
-
-    return render(request, "education/tolov_nazorati.html", {
-        "stats": stats,
-        "query": q,
-        "filter_type": filter_type,
-    })
 
 
 # ---------- HUB va ro'yxatlar ----------
@@ -2484,7 +3033,7 @@ def oylik_hisobot(request):
         markaz_foydasi = jami_daromad * 0.5  # misol uchun 50/50
 
         oylik_data.append({
-            "oqituvchi": teacher.get_full_name() or teacher.username,
+            "oqituvchi": teacher.get_full_name() or teacher.email,
             "guruhlar": guruhlar.count(),
             "darslar": jami_darslar,
             "daromad": round(jami_daromad),
@@ -3085,7 +3634,7 @@ def teacher_salary_summary(request):
                 month_turnover = m_turnover
 
         teacher_data.append({
-            "teacher": teacher.get_full_name() or teacher.username,
+            "teacher": teacher.get_full_name() or teacher.email,
             "groups": teacher.group_set.count(),
             "lessons": month_lessons,
             "teacher_income": round(month_teacher_income),

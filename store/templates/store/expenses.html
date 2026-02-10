@@ -7,11 +7,11 @@
     <div class="col">
         <h1 class="h3 fw-bold text-white mb-2">Moliya</h1>
         <div class="d-flex gap-4 border-bottom border-secondary border-opacity-25 pb-3">
-            <!-- <a href="#" class="text-secondary text-decoration-none">To'lovlar</a>
-                <a href="#" class="text-secondary text-decoration-none">Qarzdorlar</a> -->
+            <a href="{% url 'education:tolovlar_home' %}" class="text-secondary text-decoration-none">To'lovlar</a>
+            <a href="{% url 'education:qarzdorlar_home' %}" class="text-secondary text-decoration-none">Qarzdorlar</a>
             <a href="#"
                 class="text-white text-decoration-none border-bottom border-primary border-2 pb-3 fw-bold">Xarajatlar</a>
-            <!-- <a href="#" class="text-secondary text-decoration-none">To'lov usullari</a> -->
+            <a href="#" class="text-secondary text-decoration-none">To'lov usullari</a>
         </div>
     </div>
 </div>
@@ -132,7 +132,7 @@
                         class="form-select bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
                         onchange="this.form.submit()">
                         <option value="">Barchasi</option>
-                        <option value="naqd" {% if selected_method == 'naqd' %}selected{% endif %}>Naqd</option>
+                        <option value="naqd" {% if selected_method ==    'naqd' %}selected{% endif %}>Naqd</option>
                         <option value="plastik" {% if selected_method == 'plastik' %}selected{% endif %}>Plastik</option>
                         <option value="otkazma" {% if selected_method == 'otkazma' %}selected{% endif %}>O'tkazma</option>
                     </select>
@@ -204,7 +204,7 @@
             <tbody>
                 {% for item in items %}
                 <tr>
-                    <td class="ps-4 py-3 text-secondary border-bottom border-white border-opacity-10 text-nowrap">{{   forloop.counter }}</td>
+                    <td class="ps-4 py-3 text-secondary border-bottom border-white border-opacity-10 text-nowrap">{{forloop.counter }}</td>
 
                     <!-- Sana -->
                     <td class="py-3 border-bottom border-white border-opacity-10 text-nowrap text-secondary">
@@ -786,8 +786,7 @@
 
             document.getElementById('comment_izoh').value = izoh;
             var form = document.getElementById('commentExpenseForm');
-            {% url 'store:expense_comment' 0 as url_comment %}
-            form.action = "{{ url_comment|safe }}".replace('0', id);
+            form.action = "{% url 'store:expense_comment' 0 %}".replace('0', id);
         });
 
         // Edit Modal Logic
@@ -815,8 +814,7 @@
             setVal('edit_payment', button.getAttribute('data-payment'));
 
             var form = document.getElementById('editExpenseForm');
-            {% url 'store:expense_edit' 0 as url_edit %}
-            form.action = "{{ url_edit|safe }}".replace('0', id);
+            form.action = "{% url 'store:expense_edit' 0 %}".replace('0', id);
         });
 
         // Delete Modal Logic
@@ -825,8 +823,7 @@
             var button = event.relatedTarget;
             var id = button.getAttribute('data-id');
             var form = document.getElementById('deleteExpenseForm');
-            {% url 'store:expense_delete' 0 as url_delete %}
-            form.action = "{{ url_delete|safe }}".replace('0', id);
+            form.action = "{% url 'store:expense_delete' 0 %}".replace('0', id);
         });
 
         // Chart Logic - FIXED & STYLED

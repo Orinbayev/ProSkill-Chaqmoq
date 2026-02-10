@@ -2,8 +2,10 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from accounts.models import Center
+from django.apps import apps
 
 User = get_user_model()
+Group = apps.get_model('education', 'Group')
 
 ROLE_CHOICES = (
     ("student", "O‘quvchi"),
@@ -19,6 +21,12 @@ class AddUserForm(forms.ModelForm):
         required=False,
         label="Center"
     )
+    group = forms.ModelChoiceField(
+        queryset=Group.objects.none(),
+        required=False,
+        label="Guruhni tanlang"
+    )
+    kurs_narhi = forms.IntegerField(required=False, label="Kurs narxi")
 
     class Meta:
         model = User
@@ -28,7 +36,6 @@ class AddUserForm(forms.ModelForm):
             "center", "role",
             "email", "password",
             "oqituvchi_foizi",
-            # ✅ New Fields
             "birth_date", "gender", "passport_id", "jshr", "address",
         ]
         widgets = {
@@ -39,8 +46,6 @@ class AddUserForm(forms.ModelForm):
             "telefon2": forms.TextInput(attrs={"placeholder": "+998XXXXXXXXX", "class": "form-control uniform-input"}),
             "email": forms.TextInput(attrs={"placeholder": "Login (email)", "class": "form-control uniform-input", "id": "id_email"}),
             "password": forms.PasswordInput(attrs={"placeholder": "Parol", "class": "form-control uniform-input", "id": "id_password"}),
-            
-            # ✅ Widgets
             "birth_date": forms.DateInput(attrs={"type": "date", "class": "form-control uniform-input"}),
             "gender": forms.RadioSelect(attrs={"class": "gender-radio"}), 
             "passport_id": forms.TextInput(attrs={"placeholder": "AB1234567", "class": "form-control uniform-input"}),
@@ -52,45 +57,60 @@ class AddUserForm(forms.ModelForm):
         self.request = kwargs.pop("request", None)
         super().__init__(*args, **kwargs)
 
-        # 🔥 O'QITUVCHI FOIZI → MAJBURIY EMAS
         self.fields["oqituvchi_foizi"].required = False
 
-        # ✅ Director/Manager center tanlay olmasin (UI dan olib tashlaymiz)
         u = getattr(self.request, "user", None) if self.request else None
-        
-        # ✅ Active Center Logic
+
+        # ✅ 1) Active center: request.center -> user.center -> POSTed center -> initial center
+        active_center = None
         if self.request:
             active_center = getattr(self.request, "center", None)
-            
-            # Agar active_center yo'q bo'lsa, lekin user Superadmin bo'lsa:
-            # System Center (yoki birinchi markaz) ni default qilamiz
-            if not active_center and u and u.is_superuser:
-                active_center = Center.objects.filter(is_system=True).first()
-                if not active_center:
-                    active_center = Center.objects.filter(is_deleted=False).first()
 
-            if active_center and "center" in self.fields:
-                # ✅ QAT'IY ISOLATION: Faqat bitta markaz bo'lsin
-                self.fields["center"].queryset = Center.objects.filter(id=active_center.id)
-                self.fields["center"].initial = active_center
-                self.fields["center"].required = True
-                self.fields["center"].empty_label = None # "-------" ni olib tashlaymiz
-                
-            elif u and (not u.is_superuser) and getattr(u, "role", None) in ("director", "manager"):
-                # Agar active center yo'q bo'lsa va Director/Manager bo'lsa, center fieldni olib tashlaymiz
-                self.fields.pop("center", None)
+        if not active_center and u and getattr(u, "center", None):
+            active_center = u.center
+
+        # ✅ POST/GET dan center tanlangan bo'lsa ham ishlasin
+        center_id = (self.data.get("center") or self.initial.get("center"))
+        if center_id:
+            try:
+                active_center = Center.objects.get(id=center_id)
+            except Center.DoesNotExist:
+                pass
+
+        # ✅ 2) Center fieldni cheklash (superuser bo'lsa ham)
+        if active_center and "center" in self.fields:
+            self.fields["center"].queryset = Center.objects.filter(id=active_center.id)
+            self.fields["center"].initial = active_center
+            self.fields["center"].required = True
+            self.fields["center"].empty_label = None
+
+        # ✅ 3) Group field – faqat shu markaz guruhlari chiqsin
+        if "group" in self.fields:
+            if active_center:
+                self.fields["group"].queryset = Group.objects.filter(
+                    center=active_center,
+                    is_archived=False
+                ).order_by("nom")
+            else:
+                self.fields["group"].queryset = Group.objects.none()
 
 
 
     def clean(self):
         cleaned_data = super().clean()
         role = cleaned_data.get("role")
+        group = cleaned_data.get("group")
+        center = cleaned_data.get("center")
         
         if role == "student":
             if not cleaned_data.get("birth_date"):
                 self.add_error("birth_date", "O‘quvchi uchun tug‘ilgan sana majburiy!")
             if not cleaned_data.get("gender"):
                 self.add_error("gender", "O‘quvchi uchun jins tanlanishi shart!")
+            
+            # Security: Verify group center matches user center
+            if group and center and group.center_id != center.id:
+                raise forms.ValidationError("Tanlangan guruh ushbu markazga tegishli emas!")
         
         return cleaned_data
 
@@ -99,50 +119,42 @@ class AddUserForm(forms.ModelForm):
         request = self.request
         req_user = getattr(request, "user", None) if request else None
 
-        # ✅ center ni qat'iy aniqlash (POSTdan kelgan centerga ishonmaymiz)
         center_to_set = None
-
         if req_user and req_user.is_superuser:
-            # superadmin: active center bo‘lsa o‘sha, bo‘lmasa formdagi center (ixtiyoriy)
             center_to_set = getattr(request, "center", None) or data.get("center")
         elif req_user and getattr(req_user, "role", None) in ("director", "manager"):
             center_to_set = getattr(req_user, "center", None)
 
-        # ✅ safety: director/managerda center bo‘lmasa user yaratmaymiz (lekin crash ham qilmaymiz)
-        if req_user and (not req_user.is_superuser) and getattr(req_user, "role", None) in ("director", "manager"):
-            if not center_to_set:
-                raise forms.ValidationError("Active center topilmadi. Superadmin markaz biriktirsin yoki center tanlansin.")
+        if not center_to_set and req_user and not req_user.is_superuser:
+            raise forms.ValidationError("Active center topilmadi.")
 
-        user = User(
-            ism=data["ism"],
-            familya=data["familya"],
-            otchestvo=data.get("otchestvo"),
-            email=data["email"],
-            telefon1=data["telefon1"],
-            telefon2=data.get("telefon2"),
-            center=center_to_set,              # ✅ ENFORCED
-            role=data["role"],
-            # ✅ Yangi maydonlar
-            birth_date=data.get("birth_date"),
-            gender=data.get("gender"),
-            passport_id=data.get("passport_id"),
-            jshr=data.get("jshr"),
-            address=data.get("address"),
-        )
-
-        # 🔥 Teacher bo‘lsa → foiz bo‘lsin
+        user = super().save(commit=False)
+        user.center = center_to_set
+        user.is_staff = (user.role in ("manager", "director"))
+        
         if user.role == "teacher":
             user.oqituvchi_foizi = data.get("oqituvchi_foizi") or 40
         else:
             user.oqituvchi_foizi = 0
 
-        if user.role == "manager":
-            user.is_staff = True
-
         user.set_password(data["password"])
 
         if commit:
             user.save()
+            
+            # Handle Enrollment
+            group = data.get("group")
+            if user.role == "student" and group:
+                from education.models import Enrollment
+                Enrollment.objects.get_or_create(
+                    group=group,
+                    student=user,
+                    defaults={
+                        'kurs_narhi': data.get("kurs_narhi") or group.kurs_narxi,
+                        'oqituvchi_foiz': group.oqituvchi_foiz,
+                        'center': group.center
+                    }
+                )
 
         return user
 

@@ -204,37 +204,62 @@
 
   .pill {
     display: inline-flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    text-align: center;
-    gap: 4px;
-    padding: 10px 16px;
-    min-width: 120px;
-    border-radius: 12px;
-    border: 1px solid var(--line);
+    gap: 10px;
+    padding: 10px 18px;
+    min-width: unset;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
     background: rgba(255, 255, 255, 0.03);
     color: var(--text);
-    font-weight: 900;
-    font-size: .92rem;
+    font-weight: 800;
+    font-size: .95rem;
     text-decoration: none;
-    transition: .15s ease;
+    transition: all .25s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .pill:hover {
-    transform: translateY(-1px);
-    filter: brightness(1.03);
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.15);
   }
 
   .pill.active {
-    background: var(--btn);
-    color: #07110b;
+    background: #10b981;
+    color: #062312;
     border-color: transparent;
-    box-shadow: 0 10px 30px rgba(16, 185, 129, 0.18);
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+  }
+
+  /* Specific active colors if needed */
+  .pill[href*="status=full"].active {
+    background: #10b981;
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+  }
+
+  .pill[href*="status=partial"].active {
+    background: #eab308;
+    color: #1c1917;
+    box-shadow: 0 8px 25px rgba(234, 179, 8, 0.3);
+  }
+
+  .pill[href*="status=unpaid"].active {
+    background: #ef4444;
+    color: #fff;
+    box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
   }
 
   .pill .count {
-    opacity: .9;
+    background: rgba(0, 0, 0, 0.15);
+    padding: 2px 8px;
+    border-radius: 8px;
     font-size: .85rem;
+    font-weight: 900;
+  }
+
+  .pill.active .count {
+    background: rgba(0, 0, 0, 0.1);
   }
 
   /* =========================================================
@@ -399,8 +424,18 @@
   .item {
     border: 1px solid var(--line);
     background: rgba(255, 255, 255, 0.02);
-    border-radius: 14px;
-    padding: 12px;
+    border-radius: 16px;
+    padding: 16px;
+    transition: all .25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .item:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+    transform: translateY(-2px);
   }
 
   .row1 {
@@ -986,100 +1021,108 @@
     <div class="pay-list">
       {% for s in data %}
       <div class="item">
-        <div class="row1">
-          <div>
-            <div class="who">
-              <span class="idx">#{{ forloop.counter }}</span>
+        <div class="row1"
+          style="display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap;">
 
-              <a class="name-link" href="javascript:void(0)" onclick="openPayModal('{{ s.enrollment.id }}',
-'{{ s.student.ism|escapejs }}{% if s.student.otchestvo %} {{ s.student.otchestvo|escapejs }}{% endif %}{% if s.student.familya %} {{ s.student.familya|escapejs }}{% endif %}',
-'{{ s.group.nom|escapejs }}')">
-                {{ s.student.ism }}{% if s.student.otchestvo %} {{ s.student.otchestvo }}{% endif %}{% if s.student.familya %} {{ s.student.familya }}{% endif %}
-              </a>
-
-
-              <span class="group-tag">{{ s.group.nom }}</span>
-            </div>
-
-            <div class="sub">
-              Jami to‘langan: <b style="color:var(--text)">{{ s.jami_tolangan|intcomma }}</b>
+          <!-- LEFT: Student Identity -->
+          <div style="flex: 1; min-width: 250px; display: flex; align-items: center; gap: 14px;">
+            <span class="idx" style="font-size: 0.95rem; min-width: 28px; color: #475569; font-weight: 800;">#{{ page_obj.start_index|add:forloop.counter0 }}</span>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <span class="name-link"
+                style="font-size: 1.25rem; color: #f8fafc; font-weight: 850; letter-spacing: -0.02em;">
+                {{ s.student.get_full_name }}
+              </span>
+              <div style="font-size: 0.8rem; color: #64748b; font-weight: 700;">
+                Jamg‘arma: <b style="color: #94a3b8;">{{ s.jami_tolangan|intcomma }}</b>
+              </div>
             </div>
           </div>
 
-          <div>
-            {% if s.fee_missing %}
-            <span class="badge b-gray">ℹ️ Narx yo‘q</span>
-            {% else %}
+          <!-- MIDDLE: Monthly Status -->
+          <div style="display: flex; align-items: center; gap: 18px; flex-wrap: wrap; justify-content: center;">
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
+              <div style="font-size: 1.1rem; font-weight: 1000; letter-spacing: 0.3px; color: #fff;">
+                {{ s.paid_this_month|intcomma }}
+                <span style="color: #475569; font-weight: 500; font-size: 0.9rem; margin: 0 1px;">/</span>
+                <span style="color: #94a3b8; font-size: 1rem;">{{ s.fee|intcomma }}</span>
+              </div>
+              {% if s.qoldiq > 0 %}
+              <div
+                style="font-size: 0.72rem; color: #f87171; font-weight: 900; background: rgba(239, 68, 68, 0.08); padding: 2px 10px; border-radius: 999px; border: 1px solid rgba(239, 68, 68, 0.15);">
+                -{{ s.qoldiq|intcomma }}
+              </div>
+              {% endif %}
+            </div>
+
             {% if s.status == "full" %}
-            <span class="badge b-ok">✅ To‘liq</span>
+            <span class="badge b-ok"
+              style="padding: 8px 14px; border-radius: 12px; font-size: 0.8rem; background: #10b981; color: #062312; font-weight: 900;">✅
+              To‘liq</span>
             {% elif s.status == "partial" %}
-            <span class="badge b-warn">⚠️ Qisman</span>
+            <span class="badge b-warn"
+              style="padding: 8px 14px; border-radius: 12px; font-size: 0.8rem; background: #eab308; color: #1c1917; font-weight: 900;">⚠️
+              Qisman</span>
             {% else %}
-            <span class="badge b-bad">❌ To‘lanmagan</span>
-            {% endif %}
+            <span class="badge b-bad"
+              style="padding: 8px 14px; border-radius: 12px; font-size: 0.8rem; background: #ef4444; color: #fff; font-weight: 900;">❌
+              To‘lanmagan</span>
             {% endif %}
           </div>
-        </div>
 
-        <div class="row2">
-          <div class="amounts">
-            <div>Oylik: <b>{% if s.fee_missing %}—{% else %}{{ s.fee|intcomma }}{% endif %}</b></div>
-            <div>To‘langan: <b>{% if s.fee_missing %}—{% else %}{{ s.paid_this_month|intcomma }}{% endif %}</b></div>
-            <div>Qoldiq:
-              <b>
-                {% if s.fee_missing %}
-                —
-                {% else %}
-                {% if s.qoldiq == 0 %}
-                <span style="color:var(--ok);">0</span>
-                {% else %}
-                <span style="color:var(--bad);">{{ s.qoldiq|intcomma }}</span>
-                {% endif %}
-                {% endif %}
-              </b>
-            </div>
-          </div>
-
-          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-            <form method="post" action="{% url 'education:create_payment' %}" class="pay-form">
+          <!-- RIGHT: Quick Pay & Actions -->
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <form method="post" action="{% url 'education:create_payment' %}" class="pay-form"
+              style="display: flex; gap: 8px; background: rgba(255,255,255,0.03); padding: 5px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.05); backdrop-filter: blur(4px);">
               {% csrf_token %}
-              <input type="hidden" name="enrollment_id" value="{{ s.enrollment.id }}">
+              <input type="hidden" name="student_id" value="{{ s.student.id }}">
               <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <input type="hidden" name="month" value="{{ month_str }}">
 
-              <div class="money-box">
+              <div class="money-box" style="width: 100px;">
                 <input class="mini-inp money-view" type="text" inputmode="numeric" autocomplete="off"
-                  placeholder="Karta" maxlength="15">
+                  placeholder="Karta" maxlength="15"
+                  style="height: 38px; font-size: 0.9rem; border: none; background: transparent; font-weight: 900;">
                 <input type="hidden" class="money-hidden" name="card_amount" value="">
-                <div class="money-preview" style="display:none">—</div>
               </div>
 
-              <div class="money-box">
+              <div class="money-box" style="width: 100px;">
                 <input class="mini-inp money-view" type="text" inputmode="numeric" autocomplete="off" placeholder="Naqd"
-                  maxlength="15">
+                  maxlength="15"
+                  style="height: 38px; font-size: 0.9rem; border: none; background: transparent; font-weight: 900;">
                 <input type="hidden" class="money-hidden" name="cash_amount" value="">
-                <div class="money-preview" style="display:none">—</div>
               </div>
 
-              <button class="btn green" type="submit" style="padding:9px 12px;">Saqlash</button>
+              <button class="btn green" type="submit"
+                style="padding: 0 16px; height: 38px; font-weight: 900; border-radius: 10px; background: #10b981; color: #062312;">Ok</button>
             </form>
 
-            <button class="btn gray" type="button" onclick="openPayModal('{{ s.enrollment.id }}',
-'{{ s.student.ism|escapejs }}{% if s.student.otchestvo %} {{ s.student.otchestvo|escapejs }}{% endif %}{% if s.student.familya %} {{ s.student.familya|escapejs }}{% endif %}',
-'{{ s.group.nom|escapejs }}')">
-              🧾 Tarix
-            </button>
-            <a class="btn blue"
-              href="{% url 'education:enrollment_edit' s.enrollment.id %}?next={{ request.get_full_path|urlencode }}&month={{ month_str }}">
-              ✏️ Tahrirlash
-            </a>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <button class="btn gray" type="button"
+                style="height: 48px; width: 42px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: rgba(255,255,255,0.04); font-size: 1.1rem; border: 1px solid rgba(255,255,255,0.05);"
+                onclick="openPayModalStudent('{{ s.student.id }}', '{{ s.student.get_full_name|escapejs }}')"
+                title="To‘lov tarixi">
+                🧾
+              </button>
 
-
-            <a class="btn gray"
-              href="{% url 'education:enrollment_delete' s.enrollment.id %}?next={{ request.get_full_path|urlencode }}">
-              🗑️ O‘chirish
-            </a>
-
-
+              {% if s.enrollments %}
+              {% with s.enrollments|first as enr_f %}
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <a class="btn blue"
+                  style="height: 22px; width: 34px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 0.75rem;"
+                  href="{% url 'education:enrollment_edit' enr_f.id %}?next={{ request.get_full_path|urlencode }}"
+                  title="Tahrirlash">
+                  ✏️
+                </a>
+                <a class="btn gray"
+                  style="height: 22px; width: 34px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: rgba(255,255,255,0.05); font-size: 0.75rem;"
+                  href="{% url 'education:enrollment_delete' enr_f.id %}?next={{ request.get_full_path|urlencode }}"
+                  title="O‘chirish" onclick="return confirm('Haqiqatan ham o‘chirmoqchimisiz?')">
+                  🗑️
+                </a>
+              </div>
+              {% endwith %}
+              {% endif %}
+            </div>
           </div>
         </div>
       </div>
@@ -1111,7 +1154,7 @@
 
       {% if page_obj.paginator.num_pages > 1 %}
       {% with query|urlencode as qenc %}
-      {% with "q="|add:qenc|add:"&month="|add:month_str|add:"&per_page="|add:per_page_val|stringformat:"s" as qs_base %}
+      {% with "q="|add:qenc|add:"&month="|add:month_str|add:"&per_page="|add:per_page_val|stringformat:"s" as qs_base%}
       {% if status_filter %}
       {% with qs_base|add:"&status="|add:status_filter as qs %}
       <nav class="pagination" aria-label="Pagination">
@@ -1250,7 +1293,8 @@
 
     <div class="modal-body">
       <div class="tabs">
-        <button class="tab active" id="tabMonth" type="button" onclick="setStatsMode('month')">📅 Tanlangan oy</button>
+        <button class="tab active" id="tabMonth" type="button" onclick="setStatsMode('month')">📅 Tanlangan
+          oy</button>
         <button class="tab" id="tabAll" type="button" onclick="setStatsMode('all')">🗓️ Butun davr</button>
       </div>
 
@@ -1362,6 +1406,62 @@
         }
       })
       .catch(() => {
+        document.getElementById("mBody").innerHTML =
+          '<tr><td colspan="6" style="color:var(--bad); font-weight:900;">❌ Xatolik yuz berdi</td></tr>';
+      });
+
+    openModal("payModal");
+  }
+
+  function openPayModalStudent(studentId, studentName) {
+    CURRENT_ENROLLMENT_ID = null; // Group-less mode
+    CURRENT_STUDENT = studentName;
+    CURRENT_GROUP = "Barcha kurslar";
+    const month = "{{ month_str|escapejs }}";
+
+    document.getElementById("mSub").innerText = studentName + " • " + CURRENT_GROUP;
+    document.getElementById("mBody").innerHTML = '<tr><td colspan="6" style="color:var(--muted);">Yuklanmoqda...</td></tr>';
+
+    fetch(`/talim/tolovlar/tarix/${studentId}/?month=${encodeURIComponent(month)}`)
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById("mMonth").innerText = d.month || "—";
+        document.getElementById("mFee").innerText = fmt(d.fee) + " so‘m";
+        document.getElementById("mPaid").innerText = fmt(d.paid_this_month) + " so‘m";
+
+        const leftEl = document.getElementById("mLeft");
+        leftEl.innerText = fmt(d.qoldiq) + " so‘m";
+        leftEl.style.color = (Number(d.qoldiq || 0) === 0) ? "var(--ok)" : "var(--bad)";
+
+        const payments = d.payments || [];
+        if (!payments.length) {
+          document.getElementById("mBody").innerHTML =
+            '<tr><td colspan="6" style="color:var(--muted); font-weight:900;">To‘lov topilmadi</td></tr>';
+        } else {
+          document.getElementById("mBody").innerHTML = payments.map(p => {
+            const alloc = (p.allocations || []).map(a => `<div class="alloc">• <b>${a.month}</b> — ${fmt(a.amount)} so‘m</div>`).join("");
+            const editBtn = `<button class="btn gray" style="padding:8px 10px;" type="button"
+            onclick="openEditPayment(${p.id}, ${p.cash || 0}, ${p.card || 0})">✏️</button>`;
+            const receipt = p.receipt_url
+              ? `<a class="btn blue" style="padding:8px 10px;" href="${p.receipt_url}" download>CHEK</a>`
+              : "—";
+
+            return `
+  <tr>
+    <td>${p.paid_at || "-"}</td>
+    <td>${p.cash ? fmt(p.cash) : "-"}</td>
+    <td>${p.card ? fmt(p.card) : "-"}</td>
+    <td><b>${fmt(p.total)}</b></td>
+    <td>${alloc || '<span style="color:var(--muted)">—</span>'}</td>
+    <td style="display:flex; gap:8px; justify-content:center;">
+       ${editBtn} ${receipt}
+    </td>
+  </tr>`;
+          }).join("");
+        }
+      })
+      .catch((e) => {
+        console.error(e);
         document.getElementById("mBody").innerHTML =
           '<tr><td colspan="6" style="color:var(--bad); font-weight:900;">❌ Xatolik yuz berdi</td></tr>';
       });

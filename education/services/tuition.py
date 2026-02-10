@@ -118,6 +118,23 @@ def ensure_tuition_month(enrollment: Enrollment, month: date) -> TuitionMonth:
     return tm
 
 
+def ensure_all_tuition_months_since_start(enrollment: Enrollment, up_to_month: date) -> None:
+    """
+    Enrollment yaratilgan kundan boshlab berilgan oygacha (up_to_month)
+    barcha TuitionMonth rekordlarini yaratilishini ta'minlaydi.
+    """
+    start_dt = getattr(enrollment, "created_at", None) or timezone.now()
+    cur = month_first_day(start_dt.date())
+    final = month_first_day(up_to_month)
+
+    # Xavfsizlik uchun max 3 yil (36 oy)
+    limit = 36
+    while cur <= final and limit > 0:
+        ensure_tuition_month(enrollment, cur)
+        cur = add_month(cur, 1)
+        limit -= 1
+
+
 def get_month_paid(enrollment_or_tm: Union[Enrollment, TuitionMonth], month: Optional[date] = None) -> int:
     """
     Moslik uchun 2 xil ishlaydi:
@@ -146,7 +163,8 @@ def find_earliest_unpaid_month(enrollment: Enrollment, start_month: Optional[dat
     fee_field = tuition_month_fee_field()
 
     if start_month is None:
-        start_month = month_first_day(timezone.localdate())
+        start_dt = getattr(enrollment, "created_at", None) or timezone.now()
+        start_month = month_first_day(start_dt.date())
     else:
         start_month = month_first_day(start_month)
 
@@ -217,9 +235,6 @@ def _set_payment_amounts(p: Payment, cash_amount: int, card_amount_som: int, tot
 
 
 def _allocate_amount_forward(*, enrollment: Enrollment, payment: Payment, amount: int, start_month: date) -> None:
-    """
-    amount ni start_month dan boshlab fee to'lguncha oyma-oy taqsimlaydi.
-    """
     amount = int(amount or 0)
     if amount <= 0:
         return
@@ -228,8 +243,10 @@ def _allocate_amount_forward(*, enrollment: Enrollment, payment: Payment, amount
     cur = month_first_day(start_month)
     fee_field = tuition_month_fee_field()
 
-    # xavfsizlik: 240 oy (20 yil) max loop
     for _ in range(240):
+        if left <= 0:
+            break
+
         tm = ensure_tuition_month(enrollment, cur)
         fee = int(getattr(tm, fee_field, 0) or 0)
 
@@ -249,30 +266,46 @@ def _allocate_amount_forward(*, enrollment: Enrollment, payment: Payment, amount
             PaymentAllocation.objects.create(payment=payment, tuition_month=tm, amount=take)
             left -= take
 
-        if left <= 0:
-            break
-
         cur = add_month(cur, 1)
 
-    # agar hali ham qolsa (juda katta to'lov) — davom ettiramiz
-    while left > 0:
+    max_extra = 240
+    while left > 0 and max_extra > 0:
+        max_extra -= 1
+
         tm = ensure_tuition_month(enrollment, cur)
         fee = int(getattr(tm, fee_field, 0) or 0)
+
         if fee <= 0:
             cur = add_month(cur, 1)
             continue
 
         paid = get_month_paid(tm)
         need = max(0, fee - paid)
+
         if need <= 0:
             cur = add_month(cur, 1)
             continue
 
         take = min(left, need)
-        PaymentAllocation.objects.create(payment=payment, tuition_month=tm, amount=take)
-        left -= take
+        if take > 0:
+            PaymentAllocation.objects.create(payment=payment, tuition_month=tm, amount=take)
+            left -= take
+
         cur = add_month(cur, 1)
 
+    # SAFETY FALLBACK: qolgan pulni eng yaqin fee>0 bo'lgan oyga yozamiz
+    if left > 0:
+        for _ in range(60):
+            tm = ensure_tuition_month(enrollment, cur)
+            fee = int(getattr(tm, fee_field, 0) or 0)
+            if fee <= 0:
+                cur = add_month(cur, 1)
+                continue
+
+            PaymentAllocation.objects.create(payment=payment, tuition_month=tm, amount=left)
+            left = 0
+            break
+    ensure_tuition_month(enrollment, cur)
 
 # =========================
 #  CREATE PAYMENT + ALLOCATE
@@ -282,11 +315,12 @@ def _allocate_amount_forward(*, enrollment: Enrollment, payment: Payment, amount
 def create_payment_and_allocate(
     *,
     enrollment: Enrollment,
-    created_by,
+    created_by=None,
     cash_amount: int,
     card_amount_som: int,
     start_month: Optional[date] = None,
-    paid_at=None
+    paid_at=None,
+    note: str = ""
 ) -> Payment:
     """
     Payment yaratadi va pullarni oylar bo‘yicha taqsimlaydi:
@@ -303,7 +337,8 @@ def create_payment_and_allocate(
         paid_at = timezone.now()
 
     if start_month is None:
-        start_month = month_first_day(timezone.localdate())
+        tm_earliest = find_earliest_unpaid_month(enrollment)
+        start_month = tm_earliest.month
     else:
         start_month = month_first_day(start_month)
 
@@ -339,15 +374,12 @@ def create_payment_and_allocate(
     if created_by and _model_has_field(Payment, "created_by"):
         kwargs["created_by"] = created_by
 
+    if _model_has_field(Payment, "note"):
+        kwargs["note"] = note
+
     payment = Payment.objects.create(**kwargs)
 
     _allocate_amount_forward(enrollment=enrollment, payment=payment, amount=total, start_month=start_month)
-
-    # Enrollment.jami_tolangan update (agar field bo‘lsa)
-    if _model_has_field(Enrollment, "jami_tolangan"):
-        Enrollment.objects.filter(pk=enrollment.pk).update(
-            jami_tolangan=Coalesce(F("jami_tolangan"), 0) + total
-        )
 
     return payment
 
@@ -400,14 +432,6 @@ def update_payment_and_reallocate(
     # 4) allocate
     _allocate_amount_forward(enrollment=enrollment, payment=payment, amount=new_total, start_month=start_month)
 
-    # 5) Enrollment jami_tolangan delta update
-    if _model_has_field(Enrollment, "jami_tolangan"):
-        delta = int(new_total - old_total)
-        if delta:
-            Enrollment.objects.filter(pk=enrollment.pk).update(
-                jami_tolangan=Coalesce(F("jami_tolangan"), 0) + delta
-            )
-
     return payment
 
 
@@ -449,5 +473,9 @@ def reallocate_enrollment(enrollment: Enrollment) -> None:
             continue
 
         # unpaid oylar bo'yicha taqsimlash
-        tm = find_earliest_unpaid_month(enrollment)
+    # eng birinchi oydan boshlab to'g'ri hisoblash
+        first_tm = TuitionMonth.objects.filter(enrollment=enrollment).order_by("month").first()
+        base = first_tm.month if first_tm else month_first_day(timezone.localdate())
+
+        tm = find_earliest_unpaid_month(enrollment, start_month=base)
         _allocate_amount_forward(enrollment=enrollment, payment=p, amount=total, start_month=tm.month)

@@ -118,7 +118,14 @@ def center_stats_api(request, center_id):
             else:
                 next_month = d.replace(month=m+1, day=1)
                 
-            cnt = students_qs.filter(date_joined__gte=month_start, date_joined__lt=next_month).count()
+            from django.utils.timezone import make_aware
+            import datetime
+            
+            # Convert date to aware datetime for field comparison
+            ms_aware = make_aware(datetime.datetime.combine(month_start, datetime.time.min))
+            nm_aware = make_aware(datetime.datetime.combine(next_month, datetime.time.min))
+            
+            cnt = students_qs.filter(date_joined__gte=ms_aware, date_joined__lt=nm_aware).count()
             students_chart.append({
                 "label": month_start.strftime("%b %Y"),
                 "value": cnt

@@ -52,7 +52,10 @@ def _build_director_stats(center):
         expense_series.append(exp)
 
         # Active Students count at that month (Approx based on created_at or just current snapshot)
-        std_cnt = User.objects.filter(role="student", center=center, date_joined__lte=d + datetime.timedelta(days=30)).count()
+        aware_d = datetime.datetime.combine(d + datetime.timedelta(days=30), datetime.time.max)
+        from django.utils.timezone import make_aware
+        aware_d = make_aware(aware_d)
+        std_cnt = User.objects.filter(role="student", center=center, date_joined__lte=aware_d).count()
         students_series.append(int(std_cnt))
 
     # 2. TOP COURSES

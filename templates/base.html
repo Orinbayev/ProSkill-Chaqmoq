@@ -320,38 +320,10 @@
       }
     }
 
-    /* 🔥 AGRESSIV TUZATISH: EKRAN QOTISHINI ECHISH 🔥 */
-    body,
-    html {
-      overflow-x: hidden;
-      height: 100%;
-      pointer-events: auto !important;
-      /* Hamma joyda click ishlashini ta'minlash */
+    /* Modal compatibility fix: allow clicks on standard elements */
+    .modal-open {
+      overflow: hidden;
     }
-
-    /* Barcha Overlaylarni majburan o'chirish (modal-backdrop excluded) */
-    .preloader,
-    #global-loader,
-    .sidebar-overlay,
-    .overlay-wrapper {
-      display: none !important;
-      visibility: hidden !important;
-      width: 0 !important;
-      height: 0 !important;
-      pointer-events: none !important;
-      opacity: 0 !important;
-      z-index: -1 !important;
-    }
-
-    /* Content wrapper click qabul qilishini ta'minlash */
-    .content-wrapper,
-    .main-content,
-    .app-shell {
-      position: relative;
-      z-index: 5;
-      pointer-events: auto !important;
-    }
-    
   </style>
 
   {% block extra_css %}{% endblock %}
@@ -450,7 +422,8 @@
           <div class="ns-content">
             <div class="d-flex justify-content-between mb-1">
               <span class="ns-title">{{ n.title }}</span>
-              <span class="ns-time fw-bold" style="font-size: 0.7rem; color: #94a3b8;">{{ n.created_at|date:"d.m.Y  H:i"}}</span>
+              <span class="ns-time fw-bold" style="font-size: 0.7rem; color: #94a3b8;">{{ n.created_at|date:"d.m.Y
+                H:i"}}</span>
             </div>
             <p class="ns-msg mb-1">{{ n.message|safe|truncatewords_html:15 }}</p>
             {% if n.sender %}
@@ -482,38 +455,54 @@
       position: fixed;
       top: 0;
       right: -400px;
-      /* Hidden */
       width: 380px;
       height: 100vh;
       background: rgba(15, 23, 42, 0.95);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border-left: 1px solid rgba(255, 255, 255, 0.1);
-      z-index: 9999;
+
+      z-index: 1035;
+
+
       transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
       display: flex;
       flex-direction: column;
     }
 
-    .notification-sidebar.open {
-      right: 0;
+
+
+    .ns-overlay.open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      /* ✅ faqat ochilganda bosiladi */
     }
+
+
 
     .ns-overlay {
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.5);
-      z-index: 9990;
+
+      z-index: 1030;
+
       opacity: 0;
       visibility: hidden;
       transition: all 0.3s;
       backdrop-filter: blur(2px);
+
+      pointer-events: none;
+      /* ✅ yopiq holatda click bloklamaydi */
     }
 
+
+
     .ns-overlay.open {
-      opacity: 1;
-      visibility: visible;
+      pointer-events: auto;
+      /* faqat ochilganda */
     }
 
     .ns-header {

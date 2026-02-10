@@ -1,0 +1,962 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block content %}
+<div class="py-4">
+
+    <!-- HEADER -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3 fw-bold text-white mb-2">Moliya</h1>
+            <div class="d-flex gap-4 border-bottom border-secondary border-opacity-25 pb-3">
+                <a href="#"
+                    class="text-white text-decoration-none border-bottom border-primary border-2 pb-3 fw-bold">To'lovlar</a>
+                <a href="{% url 'education:qarzdorlar_home' %}"
+                    class="text-secondary text-decoration-none">Qarzdorlar</a>
+                <a href="{% url 'store:expenses' %}" class="text-secondary text-decoration-none">Xarajatlar</a>
+                <a href="#" class="text-secondary text-decoration-none">To'lov usullari</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- STATS & CHART -->
+    <div class="row g-4 mb-4">
+        <!-- Left Stats Cards -->
+        <div class="col-md-3 d-flex flex-column gap-3">
+            <!-- Total Income -->
+            <div class="card bg-dark border border-white border-opacity-10 rounded-4 flex-grow-1">
+                <div class="card-body p-4 d-flex flex-column justify-content-center">
+                    <p class="text-secondary fw-bold mb-2">Umumiy daromad</p>
+                    <h2 class="mb-0 fw-bold text-success">{{ total_income|default:0|intcomma }} so'm</h2>
+                </div>
+            </div>
+            <!-- Filtered Income -->
+            <div class="card bg-dark border border-white border-opacity-10 rounded-4 flex-grow-1">
+                <div class="card-body p-4 d-flex flex-column justify-content-center">
+                    <p class="text-secondary fw-bold mb-2">Filter bo'yicha</p>
+                    <h2 class="mb-0 fw-bold text-white">{{ filtered_income|default:0|intcomma }} so'm</h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Chart -->
+        <div class="col-md-9">
+            <div class="card bg-black bg-opacity-25 border border-white border-opacity-10 shadow-lg rounded-4 h-100 overflow-hidden"
+                style="backdrop-filter: blur(10px);">
+                <div class="card-body p-3">
+                    <div id="incomeChart" style="min-height: 420px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="card bg-dark border border-white border-opacity-10 rounded-4 mb-4 p-4">
+        <style>
+            .fs-14 {
+                font-size: 14px !important;
+            }
+
+            .form-control,
+            .form-select,
+            .btn,
+            .table,
+            .form-label {
+                font-size: 14px !important;
+            }
+
+            select option {
+                background-color: #1f2937;
+                color: white;
+            }
+
+            .btn-action-hover:hover {
+                transform: translateY(-2px);
+            }
+
+            .btn-eye-premium {
+                background: rgba(59, 130, 246, 0.15);
+                border: 1px solid rgba(59, 130, 246, 0.3);
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                width: 38px;
+                height: 38px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 10px;
+                color: #60a5fa;
+                backdrop-filter: blur(4px);
+            }
+
+            .btn-eye-premium:hover {
+                background: #3b82f6;
+                border-color: #3b82f6;
+                color: white;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+            }
+
+            /* Dark theme select */
+            .form-select {
+                background-color: #0f172a !important;
+                /* sayt foniga mos */
+                color: #e5e7eb !important;
+                /* matn rangi */
+                border: 1px solid #1f2937 !important;
+            }
+
+            .form-select option {
+                background-color: #020617 !important;
+                color: #e5e7eb !important;
+            }
+
+            .form-select:focus {
+                border-color: #facc15 !important;
+                /* sariq accent */
+                box-shadow: 0 0 0 0.15rem rgba(250, 204, 21, 0.25);
+            }
+        </style>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-white mb-0">To'lovlar Filtrlari</h5>
+            <a href="{% url 'education:tolovlar_home' %}"
+                class="btn btn-sm bg-white text-dark fw-bold rounded-3 px-3 d-flex align-items-center gap-2 hover-scale">
+                <i class="fa-solid fa-xmark"></i> Filtrlarni tozalash
+            </a>
+        </div>
+        <form method="get" class="row g-3">
+            <!-- Row 1 -->
+            <div class="col-md-3">
+                <label class="form-label text-secondary fw-bold mb-1">Sanadan boshlab</label>
+                <div class="input-group">
+                    <span
+                        class="input-group-text bg-black bg-opacity-25 border-white border-opacity-10 text-secondary"><i
+                            class="fa-regular fa-calendar"></i></span>
+                    <input type="date" name="date_from"
+                        class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                        value="{{ date_from|default:'' }}" onchange="this.form.submit()">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-secondary fw-bold mb-1">Sanagacha</label>
+                <div class="input-group">
+                    <span
+                        class="input-group-text bg-black bg-opacity-25 border-white border-opacity-10 text-secondary"><i
+                            class="fa-regular fa-calendar"></i></span>
+                    <input type="date" name="date_to"
+                        class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                        value="{{ date_to|default:'' }}" onchange="this.form.submit()">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-secondary fw-bold mb-1">To'liq ism</label>
+                <div class="input-group">
+                    <span
+                        class="input-group-text bg-black bg-opacity-25 border-white border-opacity-10 text-secondary"><i
+                            class="fa-solid fa-magnifying-glass"></i></span>
+                    <input type="text" name="q"
+                        class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                        placeholder="Ism yoki telefon raqam bo'yicha qidirish" value="{{ q|default:'' }}"
+                        onchange="this.form.submit()">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-secondary">To'lov qilgan oy</label>
+
+                <select name="pay_month" class="form-select" onchange="this.form.submit()">
+
+                    <option value="">— Barchasi —</option>
+                    <option value="1" {% if request.GET.pay_month == "1" %}selected{% endif %}>Yanvar</option>
+                    <option value="2" {% if request.GET.pay_month == "2" %}selected{% endif %}>Fevral</option>
+                    <option value="3" {% if request.GET.pay_month == "3" %}selected{% endif %}>Mart</option>
+                    <option value="4" {% if request.GET.pay_month == "4" %}selected{% endif %}>Aprel</option>
+                    <option value="5" {% if request.GET.pay_month == "5" %}selected{% endif %}>May</option>
+                    <option value="6" {% if request.GET.pay_month == "6" %}selected{% endif %}>Iyun</option>
+                    <option value="7" {% if request.GET.pay_month == "7" %}selected{% endif %}>Iyul</option>
+                    <option value="8" {% if request.GET.pay_month == "8" %}selected{% endif %}>Avgust</option>
+                    <option value="9" {% if request.GET.pay_month == "9" %}selected{% endif %}>Sentyabr</option>
+                    <option value="10" {% if request.GET.pay_month == "10" %}selected{% endif %}>Oktyabr</option>
+                    <option value="11" {% if request.GET.pay_month == "11" %}selected{% endif %}>Noyabr</option>
+                    <option value="12" {% if request.GET.pay_month == "12" %}selected{% endif %}>Dekabr</option>
+                </select>
+            </div>
+
+
+
+            <!-- Row 2 -->
+            <div class="col-md-3">
+                <label class="form-label text-secondary fw-bold mb-1">Guruh</label>
+                <select name="group"
+                    class="form-select bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                    onchange="this.form.submit()">
+                    <option value="">Barcha guruhlar</option>
+                    {% for g in groups %}
+                    <option value="{{ g.id }}" {% if selected_group == g.id|stringformat:"s" %}selected{% endif %}>{{ g.nom }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label text-secondary fw-bold mb-1">Kurs</label>
+                <select name="course"
+                    class="form-select bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                    onchange="this.form.submit()">
+                    <option value="">Barcha kurslar</option>
+                    {% for c in courses %}
+                    <option value="{{ c.id }}" {% if selected_course == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-secondary fw-bold mb-1">O'qituvchi</label>
+                <select name="teacher"
+                    class="form-select bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                    onchange="this.form.submit()">
+                    <option value="">Barcha o'qituvchilar</option>
+                    {% for t in teachers %}
+                    <option value="{{ t.id }}" {% if selected_teacher == t.id|stringformat:"s" %}selected{% endif %}>{{ t.get_full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label text-secondary fw-bold mb-1">Xodim</label>
+                <select name="staff"
+                    class="form-select bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                    onchange="this.form.submit()">
+                    <option value="">Barcha xodimlar</option>
+                    {% for s in staffs %}
+                    <option value="{{ s.id }}" {% if selected_staff == s.id|stringformat:"s" %}selected{% endif %}>{{
+                        s.get_full_name|default:s.email }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label text-secondary fw-bold mb-1">To'lov turi</label>
+                <select name="payment_type"
+                    class="form-select bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                    onchange="this.form.submit()">
+                    <option value="">Barchasi</option>
+                    <option value="cash" {% if selected_type == 'cash' %}selected{% endif %}>Naqd</option>
+                    <option value="card" {% if selected_type == 'card' %}selected{% endif %}>Karta</option>
+                    <option value="mixed" {% if selected_type == 'mixed' %}selected{% endif %}>Aralash</option>
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <!-- DATA TABLE -->
+    <div class="card bg-dark border border-white border-opacity-10 shadow-lg rounded-4 overflow-hidden">
+        <div
+            class="card-header bg-black bg-opacity-25 border-bottom border-white border-opacity-10 py-3 px-4 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold text-white">To'lovlar</h5>
+            <span class="text-secondary small">Jami: {{ total_count }} ta | Sahifa: {{ page_obj.number }}/{{ page_obj.paginator.num_pages }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0" style="font-size: 14px;">
+                <thead class="bg-black bg-opacity-25 border-bottom border-white border-opacity-10">
+                    <tr>
+                        <th class="py-3 ps-4 text-start text-secondary fw-medium">Sana / Vaqt</th>
+                        <th class="py-3 text-start text-secondary fw-medium">Ism</th>
+                        <th class="py-3 text-secondary fw-medium">To'lov</th>
+                        <th class="py-3 text-secondary fw-medium">O'qituvchi</th>
+                        <th class="py-3 text-secondary fw-medium">Xodim</th>
+                        <th class="py-3 text-secondary fw-medium">Kurs</th>
+                        <th class="py-3 pe-4 text-end text-secondary fw-medium">Amallar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in payments %}
+                    <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                        <td class="ps-4 py-3 text-start text-secondary text-nowrap">
+                            <div class="d-flex flex-column">
+                                <span class="fw-bold text-white">{{ item.paid_date|date:"d.m.Y" }}</span>
+                                <span class="small opacity-50">{{ item.paid_time|date:"H:i" }}</span>
+                            </div>
+                        </td>
+                        <td class="text-start py-3">
+                            <div class="fw-bold text-white">{{ item.student.get_full_name }}</div>
+                            <div class="text-secondary small">{{ item.student.phone|default:"" }}</div>
+                        </td>
+                        <td class="text-center py-3">
+                            <div class="text-success fw-bold text-nowrap">{{ item.summa|intcomma }} so'm</div>
+                            <div class="text-secondary" style="font-size: 0.75rem;">
+                                <span class="opacity-50 text-uppercase" style="font-size: 10px;">{{ item.get_payment_type_display }}</span>
+                            </div>
+                        </td>
+                        <td class="text-start py-3">
+                            <div class="fw-bold text-white">
+                                {% firstof item.group.oqituvchi.get_full_name item.group.oqituvchi.email "O'qituvchi" %}
+                            </div>
+                            <div class="text-secondary small opacity-75">O'qituvchi</div>
+                        </td>
+
+                        <td class="text-start py-3">
+                            <div class="fw-bold text-white">
+                                {% firstof item.created_by.get_full_name item.created_by.email "—" %}
+                            </div>
+                            <div class="text-secondary small opacity-75">Xodim</div>
+                        </td>
+
+                        <td class="text-info text-nowrap py-3">
+                            {{ item.group.category_obj.name|default:"Kurs" }}
+                        </td>
+
+                        <td class="pe-4 py-3 text-end">
+                            <div class="d-flex justify-content-end gap-3 align-items-center">
+                                <button type="button"
+                                    class="btn p-0 text-secondary hover-text-primary fs-5 border-0 bg-transparent open-receipt-modal"
+                                    data-bs-toggle="modal" data-bs-target="#receiptModal"
+                                    data-student-id="{{ item.student_id }}" data-group-id="{{ item.group_id }}">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+
+                                <!-- <button type="button"
+                                    class="btn p-0 text-secondary hover-text-success fs-5 border-0 bg-transparent"
+                                    onclick="openEditModal('{{ item.id }}', '{{ item.paid_date|date:'Y-m-d' }}', '{{ item.cash_amount }}', '{{ item.card_amount_som }}', '{{ item.note|escapejs }}')">
+                                    <i class="fas fa-pen"></i>
+                                </button> -->
+
+                                <a href="{% url 'education:payment_delete' item.id %}"
+                                    class="btn p-0 text-secondary hover-text-danger fs-5 border-0 bg-transparent"
+                                    onclick="return confirm('Haqiqatan ham o‘chirmoqchimisiz?');">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <div class="py-4">
+                                <i class="fa-solid fa-money-bill-wave fs-1 mb-3 opacity-25 d-block"></i>
+                                To'lovlar topilmadi
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div
+            class="card-footer bg-black bg-opacity-25 border-top border-white border-opacity-10 py-3 d-flex justify-content-between align-items-center">
+            <!-- Page Size Selector at bottom -->
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-secondary small">Har sahifada:</span>
+                <form method="get" class="d-inline">
+                    {% for key, value in request.GET.items %}
+                    {% if key != 'page_size' and key != 'page' %}
+                    <input type="hidden" name="{{ key }}" value="{{ value }}">
+                    {% endif %}
+                    {% endfor %}
+                    <select name="page_size"
+                        class="form-select form-select-sm bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                        style="width: 100px;" onchange="this.form.submit()">
+                        {% for size in allowed_page_sizes %}
+                        <option value="{{ size }}" {% if page_size == size %}selected{% endif %}>{{ size }} tadan</option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
+
+            {% if is_paginated %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mb-0 gap-1">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link bg-dark border-white border-opacity-10 text-white rounded-3 shadow-sm hover-scale px-3"
+                            href="?page=1&{{ query_string }}">
+                            Mavjud
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link bg-dark border-white border-opacity-10 text-white rounded-3 shadow-sm hover-scale"
+                            href="?page={{ page_obj.previous_page_number }}&{{ query_string }}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if num == page_obj.number %}
+                    <li class="page-item active">
+                        <span class="page-link bg-primary border-primary text-white rounded-3 shadow-sm px-3">{{ num }}</span>
+                    </li>
+                    {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %} <li class="page-item">
+                        <a class="page-link bg-dark border-white border-opacity-10 text-white rounded-3 shadow-sm hover-scale px-3"
+                            href="?page={{ num }}&{{ query_string }}">{{ num }}</a>
+                        </li>
+                        {% elif num == 1 or num == page_obj.paginator.num_pages %}
+                        <li class="page-item">
+                            <a class="page-link bg-dark border-white border-opacity-10 text-white rounded-3 shadow-sm hover-scale px-3"
+                                href="?page={{ num }}&{{ query_string }}">{{ num }}</a>
+                        </li>
+                        {% elif num == page_obj.number|add:"-4" or num == page_obj.number|add:"4" %}
+                        <li class="page-item disabled"><span
+                                class="page-link bg-transparent border-0 text-white-50">...</span></li>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link bg-dark border-white border-opacity-10 text-white rounded-3 shadow-sm hover-scale"
+                                href="?page={{ page_obj.next_page_number }}&{{ query_string }}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link bg-dark border-white border-opacity-10 text-white rounded-3 shadow-sm hover-scale px-3"
+                                href="?page={{ page_obj.paginator.num_pages }}&{{ query_string }}">
+                                Oxirgi
+                            </a>
+                        </li>
+                        {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Comment Modal -->
+    <div class="modal fade" id="commentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border border-white border-opacity-10 shadow-lg rounded-4"
+                style="backdrop-filter: blur(10px); background-color: rgba(20, 20, 20, 0.95);">
+                <form id="commentForm" method="post" action="">
+                    {% csrf_token %}
+                    <div class="modal-header border-bottom border-white border-opacity-10">
+                        <h5 class="modal-title fw-bold">Izoh qoldirish</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small text-uppercase fw-bold">Izoh</label>
+                            <textarea name="note" id="comment_note" rows="4"
+                                class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                                placeholder="Izoh yozing..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top border-white border-opacity-10">
+                        <button type="button" class="btn btn-outline-light border-0 px-4 rounded-3 hover-scale"
+                            data-bs-dismiss="modal">Bekor qilish</button>
+                        <button type="button" onclick="submitComment()"
+                            class="btn btn-warning px-4 fw-bold text-dark rounded-3 shadow-lg hover-scale">Saqlash</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Payment Modal -->
+    <div class="modal fade" id="editPaymentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border border-white border-opacity-10 shadow-lg rounded-4"
+                style="backdrop-filter: blur(10px); background-color: rgba(20, 20, 20, 0.95);">
+                <form id="editPaymentForm" method="post" action="">
+                    {% csrf_token %}
+                    <div class="modal-header border-bottom border-white border-opacity-10">
+                        <h5 class="modal-title fw-bold">To'lovni tahrirlash</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label text-secondary small text-uppercase fw-bold">Sana</label>
+                                <input type="date" name="paid_date" id="edit_date"
+                                    class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                                    required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-secondary small text-uppercase fw-bold">Naqd
+                                    (so'm)</label>
+                                <input type="number" name="cash_amount" id="edit_cash"
+                                    class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                                    value="0">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-secondary small text-uppercase fw-bold">Karta
+                                    (so'm)</label>
+                                <input type="number" name="card_amount" id="edit_card"
+                                    class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                                    value="0">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label text-secondary small text-uppercase fw-bold">Izoh</label>
+                                <textarea name="note" id="edit_note" rows="2"
+                                    class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top border-white border-opacity-10">
+                        <button type="button" class="btn btn-outline-light border-0 px-4 rounded-3 hover-scale"
+                            data-bs-dismiss="modal">Bekor qilish</button>
+                        <button type="button" onclick="submitEdit()"
+                            class="btn btn-success px-4 fw-bold rounded-3 shadow-lg hover-scale">Saqlash</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Receipt Modal -->
+    <div class="modal fade" id="receiptModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border border-white border-opacity-10 shadow-lg rounded-4"
+                style="backdrop-filter: blur(15px); background-color: rgba(15, 23, 42, 0.98);">
+
+                <div class="modal-header border-bottom border-white border-opacity-10 py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="bg-primary bg-opacity-10 p-2 rounded-3">
+                            <i class="fa-solid fa-receipt text-primary"></i>
+                        </div>
+                        <h5 class="modal-title fw-bold mb-0" id="m_title">To'lov Ma'lumotlari</h5>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-0" id="receiptContent">
+                    <!-- Loader -->
+                    <div id="m_loader" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Yuklanmoqda...</span>
+                        </div>
+                    </div>
+
+                    <!-- Content (Initially hidden) -->
+                    <div id="m_body" style="display:none;">
+                        <div class="p-4 border-bottom border-white border-opacity-10 bg-black bg-opacity-20">
+                            <div class="row align-items-center">
+                                <div class="col-md-7">
+                                    <h4 class="fw-bold mb-1 text-white" id="m_student_name">...</h4>
+                                    <div class="text-secondary small d-flex gap-3">
+                                        <span><i class="fas fa-users me-1"></i> <span
+                                                id="m_group_name">...</span></span>
+                                        <span><i class="fas fa-user-tie me-1"></i> <span
+                                                id="m_teacher_name">...</span></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-5 text-md-end mt-3 mt-md-0">
+                                    <div class="text-secondary small text-uppercase fw-bold mb-1">Jami to'langan</div>
+                                    <div class="h3 fw-bold text-success mb-0"><span id="m_total_sum">0</span> so'm</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-4">
+                            <h6 class="text-uppercase fw-bold text-secondary mb-3 small" style="letter-spacing: 1px;">
+                                To'lovlar ro'yxati</h6>
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover align-middle border-white border-opacity-5">
+                                    <thead class="bg-black bg-opacity-25 text-secondary small">
+                                        <tr>
+                                            <th class="border-0">Sana/Vaqt</th>
+                                            <th class="border-0">Usul</th>
+                                            <th class="border-0 text-end">Summa</th>
+                                            <th class="border-0">Xodim</th>
+                                            <th class="border-0">Izoh</th>
+                                            <th class="border-0 text-end">Amallar</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="m_payments_list">
+                                        <!-- Dynamic rows -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top border-white border-opacity-10 p-3">
+                    <button type="button" class="btn btn-outline-light border-0 px-4 rounded-3 hover-scale"
+                        data-bs-dismiss="modal">Yopish</button>
+                    <a href="#" id="downloadHistoryBtn" target="_blank"
+                        class="btn btn-primary px-4 fw-bold rounded-3 shadow-lg hover-scale">
+                        <i class="fas fa-print me-2"></i> Chop etish / PDF
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Single Receipt Modal (For Individual Checks) -->
+    <div class="modal fade" id="singleReceiptModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border border-white border-opacity-10 shadow-lg rounded-4"
+                style="backdrop-filter: blur(15px); background-color: rgba(15, 23, 42, 0.98);">
+                <div class="modal-header border-bottom border-white border-opacity-10 py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="bg-primary bg-opacity-10 p-2 rounded-3">
+                            <i class="fa-solid fa-receipt text-primary"></i>
+                        </div>
+                        <h5 class="modal-title fw-bold mb-0">To'lov Cheki</h5>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4" id="singleReceiptContent">
+                    <div class="text-center py-2">
+                        <div class="mb-4">
+                            <div class="h4 fw-bold text-white mb-1"><span id="sr_student">...</span></div>
+                            <div class="text-secondary small">O'quvchi</div>
+                        </div>
+
+                        <div class="row g-3 mb-4 text-start">
+                            <div class="col-6">
+                                <label class="text-secondary small text-uppercase fw-bold d-block mb-1">To'lov
+                                    Sanasi</label>
+                                <div class="fw-bold"><span id="sr_date">...</span> <span class="text-secondary small"
+                                        id="sr_time">...</span></div>
+                            </div>
+                            <div class="col-6">
+                                <label class="text-secondary small text-uppercase fw-bold d-block mb-1">To'lov
+                                    Usuli</label>
+                                <div class="fw-bold text-info" id="sr_method">...</div>
+                            </div>
+                            <div class="col-6">
+                                <label class="text-secondary small text-uppercase fw-bold d-block mb-1">Guruh</label>
+                                <div class="fw-bold" id="sr_group">...</div>
+                            </div>
+                            <div class="col-6">
+                                <label
+                                    class="text-secondary small text-uppercase fw-bold d-block mb-1">O'qituvchi</label>
+                                <div class="fw-bold" id="sr_teacher">...</div>
+                            </div>
+                            <div class="col-12">
+                                <div
+                                    class="p-3 bg-black bg-opacity-25 rounded-4 border border-white border-opacity-5 mt-2 text-center shadow-inner">
+                                    <label class="text-secondary small text-uppercase fw-bold d-block mb-1"
+                                        style="letter-spacing: 1px;">To'lov Summasi</label>
+                                    <div class="h3 fw-bold text-success mb-1"><span id="sr_amount">0</span> so'm</div>
+                                    <div id="sr_breakdown"
+                                        class="mt-2 pt-2 border-top border-white border-opacity-5 d-flex justify-content-center gap-3 small">
+                                        <div><span class="text-secondary">Naqd:</span> <span id="sr_cash">0</span></div>
+                                        <div class="border-start border-white border-opacity-10 ps-3"><span
+                                                class="text-secondary">Karta:</span> <span id="sr_card">0</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-start">
+                            <label class="text-secondary small text-uppercase fw-bold d-block mb-1">Qabul Qildi</label>
+                            <div class="small fw-medium text-white-50" id="sr_staff">...</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-white border-opacity-10 p-3">
+                    <button type="button" class="btn btn-outline-light border-0 px-4 rounded-3 hover-scale"
+                        data-bs-dismiss="modal">Yopish</button>
+                    <a href="#" id="downloadSingleReceiptBtn" target="_blank"
+                        class="btn btn-primary px-4 fw-bold rounded-3 shadow-lg hover-scale">
+                        <i class="fa-solid fa-download me-2"></i> Yuklab olish
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+{{ chart_data|default:"[]"|json_script:"chart_data_json" }}
+{{ chart_labels|default:"[]"|json_script:"chart_labels_json" }}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Chart rendering
+        const chartData = JSON.parse(document.getElementById('chart_data_json').textContent);
+        const chartLabels = JSON.parse(document.getElementById('chart_labels_json').textContent);
+
+        if (chartData && chartData.length > 0) {
+var options = {
+  series: [{
+    name: 'Daromad',
+    data: chartData
+  }],
+  chart: {
+    type: 'area',
+    height: 420,
+    toolbar: { show: false },
+    zoom: { enabled: false },
+    animations: { enabled: true },
+    foreColor: '#9ca3af' // umumiy text rangi
+  },
+
+  // ✅ ORANGE theme
+  colors: ['#f59e0b'],
+
+  dataLabels: { enabled: false },
+
+  stroke: {
+    curve: 'smooth',
+    width: 4,
+    lineCap: 'round'
+  },
+
+  // ✅ gradient fill (xuddi rasmdagidek)
+  fill: {
+    type: 'gradient',
+    gradient: {
+      shadeIntensity: 1,
+      opacityFrom: 0.45,
+      opacityTo: 0.02,
+      stops: [0, 70, 100]
+    }
+  },
+
+  // ✅ katta markerlar
+  markers: {
+    size: 6,
+    strokeWidth: 3,
+    strokeColors: '#0b1220',
+    hover: { size: 8 }
+  },
+
+  xaxis: {
+    categories: chartLabels,
+    axisBorder: { show: false },
+    axisTicks: { show: false },
+    labels: {
+      style: {
+        fontSize: '12px',
+        fontWeight: 600
+      }
+    },
+    tooltip: { enabled: false }
+  },
+
+  yaxis: {
+    min: 0,
+    tickAmount: 5,
+    labels: {
+      style: { fontSize: '12px' },
+      formatter: function (v) {
+        // 800.0M ko‘rinish uchun
+        if (v >= 1000000) return (v / 1000000).toFixed(1) + "M";
+        if (v >= 1000) return (v / 1000).toFixed(0) + "k";
+        return v.toFixed(0);
+      }
+    }
+  },
+
+  // ✅ grid chiroyli “dash”
+  grid: {
+    borderColor: 'rgba(255,255,255,0.06)',
+    strokeDashArray: 6,
+    padding: { left: 10, right: 10, top: 10, bottom: 0 }
+  },
+
+  tooltip: {
+    theme: 'dark',
+    x: { formatter: (val) => val },
+    y: {
+      formatter: function (val) {
+        return Number(val).toLocaleString() + " so'm";
+      },
+      title: { formatter: () => "" }
+    },
+    style: { fontSize: '13px' }
+  },
+
+  legend: { show: false }
+};
+
+            var chart = new ApexCharts(document.querySelector("#incomeChart"), options);
+            chart.render();
+        } else {
+            document.querySelector("#incomeChart").innerHTML = '<div class="d-flex h-100 align-items-center justify-content-center text-secondary small">Ma\'lumot topilmadi</div>';
+        }
+
+        // --- Modals Logic ---
+
+        // Fix modal z-index/focus issues by moving to body
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(modal => document.body.appendChild(modal));
+
+        // Comment Modal
+        const commentModal = document.getElementById('commentModal');
+        let currentPaymentId = null;
+
+        commentModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            currentPaymentId = button.getAttribute('data-id');
+            const note = button.getAttribute('data-note');
+            document.getElementById('comment_note').value = note;
+        });
+
+        // Edit Modal
+        const editModal = document.getElementById('editPaymentModal');
+        editModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            currentPaymentId = button.getAttribute('data-id');
+            const cash = button.getAttribute('data-cash');
+            const card = button.getAttribute('data-card');
+            const date = button.getAttribute('data-date');
+            const note = button.getAttribute('data-note');
+
+            document.getElementById('edit_cash').value = cash;
+            document.getElementById('edit_card').value = card;
+            document.getElementById('edit_date').value = date;
+            document.getElementById('edit_note').value = note;
+        });
+
+        // Single Receipt Modal Logic
+        const singleReceiptModal = document.getElementById('singleReceiptModal');
+        singleReceiptModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            document.getElementById('sr_student').textContent = button.getAttribute('data-student');
+            document.getElementById('sr_amount').textContent = button.getAttribute('data-amount');
+            document.getElementById('sr_date').textContent = button.getAttribute('data-date');
+            document.getElementById('sr_time').textContent = button.getAttribute('data-time');
+            document.getElementById('sr_method').textContent = button.getAttribute('data-method');
+            document.getElementById('sr_group').textContent = button.getAttribute('data-group');
+            document.getElementById('sr_teacher').textContent = button.getAttribute('data-teacher');
+            document.getElementById('sr_staff').textContent = button.getAttribute('data-staff');
+            document.getElementById('sr_cash').textContent = (button.getAttribute('data-cash') || '0') + " so'm";
+            document.getElementById('sr_card').textContent = (button.getAttribute('data-card') || '0') + " so'm";
+
+            const paymentId = button.getAttribute('data-id');
+            const downloadUrl = "{% url 'education:payment_receipt_pdf' 0 %}".replace('0', paymentId);
+            document.getElementById('downloadSingleReceiptBtn').href = downloadUrl;
+        });
+
+        // Receipt Modal Logic (with AJAX)
+        const receiptModal = document.getElementById('receiptModal');
+        receiptModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const studentId = button.getAttribute('data-student-id');
+            const groupId = button.getAttribute('data-group-id');
+            const tuitionMonthId = button.getAttribute('data-tuition-month-id');
+
+            // Show loader, hide body
+            document.getElementById('m_loader').style.display = 'block';
+            document.getElementById('m_body').style.display = 'none';
+
+            // Fetch details
+            let url = "{% url 'education:get_payment_details' %}?student_id=" + studentId + "&group_id=" + groupId;
+            if (tuitionMonthId) {
+                url += "&tuition_month_id=" + tuitionMonthId;
+            }
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ok) {
+                        // Populate header
+                        document.getElementById('m_student_name').textContent = data.student_name;
+                        document.getElementById('m_group_name').textContent = data.group_name;
+                        document.getElementById('m_teacher_name').textContent = data.teacher_name;
+                        document.getElementById('m_total_sum').textContent = Number(data.total_sum).toLocaleString();
+
+                        // Fill list
+                        const list = document.getElementById('m_payments_list');
+                        list.innerHTML = '';
+
+                        data.payments.forEach(p => {
+                            const row = document.createElement('tr');
+                            row.className = 'border-bottom border-white border-opacity-5';
+                            row.innerHTML = `
+                                <td>
+                                    <div class="d-flex flex-column">
+                                        <span class="fw-bold text-white small">${p.date}</span>
+                                        <span class="text-secondary fs-xs">${p.time}</span>
+                                    </div>
+                                </td>
+                                <td class="text-white fw-semibold">${p.method}</td>
+                                <td class="text-end text-success fw-bold">${Number(p.amount).toLocaleString()}</td>
+                                <td class="text-secondary small">${p.staff}</td>
+                                <td class="text-secondary fs-xs" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${p.note}</td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <button class="btn btn-sm text-secondary hover-text-primary p-0 btn-action-hover" title="Chek" 
+                                            data-bs-toggle="modal" data-bs-target="#singleReceiptModal" 
+                                            data-id="${p.id}" data-student="${data.student_name}" data-amount="${Number(p.amount).toLocaleString()}"
+                                            data-cash="${Number(p.cash_amount).toLocaleString()}" data-card="${Number(p.card_amount_som).toLocaleString()}"
+                                            data-date="${p.date}" data-time="${p.time}" data-method="${p.method}"
+                                            data-group="${data.group_name}" data-teacher="${data.teacher_name}" data-staff="${p.staff}">
+                                            <i class="fa-solid fa-receipt"></i>
+                                        </button>
+                                        <button class="btn btn-sm text-secondary hover-text-warning p-0 btn-action-hover" title="Izoh"
+                                            data-bs-toggle="modal" data-bs-target="#commentModal" data-id="${p.id}" data-note="${p.note}">
+                                            <i class="fa-regular fa-comment"></i>
+                                        </button>
+                                        <button class="btn btn-sm text-secondary hover-text-success p-0 btn-action-hover" title="Tahrirlash"
+                                            data-bs-toggle="modal" data-bs-target="#editPaymentModal" 
+                                            data-id="${p.id}" data-cash="${p.cash_amount}" data-card="${p.card_amount_som}" 
+                                            data-date="${p.raw_date}" data-note="${p.note}">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </button>
+                                        <form method="post" action="${"{% url 'education:payment_delete' 0 %}".replace('0', p.id)}" onsubmit="return confirm('O\\'chirmoqchimisiz?');" class="d-inline">
+                                            <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                                            <button type="submit" class="btn btn-sm text-secondary hover-text-danger p-0 btn-action-hover" title="O'chirish">
+                                                <i class="fa-regular fa-trash-can"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            `;
+                            list.appendChild(row);
+                        });
+
+                        // Set PDF download link
+                        const pdfBtn = document.getElementById('downloadHistoryBtn');
+                        pdfBtn.href = "{% url 'education:student_payments_pdf' %}?student_id=" + studentId + "&group_id=" + groupId;
+
+                        // Switch view
+                        document.getElementById('m_loader').style.display = 'none';
+                        document.getElementById('m_body').style.display = 'block';
+                    } else {
+                        alert("Xatolik: " + data.error);
+                        bootstrap.Modal.getInstance(receiptModal).hide();
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Ma'lumotlarni yuklashda xatolik yuz berdi");
+                    bootstrap.Modal.getInstance(receiptModal).hide();
+                });
+        });
+
+        window.submitComment = function () {
+            submitForm('commentForm');
+        }
+
+        window.submitEdit = function () {
+            submitForm('editPaymentForm');
+        }
+
+        function submitForm(formId) {
+            if (!currentPaymentId) return;
+
+            const form = document.getElementById(formId);
+            const formData = new FormData(form);
+
+            // Build URL
+            let url = "{% url 'education:payment_update' 0 %}".replace('0', currentPaymentId);
+
+            fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ok) {
+                        location.reload();
+                    } else {
+                        alert("Xatolik: " + (data.error || "Noma'lum xatolik"));
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Xatolik yuz berdi");
+                });
+        }
+    });
+</script>
+{% endblock %}

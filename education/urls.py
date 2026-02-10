@@ -9,9 +9,10 @@ urlpatterns = [
     
     path("guruhlar/ro‘yxat/", views.group_list, name="group_list"),
     path("tolovlar/", views.tolovlar_home, name="tolovlar_home"),
+    path("tolovlar/details/", views.get_payment_details, name="get_payment_details"),
+    path("tolovlar/pdf-summary/", views.student_payments_pdf, name="student_payments_pdf"),
     path("tolovlar/oqituvchilar/", views.tolov_oqituvchilar, name="tolov_oqituvchilar"),
-    path("tolovlar/oquvchilar/", views.tolov_oquvchilar, name="tolov_oquvchilar"),
-    path("tolov-nazorati/", views.payment_monitor, name="payment_monitor"),
+    path("qarzdorlar/", views.qarzdorlar_home, name="qarzdorlar_home"),
     # path("payment/create/", views.create_payment, name="create_payment"),
     path("tolovlar/tarix/<int:student_id>/", views.payment_history, name="payment_history"),
     path("points-details/", views.points_details, name="points_details"),
@@ -24,7 +25,6 @@ urlpatterns = [
     name="group_month_attendance_export"
 ),
 
-    path("tolov/oquvchilar/", views.tolov_oquvchilar, name="tolov_oquvchilar"),
     path("tolov/create/", views.create_payment, name="create_payment"),
 
     path("tolovlar/tarix/enrollment/<int:enrollment_id>/", views.payment_history_enrollment, name="payment_history_enrollment"),
@@ -33,6 +33,7 @@ urlpatterns = [
     path("tolovlar/enrollment/<int:enrollment_id>/delete/", views.enrollment_delete, name="enrollment_delete"),
     path("tolov/update/<int:payment_id>/", views.payment_update, name="payment_update"),
     path("tolovlar/payment/<int:payment_id>/update/", views.payment_update, name="payment_update"),
+    path("tolovlar/payment/<int:payment_id>/delete/", views.payment_delete, name="payment_delete"),
 
 
     # 🔹 Guruhlar kategoriyasi bo‘yicha

@@ -219,68 +219,14 @@ def add_user(request):
     if not _can_add(request.user):
         return HttpResponseForbidden("Ruxsat yo'q.")
 
-    # ✅ Center ni aniqlaymiz (Robust method)
-    center = get_request_center(request)
-    
-    # ✅ Guruhlarni filtrlaymiz
-    if center:
-        # Markaz xodimi: Faqat o'z markazi guruhlari
-        groups = Group.objects.filter(center=center).order_by("nom")
-    elif request.user.is_superuser:
-        # Superadmin (Global mode): Hamma guruhlar (bu asosiyda chiqmaslik muammosini hal qiladi)
-        groups = Group.objects.all().order_by("nom")
-    else:
-        groups = Group.objects.none()
-
     form = AddUserForm(request.POST or None, request=request)
     if request.method == "POST" and form.is_valid():
-        user = form.save(commit=False)
-        
-        # ✅ Agar markaz tanlangan bo'lsa (yoki subdomen/sessionda bo'lsa) - o'shani o'rnatamiz
-        if center:
-            user.center = center
-        
-        # ✅ Manager/Director bo'lsa staff=True
-        if user.role in ("manager", "director"):
-            user.is_staff = True
-            
-        user.save()
-        
-        # ✅ Guruhga biriktirish (Enrollment)
-        group_id = request.POST.get("group_id")
-        if user.role == "student" and group_id:
-            try:
-                # Superadmin hamma guruhni ko'ra oladi, Manager esa faqat o'zinikini
-                if center:
-                    target_group = Group.objects.get(id=group_id, center=center)
-                else:
-                    target_group = Group.objects.get(id=group_id)
-                
-                # Agar superadmin bo'lsa va center hali set qilinmagan bo'lsa (global mode)
-                # user.center ni guruhni centeriga moslaymiz
-                if not user.center:
-                    user.center = target_group.center
-                    user.save(update_fields=['center'])
-
-                Enrollment.objects.get_or_create(
-                    group=target_group, 
-                    student=user,
-                    defaults={
-                        'kurs_narhi': target_group.kurs_narxi,
-                        'oqituvchi_foiz': target_group.oqituvchi_foiz,
-                        'center': target_group.center
-                    }
-                )
-            except Exception as e:
-                import logging
-                logging.error(f"Enrollment error in add_user: {e}")
-
+        user = form.save()
         messages.success(request, f"✅ Foydalanuvchi {user.email} muvaffaqiyatli qo‘shildi.")
         return redirect("core:home")
 
     return render(request, "accounts/user_form.html", {
         'form': form,
-        'groups': groups,
         'title': "Yangi foydalanuvchi"
     })
 

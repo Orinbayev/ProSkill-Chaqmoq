@@ -133,6 +133,7 @@ class Enrollment(models.Model):
         verbose_name="O‘quvchi",
     )
     center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
     # oy narxi (Enrollment darajasida saqlaymiz)
     kurs_narhi = models.PositiveIntegerField(
@@ -255,6 +256,15 @@ class Payment(models.Model):
 
     paid_date = models.DateField(default=timezone.localdate, verbose_name="To‘lov sanasi")
     paid_time = models.TimeField(default=timezone.now, verbose_name="To‘lov vaqti")
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_payments",
+        verbose_name="Kiritgan xodim"
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
 

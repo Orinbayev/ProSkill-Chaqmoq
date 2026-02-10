@@ -1,0 +1,497 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block content %}
+
+<style>
+    /* Global font size 14px as requested */
+    body,
+    .table,
+    .form-control,
+    .form-select,
+    .badge,
+    .btn,
+    .pagination,
+    .modal,
+    .modal-title {
+        font-size: 14px !important;
+    }
+
+    /* 27px totals - strictly enforced */
+    .debt-total-label,
+    .debt-total-value {
+        font-size: 27px !important;
+        font-weight: 700 !important;
+    }
+
+    .hover-text-primary:hover {
+        color: #3b82f6 !important;
+    }
+
+    .hover-text-warning:hover {
+        color: #eab308 !important;
+    }
+
+    .hover-text-success:hover {
+        color: #22c55e !important;
+    }
+
+    .hover-text-danger:hover {
+        color: #ef4444 !important;
+    }
+
+    .payment-type-btn {
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        padding: 12px 5px !important;
+        font-size: 14px !important;
+        border: 1px solid transparent !important;
+        color: rgba(255, 255, 255, 0.5) !important;
+        background: transparent !important;
+    }
+
+    .btn-check:checked+.payment-type-btn {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        font-weight: 600;
+        border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .payment-type-btn:hover {
+        color: #ffffff !important;
+        background-color: rgba(255, 255, 255, 0.05) !important;
+    }
+
+    .payment-type-btn i {
+        font-size: 1.2rem;
+        margin-bottom: 4px;
+        display: block;
+        opacity: 0.6;
+        transition: transform 0.2s ease;
+    }
+
+    .btn-check:checked+.payment-type-btn i {
+        opacity: 1;
+        transform: translateY(-2px);
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        background-color: rgba(0, 0, 0, 0.3) !important;
+        border-color: rgba(255, 255, 255, 0.2) !important;
+        color: #fff !important;
+        box-shadow: none !important;
+    }
+
+    .badge {
+        border: none !important;
+    }
+</style>
+
+<!-- HEADER & TABS -->
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 fw-bold text-white mb-2">Moliya</h1>
+        <div class="d-flex gap-4 border-bottom border-secondary border-opacity-25 pb-3">
+            <a href="{% url 'education:tolovlar_home' %}" class="text-secondary text-decoration-none">To'lovlar</a>
+            <a href="#"
+                class="text-white text-decoration-none border-bottom border-primary border-2 pb-3 fw-bold">Qarzdorlar</a>
+            <a href="{% url 'store:expenses' %}" class="text-secondary text-decoration-none">Xarajatlar</a>
+            <a href="#" class="text-secondary text-decoration-none">To'lov usullari</a>
+        </div>
+    </div>
+</div>
+
+<!-- STATS CARDS & CHART -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4 d-flex flex-column gap-3">
+        <div class="card bg-dark border border-white border-opacity-10 rounded-4 flex-grow-1">
+            <div class="card-body p-4 d-flex flex-column justify-content-center text-center">
+                <p class="text-secondary mb-1 debt-total-label">Jami qarz</p>
+                <h2 class="mb-0 text-danger debt-total-value">{{ total_debt|default:0|intcomma }} so'm</h2>
+            </div>
+        </div>
+
+        <div class="card bg-dark border border-white border-opacity-10 rounded-4 flex-grow-1">
+            <div class="card-body p-4 d-flex flex-column justify-content-center text-center">
+                <p class="text-secondary mb-1 debt-total-label">Filter bo'yicha jami</p>
+                <h2 class="mb-0 text-danger debt-total-value">{{ filtered_debt|default:0|intcomma }} so'm</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card bg-dark border border-white border-opacity-10 rounded-4 h-100">
+            <div class="card-body p-3">
+                <div id="debtChart" style="min-height: 250px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FILTERS -->
+<div class="card bg-dark border border-white border-opacity-10 rounded-4 mb-4 p-4">
+    <form method="get" class="row g-3 align-items-end" id="filterForm">
+        <div class="col-md-3">
+            <label class="form-label text-secondary small">Qidiruv</label>
+            <div class="input-group">
+                <span class="input-group-text bg-dark border-white border-opacity-10 text-secondary border-end-0">
+                    <i class="fas fa-search"></i>
+                </span>
+                <input type="text" name="q"
+                    class="form-control bg-dark border-white border-opacity-10 text-white border-start-0 ps-0"
+                    placeholder="Qidiruv..." value="{{ q }}">
+            </div>
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label text-secondary small">Guruh bo'yicha</label>
+            <select name="group" class="form-select bg-dark border-white border-opacity-10 text-white shadow-none">
+                <option value="">Barchasi</option>
+                {% for g in groups %}
+                <option value="{{ g.id }}" {% if selected_group == g.id %}selected{% endif %}>{{ g.nom }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label text-secondary small">Qarz miqdori (dan)</label>
+            <input type="number" name="min_debt"
+                class="form-control bg-dark border-white border-opacity-10 text-white shadow-none" placeholder="0"
+                value="{{ min_debt }}">
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label text-secondary small">Qarz miqdori (gacha)</label>
+            <input type="number" name="max_debt"
+                class="form-control bg-dark border-white border-opacity-10 text-white shadow-none" placeholder="Max"
+                value="{{ max_debt }}">
+        </div>
+
+        <div class="col-md-3">
+            <div class="row g-2">
+                <div class="col-6">
+                    <label class="form-label text-secondary small">Sanadan boshlab</label>
+                    <input type="date" name="start_date"
+                        class="form-control bg-dark border-white border-opacity-10 text-white shadow-none"
+                        value="{{ start_date }}">
+                </div>
+                <div class="col-6">
+                    <label class="form-label text-secondary small">Sana bo'yicha</label>
+                    <input type="date" name="end_date"
+                        class="form-control bg-dark border-white border-opacity-10 text-white shadow-none"
+                        value="{{ end_date }}">
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="d-none">Submit</button>
+    </form>
+</div>
+
+<!-- TABLE -->
+<div class="card bg-dark border border-white border-opacity-10 rounded-4 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-dark table-hover mb-0 align-middle text-center"
+            style="background-color: transparent;">
+            <thead class="bg-black bg-opacity-25 border-bottom border-white border-opacity-10">
+                <tr>
+                    <th class="py-3 ps-4 text-start text-secondary fw-medium">Sana</th>
+                    <th class="py-3 text-start text-secondary fw-medium">Ism</th>
+                    <th class="py-3 text-secondary text-danger fw-medium">Balansi</th>
+                    <th class="py-3 text-secondary fw-medium">Guruh</th>
+                    <th class="py-3 text-secondary fw-medium">Xodim</th>
+                    <th class="py-3 text-secondary fw-medium">Kurs</th>
+                    <th class="py-3 pe-4 text-end text-secondary fw-medium">Amallar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in page_obj %}
+                <tr class="border-bottom border-white border-opacity-10">
+                    <td class="ps-4 py-3 text-start text-secondary text-nowrap">
+                        <div class="d-flex flex-column">
+                            <span class="fw-bold text-white">{{ row.created_at|date:"d.m.Y" }}</span>
+                            <span class="small opacity-50">{{ row.created_at|date:"H:i" }}</span>
+                        </div>
+                    </td>
+
+                    <td class="text-start py-3">
+                        <div class="fw-bold text-white">{{ row.student.get_full_name }}</div>
+                        <div class="text-secondary small">{{ row.student.phone }}</div>
+                    </td>
+
+                    <td class="text-start py-3">
+                        <div class="text-danger fw-bold text-nowrap">{{ row.debt|intcomma }} so'm</div>
+                        <div class="text-secondary" style="font-size: 0.75rem;">
+                            <span class="opacity-50">Jami:</span> {{ row.total_fee|intcomma }} |
+                            <span class="opacity-50">To'langan:</span> {{ row.total_paid|intcomma }}
+                        </div>
+                    </td>
+
+                    <td class="py-3">
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary fw-normal px-3 py-2 rounded-3">
+                            {{ row.group.nom }}
+                        </span>
+                    </td>
+
+                    <td class="py-3">
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary fw-normal px-3 py-2 rounded-3">
+                            {{ row.staff.get_full_name|default:"-" }}
+                        </span>
+                    </td>
+
+                    <td class="text-info text-nowrap py-3">
+                        {{ row.group.category_obj.name|default:row.group.get_category_display|default:"Kurs" }}
+                    </td>
+
+                    <td class="pe-4 py-3 text-end">
+                        <div class="d-flex justify-content-end gap-3 align-items-center">
+                            <button type="button"
+                                class="btn p-0 text-secondary hover-text-primary fs-5 border-0 bg-transparent"
+                                data-bs-toggle="modal" data-bs-target="#paymentModal"
+                                data-enrollment-id="{{ row.enrollment.id }}"
+                                data-student-name="{{ row.student.get_full_name }}" data-debt="{{ row.debt }}">
+                                <i class="fas fa-eye"></i>
+                            </button>
+
+                            <a href="{% url 'education:enrollment_edit' row.enrollment.id %}?next={{ request.get_full_path|urlencode }}"
+                                class="btn p-0 text-secondary hover-text-success fs-5 border-0 bg-transparent"
+                                title="Tahrirlash">
+                                <i class="fas fa-pen"></i>
+                            </a>
+
+                            <a href="{% url 'education:enrollment_delete' row.enrollment.id %}"
+                                class="btn p-0 text-secondary hover-text-danger fs-5 border-0 bg-transparent"
+                                title="O'chirish" onclick="return confirm('Haqiqatan ham o‘chirmoqchimisiz?');">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-secondary">
+                        <i class="fas fa-check-circle fa-3x mb-3 text-success opacity-50"></i>
+                        <p>Qarzdorlar yo'q!</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="mt-4">
+    {% include "partials/pagination.html" %}
+</div>
+
+{% endblock %}
+
+{% block modals %}
+<!-- PAYMENT MODAL -->
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div
+            class="modal-content bg-dark border border-white border-opacity-10 text-white rounded-4 shadow-lg overflow-hidden">
+            <div class="modal-header border-bottom border-white border-opacity-10">
+                <h5 class="modal-title fw-bold">To'lov qilish</h5>
+                <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+
+            <form action="{% url 'education:create_payment' %}" method="post" id="paymentForm">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <input type="hidden" name="next" value="education:tolovlar_home">
+                    <input type="hidden" name="enrollment_id" id="payEnrollmentId">
+
+                    <div class="mb-4 text-center">
+                        <h4 class="fw-bold mb-1" id="payStudentName" style="color:#fff;">Ism Familya</h4>
+                        <p class="text-secondary small mb-3" id="payGroupName">Guruh nomi</p>
+
+                        <div class="row g-2 mb-3 justify-content-center">
+                            <div class="col-12">
+                                <div
+                                    class="bg-black bg-opacity-25 p-3 rounded-4 text-center border border-white border-opacity-10">
+                                    <div class="small text-secondary mb-1">Oylik to'lov summasi:</div>
+                                    <div class="h3 fw-bold text-white mb-0" id="payMonthlyFee">0 so'm</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <div class="row g-0 bg-black bg-opacity-25 p-1 rounded-3 mb-4">
+                        <div class="col-4">
+                            <input type="radio" class="btn-check" name="payment_method" id="methodCash" value="cash"
+                                checked>
+                            <label class="btn btn-sm w-100 border-0 rounded-3 payment-type-btn" for="methodCash">
+                                <i class="fas fa-money-bill-wave"></i> Naqd
+                            </label>
+                        </div>
+                        <div class="col-4">
+                            <input type="radio" class="btn-check" name="payment_method" id="methodCard" value="card">
+                            <label class="btn btn-sm w-100 border-0 rounded-3 payment-type-btn" for="methodCard">
+                                <i class="fas fa-credit-card"></i> Karta
+                            </label>
+                        </div>
+                        <div class="col-4">
+                            <input type="radio" class="btn-check" name="payment_method" id="methodMixed" value="mixed">
+                            <label class="btn btn-sm w-100 border-0 rounded-3 payment-type-btn" for="methodMixed">
+                                <i class="fas fa-layer-group"></i> Aralash
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-12" id="divCash">
+                            <label class="form-label text-secondary fs-xs">Naqd pul (so'm)</label>
+                            <input type="number" name="cash_amount" id="inputCash"
+                                class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                                placeholder="0">
+                        </div>
+
+                        <div class="col-12" id="divCard" style="display:none;">
+                            <label class="form-label text-secondary fs-xs">Karta / Click (so'm)</label>
+                            <input type="number" name="card_amount" id="inputCard"
+                                class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                                placeholder="0">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label text-secondary fs-xs">Izoh (Comment)</label>
+                            <textarea name="note"
+                                class="form-control bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
+                                rows="2" placeholder="Izoh qoldirish..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top border-white border-opacity-10 bg-black bg-opacity-10">
+                    <button type="button" class="btn btn-link text-secondary text-decoration-none shadow-none"
+                        data-bs-dismiss="modal">
+                        Bekor qilish
+                    </button>
+                    <button type="submit" class="btn btn-success px-4 rounded-3 shadow-none fw-bold">
+                        Saqlash
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{# ✅ JSON SAFE OUTPUT #}
+{{ chart_data|json_script:"chart-data" }}
+
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+    (function () {
+        function togglePaymentInputs() {
+            const checked = document.querySelector('input[name="payment_method"]:checked');
+            if (!checked) return;
+
+            const divCash = document.getElementById('divCash');
+            const divCard = document.getElementById('divCard');
+            const inputCash = document.getElementById('inputCash');
+            const inputCard = document.getElementById('inputCard');
+
+            if (checked.value === 'cash') {
+                divCash.style.display = 'block';
+                divCash.className = 'col-12';
+                divCard.style.display = 'none';
+                inputCard.value = '';
+            } else if (checked.value === 'card') {
+                divCash.style.display = 'none';
+                divCard.style.display = 'block';
+                divCard.className = 'col-12';
+                inputCash.value = '';
+            } else {
+                divCash.style.display = 'block';
+                divCash.className = 'col-6';
+                divCard.style.display = 'block';
+                divCard.className = 'col-6';
+            }
+        }
+
+        function formatNumber(n) {
+            return Number(n || 0).toLocaleString();
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            // ✅ 1) chart render
+            const chartEl = document.getElementById("chart-data");
+            if (chartEl && typeof ApexCharts !== "undefined") {
+                try {
+                    const chartData = JSON.parse(chartEl.textContent) || [];
+                    const target = document.querySelector("#debtChart");
+                    if (target) {
+                        const options = {
+                            series: [{ name: 'Qarz', data: chartData }],
+                            chart: { type: 'area', height: 250, toolbar: { show: false }, background: 'transparent' },
+                            stroke: { curve: 'smooth', width: 3 },
+                            colors: ['#ef4444'],
+                            fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 90, 100] } },
+                            xaxis: {
+                                categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                                labels: { style: { colors: '#9ca3af' } },
+                                axisBorder: { show: false },
+                                axisTicks: { show: false }
+                            },
+                            yaxis: { labels: { style: { colors: '#9ca3af' }, formatter: v => formatNumber(v) + " so'm" } },
+                            grid: { borderColor: 'rgba(255, 255, 255, 0.1)', strokeDashArray: 4 },
+                            theme: { mode: 'dark' },
+                            tooltip: { theme: 'dark' }
+                        };
+                        new ApexCharts(target, options).render();
+                    }
+                } catch (e) { console.error("Chart error", e); }
+            }
+
+            // ✅ 2) modal data binding
+            const paymentModal = document.getElementById('paymentModal');
+            if (paymentModal) {
+                paymentModal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    if (!button) return;
+
+                    const enrollmentId = button.getAttribute('data-enrollment-id');
+                    const studentName = button.getAttribute('data-student-name');
+
+                    document.getElementById('payEnrollmentId').value = enrollmentId;
+                    document.getElementById('payStudentName').textContent = studentName;
+
+                    fetch(`/talim/tolovlar/tarix/enrollment/${enrollmentId}/`)
+                        .then(res => res.json())
+                        .then(data => {
+                            document.getElementById('payGroupName').textContent = data.group || '';
+                            document.getElementById('payMonthlyFee').textContent = formatNumber(data.monthly_fee) + " so'm";
+                        })
+                        .catch(err => console.error(err));
+
+                    document.getElementById('methodCash').checked = true;
+                    document.getElementById('inputCash').value = '';
+                    document.getElementById('inputCard').value = '';
+                    togglePaymentInputs();
+                });
+            }
+
+            // ✅ 3) payment method change
+            document.querySelectorAll('input[name="payment_method"]').forEach(r => {
+                r.addEventListener('change', togglePaymentInputs);
+            });
+
+            // ✅ 4) auto-submit filter
+            const filterForm = document.getElementById('filterForm');
+            if (filterForm) {
+                filterForm.querySelectorAll(
+                    'select[name="group"], input[name="min_debt"], input[name="max_debt"], input[name="start_date"], input[name="end_date"]'
+                ).forEach(el => el.addEventListener('change', () => filterForm.submit()));
+            }
+
+            togglePaymentInputs();
+        });
+    })();
+</script>
+{% endblock %}

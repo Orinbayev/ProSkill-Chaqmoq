@@ -258,10 +258,15 @@ class User(AbstractUser):
         verbose_name_plural = "Foydalanuvchilar"
 
     def full_name(self) -> str:
-        parts = [self.ism, self.familya]
-        if self.otchestvo and str(self.otchestvo).strip().lower() != 'none':
-            parts.append(self.otchestvo)
-        return " ".join([str(p).strip() for p in parts if p]).strip()
+        parts = []
+        seen = set()
+        for val in [self.ism, self.familya, self.otchestvo]:
+            if val and str(val).strip().lower() not in ('none', 'null', ''):
+                word = str(val).strip()
+                if word not in seen:
+                    parts.append(word)
+                    seen.add(word)
+        return " ".join(parts).strip()
 
     def get_full_name(self) -> str:
         return self.full_name()

@@ -174,65 +174,33 @@ def convert_lead_to_student(lead, converted_by=None, target_center=None):
     tel2 = _normalize_phone(getattr(lead, "telefon2", ""))
 
     with transaction.atomic():
-        user = None
+        # 1) NEW: Always create a new student as requested.
+        # 2) Yangi student yaratamiz
+        email = _gen_unique_gmail_like_email(lead.ism, lead.familya)
+        password = _gen_default_password()
 
-        # 1) Telefon bo'yicha existing student qidiramiz
-        if tel1:
-            user = U.objects.filter(telefon1=tel1).first()
+        user = U(email=email)
+        user.role = "student"
+        user.center = target_center or lead.center
+        user.ism = lead.ism
+        user.familya = lead.familya
 
-        created = False
-        password = None
+        if hasattr(user, "telefon1") and tel1:
+            user.telefon1 = tel1
+        if hasattr(user, "telefon2") and tel2:
+            user.telefon2 = tel2
+        
+        # ✅ Extended fields
+        user.otchestvo = getattr(lead, "otchestvo", "")
+        user.birth_date = getattr(lead, "birth_date", None)
+        user.gender = getattr(lead, "gender", "")
+        user.passport_id = getattr(lead, "passport_id", "")
+        user.jshr = getattr(lead, "jshr", "")
+        user.address = getattr(lead, "address", "")
 
-        if user:
-            # mavjud userni studentga moslab yangilab qo'yamiz
-            if not user.center:
-                user.center = target_center or lead.center
-            
-            user.role = "student"
-            user.ism = lead.ism
-            user.familya = lead.familya
-            if hasattr(user, "telefon1") and tel1:
-                user.telefon1 = tel1
-            if hasattr(user, "telefon2") and tel2:
-                user.telefon2 = tel2
-            
-            # ✅ Extended fields
-            if getattr(lead, "otchestvo", None): user.otchestvo = lead.otchestvo
-            if getattr(lead, "birth_date", None): user.birth_date = lead.birth_date
-            if getattr(lead, "gender", None): user.gender = lead.gender
-            if getattr(lead, "passport_id", None): user.passport_id = lead.passport_id
-            if getattr(lead, "jshr", None): user.jshr = lead.jshr
-            if getattr(lead, "address", None): user.address = lead.address
-
-            user.save()
-
-        else:
-            # 2) Yangi student yaratamiz
-            email = _gen_unique_gmail_like_email(lead.ism, lead.familya)
-            password = _gen_default_password()
-
-            user = U(email=email)
-            user.role = "student"
-            user.center = target_center or lead.center
-            user.ism = lead.ism
-            user.familya = lead.familya
-
-            if hasattr(user, "telefon1") and tel1:
-                user.telefon1 = tel1
-            if hasattr(user, "telefon2") and tel2:
-                user.telefon2 = tel2
-            
-            # ✅ Extended fields
-            user.otchestvo = getattr(lead, "otchestvo", "")
-            user.birth_date = getattr(lead, "birth_date", None)
-            user.gender = getattr(lead, "gender", "")
-            user.passport_id = getattr(lead, "passport_id", "")
-            user.jshr = getattr(lead, "jshr", "")
-            user.address = getattr(lead, "address", "")
-
-            user.set_password(password)
-            user.save()
-            created = True
+        user.set_password(password)
+        user.save()
+        created = True
 
         # 3) Lead bilan bog'laymiz
         lead.converted_user = user

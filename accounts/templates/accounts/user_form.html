@@ -465,17 +465,14 @@
 
     </div>
 
-    <!-- Dynamic Fields -->
     <div id="groupSelectBlock" class="field-group" style="display:none;">
       <div class="field-group-title"><i class="fa-solid fa-layer-group"></i> Guruhga biriktirish</div>
       <div class="inp-group max-w-md">
         <label>Guruhni tanlang (Ixtiyoriy)</label>
-        <select name="group_id" id="group_id">
-          <option value="">— Tanlang —</option>
-          {% for g in groups %}
-          <option value="{{ g.id }}">{{ g.nom }} — {{ g.center }}</option>
-          {% endfor %}
-        </select>
+        {{ form.group }}
+        {% if form.group.errors %}
+        <div class="text-danger small mt-1">{{ form.group.errors }}</div>
+        {% endif %}
       </div>
     </div>
 
@@ -483,7 +480,7 @@
       <div class="field-group-title"><i class="fa-solid fa-coins"></i> Kurs Narxi</div>
       <div class="inp-group max-w-md">
         <label>Narx (so‘m)</label>
-        <input type="number" id="kursNarxiInput" name="kurs_narhi" min="0">
+        {{ form.kurs_narhi }}
       </div>
     </div>
 
