@@ -45,6 +45,7 @@ class Product(models.Model):
 # 2️⃣ MAHSULOT RASMI
 # ===================================
 class ProductImage(models.Model):
+    center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='rasmlar')
     rasm = models.ImageField(upload_to='products/')
 
@@ -189,6 +190,7 @@ def handle_purchase_request(sender, instance, created, **kwargs):
 # 6️⃣ IZOH MODELI
 # ===================================
 class Comment(models.Model):
+    center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='comments')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     text = models.TextField()

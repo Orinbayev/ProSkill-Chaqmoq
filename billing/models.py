@@ -54,11 +54,24 @@ class CenterSubscription(models.Model):
 
     updated_at = models.DateTimeField(auto_now=True)
 
+    GRACE_PERIOD_HOURS = 72
+
+    @property
+    def hard_expires_at(self):
+        return self.expires_at + timezone.timedelta(hours=self.GRACE_PERIOD_HOURS)
+
     def is_expired(self) -> bool:
         return timezone.now() >= self.expires_at
 
+    def is_hard_expired(self) -> bool:
+        return timezone.now() >= self.hard_expires_at
+
     def is_blocked(self) -> bool:
-        return self.manual_block or self.is_expired() or self.status == self.Status.BLOCKED
+        return self.manual_block or self.is_hard_expired() or self.status == self.Status.BLOCKED
+
+    def in_grace_period(self) -> bool:
+        # Expired but not yet blocked (Grace period)
+        return self.is_expired() and not self.is_hard_expired() and not self.manual_block and self.status != self.Status.BLOCKED
 
     def days_left(self) -> int:
         delta = self.expires_at.date() - timezone.now().date()

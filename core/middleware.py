@@ -1,207 +1,161 @@
-# core/middleware.py
-from django.shortcuts import redirect
-from django.contrib import messages
-from django.urls import reverse, NoReverseMatch
+from django.shortcuts import redirect, render
+from django.http import HttpResponseForbidden, Http404
+from django.conf import settings
 from accounts.models import Center
+import logging
 
-
-def _safe_reverse(*names: str, default: str = "/") -> str:
-    """
-    Bir nechta url name'larni ketma-ket reverse qilib ko‘radi.
-    Birortasi ishlasa -> o‘sha url
-    Hech biri ishlamasa -> default
-    """
-    for name in names:
-        try:
-            return reverse(name)
-        except NoReverseMatch:
-            continue
-        except Exception:
-            continue
-    return default
-
+logger = logging.getLogger(__name__)
 
 class TenantMiddleware:
     """
-    - request.center ni session.active_center_id bo‘yicha o‘rnatadi
-    - superadmin active center tanlamagan bo‘lsa -> center pickerga yuboradi
-    - redirect loop bo‘lmasin (allowed paths)
+    Middleware to resolve the active center (tenant) from subdomain or session.
+    Enforces strict isolation and prevents redirect loops.
     """
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        # ✅ URL'larni xavfsiz topamiz (bir nechta name sinab ko‘ramiz)
-        p_center_picker = _safe_reverse("accounts:center_picker", default="/hisob/center-picker/")
-        p_center_switch = _safe_reverse("accounts:center_switch", default="/hisob/center-switch/")
+        path = request.path
+        host_port = request.get_host() # e.g. "laylo.localhost:8000"
+        host = host_port.split(':')[0].lower() # "laylo.localhost"
+        
+        # Parse Port
+        port = None
+        if ':' in host_port:
+            try:
+                port = host_port.split(':')[1]
+            except IndexError:
+                pass
 
-        # logout ba'zan "logout", ba'zan "accounts:logout" bo'lishi mumkin
-        p_logout = _safe_reverse("logout", "accounts:logout", default="/logout/")
+        subdomain = None
+        root_domain = "localhost" # Default fallback
+        
+        # 1. Robust Subdomain Parsing
+        # Localhost / IP handling
+        if "localhost" in host:
+            # e.g. laylo.localhost -> parts=["laylo", "localhost"]
+            parts = host.split('.')
+            if len(parts) > 1 and parts[0] != "www":
+                subdomain = parts[0]
+                # Reconstruct root domain (e.g. localhost)
+                root_domain = ".".join(parts[1:]) 
+            else:
+                root_domain = host
+        elif host.replace('.', '').isdigit(): # IP Address
+            root_domain = host
+        else: # Production domains e.g. tenant.chaqmoq.uz
+            parts = host.split('.')
+            if len(parts) > 2: # tenant.domain.com
+                subdomain = parts[0]
+                root_domain = ".".join(parts[1:])
+            else:
+                root_domain = host
 
-        # login ba'zan "login", ba'zan "accounts:login"
-        p_login = _safe_reverse("login", "accounts:login", default="/accounts/login/")
-
-        p_home = "/"
-        p_superadmin = _safe_reverse("accounts:superadmin_dashboard", default="/hisob/superadmin/")
-
-        allowed_prefixes = (
-            p_center_picker,
-            p_center_switch,
-            p_logout,
-            p_login,
-            p_home,
-            p_superadmin,
-            "/hisob/api/",
-            "/hisob/centers/",
-            "/admin/",
-            "/static/",
-            "/media/",
-        )
-
-        path = request.path or "/"
-
-        # default
+        # Initialize
+        request.active_center = None
         request.center = None
 
-        if request.user.is_authenticated:
-            # ✅ oddiy userlar: center userdan olinadi
-            if not request.user.is_superuser:
-                user_center = getattr(request.user, "center", None)
+        # 2. Resolve Tenant (Center)
+        if subdomain:
+            # Try finding center by slug (subdomain)
+            center = Center.objects.filter(slug=subdomain, is_deleted=False).first()
+            
+            # ✅ FIX: If subdomain exists but Center NOT found
+            if not center:
+                # Avoid redirect loop if already on global picker or static
+                if path.startswith('/static/') or path.startswith('/media/'):
+                    return self.get_response(request)
+
+                # A) If Superadmin -> Redirect to Global Picker
+                if request.user.is_authenticated and request.user.is_superuser:
+                    scheme = request.scheme
+                    port_str = f":{port}" if port else ""
+                    global_url = f"{scheme}://{root_domain}{port_str}/hisob/centers/?error=not_found&tenant={subdomain}"
+                    return redirect(global_url)
                 
-                # ✅ MUAMMO 2: Markazning status va limitini tekshirish
-                if user_center:
-                    # ✅ Billing sahifalarini topamiz
-                    p_billing_plans = _safe_reverse("billing:plans", default="/billing/plans/")
-                    p_billing_blocked = _safe_reverse("billing:blocked", default="/billing/blocked/")
-                    p_billing_order = _safe_reverse("billing:order_create", default="/billing/order/create/")
-                    
-                    # ✅ Center navigatsiya
-                    p_center_picker = _safe_reverse("accounts:center_picker", default="/hisob/center-picker/")
-                    p_center_switch = _safe_reverse("accounts:center_switch", default="/hisob/center-switch/")
-                    p_center_create = _safe_reverse("accounts:center_create", default="/hisob/superadmin/center/create/")
-                    
-                    # ✅ Logout paths (Both global and app-specific)
-                    p_logout_global = _safe_reverse("logout", default="/logout/")
-                    p_logout_accounts = _safe_reverse("accounts:logout", default="/hisob/logout/")
-
-                    billing_allowed = (
-                        p_billing_plans,
-                        p_billing_blocked,
-                        p_billing_order,
-                        "/billing/",
-                        p_logout_global,
-                        p_logout_accounts,
-                        p_login,
-                        "/static/",
-                        "/media/",
-                        # ✅ Blocked bo'lsa ham markaz almashtirish/yaratishga ruxsat:
-                        p_center_picker,
-                        p_center_switch,
-                        p_center_create,
-                        "/hisob/api/", # APIga ruxsat (create/archive uchun)
-                    )
-                    
-                    # ✅ MUAMMO 1: Pul tugasa avtomatik BLOCKED qilish
-                    from django.utils import timezone
-                    if user_center.expires_at:
-                        if timezone.now() >= user_center.expires_at:
-                            if user_center.status == Center.STATUS_ACTIVE:
-                                # Avtomatik block qilamiz
-                                user_center.status = Center.STATUS_BLOCKED
-                                user_center.save(update_fields=['status'])
-                        elif user_center.status == Center.STATUS_BLOCKED:
-                            # ✅ Agar vaqti uzaytirilsa avtomatik ACTIVE qilamiz
-                            user_center.status = Center.STATUS_ACTIVE
-                            user_center.save(update_fields=['status'])
-                    
-                    # Status tekshirish
-                    if user_center.status != Center.STATUS_ACTIVE:
-                        # 1. Agar Arxivlangan bo'lsa -> To'liq chiqish yoki Center Picker
-                        if user_center.status == Center.STATUS_ARCHIVED:
-                            messages.error(request, "⚠️ Ushbu markaz arxivlangan. Tizimga kirish vaqtincha to'xtatilgan.")
-                            
-                            # Ruxsat berilgan yo'llar: Logout (x2) va Center Picker
-                            if not path.startswith(p_logout_global) and \
-                               not path.startswith(p_logout_accounts) and \
-                               not path.startswith(p_center_picker):
-                                
-                                # Robust logout ga yo'naltiramiz
-                                return redirect(p_logout_accounts)
-
-                        # 2. Agar Blocked bo'lsa -> Billing
-                        elif user_center.status == Center.STATUS_BLOCKED:
-                            # ✅ Teachers, Students, Parents SHOULD NOT be redirected to billing
-                            if request.user.role in ['teacher', 'student', 'parent']:
-                                # Agarda ular billing pagega kirmoqchi bo'lsa -> home ga otamiz
-                                if path.startswith(billing_allowed) and not path.startswith((p_logout_global, p_logout_accounts, p_login, "/static/", "/media/", "/hisob/api/")):
-                                     return redirect(p_home)
-                                # Boshqa holatda dashboardga kirishi mumkin, redirect qilmaymiz
-                            else:
-                                # ✅ Admin/Manager uchun to'lov majburiy
-                                if not path.startswith(billing_allowed):
-                                    messages.warning(request, f"⚠️ Markazingiz bloklangan. To'lovni amalga oshiring yoki boshqa markaz tanlang.")
-                                    return redirect(p_billing_plans)
-                            
-                            # Blocked center'ni request'ga qo'yamiz
-                            request.center = user_center
-                    else:
-                        # Student limit tekshirish (faqat student role uchun)
-                        if request.user.role == 'student':
-                            from education.models import Enrollment
-                            current_students = Enrollment.objects.filter(
-                                group__center=user_center,
-                                student__is_archived=False
-                            ).values('student').distinct().count()
-                            
-                            if user_center.max_students > 0 and current_students >= user_center.max_students:
-                                # Agar current user allaqachon ro'yxatda bo'lsa ruxsat beramiz
-                                is_enrolled = Enrollment.objects.filter(
-                                    group__center=user_center,
-                                    student=request.user
-                                ).exists()
-                                
-                                if not is_enrolled:
-                                    messages.error(request, f"❌ Markaz o'quvchilar limiti ({user_center.max_students}) to'lgan.")
-                                    return redirect(p_logout)
-                        
-                        request.center = user_center
-
+                # B) Ordinary User or Guest -> Show Nice 404 Page (SaaS Style)
+                return render(request, 'core/center_404.html', {
+                    'subdomain': subdomain,
+                    'root_domain': root_domain,
+                    'host': host_port
+                }, status=404)
+            
             else:
-                # ✅ superadmin: center sessiondan olinadi
-                active_center_id = request.session.get("active_center_id")
-                if active_center_id:
-                    center = Center.objects.filter(id=active_center_id).first()
-                    
-                    if not center:
-                        # ✅ Agar center o'chirilgan bo'lsa sessionni tozalaymiz
-                        del request.session["active_center_id"]
-                        request.session.modified = True
-                        return redirect(p_center_picker)
-                    
-                    # ✅ MUAMMO 1: Superadmin rejimida ham avtomatik expiration tekshirish
-                    if center:
-                        from django.utils import timezone
-                        if center.expires_at:
-                            if timezone.now() >= center.expires_at:
-                                if center.status == Center.STATUS_ACTIVE:
-                                    center.status = Center.STATUS_BLOCKED
-                                    center.save(update_fields=['status'])
-                            elif center.status == Center.STATUS_BLOCKED:
-                                # ✅ Time extended -> Auto UNBLOCK
-                                center.status = Center.STATUS_ACTIVE
-                                center.save(update_fields=['status'])
-                    
-                    # ✅ MUAMMO 2: Superadmin uchun ham status tekshirish
-                    if center and center.status != Center.STATUS_ACTIVE:
-                        messages.warning(request, f"⚠️ Tanlangan markaz faol emas (Status: {center.status})")
-                        if not path.startswith(allowed_prefixes):
-                            return redirect(p_center_picker)
-                    else:
-                        request.center = center
-                else:
-                    # ✅ active center yo'q -> faqat allow-list bo'lmasa pickerga yuboramiz
-                    if not path.startswith(allowed_prefixes):
-                        messages.info(request, "Davom etish uchun avval Active Center tanlang.")
-                        return redirect(p_center_picker)
+                request.active_center = center
+                request.center = center
+        
+        # 3. Handle Exempt Paths (Login, Static, Admin)
+        # Allows access without Center check, BUT still populates request.center if found above
+        EXEMPT_PREFIXES = (
+            '/hisob/login/', 
+            '/login/',       
+            '/logout/', 
+            '/static/', 
+            '/media/', 
+            '/admin/',       
+            '/platform/',    # Superadmin Global Dashboard
+            '/favicon.ico',
+        )
+
+        if any(path.startswith(prefix) for prefix in EXEMPT_PREFIXES):
+            return self.get_response(request)
+
+        # 4. Access Enforcement & Flow Control
+        if request.user.is_authenticated:
+            # A) Superadmin Logic
+            if request.user.is_superuser:
+                # If on ROOT domain and active_center_id in session -> Redirect to Subdomain
+                if not subdomain:
+                    active_center_id = request.session.get("active_center_id")
+                    if active_center_id:
+                        center = Center.objects.filter(id=active_center_id, is_deleted=False).first()
+                        if center:
+                            scheme = request.scheme
+                            port_str = f":{port}" if port else ""
+                            return redirect(f"{scheme}://{center.slug}.{root_domain}{port_str}/")
+                # Superadmin can access anything
+                pass 
+            
+            # B) Normal User (Director/Teacher/Student)
+            elif request.user.center:
+                # 1. On Root Domain -> Redirect to User's Subdomain
+                if not subdomain:
+                    scheme = request.scheme
+                    port_str = f":{port}" if port else ""
+                    tenant_url = f"{scheme}://{request.user.center.slug}.{root_domain}{port_str}/"
+                    return redirect(tenant_url)
+                
+                # 2. On WRONG Subdomain -> 403 Forbidden
+                if request.active_center and request.active_center != request.user.center:
+                    return HttpResponseForbidden(f"Sizga '{request.active_center.name}' markaziga kirish ruxsat etilmagan.")
+                
+                # 3. Blocked Status Check (Center Status OR Hard Expiry)
+                is_blocked = False
+                if request.active_center.status == 'BLOCKED':
+                    is_blocked = True
+                elif hasattr(request.active_center, 'subscription') and request.active_center.subscription:
+                     if request.active_center.subscription.is_blocked():
+                         is_blocked = True
+
+                if is_blocked:
+                    if not path.startswith('/hisob/billing/') and not path.startswith('/hisob/tolov/'):
+                        return redirect('billing:plans')
+
+            # C) User has no center (Orphan) -> 403
+            else:
+                 return HttpResponseForbidden("Siz hech qanday markazga biriktirilmagansiz.")
+                 
+        # 5. Unauthenticated User
+        else:
+            # Not logged in.
+            # If on Tenant Subdomain -> Redirect to Login (on tenant domain)
+            # If on Root Domain -> Redirect to Login (on root domain)
+            # We already passed EXEMPT checks, so this is a protected page.
+            
+            login_url = settings.LOGIN_URL
+            if not login_url.startswith('http'):
+                 login_url = f"{settings.LOGIN_URL}"
+            
+            return redirect(f"{login_url}?next={request.path}")
 
         return self.get_response(request)

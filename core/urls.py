@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from . import views, api_views
 
 app_name = 'core'
 
@@ -41,6 +41,7 @@ urlpatterns = [
     # Notifications
     path('notifications/', views.notifications_view, name="notifications"),
     path('notifications/read/', views.notifications_mark_read, name="notifications_mark_read"),
+    path('notifications/api/read-all/', api_views.notifications_mark_read_api, name="notifications_mark_read_api"),
     path('notifications/broadcast/', views.notification_broadcast, name="notification_broadcast"),
 ]
 

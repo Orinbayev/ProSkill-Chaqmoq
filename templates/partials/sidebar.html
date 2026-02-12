@@ -32,8 +32,8 @@
 
   <!-- HEADER: LOGO + TOGGLE -->
   <div class="sidebar-header">
-    <a href="{% if request.user.is_authenticated and request.user.is_superuser %}{% url 'accounts:center_picker' %}{% else %}/{% endif %}"
-      class="sidebar-logo" aria-label="Bosh sahifa" data-title="Bosh sahifa">
+    <a href="{% if request.user.is_superuser %}/platform/{% else %}/{% endif %}" class="sidebar-logo"
+      aria-label="Bosh sahifa" data-title="Bosh sahifa">
       <div class="ultimate-bolt-container">
         <div class="spark-particle s1"></div>
         <div class="spark-particle s2"></div>
@@ -44,10 +44,7 @@
         </svg>
       </div>
       <div class="d-flex flex-column">
-        <span class="logo-text">Chaqmoq</span>
-        {% if request.center and request.center.name != "Chaqmoq" %}
-        <!-- span class="center-tagline">{{ request.center.name }}</span -->
-        {% endif %}
+        <span class="logo-text">{% if not request.center %}Chaqmoq{% else %}Chaqmoq{% endif %}</span>
       </div>
     </a>
 
@@ -74,7 +71,50 @@
       }
     </style>
 
-    {% if request.user.is_authenticated and request.user.role == 'teacher' %}
+    <!-- ================================
+         🚀 SAAS PLATFORM PROFILE (GLOBAL)
+    ================================ -->
+    {% if request.user.is_superuser and not request.center %}
+
+    <div class="sidebar-section-label">GLOBAL MANAGEMENT</div>
+
+    <a href="{% url 'platform_global:superadmin_dashboard' %}"
+      class="sidebar-item {% if vn == 'platform_global:superadmin_dashboard' %}active{% endif %}"
+      data-title="Global Stats">
+      <span class="si-ico"><i class="fa-solid fa-earth-americas"></i></span>
+      <span class="si-text">Global Panel</span>
+    </a>
+
+    <a href="{% url 'platform_global:center_picker' %}"
+      class="sidebar-item {% if vn == 'platform_global:center_picker' %}active{% endif %}" data-title="Markazlar">
+      <span class="si-ico"><i class="fa-solid fa-hotel"></i></span>
+      <span class="si-text">Markazlar</span>
+    </a>
+
+    <a href="{% url 'platform_global:plans_ui' %}" class="sidebar-item {% if '/plans' in p %}active{% endif %}"
+      data-title="Tariflar">
+      <span class="si-ico"><i class="fa-solid fa-box-open"></i></span>
+      <span class="si-text">Tariflar</span>
+    </a>
+
+    <a href="{% url 'platform_global:promos_ui' %}" class="sidebar-item {% if '/promos' in p %}active{% endif %}"
+      data-title="Promokodlar">
+      <span class="si-ico"><i class="fa-solid fa-tags"></i></span>
+      <span class="si-text">Promokodlar</span>
+    </a>
+
+    <div class="sidebar-bottom p-0 mt-3 border-top border-secondary pt-2">
+      <!-- Logout removed, moved to profile dropdown -->
+    </div>
+
+    <!-- ================================
+         🏢 CENTER OPERATIONS PROFILE (TENANT)
+    ================================ -->
+    {% elif request.center %}
+
+    <div class="sidebar-section-label">{{ request.center.name|upper }}</div>
+
+    {% if request.user.role == 'teacher' %}
     <a href="/"
       class="sidebar-item {% if p == '/' or vn == 'core:home' or vn == 'core:dashboard_teacher' %}active{% endif %}"
       data-title="Boshqaruv">
@@ -101,7 +141,7 @@
       <span class="si-text">Daromadim</span>
     </a>
 
-    {% elif request.user.is_authenticated and request.user.role == 'student' %}
+    {% elif request.user.role == 'student' %}
     <a href="/"
       class="sidebar-item {% if p == '/' or vn == 'core:home' or vn == 'core:dashboard_student' %}active{% endif %}"
       data-title="Asosiy">
@@ -122,7 +162,7 @@
       <span class="si-text">Reyting</span>
     </a>
 
-    {% elif request.user.is_authenticated and request.user.role == 'parent' %}
+    {% elif request.user.role == 'parent' %}
     <a href="/"
       class="sidebar-item {% if p == '/' or vn == 'core:home' or vn == 'core:dashboard_parent' %}active{% endif %}"
       data-title="Asosiy">
@@ -136,16 +176,11 @@
       <span class="si-text">Boshqaruv</span>
     </a>
 
-    {# Markazlar Link (Shown for Superadmin) #}
-
-
     <a href="{% url 'core:stat_students' %}" class="sidebar-item {% if vn == 'core:stat_students' %}active{% endif %}"
       data-title="O‘quvchilar">
       <span class="si-ico"><i class="fa-solid fa-user-graduate"></i></span>
       <span class="si-text">O‘quvchilar</span>
     </a>
-
-
 
     {% if feature_leads or request.user.is_superuser %}
     <a href="{% url 'store:lead_list' %}"
@@ -156,10 +191,6 @@
     </a>
     {% endif %}
 
-
-
-
-
     {% if feature_kpi or request.user.is_superuser %}
     <a href="{% url 'education:teacher_salary_summary' %}"
       class="sidebar-item {% if vn == 'education:teacher_salary_summary' %}active{% endif %}" data-title="Hisobot">
@@ -167,10 +198,6 @@
       <span class="si-text">Hisobot</span>
     </a>
     {% endif %}
-
-
-
-
 
     <a href="{% url 'education:groups_home' %}"
       class="sidebar-item {% if vn == 'education:groups_home' %}active{% endif %}" data-title="Bo‘limlar">
@@ -186,6 +213,7 @@
           style="font-size: 10px; opacity: 0.5; transition: transform 0.2s;"></i>
       </div>
     </div>
+    {% endif %}
     {% endif %}
 
     {% endwith %}
@@ -220,6 +248,14 @@
     </div>
     {% endif %}
 
+    {% if request.user.is_superuser and request.center %}
+    <a href="{% url 'platform_global:center_picker' %}" class="sidebar-item settings-item btn-back-platform"
+      data-title="Platformaga qaytish">
+      <span class="si-ico"><i class="fa-solid fa-arrow-left-long"></i></span>
+      <span class="si-text">Platformaga qaytish</span>
+    </a>
+    {% endif %}
+
     {% if request.user.is_superuser %}
     <a href="/admin/" class="sidebar-item settings-item {% if '/admin' in request.path %}active{% endif %}"
       data-title="Admin Panel">
@@ -227,6 +263,8 @@
       <span class="si-text">Admin Panel</span>
     </a>
     {% endif %}
+
+    <!-- Logout removed -->
   </div>
 </div>
 
@@ -264,12 +302,7 @@
 
   <div class="floating-header mt-2">Tuzilma</div>
 
-  {% if request.user.is_superuser %}
-  <a href="{% url 'accounts:center_picker' %}" class="floating-item">
-    <div class="fi-icon"><i class="fa-solid fa-hotel"></i></div>
-    <span>Markazlar</span>
-  </a>
-  {% endif %}
+  <!-- Removal of Center link from floating menu -->
 
 
 
@@ -1197,6 +1230,39 @@
     opacity: 1;
     visibility: visible;
     transform: translateY(-50%) translateX(8px);
+  }
+
+  /* ===== NEW SAAS SECTIONS ===== */
+  .sidebar-section-label {
+    font-size: 10px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.3);
+    letter-spacing: 1.5px;
+    padding: 24px 16px 8px;
+    text-transform: uppercase;
+  }
+
+  body.sidebar-collapsed .sidebar-section-label {
+    display: none;
+  }
+
+  .btn-back-platform {
+    background: rgba(56, 189, 248, 0.05) !important;
+    border-color: rgba(56, 189, 248, 0.15) !important;
+    color: #38bdf8 !important;
+    margin-top: 15px !important;
+  }
+
+  .btn-back-platform:hover {
+    background: rgba(56, 189, 248, 0.1) !important;
+    border-color: rgba(56, 189, 248, 0.4) !important;
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.2) !important;
+  }
+
+  .btn-back-platform .si-ico {
+    background: rgba(56, 189, 248, 0.1) !important;
+    color: #38bdf8 !important;
+    border-color: rgba(56, 189, 248, 0.2) !important;
   }
 </style>
 

@@ -297,51 +297,19 @@
 
       <!-- Right: Actions -->
       <div class="top-right-actions">
-        <!-- Notification Bell -->
-        <button class="icon-btn-glass" title="Bildirishnomalar">
+        <!-- Notification Bell (Reverted) -->
+        <button class="icon-btn-glass position-relative" title="Bildirishnomalar" onclick="toggleNotificationSidebar()">
           <i class="fa-regular fa-bell"></i>
+          {% if unread_notifications_count > 0 %}
           <span
             class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-dark rounded-circle"
-            style="display:none;"></span>
+            style="width:10px;height:10px;">
+          </span>
+          {% endif %}
         </button>
 
         <!-- Profile Dropdown -->
-        <div class="dropdown">
-          <a href="#" class="d-block dropdown-toggle no-caret" data-bs-toggle="dropdown">
-            {% if request.user.avatar %}
-            <img src="{{ request.user.avatar.url }}" class="avatar-circle" alt="avatar">
-            {% else %}
-            <div class="avatar-placeholder">
-              {{ request.user.ism|first|upper }}
-            </div>
-            {% endif %}
-          </a>
-          <ul
-            class="dropdown-menu dropdown-menu-end glass-dropdown mt-3 animate__animated animate__fadeIn animate__faster">
-            <li>
-              <div class="px-3 py-2 border-bottom border-white-10 mb-2">
-                <div class="text-white fw-bold">{{ request.user.get_full_name }}</div>
-                <div class="text-white-50 small">{{ request.user.email }}</div>
-              </div>
-            </li>
-            <li>
-              <a class="dropdown-item" href="{% url 'core:profile' %}">
-                <i class="fa-solid fa-user-circle me-2 opacity-50"></i> Profilim
-              </a>
-            </li>
-            <li>
-              <hr class="dropdown-divider border-white-10">
-            </li>
-            <li>
-              <form action="{% url 'logout' %}" method="post" class="m-0">
-                {% csrf_token %}
-                <button type="submit" class="dropdown-item text-danger">
-                  <i class="fa-solid fa-right-from-bracket me-2 opacity-50"></i> Chiqish
-                </button>
-              </form>
-            </li>
-          </ul>
-        </div>
+        {% include "components/profile_dropdown.html" %}
       </div>
 
     </div>
@@ -490,4 +458,5 @@
   </div>
 
 </div>
+{% include "components/grace_period_modal.html" %}
 {% endblock %}

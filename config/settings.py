@@ -1,8 +1,3 @@
-"""
-Django settings for Chaqmoq Academy project (Render Disk version).
-This configuration works 100% correctly on Render.com with persistent media storage.
-"""
-
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -14,9 +9,28 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ===== Core =====
 SECRET_KEY = os.getenv("SECRET_KEY", "unsafe-secret-key")
-DEBUG = os.getenv("DEBUG", "False").lower() == "true"
-# ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
-ALLOWED_HOSTS = ['a1b2c3d4.ngrok-free.app', '127.0.0.1', 'proskill-chaqmoq.onrender.com']
+DEBUG = True # ✅ Force Debug for Local Dev to prevent redirect issues
+
+# ✅ HOSTS FIX: Allow all necessary local domains
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".localhost", "*"]
+
+# ✅ COOKIE FIX: Localhost requires strict handling to avoid loops
+# We use None so cookies are host-only. This prevents subdomain conflict on local.
+SESSION_COOKIE_DOMAIN = None 
+CSRF_COOKIE_DOMAIN = None
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://*.localhost:8000"
+]
+    
+# Security settings for local dev (Disable SSL/Secure cookies to prevent loops)
+SECURE_SSL_REDIRECT = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
 
 # ===== Installed Apps =====
 INSTALLED_APPS = [
@@ -43,80 +57,45 @@ JAZZMIN_SETTINGS = {
     "site_brand": "Chaqmoq Admin",
     "welcome_sign": "Chaqmoq Academy boshqaruv paneliga xush kelibsiz",
     "copyright": "Chaqmoq Academy © 2025",
-    
-    # Apple-style Light Theme
     "theme": "flatly",
-
-    # Logos (agar bo'lsa)
-    # "site_logo": "images/chaqmoq_logo.png",
-    # "login_logo": "images/chaqmoq_logo.png",
-
-    # Top navigation settings
     "topmenu_links": [
         {"name": "Bosh sahifa", "url": "admin:index", "permissions": ["auth.view_user"]},
         {"model": "accounts.user"},
         {"model": "education.category"},
         {"app": "store"},
     ],
-
-    # User menu items
     "usermenu_links": [
         {"name": "Profil", "url": "admin:password_change"},
         {"name": "Chiqish", "url": "admin:logout"},
     ],
-
-    # Sidebar settings
     "show_sidebar": True,
     "navigation_expanded": True,
-
-    # Custom icons for each model (fontawesome)
     "icons": {
         "accounts.User": "fas fa-user",
         "accounts.Center": "fas fa-school",
-
         "chaqmoq.ChaqmoqQoidalari": "fas fa-bolt",
-        "chaqmoq.ChaqmoqYozuvlari": "fas fa-keyboard",
-
         "education.Category": "fas fa-layer-group",
         "education.Davomatlar": "fas fa-calendar-check",
         "education.Guruh": "fas fa-users",
-        "education.GuruxgaQoshilishlar": "fas fa-user-plus",
-        "education.KunlikchaqmoqLimitlari": "fas fa-clock",
         "education.Tolovlar": "fas fa-wallet",
-
         "store.Products": "fas fa-box",
-        "store.ProductImages": "fas fa-images",
         "store.Leads": "fas fa-address-book",
-        "store.LeadStatus": "fas fa-flag",
-        "store.Sotuvlar": "fas fa-shopping-cart",
-        "store.XaridSorovlari": "fas fa-file-invoice",
-        "store.Yonalish": "fas fa-route",
-        "store.Izohlar": "fas fa-comments",
     },
-
-    # UI Tweaks
     "show_ui_builder": False,
     "changeform_format": "horizontal_tabs",
-    "changeform_format_overrides": {"auth.user": "collapsible"},
-    
-    # Footer settings
-    "show_ui_builder": False,
 }
-
 
 # ===== Middleware =====
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",  # Static optimization
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "core.middleware.TenantMiddleware",
-    # "billing.middleware.SubscriptionMiddleware",  # ❌ Vaqtinchalik o'chirildi - redirect loop
-    # "core.middleware_rbac.RoleBasedAccessMiddleware",  # ❌ Vaqtinchalik o'chirildi
+    "core.middleware.TenantMiddleware", # ✅ Custom Tenant Middleware
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -140,9 +119,8 @@ TEMPLATES = [
     },
 ]
 
-# ===== Database Switcher =====
+# ===== Database =====
 MODE = os.getenv("MODE", "local")
-
 if MODE == "render":
     DATABASES = {
         "default": {
@@ -155,78 +133,43 @@ if MODE == "render":
             "OPTIONS": {"sslmode": os.getenv("DB_SSLMODE", "require")},
         }
     }
-else:  # Local development mode
+else:
     DATABASES = {
         "default": {
             "ENGINE": os.getenv("LOCAL_DB_ENGINE", "django.db.backends.sqlite3"),
             "NAME": BASE_DIR / os.getenv("LOCAL_DB_NAME", "db.sqlite3"),
-            "OPTIONS": {
-                "timeout": 60,
-            }
+            "OPTIONS": {"timeout": 60}
         }
     }
 
 # ===== Authentication =====
 AUTH_USER_MODEL = "accounts.User"
-AUTHENTICATION_BACKENDS = [
-    "accounts.backends.EmailOrUsernameBackend",
-    "django.contrib.auth.backends.ModelBackend",
-]
-AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 6}},
-]
-
-LOGIN_URL = "login"
+AUTHENTICATION_BACKENDS = ["accounts.backends.EmailOrUsernameBackend", "django.contrib.auth.backends.ModelBackend"]
+# ✅ FIX: Point directly to the URL path to avoid resolution ambiguity
+LOGIN_URL = "/hisob/login/" 
 LOGIN_REDIRECT_URL = "core:home"
 LOGOUT_REDIRECT_URL = "login"
 
-# ===== Locale =====
 LANGUAGE_CODE = os.getenv("LANGUAGE_CODE", "uz")
 TIME_ZONE = os.getenv("TIME_ZONE", "Asia/Tashkent")
 USE_I18N = True
 USE_TZ = True
 
-# ===== Static Files =====
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
-# ===== Media Files (Local & Render Disk) =====
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
-
 if MODE == "render":
     MEDIA_ROOT = "/opt/render/project/src/media"
 
-# ===== Misc =====
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# ===== Logging (Render Debugging) =====
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "formatters": {
-        "verbose": {
-            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
-            "style": "{",
-        },
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "verbose",
-        },
-    },
-    "root": {
-        "handlers": ["console"],
-        "level": "INFO",
-    },
-    "loggers": {
-        "django": {
-            "handlers": ["console"],
-            "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
-            "propagate": False,
-        },
-    },
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "root": {"handlers": ["console"], "level": "INFO"},
 }

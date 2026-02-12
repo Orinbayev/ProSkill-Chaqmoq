@@ -157,7 +157,7 @@ def mark_order_paid(order: SubscriptionOrder) -> None:
     """
     Order PAID bo‘lsa:
     - promo used_count++
-    - CenterSubscription expires_at uzayadi
+    - CenterSubscription expires_at uzayadi (PRORATION logic bilan)
     - Center plan + limitlar yangilanadi
     """
     if order.status == SubscriptionOrder.Status.PAID:
@@ -168,36 +168,67 @@ def mark_order_paid(order: SubscriptionOrder) -> None:
     order.paid_at = now
     order.save(update_fields=["status", "paid_at"])
 
-    if order.promo_id:
-        PromoCode.objects.filter(id=order.promo_id).update(used_count=models.F("used_count") + 1)
+    if order.promo:
+        # Update promo usage safely
+        PromoCode.objects.filter(id=order.promo.id).update(used_count=models.F("used_count") + 1)
 
     center = order.center
     sub = ensure_center_subscription(center)
-
     if not sub:
         return
 
-    # plan update
-    sub.plan = order.plan
+    # --- PRORATION LOGIC ---
+    # Agar plan o'zgarsa (Upgrade/Downgrade), eski plandagi qolgan kunlar qiymatini
+    # yangi planga o'tkazamiz (konvertatsiya).
+    
+    current_plan = sub.plan
+    new_plan = order.plan
+    
+    if current_plan.code == new_plan.code:
+        # 1. Bir xil plan -> Shunchaki uzaytiramiz
+        start_from = sub.expires_at if sub.expires_at and sub.expires_at > now else now
+        sub.expires_at = start_from + timezone.timedelta(days=30 * int(order.duration_months))
+    else:
+        # 2. Plan o'zgaryapti -> Proration (Qayta hisoblash)
+        remaining_days = 0
+        if sub.expires_at and sub.expires_at > now:
+            remaining_days = (sub.expires_at - now).days
+        
+        value_remaining = 0
+        if remaining_days > 0 and current_plan.monthly_price > 0:
+            daily_rate_old = current_plan.monthly_price / 30.0
+            value_remaining = remaining_days * daily_rate_old
+            
+        # Eski qiymatni yangi planga kun qilib o'tkazamiz
+        days_credit = 0
+        if new_plan.monthly_price > 0:
+            daily_rate_new = new_plan.monthly_price / 30.0
+            days_credit = int(value_remaining / daily_rate_new)
+        else:
+            # Agar Free planga o'tayotgan bo'lsa, eski qiymat kuyadi (yoki cheksiz vaqt beriladi)
+            days_credit = 0 
+
+        # Yangi muddati = Hozir + Konvertatsiya qilingan kunlar + Sotib olingan kunlar
+        total_new_days = days_credit + (30 * int(order.duration_months))
+        sub.expires_at = now + timezone.timedelta(days=total_new_days)
+        
+        # Planni almashtiramiz
+        sub.plan = new_plan
+
+    # Common Updates
     sub.status = CenterSubscription.Status.ACTIVE
     sub.manual_block = False
-
-    # expires extend: agar expired bo‘lsa, bugundan; bo‘lmasa, o‘sha expires_at’dan
-    start_from = sub.expires_at if sub.expires_at and sub.expires_at > now else now
-    sub.expires_at = start_from + timezone.timedelta(days=30 * int(order.duration_months))
     sub.save()
 
-    # center limitlarni plan bo‘yicha update qilamiz
-    center.plan = order.plan.code
-    center.max_users = order.plan.max_users
-    center.max_groups = order.plan.max_groups
-    center.max_students = order.plan.max_students
-    
-    # ✅ MUAMMO 2: To'lov tasdiqlanganda center ACTIVE bo'lishi kerak
+    # Sync Center Fields
+    center.plan = new_plan.code
+    center.max_users = new_plan.max_users
+    center.max_groups = new_plan.max_groups
+    center.max_students = new_plan.max_students
     center.status = Center.STATUS_ACTIVE
-    center.expires_at = sub.expires_at  # Subscription bilan bir xil
-    
-    center.save(update_fields=["plan", "max_users", "max_groups", "max_students", "status", "expires_at"])
+    center.expires_at = sub.expires_at
+    center.monthly_price = new_plan.monthly_price
+    center.save()
 
 
 def get_subscription_ui_state(center: Center) -> dict | None:
@@ -208,6 +239,12 @@ def get_subscription_ui_state(center: Center) -> dict | None:
             
         days_left = sub.days_left()
         blocked = sub.is_blocked()
+        in_grace_period = sub.in_grace_period()
+        grace_hours_left = 0
+
+        if in_grace_period:
+            diff = (sub.hard_expires_at - timezone.now()).total_seconds()
+            grace_hours_left = max(int(diff / 3600), 0)
 
         # Progress calculation based on actual duration
         diff = (sub.expires_at - sub.started_at).days
@@ -216,7 +253,7 @@ def get_subscription_ui_state(center: Center) -> dict | None:
         progress = int(max(min(days_left / total_duration, 1), 0) * 100)
         percent_left = progress
 
-        warn = (days_left <= 7 and not blocked)
+        warn = (days_left <= 7 and not blocked and not in_grace_period)
 
         # Get proper plan title
         plan_title = sub.plan.title if sub.plan else center.plan
@@ -229,7 +266,11 @@ def get_subscription_ui_state(center: Center) -> dict | None:
             "days_left": days_left,
             "blocked": blocked,
             "warn": warn,
-            "progress": progress, # This is now percent LEFT
+            "progress": progress, 
+            # Grace Period Info for Modal/Lockout Warning
+            "in_grace_period": in_grace_period,
+            "grace_hours_left": grace_hours_left,
+            "hard_expires_at": sub.hard_expires_at,
         }
     except Exception as e:
         import logging

@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Markazni Tahrirlash{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card bg-dark border-secondary shadow-lg">
+                <div class="card-header border-secondary p-4">
+                    <h4 class="text-white mb-0">Markazni Tahrirlash: {{ center.name }}</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                        {% endif %}
+
+                        {% for field in form %}
+                        {% if field.name == 'features' %}
+                        <div class="mb-3">
+                            <label class="form-label text-white fw-bold d-block mb-2">🛠 Qo‘shimcha Imkoniyatlar</label>
+                            {{ field }}
+                            <div class="card bg-dark bg-opacity-50 border-secondary">
+                                <div class="card-body">
+                                    <div class="row g-3" id="featuresToggles">
+                                        <!-- Dynamically Rendered -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="mb-3">
+                            <label for="{{ field.id_for_label }}"
+                                class="form-label text-secondary small text-uppercase fw-bold">{{ field.label }}</label>
+
+                            {{ field }}
+
+                            {% if field.help_text %}
+                            <div class="form-text text-white-50 small">{{ field.help_text }}</div>
+                            {% endif %}
+
+                            {% if field.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ field.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+
+                        <script>
+                            (function () {
+                                const featuresList = [
+                                    { key: 'finance', label: '📊 Moliya (Finance)' },
+                                    { key: 'leads', label: '🎯 Lidlar (CRM)' },
+                                    { key: 'tasks', label: '✅ Vazifalar (Tasks)' },
+                                    { key: 'kpi', label: '📈 KPI Statistika' },
+                                    { key: 'store', label: '📦 Ombor (Store)' },
+                                    { key: 'sms', label: '📩 SMS Xabarnoma' }
+                                ];
+
+                                const input = document.querySelector('input[name="features"]');
+                                const container = document.getElementById('featuresToggles');
+                                let currentData = {};
+
+                                try {
+                                    // Handle quote replacement for attribute value
+                                    let raw = input.value;
+                                    currentData = JSON.parse(raw || '{}');
+                                } catch (e) {
+                                    currentData = {};
+                                }
+
+                                featuresList.forEach(item => {
+                                    const col = document.createElement('div');
+                                    col.className = 'col-sm-6';
+
+                                    const isChecked = !!currentData[item.key];
+
+                                    col.innerHTML = `
+                                        <div class="form-check form-switch p-0 d-flex align-items-center gap-3">
+                                            <input class="form-check-input m-0" type="checkbox" role="switch" 
+                                                   id="feat_${item.key}" ${isChecked ? 'checked' : ''}
+                                                   style="width: 3em; height: 1.5em; cursor: pointer;">
+                                            <label class="form-check-label text-white" for="feat_${item.key}" style="cursor: pointer; user-select: none;">
+                                                ${item.label}
+                                            </label>
+                                        </div>
+                                    `;
+                                    container.appendChild(col);
+
+                                    col.querySelector('input').addEventListener('change', function () {
+                                        if (this.checked) {
+                                            currentData[item.key] = true;
+                                        } else {
+                                            delete currentData[item.key];
+                                        }
+                                        input.value = JSON.stringify(currentData);
+                                    });
+                                });
+                            })();
+                        </script>
+
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <a href="{% url 'accounts:center_picker' %}" class="btn btn-outline-secondary">Bekor
+                                qilish</a>
+                            <button type="submit" class="btn btn-primary px-4">Saqlash</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

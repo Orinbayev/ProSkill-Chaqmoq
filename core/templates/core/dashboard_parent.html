@@ -242,7 +242,8 @@
     <div class="header-section"
         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
         <div>
-            <h1 class="welcome-text" style="margin: 0; font-weight: 800; font-size: 26px;">Assalomu alaykum, {{request.user.ism }}! 👋</h1>
+            <h1 class="welcome-text" style="margin: 0; font-weight: 800; font-size: 26px;">Assalomu alaykum,
+                {{request.user.ism }}! 👋</h1>
             <p class="center-name" style="margin-top: 6px; color: var(--primary); font-weight: 700; font-size: 14px;">
                 <i class="fa-solid fa-location-dot"></i> {{ center.name }}
             </p>
@@ -256,43 +257,19 @@
             </button>
             {% endif %}
 
-            <div class="dropdown">
-                <button class="avatar-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    {% if request.user.avatar %}
-                    <img src="{{ request.user.avatar.url }}" alt="avatar">
-                    {% else %}
-                    {{ request.user.ism|default:"A"|first|upper }}
-                    {% endif %}
-                </button>
-
-                <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
-                    <li style="padding: 12px 14px;">
-                        <div style="font-weight: 900; color: #fff; font-size: 15px; margin-bottom: 2px;">
-                            {{ request.user.get_full_name|default:request.user.email }}
-                        </div>
-                        <div
-                            style="font-size: 11px; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
-                            Ota-ona
-                        </div>
-                    </li>
-                    <li>
-                        <hr class="dropdown-divider">
-                    </li>
-                    <li>
-                        <a class="dropdown-item" href="{% url 'core:profile' %}?next={{ request.path }}">
-                            <i class="fa-regular fa-user me-2"></i> Profilni tahrirlash
-                        </a>
-                    </li>
-                    <li>
-                        <hr class="dropdown-divider">
-                    </li>
-                    <li>
-                        <a class="dropdown-item text-danger" href="{% url 'accounts:logout' %}">
-                            <i class="fa-solid fa-right-from-bracket me-2"></i> Tizimdan chiqish
-                        </a>
-                    </li>
-                </ul>
-            </div>
+            <!-- Notification Bell (Reverted) -->
+            <button class="icon-btn-glass position-relative" title="Bildirishnomalar"
+                onclick="toggleNotificationSidebar()"
+                style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); width: 44px; height: 44px; border-radius: 12px; color: white;">
+                <i class="fa-regular fa-bell"></i>
+                {% if unread_notifications_count > 0 %}
+                <span
+                    class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-dark rounded-circle"
+                    style="width:10px;height:10px;">
+                </span>
+                {% endif %}
+            </button>
+            {% include "components/profile_dropdown.html" %}
         </div>
     </div>
 

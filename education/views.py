@@ -175,32 +175,9 @@ def _can_give_points(user, g: Group):
 def get_active_center(request):
     """
     Returns the active center for the current request.
-    Priority:
-    1. request.user.center (if assigned)
-    2. request.session.get('center_id') (if superuser switching centers)
+    Now fully handled by TenantMiddleware.
     """
-    if not request.user.is_authenticated:
-        return None
-
-    # Normal user (Teacher, Manager, Student) -> Always use their assigned center
-    if request.user.role in ('teacher', 'manager', 'student') and request.user.center:
-        return request.user.center
-
-    # Superuser or Director -> Can potentially switch centers?
-    # For now, we stick to user.center or None (Global Admin)
-    # The prompt says: "Director ham faqat o‘z markazini ko‘rsin (agar superadmin bo‘lmasa)"
-    if request.user.role == 'director' and request.user.center:
-        return request.user.center
-
-    if request.user.is_superuser:
-        # Check session for switching context
-        center_id = request.session.get('active_center_id')
-        if center_id:
-            return get_object_or_404(Center, id=center_id)
-        # If no center selected, return None (Global View - use with caution)
-        return None
-
-    return request.user.center
+    return getattr(request, 'center', None)
 
 
 
@@ -1784,7 +1761,8 @@ def tolovlar_home(request):
     # 2.5) OY / MUDDAT FILTRLARI (ALLOCATION BO'YICHA)
     # -----------------------------
     pay_month = request.GET.get("pay_month")  # 1..12
-    tm_filter = request.GET.get("month")      # YYYY-MM
+    tm_filter = request.GET.get("month")      # YYYY-MM OR 1..12
+    req_year = request.GET.get("year")        # YYYY
 
     month_filter_active = False
     f_mm, f_tm_y, f_tm_m = None, None, None
@@ -1793,7 +1771,24 @@ def tolovlar_home(request):
     today_anchor = date.today().replace(day=1)
     chart_anchor = today_anchor
 
-    if tm_filter and tm_filter not in ["None", ""]:
+    # 1) Try ?year=2024&month=5 (Teacher Groups style)
+    if req_year and tm_filter and tm_filter.isdigit():
+        try:
+            f_tm_y = int(req_year)
+            f_tm_m = int(tm_filter)
+
+            payment_qs = payment_qs.filter(
+                allocations__tuition_month__month__year=f_tm_y,
+                allocations__tuition_month__month__month=f_tm_m
+            ).distinct()
+
+            month_filter_active = True
+            chart_anchor = date(f_tm_y, f_tm_m, 1)
+        except Exception:
+            pass
+
+    # 2) Try ?month=YYYY-MM
+    elif tm_filter and tm_filter not in ["None", ""] and "-" in tm_filter:
         try:
             y_str, m_str = tm_filter.split("-")
             f_tm_y, f_tm_m = int(y_str), int(m_str)
@@ -1982,6 +1977,80 @@ def tolovlar_home(request):
     if center:
         staffs = staffs.filter(center=center)
 
+    # -----------------------------
+    # 8) GROUP INCOME DATA (User Requested Section)
+    # -----------------------------
+    group_income_data = []
+    
+    # Use chart_anchor as the target date for calculation
+    calc_year = chart_anchor.year
+    calc_month = chart_anchor.month
+
+    # Get groups for the center with prefetching
+    groups_qs = Group.objects.select_related("oqituvchi").prefetch_related(
+        "enrollments__student",
+        "attendances"
+    )
+    if center:
+        groups_qs = groups_qs.filter(center=center)
+
+    # Filter groups if 'group' filter is applied
+    selected_group_id = request.GET.get("group")
+    if selected_group_id:
+        groups_qs = groups_qs.filter(id=selected_group_id)
+        
+    # Filter by teacher if applied
+    selected_teacher_id = request.GET.get("teacher")
+    if selected_teacher_id:
+        groups_qs = groups_qs.filter(oqituvchi_id=selected_teacher_id)
+
+    for grp in groups_qs:
+        # Filter attendances for this group in the specific month
+        month_att = grp.attendances.filter(
+            date__year=calc_year,
+            date__month=calc_month
+        ).filter(Q(present=True) | Q(forced=True))
+
+        enrollments_data = []
+        for enr in grp.enrollments.all():
+            attended = month_att.filter(student=enr.student).count()
+            
+            # Skip inactive if no attendance
+            if not enr.is_active and attended == 0:
+                continue
+
+            # Calculate income using the model method if available, or manual calc
+            # Manual calc to match teacher_groups logic strictly:
+            # Income = (Price * Percent * Attended) / MonthlyLessons
+            
+            price = enr.kurs_narhi or 0
+            percent = (enr.oqituvchi_foiz or 0) / 100
+            monthly_lessons = grp.oy_dars_soni or 12
+            
+            if monthly_lessons > 0:
+                income = (price * percent * attended) / monthly_lessons
+            else:
+                income = 0
+
+            enrollments_data.append({
+                "student": enr.student,
+                "kurs_narhi": price,
+                "foiz": int(percent * 100),
+                "attended": attended,
+                "daromad": int(income)
+            })
+
+        if enrollments_data:
+            total_grp_income = sum(x["daromad"] for x in enrollments_data)
+            
+            group_income_data.append({
+                "group": grp,
+                "enrollments": enrollments_data,
+                "students_count": len(enrollments_data),
+                "foiz": grp.oqituvchi_foiz,
+                "daromad": total_grp_income
+            })
+
     return render(request, "education/tolovlar_list.html", {
         "page_obj": page_obj,
         "payments": page_obj,
@@ -2015,6 +2084,9 @@ def tolovlar_home(request):
         "allowed_page_sizes": allowed_page_sizes,
         "query_string": query_params.urlencode(),
         "is_paginated": page_obj.has_other_pages(),
+        
+        "group_income_data": group_income_data,
+        "calc_date": chart_anchor,
     })
 
 @login_required

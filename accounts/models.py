@@ -24,7 +24,7 @@ class Center(models.Model):
     # active field removed in favor of status
     created_at = models.DateTimeField(auto_now_add=True)
 
-    plan = models.CharField(max_length=20, choices=Plan.choices, default=Plan.FREE)
+    plan = models.CharField(max_length=50, default="FREE")
 
     max_users = models.PositiveIntegerField(default=50)
     max_groups = models.PositiveIntegerField(default=30)
@@ -74,14 +74,23 @@ class Center(models.Model):
 
 
     def save(self, *args, **kwargs):
+        # 1. Generate or Clean Slug
         if not self.slug:
+            # Auto-generate from name
             base = slugify(self.name)[:70] or "center"
-            slug = base
-            i = 2
-            while Center.objects.filter(slug=slug).exclude(pk=self.pk).exists():
-                slug = f"{base}-{i}"
-                i += 1
-            self.slug = slug
+        else:
+             # Clean manual input
+            base = slugify(self.slug)[:70]
+            
+        # 2. Ensure Uniqueness
+        slug = base
+        i = 2
+        # Check for conflicts (excluding self)
+        while Center.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+            slug = f"{base}-{i}"
+            i += 1
+            
+        self.slug = slug
         super().save(*args, **kwargs)
 
 

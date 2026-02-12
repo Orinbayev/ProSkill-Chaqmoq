@@ -332,18 +332,9 @@
 <body
   class="{% if request.user.is_authenticated %}layout-auth{% else %}layout-guest{% endif %} {% block body_class %}{% endblock %}">
 
-  <!-- LOADER HTML -->
-  <!-- LOADER REMOVED -->
 
   <!-- Loader Script Disabled to Prevent Blocking -->
-  <script>
-    (function () {
-      const loader = document.getElementById("global-loader");
-      if (loader) {
-        loader.style.display = "none";
-      }
-    })();
-  </script>
+  <script src="{% static 'js/notifications.js' %}"></script>
 
   {# ✅ Sidebar faqat authenticated bo‘lsa #}
   {% if request.user.is_authenticated %}
@@ -401,52 +392,51 @@
 
   {% block modals %}{% endblock %}
 
-  <!-- 🔔 NOTIFICATION SIDEBAR -->
+  <!-- 🔔 NOTIFICATION SIDEBAR (Restored) -->
   <div id="notificationSidebar" class="notification-sidebar">
     <div class="ns-header">
-      <h5 class="m-0 fw-bold text-white"><i class="fa-regular fa-bell me-2"></i> Xabarnoma</h5>
+      <h5 class="m-0 fw-bold text-white"><i class="bi bi-bell me-2"></i> Xabarnoma</h5>
       <button onclick="toggleNotificationSidebar()" class="btn-close btn-close-white"></button>
     </div>
+
     <div class="ns-body custom-scrollbar">
       {% if latest_notifications %}
-      <div class="d-flex flex-column gap-2">
+      <div class="d-flex flex-column gap-2" id="notificationList">
         {% for n in latest_notifications %}
         <div class="ns-item {% if not n.is_read %}unread{% endif %}">
           <div
             class="ns-icon {% if n.type == 'coin' %}text-warning bg-warning-subtle{% elif n.type == 'purchase' %}text-success bg-success-subtle{% elif n.type == 'broadcast' %}text-primary bg-primary-subtle{% else %}text-secondary bg-secondary-subtle{% endif %}">
-            {% if n.type == 'coin' %}<i class="fa-solid fa-bolt"></i>
-            {% elif n.type == 'purchase' %}<i class="fa-solid fa-cart-shopping"></i>
-            {% elif n.type == 'broadcast' %}<i class="fa-solid fa-bullhorn"></i>
-            {% else %}<i class="fa-solid fa-circle-info"></i>{% endif %}
+            {% if n.type == 'coin' %}<i class="bi bi-lightning-fill"></i>
+            {% elif n.type == 'purchase' %}<i class="bi bi-cart-fill"></i>
+            {% elif n.type == 'broadcast' %}<i class="bi bi-megaphone-fill"></i>
+            {% else %}<i class="bi bi-info-circle-fill"></i>{% endif %}
           </div>
           <div class="ns-content">
             <div class="d-flex justify-content-between mb-1">
               <span class="ns-title">{{ n.title }}</span>
-              <span class="ns-time fw-bold" style="font-size: 0.7rem; color: #94a3b8;">{{ n.created_at|date:"d.m.Y
-                H:i"}}</span>
+              <span class="ns-time">{{ n.created_at|date:"d.m H:i"}}</span>
             </div>
-            <p class="ns-msg mb-1">{{ n.message|safe|truncatewords_html:15 }}</p>
-            {% if n.sender %}
-            <div class="d-flex align-items-center mt-1 notification-sender">
-              <i class="fa-solid fa-user-circle me-1" style="font-size: 0.75rem;"></i>
-              <span>{{ n.sender.get_full_name }}</span>
-            </div>
-            {% endif %}
+            <p class="ns-msg mb-1">{{ n.message|striptags }}</p>
           </div>
         </div>
         {% endfor %}
       </div>
       {% else %}
       <div class="text-center py-5 text-secondary">
-        <i class="fa-regular fa-bell-slash fs-1 mb-3 opacity-25"></i>
+        <i class="bi bi-bell-slash fs-1 mb-3 opacity-25"></i>
         <p>Yangi xabarlar yo‘q</p>
       </div>
       {% endif %}
     </div>
-    <div class="ns-footer">
-      <a href="{% url 'core:notifications' %}" class="btn btn-primary w-100 rounded-pill">Barchasini ko‘rish</a>
+
+    <div class="ns-footer d-flex gap-2">
+      <button class="btn btn-outline-light w-50 btn-sm" onclick="markAllRead()" id="markAllReadBtn">
+        <i class="bi bi-check2-all"></i> O'qildi
+      </button>
+      <a href="{% url 'core:notifications' %}" class="btn btn-primary w-50 btn-sm">Barchasi</a>
     </div>
   </div>
+
   <div id="nsOverlay" onclick="toggleNotificationSidebar()" class="ns-overlay"></div>
 
   <style>
@@ -455,62 +445,48 @@
       position: fixed;
       top: 0;
       right: -400px;
-      width: 380px;
+      /* Hidden by default */
+      width: 360px;
       height: 100vh;
-      background: rgba(15, 23, 42, 0.95);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      background: #0f172a;
+      /* Dark background */
       border-left: 1px solid rgba(255, 255, 255, 0.1);
-
-      z-index: 1035;
-
-
+      z-index: 1055;
+      /* Higher than modals */
       transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
       display: flex;
       flex-direction: column;
     }
 
-
-
-    .ns-overlay.open {
-      opacity: 1;
-      visibility: visible;
-      pointer-events: auto;
-      /* ✅ faqat ochilganda bosiladi */
+    .notification-sidebar.open {
+      right: 0;
+      /* Slide in */
     }
-
-
 
     .ns-overlay {
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.5);
-
-      z-index: 1030;
-
+      z-index: 1050;
       opacity: 0;
       visibility: hidden;
       transition: all 0.3s;
       backdrop-filter: blur(2px);
-
-      pointer-events: none;
-      /* ✅ yopiq holatda click bloklamaydi */
     }
 
-
-
     .ns-overlay.open {
-      pointer-events: auto;
-      /* faqat ochilganda */
+      opacity: 1;
+      visibility: visible;
     }
 
     .ns-header {
-      padding: 20px;
+      padding: 16px 20px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       display: flex;
       justify-content: space-between;
       align-items: center;
+      background: rgba(255, 255, 255, 0.02);
     }
 
     .ns-body {
@@ -552,22 +528,27 @@
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
+      font-size: 16px;
     }
 
     .bg-warning-subtle {
-      background: rgba(234, 179, 8, 0.15) !important;
+      background: rgba(234, 179, 8, 0.15);
+      color: #facc15;
     }
 
     .bg-success-subtle {
-      background: rgba(34, 197, 94, 0.15) !important;
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ade80;
     }
 
     .bg-primary-subtle {
-      background: rgba(59, 130, 246, 0.15) !important;
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
     }
 
     .bg-secondary-subtle {
-      background: rgba(148, 163, 184, 0.15) !important;
+      background: rgba(148, 163, 184, 0.15);
+      color: #94a3b8;
     }
 
     .ns-content {
@@ -579,52 +560,46 @@
       font-weight: 700;
       color: #fff;
       font-size: 0.9rem;
+      margin-right: 8px;
     }
 
     .ns-time {
       font-size: 0.75rem;
       color: #94a3b8;
+      white-space: nowrap;
     }
 
     .ns-msg {
       font-size: 0.85rem;
-      color: #94a3b8;
+      color: #cbd5e1;
       line-height: 1.4;
       display: -webkit-box;
       -webkit-line-clamp: 2;
+      line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
-    }
-
-    /* Hide timestamp inside message body for existing notifications */
-    .ns-msg small.text-muted {
-      display: none !important;
-    }
-
-    .notification-sender {
-      font-size: 0.75rem;
-      color: #60a5fa;
-      /* bright blue */
-      font-weight: 700;
-      margin-top: 4px;
+      margin: 0;
     }
 
     @media (max-width: 576px) {
       .notification-sidebar {
         width: 100%;
         right: -100%;
-        top: 0;
-        height: 100%;
       }
     }
   </style>
 
   <script>
     function toggleNotificationSidebar() {
-      document.getElementById('notificationSidebar').classList.toggle('open');
-      document.getElementById('nsOverlay').classList.toggle('open');
+      const sb = document.getElementById('notificationSidebar');
+      const ov = document.getElementById('nsOverlay');
+      if (sb && ov) {
+        sb.classList.toggle('open');
+        ov.classList.toggle('open');
+      }
     }
   </script>
+
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 

@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+
+{% block title %}Tariflar Boshqaruvi{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 text-white mb-1">Tariflar (Plans)</h1>
+            <p class="text-secondary mb-0">SaaS obuna tariflarini boshqarish</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'platform_global:center_picker' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Ortga
+            </a>
+            <button class="btn btn-primary" onclick="openPlanForm()">
+                <i class="bi bi-plus-lg"></i> Yangi Tarif
+            </button>
+        </div>
+    </div>
+
+    <div class="card bg-dark border-secondary">
+        <div class="card-body p-0">
+            <table class="table table-dark table-hover mb-0">
+                <thead>
+                    <tr class="text-uppercase text-secondary" style="font-size: 0.8rem;">
+                        <th class="ps-4">Code</th>
+                        <th>Nomi</th>
+                        <th>Narxi</th>
+                        <th>Cheklovlar (O'quvchi)</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Amallar</th>
+                    </tr>
+                </thead>
+                <tbody id="plansTableBody">
+                    {% for p in db_plans %}
+                    <tr>
+                        <td class="ps-4 font-monospace">{{ p.code }}</td>
+                        <td>
+                            <div class="fw-bold">{{ p.title }}</div>
+                            {% if p.is_popular %}<span class="badge bg-warning text-dark"
+                                style="font-size:0.6rem">POPULAR</span>{% endif %}
+                        </td>
+                        <td>{{ p.monthly_price|intcomma }} so'm</td>
+                        <td>{{ p.max_students }}</td>
+                        <td>
+                            {% if p.active %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            <button class="btn btn-sm btn-outline-light me-1" onclick="editPlan('{{ p.id }}')"><i
+                                    class="bi bi-pencil"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deletePlan('{{ p.id }}')"><i
+                                    class="bi bi-trash"></i></button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">Tariflar mavjud emas</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Plan Editor Modal (Reused from center picker logic but simplified) -->
+<div id="planFormModal" class="cm-overlay"
+    style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
+    <div class="bg-dark border border-secondary p-4 rounded-3" style="width: 500px; max-width:90%;">
+        <h5 class="text-white mb-3" id="planFormTitle">Tarif</h5>
+        <form id="planForm" onsubmit="event.preventDefault(); submitPlan();">
+            <input type="hidden" name="id" id="planId">
+            <div class="mb-3">
+                <label class="form-label text-secondary">Kod (Unique)</label>
+                <input type="text" name="code" id="p_code" class="form-control bg-secondary text-white border-0"
+                    required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label text-secondary">Nomi</label>
+                <input type="text" name="title" id="p_title" class="form-control bg-secondary text-white border-0"
+                    required>
+            </div>
+            <div class="row g-2 mb-3">
+                <div class="col-6">
+                    <label class="form-label text-secondary">Narx (oylik)</label>
+                    <input type="number" name="monthly_price" id="p_price"
+                        class="form-control bg-secondary text-white border-0" required>
+                </div>
+                <div class="col-6">
+                    <label class="form-label text-secondary">Chegirma %</label>
+                    <input type="number" name="discount_percent" id="p_discount"
+                        class="form-control bg-secondary text-white border-0" value="0">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label text-secondary">Max O'quvchi</label>
+                <input type="number" name="max_students" id="p_students"
+                    class="form-control bg-secondary text-white border-0" value="100" min="0">
+            </div>
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="p_popular">
+                <label class="form-check-label text-secondary" for="p_popular">Ommabop belgisini qo'yish</label>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary"
+                    onclick="document.getElementById('planFormModal').style.display='none'">Bekor qilish</button>
+                <button type="submit" class="btn btn-primary">Saqlash</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openPlanForm() {
+        document.getElementById('planForm').reset();
+        document.getElementById('planId').value = '';
+        document.getElementById('planFormModal').style.display = 'flex';
+    }
+
+    function editPlan(id) {
+        // Fetch single plan details
+        fetch("{% url 'accounts:api_plan_list' %}")
+            .then(r => r.json())
+            .then(d => {
+                const p = d.plans.find(x => x.id == id);
+                if (p) {
+                    document.getElementById('planId').value = p.id;
+                    document.getElementById('p_code').value = p.code;
+                    document.getElementById('p_title').value = p.title;
+                    document.getElementById('p_price').value = p.monthly_price;
+                    document.getElementById('p_discount').value = p.discount_percent;
+                    document.getElementById('p_students').value = p.max_students;
+
+                    document.getElementById('p_popular').checked = p.is_popular;
+                    document.getElementById('planFormModal').style.display = 'flex';
+                }
+            });
+    }
+
+    function submitPlan() {
+        const form = document.getElementById('planForm');
+        const fd = new FormData(form);
+        const data = Object.fromEntries(fd.entries());
+        data.is_popular = document.getElementById('p_popular').checked;
+
+        let url = "{% url 'accounts:api_plan_create' %}";
+        if (data.id) url = `/platform/api/plans/${data.id}/update/`;
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(data)
+        }).then(r => r.json()).then(res => {
+            if (res.success) {
+                location.reload();
+            } else {
+                alert(res.error || 'Error');
+            }
+        });
+    }
+
+    function deletePlan(id) {
+        if (confirm('Ochirilsinmi?')) {
+            fetch(`/platform/api/plans/${id}/delete/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            }).then(r => r.json()).then(res => {
+                if (res.success) location.reload();
+                else alert(res.error);
+            });
+        }
+    }
+</script>
+{% endblock %}

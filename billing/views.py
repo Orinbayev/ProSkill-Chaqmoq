@@ -59,9 +59,13 @@ def plans(request):
         pr = calculate_price(p, duration, promo, center=center)
         pricing_map[p.code] = pr
 
+    # Pending orders for this center
+    my_pending_orders = SubscriptionOrder.objects.filter(center=center, status=SubscriptionOrder.Status.PENDING).order_by('-created_at')
+
     context = {
         "sub": ui,
         "plans": plans,
+        "my_pending_orders": my_pending_orders, # <--- Added
         "durations": DURATIONS,
         "duration": duration,
         "promo": promo,
@@ -94,7 +98,7 @@ def order_create(request):
 
     messages.success(
         request,
-        "So'rov yuborildi ✅ Admin tasdiqlagach obunangiz yangilanadi."
+        f"So'rov yuborildi ✅ '{plan.title}' tarifi ({months} oy) uchun so'rovingiz admin tasdiqlagach faollashadi."
     )
     return redirect("billing:plans")
 

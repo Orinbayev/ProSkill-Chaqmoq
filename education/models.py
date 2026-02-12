@@ -71,6 +71,7 @@ class Group(models.Model):
 
 class Oquvchi(models.Model):
     """Guruhdagi o‘quvchi"""
+    center = models.ForeignKey("accounts.Center", on_delete=models.SET_NULL, null=True, blank=True)
     ism = models.CharField(max_length=100)
     guruh = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='oquvchilar')
     tolov = models.PositiveIntegerField(default=0, help_text="O‘quvchining oylik to‘lovi (so‘mda)")
@@ -81,6 +82,7 @@ class Oquvchi(models.Model):
 
 class Dars(models.Model):
     """Har bir o‘qituvchining darslari"""
+    center = models.ForeignKey("accounts.Center", on_delete=models.SET_NULL, null=True, blank=True)
     guruh = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='darslar')
     oqituvchi = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     sana = models.DateField(auto_now_add=True)
@@ -92,6 +94,7 @@ class Dars(models.Model):
 
 class OylikHisobot(models.Model):
     """Avtomatik oylik hisobot jadvali"""
+    center = models.ForeignKey("accounts.Center", on_delete=models.SET_NULL, null=True, blank=True)
     oqituvchi = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     oy = models.CharField(max_length=15)
     yil = models.IntegerField()
@@ -105,6 +108,7 @@ class OylikHisobot(models.Model):
 
     
 class GroupStudent(models.Model):
+    center = models.ForeignKey("accounts.Center", on_delete=models.SET_NULL, null=True, blank=True)
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='students')
     student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, limit_choices_to={'role': 'student'})
     added_at = models.DateTimeField(auto_now_add=True)
@@ -385,6 +389,7 @@ class Attendance(models.Model):
 
 
 class AttendanceHistory(models.Model):
+    center = models.ForeignKey("accounts.Center", on_delete=models.SET_NULL, null=True, blank=True)
     student = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role': 'student'})
     date = models.DateField()
     is_present = models.BooleanField(default=False)
@@ -392,7 +397,7 @@ class AttendanceHistory(models.Model):
     minus_coin = models.IntegerField(default=0)
 
     class Meta:
-        unique_together = ('student', 'date')
+        unique_together = (('student', 'date'), ('center', 'student', 'date'))
         ordering = ['-date']
 
     def __str__(self):
@@ -424,18 +429,21 @@ class Student(models.Model):
 
 
 class DailyLightningSetting(models.Model):
-    date = models.DateField(unique=True)
+    center = models.ForeignKey("accounts.Center", on_delete=models.SET_NULL, null=True, blank=True)
+    date = models.DateField()
     max_lightning = models.PositiveIntegerField(default=0)  # 0 → cheklanmagan
     active = models.BooleanField(default=True)
 
     class Meta:
         verbose_name = "Kunlik chaqmoq limiti"
         verbose_name_plural = "Kunlik chaqmoq limitlari"
+        unique_together = ('center', 'date')
 
     def __str__(self):
         return f"{self.date} — {self.max_lightning or 'Cheklanmagan'}"
 
 class TeacherIncome(models.Model):
+    center = models.ForeignKey("accounts.Center", on_delete=models.SET_NULL, null=True, blank=True)
     teacher = models.ForeignKey(User, on_delete=models.CASCADE)
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
     attendance = models.OneToOneField(Attendance, on_delete=models.CASCADE)
@@ -479,6 +487,7 @@ class TuitionMonth(models.Model):
     Har bir Enrollment uchun har oy narx.
     month = oy 1-kuni (2026-01-01)
     """
+    center = models.ForeignKey("accounts.Center", on_delete=models.SET_NULL, null=True, blank=True)
     enrollment = models.ForeignKey(
         "education.Enrollment",
         on_delete=models.CASCADE,
@@ -490,7 +499,7 @@ class TuitionMonth(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("enrollment", "month")
+        unique_together = (("enrollment", "month"), ("center", "enrollment", "month"))
         ordering = ("month",)
 
     def __str__(self):
@@ -502,6 +511,7 @@ class PaymentAllocation(models.Model):
     Payment qaysi oy(lar)ni yopganini yozib boradi.
     Masalan: 600k payment -> Jan 550k + Feb 50k
     """
+    center = models.ForeignKey("accounts.Center", on_delete=models.SET_NULL, null=True, blank=True)
     payment = models.ForeignKey(
         "education.Payment",
         on_delete=models.CASCADE,

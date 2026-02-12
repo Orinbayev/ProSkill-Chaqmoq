@@ -1,0 +1,77 @@
+{% if sub_ui and sub_ui.in_grace_period %}
+<div class="modal fade" id="gracePeriodModal" tabindex="-1" aria-labelledby="graceLabel" aria-hidden="true"
+    data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-danger shadow-lg">
+            <div class="modal-header border-danger border-opacity-25 bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger fw-bold" id="graceLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Diqqat: Obuna Tugagan!
+                </h5>
+            </div>
+            <div class="modal-body text-white">
+                <p class="mb-3 fs-5">Sizning joriy obunangiz muddati tugagan.</p>
+                <div
+                    class="alert alert-warning border-warning bg-warning bg-opacity-10 d-flex align-items-center gap-3">
+                    <i class="bi bi-hourglass-split fs-1 text-warning"></i>
+                    <div>
+                        <div class="small text-uppercase fw-bold text-warning opacity-75">Tizim bloklanishiga qoldi:
+                        </div>
+                        <div class="fs-2 fw-bold text-warning" id="graceCountdown">--:--:--</div>
+                    </div>
+                </div>
+                <p class="text-secondary small mb-0">
+                    To‘lov amalga oshirilmasa, tizim butunlay bloklanadi va ma'lumotlarga kirish cheklanadi.
+                </p>
+            </div>
+            <div class="modal-footer border-top-0 d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+                    Hozir emas (Ishlashda davom etish)
+                </button>
+                <a href="{% url 'billing:plans' %}" class="btn btn-danger px-4 fw-bold shadow-sm">
+                    <i class="bi bi-credit-card me-2"></i> To‘lov Qilish
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var graceModal = new bootstrap.Modal(document.getElementById('gracePeriodModal'));
+        graceModal.show();
+
+        // Countdown Logic
+        // hard_expires_at comes from context processor sub_ui
+        // We need it in JS format. 
+        // Django templates format dates as strings, let's parse it safely.
+
+        const targetDateStr = "{{ sub_ui.hard_expires_at|date:'Y-m-d H:i:s' }}";
+        // Note: Javascript Date.parse might need ISO format. 
+        // Better: user timestamp
+        const targetTimestamp = new Date("{{ sub_ui.hard_expires_at|date:'c' }}").getTime();
+
+        function updateTimer() {
+            const now = new Date().getTime();
+            const distance = targetTimestamp - now;
+
+            if (distance < 0) {
+                document.getElementById("graceCountdown").innerHTML = "BLOCKED";
+                document.getElementById("graceCountdown").classList.add("text-danger");
+                return;
+            }
+
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const totalHours = Math.floor(distance / (1000 * 60 * 60)); // Total hours left
+
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            document.getElementById("graceCountdown").innerHTML =
+                totalHours + " soat " + minutes + " daqiqa";
+        }
+
+        setInterval(updateTimer, 1000);
+        updateTimer();
+    });
+</script>
+{% endif %}

@@ -17,6 +17,20 @@
                         <h4 class="text-white mb-3">🏢 Markaz Ma'lumotlari</h4>
                         <div class="row g-3 mb-4">
                             {% for field in center_form %}
+                            {% if field.name == 'features' %}
+                            <div class="col-12 mt-4">
+                                <label class="form-label text-white fw-bold d-block mb-3">🛠 Qo‘shimcha
+                                    Imkoniyatlar</label>
+                                {{ field }} <!-- Hidden Input -->
+                                <div class="card bg-dark bg-opacity-50 border-secondary">
+                                    <div class="card-body">
+                                        <div class="row g-3" id="featuresToggles">
+                                            <!-- Dynamically rendered toggles -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
                             <div class="col-md-6">
                                 <label class="form-label text-secondary">{{ field.label }}</label>
                                 {{ field }}
@@ -24,8 +38,148 @@
                                 <div class="text-danger small">{{ field.errors.0 }}</div>
                                 {% endif %}
                             </div>
+                            {% endif %}
                             {% endfor %}
+
+                            <script>
+                                (function () {
+                                    const featuresList = [
+                                        { key: 'finance', label: '📊 Moliya (Finance)' },
+                                        { key: 'leads', label: '🎯 Lidlar (CRM)' },
+                                        { key: 'tasks', label: '✅ Vazifalar (Tasks)' },
+                                        { key: 'kpi', label: '📈 KPI Statistika' },
+                                        { key: 'store', label: '📦 Ombor (Store)' },
+                                        { key: 'sms', label: '📩 SMS Xabarnoma' }
+                                    ];
+
+                                    const input = document.querySelector('input[name="features"]');
+                                    const container = document.getElementById('featuresToggles');
+                                    let currentData = {};
+
+                                    try {
+                                        currentData = JSON.parse(input.value || '{}');
+                                    } catch (e) {
+                                        currentData = {};
+                                    }
+
+                                    featuresList.forEach(item => {
+                                        const col = document.createElement('div');
+                                        col.className = 'col-md-4 col-sm-6';
+
+                                        const isChecked = !!currentData[item.key];
+
+                                        col.innerHTML = `
+                                            <div class="form-check form-switch p-0 d-flex align-items-center gap-3">
+                                                <input class="form-check-input m-0" type="checkbox" role="switch" 
+                                                       id="feat_${item.key}" ${isChecked ? 'checked' : ''}
+                                                       style="width: 3em; height: 1.5em; cursor: pointer;">
+                                                <label class="form-check-label text-white" for="feat_${item.key}" style="cursor: pointer; user-select: none;">
+                                                    ${item.label}
+                                                </label>
+                                            </div>
+                                        `;
+                                        container.appendChild(col);
+
+                                        // Event Listener
+                                        const checkbox = col.querySelector('input');
+                                        checkbox.addEventListener('change', function () {
+                                            if (this.checked) {
+                                                currentData[item.key] = true;
+                                            } else {
+                                                delete currentData[item.key];
+                                            }
+                                            input.value = JSON.stringify(currentData);
+                                        });
+                                    });
+                                })();
+                            </script>
+
+                            <!-- Duration & Pricing -->
+                            <div class="col-12 mt-4">
+                                <div class="card bg-secondary bg-opacity-10 border-secondary">
+                                    <div class="card-body">
+                                        <h6 class="text-white mb-3">💰 Obuna Hisobi</h6>
+                                        <div class="row align-items-end">
+                                            <div class="col-md-4">
+                                                <label class="form-label text-secondary">Davomiyligi (Oy)</label>
+                                                <select name="duration" id="id_duration"
+                                                    class="form-select bg-dark text-white border-secondary">
+                                                    <option value="1">1 Oy</option>
+                                                    <option value="3">3 Oy (-5%)</option>
+                                                    <option value="6">6 Oy (-10%)</option>
+                                                    <option value="12">1 Yil (-15%)</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-8">
+                                                <div
+                                                    class="d-flex justify-content-between align-items-center h-100 pb-2">
+                                                    <div>
+                                                        <small class="text-secondary d-block">Oylik Narx</small>
+                                                        <span class="text-white fw-bold" id="monthlyPrice">0 so'm</span>
+                                                    </div>
+                                                    <div>
+                                                        <small class="text-secondary d-block">Jami To'lov</small>
+                                                        <span class="text-success fw-bold fs-5" id="totalPrice">0
+                                                            so'm</span>
+                                                    </div>
+                                                    <div>
+                                                        <small class="text-secondary d-block">Tugash Sanasi</small>
+                                                        <span class="text-warning fw-bold" id="expiryDate">-</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+
+                        <script>
+                            const PLANS = JSON.parse('{{ plans_json|escapejs }}');
+
+                            document.addEventListener('DOMContentLoaded', function () {
+                                const planSelect = document.getElementById('id_plan'); // Ensure form uses id_plan
+                                const durationSelect = document.getElementById('id_duration');
+
+                                function updatePrice() {
+                                    const planCode = planSelect.value;
+                                    const duration = parseInt(durationSelect.value);
+                                    const plan = PLANS.find(p => p.code === planCode);
+
+
+                                    if (!plan) return;
+
+
+                                    // 1. Update Limits
+                                    const studentsInput = document.querySelector('input[name="max_students"]');
+
+                                    if (studentsInput) studentsInput.value = plan.max_students;
+
+
+                                    // 2. Pricing
+                                    let monthly = plan.monthly_price;
+                                    let total = monthly * duration;
+
+                                    // Simple logic matching options above (backend logic might differ slightly but this is UI est)
+                                    if (duration >= 12) total *= 0.85;
+                                    else if (duration >= 6) total *= 0.90;
+                                    else if (duration >= 3) total *= 0.95;
+
+                                    document.getElementById('monthlyPrice').innerText = new Intl.NumberFormat('uz-UZ').format(monthly) + " so'm";
+                                    document.getElementById('totalPrice').innerText = new Intl.NumberFormat('uz-UZ').format(total) + " so'm";
+
+                                    const date = new Date();
+                                    date.setDate(date.getDate() + (30 * duration));
+                                    document.getElementById('expiryDate').innerText = date.toLocaleDateString('ru-RU');
+                                }
+
+                                if (planSelect) {
+                                    planSelect.addEventListener('change', updatePrice);
+                                    durationSelect.addEventListener('change', updatePrice);
+                                    updatePrice(); // Init
+                                }
+                            });
+                        </script>
 
                         <hr class="border-secondary my-4">
 

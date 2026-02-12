@@ -352,62 +352,18 @@
 
     <div class="sdash-actions">
 
+      <!-- Notification Bell (Reverted) -->
       <a href="javascript:void(0)" onclick="toggleNotificationSidebar()" class="icon-btn position-relative"
         title="Bildirishnomalar">
         <i class="fa-regular fa-bell"></i>
         {% if unread_notifications_count > 0 %}
-        <span class="position-absolute translate-middle p-1 bg-danger border border-light rounded-circle"
-          style="top: 10px; right: 6px; width: 10px; height: 10px;">
-          <span class="visually-hidden">Yangi xabarlar</span>
+        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-dark rounded-circle"
+          style="width:10px;height:10px; top: 12px; right: 8px !important;">
         </span>
         {% endif %}
       </a>
 
-      <!-- ✅ Avatar dropdown (rasm bo‘lsa rasm chiqadi) -->
-      <div class="dropdown">
-        <button class="avatar-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false"
-          title="{{ request.user.get_full_name|default:request.user.email }}">
-          {% if request.user.avatar %}
-          <img src="{{ request.user.avatar.url }}" alt="avatar">
-          {% else %}
-          {{ request.user.ism|default:"A"|first|upper }}
-          {% endif %}
-        </button>
-
-        <ul class="dropdown-menu dropdown-menu-end">
-
-          <!-- user info (chiroyli) -->
-          <li style="padding:10px 10px 6px;">
-            <div style="font-weight:950; color:#fff; line-height:1.15;">
-              {{ request.user.get_full_name|default:request.user.email }}
-            </div>
-            <div style="font-size:12px; color:rgba(148,163,184,.85); font-weight:800; margin-top:4px;">
-              {{ request.user.get_role_display }}
-            </div>
-          </li>
-
-          <li>
-            <hr class="dropdown-divider">
-          </li>
-
-          <li>
-            <a class="dropdown-item" href="{% url 'core:profile' %}?next={{ request.path }}">
-              <i class="fa-regular fa-user me-2"></i> Profil
-            </a>
-          </li>
-
-          <li>
-            <hr class="dropdown-divider">
-          </li>
-
-          <li>
-            {# ❗️Agar logout url nomi boshqa bo‘lsa shu qatorni moslab qo‘ying #}
-            <a class="dropdown-item" href="{% url 'accounts:logout' %}">
-              <i class="fa-solid fa-right-from-bracket me-2"></i> Chiqish
-            </a>
-          </li>
-        </ul>
-      </div>
+      {% include "components/profile_dropdown.html" %}
 
     </div>
   </div>

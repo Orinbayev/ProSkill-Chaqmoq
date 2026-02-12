@@ -902,49 +902,95 @@
         </div>
       </div>
 
-      <div class="info-row">
-        <div class="info-item">
-          <i class="bi bi-geo-alt"></i>
-          <span>{{ c.address|default:"Manzil kiritilmagan" }}</span>
+      <div class="stats-row flex-column align-items-start gap-2 mb-3">
+        <!-- PLAN & LIMITS -->
+        <div class="d-flex w-100 justify-content-between align-items-center">
+
+          {% if c.subscription %}
+          <span
+            class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 rounded-pill px-3">
+            {{ c.subscription.plan.title|default:"Plansiz" }}
+          </span>
+          {% else %}
+          <span
+            class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-25 rounded-pill px-3">
+            Plansiz
+          </span>
+          {% endif %}
+
+          <div class="d-flex align-items-center gap-2">
+            <span class="text-white small fw-bold">
+              <i class="bi bi-people me-1 text-secondary"></i>
+              {{ c.student_count|default:"0" }} / {{ c.subscription.plan.max_students|default:"-" }}
+            </span>
+
+            {% if c.subscription %}
+            {% if c.student_count > c.subscription.plan.max_students %}
+            <span class="badge bg-danger text-white rounded-pill" style="font-size: 0.65rem;">OSHIB KETDI</span>
+            {% elif c.student_count == c.subscription.plan.max_students %}
+            <span class="badge bg-warning text-dark rounded-pill" style="font-size: 0.65rem;">LIMITDA</span>
+            {% endif %}
+            {% endif %}
+          </div>
         </div>
-        <div class="info-item">
-          <i class="bi bi-telephone"></i>
-          <span>{{ c.phone|default:"+998..." }}</span>
+
+        <!-- EXPIRY DATE -->
+        {% if c.subscription %}
+        <div
+          class="d-flex w-100 justify-content-between align-items-center p-2 rounded-3 bg-opacity-10 bg-white border border-secondary border-opacity-25">
+          <div class="d-flex flex-column text-start">
+            <span class="text-secondary" style="font-size: 0.7rem;">Tugash sanasi</span>
+            <span class="text-white fw-bold small">{{ c.subscription.expires_at|date:"d.m.Y" }}</span>
+          </div>
+          <div class="text-end">
+            {% with days=c.subscription.days_left %}
+            {% if days <= 0 %} <span class="badge bg-danger">MUDDAT TUGAGAN</span>
+              {% elif days <= 7 %} <span class="badge bg-warning text-dark">{{ days }} kun qoldi!</span>
+                {% else %}
+                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">{{ days }} kun qoldi</span>
+                {% endif %}
+                {% endwith %}
+          </div>
         </div>
-      </div>
-
-      <div class="stats-row">
-        <div class="stat-chip"><i class="bi bi-lightning-charge-fill"></i> {{ c.plan }}</div>
-        <div class="stat-chip"><i class="bi bi-people"></i> {{ c.get_counts.students|default:"0" }} ta</div>
-        <div class="stat-chip"><i class="bi bi-wallet2"></i> {{ c.monthly_price|intcomma }} so'm</div>
-      </div>
-
-
-      <div class="action-row">
-        {% if c.status == 'ARCHIVED' %}
-        {# Arxivlangan markaz uchun - faqat disabled tugma #}
-        <button type="button" class="w-100 btn-select" disabled style="opacity: 0.4; cursor: not-allowed;">
-          Arxivlangan
-        </button>
-        {% else %}
-        {# Faol markaz uchun - oddiy Select tugma #}
-        <form method="post" action="{% url 'accounts:center_switch' %}" class="flex-grow-1">
-          {% csrf_token %}
-          <input type="hidden" name="center_id" value="{{ c.id }}">
-          <button type="submit" class="w-100 btn-select {% if active_center_id == c.id %}selected{% endif %}">
-            {% if active_center_id == c.id %}Tanlangan{% else %}Tanlash{% endif %}
-          </button>
-        </form>
-
-        <button type="button" class="btn-icon-sq" onclick="openEditModal('{{ c.id }}')">
-          <i class="bi bi-pencil"></i>
-        </button>
         {% endif %}
+      </div>
 
-        <button type="button" class="btn-icon-sq delete" data-center-id="{{ c.id }}" data-center-name="{{ c.name }}"
-          onclick="handleDeleteClick(this)">
+      <!-- DIRECTOR INFO -->
+      <div class="info-row mb-3 pt-2 border-top border-secondary border-opacity-25">
+        <div class="d-flex align-items-center gap-2">
+          <div class="icon-wrap bg-dark border border-secondary" style="width: 32px; height: 32px; min-width: 32px;">
+            <i class="bi bi-person-badge text-secondary"></i>
+          </div>
+          <div class="d-flex flex-column overflow-hidden">
+            {% with director=c.directors.0 %}
+            {% if director %}
+            <span class="text-white small fw-bold text-truncate">{{ director.get_full_name }}</span>
+            <span class="text-secondary smaller text-truncate" style="font-size: 0.75rem;">{{ director.email }}</span>
+            {% else %}
+            <span class="text-secondary small fst-italic">Director biriktirilmagan</span>
+            {% endif %}
+            {% endwith %}
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTION ROW (Modified: No Kirish) -->
+      <div class="action-row pt-0 border-0 mt-auto">
+        {# Edit Button - Primary (Safe) #}
+        <button type="button"
+          class="btn btn-outline-light flex-grow-1 d-flex align-items-center justify-content-center gap-2"
+          onclick="openEditModal('{{ c.id }}')" style="border-radius: 12px; height: 44px; font-weight: 600;">
+          <i class="bi bi-pencil"></i> Tahrirlash
+        </button>
+
+        {# Delete Button - Danger (Right) #}
+        {% if c.status != 'ARCHIVED' %}
+        <button type="button" class="btn btn-outline-danger d-flex align-items-center justify-content-center"
+          data-center-id="{{ c.id }}" data-center-name="{{ c.name }}" onclick="handleDeleteClick(this)"
+          style="border-radius: 12px; width: 44px; height: 44px;">
           <i class="bi bi-trash"></i>
         </button>
+        {% endif %}
       </div>
     </div>
     {% empty %}
@@ -1992,6 +2038,10 @@
       .then(res => res.json())
       .then(res => { if (res.success) fetchPromos(); else alert("Xatolik: " + res.error); })
       .catch(err => alert("Xatolik: " + err));
+  }
+
+  function openPlansManager() {
+    window.location.href = "{% url 'accounts:plans_ui' %}";
   }
 
   function openPlanForm() {

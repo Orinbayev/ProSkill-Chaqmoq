@@ -4,52 +4,46 @@ Custom authentication views for role-based redirects.
 
 from django.contrib.auth import views as auth_views
 from django.shortcuts import redirect
-from django.urls import reverse
+from django.urls import reverse, NoReverseMatch
+from accounts.models import Center
 
 
 class SecureLoginView(auth_views.LoginView):
     """
-    Xavfsiz Login view - ?next parametrini role-based filter qiladi.
-    
-    Login qilgandan keyin foydalanuvchi HAR DOIM o'z dashboardiga yo'naltiriladi,
-    qaysi URL orqali kelganidan qat'iy nazar.
+    Xavfsiz Login view - role-based redirects with subdomain support.
     """
     
     template_name = 'accounts/login.html'
     
     def get_success_url(self):
-        """
-        Login qilgandan keyin foydalanuvchini o'z dashboardiga yo'naltiradi.
-        ?next parametrini IGNORE qiladi - bu xavfsizlik uchun muhim!
-        """
-        
         user = self.request.user
         role = getattr(user, 'role', None)
         
-        # Superuser admin panelga
+        # 1. SuperAdmin (SaaS Owner)
         if user.is_superuser:
-            # Agar center tanlangan bo'lsa - core:home, aks holda superadmin dashboard
-            center = getattr(self.request, 'center', None)
-            if center:
+            # Check if visiting via subdomain
+            host = self.request.get_host().split(':')[0].lower()
+            if '.localhost' in host and not host.startswith('chaqmoqapp'):
+                # Already on a subdomain, go to center home
                 return reverse('core:home')
-            return reverse('accounts:superadmin_dashboard')
+            
+            # On root domain, try platform_global first, then fallback to accounts
+            try:
+                return reverse('platform_global:superadmin_dashboard')
+            except NoReverseMatch:
+                return reverse('accounts:superadmin_dashboard')
         
-        # Role-based dashboard mapping
-        dashboard_map = {
-            'student': 'core:home',  # home view role-based redirect qiladi
-            'parent': 'core:dashboard_parent',
-            'teacher': 'core:home',
-            'manager': 'core:home',
-            'admin': 'core:home',
-        }
+        # 2. Normal roles (Director, Teacher, Student, Parent)
+        center = getattr(user, 'center', None)
+        if center and center.slug:
+            host_parts = self.request.get_host().split(':')
+            port = f":{host_parts[1]}" if len(host_parts) > 1 else ""
+            
+            # Construct subdomain URL
+            return f"http://{center.slug}.localhost{port}/"
         
-        redirect_url = dashboard_map.get(role, 'core:home')
-        
-        return reverse(redirect_url)
+        # Fallback
+        return reverse('core:home')
     
     def get_redirect_url(self):
-        """
-        Django's default LoginView uses this method.
-        We override to ALWAYS use get_success_url() and ignore 'next'.
-        """
         return self.get_success_url()

@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+
+{% block title %}Promokodlar Boshqaruvi{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 text-white mb-1">Promokodlar</h1>
+            <p class="text-secondary mb-0">Marketing va chegirma kodlari</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'platform_global:center_picker' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Ortga
+            </a>
+            <button class="btn btn-primary" onclick="openPromoForm()">
+                <i class="bi bi-plus-lg"></i> Yangi Promo
+            </button>
+        </div>
+    </div>
+
+    <div class="card bg-dark border-secondary">
+        <div class="card-body p-0">
+            <table class="table table-dark table-hover mb-0">
+                <thead>
+                    <tr class="text-uppercase text-secondary" style="font-size: 0.8rem;">
+                        <th class="ps-4">Code</th>
+                        <th>Chegirma</th>
+                        <th>Ishlatildi</th>
+                        <th>Limit</th>
+                        <th>Amal Qilish</th>
+                        <th class="text-end pe-4">Amallar</th>
+                    </tr>
+                </thead>
+                <tbody id="promoTableBody">
+                    <!-- JS da toldiriladi -->
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">Yuklanmoqda...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Promo Editor Modal -->
+<div id="promoFormModal" class="cm-overlay"
+    style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
+    <div class="bg-dark border border-secondary p-4 rounded-3" style="width: 500px; max-width:90%;">
+        <h5 class="text-white mb-3" id="promoFormTitle">Promo</h5>
+        <form id="promoForm" onsubmit="event.preventDefault(); submitPromo();">
+            <input type="hidden" name="id" id="promoId">
+            <div class="mb-3">
+                <label class="form-label text-secondary">Kod</label>
+                <input type="text" name="code" id="pr_code" class="form-control bg-secondary text-white border-0"
+                    required>
+            </div>
+            <div class="row g-2 mb-3">
+                <div class="col-6">
+                    <label class="form-label text-secondary">Chegirma %</label>
+                    <input type="number" name="percent_off" id="pr_percent"
+                        class="form-control bg-secondary text-white border-0" required>
+                </div>
+                <div class="col-6">
+                    <label class="form-label text-secondary">Max Ishlatish</label>
+                    <input type="number" name="max_uses" id="pr_max_uses"
+                        class="form-control bg-secondary text-white border-0">
+                </div>
+            </div>
+            <div class="row g-2 mb-3">
+                <div class="col-6">
+                    <label class="form-label text-secondary">Boshlanish</label>
+                    <input type="date" name="starts_at" id="pr_starts_at"
+                        class="form-control bg-secondary text-white border-0">
+                </div>
+                <div class="col-6">
+                    <label class="form-label text-secondary">Tugash</label>
+                    <input type="date" name="ends_at" id="pr_ends_at"
+                        class="form-control bg-secondary text-white border-0">
+                </div>
+            </div>
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="pr_once">
+                <label class="form-check-label text-secondary" for="pr_once">Bir markazga bir marta</label>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary"
+                    onclick="document.getElementById('promoFormModal').style.display='none'">Bekor qilish</button>
+                <button type="submit" class="btn btn-primary">Saqlash</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', fetchPromos);
+
+    function fetchPromos() {
+        fetch("{% url 'accounts:api_promo_list' %}")
+            .then(r => r.json())
+            .then(d => {
+                const tbody = document.getElementById('promoTableBody');
+                tbody.innerHTML = '';
+                if (!d.promos || d.promos.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Promo yoq</td></tr>';
+                    return;
+                }
+                d.promos.forEach(p => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="ps-4 font-monospace fw-bold text-white">${p.code}</td>
+                        <td><span class="badge bg-primary">-${p.percent_off}%</span></td>
+                        <td class="text-white-50">${p.used_count}</td>
+                        <td class="text-secondary">${p.max_uses || 'Cheksiz'}</td>
+                        <td class="text-secondary" style="font-size:0.8rem">${p.starts_at || '-'} / ${p.ends_at || '-'}</td>
+                        <td class="text-end pe-4">
+                            <button class="btn btn-sm btn-outline-light me-1" onclick="editPromo(${p.id})"><i class="bi bi-pencil"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deletePromo(${p.id})"><i class="bi bi-trash"></i></button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            });
+    }
+
+    function openPromoForm() {
+        document.getElementById('promoForm').reset();
+        document.getElementById('promoId').value = '';
+        document.getElementById('promoFormTitle').innerText = 'Yangi Promo';
+        document.getElementById('promoFormModal').style.display = 'flex';
+    }
+
+    function editPromo(id) {
+        fetch("{% url 'accounts:api_promo_list' %}")
+            .then(r => r.json())
+            .then(d => {
+                const p = d.promos.find(x => x.id == id);
+                if (p) {
+                    document.getElementById('promoId').value = p.id;
+                    document.getElementById('pr_code').value = p.code;
+                    document.getElementById('pr_percent').value = p.percent_off;
+                    document.getElementById('pr_max_uses').value = p.max_uses || '';
+                    document.getElementById('pr_starts_at').value = p.starts_at || '';
+                    document.getElementById('pr_ends_at').value = p.ends_at || '';
+                    document.getElementById('pr_once').checked = p.once_per_center;
+                    document.getElementById('promoFormModal').style.display = 'flex';
+                }
+            });
+    }
+
+    function submitPromo() {
+        const form = document.getElementById('promoForm');
+        const fd = new FormData(form);
+        const data = Object.fromEntries(fd.entries());
+        data.once_per_center = document.getElementById('pr_once').checked;
+
+        // Remove empty dates
+        if (!data.starts_at) delete data.starts_at;
+        if (!data.ends_at) delete data.ends_at;
+
+        let url = "{% url 'accounts:api_promo_create' %}";
+        if (data.id) url = `/platform/api/promos/${data.id}/update/`;
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(data)
+        }).then(r => r.json()).then(res => {
+            if (res.success) {
+                document.getElementById('promoFormModal').style.display = 'none';
+                fetchPromos();
+            } else {
+                alert(res.error || 'Error');
+            }
+        });
+    }
+
+    function deletePromo(id) {
+        if (confirm('Ochirilsinmi?')) {
+            fetch(`/platform/api/promos/${id}/delete/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            }).then(r => r.json()).then(res => {
+                if (res.success) fetchPromos();
+                else alert(res.error);
+            });
+        }
+    }
+</script>
+{% endblock %}

@@ -167,39 +167,89 @@ class TeacherForm(forms.ModelForm):
 
 class CenterAdminForm(forms.ModelForm):
     """Super Admin uchun markazni yaratish/tahrirlash formasi"""
+    expires_at = forms.DateField(
+        widget=forms.DateInput(attrs={
+            "class": "form-control bg-dark text-white border-secondary",
+            "type": "date"
+        }, format='%Y-%m-%d'),
+        label="Tugash Sanasi (Obuna)",
+        required=False
+    )
+
     class Meta:
         model = Center
         fields = [
-            "name", "address", "plan", 
-            "max_users", "max_groups", "max_students", 
+            "name", "slug", "address", "plan", 
+            "max_students", "expires_at",
             "status", "features"
         ]
         widgets = {
-            "name": forms.TextInput(attrs={"class": "form-control"}),
-            "address": forms.TextInput(attrs={"class": "form-control"}),
-            "plan": forms.Select(attrs={"class": "form-select"}),
-            "features": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": '{"leads": true}'}),
+            "name": forms.TextInput(attrs={"class": "form-control bg-dark text-white border-secondary"}),
+            "slug": forms.TextInput(attrs={"class": "form-control bg-dark text-white border-secondary"}),
+            "address": forms.TextInput(attrs={"class": "form-control bg-dark text-white border-secondary"}),
+            "max_students": forms.NumberInput(attrs={"class": "form-control bg-dark text-white border-secondary"}),
+            "status": forms.Select(attrs={"class": "form-select bg-dark text-white border-secondary"}),
+            "features": forms.HiddenInput(),
         }
         labels = {
             "name": "Markaz Nomi",
+            "slug": "Subdomain URL (Slug)",
             "address": "Manzil",
             "plan": "Tarif Rejasi",
             "features": "Qo‘shimcha Imkoniyatlar (JSON)",
         }
 
+    def clean_expires_at(self):
+        date_val = self.cleaned_data.get('expires_at')
+        if date_val:
+            from django.utils import timezone
+            import datetime
+            # Convert date to datetime at start of day
+            dt = datetime.datetime.combine(date_val, datetime.time.min)
+            return timezone.make_aware(dt)
+        return None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # ✅ Fix: Ensure date input gets YYYY-MM-DD format
+        if self.instance.pk and self.instance.expires_at:
+            self.fields['expires_at'].initial = self.instance.expires_at.strftime('%Y-%m-%d')
+
+        from billing.models import SubscriptionPlan
+        
+        # Populate plan choices dynamically from active plans
+        plans = SubscriptionPlan.objects.filter(active=True).order_by('monthly_price')
+        choices = [(p.code, f"{p.title} ({p.monthly_price:,} UZS)") for p in plans]
+        
+        # Add fallback if current instance has a plan not in active list (so it doesn't break edit)
+        if self.instance.pk and self.instance.plan:
+            if not any(c[0] == self.instance.plan for c in choices):
+                choices.insert(0, (self.instance.plan, f"{self.instance.plan} (Arxiv)"))
+        
+        # Default empty choice
+        if not choices:
+             choices = [("", "Tariflar mavjud emas")]
+
+        self.fields['plan'] = forms.ChoiceField(
+            choices=choices,
+            widget=forms.Select(attrs={"class": "form-select bg-dark text-white border-secondary", "id": "id_plan"}),
+            label="Tarif Rejasi"
+        )
+
 
 class DirectorCreationForm(forms.ModelForm):
     """Markaz bilan birga director yaratish formasi"""
-    password = forms.CharField(label="Parol", widget=forms.PasswordInput(attrs={"class": "form-control"}))
+    password = forms.CharField(label="Parol", widget=forms.PasswordInput(attrs={"class": "form-control bg-dark text-white border-secondary"}))
     
     class Meta:
         model = User
         fields = ["ism", "familya", "email", "telefon1"]
         widgets = {
-            "ism": forms.TextInput(attrs={"class": "form-control", "placeholder": "Director Ismi"}),
-            "familya": forms.TextInput(attrs={"class": "form-control", "placeholder": "Familiyasi"}),
-            "email": forms.EmailInput(attrs={"class": "form-control", "placeholder": "Login (Email)"}),
-            "telefon1": forms.TextInput(attrs={"class": "form-control", "placeholder": "+998..."}),
+            "ism": forms.TextInput(attrs={"class": "form-control bg-dark text-white border-secondary", "placeholder": "Director Ismi"}),
+            "familya": forms.TextInput(attrs={"class": "form-control bg-dark text-white border-secondary", "placeholder": "Familiyasi"}),
+            "email": forms.EmailInput(attrs={"class": "form-control bg-dark text-white border-secondary", "placeholder": "Login (Email)"}),
+            "telefon1": forms.TextInput(attrs={"class": "form-control bg-dark text-white border-secondary", "placeholder": "+998..."}),
         }
 
     def save(self, center, commit=True):

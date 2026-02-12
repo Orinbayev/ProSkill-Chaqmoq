@@ -599,7 +599,7 @@ def plan_create_api(request):
             title=data.get('title', code),
             monthly_price=int(data.get('monthly_price') or 0),
             max_students=int(data.get('max_students') or 0),
-            max_groups=int(data.get('max_groups') or 0),
+            # max_groups deprecated
             max_users=int(data.get('max_users') or 0),
             is_popular=data.get('is_popular') == 'true',
             discount_percent=int(data.get('discount_percent') or 0),
@@ -628,7 +628,7 @@ def plan_update_api(request, plan_id):
         plan.title = data.get('title', plan.title)
         plan.monthly_price = int(data.get('monthly_price') or 0)
         plan.max_students = int(data.get('max_students') or 0)
-        plan.max_groups = int(data.get('max_groups') or 0)
+        # plan.max_groups = int(data.get('max_groups') or 0)
         plan.max_users = int(data.get('max_users') or 0)
         plan.is_popular = data.get('is_popular') == 'true'
         plan.discount_percent = int(data.get('discount_percent') or 0)

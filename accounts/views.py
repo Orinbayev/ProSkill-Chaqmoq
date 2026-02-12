@@ -37,10 +37,11 @@ from django.shortcuts import render, redirect
 from accounts.models import Center
 from django.http import HttpResponseForbidden
 from billing.models import SubscriptionPlan
+from django.db.models import Count, Q, Prefetch
+from accounts.models import User
 
 def is_superadmin(user):
     return user.is_authenticated and user.is_superuser
-
 
 @login_required
 def center_picker(request):
@@ -51,7 +52,14 @@ def center_picker(request):
     q = request.GET.get("q", "").strip()
     status = request.GET.get("status", "")
     
-    centers = Center.objects.filter(is_deleted=False)
+    # ✅ Optimized Queryset
+    centers = Center.objects.filter(is_deleted=False).select_related(
+        'subscription', 'subscription__plan'
+    ).prefetch_related(
+        Prefetch('user_set', queryset=User.objects.filter(role='director'), to_attr='directors')
+    ).annotate(
+        student_count=Count('user', filter=Q(user__role='student', user__is_archived=False), distinct=True)
+    )
     
     if q:
         centers = centers.filter(Q(name__icontains=q) | Q(address__icontains=q))
@@ -59,7 +67,7 @@ def center_picker(request):
     if status:
         centers = centers.filter(status=status)
 
-    centers = centers.order_by("name")
+    centers = centers.order_by("-id") # Newest first is usually better for admin
     
     # ✅ Exclude user's own attached center (Asosiy markaz) if requested
     if request.user.center:
@@ -83,15 +91,12 @@ def center_picker(request):
 @require_http_methods(["GET", "POST"])
 def center_switch(request):
     """
-    ✅ POST asosiy (CSRF bilan).
-    ✅ Admin listdan link bilan switch qilish uchun GET ham ruxsat (faqat superadmin).
+    Switch to a specific center. Construct subdomain URL.
     """
     if not _superadmin_only(request):
         return HttpResponseForbidden("Forbidden")
 
     center_id = request.POST.get("center_id") or request.GET.get("center_id")
-    next_url = request.POST.get("next") or request.GET.get("next") or "/"
-
     if not center_id:
         messages.error(request, "Center tanlanmadi.")
         return redirect("accounts:center_picker")
@@ -99,8 +104,8 @@ def center_switch(request):
     if center_id == "NONE":
         if "active_center_id" in request.session:
             del request.session["active_center_id"]
-        messages.info(request, "Markaz tanlanmadi (Global).")
-        return redirect("/")
+        # Redirect to root platform
+        return redirect("http://localhost:8000/platform/")
 
     center = Center.objects.filter(id=center_id).first()
     if not center:
@@ -111,11 +116,17 @@ def center_switch(request):
          messages.error(request, f"Bu markaz faol emas (Status: {center.status}). Iltimos avval uni faollashtiring.")
          return redirect("accounts:center_picker")
 
+    # Set session so we know we are in "switch" mode even if subdomain fails or for auth
     request.session["active_center_id"] = int(center.id)
     request.session.modified = True
-    messages.success(request, f"✅ Active center: {center.name}")
-
-    return redirect(next_url)
+    
+    # Construct subdomain URL
+    host_parts = request.get_host().split(':')
+    port = f":{host_parts[1]}" if len(host_parts) > 1 else ""
+    target_url = f"http://{center.slug}.localhost{port}/"
+    
+    messages.success(request, f"✅ Markazga o'tildi: {center.name}")
+    return redirect(target_url)
 
 
 @login_required
