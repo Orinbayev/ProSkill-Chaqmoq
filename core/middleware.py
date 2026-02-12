@@ -90,6 +90,15 @@ class TenantMiddleware:
                 request.active_center = center
                 request.center = center
         
+        # 2b. Fallback to Session (Global Mode / Render)
+        if not request.center:
+             active_id = request.session.get("active_center_id")
+             if active_id:
+                 c = Center.objects.filter(id=active_id, is_deleted=False).first()
+                 if c:
+                     request.active_center = c
+                     request.center = c
+        
         # 3. Handle Exempt Paths (Login, Static, Admin)
         # Allows access without Center check, BUT still populates request.center if found above
         EXEMPT_PREFIXES = (
@@ -111,7 +120,8 @@ class TenantMiddleware:
             # A) Superadmin Logic
             if request.user.is_superuser:
                 # If on ROOT domain and active_center_id in session -> Redirect to Subdomain
-                if not subdomain:
+                # ✅ FIX: Skip redirect if on Render (use Session context instead)
+                if not subdomain and "onrender.com" not in host:
                     active_center_id = request.session.get("active_center_id")
                     if active_center_id:
                         center = Center.objects.filter(id=active_center_id, is_deleted=False).first()
@@ -124,8 +134,14 @@ class TenantMiddleware:
             
             # B) Normal User (Director/Teacher/Student)
             elif request.user.center:
+                # On Render, force context to user's center (Single Tenant view for that user)
+                if "onrender.com" in host:
+                     request.active_center = request.user.center
+                     request.center = request.user.center
+
                 # 1. On Root Domain -> Redirect to User's Subdomain
-                if not subdomain:
+                # ✅ FIX: Skip redirect if on Render
+                if not subdomain and "onrender.com" not in host:
                     scheme = request.scheme
                     port_str = f":{port}" if port else ""
                     tenant_url = f"{scheme}://{request.user.center.slug}.{root_domain}{port_str}/"
