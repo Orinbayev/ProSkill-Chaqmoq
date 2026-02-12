@@ -45,7 +45,13 @@ class TenantMiddleware:
             root_domain = host
         else: # Production domains e.g. tenant.chaqmoq.uz
             parts = host.split('.')
-            if len(parts) > 2: # tenant.domain.com
+            
+            # ✅ FIX: Handle Render.com subdomains (appname.onrender.com is ROOT)
+            # Standard: example.com (2 parts) -> tenant.example.com (3 parts)
+            # Render: app.onrender.com (3 parts) -> tenant.app.onrender.com (4 parts)
+            threshold = 3 if "onrender.com" in host else 2
+            
+            if len(parts) > threshold: 
                 subdomain = parts[0]
                 root_domain = ".".join(parts[1:])
             else:
