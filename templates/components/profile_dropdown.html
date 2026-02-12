@@ -22,8 +22,7 @@
                 {% endif %}
             </div>
             <div>
-                <div class="name text-white fw-bold" style="font-size:14px;">{{
-                    request.user.get_full_name|default:request.user.email }}</div>
+                <div class="name text-white fw-bold" style="font-size:14px;">{{  request.user.get_full_name|default:request.user.email }}</div>
                 <div class="role text-white-50">
                     {% if request.user.is_superuser %}
                     Super Admin
