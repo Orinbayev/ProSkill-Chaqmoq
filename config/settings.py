@@ -82,7 +82,7 @@ JAZZMIN_SETTINGS = {
         "store.Leads": "fas fa-address-book",
     },
     "show_ui_builder": False,
-    "changeform_format": "horizontal_tabs",
+    "changeform_format": "single",
 }
 
 # ===== Middleware =====
