@@ -173,3 +173,12 @@ LOGGING = {
     "handlers": {"console": {"class": "logging.StreamHandler"}},
     "root": {"handlers": ["console"], "level": "INFO"},
 }
+
+# ==================== PRODUCTION OVERRIDE ====================
+# Auto-load production settings when deployed to Render
+if os.getenv("MODE") == "production" or os.getenv("RENDER"):
+    try:
+        from .settings_prod import *
+        print("✅ Production settings loaded successfully")
+    except ImportError as e:
+        print(f"⚠️ Failed to load production settings: {e}")
