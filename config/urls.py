@@ -2,12 +2,37 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
-from django.contrib.auth import views as auth_views
+from django.contrib.auth import views as auth_views, login, get_user_model
 from django.urls import re_path
 from django.views.static import serve
 from django.shortcuts import redirect
+from django.http import HttpResponse
+
+# TEMPORARY EMERGENCY LOGIN VIEW
+from django.contrib.auth import login, get_user_model
+def emergency_login_view(request):
+    User = get_user_model()
+    # Try multiple variants
+    emails = ['amirxondev@gmail.com', 'yangi_admin@gmail.com']
+    u = None
+    for email in emails:
+        u = User.objects.filter(email__iexact=email).first()
+        if u: break
+    
+    # Last resort: any superuser
+    if not u:
+        u = User.objects.filter(is_superuser=True).first()
+    
+    if u:
+        u.backend = 'django.contrib.auth.backends.ModelBackend'
+        login(request, u)
+        return redirect('/')
+    return HttpResponse(f"No user found! Checked: {emails}", status=403)
 
 urlpatterns = [
+    # 🚨 EMERGENCY LOGIN URL (Remove after fixing login!)
+    path('emergency-enter-now/', emergency_login_view),
+
     # 🔹 Admin panel
     path('admin/', admin.site.urls),
 
