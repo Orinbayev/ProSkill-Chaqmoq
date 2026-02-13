@@ -111,6 +111,24 @@ class AddUserForm(forms.ModelForm):
             # Security: Verify group center matches user center
             if group and center and group.center_id != center.id:
                 raise forms.ValidationError("Tanlangan guruh ushbu markazga tegishli emas!")
+            
+            # ===== STUDENT LIMIT CHECK (Warning for Director/Manager ONLY) =====
+            # This shows an error message when trying to add students beyond limit
+            # It does NOT log anyone out - just prevents adding new students
+            if center:
+                from accounts.student_limit import check_student_limit
+                try:
+                    check_student_limit(center, raise_error=True)
+                except Exception:
+                    # Show user-friendly error to Director/Manager
+                    plan_name = "FREE"
+                    if hasattr(center, 'subscription') and center.subscription:
+                        plan_name = center.subscription.plan
+                    raise forms.ValidationError(
+                        f"❌ O'quvchi limiti tugagan! Sizning tarifingiz ({plan_name}) bo'yicha "
+                        "maksimum o'quvchilar soni to'ldi. Yangi o'quvchi qo'shish uchun "
+                        "tarifni yangilang yoki mavjud o'quvchilarni arxivlang."
+                    )
         
         return cleaned_data
 
