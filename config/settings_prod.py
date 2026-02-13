@@ -105,7 +105,12 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STATIC_URL = "/static/"
 
 # WhiteNoise for serving static files
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# Use CompressedStaticFilesStorage to avoid .map file issues
+STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+
+# Ignore missing source maps (they're not critical for production)
+WHITENOISE_KEEP_ONLY_HASHED_FILES = False
+WHITENOISE_ALLOW_ALL_ORIGINS = True
 
 # Ensure WhiteNoise middleware is active (should be in MIDDLEWARE)
 # "whitenoise.middleware.WhiteNoiseMiddleware",
