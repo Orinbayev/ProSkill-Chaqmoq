@@ -1,31 +1,277 @@
 {% extends "base.html" %}
-{% block content %}
+{% load static %}
 
-<div class="p-4" style="max-width:760px;margin:0 auto;">
-  <div class="p-4" style="border-radius:18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);">
-    <h3 style="font-weight:900;">🔒 Hisob bloklangan</h3>
-    <p style="color:rgba(255,255,255,.75); margin-top:8px;">
+{% block content %}
+<style>
+  .blocked-overlay {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(2, 6, 23, 0.98));
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .blocked-container {
+    max-width: 650px;
+    width: 100%;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.05));
+    border: 2px solid rgba(239, 68, 68, 0.3);
+    border-radius: 24px;
+    padding: 48px 40px;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    text-align: center;
+    animation: slideIn 0.5s ease-out;
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-30px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .blocked-icon {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.1));
+    border: 3px solid rgba(239, 68, 68, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 56px;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+
+    0%,
+    100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    }
+
+    50% {
+      transform: scale(1.05);
+      box-shadow: 0 0 0 15px rgba(239, 68, 68, 0);
+    }
+  }
+
+  .blocked-title {
+    font-size: 32px;
+    font-weight: 900;
+    color: #ef4444;
+    margin-bottom: 16px;
+    line-height: 1.2;
+  }
+
+  .blocked-message {
+    font-size: 17px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 32px;
+    line-height: 1.6;
+  }
+
+  .blocked-stats {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 32px;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .stat-row:last-child {
+    border-bottom: none;
+  }
+
+  .stat-label {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 600;
+  }
+
+  .stat-value {
+    font-size: 18px;
+    color: #fff;
+    font-weight: 900;
+  }
+
+  .stat-value.danger {
+    color: #ef4444;
+  }
+
+  .stat-value.success {
+    color: #10b981;
+  }
+
+  .blocked-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .btn-upgrade {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: #fff;
+    padding: 14px 32px;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 16px;
+    border: none;
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-upgrade:hover {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(239, 68, 68, 0.4);
+    color: #fff;
+  }
+
+  .btn-logout {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .btn-logout:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+</style>
+
+<div class="blocked-overlay">
+  <div class="blocked-container">
+    <div class="blocked-icon">
+      🚫
+    </div>
+
+    {% if is_over_limit %}
+    <!-- Student Limit Exceeded -->
+    <h1 class="blocked-title">O'quvchilar limiti oshib ketdi!</h1>
+    <p class="blocked-message">
+      Sizning joriy tarifingizda maksimal <strong>{{ max_students }}</strong> ta o'quvchi bo'lishi mumkin.
+      <br>
+      Hozirda markazingizda <strong>{{ current_students }}</strong> ta o'quvchi ro'yxatdan o'tgan.
+      <br><br>
+      Davom etish uchun tarifni yangilang yoki o'quvchilar sonini kamaytiring.
+    </p>
+
+    <div class="blocked-stats">
+      <div class="stat-row">
+        <span class="stat-label">📊 Joriy o'quvchilar:</span>
+        <span class="stat-value danger">{{ current_students }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">✅ Maksimal limit:</span>
+        <span class="stat-value">{{ max_students }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">⚠️ Oshib ketgan:</span>
+        <span class="stat-value danger">+{{ exceeded_count }}</span>
+      </div>
+      {% if sub %}
+      <div class="stat-row">
+        <span class="stat-label">💳 Joriy tarif:</span>
+        <span class="stat-value">{{ sub.plan_title|default:"—" }}</span>
+      </div>
+      {% endif %}
+    </div>
+
+    {% else %}
+    <!-- Subscription Expired -->
+    <h1 class="blocked-title">🔒 Hisob bloklangan</h1>
+    <p class="blocked-message">
       Obuna muddati tugagan. Davom etish uchun tarifni yangilang.
     </p>
 
     {% if sub %}
-    <div style="margin-top:14px;color:rgba(255,255,255,.8);">
-      <div><b>Tarif:</b> {{ sub.plan_code }}</div>
-      <div><b>Tugash:</b> {{ sub.expires_at|date:"d-M-Y H:i" }}</div>
-      <div><b>Qolgan:</b> {{ sub.days_left }} kun</div>
+    <div class="blocked-stats">
+      <div class="stat-row">
+        <span class="stat-label">💳 Tarif:</span>
+        <span class="stat-value">{{ sub.plan_title|default:sub.plan_code }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">📅 Tugash sanasi:</span>
+        <span class="stat-value">{{ sub.expires_at|date:"d-M-Y H:i" }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">⏰ Qolgan kunlar:</span>
+        <span class="stat-value danger">{{ sub.days_left }} kun</span>
+      </div>
     </div>
     {% endif %}
+    {% endif %}
 
-    <div class="d-flex gap-2 mt-3">
+    <div class="blocked-actions">
       {% if not readonly %}
-      <a href="{% url 'billing:plans' %}" class="btn btn-warning fw-bold">💳 To‘lov / Tarif</a>
+      <a href="{% url 'billing:plans' %}" class="btn-upgrade">
+        💳 Tarifni yangilash
+      </a>
       {% endif %}
+
       <form action="{% url 'logout' %}" method="post" style="display:inline;">
         {% csrf_token %}
-        <button type="submit" class="btn btn-outline-light">Chiqish</button>
+        <button type="submit" class="btn-logout">🚪 Chiqish</button>
       </form>
     </div>
   </div>
 </div>
+
+<script>
+  // Prevent any interaction with underlying page
+  document.body.style.overflow = 'hidden';
+
+  // Disable all clicks outside the blocked container
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.blocked-container')) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+  }, true);
+
+  // Disable keyboard shortcuts
+  document.addEventListener('keydown', function (e) {
+    // Allow only logout form submission
+    if (e.key === 'Enter' && e.target.type === 'submit') {
+      return true;
+    }
+    // Block all other keys
+    e.preventDefault();
+    return false;
+  }, true);
+</script>
 
 {% endblock %}

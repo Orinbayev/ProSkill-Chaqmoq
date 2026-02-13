@@ -41,10 +41,13 @@ class SubscriptionMiddleware(MiddlewareMixin):
         if any(request.path.startswith(p) for p in allowed_prefixes):
             return None
 
-        # blocked bo'lsa redirect - FAQAT admin va manager uchun
-        # Student, parent, teacher bloklangan markazda ham ishlashi mumkin (billing ko'rmaydi)
+        # ✅ Check both expiration AND student limit
         user_role = getattr(user, "role", None)
-        if sub and sub.is_blocked():
+        
+        is_blocked = sub and sub.is_blocked()
+        is_over_limit = sub and sub.is_over_student_limit()
+        
+        if is_blocked or is_over_limit:
             # Faqat admin va manager'larni blocking sahifasiga yo'naltirish
             if user_role not in ("student", "parent", "teacher"):
                 return redirect("billing:blocked")

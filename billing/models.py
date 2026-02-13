@@ -73,6 +73,18 @@ class CenterSubscription(models.Model):
         # Expired but not yet blocked (Grace period)
         return self.is_expired() and not self.is_hard_expired() and not self.manual_block and self.status != self.Status.BLOCKED
 
+    def is_over_student_limit(self) -> bool:
+        """
+        Check if center has exceeded student limit
+        """
+        from accounts.models import User
+        current_students = User.objects.filter(
+            center=self.center,
+            role='student',
+            is_archived=False
+        ).count()
+        return current_students > self.plan.max_students
+
     def days_left(self) -> int:
         delta = self.expires_at.date() - timezone.now().date()
         return max(delta.days, 0)
