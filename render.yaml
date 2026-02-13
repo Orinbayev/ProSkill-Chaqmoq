@@ -4,31 +4,64 @@ services:
     env: python
     plan: free
     region: frankfurt
+    
+    # ==================== BUILD COMMAND ====================
+    # Install deps, collect static, run migrations
     buildCommand: |
       pip install -r requirements.txt
       python manage.py collectstatic --noinput
-      python manage.py migrate
-    startCommand: gunicorn config.wsgi
+      python manage.py migrate --noinput
+    
+    # ==================== START COMMAND ====================
+    # CRITICAL: Must bind to $PORT (Render sets this automatically)
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 4 --timeout 120
+    
+    # ==================== ENVIRONMENT VARIABLES ====================
     envVars:
-      - key: DEBUG
-        value: False
+      # Django settings
+      - key: MODE
+        value: production
+      
+      - key: ROOT_DOMAIN
+        sync: false  # Set manually in dashboard
+      
       - key: SECRET_KEY
-        generateValue: true
+        generateValue: true  # Auto-generate secure key
+      
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings
+      
+      # Database (if using separate Postgres service)
+      # If using Render Postgres, DATABASE_URL is auto-provided
       - key: DB_ENGINE
         value: django.db.backends.postgresql
-      - key: DB_NAME
-        value: chaqmoq_db
-      - key: DB_USER
-        value: chaqmoq_user
-      - key: DB_PASSWORD
-        value: XgCvkXOFbxuEKpyWrjztvKBrxlVDFlSr
-      - key: DB_HOST
-        value: dpg-d44o05bipnbc73ank1p0-a.frankfurt-postgres.render.com
-      - key: DB_PORT
-        value: 5432
-      - key: DB_SSLMODE
-        value: require
+      
+      # Localization
       - key: LANGUAGE_CODE
         value: uz
+      
       - key: TIME_ZONE
         value: Asia/Tashkent
+      
+      # Security (auto-enabled on Render)
+      - key: SECURE_SSL_REDIRECT
+        value: true
+    
+    # ==================== HEALTH CHECK ====================
+    healthCheckPath: /
+    
+    # ==================== AUTO DEPLOY ====================
+    autoDeploy: true
+    
+    # ==================== CUSTOM DOMAINS ====================
+    # Add after initial deploy in Render Dashboard:
+    # - chaqmoq.uz
+    # - *.chaqmoq.uz
+
+# ==================== DATABASE SERVICE ====================
+# Optional: If you want Render-managed Postgres
+# databases:
+#   - name: proskill-db
+#     databaseName: chaqmoq_db
+#     user: chaqmoq_user
+#     plan: free
