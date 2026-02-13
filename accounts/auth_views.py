@@ -5,6 +5,7 @@ Custom authentication views for role-based redirects.
 from django.contrib.auth import views as auth_views
 from django.shortcuts import redirect
 from django.urls import reverse, NoReverseMatch
+from django.conf import settings
 from accounts.models import Center
 
 
@@ -14,6 +15,15 @@ class SecureLoginView(auth_views.LoginView):
     """
     
     template_name = 'accounts/login.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        """
+        ✅ FIX: Prevent login redirect loop
+        If user is already authenticated, redirect to home
+        """
+        if request.user.is_authenticated:
+            return redirect(settings.LOGIN_REDIRECT_URL)
+        return super().dispatch(request, *args, **kwargs)
     
     def get_success_url(self):
         user = self.request.user
@@ -27,11 +37,11 @@ class SecureLoginView(auth_views.LoginView):
                 # Already on a subdomain, go to center home
                 return reverse('core:home')
             
-            # On root domain, try platform_global first, then fallback to accounts
+            # On root domain, go to platform
             try:
-                return reverse('platform_global:superadmin_dashboard')
-            except NoReverseMatch:
                 return reverse('accounts:superadmin_dashboard')
+            except NoReverseMatch:
+                return reverse('core:home')
         
         # 2. Normal roles (Director, Teacher, Student, Parent)
         center = getattr(user, 'center', None)

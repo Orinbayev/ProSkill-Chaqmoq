@@ -86,8 +86,9 @@ class CenterSubscription(models.Model):
         return current_students > self.plan.max_students
 
     def days_left(self) -> int:
+        """Returns days until expiry. Negative if already expired."""
         delta = self.expires_at.date() - timezone.now().date()
-        return max(delta.days, 0)
+        return delta.days
 
     def __str__(self):
         return f"{self.center} → {self.plan.code} (until {self.expires_at.date()})"
