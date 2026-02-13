@@ -32,8 +32,8 @@
 
   <!-- HEADER: LOGO + TOGGLE -->
   <div class="sidebar-header">
-    <a href="{% if request.user.is_superuser %}/platform/{% else %}/{% endif %}" class="sidebar-logo"
-      aria-label="Bosh sahifa" data-title="Bosh sahifa">
+    <a href="{% if request.user.is_superuser and not request.center %}/platform/{% elif request.user.is_superuser and request.center %}{% url 'accounts:center_picker' %}{% else %}/{% endif %}"
+      class="sidebar-logo" aria-label="Bosh sahifa" data-title="Bosh sahifa">
       <div class="ultimate-bolt-container">
         <div class="spark-particle s1"></div>
         <div class="spark-particle s2"></div>
