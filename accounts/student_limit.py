@@ -24,13 +24,16 @@ def check_student_limit(center, raise_error=True):
     from billing.models import CenterSubscription
     from accounts.models import User
     
-    # Get subscription
-    try:
-        subscription = CenterSubscription.objects.get(center=center)
-        max_students = subscription.plan.max_students
-    except CenterSubscription.DoesNotExist:
-        # No subscription = default limit of 10
-        max_students = 10
+    # Get max students limit
+    max_students = getattr(center, 'capacity_limit', 100)
+    
+    # Fallback to subscription plan via properties if capacity_limit isn't set or old logic
+    if max_students is None or max_students <= 0:
+        try:
+            subscription = CenterSubscription.objects.get(center=center)
+            max_students = subscription.plan.max_students
+        except CenterSubscription.DoesNotExist:
+            max_students = 100 # Changed default to 100 based on recent updates
     
     # Count active students (exclude archived)
     current_count = User.objects.filter(
@@ -82,11 +85,18 @@ def create_student_safe(user_data, center):
     center_locked = Center.objects.select_for_update().get(id=center.id)
     
     # Check limit with locked data
+    # Lock subscription just in case, but rely on capacity_limit first
     try:
-        subscription = CenterSubscription.objects.select_for_update().get(center=center_locked)
-        max_students = subscription.plan.max_students
-    except CenterSubscription.DoesNotExist:
-        max_students = 10
+        subscription = CenterSubscription.objects.select_for_update().filter(center=center_locked).first()
+    except:
+        pass
+
+    max_students = getattr(center_locked, 'capacity_limit', 100)
+    if max_students is None or max_students <= 0:
+         if subscription:
+             max_students = subscription.plan.max_students
+         else:
+             max_students = 100
     
     # Count with lock
     current_count = User.objects.filter(
