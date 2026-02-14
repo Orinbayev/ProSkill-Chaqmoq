@@ -39,7 +39,18 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 if RENDER_SERVICE:
-    CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_SERVICE}")
+    ALLOWED_HOSTS.append(RENDER_SERVICE)
+
+# ✅ FORCE ALLOW ALL RENDER DOMAINS
+ALLOWED_HOSTS += [".onrender.com"]
+
+# ==================== CSRF PROTECTION ====================
+
+CSRF_TRUSTED_ORIGINS = [
+    f"https://{ROOT_DOMAIN}",
+    f"https://*.{ROOT_DOMAIN}",     # Wildcard for subdomains
+    "https://*.onrender.com",        # Allow wildcard Render domains
+]
 
 # ==================== SESSION & COOKIES ====================
 

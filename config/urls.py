@@ -59,3 +59,9 @@ else:
     urlpatterns += [
         re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
     ]
+
+# ✅ HEALTH CHECK VIEW (Render uchun)
+def health_check(request):
+    return HttpResponse("OK", status=200)
+
+urlpatterns.insert(0, path('health/', health_check))
