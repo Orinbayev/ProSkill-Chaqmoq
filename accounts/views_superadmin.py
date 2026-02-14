@@ -8,6 +8,8 @@ from accounts.models import Center
 from billing.models import SubscriptionPlan, CenterSubscription
 from billing.services import ensure_center_subscription
 from .forms import CenterAdminForm, DirectorCreationForm
+from django.http import JsonResponse
+import json
 
 
 @login_required
@@ -207,3 +209,48 @@ def center_edit(request, pk):
         'form': form,
         'center': center,
     })
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def update_center_capacity(request, pk):
+    """
+    Update Center Capacity Limit via AJAX.
+    """
+    if request.method != 'POST':
+         return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        new_limit = data.get('capacity_limit')
+        
+        # Validation
+        try:
+            new_limit = int(new_limit)
+        except (ValueError, TypeError):
+             return JsonResponse({'error': 'Limit butun son bo‘lishi shart'}, status=400)
+             
+        if new_limit < 1:
+             return JsonResponse({'error': 'Limit kamida 1 bo‘lishi kerak'}, status=400)
+             
+        center = get_object_or_404(Center, pk=pk)
+        
+        # Update
+        center.capacity_limit = new_limit
+        center.save()
+        
+        # Recalculate Logic
+        counts = center.get_counts
+        current_students = counts['students']
+        over_limit = current_students > new_limit
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Limit muvaffaqiyatli yangilandi',
+            'capacity_limit': new_limit,
+            'current_students': current_students,
+            'over_limit': over_limit
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

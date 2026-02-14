@@ -1,0 +1,20 @@
+# Git Revert Commands
+
+# Option 1: Revert ONLY that one commit (b87cb2f)
+# This creates a NEW commit that undoes the changes
+git revert b87cb2f
+
+# If conflicts, resolve manually then:
+git add .
+git commit -m "Reverted requirements.txt fix"
+git push origin main
+
+# Option 2: Hard reset to BEFORE that commit (DANGEROUS!)
+# This removes ALL commits after b87cb2f
+git reset --hard 921458b  # commit BEFORE b87cb2f
+git push origin main --force
+
+# Option 3: Reset to a specific earlier commit
+git log --oneline  # See all commits
+git reset --hard <commit-hash>
+git push origin main --force

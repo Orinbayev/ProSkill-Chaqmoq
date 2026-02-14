@@ -921,15 +921,13 @@
           <div class="d-flex align-items-center gap-2">
             <span class="text-white small fw-bold">
               <i class="bi bi-people me-1 text-secondary"></i>
-              {{ c.student_count|default:"0" }} / {{ c.subscription.plan.max_students|default:"-" }}
+              {{ c.student_count|default:"0" }} / {{ c.capacity_limit }}
             </span>
 
-            {% if c.subscription %}
-            {% if c.student_count > c.subscription.plan.max_students %}
+            {% if c.student_count > c.capacity_limit %}
             <span class="badge bg-danger text-white rounded-pill" style="font-size: 0.65rem;">OSHIB KETDI</span>
-            {% elif c.student_count == c.subscription.plan.max_students %}
+            {% elif c.student_count == c.capacity_limit %}
             <span class="badge bg-warning text-dark rounded-pill" style="font-size: 0.65rem;">LIMITDA</span>
-            {% endif %}
             {% endif %}
           </div>
         </div>
@@ -947,7 +945,8 @@
             {% if days <= 0 %} <span class="badge bg-danger">MUDDAT TUGAGAN</span>
               {% elif days <= 7 %} <span class="badge bg-warning text-dark">{{ days }} kun qoldi!</span>
                 {% else %}
-                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">{{ days }} kun qoldi</span>
+                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">{{
+                  days }} kun qoldi</span>
                 {% endif %}
                 {% endwith %}
           </div>
@@ -1046,6 +1045,12 @@
                 <div class="col-md-6">
                   <label class="form-label">Telefon</label>
                   <input type="text" name="phone" id="inp_phone" class="form-control-dark" placeholder="+998993845854">
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">O'quvchilar Limiti</label>
+                  <input type="number" name="capacity_limit" id="inp_capacity_limit" class="form-control-dark"
+                    value="100" min="1">
                 </div>
 
                 <div class="col-md-6">
@@ -1507,7 +1512,7 @@
 
 <!-- Hidden data for JavaScript -->
 <div id="plans-data" style="display:none;"
-  data-plans='[{% for p in db_plans %}{"code": "{{ p.code|escapejs }}", "title": "{{ p.title|escapejs }}", "monthly_price": {{ p.monthly_price|default:0 }}, "discount_percent": {{ p.discount_percent|default:0 }}}{% if not forloop.last %},{% endif %}{% endfor %}]'>
+  data-plans='[{% for p in db_plans %}{"code": "{{ p.code|escapejs }}", "title": "{{ p.title|escapejs }}", "monthly_price": {{ p.monthly_price|default:0 }}, "discount_percent": {{ p.discount_percent|default:0 }}, "max_students": {{ p.max_students|default:100 }}}{% if not forloop.last %},{% endif %}{% endfor %}]'>
 </div>
 
 <script>
@@ -1659,6 +1664,13 @@
       document.getElementById('inp_monthly_price').value = plan.monthly_price;
       const discField = document.getElementById('inp_discount_percent');
       if (discField) discField.value = plan.discount_percent || 0;
+
+      // Auto-set capacity limit from plan if found
+      const capField = document.getElementById('inp_capacity_limit');
+      if (capField && plan.max_students) {
+        capField.value = plan.max_students;
+      }
+
       calcTotal();
     }
   }
@@ -1784,6 +1796,7 @@
         document.getElementById('inp_address').value = data.address || '';
         document.getElementById('inp_phone').value = data.phone || '';
         document.getElementById('inp_status').value = data.status || 'ACTIVE';
+        document.getElementById('inp_capacity_limit').value = data.capacity_limit || 100;
 
         // Handle Price vs Discount Logic from Backend Data (assuming similar fields or map accordingly)
         // If Plan is PROMOCODE, use monthly_price as discount or have a separate field? 

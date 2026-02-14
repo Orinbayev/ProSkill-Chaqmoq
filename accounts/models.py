@@ -29,6 +29,7 @@ class Center(models.Model):
     max_users = models.PositiveIntegerField(default=50)
     max_groups = models.PositiveIntegerField(default=30)
     max_students = models.PositiveIntegerField(default=100)
+    capacity_limit = models.IntegerField(default=100, verbose_name="O'quvchilar limiti")
     
     # Financials
     payment_day = models.PositiveSmallIntegerField(default=5, verbose_name="To'lov sanasi")

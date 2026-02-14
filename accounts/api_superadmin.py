@@ -278,6 +278,7 @@ def center_detail_api(request, center_id):
         "max_students": center.max_students,
         "features": center.features or {},
         "expires_at": center.expires_at.strftime("%Y-%m-%d") if center.expires_at else None,
+        "capacity_limit": center.capacity_limit,
         
         # Promo fields
         "promo_code": center.promo_code,
@@ -354,6 +355,15 @@ def center_update_api(request, center_id):
                     pass
             else:
                 center.features = features
+        
+        # Validate Capacity Limit
+        try:
+            new_exec_limit = int(data.get('capacity_limit') or center.capacity_limit or 100)
+            if new_exec_limit < 1:
+                return JsonResponse({"success": False, "error": "Limit kamida 1 bo'lishi kerak"}, status=400)
+            center.capacity_limit = new_exec_limit
+        except (ValueError, TypeError):
+            return JsonResponse({"success": False, "error": "Limit noto'g'ri formatda"}, status=400)
         
         center.save()
 

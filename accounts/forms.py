@@ -198,14 +198,14 @@ class CenterAdminForm(forms.ModelForm):
         model = Center
         fields = [
             "name", "slug", "address", "plan", 
-            "max_students", "expires_at",
+            "capacity_limit", "expires_at",
             "status", "features"
         ]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control bg-dark text-white border-secondary"}),
             "slug": forms.TextInput(attrs={"class": "form-control bg-dark text-white border-secondary"}),
             "address": forms.TextInput(attrs={"class": "form-control bg-dark text-white border-secondary"}),
-            "max_students": forms.NumberInput(attrs={"class": "form-control bg-dark text-white border-secondary"}),
+            "capacity_limit": forms.NumberInput(attrs={"class": "form-control bg-dark text-white border-secondary"}),
             "status": forms.Select(attrs={"class": "form-select bg-dark text-white border-secondary"}),
             "features": forms.HiddenInput(),
         }
@@ -214,6 +214,7 @@ class CenterAdminForm(forms.ModelForm):
             "slug": "Subdomain URL (Slug)",
             "address": "Manzil",
             "plan": "Tarif Rejasi",
+            "capacity_limit": "O'quvchilar Limiti (Max Students)",
             "features": "Qo‘shimcha Imkoniyatlar (JSON)",
         }
 

@@ -1,6 +1,6 @@
 from django.urls import path, include
 from . import views
-from .views_superadmin import superadmin_dashboard, center_create, center_edit
+from .views_superadmin import superadmin_dashboard, center_create, center_edit, update_center_capacity
 from . import api_superadmin
 from . import views_platform # New HTML Views
 
@@ -15,6 +15,7 @@ platform_patterns = [
     path("center/<int:pk>/edit/", center_edit, name="center_edit"),
     path("centers/<int:pk>/manage/", views.center_manage, name="center_manage"),
     path("centers/<int:pk>/stats/", views.center_stats_view, name="center_stats"),
+    path("center/<int:pk>/update-capacity/", update_center_capacity, name="update_center_capacity"),
     
     # ✅ HTML Pages for Management (Fixing JSON Response Issue)
     path("plans/", views_platform.plans_list_view, name="plans_ui"),
