@@ -117,10 +117,77 @@ def center_switch(request):
     request.session.modified = True
     
     # Construct subdomain URL
-    host_parts = request.get_host().split(':')
-    port = f":{host_parts[1]}" if len(host_parts) > 1 else ""
-    target_url = f"http://{center.slug}.localhost{port}/"
+    # Use request.get_host() to get the current domain (e.g. localhost:8000 or proskill.chaqmoq.uz)
+    host_port = request.get_host() # e.g. "localhost:8000"
+    host = host_port.split(':')[0]
     
+    port_suffix = ""
+    if ':' in host_port:
+        port_suffix = f":{host_port.split(':')[1]}"
+    
+    # Check if we are on Render or Custom Domain
+    if "onrender.com" in host:
+        # If using Render's default domain, we might need a different strategy 
+        # because wildcards *.onrender.com are not free usually.
+        # But if you have custom domain mapped:
+        root_domain = host # Default assumption if no dots found
+        parts = host.split('.')
+        
+        # If tenant.app.onrender.com (4 parts) -> Root is app.onrender.com
+        # If app.onrender.com (3 parts) -> Root is app.onrender.com
+        if len(parts) >= 3:
+             # Basic heuristic: Main app is always the root
+             # If we are already on a subdomain, strip it? 
+             # Simplify: Just assume the base domain is the ROOT_DOMAIN or current host structure
+             pass
+        
+        # PROD FIX: If on Render, usually stick to session-based logical separation 
+        # optimized for single-domain if wildcard not available.
+        # However, user requested subdomain.
+        
+        # If strict subdomain is requested, we assume we have a wildcard DNS.
+        # Let's try to strip existing subdomain if present.
+        # center.slug + "." + base_domain
+        
+        # Determine Base Domain
+        # If "proskill-chaqmoq.onrender.com" is the main, and we want "tenant.proskill-chaqmoq.onrender.com"
+        # Render doesn't support nested subdomains easily on free tier.
+        
+        # BETTER STRATEGY FOR RENDER (Free): 
+        # Redirect to Root + Session (which we already set above)
+        # But if Custom Domain is active (chaqmoq.uz), build "proskill.chaqmoq.uz"
+        
+        if "chaqmoq.uz" in host:
+             base = "chaqmoq.uz"
+             target_url = f"https://{center.slug}.{base}/"
+        else:
+             # Just reload to root, middleware uses session
+             target_url = f"https://{host}/"
+             
+    elif "localhost" in host or host == "127.0.0.1":
+        # Localhost logic - Support Port
+        # Strip existing subdomain if any (e.g. oldtenant.localhost -> localhost)
+        parts = host.split('.')
+        if len(parts) > 1 and "localhost" in parts[-1]:
+             base = ".".join(parts[1:]) # localhost
+        else:
+             base = host # localhost
+        
+        target_url = f"http://{center.slug}.{base}{port_suffix}/"
+        
+    else:
+        # Fallback for custom domains
+        # e.g. example.com
+        # Strip potential existing subdomain
+        parts = host.split('.')
+        if len(parts) > 2:
+             base = ".".join(parts[1:])
+        else:
+             base = host
+        target_url = f"http://{center.slug}.{base}{port_suffix}/"
+        if request.is_secure():
+             target_url = target_url.replace("http://", "https://")
+
     messages.success(request, f"✅ Markazga o'tildi: {center.name}")
     return redirect(target_url)
 

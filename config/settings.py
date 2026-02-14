@@ -12,6 +12,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "unsafe-secret-key")
 DEBUG = True # ✅ Force Debug for Local Dev to prevent redirect issues
 
 # ✅ HOSTS FIX: Allow all necessary local domains
+# ✅ HOSTS FIX: Allow all necessary local domains
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".localhost", "*"]
 
 # ✅ COOKIE FIX: Localhost requires strict handling to avoid loops
@@ -22,7 +23,10 @@ CSRF_COOKIE_DOMAIN = None
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-    "http://*.localhost:8000"
+    "http://*.localhost:8000",
+    "http://*.localhost",
+    "https://*.onrender.com",
+    "https://*.chaqmoq.uz"
 ]
     
 # Security settings for local dev (Disable SSL/Secure cookies to prevent loops)

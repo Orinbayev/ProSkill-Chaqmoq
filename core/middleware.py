@@ -16,7 +16,7 @@ class TenantMiddleware:
 
     def __call__(self, request):
         path = request.path
-        host_port = request.get_host() # e.g. "laylo.localhost:8000"
+        host_port = request.get_host() # e.g. "laylo.localhost:8000" or "tenant.app.onrender.com"
         host = host_port.split(':')[0].lower() # "laylo.localhost"
         
         # Parse Port
@@ -31,31 +31,56 @@ class TenantMiddleware:
         root_domain = "localhost" # Default fallback
         
         # 1. Robust Subdomain Parsing
-        # Localhost / IP handling
-        if "localhost" in host:
-            # e.g. laylo.localhost -> parts=["laylo", "localhost"]
+        
+        # A) Render.com (e.g. proskill-chaqmoq.onrender.com -> ROOT, demo.proskill-chaqmoq.onrender.com -> TENANT)
+        # Note: Render free tier doesn't easily support wildcards on *.onrender.com unless using custom domain.
+        # IF using custom domain (chaqmoq.uz):
+        #   chaqmoq.uz -> ROOT
+        #   proskill.chaqmoq.uz -> TENANT
+        
+        # Detect if we are on a custom domain or render default
+        is_render_domain = "onrender.com" in host
+        is_localhost = "localhost" in host or host.replace('.', '').isdigit()
+
+        if is_localhost:
+             # e.g. laylo.localhost -> parts=["laylo", "localhost"]
             parts = host.split('.')
-            if len(parts) > 1 and parts[0] != "www":
+            if len(parts) > 1 and parts[0] != "www" and not parts[-1].isdigit(): # Avoid IPs
                 subdomain = parts[0]
-                # Reconstruct root domain (e.g. localhost)
                 root_domain = ".".join(parts[1:]) 
             else:
                 root_domain = host
-        elif host.replace('.', '').isdigit(): # IP Address
-            root_domain = host
-        else: # Production domains e.g. tenant.chaqmoq.uz
-            parts = host.split('.')
-            
-            # ✅ FIX: Handle Render.com subdomains (appname.onrender.com is ROOT)
-            # Standard: example.com (2 parts) -> tenant.example.com (3 parts)
-            # Render: app.onrender.com (3 parts) -> tenant.app.onrender.com (4 parts)
-            threshold = 3 if "onrender.com" in host else 2
-            
-            if len(parts) > threshold: 
-                subdomain = parts[0]
-                root_domain = ".".join(parts[1:])
-            else:
-                root_domain = host
+
+        elif is_render_domain:
+             # Logic for Render subdomains
+             # We assume ROOT_DOMAIN env var matches the main app domain
+             # If host == ROOT_DOMAIN or host == RENDER_EXTERNAL_URL -> Root
+             
+             # If using custom domain like "chaqmoq.uz" in Prod:
+             # parts = host.split('.') -> ['proskill', 'chaqmoq', 'uz'] -> subdomain='proskill'
+             
+             parts = host.split('.')
+             # Heuristic: 
+             # if 2 parts (chaqmoq.uz) -> Root
+             # if 3 parts (proskill.chaqmoq.uz) -> Tenant
+             # if 3 parts (app.onrender.com) -> Root
+             # if 4 parts (tenant.app.onrender.com) -> Tenant
+             
+             threshold = 3 if "onrender.com" in host else 2
+             if len(parts) > threshold:
+                 subdomain = parts[0]
+                 root_domain = ".".join(parts[1:])
+             else:
+                 root_domain = host
+                 
+        else:
+             # Custom Domain Prod
+             parts = host.split('.')
+             if len(parts) > 2: # subdomain.domain.com
+                  subdomain = parts[0]
+                  root_domain = ".".join(parts[1:])
+             else:
+                  root_domain = host
 
         # Initialize
         request.active_center = None
