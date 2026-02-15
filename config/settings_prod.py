@@ -11,7 +11,7 @@ from .settings import *
 DEBUG = False
 
 # Your production domain
-ROOT_DOMAIN = os.getenv("ROOT_DOMAIN", "chaqmoq.uz")
+ROOT_DOMAIN = os.getenv("ROOT_DOMAIN", "chaqmoqapp.uz")
 
 # Render service URL (auto-provided by Render)
 RENDER_SERVICE = os.getenv("RENDER_EXTERNAL_URL", "")
@@ -21,36 +21,31 @@ if RENDER_SERVICE:
 # ==================== ALLOWED HOSTS ====================
 
 ALLOWED_HOSTS = [
-    ROOT_DOMAIN,                    # chaqmoq.uz
-    f".{ROOT_DOMAIN}",              # *.chaqmoq.uz (wildcard subdomains)
-    "localhost",                    # Local testing
+    "chaqmoqapp.uz",
+    "www.chaqmoqapp.uz",
+    "localhost",
     "127.0.0.1",
+    ".onrender.com",  # Wildcard for all render subdomains
 ]
 
-# Add Render service URL if provided
-if RENDER_SERVICE:
-    ALLOWED_HOSTS.append(RENDER_SERVICE)  # your-app.onrender.com
-
-# ==================== CSRF PROTECTION ====================
-
-CSRF_TRUSTED_ORIGINS = [
-    f"https://{ROOT_DOMAIN}",
-    f"https://*.{ROOT_DOMAIN}",     # Wildcard for subdomains
-]
-
+# Add specific Render service URL if provided
 if RENDER_SERVICE:
     ALLOWED_HOSTS.append(RENDER_SERVICE)
 
-# ✅ FORCE ALLOW ALL RENDER DOMAINS
-ALLOWED_HOSTS += [".onrender.com"]
+# Allow adding hosts via environment variable (comma separated)
+if os.getenv("ALLOWED_HOSTS"):
+    ALLOWED_HOSTS.extend(os.getenv("ALLOWED_HOSTS").split(","))
 
 # ==================== CSRF PROTECTION ====================
 
 CSRF_TRUSTED_ORIGINS = [
-    f"https://{ROOT_DOMAIN}",
-    f"https://*.{ROOT_DOMAIN}",     # Wildcard for subdomains
-    "https://*.onrender.com",        # Allow wildcard Render domains
+    "https://chaqmoqapp.uz",
+    "https://www.chaqmoqapp.uz",
+    "https://*.onrender.com",
 ]
+
+if RENDER_SERVICE:
+    CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_SERVICE}")
 
 # ==================== SESSION & COOKIES ====================
 
