@@ -8,201 +8,63 @@ logger = logging.getLogger(__name__)
 
 class TenantMiddleware:
     """
-    Middleware to resolve the active center (tenant) from subdomain or session.
-    Enforces strict isolation and prevents redirect loops.
+    Middleware to resolve the active center (tenant) from User Session ONLY.
+    Subdomains are completely IGNORED.
+    
+    Logic:
+    1. If user is logged in -> set request.center = user.center
+    2. If superuser -> allow session based switching
+    3. No redirects to subdomains.
     """
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
         path = request.path
-        host_port = request.get_host() # e.g. "laylo.localhost:8000" or "tenant.app.onrender.com"
-        host = host_port.split(':')[0].lower() # "laylo.localhost"
         
-        # Parse Port
-        port = None
-        if ':' in host_port:
-            try:
-                port = host_port.split(':')[1]
-            except IndexError:
-                pass
-
-        subdomain = None
-        root_domain = "localhost" # Default fallback
-        
-        # 1. Robust Subdomain Parsing
-        
-        # A) Render.com (e.g. proskill-chaqmoq.onrender.com -> ROOT, demo.proskill-chaqmoq.onrender.com -> TENANT)
-        # Note: Render free tier doesn't easily support wildcards on *.onrender.com unless using custom domain.
-        # IF using custom domain (chaqmoq.uz):
-        #   chaqmoq.uz -> ROOT
-        #   proskill.chaqmoq.uz -> TENANT
-        
-        # Detect if we are on a custom domain or render default
-        is_render_domain = "onrender.com" in host
-        is_localhost = "localhost" in host or host.replace('.', '').isdigit()
-
-        if is_localhost:
-             # e.g. laylo.localhost -> parts=["laylo", "localhost"]
-            parts = host.split('.')
-            if len(parts) > 1 and parts[0] != "www" and not parts[-1].isdigit(): # Avoid IPs
-                subdomain = parts[0]
-                root_domain = ".".join(parts[1:]) 
-            else:
-                root_domain = host
-
-        elif is_render_domain:
-             # Logic for Render subdomains
-             # We assume ROOT_DOMAIN env var matches the main app domain
-             # If host == ROOT_DOMAIN or host == RENDER_EXTERNAL_URL -> Root
-             
-             # If using custom domain like "chaqmoq.uz" in Prod:
-             # parts = host.split('.') -> ['proskill', 'chaqmoq', 'uz'] -> subdomain='proskill'
-             
-             parts = host.split('.')
-             # Heuristic: 
-             # if 2 parts (chaqmoq.uz) -> Root
-             # if 3 parts (proskill.chaqmoq.uz) -> Tenant
-             # if 3 parts (app.onrender.com) -> Root
-             # if 4 parts (tenant.app.onrender.com) -> Tenant
-             
-             threshold = 3 if "onrender.com" in host else 2
-             if len(parts) > threshold:
-                 subdomain = parts[0]
-                 root_domain = ".".join(parts[1:])
-             else:
-                 root_domain = host
-                 
-        else:
-             # Custom Domain Prod
-             parts = host.split('.')
-             if len(parts) > 2: # subdomain.domain.com
-                  subdomain = parts[0]
-                  root_domain = ".".join(parts[1:])
-             else:
-                  root_domain = host
-
-        # Initialize
+        # Initialize defaults
+        request.subdomain = None
         request.active_center = None
         request.center = None
 
-        # 2. Resolve Tenant (Center)
-        if subdomain:
-            # Try finding center by slug (subdomain)
-            center = Center.objects.filter(slug=subdomain, is_deleted=False).first()
-            
-            # ✅ FIX: If subdomain exists but Center NOT found
-            if not center:
-                # Avoid redirect loop if already on global picker or static
-                if path.startswith('/static/') or path.startswith('/media/'):
-                    return self.get_response(request)
-
-                # A) If Superadmin -> Redirect to Global Picker
-                if request.user.is_authenticated and request.user.is_superuser:
-                    scheme = request.scheme
-                    port_str = f":{port}" if port else ""
-                    global_url = f"{scheme}://{root_domain}{port_str}/hisob/centers/?error=not_found&tenant={subdomain}"
-                    return redirect(global_url)
-                
-                # B) Ordinary User or Guest -> Show Nice 404 Page (SaaS Style)
-                return render(request, 'core/center_404.html', {
-                    'subdomain': subdomain,
-                    'root_domain': root_domain,
-                    'host': host_port
-                }, status=404)
-            
-            else:
-                request.active_center = center
-                request.center = center
-        
-        # 2b. Fallback to Session (Global Mode / Render)
-        if not request.center:
-             active_id = request.session.get("active_center_id")
-             if active_id:
-                 c = Center.objects.filter(id=active_id, is_deleted=False).first()
-                 if c:
-                     request.active_center = c
-                     request.center = c
-        
-        # 3. Handle Exempt Paths (Login, Static, Admin)
-        # Allows access without Center check, BUT still populates request.center if found above
-        EXEMPT_PREFIXES = (
-            '/hisob/login/', 
-            '/login/',       
-            '/logout/', 
-            '/static/', 
-            '/media/', 
-            '/admin/',       
-            '/platform/',    # Superadmin Global Dashboard
-            '/favicon.ico',
-        )
-
-        if any(path.startswith(prefix) for prefix in EXEMPT_PREFIXES):
+        # 1. Skip Static/Media/Favicon
+        if path.startswith('/static/') or path.startswith('/media/') or path == '/favicon.ico':
             return self.get_response(request)
-
-        # 4. Access Enforcement & Flow Control
-        if request.user.is_authenticated:
-            # A) Superadmin Logic
-            if request.user.is_superuser:
-                # If on ROOT domain and active_center_id in session -> Redirect to Subdomain
-                # ✅ FIX: Skip redirect if on Render (use Session context instead)
-                if not subdomain and "onrender.com" not in host:
-                    active_center_id = request.session.get("active_center_id")
-                    if active_center_id:
-                        center = Center.objects.filter(id=active_center_id, is_deleted=False).first()
-                        if center:
-                            scheme = request.scheme
-                            port_str = f":{port}" if port else ""
-                            return redirect(f"{scheme}://{center.slug}.{root_domain}{port_str}/")
-                # Superadmin can access anything
-                pass 
             
-            # B) Normal User (Director/Teacher/Student)
-            elif request.user.center:
-                # On Render, force context to user's center (Single Tenant view for that user)
-                if "onrender.com" in host:
-                     request.active_center = request.user.center
-                     request.center = request.user.center
-
-                # 1. On Root Domain -> Redirect to User's Subdomain
-                # ✅ FIX: Skip redirect if on Render
-                if not subdomain and "onrender.com" not in host:
-                    scheme = request.scheme
-                    port_str = f":{port}" if port else ""
-                    tenant_url = f"{scheme}://{request.user.center.slug}.{root_domain}{port_str}/"
-                    return redirect(tenant_url)
+        # 2. Authenticated User Logic
+        if request.user.is_authenticated:
+            
+            # A) Superuser: Check session for override
+            if request.user.is_superuser:
+                active_center_id = request.session.get("active_center_id")
+                if active_center_id:
+                    center = Center.objects.filter(id=active_center_id, is_deleted=False).first()
+                    if center:
+                        request.active_center = center
+                        request.center = center
+                        
+            # B) Standard User: Always use assigned center
+            elif hasattr(request.user, 'center') and request.user.center:
+                request.active_center = request.user.center
+                request.center = request.user.center
                 
-                # 2. On WRONG Subdomain -> 403 Forbidden
-                if request.active_center and request.active_center != request.user.center:
-                    return HttpResponseForbidden(f"Sizga '{request.active_center.name}' markaziga kirish ruxsat etilmagan.")
-                
-                # 3. Blocked Status Check (Center Status OR Hard Expiry)
+                # Check Blocked Status
                 is_blocked = False
                 if request.active_center.status == 'BLOCKED':
                     is_blocked = True
                 elif hasattr(request.active_center, 'subscription') and request.active_center.subscription:
                      if request.active_center.subscription.is_blocked():
                          is_blocked = True
-
+                
                 if is_blocked:
                     if not path.startswith('/hisob/billing/') and not path.startswith('/hisob/tolov/'):
                         return redirect('billing:plans')
 
-            # C) User has no center (Orphan) -> 403
-            else:
-                 return HttpResponseForbidden("Siz hech qanday markazga biriktirilmagansiz.")
-                 
-        # 5. Unauthenticated User
-        else:
-            # Not logged in.
-            # If on Tenant Subdomain -> Redirect to Login (on tenant domain)
-            # If on Root Domain -> Redirect to Login (on root domain)
-            # We already passed EXEMPT checks, so this is a protected page.
+            # C) Orphan User (No center assigned)
+            # We allow them to proceed, but views might restrict access
+            # or context processors will show empty state.
             
-            login_url = settings.LOGIN_URL
-            if not login_url.startswith('http'):
-                 login_url = f"{settings.LOGIN_URL}"
-            
-            return redirect(f"{login_url}?next={request.path}")
-
+        # 3. Unauthenticated User
+        # Let them browse unless the view requires login (handled by @login_required)
+        
         return self.get_response(request)
