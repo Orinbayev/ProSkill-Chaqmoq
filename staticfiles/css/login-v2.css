@@ -1,0 +1,199 @@
+/* Glassmorphism & Animations from Modern Login */
+.glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+
+    50% {
+        transform: translateY(-20px) rotate(5deg);
+    }
+}
+
+.animate-float {
+    animation: float 6s ease-in-out infinite;
+}
+
+.neural-grid {
+    background-image: radial-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 40px 40px;
+}
+
+.glow-blob {
+    filter: blur(80px);
+    opacity: 0.4;
+}
+
+/* Additional utility for background size animation */
+.bg-size-200 {
+    background-size: 200% auto;
+}
+
+/* =========================================
+   FIX #1: Allow page to scroll at 100% zoom
+   Changed: body height: 100% → min-height: 100vh
+   Why: height:100% clips content; min-height allows growth
+   ========================================= */
+
+html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    /* ✅ CHANGED: was height:100% - now allows scroll */
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+/* Ensure login page body class doesn't block overflow */
+.login-page {
+    overflow: visible !important;
+    overflow-y: auto !important;
+}
+
+/* Clean scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #020617;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #1e293b;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #334155;
+}
+
+/* =========================================
+   INPUT FIELDS - Icon spacing preserved
+   FIX #2: Softer text/placeholder contrast
+   ========================================= */
+
+.input-wrap {
+    position: relative;
+    width: 100%;
+}
+
+.left-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    z-index: 10;
+    color: #64748b;
+    /* Slate-500 */
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    font-size: 1.05rem;
+}
+
+.input-wrap:focus-within .left-icon {
+    color: #2dd4bf;
+    /* Teal-400 */
+}
+
+.custom-input {
+    width: 100%;
+    padding-left: 52px;
+    /* ✅ Correct spacing for left icon */
+    padding-right: 16px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    color: rgba(255, 255, 255, 0.92);
+    /* ✅ CHANGED: softer from 0.95 */
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.custom-input.has-right-icon {
+    padding-right: 52px;
+    /* ✅ Correct spacing for right icon */
+}
+
+.custom-input:focus {
+    border-color: rgba(45, 212, 191, 0.5);
+    box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.2);
+}
+
+/* ✅ FIX #2: Softer placeholder (was 0.40, now 0.35) */
+.custom-input::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+    opacity: 1;
+}
+
+/* Password Toggle Button */
+.right-icon-btn {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    color: #64748b;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+    outline: none;
+}
+
+.right-icon-btn:hover {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.right-icon-btn:focus {
+    outline: none;
+}
+
+/* Error Message Styling */
+.error-msg {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #f87171;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+}
+
+/* ✅ AUTOFILL FIX: Match softer text color */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px #0f172a inset !important;
+    -webkit-text-fill-color: rgba(255, 255, 255, 0.92) !important;
+    /* ✅ CHANGED: match input text */
+    transition: background-color 5000s ease-in-out 0s;
+    caret-color: rgba(255, 255, 255, 0.92);
+}
