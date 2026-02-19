@@ -184,6 +184,18 @@
     color: #fff !important;
   }
 
+  /* Disabled/Readonly State */
+  .form-control:disabled,
+  .form-control[readonly] {
+    background: rgba(255, 255, 255, 0.01);
+    color: #94a3b8 !important;
+    /* Muted text color for readability */
+    border-color: rgba(255, 255, 255, 0.05);
+    cursor: not-allowed;
+    opacity: 1;
+    /* Ensure opacity doesn't reduce visibility further */
+  }
+
   /* Fix AutoFill Background & Text Color */
   input:-webkit-autofill,
   input:-webkit-autofill:hover,

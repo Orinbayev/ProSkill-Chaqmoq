@@ -46,20 +46,9 @@
         <div class="dropdown-divider my-2" style="border-color:rgba(255,255,255,0.1);"></div>
 
         <!-- Links based on Role -->
-        <!-- Links based on Role -->
-        {% if request.user.role == 'teacher' %}
-        <a href="{% url 'core:teacher_detail' request.user.id %}" class="dropdown-item text-white">
-            <i class="bi bi-person me-2"></i> Profilim
-        </a>
-        {% elif request.user.role == 'student' %}
-        <a href="{% url 'accounts:student_detail' request.user.id %}" class="dropdown-item text-white">
-            <i class="bi bi-person me-2"></i> Profilim
-        </a>
-        {% else %}
         <a href="{% url 'core:profile' %}" class="dropdown-item text-white">
             <i class="bi bi-person me-2"></i> Profilim
         </a>
-        {% endif %}
 
         <div class="dropdown-divider my-2" style="border-color:rgba(255,255,255,0.1);"></div>
 

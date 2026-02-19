@@ -57,8 +57,17 @@ class TenantMiddleware:
                          is_blocked = True
                 
                 if is_blocked:
-                    if not path.startswith('/hisob/billing/') and not path.startswith('/hisob/tolov/'):
-                        return redirect('billing:plans')
+                    # Allow logout, admin, and billing pages
+                    if not path.startswith('/hisob/billing/') and \
+                       not path.startswith('/hisob/tolov/') and \
+                       not path.startswith('/logout/') and \
+                       not path.startswith('/admin/logout/'):
+                         
+                        # ✅ Don't block students, parents, teachers -> they can't pay anyway
+                        # Only redirect Managers/Directors/Admins to payment page
+                        role = getattr(request.user, "role", None)
+                        if role not in ("student", "parent", "teacher"):
+                            return redirect('billing:plans')
 
             # C) Orphan User (No center assigned)
             # We allow them to proceed, but views might restrict access

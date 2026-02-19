@@ -5,6 +5,18 @@ User = get_user_model()
 
 
 class ProfileForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user and getattr(user, 'role', None) == 'student':
+            self.fields['ism'].disabled = True
+            self.fields['familya'].disabled = True
+            # Optional: Add visual indication
+            self.fields['ism'].widget.attrs['class'] += ' text-muted'
+            self.fields['ism'].widget.attrs['readonly'] = True
+            self.fields['familya'].widget.attrs['class'] += ' text-muted'
+            self.fields['familya'].widget.attrs['readonly'] = True
+
     class Meta:
         model = User
         fields = ("avatar", "ism", "familya")

@@ -1741,14 +1741,14 @@ def stat_ledger(request):
 def profile_view(request):
     user = request.user
 
-    pform = ProfileForm(instance=user)
+    pform = ProfileForm(instance=user, user=user)
     pass_form = SetPasswordForm(user=user)
     
     if request.method == "POST":
         action = request.POST.get("action")
 
         if action == "profile":
-            pform = ProfileForm(request.POST, request.FILES, instance=user)
+            pform = ProfileForm(request.POST, request.FILES, instance=user, user=user)
             if pform.is_valid():
                 pform.save()
                 messages.success(request, "✅ Profil yangilandi")
