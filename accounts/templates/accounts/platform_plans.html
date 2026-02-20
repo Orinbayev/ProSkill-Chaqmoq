@@ -4,63 +4,462 @@
 {% block title %}Tariflar Boshqaruvi{% endblock %}
 
 {% block content %}
-<div class="container py-4">
+<style>
+    :root {
+        --bg-dark: #020617;
+        --card-bg: rgba(255, 255, 255, 0.03);
+        --border: rgba(255, 255, 255, 0.08);
+        --primary: #6366f1;
+        --primary-glow: rgba(99, 102, 241, 0.25);
+    }
+
+    /* ── Page container ─────────────────────────── */
+    .plans-page {
+        padding: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    /* ── Table ──────────────────────────────────── */
+    .plans-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .plans-table th {
+        padding: 12px 16px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: #64748b;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .plans-table td {
+        padding: 14px 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        vertical-align: middle;
+    }
+
+    .plans-table tr:hover td {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .feature-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 20px;
+        background: rgba(99, 102, 241, 0.12);
+        color: #818cf8;
+        border: 1px solid rgba(99, 102, 241, 0.25);
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+
+    /* ── Slide-over overlay ─────────────────────── */
+    .plan-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 9800;
+        backdrop-filter: blur(4px);
+    }
+
+    .plan-overlay.open {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* ── Modal panel ────────────────────────────── */
+    .plan-panel {
+        background: #0f172a;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        width: 960px;
+        max-width: 96vw;
+        max-height: 92vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.8);
+    }
+
+    .plan-panel-header {
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .plan-panel-body {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+    }
+
+    /* Left col */
+    .plan-panel-left {
+        width: 340px;
+        flex-shrink: 0;
+        padding: 1.75rem;
+        border-right: 1px solid var(--border);
+        overflow-y: auto;
+    }
+
+    /* Right col */
+    .plan-panel-right {
+        flex: 1;
+        padding: 1.75rem;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .plan-panel-footer {
+        padding: 1.25rem 2rem;
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+        background: rgba(0, 0, 0, 0.3);
+    }
+
+    /* ── Form controls ──────────────────────────── */
+    .fc-dark {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #fff;
+        border-radius: 10px;
+        padding: 10px 14px;
+        width: 100%;
+        font-size: 0.9rem;
+        transition: border-color 0.2s;
+    }
+
+    .fc-dark:focus {
+        outline: none;
+        border-color: var(--primary);
+        background: rgba(99, 102, 241, 0.05);
+    }
+
+    .fc-dark::placeholder {
+        color: #475569;
+    }
+
+    .fc-label {
+        display: block;
+        font-size: 0.75rem;
+        color: #64748b;
+        font-weight: 600;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* ── Buttons ────────────────────────────────── */
+    .btn-cancel {
+        background: rgba(255, 255, 255, 0.05);
+        color: #94a3b8;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-cancel:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+    }
+
+    .btn-save {
+        background: var(--primary);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        padding: 10px 28px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-save:hover {
+        background: #4f46e5;
+        transform: translateY(-1px);
+    }
+
+    .btn-save:disabled {
+        opacity: 0.6;
+        transform: none;
+        cursor: wait;
+    }
+
+    /* ── Feature section (right) ────────────────── */
+    .feat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+        flex-shrink: 0;
+    }
+
+    .feat-ctrl-btn {
+        background: rgba(99, 102, 241, 0.1);
+        color: #818cf8;
+        border: 1px solid rgba(99, 102, 241, 0.25);
+        border-radius: 8px;
+        padding: 4px 12px;
+        font-size: 0.72rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .feat-ctrl-btn:hover {
+        background: rgba(99, 102, 241, 0.2);
+    }
+
+    .feat-ctrl-btn-danger {
+        background: rgba(239, 68, 68, 0.08);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        border-radius: 8px;
+        padding: 4px 12px;
+        font-size: 0.72rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .feat-ctrl-btn-danger:hover {
+        background: rgba(239, 68, 68, 0.18);
+    }
+
+    .feat-search-wrap {
+        position: relative;
+        margin-bottom: 12px;
+        flex-shrink: 0;
+    }
+
+    .feat-search-wrap i {
+        position: absolute;
+        top: 50%;
+        left: 12px;
+        transform: translateY(-50%);
+        color: #475569;
+        font-size: 0.8rem;
+        pointer-events: none;
+    }
+
+    .feat-search {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: #fff;
+        border-radius: 10px;
+        padding: 9px 12px 9px 34px;
+        width: 100%;
+        font-size: 0.85rem;
+        transition: border-color 0.2s;
+    }
+
+    .feat-search:focus {
+        outline: none;
+        border-color: var(--primary);
+    }
+
+    .feat-search::placeholder {
+        color: #475569;
+    }
+
+    .feat-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+
+    .feat-scroll::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .feat-scroll::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .feat-scroll::-webkit-scrollbar-thumb {
+        background: rgba(99, 102, 241, 0.3);
+        border-radius: 4px;
+    }
+
+    .feat-cat-badge {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 20px;
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background: rgba(99, 102, 241, 0.12);
+        color: #818cf8;
+        border: 1px solid rgba(99, 102, 241, 0.25);
+    }
+
+    .feat-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: rgba(255, 255, 255, 0.02);
+        margin-bottom: 6px;
+        cursor: pointer;
+        transition: all 0.18s;
+        user-select: none;
+    }
+
+    .feat-row:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(99, 102, 241, 0.35);
+        transform: translateX(2px);
+    }
+
+    .feat-row.checked {
+        background: rgba(99, 102, 241, 0.1);
+        border-color: rgba(99, 102, 241, 0.45);
+    }
+
+    .feat-row.checked .feat-name {
+        color: #a5b4fc;
+    }
+
+    .feat-name {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #e2e8f0;
+    }
+
+    .feat-desc {
+        font-size: 0.73rem;
+        color: #64748b;
+        margin-top: 1px;
+    }
+
+    /* Form switch override */
+    .feat-switch .form-check-input {
+        width: 36px;
+        height: 20px;
+        cursor: pointer;
+    }
+
+    .feat-switch .form-check-input:checked {
+        background-color: var(--primary);
+        border-color: var(--primary);
+    }
+
+    .feat-error {
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: #fca5a5;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 0.85rem;
+        margin-top: 12px;
+        display: none;
+        flex-shrink: 0;
+    }
+</style>
+
+<div class="plans-page">
+    <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 text-white mb-1">Tariflar (Plans)</h1>
-            <p class="text-secondary mb-0">SaaS obuna tariflarini boshqarish</p>
+            <p class="text-secondary mb-0 small">SaaS obuna tariflarini boshqarish — modullar va huquqlar bilan</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{% url 'platform_global:center_picker' %}" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left"></i> Ortga
+            <a href="{% url 'platform_global:center_picker' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Ortga
             </a>
-            <button class="btn btn-primary" onclick="openPlanForm()">
-                <i class="bi bi-plus-lg"></i> Yangi Tarif
+            <button class="btn btn-primary btn-sm" onclick="openPlanForm()">
+                <i class="bi bi-plus-lg me-1"></i>Yangi Tarif
             </button>
         </div>
     </div>
 
-    <div class="card bg-dark border-secondary">
-        <div class="card-body p-0">
-            <table class="table table-dark table-hover mb-0">
+    <!-- Plans Table -->
+    <div class="card"
+        style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden;">
+        <div class="table-responsive">
+            <table class="plans-table">
                 <thead>
-                    <tr class="text-uppercase text-secondary" style="font-size: 0.8rem;">
-                        <th class="ps-4">Code</th>
-                        <th>Nomi</th>
-                        <th>Narxi</th>
-                        <th>Cheklovlar (O'quvchi)</th>
-                        <th>Status</th>
-                        <th class="text-end pe-4">Amallar</th>
+                    <tr>
+                        <th>CODE</th>
+                        <th>NOMI</th>
+                        <th>NARXI</th>
+                        <th>LIMITLAR</th>
+                        <th>MODULLAR</th>
+                        <th>STATUS</th>
+                        <th class="text-end">AMALLAR</th>
                     </tr>
                 </thead>
                 <tbody id="plansTableBody">
                     {% for p in db_plans %}
                     <tr>
-                        <td class="ps-4 font-monospace">{{ p.code }}</td>
+                        <td><span class="font-monospace text-white fw-bold">{{ p.code }}</span></td>
                         <td>
-                            <div class="fw-bold">{{ p.title }}</div>
-                            {% if p.is_popular %}<span class="badge bg-warning text-dark"
-                                style="font-size:0.6rem">POPULAR</span>{% endif %}
+                            <div class="text-white fw-semibold">{{ p.title }}</div>
+                            {% if p.is_popular %}<span class="badge bg-warning text-dark mt-1"
+                                style="font-size:0.6rem;">POPULAR</span>{% endif %}
                         </td>
-                        <td>{{ p.monthly_price|intcomma }} so'm</td>
-                        <td>{{ p.max_students }}</td>
+                        <td class="text-white">{{ p.monthly_price|intcomma }} so'm</td>
+                        <td class="text-secondary small">
+                            <div>👥 {{ p.max_students }} o'quvchi</div>
+                            <div>👤 {{ p.max_users }} foydalanuvchi</div>
+                        </td>
+                        <td>
+                            <span class="feature-pill">
+                                <i class="bi bi-key-fill"></i>
+                                {{ p.plan_features.count }} modul
+                            </span>
+                        </td>
                         <td>
                             {% if p.active %}
-                            <span class="badge bg-success">Active</span>
+                            <span class="badge"
+                                style="background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.3);">Active</span>
                             {% else %}
                             <span class="badge bg-secondary">Inactive</span>
                             {% endif %}
                         </td>
-                        <td class="text-end pe-4">
-                            <button class="btn btn-sm btn-outline-light me-1" onclick="editPlan('{{ p.id }}')"><i
-                                    class="bi bi-pencil"></i></button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deletePlan('{{ p.id }}')"><i
-                                    class="bi bi-trash"></i></button>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-info border-0 me-1" onclick="editPlan({{ p.id }})"
+                                title="Tahrirlash">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger border-0" onclick="deletePlan({{ p.id }})"
+                                title="O'chirish">
+                                <i class="bi bi-trash"></i>
+                            </button>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center py-4 text-muted">Tariflar mavjud emas</td>
+                        <td colspan="7" class="text-center py-5 text-secondary">
+                            <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                            Tariflar mavjud emas. Yangi tarif qo'shing.
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -69,115 +468,439 @@
     </div>
 </div>
 
-<!-- Plan Editor Modal (Reused from center picker logic but simplified) -->
-<div id="planFormModal" class="cm-overlay"
-    style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
-    <div class="bg-dark border border-secondary p-4 rounded-3" style="width: 500px; max-width:90%;">
-        <h5 class="text-white mb-3" id="planFormTitle">Tarif</h5>
-        <form id="planForm" onsubmit="event.preventDefault(); submitPlan();">
-            <input type="hidden" name="id" id="planId">
-            <div class="mb-3">
-                <label class="form-label text-secondary">Kod (Unique)</label>
-                <input type="text" name="code" id="p_code" class="form-control bg-secondary text-white border-0"
-                    required>
+<!-- ═══════════════════════════════════════════════════ -->
+<!--    PLAN FORM MODAL (Create / Edit with Features)    -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div id="planFormOverlay" class="plan-overlay" onclick="if(event.target===this) closePlanModal()">
+    <div class="plan-panel">
+
+        <!-- Header -->
+        <div class="plan-panel-header">
+            <div>
+                <h5 class="text-white m-0 fw-bold" id="planFormTitle">Yangi Tarif</h5>
+                <small class="text-secondary">Tarif axborotlari va modullari</small>
             </div>
-            <div class="mb-3">
-                <label class="form-label text-secondary">Nomi</label>
-                <input type="text" name="title" id="p_title" class="form-control bg-secondary text-white border-0"
-                    required>
+            <button type="button" class="btn-close btn-close-white" onclick="closePlanModal()"></button>
+        </div>
+
+        <!-- Body: LEFT + RIGHT -->
+        <div class="plan-panel-body">
+
+            <!-- LEFT: Basic Info + Limits -->
+            <div class="plan-panel-left">
+                <form id="planForm" onsubmit="event.preventDefault(); submitPlan();">
+                    <input type="hidden" id="planId">
+
+                    <div class="mb-3">
+                        <label class="fc-label">Tarif Kodi <span class="text-danger">*</span></label>
+                        <input type="text" id="p_code" class="fc-dark font-monospace text-uppercase" placeholder="GOLD"
+                            required maxlength="20">
+                        <div class="mt-1" id="codeHint" style="font-size:0.72rem; color:#64748b;">Unikal kod
+                            (o'zgartirib bo'lmaydi)</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="fc-label">Tarif Nomi <span class="text-danger">*</span></label>
+                        <input type="text" id="p_title" class="fc-dark" placeholder="Gold Plan" required>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-7">
+                            <label class="fc-label">Narxi (so'm / oy)</label>
+                            <input type="number" id="p_price" class="fc-dark" placeholder="500000" min="0">
+                        </div>
+                        <div class="col-5">
+                            <label class="fc-label">Chegirma (%)</label>
+                            <input type="number" id="p_discount" class="fc-dark" value="0" min="0" max="100">
+                        </div>
+                    </div>
+
+                    <div class="mb-3 p-3 rounded-3"
+                        style="background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.2);">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="p_popular" style="cursor:pointer;">
+                            <label class="form-check-label text-warning small fw-semibold" for="p_popular">
+                                🔥 Ommabop (Popular Badge)
+                            </label>
+                        </div>
+                    </div>
+
+                    <hr style="border-color: rgba(255,255,255,0.07); margin: 1rem 0;">
+                    <p class="text-secondary"
+                        style="font-size:0.72rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">
+                        Limitlar</p>
+
+                    <div class="mb-3">
+                        <label class="fc-label">👥 O'quvchi limiti</label>
+                        <input type="number" id="p_students" class="fc-dark" value="100" min="0">
+                    </div>
+                    <div class="mb-3">
+                        <label class="fc-label">📚 Guruh limiti</label>
+                        <input type="number" id="p_groups" class="fc-dark" value="30" min="0">
+                    </div>
+                    <div class="mb-3">
+                        <label class="fc-label">👤 Foydalanuvchi (Admin) limiti</label>
+                        <input type="number" id="p_users" class="fc-dark" value="5" min="0">
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="fc-label">Tavsif</label>
+                        <textarea id="p_caption" class="fc-dark" rows="2" placeholder="Qisqacha tavsif..."></textarea>
+                    </div>
+                </form>
             </div>
-            <div class="row g-2 mb-3">
-                <div class="col-6">
-                    <label class="form-label text-secondary">Narx (oylik)</label>
-                    <input type="number" name="monthly_price" id="p_price"
-                        class="form-control bg-secondary text-white border-0" required>
+
+            <!-- RIGHT: Features / Permissions -->
+            <div class="plan-panel-right">
+
+                <!-- Header row -->
+                <div class="feat-header">
+                    <div>
+                        <div class="text-white fw-bold mb-1">Modullar va Huquqlar</div>
+                        <div id="featStats" class="text-secondary" style="font-size:0.78rem;">0 / 0 modul tanlandi</div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-1">
+                        <button type="button" class="feat-ctrl-btn" onclick="toggleAllFeats(true)">
+                            <i class="bi bi-check2-all me-1"></i>Barchasi
+                        </button>
+                        <button type="button" class="feat-ctrl-btn" onclick="toggleCoreFeats()">
+                            <i class="bi bi-star me-1"></i>Faqat asosiy
+                        </button>
+                        <button type="button" class="feat-ctrl-btn-danger" onclick="toggleAllFeats(false)">
+                            <i class="bi bi-x me-1"></i>Tozalash
+                        </button>
+                    </div>
                 </div>
-                <div class="col-6">
-                    <label class="form-label text-secondary">Chegirma %</label>
-                    <input type="number" name="discount_percent" id="p_discount"
-                        class="form-control bg-secondary text-white border-0" value="0">
+
+                <!-- Search -->
+                <div class="feat-search-wrap">
+                    <i class="bi bi-search"></i>
+                    <input type="text" class="feat-search" id="featSearchInput" placeholder="Modul qidirish..."
+                        oninput="onFeatSearch()">
+                </div>
+
+                <!-- Features list -->
+                <div class="feat-scroll" id="featContainer">
+                    <div class="text-center py-4 text-secondary small">
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                        Yuklanmoqda...
+                    </div>
+                </div>
+
+                <!-- Error -->
+                <div class="feat-error" id="featError">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    Kamida bitta modul tanlang!
                 </div>
             </div>
-            <div class="mb-3">
-                <label class="form-label text-secondary">Max O'quvchi</label>
-                <input type="number" name="max_students" id="p_students"
-                    class="form-control bg-secondary text-white border-0" value="100" min="0">
+        </div>
+
+        <!-- Footer -->
+        <div class="plan-panel-footer">
+            <div class="text-secondary small" id="featFooterStats">—</div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn-cancel" onclick="closePlanModal()">Bekor qilish</button>
+                <button type="button" class="btn-save" id="savePlanBtn" onclick="submitPlan()">
+                    <i class="bi bi-check-lg"></i>Saqlash
+                </button>
             </div>
-            <div class="form-check mb-3">
-                <input class="form-check-input" type="checkbox" id="p_popular">
-                <label class="form-check-label text-secondary" for="p_popular">Ommabop belgisini qo'yish</label>
-            </div>
-            <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-secondary"
-                    onclick="document.getElementById('planFormModal').style.display='none'">Bekor qilish</button>
-                <button type="submit" class="btn btn-primary">Saqlash</button>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 
 <script>
-    function openPlanForm() {
-        document.getElementById('planForm').reset();
-        document.getElementById('planId').value = '';
-        document.getElementById('planFormModal').style.display = 'flex';
+    // ── State ──────────────────────────────────────────────────────────────────
+    let _featCats = [];   // [{category, label, items:[...]}]
+
+    // ── Load features from API ─────────────────────────────────────────────────
+    async function loadFeatureCategories() {
+        if (_featCats.length) return _featCats;
+        try {
+            const r = await fetch("{% url 'accounts:api_features_list' %}");
+            const d = await r.json();
+            _featCats = d.categories || [];
+        } catch (e) {
+            console.error('Feature load error:', e);
+            _featCats = [];
+        }
+        return _featCats;
     }
 
-    function editPlan(id) {
-        // Fetch single plan details
-        fetch("{% url 'accounts:api_plan_list' %}")
-            .then(r => r.json())
-            .then(d => {
-                const p = d.plans.find(x => x.id == id);
-                if (p) {
-                    document.getElementById('planId').value = p.id;
-                    document.getElementById('p_code').value = p.code;
-                    document.getElementById('p_title').value = p.title;
-                    document.getElementById('p_price').value = p.monthly_price;
-                    document.getElementById('p_discount').value = p.discount_percent;
-                    document.getElementById('p_students').value = p.max_students;
+    // ── Render feature checkboxes ──────────────────────────────────────────────
+    function renderFeats(enabledCodes = []) {
+        const container = document.getElementById('featContainer');
+        if (!container) return;
+        container.innerHTML = '';
 
-                    document.getElementById('p_popular').checked = p.is_popular;
-                    document.getElementById('planFormModal').style.display = 'flex';
-                }
+        if (!_featCats.length) {
+            container.innerHTML = `
+      <div class="text-center py-4 text-secondary small">
+        <i class="bi bi-database me-1"></i> Featurelar yuklanmadi.
+        <a href="#" onclick="initFeatPanel(currentCodes())" class="text-primary ms-1">Qayta urinish</a>
+      </div>`;
+            return;
+        }
+
+        const enabledSet = new Set(enabledCodes);
+        const q = (document.getElementById('featSearchInput')?.value || '').toLowerCase().trim();
+
+        _featCats.forEach(cat => {
+            const items = q
+                ? cat.items.filter(i => i.name.toLowerCase().includes(q) || (i.description || '').toLowerCase().includes(q))
+                : cat.items;
+            if (!items.length) return;
+
+            const checked = items.filter(i => enabledSet.has(i.code)).length;
+
+            const section = document.createElement('div');
+            section.className = 'mb-3';
+            section.innerHTML = `
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="feat-cat-badge">${cat.label}</span>
+        <span class="text-secondary" style="font-size:0.68rem;">${checked}/${items.length}</span>
+      </div>
+      <div class="feat-items"></div>
+    `;
+
+            const list = section.querySelector('.feat-items');
+            items.forEach(item => {
+                const isChecked = enabledSet.has(item.code);
+                const row = document.createElement('div');
+                row.className = 'feat-row' + (isChecked ? ' checked' : '');
+                row.dataset.code = item.code;
+                row.dataset.isCore = item.is_core;
+                row.innerHTML = `
+        <div>
+          <div class="feat-name">
+            ${item.is_core ? '<span class="badge me-1" style="background:rgba(99,102,241,0.15);color:#818cf8;font-size:0.55rem;vertical-align:middle;">ASOSIY</span>' : ''}
+            ${item.name}
+          </div>
+          <div class="feat-desc">${item.description || ''}</div>
+        </div>
+        <div class="form-check form-switch feat-switch m-0 ms-3">
+          <input class="form-check-input feat-chk"
+                 type="checkbox"
+                 id="fc_${item.code}"
+                 data-code="${item.code}"
+                 data-is-core="${item.is_core}"
+                 ${isChecked ? 'checked' : ''}
+                 onclick="event.stopPropagation()">
+        </div>
+      `;
+                row.addEventListener('click', function (e) {
+                    if (e.target.tagName === 'INPUT') return;
+                    const chk = this.querySelector('.feat-chk');
+                    if (chk) { chk.checked = !chk.checked; onFeatChange(chk); }
+                });
+                row.querySelector('.feat-chk').addEventListener('change', function () {
+                    onFeatChange(this);
+                });
+                list.appendChild(row);
             });
+
+            container.appendChild(section);
+        });
+
+        updateFeatStats();
     }
 
-    function submitPlan() {
-        const form = document.getElementById('planForm');
-        const fd = new FormData(form);
-        const data = Object.fromEntries(fd.entries());
-        data.is_popular = document.getElementById('p_popular').checked;
+    function onFeatChange(chk) {
+        const row = chk.closest('.feat-row');
+        if (chk.checked) {
+            row.classList.add('checked');
+            document.getElementById('featError').style.display = 'none';
+        } else {
+            row.classList.remove('checked');
+        }
+        updateFeatStats();
+    }
 
-        let url = "{% url 'accounts:api_plan_create' %}";
-        if (data.id) url = `/platform/api/plans/${data.id}/update/`;
+    function updateFeatStats() {
+        const total = document.querySelectorAll('.feat-chk').length;
+        const checked = document.querySelectorAll('.feat-chk:checked').length;
+        const stats = `${checked} / ${total} modul tanlandi`;
+        const el1 = document.getElementById('featStats');
+        const el2 = document.getElementById('featFooterStats');
+        if (el1) el1.textContent = stats;
+        if (el2) el2.textContent = stats;
+    }
 
-        fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify(data)
-        }).then(r => r.json()).then(res => {
-            if (res.success) {
-                location.reload();
-            } else {
-                alert(res.error || 'Error');
-            }
+    function currentCodes() {
+        return Array.from(document.querySelectorAll('.feat-chk:checked')).map(c => c.dataset.code);
+    }
+
+    async function initFeatPanel(enabledCodes = []) {
+        const c = document.getElementById('featContainer');
+        if (c) c.innerHTML = '<div class="text-center py-4 text-secondary small"><span class="spinner-border spinner-border-sm me-2"></span>Yuklanmoqda...</div>';
+        await loadFeatureCategories();
+        renderFeats(enabledCodes);
+    }
+
+    function toggleAllFeats(state) {
+        document.querySelectorAll('.feat-chk').forEach(chk => {
+            chk.checked = state;
+            onFeatChange(chk);
         });
     }
 
-    function deletePlan(id) {
-        if (confirm('Ochirilsinmi?')) {
-            fetch(`/platform/api/plans/${id}/delete/`, {
-                method: 'POST',
-                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
-            }).then(r => r.json()).then(res => {
-                if (res.success) location.reload();
-                else alert(res.error);
-            });
+    function toggleCoreFeats() {
+        document.querySelectorAll('.feat-chk').forEach(chk => {
+            chk.checked = (chk.dataset.isCore === 'true');
+            onFeatChange(chk);
+        });
+    }
+
+    function onFeatSearch() {
+        const codes = currentCodes();
+        renderFeats(codes);
+    }
+
+    // ── Modal open / close ─────────────────────────────────────────────────────
+    function openPlanForm() {
+        document.getElementById('planId').value = '';
+        document.getElementById('planForm').reset();
+        document.getElementById('p_code').disabled = false;
+        document.getElementById('codeHint').textContent = 'Unikal kod (keyinchalik o\'zgartirib bo\'lmaydi)';
+        document.getElementById('p_discount').value = 0;
+        document.getElementById('p_students').value = 100;
+        document.getElementById('p_groups').value = 30;
+        document.getElementById('p_users').value = 5;
+        document.getElementById('p_popular').checked = false;
+        document.getElementById('planFormTitle').textContent = 'Yangi Tarif';
+        document.getElementById('featError').style.display = 'none';
+        document.getElementById('featSearchInput').value = '';
+        document.getElementById('planFormOverlay').classList.add('open');
+        document.body.style.overflow = 'hidden';
+        initFeatPanel([]);
+    }
+
+    function closePlanModal() {
+        document.getElementById('planFormOverlay').classList.remove('open');
+        document.body.style.overflow = '';
+    }
+
+    async function editPlan(id) {
+        try {
+            const r = await fetch("{% url 'accounts:api_plan_list' %}");
+            const d = await r.json();
+            const p = d.plans.find(x => x.id == id);
+            if (!p) { alert('Tarif topilmadi'); return; }
+
+            document.getElementById('planId').value = p.id;
+            document.getElementById('p_code').value = p.code;
+            document.getElementById('p_code').disabled = true;
+            document.getElementById('codeHint').textContent = 'Kod o\'zgartirib bo\'lmaydi';
+            document.getElementById('p_title').value = p.title;
+            document.getElementById('p_price').value = p.monthly_price;
+            document.getElementById('p_discount').value = p.discount_percent || 0;
+            document.getElementById('p_students').value = p.max_students || 0;
+            document.getElementById('p_groups').value = p.max_groups || 0;
+            document.getElementById('p_users').value = p.max_users || 0;
+            document.getElementById('p_popular').checked = p.is_popular;
+            document.getElementById('p_caption').value = p.caption || '';
+            document.getElementById('planFormTitle').textContent = 'Tarifni Tahrirlash: ' + p.title;
+            document.getElementById('featError').style.display = 'none';
+            document.getElementById('featSearchInput').value = '';
+            document.getElementById('planFormOverlay').classList.add('open');
+            document.body.style.overflow = 'hidden';
+
+            const enabledCodes = p.feature_codes || [];
+            await initFeatPanel(enabledCodes);
+        } catch (e) {
+            alert('Xatolik: ' + e.message);
         }
     }
+
+    // ── Submit ─────────────────────────────────────────────────────────────────
+    async function submitPlan() {
+        const planId = document.getElementById('planId').value;
+        const code = document.getElementById('p_code').value.trim().toUpperCase();
+        const title = document.getElementById('p_title').value.trim();
+
+        if (!code) { document.getElementById('p_code').focus(); return; }
+        if (!title) { document.getElementById('p_title').focus(); return; }
+
+        // Collect M2M feature codes
+        const featureCodes = currentCodes();
+        if (!featureCodes.length) {
+            const errEl = document.getElementById('featError');
+            errEl.style.display = 'block';
+            errEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            return;
+        }
+        document.getElementById('featError').style.display = 'none';
+
+        // Build legacy features map for backward compat
+        const featuresObj = {};
+        document.querySelectorAll('.feat-chk').forEach(chk => {
+            featuresObj[chk.dataset.code] = chk.checked;
+        });
+
+        const data = {
+            code: code,
+            title: title,
+            monthly_price: parseInt(document.getElementById('p_price').value) || 0,
+            discount_percent: parseInt(document.getElementById('p_discount').value) || 0,
+            max_students: parseInt(document.getElementById('p_students').value) || 0,
+            max_groups: parseInt(document.getElementById('p_groups').value) || 0,
+            max_users: parseInt(document.getElementById('p_users').value) || 0,
+            is_popular: document.getElementById('p_popular').checked,
+            caption: document.getElementById('p_caption').value,
+            feature_codes: featureCodes,    // M2M
+            features: featuresObj,     // legacy JSONField
+        };
+
+        const url = planId
+            ? `/hisob/api/plans/${planId}/update/`
+            : "{% url 'accounts:api_plan_create' %}";
+
+        const btn = document.getElementById('savePlanBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saqlanmoqda...';
+
+        try {
+            const r = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(data)
+            });
+            const res = await r.json();
+            if (res.success) {
+                closePlanModal();
+                location.reload();
+            } else {
+                alert('Xatolik: ' + (res.error || res.message || 'Noma\'lum xato'));
+            }
+        } catch (e) {
+            alert('Server bilan aloqa xatosi: ' + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-lg"></i>Saqlash';
+        }
+    }
+
+    // ── Delete ─────────────────────────────────────────────────────────────────
+    async function deletePlan(id) {
+        if (!confirm("Tarifni o'chirishni tasdiqlaysizmi?\nBu amalni ortga qaytarib bo'lmaydi!")) return;
+        try {
+            const r = await fetch(`/hisob/api/plans/${id}/delete/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            });
+            const res = await r.json();
+            if (res.success) location.reload();
+            else alert('Xatolik: ' + res.error);
+        } catch (e) {
+            alert('Xatolik: ' + e.message);
+        }
+    }
+
+    // ── ESC to close ───────────────────────────────────────────────────────────
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closePlanModal();
+    });
 </script>
 {% endblock %}

@@ -547,29 +547,134 @@
     display: block;
   }
 
+
   /* Footer Buttons */
   .modal-footer-custom {
     padding: 1.5rem 2.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    background: #0f172a;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(15, 23, 42, 0.85);
+    /* Glass effect base */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     display: flex;
-    justify-content: flex-end;
-    gap: 12px;
+    justify-content: space-between;
+    /* Cancel left, Save right */
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    bottom: 0;
+    z-index: 50;
+    margin-top: auto;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.3);
+    /* Soft shadow indicating depth */
   }
 
-  .btn-ghost {
-    background: transparent;
-    color: #94a3b8;
-    border: none;
-    font-weight: 600;
-    padding: 0.75rem 1.5rem;
+  /* Increase button heights for better touch/click area */
+  .modal-footer-custom button {
+    height: 48px;
+    font-size: 1rem;
+    border-radius: 12px;
+  }
+
+  /* ── Feature Toggle Row ─────────────────────────────── */
+  .feature-toggle-row {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+
+  .feature-toggle-row:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(99, 102, 241, 0.4);
+    transform: translateX(2px);
+  }
+
+  .feature-toggle-row.checked {
+    background: rgba(99, 102, 241, 0.1);
+    border-color: rgba(99, 102, 241, 0.5);
+  }
+
+  .feature-toggle-row.checked .text-white {
+    color: #a5b4fc !important;
+  }
+
+  /* ── Feature Category Badge ─────────────────────────── */
+  .feature-cat-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    background: rgba(99, 102, 241, 0.15);
+    color: #818cf8;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+  }
+
+  /* ── Feature Control Buttons ────────────────────────── */
+  .feature-ctrl-btn {
+    background: rgba(59, 130, 246, 0.1);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    font-size: 0.72rem;
+    padding: 4px 10px;
     border-radius: 8px;
     transition: all 0.2s;
   }
 
-  .btn-ghost:hover {
+  .feature-ctrl-btn:hover {
+    background: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+  }
+
+  .feature-ctrl-btn-danger {
+    background: rgba(239, 68, 68, 0.08);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    font-size: 0.72rem;
+    padding: 4px 10px;
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+
+  .feature-ctrl-btn-danger:hover {
+    background: rgba(239, 68, 68, 0.18);
+    color: #fca5a5;
+  }
+
+  /* ── Features scrollable container ─────────────────── */
+  #features-container::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  #features-container::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  #features-container::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.3);
+    border-radius: 4px;
+  }
+
+
+  .btn-ghost {
     background: rgba(255, 255, 255, 0.05);
+    /* Slight tint for ghost */
+    color: #94a3b8;
+    border: 1px solid transparent;
+    font-weight: 600;
+    padding: 0 1.5rem;
+    transition: all 0.2s;
+  }
+
+  .btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.1);
     color: white;
+    border-color: rgba(255, 255, 255, 0.1);
   }
 
   .btn-primary-action {
@@ -577,15 +682,15 @@
     color: white;
     border: none;
     font-weight: 600;
-    padding: 0.75rem 2rem;
-    border-radius: 8px;
+    padding: 0 2.5rem;
     transition: all 0.2s;
-    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
   }
 
   .btn-primary-action:hover {
     background: #2563eb;
-    box-shadow: 0 6px 8px -1px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5);
+    transform: translateY(-1px);
   }
 
   @media (max-width: 768px) {
@@ -625,7 +730,13 @@
     }
 
     .modal-footer-custom {
-      padding: 1rem 1.5rem;
+      padding: 1.25rem 1.5rem;
+      flex-direction: column-reverse;
+      /* Stack buttons */
+    }
+
+    .modal-footer-custom button {
+      width: 100%;
     }
   }
 
@@ -945,7 +1056,7 @@
             {% if days <= 0 %} <span class="badge bg-danger">MUDDAT TUGAGAN</span>
               {% elif days <= 7 %} <span class="badge bg-warning text-dark">{{ days }} kun qoldi!</span>
                 {% else %}
-                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">{{  days }} kun qoldi</span>
+                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">{{ days }} kun qoldi</span>
                 {% endif %}
                 {% endwith %}
           </div>
@@ -1002,300 +1113,219 @@
 <!-- ================= MODAL: CREATE / EDIT ================= -->
 <div id="centerModal" class="cm-overlay">
   <div class="cm-modal">
-    <div class="d-flex justify-content-between align-items-center p-4 border-bottom border-secondary">
-      <h5 class="text-white m-0" id="modalTitle">Markaz Ma'lumotlari</h5>
-      <button type="button" class="btn-close btn-close-white" onclick="closeModal('centerModal')"></button>
-    </div>
+    <!-- Header Removed for new Layout -->
 
     <div class="cm-body">
-      <!-- Sidebar -->
+      <!-- LEFT SIDEBAR: NAVIGATION -->
       <div class="cm-sidebar">
-        <div class="px-4 mb-4 text-white fw-bold h5">Settings</div>
-        <button type="button" class="nav-btn active" onclick="switchTab('tab-main')"><i class="bi bi-grid"></i> Asosiy &
-          Direktor</button>
-        <button type="button" class="nav-btn" onclick="switchTab('tab-plan')"><i class="bi bi-sliders"></i> Tarif &
-          Reja</button>
-        <button type="button" class="nav-btn" onclick="switchTab('tab-modules')"><i class="bi bi-plug"></i>
-          Modullar</button>
-      </div>
-
-      <!-- Content -->
-      <div class="cm-content">
-        <div class="cm-scroll-wrapper">
-          <form id="centerForm">
-            <input type="hidden" name="id" id="center_id">
-
-            <!-- TAB 1 -->
-            <div id="tab-main" class="tab-pane active">
-              <div class="section-title"><i class="bi bi-building me-2"></i>Markaz Ma'lumotlari</div>
-              <div class="row g-3 mb-5">
-                <div class="col-md-12">
-                  <label class="form-label">Markaz Nomi *</label>
-                  <input type="text" name="name" id="inp_name" class="form-control-dark" required
-                    placeholder="Masalan: Chaqmoq Academy">
-                </div>
-
-                <div class="col-12">
-                  <label class="form-label">Address</label>
-                  <input type="text" name="address" id="inp_address" class="form-control-dark"
-                    placeholder="Gurlan tumani, Mustaqillik ko'chasi 5-uy">
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label">Telefon</label>
-                  <input type="text" name="phone" id="inp_phone" class="form-control-dark" placeholder="+998993845854">
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label">O'quvchilar Limiti</label>
-                  <input type="number" name="capacity_limit" id="inp_capacity_limit" class="form-control-dark"
-                    value="100" min="1">
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label">Status</label>
-                  <select name="status" id="inp_status" class="form-control-dark">
-                    <option value="ACTIVE">ACTIVE - Faol</option>
-                    <option value="BLOCKED">BLOCKED - Bloklangan</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="section-title"><i class="bi bi-person-badge me-2"></i>Direktor Ma'lumotlari</div>
-              <div class="row g-3">
-                <div class="col-md-6">
-                  <label class="form-label">Ismi</label>
-                  <input type="text" name="director_ism" id="inp_dir_ism" class="form-control-dark" placeholder="Aziz">
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Familiyasi</label>
-                  <input type="text" name="director_familya" id="inp_dir_fam" class="form-control-dark"
-                    placeholder="Rahimov">
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Passport ID</label>
-                  <input type="text" name="director_passport" id="inp_dir_passport" class="form-control-dark"
-                    placeholder="AB1234567">
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">JSHSHIR (PINFL)</label>
-                  <input type="text" name="director_jshr" id="inp_dir_jshr" class="form-control-dark" maxlength="14"
-                    placeholder="32101901230011">
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Email (Login)</label>
-                  <input type="email" name="director_email" id="inp_dir_email" class="form-control-dark"
-                    placeholder="director@example.com">
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Parol <span class="text-muted small">(Yaratish/Yangilash)</span></label>
-                  <input type="text" name="director_password" id="inp_dir_pass" class="form-control-dark"
-                    placeholder="********">
-                </div>
-              </div>
-            </div>
-
-            <!-- TAB 2 -->
-            <div id="tab-plan" class="tab-pane">
-              <div class="section-title"><i class="bi bi-sliders me-2"></i>Tarif & Reja Konfiguratsiyasi</div>
-
-              <div id="plan_info_display" style="display:none;"></div>
-
-              <div class="row g-3">
-                <div class="col-md-8">
-                  <label class="form-label">Tarif Rejasi</label>
-                  <select name="plan" id="inp_plan" class="form-control-dark" onchange="onPlanChange()"></select>
-                </div>
-
-                <div class="col-md-4">
-                  <label class="form-label">Muddat (Oy)</label>
-                  <select id="inp_duration" class="form-control-dark" onchange="onDurationChange()">
-                    <option value="1">1 Oy</option>
-                    <option value="3">3 Oy</option>
-                    <option value="6">6 Oy</option>
-                    <option value="9">9 Oy</option>
-                    <option value="12">12 Oy (1 Yil)</option>
-                  </select>
-                </div>
-
-                <!-- Promo Code Section (Hidden by default) -->
-                <div class="col-12" id="div_promo_code" style="display: none;">
-                  <div class="row g-3 p-3 border border-dashed border-secondary rounded-3"
-                    style="background: rgba(251, 191, 36, 0.05); border-color: rgba(251, 191, 36, 0.2) !important;">
-                    <div class="col-12 mb-2">
-                      <div class="text-amber small fw-bold"><i class="bi bi-ticket-perforated me-1"></i> PROMO KOD
-                        SOZLAMALARI</div>
-                    </div>
-
-                    <div class="col-md-6">
-                      <label class="form-label">Promo Kod</label>
-                      <input type="text" name="promo_code" id="inp_promo_code" class="form-control-dark"
-                        placeholder="Masalan: START2025">
-                    </div>
-
-                    <div class="col-md-6">
-                      <label class="form-label">Chegirma Summasi (so'm)</label>
-                      <input type="number" name="discount_amount" id="inp_discount_amount" class="form-control-dark"
-                        placeholder="0">
-                    </div>
-
-                    <div class="col-md-6">
-                      <label class="form-label">Amal Qilish Boshlanishi</label>
-                      <input type="date" name="promo_start" id="inp_promo_start" class="form-control-dark">
-                    </div>
-
-                    <div class="col-md-6">
-                      <label class="form-label">Amal Qilish Tugashi</label>
-                      <input type="date" name="promo_end" id="inp_promo_end" class="form-control-dark">
-                    </div>
-                  </div>
-                </div>
-
-                <div class="col-md-5" id="div_monthly_price_container">
-                  <label class="form-label">Oylik To'lov (so'm)</label>
-                  <input type="number" name="monthly_price" id="inp_monthly_price" class="form-control-dark" value="0">
-                </div>
-
-                <div class="col-md-2" id="div_discount_percent_container">
-                  <label class="form-label">Chegirma %</label>
-                  <input type="number" name="discount_percent" id="inp_discount_percent"
-                    class="form-control-dark font-monospace text-warning fw-bold" placeholder="0" min="0" max="100">
-                </div>
-
-                <div class="col-md-5" id="div_expires_at_container">
-                  <label class="form-label">O'chish Sanasi (Muddat tugashi)</label>
-                  <input type="date" name="expires_at" id="inp_expires_at" class="form-control-dark">
-                </div>
-              </div>
-
-              <div class="total-calculation">
-                <div class="d-flex justify-content-between align-items-center">
-                  <span class="text-white opacity-75 fw-bold" style="letter-spacing: 1px;">JAMI TO'LOV:</span>
-                  <div class="text-end">
-                    <h2 class="mb-0 text-amber" id="total_price_display">0 UZS</h2>
-                    <div id="total_price_original" class="text-decoration-line-through text-muted small"
-                      style="display:none; font-size: 1rem;"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- TAB 3 -->
-            <div id="tab-modules" class="tab-pane">
-              <div class="section-title"><i class="bi bi-plug me-2"></i>Modullar Boshqaruvi</div>
-              <div class="info-box mb-3">
-                <i class="bi bi-cpu-fill me-2"></i>Direktor panelida ko'rinadigan bo'limlarni shu yerda boshqaring.
-              </div>
-
-              <div class="d-flex flex-column gap-3">
-                <div class="toggle-row" id="row_finance">
-                  <label class="form-check-label d-flex align-items-center gap-3" for="chk_finance">
-                    <div class="icon-wrap bg-success bg-opacity-10 p-2 rounded-3">
-                      <i class="bi bi-cash-stack text-success fs-4"></i>
-                    </div>
-                    <div>
-                      <div class="fw-bold text-white">To‘lov</div>
-                      <div class="small module-desc">Kassa, harajatlar va moliyaviy hisobotlar</div>
-                    </div>
-                  </label>
-                  <div class="form-check form-switch m-0">
-                    <input class="form-check-input" type="checkbox" id="chk_finance"
-                      onchange="toggleRow(this, 'row_finance')">
-                  </div>
-                </div>
-
-                <div class="toggle-row" id="row_leads">
-                  <label class="form-check-label d-flex align-items-center gap-3" for="chk_leads">
-                    <div class="icon-wrap bg-warning bg-opacity-10 p-2 rounded-3">
-                      <i class="bi bi-funnel text-warning fs-4"></i>
-                    </div>
-                    <div>
-                      <div class="fw-bold text-white">Leadlar</div>
-                      <div class="small module-desc">Arizalar va potentsial o'quvchilar</div>
-                    </div>
-                  </label>
-                  <div class="form-check form-switch m-0">
-                    <input class="form-check-input" type="checkbox" id="chk_leads"
-                      onchange="toggleRow(this, 'row_leads')">
-                  </div>
-                </div>
-
-                <div class="toggle-row" id="row_kpi">
-                  <label class="form-check-label d-flex align-items-center gap-3" for="chk_kpi">
-                    <div class="icon-wrap bg-info bg-opacity-10 p-2 rounded-3">
-                      <i class="bi bi-speedometer2 text-info fs-4"></i>
-                    </div>
-                    <div>
-                      <div class="fw-bold text-white">Hisobot</div>
-                      <div class="small module-desc">O'qituvchilar reytingi va samaradorligi</div>
-                    </div>
-                  </label>
-                  <div class="form-check form-switch m-0">
-                    <input class="form-check-input" type="checkbox" id="chk_kpi" onchange="toggleRow(this, 'row_kpi')">
-                  </div>
-                </div>
-
-                <div class="toggle-row" id="row_store">
-                  <label class="form-check-label d-flex align-items-center gap-3" for="chk_store">
-                    <div class="icon-wrap bg-primary bg-opacity-10 p-2 rounded-3">
-                      <i class="bi bi-shop text-primary fs-4"></i>
-                    </div>
-                    <div>
-                      <div class="fw-bold text-white">Do‘kon</div>
-                      <div class="small module-desc">O'quvchilar uchun ichki do'kon tizimi</div>
-                    </div>
-                  </label>
-                  <div class="form-check form-switch m-0">
-                    <input class="form-check-input" type="checkbox" id="chk_store"
-                      onchange="toggleRow(this, 'row_store')">
-                  </div>
-                </div>
-
-                <div class="toggle-row" id="row_tasks">
-                  <label class="form-check-label d-flex align-items-center gap-3" for="chk_tasks">
-                    <div class="icon-wrap bg-danger bg-opacity-10 p-2 rounded-3">
-                      <i class="bi bi-journal-check text-danger fs-4"></i>
-                    </div>
-                    <div>
-                      <div class="fw-bold text-white">Vazifalar (LMS)</div>
-                      <div class="small module-desc">O'quvchilar uchun topshiriqlar va nazorat</div>
-                    </div>
-                  </label>
-                  <div class="form-check form-switch m-0">
-                    <input class="form-check-input" type="checkbox" id="chk_tasks"
-                      onchange="toggleRow(this, 'row_tasks')">
-                  </div>
-                </div>
-
-                <div class="toggle-row" id="row_sms">
-                  <label class="form-check-label d-flex align-items-center gap-3" for="chk_sms">
-                    <div class="icon-wrap bg-primary bg-opacity-10 p-2 rounded-3">
-                      <i class="bi bi-chat-dots text-primary fs-4"></i>
-                    </div>
-                    <div>
-                      <div class="fw-bold text-white">SMS Xabarnomalar</div>
-                      <div class="small module-desc">Avtomatik va qo'lda SMS yuborish</div>
-                    </div>
-                  </label>
-                  <div class="form-check form-switch m-0">
-                    <input class="form-check-input" type="checkbox" id="chk_sms" onchange="toggleRow(this, 'row_sms')">
-                  </div>
-                </div>
-              </div>
-            </div>
-
-          </form>
+        <div class="px-4 mb-4">
+          <h5 class="text-white fw-bold mb-1">Markaz Yaratish</h5>
+          <small class="text-muted">Yangi o'quv markazi sozlamalari</small>
         </div>
 
+        <button type="button" class="nav-btn active" onclick="scrollToSection('sec-basic')">
+          <i class="bi bi-building"></i> Asosiy Ma'lumotlar
+        </button>
+        <button type="button" class="nav-btn" onclick="scrollToSection('sec-plan')">
+          <i class="bi bi-credit-card"></i> Tarif & Limitlar
+        </button>
+        <button type="button" class="nav-btn" onclick="scrollToSection('sec-features')">
+          <i class="bi bi-sliders"></i> Qo'shimcha
+        </button>
+      </div>
+
+      <!-- MAIN CONTENT: SCROLLABLE FORM -->
+      <form id="centerForm" class="cm-content">
+        <input type="hidden" id="centerId" name="center_id">
+
+        <div class="cm-scroll-wrapper" id="scrollContainer" onscroll="onScrollSpy()">
+
+          <!-- SECTION 1: BASIC INFO -->
+          <div id="sec-basic" class="mb-5 section-block">
+            <div class="section-title"><i class="bi bi-info-circle"></i> Asosiy Ma'lumotlar</div>
+
+            <div class="row g-3">
+              <div class="col-md-9">
+                <label class="form-label">Markaz Nomi <span class="text-danger">*</span></label>
+                <input type="text" name="name" id="name" class="form-control-dark"
+                  placeholder="Masalan: Chaqmoq Academy" required>
+              </div>
+
+              <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select name="status" id="status" class="form-control-dark">
+                  <option value="ACTIVE" selected>Active ✅</option>
+                  <option value="BLOCKED">Blocked 🚫</option>
+                  <option value="ARCHIVED">Archived 📦</option>
+                </select>
+              </div>
+
+              <div class="col-md-12">
+                <label class="form-label">Manzil</label>
+                <input type="text" name="address" id="address" class="form-control-dark"
+                  placeholder="Toshkent sh, Chilonzor...">
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 2: PLAN & LIMITS -->
+          <div id="sec-plan" class="mb-5 section-block">
+            <div class="section-title"><i class="bi bi-layers"></i> Tarif va Limitlar</div>
+
+            <div class="row g-4">
+              <!-- PLAN CARD SELECTION -->
+              <input type="hidden" name="plan" id="selected_plan_code" required>
+              <div class="col-12">
+                <label class="form-label mb-3">Tarif Rejasini Tanlang</label>
+
+                <!-- If no plan selected -->
+                <div id="no-plan-view"
+                  class="p-4 border border-dashed border-secondary rounded-3 text-center bg-dark bg-opacity-50">
+                  <div class="mb-3 text-secondary opacity-50">
+                    <i class="bi bi-collection fs-1"></i>
+                  </div>
+                  <h6 class="text-white mb-2">Hozirda tarif tanlanmagan</h6>
+                  <p class="text-secondary small mb-3">Markaz faoliyati uchun mos tarifni tanlang</p>
+                  <button type="button" class="btn-primary-action px-4 py-2" onclick="openPlanSelector()">
+                    <i class="bi bi-plus-lg me-2"></i> Tarif Tanlash
+                  </button>
+                </div>
+
+                <!-- If plan selected -->
+                <div id="selected-plan-view" style="display:none;"
+                  class="position-relative overflow-hidden rounded-3 border border-secondary border-opacity-20"
+                  style="background: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);">
+                  <div class="p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                      <div>
+                        <span
+                          class="badge bg-primary bg-opacity-20 text-primary border border-primary border-opacity-20 mb-2"
+                          id="sum-code">CODE</span>
+                        <h3 class="text-white fw-bold mb-0" id="sum-title">Plan Title</h3>
+                      </div>
+                      <div class="text-end">
+                        <h3 class="text-amber fw-bold mb-0" id="sum-price">0</h3>
+                        <small class="text-secondary">so'm/oy</small>
+                      </div>
+                    </div>
+
+                    <div
+                      class="d-flex flex-wrap gap-3 py-3 border-top border-bottom border-secondary border-opacity-10 mb-3">
+                      <div class="d-flex align-items-center gap-2 text-white-50 small">
+                        <i class="bi bi-people text-success"></i> <span id="sum-students">100</span> o'quvchi
+                      </div>
+                      <div class="d-flex align-items-center gap-2 text-white-50 small">
+                        <i class="bi bi-grid text-success"></i> <span id="sum-groups">20</span> guruh
+                      </div>
+                      <div class="d-flex align-items-center gap-2 text-white-50 small">
+                        <i class="bi bi-person-badge text-success"></i> <span id="sum-users">10</span> admin
+                      </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                      <small class="text-muted"><i class="bi bi-info-circle me-1"></i> Modullar avtomatik
+                        sozlangan</small>
+                      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="openPlanSelector()">
+                        <i class="bi bi-arrow-repeat me-1"></i> Tarifni o'zgartirish
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- AUTO FILLED LIMITS -->
+              <div class="col-md-6">
+                <label class="form-label">O'quvchi Limiti (Avtomatik)</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-dark border-secondary text-secondary"><i
+                      class="bi bi-people"></i></span>
+                  <input type="number" name="capacity_limit" id="capacity_limit" class="form-control-dark" readonly>
+                </div>
+                <small class="text-muted mt-1 d-block"><i class="bi bi-info-circle me-1"></i> Tarifga qarab avtomatik
+                  belgilanadi</small>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label">Tugash Sanasi (Ixtiyoriy)</label>
+                <input type="date" name="expires_at" id="expires_at" class="form-control-dark">
+                <small class="text-muted mt-1 d-block">Agar bo'sh qoldirilsa, avtomatik 1 oy beriladi</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 3: FEATURES (MODULES) -->
+          <div id="sec-features" class="mb-5 section-block">
+            <div class="section-title"><i class="bi bi-grid-1x2"></i> Modullar va Ruxsatlar</div>
+            <p class="text-white-50 small mb-3">Tanlangan tarif bo'yicha ruxsatlar avtomatik belgilanadi. Siz ularni
+              o'zgartirishingiz mumkin (agar tarif ruxsat bersa).</p>
+
+            <div id="center-features-container" class="d-flex flex-column gap-3">
+              <!-- JS will render features here -->
+            </div>
+          </div>
+
+
+
+        </div>
+
+        <!-- FOOTER ACTIONS -->
         <div class="modal-footer-custom">
           <button type="button" class="btn-ghost" onclick="closeModal('centerModal')">Bekor qilish</button>
-          <button type="button" class="btn-primary-action" onclick="submitCenter()">Saqlash</button>
+          <button type="submit" class="btn-primary-action" id="submitBtn">
+            <i class="bi bi-check-lg me-2"></i> Saqlash
+          </button>
         </div>
+      </form>
 
-      </div>
     </div>
   </div>
 </div>
+</div>
+
+
+<!-- PLAN SELECTOR MODAL -->
+<div id="planSelectorModal" class="cm-overlay" style="z-index: 9200;">
+  <div style="
+    background: #0a0f1e;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 24px;
+    width: 960px;
+    max-width: 95vw;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.8);
+  ">
+    <!-- Header -->
+    <div
+      style="padding: 1.5rem 2rem; border-bottom: 1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center; background: rgba(255,255,255,0.02); flex-shrink:0;">
+      <div>
+        <h5 class="text-white m-0 fw-bold" style="font-size: 1.1rem;">Tarif Tanlash</h5>
+        <p class="text-secondary m-0" style="font-size:0.8rem;">Markazga mos tarifni tanlang</p>
+      </div>
+      <button type="button" class="btn-close btn-close-white" onclick="closeModal('planSelectorModal')"></button>
+    </div>
+
+    <!-- Search -->
+    <div style="padding: 1rem 2rem; border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink:0;">
+      <div class="position-relative">
+        <i class="bi bi-search position-absolute text-secondary"
+          style="left:14px;top:50%;transform:translateY(-50%);font-size:0.85rem;"></i>
+        <input type="text" id="planSearchInput"
+          style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;border-radius:12px;padding:10px 14px 10px 38px;width:100%;font-size:0.9rem;"
+          placeholder="Tarif nomini qidiring..." oninput="filterPlans()">
+      </div>
+    </div>
+
+    <!-- Plans Grid -->
+    <div style="padding: 1.5rem 2rem; overflow-y:auto; flex:1;">
+      <div id="plan-list-container"
+        style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap:16px;"></div>
+    </div>
+  </div>
+</div>
+
 
 <!-- PLANS MANAGER MODAL -->
 <div id="plansManageModal" class="cm-overlay">
@@ -1367,65 +1397,137 @@
 </div>
 
 <!-- PLAN FORM MODAL (Create/Edit) -->
-<div id="planFormModal" class="cm-overlay" style="z-index: 9100;">
-  <div class="cm-modal p-4" style="max-height: 90vh; overflow-y: auto; max-width: 600px;">
-    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom border-secondary pb-3">
-      <h5 class="text-white m-0" id="planFormTitle">Yangi Tarif</h5>
+<div id="planFormModal" class="cm-overlay" style="z-index: 9300;">
+  <div class="cm-modal p-0 overflow-hidden"
+    style="max-width: 1000px; height: 90vh; display: flex; flex-direction: column;">
+    <div class="p-3 border-bottom border-secondary d-flex justify-content-between align-items-center bg-dark">
+      <div>
+        <h5 class="text-white m-0" id="planFormTitle">Yangi Tarif</h5>
+        <small class="text-secondary">Yangi tarif rejasini yarating va ruxsatlarni sozlang</small>
+      </div>
       <button type="button" class="btn-close btn-close-white" onclick="closeModal('planFormModal')"></button>
     </div>
 
-    <form id="planForm">
-      <input type="hidden" name="id" id="planId">
-      <div class="row g-3">
-        <div class="col-md-6">
-          <label class="form-label">Tarif Kodi (Unique)</label>
-          <input type="text" name="code" id="p_code" class="form-control-dark font-monospace text-uppercase"
-            placeholder="GOLD" required>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">Tarif Nomi</label>
-          <input type="text" name="title" id="p_title" class="form-control-dark" placeholder="Gold Plan" required>
-        </div>
+    <div class="p-4 overflow-auto flex-grow-1 bg-dark">
+      <form id="planForm">
+        <input type="hidden" name="id" id="planId">
 
-        <div class="col-md-6">
-          <label class="form-label">Oylik Narxi (so'm)</label>
-          <input type="number" name="monthly_price" id="p_price" class="form-control-dark" placeholder="500000"
-            required>
-        </div>
+        <div class="row g-4">
+          <!-- LEFT COLUMN: Basic & Limits -->
+          <div class="col-lg-5">
+            <div class="p-4 rounded-3 border border-secondary border-opacity-10 bg-dark-soft mb-4">
+              <h6 class="text-uppercase text-secondary small fw-bold mb-3 ls-1">Asosiy Ma'lumotlar</h6>
+              <div class="mb-3">
+                <label class="form-label text-white-50 small">Tarif Kodi (Unique)</label>
+                <input type="text" name="code" id="p_code" class="form-control-dark font-monospace text-uppercase"
+                  placeholder="GOLD" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label text-white-50 small">Tarif Nomi</label>
+                <input type="text" name="title" id="p_title" class="form-control-dark" placeholder="Gold Plan" required>
+              </div>
+              <div class="row g-2 mb-3">
+                <div class="col-7">
+                  <label class="form-label text-white-50 small">Narxi (so'm)</label>
+                  <input type="number" name="monthly_price" id="p_price" class="form-control-dark" placeholder="500000"
+                    required>
+                </div>
+                <div class="col-5">
+                  <label class="form-label text-white-50 small">Chegirma (%)</label>
+                  <input type="number" name="discount_percent" id="p_discount" class="form-control-dark" placeholder="0"
+                    min="0" max="100">
+                </div>
+              </div>
 
-        <div class="col-md-6">
-          <label class="form-label">Chegirma (%)</label>
-          <input type="number" name="discount_percent" id="p_discount" class="form-control-dark" placeholder="0" min="0"
-            max="100">
-        </div>
+              <div
+                class="form-check form-switch p-3 rounded bg-warning bg-opacity-10 border border-warning border-opacity-25">
+                <input class="form-check-input" type="checkbox" name="is_popular" id="p_popular" value="true">
+                <label class="form-check-label text-warning" for="p_popular">🔥 Ommabop (Popular Badge)</label>
+              </div>
+            </div>
 
-        <div class="col-12">
-          <label class="form-label">O'quvchi Limiti</label>
-          <input type="number" name="max_students" id="p_students" class="form-control-dark" placeholder="100">
-        </div>
-        <input type="hidden" name="max_groups" id="p_groups" value="999999">
-        <input type="hidden" name="max_users" id="p_users" value="999999">
+            <div class="p-4 rounded-3 border border-secondary border-opacity-10 bg-dark-soft">
+              <h6 class="text-uppercase text-secondary small fw-bold mb-3 ls-1">Limitlar</h6>
+              <div class="mb-3">
+                <label class="form-label text-white-50 small">O'quvchi Limiti</label>
+                <input type="number" name="max_students" id="p_students" class="form-control-dark" placeholder="100">
+              </div>
+              <div class="mb-3">
+                <label class="form-label text-white-50 small">Guruh Limiti</label>
+                <input type="number" name="max_groups" id="p_groups" class="form-control-dark" placeholder="30">
+              </div>
+              <div class="mb-3">
+                <label class="form-label text-white-50 small">Foydalanuvchi (Admin) Limiti</label>
+                <input type="number" name="max_users" id="p_users" class="form-control-dark" placeholder="5">
+              </div>
+            </div>
 
-        <div class="col-12 mt-3">
-          <label class="form-label">Qo'shimcha Ma'lumot (Caption)</label>
-          <textarea name="caption" id="p_caption" class="form-control-dark" rows="3"
-            placeholder="Masalan: 100 tagacha talabasi bor markazlar uchun"></textarea>
-          <small class="text-muted">Bu matn tarif kartochkasida ko'rsatiladi</small>
-        </div>
-
-        <div class="col-12 mt-3">
-          <div class="form-check form-switch">
-            <input class="form-check-input" type="checkbox" name="is_popular" id="p_popular" value="true">
-            <label class="form-check-label text-white" for="p_popular">Ommabop (Popular Badge)</label>
+            <div class="mt-4">
+              <label class="form-label text-white-50 small">Qo'shimcha Ma'lumot</label>
+              <textarea name="caption" id="p_caption" class="form-control-dark" rows="3"
+                placeholder="Qisqacha tavsif..."></textarea>
+            </div>
           </div>
-        </div>
 
-        <div class="col-12 mt-4 d-flex justify-content-end gap-2">
-          <button type="button" class="btn-ghost" onclick="closeModal('planFormModal')">Bekor qilish</button>
-          <button type="button" class="btn-primary-action" onclick="submitPlan()">Saqlash</button>
+          <!-- RIGHT COLUMN: Features -->
+          <div class="col-lg-7">
+            <div class="p-4 rounded-3 border border-secondary border-opacity-10 bg-dark-soft h-100 d-flex flex-column">
+              <!-- Header -->
+              <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+                <div>
+                  <h6 class="text-uppercase text-secondary small fw-bold m-0 ls-1">Modullar va Huquqlar</h6>
+                  <span id="featureStats" class="text-white-50" style="font-size:0.75rem;">0 / 0 modul tanlandi</span>
+                </div>
+                <div class="d-flex flex-wrap gap-1">
+                  <button type="button" class="btn btn-sm feature-ctrl-btn" onclick="toggleAllFeatures(true)"
+                    title="Barchasini yoqish">
+                    <i class="bi bi-check2-all me-1"></i>Barchasi
+                  </button>
+                  <button type="button" class="btn btn-sm feature-ctrl-btn" onclick="toggleCoreFeatures()"
+                    title="Faqat asosiy">
+                    <i class="bi bi-star me-1"></i>Faqat asosiy
+                  </button>
+                  <button type="button" class="btn btn-sm feature-ctrl-btn-danger" onclick="toggleAllFeatures(false)"
+                    title="Hammasini o'chirish">
+                    <i class="bi bi-x-lg me-1"></i>Tozalash
+                  </button>
+                </div>
+              </div>
+
+              <!-- Search -->
+              <div class="mb-3">
+                <div class="position-relative">
+                  <i class="bi bi-search position-absolute text-secondary"
+                    style="top:50%;left:12px;transform:translateY(-50%);font-size:0.8rem;"></i>
+                  <input type="text" id="featureSearchInput" class="form-control-dark w-100" style="padding-left:32px;"
+                    placeholder="Feature qidirish..." oninput="onFeatureSearch()">
+                </div>
+              </div>
+
+              <!-- Features Container -->
+              <div id="features-container" class="flex-grow-1 overflow-auto" style="max-height:380px;">
+                <!-- JS renders features here -->
+                <div class="text-center py-4 text-white-50 small">
+                  <i class="bi bi-grid me-1"></i>Featurelar yuklanmoqda...
+                </div>
+              </div>
+
+              <div id="features-error" class="alert alert-danger d-none mt-3 py-2 small rounded-3">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Iltimos, kamida bitta ruxsatni tanlang!
+              </div>
+            </div>
+          </div>
+
         </div>
-      </div>
-    </form>
+      </form>
+    </div>
+
+    <!-- FOOTER WITH STICKY STYLE -->
+    <div class="modal-footer-custom">
+      <button type="button" class="btn-ghost" onclick="closeModal('planFormModal')">Bekor qilish</button>
+      <button type="button" class="btn-primary-action px-4" onclick="submitPlan()">Saqlash</button>
+    </div>
   </div>
 </div>
 
@@ -1478,7 +1580,8 @@
                 style="cursor: pointer; scale: 0.8; margin-top: 0.2rem;">
             </div>
           </div>
-          <small class="text-muted d-block mt-1 ms-1" style="font-size: 0.65rem;">Har bir markaz faqat 1 marta foydalana
+          <small class="text-muted d-block mt-1 ms-1" style="font-size: 0.65rem;">Har bir markaz faqat 1 marta
+            foydalana
             olishi uchun</small>
         </div>
 
@@ -1534,351 +1637,396 @@
 
 
 
-  const plansDataEl = document.getElementById('plans-data');
-  let availablePlans = JSON.parse(plansDataEl?.dataset.plans || '[]');
+  // Initialize Plans Data directly from Django Context
+  var availablePlans = {{ plans_json| safe }};
+  if (!availablePlans) availablePlans = [];
+
+  // PLAN_FEATURES_CONFIG is now loaded dynamically from API
+  // (Legacy static config removed)
 
 
+  // ====================================================
+  // PROFESSIONAL PLAN FEATURE SYSTEM (API-driven M2M)
+  // ====================================================
 
+  let _allFeatureCategories = []; // Loaded from backend
 
-
-
-
-
-
-  const PLAN_DEFAULT_FEATURES = {
-    "FREE": [],
-    "STANDARD": ["finance", "tasks"],
-    "PREMIUM": ["finance", "tasks", "leads"],
-    "PRO": ["finance", "tasks", "leads", "kpi", "store", "sms"]
-  };
-
-  const PLAN_DETAILS = {
-    "FREE": { limit: "Cheklangan", desc: "Bepul sinov rejasi" },
-    "STANDARD": { limit: "70 o'quvchi / 7 guruh", desc: "Kichik markazlar uchun" },
-    "PREMIUM": { limit: "200 o'quvchi / 20 guruh", desc: "O'rta kattalikdagi markazlar" },
-    "PRO": { limit: "Cheksiz o'quvchi / CRM", desc: "Katta tarmoqlar va premium funksiyalar" },
-    "PROMOCODE": { limit: "Maxsus Chegirma", desc: "Promo kod orqali maxsus narx" }
-  };
-
-  function switchTab(tabId) {
-    document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
-    const target = document.getElementById(tabId);
-    if (target) target.classList.add('active');
-
-    document.querySelectorAll('.nav-btn').forEach(btn => {
-      btn.classList.remove('active');
-      if ((btn.getAttribute('onclick') || '').includes(tabId)) btn.classList.add('active');
-    });
+  /**
+   * Load all PlanFeatures from backend API grouped by category.
+   * Returns a promise.
+   */
+  async function loadAllFeatures() {
+    if (_allFeatureCategories.length > 0) return _allFeatureCategories;
+    try {
+      const res = await fetch("{% url 'accounts:api_features_list' %}");
+      const data = await res.json();
+      _allFeatureCategories = data.categories || [];
+    } catch (e) {
+      console.error('Features load error:', e);
+      _allFeatureCategories = [];
+    }
+    return _allFeatureCategories;
   }
 
-  function toggleRow(chk, rowId) {
-    const row = document.getElementById(rowId);
-    if (!row) return;
-    chk.checked ? row.classList.add('checked') : row.classList.remove('checked');
-  }
+  /**
+   * Render feature checkboxes inside #features-container.
+   * enabledCodes: array of feature codes that should be pre-checked.
+   */
+  function renderFeatureCheckboxes(enabledCodes = []) {
+    const container = document.getElementById('features-container');
+    if (!container) return;
+    container.innerHTML = '';
 
-  function populatePlanSelect(selectedCode) {
-    const planSel = document.getElementById('inp_plan');
-    if (!planSel) return;
-    planSel.innerHTML = '';
-
-    // Create a working list, don't mutate the global availablePlans
-    let plansToShow = [];
-    if (availablePlans && availablePlans.length > 0) {
-      plansToShow = [...availablePlans];
-    } else {
-      plansToShow = [
-        { code: 'FREE', title: 'Free', monthly_price: 0 },
-        { code: 'STANDARD', title: 'Standard', monthly_price: 300000 },
-        { code: 'PREMIUM', title: 'Premium', monthly_price: 500000 },
-        { code: 'PRO', title: 'Pro', monthly_price: 1000000 },
-      ];
-    }
-
-    // Add PROMOCODE locally if not present
-    if (!plansToShow.find(p => p.code === 'PROMOCODE')) {
-      plansToShow.push({ code: 'PROMOCODE', title: 'PROMOCODE', monthly_price: 0 });
-    }
-
-    // Deduplicate by code
-    const seen = new Set();
-    plansToShow.forEach(p => {
-      if (seen.has(p.code)) return;
-      seen.add(p.code);
-
-      const opt = document.createElement('option');
-      opt.value = p.code;
-      opt.textContent = p.title;
-      if (selectedCode && p.code === selectedCode) opt.selected = true;
-      planSel.appendChild(opt);
-    });
-  }
-
-  // --- PRICING LOGIC ---
-
-  function onPlanChange() {
-    setPriceFromPlan();
-    renderPlanInfo();
-
-    // Toggle Promo Code Input
-    const planCode = document.getElementById('inp_plan')?.value;
-    const isPromo = planCode === 'PROMOCODE';
-
-    // Show/Hide Promo Section
-    const promoDiv = document.getElementById('div_promo_code');
-    if (promoDiv) promoDiv.style.display = isPromo ? 'block' : 'none';
-
-    // Show/Hide Monthly Price Input (Standard)
-    const priceContainer = document.getElementById('div_monthly_price_container');
-    if (priceContainer) {
-      priceContainer.style.display = isPromo ? 'none' : 'block';
-    }
-
-    // Show/Hide Discount Percent Input (Standard)
-    const discountContainer = document.getElementById('div_discount_percent_container');
-    if (discountContainer) {
-      discountContainer.style.display = isPromo ? 'none' : 'block';
-    }
-
-    // Show/Hide Expiry Input
-    const expiryContainer = document.getElementById('div_expires_at_container');
-    if (expiryContainer) {
-      expiryContainer.style.display = isPromo ? 'none' : 'block';
-    }
-
-    // Also set default features
-    const defaultFeatures = PLAN_DEFAULT_FEATURES[planCode] || [];
-    ['finance', 'leads', 'kpi', 'store', 'tasks', 'sms'].forEach(f => {
-      const chk = document.getElementById('chk_' + f);
-      if (!chk) return;
-      chk.checked = defaultFeatures.includes(f);
-      toggleRow(chk, 'row_' + f);
-    });
-  }
-
-  function setPriceFromPlan() {
-    const planCode = document.getElementById('inp_plan')?.value;
-    const plan = availablePlans.find(p => p.code === planCode);
-    if (plan && planCode !== 'PROMOCODE') {
-      document.getElementById('inp_monthly_price').value = plan.monthly_price;
-      const discField = document.getElementById('inp_discount_percent');
-      if (discField) discField.value = plan.discount_percent || 0;
-
-      // Auto-set capacity limit from plan if found
-      const capField = document.getElementById('inp_capacity_limit');
-      if (capField && plan.max_students) {
-        capField.value = plan.max_students;
-      }
-
-      calcTotal();
-    }
-  }
-
-  function calcTotal() {
-    const duration = parseInt(document.getElementById('inp_duration')?.value || '1', 10);
-    const planCode = document.getElementById('inp_plan')?.value;
-    const totalDisplay = document.getElementById('total_price_display');
-    const originalDisplay = document.getElementById('total_price_original');
-
-    // Reset displays
-    if (originalDisplay) originalDisplay.style.display = 'none';
-
-    let price = 0;
-    if (planCode === 'PROMOCODE') {
-      const discount = parseFloat(document.getElementById('inp_discount_amount')?.value || '0');
-      totalDisplay.innerText = "Chegirma: " + discount.toLocaleString() + " UZS";
+    if (!_allFeatureCategories.length) {
+      container.innerHTML = '<p class="text-secondary small text-center py-4"><i class="bi bi-database me-1"></i> Featurelar yuklanmadi. <a href="#" onclick="initFeaturesPanel(currentCheckedCodes())">Qayta yuklash</a></p>';
       return;
-    } else {
-      price = parseFloat(document.getElementById('inp_monthly_price')?.value || '0');
     }
 
-    let total = price * duration;
+    const enabledSet = new Set(enabledCodes);
+    const searchVal = (document.getElementById('featureSearchInput')?.value || '').toLowerCase();
 
-    // Check for percent discount
-    const discountPercent = parseFloat(document.getElementById('inp_discount_percent')?.value || '0');
-    if (discountPercent > 0 && discountPercent <= 100) {
-      const discountValue = total * (discountPercent / 100);
-      const finalTotal = total - discountValue;
+    _allFeatureCategories.forEach(cat => {
+      const visibleItems = cat.items.filter(item => {
+        if (!searchVal) return true;
+        return item.name.toLowerCase().includes(searchVal) || (item.description || '').toLowerCase().includes(searchVal);
+      });
+      if (!visibleItems.length) return;
 
-      if (originalDisplay) {
-        originalDisplay.innerText = total.toLocaleString() + " UZS";
-        originalDisplay.style.display = 'block';
-      }
-      totalDisplay.innerText = finalTotal.toLocaleString() + " UZS";
-    } else {
-      totalDisplay.innerText = total.toLocaleString() + " UZS";
-    }
+      const catEl = document.createElement('div');
+      catEl.className = 'feature-group mb-3';
+
+      let itemsHtml = '';
+      visibleItems.forEach(item => {
+        const isChecked = enabledSet.has(item.code);
+        const isCore = item.is_core;
+        itemsHtml += `
+          <label class="feature-toggle-row d-flex align-items-center justify-content-between p-3 rounded-3 mb-2 curs-pointer feature-row${isChecked ? ' checked' : ''}" 
+                  data-code="${item.code}" data-is-core="${isCore}">
+            <div class="d-flex align-items-start gap-3">
+              <div>
+                <div class="text-white fw-semibold small">
+                  ${isCore ? '<span class="badge bg-primary bg-opacity-20 text-primary me-1" style="font-size:0.6rem;vertical-align:middle;">ASOSIY</span>' : ''}
+                  ${item.name}
+                </div>
+                <div class="text-white-50" style="font-size:0.73rem;margin-top:2px;">${item.description || ''}</div>
+              </div>
+            </div>
+            <div class="form-check form-switch m-0 ms-3 flex-shrink-0">
+              <input class="form-check-input feature-chk" type="checkbox" 
+                     id="pf_${item.code}" 
+                     data-key="${item.code}"
+                     data-is-core="${isCore}"
+                     ${isChecked ? 'checked' : ''}
+                     style="transform:scale(1.3); cursor:pointer;">
+            </div>
+          </label>
+        `;
+      });
+
+      const checkedCount = visibleItems.filter(i => enabledSet.has(i.code)).length;
+      catEl.innerHTML = `
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <div class="feature-cat-badge">${cat.label}</div>
+          <span class="text-white-50" style="font-size:0.7rem;">${checkedCount}/${visibleItems.length}</span>
+        </div>
+        <div class="feature-items-list">${itemsHtml}</div>
+      `;
+      container.appendChild(catEl);
+    });
+
+    // Bind toggle events
+    container.querySelectorAll('.feature-chk').forEach(chk => {
+      chk.addEventListener('change', function () {
+        const row = this.closest('.feature-row');
+        if (this.checked) {
+          row.classList.add('checked');
+        } else {
+          row.classList.remove('checked');
+        }
+        updateFeatureStats();
+        // Hide error if any checked
+        if (this.checked) {
+          document.getElementById('features-error')?.classList.add('d-none');
+        }
+      });
+    });
+
+    // Bind label clicks
+    container.querySelectorAll('.feature-toggle-row').forEach(row => {
+      row.addEventListener('click', function (e) {
+        if (e.target.classList.contains('feature-chk') || e.target.tagName === 'INPUT') return;
+        const chk = this.querySelector('.feature-chk');
+        if (chk) { chk.checked = !chk.checked; chk.dispatchEvent(new Event('change')); }
+      });
+    });
+
+    updateFeatureStats();
   }
 
-  // Called when duration changes
-  function onDurationChange() {
-    calcTotal();
-    calcExpiryDate();
+  function updateFeatureStats() {
+    const total = document.querySelectorAll('.feature-chk').length;
+    const checked = document.querySelectorAll('.feature-chk:checked').length;
+    const statsEl = document.getElementById('featureStats');
+    if (statsEl) statsEl.textContent = `${checked} / ${total} modul tanlandi`;
   }
 
-  // Add event listener for manual price inputs
-  document.getElementById('inp_monthly_price')?.addEventListener('input', calcTotal);
-  document.getElementById('inp_discount_amount')?.addEventListener('input', calcTotal);
-  document.getElementById('inp_discount_percent')?.addEventListener('input', calcTotal);
+  function currentCheckedCodes() {
+    return Array.from(document.querySelectorAll('.feature-chk:checked')).map(c => c.getAttribute('data-key'));
+  }
 
-  // Sync promo end date to expires_at if in promo mode
-  document.getElementById('inp_promo_end')?.addEventListener('change', function () {
-    const planCode = document.getElementById('inp_plan')?.value;
-    if (planCode === 'PROMOCODE') {
-      document.getElementById('inp_expires_at').value = this.value;
-    }
+  async function initFeaturesPanel(enabledCodes = []) {
+    const container = document.getElementById('features-container');
+    if (container) container.innerHTML = '<div class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span> Yuklanmoqda...</div>';
+    await loadAllFeatures();
+    renderFeatureCheckboxes(enabledCodes);
+  }
+
+  function toggleAllFeatures(state) {
+    document.querySelectorAll('.feature-chk').forEach(chk => {
+      chk.checked = state;
+      chk.dispatchEvent(new Event('change'));
+    });
+  }
+
+  function toggleCoreFeatures() {
+    document.querySelectorAll('.feature-chk').forEach(chk => {
+      const isCore = chk.getAttribute('data-is-core') === 'true';
+      chk.checked = isCore;
+      chk.dispatchEvent(new Event('change'));
+    });
+  }
+
+  // Feature search filter
+  function onFeatureSearch() {
+    const codes = currentCheckedCodes();
+    renderFeatureCheckboxes(codes);
+  }
+
+
+  // --- NEW CENTER ONBOARDING LOGIC ---
+
+  // Visual Toggle for Features
+  document.querySelectorAll('input[type="checkbox"][name^="feature_"]').forEach(chk => {
+    chk.addEventListener('change', function () {
+      const row = this.closest('.toggle-row');
+      if (this.checked) row.classList.add('checked');
+      else row.classList.remove('checked');
+    });
   });
 
-  function renderPlanInfo() {
-    const planCode = document.getElementById('inp_plan')?.value;
-    const infoBox = document.getElementById('plan_info_display');
-    const details = PLAN_DETAILS[planCode];
+  function scrollToSection(id) {
+    const el = document.getElementById(id);
+    const container = document.getElementById('scrollContainer');
+    if (el && container) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
-    if (infoBox && details) {
-      infoBox.innerHTML = `
-            <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 8px; padding: 12px; margin-bottom: 20px;">
-                <div class="d-flex align-items-center mb-2">
-                    <i class="bi bi-info-circle text-primary me-2"></i>
-                    <span class="text-white fw-bold">${planCode} Tarifi Tafsilotlari</span>
-                </div>
-                <div class="row g-2">
-                    <div class="col-6">
-                        <small class="text-muted d-block">Checklovlar</small>
-                        <span class="text-white small">${details.limit}</span>
-                    </div>
-                    <div class="col-6">
-                         <small class="text-muted d-block">Izoh</small>
-                        <span class="text-white small">${details.desc}</span>
-                    </div>
-                </div>
-            </div>
-          `;
-      infoBox.style.display = 'block';
-    } else if (infoBox) {
-      infoBox.style.display = 'none';
+  function onScrollSpy() {
+    const container = document.getElementById('scrollContainer');
+    const sections = ['sec-basic', 'sec-plan', 'sec-features'];
+    let current = '';
+
+    sections.forEach(sec => {
+      const element = document.getElementById(sec);
+      if (element && container.scrollTop >= (element.offsetTop - 150)) {
+        current = sec;
+      }
+    });
+
+    if (current) {
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.querySelector(`.nav-btn[onclick*="${current}"]`);
+      if (activeBtn) activeBtn.classList.add('active');
     }
   }
 
-  function calcExpiryDate() {
-    const duration = parseInt(document.getElementById('inp_duration')?.value || '0', 10);
-    if (duration <= 0) return;
-    const d = new Date();
-    d.setMonth(d.getMonth() + duration);
-    document.getElementById('inp_expires_at').value = d.toISOString().split('T')[0];
+  async function renderCenterFeatures(enabledCodes = [], disableAll = false) {
+    const container = document.getElementById('center-features-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    // Use shared _allFeatureCategories (loaded by loadAllFeatures)
+    if (!_allFeatureCategories.length) {
+      container.innerHTML = '<p class="text-secondary small"><i class="bi bi-info-circle me-1"></i>Featurelar yuklanmadi.</p>';
+      return;
+    }
+
+    const enabledSet = new Set(enabledCodes);
+
+    _allFeatureCategories.forEach(cat => {
+      const catDiv = document.createElement('div');
+      catDiv.className = 'mb-3';
+      let itemsHtml = '';
+      cat.items.forEach(item => {
+        const isChecked = enabledSet.has(item.code);
+        itemsHtml += `
+          <label class="toggle-row curs-pointer d-flex justify-content-between align-items-center p-3 rounded-3 border mb-2 feature-toggle-row${isChecked ? ' checked' : ''}"
+                 style="border-color: ${isChecked ? 'rgba(99,102,241,0.45)' : 'rgba(255,255,255,0.07)'}; background: ${isChecked ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.02)'}">
+            <div>
+              <div class="fw-semibold text-white small">
+                ${item.is_core ? '<span class="badge me-1" style="background:rgba(99,102,241,0.15);color:#818cf8;font-size:0.55rem;">ASOSIY</span>' : ''}
+                ${item.name}
+              </div>
+              <div class="text-secondary" style="font-size:0.72rem;">${item.description || ''}</div>
+            </div>
+            <div class="form-check form-switch m-0">
+              <input class="form-check-input feature-chk-center"
+                     type="checkbox"
+                     id="cf_${item.code}"
+                     data-key="${item.code}"
+                     ${isChecked ? 'checked' : ''}
+                     ${disableAll ? 'disabled' : ''}
+                     style="transform:scale(1.2); cursor:pointer;">
+            </div>
+          </label>
+        `;
+      });
+
+      catDiv.innerHTML = `
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="feature-cat-badge">${cat.label}</span>
+        </div>
+        <div class="d-flex flex-column gap-1">${itemsHtml}</div>
+      `;
+      container.appendChild(catDiv);
+    });
+
+    // Bind change events
+    container.querySelectorAll('.feature-chk-center').forEach(chk => {
+      chk.addEventListener('change', function () {
+        const row = this.closest('.toggle-row');
+        if (this.checked) {
+          row.classList.add('checked');
+          row.style.borderColor = 'rgba(99,102,241,0.45)';
+          row.style.background = 'rgba(99,102,241,0.1)';
+        } else {
+          row.classList.remove('checked');
+          row.style.borderColor = 'rgba(255,255,255,0.07)';
+          row.style.background = 'rgba(255,255,255,0.02)';
+        }
+      });
+    });
+  }
+
+  async function initCenterFeaturesPanel(enabledCodes = [], disableAll = false) {
+    const container = document.getElementById('center-features-container');
+    if (container) container.innerHTML = '<div class="text-center py-3"><span class="spinner-border spinner-border-sm text-primary"></span></div>';
+    await loadAllFeatures();
+    await renderCenterFeatures(enabledCodes, disableAll);
   }
 
   function openCreateModal() {
     const form = document.getElementById('centerForm');
     if (form) form.reset();
-
-    document.getElementById('center_id').value = '';
-    document.getElementById('modalTitle').innerText = "Yangi Markaz Qo'shish";
-
-    populatePlanSelect(null);
-    onPlanChange();
-    calcExpiryDate();
-
+    document.getElementById('centerId').value = '';
     document.getElementById('centerModal').style.display = 'flex';
-    switchTab('tab-main');
-  }
 
-  function openEditModal(id) {
-    fetch(`/hisob/api/centers/${id}/`)
-      .then(res => res.json())
-      .then(data => {
-        availablePlans = data.available_plans || availablePlans;
-        populatePlanSelect(data.plan_code);
-        renderPlanInfo();
+    document.getElementById('selected_plan_code').value = '';
+    document.getElementById('no-plan-view').style.display = 'block';
+    document.getElementById('selected-plan-view').style.display = 'none';
 
-        document.getElementById('center_id').value = data.id || '';
-        document.getElementById('inp_name').value = data.name || '';
-        document.getElementById('inp_address').value = data.address || '';
-        document.getElementById('inp_phone').value = data.phone || '';
-        document.getElementById('inp_status').value = data.status || 'ACTIVE';
-        document.getElementById('inp_capacity_limit').value = data.capacity_limit || 100;
+    // Load features from API, all disabled until plan selected
+    initCenterFeaturesPanel([], true);
 
-        // Handle Price vs Discount Logic from Backend Data (assuming similar fields or map accordingly)
-        // If Plan is PROMOCODE, use monthly_price as discount or have a separate field? 
-        // For now, I'll assume standard price field holds the value or I need to handle it.
-        // If backend sends 'discount_amount', use it. Else default to 0.
-        if (data.plan_code === 'PROMOCODE') {
-          document.getElementById('inp_discount_amount').value = data.discount_amount || data.monthly_price || 0;
-        } else {
-          document.getElementById('inp_monthly_price').value = data.monthly_price || 0;
-        }
-
-        document.getElementById('inp_expires_at').value = data.expires_at || '';
-
-        // Populate Promo Code Fields
-        document.getElementById('inp_promo_code').value = data.promo_code || '';
-        document.getElementById('inp_promo_start').value = data.promo_start || '';
-        document.getElementById('inp_promo_end').value = data.promo_end || '';
-
-        if (data.discount_percent) {
-          document.getElementById('inp_discount_percent').value = data.discount_percent;
-        } else {
-          document.getElementById('inp_discount_percent').value = '';
-        }
-
-        if (data.director) {
-          document.getElementById('inp_dir_ism').value = data.director.ism || '';
-          document.getElementById('inp_dir_fam').value = data.director.familya || '';
-          document.getElementById('inp_dir_email').value = data.director.email || '';
-          document.getElementById('inp_dir_passport').value = data.director.passport || '';
-          document.getElementById('inp_dir_jshr').value = data.director.jshr || '';
-          document.getElementById('inp_dir_pass').value = '';
-        }
-
-        const f = data.features || {};
-        document.getElementById('chk_finance').checked = f.finance === true; toggleRow(document.getElementById('chk_finance'), 'row_finance');
-        document.getElementById('chk_leads').checked = f.leads === true; toggleRow(document.getElementById('chk_leads'), 'row_leads');
-        document.getElementById('chk_kpi').checked = f.kpi === true; toggleRow(document.getElementById('chk_kpi'), 'row_kpi');
-        document.getElementById('chk_store').checked = f.store === true; toggleRow(document.getElementById('chk_store'), 'row_store');
-        document.getElementById('chk_tasks').checked = f.tasks === true; toggleRow(document.getElementById('chk_tasks'), 'row_tasks');
-        document.getElementById('chk_sms').checked = f.sms === true; toggleRow(document.getElementById('chk_sms'), 'row_sms');
-
-        onPlanChange();
-        document.getElementById('modalTitle').innerText = "Markazni Tahrirlash";
-        document.getElementById('centerModal').style.display = 'flex';
-        switchTab('tab-main');
-
-        calcTotal(); // Update total display
-      });
+    scrollToSection('sec-basic');
   }
 
   function closeModal(id) {
-    const el = document.getElementById(id);
+    const el = document.getElementById(id || 'centerModal');
     if (el) el.style.display = 'none';
   }
 
-  function submitCenter() {
-    const form = document.getElementById('centerForm');
-    const formData = new FormData(form);
-    const id = formData.get('id');
+  async function openEditModal(id) {
+    try {
+      const response = await fetch(`/hisob/api/centers/${id}/`);
+      const data = await response.json();
 
-    const features = {
-      finance: document.getElementById('chk_finance').checked,
-      leads: document.getElementById('chk_leads').checked,
-      kpi: document.getElementById('chk_kpi').checked,
-      store: document.getElementById('chk_store').checked,
-      tasks: document.getElementById('chk_tasks').checked,
-      sms: document.getElementById('chk_sms').checked,
-    };
-    formData.append('features', JSON.stringify(features));
+      if (!data.success && !data.id) throw new Error(data.error || "Ma'lumot topilmadi");
 
-    const url = id ? `/hisob/api/centers/${id}/update/` : `/hisob/api/centers/create/`;
+      const center = data.center || data;
 
-    fetch(url, {
-      method: "POST",
-      body: formData,
-      headers: { "X-CSRFToken": "{{ csrf_token }}" }
-    })
-      .then(res => res.json())
-      .then(res => {
-        if (res.success) location.reload();
-        else alert("Xatolik: " + (res.error || res.message || "Noma'lum xatolik"));
-      });
+      document.getElementById('centerForm').reset();
+      document.getElementById('centerId').value = center.id;
+      document.getElementById('name').value = center.name;
+      document.getElementById('address').value = center.address || '';
+      document.getElementById('status').value = center.status || 'ACTIVE';
+
+      if (center.expires_at) {
+        document.getElementById('expires_at').value = center.expires_at.split('T')[0];
+      }
+
+      // Plan Selection
+      const pCode = center.plan_code || center.plan;
+      if (pCode) {
+        selectPlan(pCode);
+      } else {
+        document.getElementById('selected_plan_code').value = '';
+        document.getElementById('no-plan-view').style.display = 'block';
+        document.getElementById('selected-plan-view').style.display = 'none';
+      }
+
+      // Load features with center's enabled codes (M2M) or fall back to features JSONField
+      let enabledCodes = [];
+      if (center.feature_codes && center.feature_codes.length) {
+        enabledCodes = center.feature_codes;
+      } else if (center.features) {
+        // Legacy fallback: features is a dict {code: true/false}
+        enabledCodes = Object.entries(center.features)
+          .filter(([k, v]) => !!v)
+          .map(([k]) => k);
+      }
+      await initCenterFeaturesPanel(enabledCodes, !pCode);
+
+      document.getElementById('centerModal').style.display = 'flex';
+    } catch (e) {
+      console.error(e);
+      alert("Xatolik: " + e.message);
+    }
   }
+
+
+  // Handle Form Submit
+  document.getElementById('centerForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Saqlanmoqda...';
+    btn.disabled = true;
+
+    try {
+      const formData = new FormData(this);
+      const id = document.getElementById('centerId').value;
+      const url = id ? `/hisob/api/centers/${id}/update/` : `/hisob/api/centers/create/`;
+
+      // Features JSON Collection (New Dynamic)
+      const features = {};
+      document.querySelectorAll('.feature-chk-center').forEach(chk => {
+        const key = chk.getAttribute('data-key');
+        features[key] = chk.checked;
+      });
+      formData.append('features', JSON.stringify(features));
+
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}'
+        }
+      });
+
+      const res = await response.json();
+      if (res.success) {
+        window.location.reload();
+      } else {
+        alert('Xatolik: ' + (res.error || res.message));
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Server bilan aloqa xatosi');
+    } finally {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
+  });
 
   // Delete modal
   let deleteId = null;
@@ -1922,22 +2070,31 @@
         if (!tbody) return;
         tbody.innerHTML = '';
         res.plans.forEach(p => {
+          const featureCount = (p.feature_codes || []).length;
           const tr = document.createElement('tr');
           tr.innerHTML = `
                   <td class="text-white font-monospace fw-bold">${p.code}</td>
-                  <td class="text-white">${p.title}</td>
+                  <td class="text-white">${p.title}${p.is_popular ? ' <span class="badge bg-warning text-dark ms-1" style="font-size:0.6rem;">POPULAR</span>' : ''}</td>
                   <td class="text-white">${new Intl.NumberFormat().format(p.monthly_price)} so'm</td>
                   <td class="text-amber">${p.discount_percent > 0 ? '-' + p.discount_percent + '%' : '-'}</td>
-                  <td class="text-secondary small">${p.max_students} ta o'quvchi</td>
+                  <td class="text-secondary small">
+                    ${p.max_students} o'quvchi
+                    <span class="badge bg-primary bg-opacity-10 text-primary ms-1" 
+                          style="font-size:0.6rem;" 
+                          title="${featureCount} ta modul yoqiq">
+                      <i class="bi bi-key"></i> ${featureCount}
+                    </span>
+                  </td>
                   <td class="text-end">
-                      <button class="btn btn-sm btn-outline-warning border-0" onclick="editPlan(${p.id})"><i class="bi bi-pencil"></i></button>
-                      <button class="btn btn-sm btn-outline-danger border-0" onclick="deletePlan(${p.id})"><i class="bi bi-trash"></i></button>
+                      <button class="btn btn-sm btn-outline-info border-0" onclick="editPlan(${p.id})" title="Tahrirlash"><i class="bi bi-pencil"></i></button>
+                      <button class="btn btn-sm btn-outline-danger border-0" onclick="deletePlan(${p.id})" title="O'chirish"><i class="bi bi-trash"></i></button>
                   </td>
               `;
           tbody.appendChild(tr);
         });
       });
   }
+
 
   function fetchPromos() {
     fetch("{% url 'accounts:api_promo_list' %}")
@@ -2056,60 +2213,107 @@
     window.location.href = "{% url 'accounts:plans_ui' %}";
   }
 
+
+  // (Legacy duplicate renderFeatureCheckboxes removed - using API-driven version above)
+
+
+
   function openPlanForm() {
     const form = document.getElementById('planForm');
     if (form) form.reset();
     document.getElementById('planId').value = '';
     document.getElementById('p_code').value = '';
     document.getElementById('p_code').disabled = false;
+
+    document.getElementById('features-error')?.classList.add('d-none');
     document.getElementById('planFormTitle').innerText = 'Yangi Tarif';
     document.getElementById('planFormModal').style.display = 'flex';
+    initFeaturesPanel([]);
   }
 
-  function editPlan(id) {
-    fetch("{% url 'accounts:api_plan_list' %}")
-      .then(res => res.json())
-      .then(res => {
-        const plan = res.plans.find(p => p.id == id);
-        if (plan) {
-          document.getElementById('planForm').reset();
-          document.getElementById('planId').value = plan.id;
-          document.getElementById('p_code').value = plan.code;
-          document.getElementById('p_code').disabled = true;
-          document.getElementById('p_title').value = plan.title;
-          document.getElementById('p_price').value = plan.monthly_price;
-          document.getElementById('p_discount').value = plan.discount_percent;
-          document.getElementById('p_students').value = plan.max_students;
-          document.getElementById('p_groups').value = plan.max_groups;
-          document.getElementById('p_users').value = plan.max_users;
-          document.getElementById('p_popular').checked = plan.is_popular;
-          document.getElementById('p_caption').value = plan.caption || '';
-          document.getElementById('planFormTitle').innerText = 'Tarifni Tahrirlash';
-          document.getElementById('planFormModal').style.display = 'flex';
-        }
-      });
+  async function editPlan(id) {
+    try {
+      const res = await fetch("{% url 'accounts:api_plan_list' %}");
+      const data = await res.json();
+      const plan = data.plans.find(p => p.id == id);
+      if (!plan) { alert('Tarif topilmadi'); return; }
+
+      document.getElementById('planForm').reset();
+      document.getElementById('planId').value = plan.id;
+      document.getElementById('p_code').value = plan.code;
+      document.getElementById('p_code').disabled = true;
+      document.getElementById('p_title').value = plan.title;
+      document.getElementById('p_price').value = plan.monthly_price;
+      document.getElementById('p_discount').value = plan.discount_percent;
+      document.getElementById('p_students').value = plan.max_students;
+      if (document.getElementById('p_groups')) document.getElementById('p_groups').value = plan.max_groups || 0;
+      document.getElementById('p_users').value = plan.max_users;
+      document.getElementById('p_popular').checked = plan.is_popular;
+      document.getElementById('p_caption').value = plan.caption || '';
+
+      document.getElementById('planFormTitle').innerText = 'Tarifni Tahrirlash';
+      document.getElementById('planFormModal').style.display = 'flex';
+
+      // Load features with M2M checked codes
+      const enabledCodes = plan.feature_codes || [];
+      await initFeaturesPanel(enabledCodes);
+    } catch (e) {
+      alert('Xatolik: ' + e.message);
+    }
   }
+
 
   function submitPlan() {
     const form = document.getElementById('planForm');
     const formData = new FormData(form);
-    const data = Object.fromEntries(formData.entries());
-    const planId = data.id;
+    let data = Object.fromEntries(formData.entries());
+    const planId = document.getElementById('planId').value;
 
     if (document.getElementById('p_code').disabled) {
       data.code = document.getElementById('p_code').value;
     }
 
-    data.is_popular = document.getElementById('p_popular').checked ? 'true' : 'false';
+    data.is_popular = document.getElementById('p_popular').checked;
+
+    // Collect M2M feature codes
+    const featureCodes = [];
+    document.querySelectorAll('.feature-chk:checked').forEach(chk => {
+      featureCodes.push(chk.getAttribute('data-key'));
+    });
+
+    // Validation: at least 1 feature
+    if (featureCodes.length === 0) {
+      const err = document.getElementById('features-error');
+      if (err) {
+        err.classList.remove('d-none');
+        err.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        alert('Kamida bitta ruxsatni tanlang!');
+      }
+      return;
+    }
+    document.getElementById('features-error')?.classList.add('d-none');
+
+    // Include feature_codes for M2M
+    data.feature_codes = featureCodes;
+
+    // Also build legacy features JSON for backward compat
+    const featuresObj = {};
+    document.querySelectorAll('.feature-chk').forEach(chk => {
+      featuresObj[chk.getAttribute('data-key')] = chk.checked;
+    });
+    data.features = featuresObj;
+
     let url = "{% url 'accounts:api_plan_create' %}";
     if (planId) url = `/hisob/api/plans/${planId}/update/`;
 
+    // Disable save button
+    const saveBtn = document.querySelector('[onclick="submitPlan()"]');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saqlanmoqda...'; }
+
     fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": "{{ csrf_token }}"
-      },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
       body: JSON.stringify(data)
     })
       .then(res => res.json())
@@ -2117,12 +2321,14 @@
         if (res.success) {
           closeModal('planFormModal');
           fetchPlans();
-          location.reload();
         } else {
-          alert("Xatolik: " + (res.error || res.message));
+          alert('Xatolik: ' + (res.error || res.message));
         }
       })
-      .catch(err => alert("Xatolik: " + err));
+      .catch(err => alert('Xatolik: ' + err))
+      .finally(() => {
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = 'Saqlash'; }
+      });
   }
 
   function deletePlan(id) {
@@ -2135,6 +2341,182 @@
       .then(res => { if (res.success) { fetchPlans(); location.reload(); } else alert("Xatolik: " + res.error); })
       .catch(err => alert("Xatolik: " + err));
   }
+
+  // --- PLAN SELECTOR LOGIC ---
+
+  // --- PLAN SELECTOR LOGIC ---
+
+  function openPlanSelector() {
+    const modal = document.getElementById('planSelectorModal');
+    if (!modal) return;
+
+    const container = document.getElementById('plan-list-container');
+    container.innerHTML = '';
+    const search = (document.getElementById('planSearchInput')?.value || '').toLowerCase();
+    const currentCode = document.getElementById('selected_plan_code')?.value || '';
+
+    let rendered = 0;
+    availablePlans.forEach(plan => {
+      if (search && !plan.title.toLowerCase().includes(search) && !plan.code.toLowerCase().includes(search)) return;
+      rendered++;
+
+      const isSelected = plan.code === currentCode;
+      const isPopular = plan.is_popular || plan.feature_popular;
+      const isFree = !plan.monthly_price || plan.monthly_price == 0;
+      const featureCount = (plan.feature_codes || []).length;
+
+      const price = isFree
+        ? '<span style="font-size:1.6rem;font-weight:900;color:#22c55e;">BEPUL</span>'
+        : `<span style="font-size:1.6rem;font-weight:900;color:#fff;letter-spacing:-1px;">${new Intl.NumberFormat('uz-UZ').format(plan.monthly_price)}</span><span style="color:#64748b;font-size:0.85rem;"> so'm/oy</span>`;
+
+      const discountBadge = plan.discount_percent > 0
+        ? `<span style="background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.25);padding:2px 8px;border-radius:20px;font-size:0.65rem;font-weight:700;">-${plan.discount_percent}%</span>`
+        : '';
+
+      const popularBadge = isPopular
+        ? `<span style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;padding:3px 10px;border-radius:20px;font-size:0.65rem;font-weight:800;letter-spacing:0.5px;">🔥 OMMABOP</span>`
+        : '';
+
+      const el = document.createElement('div');
+      el.style.cssText = `
+        background: ${isSelected ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.03)'};
+        border: 2px solid ${isSelected ? 'rgba(99,102,241,0.7)' : 'rgba(255,255,255,0.08)'};
+        border-radius: 18px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        position: relative;
+        overflow: hidden;
+      `;
+
+      el.onmouseenter = () => {
+        if (!isSelected) {
+          el.style.borderColor = 'rgba(99,102,241,0.5)';
+          el.style.background = 'rgba(99,102,241,0.08)';
+          el.style.transform = 'translateY(-2px)';
+        }
+      };
+      el.onmouseleave = () => {
+        if (!isSelected) {
+          el.style.borderColor = 'rgba(255,255,255,0.08)';
+          el.style.background = 'rgba(255,255,255,0.03)';
+          el.style.transform = 'none';
+        }
+      };
+
+      el.innerHTML = `
+        <!-- Top badges -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            ${popularBadge}
+            ${discountBadge}
+          </div>
+          ${isSelected ? '<span style="color:#6366f1;font-size:0.8rem;"><i class="bi bi-check-circle-fill"></i> Tanlangan</span>' : ''}
+        </div>
+
+        <!-- Plan name -->
+        <div>
+          <div style="font-size:1.15rem;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-bottom:2px;">${plan.title}</div>
+          <div style="font-size:0.72rem;color:#475569;font-family:monospace;">${plan.code}</div>
+        </div>
+
+        <!-- Price -->
+        <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;">
+          ${price}
+        </div>
+
+        <!-- Student count only -->
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="width:32px;height:32px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.25);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+            <i class="bi bi-people" style="color:#4ade80;font-size:0.85rem;"></i>
+          </span>
+          <div>
+            <div style="font-size:1rem;font-weight:700;color:#fff;">${plan.max_students > 10000 ? 'Cheksiz' : plan.max_students}</div>
+            <div style="font-size:0.7rem;color:#64748b;">ta o'quvchi</div>
+          </div>
+        </div>
+
+        ${featureCount > 0 ? `
+        <div style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:6px;">
+          <i class="bi bi-key" style="color:#818cf8;font-size:0.8rem;"></i>
+          <span style="color:#a5b4fc;font-size:0.78rem;font-weight:600;">${featureCount} ta modul yoqiq</span>
+        </div>` : ''}
+
+        <!-- Select button -->
+        <button type="button"
+          onclick="selectPlan('${plan.code}')"
+          style="
+            background: ${isSelected ? 'rgba(99,102,241,0.2)' : 'rgba(99,102,241,0.1)'};
+            border: 1px solid ${isSelected ? 'rgba(99,102,241,0.6)' : 'rgba(99,102,241,0.3)'};
+            color: ${isSelected ? '#a5b4fc' : '#818cf8'};
+            border-radius: 12px;
+            padding: 10px;
+            width: 100%;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: auto;
+          "
+          onmouseenter="this.style.background='rgba(99,102,241,0.25)'"
+          onmouseleave="this.style.background='${isSelected ? 'rgba(99,102,241,0.2)' : 'rgba(99,102,241,0.1)'}'"
+        >
+          ${isSelected ? '<i class="bi bi-check me-1"></i>Tanlangan' : 'Tanlash'}
+        </button>
+      `;
+
+      container.appendChild(el);
+    });
+
+    if (rendered === 0) {
+      container.innerHTML = '<div style="text-align:center;color:#64748b;padding:3rem;"><i class="bi bi-search" style="font-size:2rem;display:block;margin-bottom:1rem;"></i>Tarif topilmadi</div>';
+    }
+
+    modal.style.display = 'flex';
+  }
+
+  function filterPlans() {
+    openPlanSelector();
+  }
+
+  function selectPlan(code) {
+    const plan = availablePlans.find(p => p.code === code);
+    if (!plan) return;
+
+    // Update Hidden Input
+    document.getElementById('selected_plan_code').value = plan.code;
+
+    // Update Summary UI
+    document.getElementById('sum-code').innerText = plan.code;
+    document.getElementById('sum-title').innerText = plan.title;
+    document.getElementById('sum-price').innerText = new Intl.NumberFormat('uz-UZ').format(plan.monthly_price);
+    document.getElementById('sum-students').innerText = plan.max_students > 10000 ? 'Cheksiz' : plan.max_students;
+    if (document.getElementById('sum-groups')) document.getElementById('sum-groups').innerText = plan.max_groups || 'Checksiz';
+    if (document.getElementById('sum-users')) document.getElementById('sum-users').innerText = plan.max_users || 'Checksiz';
+
+    // Auto-Fill capacity limit
+    const capInput = document.getElementById('capacity_limit');
+    if (capInput) capInput.value = plan.max_students;
+
+    // Load features for this plan from M2M feature_codes
+    const enabledCodes = plan.feature_codes || [];
+    initCenterFeaturesPanel(enabledCodes, false);
+
+    closeModal('planSelectorModal');
+    document.getElementById('no-plan-view').style.display = 'none';
+    document.getElementById('selected-plan-view').style.display = 'block';
+
+    // Scroll to features section
+    setTimeout(() => {
+      const sec = document.getElementById('sec-features');
+      if (sec) sec.scrollIntoView({ behavior: 'smooth' });
+    }, 400);
+  }
+
+
 
 
 

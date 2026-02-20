@@ -1,4 +1,5 @@
 import json
+import logging
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse, HttpResponseForbidden, HttpResponseBadRequest
 from django.db.models import Sum, Count, Q, Avg
@@ -9,7 +10,10 @@ from django.utils import timezone
 from datetime import timedelta
 from accounts.models import Center, User
 from education.models import Group, Payment, Attendance, TeacherIncome
-from billing.models import SubscriptionPlan, PromoCode
+from billing.models import SubscriptionPlan, PromoCode, PlanFeature
+from billing.services import apply_plan_to_center
+
+logger = logging.getLogger(__name__)
 
 def is_superadmin(user):
     return user.is_authenticated and user.is_superuser
@@ -242,29 +246,48 @@ def center_detail_api(request, center_id):
     center = get_object_or_404(Center, pk=center_id)
     director = User.objects.filter(center=center, role='director').first()
     
-    # Fetch plans from DB
-    db_plans = list(SubscriptionPlan.objects.filter(active=True).values('code', 'title', 'monthly_price'))
-    
-    # Standard plans mapping for fallback
-    standard_defaults = {
-        "FREE": 0,
-        "STANDARD": 300000,
-        "PREMIUM": 500000,
-        "PRO": 1000000
-    }
-    
-    # Merge DB plans with standard choices if they don't exist in DB
-    plans = db_plans[:]
-    existing_codes = [p['code'] for p in db_plans]
-    
+    # Fetch full plan data for plan selector (including feature_codes)
+    from billing.models import PlanFeature
+    db_plan_objects = SubscriptionPlan.objects.filter(active=True).prefetch_related('plan_features')
+    plans = []
+    for p in db_plan_objects:
+        plans.append({
+            "code": p.code,
+            "title": p.title,
+            "monthly_price": p.monthly_price,
+            "max_students": p.max_students,
+            "max_groups": getattr(p, 'max_groups', 30),
+            "max_users": p.max_users,
+            "is_popular": p.is_popular,
+            "discount_percent": p.discount_percent or 0,
+            "feature_codes": list(p.plan_features.values_list('code', flat=True)),
+        })
+
+    # Fallback: add standard plan choices not in DB
+    existing_codes = [p['code'] for p in plans]
+    standard_defaults = {"FREE": 0, "STANDARD": 300000, "PREMIUM": 500000, "PRO": 1000000}
     for code, label in Center.Plan.choices:
         if code not in existing_codes:
             plans.append({
-                "code": code,
-                "title": label,
-                "monthly_price": standard_defaults.get(code, 0)
+                "code": code, "title": label,
+                "monthly_price": standard_defaults.get(code, 0),
+                "max_students": 100, "max_groups": 30, "max_users": 5,
+                "is_popular": False, "discount_percent": 0, "feature_codes": [],
             })
-    
+
+
+    # Feature codes from the center's current subscription plan (M2M)
+    feature_codes = []
+    try:
+        from billing.models import CenterSubscription
+        sub = CenterSubscription.objects.filter(center=center, is_active=True).select_related('plan').first()
+        if sub and sub.plan:
+            feature_codes = list(sub.plan.plan_features.values_list('code', flat=True))
+    except Exception:
+        # Fallback to features JSONField keys that are True
+        if center.features:
+            feature_codes = [k for k, v in center.features.items() if v]
+
     # Send all needed info for edit form
     return JsonResponse({
         "id": center.id,
@@ -277,6 +300,7 @@ def center_detail_api(request, center_id):
         "payment_day": center.payment_day,
         "max_students": center.max_students,
         "features": center.features or {},
+        "feature_codes": feature_codes,          # ← M2M codes
         "expires_at": center.expires_at.strftime("%Y-%m-%d") if center.expires_at else None,
         "capacity_limit": center.capacity_limit,
         
@@ -299,6 +323,7 @@ def center_detail_api(request, center_id):
         },
         "available_plans": plans
     })
+
 
 
 @login_required
@@ -367,32 +392,41 @@ def center_update_api(request, center_id):
         
         center.save()
 
-        # ✅ Sync expires_at with CenterSubscription if it exists
-        if hasattr(center, 'subscription') and center.expires_at:
-            from django.utils.dateparse import parse_datetime, parse_date
-            from datetime import datetime
-            
+        # ✅ Sync expires_at AND PLAN with CenterSubscription if it exists
+        if hasattr(center, 'subscription'):
             sub = center.subscription
-            # Convert to datetime if string/date
-            if isinstance(center.expires_at, str):
-                # Try parsing as datetime first, then as date
-                dt = parse_datetime(center.expires_at)
-                if not dt:
-                    d = parse_date(center.expires_at)
-                    if d:
-                        dt = datetime.combine(d, datetime.min.time())
-                        dt = timezone.make_aware(dt) if timezone.is_naive(dt) else dt
-            else:
-                dt = center.expires_at
-                if hasattr(dt, 'date'):  # Is datetime
-                    pass  # Already datetime
-                else:  # Is date
-                    dt = datetime.combine(dt, datetime.min.time())
-                    dt = timezone.make_aware(dt) if timezone.is_naive(dt) else dt
             
-            if dt:
-                sub.expires_at = dt
-                sub.save(update_fields=['expires_at'])
+            # 1. Sync Plan if changed
+            if sub.plan and sub.plan.code != center.plan:
+                # Find the plan object
+                new_plan_obj = SubscriptionPlan.objects.filter(code=center.plan).first()
+                if new_plan_obj:
+                    sub.plan = new_plan_obj
+                    sub.save(update_fields=['plan'])
+            
+            # 2. Sync Expiry
+            if center.expires_at:
+                from django.utils.dateparse import parse_datetime, parse_date
+                from datetime import datetime
+                
+                # Convert to datetime if string/date
+                dt = None
+                if isinstance(center.expires_at, str):
+                    dt = parse_datetime(center.expires_at)
+                    if not dt:
+                        d = parse_date(center.expires_at)
+                        if d:
+                            dt = datetime.combine(d, datetime.min.time())
+                            dt = timezone.make_aware(dt) if timezone.is_naive(dt) else dt
+                else:
+                    dt = center.expires_at
+                    if not hasattr(dt, 'date'): # Is date
+                         dt = datetime.combine(dt, datetime.min.time())
+                    dt = timezone.make_aware(dt) if timezone.is_naive(dt) else dt
+                
+                if dt:
+                    sub.expires_at = dt
+                    sub.save(update_fields=['expires_at'])
 
 
         # 2. Update Director
@@ -570,19 +604,65 @@ def plan_list_api(request):
     plans = SubscriptionPlan.objects.filter(active=True).order_by("monthly_price")
     data = []
     for p in plans:
+        # M2M feature codes
+        feature_codes = list(p.plan_features.values_list("code", flat=True))
         data.append({
             "id": p.id,
             "code": p.code,
             "title": p.title,
             "monthly_price": p.monthly_price,
             "max_students": p.max_students,
-            "max_groups": p.max_groups,
+            "max_groups": getattr(p, 'max_groups', 30),
             "max_users": p.max_users,
             "is_popular": p.is_popular,
             "discount_percent": p.discount_percent,
-            "caption": p.caption  # ✅ Caption
+            "caption": p.caption,
+            "features": p.features,          # legacy JSONField
+            "feature_codes": feature_codes,   # M2M feature codes
         })
     return JsonResponse({"plans": data})
+
+
+@login_required
+@require_http_methods(["GET"])
+def features_list_api(request):
+    """Barcha PlanFeaturelarni kategoriyalar bo'yicha qaytaradi."""
+    if not is_superadmin(request.user):
+        return HttpResponseForbidden("Faqat superadmin uchun")
+    
+    from collections import defaultdict
+    features = PlanFeature.objects.all().order_by("category", "order", "name")
+    
+    categories = defaultdict(list)
+    for f in features:
+        categories[f.category].append({
+            "id": f.id,
+            "code": f.code,
+            "name": f.name,
+            "description": f.description,
+            "category": f.category,
+            "category_display": f.get_category_display(),
+            "is_core": f.is_core,
+            "order": f.order,
+        })
+    
+    # Convert to ordered list of category groups
+    CATEGORY_ORDER = ["core","students","groups","payments","debtors","schedule","courses","staff","broadcast","reports","crm","settings"]
+    CATEGORY_LABELS = dict(PlanFeature.Category.choices)
+    result = []
+    for cat in CATEGORY_ORDER:
+        if cat in categories:
+            result.append({
+                "category": cat,
+                "label": CATEGORY_LABELS.get(cat, cat),
+                "items": categories[cat],
+            })
+    # Append any categories not in CATEGORY_ORDER
+    for cat, items in categories.items():
+        if cat not in CATEGORY_ORDER:
+            result.append({"category": cat, "label": cat, "items": items})
+    
+    return JsonResponse({"categories": result})
 
 
 @login_required
@@ -604,20 +684,40 @@ def plan_create_api(request):
         if SubscriptionPlan.objects.filter(code=code).exists():
             return JsonResponse({"success": False, "error": f"Tarif kodi {code} allaqachon mavjud!"}, status=400)
 
-        SubscriptionPlan.objects.create(
+        # Parse legacy features JSONField
+        features = data.get('features', {})
+        if isinstance(features, str):
+            try:
+                features = json.loads(features)
+            except:
+                features = {}
+
+        plan = SubscriptionPlan.objects.create(
             code=code,
             title=data.get('title', code),
             monthly_price=int(data.get('monthly_price') or 0),
             max_students=int(data.get('max_students') or 0),
-            # max_groups deprecated
+            max_groups=int(data.get('max_groups') or 0),
             max_users=int(data.get('max_users') or 0),
-            is_popular=data.get('is_popular') == 'true',
+            is_popular=data.get('is_popular') == 'true' or data.get('is_popular') is True,
             discount_percent=int(data.get('discount_percent') or 0),
-            caption=data.get('caption', ''),  # ✅ Caption
+            caption=data.get('caption', ''),
+            features=features,
             active=True
         )
         
-        return JsonResponse({"success": True, "message": "Tarif yaratildi"})
+        # M2M feature_codes
+        feature_codes = data.get('feature_codes', [])
+        if isinstance(feature_codes, str):
+            try:
+                feature_codes = json.loads(feature_codes)
+            except:
+                feature_codes = []
+        if feature_codes:
+            features_qs = PlanFeature.objects.filter(code__in=feature_codes)
+            plan.plan_features.set(features_qs)
+        
+        return JsonResponse({"success": True, "message": "Tarif yaratildi", "id": plan.id})
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
 
@@ -638,12 +738,43 @@ def plan_update_api(request, plan_id):
         plan.title = data.get('title', plan.title)
         plan.monthly_price = int(data.get('monthly_price') or 0)
         plan.max_students = int(data.get('max_students') or 0)
-        # plan.max_groups = int(data.get('max_groups') or 0)
+        plan.max_groups = int(data.get('max_groups') or 0)
         plan.max_users = int(data.get('max_users') or 0)
-        plan.is_popular = data.get('is_popular') == 'true'
+        
+        # Handle boolean properly from formData or JSON
+        is_pop = data.get('is_popular')
+        if isinstance(is_pop, str):
+            plan.is_popular = (is_pop.lower() == 'true')
+        else:
+             plan.is_popular = bool(is_pop)
+
         plan.discount_percent = int(data.get('discount_percent') or 0)
-        plan.caption = data.get('caption', '')  # ✅ Caption
+        plan.caption = data.get('caption', '')
+        
+        # Parse legacy features JSONField
+        features = data.get('features')
+        if features is not None:
+             if isinstance(features, str):
+                 try:
+                     plan.features = json.loads(features)
+                 except:
+                     plan.features = {}
+             else:
+                 plan.features = features
+        
         plan.save()
+        
+        # M2M feature_codes update
+        feature_codes = data.get('feature_codes')
+        if feature_codes is not None:
+            if isinstance(feature_codes, str):
+                try:
+                    feature_codes = json.loads(feature_codes)
+                except:
+                    feature_codes = []
+            if isinstance(feature_codes, list):
+                features_qs = PlanFeature.objects.filter(code__in=feature_codes)
+                plan.plan_features.set(features_qs)
         
         return JsonResponse({"success": True, "message": "Tarif yangilandi"})
     except Exception as e:

@@ -52,35 +52,75 @@ def center_picker(request):
     q = request.GET.get("q", "").strip()
     status = request.GET.get("status", "")
     
-    # ✅ Optimized Queryset
-    centers = Center.objects.filter(is_deleted=False).select_related(
-        'subscription', 'subscription__plan'
-    ).prefetch_related(
+    # ✅ Optimized Queryset: Load needed fields only
+    centers = Center.objects.filter(is_deleted=False).prefetch_related(
+        'subscriptions__plan',
         Prefetch('user_set', queryset=User.objects.filter(role='director'), to_attr='directors')
     ).annotate(
+        # Standard student count annotation
         student_count=Count('user', filter=Q(user__role='student', user__is_archived=False), distinct=True)
-    )
-    
+    ).order_by("-id")
+
     if q:
         centers = centers.filter(Q(name__icontains=q) | Q(address__icontains=q))
-    
     if status:
         centers = centers.filter(status=status)
 
-    centers = centers.order_by("-id") # Newest first is usually better for admin
+    # ✅ PLAN LOGIC FOR ONBOARDING
+    # Fetch active plans, ordered by monthly_price
+    # If multiple have same name, take the latest active version (by ID desc)
+    # Using python dict to dedup by title/code if needed
+    
+    all_active_plans = SubscriptionPlan.objects.filter(active=True).order_by('monthly_price')
+    deduped_plans = {}
+    
+    for p in all_active_plans:
+        # Key by code or title (assuming code is unique per version?)
+        # Requirement: "Show latest active version".
+        # If code is same, model field 'code' is unique=True anyway.
+        # So deduplication is implicitly handled by unique constraint on code.
+        # But if user meant "Standard v2" replaces "Standard v1" with different codes...
+        # Let's assume title-based grouping if codes differ.
+        if p.title not in deduped_plans:
+             deduped_plans[p.title] = p
+        else:
+             # Already have one? Prefer higher price/newer id?
+             # View logic says: "latest active version".
+             # Actually, if code is unique, maybe we just list all unique codes.
+             # The user requirement: "Duplicate ko'rinmasin".
+             # Assuming uniqueness by Title is the goal:
+             existing = deduped_plans[p.title]
+             if p.id > existing.id:
+                 deduped_plans[p.title] = p
 
-    active_center_id = request.session.get("active_center_id")
-
-    # Fetch dynamic plans
-    db_plans = SubscriptionPlan.objects.filter(active=True).order_by("monthly_price")
+    final_plans = sorted(deduped_plans.values(), key=lambda x: x.monthly_price)
+    
+    # Serialize plans for JS
+    import json
+    plans_data = []
+    for p in final_plans:
+        plans_data.append({
+            "id": p.id, 
+            "code": p.code, 
+            "title": p.title, 
+            "monthly_price": p.monthly_price, 
+            "max_students": p.max_students,
+            "max_users": p.max_users,
+            "max_groups": p.max_groups,
+            "is_popular": p.is_popular,
+            "discount_percent": p.discount_percent,
+            "features": p.features
+        })
+    plans_json = json.dumps(plans_data)
 
     return render(request, "accounts/center_picker.html", {
         "centers": centers,
-        "active_center_id": active_center_id,
-        "plans": Center.Plan.choices, # Keep for backward compatibility if needed, or remove
-        "db_plans": db_plans,         # New dynamic list
+        "active_center_id": request.session.get("active_center_id"),
+        "plans": final_plans,         # Still passed for potential template use
+        "plans_json": plans_json,     # Passed for JS
         "statuses": Center.STATUS_CHOICES,
         "selected_status": status,
+        "search_q": q,
     })
 
 @login_required

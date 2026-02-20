@@ -1,209 +1,556 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Yangi Markaz Yaratish{% endblock %}
+{% block title %}Yangi Markaz Yaratish — Chaqmoq{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-10">
-            <h2 class="text-white fw-bold mb-4">🆕 Yangi Markaz Yaratish</h2>
 
-            <div class="card bg-dark border-secondary">
-                <div class="card-body p-4">
-                    <form method="post">
-                        {% csrf_token %}
+<style>
+    /* ── Design Tokens ───────────────────────────── */
+    :root {
+        --sa-bg: #080d1a;
+        --sa-surface: #0d1526;
+        --sa-surface2: #111d30;
+        --sa-border: rgba(255, 255, 255, 0.07);
+        --sa-border-h: rgba(255, 255, 255, 0.14);
+        --sa-text: #f1f5f9;
+        --sa-muted: #64748b;
+        --sa-radius: 16px;
+        --sa-radius-sm: 10px;
+        --sa-indigo: #6366f1;
+        --sa-indigo-m: rgba(99, 102, 241, 0.12);
+        --sa-green: #22c55e;
+        --sa-green-m: rgba(34, 197, 94, 0.12);
+        --sa-amber: #f59e0b;
+        --sa-amber-m: rgba(245, 158, 11, 0.12);
+    }
 
-                        <h4 class="text-white mb-3">🏢 Markaz Ma'lumotlari</h4>
-                        <div class="row g-3 mb-4">
-                            {% for field in center_form %}
-                            {% if field.name == 'features' %}
-                            <div class="col-12 mt-4">
-                                <label class="form-label text-white fw-bold d-block mb-3">🛠 Qo‘shimcha
-                                    Imkoniyatlar</label>
-                                {{ field }} <!-- Hidden Input -->
-                                <div class="card bg-dark bg-opacity-50 border-secondary">
-                                    <div class="card-body">
-                                        <div class="row g-3" id="featuresToggles">
-                                            <!-- Dynamically rendered toggles -->
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% else %}
-                            <div class="col-md-6">
-                                <label class="form-label text-secondary">{{ field.label }}</label>
-                                {{ field }}
-                                {% if field.errors %}
-                                <div class="text-danger small">{{ field.errors.0 }}</div>
-                                {% endif %}
-                            </div>
-                            {% endif %}
-                            {% endfor %}
+    .sa-page {
+        padding: 28px 32px;
+        max-width: 1000px;
+        margin: 0 auto;
+    }
 
-                            <script>
-                                (function () {
-                                    const featuresList = [
-                                        { key: 'finance', label: '📊 Moliya (Finance)' },
-                                        { key: 'leads', label: '🎯 Lidlar (CRM)' },
-                                        { key: 'tasks', label: '✅ Vazifalar (Tasks)' },
-                                        { key: 'kpi', label: '📈 KPI Statistika' },
-                                        { key: 'store', label: '📦 Ombor (Store)' },
-                                        { key: 'sms', label: '📩 SMS Xabarnoma' }
-                                    ];
+    /* ── Header ─────────────────────────────────── */
+    .sa-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 32px;
+        flex-wrap: wrap;
+    }
 
-                                    const input = document.querySelector('input[name="features"]');
-                                    const container = document.getElementById('featuresToggles');
-                                    let currentData = {};
+    .sa-header-left .breadcrumb-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 4px;
+    }
 
-                                    try {
-                                        currentData = JSON.parse(input.value || '{}');
-                                    } catch (e) {
-                                        currentData = {};
-                                    }
+    .sa-header-left .breadcrumb-bar span {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        color: var(--sa-muted);
+    }
 
-                                    featuresList.forEach(item => {
-                                        const col = document.createElement('div');
-                                        col.className = 'col-md-4 col-sm-6';
+    .sa-header-left .breadcrumb-bar .bc-current {
+        color: var(--sa-indigo);
+    }
 
-                                        const isChecked = !!currentData[item.key];
+    .sa-header-left h1 {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--sa-text);
+        margin: 4px 0 0;
+        letter-spacing: -0.5px;
+    }
 
-                                        col.innerHTML = `
-                                            <div class="form-check form-switch p-0 d-flex align-items-center gap-3">
-                                                <input class="form-check-input m-0" type="checkbox" role="switch" 
-                                                       id="feat_${item.key}" ${isChecked ? 'checked' : ''}
-                                                       style="width: 3em; height: 1.5em; cursor: pointer;">
-                                                <label class="form-check-label text-white" for="feat_${item.key}" style="cursor: pointer; user-select: none;">
-                                                    ${item.label}
-                                                </label>
-                                            </div>
-                                        `;
-                                        container.appendChild(col);
+    .sa-header-left .subtitle {
+        font-size: 0.85rem;
+        color: var(--sa-muted);
+        margin: 4px 0 0;
+    }
 
-                                        // Event Listener
-                                        const checkbox = col.querySelector('input');
-                                        checkbox.addEventListener('change', function () {
-                                            if (this.checked) {
-                                                currentData[item.key] = true;
-                                            } else {
-                                                delete currentData[item.key];
-                                            }
-                                            input.value = JSON.stringify(currentData);
-                                        });
-                                    });
-                                })();
-                            </script>
+    .sa-header-right {
+        display: flex;
+        gap: 10px;
+    }
 
-                            <!-- Duration & Pricing -->
-                            <div class="col-12 mt-4">
-                                <div class="card bg-secondary bg-opacity-10 border-secondary">
-                                    <div class="card-body">
-                                        <h6 class="text-white mb-3">💰 Obuna Hisobi</h6>
-                                        <div class="row align-items-end">
-                                            <div class="col-md-4">
-                                                <label class="form-label text-secondary">Davomiyligi (Oy)</label>
-                                                <select name="duration" id="id_duration"
-                                                    class="form-select bg-dark text-white border-secondary">
-                                                    <option value="1">1 Oy</option>
-                                                    <option value="3">3 Oy (-5%)</option>
-                                                    <option value="6">6 Oy (-10%)</option>
-                                                    <option value="12">1 Yil (-15%)</option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-8">
-                                                <div
-                                                    class="d-flex justify-content-between align-items-center h-100 pb-2">
-                                                    <div>
-                                                        <small class="text-secondary d-block">Oylik Narx</small>
-                                                        <span class="text-white fw-bold" id="monthlyPrice">0 so'm</span>
-                                                    </div>
-                                                    <div>
-                                                        <small class="text-secondary d-block">Jami To'lov</small>
-                                                        <span class="text-success fw-bold fs-5" id="totalPrice">0
-                                                            so'm</span>
-                                                    </div>
-                                                    <div>
-                                                        <small class="text-secondary d-block">Tugash Sanasi</small>
-                                                        <span class="text-warning fw-bold" id="expiryDate">-</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+    /* ── Buttons ────────────────────────────────── */
+    .sa-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        border-radius: var(--sa-radius-sm);
+        font-size: 0.9rem;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
 
-                        <script>
-                            const PLANS = JSON.parse('{{ plans_json|escapejs }}');
+    .sa-btn-primary {
+        background: var(--sa-indigo);
+        color: #fff;
+    }
 
-                            document.addEventListener('DOMContentLoaded', function () {
-                                const planSelect = document.getElementById('id_plan'); // Ensure form uses id_plan
-                                const durationSelect = document.getElementById('id_duration');
+    .sa-btn-primary:hover {
+        background: #4f52e5;
+        box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
+        color: #fff;
+    }
 
-                                function updatePrice() {
-                                    const planCode = planSelect.value;
-                                    const duration = parseInt(durationSelect.value);
-                                    const plan = PLANS.find(p => p.code === planCode);
+    .sa-btn-secondary {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--sa-text);
+        border: 1px solid var(--sa-border);
+    }
+
+    .sa-btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.09);
+        border-color: var(--sa-border-h);
+        color: #fff;
+    }
+
+    /* ── Card & Layout ──────────────────────────── */
+    .sa-card {
+        background: var(--sa-surface);
+        border: 1px solid var(--sa-border);
+        border-radius: var(--sa-radius);
+        padding: 32px;
+        margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .sa-card-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--sa-text);
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--sa-border);
+    }
+
+    .sa-card-title i {
+        color: var(--sa-indigo);
+        font-size: 1.2rem;
+    }
+
+    /* ── Form Fields ────────────────────────────── */
+    .sa-form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .sa-form-full {
+        grid-column: 1 / -1;
+    }
+
+    .sa-field {
+        margin-bottom: 0;
+    }
+
+    .sa-field label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--sa-muted);
+        margin-bottom: 8px;
+    }
+
+    .sa-field input[type="text"],
+    .sa-field input[type="email"],
+    .sa-field input[type="password"],
+    .sa-field input[type="number"],
+    .sa-field select,
+    .sa-field textarea {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--sa-border);
+        border-radius: 12px;
+        color: var(--sa-text);
+        padding: 12px 16px;
+        font-size: 0.95rem;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+
+    .sa-field input:focus,
+    .sa-field select:focus,
+    .sa-field textarea:focus {
+        border-color: rgba(99, 102, 241, 0.5);
+        background: rgba(255, 255, 255, 0.05);
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+
+    .sa-field select option {
+        background: #111d30;
+        color: #f1f5f9;
+        font-size: 0.95rem;
+    }
+
+    .sa-field input::placeholder {
+        color: rgba(255, 255, 255, 0.2);
+    }
+
+    .sa-field .help-text {
+        font-size: 0.75rem;
+        color: var(--sa-muted);
+        margin-top: 6px;
+    }
+
+    .sa-field .error-text {
+        font-size: 0.75rem;
+        color: var(--sa-red);
+        margin-top: 6px;
+    }
+
+    /* ── Feature Toggles ────────────────────────── */
+    .sa-features-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+
+    .sa-toggle-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--sa-border);
+        border-radius: 12px;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        user-select: none;
+    }
+
+    .sa-toggle-card:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: var(--sa-border-h);
+    }
+
+    .sa-toggle-card.active {
+        background: rgba(99, 102, 241, 0.15);
+        border-color: rgba(99, 102, 241, 0.4);
+    }
+
+    .sa-switch {
+        width: 36px;
+        height: 20px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        position: relative;
+        transition: background 0.2s;
+    }
+
+    .sa-switch::after {
+        content: '';
+        position: absolute;
+        left: 2px;
+        top: 2px;
+        width: 16px;
+        height: 16px;
+        background: #fff;
+        border-radius: 50%;
+        transition: transform 0.2s;
+    }
+
+    .sa-toggle-card.active .sa-switch {
+        background: var(--sa-indigo);
+    }
+
+    .sa-toggle-card.active .sa-switch::after {
+        transform: translateX(16px);
+    }
+
+    .sa-toggle-label {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--sa-text);
+    }
 
 
-                                    if (!plan) return;
+    /* ── Pricing Summary ────────────────────────── */
+    .sa-pricing-card {
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+        border: 1px solid var(--sa-border);
+        border-radius: 16px;
+        padding: 24px;
+        margin-top: 10px;
+    }
 
+    .sa-price-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+    }
 
-                                    // 1. Update Limits
-                                    const studentsInput = document.querySelector('input[name="capacity_limit"]');
+    .sa-price-item label {
+        display: block;
+        font-size: 0.75rem;
+        color: var(--sa-muted);
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        font-weight: 700;
+    }
 
-                                    if (studentsInput) studentsInput.value = plan.max_students;
+    .sa-price-val {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--sa-text);
+    }
 
+    .sa-price-val.highlight {
+        font-size: 1.5rem;
+        color: var(--sa-green);
+    }
 
-                                    // 2. Pricing
-                                    let monthly = plan.monthly_price;
-                                    let total = monthly * duration;
+    .sa-price-val.warn {
+        color: var(--sa-amber);
+    }
 
-                                    // Simple logic matching options above (backend logic might differ slightly but this is UI est)
-                                    if (duration >= 12) total *= 0.85;
-                                    else if (duration >= 6) total *= 0.90;
-                                    else if (duration >= 3) total *= 0.95;
+    @media (max-width: 768px) {
+        .sa-form-grid {
+            grid-template-columns: 1fr;
+        }
 
-                                    document.getElementById('monthlyPrice').innerText = new Intl.NumberFormat('uz-UZ').format(monthly) + " so'm";
-                                    document.getElementById('totalPrice').innerText = new Intl.NumberFormat('uz-UZ').format(total) + " so'm";
+        .sa-features-grid {
+            grid-template-columns: 1fr;
+        }
 
-                                    const date = new Date();
-                                    date.setDate(date.getDate() + (30 * duration));
-                                    document.getElementById('expiryDate').innerText = date.toLocaleDateString('ru-RU');
-                                }
+        .sa-header {
+            flex-direction: column;
+            gap: 16px;
+        }
 
-                                if (planSelect) {
-                                    planSelect.addEventListener('change', updatePrice);
-                                    durationSelect.addEventListener('change', updatePrice);
-                                    updatePrice(); // Init
-                                }
-                            });
-                        </script>
+        .sa-price-row {
+            flex-direction: column;
+            gap: 20px;
+            align-items: flex-start;
+        }
+    }
+</style>
 
-                        <hr class="border-secondary my-4">
+<div class="sa-page">
 
-                        <h4 class="text-white mb-3">👤 Direktor Ma'lumotlari</h4>
-                        <div class="row g-3 mb-4">
-                            {% for field in director_form %}
-                            <div class="col-md-6">
-                                <label class="form-label text-secondary">{{ field.label }}</label>
-                                {{ field }}
-                                {% if field.errors %}
-                                <div class="text-danger small">{{ field.errors.0 }}</div>
-                                {% endif %}
-                            </div>
-                            {% endfor %}
-                        </div>
+    <!-- Header -->
+    <div class="sa-header">
+        <div class="sa-header-left">
+            <div class="breadcrumb-bar">
+                <span>Superadmin</span>
+                <span>/</span>
+                <span class="bc-current">Yangi Markaz</span>
+            </div>
+            <h1>Yangi Markaz Yaratish</h1>
+            <p class="subtitle">Platforma tizimida yangi o'quv markazi va uning direktorini ro'yxatdan o'tkazish</p>
+        </div>
+        <div class="sa-header-right">
+            <a href="{% url 'accounts:center_picker' %}" class="sa-btn sa-btn-secondary">
+                <i class="bi bi-x-lg"></i> Bekor qilish
+            </a>
+        </div>
+    </div>
 
-                        <div class="d-flex justify-content-end gap-2 mt-4">
-                            <a href="{% url 'accounts:center_picker' %}" class="btn btn-outline-light">Bekor qilish</a>
-                            <button type="submit" class="btn btn-primary fw-bold px-4">Saqlash va Yaratish</button>
-                        </div>
-                    </form>
+    <form method="post">
+        {% csrf_token %}
+
+        <!-- 1. Markaz Ma'lumotlari -->
+        <div class="sa-card">
+            <div class="sa-card-title"><i class="bi bi-building"></i> Markaz Ma'lumotlari</div>
+
+            <div class="sa-form-grid">
+                {% for field in center_form %}
+                {% if field.name == 'features' %}
+                <!-- Skip here, rendered separately below -->
+                {% else %}
+                <div class="sa-field {% if field.name == 'address' %}sa-form-full{% endif %}">
+                    <label>{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                    <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ field.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 2. Obuna va Tarif -->
+        <div class="sa-card">
+            <div class="sa-card-title"><i class="bi bi-credit-card-2-front"></i> Obuna va Tarif</div>
+
+            <div class="sa-form-grid">
+                <div class="sa-field">
+                    <label>Davomiyligi (Obuna muddati)</label>
+                    <select name="duration" id="id_duration">
+                        <option value="1">1 Oy</option>
+                        <option value="3">3 Oy (-5% chegirma)</option>
+                        <option value="6">6 Oy (-10% chegirma)</option>
+                        <option value="12">1 Yil (-15% chegirma)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Pricing Calc -->
+            <div class="sa-pricing-card mt-4">
+                <div class="sa-price-row">
+                    <div class="sa-price-item">
+                        <label>Oylik Narx</label>
+                        <div class="sa-price-val" id="monthlyPrice">0 so'm</div>
+                    </div>
+                    <div class="sa-price-item">
+                        <label>Tugash Sanasi</label>
+                        <div class="sa-price-val warn" id="expiryDate">-</div>
+                    </div>
+                    <div class="sa-price-item">
+                        <label>Jami To'lov</label>
+                        <div class="sa-price-val highlight" id="totalPrice">0 so'm</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features -->
+            <div class="mt-4">
+                <label
+                    style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--sa-muted);margin-bottom:12px;">
+                    Qo'shimcha Imkoniyatlar
+                </label>
+
+                <!-- Hidden input for form submission -->
+                {% for field in center_form %}{% if field.name == 'features' %}{{ field }}{% endif %}{% endfor %}
+
+                <div class="sa-features-grid" id="featuresContainer">
+                    <!-- JS renders here -->
                 </div>
             </div>
         </div>
-    </div>
+
+        <!-- 3. Direktor -->
+        <div class="sa-card">
+            <div class="sa-card-title"><i class="bi bi-person-badge"></i> Direktor Ma'lumotlari</div>
+            <div class="sa-form-grid">
+                {% for field in director_form %}
+                <div class="sa-field">
+                    <label>{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                    <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ field.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div style="display:flex; justify-content:flex-end; gap:16px; margin-bottom:40px;">
+            <button type="submit" class="sa-btn sa-btn-primary" style="padding:14px 32px; font-size:1rem;">
+                <i class="bi bi-check-lg"></i> Saqlash va Yaratish
+            </button>
+        </div>
+
+    </form>
 </div>
+
+<!-- ── Scripts ──────────────────────────────── -->
+<script>
+    // Features Logic
+    (function () {
+        const list = [
+            { key: 'finance', label: 'Moliya (Finance)' },
+            { key: 'leads', label: 'Lidlar (CRM)' },
+            { key: 'tasks', label: 'Vazifalar (Tasks)' },
+            { key: 'kpi', label: 'KPI Statistika' },
+            { key: 'store', label: 'Ombor (Store)' },
+            { key: 'sms', label: 'SMS Xabarnoma' }
+        ];
+
+        const input = document.querySelector('input[name="features"]');
+        const container = document.getElementById('featuresContainer');
+        // Hide the actual input if it rendered visually
+        if (input) input.style.display = 'none';
+
+        let data = {};
+        try { data = JSON.parse(input.value || '{}'); } catch (e) { }
+
+        list.forEach(item => {
+            const saved = !!data[item.key];
+            const card = document.createElement('div');
+            card.className = `sa-toggle-card ${saved ? 'active' : ''}`;
+            card.innerHTML = `
+        <div class="sa-switch"></div>
+        <div class="sa-toggle-label">${item.label}</div>
+     `;
+
+            card.addEventListener('click', () => {
+                const isActive = card.classList.contains('active');
+                if (isActive) {
+                    card.classList.remove('active');
+                    delete data[item.key];
+                } else {
+                    card.classList.add('active');
+                    data[item.key] = true;
+                }
+                input.value = JSON.stringify(data);
+            });
+
+            container.appendChild(card);
+        });
+    })();
+
+    // Pricing Logic
+    const PLANS = JSON.parse('{{ plans_json|escapejs }}');
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const planSelect = document.getElementById('id_plan');
+        const durationSelect = document.getElementById('id_duration');
+
+        function updatePrice() {
+            if (!planSelect) return;
+            const planCode = planSelect.value;
+            const duration = parseInt(durationSelect.value);
+            const plan = PLANS.find(p => p.code === planCode);
+
+            if (!plan) return;
+
+            // Auto-fill capacity if field exists
+            const cappingInput = document.querySelector('input[name="capacity_limit"]');
+            if (cappingInput) cappingInput.value = plan.max_students;
+
+            // Calc
+            let monthly = plan.monthly_price;
+            let total = monthly * duration;
+
+            if (duration >= 12) total *= 0.85;
+            else if (duration >= 6) total *= 0.90;
+            else if (duration >= 3) total *= 0.95;
+
+            document.getElementById('monthlyPrice').innerText = new Intl.NumberFormat('uz-UZ').format(monthly) + " so'm";
+            document.getElementById('totalPrice').innerText = new Intl.NumberFormat('uz-UZ').format(total) + " so'm";
+
+            const date = new Date();
+            date.setDate(date.getDate() + (30 * duration));
+            document.getElementById('expiryDate').innerText = date.toLocaleDateString('ru-RU');
+        }
+
+        if (planSelect) {
+            planSelect.addEventListener('change', updatePrice);
+            durationSelect.addEventListener('change', updatePrice);
+            updatePrice();
+        }
+    });
+</script>
+
 {% endblock %}

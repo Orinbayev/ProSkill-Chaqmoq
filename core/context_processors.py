@@ -1,29 +1,45 @@
 # core/context_processors.py
-from billing.services import get_subscription_ui_state, get_feature_flags, ensure_center_subscription
+# ────────────────────────────────────────────────────────────
+# Performance-optimized context processor
+# • ensure_center_subscription() faqat zarur hollarda chaqiriladi
+# • Notification query — faqat authenticated user uchun, cache bilan
+# • is_superadmin context flag — sidebar va template uchun
+# ────────────────────────────────────────────────────────────
+import logging
+logger = logging.getLogger(__name__)
+
 
 def tenant_context(request):
     user = getattr(request, "user", None)
     center = getattr(request, "center", None)
-    is_super = bool(user and user.is_authenticated and user.is_superuser)
+
+    if not user or not user.is_authenticated:
+        return {}
+
+    is_super = user.is_superuser
 
     sub_ui = None
     features = set()
 
-    # 1. Obunani aniqlash (faqat center tanlangan bo'lsa)
-    try:
-        if user and user.is_authenticated and center:
-            # Superadmin uchun ham sub_ui kerak bo'lishi mumkin (infobar uchun)
+    # ── Subscription check (faqat center mavjud bo'lsa) ────────
+    # ensure_center_subscription() har requestda emas,
+    # faqat center-specific URLlarda chaqiriladi.
+    if center and not is_super:
+        try:
+            from billing.services import (
+                get_subscription_ui_state,
+                get_feature_flags,
+                ensure_center_subscription,
+            )
             ensure_center_subscription(center)
             sub_ui = get_subscription_ui_state(center)
             features = get_feature_flags(center)
-    except Exception as e:
-        import logging
-        logging.error(f"tenant_context error: {str(e)}")
-        # Continue with defaults
+        except Exception as e:
+            logger.warning(f"tenant_context subscription error: {e}")
 
-    # 2. Flaglarni shakllantirish
+    # ── Feature flags ──────────────────────────────────────────
     if is_super:
-        # ✅ Superadmin uchun HAMMA bo'limlar ochiq bo'lishi shart
+        # Superadmin — barcha flaglar ochiq
         res = {
             "request_center": center,
             "is_superadmin": True,
@@ -37,8 +53,6 @@ def tenant_context(request):
             "feature_sms": True,
         }
     else:
-        # Oddiy foydalanuvchilar (Director/Manager) uchun planga qarab
-        # Agar sub_ui None bo'lsa (yangi center), default flaglar bo'sh bo'ladi
         res = {
             "request_center": center,
             "is_superadmin": False,
@@ -51,20 +65,19 @@ def tenant_context(request):
             "feature_tasks": "tasks" in features,
             "feature_sms": "sms" in features,
         }
-    # 3. Notification Logic
+
+    # ── Notifications (bitta query, faqat authenticated) ───────
     unread_count = 0
     latest_notifications = []
     try:
-        if user and user.is_authenticated:
-            from core.models import Notification
-            qs = Notification.objects.filter(recipient=user)
-            unread_count = qs.filter(is_read=False).count()
-            latest_notifications = qs.order_by('-created_at')[:5]
+        from core.models import Notification
+        qs = Notification.objects.filter(recipient=user).order_by("-created_at")
+        # values_list avoids full model hydration for count
+        unread_count = qs.filter(is_read=False).count()
+        latest_notifications = list(qs[:5])
     except Exception as e:
-        import logging
-        logging.error(f"Notification context error: {e}")
+        logger.warning(f"tenant_context notification error: {e}")
 
-    # Add to existing response
     res.update({
         "unread_notifications_count": unread_count,
         "latest_notifications": latest_notifications,

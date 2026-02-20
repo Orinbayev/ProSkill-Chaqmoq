@@ -184,9 +184,11 @@ def home(request):
 
     center = _get_center(request)
     
-    # ✅ SUPERADMIN FIX: Center tanlanmagan bo‘lsa -> Super Admin Dashboard’ga yuboramiz
-    if u.is_superuser and not center:
+    # ✅ SUPERADMIN: root URL '/' her doim global platform panelga yo'naltiradi.
+    # Session'da active_center_id bo'lsa ham, '/' superadmin uchun tenant dashboard emas.
+    if u.is_superuser:
         return redirect("accounts:superadmin_dashboard")
+
 
     stats = _build_stats(center)
 

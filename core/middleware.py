@@ -45,8 +45,38 @@ class TenantMiddleware:
                         
             # B) Standard User: Always use assigned center
             elif hasattr(request.user, 'center') and request.user.center:
-                request.active_center = request.user.center
-                request.center = request.user.center
+                # ✅ Refresh center from DB to ensure is_deleted/status is fresh
+                try:
+                    fresh_center = Center.objects.get(pk=request.user.center.pk)
+                except Center.DoesNotExist:
+                     # Center hard deleted
+                     from django.contrib.auth import logout
+                     logout(request)
+                     return redirect('/')
+
+                # ✅ If center is deleted -> Force Logout
+                if fresh_center.is_deleted:
+                    from django.contrib.auth import logout
+                    logout(request)
+                    return redirect('/')
+                
+                # ✅ Check for Archive (optional but good practice)
+                if fresh_center.status == 'ARCHIVED':
+                    from django.contrib.auth import logout
+                    logout(request)
+                    return redirect('/')
+
+                request.active_center = fresh_center
+                request.center = fresh_center
+
+                # ✅ Auto-Expire / Resume PAUSED Subscriptions
+                # This ensures we switch to next plan WITHOUT needing Dashboard UI
+                try:
+                    from billing.services import check_subscription_expiry
+                    check_subscription_expiry(fresh_center)
+                except Exception as e:
+                    import logging
+                    logging.error(f"Middleware Sub Check Error: {e}")
                 
                 # Check Blocked Status
                 is_blocked = False

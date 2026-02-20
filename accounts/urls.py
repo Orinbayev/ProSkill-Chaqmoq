@@ -32,10 +32,12 @@ platform_patterns = [
     # Plans & Promo APIs
     path("api/plans/", include([
         path("list/", api_superadmin.plan_list_api, name="api_plan_list"),
+        path("features/", api_superadmin.features_list_api, name="api_features_list"),
         path("create/", api_superadmin.plan_create_api, name="api_plan_create"),
         path("<int:plan_id>/update/", api_superadmin.plan_update_api, name="api_plan_update"),
         path("<int:plan_id>/delete/", api_superadmin.plan_delete_api, name="api_plan_delete"),
     ])),
+
     
     path("api/promos/", include([
         path("list/", api_superadmin.promo_list_api, name="api_promo_list"),

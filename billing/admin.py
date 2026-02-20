@@ -1,7 +1,14 @@
 # billing/admin.py
 from django.contrib import admin
-from .models import SubscriptionPlan, CenterSubscription, PromoCode, SubscriptionOrder
+from .models import SubscriptionPlan, CenterSubscription, PromoCode, SubscriptionOrder, PlanFeature
 from .services import mark_order_paid
+
+
+@admin.register(PlanFeature)
+class PlanFeatureAdmin(admin.ModelAdmin):
+    list_display = ("code", "name", "category", "is_core", "order")
+    list_filter = ("category", "is_core")
+    search_fields = ("code", "name")
 
 
 @admin.register(SubscriptionPlan)
@@ -9,6 +16,8 @@ class SubscriptionPlanAdmin(admin.ModelAdmin):
     list_display = ("code", "title", "monthly_price", "max_students", "max_users", "max_groups", "is_popular", "active")
     list_filter = ("active", "is_popular")
     search_fields = ("code", "title")
+    filter_horizontal = ("plan_features",)
+
 
 
 @admin.register(CenterSubscription)

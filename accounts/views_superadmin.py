@@ -16,96 +16,126 @@ import json
 
 @user_passes_test(lambda u: u.is_superuser)
 def superadmin_dashboard(request):
-    """Super Admin: Global Dashboard with SaaS KPIs"""
-    from django.db.models import Count, Sum, Q, F, ExpressionWrapper, fields, Prefetch
+    """Super Admin: Global Dashboard with SaaS KPIs — optimized"""
+    from django.db.models import Count, Sum, Q, Prefetch, Case, When, IntegerField
     from django.utils import timezone
     from datetime import timedelta
     from billing.models import SubscriptionOrder, CenterSubscription
     from accounts.models import User
-    
-    # 1. Base Queryset
-    centers = Center.objects.filter(is_deleted=False).select_related('subscription__plan').prefetch_related(
-        Prefetch('user_set', queryset=User.objects.filter(role='director'), to_attr='directors')
-    ).annotate(
-        student_count=Count('user', filter=Q(user__role='student', user__is_archived=False), distinct=True),
-    ).order_by('-created_at')
 
-    # 2. Filters from URL
-    search_q = request.GET.get('q', '').strip()
+    now = timezone.now()
+    seven_days_later = now + timedelta(days=7)
+
+    # ── 1. Filters from URL ─────────────────────────────────────
+    search_q     = request.GET.get('q', '').strip()
     status_filter = request.GET.get('status', '')
-    plan_filter = request.GET.get('plan', '')
+    plan_filter   = request.GET.get('plan', '')
     expiry_filter = request.GET.get('expiry', '')
 
+    # ── 2. Centers queryset (only needed fields) ────────────────
+    centers = (
+        Center.objects
+        .filter(is_deleted=False)
+        .only(
+            'id', 'name', 'address', 'phone', 'plan', 'status',
+            'monthly_price', 'expires_at', 'capacity_limit', 'created_at',
+            'slug',
+        )
+        .prefetch_related(
+            Prefetch(
+                'user_set',
+                queryset=User.objects.filter(role='director').only('id', 'ism', 'familya', 'email', 'telefon1'),
+                to_attr='directors',
+            ),
+            'subscriptions__plan',
+        )
+        .annotate(
+            student_count=Count(
+                'user',
+                filter=Q(user__role='student', user__is_archived=False),
+                distinct=True,
+            ),
+        )
+        .order_by('-created_at')
+    )
+
+    # ── 3. Apply filters ────────────────────────────────────────
     if search_q:
         centers = centers.filter(
-            Q(name__icontains=search_q) | 
+            Q(name__icontains=search_q)    |
             Q(address__icontains=search_q) |
-            Q(user__email__icontains=search_q) |  # Search by user email (director)
             Q(phone__icontains=search_q)
         ).distinct()
 
     if status_filter:
         centers = centers.filter(status=status_filter)
-    
+
     if plan_filter:
         centers = centers.filter(plan=plan_filter)
-
-    now = timezone.now()
-    seven_days_later = now + timedelta(days=7)
 
     if expiry_filter == 'expired':
         centers = centers.filter(expires_at__lt=now)
     elif expiry_filter == 'expiring_soon':
         centers = centers.filter(expires_at__gte=now, expires_at__lte=seven_days_later)
 
-    # 3. Global KPI Aggregates (using separate fresh queryset for accuracy)
-    all_centers = Center.objects.filter(is_deleted=False)
-    
-    total_centers = all_centers.count()
-    active_centers_count = all_centers.filter(status='ACTIVE').count()
-    blocked_centers_count = all_centers.filter(status='BLOCKED').count()
-    archived_centers_count = all_centers.filter(status='ARCHIVED').count()
-    
-    # MRR: Sum of monthly_price for ACTIVE centers
-    mrr = all_centers.filter(status='ACTIVE').aggregate(s=Sum('monthly_price'))['s'] or 0
+    # ── 4. KPI aggregates — ONE query instead of 6 ─────────────
+    kpis = Center.objects.filter(is_deleted=False).aggregate(
+        total_centers=Count('id'),
+        active_centers_count=Count('id', filter=Q(status='ACTIVE')),
+        blocked_centers_count=Count('id', filter=Q(status='BLOCKED')),
+        archived_centers_count=Count('id', filter=Q(status='ARCHIVED')),
+        mrr=Sum('monthly_price', filter=Q(status='ACTIVE')),
+        active_subs_count=Count('id', filter=Q(status='ACTIVE', expires_at__gt=now)),
+        expired_count=Count('id', filter=Q(expires_at__lt=now)),
+        expiring_soon_count=Count('id', filter=Q(
+            expires_at__gte=now, expires_at__lte=seven_days_later
+        )),
+    )
 
-    # Subscription Stats
-    active_subs_count = all_centers.filter(status='ACTIVE', expires_at__gt=now).count()
-    expired_count = all_centers.filter(expires_at__lt=now).count()
-    expiring_soon_count = all_centers.filter(expires_at__gte=now, expires_at__lte=seven_days_later).count()
+    # ── 5. Global student count ─────────────────────────────────
+    total_students_global = User.objects.filter(
+        role='student', is_archived=False
+    ).count()
 
-    total_students_global = User.objects.filter(role='student', is_archived=False).count()
+    # ── 6. Pending orders ───────────────────────────────────────
+    pending_orders = (
+        SubscriptionOrder.objects
+        .filter(status='PENDING')
+        .select_related('center', 'plan')
+        .only(
+            'id', 'center__name', 'plan__code', 'plan__title',
+            'duration_months', 'final_price', 'created_at',
+        )
+        .order_by('-created_at')
+    )
 
-    # 4. Pending Orders (For Approval)
-    pending_orders = SubscriptionOrder.objects.filter(status='PENDING').select_related('center', 'plan').order_by('-created_at')
-
-    # 4. Context Preparation
+    # ── 7. Context ──────────────────────────────────────────────
     context = {
         'centers': centers,
         'search_q': search_q,
         'status_filter': status_filter,
         'plan_filter': plan_filter,
         'expiry_filter': expiry_filter,
-        
-        'pending_orders': pending_orders, # <--- Added this
+        'pending_orders': pending_orders,
 
-        # KPIs
-        'total_centers': total_centers,
-        'active_centers_count': active_centers_count,
-        'blocked_centers_count': blocked_centers_count,
-        'archived_centers_count': archived_centers_count,
-        'mrr': mrr,
-        'active_subs_count': active_subs_count,
-        'expired_count': expired_count,
-        'expiring_soon_count': expiring_soon_count,
+        # KPIs (from single aggregate)
+        'total_centers':       kpis['total_centers']       or 0,
+        'active_centers_count': kpis['active_centers_count'] or 0,
+        'blocked_centers_count': kpis['blocked_centers_count'] or 0,
+        'archived_centers_count': kpis['archived_centers_count'] or 0,
+        'mrr':                 kpis['mrr']                 or 0,
+        'active_subs_count':   kpis['active_subs_count']   or 0,
+        'expired_count':       kpis['expired_count']       or 0,
+        'expiring_soon_count': kpis['expiring_soon_count'] or 0,
         'total_students_global': total_students_global,
-        
-        # Dropdown choices (Dynamic Plans)
-        'plans': SubscriptionPlan.objects.values_list('code', 'title'),
+
+        # Dropdown choices
+        'plans':    SubscriptionPlan.objects.filter(active=True).values_list('code', 'title'),
         'statuses': Center.STATUS_CHOICES,
     }
-    
+
     return render(request, 'accounts/superadmin_dashboard.html', context)
+
 
 
 @login_required

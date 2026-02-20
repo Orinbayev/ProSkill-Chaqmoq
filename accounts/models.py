@@ -26,6 +26,35 @@ class Center(models.Model):
 
     plan = models.CharField(max_length=50, default="FREE")
 
+    # Subscription Properties to handle Stack Logic
+    @property
+    def subscription(self):
+        """
+        Backward compatibility: Returns the currently ACTIVE or PAUSED (best candidate) subscription.
+        Used for existing code that expects 'center.subscription'.
+        """
+        # Return currently active one first
+        active = self.subscriptions.filter(status="ACTIVE").order_by("-plan__tier", "-expires_at").first()
+        if active:
+            return active
+        
+        # If no active, maybe we have a paused one? (Shouldn't happen usually, but for safety)
+        paused = self.subscriptions.filter(status="PAUSED").order_by("-plan__tier").first()
+        if paused:
+            return paused
+
+        # If expired/blocked, return the last one
+        return self.subscriptions.first()
+
+    @property
+    def active_subscription(self):
+        """
+        Returns the real active subscription or None.
+        """
+        return self.subscriptions.filter(status="ACTIVE").order_by("-plan__tier", "-expires_at").first()
+
+    max_users = models.PositiveIntegerField(default=50)
+
     max_users = models.PositiveIntegerField(default=50)
     max_groups = models.PositiveIntegerField(default=30)
     max_students = models.PositiveIntegerField(default=100)
