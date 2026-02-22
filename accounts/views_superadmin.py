@@ -10,6 +10,7 @@ from billing.services import ensure_center_subscription
 from .forms import CenterAdminForm, DirectorCreationForm
 from django.http import JsonResponse
 import json
+from django.core.serializers.json import DjangoJSONEncoder
 
 
 @login_required
@@ -64,7 +65,11 @@ def superadmin_dashboard(request):
         centers = centers.filter(
             Q(name__icontains=search_q)    |
             Q(address__icontains=search_q) |
-            Q(phone__icontains=search_q)
+            Q(phone__icontains=search_q)   |
+            # Better search: Director name/email
+            Q(user__ism__icontains=search_q) |
+            Q(user__familya__icontains=search_q) |
+            Q(user__email__icontains=search_q)
         ).distinct()
 
     if status_filter:
@@ -73,10 +78,23 @@ def superadmin_dashboard(request):
     if plan_filter:
         centers = centers.filter(plan=plan_filter)
 
-    if expiry_filter == 'expired':
-        centers = centers.filter(expires_at__lt=now)
-    elif expiry_filter == 'expiring_soon':
-        centers = centers.filter(expires_at__gte=now, expires_at__lte=seven_days_later)
+    if expiry_filter:
+        if expiry_filter == 'expired':
+            centers = centers.filter(expires_at__lt=now)
+        elif expiry_filter == 'expiring_soon':
+            # 7 days
+            centers = centers.filter(expires_at__gte=now, expires_at__lte=seven_days_later)
+        elif expiry_filter == 'expiring_3':
+            # 3 days
+            centers = centers.filter(expires_at__gte=now, expires_at__lte=now + timedelta(days=3))
+        elif expiry_filter == 'today':
+            # Today
+            centers = centers.filter(expires_at__date=now.date())
+        elif expiry_filter == 'grace':
+            # Expired but within 3 days grace
+            centers = centers.filter(expires_at__lt=now, expires_at__gte=now - timedelta(days=3))
+        elif expiry_filter == 'active':
+            centers = centers.filter(expires_at__gt=now)
 
     # ── 4. KPI aggregates — ONE query instead of 6 ─────────────
     kpis = Center.objects.filter(is_deleted=False).aggregate(
@@ -93,6 +111,12 @@ def superadmin_dashboard(request):
     )
 
     # ── 5. Global student count ─────────────────────────────────
+    # Filter over-capacity centers if requested
+    limit_filter = request.GET.get('limit', '')
+    if limit_filter == 'over':
+        from django.db.models import F
+        centers = centers.filter(student_count__gt=F('capacity_limit'))
+
     total_students_global = User.objects.filter(
         role='student', is_archived=False
     ).count()
@@ -116,6 +140,7 @@ def superadmin_dashboard(request):
         'status_filter': status_filter,
         'plan_filter': plan_filter,
         'expiry_filter': expiry_filter,
+        'limit_filter': limit_filter,
         'pending_orders': pending_orders,
 
         # KPIs (from single aggregate)
@@ -142,8 +167,6 @@ def superadmin_dashboard(request):
 @user_passes_test(lambda u: u.is_superuser)
 def center_create(request):
     """Super Admin: Markaz va Director yaratish (transactional)"""
-    import json
-    from django.core.serializers.json import DjangoJSONEncoder
     
     center_form = CenterAdminForm(request.POST or None)
     director_form = DirectorCreationForm(request.POST or None)
@@ -185,26 +208,50 @@ def center_create(request):
                             status='ACTIVE'
                         )
                         
-                        # Set center status to match
+                        # Set center status and limits to match the plan
                         center.status = 'ACTIVE'
                         center.expires_at = expires_at
                         center.monthly_price = plan.monthly_price  # Store current MRR
+                        
+                        # SaaS Sync: Core Limits & Features
+                        center.capacity_limit = plan.max_students
+                        center.max_students = plan.max_students
+                        center.max_groups = 9999
+                        center.max_users = 9999
+                        
+                        # Sync features from plan
+                        feature_codes = list(plan.plan_features.values_list('code', flat=True))
+                        center.features = {code: True for code in feature_codes}
+                        
                         center.save()
                     
                     messages.success(
                         request, 
                         f"✅ Markaz '{center.name}' va Director '{director.email}' muvaffaqiyatli yaratildi!"
                     )
-                    return redirect('accounts:superadmin_dashboard')
+                    return redirect('platform_global:superadmin_dashboard')
             except Exception as e:
                 messages.error(request, f"Xatolik: {str(e)}")
         else:
             messages.error(request, "Formada xatolar bor. Iltimos tekshiring.")
     
     # Prepare Plans JSON for frontend calculation
-    plans_data = list(SubscriptionPlan.objects.filter(active=True).values(
-        'code', 'title', 'monthly_price', 'discount_percent', 'max_students', 'max_users'
-    ))
+    plans_qs = SubscriptionPlan.objects.filter(active=True)
+    plans_data = []
+    for p in plans_qs:
+        plans_data.append({
+            'code': p.code,
+            'title': p.title,
+            'monthly_price': p.monthly_price,
+            'discount_percent': p.discount_percent,
+            'max_students': p.max_students,
+            'max_users': p.max_users,
+            'price_3m': p.price_3m,
+            'price_6m': p.price_6m,
+            'price_9m': p.price_9m,
+            'price_12m': p.price_12m,
+            'feature_codes': list(p.plan_features.values_list('code', flat=True))
+        })
     
     return render(request, 'accounts/center_create.html', {
         'center_form': center_form,
@@ -233,11 +280,30 @@ def center_edit(request, pk):
             pass
             
         messages.success(request, f"✅ Markaz '{center.name}' yangilandi!")
-        return redirect('accounts:superadmin_dashboard')
+        return redirect('platform_global:superadmin_dashboard')
+    
+    # Prepare Plans JSON for frontend calculation
+    plans_qs = SubscriptionPlan.objects.filter(active=True)
+    plans_data = []
+    for p in plans_qs:
+        plans_data.append({
+            'code': p.code,
+            'title': p.title,
+            'monthly_price': p.monthly_price,
+            'discount_percent': p.discount_percent,
+            'max_students': p.max_students,
+            'max_users': p.max_users,
+            'price_3m': p.price_3m,
+            'price_6m': p.price_6m,
+            'price_9m': p.price_9m,
+            'price_12m': p.price_12m,
+            'feature_codes': list(p.plan_features.values_list('code', flat=True))
+        })
     
     return render(request, 'accounts/center_edit.html', {
         'form': form,
         'center': center,
+        'plans_json': json.dumps(plans_data, cls=DjangoJSONEncoder)
     })
 
 

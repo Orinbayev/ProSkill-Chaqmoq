@@ -39,7 +39,7 @@ class SecureLoginView(auth_views.LoginView):
             
             # On root domain, go to platform
             try:
-                return reverse('accounts:superadmin_dashboard')
+                return reverse('platform_global:superadmin_dashboard')
             except NoReverseMatch:
                 return reverse('core:home')
         

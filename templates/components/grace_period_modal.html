@@ -1,77 +1,265 @@
+{# ✅ Faqat Director va Manager uchun ko'rinsin #}
+{% if request.user.role == 'director' or request.user.role == 'manager' or request.user.role == 'admin' %}
 {% if sub_ui and sub_ui.in_grace_period %}
-<div class="modal fade" id="gracePeriodModal" tabindex="-1" aria-labelledby="graceLabel" aria-hidden="true"
-    data-bs-backdrop="static" data-bs-keyboard="false">
+
+<div class="modal fade" id="gracePeriodModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static"
+    data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content bg-dark border-danger shadow-lg">
-            <div class="modal-header border-danger border-opacity-25 bg-danger bg-opacity-10">
-                <h5 class="modal-title text-danger fw-bold" id="graceLabel">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Diqqat: Obuna Tugagan!
-                </h5>
-            </div>
-            <div class="modal-body text-white">
-                <p class="mb-3 fs-5">Sizning joriy obunangiz muddati tugagan.</p>
-                <div
-                    class="alert alert-warning border-warning bg-warning bg-opacity-10 d-flex align-items-center gap-3">
-                    <i class="bi bi-hourglass-split fs-1 text-warning"></i>
+        <div class="modal-content premium-modal animate__animated animate__zoomIn">
+
+            <!-- Glow Effect -->
+            <div class="modal-glow"></div>
+
+            <!-- Header -->
+            <div class="modal-header border-0 pb-0 position-relative z-1">
+                <div class="d-flex align-items-center gap-3 w-100">
+                    <div class="icon-box-danger-luxe">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
                     <div>
-                        <div class="small text-uppercase fw-bold text-warning opacity-75">Tizim bloklanishiga qoldi:
-                        </div>
-                        <div class="fs-2 fw-bold text-warning" id="graceCountdown">--:--:--</div>
+                        <h5 class="modal-title fw-black text-white mb-0" style="letter-spacing: -0.5px;">DIQQAT: OBUNA
+                            TUGAGAN!</h5>
+                        <p class="text-danger-emphasis small mb-0 fw-bold op-7">Tizim bloklanish arafasida</p>
                     </div>
                 </div>
-                <p class="text-secondary small mb-0">
-                    To‘lov amalga oshirilmasa, tizim butunlay bloklanadi va ma'lumotlarga kirish cheklanadi.
-                </p>
             </div>
-            <div class="modal-footer border-top-0 d-flex justify-content-between">
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
-                    Hozir emas (Ishlashda davom etish)
+
+            <!-- Body -->
+            <div class="modal-body pt-4 position-relative z-1">
+                <p class="text-secondary-emphasis mb-4 fw-medium">
+                    Hurmatli foydalanuvchi, markazingiz obuna muddati tugadi. Ma'lumotlar saqlanib qolishi va ish
+                    jarayoni to'xtamasligi uchun to'lovni amalga oshirishingizni so'raymiz.
+                </p>
+
+                <!-- Countdown Box Luxe -->
+                <div class="countdown-box-luxe">
+                    <div class="box-header-luxe">
+                        <span class="label">BLOKLANISHGA QOLDI:</span>
+                        <div class="pulse-dot"></div>
+                    </div>
+
+                    <div class="timer-display-luxe">
+                        <div class="t-segment">
+                            <span id="grace-hours-modal">00</span>
+                            <small>SOAT</small>
+                        </div>
+                        <div class="t-sep">:</div>
+                        <div class="t-segment">
+                            <span id="grace-minutes-modal">00</span>
+                            <small>DAQIQA</small>
+                        </div>
+                        <div class="t-sep">:</div>
+                        <div class="t-segment">
+                            <span id="grace-seconds-modal">00</span>
+                            <small>SONIYA</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div
+                class="modal-footer border-0 pt-2 pb-4 px-4 d-flex justify-content-between align-items-center position-relative z-1">
+                <button type="button" class="btn btn-link text-white-50 text-decoration-none btn-sm fw-bold hover-white"
+                    data-bs-dismiss="modal">
+                    Hozir emas
                 </button>
-                <a href="{% url 'billing:plans' %}" class="btn btn-danger px-4 fw-bold shadow-sm">
-                    <i class="bi bi-credit-card me-2"></i> To‘lov Qilish
+                <a href="{% url 'billing:plans' %}" class="btn btn-premium-danger px-4 py-2 fw-black">
+                    <i class="fa-solid fa-credit-card me-2"></i> TO'LOV QILISH
                 </a>
             </div>
         </div>
     </div>
 </div>
 
+<style>
+    .premium-modal {
+        background: #020617;
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        border-radius: 32px;
+        box-shadow: 0 0 100px rgba(239, 68, 68, 0.15), 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+        overflow: hidden;
+        position: relative;
+    }
+
+    .modal-glow {
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle at center, rgba(239, 68, 68, 0.08) 0%, transparent 50%);
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .icon-box-danger-luxe {
+        width: 52px;
+        height: 52px;
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ef4444;
+        font-size: 1.5rem;
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+    }
+
+    .countdown-box-luxe {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px;
+        padding: 24px;
+        position: relative;
+    }
+
+    .box-header-luxe {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .box-header-luxe .label {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 2px;
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    .pulse-dot {
+        width: 8px;
+        height: 8px;
+        background: #ef4444;
+        border-radius: 50%;
+        box-shadow: 0 0 10px #ef4444;
+        animation: pulseTimer 1.5s infinite;
+    }
+
+    @keyframes pulseTimer {
+        0% {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        50% {
+            transform: scale(1.5);
+            opacity: 0.5;
+        }
+
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    .timer-display-luxe {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .t-segment {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 70px;
+    }
+
+    .t-segment span {
+        font-size: 3rem;
+        font-weight: 900;
+        color: white;
+        line-height: 1;
+        font-family: 'Inter', sans-serif;
+        text-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+    }
+
+    .t-segment small {
+        font-size: 10px;
+        font-weight: 800;
+        color: rgba(255, 255, 255, 0.3);
+        margin-top: 8px;
+        letter-spacing: 1px;
+    }
+
+    .t-sep {
+        font-size: 2rem;
+        font-weight: 300;
+        color: rgba(255, 255, 255, 0.1);
+        padding-bottom: 20px;
+    }
+
+    .btn-premium-danger {
+        background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+        border: none;
+        color: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
+        transition: all 0.3s;
+    }
+
+    .btn-premium-danger:hover {
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: 0 15px 35px rgba(239, 68, 68, 0.5);
+        filter: brightness(1.1);
+    }
+
+    .hover-white:hover {
+        color: white !important;
+    }
+
+    .op-7 {
+        opacity: 0.7;
+    }
+</style>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        var graceModal = new bootstrap.Modal(document.getElementById('gracePeriodModal'));
-        graceModal.show();
+        // 1. One-time per session check
+        if (sessionStorage.getItem('grace_modal_session_shown')) return;
 
-        // Countdown Logic
-        // hard_expires_at comes from context processor sub_ui
-        // We need it in JS format. 
-        // Django templates format dates as strings, let's parse it safely.
+        // 2. Init Modal
+        const modalEl = document.getElementById('gracePeriodModal');
+        if (!modalEl) return;
+        const graceModal = new bootstrap.Modal(modalEl);
 
-        const targetDateStr = "{{ sub_ui.hard_expires_at|date:'Y-m-d H:i:s' }}";
-        // Note: Javascript Date.parse might need ISO format. 
-        // Better: user timestamp
-        const targetTimestamp = new Date("{{ sub_ui.hard_expires_at|date:'c' }}").getTime();
+        // Short delay for smoothness
+        setTimeout(() => {
+            graceModal.show();
+            sessionStorage.setItem('grace_modal_session_shown', 'true');
+        }, 1500);
 
-        function updateTimer() {
-            const now = new Date().getTime();
-            const distance = targetTimestamp - now;
+        // 3. Countdown Logic
+        const targetStamp = parseInt("{{ sub_ui.hard_expires_at|date:'U'|default:0 }}") * 1000;
 
-            if (distance < 0) {
-                document.getElementById("graceCountdown").innerHTML = "BLOCKED";
-                document.getElementById("graceCountdown").classList.add("text-danger");
+        function updateModalTimer() {
+            const now = Date.now();
+            const diff = targetStamp - now;
+
+            if (diff <= 0) {
+                document.getElementById('grace-hours-modal').innerText = "00";
+                document.getElementById('grace-minutes-modal').innerText = "00";
+                document.getElementById('grace-seconds-modal').innerText = "00";
                 return;
             }
 
-            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const totalHours = Math.floor(distance / (1000 * 60 * 60)); // Total hours left
+            const h = Math.floor(diff / 3600000);
+            const m = Math.floor((diff % 3600000) / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
 
-            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-            document.getElementById("graceCountdown").innerHTML =
-                totalHours + " soat " + minutes + " daqiqa";
+            document.getElementById('grace-hours-modal').innerText = String(h).padStart(2, '0');
+            document.getElementById('grace-minutes-modal').innerText = String(m).padStart(2, '0');
+            document.getElementById('grace-seconds-modal').innerText = String(s).padStart(2, '0');
         }
 
-        setInterval(updateTimer, 1000);
-        updateTimer();
+        setInterval(updateModalTimer, 1000);
+        updateModalTimer();
     });
 </script>
+
+{% endif %}
 {% endif %}

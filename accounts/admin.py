@@ -102,7 +102,7 @@ class CenterAdmin(admin.ModelAdmin):
 
     def switch_link(self, obj: Center):
         # ✅ admin listda link bilan switch qilish
-        url = reverse("accounts:center_switch") + f"?center_id={obj.id}&next=/"
+        url = reverse("platform_global:center_switch") + f"?center_id={obj.id}&next=/"
         return format_html('<a class="button" href="{}">Switch</a>', url)
     switch_link.short_description = "Switch"
 

@@ -10,7 +10,7 @@ from django.utils import timezone
 from datetime import timedelta
 from accounts.models import Center, User
 from education.models import Group, Payment, Attendance, TeacherIncome
-from billing.models import SubscriptionPlan, PromoCode, PlanFeature
+from billing.models import SubscriptionPlan, PromoCode, PlanFeature, SubscriptionOrder
 from billing.services import apply_plan_to_center
 
 logger = logging.getLogger(__name__)
@@ -611,6 +611,9 @@ def plan_list_api(request):
             "code": p.code,
             "title": p.title,
             "monthly_price": p.monthly_price,
+            "price_3m": p.price_3m,
+            "price_6m": p.price_6m,
+            "price_12m": p.price_12m,
             "max_students": p.max_students,
             "max_groups": getattr(p, 'max_groups', 30),
             "max_users": p.max_users,
@@ -647,7 +650,7 @@ def features_list_api(request):
         })
     
     # Convert to ordered list of category groups
-    CATEGORY_ORDER = ["core","students","groups","payments","debtors","schedule","courses","staff","broadcast","reports","crm","settings"]
+    CATEGORY_ORDER = ["core", "finance", "marketing", "team", "advanced"]
     CATEGORY_LABELS = dict(PlanFeature.Category.choices)
     result = []
     for cat in CATEGORY_ORDER:
@@ -696,9 +699,13 @@ def plan_create_api(request):
             code=code,
             title=data.get('title', code),
             monthly_price=int(data.get('monthly_price') or 0),
+            price_3m=int(data.get('price_3m') or 0) if data.get('price_3m') else None,
+            price_6m=int(data.get('price_6m') or 0) if data.get('price_6m') else None,
+            price_9m=int(data.get('price_9m') or 0) if data.get('price_9m') else None,
+            price_12m=int(data.get('price_12m') or 0) if data.get('price_12m') else None,
             max_students=int(data.get('max_students') or 0),
-            max_groups=int(data.get('max_groups') or 0),
-            max_users=int(data.get('max_users') or 0),
+            max_groups=9999,
+            max_users=9999,
             is_popular=data.get('is_popular') == 'true' or data.get('is_popular') is True,
             discount_percent=int(data.get('discount_percent') or 0),
             caption=data.get('caption', ''),
@@ -737,9 +744,13 @@ def plan_update_api(request, plan_id):
 
         plan.title = data.get('title', plan.title)
         plan.monthly_price = int(data.get('monthly_price') or 0)
+        plan.price_3m = int(data.get('price_3m') or 0) if data.get('price_3m') else None
+        plan.price_6m = int(data.get('price_6m') or 0) if data.get('price_6m') else None
+        plan.price_9m = int(data.get('price_9m') or 0) if data.get('price_9m') else None
+        plan.price_12m = int(data.get('price_12m') or 0) if data.get('price_12m') else None
         plan.max_students = int(data.get('max_students') or 0)
-        plan.max_groups = int(data.get('max_groups') or 0)
-        plan.max_users = int(data.get('max_users') or 0)
+        plan.max_groups = 9999
+        plan.max_users = 9999
         
         # Handle boolean properly from formData or JSON
         is_pop = data.get('is_popular')
@@ -841,11 +852,14 @@ def promo_create_api(request):
         if PromoCode.objects.filter(code=code).exists():
             return JsonResponse({"success": False, "error": f"Promokod {code} allaqachon mavjud!"}, status=400)
 
+        once_val = data.get('once_per_center')
+        once_per_center = once_val is True or once_val == 'true'
+
         PromoCode.objects.create(
             code=code,
             percent_off=int(data.get('percent_off') or 0),
             max_uses=int(data.get('max_uses')) if data.get('max_uses') else None,
-            once_per_center=data.get('once_per_center') == 'true',
+            once_per_center=once_per_center,
             starts_at=data.get('starts_at') or None,
             ends_at=data.get('ends_at') or None,
             active=True
@@ -873,7 +887,8 @@ def promo_update_api(request, promo_id):
         max_uses = data.get('max_uses')
         promo.max_uses = int(max_uses) if max_uses else None
         
-        promo.once_per_center = data.get('once_per_center') == 'true'
+        once_val = data.get('once_per_center')
+        promo.once_per_center = once_val is True or once_val == 'true'
         promo.starts_at = data.get('starts_at') or None
         promo.ends_at = data.get('ends_at') or None
         
@@ -897,3 +912,32 @@ def promo_delete_api(request, promo_id):
         return JsonResponse({"success": True, "message": "Promokod o'chirildi"})
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+
+# ============ GLOBAL ANALYTICS APIS ============
+
+@login_required
+@require_http_methods(["GET"])
+def payment_history_api(request):
+    """Barcha to'langan obunalarni (SaaS tushumlari) qaytaradi."""
+    if not is_superadmin(request.user):
+        return HttpResponseForbidden("Faqat superadmin uchun")
+    
+    qs = SubscriptionOrder.objects.filter(
+        status='PAID'
+    ).select_related('center', 'plan').order_by('-paid_at')[:100]
+    
+    data = []
+    for order in qs:
+        data.append({
+            "id": order.id,
+            "center_name": order.center.name,
+            "center_slug": order.center.slug,
+            "plan_code": order.plan.code,
+            "plan_title": order.plan.title,
+            "duration": order.duration_months,
+            "amount": order.final_price,
+            "paid_at": order.paid_at.strftime("%d.%m.%Y %H:%M") if order.paid_at else order.created_at.strftime("%d.%m.%Y %H:%M"),
+        })
+        
+    return JsonResponse({"payments": data})

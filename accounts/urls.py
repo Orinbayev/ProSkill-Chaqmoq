@@ -45,6 +45,9 @@ platform_patterns = [
         path("<int:promo_id>/update/", api_superadmin.promo_update_api, name="api_promo_update"),
         path("<int:promo_id>/delete/", api_superadmin.promo_delete_api, name="api_promo_delete"),
     ])),
+
+    # SaaS Analytics
+    path("api/finance/payments/", api_superadmin.payment_history_api, name="api_payment_history"),
 ]
 
 # --- Tenant URLs (Center Specific) ---

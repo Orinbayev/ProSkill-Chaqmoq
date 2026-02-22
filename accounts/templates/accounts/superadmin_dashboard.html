@@ -497,7 +497,7 @@
         background: var(--sa-surface);
         border: 1px solid var(--sa-border);
         border-radius: var(--sa-radius);
-        overflow: hidden;
+        /* overflow: hidden; -- Removed to prevent dropdown clipping */
     }
 
     .sa-table-head-bar {
@@ -530,6 +530,11 @@
 
     .sa-table-wrap {
         overflow-x: auto;
+        min-height: 250px;
+        /* Ensures dropdown has space even with few rows */
+        padding-bottom: 60px;
+        /* Extra breathing room */
+        margin-bottom: -60px;
     }
 
     .sa-table {
@@ -771,94 +776,129 @@
     }
 
     .sa-actions-trigger {
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
         border: 1px solid var(--sa-border);
-        background: rgba(255, 255, 255, 0.04);
+        background: rgba(255, 255, 255, 0.05);
         color: var(--sa-muted);
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        transition: all 0.18s;
-        font-size: 0.9rem;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        font-size: 1rem;
+        padding: 0;
+        line-height: 1;
     }
 
-    .sa-actions-trigger:hover {
-        background: rgba(255, 255, 255, 0.09);
+    .sa-actions-trigger:hover,
+    .sa-actions-trigger.active {
+        background: rgba(255, 255, 255, 0.1);
         border-color: var(--sa-border-h);
-        color: var(--sa-text);
+        color: #fff;
+        transform: scale(1.05);
     }
 
+    /* Fixed Portal Dropdown */
     .sa-dropdown {
-        position: absolute;
-        right: 0;
-        top: calc(100% + 6px);
-        background: #1a2540;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        padding: 6px;
-        min-width: 180px;
-        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
-        z-index: 999;
+        position: fixed;
+        background: #111d31;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 16px;
+        box-shadow:
+            0 10px 15px -3px rgba(0, 0, 0, 0.4),
+            0 25px 50px -12px rgba(0, 0, 0, 0.6),
+            inset 0 1px 1px rgba(255, 255, 255, 0.05);
+        z-index: 10000;
+        min-width: 240px;
+        padding: 8px;
+        display: none;
         opacity: 0;
+        transform: translateY(10px) scale(0.95);
+        transition:
+            opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+            transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         pointer-events: none;
-        transform: translateY(-6px) scale(0.98);
-        transition: all 0.15s;
+        backdrop-filter: blur(12px);
     }
 
-    .sa-actions-menu.open .sa-dropdown {
+    .sa-dropdown.show {
+        display: block;
         opacity: 1;
-        pointer-events: auto;
-        transform: none;
+        transform: translateY(0) scale(1);
+        pointer-events: all;
+    }
+
+    .sa-dropdown.dropup {
+        transform: translateY(-10px) scale(0.95);
+    }
+
+    .sa-dropdown.dropup.show {
+        transform: translateY(0) scale(1);
     }
 
     .sa-dd-label {
-        padding: 4px 10px 6px;
+        padding: 8px 12px 6px;
         font-size: 0.65rem;
-        font-weight: 700;
+        font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 0.8px;
+        letter-spacing: 1px;
         color: var(--sa-muted);
+        opacity: 0.8;
     }
 
     .sa-dd-item {
         display: flex;
         align-items: center;
-        gap: 9px;
-        padding: 9px 10px;
-        border-radius: 8px;
-        font-size: 0.83rem;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-size: 0.85rem;
         font-weight: 500;
         color: var(--sa-text);
         cursor: pointer;
         text-decoration: none;
-        transition: background 0.14s;
+        transition: all 0.15s;
         border: none;
         background: transparent;
         width: 100%;
         text-align: left;
     }
 
+    .sa-dd-item i {
+        font-size: 1.1rem;
+        width: 20px;
+        display: flex;
+        justify-content: center;
+        transition: transform 0.2s;
+    }
+
     .sa-dd-item:hover {
-        background: rgba(255, 255, 255, 0.07);
+        background: rgba(255, 255, 255, 0.08);
         color: #fff;
+        padding-left: 15px;
+    }
+
+    .sa-dd-item:hover i {
+        transform: scale(1.1);
     }
 
     .sa-dd-item.danger {
-        color: #f87171;
+        color: #fb7185;
     }
 
     .sa-dd-item.danger:hover {
-        background: rgba(239, 68, 68, 0.1);
+        background: rgba(244, 63, 94, 0.15);
+        color: #ff859b;
     }
 
     .sa-dd-sep {
         height: 1px;
-        background: rgba(255, 255, 255, 0.07);
-        margin: 4px 0;
+        background: rgba(255, 255, 255, 0.08);
+        margin: 6px 4px;
     }
+
 
     /* Table footer */
     .sa-table-foot {
@@ -893,6 +933,628 @@
         font-size: 0.88rem;
         margin: 0;
     }
+
+    /* ── Delete Confirm Modal ──────────────────── */
+    .del-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(6px);
+        z-index: 20000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s;
+    }
+
+    .del-overlay.show {
+        opacity: 1;
+        pointer-events: all;
+    }
+
+    .del-modal {
+        background: #0f1a2e;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        border-radius: 20px;
+        padding: 32px 32px 28px;
+        max-width: 460px;
+        width: calc(100% - 32px);
+        box-shadow:
+            0 0 0 1px rgba(239, 68, 68, 0.08),
+            0 25px 60px rgba(0, 0, 0, 0.7),
+            0 0 80px rgba(239, 68, 68, 0.07);
+        transform: translateY(20px) scale(0.97);
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .del-overlay.show .del-modal {
+        transform: translateY(0) scale(1);
+    }
+
+    /* Red glow top accent */
+    .del-modal::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #ef4444, #f87171, transparent);
+    }
+
+    .del-icon-wrap {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
+        background: rgba(239, 68, 68, 0.12);
+        border: 1px solid rgba(239, 68, 68, 0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        color: #ef4444;
+        margin-bottom: 20px;
+        animation: del-pulse 2s infinite;
+    }
+
+    @keyframes del-pulse {
+
+        0%,
+        100% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3);
+        }
+
+        50% {
+            box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+        }
+    }
+
+    .del-title {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #f1f5f9;
+        margin-bottom: 8px;
+        letter-spacing: -0.3px;
+    }
+
+    .del-subtitle {
+        font-size: 0.85rem;
+        color: #64748b;
+        margin-bottom: 24px;
+        line-height: 1.6;
+    }
+
+    .del-subtitle strong {
+        color: #f87171;
+        font-weight: 700;
+    }
+
+    .del-input-label {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #94a3b8;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .del-input-label code {
+        background: rgba(239, 68, 68, 0.12);
+        color: #f87171;
+        padding: 1px 8px;
+        border-radius: 6px;
+        font-family: monospace;
+        font-size: 0.82rem;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .del-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1.5px solid rgba(255, 255, 255, 0.09);
+        border-radius: 10px;
+        color: #f1f5f9;
+        padding: 11px 14px;
+        font-size: 0.9rem;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        margin-bottom: 4px;
+        box-sizing: border-box;
+    }
+
+    .del-input:focus {
+        border-color: rgba(239, 68, 68, 0.5);
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+
+    .del-input.match {
+        border-color: rgba(34, 197, 94, 0.5);
+        box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+    }
+
+    .del-hint {
+        font-size: 0.72rem;
+        color: #475569;
+        margin-bottom: 24px;
+        min-height: 16px;
+        transition: color 0.2s;
+    }
+
+    .del-hint.ok {
+        color: #22c55e;
+    }
+
+    .del-hint.err {
+        color: #f87171;
+    }
+
+    .del-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .del-btn-cancel {
+        flex: 1;
+        padding: 11px 20px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        background: rgba(255, 255, 255, 0.05);
+        color: #94a3b8;
+        font-size: 0.88rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.18s;
+    }
+
+    .del-btn-cancel:hover {
+        background: rgba(255, 255, 255, 0.09);
+        color: #f1f5f9;
+    }
+
+    .del-btn-confirm {
+        flex: 2;
+        padding: 11px 20px;
+        border-radius: 10px;
+        border: none;
+        background: linear-gradient(135deg, #dc2626, #b91c1c);
+        color: #fff;
+        font-size: 0.88rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        opacity: 0.4;
+        pointer-events: none;
+    }
+
+    .del-btn-confirm.enabled {
+        opacity: 1;
+        pointer-events: all;
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.35);
+    }
+
+    .del-btn-confirm.enabled:hover {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(239, 68, 68, 0.45);
+    }
+
+    .del-btn-confirm.loading {
+        opacity: 0.7;
+        pointer-events: none;
+    }
+
+    /* ── Archive Confirm Modal ─────────────────── */
+    .arch-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(6px);
+        z-index: 20000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s;
+    }
+
+    .arch-overlay.show {
+        opacity: 1;
+        pointer-events: all;
+    }
+
+    .arch-modal {
+        background: #0f1a2e;
+        border-radius: 20px;
+        padding: 32px 32px 28px;
+        max-width: 420px;
+        width: calc(100% - 32px);
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+        transform: translateY(20px) scale(0.97);
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .arch-overlay.show .arch-modal {
+        transform: translateY(0) scale(1);
+    }
+
+    /* Colored top line — changes with action */
+    .arch-modal::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+    }
+
+    .arch-modal.is-archive {
+        border: 1px solid rgba(245, 158, 11, 0.2);
+        box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.06), 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 80px rgba(245, 158, 11, 0.06);
+    }
+
+    .arch-modal.is-archive::before {
+        background: linear-gradient(90deg, transparent, #f59e0b, #fbbf24, transparent);
+    }
+
+    .arch-modal.is-restore {
+        border: 1px solid rgba(34, 197, 94, 0.2);
+        box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.06), 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 80px rgba(34, 197, 94, 0.06);
+    }
+
+    .arch-modal.is-restore::before {
+        background: linear-gradient(90deg, transparent, #22c55e, #4ade80, transparent);
+    }
+
+    .arch-icon-wrap {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        margin-bottom: 20px;
+    }
+
+    .arch-modal.is-archive .arch-icon-wrap {
+        background: rgba(245, 158, 11, 0.12);
+        border: 1px solid rgba(245, 158, 11, 0.25);
+        color: #f59e0b;
+        animation: arch-pulse-amber 2s infinite;
+    }
+
+    .arch-modal.is-restore .arch-icon-wrap {
+        background: rgba(34, 197, 94, 0.12);
+        border: 1px solid rgba(34, 197, 94, 0.25);
+        color: #22c55e;
+        animation: arch-pulse-green 2s infinite;
+    }
+
+    @keyframes arch-pulse-amber {
+
+        0%,
+        100% {
+            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.3);
+        }
+
+        50% {
+            box-shadow: 0 0 0 8px rgba(245, 158, 11, 0);
+        }
+    }
+
+    @keyframes arch-pulse-green {
+
+        0%,
+        100% {
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.3);
+        }
+
+        50% {
+            box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+        }
+    }
+
+    .arch-title {
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: #f1f5f9;
+        margin-bottom: 8px;
+        letter-spacing: -0.3px;
+    }
+
+    .arch-subtitle {
+        font-size: 0.85rem;
+        color: #64748b;
+        margin-bottom: 28px;
+        line-height: 1.6;
+    }
+
+    .arch-subtitle strong {
+        font-weight: 700;
+    }
+
+    .arch-modal.is-archive .arch-subtitle strong {
+        color: #fbbf24;
+    }
+
+    .arch-modal.is-restore .arch-subtitle strong {
+        color: #4ade80;
+    }
+
+    .arch-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .arch-btn-cancel {
+        flex: 1;
+        padding: 11px 20px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        background: rgba(255, 255, 255, 0.05);
+        color: #94a3b8;
+        font-size: 0.88rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.18s;
+    }
+
+    .arch-btn-cancel:hover {
+        background: rgba(255, 255, 255, 0.09);
+        color: #f1f5f9;
+    }
+
+    .arch-btn-confirm {
+        flex: 2;
+        padding: 11px 20px;
+        border-radius: 10px;
+        border: none;
+        color: #fff;
+        font-size: 0.88rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .arch-modal.is-archive .arch-btn-confirm {
+        background: linear-gradient(135deg, #d97706, #b45309);
+        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+    }
+
+    .arch-modal.is-archive .arch-btn-confirm:hover {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+    }
+
+    .arch-modal.is-restore .arch-btn-confirm {
+        background: linear-gradient(135deg, #16a34a, #15803d);
+        box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+    }
+
+    .arch-modal.is-restore .arch-btn-confirm:hover {
+        background: linear-gradient(135deg, #22c55e, #16a34a);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+    }
+
+    .arch-btn-confirm.loading {
+        opacity: 0.7;
+        pointer-events: none;
+    }
+
+    /* ── SaaS Payments Modal ─────────────────── */
+    .pay-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(8px);
+        z-index: 21000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        padding: 20px;
+    }
+
+    .pay-overlay.show {
+        opacity: 1;
+        pointer-events: all;
+    }
+
+    .pay-modal {
+        background: #0d1526;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        width: 100%;
+        max-width: 900px;
+        max-height: 85vh;
+        box-shadow: 0 30px 100px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+        display: flex;
+        flex-direction: column;
+        transform: translateY(30px) scale(0.98);
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        overflow: hidden;
+    }
+
+    .pay-overlay.show .pay-modal {
+        transform: translateY(0) scale(1);
+    }
+
+    .pay-head {
+        padding: 24px 32px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: linear-gradient(to bottom, rgba(255, 255, 255, 0.02), transparent);
+    }
+
+    .pay-head h2 {
+        margin: 0;
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: #f1f5f9;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .pay-head h2 i {
+        color: #22c55e;
+        filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.4));
+    }
+
+    .pay-close {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        border: none;
+        background: rgba(255, 255, 255, 0.05);
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .pay-close:hover {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+    }
+
+    .pay-body {
+        padding: 0;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .pay-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .pay-table th {
+        background: rgba(255, 255, 255, 0.02);
+        padding: 14px 24px;
+        text-align: left;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #94a3b8;
+        font-weight: 700;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .pay-table td {
+        padding: 16px 24px;
+        font-size: 0.88rem;
+        color: #cbd5e1;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .pay-row:hover {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .pay-center-name {
+        font-weight: 700;
+        color: #f8fafc;
+        display: block;
+    }
+
+    .pay-center-slug {
+        font-size: 0.75rem;
+        color: #64748b;
+    }
+
+    .pay-plan-badge {
+        padding: 4px 10px;
+        border-radius: 6px;
+        background: rgba(99, 102, 241, 0.15);
+        color: #818cf8;
+        font-weight: 700;
+        font-size: 0.75rem;
+        border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+
+    .pay-amount {
+        font-weight: 800;
+        color: #22c55e;
+    }
+
+    .pay-date {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.8rem;
+        color: #94a3b8;
+    }
+
+    .pay-status-ok {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #22c55e;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .pay-empty {
+        text-align: center;
+        padding: 60px 20px;
+        color: #64748b;
+    }
+
+    .pay-loading-shimmer {
+        height: 60px;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03), transparent);
+        background-size: 200% 100%;
+        animation: pay-shimmer 1.5s infinite;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    @keyframes pay-shimmer {
+        0% {
+            background-position: -200% 0;
+        }
+
+        100% {
+            background-position: 200% 0;
+        }
+    }
+
+    /* MRR Card Hover */
+    .sa-kpi.kpi-green {
+        cursor: pointer;
+        transition: transform 0.2s, background 0.2s;
+    }
+
+    .sa-kpi.kpi-green:hover {
+        transform: translateY(-4px);
+        background: rgba(34, 197, 94, 0.04);
+        border-color: rgba(34, 197, 94, 0.3);
+    }
 </style>
 
 <div class="sa-page">
@@ -912,7 +1574,7 @@
         </div>
 
         <div class="sa-header-right">
-            <a href="{% url 'accounts:center_create' %}" class="sa-btn sa-btn-primary">
+            <a href="{% url 'platform_global:center_create' %}" class="sa-btn sa-btn-primary">
                 <i class="bi bi-plus-lg"></i> Yangi Markaz
             </a>
             <div class="sa-divider"></div>
@@ -950,14 +1612,20 @@
         </a>
 
         <!-- MRR -->
-        <div class="sa-kpi kpi-green">
+        <div class="sa-kpi kpi-green" id="mrrCard" onclick="openPaymentsModal()">
             <div class="sa-kpi-head">
                 <span class="sa-kpi-label">MRR (Oylik tushum)</span>
-                <span class="sa-kpi-icon"><i class="bi bi-graph-up-arrow"></i></span>
+                <span class="sa-kpi-icon"><i class="bi bi-bank2"></i></span>
             </div>
             <div class="sa-kpi-value" style="font-size:1.55rem;">{{ mrr|intcomma }} <span
                     style="font-size:0.9rem;font-weight:500;color:var(--sa-muted);">so'm</span></div>
-            <div class="sa-kpi-sub" style="margin-top:10px;">Faol obunalar asosida hisoblangan</div>
+            <div class="sa-kpi-sub" style="margin-top:10px; display: flex; align-items: center; gap: 6px;">
+                Faol obunalar asosida hisoblangan
+                <i class="bi bi-info-circle-fill" style="opacity: 0.5;"></i>
+            </div>
+            <div
+                style="position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: rgba(34, 197, 94, 0.2);">
+            </div>
         </div>
 
         <!-- Faol Obunalar -->
@@ -1067,16 +1735,25 @@
             <select name="expiry" class="sa-select" onchange="document.getElementById('filterForm').submit()">
                 <option value="">Muddat: Barchasi</option>
                 <option value="active" {% if expiry_filter == 'active' %}selected{% endif %}>Faol</option>
-                <option value="expiring_soon" {% if expiry_filter == 'expiring_soon' %}selected{% endif %}>Tez orada (7
-                    kun)</option>
-                <option value="expired" {% if expiry_filter == 'expired' %}selected{% endif %}>Tugagan</option>
+                <option value="today" {% if expiry_filter == 'today' %}selected{% endif %}>Bugun tugaydi</option>
+                <option value="expiring_3" {% if expiry_filter == 'expiring_3' %}selected{% endif %}>3 kunda tugaydi
+                </option>
+                <option value="expiring_soon" {% if expiry_filter == 'expiring_soon' %}selected{% endif %}>7 kunda tugaydi
+                </option>
+                <option value="grace" {% if expiry_filter == 'grace' %}selected{% endif %}>Imtiyozda (Grace)</option>
+                <option value="expired" {% if expiry_filter == 'expired' %}selected{% endif %}>Tugagan (Barchasi)</option>
+            </select>
+
+            <select name="limit" class="sa-select" onchange="document.getElementById('filterForm').submit()">
+                <option value="">Limit: Barchasi</option>
+                <option value="over" {% if limit_filter == 'over' %}selected{% endif %}>Limitdan oshgan</option>
             </select>
 
             <button type="submit" class="sa-btn-submit">
                 <i class="bi bi-search"></i> Qidirish
             </button>
 
-            {% if search_q or status_filter or plan_filter or expiry_filter %}
+            {% if search_q or status_filter or plan_filter or expiry_filter or limit_filter %}
             <a href="?" class="sa-btn-ghost">
                 <i class="bi bi-x-circle"></i> Tozalash
             </a>
@@ -1141,7 +1818,7 @@
                             <div class="sa-director-name">{{ director.get_full_name }}</div>
                             <div class="sa-director-email">{{ director.email }}</div>
                             {% else %}
-                            <a href="{% url 'accounts:center_manage' c.id %}" class="sa-btn sa-btn-secondary"
+                            <a href="{% url 'platform_global:center_manage' c.id %}" class="sa-btn sa-btn-secondary"
                                 style="padding:5px 12px;font-size:0.75rem;border-radius:7px;color:#f59e0b;border-color:rgba(245,158,11,0.25);">
                                 <i class="bi bi-person-plus-fill"></i> Biriktirish
                             </a>
@@ -1154,8 +1831,7 @@
                             {% if sub %}
                             <div class="sa-plan-row">
                                 <span class="sa-badge sa-badge-plan">{{ sub.plan.code }}</span>
-                                <span style="font-size:0.75rem;color:var(--sa-muted);">{{ c.student_count }}/{{
-                                    c.capacity_limit }}</span>
+                                <span style="font-size:0.75rem;color:var(--sa-muted);">{{ c.student_count }}/{{ c.capacity_limit }}</span>
                             </div>
                             <div class="sa-progress">
                                 {% if c.capacity_limit > 0 %}
@@ -1195,18 +1871,17 @@
                         <!-- ── Yaratilgan ── -->
                         <td style="color:var(--sa-muted);font-size:0.78rem;">{{ c.created_at|date:"d.m.Y" }}</td>
 
-                        <!-- ── Amallar ── -->
                         <td style="text-align:right;">
-                            <div class="sa-actions-menu" id="am-{{ c.id }}">
-                                <button class="sa-actions-trigger" onclick="toggleMenu('am-{{ c.id }}')" type="button">
+                            <div class="sa-actions-menu">
+                                <button class="sa-actions-trigger" onclick="toggleMenu(this)" type="button">
                                     <i class="bi bi-three-dots-vertical"></i>
                                 </button>
                                 <div class="sa-dropdown">
                                     <div class="sa-dd-label">Boshqaruv</div>
-                                    <a class="sa-dd-item" href="{% url 'accounts:center_manage' c.id %}">
+                                    <a class="sa-dd-item" href="{% url 'platform_global:center_manage' c.id %}">
                                         <i class="bi bi-gear" style="color:var(--sa-indigo);"></i> Sozlamalar & Direktor
                                     </a>
-                                    <a class="sa-dd-item" href="{% url 'accounts:center_edit' c.id %}">
+                                    <a class="sa-dd-item" href="{% url 'platform_global:center_edit' c.id %}">
                                         <i class="bi bi-pencil" style="color:var(--sa-amber);"></i> Tahrirlash
                                     </a>
                                     <div class="sa-dd-sep"></div>
@@ -1220,13 +1895,11 @@
                                         <i class="bi bi-archive" style="color:var(--sa-muted);"></i> Arxivlash
                                     </button>
                                     {% endif %}
-                                    {% if not c.is_system %}
                                     <div class="sa-dd-sep"></div>
                                     <button class="sa-dd-item danger btn-delete-center" data-id="{{ c.id }}"
                                         data-name="{{ c.name }}">
                                         <i class="bi bi-trash-fill"></i> O'chirish
                                     </button>
-                                    {% endif %}
                                 </div>
                             </div>
                         </td>
@@ -1254,59 +1927,443 @@
 
 </div><!-- /sa-page -->
 
+<!-- ── Delete Confirm Modal ──────────────────────── -->
+<div class="del-overlay" id="delOverlay">
+    <div class="del-modal" role="dialog" aria-modal="true" aria-labelledby="delTitle">
+        <div class="del-icon-wrap"><i class="bi bi-trash3-fill"></i></div>
+        <div class="del-title" id="delTitle">Markazni o'chirish</div>
+        <div class="del-subtitle">
+            <strong id="delCenterName"></strong> markazini o'chirmoqchisiz.<br>
+            Bu amal <strong>qaytarib bo'lmaydi</strong> — barcha ma'lumotlar o'chib ketadi.
+        </div>
+
+        <div class="del-input-label">
+            Tasdiqlash uchun markaz nomini yozing: <code id="delNameHint"></code>
+        </div>
+        <input type="text" class="del-input" id="delInput" autocomplete="off" spellcheck="false"
+            placeholder="Markaz nomini kiriting...">
+        <div class="del-hint" id="delHint">To'g'ri nom kiritilsa tugma faollashadi</div>
+
+        <div class="del-actions">
+            <button class="del-btn-cancel" id="delCancel">
+                <i class="bi bi-x-lg"></i> Bekor qilish
+            </button>
+            <button class="del-btn-confirm" id="delConfirm" disabled>
+                <i class="bi bi-trash3-fill"></i> Ha, o'chirish
+            </button>
+        </div>
+    </div>
+</div>
+<!-- ── Archive / Restore Confirm Modal ──────────── -->
+<div class="arch-overlay" id="archOverlay">
+    <div class="arch-modal" id="archModal" role="dialog" aria-modal="true">
+        <div class="arch-icon-wrap" id="archIcon"></div>
+        <div class="arch-title" id="archTitle"></div>
+        <div class="arch-subtitle" id="archSubtitle"></div>
+        <div class="arch-actions">
+            <button class="arch-btn-cancel" id="archCancel">
+                <i class="bi bi-x-lg"></i> Bekor qilish
+            </button>
+            <button class="arch-btn-confirm" id="archConfirm">
+                <span id="archConfirmText"></span>
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
-    // ── Dropdown toggle ──────────────────────────────
-    function toggleMenu(id) {
-        const el = document.getElementById(id);
-        const isOpen = el.classList.contains('open');
-        // Close all
-        document.querySelectorAll('.sa-actions-menu.open').forEach(m => m.classList.remove('open'));
-        if (!isOpen) el.classList.add('open');
+    // ── Professional SaaS Dropdown Logic (Portal + Smart Positioning) ──
+    let currentActiveDropdown = null;
+
+    function toggleMenu(btn) {
+        // The dropdown may have been moved to <body>, so search both places
+        const container = btn.closest('.sa-actions-menu');
+
+        // Find dropdown: could be inside container OR already in body (portal)
+        let dropdown = btn._linkedDropdown || container.querySelector('.sa-dropdown');
+        if (!dropdown) return;
+
+        const isCurrentlyOpen = currentActiveDropdown && currentActiveDropdown.dropdown === dropdown;
+
+        // Close any open dropdown first
+        if (currentActiveDropdown) {
+            closeDropdown(currentActiveDropdown);
+        }
+
+        // If it was already open — just toggle off (close only)
+        if (isCurrentlyOpen) return;
+
+        // Open this dropdown
+        openDropdown(btn, dropdown);
     }
-    document.addEventListener('click', function (e) {
-        if (!e.target.closest('.sa-actions-menu')) {
-            document.querySelectorAll('.sa-actions-menu.open').forEach(m => m.classList.remove('open'));
+
+    function openDropdown(btn, dropdown) {
+        // Save original parent so we can restore it later
+        if (!btn._linkedDropdown) {
+            btn._ddOriginalParent = dropdown.parentNode;
+            btn._linkedDropdown = dropdown;
+        }
+
+        // Move to body (Portal — bypasses overflow:hidden)
+        document.body.appendChild(dropdown);
+
+        // Initial invisible state for measurement
+        dropdown.style.display = 'block';
+        dropdown.style.visibility = 'hidden';
+        dropdown.classList.remove('dropup', 'show');
+
+        const rect = btn.getBoundingClientRect();
+        const ddRect = dropdown.getBoundingClientRect();
+
+        // Always open ABOVE the button
+        let top = rect.top - ddRect.height - 8;
+        let left = rect.right - ddRect.width;
+        let isDropup = true;
+
+        // Fallback: if not enough space above — open below
+        if (top < 15) {
+            top = rect.bottom + 8;
+            isDropup = false;
+        }
+
+        // Horizontal clamp
+        if (left < 15) left = 15;
+        if (left + ddRect.width > window.innerWidth - 15) {
+            left = window.innerWidth - ddRect.width - 15;
+        }
+
+        dropdown.style.top = `${top}px`;
+        dropdown.style.left = `${left}px`;
+        dropdown.style.visibility = 'visible';
+
+        if (isDropup) dropdown.classList.add('dropup');
+
+        btn.classList.add('active');
+        setTimeout(() => dropdown.classList.add('show'), 10);
+
+        currentActiveDropdown = { btn, dropdown };
+    }
+
+    function closeDropdown(activeObj) {
+        const { btn, dropdown } = activeObj;
+        dropdown.classList.remove('show');
+        btn.classList.remove('active');
+        currentActiveDropdown = null;
+
+        setTimeout(() => {
+            // Move dropdown back to its original container so querySelector works next time
+            if (btn._ddOriginalParent && dropdown.parentNode === document.body) {
+                dropdown.style.display = 'none';
+                btn._ddOriginalParent.appendChild(dropdown);
+            }
+        }, 200); // wait for fade-out animation
+    }
+
+    // Click outside → close
+    document.addEventListener('mousedown', (e) => {
+        if (!currentActiveDropdown) return;
+        if (!currentActiveDropdown.dropdown.contains(e.target) &&
+            !currentActiveDropdown.btn.contains(e.target)) {
+            closeDropdown(currentActiveDropdown);
         }
     });
 
-    // ── Delete Center ────────────────────────────────
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.btn-delete-center').forEach(btn => {
-            btn.addEventListener('click', function () {
-                deleteCenter(this.dataset.id, this.dataset.name);
-            });
-        });
+    // Esc → close
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && currentActiveDropdown) {
+            closeDropdown(currentActiveDropdown);
+        }
     });
 
-    async function deleteCenter(id, name) {
-        const c = prompt(`DIQQAT: Markazni o'chirish qaytarib bo'lmas!\n\nTasdiqlash uchun markaz nomini kiriting:\n"${name}"`);
-        if (c !== name) { if (c !== null) alert("Nom noto'g'ri. O'chirish bekor qilindi."); return; }
+    // Scroll / resize → close
+    window.addEventListener('scroll', () => {
+        if (currentActiveDropdown) closeDropdown(currentActiveDropdown);
+    }, true);
+
+    window.addEventListener('resize', () => {
+        if (currentActiveDropdown) closeDropdown(currentActiveDropdown);
+    });
+
+    // ── Delete Center (Custom Modal) ──────────────────
+    let _delId = null, _delName = null;
+
+    function openDeleteModal(id, name) {
+        _delId = id; _delName = name;
+        document.getElementById('delCenterName').textContent = name;
+        document.getElementById('delNameHint').textContent = name;
+        document.getElementById('delInput').value = '';
+        document.getElementById('delInput').classList.remove('match');
+        document.getElementById('delHint').textContent = "To'g'ri nom kiritilsa tugma faollashadi";
+        document.getElementById('delHint').className = 'del-hint';
+        document.getElementById('delConfirm').className = 'del-btn-confirm';
+        document.getElementById('delConfirm').disabled = true;
+        document.getElementById('delOverlay').classList.add('show');
+        setTimeout(() => document.getElementById('delInput').focus(), 120);
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('delOverlay').classList.remove('show');
+        _delId = _delName = null;
+    }
+
+    document.getElementById('delInput').addEventListener('input', function () {
+        const val = this.value.trim();
+        const hint = document.getElementById('delHint');
+        const btn = document.getElementById('delConfirm');
+        if (val === _delName) {
+            hint.textContent = '✓ To\'g\'ri! Tugmani bosib tasdiqlang.';
+            hint.className = 'del-hint ok';
+            this.classList.add('match');
+            btn.className = 'del-btn-confirm enabled';
+            btn.disabled = false;
+        } else if (val.length > 0) {
+            hint.textContent = '✗ Nom mos kelmadi. Qaytadan tekshiring.';
+            hint.className = 'del-hint err';
+            this.classList.remove('match');
+            btn.className = 'del-btn-confirm';
+            btn.disabled = true;
+        } else {
+            hint.textContent = "To'g'ri nom kiritilsa tugma faollashadi";
+            hint.className = 'del-hint';
+            this.classList.remove('match');
+            btn.className = 'del-btn-confirm';
+            btn.disabled = true;
+        }
+    });
+
+    document.getElementById('delInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !document.getElementById('delConfirm').disabled)
+            document.getElementById('delConfirm').click();
+        if (e.key === 'Escape') closeDeleteModal();
+    });
+
+    document.getElementById('delCancel').addEventListener('click', closeDeleteModal);
+
+    document.getElementById('delOverlay').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('delOverlay')) closeDeleteModal();
+    });
+
+    document.getElementById('delConfirm').addEventListener('click', async function () {
+        if (!_delId) return;
+        const btn = this;
+        btn.className = 'del-btn-confirm loading';
+        btn.innerHTML = '<span style="width:14px;height:14px;border:2px solid #fff4;border-top-color:#fff;border-radius:50%;display:inline-block;animation:spin .6s linear infinite"></span> O\'chirilmoqda...';
+        btn.disabled = true;
         try {
-            const r = await fetch(`/hisob/api/centers/${id}/delete/`, {
+            const r = await fetch(`/platform/api/centers/${_delId}/delete/`, {
                 method: 'POST',
                 headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' }
             });
             const d = await r.json();
-            if (d.success) location.reload();
-            else alert("Xatolik: " + (d.error || "Noma'lum xatolik"));
-        } catch (e) { alert("Server bilan aloqa xatosi"); }
+            if (d.success) { closeDeleteModal(); location.reload(); }
+            else {
+                alert("Xatolik: " + (d.error || "Noma'lum xatolik"));
+                btn.className = 'del-btn-confirm enabled';
+                btn.innerHTML = '<i class="bi bi-trash3-fill"></i> Ha, o\'chirish';
+                btn.disabled = false;
+            }
+        } catch (e) {
+            alert("Server bilan aloqa xatosi");
+            btn.className = 'del-btn-confirm enabled';
+            btn.innerHTML = '<i class="bi bi-trash3-fill"></i> Ha, o\'chirish';
+            btn.disabled = false;
+        }
+    });
+
+    // Wire delete buttons + close dropdown before opening modal
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.btn-delete-center').forEach(btn => {
+            btn.addEventListener('click', function () {
+                if (currentActiveDropdown) closeDropdown(currentActiveDropdown);
+                openDeleteModal(this.dataset.id, this.dataset.name);
+            });
+        });
+    });
+
+    // Spinner keyframe
+    const _spinStyle = document.createElement('style');
+    _spinStyle.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+    document.head.appendChild(_spinStyle);
+
+    // ── Archive Center (Custom Modal) ───────────────────
+    let _archId = null, _archAction = null;
+
+    function openArchiveModal(id, action) {
+        _archId = id; _archAction = action;
+        const isArchive = action === 'archive';
+        const modal = document.getElementById('archModal');
+
+        // Set color theme
+        modal.className = 'arch-modal ' + (isArchive ? 'is-archive' : 'is-restore');
+
+        // Icon
+        document.getElementById('archIcon').innerHTML = isArchive
+            ? '<i class="bi bi-archive-fill"></i>'
+            : '<i class="bi bi-arrow-counterclockwise"></i>';
+
+        // Texts
+        document.getElementById('archTitle').textContent = isArchive
+            ? "Markazni arxivlash"
+            : "Arxivdan chiqarish";
+
+        document.getElementById('archSubtitle').innerHTML = isArchive
+            ? "Markaz <strong>Arxiv</strong> holatiga o'tadi. Istalgan vaqt qayta faollashtirish mumkin."
+            : "Markaz <strong>Faol</strong> holatiga qaytariladi va yana foydalanishga tayyor bo'ladi.";
+
+        const confirmBtn = document.getElementById('archConfirm');
+        document.getElementById('archConfirmText').innerHTML = isArchive
+            ? '<i class="bi bi-archive-fill"></i> Ha, arxivlash'
+            : '<i class="bi bi-arrow-counterclockwise"></i> Ha, qayta faollashtirish';
+        confirmBtn.className = 'arch-btn-confirm';
+
+        document.getElementById('archOverlay').classList.add('show');
     }
 
-    // ── Archive Center ───────────────────────────────
-    async function toggleArchiveCenter(id, action) {
-        if (!confirm(action === 'archive' ? "Markazni arxivlashni istaysizmi?" : "Markazni arxivdan chiqarishni istaysizmi?")) return;
+    function closeArchiveModal() {
+        document.getElementById('archOverlay').classList.remove('show');
+        _archId = _archAction = null;
+    }
+
+    document.getElementById('archCancel').addEventListener('click', closeArchiveModal);
+
+    document.getElementById('archOverlay').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('archOverlay')) closeArchiveModal();
+    });
+
+    document.getElementById('archConfirm').addEventListener('click', async function () {
+        if (!_archId) return;
+        const btn = this;
+        btn.className = 'arch-btn-confirm loading';
+        btn.innerHTML = '<span style="width:14px;height:14px;border:2px solid #fff4;border-top-color:#fff;border-radius:50%;display:inline-block;animation:spin .6s linear infinite"></span> Yuklanmoqda...';
         const fd = new FormData();
-        fd.append('action', action);
+        fd.append('action', _archAction);
         try {
-            const r = await fetch(`/hisob/api/centers/${id}/archive/`, {
+            const r = await fetch(`/platform/api/centers/${_archId}/archive/`, {
                 method: 'POST', body: fd,
                 headers: { "X-CSRFToken": "{{ csrf_token }}" }
             });
             const d = await r.json();
-            if (d.success) location.reload();
-            else alert("Xatolik: " + d.error);
-        } catch (e) { alert("Server xatosi"); }
+            if (d.success) { closeArchiveModal(); location.reload(); }
+            else {
+                alert("Xatolik: " + d.error);
+                btn.className = 'arch-btn-confirm';
+                btn.innerHTML = document.getElementById('archConfirmText')?.outerHTML || 'Tasdiqlash';
+            }
+        } catch (e) {
+            alert("Server xatosi");
+            btn.className = 'arch-btn-confirm';
+        }
+    });
+
+    function toggleArchiveCenter(id, action) {
+        if (currentActiveDropdown) closeDropdown(currentActiveDropdown);
+        openArchiveModal(id, action);
     }
+
+    // ── SaaS Payments History (AJAX) ───────────────────
+    async function openPaymentsModal() {
+        const overlay = document.getElementById('payOverlay');
+        const body = document.getElementById('payTableBody');
+
+        overlay.classList.add('show');
+
+        // Show loading shimmer
+        body.innerHTML = `
+            <tr class="pay-loading-shimmer"><td></td><td></td><td></td><td></td></tr>
+            <tr class="pay-loading-shimmer"><td></td><td></td><td></td><td></td></tr>
+            <tr class="pay-loading-shimmer"><td></td><td></td><td></td><td></td></tr>
+            <tr class="pay-loading-shimmer"><td></td><td></td><td></td><td></td></tr>
+        `;
+
+        try {
+            const r = await fetch('/platform/api/finance/payments/');
+            const d = await r.json();
+
+            if (d.payments && d.payments.length > 0) {
+                body.innerHTML = '';
+                d.payments.forEach(p => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'pay-row';
+                    tr.innerHTML = `
+                        <td>
+                            <span class="pay-center-name">${p.center_name}</span>
+                            <span class="pay-center-slug">@${p.center_slug}</span>
+                        </td>
+                        <td>
+                            <div class="pay-plan-badge">${p.plan_code}</div>
+                            <div style="font-size:0.7rem; color:#64748b; margin-top:4px;">${p.duration} oylik obuna</div>
+                        </td>
+                        <td>
+                            <div class="pay-amount">${p.amount.toLocaleString()} UZS</div>
+                        </td>
+                        <td>
+                            <div class="pay-date">${p.paid_at}</div>
+                            <div class="pay-status-ok"><i class="bi bi-check-all"></i> Muvaffaqiyatli</div>
+                        </td>
+                    `;
+                    body.appendChild(tr);
+                });
+            } else {
+                body.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="pay-empty">
+                            <i class="bi bi-calendar-x" style="font-size:2rem; display:block; margin-bottom:10px; opacity:0.3;"></i>
+                            Hozircha hech qanday to'lovlar tarixdan topilmadi.
+                        </td>
+                    </tr>
+                `;
+            }
+        } catch (e) {
+            body.innerHTML = `<tr><td colspan="4" class="pay-empty" style="color:#ef4444;">Server bilan aloqa xatosi...</td></tr>`;
+        }
+    }
+
+    function closePaymentsModal() {
+        document.getElementById('payOverlay').classList.remove('show');
+    }
+
+    // Close on click outside or Esc
+    document.getElementById('payOverlay').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('payOverlay')) closePaymentsModal();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closePaymentsModal();
+            closeDeleteModal();
+            closeArchiveModal();
+        }
+    });
 </script>
+
+<!-- ── SaaS Payments Modal ──────────────────────── -->
+<div class="pay-overlay" id="payOverlay">
+    <div class="pay-modal" role="dialog" aria-modal="true" aria-labelledby="payTitle">
+        <div class="pay-head">
+            <h2 id="payTitle">
+                <i class="bi bi-patch-check-fill"></i>
+                SaaS Tushumlari & To'lovlar Tarixi
+            </h2>
+            <button class="pay-close" onclick="closePaymentsModal()">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <div class="pay-body" id="payBody">
+            <table class="pay-table">
+                <thead>
+                    <tr>
+                        <th style="width: 35%;">Markaz</th>
+                        <th style="width: 20%;">Tarif / Muddat</th>
+                        <th style="width: 20%;">To'lov Summasi</th>
+                        <th style="width: 25%;">Sana & Status</th>
+                    </tr>
+                </thead>
+                <tbody id="payTableBody">
+                    <!-- Data loaded via JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
 {% endblock %}

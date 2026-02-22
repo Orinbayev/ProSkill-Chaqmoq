@@ -922,10 +922,10 @@
         <i class="bi bi-house-door"></i> Mening Markazim
       </a> -->
       {% endif %}
-      <a href="{% url 'accounts:center_switch' %}?center_id=NONE" class="btn-header-outline">
+      <a href="{% url 'platform_global:center_switch' %}?center_id=NONE" class="btn-header-outline">
         <i class="bi bi-globe"></i> Global Boshqaruv
       </a>
-      <a href="{% url 'accounts:superadmin_dashboard' %}" class="btn-header-outline"
+      <a href="{% url 'platform_global:superadmin_dashboard' %}" class="btn-header-outline"
         style="color: #fbbf24; border-color: rgba(251, 191, 36, 0.3); background: rgba(251, 191, 36, 0.05);">
         <i class="bi bi-wallet2"></i> To'lovlar
       </a>
@@ -1056,7 +1056,8 @@
             {% if days <= 0 %} <span class="badge bg-danger">MUDDAT TUGAGAN</span>
               {% elif days <= 7 %} <span class="badge bg-warning text-dark">{{ days }} kun qoldi!</span>
                 {% else %}
-                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">{{ days }} kun qoldi</span>
+                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">{{
+                  days }} kun qoldi</span>
                 {% endif %}
                 {% endwith %}
           </div>
@@ -1658,7 +1659,7 @@
   async function loadAllFeatures() {
     if (_allFeatureCategories.length > 0) return _allFeatureCategories;
     try {
-      const res = await fetch("{% url 'accounts:api_features_list' %}");
+      const res = await fetch("{% url 'platform_global:api_features_list' %}");
       const data = await res.json();
       _allFeatureCategories = data.categories || [];
     } catch (e) {
@@ -1937,7 +1938,7 @@
 
   async function openEditModal(id) {
     try {
-      const response = await fetch(`/hisob/api/centers/${id}/`);
+      const response = await fetch(`/platform/api/centers/${id}/`);
       const data = await response.json();
 
       if (!data.success && !data.id) throw new Error(data.error || "Ma'lumot topilmadi");
@@ -1995,7 +1996,7 @@
     try {
       const formData = new FormData(this);
       const id = document.getElementById('centerId').value;
-      const url = id ? `/hisob/api/centers/${id}/update/` : `/hisob/api/centers/create/`;
+      const url = id ? `/platform/api/centers/${id}/update/` : `/platform/api/centers/create/`;
 
       // Features JSON Collection (New Dynamic)
       const features = {};
@@ -2041,7 +2042,7 @@
   function confirmDelete() {
     if (!deleteId) return;
 
-    fetch(`/hisob/api/centers/${deleteId}/delete/`, {
+    fetch(`/platform/api/centers/${deleteId}/delete/`, {
       method: "POST",
       headers: { "X-CSRFToken": "{{ csrf_token }}" }
     })
@@ -2063,7 +2064,7 @@
   }
 
   function fetchPlans() {
-    fetch("{% url 'accounts:api_plan_list' %}")
+    fetch("{% url 'platform_global:api_plan_list' %}")
       .then(res => res.json())
       .then(res => {
         const tbody = document.getElementById('plansTableBody');
@@ -2097,7 +2098,7 @@
 
 
   function fetchPromos() {
-    fetch("{% url 'accounts:api_promo_list' %}")
+    fetch("{% url 'platform_global:api_promo_list' %}")
       .then(res => res.json())
       .then(res => {
         const tbody = document.getElementById('promosTableBody');
@@ -2140,7 +2141,7 @@
   }
 
   function editPromo(id) {
-    fetch("{% url 'accounts:api_promo_list' %}")
+    fetch("{% url 'platform_global:api_promo_list' %}")
       .then(res => res.json())
       .then(res => {
         const promo = res.promos.find(p => p.id == id);
@@ -2175,8 +2176,8 @@
     // Checkbox handles
     data.once_per_center = document.getElementById('pr_once').checked ? 'true' : 'false';
 
-    let url = "{% url 'accounts:api_promo_create' %}";
-    if (promoId) url = `/hisob/api/promos/${promoId}/update/`;
+    let url = "{% url 'platform_global:api_promo_create' %}";
+    if (promoId) url = `/platform/api/promos/${promoId}/update/`;
 
     fetch(url, {
       method: "POST",
@@ -2200,7 +2201,7 @@
 
   function deletePromo(id) {
     if (!confirm("Promokodni o'chirishni tasdiqlaysizmi?")) return;
-    fetch(`/hisob/api/promos/${id}/delete/`, {
+    fetch(`/platform/api/promos/${id}/delete/`, {
       method: "POST",
       headers: { "X-CSRFToken": "{{ csrf_token }}" }
     })
@@ -2210,7 +2211,7 @@
   }
 
   function openPlansManager() {
-    window.location.href = "{% url 'accounts:plans_ui' %}";
+    window.location.href = "{% url 'platform_global:plans_ui' %}";
   }
 
 
@@ -2233,7 +2234,7 @@
 
   async function editPlan(id) {
     try {
-      const res = await fetch("{% url 'accounts:api_plan_list' %}");
+      const res = await fetch("{% url 'platform_global:api_plan_list' %}");
       const data = await res.json();
       const plan = data.plans.find(p => p.id == id);
       if (!plan) { alert('Tarif topilmadi'); return; }
@@ -2304,8 +2305,8 @@
     });
     data.features = featuresObj;
 
-    let url = "{% url 'accounts:api_plan_create' %}";
-    if (planId) url = `/hisob/api/plans/${planId}/update/`;
+    let url = "{% url 'platform_global:api_plan_create' %}";
+    if (planId) url = `/platform/api/plans/${planId}/update/`;
 
     // Disable save button
     const saveBtn = document.querySelector('[onclick="submitPlan()"]');
@@ -2333,7 +2334,7 @@
 
   function deletePlan(id) {
     if (!confirm("Tarifni o'chirishni tasdiqlaysizmi?")) return;
-    fetch(`/hisob/api/plans/${id}/delete/`, {
+    fetch(`/platform/api/plans/${id}/delete/`, {
       method: "POST",
       headers: { "X-CSRFToken": "{{ csrf_token }}" }
     })
@@ -2533,7 +2534,7 @@
     const formData = new FormData();
     formData.append('action', action);
 
-    fetch(`/hisob/api/centers/${centerId}/archive/`, {
+    fetch(`/platform/api/centers/${centerId}/archive/`, {
       method: 'POST',
       body: formData,
       headers: { "X-CSRFToken": "{{ csrf_token }}" }

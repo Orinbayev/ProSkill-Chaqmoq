@@ -24,14 +24,17 @@ def tenant_context(request):
     # ── Subscription check (faqat center mavjud bo'lsa) ────────
     # ensure_center_subscription() har requestda emas,
     # faqat center-specific URLlarda chaqiriladi.
-    if center and not is_super:
+    if center:
         try:
             from billing.services import (
                 get_subscription_ui_state,
                 get_feature_flags,
                 ensure_center_subscription,
             )
-            ensure_center_subscription(center)
+            # Only ensure/refresh if not superadmin (superadmins just view)
+            if not is_super:
+                ensure_center_subscription(center)
+            
             sub_ui = get_subscription_ui_state(center)
             features = get_feature_flags(center)
         except Exception as e:

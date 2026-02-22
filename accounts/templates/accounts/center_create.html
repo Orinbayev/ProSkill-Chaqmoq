@@ -174,17 +174,29 @@
     .sa-field input[type="email"],
     .sa-field input[type="password"],
     .sa-field input[type="number"],
+    .sa-field textarea,
     .sa-field select,
-    .sa-field textarea {
+    .form-control-custom {
         width: 100%;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid var(--sa-border);
+        background: var(--input-bg);
+        border: 1px solid var(--input-border);
         border-radius: 12px;
-        color: var(--sa-text);
         padding: 12px 16px;
+        color: white;
         font-size: 0.95rem;
-        outline: none;
-        transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-chevron-down' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 16px center;
+    }
+
+    .form-control-custom option {
+        background: #1e293b;
+        color: white;
+        padding: 12px;
     }
 
     .sa-field input:focus,
@@ -201,8 +213,13 @@
         font-size: 0.95rem;
     }
 
-    .sa-field input::placeholder {
-        color: rgba(255, 255, 255, 0.2);
+    .form-control-custom option {
+        background: #0f172a;
+        color: white;
+    }
+
+    .form-control-custom::placeholder {
+        color: rgba(255, 255, 255, 0.3);
     }
 
     .sa-field .help-text {
@@ -235,6 +252,28 @@
         cursor: pointer;
         transition: all 0.2s;
         user-select: none;
+    }
+
+    .sa-toggle-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--sa-muted);
+        font-size: 1rem;
+        transition: all 0.2s;
+    }
+
+    .sa-toggle-card.active .sa-toggle-icon {
+        background: rgba(99, 102, 241, 0.2);
+        color: var(--sa-indigo);
+    }
+
+    .sa-toggle-content {
+        flex: 1;
     }
 
     .sa-toggle-card:hover {
@@ -322,6 +361,18 @@
         color: var(--sa-amber);
     }
 
+    .badge-discount {
+        display: inline-flex;
+        padding: 6px 14px;
+        background: var(--sa-amber-m);
+        color: var(--sa-amber);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        margin-top: 4px;
+    }
+
     @media (max-width: 768px) {
         .sa-form-grid {
             grid-template-columns: 1fr;
@@ -358,7 +409,7 @@
             <p class="subtitle">Platforma tizimida yangi o'quv markazi va uning direktorini ro'yxatdan o'tkazish</p>
         </div>
         <div class="sa-header-right">
-            <a href="{% url 'accounts:center_picker' %}" class="sa-btn sa-btn-secondary">
+            <a href="{% url 'platform_global:center_picker' %}" class="sa-btn sa-btn-secondary">
                 <i class="bi bi-x-lg"></i> Bekor qilish
             </a>
         </div>
@@ -375,6 +426,8 @@
                 {% for field in center_form %}
                 {% if field.name == 'features' %}
                 <!-- Skip here, rendered separately below -->
+                {% elif field.name == 'expires_at' or field.name == 'capacity_limit' %}
+                <div style="display: none;">{{ field }}</div>
                 {% else %}
                 <div class="sa-field {% if field.name == 'address' %}sa-form-full{% endif %}">
                     <label>{{ field.label }}</label>
@@ -397,10 +450,19 @@
                     <label>Davomiyligi (Obuna muddati)</label>
                     <select name="duration" id="id_duration">
                         <option value="1">1 Oy</option>
-                        <option value="3">3 Oy (-5% chegirma)</option>
-                        <option value="6">6 Oy (-10% chegirma)</option>
-                        <option value="12">1 Yil (-15% chegirma)</option>
+                        <option value="3">3 Oy</option>
+                        <option value="6">6 Oy</option>
+                        <option value="9">9 Oy</option>
+                        <option value="12">1 Yil</option>
                     </select>
+                </div>
+                <div class="sa-field">
+                    <label>Obuna Chegirmasi (%)</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <input type="number" id="id_manual_discount" class="form-control-custom"
+                            style="width: 100px; color: var(--sa-amber); font-weight: 700;" value="0" min="0" max="100">
+                        <span style="color: var(--sa-amber); font-weight: 700;">%</span>
+                    </div>
                 </div>
             </div>
 
@@ -467,48 +529,55 @@
 <!-- ── Scripts ──────────────────────────────── -->
 <script>
     // Features Logic
-    (function () {
-        const list = [
-            { key: 'finance', label: 'Moliya (Finance)' },
-            { key: 'leads', label: 'Lidlar (CRM)' },
-            { key: 'tasks', label: 'Vazifalar (Tasks)' },
-            { key: 'kpi', label: 'KPI Statistika' },
-            { key: 'store', label: 'Ombor (Store)' },
-            { key: 'sms', label: 'SMS Xabarnoma' }
-        ];
+    const FEATURE_LIST = [
+        { key: 'dashboard', label: 'Asosiy Dashboard', icon: 'bi-speedometer2' },
+        { key: 'students', label: 'O\'quvchilar va Guruhlar', icon: 'bi-people' },
+        { key: 'attendance', label: 'Davomat va Jadval', icon: 'bi-calendar-check' },
+        { key: 'finance', label: 'Moliya va To\'lovlar', icon: 'bi-wallet2' },
+        { key: 'salaries', label: 'Xodimlar va Ish xaqi', icon: 'bi-cash-coin' },
+        { key: 'analytics', label: 'Biznes Analitika', icon: 'bi-graph-up-arrow' },
+        { key: 'sms', label: 'SMS/Bildirishnomalar', icon: 'bi-chat-dots' },
+        { key: 'leads', label: 'CRM Huni (Lidlar)', icon: 'bi-bullseye' },
+        { key: 'roles', label: 'Rollar va Huquqlar', icon: 'bi-shield-check' },
+        { key: 'branches', label: 'Filiallar Boshqaruvi', icon: 'bi-diagram-3' }
+    ];
 
+    function renderFeatures(activeCodes = []) {
         const input = document.querySelector('input[name="features"]');
         const container = document.getElementById('featuresContainer');
-        // Hide the actual input if it rendered visually
-        if (input) input.style.display = 'none';
+        container.innerHTML = '';
 
         let data = {};
-        try { data = JSON.parse(input.value || '{}'); } catch (e) { }
+        activeCodes.forEach(code => data[code] = true);
+        input.value = JSON.stringify(data);
 
-        list.forEach(item => {
-            const saved = !!data[item.key];
+        FEATURE_LIST.forEach(item => {
+            const isActive = activeCodes.includes(item.key);
             const card = document.createElement('div');
-            card.className = `sa-toggle-card ${saved ? 'active' : ''}`;
+            card.className = `sa-toggle-card ${isActive ? 'active' : ''}`;
+
             card.innerHTML = `
-        <div class="sa-switch"></div>
-        <div class="sa-toggle-label">${item.label}</div>
-     `;
+                <div class="sa-toggle-icon">
+                    <i class="bi ${item.icon}"></i>
+                </div>
+                <div class="sa-toggle-content">
+                    <div class="sa-toggle-label">${item.label}</div>
+                </div>
+                <div class="sa-switch"></div>
+            `;
 
             card.addEventListener('click', () => {
-                const isActive = card.classList.contains('active');
-                if (isActive) {
-                    card.classList.remove('active');
-                    delete data[item.key];
-                } else {
-                    card.classList.add('active');
-                    data[item.key] = true;
-                }
-                input.value = JSON.stringify(data);
+                const nowActive = card.classList.toggle('active');
+                let currentData = {};
+                try { currentData = JSON.parse(input.value || '{}'); } catch (e) { }
+                if (nowActive) currentData[item.key] = true;
+                else delete currentData[item.key];
+                input.value = JSON.stringify(currentData);
             });
 
             container.appendChild(card);
         });
-    })();
+    }
 
     // Pricing Logic
     const PLANS = JSON.parse('{{ plans_json|escapejs }}');
@@ -517,7 +586,7 @@
         const planSelect = document.getElementById('id_plan');
         const durationSelect = document.getElementById('id_duration');
 
-        function updatePrice() {
+        function updatePrice(isManualDiscount = false) {
             if (!planSelect) return;
             const planCode = planSelect.value;
             const duration = parseInt(durationSelect.value);
@@ -525,29 +594,67 @@
 
             if (!plan) return;
 
-            // Auto-fill capacity if field exists
+            // 1. Sync Capacities (Hidden)
             const cappingInput = document.querySelector('input[name="capacity_limit"]');
             if (cappingInput) cappingInput.value = plan.max_students;
 
-            // Calc
-            let monthly = plan.monthly_price;
-            let total = monthly * duration;
+            // 2. Sync Features (Auto-sync only on plan/duration change, NOT on manual toggle)
+            if (!isManualDiscount) {
+                renderFeatures(plan.feature_codes || []);
+            }
 
-            if (duration >= 12) total *= 0.85;
-            else if (duration >= 6) total *= 0.90;
-            else if (duration >= 3) total *= 0.95;
+            // 3. Calc Prices & Discounts
+            let monthly = plan.monthly_price;
+            let total = 0;
+            let discountPercent = 0;
+
+            if (!isManualDiscount) {
+                if (duration === 1) {
+                    total = monthly;
+                } else if (duration === 3) {
+                    total = plan.price_3m || (monthly * 3);
+                } else if (duration === 6) {
+                    total = plan.price_6m || (monthly * 6);
+                } else if (duration === 9) {
+                    total = plan.price_9m || (monthly * 9);
+                } else if (duration === 12) {
+                    total = plan.price_12m || (monthly * 12);
+                }
+
+                if (duration > 1) {
+                    const fullPrice = monthly * duration;
+                    discountPercent = Math.round(((fullPrice - total) / fullPrice) * 100);
+                }
+                const manualDiscInput = document.getElementById('id_manual_discount');
+                if (manualDiscInput) manualDiscInput.value = discountPercent;
+            } else {
+                discountPercent = parseInt(document.getElementById('id_manual_discount').value) || 0;
+                const fullPrice = monthly * duration;
+                total = fullPrice * (1 - discountPercent / 100);
+            }
 
             document.getElementById('monthlyPrice').innerText = new Intl.NumberFormat('uz-UZ').format(monthly) + " so'm";
             document.getElementById('totalPrice').innerText = new Intl.NumberFormat('uz-UZ').format(total) + " so'm";
 
+            // 4. Auto-calculate Expiry
             const date = new Date();
             date.setDate(date.getDate() + (30 * duration));
-            document.getElementById('expiryDate').innerText = date.toLocaleDateString('ru-RU');
+            const dateStr = date.toLocaleDateString('ru-RU');
+            document.getElementById('expiryDate').innerText = dateStr;
+
+            const expiresInput = document.querySelector('input[name="expires_at"]');
+            if (expiresInput) {
+                const yyyy = date.getFullYear();
+                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                const dd = String(date.getDate()).padStart(2, '0');
+                expiresInput.value = `${yyyy}-${mm}-${dd}`;
+            }
         }
 
         if (planSelect) {
-            planSelect.addEventListener('change', updatePrice);
-            durationSelect.addEventListener('change', updatePrice);
+            planSelect.addEventListener('change', () => updatePrice(false));
+            durationSelect.addEventListener('change', () => updatePrice(false));
+            document.getElementById('id_manual_discount').addEventListener('input', () => updatePrice(true));
             updatePrice();
         }
     });

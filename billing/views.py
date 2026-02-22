@@ -143,7 +143,7 @@ def order_confirm_demo(request, pk: int):
     order = get_object_or_404(SubscriptionOrder, pk=pk)
     mark_order_paid(order)
     messages.success(request, "To'lov tasdiqlandi ✅")
-    return redirect("accounts:superadmin_dashboard")
+    return redirect("platform_global:superadmin_dashboard")
 
 
 @login_required
@@ -158,4 +158,4 @@ def order_reject_demo(request, pk: int):
     order.status = SubscriptionOrder.Status.CANCELED
     order.save()
     messages.warning(request, "To'lov so'rovi rad etildi ❌")
-    return redirect("accounts:superadmin_dashboard")
+    return redirect("platform_global:superadmin_dashboard")

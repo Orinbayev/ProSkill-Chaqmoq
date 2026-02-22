@@ -187,7 +187,7 @@ def home(request):
     # ✅ SUPERADMIN: root URL '/' her doim global platform panelga yo'naltiradi.
     # Session'da active_center_id bo'lsa ham, '/' superadmin uchun tenant dashboard emas.
     if u.is_superuser:
-        return redirect("accounts:superadmin_dashboard")
+        return redirect("platform_global:superadmin_dashboard")
 
 
     stats = _build_stats(center)

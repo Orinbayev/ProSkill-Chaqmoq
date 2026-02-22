@@ -13,6 +13,83 @@
         --primary-glow: rgba(99, 102, 241, 0.25);
     }
 
+    /* ── Modal & Overlay (Consistent with Promos) ──────── */
+    .sa-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        z-index: 9999;
+        display: none;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .sa-modal-overlay.open {
+        display: flex;
+    }
+
+    .sa-modal {
+        background: #0f172a;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 28px;
+        width: 480px;
+        max-width: 90vw;
+        box-shadow: 0 32px 80px rgba(0, 0, 0, 0.7);
+    }
+
+    .sa-modal-title {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #f1f5f9;
+        margin-bottom: 22px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .sa-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 9px 18px;
+        border-radius: 10px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.18s;
+        white-space: nowrap;
+    }
+
+    .sa-btn-secondary {
+        background: rgba(255, 255, 255, 0.05);
+        color: #f1f5f9;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .sa-btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.09);
+        border-color: rgba(255, 255, 255, 0.14);
+        color: #fff;
+    }
+
+    .sa-red {
+        color: #ef4444;
+    }
+
+    .sa-red {
+        color: #ef4444;
+    }
+
+    select option {
+        background: #0f172a !important;
+        color: #f1f5f9 !important;
+    }
+
     /* ── Page container ─────────────────────────── */
     .plans-page {
         padding: 2rem;
@@ -426,8 +503,13 @@
                         </td>
                         <td class="text-white">{{ p.monthly_price|intcomma }} so'm</td>
                         <td class="text-secondary small">
-                            <div>👥 {{ p.max_students }} o'quvchi</div>
-                            <div>👤 {{ p.max_users }} foydalanuvchi</div>
+                            <div class="d-flex flex-column gap-1">
+                                <span class="text-white" style="font-size: 0.95rem;">
+                                    <i class="bi bi-people-fill me-1" style="color: #60a5fa;"></i>
+                                    {% if p.max_students >= 9999 %}Cheksiz{% else %}{{ p.max_students }}{% endif %}
+                                    o'quvchi
+                                </span>
+                            </div>
                         </td>
                         <td>
                             <span class="feature-pill">
@@ -505,13 +587,31 @@
                     </div>
 
                     <div class="row g-2 mb-3">
-                        <div class="col-7">
-                            <label class="fc-label">Narxi (so'm / oy)</label>
-                            <input type="number" id="p_price" class="fc-dark" placeholder="500000" min="0">
+                        <div class="col-12">
+                            <label class="fc-label">Narxi (1 oy) <span class="text-danger">*</span></label>
+                            <input type="number" id="p_price" class="fc-dark" placeholder="400000" min="0">
                         </div>
-                        <div class="col-5">
-                            <label class="fc-label">Chegirma (%)</label>
-                            <input type="number" id="p_discount" class="fc-dark" value="0" min="0" max="100">
+                    </div>
+
+                    <p class="text-secondary mt-3"
+                        style="font-size:0.7rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">
+                        KO'P OYLIK NARXLAR (SAAS)</p>
+                    <div class="row g-2 mb-3">
+                        <div class="col-3">
+                            <label class="fc-label">3 oylik</label>
+                            <input type="number" id="p_price_3m" class="fc-dark" placeholder="1050000">
+                        </div>
+                        <div class="col-3">
+                            <label class="fc-label">6 oylik</label>
+                            <input type="number" id="p_price_6m" class="fc-dark" placeholder="1800000">
+                        </div>
+                        <div class="col-3">
+                            <label class="fc-label">9 oylik</label>
+                            <input type="number" id="p_price_9m" class="fc-dark" placeholder="2300000">
+                        </div>
+                        <div class="col-3">
+                            <label class="fc-label">12 oylik</label>
+                            <input type="number" id="p_price_12m" class="fc-dark" placeholder="2760000">
                         </div>
                     </div>
 
@@ -533,14 +633,8 @@
                     <div class="mb-3">
                         <label class="fc-label">👥 O'quvchi limiti</label>
                         <input type="number" id="p_students" class="fc-dark" value="100" min="0">
-                    </div>
-                    <div class="mb-3">
-                        <label class="fc-label">📚 Guruh limiti</label>
-                        <input type="number" id="p_groups" class="fc-dark" value="30" min="0">
-                    </div>
-                    <div class="mb-3">
-                        <label class="fc-label">👤 Foydalanuvchi (Admin) limiti</label>
-                        <input type="number" id="p_users" class="fc-dark" value="5" min="0">
+                        <div class="mt-1" style="font-size:0.65rem; color:#64748b;">Guruhlar va adminlar soni cheksiz
+                            (limitlanmagan)</div>
                     </div>
 
                     <div class="mb-2">
@@ -607,6 +701,29 @@
         </div>
     </div>
 </div>
+
+<!-- ── Delete Confirmation Modal ──────────────────────── -->
+<div id="deleteConfirmModal" class="sa-modal-overlay">
+    <div class="sa-modal" style="width: 400px; text-align: center;">
+        <div style="font-size: 3rem; color: #ef4444; margin-bottom: 16px; opacity: 0.8;">
+            <i class="bi bi-exclamation-octagon"></i>
+        </div>
+        <h4 style="color: #f1f5f9; font-weight: 800; margin-bottom: 10px;">Tasdiqlaysizmi?</h4>
+        <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 24px;">
+            Haqiqatan ham ushbu tarifni o'chirib tashlamoqchimisiz?<br>
+            Bu amalni ortga qaytarib bo'lmaydi!
+        </p>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button class="sa-btn" id="confirmDeleteBtn" style="background: #ef4444; color: white; padding: 10px 24px;">
+                <i class="bi bi-trash"></i> O'chirish
+            </button>
+            <button class="sa-btn sa-btn-secondary" onclick="closeDeleteModal()" style="padding: 10px 24px;">
+                Bekor qilish
+            </button>
+        </div>
+    </div>
+</div>
+
 
 <script>
     // ── State ──────────────────────────────────────────────────────────────────
@@ -756,15 +873,30 @@
     }
 
     // ── Modal open / close ─────────────────────────────────────────────────────
+    function onPriceUpdate() {
+        const p1 = parseInt(document.getElementById('p_price').value) || 0;
+        if (p1 <= 0) return;
+
+        // Multipliers based on Standard plan (400k -> 1.05m / 1.8m / 2.3m / 2.76m)
+        document.getElementById('p_price_3m').value = Math.round(p1 * 2.625);
+        document.getElementById('p_price_6m').value = Math.round(p1 * 4.5);
+        document.getElementById('p_price_9m').value = Math.round(p1 * 5.75);
+        document.getElementById('p_price_12m').value = Math.round(p1 * 6.9);
+    }
+
+    document.getElementById('p_price').addEventListener('input', onPriceUpdate);
+
     function openPlanForm() {
         document.getElementById('planId').value = '';
         document.getElementById('planForm').reset();
         document.getElementById('p_code').disabled = false;
         document.getElementById('codeHint').textContent = 'Unikal kod (keyinchalik o\'zgartirib bo\'lmaydi)';
-        document.getElementById('p_discount').value = 0;
         document.getElementById('p_students').value = 100;
-        document.getElementById('p_groups').value = 30;
-        document.getElementById('p_users').value = 5;
+        document.getElementById('p_price').value = '';
+        document.getElementById('p_price_3m').value = '';
+        document.getElementById('p_price_6m').value = '';
+        document.getElementById('p_price_9m').value = '';
+        document.getElementById('p_price_12m').value = '';
         document.getElementById('p_popular').checked = false;
         document.getElementById('planFormTitle').textContent = 'Yangi Tarif';
         document.getElementById('featError').style.display = 'none';
@@ -779,6 +911,14 @@
         document.body.style.overflow = '';
     }
 
+    // Close modal on overlay click
+    document.getElementById('planFormOverlay').addEventListener('click', function (e) {
+        if (e.target === this) closePlanModal();
+    });
+    document.getElementById('deleteConfirmModal').addEventListener('click', function (e) {
+        if (e.target === this) closeDeleteModal();
+    });
+
     async function editPlan(id) {
         try {
             const r = await fetch("{% url 'accounts:api_plan_list' %}");
@@ -792,10 +932,11 @@
             document.getElementById('codeHint').textContent = 'Kod o\'zgartirib bo\'lmaydi';
             document.getElementById('p_title').value = p.title;
             document.getElementById('p_price').value = p.monthly_price;
-            document.getElementById('p_discount').value = p.discount_percent || 0;
+            document.getElementById('p_price_3m').value = p.price_3m || '';
+            document.getElementById('p_price_6m').value = p.price_6m || '';
+            document.getElementById('p_price_9m').value = p.price_9m || '';
+            document.getElementById('p_price_12m').value = p.price_12m || '';
             document.getElementById('p_students').value = p.max_students || 0;
-            document.getElementById('p_groups').value = p.max_groups || 0;
-            document.getElementById('p_users').value = p.max_users || 0;
             document.getElementById('p_popular').checked = p.is_popular;
             document.getElementById('p_caption').value = p.caption || '';
             document.getElementById('planFormTitle').textContent = 'Tarifni Tahrirlash: ' + p.title;
@@ -840,10 +981,11 @@
             code: code,
             title: title,
             monthly_price: parseInt(document.getElementById('p_price').value) || 0,
-            discount_percent: parseInt(document.getElementById('p_discount').value) || 0,
+            price_3m: parseInt(document.getElementById('p_price_3m').value) || null,
+            price_6m: parseInt(document.getElementById('p_price_6m').value) || null,
+            price_9m: parseInt(document.getElementById('p_price_9m').value) || null,
+            price_12m: parseInt(document.getElementById('p_price_12m').value) || null,
             max_students: parseInt(document.getElementById('p_students').value) || 0,
-            max_groups: parseInt(document.getElementById('p_groups').value) || 0,
-            max_users: parseInt(document.getElementById('p_users').value) || 0,
             is_popular: document.getElementById('p_popular').checked,
             caption: document.getElementById('p_caption').value,
             feature_codes: featureCodes,    // M2M
@@ -851,7 +993,7 @@
         };
 
         const url = planId
-            ? `/hisob/api/plans/${planId}/update/`
+            ? `/platform/api/plans/${planId}/update/`
             : "{% url 'accounts:api_plan_create' %}";
 
         const btn = document.getElementById('savePlanBtn');
@@ -883,19 +1025,33 @@
     }
 
     // ── Delete ─────────────────────────────────────────────────────────────────
-    async function deletePlan(id) {
-        if (!confirm("Tarifni o'chirishni tasdiqlaysizmi?\nBu amalni ortga qaytarib bo'lmaydi!")) return;
-        try {
-            const r = await fetch(`/hisob/api/plans/${id}/delete/`, {
-                method: 'POST',
-                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
-            });
-            const res = await r.json();
-            if (res.success) location.reload();
-            else alert('Xatolik: ' + res.error);
-        } catch (e) {
-            alert('Xatolik: ' + e.message);
-        }
+    function deletePlan(id) {
+        const modal = document.getElementById('deleteConfirmModal');
+        const confirmBtn = document.getElementById('confirmDeleteBtn');
+
+        modal.classList.add('open');
+
+        confirmBtn.onclick = async function () {
+            try {
+                const r = await fetch(`/platform/api/plans/${id}/delete/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+                });
+                const res = await r.json();
+                if (res.success) {
+                    closeDeleteModal();
+                    location.reload();
+                } else {
+                    alert('Xatolik: ' + res.error);
+                }
+            } catch (e) {
+                alert('Xatolik: ' + e.message);
+            }
+        };
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('deleteConfirmModal').classList.remove('open');
     }
 
     // ── ESC to close ───────────────────────────────────────────────────────────

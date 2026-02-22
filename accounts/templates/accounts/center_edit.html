@@ -1,121 +1,543 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Markazni Tahrirlash{% endblock %}
+{% block title %}Markazni Tahrirlash | Chaqmoq Academy{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="card bg-dark border-secondary shadow-lg">
-                <div class="card-header border-secondary p-4">
-                    <h4 class="text-white mb-0">Markazni Tahrirlash: {{ center.name }}</h4>
-                </div>
-                <div class="card-body p-4">
-                    <form method="post" enctype="multipart/form-data">
-                        {% csrf_token %}
+<style>
+    :root {
+        --glass-bg: rgba(15, 23, 42, 0.6);
+        --glass-border: rgba(255, 255, 255, 0.08);
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
+        --accent-color: #3b82f6;
+        /* Blue for primary actions */
+        --input-bg: rgba(255, 255, 255, 0.03);
+        --input-border: rgba(255, 255, 255, 0.1);
+        --input-focus-border: var(--accent-color);
+        --success-color: #10b981;
+    }
 
-                        {% if form.non_field_errors %}
-                        <div class="alert alert-danger">
-                            {{ form.non_field_errors }}
+    .edit-page-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+
+    /* GLASS CARD */
+    .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+    }
+
+    .card-header-custom {
+        padding: 24px 32px;
+        border-bottom: 1px solid var(--glass-border);
+        background: rgba(255, 255, 255, 0.02);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .card-body-custom {
+        padding: 32px;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: white;
+        margin: 0;
+        letter-spacing: -0.5px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .page-title i {
+        color: var(--accent-color);
+    }
+
+    /* FORM STYLING */
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+    }
+
+    .full-width {
+        grid-column: span 2;
+    }
+
+    .form-group {
+        position: relative;
+    }
+
+    .form-label-custom {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .form-control-custom {
+        width: 100%;
+        background: var(--input-bg);
+        border: 1px solid var(--input-border);
+        border-radius: 12px;
+        padding: 12px 16px;
+        color: white;
+        font-size: 0.95rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-chevron-down' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 16px center;
+    }
+
+    .sa-field select option {
+        background: #0f172a !important;
+        color: #fff !important;
+    }
+
+    .form-control-custom option {
+        background: #0f172a;
+        color: white;
+        padding: 12px;
+    }
+
+    .form-control-custom:focus {
+        outline: none;
+        border-color: var(--input-focus-border);
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .form-control-custom option {
+        background: #111d30;
+        color: #f1f5f9;
+        font-size: 0.95rem;
+        padding: 10px;
+    }
+
+    .form-control-custom::placeholder {
+        color: rgba(255, 255, 255, 0.3);
+    }
+
+    textarea.form-control-custom {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    .form-helper {
+        margin-top: 6px;
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    /* FEATURES SECTION */
+    .features-section {
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 16px;
+        padding: 24px;
+        border: 1px solid var(--glass-border);
+        margin-top: 8px;
+    }
+
+    .feature-toggle-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+        margin-bottom: 8px;
+        border: 1px solid transparent;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .feature-toggle-item:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .feature-toggle-item.active {
+        background: rgba(59, 130, 246, 0.1);
+        border-color: rgba(59, 130, 246, 0.2);
+    }
+
+    .feature-label {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .feature-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        color: var(--text-secondary);
+    }
+
+    .feature-toggle-item.active .feature-icon {
+        background: var(--accent-color);
+        color: white;
+    }
+
+    /* SWITCH CUSTOM */
+    .toggle-switch {
+        position: relative;
+        width: 44px;
+        height: 24px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        transition: 0.3s;
+    }
+
+    .toggle-switch::after {
+        content: '';
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: white;
+        top: 3px;
+        left: 3px;
+        transition: 0.3s;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    input:checked+.toggle-switch {
+        background: var(--success-color);
+    }
+
+    input:checked+.toggle-switch::after {
+        transform: translateX(20px);
+    }
+
+    /* ACTIONS FOOTER */
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 32px;
+        padding-top: 24px;
+        border-top: 1px solid var(--glass-border);
+    }
+
+    .btn-cancel {
+        padding: 10px 24px;
+        border-radius: 12px;
+        color: var(--text-secondary);
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+    }
+
+    .btn-cancel:hover {
+        color: white;
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .btn-save {
+        padding: 10px 28px;
+        border-radius: 12px;
+        background: var(--accent-color);
+        color: white;
+        font-weight: 700;
+        border: none;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        transition: all 0.2s;
+    }
+
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+        background: #2563eb;
+    }
+
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .full-width {
+            grid-column: span 1;
+        }
+    }
+</style>
+
+<div class="edit-page-container">
+    <div class="glass-card">
+        <div class="card-header-custom">
+            <h1 class="page-title">
+                <i class="bi bi-pencil-square"></i>
+                Markazni Tahrirlash
+            </h1>
+            <div
+                class="badge bg-secondary bg-opacity-25 text-white border border-secondary border-opacity-25 px-3 py-2 rounded-pill">
+                {{ center.name }}
+            </div>
+            {% if center.expires_at %}
+            <div class="ms-auto me-3 text-secondary small">
+                <i class="bi bi-calendar-event me-1"></i>
+                Amal qilish muddati: <span class="text-white fw-bold">{{ center.expires_at|date:"d.m.Y" }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="card-body-custom">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div
+                    class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger rounded-3 mb-4">
+                    {{ form.non_field_errors }}
+                </div>
+                {% endif %}
+
+                <div class="form-grid">
+                    <!-- Basic Info Group -->
+                    {% for field in form %}
+                    {% if field.name == 'features' %}
+                    <!-- Skip features -->
+                    {% elif field.name == 'expires_at' or field.name == 'capacity_limit' %}
+                    <div style="display: none;">{{ field }}</div>
+                    {% elif field.name == 'plan' %}
+                    <!-- Render plan normally -->
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}" class="form-label-custom">{{ field.label }}</label>
+                        {{ field }}
+                    </div>
+                    {% else %}
+                    <div
+                        class="form-group {% if field.name == 'address' or field.name == 'info' %}full-width{% endif %}">
+                        <label for="{{ field.id_for_label }}" class="form-label-custom">
+                            {{ field.label }}
+                        </label>
+                        {{ field }}
+                        {% if field.help_text %}
+                        <div class="form-helper">{{ field.help_text }}</div>
+                        {% endif %}
+                        {% if field.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ field.errors.0 }}
                         </div>
                         {% endif %}
+                    </div>
+                    {% endif %}
+                    {% endfor %}
 
-                        {% for field in form %}
-                        {% if field.name == 'features' %}
-                        <div class="mb-3">
-                            <label class="form-label text-white fw-bold d-block mb-2">🛠 Qo‘shimcha Imkoniyatlar</label>
-                            {{ field }}
-                            <div class="card bg-dark bg-opacity-50 border-secondary">
-                                <div class="card-body">
-                                    <div class="row g-3" id="featuresToggles">
-                                        <!-- Dynamically Rendered -->
-                                    </div>
+                    <!-- Obuna va Narx Section -->
+                    <div class="full-width mt-4">
+                        <div
+                            style="background: rgba(255,255,255,0.02); border-radius: 16px; padding: 24px; border: 1px solid var(--glass-border);">
+                            <label class="form-label-custom mb-3"><i class="bi bi-credit-card-2-front"></i> Obuna va
+                                Hisob-kitob</label>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label-custom">Muddat</label>
+                                    <select id="id_duration" class="form-control-custom">
+                                        <option value="1">1 Oy</option>
+                                        <option value="3">3 Oy</option>
+                                        <option value="6">6 Oy</option>
+                                        <option value="9">9 Oy</option>
+                                        <option value="12">1 Yil</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label-custom">Chegirma (%)</label>
+                                    <input type="number" id="id_manual_discount" class="form-control-custom" value="0"
+                                        min="0" max="100">
+                                </div>
+                            </div>
+
+                            <div class="mt-4 p-3 rounded-3"
+                                style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border);">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="text-secondary small">Oylik Narx:</span>
+                                    <span class="text-white fw-bold" id="monthlyPrice">0 so'm</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-secondary small">Jami To'lov:</span>
+                                    <span class="text-success fw-bold fs-5" id="totalPrice">0 so'm</span>
                                 </div>
                             </div>
                         </div>
-                        {% else %}
-                        <div class="mb-3">
-                            <label for="{{ field.id_for_label }}"
-                                class="form-label text-secondary small text-uppercase fw-bold">{{ field.label }}</label>
+                    </div>
 
-                            {{ field }}
-
-                            {% if field.help_text %}
-                            <div class="form-text text-white-50 small">{{ field.help_text }}</div>
-                            {% endif %}
-
-                            {% if field.errors %}
-                            <div class="text-danger small mt-1">
-                                {{ field.errors.0 }}
-                            </div>
-                            {% endif %}
-                        </div>
+                    <!-- Features Section -->
+                    <div class="full-width mt-2">
+                        <label class="form-label-custom mb-3">
+                            <i class="bi bi-gear-fill me-1"></i> Qo‘shimcha Imkoniyatlar
+                        </label>
+                        <!-- Hidden Input for Django Form -->
+                        {% for field in form %}
+                        {% if field.name == 'features' %}
+                        {{ field.as_hidden }}
                         {% endif %}
                         {% endfor %}
 
-                        <script>
-                            (function () {
-                                const featuresList = [
-                                    { key: 'finance', label: '📊 Moliya (Finance)' },
-                                    { key: 'leads', label: '🎯 Lidlar (CRM)' },
-                                    { key: 'tasks', label: '✅ Vazifalar (Tasks)' },
-                                    { key: 'kpi', label: '📈 KPI Statistika' },
-                                    { key: 'store', label: '📦 Ombor (Store)' },
-                                    { key: 'sms', label: '📩 SMS Xabarnoma' }
-                                ];
-
-                                const input = document.querySelector('input[name="features"]');
-                                const container = document.getElementById('featuresToggles');
-                                let currentData = {};
-
-                                try {
-                                    // Handle quote replacement for attribute value
-                                    let raw = input.value;
-                                    currentData = JSON.parse(raw || '{}');
-                                } catch (e) {
-                                    currentData = {};
-                                }
-
-                                featuresList.forEach(item => {
-                                    const col = document.createElement('div');
-                                    col.className = 'col-sm-6';
-
-                                    const isChecked = !!currentData[item.key];
-
-                                    col.innerHTML = `
-                                        <div class="form-check form-switch p-0 d-flex align-items-center gap-3">
-                                            <input class="form-check-input m-0" type="checkbox" role="switch" 
-                                                   id="feat_${item.key}" ${isChecked ? 'checked' : ''}
-                                                   style="width: 3em; height: 1.5em; cursor: pointer;">
-                                            <label class="form-check-label text-white" for="feat_${item.key}" style="cursor: pointer; user-select: none;">
-                                                ${item.label}
-                                            </label>
-                                        </div>
-                                    `;
-                                    container.appendChild(col);
-
-                                    col.querySelector('input').addEventListener('change', function () {
-                                        if (this.checked) {
-                                            currentData[item.key] = true;
-                                        } else {
-                                            delete currentData[item.key];
-                                        }
-                                        input.value = JSON.stringify(currentData);
-                                    });
-                                });
-                            })();
-                        </script>
-
-                        <div class="d-flex justify-content-end gap-2 mt-4">
-                            <a href="{% url 'accounts:center_picker' %}" class="btn btn-outline-secondary">Bekor
-                                qilish</a>
-                            <button type="submit" class="btn btn-primary px-4">Saqlash</button>
+                        <div class="features-section">
+                            <div class="row g-3" id="featuresContainer">
+                                <!-- JS will populate this -->
+                            </div>
                         </div>
-                    </form>
+                    </div>
                 </div>
-            </div>
+
+                <div class="form-actions">
+                    <a href="{% url 'platform_global:center_picker' %}" class="btn-cancel">
+                        Bekor qilish
+                    </a>
+                    <button type="submit" class="btn-save">
+                        <i class="bi bi-check-lg me-2"></i> Saqlash
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Apply custom class to all form inputs automatically
+        const inputs = document.querySelectorAll('input:not([type="checkbox"]):not([type="hidden"]), select, textarea');
+        inputs.forEach(input => {
+            input.classList.add('form-control-custom');
+            // Check if it's the features input to hide it or keep it hidden
+            if (input.name === 'features') {
+                input.type = 'hidden';
+            }
+        });
+
+        // Features Logic
+        const FEATURE_LIST = [
+            { key: 'dashboard', label: 'Asosiy Dashboard', icon: 'bi-speedometer2' },
+            { key: 'students', label: 'O\'quvchilar va Guruhlar', icon: 'bi-people' },
+            { key: 'attendance', label: 'Davomat va Jadval', icon: 'bi-calendar-check' },
+            { key: 'finance', label: 'Moliya va To\'lovlar', icon: 'bi-wallet2' },
+            { key: 'salaries', label: 'Xodimlar va Ish xaqi', icon: 'bi-cash-coin' },
+            { key: 'analytics', label: 'Biznes Analitika', icon: 'bi-graph-up-arrow' },
+            { key: 'sms', label: 'SMS/Bildirishnomalar', icon: 'bi-chat-dots' },
+            { key: 'leads', label: 'CRM Huni (Lidlar)', icon: 'bi-bullseye' },
+            { key: 'roles', label: 'Rollar va Huquqlar', icon: 'bi-shield-check' },
+            { key: 'branches', label: 'Filiallar Boshqaruvi', icon: 'bi-diagram-3' }
+        ];
+
+        const hiddenInput = document.querySelector('input[name="features"]');
+        const container = document.getElementById('featuresContainer');
+        const PLANS = JSON.parse('{{ plans_json|escapejs }}');
+        const planSelect = document.getElementById('id_plan');
+
+        function renderFeatures(activeCodes = []) {
+            container.innerHTML = '';
+            let data = {};
+            activeCodes.forEach(code => data[code] = true);
+            hiddenInput.value = JSON.stringify(data);
+
+            FEATURE_LIST.forEach(feat => {
+                const isActive = activeCodes.includes(feat.key);
+                const col = document.createElement('div');
+                col.className = 'col-md-6';
+                col.innerHTML = `
+                    <div class="feature-toggle-item ${isActive ? 'active' : ''}">
+                        <div class="feature-label">
+                            <div class="feature-icon">
+                                <i class="bi ${feat.icon}"></i>
+                            </div>
+                            ${feat.label}
+                        </div>
+                        <div class="toggle-switch"></div>
+                    </div>
+                `;
+
+                const item = col.querySelector('.feature-toggle-item');
+                item.addEventListener('click', () => {
+                    const nowActive = item.classList.toggle('active');
+                    let currentData = {};
+                    try { currentData = JSON.parse(hiddenInput.value || '{}'); } catch (e) { }
+                    if (nowActive) currentData[feat.key] = true;
+                    else delete currentData[feat.key];
+                    hiddenInput.value = JSON.stringify(currentData);
+                });
+
+                container.appendChild(col);
+            });
+        }
+
+        const durationSelect = document.getElementById('id_duration');
+        const manualDiscount = document.getElementById('id_manual_discount');
+
+        function updatePrice(isManual = false) {
+            const planCode = planSelect.value;
+            const duration = parseInt(durationSelect.value);
+            const plan = PLANS.find(p => p.code === planCode);
+            if (!plan) return;
+
+            // Sync Features (only if NOT manual override)
+            if (!isManual) {
+                renderFeatures(plan.feature_codes || []);
+            }
+
+            let monthly = plan.monthly_price;
+            let total = 0;
+            let discountPercent = 0;
+
+            if (!isManual) {
+                if (duration === 1) total = monthly;
+                else if (duration === 3) total = plan.price_3m || (monthly * 3);
+                else if (duration === 6) total = plan.price_6m || (monthly * 6);
+                else if (duration === 9) total = plan.price_9m || (monthly * 9);
+                else if (duration === 12) total = plan.price_12m || (monthly * 12);
+
+                if (duration > 1) {
+                    const fullPrice = monthly * duration;
+                    discountPercent = Math.round(((fullPrice - total) / fullPrice) * 100);
+                }
+                manualDiscount.value = discountPercent;
+            } else {
+                discountPercent = parseInt(manualDiscount.value) || 0;
+                const fullPrice = monthly * duration;
+                total = fullPrice * (1 - discountPercent / 100);
+            }
+
+            document.getElementById('monthlyPrice').innerText = new Intl.NumberFormat('uz-UZ').format(monthly) + " so'm";
+            document.getElementById('totalPrice').innerText = new Intl.NumberFormat('uz-UZ').format(total) + " so'm";
+
+            // Sync capacity hiddenly
+            const capInput = document.querySelector('input[name="capacity_limit"]');
+            if (capInput) capInput.value = plan.max_students;
+        }
+
+        if (planSelect) {
+            planSelect.addEventListener('change', () => updatePrice(false));
+            durationSelect.addEventListener('change', () => updatePrice(false));
+            manualDiscount.addEventListener('input', () => updatePrice(true));
+            updatePrice();
+        }
+    });
+</script>
 {% endblock %}

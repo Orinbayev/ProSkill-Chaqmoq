@@ -370,8 +370,6 @@ def get_subscription_ui_state(center: Center) -> dict | None:
 
         # Progress calculation
         progress = 100
-        # If explicitly not expired, calculate progress based on full duration
-        # Since we might have multiple segments, relying on "started_at" of THIS segment is fine
         if sub.expires_at > timezone.now():
              total_span = (sub.expires_at - sub.started_at).total_seconds()
              if total_span > 0:

@@ -45,7 +45,7 @@ urlpatterns = [
 
     # 🔹 Main Application (Tenant Aware)
     path('', include(('core.urls', 'core'), namespace='core')),
-    path('hisob/', include(('accounts.urls', 'accounts'), namespace='accounts')),
+    path('hisob/', include(('accounts.urls_tenant', 'accounts'), namespace='accounts')),
     path('hisob/billing/', include(('billing.urls', 'billing'), namespace='billing')),
     path('chaqmoq/', include(('chaqmoq.urls', 'chaqmoq'), namespace='chaqmoq')),
     path('talim/', include(('education.urls', 'education'), namespace='education')),

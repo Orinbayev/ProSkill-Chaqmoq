@@ -32,7 +32,7 @@
 
   <!-- HEADER: LOGO + TOGGLE -->
   <div class="sidebar-header">
-    <a href="{% if request.user.is_superuser and not request.center %}/platform/{% elif request.user.is_superuser and request.center %}{% url 'accounts:center_picker' %}{% else %}/{% endif %}"
+    <a href="{% if request.user.is_superuser and not request.center %}/platform/{% elif request.user.is_superuser and request.center %}{% url 'platform_global:center_picker' %}{% else %}/{% endif %}"
       class="sidebar-logo" aria-label="Bosh sahifa" data-title="Bosh sahifa">
       <div class="ultimate-bolt-container">
         <div class="spark-particle s1"></div>
@@ -113,6 +113,116 @@
     {% elif request.center %}
 
     <div class="sidebar-section-label">{{ request.center.name|upper }}</div>
+
+    {% if sub_ui and sub_ui.in_grace_period %}
+    {% if request.user.role == 'director' or request.user.role == 'manager' or request.user.role == 'admin' %}
+    <!-- ⏳ PERSISTENT SIDEBAR TIMER (Minimal) -->
+    <a href="{% url 'billing:plans' %}" class="sidebar-persistent-timer animate__animated animate__pulse">
+      <div class="timer-inner">
+        <div class="timer-counter" id="sidebar-countdown">
+          00:00:00
+        </div>
+        <div class="timer-footer">
+          Qolgan vaqt
+        </div>
+      </div>
+    </a>
+
+    <style>
+      .sidebar-persistent-timer {
+        margin: 10px 12px 15px;
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(239, 68, 68, 0.04) 100%);
+        border: 1px solid rgba(239, 68, 68, 0.25);
+        border-radius: 12px;
+        display: block;
+        text-decoration: none !important;
+        overflow: hidden;
+        transition: all 0.2s;
+        animation-duration: 2s;
+        animation-iteration-count: infinite;
+      }
+
+      .sidebar-persistent-timer:hover {
+        background: rgba(239, 68, 68, 0.18);
+        border-color: rgba(239, 68, 68, 0.4);
+        transform: translateY(-1px);
+      }
+
+      .timer-inner {
+        padding: 10px;
+      }
+
+      .timer-counter {
+        font-family: 'Inter', sans-serif;
+        font-size: 22px;
+        font-weight: 800;
+        color: white;
+        text-align: center;
+        letter-spacing: 0.5px;
+        text-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+      }
+
+      .timer-footer {
+        font-size: 8px;
+        color: rgba(255, 255, 255, 0.3);
+        text-align: center;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 2px;
+      }
+
+      body.sidebar-collapsed .sidebar-persistent-timer {
+        margin: 5px 4px;
+        border-radius: 6px;
+      }
+
+      body.sidebar-collapsed .timer-inner {
+        padding: 6px 2px;
+      }
+
+      body.sidebar-collapsed .timer-footer {
+        display: none;
+      }
+
+      body.sidebar-collapsed .timer-counter {
+        font-size: 10px;
+        font-weight: 900;
+      }
+    </style>
+
+    <script>
+      (function () {
+        const targetStamp = parseInt("{{ sub_ui.hard_expires_at|date:'U'|default:0 }}") * 1000;
+
+        function updateSidebarTimer() {
+          const now = Date.now();
+          const diff = targetStamp - now;
+          const el = document.getElementById('sidebar-countdown');
+          if (!el) return;
+
+          if (diff <= 0) {
+            el.textContent = "BLOCKED";
+            el.parentElement.parentElement.style.display = 'none';
+            return;
+          }
+
+          const hours = Math.floor(diff / (1000 * 60 * 60));
+          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+          el.textContent =
+            String(hours).padStart(2, '0') + ":" +
+            String(minutes).padStart(2, '0') + ":" +
+            String(seconds).padStart(2, '0');
+        }
+
+        setInterval(updateSidebarTimer, 1000);
+        updateSidebarTimer();
+      })();
+    </script>
+    {% endif %}
+    {% endif %}
 
     {% if request.user.role == 'teacher' %}
     <a href="/"

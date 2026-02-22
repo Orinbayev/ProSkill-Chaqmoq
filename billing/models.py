@@ -12,18 +12,11 @@ class PlanFeature(models.Model):
     Har bir plan ushbu featurelardan ManyToMany orqali tanlaydi.
     """
     class Category(models.TextChoices):
-        CORE      = "core",      "Asosiy"
-        STUDENTS  = "students",  "O'quvchilar"
-        GROUPS    = "groups",    "Guruhlar"
-        PAYMENTS  = "payments",  "Moliya / To'lov"
-        DEBTORS   = "debtors",   "Qarzdorlar"
-        SCHEDULE  = "schedule",  "Jadval / Davomat"
-        COURSES   = "courses",   "Kurslar / Darslar"
-        STAFF     = "staff",     "Xodimlar / Rollar"
-        BROADCAST = "broadcast", "SMS / Reklama"
-        REPORTS   = "reports",   "Hisobot / Export"
-        CRM       = "crm",       "CRM / Analytics"
-        SETTINGS  = "settings",  "Sozlamalar"
+        CORE      = "core",      "Asosiy Modullar"
+        FINANCE   = "finance",   "Moliya va Hisobot"
+        MARKETING = "marketing", "Marketing va SMS"
+        TEAM      = "team",      "Jamoa va Rollar"
+        ADVANCED  = "advanced",  "Murakkab Tizimlar"
 
     code        = models.CharField(max_length=50, unique=True, verbose_name="Kod (unique)")
     name        = models.CharField(max_length=100, verbose_name="Nomi")
@@ -65,6 +58,13 @@ class SubscriptionPlan(models.Model):
 
     is_popular = models.BooleanField(default=False)
     discount_percent = models.PositiveIntegerField(default=0, validators=[MaxValueValidator(100)])
+    
+    # Yearly/Quarterly Pricing (SaaS Style)
+    price_3m = models.PositiveIntegerField(null=True, blank=True, verbose_name="3 oylik narx")
+    price_6m = models.PositiveIntegerField(null=True, blank=True, verbose_name="6 oylik narx")
+    price_9m = models.PositiveIntegerField(null=True, blank=True, verbose_name="9 oylik narx")
+    price_12m = models.PositiveIntegerField(null=True, blank=True, verbose_name="12 oylik narx (jami)")
+    
     caption = models.TextField(blank=True, default="", verbose_name="Qo'shimcha ma'lumot")
     features = models.JSONField(blank=True, default=dict, verbose_name="Ruxsatlar (modullar)")
 
