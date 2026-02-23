@@ -9,7 +9,7 @@ def _build_director_stats(center):
     # Imports here to avoid replacement issues
     from education.models import Payment, TeacherIncome
     from store.models import Lead, Manba
-    from django.db.models import Sum, Count
+    from django.db.models import Sum, Count, F
     from django.utils.timezone import localdate
     import datetime
     from accounts.models import User
@@ -109,27 +109,34 @@ def _build_director_stats(center):
     students_trend = calc_trend(current_students, prev_students)
 
     # --- 5. RISKS & EXTRAS ---
-    debt_amount = 0
-    debtors_count = 0
-    debt_enrolls = Enrollment.objects.filter(group__center=center, is_active=True).select_related('student')
-    count = 0
+    # Optimized Debt Logic: One SQL query instead of Python loop
     low_activity_students = []
+    debt_stats = Enrollment.objects.filter(
+        group__center=center, 
+        is_active=True,
+        kurs_narhi__gt=F('jami_tolangan')
+    ).aggregate(
+        total_debt=Sum(F('kurs_narhi') - F('jami_tolangan')),
+        debtors_count=Count('id')
+    )
     
-    # Simple Debt Logic
-    for enr in debt_enrolls:
-        # Check debt
-        if enr.jami_tolangan < (enr.kurs_narhi or 0):
-             diff = ((enr.kurs_narhi or 0) - enr.jami_tolangan)
-             debt_amount += diff
-             count += 1
-             if len(low_activity_students) < 5:
-                low_activity_students.append({
-                    "name": f"{enr.student.first_name} {enr.student.last_name}",
-                    "amount": int(diff),
-                    "avatar": enr.student.avatar.url if enr.student.avatar else ""
-                })
+    debt_amount = debt_stats['total_debt'] or 0
+    debtors_count = debt_stats['debtors_count'] or 0
 
-    debtors_count = count
+    # For low activity list, just take first 5
+    low_debt_qs = Enrollment.objects.filter(
+        group__center=center, 
+        is_active=True,
+        kurs_narhi__gt=F('jami_tolangan')
+    ).select_related('student')[:5]
+
+    for enr in low_debt_qs:
+        diff = (enr.kurs_narhi or 0) - enr.jami_tolangan
+        low_activity_students.append({
+            "name": f"{enr.student.ism} {enr.student.familya}",
+            "amount": int(diff),
+            "avatar": enr.student.avatar.url if enr.student.avatar else ""
+        })
 
     # Churned students (bu oy arxivlanganlar)
     churn_count = User.objects.filter(role="student", center=center, is_archived=True).count()

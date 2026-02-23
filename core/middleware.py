@@ -2,6 +2,7 @@ from django.shortcuts import redirect, render
 from django.http import HttpResponseForbidden, Http404
 from django.conf import settings
 from accounts.models import Center
+from django.utils import timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -69,14 +70,18 @@ class TenantMiddleware:
                 request.active_center = fresh_center
                 request.center = fresh_center
 
-                # ✅ Auto-Expire / Resume PAUSED Subscriptions
-                # This ensures we switch to next plan WITHOUT needing Dashboard UI
-                try:
-                    from billing.services import check_subscription_expiry
-                    check_subscription_expiry(fresh_center)
-                except Exception as e:
-                    import logging
-                    logging.error(f"Middleware Sub Check Error: {e}")
+                # ✅ Optimized Sub Check: Only check once per hour per session to save DB queries
+                last_check = request.session.get('last_sub_check')
+                now_ts = timezone.now().timestamp()
+                
+                if not last_check or (now_ts - last_check > 3600): # 1 hour cooldown
+                    try:
+                        from billing.services import check_subscription_expiry
+                        check_subscription_expiry(fresh_center)
+                        request.session['last_sub_check'] = now_ts
+                    except Exception as e:
+                        import logging
+                        logging.error(f"Middleware Sub Check Error: {e}")
                 
                 # Check Blocked Status
                 is_blocked = False

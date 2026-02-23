@@ -27,7 +27,9 @@ class Center(models.Model):
     plan = models.CharField(max_length=50, default="FREE")
 
     # Subscription Properties to handle Stack Logic
-    @property
+    from django.utils.functional import cached_property
+
+    @cached_property
     def subscription(self):
         """
         Backward compatibility: Returns the currently ACTIVE or PAUSED (best candidate) subscription.
@@ -42,11 +44,11 @@ class Center(models.Model):
         paused = self.subscriptions.filter(status="PAUSED").order_by("-plan__tier").first()
         if paused:
             return paused
-
+ 
         # If expired/blocked, return the last one
         return self.subscriptions.first()
 
-    @property
+    @cached_property
     def active_subscription(self):
         """
         Returns the real active subscription or None.

@@ -1,0 +1,492 @@
+/* ⚡ Chaqmoq Academy - Final Premium SaaS Design System v3.0 */
+
+:root {
+    --theme-transition: background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        color 0.4s ease,
+        border-color 0.4s ease,
+        box-shadow 0.4s ease,
+        transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    --radius-xl: 20px;
+    --radius-lg: 16px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+}
+
+/* 🌙 DARK MODE (Default - Solid Base) */
+:root[data-theme="dark"] {
+    --bg: #070a12;
+    --bg-gradient: radial-gradient(1200px 700px at 10% 0%, rgba(56, 189, 248, .10), transparent 60%),
+        radial-gradient(900px 600px at 90% 10%, rgba(250, 204, 21, .09), transparent 58%),
+        linear-gradient(180deg, #070a12, #0b1220, #0f1b33);
+
+    --surface: #0b1220;
+    --surface-2: #0f1b33;
+    --surface-glass: rgba(17, 24, 39, 0.65);
+
+    --text: #e5e7eb;
+    --muted: #94a3b8;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.15);
+
+    --shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.6);
+
+    --primary: #facc15;
+    --primary-hover: #eab308;
+    --primary-contrast: #000000;
+
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --info: #38bdf8;
+
+    --ring: 0 0 0 4px rgba(250, 204, 21, 0.15);
+    --input-bg: rgba(255, 255, 255, 0.05);
+}
+
+/* ☀️ LIGHT MODE (Premium SaaS Level) */
+:root[data-theme="light"] {
+    --bg: #F6F7FB;
+    --bg-gradient: radial-gradient(1000px 600px at 0% 0%, rgba(59, 130, 246, 0.05), transparent 50%),
+        radial-gradient(800px 500px at 100% 100%, rgba(250, 204, 21, 0.04), transparent 50%),
+        #F6F7FB;
+
+    --surface: #FFFFFF;
+    --surface-2: #F1F3F9;
+    --surface-glass: rgba(255, 255, 255, 0.85);
+
+    --text: #0F172A;
+    --muted: #64748B;
+    --border: #E2E8F0;
+    --border-strong: #CBD5E1;
+
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+
+    --primary: #2563EB;
+    /* Premium SaaS Blue */
+    --primary-hover: #1D4ED8;
+    --primary-contrast: #FFFFFF;
+
+    --success: #10B981;
+    --warning: #F59E0B;
+    --danger: #EF4444;
+    --info: #0EA5E9;
+
+    --ring: 0 0 0 4px rgba(37, 99, 235, 0.1);
+    --input-bg: #FFFFFF;
+
+    /* Feature Specific Tokens */
+    --sb-bg: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+    --header-bg: linear-gradient(90deg, #FFFFFF 0%, #F1F5F9 100%);
+
+    /* SaaS Mapping Overrides */
+    --bg-dark: var(--bg);
+    --bg-card: var(--surface);
+    --bg-hover: var(--surface-2);
+    --panel: var(--surface);
+    --panel2: var(--surface-2);
+    --line: var(--border);
+    --sa-bg: var(--bg);
+    --bg0: var(--bg);
+    --bg1: var(--bg);
+    --bg2: var(--bg);
+    --stroke: var(--border);
+    --stroke2: var(--border);
+}
+
+/* ────────────────────────────────────────────────────────────
+   1. GLOBAL RESET & TYPOGRAPHY
+   ──────────────────────────────────────────────────────────── */
+
+body {
+    transition: var(--theme-transition);
+    background: var(--bg-gradient) !important;
+    color: var(--text) !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+}
+
+h1,
+.sa-title,
+.dashboard-title {
+    font-size: 32px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.03em !important;
+}
+
+p,
+.sa-subtitle,
+.dashboard-subtitle {
+    color: var(--muted) !important;
+    font-size: 14px !important;
+}
+
+/* ────────────────────────────────────────────────────────────
+   2. SIDEBAR (Premium Glassy Look)
+   ──────────────────────────────────────────────────────────── */
+
+.sidebar-wrapper {
+    background: var(--sb-bg) !important;
+    border-right: 1px solid var(--border) !important;
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.02) !important;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.sidebar-wrapper::before {
+    display: none !important;
+}
+
+.sidebar-item {
+    color: var(--muted) !important;
+    margin: 4px 12px !important;
+    border-radius: var(--radius-md) !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+}
+
+.sidebar-item:hover:not(.active) {
+    background: var(--surface-2) !important;
+    color: var(--text) !important;
+    transform: translateX(4px);
+}
+
+.sidebar-item.active {
+    background: var(--primary) !important;
+    color: var(--primary-contrast) !important;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.2) !important;
+}
+
+/* Icon backgrounds in sidebar */
+.si-ico {
+    background: var(--surface-2) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--muted) !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease !important;
+}
+
+.sidebar-item.active .si-ico {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    color: #FFFFFF !important;
+}
+
+/* Sidebar Subscription Widget */
+.sidebar-sub-widget-mini {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+    margin: 16px !important;
+    border-radius: var(--radius-lg) !important;
+    overflow: hidden;
+}
+
+.sub-header-mini {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), transparent) !important;
+}
+
+.sub-upgrade-btn-mini {
+    background: var(--primary) !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-weight: 700 !important;
+}
+
+/* ────────────────────────────────────────────────────────────
+   3. HEADER / TOPBAR (Floating Glass)
+   ──────────────────────────────────────────────────────────── */
+
+.header-card,
+.dashboard-header,
+.mobile-topbar {
+    background: var(--header-bg) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-xl) !important;
+    box-shadow: var(--shadow-lg) !important;
+    backdrop-filter: blur(12px) !important;
+    animation: none !important;
+}
+
+.search-box-glass {
+    background: var(--surface-2) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-md) !important;
+}
+
+.search-box-glass input {
+    color: var(--text) !important;
+}
+
+.search-box-glass i {
+    color: var(--muted) !important;
+}
+
+/* ────────────────────────────────────────────────────────────
+   4. KPI CARDS (Floating & Accent Highlight)
+   ──────────────────────────────────────────────────────────── */
+
+.sa-kpi,
+.stat-card-premium,
+.dashboard-card,
+.table-card,
+.card {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-xl) !important;
+    box-shadow: var(--shadow) !important;
+    transition: var(--theme-transition) !important;
+    position: relative !important;
+}
+
+/* Accent Highlight Line */
+.sa-kpi::after,
+.stat-card-premium::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--primary), transparent);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    opacity: 0.3;
+}
+
+.sa-kpi:hover,
+.stat-card-premium:hover,
+.dashboard-card:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08) !important;
+    border-color: var(--primary) !important;
+}
+
+.stat-number,
+.sa-kpi-value {
+    font-size: 34px !important;
+    font-weight: 800 !important;
+    color: var(--text) !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+}
+
+.xs-text,
+.sa-kpi-label {
+    font-size: 13px !important;
+    color: var(--muted) !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+}
+
+/* Icon Badge (Pastel Chips) */
+.stat-icon-box,
+.sa-kpi-icon {
+    width: 46px !important;
+    height: 46px !important;
+    border-radius: 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 20px !important;
+    transition: transform 0.3s ease !important;
+}
+
+.bg-blue-subtle {
+    background: rgba(37, 99, 235, 0.1) !important;
+    color: var(--primary) !important;
+}
+
+.bg-purple-subtle {
+    background: rgba(168, 85, 247, 0.1) !important;
+    color: #a855f7 !important;
+}
+
+.bg-success-subtle {
+    background: rgba(16, 185, 129, 0.1) !important;
+    color: var(--success) !important;
+}
+
+.bg-amber-subtle {
+    background: rgba(245, 158, 11, 0.1) !important;
+    color: var(--warning) !important;
+}
+
+.bg-danger-subtle {
+    background: rgba(239, 68, 68, 0.1) !important;
+    color: var(--danger) !important;
+}
+
+/* ────────────────────────────────────────────────────────────
+   5. TABLES (Clean & Sticky)
+   ──────────────────────────────────────────────────────────── */
+
+.table-container,
+.sa-table-card {
+    background: var(--surface) !important;
+    border-radius: var(--radius-xl) !important;
+    overflow: hidden !important;
+    box-shadow: var(--shadow) !important;
+}
+
+.sa-table thead th,
+.tbl thead th,
+.custom-table thead th {
+    background: var(--surface-2) !important;
+    color: var(--text) !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    padding: 16px 20px !important;
+    border-bottom: 1px solid var(--border) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+}
+
+.sa-table tbody td,
+.tbl tbody td,
+.custom-table tbody td {
+    padding: 16px 20px !important;
+    border-bottom: 1px solid var(--border) !important;
+    color: var(--text) !important;
+    font-size: 14px !important;
+}
+
+.sa-table tbody tr:hover,
+.tbl tbody tr:hover,
+.custom-table tbody tr:hover {
+    background: var(--surface-2) !important;
+}
+
+/* Badges (Pastel & Readable) */
+.badge {
+    padding: 6px 12px !important;
+    border-radius: 8px !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+}
+
+.badge.warn {
+    background: rgba(245, 158, 11, 0.12) !important;
+    color: #B45309 !important;
+    border: 1px solid rgba(245, 158, 11, 0.2) !important;
+}
+
+.badge.ok {
+    background: rgba(16, 185, 129, 0.12) !important;
+    color: #047857 !important;
+    border: 1px solid rgba(16, 185, 129, 0.2) !important;
+}
+
+.badge.bad {
+    background: rgba(239, 68, 68, 0.12) !important;
+    color: #B91C1C !important;
+    border: 1px solid rgba(239, 68, 68, 0.2) !important;
+}
+
+/* ────────────────────────────────────────────────────────────
+   6. BUTTONS & INPUTS (SaaS Standard)
+   ──────────────────────────────────────────────────────────── */
+
+.btn-primary,
+.sa-btn-primary,
+.btn-action.btn-primary {
+    background: var(--primary) !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    font-weight: 700 !important;
+    padding: 10px 24px !important;
+    border-radius: var(--radius-md) !important;
+    transition: all 0.3s ease !important;
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.2) !important;
+}
+
+.btn-outline,
+.sa-btn-secondary,
+.btn-details {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text) !important;
+    font-weight: 600 !important;
+}
+
+.btn-outline:hover {
+    background: var(--surface-2) !important;
+    border-color: var(--border-strong) !important;
+}
+
+input,
+select,
+textarea,
+.filter-input {
+    background: var(--input-bg) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text) !important;
+    border-radius: var(--radius-md) !important;
+    padding: 12px 16px !important;
+    transition: all 0.3s ease !important;
+}
+
+input:focus,
+select:focus {
+    border-color: var(--primary) !important;
+    box-shadow: var(--ring) !important;
+    outline: none !important;
+}
+
+/* ────────────────────────────────────────────────────────────
+   7. UTILITIES & OVERLAYS
+   ──────────────────────────────────────────────────────────── */
+
+.menu-dropdown,
+.dropdown-menu,
+.notification-sidebar {
+    background: var(--surface) !important;
+    border: 1px solid var(--border-strong) !important;
+    box-shadow: var(--shadow-lg) !important;
+    border-radius: var(--radius-lg) !important;
+}
+
+.modal-content {
+    background: var(--surface) !important;
+    border: none !important;
+    border-radius: var(--radius-xl) !important;
+    box-shadow: var(--shadow-lg) !important;
+}
+
+.modal-backdrop {
+    background: var(--modal-bg) !important;
+    backdrop-filter: blur(8px) !important;
+}
+
+/* Theme Toggle Button */
+.theme-toggle-btn {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 12px !important;
+    border: 1px solid var(--border) !important;
+    background: var(--surface-2) !important;
+    color: var(--text) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+}
+
+/* Cleanup extra dashboard effects from dark mode */
+.dashboard-page::before,
+.dashboard-page::after {
+    display: none !important;
+}
+
+#global-loader {
+    background: var(--modal-bg) !important;
+    backdrop-filter: blur(20px) !important;
+}
