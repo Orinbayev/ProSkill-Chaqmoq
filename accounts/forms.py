@@ -3,6 +3,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from accounts.models import Center
 from django.apps import apps
+from django.core.exceptions import ValidationError
 
 User = get_user_model()
 Group = apps.get_model('education', 'Group')
@@ -119,16 +120,12 @@ class AddUserForm(forms.ModelForm):
                 from accounts.student_limit import check_student_limit
                 try:
                     check_student_limit(center, raise_error=True)
-                except Exception:
-                    # Show user-friendly error to Director/Manager
-                    plan_name = "FREE"
-                    if hasattr(center, 'subscription') and center.subscription:
-                        plan_name = center.subscription.plan
-                    raise forms.ValidationError(
-                        f"❌ O'quvchi limiti tugagan! Sizning tarifingiz ({plan_name}) bo'yicha "
-                        "maksimum o'quvchilar soni to'ldi. Yangi o'quvchi qo'shish uchun "
-                        "tarifni yangilang yoki mavjud o'quvchilarni arxivlang."
-                    )
+                except ValidationError as e:
+                    # Re-raise the student limit validation error
+                    raise e
+                except Exception as e:
+                    # Handle unexpected errors gracefully
+                    raise forms.ValidationError(f"❌ Tizimda kutilmagan xatolik yuz berdi: {str(e)}")
         
         return cleaned_data
 
@@ -329,3 +326,33 @@ class ParentForm(forms.ModelForm):
             # Set the multiple selected children
             user.children.set(self.cleaned_data.get("children_ids"))
         return user
+
+class ProfileEditForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ["ism", "familya", "avatar"]
+        widgets = {
+            "ism": forms.TextInput(attrs={"class": "form-control uniform-input", "placeholder": "Ismingiz..."}),
+            "familya": forms.TextInput(attrs={"class": "form-control uniform-input", "placeholder": "Familiyangiz..."}),
+            "avatar": forms.FileInput(attrs={"class": "form-control uniform-input", "style": "display:none;", "id": "id_avatar_input", "onchange": "previewImage(this)"}),
+        }
+
+class PasswordUpdateForm(forms.Form):
+    new_password = forms.CharField(
+        label="Yangi parol",
+        widget=forms.PasswordInput(attrs={"class": "form-control uniform-input", "placeholder": "••••••••"}),
+        min_length=8
+    )
+    confirm_password = forms.CharField(
+        label="Yangi parol (takror)",
+        widget=forms.PasswordInput(attrs={"class": "form-control uniform-input", "placeholder": "••••••••"}),
+        min_length=8
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        p1 = cleaned_data.get("new_password")
+        p2 = cleaned_data.get("confirm_password")
+        if p1 and p2 and p1 != p2:
+            raise forms.ValidationError("Parollar bir-biriga mos kelmadi.")
+        return cleaned_data

@@ -322,8 +322,6 @@
                     {% for field in form %}
                     {% if field.name == 'features' %}
                     <!-- Skip features -->
-                    {% elif field.name == 'expires_at' or field.name == 'capacity_limit' %}
-                    <div style="display: none;">{{ field }}</div>
                     {% elif field.name == 'plan' %}
                     <!-- Render plan normally -->
                     <div class="form-group">
@@ -527,15 +525,27 @@
             document.getElementById('monthlyPrice').innerText = new Intl.NumberFormat('uz-UZ').format(monthly) + " so'm";
             document.getElementById('totalPrice').innerText = new Intl.NumberFormat('uz-UZ').format(total) + " so'm";
 
-            // Sync capacity hiddenly
+            // Sync capacity only if it's a plan change (not initial load)
             const capInput = document.querySelector('input[name="capacity_limit"]');
-            if (capInput) capInput.value = plan.max_students;
+            if (capInput && planSelect.getAttribute('data-initial-load') !== 'true') {
+                capInput.value = plan.max_students;
+            }
         }
 
         if (planSelect) {
-            planSelect.addEventListener('change', () => updatePrice(false));
-            durationSelect.addEventListener('change', () => updatePrice(false));
+            // Mark initial load
+            planSelect.setAttribute('data-initial-load', 'true');
+
+            planSelect.addEventListener('change', () => {
+                planSelect.removeAttribute('data-initial-load');
+                updatePrice(false);
+            });
+            durationSelect.addEventListener('change', () => {
+                planSelect.removeAttribute('data-initial-load');
+                updatePrice(false);
+            });
             manualDiscount.addEventListener('input', () => updatePrice(true));
+
             updatePrice();
         }
     });

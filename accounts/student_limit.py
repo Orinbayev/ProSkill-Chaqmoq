@@ -14,14 +14,8 @@ def check_student_limit(center, raise_error=True):
     """
     from accounts.models import User
     
-    # 1. Get Limit Source (Priority: Active Sub Plan > Center.capacity_limit > Default)
-    limit = 50 # Absolute fallback
-    
-    active_sub = center.active_subscription
-    if active_sub:
-        limit = active_sub.plan.max_students
-    elif center.capacity_limit and center.capacity_limit > 0:
-        limit = center.capacity_limit
+    # 1. Get Limit Source (Using the new Center.effective_student_limit)
+    limit = center.effective_student_limit
     
     # 2. Count active students
     current_count = User.objects.filter(
@@ -34,17 +28,20 @@ def check_student_limit(center, raise_error=True):
     remaining = max(0, limit - current_count)
 
     if raise_error and is_at_limit:
+        plan_info = f" ({center.active_subscription.plan.title} tarifi)" if center.active_subscription else ""
         raise ValidationError(
-            f"❌ O‘quvchi limiti to‘lgan ({current_count}/{limit}). "
-            "Yangi o‘quvchi qo‘shish uchun tarifni yangilang (Upgrade)."
+            f"❌ '{center.name}' markazida o‘quvchi limiti to‘lgan! "
+            f"Amaldagi holat: {current_count}/{limit}{plan_info}. "
+            "Yangi o‘quvchi qo‘shish uchun tarifni yangilang yoki 'capacity_limit'ni oshiring (Super Admin orqali)."
         )
 
+    active_sub = center.active_subscription
     return {
         'is_at_limit': is_at_limit,
         'current_count': current_count,
         'limit': limit,
         'remaining': remaining,
-        'plan_name': active_sub.plan.title if active_sub else "Noma'lum"
+        'plan_name': active_sub.plan.title if active_sub and hasattr(active_sub, 'plan') else "Noma'lum"
     }
 
 

@@ -1721,32 +1721,32 @@
             <select name="status" class="sa-select" onchange="document.getElementById('filterForm').submit()">
                 <option value="">Status: Barchasi</option>
                 {% for s_code, s_label in statuses %}
-                <option value="{{ s_code }}" {% if status_filter == s_code %}selected{% endif %}>{{ s_label }}</option>
+                <option value="{{ s_code }}" {% if status_filter==s_code %}selected{% endif %}>{{ s_label }}</option>
                 {% endfor %}
             </select>
 
             <select name="plan" class="sa-select" onchange="document.getElementById('filterForm').submit()">
                 <option value="">Tarif: Barchasi</option>
                 {% for p_code, p_label in plans %}
-                <option value="{{ p_code }}" {% if plan_filter == p_code %}selected{% endif %}>{{ p_label }}</option>
+                <option value="{{ p_code }}" {% if plan_filter==p_code %}selected{% endif %}>{{ p_label }}</option>
                 {% endfor %}
             </select>
 
             <select name="expiry" class="sa-select" onchange="document.getElementById('filterForm').submit()">
                 <option value="">Muddat: Barchasi</option>
-                <option value="active" {% if expiry_filter == 'active' %}selected{% endif %}>Faol</option>
-                <option value="today" {% if expiry_filter == 'today' %}selected{% endif %}>Bugun tugaydi</option>
-                <option value="expiring_3" {% if expiry_filter == 'expiring_3' %}selected{% endif %}>3 kunda tugaydi
+                <option value="active" {% if expiry_filter=='active' %}selected{% endif %}>Faol</option>
+                <option value="today" {% if expiry_filter=='today' %}selected{% endif %}>Bugun tugaydi</option>
+                <option value="expiring_3" {% if expiry_filter=='expiring_3' %}selected{% endif %}>3 kunda tugaydi
                 </option>
-                <option value="expiring_soon" {% if expiry_filter == 'expiring_soon' %}selected{% endif %}>7 kunda tugaydi
+                <option value="expiring_soon" {% if expiry_filter=='expiring_soon' %}selected{% endif %}>7 kunda tugaydi
                 </option>
-                <option value="grace" {% if expiry_filter == 'grace' %}selected{% endif %}>Imtiyozda (Grace)</option>
-                <option value="expired" {% if expiry_filter == 'expired' %}selected{% endif %}>Tugagan (Barchasi)</option>
+                <option value="grace" {% if expiry_filter=='grace' %}selected{% endif %}>Imtiyozda (Grace)</option>
+                <option value="expired" {% if expiry_filter=='expired' %}selected{% endif %}>Tugagan (Barchasi)</option>
             </select>
 
             <select name="limit" class="sa-select" onchange="document.getElementById('filterForm').submit()">
                 <option value="">Limit: Barchasi</option>
-                <option value="over" {% if limit_filter == 'over' %}selected{% endif %}>Limitdan oshgan</option>
+                <option value="over" {% if limit_filter=='over' %}selected{% endif %}>Limitdan oshgan</option>
             </select>
 
             <button type="submit" class="sa-btn-submit">
@@ -1831,12 +1831,14 @@
                             {% if sub %}
                             <div class="sa-plan-row">
                                 <span class="sa-badge sa-badge-plan">{{ sub.plan.code }}</span>
-                                <span style="font-size:0.75rem;color:var(--sa-muted);">{{ c.student_count }}/{{ c.capacity_limit }}</span>
+                                <span style="font-size:0.75rem;color:var(--sa-muted);">{{ c.student_count }}/{{
+                                    c.effective_student_limit }}</span>
                             </div>
                             <div class="sa-progress">
-                                {% if c.capacity_limit > 0 %}
-                                <div class="sa-progress-fill {% if c.student_count > c.capacity_limit %}danger{% endif %}"
-                                    style="width:{% widthratio c.student_count c.capacity_limit 100 %}%;"></div>
+                                {% if c.effective_student_limit > 0 %}
+                                <div class="sa-progress-fill {% if c.student_count > c.effective_student_limit %}danger{% endif %}"
+                                    style="width:{% widthratio c.student_count c.effective_student_limit 100 %}%;">
+                                </div>
                                 {% endif %}
                             </div>
                             {% else %}

@@ -1,175 +1,227 @@
+from django.db.models import Sum, Count, F, Q, Avg
+from django.db.models.functions import TruncMonth
+from django.utils import timezone
+from django.utils.timezone import localdate
+import datetime
+import json
+
+def _get_growth(current, previous):
+    if not previous or previous == 0:
+        return 100 if current > 0 else 0
+    return round(((current - previous) / previous) * 100, 1)
+
+def _get_trend(current, previous):
+    if current > previous:
+        return "up"
+    elif current < previous:
+        return "down"
+    return "stable"
 
 def _build_director_stats(center):
     """
-    Director uchun kengaytirilgan statistika
+    Highly advanced analytics for Director/CEO.
+    Calculates statistics for all models with growth and trends.
     """
     if not center:
         return {}
-    
-    # Imports here to avoid replacement issues
-    from education.models import Payment, TeacherIncome
-    from store.models import Lead, Manba
-    from django.db.models import Sum, Count, F
-    from django.utils.timezone import localdate
-    import datetime
-    from accounts.models import User
-    from education.models import Group, Enrollment
 
+    from accounts.models import User, Center
+    from education.models import Group, Enrollment, Payment, Attendance, Category
+    from store.models import Product, PurchaseRequest, Sale, Expense, Lead
+    
     today = localdate()
-    
-    # 1. FINANCIALS (Current Month)
-    payments_qs = Payment.objects.filter(center=center)
-    income_month = payments_qs.filter(paid_date__year=today.year, paid_date__month=today.month).aggregate(s=Sum("summa"))['s'] or 0
-    
-    # Expense calculation (Dummy or Salary based)
-    teacher_payouts_qs = TeacherIncome.objects.filter(group__center=center)
-    teacher_payouts = teacher_payouts_qs.filter(created_at__year=today.year, created_at__month=today.month).aggregate(s=Sum("amount"))['s'] or 0
-    
-    if teacher_payouts == 0 and income_month > 0:
-         expense_month = int(income_month * 0.4)
-    else:
-         expense_month = teacher_payouts
+    first_day_this_month = today.replace(day=1)
+    last_day_prev_month = first_day_this_month - datetime.timedelta(days=1)
+    first_day_prev_month = last_day_prev_month.replace(day=1)
 
-    profit_month = income_month - expense_month
-
-    # Sparklines & Charts Data (Last 6 months)
-    months = []
-    income_series = []
-    expense_series = []
-    students_series = []
-
-    for i in range(5, -1, -1):
-        d = today - datetime.timedelta(days=i*30)
-        m_label = d.strftime("%b")
-        months.append(m_label)
+    # 1. CORE ENTITIES STATS
+    def get_model_stats(queryset, date_field="created_at"):
+        # For User model, use date_joined if created_at doesn't exist
+        if queryset.model == User and date_field == "created_at":
+            date_field = "date_joined"
+            
+        total = queryset.count()
+        this_month = queryset.filter(**{f"{date_field}__year": today.year, f"{date_field}__month": today.month}).count()
+        prev_month = queryset.filter(**{f"{date_field}__year": first_day_prev_month.year, f"{date_field}__month": first_day_prev_month.month}).count()
         
-        # Monthly Income
-        inc = payments_qs.filter(paid_date__year=d.year, paid_date__month=d.month).aggregate(s=Sum("summa"))['s'] or 0
-        income_series.append(int(inc))
+        growth = _get_growth(this_month, prev_month)
+        trend = _get_trend(this_month, prev_month)
+        
+        return {
+            "total": total,
+            "this_month": this_month,
+            "prev_month": prev_month,
+            "growth": growth,
+            "trend": trend
+        }
 
-        # Monthly Expense (Approx 40%)
-        exp = int(inc * 0.45) 
-        expense_series.append(exp)
-
-        # Active Students count at that month (Approx based on created_at or just current snapshot)
-        aware_d = datetime.datetime.combine(d + datetime.timedelta(days=30), datetime.time.max)
-        from django.utils.timezone import make_aware
-        aware_d = make_aware(aware_d)
-        std_cnt = User.objects.filter(role="student", center=center, date_joined__lte=aware_d).count()
-        students_series.append(int(std_cnt))
-
-    # 2. TOP COURSES
-    # Annotate issue workaround: use len() or just simple query
-    # But count is better.
-    top_courses = Group.objects.filter(center=center).annotate(cnt=Count('enrollments')).order_by('-cnt')[:5]
-
-    # 3. TOP TEACHERS
-    top_teachers = User.objects.filter(role="teacher", center=center).annotate(
-        g_cnt=Count('group')
-    ).order_by('-g_cnt')[:5]
-
-    # Calculate fake rating based on groups (just for UI)
-    for t in top_teachers:
-        t.calculated_rating = round(4.5 + (t.g_cnt * 0.1), 1)
-        if t.calculated_rating > 5.0: t.calculated_rating = 5.0
-
-    # 4. MARKETING
+    # Model Querysets (Tenant Isolated)
+    students_qs = User.objects.filter(center=center, role="student", is_archived=False)
+    teachers_qs = User.objects.filter(center=center, role="teacher")
+    groups_qs = Group.objects.filter(center=center)
     leads_qs = Lead.objects.filter(center=center)
-    marketing_data = leads_qs.values('manba__nom').annotate(cnt=Count('id')).order_by('-cnt')[:4]
-    marketing_labels = [x['manba__nom'] for x in marketing_data] if marketing_data else ['Noma\'lum']
-    marketing_series = [x['cnt'] for x in marketing_data] if marketing_data else [1]
+    products_qs = Product.objects.filter(center=center)
+    payments_qs = Payment.objects.filter(center=center)
+    expenses_qs = Expense.objects.filter(center=center)
 
-    import json
+    stats_students = get_model_stats(students_qs, "date_joined")
+    stats_teachers = get_model_stats(teachers_qs, "date_joined")
+    stats_groups = get_model_stats(groups_qs, "tuzilgan")
+    stats_leads = get_model_stats(leads_qs, "qoshilgan_sana")
+    stats_products = get_model_stats(products_qs, "yaratilgan")
 
-    # --- HELPER: Trend Calculation ---
-    def calc_trend(current, previous):
-        if not previous or previous == 0:
-            return 100 if current > 0 else 0
-        diff = current - previous
-        return round((diff / previous) * 100, 1)
-
-    # income_series contains 6 months. Index 5 is current/latest.
+    # 2. FINANCIAL ANALYTICS
+    total_income = payments_qs.aggregate(s=Sum("summa"))["s"] or 0
+    income_this_month = payments_qs.filter(paid_date__year=today.year, paid_date__month=today.month).aggregate(s=Sum("summa"))["s"] or 0
+    income_prev_month = payments_qs.filter(paid_date__year=first_day_prev_month.year, paid_date__month=first_day_prev_month.month).aggregate(s=Sum("summa"))["s"] or 0
     
-    current_income = income_series[-1] if len(income_series) > 0 else 0
-    prev_income = income_series[-2] if len(income_series) > 1 else 0
-    income_trend = calc_trend(current_income, prev_income)
+    income_growth = _get_growth(income_this_month, income_prev_month)
+    income_trend = _get_trend(income_this_month, income_prev_month)
 
-    current_expense = expense_series[-1] if len(expense_series) > 0 else 0
-    prev_expense = expense_series[-2] if len(expense_series) > 1 else 0
-    expense_trend = calc_trend(current_expense, prev_expense)
-
-    # Net Profit Trend
-    current_profit = current_income - current_expense
-    prev_profit = prev_income - prev_expense
-    profit_trend = calc_trend(current_profit, prev_profit)
-
-    # Active Students Trend
-    current_students = students_series[-1] if len(students_series) > 0 else 0
-    prev_students = students_series[-2] if len(students_series) > 1 else 0
-    students_trend = calc_trend(current_students, prev_students)
-
-    # --- 5. RISKS & EXTRAS ---
-    # Optimized Debt Logic: One SQL query instead of Python loop
-    low_activity_students = []
-    debt_stats = Enrollment.objects.filter(
-        group__center=center, 
-        is_active=True,
-        kurs_narhi__gt=F('jami_tolangan')
-    ).aggregate(
-        total_debt=Sum(F('kurs_narhi') - F('jami_tolangan')),
-        debtors_count=Count('id')
+    total_expense = expenses_qs.aggregate(s=Sum("summa"))["s"] or 0
+    expense_this_month = expenses_qs.filter(sana__year=today.year, sana__month=today.month).aggregate(s=Sum("summa"))["s"] or 0
+    
+    # Debtors calculation
+    debt_info = Enrollment.objects.filter(group__center=center, is_active=True).aggregate(
+        total_debt=Sum(F('kurs_narhi') - F('jami_tolangan'), filter=Q(kurs_narhi__gt=F('jami_tolangan'))),
+        debtors_count=Count('id', filter=Q(kurs_narhi__gt=F('jami_tolangan')))
     )
+    total_debt = debt_info['total_debt'] or 0
+    debtors_count = debt_info['debtors_count'] or 0
+
+    # 3. SEGMENT ANALYTICS (Active vs Passive)
+    # Eng faol guruhlar (O'quvchi soni bo'yicha)
+    active_groups = groups_qs.annotate(
+        std_count=Count('enrollments', distinct=True),
+        total_paid=Sum('group_payments__summa')
+    ).order_by('-std_count')[:5]
+    inactive_groups = groups_qs.annotate(std_count=Count('enrollments', distinct=True)).order_by('std_count')[:5]
+
+    # Eng ko'p to'lov qilgan guruh
+    top_paying_group_obj = groups_qs.annotate(total_paid_sum=Sum('group_payments__summa')).order_by('-total_paid_sum').first()
+    top_paying_group_name = top_paying_group_obj.nom if (top_paying_group_obj and top_paying_group_obj.total_paid_sum) else "—"
     
-    debt_amount = debt_stats['total_debt'] or 0
-    debtors_count = debt_stats['debtors_count'] or 0
-
-    # For low activity list, just take first 5
-    low_debt_qs = Enrollment.objects.filter(
-        group__center=center, 
-        is_active=True,
-        kurs_narhi__gt=F('jami_tolangan')
-    ).select_related('student')[:5]
-
-    for enr in low_debt_qs:
-        diff = (enr.kurs_narhi or 0) - enr.jami_tolangan
-        low_activity_students.append({
-            "name": f"{enr.student.ism} {enr.student.familya}",
-            "amount": int(diff),
-            "avatar": enr.student.avatar.url if enr.student.avatar else ""
-        })
-
-    # Churned students (bu oy arxivlanganlar)
-    churn_count = User.objects.filter(role="student", center=center, is_archived=True).count()
+    # Eng ko'p qarzdor guruh
+    top_debtor_group = groups_qs.annotate(
+        total_debt=Sum(F('enrollments__kurs_narhi') - F('enrollments__jami_tolangan'), filter=Q(enrollments__kurs_narhi__gt=F('enrollments__jami_tolangan')))
+    ).order_by('-total_debt').first()
     
-    # Average Payment
-    avg_payment = int(income_month / students_series[-1]) if students_series and students_series[-1] > 0 else 0
+    # 4. CHART DATA (Expanded Search)
+    months_labels = []
+    income_data = []
+    expense_data = []
+    student_growth_data = []
+
+    # Get the last 6 months including this one
+    current_date = today
+    for i in range(5, -1, -1):
+        # Calculate month and year manually to avoid complex timedelta issues
+        month = (current_date.month - i - 1) % 12 + 1
+        year = current_date.year + (current_date.month - i - 1) // 12
+        
+        d_name = datetime.date(year, month, 1).strftime("%b")
+        months_labels.append(d_name)
+        
+        inc = payments_qs.filter(paid_date__year=year, paid_date__month=month).aggregate(s=Sum("summa"))["s"] or 0
+        income_data.append(int(inc))
+        
+        exp = expenses_qs.filter(sana__year=year, sana__month=month).aggregate(s=Sum("summa"))["s"] or 0
+        expense_data.append(int(exp))
+        
+        st_count = User.objects.filter(center=center, role="student", date_joined__year=year, date_joined__month=month).count()
+        student_growth_data.append(st_count)
+
+    # 5. CATEGORY DISTRIBUTION (Show any categories if possible)
+    category_data = Category.objects.filter(Q(center=center) | Q(center__isnull=True)).annotate(
+        group_count=Count('groups', filter=Q(groups__center=center))
+    ).order_by('-group_count').values('name', 'group_count')
+    
+    if not any(c['group_count'] > 0 for c in category_data):
+        # Fallback if no counts found, just show names or empty
+        cat_labels = [c['name'] for c in category_data[:5]]
+        cat_series = [0] * len(cat_labels)
+    else:
+        # Filter only active ones if some data exists
+        active_cats = [c for c in category_data if c['group_count'] > 0]
+        cat_labels = [c['name'] for c in active_cats]
+        cat_series = [c['group_count'] for c in active_cats]
+
+    # Profit calculation
+    profit_this_month = income_this_month - expense_this_month
+    profit_margin = round((profit_this_month / income_this_month * 100), 1) if income_this_month > 0 else 0
+
+    # Teacher Performance (By students count and income generated)
+    teacher_performance = teachers_qs.annotate(
+        std_count=Count('teacher_groups__enrollments', distinct=True),
+        income=Sum('teacher_groups__group_payments__summa')
+    ).order_by('-std_count')[:4]
+
+    # Attendance Rate
+    total_attendance = Attendance.objects.filter(group__center=center, date__year=today.year, date__month=today.month).count()
+    present_attendance = Attendance.objects.filter(group__center=center, date__year=today.year, date__month=today.month, present=True).count()
+    attendance_rate = round((present_attendance / total_attendance * 100), 1) if total_attendance > 0 else 0
+
+    # Subscription Info
+    subscription_info = {
+        "plan": center.plan,
+        "days_left": center.days_left,
+        "is_expired": center.is_expired,
+        "expires_at": center.expires_at.strftime("%Y-%m-%d") if center.expires_at else "—"
+    }
 
     return {
-        "income_month": income_month,
-        "income_trend": calc_trend(income_series[-1] if income_series else 0, income_series[-2] if len(income_series)>1 else 0),
-        
-        "expense_month": expense_month,
-        "expense_trend": calc_trend(expense_series[-1] if expense_series else 0, expense_series[-2] if len(expense_series)>1 else 0),
-        
-        "profit_month": profit_month,
-        "profit_trend": calc_trend((income_series[-1]-expense_series[-1]) if income_series else 0, (income_series[-2]-expense_series[-2]) if len(income_series)>1 else 0),
-        
-        "chart_months": json.dumps(months),
-        "income_series": json.dumps(income_series),
-        "expense_series": json.dumps(expense_series),
-        "students_series": json.dumps(students_series), 
-        "students_count": students_series[-1] if students_series else 0,
-        
-        "top_courses": top_courses,
-        "top_teachers": top_teachers,
-        "marketing_labels": json.dumps(marketing_labels),
-        "marketing_series": json.dumps(marketing_series),
-        "marketing_raw_labels": marketing_labels,
-        "marketing_raw_series": marketing_series,
-        
-        "debt_amount": debt_amount,
-        "debtors_count": debtors_count,
-        "churn_count": churn_count,
-        "avg_payment": avg_payment,
-        "low_activity_students": [], # Placeholder or implement detailed logic if needed
+        "stats": {
+            "students": stats_students,
+            "teachers": stats_teachers,
+            "groups": stats_groups,
+            "leads": stats_leads,
+            "products": stats_products,
+        },
+        "subscription": subscription_info,
+        "financials": {
+            "total_income": int(total_income),
+            "income_this_month": int(income_this_month),
+            "income_growth": float(income_growth),
+            "income_trend": income_trend,
+            "total_expense": int(total_expense),
+            "expense_this_month": int(expense_this_month),
+            "profit_this_month": int(profit_this_month),
+            "profit_margin": profit_margin,
+            "total_debt": int(total_debt),
+            "debtors_count": int(debtors_count),
+            "avg_student_payment": int(income_this_month / stats_students['this_month']) if stats_students['this_month'] > 0 else 0,
+        },
+        "segments": {
+            "top_paying_group": top_paying_group_name,
+            "top_debtor_group": top_debtor_group.nom if top_debtor_group else "—",
+            "active_groups": [
+                {
+                    "nom": g['nom'],
+                    "std_count": int(g['std_count'] or 0),
+                    "total_paid": int(g['total_paid'] or 0)
+                } for g in active_groups.values('nom', 'std_count', 'total_paid')
+            ],
+            "inactive_groups": [
+                {
+                    "nom": g['nom'],
+                    "std_count": int(g['std_count'] or 0)
+                } for g in inactive_groups.values('nom', 'std_count')
+            ],
+            "teacher_ranking": [
+                {
+                    "name": t.get_full_name() or t.username,
+                    "std_count": t.std_count,
+                    "income": int(t.income or 0)
+                } for t in teacher_performance
+            ],
+            "attendance_rate": float(attendance_rate),
+        },
+        "charts": {
+            "labels": months_labels,
+            "income": income_data,
+            "expense": expense_data,
+            "students": student_growth_data,
+            "cat_labels": cat_labels,
+            "cat_series": cat_series,
+        }
     }

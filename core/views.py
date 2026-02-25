@@ -198,9 +198,7 @@ def home(request):
     }
 
     if role == "director":
-        from .director_stats import _build_director_stats
-        ctx.update(_build_director_stats(center))
-        return render(request, "core/dashboard_director.html", ctx)
+        return render(request, "core/dashboard_premium.html", ctx)
 
     if role == "manager":
         return render(request, "core/dashboard_manager.html", ctx)
@@ -221,6 +219,12 @@ def home(request):
         return redirect("core:dashboard_parent")
 
     return redirect("/admin/accounts/user/")
+
+@login_required
+def dashboard_stats_premium(request):
+    if not (request.user.is_superuser or getattr(request.user, 'role', None) in ('director', 'manager')):
+        return redirect("core:home")
+    return render(request, "core/dashboard_stats_premium.html")
 
 
 # =============================================================================

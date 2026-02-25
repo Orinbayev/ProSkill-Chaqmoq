@@ -152,7 +152,7 @@ class CenterSubscription(models.Model):
             role='student',
             is_archived=False
         ).count()
-        return current_students > self.plan.max_students
+        return current_students > self.center.effective_student_limit
 
     def days_left(self) -> int:
         if self.status == self.Status.PAUSED:

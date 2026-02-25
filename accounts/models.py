@@ -34,26 +34,40 @@ class Center(models.Model):
         """
         Backward compatibility: Returns the currently ACTIVE or PAUSED (best candidate) subscription.
         Used for existing code that expects 'center.subscription'.
+        Efficient even when prefetched.
         """
-        # Return currently active one first
-        active = self.subscriptions.filter(status="ACTIVE").order_by("-plan__tier", "-expires_at").first()
-        if active:
-            return active
+        subs = list(self.subscriptions.all())
+        if not subs:
+            return None
+            
+        # 1. Look for ACTIVE
+        active_subs = [s for s in subs if s.status == "ACTIVE"]
+        if active_subs:
+            active_subs.sort(key=lambda s: (s.plan.tier, s.expires_at), reverse=True)
+            return active_subs[0]
         
-        # If no active, maybe we have a paused one? (Shouldn't happen usually, but for safety)
-        paused = self.subscriptions.filter(status="PAUSED").order_by("-plan__tier").first()
-        if paused:
-            return paused
- 
-        # If expired/blocked, return the last one
-        return self.subscriptions.first()
+        # 2. Look for PAUSED
+        paused_subs = [s for s in subs if s.status == "PAUSED"]
+        if paused_subs:
+            paused_subs.sort(key=lambda s: s.plan.tier, reverse=True)
+            return paused_subs[0]
+
+        # 3. Fallback to the most recent one
+        return subs[0] if subs else None
 
     @cached_property
     def active_subscription(self):
         """
         Returns the real active subscription or None.
+        Efficient even when prefetched.
         """
-        return self.subscriptions.filter(status="ACTIVE").order_by("-plan__tier", "-expires_at").first()
+        subs = list(self.subscriptions.all())
+        active_subs = [s for s in subs if s.status == "ACTIVE"]
+        if not active_subs:
+            return None
+        # Sort by tier desc, expires_at desc
+        active_subs.sort(key=lambda s: (s.plan.tier, s.expires_at), reverse=True)
+        return active_subs[0]
 
     max_users = models.PositiveIntegerField(default=50)
 
@@ -132,6 +146,27 @@ class Center(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def effective_student_limit(self):
+        """
+        Returns the effective student limit.
+        Takes the maximum of:
+        1. Manual capacity_limit
+        2. Manual max_students (redundant field check)
+        3. Active subscription plan limit
+        Default fallback is 50.
+        """
+        # Take the higher of the manual limit fields
+        manual_limit = max(self.capacity_limit or 0, self.max_students or 0)
+        limit = manual_limit or 50
+        
+        sub = self.active_subscription
+        if sub:
+            plan_limit = sub.plan.max_students
+            if plan_limit > limit:
+                limit = plan_limit
+        return limit
 
     @property
     def days_left(self):

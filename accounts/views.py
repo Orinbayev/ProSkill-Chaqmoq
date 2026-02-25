@@ -8,7 +8,7 @@ from django import forms
 from django.db.models import Count, Sum
 from django.db.models.functions import Coalesce
 
-from .forms import AddUserForm, TeacherForm
+from .forms import AddUserForm, TeacherForm, ProfileEditForm, PasswordUpdateForm
 from accounts.models import User, Center
 from education.models import Group, Enrollment, Attendance
 from core.tenant import get_request_center
@@ -345,19 +345,41 @@ def add_user(request):
     })
 
 @login_required
-def user_edit(request, pk):
-    user = get_object_or_404(User, pk=pk)
+def user_edit(request, pk=None):
+    if pk is None:
+        user = request.user
+    else:
+        user = get_object_or_404(User, pk=pk)
+    
     # Basic permission check
     if not _is_staff_like(request.user) and request.user != user:
         return HttpResponseForbidden()
 
-    # Simple edit logic or pass
-    # Assuming incomplete previously
+    # Form handling
+    profile_form = ProfileEditForm(request.POST or None, request.FILES or None, instance=user)
+    password_form = PasswordUpdateForm(request.POST or None)
+
     if request.method == "POST":
-        # Implementation depends on form usage
-        pass
-    
-    return render(request, "accounts/user_edit.html", {"user": user})
+        action = request.POST.get("action")
+        
+        if action == "update_profile":
+            if profile_form.is_valid():
+                profile_form.save()
+                messages.success(request, "Profil ma'lumotlari yangilandi. ✅")
+                return redirect("accounts:profile")
+        
+        elif action == "update_password":
+            if password_form.is_valid():
+                user.set_password(password_form.cleaned_data["new_password"])
+                user.save()
+                messages.success(request, "Parol muvaffaqiyatli yangilandi. 🔒")
+                return redirect("accounts:profile")
+
+    return render(request, "accounts/user_edit.html", {
+        "user_obj": user, # Renamed to user_obj to avoid conflict with request.user if needed
+        "profile_form": profile_form,
+        "password_form": password_form,
+    })
 
 @login_required
 def delete_user(request, pk):

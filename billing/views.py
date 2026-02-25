@@ -34,7 +34,7 @@ def blocked(request):
                 role='student',
                 is_archived=False
             ).count()
-            max_students = sub.plan.max_students
+            max_students = center.effective_student_limit
             exceeded_count = max(0, current_students - max_students)
         except CenterSubscription.DoesNotExist:
             pass
