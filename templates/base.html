@@ -452,45 +452,6 @@
 
   <div class="layout">
     <div class="app-shell">
-      {% if request.user.is_authenticated %}
-      <!-- ⚡ GLOBAL TOP BAR -->
-      <div class="top-nav-desktop d-none d-lg-flex">
-        <div class="ms-auto d-flex align-items-center gap-3">
-          <div class="dropdown">
-            <div class="top-user-profile dropdown-toggle" id="profileDropdown" data-bs-toggle="dropdown"
-              aria-expanded="false">
-              <div class="top-user-info text-end">
-                <div class="u-name">{{ request.user.ism }} {{ request.user.familya }}</div>
-                <div class="u-role">{{ request.user.get_role_display }}</div>
-              </div>
-              <div class="top-user-avatar">
-                {% if request.user.avatar %}
-                <img src="{{ request.user.avatar.url }}" alt="User">
-                {% else %}
-                <div class="avatar-placeholder">{{ request.user.ism|first|upper }}</div>
-                {% endif %}
-              </div>
-            </div>
-            <ul class="dropdown-menu dropdown-menu-end profile-dropdown" aria-labelledby="profileDropdown">
-              <li><a class="dropdown-item" href="{% url 'accounts:profile' %}">
-                  <i class="fa-solid fa-user-gear me-2 text-warning"></i> Profilni tahrirlash
-                </a></li>
-              {% if request.user.is_superuser %}
-              <li><a class="dropdown-item" href="/admin/">
-                  <i class="fa-solid fa-hammer me-2 text-info"></i> Tizim boshqaruvi
-                </a></li>
-              {% endif %}
-              <li>
-                <hr class="dropdown-divider border-secondary opacity-25">
-              </li>
-              <li><a class="dropdown-item text-danger" href="{% url 'logout' %}">
-                  <i class="fa-solid fa-power-off me-2"></i> Chiqish
-                </a></li>
-            </ul>
-          </div>
-        </div>
-      </div>
-      {% endif %}
 
       <main class="main-content" role="main">
 
