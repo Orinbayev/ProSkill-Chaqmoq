@@ -1832,8 +1832,7 @@
                             {% if sub %}
                             <div class="sa-plan-row">
                                 <span class="sa-badge sa-badge-plan">{{ sub.plan.code }}</span>
-                                <span style="font-size:0.75rem;color:var(--sa-muted);">{{ c.student_count }}/{{
-                                    c.effective_student_limit }}</span>
+                                <span style="font-size:0.75rem;color:var(--sa-muted);">{{ c.student_count }}/{{  c.effective_student_limit }}</span>
                             </div>
                             <div class="sa-progress">
                                 {% if c.effective_student_limit > 0 %}
