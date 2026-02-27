@@ -1,430 +1,477 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<main class="lead-shell" aria-labelledby="page-title">
-  <div class="lead-bg" aria-hidden="true"></div>
+<main class="lead-shell">
+  <div class="lead-bg"></div>
 
-  <section class="lead-wrapper container text-light">
-    <header class="lead-header">
-      <h3 class="page-title" id="page-title">🧩 Yangi o‘quvchi qo‘shish</h3>
+  <section class="lead-wrapper container animate__animated animate__fadeIn">
+    <header class="lead-header mb-4">
+      <div class="d-flex align-items-center gap-3">
+        <div class="page-icon-box">
+          <i class="fa-solid fa-user-plus"></i>
+        </div>
+        <div>
+          <h1 class="page-title">Yangi o‘quvchi qo‘shish</h1>
+          <p class="text-white-50 mb-0 small">Tizimga yangi lead ma'lumotlarini kiriting</p>
+        </div>
+      </div>
     </header>
 
-    <form method="POST" class="lead-form" novalidate>
+    <form method="POST" class="lead-form-premium" novalidate>
       {% csrf_token %}
 
       <!-- 1. SHAXSIY MA'LUMOTLAR -->
-      <h4 class="form-section-title">
-        <i class="fa-solid fa-address-card"></i> SHAXSIY MA'LUMOTLAR
-      </h4>
-      <div class="row g-3 lead-grid mb-4">
-        <div class="col-md-4 form-group">
-          {{ form.ism.label_tag }}
-          {{ form.ism }}
-          {{ form.ism.errors }}
-        </div>
-        <div class="col-md-4 form-group">
-          {{ form.familya.label_tag }}
-          {{ form.familya }}
-          {{ form.familya.errors }}
-        </div>
-        <div class="col-md-4 form-group">
-          {{ form.otchestvo.label_tag }}
-          {{ form.otchestvo }}
-          {{ form.otchestvo.errors }}
+      <div class="form-section">
+        <h4 class="form-section-header">
+          <i class="fa-solid fa-address-card text-warning"></i>
+          <span>SHAXSIY MA'LUMOTLAR</span>
+        </h4>
+        <div class="row g-4 mb-4">
+          <div class="col-md-4">
+            <div class="premium-input-group">
+              {{ form.ism.label_tag }}
+              <div class="input-wrapper">
+                <i class="fa-solid fa-user icon"></i>
+                {{ form.ism }}
+              </div>
+              {{ form.ism.errors }}
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="premium-input-group">
+              {{ form.familya.label_tag }}
+              <div class="input-wrapper">
+                <i class="fa-solid fa-user-tag icon"></i>
+                {{ form.familya }}
+              </div>
+              {{ form.familya.errors }}
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="premium-input-group">
+              {{ form.otchestvo.label_tag }}
+              <div class="input-wrapper">
+                <i class="fa-solid fa-signature icon"></i>
+                {{ form.otchestvo }}
+              </div>
+              {{ form.otchestvo.errors }}
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- 2. STUDENT ANKETASI -->
-      <h4 class="form-section-title">
-        <i class="fa-solid fa-graduation-cap"></i> STUDENT ANKETASI
-      </h4>
-      <div class="row g-3 lead-grid mb-4">
-        <div class="col-md-6 form-group">
-          {{ form.birth_date.label_tag }}
-          {{ form.birth_date }}
-          {{ form.birth_date.errors }}
+      <div class="form-section">
+        <h4 class="form-section-header">
+          <i class="fa-solid fa-graduation-cap text-info"></i>
+          <span>STUDENT ANKETASI</span>
+        </h4>
+        <div class="row g-4 mb-4">
+          <div class="col-md-6">
+            <div class="premium-input-group">
+              {{ form.birth_date.label_tag }}
+              <div class="input-wrapper">
+                <i class="fa-solid fa-calendar-day icon"></i>
+                {{ form.birth_date }}
+              </div>
+              {{ form.birth_date.errors }}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="premium-input-group">
+              {{ form.gender.label_tag }}
+              <div class="input-wrapper">
+                <i class="fa-solid fa-venus-mars icon"></i>
+                {{ form.gender }}
+              </div>
+              {{ form.gender.errors }}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="premium-input-group">
+              {{ form.passport_id.label_tag }}
+              <div class="input-wrapper">
+                <i class="fa-solid fa-id-card icon"></i>
+                {{ form.passport_id }}
+              </div>
+              {{ form.passport_id.errors }}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="premium-input-group">
+              {{ form.jshr.label_tag }}
+              <div class="input-wrapper">
+                <i class="fa-solid fa-fingerprint icon"></i>
+                {{ form.jshr }}
+              </div>
+              {{ form.jshr.errors }}
+            </div>
+          </div>
         </div>
-        <div class="col-md-6 form-group">
-          {{ form.gender.label_tag }}
-          {{ form.gender }}
-          {{ form.gender.errors }}
-        </div>
-        <div class="col-md-6 form-group">
-          {{ form.passport_id.label_tag }}
-          {{ form.passport_id }}
-          {{ form.passport_id.errors }}
-        </div>
-        <div class="col-md-6 form-group">
-          {{ form.jshr.label_tag }}
-          {{ form.jshr }}
-          {{ form.jshr.errors }}
-        </div>
-
       </div>
 
       <!-- 3. ALOQA -->
-      <h4 class="form-section-title">
-        <i class="fa-solid fa-phone"></i> ALOQA
-      </h4>
-      <div class="row g-3 lead-grid mb-4">
-        <div class="col-md-6 form-group">
-          {{ form.telefon1.label_tag }}
-          {{ form.telefon1 }}
-          {{ form.telefon1.errors }}
-        </div>
-        <div class="col-md-6 form-group">
-          {{ form.telefon2.label_tag }}
-          {{ form.telefon2 }}
-          {{ form.telefon2.errors }}
-        </div>
-        <div class="col-12 form-group">
-          {{ form.address.label_tag }}
-          {{ form.address }}
-          {{ form.address.errors }}
+      <div class="form-section">
+        <h4 class="form-section-header">
+          <i class="fa-solid fa-phone text-success"></i>
+          <span>ALOQA MA'LUMOTLARI</span>
+        </h4>
+        <div class="row g-4 mb-4">
+          <div class="col-md-6">
+            <div class="premium-input-group">
+              {{ form.telefon1.label_tag }}
+              <div class="input-wrapper">
+                <i class="fa-solid fa-mobile-screen icon"></i>
+                {{ form.telefon1 }}
+              </div>
+              {{ form.telefon1.errors }}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="premium-input-group">
+              {{ form.telefon2.label_tag }}
+              <div class="input-wrapper">
+                <i class="fa-solid fa-phone-flip icon"></i>
+                {{ form.telefon2 }}
+              </div>
+              {{ form.telefon2.errors }}
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="premium-input-group">
+              {{ form.address.label_tag }}
+              <div class="input-wrapper">
+                <i class="fa-solid fa-location-dot icon"></i>
+                {{ form.address }}
+              </div>
+              {{ form.address.errors }}
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- 4. QO'SHIMCHA -->
-      <h4 class="form-section-title">
-        <i class="fa-solid fa-filter"></i> QO'SHIMCHA MA'LUMOT
-      </h4>
-      <div class="row g-3 lead-grid mb-4">
-        <div class="col-md-4 form-group">
-          {{ form.manba.label_tag }}
-          {{ form.manba }}
-          {{ form.manba.errors }}
-        </div>
-        <div class="col-md-4 form-group">
-          {{ form.yonalish.label_tag }}
-          {{ form.yonalish }}
-          {{ form.yonalish.errors }}
-        </div>
-        <div class="col-md-4 form-group">
-          {{ form.status.label_tag }}
-          {{ form.status }}
-          {{ form.status.errors }}
-        </div>
-        <div class="col-12 form-group">
-          {{ form.comment.label_tag }}
-          {{ form.comment }}
-          {{ form.comment.errors }}
+      <div class="form-section">
+        <h4 class="form-section-header">
+          <i class="fa-solid fa-circle-info text-primary"></i>
+          <span>QO'SHIMCHA MA'LUMOTLAR</span>
+        </h4>
+        <div class="row g-4 mb-4">
+          <div class="col-md-4">
+            <div class="premium-input-group">
+              {{ form.manba.label_tag }}
+              <div class="input-wrapper">
+                <i class="fa-solid fa-bullhorn icon"></i>
+                {{ form.manba }}
+              </div>
+              {{ form.manba.errors }}
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="premium-input-group">
+              {{ form.yonalish.label_tag }}
+              <div class="input-wrapper">
+                <i class="fa-solid fa-compass icon"></i>
+                {{ form.yonalish }}
+              </div>
+              {{ form.yonalish.errors }}
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="premium-input-group">
+              {{ form.status.label_tag }}
+              <div class="input-wrapper">
+                <i class="fa-solid fa-signal icon"></i>
+                {{ form.status }}
+              </div>
+              {{ form.status.errors }}
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="premium-input-group">
+              {{ form.comment.label_tag }}
+              <div class="input-wrapper">
+                <i class="fa-solid fa-comment-dots icon textarea-icon"></i>
+                {{ form.comment }}
+              </div>
+              {{ form.comment.errors }}
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="lead-actions">
-        <button type="submit" class="btn btn-save">💾 Saqlash</button>
+      <div class="form-footer mt-5">
+        <a href="{% url 'store:lead_list' %}" class="btn-premium-outline">
+          <i class="fa-solid fa-arrow-left"></i> Bekor qilish
+        </a>
+        <button type="submit" class="btn-premium-primary">
+          <i class="fa-solid fa-check-circle"></i> Saqlash
+        </button>
       </div>
     </form>
   </section>
 </main>
 
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
   :root {
-    --bg0: #070b14;
-    --bg1: #0b1220;
-    --bg2: #0f1b33;
+    --pjs: 'Plus Jakarta Sans', sans-serif;
+    --primary: #3b82f6;
+    --primary-glow: rgba(59, 130, 246, 0.5);
+    --warning: #facc15;
+    --info: #38bdf8;
+    --success: #10b981;
+    --bg-deep: #020617;
+    --glass-bg: rgba(15, 23, 42, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --input-bg: rgba(255, 255, 255, 0.03);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+  }
 
-    --card: rgba(255, 255, 255, 0.06);
-    --card2: rgba(255, 255, 255, 0.10);
-    --line: rgba(255, 255, 255, 0.12);
-
-    --text: #e5e7eb;
-    --muted: #9ca3af;
-
-    --amber: #f59e0b;
-    --amber2: #facc15;
-    --neon: rgba(245, 158, 11, 0.45);
-
-    --ok: #22c55e;
-    --shadow: 0 24px 70px rgba(0, 0, 0, .55);
-    --radius: 18px;
-
-    --ring: 0 0 0 4px rgba(245, 158, 11, .18), 0 0 18px rgba(245, 158, 11, .28);
+  body {
+    background-color: var(--bg-deep);
+    font-family: var(--pjs);
+    overflow-x: hidden;
   }
 
   .lead-shell {
     position: relative;
-    min-height: calc(100svh - 1px);
-    padding: clamp(14px, 2.5vw, 26px) 0;
-    color: var(--text);
+    padding: 60px 0;
+    min-height: 100vh;
   }
 
   .lead-bg {
     position: fixed;
     inset: 0;
     z-index: -1;
-    background:
-      radial-gradient(900px 420px at 18% 10%, rgba(245, 158, 11, .14), transparent 60%),
-      radial-gradient(760px 380px at 85% 18%, rgba(56, 189, 248, .10), transparent 60%),
-      radial-gradient(980px 520px at 55% 92%, rgba(34, 197, 94, .08), transparent 62%),
-      linear-gradient(160deg, var(--bg0), var(--bg1) 45%, var(--bg2));
+    background: radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(245, 158, 11, 0.1) 0%, transparent 50%),
+      var(--bg-deep);
   }
 
-  .lead-wrapper {
-    margin-top: 10px;
-    max-width: 980px;
-  }
-
-  .lead-header {
+  .page-icon-box {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, var(--primary), #1e40af);
+    border-radius: 16px;
     display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 14px;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: white;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4), 0 0 20px rgba(59, 130, 246, 0.3);
   }
 
   .page-title {
-    margin: 0;
-    font-weight: 750;
-    letter-spacing: .2px;
-    font-size: clamp(1.25rem, 1rem + 1.2vw, 1.8rem);
-    line-height: 1.2;
-    text-shadow: 0 10px 30px rgba(0, 0, 0, .45);
-  }
-
-  .lead-form {
-    position: relative;
-    overflow: hidden;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
-    padding: clamp(16px, 2.2vw, 26px);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    border: 1px solid var(--line);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-  }
-
-  .lead-form::before {
-    content: "";
-    position: absolute;
-    inset: -2px;
-    background:
-      radial-gradient(420px 220px at 12% 10%, rgba(245, 158, 11, .10), transparent 58%),
-      radial-gradient(420px 220px at 88% 0%, rgba(250, 204, 21, .10), transparent 55%),
-      radial-gradient(560px 260px at 70% 110%, rgba(56, 189, 248, .08), transparent 60%);
-    pointer-events: none;
-    opacity: .95;
-  }
-
-  .lead-form>* {
-    position: relative;
-  }
-
-  .form-group {
-    display: grid;
-    gap: 8px;
-  }
-
-  .lead-form label {
-    font-weight: 700;
-    color: rgba(241, 245, 249, 0.95);
-    font-size: 0.95rem;
-    letter-spacing: .15px;
-  }
-
-  .lead-form input,
-  .lead-form select,
-  .lead-form textarea {
-    width: 100%;
-    color: var(--text) !important;
-    background: rgba(255, 255, 255, 0.06) !important;
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
-    border-radius: 14px;
-    padding: 12px 12px;
-    font-size: 0.98rem;
-    line-height: 1.25;
-    transition: transform .16s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
-    min-height: 44px;
-  }
-
-  .lead-form textarea {
-    min-height: 110px;
-    resize: vertical;
-  }
-
-  .lead-form input::placeholder,
-  .lead-form textarea::placeholder {
-    color: rgba(156, 163, 175, 0.9) !important;
-  }
-
-  .lead-form select option {
-    background-color: rgba(15, 23, 42, 0.98);
-    color: #e2e8f0;
-  }
-
-  .lead-form input:hover,
-  .lead-form select:hover,
-  .lead-form textarea:hover {
-    border-color: rgba(245, 158, 11, 0.32) !important;
-    background: rgba(255, 255, 255, 0.075) !important;
-  }
-
-  .lead-form input:focus,
-  .lead-form select:focus,
-  .lead-form textarea:focus {
-    outline: none !important;
-    border-color: rgba(245, 158, 11, 0.60) !important;
-    box-shadow: var(--ring);
-    background: rgba(255, 255, 255, 0.10) !important;
-    transform: translateY(-1px);
-  }
-
-  .lead-form input:focus-visible,
-  .lead-form select:focus-visible,
-  .lead-form textarea:focus-visible,
-  .btn-save:focus-visible {
-    outline: none;
-    box-shadow: var(--ring);
-  }
-
-  .lead-form .errorlist {
-    margin: 6px 0 0;
-    padding-left: 18px;
-    color: #fecaca;
-    font-size: .92rem;
-  }
-
-  .lead-actions {
-    margin-top: 18px;
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-  }
-
-  .btn-save {
-    position: relative;
-    border: 1px solid rgba(245, 158, 11, 0.35);
-    border-radius: 14px;
-    padding: 12px 18px;
+    font-size: 2rem;
     font-weight: 800;
-    letter-spacing: .2px;
-    min-height: 46px;
-    color: #0a0a0a;
-    background:
-      linear-gradient(135deg, rgba(250, 204, 21, 1), rgba(245, 158, 11, 1));
-    box-shadow: 0 16px 40px rgba(0, 0, 0, .42), 0 0 26px rgba(245, 158, 11, .22);
-    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
-    width: 100%;
-    max-width: 260px;
+    background: linear-gradient(to right, #fff, #94a3b8);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
   }
 
-  .btn-save::after {
-    content: "";
-    position: absolute;
-    inset: -1px;
-    border-radius: inherit;
-    background: radial-gradient(120px 60px at 30% 20%, rgba(255, 255, 255, .55), transparent 55%);
-    opacity: .35;
-    pointer-events: none;
+  .lead-form-premium {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 32px;
+    padding: 48px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   }
 
-  @media (hover:hover) {
-    .btn-save:hover {
-      transform: translateY(-2px);
-      filter: saturate(1.06);
-      box-shadow: 0 18px 55px rgba(0, 0, 0, .55), 0 0 34px rgba(245, 158, 11, .30);
-    }
+  .form-section {
+    margin-bottom: 40px;
+    padding-bottom: 20px;
   }
 
-  .btn-save:active {
-    transform: translateY(0px) scale(.99);
-  }
-
-  /* GRID: works with or without Bootstrap */
-  .lead-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 14px;
-    margin: 0;
-  }
-
-  .lead-grid>[class*="col-"] {
-    width: 100%;
-    max-width: 100%;
-    flex: none;
-    padding: 0;
-  }
-
-  .lead-grid .col-12 {
-    grid-column: 1 / -1;
-  }
-
-  @media (min-width: 576px) {
-    .lead-grid {
-      gap: 16px;
-    }
-  }
-
-  @media (min-width: 768px) {
-    .lead-grid {
-      grid-template-columns: repeat(12, minmax(0, 1fr));
-      gap: 16px;
-    }
-
-    .lead-grid .col-md-6 {
-      grid-column: span 6;
-    }
-
-    .lead-grid .col-md-4 {
-      grid-column: span 4;
-    }
-
-    .lead-grid .col-12 {
-      grid-column: 1 / -1;
-    }
-  }
-
-  @media (min-width: 1200px) {
-    .lead-wrapper {
-      max-width: 1040px;
-    }
-
-    .lead-form {
-      padding: 28px;
-    }
-  }
-
-  @media (max-width: 576px) {
-    .btn-save {
-      max-width: 100%;
-      padding: 14px 16px;
-      font-size: 1rem;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-
-    .lead-form input,
-    .lead-form select,
-    .lead-form textarea,
-    .btn-save {
-      transition: none !important;
-    }
-  }
-
-  .form-section-title {
-    color: #38bdf8;
-    /* Sky Blue */
-    font-size: 0.9rem;
+  .form-section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.85rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    margin: 20px 0 10px;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .premium-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .premium-input-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-left: 4px;
+  }
+
+  .input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .input-wrapper .icon {
+    position: absolute;
+    left: 20px;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    pointer-events: none;
+  }
+
+  .input-wrapper .textarea-icon {
+    top: 18px;
+  }
+
+  .lead-form-premium input,
+  .lead-form-premium select,
+  .lead-form-premium textarea {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    padding: 16px 20px 16px 52px;
+    color: white !important;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .lead-form-premium textarea {
+    min-height: 120px;
+  }
+
+  .lead-form-premium select {
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 20px center;
+    background-size: 18px;
+  }
+
+  .lead-form-premium input:focus,
+  .lead-form-premium select:focus,
+  .lead-form-premium textarea:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    transform: translateY(-2px);
+  }
+
+  .lead-form-premium input:focus+.icon,
+  .lead-form-premium select:focus+.icon,
+  .lead-form-premium textarea:focus+.icon {
+    color: var(--primary);
+  }
+
+  .form-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 20px;
+    padding-top: 32px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .btn-premium-primary {
+    background: linear-gradient(135deg, var(--primary), #1e40af);
+    color: white;
+    border: none;
+    padding: 16px 40px;
+    border-radius: 18px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2), 0 0 20px rgba(59, 130, 246, 0.2);
+  }
+
+  .btn-premium-primary:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3), 0 0 30px rgba(59, 130, 246, 0.4);
+    filter: brightness(1.1);
+  }
+
+  .btn-premium-outline {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--glass-border);
+    padding: 16px 32px;
+    border-radius: 18px;
+    font-weight: 600;
     display: flex;
     align-items: center;
     gap: 10px;
-    border-bottom: 1px solid rgba(56, 189, 248, 0.2);
-    padding-bottom: 8px;
+    transition: all 0.3s ease;
+    text-decoration: none;
   }
 
-  .form-section-title i {
-    color: #facc15;
+  .btn-premium-outline:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    border-color: rgba(255, 255, 255, 0.2);
   }
 
-  .mb-4 {
-    margin-bottom: 1.5rem !important;
+  .errorlist {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0 4px;
+    color: #f87171;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  @media (max-width: 768px) {
+    .lead-form-premium {
+      padding: 32px 24px;
+      border-radius: 24px;
+    }
+
+    .form-footer {
+      flex-direction: column-reverse;
+    }
+
+    .btn-premium-primary,
+    .btn-premium-outline {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  /* Custom Animations */
+  @keyframes float {
+    0% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-10px);
+    }
+
+    100% {
+      transform: translateY(0px);
+    }
+  }
+
+  .page-icon-box {
+    animation: float 6s ease-in-out infinite;
   }
 </style>
-
-<!-- :contentReference[oaicite:0]{index=0} -->
 {% endblock %}

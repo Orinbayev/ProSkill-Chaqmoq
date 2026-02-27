@@ -376,9 +376,11 @@ def lead_create(request):
             lead = form.save(commit=False)
             lead.center = center
             
-            # Auto-calculate age
+            # Auto-calculate age (safer calculation)
             if lead.birth_date:
-                lead.yosh = timezone.now().year - lead.birth_date.year
+                today = timezone.now().date()
+                age = today.year - lead.birth_date.year - ((today.month, today.day) < (lead.birth_date.month, lead.birth_date.day))
+                lead.yosh = max(0, age)
             else:
                 lead.yosh = 0
                 
@@ -406,11 +408,13 @@ def lead_edit(request, pk):
         if form.is_valid():
             lead = form.save(commit=False)
             
-            # Auto-calculate age
+            # Auto-calculate age (safer calculation)
             if lead.birth_date:
-                lead.yosh = timezone.now().year - lead.birth_date.year
-            elif not lead.yosh:
-                lead.yosh = 0
+                today = timezone.now().date()
+                age = today.year - lead.birth_date.year - ((today.month, today.day) < (lead.birth_date.month, lead.birth_date.day))
+                lead.yosh = max(0, age)
+            else:
+                lead.yosh = lead.yosh or 0
                 
             lead.save()
 
