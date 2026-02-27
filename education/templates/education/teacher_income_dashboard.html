@@ -80,14 +80,29 @@
         <div class="col-md-6">
             <div class="glass p-4 h-100 position-relative overflow-hidden">
                 <div class="stats-bg-glow bg-success-glow"></div>
-                <div class="position-relative z-1">
-                    <div class="text-white-50 small mb-1">SHU OYIDAGI DAROMAD</div>
-                    <h1 class="fw-black text-white mb-0">{{ current_month_total|floatformat:0 }} <small
-                            class="fs-6 opacity-50">UZS</small></h1>
-                    <div class="mt-3">
-                        <span class="badge-mini bg-success-subtle text-success">
-                            <i class="fa-solid fa-chart-line me-1"></i> {{ selected_month }}-oy statistikasi
-                        </span>
+                <div class="position-relative z-1 d-flex justify-content-between align-items-center w-100 flex-wrap">
+                    <div>
+                        <!-- Daromad qatori qo'lda break qilindi (formatter buzguncha) -->
+                        <h1 class="fw-black text-white mb-0">
+                            <span class="format-money">{{ current_month_total|floatformat:0 }}</span>
+                            <small class="fs-6 opacity-50">so'm</small>
+                        </h1>
+                        <div class="mt-3">
+                            <span class="badge-mini bg-success-subtle text-success">
+                                <i class="fa-solid fa-chart-line me-1"></i> {{ selected_month }}-oy statistikasi
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Kutilayotgan prognoz qismi -->
+                    <div class="d-none d-sm-block bg-white opacity-25 mx-4" style="width: 2px; height: 60px;"></div>
+
+                    <div id="expectedIncomeContainer" class="text-end mt-3 mt-sm-0 flex-grow-1 flex-sm-grow-0">
+                        <div class="text-warning small mb-1 text-uppercase fw-bold"><i
+                                class="fa-solid fa-hourglass-half"></i> Kutilayotgan prognoz</div>
+                        <h1 class="fw-black text-warning mb-0">
+                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                        </h1>
                     </div>
                 </div>
             </div>
@@ -96,9 +111,11 @@
             <div class="glass p-4 h-100 position-relative overflow-hidden">
                 <div class="stats-bg-glow bg-info-glow"></div>
                 <div class="position-relative z-1">
-                    <div class="text-white-50 small mb-1">YILLIK UMUMIY DAROMAD</div>
-                    <h1 class="fw-black text-white mb-0">{{ total_year_income|floatformat:0 }} <small
-                            class="fs-6 opacity-50">UZS</small></h1>
+                    <!-- Yillik qator ham break qilindi -->
+                    <h1 class="fw-black text-white mb-0">
+                        <span class="format-money">{{ total_year_income|floatformat:0 }}</span>
+                        <small class="fs-6 opacity-50">so'm</small>
+                    </h1>
                     <div class="mt-3">
                         <span class="badge-mini bg-info-subtle text-info">
                             <i class="fa-solid fa-calendar-check me-1"></i> {{ selected_year }}-yil yakuni
@@ -137,6 +154,7 @@
             </div>
         </div>
     </div>
+
 
 </div>
 {% endblock %}
@@ -284,6 +302,10 @@
         object-fit: cover;
     }
 </style>
+{{ daily_labels|json_script:"daily-labels-data" }}
+{{ daily_income|json_script:"daily-income-data" }}
+{{ monthly_labels|json_script:"monthly-labels-data" }}
+{{ monthly_income|json_script:"monthly-income-data" }}
 {% endblock %}
 
 {% block extra_js %}
@@ -315,6 +337,13 @@
             animation: { duration: 2000, easing: 'easeOutElastic' }
         };
 
+        // Initialize data from Django (using json_script for safety and IDE peace)
+        const dailyLabels = JSON.parse(document.getElementById('daily-labels-data').textContent);
+        const dailyIncome = JSON.parse(document.getElementById('daily-income-data').textContent);
+        const monthlyLabels = JSON.parse(document.getElementById('monthly-labels-data').textContent);
+        const monthlyIncome = JSON.parse(document.getElementById('monthly-income-data').textContent);
+        const selectedMonth = parseInt('{{ selected_month|escapejs }}') || 0;
+
         // DAILY CHART
         const ctxD = document.getElementById('dailyChart').getContext('2d');
         const gradD = ctxD.createLinearGradient(0, 0, 0, 400);
@@ -324,31 +353,87 @@
         new Chart(ctxD, {
             type: 'bar',
             data: {
-                labels: {{ daily_labels| safe }},
-        datasets: [{
-            data: {{ daily_income| safe }},
-        backgroundColor: gradD,
-        borderRadius: 8,
-        hoverBackgroundColor: '#fff'
-        }]
-      },
-        options: commonOptions
-    });
+                labels: dailyLabels,
+                datasets: [{
+                    data: dailyIncome,
+                    backgroundColor: gradD,
+                    borderRadius: 8,
+                    hoverBackgroundColor: '#fff'
+                }]
+            },
+            options: commonOptions
+        });
 
-    // MONTHLY CHART
-    const ctxM = document.getElementById('monthlyChart').getContext('2d');
-    new Chart(ctxM, {
-        type: 'bar',
-        data: {
-            labels: {{ monthly_labels| safe }},
-        datasets: [{
-            data: {{ monthly_income| safe }},
-        backgroundColor: (ctx) => ctx.dataIndex === ({{ selected_month }} - 1) ? '#facc15' : 'rgba(56, 189, 248, 0.2)',
-        borderRadius: 8
-        }]
-      },
-    options: commonOptions
+        // MONTHLY CHART
+        const ctxM = document.getElementById('monthlyChart').getContext('2d');
+        new Chart(ctxM, {
+            type: 'bar',
+            data: {
+                labels: monthlyLabels,
+                datasets: [{
+                    data: monthlyIncome,
+                    backgroundColor: (ctx) => ctx.dataIndex === (selectedMonth - 1) ? '#facc15' : 'rgba(56, 189, 248, 0.2)',
+                    borderRadius: 8
+                }]
+            },
+            options: commonOptions
+        });
     });
-  });
 </script>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Sonlarni "1 000 000" vizual formatga o'giramiz
+        document.querySelectorAll('.format-money').forEach(function (el) {
+            let val = parseInt(el.innerText.replace(/[^0-9]/g, ''), 10);
+            if (!isNaN(val)) {
+                el.innerText = val.toLocaleString('ru-RU');
+            }
+        });
+
+        const container = document.getElementById('expectedIncomeContainer');
+        if (container) {
+            loadExpectedIncome();
+        }
+
+        async function loadExpectedIncome() {
+            try {
+                const res = await fetch(`/talim/api/finance/teacher-expected-income/?year={{ selected_year }}&month={{ selected_month }}`);
+                const data = await res.json();
+
+                if (!data || data.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-warning small mb-1 text-uppercase fw-bold"><i class="fa-solid fa-hourglass-half"></i> Kutilayotgan prognoz</div>
+                        <h1 class="fw-black text-warning mb-0">0 <small class="fs-6 opacity-75">so'm</small></h1>
+                    `;
+                    return;
+                }
+
+                // Agar ko'p o'qituvchi bo'lsa umumiy summani yig'ib chiqamiz 
+                // Lekin bitta teacher bo'lsa xam ishlayveradi
+                let totalExpected = 0;
+                let totalActive = 0;
+                data.forEach(row => {
+                    totalExpected += Number(row.expected_income);
+                    totalActive += Number(row.active_students);
+                });
+
+                container.innerHTML = `
+                    <div class="text-warning small mb-1 text-uppercase fw-bold" title="${totalActive} ta aktiv o'quvchi orqali">
+                         Kutilayotgan prognoz
+                    </div>
+                    <h1 class="fw-black text-warning mb-0">${Number(totalExpected).toLocaleString('ru-RU')} <small class="fs-6 opacity-75">so'm</small></h1>
+                `;
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = `
+                    <div class="text-danger small mb-1 text-uppercase fw-bold">Xatolik</div>
+                    <h5 class="fw-black text-danger mb-0">Yuklanmadi</h5>
+                `;
+            }
+        }
+    });
+</script>
+
 {% endblock %}

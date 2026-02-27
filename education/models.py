@@ -276,6 +276,10 @@ class Payment(models.Model):
         verbose_name = "To‘lov"
         verbose_name_plural = "To‘lovlar"
         ordering = ["-id"]
+        indexes = [
+            models.Index(fields=['paid_date', 'center']),
+            models.Index(fields=['group']),
+        ]
 
     def __str__(self):
         return f"{self.student.get_full_name()} — {self.summa:,} so‘m ({self.paid_date})"
@@ -531,3 +535,55 @@ class PaymentAllocation(models.Model):
 
     def __str__(self):
         return f"pay#{self.payment_id} -> {self.tuition_month.month}: {self.amount}"
+class TeacherCompensationRule(models.Model):
+    COMPENSATION_TYPES = (
+        ("PERCENT", "Percent"),
+        ("FIXED", "Fixed"),
+        ("PER_STUDENT", "Per Student"),
+        ("PER_LESSON", "Per Lesson"),
+    )
+    teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name="compensation_rules")
+    type = models.CharField(max_length=20, choices=COMPENSATION_TYPES, default="PERCENT")
+    percent = models.PositiveIntegerField(null=True, blank=True)
+    fixed_amount = models.BigIntegerField(null=True, blank=True)
+    per_student_amount = models.BigIntegerField(null=True, blank=True)
+    per_lesson_amount = models.BigIntegerField(null=True, blank=True)
+    effective_from = models.DateField(default=timezone.localdate)
+    active = models.BooleanField(default=True)
+    
+    class Meta:
+        ordering = ['-effective_from']
+
+class SalaryPayout(models.Model):
+    teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name="salary_payouts")
+    center = models.ForeignKey("accounts.Center", on_delete=models.SET_NULL, null=True, blank=True)
+    period_year = models.IntegerField()
+    period_month = models.IntegerField()
+    amount = models.BigIntegerField()
+    paid_at = models.DateTimeField(default=timezone.now)
+    note = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        ordering = ['-paid_at']
+        indexes = [
+            models.Index(fields=['teacher', 'period_year', 'period_month', 'center']),
+        ]
+
+class TeacherExpectedIncomeSnapshot(models.Model):
+    teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name="expected_snapshots")
+    center = models.ForeignKey("accounts.Center", on_delete=models.SET_NULL, null=True, blank=True)
+    year = models.IntegerField()
+    month = models.IntegerField()
+    active_students = models.IntegerField(default=0)
+    expected_income = models.BigIntegerField(default=0)
+    income_per_student = models.BigIntegerField(default=0)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-year', '-month']
+        indexes = [
+            models.Index(fields=['teacher', 'year', 'month', 'center']),
+        ]
+        unique_together = [['teacher', 'year', 'month', 'center']]
+

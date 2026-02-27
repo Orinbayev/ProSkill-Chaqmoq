@@ -4350,9 +4350,11 @@ def teacher_income_dashboard(request):
     O'qituvchining shaxsiy daromadlari panelini ko'rsatadi.
     Kunlik va oylik daromadlarni diagramma uchun tayyorlab beradi.
     """
-    if request.user.role != 'teacher':
-        messages.error(request, "Bu bo'lim faqat o'qituvchilar uchun.")
+    if request.user.role not in ['teacher', 'director', 'manager'] and not request.user.is_superuser:
+        messages.error(request, "Bu bo'lim ushbu rol uchun emas.")
         return redirect('core:home')
+        
+    is_admin = request.user.role in ['director', 'manager'] or request.user.is_superuser
     
     teacher = request.user
     today = timezone.localdate()
@@ -4429,6 +4431,7 @@ def teacher_income_dashboard(request):
         'current_month_total': current_month_total,
         'total_year_income': sum(monthly_income),
         'years': range(today.year - 2, today.year + 2),
+        'is_admin': is_admin,
     }
     
     return render(request, "education/teacher_income_dashboard.html", ctx)

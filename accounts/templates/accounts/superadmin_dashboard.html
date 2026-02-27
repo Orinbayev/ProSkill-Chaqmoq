@@ -1600,8 +1600,9 @@
                 <span class="sa-kpi-icon"><i class="bi bi-buildings"></i></span>
             </div>
             <div class="sa-kpi-value">{{ total_centers }}</div>
+            {% widthratio active_centers_count total_centers 100 as centers_width %}
             <div class="sa-kpi-bar">
-                <div class="sa-kpi-bar-fill" style="width:{% widthratio active_centers_count total_centers 100 %}%">
+                <div class="sa-kpi-bar-fill" data-progress="{{ centers_width|default:0 }}">
                 </div>
             </div>
             <div class="sa-kpi-sub">
@@ -1721,32 +1722,32 @@
             <select name="status" class="sa-select" onchange="document.getElementById('filterForm').submit()">
                 <option value="">Status: Barchasi</option>
                 {% for s_code, s_label in statuses %}
-                <option value="{{ s_code }}" {% if status_filter == s_code %}selected{% endif %}>{{ s_label }}</option>
+                <option value="{{ s_code }}" {% if status_filter==s_code %}selected{% endif %}>{{ s_label }}</option>
                 {% endfor %}
             </select>
 
             <select name="plan" class="sa-select" onchange="document.getElementById('filterForm').submit()">
                 <option value="">Tarif: Barchasi</option>
                 {% for p_code, p_label in plans %}
-                <option value="{{ p_code }}" {% if plan_filter == p_code %}selected{% endif %}>{{ p_label }}</option>
+                <option value="{{ p_code }}" {% if plan_filter==p_code %}selected{% endif %}>{{ p_label }}</option>
                 {% endfor %}
             </select>
 
             <select name="expiry" class="sa-select" onchange="document.getElementById('filterForm').submit()">
                 <option value="">Muddat: Barchasi</option>
-                <option value="active" {% if expiry_filter == 'active' %}selected{% endif %}>Faol</option>
-                <option value="today" {% if expiry_filter == 'today' %}selected{% endif %}>Bugun tugaydi</option>
-                <option value="expiring_3" {% if expiry_filter == 'expiring_3' %}selected{% endif %}>3 kunda tugaydi
+                <option value="active" {% if expiry_filter=='active' %}selected{% endif %}>Faol</option>
+                <option value="today" {% if expiry_filter=='today' %}selected{% endif %}>Bugun tugaydi</option>
+                <option value="expiring_3" {% if expiry_filter=='expiring_3' %}selected{% endif %}>3 kunda tugaydi
                 </option>
-                <option value="expiring_soon" {% if expiry_filter == 'expiring_soon' %}selected{% endif %}>7 kunda tugaydi
+                <option value="expiring_soon" {% if expiry_filter=='expiring_soon' %}selected{% endif %}>7 kunda tugaydi
                 </option>
-                <option value="grace" {% if expiry_filter == 'grace' %}selected{% endif %}>Imtiyozda (Grace)</option>
-                <option value="expired" {% if expiry_filter == 'expired' %}selected{% endif %}>Tugagan (Barchasi)</option>
+                <option value="grace" {% if expiry_filter=='grace' %}selected{% endif %}>Imtiyozda (Grace)</option>
+                <option value="expired" {% if expiry_filter=='expired' %}selected{% endif %}>Tugagan (Barchasi)</option>
             </select>
 
             <select name="limit" class="sa-select" onchange="document.getElementById('filterForm').submit()">
                 <option value="">Limit: Barchasi</option>
-                <option value="over" {% if limit_filter == 'over' %}selected{% endif %}>Limitdan oshgan</option>
+                <option value="over" {% if limit_filter=='over' %}selected{% endif %}>Limitdan oshgan</option>
             </select>
 
             <button type="submit" class="sa-btn-submit">
@@ -1836,8 +1837,9 @@
                             </div>
                             <div class="sa-progress">
                                 {% if c.effective_student_limit > 0 %}
+                                {% widthratio c.student_count c.effective_student_limit 100 as student_ratio %}
                                 <div class="sa-progress-fill {% if c.student_count > c.effective_student_limit %}danger{% endif %}"
-                                    style="width:{% widthratio c.student_count c.effective_student_limit 100 %}%;">
+                                    data-progress="{{ student_ratio|default:0 }}">
                                 </div>
                                 {% endif %}
                             </div>
@@ -1974,6 +1976,13 @@
 </div>
 
 <script>
+    // Apply progress bar widths from data attributes (prevents IDE CSS errors)
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('[data-progress]').forEach(el => {
+            el.style.width = el.getAttribute('data-progress') + '%';
+        });
+    });
+
     // ── Professional SaaS Dropdown Logic (Portal + Smart Positioning) ──
     let currentActiveDropdown = null;
 

@@ -112,3 +112,7 @@ urlpatterns = [
 
 
 ]
+from .api import teacher_expected_income_api
+urlpatterns += [
+    path("api/finance/teacher-expected-income/", teacher_expected_income_api, name="teacher_expected_income_api"),
+]
