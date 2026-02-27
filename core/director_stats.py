@@ -128,7 +128,7 @@ def _build_director_stats(center):
         exp = expenses_qs.filter(sana__year=year, sana__month=month).aggregate(s=Sum("summa"))["s"] or 0
         expense_data.append(int(exp))
         
-        st_count = User.objects.filter(center=center, role="student", date_joined__year=year, date_joined__month=month).count()
+        st_count = User.objects.filter(center=center, role="student", is_archived=False, date_joined__year=year, date_joined__month=month).count()
         student_growth_data.append(st_count)
 
     # 5. CATEGORY DISTRIBUTION (Show any categories if possible)

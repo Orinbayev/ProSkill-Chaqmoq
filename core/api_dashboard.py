@@ -165,7 +165,7 @@ class DirectorDashboardAPIView(View):
         }
 
     def get_student_stats(self, center, start, end, p_start, p_end, today):
-        base_qs = User.objects.filter(center=center, role='student')
+        base_qs = User.objects.filter(center=center, role='student', is_archived=False)
         
         total_count = base_qs.count()
         active_enrollments = Enrollment.objects.filter(group__center=center, is_active=True)
@@ -179,7 +179,7 @@ class DirectorDashboardAPIView(View):
         debtors_count = active_enrollments.filter(jami_tolangan__lt=F('kurs_narhi')).values('student').distinct().count()
 
         thirty_days_ago = today - timedelta(days=30)
-        low_activity_candidates = base_qs.filter(is_archived=False).annotate(
+        low_activity_candidates = base_qs.annotate(
             att_count=Count('attendance', filter=Q(attendance__date__gte=thirty_days_ago, attendance__present=True))
         ).order_by('att_count')[:10]
 
@@ -298,7 +298,7 @@ class DirectorDashboardAPIView(View):
 
     def get_plans_stats(self, center, start, end):
         total_income = Payment.objects.filter(center=center, paid_date__range=(start, end)).aggregate(s=Sum('summa'))['s'] or 0
-        student_count = User.objects.filter(center=center, role='student').count()
+        student_count = User.objects.filter(center=center, role='student', is_archived=False).count()
         leads_count = Lead.objects.filter(center=center, qoshilgan_sana__date__range=(start, end)).count()
 
         targets = {'income': 50000000, 'students': 300, 'leads': 150}

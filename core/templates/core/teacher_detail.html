@@ -34,6 +34,31 @@
             </div>
           </div>
         </div>
+        <div class="d-flex gap-2">
+          <div class="dropdown">
+            <button class="btn btn-glass dropdown-toggle d-flex align-items-center gap-2" type="button"
+              data-bs-toggle="dropdown">
+              <i class="fa-solid fa-gear"></i> Bo'limlar
+            </button>
+            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow-lg border-white-10 p-2">
+              <li>
+                <a class="dropdown-item rounded-3 d-flex align-items-center gap-2 py-2"
+                  href="{% url 'core:teacher_edit' teacher.id %}">
+                  <i class="fa-solid fa-pen-to-square text-warning"></i> Tahrirlash
+                </a>
+              </li>
+              <li>
+                <hr class="dropdown-divider opacity-10">
+              </li>
+              <li>
+                <button class="dropdown-item rounded-3 d-flex align-items-center gap-2 py-2 text-warning"
+                  data-bs-toggle="modal" data-bs-target="#passwordResetModal">
+                  <i class="fa-solid fa-key"></i> Parolni o'zgartirish
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -146,6 +171,63 @@
   </div>
 
 </div>
+
+<!-- PASSWORD RESET MODAL -->
+<div class="modal fade" id="passwordResetModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content glass-dark border border-white-10 text-white rounded-4 shadow-3d">
+      <div class="modal-header border-0 pb-0 px-4 pt-4">
+        <h5 class="modal-title fw-bold text-warning d-flex align-items-center gap-2">
+          <i class="fa-solid fa-key"></i> Parolni o‘zgartirish
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST">
+        {% csrf_token %}
+        <div class="modal-body p-4">
+          <p class="small text-white-50 mb-4">
+            O'qituvchi uchun yangi parolni kiriting. Bu amal uning eski parolini bekor qiladi.
+          </p>
+          <div class="mb-3">
+            <label class="form-label small text-warning fw-bold">Yangi Parol</label>
+            <div class="input-group input-group-premium overflow-hidden rounded-3 border border-white-10">
+              <span class="input-group-text bg-white-5 border-0">
+                <i class="fa-solid fa-lock text-warning"></i>
+              </span>
+              <input type="password" name="new_password" id="id_new_password"
+                class="form-control bg-transparent border-0 text-white" placeholder="Kamida 6 ta belgi..." required
+                minlength="6" autocomplete="new-password">
+              <button class="btn bg-white-5 border-0 text-white-50" type="button"
+                onclick="togglePass('id_new_password')">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pb-4 px-4 justify-content-center gap-2">
+          <button type="button" class="btn btn-glass px-4 rounded-pill" data-bs-dismiss="modal">Bekor qilish</button>
+          <button type="submit" class="btn btn-warning px-5 rounded-pill fw-bold shadow-warning">Parolni
+            Yangilash</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function togglePass(id) {
+    const el = document.getElementById(id);
+    const btn = event.currentTarget;
+    const icon = btn.querySelector('i');
+    if (el.type === "password") {
+      el.type = "text";
+      icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+      el.type = "password";
+      icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+  }
+</script>
 {% endblock %}
 
 {% block extra_css %}
@@ -339,12 +421,33 @@
     }
   }
 
-  .bg-white-10 {
-    background: rgba(255, 255, 255, 0.1);
-  }
-
   .bg-white-5 {
     background: rgba(255, 255, 255, 0.05);
+  }
+
+  .glass-dark {
+    background: rgba(15, 23, 42, 0.98);
+    backdrop-filter: blur(25px);
+  }
+
+  .shadow-3d {
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  }
+
+  .dropdown-menu-dark {
+    background: #1e293b !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .dropdown-item {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: #fff !important;
   }
 </style>
 {% endblock %}

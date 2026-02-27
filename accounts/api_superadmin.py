@@ -29,7 +29,7 @@ def center_stats_api(request, center_id):
     
     try:
         # --- 1. KPI Cards ---
-        students_qs = User.objects.filter(role='student', center=center)
+        students_qs = User.objects.filter(role='student', center=center, is_archived=False)
         total_students = students_qs.count()
         active_students = students_qs.filter(is_active=True).count()
         
@@ -157,7 +157,7 @@ def center_students_api(request, center_id):
     search = request.GET.get('search', '').strip()
     status = request.GET.get('status', '')
     
-    qs = User.objects.filter(role='student', center=center).select_related('center')
+    qs = User.objects.filter(role='student', center=center, is_archived=False).select_related('center')
     
     if search:
         qs = qs.filter(Q(ism__icontains=search) | Q(familya__icontains=search) | Q(telefon1__icontains=search))

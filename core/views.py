@@ -163,7 +163,7 @@ def _build_stats(center):
     return {
         "managers": users.filter(role="manager").count(),
         "teachers": users.filter(role="teacher").count(),
-        "students": users.filter(role="student").count(),
+        "students": users.filter(role="student", is_archived=False).count(),
         "products": products_qs.count(),
         "pending_requests": pr_qs.filter(status=pending_status).count(),
         "total_chaqmoq": ledger_qs.aggregate(s=Sum("ball"))["s"] or 0,
@@ -268,6 +268,17 @@ def teacher_detail(request, pk):
     groups_qs = Group.objects.all()
     groups_qs = _try_center_filter(groups_qs, center, ["center"])
     groups = groups_qs.filter(oqituvchi=teacher) if _has_field(Group, "oqituvchi") else groups_qs.none()
+
+    # ✅ Handle Password Reset (Admin/Staff only)
+    if request.method == "POST" and "new_password" in request.POST:
+        if not _staff_only(request):
+            raise PermissionDenied
+        new_pass = request.POST.get("new_password")
+        if new_pass:
+            teacher.set_password(new_pass)
+            teacher.save()
+            messages.success(request, f"{teacher.get_full_name()} paroli muvaffaqiyatli o'zgartirildi.")
+            return redirect("core:teacher_detail", pk=teacher.pk)
 
     return render(request, "core/teacher_detail.html", {"teacher": teacher, "groups": groups})
 

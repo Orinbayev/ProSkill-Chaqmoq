@@ -604,6 +604,9 @@
             <th>COIN</th>
             <th>GURUHLAR</th>
             {% endif %}
+            {% if user_kind == 'teachers' %}
+            <th>ULUSH (%)</th>
+            {% endif %}
             {% if user_kind == 'parents' %}<th>FARZANDLARI</th>{% endif %}
             <th width="50"></th>
           </tr>
@@ -644,6 +647,11 @@
               </div>
             </td>
             {% endif %}
+            {% if user_kind == 'teachers' %}
+            <td>
+              <span class="badge-coin pos" style="color: var(--primary);">{{ u.oqituvchi_foizi|default:0 }}%</span>
+            </td>
+            {% endif %}
             {% if user_kind == 'parents' %}
             <td>
               <div class="group-chips">
@@ -657,7 +665,9 @@
               <div class="menu-wrapper">
                 <button class="menu-btn" type="button"><i class="fa-solid fa-ellipsis-vertical"></i></button>
                 <div class="menu-dropdown">
-                  {% if user_kind != 'managers' %}
+                  {% if user_kind == 'teachers' %}
+                  <a href="{% url 'core:teacher_detail' u.id %}"><i class="fa-solid fa-eye"></i> Ko'rish</a>
+                  {% elif user_kind != 'managers' %}
                   <a href="{% url 'core:user_view' u.id %}"><i class="fa-solid fa-eye"></i> Ko'rish</a>
                   {% endif %}
                   {% if user_kind == 'parents' %}
@@ -680,7 +690,7 @@
                   {% endif %}
                   {% if user_kind == 'parents' %}
                   <form method="post" action="{% url 'core:parent_delete' u.id %}" style="display:inline;"
-                    onsubmit="return confirm('Ishonchingiz komilmi?');">
+                    onsubmit="return showConfirmDelete(this)">
                     {% csrf_token %}
                     <button type="submit" class="text-red"
                       style="background:none;border:none;width:100%;text-align:left;cursor:pointer;padding:10px 16px;color:inherit;font-size:13px;font-weight:500;border-radius:8px;display:flex;align-items:center;gap:10px;">
@@ -689,7 +699,7 @@
                   </form>
                   {% elif user_kind == 'teachers' %}
                   <form method="post" action="{% url 'core:teacher_delete' u.id %}" style="display:inline;"
-                    onsubmit="return confirm('Ishonchingiz komilmi?');">
+                    onsubmit="return showConfirmDelete(this)">
                     {% csrf_token %}
                     <button type="submit" class="text-red"
                       style="background:none;border:none;width:100%;text-align:left;cursor:pointer;padding:10px 16px;color:inherit;font-size:13px;font-weight:500;border-radius:8px;display:flex;align-items:center;gap:10px;">
@@ -698,7 +708,7 @@
                   </form>
                   {% else %}
                   <form method="post" action="{% url 'core:user_delete' u.id %}" style="display:inline;"
-                    onsubmit="return confirm('Ishonchingiz komilmi?');">
+                    onsubmit="return showConfirmDelete(this)">
                     {% csrf_token %}
                     <button type="submit" class="text-red"
                       style="background:none;border:none;width:100%;text-align:left;cursor:pointer;padding:10px 16px;color:inherit;font-size:13px;font-weight:500;border-radius:8px;display:flex;align-items:center;gap:10px;">
@@ -725,7 +735,7 @@
       <span>Ko‘rsatish:</span>
       <select class="size-select" onchange="updateQuery({size: this.value, page: 1})">
         <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
-        <option value="25" {% if page_size ==  25 %}selected{% endif %}>25</option>
+        <option value="25" {% if page_size == 25 %}selected{% endif %}>25</option>
         <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
         <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
       </select>
@@ -809,27 +819,87 @@
     modal.show();
   }
 
+  let confirmCallback = null;
+  function showConfirmModal(title, message, callback, isDanger = true) {
+    document.getElementById('confirmTitle').innerText = title;
+    document.getElementById('confirmMessage').innerText = message;
+    confirmCallback = callback;
+    const yesBtn = document.getElementById('confirmYesBtn');
+    const iconDiv = document.getElementById('confirmIcon');
+    if (isDanger) {
+      yesBtn.style.background = 'var(--red)';
+      yesBtn.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)';
+      iconDiv.style.color = 'var(--red)';
+      iconDiv.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i>';
+    } else {
+      yesBtn.style.background = 'var(--primary)';
+      yesBtn.style.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.3)';
+      iconDiv.style.color = 'var(--primary)';
+      iconDiv.innerHTML = '<i class="fa-solid fa-circle-info"></i>';
+    }
+    document.getElementById('confirmModal').classList.add('open');
+  }
+
+  function closeConfirmModal() {
+    document.getElementById('confirmModal').classList.remove('open');
+    confirmCallback = null;
+  }
+
+  function onConfirmYes() {
+    if (confirmCallback) confirmCallback();
+    closeConfirmModal();
+  }
+
+  function showConfirmDelete(form) {
+    showConfirmModal(
+      'O\'chirish',
+      'Haqiqatan ham ushbu ma’lumotni o‘chirmoqchimisiz? Bu amalni qaytarib bo‘lmaydi.',
+      () => {
+        form.submit();
+      }
+    );
+    return false;
+  }
+
   async function archiveStudent(id) {
-    if (!confirm('Ushbu o‘quvchini arxivlamoqchimisiz?')) return;
-    try {
-      const resp = await fetch(`/students/${id}/archive/`, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
-      });
-      if (resp.ok) window.location.reload();
-      else alert('Xatolik yuz berdi.');
-    } catch (e) { console.error(e); alert('Tarmoq xatosi.'); }
+    showConfirmModal(
+      'Arxivlash',
+      'Ushbu o‘quvchini arxivlamoqchimisiz?',
+      async () => {
+        try {
+          const resp = await fetch(`/students/${id}/archive/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+          });
+          if (resp.ok) window.location.reload();
+          else alert('Xatolik yuz berdi.');
+        } catch (e) {
+          console.error(e);
+          alert('Tarmoq xatosi.');
+        }
+      }
+    );
   }
 
   async function restoreStudent(id) {
-    try {
-      const resp = await fetch(`/students/${id}/restore/`, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
-      });
-      if (resp.ok) window.location.reload();
-      else alert('Xatolik yuz berdi.');
-    } catch (e) { console.error(e); alert('Tarmoq xatosi.'); }
+    showConfirmModal(
+      'Tiklash',
+      'Ushbu o‘quvchini arxivdan chiqarmoqchimisiz?',
+      async () => {
+        try {
+          const resp = await fetch(`/students/${id}/restore/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+          });
+          if (resp.ok) window.location.reload();
+          else alert('Xatolik yuz berdi.');
+        } catch (e) {
+          console.error(e);
+          alert('Tarmoq xatosi.');
+        }
+      },
+      false
+    );
   }
 
   function handleAction(role, action, id) {
@@ -1009,6 +1079,31 @@
             style="background: linear-gradient(135deg, #f59e0b, #d97706); border:none; padding: 0 32px;">Saqlash</button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Confirmation Modal -->
+<div id="confirmModal" class="modal-overlay">
+  <div class="modal-box glass-modal animate__animated animate__zoomIn animate__faster"
+    style="max-width: 400px; text-align: center; border-radius: 28px; padding: 40px 32px;">
+    <div id="confirmIcon" style="font-size: 64px; color: var(--red); margin-bottom: 24px;">
+      <i class="fa-solid fa-circle-exclamation"></i>
+    </div>
+    <h3 id="confirmTitle" style="margin-bottom: 12px; font-weight: 800; color: white; font-size: 24px;">Tasdiqlang</h3>
+    <p id="confirmMessage"
+      style="color: var(--text-muted); font-size: 15px; margin-bottom: 32px; line-height: 1.6; font-weight: 500;">
+      Haqiqatan ham ushbu amalni bajarmoqchimisiz?
+    </p>
+    <div style="display: flex; gap: 12px; justify-content: center;">
+      <button onclick="closeConfirmModal()" class="btn-action btn-outline"
+        style="flex: 1; justify-content: center; height: 48px; border-radius: 14px; font-weight: 700;">
+        Bekor qilish
+      </button>
+      <button id="confirmYesBtn" onclick="onConfirmYes()" class="btn-action btn-primary"
+        style="flex: 1; justify-content: center; height: 48px; border-radius: 14px; font-weight: 700; border: none;">
+        Tasdiqlash
+      </button>
     </div>
   </div>
 </div>
