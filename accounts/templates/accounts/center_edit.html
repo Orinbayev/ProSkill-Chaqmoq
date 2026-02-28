@@ -441,8 +441,8 @@
             { key: 'analytics', label: 'Biznes Analitika', icon: 'bi-graph-up-arrow' },
             { key: 'sms', label: 'SMS/Bildirishnomalar', icon: 'bi-chat-dots' },
             { key: 'leads', label: 'CRM Huni (Lidlar)', icon: 'bi-bullseye' },
-            { key: 'roles', label: 'Rollar va Huquqlar', icon: 'bi-shield-check' },
-            { key: 'branches', label: 'Filiallar Boshqaruvi', icon: 'bi-diagram-3' }
+            { key: 'roles', label: 'Do\'kon va Xarajatlar', icon: 'bi-shop' },
+            { key: 'branches', label: 'Vazifalar va Boshqaruv', icon: 'bi-list-check' }
         ];
 
         const hiddenInput = document.querySelector('input[name="features"]');
@@ -489,14 +489,23 @@
         const durationSelect = document.getElementById('id_duration');
         const manualDiscount = document.getElementById('id_manual_discount');
 
-        function updatePrice(isManual = false) {
+        function updatePrice(isManual = false, isInitial = false) {
             const planCode = planSelect.value;
             const duration = parseInt(durationSelect.value);
             const plan = PLANS.find(p => p.code === planCode);
             if (!plan) return;
 
-            // Sync Features (only if NOT manual override)
-            if (!isManual) {
+            // Sync Features (use DB data on initial load, plan defaults on plan change, avoid overwrite on manual discount)
+            if (isInitial) {
+                let currentFeatures = [];
+                try {
+                    const parsed = JSON.parse(hiddenInput.value || '{}');
+                    currentFeatures = Object.keys(parsed).filter(k => parsed[k] === true || parsed[k] === 'true');
+                } catch (e) {
+                    currentFeatures = plan.feature_codes || [];
+                }
+                renderFeatures(currentFeatures);
+            } else if (!isManual) {
                 renderFeatures(plan.feature_codes || []);
             }
 
@@ -544,9 +553,9 @@
                 planSelect.removeAttribute('data-initial-load');
                 updatePrice(false);
             });
-            manualDiscount.addEventListener('input', () => updatePrice(true));
+            manualDiscount.addEventListener('input', () => updatePrice(true, false));
 
-            updatePrice();
+            updatePrice(false, true);
         }
     });
 </script>

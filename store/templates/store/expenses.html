@@ -132,7 +132,7 @@
                         class="form-select bg-black bg-opacity-25 border-white border-opacity-10 text-white shadow-none"
                         onchange="this.form.submit()">
                         <option value="">Barchasi</option>
-                        <option value="naqd" {% if selected_method ==    'naqd' %}selected{% endif %}>Naqd</option>
+                        <option value="naqd" {% if selected_method == 'naqd' %}selected{% endif %}>Naqd</option>
                         <option value="plastik" {% if selected_method == 'plastik' %}selected{% endif %}>Plastik</option>
                         <option value="otkazma" {% if selected_method == 'otkazma' %}selected{% endif %}>O'tkazma</option>
                     </select>
@@ -204,7 +204,8 @@
             <tbody>
                 {% for item in items %}
                 <tr>
-                    <td class="ps-4 py-3 text-secondary border-bottom border-white border-opacity-10 text-nowrap">{{forloop.counter }}</td>
+                    <td class="ps-4 py-3 text-secondary border-bottom border-white border-opacity-10 text-nowrap">
+                        {{forloop.counter }}</td>
 
                     <!-- Sana -->
                     <td class="py-3 border-bottom border-white border-opacity-10 text-nowrap text-secondary">
@@ -786,7 +787,8 @@
 
             document.getElementById('comment_izoh').value = izoh;
             var form = document.getElementById('commentExpenseForm');
-            form.action = "{% url 'store:expense_comment' 0 %}".replace('0', id);
+            {% url 'store:expense_comment' 0 as comment_url %}
+            form.action = "{{ comment_url|safe }}".replace('/0/', '/' + id + '/');
         });
 
         // Edit Modal Logic
@@ -814,7 +816,8 @@
             setVal('edit_payment', button.getAttribute('data-payment'));
 
             var form = document.getElementById('editExpenseForm');
-            form.action = "{% url 'store:expense_edit' 0 %}".replace('0', id);
+            {% url 'store:expense_edit' 0 as edit_url %}
+            form.action = "{{ edit_url|safe }}".replace('/0/', '/' + id + '/');
         });
 
         // Delete Modal Logic
@@ -823,7 +826,8 @@
             var button = event.relatedTarget;
             var id = button.getAttribute('data-id');
             var form = document.getElementById('deleteExpenseForm');
-            form.action = "{% url 'store:expense_delete' 0 %}".replace('0', id);
+            {% url 'store:expense_delete' 0 as delete_url %}
+            form.action = "{{ delete_url|safe }}".replace('/0/', '/' + id + '/');
         });
 
         // Chart Logic - FIXED & STYLED

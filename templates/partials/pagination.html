@@ -18,8 +18,7 @@
         </li>
         {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %} <li class="page-item">
             <a class="page-link bg-dark border-white border-opacity-10 text-white"
-                href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{
-                num }}</a>
+                href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
             </li>
             {% endif %}
             {% endfor %}

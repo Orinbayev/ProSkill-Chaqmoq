@@ -473,7 +473,7 @@ def create_payment(request):
                     start_month=start_month,
                     note=note,
                 )
-            messages.success(request, f"✅ {enrollment.group.nom} uchun to‘lov saqlandi!")
+            messages.success(request, f"✅ {enrollment.student.get_full_name()} uchun to‘lov saqlandi!")
         except Exception as e:
             messages.error(request, f"❌ Xatolik: {e}")
             
@@ -1371,7 +1371,8 @@ def qarzdorlar_home(request):
         enrollments = enrollments.filter(
             Q(student__ism__icontains=q) |
             Q(student__familya__icontains=q) |
-            Q(student__phone__icontains=q)
+            Q(student__telefon1__icontains=q) |
+            Q(student__telefon2__icontains=q)
         )
 
     # --- DEBT CALCULATION ---

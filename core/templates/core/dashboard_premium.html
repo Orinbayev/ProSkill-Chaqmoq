@@ -460,6 +460,29 @@
         background: rgba(251, 113, 133, 0.12);
         color: #ff4d6d;
     }
+
+    /* NEON CHART PANEL */
+    .chart-panel-premium {
+        background: linear-gradient(160deg, #150f2d 0%, #070a13 100%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.04) !important;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7) !important;
+        border-radius: 20px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Subtlest background glow for chart */
+    .chart-panel-premium::before {
+        content: '';
+        position: absolute;
+        top: -100px;
+        left: -100px;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
 </style>
 {% endblock %}
 
@@ -591,25 +614,18 @@
     <!-- CHARTS GRID -->
     <div class="dashboard-grid">
         <!-- Main Trend -->
-        <div class="glass-panel animate__animated animate__fadeInUp">
+        <div class="glass-panel chart-panel-premium animate__animated animate__fadeInUp bg-gradient"
+            style="grid-column: 1;">
             <div class="panel-header">
-                <div class="panel-title"><i class="fa-solid fa-chart-line"></i> Moliyaviy Tahlil va Trend</div>
+                <div class="panel-title"><i class="fa-solid fa-chart-line"></i> Moliyaviy Tahlil (Barcha vaqt)
+                </div>
                 <select class="form-select border-0 bg-white bg-opacity-10 text-white w-auto" id="periodSelect">
-                    <option value="this_month">Shu oy</option>
-                    <option value="last_month">O'tgan oy</option>
+                    <option value="all" selected>Barcha vaqt</option>
                     <option value="this_year">Shu yil</option>
+                    <option value="last_year">O'tgan yil</option>
                 </select>
             </div>
-            <div id="mainTrendChart" class="chart-box"></div>
-        </div>
-
-        <!-- Student Growth Trend -->
-        <div class="glass-panel animate__animated animate__fadeInUp" style="animation-delay: 0.1s; margin-top: 24px;">
-            <div class="panel-header">
-                <div class="panel-title"><i class="fa-solid fa-user-plus"></i> O'quvchilar O'sishi</div>
-                <div class="small text-slate-500 fw-bold">Markazga yangi qo'shilganlar</div>
-            </div>
-            <div id="studentGrowthChart" class="chart-box" style="min-height: 280px;"></div>
+            <div id="mainTrendChart" class="chart-box" style="min-height: 400px;"></div>
         </div>
 
         <!-- Right Side: Marketing + Small Stats -->
@@ -636,22 +652,118 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         initCharts();
-        refreshData('this_month');
+        refreshData('all');
 
-        document.getElementById('periodSelect').addEventListener('change', (e) => refreshData(e.target.value));
+        document.getElementById('periodSelect').addEventListener('change', (e) => {
+            refreshData(e.target.value);
+            // Optionally update panel title dynamically here if needed
+            let sel = e.target;
+            let text = sel.options[sel.selectedIndex].text;
+            let pTitle = document.querySelector('.panel-title');
+            if (pTitle) pTitle.innerHTML = `<i class="fa-solid fa-chart-line"></i> Moliyaviy Tahlil (${text})`;
+        });
     });
 
     function initCharts() {
         dashboardCharts.main = new ApexCharts(document.querySelector("#mainTrendChart"), {
             series: [],
-            chart: { type: 'line', height: 280, toolbar: { show: false }, background: 'transparent' },
-            stroke: { curve: 'smooth', width: [3, 3, 2] },
-            colors: ['#FACC15', '#F43F5E', '#10B981'],
-            xaxis: { categories: [], labels: { style: { colors: '#64748b', fontWeight: 600 } } },
-            yaxis: { labels: { style: { colors: '#64748b' }, formatter: (v) => v >= 1000000 ? (v / 1000000).toFixed(1) + 'M' : (v >= 1000 ? (v / 1000).toFixed(0) + 'K' : v) } },
-            legend: { position: 'top', horizontalAlign: 'right', labels: { colors: '#94a3b8' } },
-            grid: { borderColor: 'rgba(255,255,255,0.05)', strokeDashArray: 4 },
-            tooltip: { theme: 'dark' }
+            chart: {
+                type: 'line',
+                height: 400,
+                toolbar: { show: false },
+                background: 'transparent',
+                dropShadow: {
+                    enabled: true,
+                    enabledOnSeries: undefined,
+                    top: 5,
+                    left: 0,
+                    blur: 8,
+                    color: ['#F43F5E', '#10B981', '#FACC15'],
+                    opacity: 0.45
+                },
+                animations: {
+                    enabled: true,
+                    easing: 'easeinout',
+                    speed: 800,
+                    animateGradually: {
+                        enabled: true,
+                        delay: 150
+                    },
+                    dynamicAnimation: {
+                        enabled: true,
+                        speed: 350
+                    }
+                }
+            },
+            stroke: {
+                curve: 'smooth',
+                width: 3,
+                dashArray: 0
+            },
+            colors: ['#F43F5E', '#10B981', '#FACC15'],
+            fill: {
+                type: 'solid'
+            },
+            xaxis: {
+                categories: [],
+                labels: { style: { colors: '#64748b', fontSize: '11px', fontWeight: 600 } },
+                axisBorder: { show: false },
+                axisTicks: { show: false },
+                tooltip: { enabled: false }
+            },
+            yaxis: [
+                {
+                    labels: {
+                        style: { colors: '#64748b', fontSize: '11px', fontWeight: 600 },
+                        formatter: (v) => v >= 1000000 ? (v / 1000000).toFixed(1) + 'M' : (v >= 1000 ? (v / 1000).toFixed(0) + 'K' : v)
+                    }
+                },
+                {
+                    show: false,
+                    labels: { formatter: (v) => v }
+                },
+                {
+                    show: false,
+                    labels: { formatter: (v) => v }
+                }
+            ],
+            legend: {
+                position: 'top',
+                horizontalAlign: 'right',
+                labels: { colors: '#e2e8f0' },
+                markers: { size: 6, shape: 'circle', strokeWidth: 0, radius: 12 },
+                itemMargin: { horizontal: 10, vertical: 0 }
+            },
+            grid: {
+                borderColor: 'rgba(255,255,255,0.08)',
+                strokeDashArray: 0,
+                xaxis: { lines: { show: true } },
+                yaxis: { lines: { show: true } },
+                padding: { top: 0, right: 0, bottom: 0, left: 10 }
+            },
+            markers: {
+                size: 0,
+                colors: ['#0f172a'],
+                strokeColors: ['#F43F5E', '#10B981', '#FACC15'],
+                strokeWidth: 2,
+                hover: {
+                    size: 6,
+                    sizeOffset: 3
+                }
+            },
+            tooltip: {
+                theme: 'dark',
+                y: {
+                    formatter: function (val) {
+                        return new Intl.NumberFormat('uz-UZ').format(val) + " so'm";
+                    }
+                },
+                style: {
+                    fontSize: '12px',
+                    fontFamily: 'Inter, sans-serif'
+                }
+            },
+            dataLabels: { enabled: false }
         });
         dashboardCharts.main.render();
 
@@ -665,19 +777,6 @@
             stroke: { show: false }
         });
         dashboardCharts.mkt.render();
-
-        dashboardCharts.stuGrowth = new ApexCharts(document.querySelector("#studentGrowthChart"), {
-            series: [{ name: 'Yangi o\'quvchilar', data: [] }],
-            chart: { type: 'area', height: 280, toolbar: { show: false }, background: 'transparent' },
-            stroke: { curve: 'smooth', width: 4 },
-            colors: ['#10B981'],
-            fill: { type: 'gradient', gradient: { opacityFrom: 0.3, opacityTo: 0 } },
-            xaxis: { categories: [], labels: { style: { colors: '#64748b', fontWeight: 600 } } },
-            yaxis: { labels: { style: { colors: '#64748b' } } },
-            grid: { borderColor: 'rgba(255,255,255,0.05)', strokeDashArray: 4 },
-            tooltip: { theme: 'dark' }
-        });
-        dashboardCharts.stuGrowth.render();
     }
 
     function toggleUserDropdown(e) {
@@ -700,14 +799,10 @@
             // Update Main Chart
             dashboardCharts.main.updateOptions({ xaxis: { categories: d.charts.labels } });
             dashboardCharts.main.updateSeries([
-                { name: 'Tushum', data: d.charts.income_series },
-                { name: 'Xarajat', data: d.charts.expense_series },
-                { name: 'Talabalar (yangi)', data: d.charts.student_trend }
+                { name: 'Qarzdorlik', type: 'line', data: d.charts.debt_series },
+                { name: 'Tushum', type: 'line', data: d.charts.income },
+                { name: 'Xarajat', type: 'line', data: d.charts.expenses }
             ]);
-
-            // Update Student Growth Chart
-            dashboardCharts.stuGrowth.updateOptions({ xaxis: { categories: d.charts.labels } });
-            dashboardCharts.stuGrowth.updateSeries([{ name: 'Yangi o\'quvchilar', data: d.charts.student_trend }]);
 
             // Marketing
             const mktData = d.marketing.filter(m => m.count > 0);

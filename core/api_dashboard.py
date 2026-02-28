@@ -33,7 +33,6 @@ class DirectorDashboardAPIView(View):
             now = timezone.localtime(timezone.now())
             today = now.date()
             
-            # Date Range Logic
             if period == 'this_month':
                 start_date = today.replace(day=1)
                 end_date = today
@@ -46,6 +45,26 @@ class DirectorDashboardAPIView(View):
                 end_date = today
             elif period == 'this_year':
                 start_date = today.replace(month=1, day=1)
+                end_date = today.replace(month=12, day=31)
+            elif period == 'last_year':
+                start_date = today.replace(year=today.year-1, month=1, day=1)
+                end_date = today.replace(year=today.year-1, month=12, day=31)
+            elif period.isdigit() and 1 <= int(period) <= 12:
+                import calendar
+                m = int(period)
+                y = today.year
+                start_date = date(y, m, 1)
+                dr = calendar.monthrange(y, m)[1]
+                end_date = date(y, m, dr)
+            elif period == 'all':
+                first_pay = Payment.objects.filter(center=center).order_by('paid_date').first()
+                if first_pay:
+                    st_date = first_pay.paid_date.date() if hasattr(first_pay.paid_date, 'date') else first_pay.paid_date
+                else:
+                    st_date = today.replace(month=1, day=1)
+                
+                six_months_ago = today - timedelta(days=180)
+                start_date = min(st_date, six_months_ago).replace(day=1)
                 end_date = today
             else:
                 start_date = today.replace(day=1)
@@ -315,35 +334,57 @@ class DirectorDashboardAPIView(View):
         now = timezone.localtime(timezone.now()).date()
         uz_months = {1: 'Yanvar', 2: 'Fevral', 3: 'Mart', 4: 'Aprel', 5: 'May', 6: 'Iyun', 7: 'Iyul', 8: 'Avgust', 9: 'Sentabr', 10: 'Oktabr', 11: 'Noyabr', 12: 'Dekabr'}
         
+        from education.models import TuitionMonth, PaymentAllocation
+        
+        months_to_query = []
+        
+        current_date = start.replace(day=1)
+        while current_date <= end.replace(day=1):
+            months_to_query.append((current_date.month, current_date.year))
+            if current_date.month == 12:
+                current_date = current_date.replace(year=current_date.year + 1, month=1)
+            else:
+                current_date = current_date.replace(month=current_date.month + 1)
+        
+        # If the duration is exactly 1 month and we are viewing exactly 1 month, we still show the single month logic.
+        
         labels = []
         income = []
         expenses = []
-        students = []
+        debt_series = []
         
-        for i in range(7, -1, -1):
-            # Calculate targets for each of the last 8 months
-            dt = now - timedelta(days=i*30) 
-            m, y = dt.month, dt.year
-            
-            labels.append(uz_months[m])
+        for m, y in months_to_query:
+            labels.append(f"{uz_months[m]} {y}" if y != now.year else uz_months[m])
             
             inc = Payment.objects.filter(center=center, paid_date__year=y, paid_date__month=m).aggregate(s=Sum('summa'))['s'] or 0
             exp = Expense.objects.filter(center=center, sana__year=y, sana__month=m).aggregate(s=Sum('summa'))['s'] or 0
-            stu = Enrollment.objects.filter(group__center=center, created_at__year=y, created_at__month=m).values('student').distinct().count()
+            
+            # Real debt calculation for the specific month
+            fee_sum = TuitionMonth.objects.filter(
+                enrollment__center=center, 
+                month__year=y, month__month=m, 
+                enrollment__is_active=True,
+                enrollment__student__is_archived=False
+            ).aggregate(s=Sum('fee_amount'))['s'] or 0
+
+            paid_sum = PaymentAllocation.objects.filter(
+                tuition_month__enrollment__center=center, 
+                tuition_month__month__year=y, tuition_month__month__month=m,
+                tuition_month__enrollment__is_active=True,
+                tuition_month__enrollment__student__is_archived=False
+            ).aggregate(s=Sum('amount'))['s'] or 0
+            
+            m_debt = max(fee_sum - paid_sum, 0)
             
             income.append(int(inc))
             expenses.append(int(exp))
-            students.append(stu)
+            debt_series.append(int(m_debt))
             
         mkt = self.get_marketing_stats(center, start, end)
         return {
             'labels': labels,
             'income': income,
             'expenses': expenses,
-            'income_series': income, 
-            'expense_series': expenses,
-            'profit_series': [i - e for i, e in zip(income, expenses)],
-            'student_trend': students,
-            'income_labels': labels,
+            'debt_series': debt_series,
             'marketing': mkt
         }

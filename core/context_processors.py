@@ -63,9 +63,9 @@ def tenant_context(request):
             "feature_flags": features,
             "feature_leads": "leads" in features,
             "feature_finance": "finance" in features,
-            "feature_kpi": "kpi" in features,
-            "feature_store": "store" in features,
-            "feature_tasks": "tasks" in features,
+            "feature_kpi": "kpi" in features or "analytics" in features,
+            "feature_store": "store" in features or "roles" in features,
+            "feature_tasks": "tasks" in features or "branches" in features,
             "feature_sms": "sms" in features,
         }
 

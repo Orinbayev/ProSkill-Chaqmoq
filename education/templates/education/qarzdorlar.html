@@ -301,7 +301,7 @@
             <form action="{% url 'education:create_payment' %}" method="post" id="paymentForm">
                 {% csrf_token %}
                 <div class="modal-body p-4">
-                    <input type="hidden" name="next" value="education:tolovlar_home">
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
                     <input type="hidden" name="enrollment_id" id="payEnrollmentId">
 
                     <div class="mb-4 text-center">
@@ -312,7 +312,7 @@
                             <div class="col-12">
                                 <div
                                     class="bg-black bg-opacity-25 p-3 rounded-4 text-center border border-white border-opacity-10">
-                                    <div class="small text-secondary mb-1">Oylik to'lov summasi:</div>
+                                    <div class="small text-secondary mb-1">Joriy qarz summasi:</div>
                                     <div class="h3 fw-bold text-white mb-0" id="payMonthlyFee">0 so'm</div>
                                 </div>
                             </div>
@@ -458,20 +458,21 @@
 
                     const enrollmentId = button.getAttribute('data-enrollment-id');
                     const studentName = button.getAttribute('data-student-name');
+                    const debt = button.getAttribute('data-debt');
 
                     document.getElementById('payEnrollmentId').value = enrollmentId;
                     document.getElementById('payStudentName').textContent = studentName;
+                    document.getElementById('payMonthlyFee').textContent = formatNumber(debt) + " so'm";
 
                     fetch(`/talim/tolovlar/tarix/enrollment/${enrollmentId}/`)
                         .then(res => res.json())
                         .then(data => {
                             document.getElementById('payGroupName').textContent = data.group || '';
-                            document.getElementById('payMonthlyFee').textContent = formatNumber(data.monthly_fee) + " so'm";
                         })
                         .catch(err => console.error(err));
 
                     document.getElementById('methodCash').checked = true;
-                    document.getElementById('inputCash').value = '';
+                    document.getElementById('inputCash').value = debt; // Avtomat tarzda qarz summasi teriladi
                     document.getElementById('inputCard').value = '';
                     togglePaymentInputs();
                 });
