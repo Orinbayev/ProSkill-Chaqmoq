@@ -44,6 +44,7 @@ urlpatterns = [
     path('notifications/api/read-all/', api_views.notifications_mark_read_api, name='notifications_mark_read_api'),
     path('api/director/stats/', api_views.director_stats_api, name='director_stats_api'),
     path('api/director/dashboard/', api_dashboard.DirectorDashboardAPIView.as_view(), name='director_dashboard_api'),
+    path('api/director/dashboard/students-chart/', api_dashboard.StudentChartAPIView.as_view(), name='student_chart_api'),
     path('dashboard/stats/', views.dashboard_stats_premium, name='dashboard_stats_premium'),
     path('notifications/broadcast/', views.notification_broadcast, name="notification_broadcast"),
 ]

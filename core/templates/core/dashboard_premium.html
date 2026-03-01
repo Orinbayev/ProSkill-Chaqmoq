@@ -613,19 +613,34 @@
 
     <!-- CHARTS GRID -->
     <div class="dashboard-grid">
-        <!-- Main Trend -->
-        <div class="glass-panel chart-panel-premium animate__animated animate__fadeInUp bg-gradient"
-            style="grid-column: 1;">
-            <div class="panel-header">
-                <div class="panel-title"><i class="fa-solid fa-chart-line"></i> Moliyaviy Tahlil (Barcha vaqt)
+        <!-- Left Side: Main Trend & New Students -->
+        <div class="d-flex flex-column gap-4" style="grid-column: 1;">
+            <!-- Main Trend -->
+            <div class="glass-panel chart-panel-premium animate__animated animate__fadeInUp bg-gradient">
+                <div class="panel-header">
+                    <div class="panel-title"><i class="fa-solid fa-chart-line"></i> Moliyaviy Tahlil (Barcha vaqt)
+                    </div>
+                    <select class="form-select border-0 bg-white bg-opacity-10 text-white w-auto" id="periodSelect">
+                        <option value="all" selected>Barcha vaqt</option>
+                        <option value="this_year">Shu yil</option>
+                        <option value="last_year">O'tgan yil</option>
+                    </select>
                 </div>
-                <select class="form-select border-0 bg-white bg-opacity-10 text-white w-auto" id="periodSelect">
-                    <option value="all" selected>Barcha vaqt</option>
-                    <option value="this_year">Shu yil</option>
-                    <option value="last_year">O'tgan yil</option>
-                </select>
+                <div id="mainTrendChart" class="chart-box" style="min-height: 400px;"></div>
             </div>
-            <div id="mainTrendChart" class="chart-box" style="min-height: 400px;"></div>
+
+            <!-- New Students Trend -->
+            <div class="glass-panel chart-panel-premium animate__animated animate__fadeInUp"
+                style="animation-delay: 0.15s;">
+                <div class="panel-header">
+                    <div class="panel-title"><i class="fa-solid fa-users"></i> O'quvchilar Oqimi (Oylik kelganlar)</div>
+                    <select class="form-select border-0 bg-white bg-opacity-10 text-white w-auto"
+                        id="studentYearSelect">
+                        <!-- Options generated dynamically -->
+                    </select>
+                </div>
+                <div id="studentsTrendChart" class="chart-box" style="min-height: 350px;"></div>
+            </div>
         </div>
 
         <!-- Right Side: Marketing + Small Stats -->
@@ -662,7 +677,44 @@
             let pTitle = document.querySelector('.panel-title');
             if (pTitle) pTitle.innerHTML = `<i class="fa-solid fa-chart-line"></i> Moliyaviy Tahlil (${text})`;
         });
+
+        initStudentYearFilter();
+
+        document.getElementById('studentYearSelect').addEventListener('change', (e) => {
+            fetchStudentChartData(e.target.value);
+        });
     });
+
+    function initStudentYearFilter() {
+        const select = document.getElementById('studentYearSelect');
+        const currentYear = new Date().getFullYear();
+        const startYear = 2025;
+        const limitYear = Math.max(currentYear, startYear);
+
+        let html = '';
+        for (let y = startYear; y <= limitYear; y++) {
+            html += `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y} yil</option>`;
+        }
+        select.innerHTML = html;
+
+        fetchStudentChartData(currentYear);
+    }
+
+    async function fetchStudentChartData(year) {
+        try {
+            const resp = await fetch(`{% url "core:student_chart_api" %}?year=${year}`);
+            const d = await resp.json();
+            if (d.error) throw new Error(d.error);
+
+            dashboardCharts.students.updateOptions({ xaxis: { categories: d.labels } });
+            dashboardCharts.students.updateSeries([{
+                name: "Yangi o'quvchilar",
+                data: d.new_students
+            }]);
+        } catch (e) {
+            console.error("Student chart error:", e);
+        }
+    }
 
     function initCharts() {
         dashboardCharts.main = new ApexCharts(document.querySelector("#mainTrendChart"), {
@@ -777,6 +829,67 @@
             stroke: { show: false }
         });
         dashboardCharts.mkt.render();
+
+        dashboardCharts.students = new ApexCharts(document.querySelector("#studentsTrendChart"), {
+            series: [{ name: "Yangi o'quvchilar", data: [] }],
+            chart: {
+                type: 'bar',
+                height: 350,
+                toolbar: { show: false },
+                background: 'transparent'
+            },
+            plotOptions: {
+                bar: {
+                    borderRadius: 6,
+                    columnWidth: '45%',
+                    dataLabels: { position: 'top' }
+                }
+            },
+            colors: ['#6366F1'],
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shade: 'dark',
+                    type: 'vertical',
+                    shadeIntensity: 0.5,
+                    gradientToColors: ['#A855F7'],
+                    inverseColors: true,
+                    opacityFrom: 1,
+                    opacityTo: 0.8,
+                    stops: [0, 100]
+                }
+            },
+            dataLabels: {
+                enabled: true,
+                formatter: function (val) { return val > 0 ? val : ""; },
+                offsetY: -20,
+                style: { fontSize: '12px', colors: ["#cbd5e1"] }
+            },
+            xaxis: {
+                categories: [],
+                labels: { style: { colors: '#64748b', fontSize: '11px', fontWeight: 600 } },
+                axisBorder: { show: false },
+                axisTicks: { show: false }
+            },
+            yaxis: {
+                labels: {
+                    style: { colors: '#64748b', fontSize: '11px', fontWeight: 600 },
+                    formatter: (v) => Math.floor(v)
+                }
+            },
+            grid: {
+                borderColor: 'rgba(255,255,255,0.08)',
+                strokeDashArray: 0,
+                xaxis: { lines: { show: false } },
+                yaxis: { lines: { show: true } },
+                padding: { top: 10, right: 0, bottom: 0, left: 10 }
+            },
+            tooltip: {
+                theme: 'dark',
+                y: { formatter: function (val) { return val + " o'quvchi"; } }
+            }
+        });
+        dashboardCharts.students.render();
     }
 
     function toggleUserDropdown(e) {

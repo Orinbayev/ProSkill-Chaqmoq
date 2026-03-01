@@ -352,6 +352,7 @@ class DirectorDashboardAPIView(View):
         income = []
         expenses = []
         debt_series = []
+        new_students = []
         
         for m, y in months_to_query:
             labels.append(f"{uz_months[m]} {y}" if y != now.year else uz_months[m])
@@ -375,10 +376,12 @@ class DirectorDashboardAPIView(View):
             ).aggregate(s=Sum('amount'))['s'] or 0
             
             m_debt = max(fee_sum - paid_sum, 0)
+            new_st = User.objects.filter(center=center, role='student', date_joined__year=y, date_joined__month=m, is_archived=False).count()
             
             income.append(int(inc))
             expenses.append(int(exp))
             debt_series.append(int(m_debt))
+            new_students.append(new_st)
             
         mkt = self.get_marketing_stats(center, start, end)
         return {
@@ -386,5 +389,45 @@ class DirectorDashboardAPIView(View):
             'income': income,
             'expenses': expenses,
             'debt_series': debt_series,
+            'new_students': new_students,
             'marketing': mkt
         }
+
+class StudentChartAPIView(View):
+    @method_decorator(login_required)
+    def dispatch(self, request, *args, **kwargs):
+        if not (request.user.is_superuser or getattr(request.user, 'role', None) in ('director', 'manager')):
+            return JsonResponse({'error': 'Permission denied'}, status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request):
+        try:
+            center = getattr(request, 'center', None) or request.user.center
+            if not center:
+                return JsonResponse({'error': 'Center not found'}, status=404)
+
+            year_str = request.GET.get('year', '')
+            try:
+                year = int(year_str)
+            except ValueError:
+                year = timezone.localtime(timezone.now()).year
+
+            uz_months = {1: 'Yanvar', 2: 'Fevral', 3: 'Mart', 4: 'Aprel', 5: 'May', 6: 'Iyun', 
+                         7: 'Iyul', 8: 'Avgust', 9: 'Sentabr', 10: 'Oktabr', 11: 'Noyabr', 12: 'Dekabr'}
+            
+            labels = []
+            new_students = []
+            
+            for m in range(1, 13):
+                labels.append(uz_months[m])
+                new_st = User.objects.filter(center=center, role='student', date_joined__year=year, date_joined__month=m, is_archived=False).count()
+                new_students.append(new_st)
+            
+            return JsonResponse({
+                'labels': labels,
+                'new_students': new_students
+            })
+        except Exception as e:
+            import traceback
+            logger.error(traceback.format_exc())
+            return JsonResponse({'error': str(e)}, status=500)
