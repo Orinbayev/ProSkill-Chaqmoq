@@ -652,7 +652,11 @@
             </div>
 
             <div class="glass-panel animate__animated animate__fadeInUp" style="animation-delay: 0.2s;">
-                <div class="panel-title mb-4"><i class="fa-solid fa-user-clock"></i> Faollik Past Talabalar</div>
+                <div class="panel-header" style="margin-bottom: 24px;">
+                    <div class="panel-title"><i class="fa-solid fa-user-clock"></i> Faollik Past Talabalar</div>
+                    <a href="{% url 'core:low_activity_students' %}" class="btn btn-sm text-white border-0"
+                        style="background: rgba(255, 255, 255, 0.05); border-radius: 8px;">Barchasi...</a>
+                </div>
                 <div id="lowActivityList" class="custom-list"></div>
             </div>
         </div>

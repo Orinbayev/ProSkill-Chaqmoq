@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+
+{% block title %}Faollik Past Talabalar | Chaqmoq Academy{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+<style>
+    :root {
+        --bg-deep: #0B1121;
+        --card-bg: rgba(15, 23, 42, 0.4);
+        --glass-border: rgba(255, 255, 255, 0.05);
+        --slate-400: #94a3b8;
+        --slate-500: #64748b;
+        --accent: #FACC15;
+        --rose: #F43F5E;
+    }
+
+    body {
+        background-color: #070a13 !important;
+        color: #f1f5f9;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    .stat-container {
+        padding: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .dashboard-header {
+        background: linear-gradient(135deg, rgba(30, 27, 75, 0.4) 0%, rgba(15, 23, 42, 0.4) 100%);
+        border-radius: 24px;
+        padding: 20px 30px;
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px solid var(--glass-border);
+        backdrop-filter: blur(10px);
+    }
+
+    .header-title-box h1 {
+        font-size: 28px;
+        font-weight: 800;
+        margin-bottom: 4px;
+        color: #fff;
+    }
+
+    .header-title-box p {
+        color: var(--slate-500);
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .glass-panel {
+        background: var(--card-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 24px;
+        backdrop-filter: blur(12px);
+    }
+
+    .custom-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .student-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        text-decoration: none !important;
+        color: inherit;
+    }
+
+    .student-card:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.1);
+        transform: translateY(-3px);
+    }
+
+    .student-card img {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        object-fit: cover;
+    }
+
+    .item-main {
+        flex-grow: 1;
+    }
+
+    .item-main .name {
+        font-size: 15px;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 4px;
+    }
+
+    .item-main .course {
+        font-size: 12px;
+        color: var(--slate-400);
+        font-weight: 600;
+        margin-bottom: 8px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .item-main .reasons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .reason-badge {
+        font-size: 10px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-weight: 700;
+        text-transform: uppercase;
+        background: rgba(244, 63, 94, 0.1);
+        color: var(--rose);
+        border: 1px solid rgba(244, 63, 94, 0.2);
+    }
+
+    .item-end {
+        text-align: right;
+        min-width: 50px;
+    }
+
+    .item-end .val {
+        font-size: 16px;
+        font-weight: 800;
+    }
+
+    .item-end .sub {
+        font-size: 10px;
+        color: var(--slate-500);
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="stat-container">
+    <div class="dashboard-header animate__animated animate__fadeInDown">
+        <div class="header-title-box">
+            <div class="d-flex align-items-center gap-3">
+                <a href="{% url 'core:home' %}" class="btn btn-sm text-white border-0"
+                    style="background: rgba(255, 255, 255, 0.1); border-radius: 8px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </a>
+                <div>
+                    <h1>Faollik Past Talabalar</h1>
+                    <p>Markaz bo'yicha e'tibor talab qiluvchi o'quvchilar ro'yxati</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-panel animate__animated animate__fadeInUp">
+        <div class="custom-list">
+            {% for s in low_list %}
+            <a href="{% url 'core:user_view' s.student_id %}" class="student-card">
+                <img src="{{ s.avatar }}" alt="Avatar">
+                <div class="item-main">
+                    <div class="name">{{ s.name }}</div>
+                    <div class="course">
+                        <span><i class="fa-solid fa-book-open" style="color: var(--slate-500); margin-right: 4px;"></i>
+                            {{ s.course }}</span>
+                        <span><i class="fa-solid fa-phone" style="color: var(--slate-500); margin-right: 4px;"></i> {{ s.phone|default:"Kiritilmagan" }}</span>
+                    </div>
+                    <div class="reasons">
+                        {% for r in s.reasons %}
+                        <span class="reason-badge">{{ r }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="item-end">
+                    <div class="val" style="color: {% if s.status < 40 %}#F43F5E{% else %}#FACC15{% endif %};">{{ s.status }}%</div>
+                    <div class="sub">Faollik</div>
+                </div>
+            </a>
+            {% empty %}
+            <div class="w-100 text-center py-5">
+                <div style="font-size: 40px; color: var(--slate-500);"><i class="fa-regular fa-face-smile-beam"></i>
+                </div>
+                <h4 class="mt-3 text-white fw-bold">Hamma faol!</h4>
+                <p class="text-slate-400 text-sm">Hozirda faolligi past talabalar yo'q.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

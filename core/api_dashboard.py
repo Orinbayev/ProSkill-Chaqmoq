@@ -338,13 +338,26 @@ class DirectorDashboardAPIView(View):
         
         months_to_query = []
         
-        current_date = start.replace(day=1)
-        while current_date <= end.replace(day=1):
-            months_to_query.append((current_date.month, current_date.year))
-            if current_date.month == 12:
-                current_date = current_date.replace(year=current_date.year + 1, month=1)
-            else:
-                current_date = current_date.replace(month=current_date.month + 1)
+        if period in ['this_year', 'last_year']:
+            year = now.year if period == 'this_year' else now.year - 1
+            for m in range(1, 13):
+                months_to_query.append((m, year))
+        elif period == 'all':
+            current_date = start.replace(day=1)
+            while current_date <= end.replace(day=1):
+                months_to_query.append((current_date.month, current_date.year))
+                if current_date.month == 12:
+                    current_date = current_date.replace(year=current_date.year + 1, month=1)
+                else:
+                    current_date = current_date.replace(month=current_date.month + 1)
+        else:
+            current_date = start.replace(day=1)
+            while current_date <= end.replace(day=1):
+                months_to_query.append((current_date.month, current_date.year))
+                if current_date.month == 12:
+                    current_date = current_date.replace(year=current_date.year + 1, month=1)
+                else:
+                    current_date = current_date.replace(month=current_date.month + 1)
         
         # If the duration is exactly 1 month and we are viewing exactly 1 month, we still show the single month logic.
         
