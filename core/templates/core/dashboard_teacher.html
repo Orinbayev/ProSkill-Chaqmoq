@@ -6,226 +6,304 @@
 {% block content %}
 <style>
   :root {
-    --text-warning: #facc15;
-    --white-5: rgba(255, 255, 255, 0.05);
-    --white-10: rgba(255, 255, 255, 0.1);
-    --white-3: rgba(255, 255, 255, 0.03);
-    --green-glow: rgba(34, 197, 94, 0.15);
+    --primary: #3b82f6;
+    --primary-light: #60a5fa;
+    --primary-glow: rgba(59, 130, 246, 0.3);
+
+    --amber: #f59e0b;
+    --amber-light: #fbbf24;
+    --amber-glow: rgba(245, 158, 11, 0.3);
+
+    --purple: #8b5cf6;
+    --purple-light: #a78bfa;
+    --purple-glow: rgba(139, 92, 246, 0.3);
+
+    --card-bg: rgba(15, 23, 42, 0.5);
+    --card-border: rgba(255, 255, 255, 0.08);
   }
 
-  .glass {
-    background: rgba(15, 23, 42, 0.5);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 24px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-  }
-
-  .header-card {
-    background: linear-gradient(-45deg, rgba(34, 197, 94, 0.15), rgba(15, 23, 42, 0.95), rgba(34, 197, 94, 0.08), rgba(15, 23, 42, 0.95));
-    background-size: 400% 400%;
-    animation: gradientBG 10s ease infinite;
-    border: 1px solid rgba(34, 197, 94, 0.2);
-    position: relative;
-    /* overflow: hidden; REMOVED to allow dropdowns to spill out */
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+  .premium-header {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.8) 100%);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--card-border);
     border-radius: 28px;
-    z-index: 10;
+    position: relative;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    overflow: visible;
+    z-index: 20;
+    padding: 24px 32px;
   }
 
-  /* Added wrapper to contain the glow since header-card is no longer overflow:hidden */
-  .header-glow-wrapper {
+  .header-bg-glow {
     position: absolute;
     inset: 0;
     overflow: hidden;
     border-radius: inherit;
+    z-index: -1;
     pointer-events: none;
-    z-index: 0;
   }
 
-  .header-content-wrapper {
-    position: relative;
-    z-index: 10;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
+  .header-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(40px);
+    opacity: 0.6;
+    animation: floatOrb 10s infinite ease-in-out alternate;
   }
 
-  @media (min-width: 768px) {
-    .header-content-wrapper {
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: center;
-    }
+  .orb-1 {
+    width: 150px;
+    height: 150px;
+    background: var(--primary-glow);
+    top: -30px;
+    left: 15%;
   }
 
-  @keyframes gradientBG {
+  .orb-2 {
+    width: 180px;
+    height: 180px;
+    background: var(--amber-glow);
+    bottom: -40px;
+    right: 25%;
+    animation-delay: -3s;
+  }
+
+  @keyframes floatOrb {
     0% {
-      background-position: 0% 50%;
-    }
-
-    50% {
-      background-position: 100% 50%;
+      transform: translateY(0) scale(1) translateX(0);
     }
 
     100% {
-      background-position: 0% 50%;
+      transform: translateY(-20px) scale(1.1) translateX(20px);
     }
   }
 
-  .header-glow-wrapper::before {
-    content: "";
+  .header-icon-box {
+    width: 64px;
+    height: 64px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.05), 0 10px 20px rgba(0, 0, 0, 0.2);
+    font-size: 28px;
+    color: #fff;
+  }
+
+  /* Glass Card Settings */
+  .premium-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--card-border);
+    border-radius: 24px;
+    padding: 32px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+  }
+
+  .premium-card::before {
+    content: '';
     position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle at center, rgba(34, 197, 94, 0.05) 0%, transparent 50%);
-    animation: rotateGlow 15s linear infinite;
+    inset: 0;
     pointer-events: none;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(to bottom right, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
   }
 
-  @keyframes rotateGlow {
-    from {
-      transform: rotate(0deg);
-    }
-
-    to {
-      transform: rotate(360deg);
-    }
+  .premium-card:hover {
+    transform: translateY(-10px);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
   }
 
-  .icon-box {
+  .card-icon-wrapper {
     width: 60px;
     height: 60px;
     border-radius: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(34, 197, 94, 0.1);
-    border: 1px solid rgba(34, 197, 94, 0.2);
-    color: #22c55e;
     font-size: 24px;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    margin-bottom: 24px;
+    position: relative;
+    z-index: 2;
   }
 
-  .dashboard-card {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    height: 100%;
+  .icon-blue {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--primary-light);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.2);
   }
 
-  .dashboard-card:hover {
-    transform: translateY(-8px);
-    border-color: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+  .icon-amber {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--amber-light);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    box-shadow: 0 0 30px rgba(245, 158, 11, 0.2);
   }
 
-  .card-icon-large {
-    width: 50px;
-    height: 50px;
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 20px;
-    font-size: 20px;
+  .icon-purple {
+    background: rgba(139, 92, 246, 0.15);
+    color: var(--purple-light);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.2);
   }
 
-  .bg-blue-subtle {
-    background: rgba(56, 189, 248, 0.1);
-    color: #38bdf8;
-    border: 1px solid rgba(56, 189, 248, 0.2);
-  }
-
-  .bg-green-subtle {
-    background: rgba(34, 197, 94, 0.1);
-    color: #22c55e;
-    border: 1px solid rgba(34, 197, 94, 0.2);
-  }
-
-  .bg-purple-subtle {
-    background: rgba(168, 85, 247, 0.1);
-    color: #c084fc;
-    border: 1px solid rgba(168, 85, 247, 0.2);
-  }
-
-  .btn-premium {
-    width: 100%;
-    padding: 12px;
-    border-radius: 14px;
+  .premium-card h4 {
+    font-size: 22px;
     font-weight: 800;
-    transition: all 0.2s;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+  }
+
+  .premium-card p {
+    color: #94a3b8;
+    font-size: 14.5px;
+    line-height: 1.6;
+    margin-bottom: 32px;
+    flex-grow: 1;
+  }
+
+  .premium-btn {
+    width: 100%;
+    padding: 14px 20px;
+    border-radius: 16px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff !important;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 12px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: none;
+    position: relative;
+    overflow: hidden;
   }
 
-  .btn-blue-glass {
-    background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
-    color: white;
-    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
+  .btn-blue {
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
+    border: 1px solid rgba(59, 130, 246, 0.5);
   }
 
-  .btn-green-glass {
-    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    color: white;
-    box-shadow: 0 10px 20px rgba(34, 197, 94, 0.2);
+  .btn-amber {
+    background: linear-gradient(135deg, #d97706, #f59e0b);
+    box-shadow: 0 10px 20px rgba(217, 119, 6, 0.3);
+    border: 1px solid rgba(245, 158, 11, 0.5);
   }
 
-  .btn-premium:hover {
-    transform: translateY(-2px);
+  .btn-purple {
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    box-shadow: 0 10px 20px rgba(124, 58, 237, 0.3);
+    border: 1px solid rgba(168, 85, 247, 0.5);
+  }
+
+  .premium-btn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0));
+    transform: skewX(-20deg);
+    transition: all 0.5s ease;
+  }
+
+  .premium-btn:hover {
+    transform: scale(1.02);
     filter: brightness(1.1);
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
   }
 
-  .top-right-actions {
+  .premium-btn:hover::after {
+    left: 150%;
+  }
+
+  .premium-btn .arrow-icon {
+    transition: transform 0.3s ease;
+  }
+
+  .premium-btn:hover .arrow-icon {
+    transform: translateX(4px);
+  }
+
+  /* Micro-animations */
+  @keyframes slideUpFade {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .anim-slide-up {
+    animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+  }
+
+  .delay-1 {
+    animation-delay: 0.1s;
+  }
+
+  .delay-2 {
+    animation-delay: 0.2s;
+  }
+
+  .delay-3 {
+    animation-delay: 0.3s;
+  }
+
+  /* Toolbar Actions */
+  .toolbar-actions {
     display: flex;
     gap: 12px;
+    align-items: center;
   }
 
-  .icon-btn-glass {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
+  .icon-action-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
+    font-size: 18px;
+    transition: all 0.2s ease;
+    cursor: pointer;
   }
 
-  .icon-btn-glass:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-warning);
-    border-color: var(--text-warning);
+  .icon-action-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--amber-light);
     transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
   }
 
-  .avatar-circle {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    border: 2px solid var(--text-warning);
-    object-fit: cover;
-  }
-
-  .avatar-placeholder {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: var(--text-warning);
-    color: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 900;
-  }
-
-  /* DROPDOWN STYLES */
+  /* Dropdown Styles override */
   .no-caret::after {
     display: none !important;
   }
@@ -236,7 +314,7 @@
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
     border-radius: 16px !important;
     padding: 8px !important;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5) !important;
   }
 
   .glass-dropdown .dropdown-item {
@@ -250,44 +328,45 @@
 
   .glass-dropdown .dropdown-item:hover {
     background: rgba(255, 255, 255, 0.1) !important;
-    color: var(--text-warning) !important;
+    color: var(--amber-light) !important;
   }
 
   .glass-dropdown .dropdown-item.text-danger:hover {
-    background: rgba(239, 68, 68, 0.1) !important;
+    background: rgba(239, 68, 68, 0.15) !important;
     color: #f87171 !important;
-  }
-
-  .border-white-10 {
-    border-color: rgba(255, 255, 255, 0.1) !important;
   }
 </style>
 
-<div class="container-fluid py-4 animate__animated animate__fadeIn">
+<div class="container-fluid py-4">
 
-  <!-- HEADER -->
-  <div class="header-card p-4 mb-4">
-    <div class="header-glow-wrapper"></div>
-    <div class="header-content-wrapper d-flex flex-column flex-md-row justify-content-between align-items-center gap-4">
-      <div class="d-flex align-items-center gap-3">
-        <div class="icon-box">
+  <!-- HEADER COMPONENT -->
+  <div class="premium-header mb-5 anim-slide-up">
+    <!-- Glowing Orbs inside header -->
+    <div class="header-bg-glow">
+      <div class="header-orb orb-1"></div>
+      <div class="header-orb orb-2"></div>
+    </div>
+
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-4">
+      <div class="d-flex align-items-center gap-4">
+        <div class="header-icon-box shadow-sm">
           <i class="fa-solid fa-chalkboard-user"></i>
         </div>
         <div>
-          <h2 class="m-0 fw-black text-white" style="letter-spacing: -1px;">O‘qituvchi paneli</h2>
-          <p class="m-0 text-white-50 small">Guruhlar, reyting va do‘kon bo‘limlariga tez kirish</p>
+          <h2 class="m-0 fw-black text-white mb-1" style="font-size: 28px; letter-spacing: -1px;">O‘qituvchi paneli</h2>
+          <p class="m-0 text-white-50" style="font-size: 15px;">Guruhlar, reyting va do‘kon bo‘limlariga tez kirish</p>
         </div>
       </div>
 
-      <div class="top-right-actions">
-        <!-- Notification Bell (Reverted) -->
-        <button class="icon-btn-glass position-relative" title="Bildirishnomalar" onclick="toggleNotificationSidebar()">
+      <div class="toolbar-actions z-2">
+        <!-- Notification Bell -->
+        <button class="icon-action-btn position-relative" title="Bildirishnomalar"
+          onclick="toggleNotificationSidebar()">
           <i class="fa-regular fa-bell"></i>
           {% if unread_notifications_count > 0 %}
           <span
             class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-dark rounded-circle"
-            style="width:10px;height:10px;">
-          </span>
+            style="width:12px;height:12px; margin-top: 12px; margin-left: -12px;"></span>
           {% endif %}
         </button>
 
@@ -296,55 +375,52 @@
     </div>
   </div>
 
-  <!-- DASHBOARD GRID -->
+  <!-- DASHBOARD CARDS GRID -->
   <div class="row g-4">
-    <!-- GROUPS -->
-    <div class="col-md-4">
-      <div class="dashboard-card glass p-4">
-        <div class="card-icon-large bg-blue-subtle">
-          <i class="fa-solid fa-book"></i>
+    <!-- GROUPS CARD -->
+    <div class="col-md-4 anim-slide-up delay-1">
+      <div class="premium-card">
+        <div class="card-icon-wrapper icon-blue">
+          <i class="fa-solid fa-book-open"></i>
         </div>
-        <h4 class="fw-bold text-white mb-3">Mening guruhlarim</h4>
-        <p class="text-white-50 small mb-4">
-          O‘zingiz dars beradigan guruhlarni ko‘ring, davomat va oyliklarni tekshiring.
-        </p>
-        <a href="{% url 'education:men_guruhlarim' %}" class="btn-premium btn-blue-glass">
-          Guruhlarimni ko‘rish
-          <i class="fa-solid fa-chevron-right fs-mini"></i>
+        <h4>Mening guruhlarim</h4>
+        <p>O‘zingiz dars beradigan guruhlarni kuzating, o'quvchilar davomatini belgilang va yangi moliyaviy hisobotlarni
+          tekshiring.</p>
+        <a href="{% url 'education:men_guruhlarim' %}" class="premium-btn btn-blue">
+          Guruhlarni ochish
+          <i class="fa-solid fa-arrow-right arrow-icon"></i>
         </a>
       </div>
     </div>
 
-    <!-- CHAQMOK -->
-    <div class="col-md-4">
-      <div class="dashboard-card glass p-4">
-        <div class="card-icon-large bg-green-subtle">
+    <!-- REYTING / CHAQMOQ CARD -->
+    <div class="col-md-4 anim-slide-up delay-2">
+      <div class="premium-card">
+        <div class="card-icon-wrapper icon-amber">
           <i class="fa-solid fa-bolt"></i>
         </div>
-        <h4 class="fw-bold text-white mb-3">Chaqmoq</h4>
-        <p class="text-white-50 small mb-4">
-          Umumiy chaqmoq reytingini ko‘ring. O‘quvchilarni motivatsiya qilish uchun eng yaxshi usul.
-        </p>
-        <a href="{% url 'chaqmoq:reyting' %}" class="btn-premium btn-green-glass">
-          Umumiy reyting
-          <i class="fa-solid fa-trophy fs-mini"></i>
+        <h4>Chaqmoq reytingi</h4>
+        <p>Markazning umumiy chaqmoq reytingi. O‘quvchilaringizning motivatsiyasini oshirish uchun qaysi o'rinda ekanini
+          ko'ring.</p>
+        <a href="{% url 'chaqmoq:reyting' %}" class="premium-btn btn-amber">
+          Reytingni ko'rish
+          <i class="fa-solid fa-trophy arrow-icon"></i>
         </a>
       </div>
     </div>
 
-    <!-- STORE -->
-    <div class="col-md-4">
-      <div class="dashboard-card glass p-4">
-        <div class="card-icon-large bg-purple-subtle">
-          <i class="fa-solid fa-shop"></i>
+    <!-- STORE CARD -->
+    <div class="col-md-4 anim-slide-up delay-3">
+      <div class="premium-card">
+        <div class="card-icon-wrapper icon-purple">
+          <i class="fa-solid fa-store"></i>
         </div>
-        <h4 class="fw-bold text-white mb-3">Do‘kon</h4>
-        <p class="text-white-50 small mb-4">
-          Do‘kondagi mahsulotlarni ko‘rish. O‘quvchilar ballarini nimalarga almashishini bilib oling.
-        </p>
-        <a href="{% url 'store:products' %}" class="btn-premium btn-blue-glass">
-          Mahsulotlar
-          <i class="fa-solid fa-eye fs-mini"></i>
+        <h4>Market do‘kon</h4>
+        <p>Do‘kondagi barcha mahsulotlarni va ularning baholarini o'rganing. O‘quvchilar chaqmoqlarini qanday
+          sovrinlarga almashtirishini biling.</p>
+        <a href="{% url 'store:products' %}" class="premium-btn btn-purple">
+          Do'konga kirish
+          <i class="fa-solid fa-gift arrow-icon"></i>
         </a>
       </div>
     </div>
