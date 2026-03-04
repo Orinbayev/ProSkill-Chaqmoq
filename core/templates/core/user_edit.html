@@ -232,27 +232,78 @@
     font-size: 16px;
   }
 
-  /* Checkbox logic */
-  .form-check-input {
-    width: 20px;
-    height: 20px;
-    border-radius: 6px;
+  /* ===== DELETE TOGGLE ===== */
+  .delete-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    gap: 12px;
+    user-select: none;
+    background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--border);
-    background: rgba(2, 6, 23, .55);
-    margin-right: 8px;
-    accent-color: var(--red);
-    cursor: pointer;
+    padding: 8px 16px;
+    border-radius: 12px;
+    transition: 0.3s;
+    height: 48px;
+    width: 100%;
   }
 
-  .form-check-label {
+  .delete-toggle:hover {
+    background: rgba(239, 68, 68, 0.05);
+    border-color: rgba(239, 68, 68, 0.2);
+  }
+
+  .delete-toggle input {
+    appearance: none;
+    width: 44px;
+    height: 24px;
+    flex: 0 0 44px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border);
+    outline: none;
+    transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    cursor: pointer;
+    margin: 0;
+  }
+
+  .delete-toggle input::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .delete-toggle input:checked {
+    background: var(--red) !important;
+    border-color: var(--red);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+  }
+
+  .delete-toggle input:checked::after {
+    transform: translateX(20px);
+  }
+
+  .delete-toggle span {
     color: var(--text-muted);
-    font-weight: 600;
+    font-weight: 700;
     font-size: 14px;
-    cursor: pointer;
+    transition: 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
-  .text-danger {
-    color: var(--red) !important;
+  .delete-toggle input:checked~span {
+    color: var(--red);
   }
 
   .text-warning {
@@ -442,7 +493,7 @@
         <label class="form-label">Role</label>
         <select name="role" class="form-control" aria-label="Role">
           <option value="student" {% if user_obj.role == "student" %}selected{% endif %}>O‘quvchi</option>
-          <option value="teacher" {% if user_obj.role ==   "teacher" %}selected{% endif %}>O‘qituvchi</option>
+          <option value="teacher" {% if user_obj.role == "teacher" %}selected{% endif %}>O‘qituvchi</option>
           <option value="manager" {% if user_obj.role == "manager" %}selected{% endif %}>Manager</option>
           <option value="director" {% if user_obj.role == "director" %}selected{% endif %}>Direktor</option>
         </select>
@@ -453,7 +504,7 @@
     <hr class="mt-4 mb-3" style="border-color: rgba(255,255,255,0.08);">
 
     <!-- ===== ANKETA SECTION (Student, Manager & Teacher) ===== -->
-    <div id="anketaSection" {% if user_obj.role != 'student' and user_obj.role != 'manager' and user_obj.role != 'teacher'%}style="display:none;" {% endif %}>
+    <div id="anketaSection" {% if user_obj.role != 'student' and user_obj.role !=  'manager' and user_obj.role != 'teacher' %}style="display:none;" {% endif %}>
       <div class="section-title">🆔 Shaxsiy ma'lumotlar</div>
       <div class="row">
         <!-- Tug'ilgan sana -->
@@ -471,7 +522,7 @@
 
             <div class="gender-option" style="flex: 1; position: relative;">
               <input type="radio" name="gender" value="male" id="gender_male"
-                style="position:absolute; opacity:0; width:0; height:0;" {% if user_obj.gender == 'male' %}checked{% endif %}>
+                style="position:absolute; opacity:0; width:0; height:0;" {% if user_obj.gender == 'male' %}checked{% endif   %}>
               <label for="gender_male"
                 style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:10px; cursor:pointer; color:#94a3b8; font-weight:600;">
                 <i class="fa-solid fa-person"></i> Erkak
@@ -480,7 +531,7 @@
 
             <div class="gender-option" style="flex: 1; position: relative;">
               <input type="radio" name="gender" value="female" id="gender_female"
-                style="position:absolute; opacity:0; width:0; height:0;" {% if user_obj.gender == 'female' %}checked{% endif %}>
+                style="position:absolute; opacity:0; width:0; height:0;" {% if user_obj.gender == 'female' %}checked{%  endif %}>
               <label for="gender_female"
                 style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:10px; cursor:pointer; color:#94a3b8; font-weight:600;">
                 <i class="fa-solid fa-person-dress"></i> Ayol
@@ -558,9 +609,9 @@
         </div>
 
         <div class="col-md-4 col-12 d-flex align-items-center">
-          <input class="form-check-input me-2" type="checkbox" name="delete_group_{{ e.id }}" id="del{{ e.id }}">
-          <label for="del{{ e.id }}" class="form-check-label text-danger">
-            ❌ O‘chirish
+          <label class="delete-toggle" title="O'quvchini guruhdan chiqarish">
+            <input type="checkbox" name="delete_group_{{ e.id }}">
+            <span><i class="fa-solid fa-user-minus"></i> O‘chirish</span>
           </label>
         </div>
 

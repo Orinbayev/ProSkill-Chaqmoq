@@ -639,11 +639,15 @@
             <td>
               <div class="group-chips">
                 {% for enr in u.enrollments.all %}
+                {% if enr.is_active %}
                 <a href="{% url 'education:group_detail' enr.group.id %}" class="chip"
                   style="text-decoration:none; color:inherit; cursor:pointer;" title="Guruhga o‘tish">
                   {{ enr.group.nom }}
                 </a>
-                {% empty %}<span style="color:var(--text-muted)">—</span>{% endfor %}
+                {% endif %}
+                {% empty %}
+                <span style="color:var(--text-muted)">—</span>
+                {% endfor %}
               </div>
             </td>
             {% endif %}

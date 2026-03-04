@@ -743,7 +743,7 @@ def stat_students(request):
             0
         )
     ).prefetch_related(
-        Prefetch("enrollments", queryset=Enrollment.objects.filter(group__center=center).select_related("group"))
+        Prefetch("enrollments", queryset=Enrollment.objects.filter(group__center=center, is_active=True).select_related("group"))
     ).order_by("-id")
 
     if q:
@@ -1064,7 +1064,7 @@ def user_edit(request, pk):
     all_groups = _try_center_filter(all_groups, center, ["center"]) if center else Group.objects.none()
 
     # ✅ enrollments ham tenant: enrollment -> group__center
-    enrollments = Enrollment.objects.filter(student=user).select_related("group")
+    enrollments = Enrollment.objects.filter(student=user, is_active=True).select_related("group")
     enrollments = _try_center_filter(enrollments, center, ["group__center"])
 
     # Determine default redirect based on role
