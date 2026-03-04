@@ -505,8 +505,7 @@
     <!-- FILTERS -->
     <div class="filter-section anim-fade-in">
         <form method="get" id="tlFilterForm">
-            {% if request.GET.date_from or request.GET.date_to or request.GET.q or request.GET.payment_type or
-            request.GET.group or request.GET.course or request.GET.teacher or request.GET.staff %}
+            {% if request.GET.date_from or request.GET.date_to or request.GET.q or request.GET.payment_type or request.GET.group or request.GET.course or request.GET.teacher or request.GET.staff %}
             <div class="clear-filter-wrap">
                 <a href="?" class="clear-filter-btn"> <i class="fa-solid fa-xmark"></i> Filtrlarni tozalash
                 </a>
@@ -529,9 +528,9 @@
                     <label class="filter-label"> To'lov turi</label>
                     <select name="payment_type" class="filter-select">
                         <option value="">Barchasi</option>
-                        <option value="cash" {% if sel_type=="cash" %}selected{% endif %}>Naqd</option>
-                        <option value="card" {% if sel_type=="card" %}selected{% endif %}>Karta</option>
-                        <option value="mixed" {% if sel_type=="mixed" %}selected{% endif %}>Aralash</option>
+                        <option value="cash" {% if sel_type == "cash" %}selected{% endif %}>Naqd</option>
+                        <option value="card" {% if sel_type == "card" %}selected{% endif %}>Karta</option>
+                        <option value="mixed" {% if sel_type == "mixed" %}selected{% endif %}>Aralash</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -539,7 +538,7 @@
                     <select name="group" class="filter-select">
                         <option value="">Barchasi</option>
                         {% for g in groups %}
-                        <option value="{{ g.id }}" {% if sel_group==g.id|stringformat:"s" %}selected{% endif %}>{{ g.nom
+                        <option value="{{ g.id }}" {% if sel_group == g.id|stringformat:"s" %}selected{% endif %}>{{ g.nom
                             }}</option>
                         {% endfor %}
                     </select>
@@ -549,7 +548,7 @@
                     <select name="course" class="filter-select">
                         <option value="">Barchasi</option>
                         {% for c in courses %}
-                        <option value="{{ c.id }}" {% if sel_course==c.id|stringformat:"s" %}selected{% endif %}>{{
+                        <option value="{{ c.id }}" {% if sel_course == c.id|stringformat:"s" %}selected{% endif %}>{{
                             c.name }}</option>
                         {% endfor %}
                     </select>
@@ -559,7 +558,7 @@
                     <select name="teacher" class="filter-select">
                         <option value="">Barchasi</option>
                         {% for t in teachers %}
-                        <option value="{{ t.id }}" {% if sel_teacher==t.id|stringformat:"s" %}selected{% endif %}>{{
+                        <option value="{{ t.id }}" {% if sel_teacher == t.id|stringformat:"s" %}selected{% endif %}>{{
                             t.ism }} {{ t.familya }}</option>
                         {% endfor %}
                     </select>
@@ -569,7 +568,7 @@
                     <select name="staff" class="filter-select">
                         <option value="">Barchasi</option>
                         {% for s in staffs %}
-                        <option value="{{ s.id }}" {% if sel_staff==s.id|stringformat:"s" %}selected{% endif %}>{{ s.ism
+                        <option value="{{ s.id }}" {% if sel_staff == s.id|stringformat:"s" %}selected{% endif %}>{{ s.ism
                             }} {{ s.familya }}</option>
                         {% endfor %}
                     </select>
@@ -611,16 +610,14 @@
                         <td>
                             <div class="student-info">
                                 <span class="student-name">{{ p.student.ism }} {{ p.student.familya }}</span>
-                                <span class="student-meta">{{ p.student.telefon1|default:p.student.telefon2|default:"—"
-                                    }}</span>
+                                <span class="student-meta">{{ p.student.telefon1|default:p.student.telefon2|default:"—" }}</span>
                             </div>
                         </td>
                         <td><span class="amount-badge">{{ p.summa|intcomma }} so'm</span></td>
                         <td>
                             <div class="d-flex flex-column gap-1">
                                 {% for alloc in p.allocations.all %}
-                                <span class="month-tag">{{ alloc.tuition_month.month.month|get_month_name }} {{
-                                    alloc.tuition_month.month.year }}</span>
+                                <span class="month-tag">{{ alloc.tuition_month.month.month|get_month_name }} {{ alloc.tuition_month.month.year }}</span>
                                 {% empty %}
                                 <span class="text-secondary opacity-50 small">—</span>
                                 {% endfor %}
@@ -629,8 +626,7 @@
                         <td>
                             <div class="d-flex flex-column gap-1">
                                 <span class="group-tag">{{ p.group.nom|default:"—" }}</span>
-                                <small class="text-secondary opacity-50">{{ p.group.category_obj.name|default:"—"
-                                    }}</small>
+                                <small class="text-secondary opacity-50">{{ p.group.category_obj.name|default:"—" }}</small>
                             </div>
                         </td>
                         <td>
@@ -772,7 +768,8 @@
                 <div class="p-3 rounded-3"
                     style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);">
                     <p class="text-warning small m-0">⚠️ <strong>Diqqat:</strong> O'quvchi avtomatik
-                        <strong>Qarzdorlar</strong> ro'yxatiga qaytadi.</p>
+                        <strong>Qarzdorlar</strong> ro'yxatiga qaytadi.
+                    </p>
                 </div>
             </div>
             <div class="modal-footer" style="border-top:1px solid rgba(239,68,68,0.15);">
@@ -802,14 +799,52 @@
             new bootstrap.Modal(document.getElementById('noteModal')).show();
         };
 
-        // Open edit modal - URL: /talim/tolov/update/<id>/
+        // Open edit modal
         window.openEditModal = function (paymentId, cash, card, note) {
             document.getElementById('editCash').value = cash || 0;
             document.getElementById('editCard').value = card || 0;
             document.getElementById('editNote').value = note || '';
-            document.getElementById('editPayForm').action = '/talim/tolov/update/' + paymentId + '/';
+            // Store payment ID in form dataset
+            document.getElementById('editPayForm').dataset.paymentId = paymentId;
             new bootstrap.Modal(document.getElementById('editPayModal')).show();
         };
+
+        // Edit form: AJAX submit (payment_update returns JSON)
+        document.addEventListener('DOMContentLoaded', function () {
+            const editForm = document.getElementById('editPayForm');
+            if (editForm) {
+                editForm.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    const paymentId = this.dataset.paymentId;
+                    const formData = new FormData(this);
+                    const btn = this.querySelector('[type=submit]');
+                    btn.disabled = true;
+                    btn.textContent = 'Saqlanmoqda...';
+
+                    fetch('/talim/tolov/update/' + paymentId + '/', {
+                        method: 'POST',
+                        body: formData,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.ok) {
+                                bootstrap.Modal.getInstance(document.getElementById('editPayModal')).hide();
+                                location.reload();
+                            } else {
+                                alert('Xatolik: ' + (data.error || 'Noma\'lum xato'));
+                                btn.disabled = false;
+                                btn.textContent = '💾 Saqlash';
+                            }
+                        })
+                        .catch(() => {
+                            alert('Server xatoligi. Qayta urinib ko\'ring.');
+                            btn.disabled = false;
+                            btn.textContent = '💾 Saqlash';
+                        });
+                });
+            }
+        });
 
         // Open delete confirm modal
         window.openDeleteModal = function (paymentId, studentName, amount) {
