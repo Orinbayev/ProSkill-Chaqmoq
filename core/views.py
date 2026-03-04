@@ -838,7 +838,7 @@ def restore_student(request, pk):
 @require_POST
 def hard_delete_student(request, pk):
     """
-    Hard Delete Student (Permanent)
+    Hard Delete Student (Permanent) - barcha bog'liq ma'lumotlarni ham o'chiradi
     """
     if not _staff_only(request):
         raise PermissionDenied
@@ -847,12 +847,29 @@ def hard_delete_student(request, pk):
     student = get_object_or_404(U, pk=pk, role="student")
     _assert_same_center(student, center)
 
-    if not student.is_archived:
-        # Safety check: should usually differ hard delete to archived users only?
-        # Requirement doesn't strictly say, but usually safer.
-        pass
+    from education.models import TuitionMonth, PaymentAllocation, Payment, Enrollment, Attendance
 
-    student.delete()
+    with transaction.atomic():
+        # 1. Barcha enrollmentlarni topamiz
+        enrollments = Enrollment.objects.filter(student=student)
+        
+        # 2. TuitionMonth va PaymentAllocationlarni o'chiramiz
+        for enr in enrollments:
+            PaymentAllocation.objects.filter(tuition_month__enrollment=enr).delete()
+            TuitionMonth.objects.filter(enrollment=enr).delete()
+        
+        # 3. Paymentlarni o'chiramiz
+        Payment.objects.filter(student=student).delete()
+        
+        # 4. Enrollmentlarni o'chiramiz
+        enrollments.delete()
+        
+        # 5. Davomatlarni o'chiramiz
+        Attendance.objects.filter(student=student).delete()
+        
+        # 6. Foydalanuvchini o'chiramiz
+        student.delete()
+
     return HttpResponse(status=200)
 
 

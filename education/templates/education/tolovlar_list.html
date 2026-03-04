@@ -258,6 +258,107 @@
         width: fit-content;
     }
 
+    /* ===== ACTION BUTTONS ===== */
+    .action-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #94a3b8;
+        transition: all 0.2s;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .action-btn:hover {
+        background: rgba(59, 130, 246, 0.12);
+        color: #60a5fa;
+        border-color: rgba(59, 130, 246, 0.3);
+        transform: translateY(-1px);
+    }
+
+    .action-btn.delete:hover {
+        background: rgba(239, 68, 68, 0.12);
+        color: #f87171;
+        border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .action-btn.edit:hover {
+        background: rgba(245, 158, 11, 0.12);
+        color: #fbbf24;
+        border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    /* Note Tooltip */
+    [data-note]:hover::after {
+        content: attr(data-note);
+        position: absolute;
+        bottom: 110%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(15, 23, 42, 0.95);
+        color: #e2e8f0;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        white-space: nowrap;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        z-index: 999;
+    }
+
+    [data-note] {
+        position: relative;
+    }
+
+    /* Edit Modal */
+    .glass-modal .modal-content {
+        background: rgba(15, 23, 42, 0.97);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px;
+    }
+
+    .glass-modal .modal-header {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 20px 24px;
+    }
+
+    .glass-modal .modal-footer {
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 16px 24px;
+    }
+
+    .gl-input {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 10px 14px;
+        color: #fff;
+        width: 100%;
+        outline: none;
+        font-size: 14px;
+    }
+
+    .gl-input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    .gl-label {
+        font-size: 12px;
+        font-weight: 700;
+        color: #64748b;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: block;
+    }
+
+
     /* ===== ANIMATIONS ===== */
     @keyframes fadeInSlide {
         from {
@@ -404,7 +505,8 @@
     <!-- FILTERS -->
     <div class="filter-section anim-fade-in">
         <form method="get" id="tlFilterForm">
-            {% if request.GET.date_from or request.GET.date_to or request.GET.q or request.GET.payment_type or request.GET.group or request.GET.course or request.GET.teacher or request.GET.staff %}
+            {% if request.GET.date_from or request.GET.date_to or request.GET.q or request.GET.payment_type or
+            request.GET.group or request.GET.course or request.GET.teacher or request.GET.staff %}
             <div class="clear-filter-wrap">
                 <a href="?" class="clear-filter-btn">
                     <i class="fa-solid fa-xmark"></i> Filtrlarni tozalash
@@ -428,9 +530,9 @@
                     <label class="filter-label"> To'lov turi</label>
                     <select name="payment_type" class="filter-select">
                         <option value="">Barchasi</option>
-                        <option value="cash" {% if sel_type == "cash" %}selected{% endif %}>Naqd</option>
-                        <option value="card" {% if sel_type == "card" %}selected{% endif %}>Karta</option>
-                        <option value="mixed" {% if sel_type == "mixed" %}selected{% endif %}>Aralash</option>
+                        <option value="cash" {% if sel_type=="cash" %}selected{% endif %}>Naqd</option>
+                        <option value="card" {% if sel_type=="card" %}selected{% endif %}>Karta</option>
+                        <option value="mixed" {% if sel_type=="mixed" %}selected{% endif %}>Aralash</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -438,7 +540,8 @@
                     <select name="group" class="filter-select">
                         <option value="">Barchasi</option>
                         {% for g in groups %}
-                        <option value="{{ g.id }}" {% if sel_group == g.id|stringformat:"s" %}selected{% endif %}>{{ g.nom }}</option>
+                        <option value="{{ g.id }}" {% if sel_group==g.id|stringformat:"s" %}selected{% endif %}>{{ g.nom
+                            }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -447,7 +550,8 @@
                     <select name="course" class="filter-select">
                         <option value="">Barchasi</option>
                         {% for c in courses %}
-                        <option value="{{ c.id }}" {% if sel_course == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                        <option value="{{ c.id }}" {% if sel_course==c.id|stringformat:"s" %}selected{% endif %}>{{
+                            c.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -456,7 +560,8 @@
                     <select name="teacher" class="filter-select">
                         <option value="">Barchasi</option>
                         {% for t in teachers %}
-                        <option value="{{ t.id }}" {% if sel_teacher == t.id|stringformat:"s" %}selected{% endif %}>{{  t.ism }} {{ t.familya }}</option>
+                        <option value="{{ t.id }}" {% if sel_teacher==t.id|stringformat:"s" %}selected{% endif %}>{{
+                            t.ism }} {{ t.familya }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -465,7 +570,8 @@
                     <select name="staff" class="filter-select">
                         <option value="">Barchasi</option>
                         {% for s in staffs %}
-                        <option value="{{ s.id }}" {% if sel_staff == s.id|stringformat:"s" %}selected{% endif %}>{{ s.ism }} {{ s.familya }}</option>
+                        <option value="{{ s.id }}" {% if sel_staff==s.id|stringformat:"s" %}selected{% endif %}>{{ s.ism
+                            }} {{ s.familya }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -493,6 +599,7 @@
                         <th>Yonalish</th>
                         <th>Tur</th>
                         <th>Xodim</th>
+                        <th class="text-end">Amallar</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -505,14 +612,16 @@
                         <td>
                             <div class="student-info">
                                 <span class="student-name">{{ p.student.ism }} {{ p.student.familya }}</span>
-                                <span class="student-meta">{{ p.student.telefon1|default:p.student.telefon2|default:"—"      }}</span>
+                                <span class="student-meta">{{ p.student.telefon1|default:p.student.telefon2|default:"—"
+                                    }}</span>
                             </div>
                         </td>
                         <td><span class="amount-badge">{{ p.summa|intcomma }} so'm</span></td>
                         <td>
                             <div class="d-flex flex-column gap-1">
                                 {% for alloc in p.allocations.all %}
-                                <span class="month-tag">{{ alloc.tuition_month.month.month|get_month_name }} {{  alloc.tuition_month.month.year }}</span>
+                                <span class="month-tag">{{ alloc.tuition_month.month.month|get_month_name }} {{
+                                    alloc.tuition_month.month.year }}</span>
                                 {% empty %}
                                 <span class="text-secondary opacity-50 small">—</span>
                                 {% endfor %}
@@ -521,7 +630,8 @@
                         <td>
                             <div class="d-flex flex-column gap-1">
                                 <span class="group-tag">{{ p.group.nom|default:"—" }}</span>
-                                <small class="text-secondary opacity-50">{{ p.group.category_obj.name|default:"—" }}</small>
+                                <small class="text-secondary opacity-50">{{ p.group.category_obj.name|default:"—"
+                                    }}</small>
                             </div>
                         </td>
                         <td>
@@ -535,6 +645,31 @@
                         </td>
                         <td>
                             <span class="text-secondary fw-medium">{{ p.created_by.ism|default:"—" }}</span>
+                        </td>
+                        <td class="text-end">
+                            <div class="d-flex justify-content-end gap-1">
+                                {# Izoh ko'rish #}
+                                {% if p.note %}
+                                <button class="action-btn" title="Izohni ko'rish"
+                                    onclick="showNote('{{ p.note|escapejs }}')">
+                                    <i class="fas fa-comment-dots"></i>
+                                </button>
+                                {% endif %}
+                                {# Tahrirlash #}
+                                <button class="action-btn edit" title="Tahrirlash"
+                                    onclick="openEditModal({{ p.id }}, {{ p.cash_amount }}, {{ p.card_amount }}, '{{ p.note|escapejs }}')">
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                                {# O'chirish #}
+                                <form action="{% url 'education:payment_delete' p.id %}" method="post" class="d-inline"
+                                    onsubmit="return confirm('To\'lovni o\'chirmoqchimisiz? O\'quvchi avtomatik Qarzdorlar ro\'yxatiga qaytadi.');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{% url 'education:qarzdorlar_home' %}">
+                                    <button type="submit" class="action-btn delete" title="O'chirish">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
@@ -583,6 +718,21 @@
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
     (function () {
+        // Show note modal
+        window.showNote = function (text) {
+            document.getElementById('noteModalText').textContent = text;
+            new bootstrap.Modal(document.getElementById('noteModal')).show();
+        };
+
+        // Open edit modal
+        window.openEditModal = function (paymentId, cash, card, note) {
+            document.getElementById('editCash').value = cash || 0;
+            document.getElementById('editCard').value = card || 0;
+            document.getElementById('editNote').value = note || '';
+            document.getElementById('editPayForm').action = '/talim/tolovlar/payment/' + paymentId + '/update/';
+            new bootstrap.Modal(document.getElementById('editPayModal')).show();
+        };
+
         document.addEventListener("DOMContentLoaded", function () {
             // Auto-submit filters
             const form = document.getElementById("tlFilterForm");

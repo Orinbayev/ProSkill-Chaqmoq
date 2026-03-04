@@ -2003,33 +2003,29 @@ def student_payments_pdf(request):
 @login_required
 def payment_delete(request, payment_id):
     if not user_can_manage_payments(request.user):
-        messages.error(request, "Ruxsat yo‘q.")
+        messages.error(request, "Ruxsat yo'q.")
         return redirect("education:tolovlar_home")
 
+    next_url = request.POST.get("next") or request.GET.get("next") or "education:tolovlar_home"
+
     center = get_active_center(request)
-    # Payment modelini aniqlashimiz kerak. 'Payment' import qilingan deb faraz qilamiz.
     qs = Payment.objects.all()
     if center:
         qs = qs.filter(center=center)
     
     payment = get_object_or_404(qs, id=payment_id)
-    enrollment = payment.enrollment
     
     try:
         with transaction.atomic():
+            # PaymentAllocation larni ham o'chiramiz (cascade bo'lmasa)
+            payment.allocations.all().delete()
             payment.delete()
-            # Recalculate jami_tolangan if enrollment exists
-            if enrollment:
-                agg = Payment.objects.filter(enrollment=enrollment).aggregate(s=Sum("summa"))
-                current_sum = agg.get("s") or 0
-                enrollment.jami_tolangan = current_sum
-                enrollment.save(update_fields=["jami_tolangan"])
                  
-        messages.success(request, "To'lov o'chirildi.")
+        messages.success(request, "✅ To'lov o'chirildi. O'quvchi qarzdorlar ro'yxatiga qaytadi.")
     except Exception as e:
-        messages.error(request, f"Xatolik: {e}")
+        messages.error(request, f"❌ Xatolik: {e}")
     
-    return redirect("education:tolovlar_home")
+    return redirect(next_url)
 
 
 
