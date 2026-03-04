@@ -1767,32 +1767,10 @@ def tolovlar_home(request):
     sel_type    = request.GET.get("payment_type") or ""
     sel_month   = request.GET.get("pay_month") or ""
 
-    # ── 3) FAQAT QARZSIZ O'QUVCHI IDs ────────────────────────────────────
-    total_fee_sub = (TuitionMonth.objects
-        .filter(enrollment=OuterRef("pk"), month__lte=cur_month_start)
-        .values("enrollment")
-        .annotate(s=Sum("fee_amount"))
-        .values("s"))
 
-    total_paid_sub = (PaymentAllocation.objects
-        .filter(tuition_month__enrollment=OuterRef("pk"))
-        .values("tuition_month__enrollment")
-        .annotate(s=Sum("amount"))
-        .values("s"))
-
-    enr_qs = Enrollment.objects.filter(is_active=True, student__is_archived=False)
-    if center:
-        enr_qs = enr_qs.filter(center=center)
-
-    debt_student_ids = list(
-        enr_qs.annotate(
-            f=DjCoalesce(Subquery(total_fee_sub, output_field=IntegerField()), 0),
-            p=DjCoalesce(Subquery(total_paid_sub, output_field=IntegerField()), 0)
-        ).annotate(d=F("f") - F("p")).filter(d__gt=0).values_list("student_id", flat=True)
-    )
-
-    # ── 4) PAYMENT QS ─────────────────────────────────────────────────────
-    pay_qs = base_payment_qs.exclude(student_id__in=debt_student_ids).select_related(
+    # ✅ [FIX] Barcha to'lovlarni ko'rsatamiz (qarzi bormi yo'qmi farq qilmaydi)
+    # Oldin: faqat qarzsiz o'quvchilar to'lovlari ko'rinardi — bu noto'g'ri edi!
+    pay_qs = base_payment_qs.select_related(
         "student", "group", "group__oqituvchi", "group__category_obj", "created_by"
     ).prefetch_related("allocations", "allocations__tuition_month")
 
