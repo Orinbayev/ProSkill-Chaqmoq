@@ -348,7 +348,7 @@
                     <select name="group" class="filter-select">
                         <option value="">Barchasi</option>
                         {% for g in groups %}
-                        <option value="{{ g.id }}" {% if selected_group == g.id %}selected{% endif %}>{{ g.nom }}</option>
+                        <option value="{{ g.id }}" {% if selected_group==g.id %}selected{% endif %}>{{ g.nom }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -402,7 +402,7 @@
                             <div class="debt-badge">{{ row.debt|intcomma }} so'm</div>
                             <div class="small text-secondary opacity-50">To'langan: {{ row.total_paid|intcomma }}</div>
                         </td>
-                        <td><span class="group-tag">{{ row.group.nom }}</span></td>
+                        <td><span class="group-tag">{{ row.group_label }}</span></td>
                         <td><span class="text-secondary">{{ row.group.category_obj.name|default:"Kurs" }}</span></td>
                         <td class="text-end">
                             <div class="d-flex justify-content-end gap-2">

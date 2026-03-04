@@ -1423,41 +1423,52 @@ def qarzdorlar_home(request):
     
     rows = []
     graph_map = {m: 0 for m in range(1, 13)}
+    student_map = {}  # student_id -> aggregated row
 
     for e in enrollments:
-        # ✅ [FIX] ensure_all_tuition_months_since_start() was auto-creating debt records
-        # for all months from enrollment start. This caused 2x/3x debt stacking.
-        # Now we ONLY use explicitly created TuitionMonth records (faqat mart oyi).
-        
-        # Get real-time sum using ONLY existing TuitionMonth records
+        # ✅ [FIX] Only use explicitly created TuitionMonth records for current month
         total_fee = TuitionMonth.objects.filter(enrollment=e, month=cur_month).aggregate(s=Sum(fee_field))["s"] or 0
         total_paid = PaymentAllocation.objects.filter(tuition_month__enrollment=e).aggregate(s=Sum("amount"))["s"] or 0
         debt = total_fee - total_paid
 
         if debt <= 0:
             continue
-
         if min_debt and debt < min_debt:
             continue
         if max_debt and debt > max_debt:
             continue
 
-        rows.append({
-            "enrollment": e,
-            "created_at": e.created_at or timezone.now(),
-            "student": e.student,
-            "group": e.group,
-            "total_fee": total_fee,
-            "total_paid": total_paid,
-            "debt": debt,
-            "staff": getattr(e.group, "oqituvchi", None),
-        })
+        sid = e.student_id
+        group_nom = getattr(e.group, "nom", "") if e.group else ""
 
-        # Update graph (using student month as a proxy for now, or today's month if newer)
+        if sid in student_map:
+            # ✅ Same student, different group — merge into one row
+            student_map[sid]["debt"] += debt
+            student_map[sid]["total_fee"] += total_fee
+            student_map[sid]["total_paid"] += total_paid
+            if group_nom and group_nom not in student_map[sid]["group_names"]:
+                student_map[sid]["group_names"].append(group_nom)
+        else:
+            student_map[sid] = {
+                "enrollment": e,
+                "created_at": e.created_at or timezone.now(),
+                "student": e.student,
+                "group": e.group,
+                "group_names": [group_nom] if group_nom else [],
+                "total_fee": total_fee,
+                "total_paid": total_paid,
+                "debt": debt,
+                "staff": getattr(e.group, "oqituvchi", None),
+            }
+
         e_date = (e.created_at.date() if getattr(e, "created_at", None) else today)
         m_idx = e_date.month
         if m_idx in graph_map:
             graph_map[m_idx] += debt
+
+    rows = list(student_map.values())
+    for row in rows:
+        row["group_label"] = ", ".join(row["group_names"]) if row["group_names"] else "—"
 
     # Paginator
     from django.core.paginator import Paginator
