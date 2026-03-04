@@ -238,7 +238,7 @@
           <label class="form-label">Guruh</label>
           <select name="group_id" class="form-select custom-select">
             {% for g in groups %}
-            <option value="{{ g.id }}" {% if g.id==enr.group.id %}selected{% endif %}>{{ g.nom }}</option>
+            <option value="{{ g.id }}" {% if g.id == enr.group.id %}selected{% endif %}>{{ g.nom }}</option>
             {% endfor %}
           </select>
         </div>
