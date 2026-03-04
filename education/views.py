@@ -4038,13 +4038,18 @@ def add_student_to_group(request, pk: int):
         kurs_narhi = existing_enr.kurs_narhi if existing_enr else g.kurs_narxi
 
         # Qo'shish
-        Enrollment.objects.create(
+        enr = Enrollment.objects.create(
             group=g,
             student=student,
             center=target_center,
             kurs_narhi=kurs_narhi,
             oqituvchi_foiz=g.oqituvchi_foiz or 40,
         )
+
+        from education.services.tuition import ensure_tuition_month
+        from django.utils import timezone
+        # ✅ Yangi qo'shilgan o'quvchi avtomatik joriy oy uchn qarzdor bo'lishini ta'minlash
+        ensure_tuition_month(enr, timezone.localdate())
 
         return JsonResponse({
             "status": "success",
