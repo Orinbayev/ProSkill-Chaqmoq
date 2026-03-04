@@ -1160,8 +1160,10 @@ def user_edit(request, pk):
                 except ValueError:
                     pass
             enroll.save()
-            # ⚠️ TuitionMonth YARATILMAYDI — student keyingi oydan boshlab
-            # qarzdor hisoblanadi. qarzdorlar_home sahifasi lazyly sync qiladi.
+            from education.services.tuition import ensure_tuition_month
+            from django.utils.timezone import localdate
+            # ✅ Yangi guruhga qo'shilganda joriy oy uchn avtomatik qarzdorlikni yaratish
+            ensure_tuition_month(enroll, localdate())
 
         return redirect(next_url)
 
