@@ -538,8 +538,7 @@
                     <select name="group" class="filter-select">
                         <option value="">Barchasi</option>
                         {% for g in groups %}
-                        <option value="{{ g.id }}" {% if sel_group == g.id|stringformat:"s" %}selected{% endif %}>{{ g.nom
-                            }}</option>
+                        <option value="{{ g.id }}" {% if sel_group == g.id|stringformat:"s" %}selected{% endif %}>{{ g.nom }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -548,8 +547,7 @@
                     <select name="course" class="filter-select">
                         <option value="">Barchasi</option>
                         {% for c in courses %}
-                        <option value="{{ c.id }}" {% if sel_course == c.id|stringformat:"s" %}selected{% endif %}>{{
-                            c.name }}</option>
+                        <option value="{{ c.id }}" {% if sel_course == c.id|stringformat:"s" %}selected{% endif %}>{{  c.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -558,8 +556,7 @@
                     <select name="teacher" class="filter-select">
                         <option value="">Barchasi</option>
                         {% for t in teachers %}
-                        <option value="{{ t.id }}" {% if sel_teacher == t.id|stringformat:"s" %}selected{% endif %}>{{
-                            t.ism }} {{ t.familya }}</option>
+                        <option value="{{ t.id }}" {% if sel_teacher == t.id|stringformat:"s" %}selected{% endif %}>{{ t.ism }} {{ t.familya }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -568,8 +565,7 @@
                     <select name="staff" class="filter-select">
                         <option value="">Barchasi</option>
                         {% for s in staffs %}
-                        <option value="{{ s.id }}" {% if sel_staff == s.id|stringformat:"s" %}selected{% endif %}>{{ s.ism
-                            }} {{ s.familya }}</option>
+                        <option value="{{ s.id }}" {% if sel_staff == s.id|stringformat:"s" %} selected{% endif %}>{{ s.ism }} {{ s.familya }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -596,6 +592,7 @@
                         <th>Qaysi oy uchun?</th>
                         <th>Yonalish</th>
                         <th>Tur</th>
+                        <th>Izoh</th>
                         <th>Xodim</th>
                         <th class="text-end">Amallar</th>
                     </tr>
@@ -610,7 +607,7 @@
                         <td>
                             <div class="student-info">
                                 <span class="student-name">{{ p.student.ism }} {{ p.student.familya }}</span>
-                                <span class="student-meta">{{ p.student.telefon1|default:p.student.telefon2|default:"—" }}</span>
+                                <span class="student-meta">{{ p.student.telefon1|default:p.student.telefon2|default:"—"    }}</span>
                             </div>
                         </td>
                         <td><span class="amount-badge">{{ p.summa|intcomma }} so'm</span></td>
@@ -639,16 +636,21 @@
                             {% else %}<span class="text-secondary">—</span>{% endif %}
                         </td>
                         <td>
+                                                        {% if p.note %}
+                            <span onclick="showNote('{{ p.note|escapejs }}')" title="Izohni ko'rish"
+                                style="cursor:pointer;color:#60a5fa;font-size:13px;">
+                                💬 {{ p.note|truncatechars:22 }}
+                            </span>
+                            {% else %}
+                            <span class="text-secondary opacity-40">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
                             <span class="text-secondary fw-medium">{{ p.created_by.ism|default:"—" }}</span>
+
                         </td>
                         <td class="text-end">
                             <div class="d-flex justify-content-end gap-1">
-                                {% if p.note %}
-                                <button class="action-btn" title="Izohni ko'rish"
-                                    onclick="showNote('{{ p.note|escapejs }}')">
-                                    <i class="fas fa-comment-dots"></i>
-                                </button>
-                                {% endif %}
                                 <button class="action-btn edit" title="Tahrirlash"
                                     onclick="openEditModal({{ p.id }}, {{ p.cash_amount }}, {{ p.card_amount }}, '{{ p.note|escapejs }}')">
                                     <i class="fas fa-pen"></i>
