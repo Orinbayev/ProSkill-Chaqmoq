@@ -30,24 +30,25 @@ def final_complete_fix():
     march_dt = timezone.make_aware(datetime(2026, 3, 1, 0, 0, 0))
 
     with transaction.atomic():
-        # 1. BARCHA eski TuitionMonth larni o'chirish
-        deleted, _ = TuitionMonth.objects.filter(enrollment__student__center=my_center).delete()
+        # 1. Avval barcha aktiv Enrollment larni olamiz
+        enrollments = list(Enrollment.objects.filter(
+            is_active=True,
+            student__is_archived=False,
+            center=my_center
+        ).select_related('student', 'group'))
+        
+        enr_ids = [e.id for e in enrollments]
+        
+        # 2. FAQAT shu enrollment larning TuitionMonth larini o'chiramiz
+        deleted, _ = TuitionMonth.objects.filter(enrollment_id__in=enr_ids).delete()
         print(f"🗑️  Eski qarzlar o'chirildi: {deleted} ta")
 
-        # 2. To'lovlarni ham tozalash
+        # 3. To'lovlarni ham tozalash
         pd, _ = Payment.objects.filter(center=my_center).delete()
         print(f"🗑️  Eski to'lovlar o'chirildi: {pd} ta")
 
         created = 0
         skipped = 0
-
-        # MUHIM: Endi barcha AKTIV enrollment larni olamiz (student emas!)
-        # Agar Mustafo 2 ta guruhda bo'lsa - 2 ta TuitionMonth yaratamiz
-        enrollments = Enrollment.objects.filter(
-            is_active=True,
-            student__is_archived=False,
-            center=my_center
-        ).select_related('student', 'group')
 
         for e in enrollments:
             # Sana mutlaqo martga bog'lansin
@@ -63,17 +64,22 @@ def final_complete_fix():
                 
             e.save(update_fields=['created_at', 'kurs_narhi'])
 
-            # Har bir guruh uchun alohida 1 ta mart qarzi
-            TuitionMonth.objects.create(
+            # get_or_create - xato chiqmasin uchun
+            tm, was_created = TuitionMonth.objects.get_or_create(
                 enrollment=e,
                 month=march_first,
-                **{fee_field: narx}
+                defaults={fee_field: narx}
             )
+            # agar allaqachon bor bo'lsa ham narxini yangilab qo'yamiz
+            if not was_created:
+                setattr(tm, fee_field, narx)
+                tm.save(update_fields=[fee_field])
+                
             created += 1
 
     print(f"\n✅ Jami {created} ta Enrollment uchun Mart qarzi yaratildi!")
-    print("   (Agar o'quvchi 2 ta guruhda bo'lsa → 2 ta qarz yozildi)")
-    print(f"\n⏭️  Skip qilingan (guruhsiz): {skipped} ta")
+    print("   (Agar o'quvchi 2 ta guruhda bo'lsa → 2 ta qarz yozildi, jadvalda 1 qatorda kombinatsiya ko'rinadi)")
+    print(f"\n⏭️  Skip qilingan: {skipped} ta")
     print("\n" + "="*55)
     print("🎯 Endi Qarzdorlar sahifasini yangilang!")
     print("="*55 + "\n")
