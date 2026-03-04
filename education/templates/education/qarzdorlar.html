@@ -407,7 +407,7 @@
                         <td class="text-end">
                             <div class="d-flex justify-content-end gap-2">
                                 <button class="action-btn" data-bs-toggle="modal" data-bs-target="#paymentModal"
-                                    data-enrollment-id="{{ row.enrollment.id }}"
+                                    data-student-id="{{ row.student.id }}"
                                     data-student-name="{{ row.student.get_full_name }}" data-debt="{{ row.debt }}">
                                     <i class="fas fa-eye"></i>
                                 </button>
@@ -461,7 +461,7 @@
                 {% csrf_token %}
                 <div class="modal-body p-4">
                     <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                    <input type="hidden" name="enrollment_id" id="payEnrollmentId">
+                    <input type="hidden" name="student_id" id="payStudentId">
 
                     <div class="mb-4 text-center">
                         <h4 class="fw-bold mb-1 text-white" id="payStudentName">Ism Familya</h4>
@@ -560,18 +560,24 @@
             if (paymentModal) {
                 paymentModal.addEventListener('show.bs.modal', function (event) {
                     const button = event.relatedTarget;
-                    const enrollmentId = button.getAttribute('data-enrollment-id');
+                    const studentId = button.getAttribute('data-student-id');
                     const studentName = button.getAttribute('data-student-name');
                     const debt = button.getAttribute('data-debt');
 
-                    document.getElementById('payEnrollmentId').value = enrollmentId;
+                    document.getElementById('payStudentId').value = studentId;
                     document.getElementById('payStudentName').textContent = studentName;
                     document.getElementById('payMonthlyFee').textContent = Number(debt).toLocaleString() + " so'm";
                     document.getElementById('inputCash').value = debt;
 
-                    fetch(`/talim/tolovlar/tarix/enrollment/${enrollmentId}/`)
+                    // Show all groups for this student
+                    fetch(`/talim/tolovlar/student/${studentId}/groups/`)
                         .then(res => res.json())
-                        .then(data => { document.getElementById('payGroupName').textContent = data.group || ''; });
+                        .then(data => {
+                            document.getElementById('payGroupName').textContent = data.groups || '';
+                        })
+                        .catch(() => {
+                            document.getElementById('payGroupName').textContent = '';
+                        });
 
                     document.getElementById('methodCash').checked = true;
                     togglePaymentInputs();

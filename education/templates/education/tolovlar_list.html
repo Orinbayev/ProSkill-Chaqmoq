@@ -547,7 +547,7 @@
                     <select name="course" class="filter-select">
                         <option value="">Barchasi</option>
                         {% for c in courses %}
-                        <option value="{{ c.id }}" {% if sel_course == c.id|stringformat:"s" %}selected{% endif %}>{{  c.name }}</option>
+                        <option value="{{ c.id }}" {% if sel_course == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -607,14 +607,14 @@
                         <td>
                             <div class="student-info">
                                 <span class="student-name">{{ p.student.ism }} {{ p.student.familya }}</span>
-                                <span class="student-meta">{{ p.student.telefon1|default:p.student.telefon2|default:"—"    }}</span>
+                                <span class="student-meta">{{ p.student.telefon1|default:p.student.telefon2|default:"—"  }}</span>
                             </div>
                         </td>
                         <td><span class="amount-badge">{{ p.summa|intcomma }} so'm</span></td>
                         <td>
                             <div class="d-flex flex-column gap-1">
                                 {% for alloc in p.allocations.all %}
-                                <span class="month-tag">{{ alloc.tuition_month.month.month|get_month_name }} {{ alloc.tuition_month.month.year }}</span>
+                                <span class="month-tag">{{ alloc.tuition_month.month.month|get_month_name }} {{  alloc.tuition_month.month.year }}</span>
                                 {% empty %}
                                 <span class="text-secondary opacity-50 small">—</span>
                                 {% endfor %}
@@ -622,8 +622,17 @@
                         </td>
                         <td>
                             <div class="d-flex flex-column gap-1">
+                                {% with groups_seen=p.allocations.all %}
+                                {% if groups_seen %}
+                                {% for alloc in groups_seen %}
+                                <span class="group-tag">{{ alloc.tuition_month.enrollment.group.nom|default:"—" }}</span>
+                                <small class="text-secondary opacity-50">{{    alloc.tuition_month.enrollment.group.category_obj.name|default:"—" }}</small>
+                                {% endfor %}
+                                {% else %}
                                 <span class="group-tag">{{ p.group.nom|default:"—" }}</span>
                                 <small class="text-secondary opacity-50">{{ p.group.category_obj.name|default:"—" }}</small>
+                                {% endif %}
+                                {% endwith %}
                             </div>
                         </td>
                         <td>
@@ -636,7 +645,7 @@
                             {% else %}<span class="text-secondary">—</span>{% endif %}
                         </td>
                         <td>
-                                                        {% if p.note %}
+                            {% if p.note %}
                             <span onclick="showNote('{{ p.note|escapejs }}')" title="Izohni ko'rish"
                                 style="cursor:pointer;color:#60a5fa;font-size:13px;">
                                 💬 {{ p.note|truncatechars:22 }}

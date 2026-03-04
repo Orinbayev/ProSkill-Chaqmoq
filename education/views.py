@@ -499,8 +499,10 @@ def create_payment(request):
         try:
             with transaction.atomic():
                 # One check for the whole payment
+                first_group = enrollments[0].group if enrollments else None
                 main_payment = Payment.objects.create(
                     student=student,
+                    group=first_group,
                     cash_amount=cash_amount,
                     card_amount=card_amount,
                     summa=cash_amount + card_amount,
@@ -2028,6 +2030,15 @@ def payment_delete(request, payment_id):
     return redirect(next_url)
 
 
+@login_required
+def student_groups_api(request, student_id):
+    """Return all active group names for a student (for payment modal display)."""
+    center = get_active_center(request)
+    qs = Enrollment.objects.filter(student_id=student_id, is_active=True).select_related('group')
+    if center:
+        qs = qs.filter(center=center)
+    groups = [e.group.nom for e in qs if e.group]
+    return JsonResponse({"groups": " + ".join(groups) if groups else ""})
 
 
 # education/views.py

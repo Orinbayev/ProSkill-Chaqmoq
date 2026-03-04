@@ -32,8 +32,8 @@ urlpatterns = [
     path("tolovlar/enrollment/<int:enrollment_id>/edit/", views.enrollment_edit, name="enrollment_edit"),
     path("tolovlar/enrollment/<int:enrollment_id>/delete/", views.enrollment_delete, name="enrollment_delete"),
     path("tolov/update/<int:payment_id>/", views.payment_update, name="payment_update"),
-    path("tolovlar/payment/<int:payment_id>/update/", views.payment_update, name="payment_update"),
     path("tolovlar/payment/<int:payment_id>/delete/", views.payment_delete, name="payment_delete"),
+    path("tolovlar/student/<int:student_id>/groups/", views.student_groups_api, name="student_groups_api"),
 
 
     # 🔹 Guruhlar kategoriyasi bo‘yicha
