@@ -235,77 +235,29 @@ def _set_payment_amounts(p: Payment, cash_amount: int, card_amount_som: int, tot
 
 
 def _allocate_amount_forward(*, enrollment: Enrollment, payment: Payment, amount: int, start_month: date) -> None:
+    """
+    ✅ [FIX] Faqat START_MONTH (joriy oy) uchun to'lovni yozamiz.
+    Ortiqcha pul bo'lsa ham kelajak oylarga tarqatilmaydi - hammasi shu oyga yoziladi.
+    Bu 'APREL 2026, MAY 2026' kabi ko'p oylar muammosini hal qiladi.
+    """
     amount = int(amount or 0)
     if amount <= 0:
         return
 
-    left = amount
-    cur = month_first_day(start_month)
     fee_field = tuition_month_fee_field()
+    cur = month_first_day(start_month)
 
-    for _ in range(240):
-        if left <= 0:
-            break
-
+    # Faqat joriy oy uchun TuitionMonth olamiz (yaratmaymiz agar yo'q bo'lsa)
+    tm = TuitionMonth.objects.filter(enrollment=enrollment, month=cur).first()
+    if tm is None:
+        # Agar joriy oy uchun TuitionMonth yo'q bo'lsa, yangi yaratamiz
         tm = ensure_tuition_month(enrollment, cur)
-        fee = int(getattr(tm, fee_field, 0) or 0)
 
-        if fee <= 0:
-            cur = add_month(cur, 1)
-            continue
+    # Hammasini shu oyga yozamiz (ortiqcha bo'lsa ham)
+    if amount > 0:
+        PaymentAllocation.objects.create(payment=payment, tuition_month=tm, amount=amount)
 
-        paid = get_month_paid(tm)
-        need = max(0, fee - paid)
 
-        if need <= 0:
-            cur = add_month(cur, 1)
-            continue
-
-        take = min(left, need)
-        if take > 0:
-            PaymentAllocation.objects.create(payment=payment, tuition_month=tm, amount=take)
-            left -= take
-
-        cur = add_month(cur, 1)
-
-    max_extra = 240
-    while left > 0 and max_extra > 0:
-        max_extra -= 1
-
-        tm = ensure_tuition_month(enrollment, cur)
-        fee = int(getattr(tm, fee_field, 0) or 0)
-
-        if fee <= 0:
-            cur = add_month(cur, 1)
-            continue
-
-        paid = get_month_paid(tm)
-        need = max(0, fee - paid)
-
-        if need <= 0:
-            cur = add_month(cur, 1)
-            continue
-
-        take = min(left, need)
-        if take > 0:
-            PaymentAllocation.objects.create(payment=payment, tuition_month=tm, amount=take)
-            left -= take
-
-        cur = add_month(cur, 1)
-
-    # SAFETY FALLBACK: qolgan pulni eng yaqin fee>0 bo'lgan oyga yozamiz
-    if left > 0:
-        for _ in range(60):
-            tm = ensure_tuition_month(enrollment, cur)
-            fee = int(getattr(tm, fee_field, 0) or 0)
-            if fee <= 0:
-                cur = add_month(cur, 1)
-                continue
-
-            PaymentAllocation.objects.create(payment=payment, tuition_month=tm, amount=left)
-            left = 0
-            break
-    ensure_tuition_month(enrollment, cur)
 
 # =========================
 #  CREATE PAYMENT + ALLOCATE
