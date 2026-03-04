@@ -13,7 +13,7 @@ from education.services.tuition import tuition_month_fee_field
 
 def final_complete_fix():
     print("\n" + "="*55)
-    print("🚀 TO'LIQ TUZATISH: Faqat MART oyi uchun 1 ta qarz")
+    print("🚀 TO'LIQ TUZATISH: Har guruh uchun alohida qarz")
     print("="*55)
 
     proskill_centers = Center.objects.filter(name__icontains='proskill')
@@ -41,15 +41,16 @@ def final_complete_fix():
         created = 0
         skipped = 0
 
-        students = User.objects.filter(role='student', is_archived=False, center=my_center)
-        for s in students:
-            # Eng so'nggi FAOL Enrollment ni olamiz (1 o'quvchi = 1 ta qarz)
-            e = Enrollment.objects.filter(student=s, is_active=True, center=my_center).order_by('-id').first()
-            if not e:
-                skipped += 1
-                continue
+        # MUHIM: Endi barcha AKTIV enrollment larni olamiz (student emas!)
+        # Agar Mustafo 2 ta guruhda bo'lsa - 2 ta TuitionMonth yaratamiz
+        enrollments = Enrollment.objects.filter(
+            is_active=True,
+            student__is_archived=False,
+            center=my_center
+        ).select_related('student', 'group')
 
-            # Sana ham mutlaqo martga bog'lansin (avtomat ko'paytiruvni oldini olish)
+        for e in enrollments:
+            # Sana mutlaqo martga bog'lansin
             e.created_at = march_dt
             
             # Narxni aniqlaymiz
@@ -62,7 +63,7 @@ def final_complete_fix():
                 
             e.save(update_fields=['created_at', 'kurs_narhi'])
 
-            # FAQAT 1 TA (mart) qarz yozamiz
+            # Har bir guruh uchun alohida 1 ta mart qarzi
             TuitionMonth.objects.create(
                 enrollment=e,
                 month=march_first,
@@ -70,11 +71,11 @@ def final_complete_fix():
             )
             created += 1
 
-    print(f"\n✅ Jami {created} ta o'quvchiga FAQAT 1 ta Mart qarzi yozildi!")
-    print(f"⏭️  Guruhsiz (skip qilingan): {skipped} ta")
+    print(f"\n✅ Jami {created} ta Enrollment uchun Mart qarzi yaratildi!")
+    print("   (Agar o'quvchi 2 ta guruhda bo'lsa → 2 ta qarz yozildi)")
+    print(f"\n⏭️  Skip qilingan (guruhsiz): {skipped} ta")
     print("\n" + "="*55)
     print("🎯 Endi Qarzdorlar sahifasini yangilang!")
-    print("   Har bir o'quvchi faqat o'zining HAQIQIY narxida ko'rinadi!")
     print("="*55 + "\n")
 
 if __name__ == '__main__':
