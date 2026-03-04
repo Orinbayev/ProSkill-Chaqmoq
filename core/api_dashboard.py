@@ -366,6 +366,13 @@ class DirectorDashboardAPIView(View):
         expenses = []
         debt_series = []
         new_students = []
+        income_students = []
+        debt_students = []
+        
+        from django.db.models.functions import Coalesce
+        from django.db import models
+        import calendar
+        from datetime import date
         
         for m, y in months_to_query:
             labels.append(f"{uz_months[m]} {y}" if y != now.year else uz_months[m])
@@ -373,28 +380,43 @@ class DirectorDashboardAPIView(View):
             inc = Payment.objects.filter(center=center, paid_date__year=y, paid_date__month=m).aggregate(s=Sum('summa'))['s'] or 0
             exp = Expense.objects.filter(center=center, sana__year=y, sana__month=m).aggregate(s=Sum('summa'))['s'] or 0
             
-            # Real debt calculation for the specific month
-            fee_sum = TuitionMonth.objects.filter(
-                enrollment__center=center, 
-                month__year=y, month__month=m, 
-                enrollment__is_active=True,
-                enrollment__student__is_archived=False
-            ).aggregate(s=Sum('fee_amount'))['s'] or 0
-
-            paid_sum = PaymentAllocation.objects.filter(
-                tuition_month__enrollment__center=center, 
-                tuition_month__month__year=y, tuition_month__month__month=m,
-                tuition_month__enrollment__is_active=True,
-                tuition_month__enrollment__student__is_archived=False
-            ).aggregate(s=Sum('amount'))['s'] or 0
+            end_date = date(y, m, calendar.monthrange(y, m)[1])
             
-            m_debt = max(fee_sum - paid_sum, 0)
+            from django.db.models import OuterRef, Subquery, IntegerField
+            
+            total_fee_sub = TuitionMonth.objects.filter(
+                enrollment=OuterRef("pk"), month__lte=end_date
+            ).values("enrollment").annotate(s=Sum('fee_amount')).values("s")
+
+            total_paid_sub = PaymentAllocation.objects.filter(
+                tuition_month__enrollment=OuterRef("pk"),
+                tuition_month__month__lte=end_date
+            ).values("tuition_month__enrollment").annotate(s=Sum("amount")).values("s")
+
+            center_qs = Enrollment.objects.filter(is_active=True, student__is_archived=False, center=center)
+            
+            calculated_qs = center_qs.annotate(
+                f=Coalesce(Subquery(total_fee_sub, output_field=IntegerField()), 0),
+                p=Coalesce(Subquery(total_paid_sub, output_field=IntegerField()), 0)
+            ).annotate(d=F("f")-F("p"))
+            
+            m_debt = calculated_qs.filter(d__gt=0).aggregate(total=Sum("d"))["total"] or 0
+            m_debt_st = calculated_qs.filter(d__gt=0).values('student').distinct().count()
+            
+            inc_st = Payment.objects.filter(
+                center=center, 
+                paid_date__year=y, 
+                paid_date__month=m
+            ).values('student').distinct().count()
+
             new_st = User.objects.filter(center=center, role='student', date_joined__year=y, date_joined__month=m, is_archived=False).count()
             
             income.append(int(inc))
             expenses.append(int(exp))
             debt_series.append(int(m_debt))
             new_students.append(new_st)
+            income_students.append(inc_st)
+            debt_students.append(m_debt_st)
             
         mkt = self.get_marketing_stats(center, start, end)
         return {
@@ -403,6 +425,8 @@ class DirectorDashboardAPIView(View):
             'expenses': expenses,
             'debt_series': debt_series,
             'new_students': new_students,
+            'income_students': income_students,
+            'debt_students': debt_students,
             'marketing': mkt
         }
 

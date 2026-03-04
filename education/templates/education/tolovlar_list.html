@@ -1,550 +1,653 @@
 {% extends 'base.html' %}
-{% load humanize %}
+{% load humanize custom_tags %}
+
+{% block title %}
+💰 To'lovlar — Chaqmoq Academy
+{% endblock %}
 
 {% block content %}
-
 <style>
     :root {
-        --bg0: #070b14;
-        --bg1: #0b1224;
-        --bg2: #0f172a;
-
-        --panel: rgba(17, 24, 39, .62);
-        --panel2: rgba(2, 6, 23, .55);
-        --line: rgba(255, 255, 255, .10);
-
-        --text: #e5e7eb;
-        --muted: #94a3b8;
-
+        --primary: #3b82f6;
+        --primary-light: #60a5fa;
+        --primary-glow: rgba(59, 130, 246, 0.3);
+        --teal: #14b8a6;
+        --teal-glow: rgba(20, 184, 166, 0.2);
+        --purple: #8b5cf6;
         --amber: #f59e0b;
-        --amber2: #facc15;
-
-        --blue: #2563eb;
-        --blue2: #60a5fa;
-
-        --green: #22c55e;
-        --green2: #4ade80;
-
-        --shadow: 0 24px 70px rgba(0, 0, 0, .55);
-        --radius: 18px;
+        --card-bg: rgba(15, 23, 42, 0.5);
+        --card-border: rgba(255, 255, 255, 0.08);
     }
 
-    body {
-        background:
-            radial-gradient(1200px 500px at 50% -10%, rgba(96, 165, 250, 0.22), transparent 55%),
-            radial-gradient(900px 520px at 10% 10%, rgba(37, 99, 235, 0.16), transparent 55%),
-            radial-gradient(900px 520px at 92% 0%, rgba(245, 158, 11, 0.14), transparent 55%),
-            linear-gradient(180deg, var(--bg1), var(--bg2), var(--bg1));
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, "Poppins", sans-serif;
-        min-height: 100vh;
-        color: var(--text);
+    .tl-container {
+        padding: 0 0 60px;
     }
 
-    .page {
-        padding: clamp(14px, 2.4vw, 28px) 0 34px;
-    }
-
-    .page-wrap {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: 0 14px;
-    }
-
-    .shell {
-        background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .05));
-        border: 1px solid var(--line);
-        border-radius: 22px;
-        box-shadow: var(--shadow);
-        overflow: hidden;
+    /* ===== STAT CARDS ===== */
+    .premium-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid var(--card-border);
+        border-radius: 24px;
+        padding: 24px;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         position: relative;
+        overflow: hidden;
+        z-index: 10;
+        height: 100%;
     }
 
-    .shell::before {
-        content: "";
+    .premium-card::before {
+        content: '';
         position: absolute;
-        inset: -1px;
-        background:
-            radial-gradient(900px 340px at 20% 0%, rgba(96, 165, 250, .16), transparent 62%),
-            radial-gradient(850px 320px at 92% 10%, rgba(37, 99, 235, .14), transparent 62%),
-            radial-gradient(900px 340px at 55% 120%, rgba(245, 158, 11, .12), transparent 62%);
+        inset: 0;
         pointer-events: none;
-        opacity: .95;
+        border-radius: inherit;
+        padding: 1px;
+        background: linear-gradient(to bottom right, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
     }
 
-    .shell-inner {
-        position: relative;
-        background: rgba(2, 6, 23, .35);
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
-        padding: clamp(14px, 2.2vw, 18px);
+    .premium-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(255, 255, 255, 0.12);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
     }
 
-    .header-wrap {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 14px;
-    }
-
-    .teacher-header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 14px 18px;
-        border-radius: 18px;
-        background: linear-gradient(90deg, rgba(37, 99, 235, 0.95), rgba(96, 165, 250, 0.95));
-        box-shadow: 0 18px 55px rgba(37, 99, 235, 0.28);
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        text-align: left;
-        min-width: min(520px, 100%);
-    }
-
-    .teacher-header .icon {
-        width: 46px;
-        height: 46px;
-        display: grid;
-        place-items: center;
+    .card-icon-box {
+        width: 52px;
+        height: 52px;
         border-radius: 16px;
-        background: rgba(255, 255, 255, 0.18);
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
-        flex: 0 0 auto;
-    }
-
-    .teacher-header .title {
-        font-weight: 1000;
-        font-size: clamp(16px, 2.2vw, 20px);
-        line-height: 1.1;
-        letter-spacing: .2px;
-    }
-
-    .teacher-header .sub {
-        font-size: 13.5px;
-        opacity: .92;
-        margin-top: 3px;
-    }
-
-    .filter-bar {
-        max-width: 860px;
-        margin: 0 auto 18px;
-        padding: 14px 14px;
-        border-radius: 18px;
-        background: rgba(255, 255, 255, .06);
-        border: 1px solid var(--line);
-        box-shadow: 0 18px 55px rgba(0, 0, 0, .35);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-    }
-
-    .filter-form {
-        display: flex;
-        gap: 12px;
-        justify-content: center;
-        flex-wrap: wrap;
-        align-items: stretch;
-    }
-
-    .fg {
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 10px 12px;
-        border-radius: 14px;
-        background: rgba(15, 23, 42, 0.55);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        min-height: 48px;
+        justify-content: center;
+        font-size: 22px;
+        margin-bottom: 20px;
+        background: rgba(20, 184, 166, 0.1);
+        color: var(--teal);
+        border: 1px solid var(--teal-glow);
+        box-shadow: 0 0 20px rgba(20, 184, 166, 0.1);
     }
 
-    .fg .lbl {
-        font-size: 12.5px;
-        color: var(--muted);
-        white-space: nowrap;
-        font-weight: 900;
+    .tl-card-lbl {
+        font-size: 14px;
+        color: #94a3b8;
+        font-weight: 600;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
-    .fg select,
-    .fg input {
-        border: none !important;
-        outline: none !important;
-        background: transparent !important;
-        color: var(--text) !important;
-        min-width: 140px;
-        font-weight: 900;
-    }
-
-    .fg:focus-within {
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22);
-        border-color: rgba(59, 130, 246, 0.55);
-    }
-
-    .filter-btn {
-        min-height: 48px;
-        border-radius: 14px;
-        padding: 0 18px;
-        font-weight: 1000;
-        border: none;
+    .tl-card-val {
+        font-size: 28px;
+        font-weight: 800;
         color: #fff;
-        background: linear-gradient(90deg, rgba(37, 99, 235, 1), rgba(59, 130, 246, 1));
-        box-shadow: 0 16px 34px rgba(37, 99, 235, 0.24);
-        transition: transform .18s ease, box-shadow .18s ease;
+        line-height: 1.2;
     }
 
-    .filter-btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 22px 44px rgba(37, 99, 235, 0.30);
+    /* ===== CHART BOX ===== */
+    .chart-container {
+        height: 100%;
+        min-height: 250px;
     }
 
-    .filter-btn:focus {
-        outline: none;
+    /* ===== FILTER SECTION ===== */
+    .filter-section {
+        background: rgba(15, 23, 42, 0.3);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        padding: 24px;
+        margin-bottom: 30px;
+        backdrop-filter: blur(10px);
     }
 
-    .filter-btn:focus-visible {
-        outline: 3px solid rgba(250, 204, 21, .35);
-        outline-offset: 2px;
+    .filter-label {
+        font-size: 12px;
+        font-weight: 700;
+        color: #64748b;
+        margin-bottom: 8px;
+        display: block;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
-    .filter-bar select,
-    .filter-bar input {
-        color-scheme: dark;
-    }
-
-    .filter-bar select,
-    .filter-bar option {
-        background-color: rgba(15, 23, 42, 0.96) !important;
-        color: #e5e7eb !important;
-    }
-
-    details.group-card {
-        border-radius: 18px;
-        margin-bottom: 14px;
-        overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, .10);
-        background: rgba(2, 6, 23, .20);
-        box-shadow: 0 20px 60px rgba(0, 0, 0, .28);
-        transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
-    }
-
-    details.group-card:hover {
-        transform: translateY(-2px);
-        border-color: rgba(96, 165, 250, 0.30);
-        box-shadow: 0 28px 80px rgba(0, 0, 0, .34);
-    }
-
-    summary {
-        list-style: none;
-        cursor: pointer;
-        user-select: none;
-    }
-
-    summary::-webkit-details-marker {
-        display: none;
-    }
-
-    summary:focus {
-        outline: none;
-    }
-
-    summary:focus-visible {
-        outline: 3px solid rgba(250, 204, 21, .28);
-        outline-offset: 4px;
-        border-radius: 16px;
-    }
-
-    .summary-grid {
-        display: grid;
-        grid-template-columns: 18px 1fr auto 52px;
-        align-items: center;
-        gap: 12px;
+    .filter-input,
+    .filter-select {
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 10px 16px;
+        color: #fff;
+        font-size: 14px;
         width: 100%;
-        padding: 12px 14px;
-        background: linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .02));
-        border-bottom: 1px solid rgba(255, 255, 255, .08);
+        outline: none;
+        transition: all 0.2s;
     }
 
-    .sum-left {
-        display: flex;
-        justify-content: center;
+    .filter-input:focus,
+    .filter-select:focus {
+        border-color: var(--primary);
+        background: rgba(0, 0, 0, 0.3);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
     }
 
-    .sum-dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 999px;
-        background: linear-gradient(180deg, var(--blue2), var(--blue));
-        box-shadow: 0 0 14px rgba(96, 165, 250, 0.50);
+    .filter-select option {
+        background: #0f172a;
+        color: #fff;
     }
 
-    .sum-group {
+    /* ===== PREMIUM TABLE ===== */
+    .table-container {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 24px;
+        overflow: hidden;
+        backdrop-filter: blur(20px);
+    }
+
+    .premium-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .premium-table th {
+        background: rgba(255, 255, 255, 0.03);
+        padding: 18px 20px;
+        font-size: 12px;
+        font-weight: 800;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border-bottom: 1px solid var(--card-border);
+        text-align: left;
+    }
+
+    .premium-table td {
+        padding: 16px 20px;
+        font-size: 14px;
+        color: #cbd5e1;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        vertical-align: middle;
+    }
+
+    .premium-table tr:hover td {
+        background: rgba(255, 255, 255, 0.02);
+        color: #fff;
+    }
+
+    .premium-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .student-info {
         display: flex;
         flex-direction: column;
-        gap: 2px;
-        align-items: flex-start;
-        min-width: 0;
     }
 
-    .sum-group .gname {
-        font-weight: 1000;
-        color: #f8fafc;
-        letter-spacing: .2px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 100%;
+    .student-name {
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 2px;
     }
 
-    .sum-group .gmeta {
-        font-size: 13px;
-        color: var(--muted);
+    .student-meta {
+        font-size: 12px;
+        color: #64748b;
+    }
+
+    .amount-badge {
         font-weight: 800;
+        color: var(--teal);
+        font-size: 15px;
     }
 
-    .sum-right-pack {
-        display: flex;
+    .type-badge {
+        padding: 6px 12px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        display: inline-flex;
         align-items: center;
-        gap: 16px;
-        justify-self: end;
-        white-space: nowrap;
+        gap: 6px;
     }
 
-    .sum-percent {
-        font-weight: 1000;
-        color: rgba(229, 231, 235, .92);
+    .bg-cash {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--amber);
+        border: 1px solid rgba(245, 158, 11, 0.2);
     }
 
-    .sum-total {
-        font-weight: 1000;
-        color: rgba(74, 222, 128, .95);
-        text-shadow: 0 12px 30px rgba(34, 197, 94, 0.16);
+    .bg-card {
+        background: rgba(59, 130, 246, 0.1);
+        color: var(--primary-light);
+        border: 1px solid rgba(59, 130, 246, 0.2);
     }
 
-    .sum-right {
+    .bg-mixed {
+        background: rgba(139, 92, 246, 0.1);
+        color: #a78bfa;
+        border: 1px solid rgba(139, 92, 246, 0.2);
+    }
+
+    .group-tag {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: 12px;
+        color: #cbd5e1;
+    }
+
+    .month-tag {
+        background: rgba(139, 92, 246, 0.05);
+        border: 1px solid rgba(139, 92, 246, 0.15);
+        padding: 3px 8px;
+        border-radius: 8px;
+        font-size: 10px;
+        font-weight: 700;
+        color: #a78bfa;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        display: inline-block;
+        width: fit-content;
+    }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeInSlide {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .anim-fade-in {
+        animation: fadeInSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .delay-1 {
+        animation-delay: 0.1s;
+    }
+
+    .delay-2 {
+        animation-delay: 0.2s;
+    }
+
+    .delay-3 {
+        animation-delay: 0.3s;
+    }
+
+    /* Custom Pagination */
+    .paginator-wrap {
         display: flex;
         justify-content: center;
+        gap: 8px;
+        margin-top: 32px;
     }
 
-    .chev {
+    .pg-link {
         width: 40px;
         height: 40px;
-        border-radius: 14px;
-        display: grid;
-        place-items: center;
-        background: rgba(96, 165, 250, 0.12);
-        border: 1px solid rgba(96, 165, 250, 0.25);
-        color: #60a5fa;
-        transition: transform .18s ease, background .18s ease, border-color .18s ease;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #94a3b8;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s;
     }
 
-    details[open] .chev {
-        transform: rotate(180deg);
-    }
-
-    .group-body {
-        padding: 12px 14px 14px;
-    }
-
-    .table-box {
-        margin-top: 10px;
-        overflow: auto;
-        border-radius: 14px;
-        border: 1px solid rgba(255, 255, 255, 0.10);
-        background: rgba(15, 23, 42, 0.55);
-    }
-
-    .table,
-    .table thead,
-    .table tbody,
-    .table tr,
-    .table td,
-    .table th {
-        background: transparent !important;
-        color: #e5e7eb !important;
-    }
-
-    .table {
-        margin: 0;
-        min-width: 820px;
-    }
-
-    .table thead th {
-        position: sticky;
-        top: 0;
-        z-index: 2;
-        background: linear-gradient(90deg, rgba(37, 99, 235, 0.95), rgba(59, 130, 246, 0.95)) !important;
-        color: #fff !important;
-        font-weight: 1000;
-        text-align: center;
-        border-color: rgba(255, 255, 255, 0.12) !important;
-        white-space: nowrap;
-    }
-
-    .table td,
-    .table th {
-        text-align: center;
-        border-color: rgba(255, 255, 255, 0.10) !important;
-        vertical-align: middle;
-        white-space: nowrap;
-    }
-
-    .table tbody tr {
-        transition: background .15s ease;
-    }
-
-    .table tbody tr:hover {
-        background: rgba(59, 130, 246, 0.12) !important;
-    }
-
-    td strong {
+    .pg-link:hover:not(.disabled) {
+        background: rgba(255, 255, 255, 0.1);
         color: #fff;
+        border-color: rgba(255, 255, 255, 0.2);
     }
 
-    .empty-text {
-        color: var(--muted);
-        padding: 10px 4px 0;
-        font-weight: 800;
+    .pg-link.active {
+        background: var(--primary);
+        color: #fff;
+        border-color: var(--primary);
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
     }
 
-    @media (max-width: 576px) {
-        .summary-grid {
-            grid-template-columns: 18px 1fr 44px;
-            grid-template-rows: auto auto;
-            row-gap: 6px;
-        }
+    /* Clear Filter Button */
+    .clear-filter-wrap {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 12px;
+    }
 
-        .sum-right-pack {
-            grid-column: 2;
-            justify-self: start;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
+    .clear-filter-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #94a3b8;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none !important;
+        transition: all 0.2s;
+        backdrop-filter: blur(10px);
+    }
 
-        .table {
-            min-width: 720px;
-        }
+    .clear-filter-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: #fff;
+        transform: translateY(-1px);
+    }
 
-        .teacher-header {
-            min-width: 100%;
-        }
+    /* Date Input Visibility */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(1) opacity(0.5);
+        cursor: pointer;
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator:hover {
+        opacity: 0.8;
     }
 </style>
 
-<main class="page">
-    <div class="page-wrap">
+<div class="tl-container">
+    {% include "partials/moliya_header.html" %}
 
-        <div class="shell">
-            <div class="shell-inner">
-
-                <div class="header-wrap">
-                    <div class="teacher-header">
-                        <div class="icon">💰</div>
-                        <div>
-                            <div class="title">{{ request.center.name|default:"To'lovlar" }}</div>
-                            <div class="sub">Guruhlar daromadi</div>
+    <div class="row g-4 mb-5">
+        <div class="col-lg-4">
+            <div class="row g-4">
+                <div class="col-12 anim-fade-in delay-1">
+                    <div class="premium-card">
+                        <div class="card-icon-box">
+                            <i class="fa-solid fa-money-bill-trend-up"></i>
                         </div>
+                        <div class="tl-card-lbl">Umumiy daromad</div>
+                        <div class="tl-card-val">{{ total_income|intcomma }} so'm</div>
                     </div>
                 </div>
-
-                <div class="filter-bar">
-                    <form method="get" class="filter-form">
-                        <div class="fg">
-                            <div class="lbl">📅 Oy</div>
-                            <select name="month" aria-label="Oy">
-                                <!-- Use calc_date (chart_anchor) for defaults -->
-                                <option value="1" {% if calc_date.month == 1 %}selected{% endif %}>Yanvar</option>
-                                <option value="2" {% if calc_date.month == 2 %}selected{% endif %}>Fevral</option>
-                                <option value="3" {% if calc_date.month == 3 %}selected{% endif %}>Mart</option>
-                                <option value="4" {% if calc_date.month == 4 %}selected{% endif %}>Aprel</option>
-                                <option value="5" {% if calc_date.month == 5 %}selected{% endif %}>May</option>
-                                <option value="6" {% if calc_date.month == 6 %}selected{% endif %}>Iyun</option>
-                                <option value="7" {% if calc_date.month == 7 %}selected{% endif %}>Iyul</option>
-                                <option value="8" {% if calc_date.month == 8 %}selected{% endif %}>Avgust</option>
-                                <option value="9" {% if calc_date.month == 9 %}selected{% endif %}>Sentyabr</option>
-                                <option value="10" {% if calc_date.month == 10 %}selected{% endif %}>Oktyabr</option>
-                                <option value="11" {% if calc_date.month == 11 %}selected{% endif %}>Noyabr</option>
-                                <option value="12" {% if calc_date.month == 12 %}selected{% endif %}>Dekabr</option>
-                            </select>
+                <div class="col-12 anim-fade-in delay-2">
+                    <div class="premium-card">
+                        <div class="card-icon-box"
+                            style="background: rgba(59, 130, 246, 0.1); color: var(--primary-light); border-color: rgba(59, 130, 246, 0.2);">
+                            <i class="fa-solid fa-filter"></i>
                         </div>
-
-                        <div class="fg">
-                            <div class="lbl">🗓️ Yil</div>
-                            <input name="year" type="number" value="{{ calc_date.year }}" min="2020" max="2100"
-                                aria-label="Yil">
-                        </div>
-
-                        <button class="filter-btn" type="submit">Ko‘rsatish</button>
-                    </form>
-                </div>
-
-                {% if group_income_data %}
-                {% for item in group_income_data %}
-                <details class="group-card">
-
-                    <summary>
-                        <div class="summary-grid">
-
-                            <div class="sum-left">
-                                <span class="sum-dot"></span>
-                            </div>
-
-                            <div class="sum-group">
-                                <div class="gname">{{ item.group.nom }}</div>
-                                <div class="gmeta">{{ item.students_count }} ta o‘quvchi</div>
-                            </div>
-
-                            <div class="sum-right-pack">
-                                <div class="sum-percent">{{ item.foiz }}%</div>
-                                <div class="sum-total">{{ item.daromad|intcomma }} so‘m</div>
-                            </div>
-
-                            <div class="sum-right">
-                                <span class="chev">⬇</span>
-                            </div>
-
-                        </div>
-                    </summary>
-
-                    <div class="group-body">
-                        {% if item.enrollments %}
-                        <div class="table-box" role="region" aria-label="Guruh o‘quvchilari jadvali" tabindex="0">
-                            <table class="table table-sm table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>O‘quvchi</th>
-                                        <th>Kurs narxi</th>
-                                        <th>Foiz</th>
-                                        <th>Kelgan darslar</th>
-                                        <th>Daromad (so‘m)</th>
-                                    </tr>
-                                </thead>
-
-                                <tbody>
-                                    {% for e in item.enrollments %}
-                                    <tr>
-                                        <td>{{ forloop.counter }}</td>
-                                        <td>{{ e.student.ism }} {{ e.student.familya }}</td>
-                                        <td>{{ e.kurs_narhi|intcomma }}</td>
-                                        <td>{{ e.foiz }}%</td>
-                                        <td>{{ e.attended }}</td>
-                                        <td><strong>{{ e.daromad|intcomma }}</strong></td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-
-                            </table>
-                        </div>
-                        {% else %}
-                        <div class="empty-text">Bu guruhda hozircha o‘quvchilar yo‘q.</div>
-                        {% endif %}
+                        <div class="tl-card-lbl">Filter bo'yicha daromad</div>
+                        <div class="tl-card-val">{{ filtered_income|intcomma }} so'm</div>
                     </div>
-
-                </details>
-                {% endfor %}
-                {% else %}
-                <div class="empty-text">Tanlangan davrda ma'lumot topilmadi.</div>
-                {% endif %}
-
+                </div>
             </div>
         </div>
-
+        <div class="col-lg-8 anim-fade-in delay-3">
+            <div class="premium-card">
+                <div class="tl-card-lbl mb-3">Daromad Grafigi</div>
+                <div class="chart-container">
+                    <div id="tl-income-chart"></div>
+                </div>
+            </div>
+        </div>
     </div>
-</main>
 
+    <!-- FILTERS -->
+    <div class="filter-section anim-fade-in">
+        <form method="get" id="tlFilterForm">
+            {% if request.GET.date_from or request.GET.date_to or request.GET.q or request.GET.payment_type or request.GET.group or request.GET.course or request.GET.teacher or request.GET.staff %}
+            <div class="clear-filter-wrap">
+                <a href="?" class="clear-filter-btn">
+                    <i class="fa-solid fa-xmark"></i> Filtrlarni tozalash
+                </a>
+            </div>
+            {% endif %}
+            <div class="row g-4">
+                <div class="col-md-3">
+                    <label class="filter-label">📅 Sanadan boshlab</label>
+                    <input type="date" name="date_from" value="{{ date_from }}" class="filter-input">
+                </div>
+                <div class="col-md-3">
+                    <label class="filter-label">📅 Sanagacha</label>
+                    <input type="date" name="date_to" value="{{ date_to }}" class="filter-input">
+                </div>
+                <div class="col-md-3">
+                    <label class="filter-label">🔍 Qidiruv (Ism/Tel)</label>
+                    <input type="text" name="q" value="{{ q }}" placeholder="Ism yoki telefon..." class="filter-input">
+                </div>
+                <div class="col-md-3">
+                    <label class="filter-label"> To'lov turi</label>
+                    <select name="payment_type" class="filter-select">
+                        <option value="">Barchasi</option>
+                        <option value="cash" {% if sel_type == "cash" %}selected{% endif %}>Naqd</option>
+                        <option value="card" {% if sel_type == "card" %}selected{% endif %}>Karta</option>
+                        <option value="mixed" {% if sel_type == "mixed" %}selected{% endif %}>Aralash</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="filter-label">👥 Guruh</label>
+                    <select name="group" class="filter-select">
+                        <option value="">Barchasi</option>
+                        {% for g in groups %}
+                        <option value="{{ g.id }}" {% if sel_group == g.id|stringformat:"s" %}selected{% endif %}>{{ g.nom }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="filter-label">🎓 Kurs</label>
+                    <select name="course" class="filter-select">
+                        <option value="">Barchasi</option>
+                        {% for c in courses %}
+                        <option value="{{ c.id }}" {% if sel_course == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="filter-label">👨‍🏫 O'qituvchi</label>
+                    <select name="teacher" class="filter-select">
+                        <option value="">Barchasi</option>
+                        {% for t in teachers %}
+                        <option value="{{ t.id }}" {% if sel_teacher == t.id|stringformat:"s" %}selected{% endif %}>{{  t.ism }} {{ t.familya }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="filter-label">🏢 Xodim</label>
+                    <select name="staff" class="filter-select">
+                        <option value="">Barchasi</option>
+                        {% for s in staffs %}
+                        <option value="{{ s.id }}" {% if sel_staff == s.id|stringformat:"s" %}selected{% endif %}>{{ s.ism }} {{ s.familya }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-container anim-fade-in shadow-lg">
+        <div class="p-4 d-flex justify-content-between align-items-center border-bottom border-white border-opacity-10">
+            <h5 class="m-0 fw-bold text-white">To'lovlar Tarixi</h5>
+            <span
+                class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 px-3 py-2 rounded-3">
+                Jami: {{ total_count }} ta
+            </span>
+        </div>
+        <div class="table-responsive">
+            <table class="premium-table">
+                <thead>
+                    <tr>
+                        <th>Sana</th>
+                        <th>O'quvchi</th>
+                        <th>Summa</th>
+                        <th>Qaysi oy uchun?</th>
+                        <th>Yonalish</th>
+                        <th>Tur</th>
+                        <th>Xodim</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in page_obj %}
+                    <tr>
+                        <td>
+                            <div class="fw-bold text-white">{{ p.paid_date|date:"d.m.Y" }}</div>
+                            <div class="small text-secondary">{{ p.created_at|date:"H:i" }}</div>
+                        </td>
+                        <td>
+                            <div class="student-info">
+                                <span class="student-name">{{ p.student.ism }} {{ p.student.familya }}</span>
+                                <span class="student-meta">{{ p.student.telefon1|default:p.student.telefon2|default:"—"      }}</span>
+                            </div>
+                        </td>
+                        <td><span class="amount-badge">{{ p.summa|intcomma }} so'm</span></td>
+                        <td>
+                            <div class="d-flex flex-column gap-1">
+                                {% for alloc in p.allocations.all %}
+                                <span class="month-tag">{{ alloc.tuition_month.month.month|get_month_name }} {{  alloc.tuition_month.month.year }}</span>
+                                {% empty %}
+                                <span class="text-secondary opacity-50 small">—</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex flex-column gap-1">
+                                <span class="group-tag">{{ p.group.nom|default:"—" }}</span>
+                                <small class="text-secondary opacity-50">{{ p.group.category_obj.name|default:"—" }}</small>
+                            </div>
+                        </td>
+                        <td>
+                            {% if p.payment_type == "cash" %}
+                            <span class="type-badge bg-cash"><i class="fa-solid fa-money-bill"></i> Naqd</span>
+                            {% elif p.payment_type == "card" %}
+                            <span class="type-badge bg-card"><i class="fa-solid fa-credit-card"></i> Karta</span>
+                            {% elif p.payment_type == "mixed" %}
+                            <span class="type-badge bg-mixed"><i class="fa-solid fa-layer-group"></i> Aralash</span>
+                            {% else %}<span class="text-secondary">—</span>{% endif %}
+                        </td>
+                        <td>
+                            <span class="text-secondary fw-medium">{{ p.created_by.ism|default:"—" }}</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5">
+                            <div class="opacity-30 mb-3"><i class="fa-solid fa-folder-open fa-3x"></i></div>
+                            <p class="text-secondary m-0">To'lovlar topilmadi</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PAGINATION -->
+    {% if is_paginated %}
+    <div class="paginator-wrap">
+        {% if page_obj.has_previous %}
+        <a href="?{{ query_string }}&page={{ page_obj.previous_page_number }}" class="pg-link"><i
+                class="fa-solid fa-chevron-left"></i></a>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+        {% if num == page_obj.number %}
+        <span class="pg-link active">{{ num }}</span>
+        {% elif num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %} <a
+            href="?{{ query_string }}&page={{ num }}" class="pg-link">{{ num }}</a>
+            {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <a href="?{{ query_string }}&page={{ page_obj.next_page_number }}" class="pg-link"><i
+                    class="fa-solid fa-chevron-right"></i></a>
+            {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{{ chart_data|json_script:"tl-chart-data" }}
+{{ chart_labels|json_script:"tl-chart-labels" }}
+
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+    (function () {
+        document.addEventListener("DOMContentLoaded", function () {
+            // Auto-submit filters
+            const form = document.getElementById("tlFilterForm");
+            if (form) {
+                form.querySelectorAll("select, input[type='date']").forEach(el => {
+                    el.addEventListener("change", () => form.submit());
+                });
+                let timeout = null;
+                form.querySelector("input[name='q']").addEventListener("input", function () {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => form.submit(), 800);
+                });
+            }
+
+            // Chart
+            const dataEl = document.getElementById("tl-chart-data");
+            const labelEl = document.getElementById("tl-chart-labels");
+            const chartDiv = document.querySelector("#tl-income-chart");
+            if (dataEl && labelEl && chartDiv) {
+                const data = JSON.parse(dataEl.textContent) || [];
+                const labels = JSON.parse(labelEl.textContent) || [];
+
+                new ApexCharts(chartDiv, {
+                    series: [{ name: "Daromad", data: data }],
+                    chart: {
+                        type: "area", height: "100%", offsety: -10,
+                        toolbar: { show: false }, background: "transparent",
+                        sparkline: { enabled: false }, zoom: { enabled: false }
+                    },
+                    colors: ["#14b8a6"],
+                    stroke: { curve: "smooth", width: 3 },
+                    fill: {
+                        type: "gradient",
+                        gradient: {
+                            shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05,
+                            stops: [0, 90, 100], colorStops: [
+                                { offset: 0, color: "#14b8a6", opacity: 0.4 },
+                                { offset: 100, color: "#14b8a6", opacity: 0.02 }
+                            ]
+                        }
+                    },
+                    grid: { borderColor: "rgba(255, 255, 255, 0.05)", strokeDashArray: 4 },
+                    xaxis: {
+                        categories: labels,
+                        labels: { style: { colors: "#64748b", fontSize: "11px" } },
+                        axisBorder: { show: false }, axisTicks: { show: false }
+                    },
+                    yaxis: {
+                        labels: {
+                            style: { colors: "#64748b", fontSize: "11px" },
+                            formatter: v => {
+                                if (v >= 1000000) return (v / 1000000).toFixed(1) + "M";
+                                if (v >= 1000) return (v / 1000).toFixed(0) + "k";
+                                return v;
+                            }
+                        }
+                    },
+                    dataLabels: { enabled: false },
+                    tooltip: {
+                        theme: "dark",
+                        y: { formatter: v => Number(v).toLocaleString() + " so'm" }
+                    }
+                }).render();
+            }
+        });
+    })();
+</script>
 {% endblock %}

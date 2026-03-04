@@ -1125,14 +1125,16 @@ def user_edit(request, pk):
 
             if new_price_raw is not None and str(new_price_raw).strip() != "":
                 try:
-                    enroll.kurs_narhi = int(new_price_raw)
+                    new_price = int(new_price_raw)
+                    enroll.kurs_narhi = new_price
                     enroll.save(update_fields=["kurs_narhi"])
 
-                    TuitionMonth.objects.update_or_create(
+                    # Faqat MAVJUD TuitionMonth larni yangilaymiz.
+                    # YANGI TuitionMonth yaratilmaydi (o'quvchi darhol qarzdor bo'lib qolmasin)
+                    TuitionMonth.objects.filter(
                         enrollment=enroll,
-                        month=selected_month,
-                        defaults={"fee_amount": enroll.kurs_narhi},
-                    )
+                        month__gte=selected_month
+                    ).update(fee_amount=new_price)
                 except ValueError:
                     pass
 
@@ -1147,19 +1149,19 @@ def user_edit(request, pk):
                 messages.error(request, "Bu guruh boshqa centerga tegishli.")
                 return redirect(next_url)
 
-            enroll, _created = Enrollment.objects.get_or_create(student=user, group=group)
+            enroll, _created = Enrollment.objects.get_or_create(
+                student=user,
+                group=group,
+                defaults={"center": group.center, "oqituvchi_foiz": group.oqituvchi_foiz or 40}
+            )
             if yangi_group_price:
                 try:
                     enroll.kurs_narhi = int(yangi_group_price)
                 except ValueError:
                     pass
             enroll.save()
-
-            TuitionMonth.objects.update_or_create(
-                enrollment=enroll,
-                month=selected_month,
-                defaults={"fee_amount": enroll.kurs_narhi or 0},
-            )
+            # ⚠️ TuitionMonth YARATILMAYDI — student keyingi oydan boshlab
+            # qarzdor hisoblanadi. qarzdorlar_home sahifasi lazyly sync qiladi.
 
         return redirect(next_url)
 

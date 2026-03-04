@@ -2,6 +2,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from .models import Attendance, TeacherIncome, Enrollment
 
+
 @receiver(post_save, sender=Attendance)
 def create_teacher_income(sender, instance, created, **kwargs):
     if not created or not instance.present:
@@ -13,7 +14,7 @@ def create_teacher_income(sender, instance, created, **kwargs):
             student=instance.student
         )
     except Enrollment.DoesNotExist:
-        return  # Enrollment yo‘q bo‘lsa, chiqib ketamiz
+        return  # Enrollment yo'q bo'lsa, chiqib ketamiz
 
     # Daromadni hisoblaymiz: kurs narxidan foiz va oyga nisbatan
     kurs_narhi = enrollment.kurs_narhi or 0
@@ -32,3 +33,6 @@ def create_teacher_income(sender, instance, created, **kwargs):
         defaults={'amount': amount}
     )
 
+    # NOTE: Enrollment yaratilganda avtomatik TuitionMonth YARATILMAYDI.
+    # Yangi qo'shilgan o'quvchi KEYINGI oydan boshlab qarzli hisoblanadi.
+    # Qarzdorlar sahifasi (qarzdorlar_home) lazily yaratadi va ensure qiladi.

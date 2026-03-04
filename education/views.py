@@ -1702,248 +1702,116 @@ def _last_12_ending(anchor: date) -> list[date]:
 @login_required
 def tolovlar_home(request):
     if not user_can_manage_payments(request.user):
-        messages.error(request, "Ruxsat yo‘q.")
+        messages.error(request, "Ruxsat yo'q.")
         return redirect("core:home")
 
     center = get_active_center(request)
     if not center and not request.user.is_superuser:
         return HttpResponseForbidden("Markaz biriktirilmagan")
 
-    # -----------------------------
-    # 1) BASE QS (faqat markaz bo‘yicha)
-    # -----------------------------
-    base_qs = Payment.objects.select_related(
-        "student",
-        "group",
-        "group__oqituvchi",
-        "group__category_obj",
-        "created_by",
-    )
+
+    from django.db.models import OuterRef, Subquery, IntegerField
+    from django.db.models.functions import Coalesce as DjCoalesce
+    from education.models import TuitionMonth, PaymentAllocation, Enrollment
+
+    today = date.today()
+    cur_month_start = today.replace(day=1)
+
+    # ── 1) UMUMIY DAROMAD ─────────────────────────────────────────────────
+    base_payment_qs = Payment.objects.filter(center=center) if center else Payment.objects.none()
+    total_income = base_payment_qs.aggregate(s=Sum("summa"))["s"] or 0
+
+    # ── 2) FILTER PARAMS ──────────────────────────────────────────────────
+    q           = (request.GET.get("q") or "").strip()
+    date_from   = (request.GET.get("date_from") or "").strip()
+    date_to     = (request.GET.get("date_to") or "").strip()
+    sel_group   = request.GET.get("group") or ""
+    sel_teacher = request.GET.get("teacher") or ""
+    sel_course  = request.GET.get("course") or ""
+    sel_staff   = request.GET.get("staff") or ""
+    sel_type    = request.GET.get("payment_type") or ""
+    sel_month   = request.GET.get("pay_month") or ""
+
+    # ── 3) FAQAT QARZSIZ O'QUVCHI IDs ────────────────────────────────────
+    total_fee_sub = (TuitionMonth.objects
+        .filter(enrollment=OuterRef("pk"), month__lte=cur_month_start)
+        .values("enrollment")
+        .annotate(s=Sum("fee_amount"))
+        .values("s"))
+
+    total_paid_sub = (PaymentAllocation.objects
+        .filter(tuition_month__enrollment=OuterRef("pk"))
+        .values("tuition_month__enrollment")
+        .annotate(s=Sum("amount"))
+        .values("s"))
+
+    enr_qs = Enrollment.objects.filter(is_active=True, student__is_archived=False)
     if center:
-        base_qs = base_qs.filter(center=center)
+        enr_qs = enr_qs.filter(center=center)
 
-    # Umumiy daromad (filtrlardan mustaqil)
-    total_income = base_qs.aggregate(s=Sum("summa"))["s"] or 0
+    debt_student_ids = list(
+        enr_qs.annotate(
+            f=DjCoalesce(Subquery(total_fee_sub, output_field=IntegerField()), 0),
+            p=DjCoalesce(Subquery(total_paid_sub, output_field=IntegerField()), 0)
+        ).annotate(d=F("f") - F("p")).filter(d__gt=0).values_list("student_id", flat=True)
+    )
 
-    # -----------------------------
-    # 2) FILTERS (jadval + chart + filtered_income shu QSdan)
-    # -----------------------------
-    payment_qs = base_qs
+    # ── 4) PAYMENT QS ─────────────────────────────────────────────────────
+    pay_qs = base_payment_qs.exclude(student_id__in=debt_student_ids).select_related(
+        "student", "group", "group__oqituvchi", "group__category_obj", "created_by"
+    ).prefetch_related("allocations", "allocations__tuition_month")
 
-    q = (request.GET.get("q") or "").strip()
     if q:
-        payment_qs = payment_qs.filter(
+        pay_qs = pay_qs.filter(
             Q(student__ism__icontains=q) |
             Q(student__familya__icontains=q) |
-            Q(student__phone__icontains=q)
+            Q(student__telefon1__icontains=q)
         )
+    if date_from:
+        pay_qs = pay_qs.filter(paid_date__gte=date_from)
+    if date_to:
+        pay_qs = pay_qs.filter(paid_date__lte=date_to)
+    if sel_group:
+        pay_qs = pay_qs.filter(group_id=sel_group)
+    if sel_teacher:
+        pay_qs = pay_qs.filter(group__oqituvchi_id=sel_teacher)
+    if sel_course:
+        pay_qs = pay_qs.filter(group__category_obj_id=sel_course)
+    if sel_staff:
+        pay_qs = pay_qs.filter(created_by_id=sel_staff)
+    if sel_type:
+        pay_qs = pay_qs.filter(payment_type=sel_type)
+    if sel_month and sel_month.isdigit():
+        pay_qs = pay_qs.filter(paid_date__month=int(sel_month))
 
-    filters = ["group", "teacher", "course", "staff", "payment_type"]
-    filter_map = {
-        "group": "group_id",
-        "teacher": "group__oqituvchi_id",
-        "course": "group__category_obj_id",
-        "staff": "created_by_id",
-        "payment_type": "payment_type",
-    }
-    for key in filters:
-        val = request.GET.get(key)
-        if val:
-            payment_qs = payment_qs.filter(**{filter_map[key]: val})
+    filtered_income = pay_qs.aggregate(s=Sum("summa"))["s"] or 0
 
-    date_from = request.GET.get("date_from")
-    date_to = request.GET.get("date_to")
-    if date_from and date_from != "None":
-        payment_qs = payment_qs.filter(paid_date__gte=date_from)
-    if date_to and date_to != "None":
-        payment_qs = payment_qs.filter(paid_date__lte=date_to)
-
-    # -----------------------------
-    # 2.5) OY / MUDDAT FILTRLARI (ALLOCATION BO'YICHA)
-    # -----------------------------
-    pay_month = request.GET.get("pay_month")  # 1..12
-    tm_filter = request.GET.get("month")      # YYYY-MM OR 1..12
-    req_year = request.GET.get("year")        # YYYY
-
-    month_filter_active = False
-    f_mm, f_tm_y, f_tm_m = None, None, None
-
-    # chart uchun anchor oy (tanlangan oygacha 12 oy ko‘rsatamiz)
-    today_anchor = date.today().replace(day=1)
-    chart_anchor = today_anchor
-
-    # 1) Try ?year=2024&month=5 (Teacher Groups style)
-    if req_year and tm_filter and tm_filter.isdigit():
-        try:
-            f_tm_y = int(req_year)
-            f_tm_m = int(tm_filter)
-
-            payment_qs = payment_qs.filter(
-                allocations__tuition_month__month__year=f_tm_y,
-                allocations__tuition_month__month__month=f_tm_m
-            ).distinct()
-
-            month_filter_active = True
-            chart_anchor = date(f_tm_y, f_tm_m, 1)
-        except Exception:
-            pass
-
-    # 2) Try ?month=YYYY-MM
-    elif tm_filter and tm_filter not in ["None", ""] and "-" in tm_filter:
-        try:
-            y_str, m_str = tm_filter.split("-")
-            f_tm_y, f_tm_m = int(y_str), int(m_str)
-
-            payment_qs = payment_qs.filter(
-                allocations__tuition_month__month__year=f_tm_y,
-                allocations__tuition_month__month__month=f_tm_m
-            ).distinct()
-
-            month_filter_active = True
-            chart_anchor = date(f_tm_y, f_tm_m, 1)
-        except Exception:
-            pass
-
-    elif pay_month and pay_month.isdigit():
-        f_mm = int(pay_month)
-        if 1 <= f_mm <= 12:
-            payment_qs = payment_qs.filter(
-                allocations__tuition_month__month__month=f_mm
-            ).distinct()
-
-            month_filter_active = True
-
-            # ✅ MUHIM: chart diapazoni tanlangan oyga mos bo‘lsin.
-            # Avtomatik year tanlash:
-            # agar tanlangan oy hozirgi oydan katta bo‘lsa, odatda u keyingi oy (future) bo‘ladi.
-            # Lekin payments bo‘lgan eng yaqin tuition_month yilini olib qo‘yamiz.
-            # (Agar topilmasa, joriy yil ishlaydi)
-            alloc_months = (PaymentAllocation.objects
-                .filter(payment__in=payment_qs)
-                .filter(tuition_month__month__month=f_mm)
-                .values_list("tuition_month__month", flat=True)
-                .order_by("-tuition_month__month")[:1]
-            )
-            if alloc_months:
-                # alloc_months[0] -> datetime.date
-                chart_anchor = alloc_months[0].replace(day=1)
-            else:
-                chart_anchor = date(date.today().year, f_mm, 1)
-
-    # payment_ids (distinct + join Sum ko‘payib ketmasin)
-    payment_ids = list(payment_qs.values_list("id", flat=True))
-
-    # -----------------------------
-    # 3) FILTERED INCOME (allocation bo‘yicha)
-    # -----------------------------
-    if month_filter_active:
-        alloc_qs = PaymentAllocation.objects.filter(payment_id__in=payment_ids)
-        if f_tm_y and f_tm_m:
-            alloc_qs = alloc_qs.filter(
-                tuition_month__month__year=f_tm_y,
-                tuition_month__month__month=f_tm_m
-            )
-        elif f_mm:
-            alloc_qs = alloc_qs.filter(tuition_month__month__month=f_mm)
-
-        filtered_income = alloc_qs.aggregate(s=Sum("amount"))["s"] or 0
-    else:
-        # oy tanlanmagan bo‘lsa: filterlangan payments yig‘indisi
-        filtered_income = Payment.objects.filter(id__in=payment_ids).aggregate(s=Sum("summa"))["s"] or 0
-
-    # -----------------------------
-    # 4) CHART (tanlangan oyga mos 12 oy)
-    # -----------------------------
-    month_starts = _last_12_ending(chart_anchor)  # ✅ end=tanlangan oy
-    m_min, m_max = month_starts[0], month_starts[-1]
-
-    # m_max oxirgi kunini olish
-    last_day_of_max = (_add_months(m_max, 1) - timedelta(days=1))
+    # ── 5) CHART (12 oy) ──────────────────────────────────────────────────
+    month_starts = _last_12_ending(cur_month_start)
+    m_min = month_starts[0]
+    m_max = _add_months(month_starts[-1], 1) - timedelta(days=1)
 
     chart_qs = (
-        PaymentAllocation.objects.filter(
-            payment_id__in=payment_ids,
-            tuition_month__month__gte=m_min,
-            tuition_month__month__lte=last_day_of_max
-        )
-        .annotate(m=TruncMonth("tuition_month__month"))
+        pay_qs.filter(paid_date__gte=m_min, paid_date__lte=m_max)
+        .annotate(m=TruncMonth("paid_date"))
         .values("m")
-        .annotate(total=Sum("amount"))
+        .annotate(total=Sum("summa"))
         .order_by("m")
     )
-
     db_map = {}
     for row in chart_qs:
         m = row["m"]
         if not m:
             continue
-        # TruncMonth -> datetime
         key = m.date().replace(day=1) if hasattr(m, "date") else m.replace(day=1)
         db_map[key] = int(row["total"] or 0)
 
     chart_labels = [m.strftime("%b") for m in month_starts]
     chart_data = [db_map.get(m, 0) for m in month_starts]
-    show_chart = True
 
-    # -----------------------------
-    # 5) LIST (collapse)
-    # -----------------------------
-    # Agar oy filter active bo‘lsa, collapse tuition_month bo‘yicha bo‘lsin
-    if month_filter_active:
-        # Allocation filterlangan asosiy alloclar
-        alloc_base = PaymentAllocation.objects.filter(payment_id__in=payment_ids)
+    # ── 6) PAGINATION ─────────────────────────────────────────────────────
+    pay_qs = pay_qs.order_by("-paid_date", "-id")
 
-        if f_tm_y and f_tm_m:
-            alloc_base = alloc_base.filter(
-                tuition_month__month__year=f_tm_y,
-                tuition_month__month__month=f_tm_m
-            )
-        elif f_mm:
-            alloc_base = alloc_base.filter(tuition_month__month__month=f_mm)
-
-        # Har bir (student, group, tuition_month) uchun eng oxirgi payment_id ni olish
-        latest_payment_subq = (PaymentAllocation.objects
-            .filter(
-                payment__student_id=OuterRef("payment__student_id"),
-                payment__group_id=OuterRef("payment__group_id"),
-                tuition_month_id=OuterRef("tuition_month_id"),
-            )
-            .order_by("-payment__paid_date", "-payment_id")
-            .values("payment_id")[:1]
-        )
-
-        alloc_latest = alloc_base.annotate(_latest_payment_id=Subquery(latest_payment_subq)).filter(
-            payment_id=F("_latest_payment_id")
-        )
-
-        latest_ids = list(alloc_latest.values_list("payment_id", flat=True))
-
-        payments_list_qs = (Payment.objects
-            .filter(id__in=latest_ids)
-            .select_related("student", "group", "group__oqituvchi", "group__category_obj", "created_by")
-            .order_by("-paid_date", "-id")
-        )
-
-    else:
-        # eski usul: paid_date oy/yil bo‘yicha collapse
-        list_qs = Payment.objects.filter(id__in=payment_ids).select_related(
-            "student", "group", "group__oqituvchi", "group__category_obj", "created_by"
-        )
-
-        latest_id_subq = Payment.objects.filter(
-            student_id=OuterRef("student_id"),
-            group_id=OuterRef("group_id"),
-            paid_date__month=OuterRef("paid_date__month"),
-            paid_date__year=OuterRef("paid_date__year"),
-        ).order_by("-paid_date", "-id").values("id")[:1]
-
-        payments_list_qs = list_qs.annotate(
-            _latest_id=Subquery(latest_id_subq)
-        ).filter(id=F("_latest_id")).order_by("-paid_date", "-id")
-
-    # -----------------------------
-    # 6) PAGINATION
-    # -----------------------------
     allowed_page_sizes = [10, 20, 50, 100]
     try:
         page_size = int(request.GET.get("page_size", 10))
@@ -1952,142 +1820,58 @@ def tolovlar_home(request):
     if page_size not in allowed_page_sizes:
         page_size = 10
 
-    paginator = Paginator(payments_list_qs, page_size)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
+    paginator = Paginator(pay_qs, page_size)
+    page_obj = paginator.get_page(request.GET.get("page"))
 
     query_params = request.GET.copy()
     query_params.pop("page", None)
 
-    # -----------------------------
-    # 7) FILTER OPTIONS
-    # -----------------------------
-    groups = Group.objects.filter(is_archived=False).only("id", "nom")
+    # ── 7) FILTER DROPDOWNS ───────────────────────────────────────────────
+    groups = Group.objects.filter(is_archived=False)
     if center:
         groups = groups.filter(center=center)
 
-    teachers_qs = User.objects.filter(role="teacher", is_active=True).only("id", "ism", "familya", "otchestvo")
+    teachers_qs = User.objects.filter(role="teacher", is_active=True)
     if center:
         teachers_qs = teachers_qs.filter(center=center)
 
     courses = Category.objects.all().only("id", "name")
 
-    staffs = User.objects.filter(role__in=["manager", "admin", "director"], is_active=True).only(
-        "id", "ism", "familya", "otchestvo", "email"
-    )
+    staffs = User.objects.filter(role__in=["manager", "admin", "director"], is_active=True)
     if center:
         staffs = staffs.filter(center=center)
 
-    # -----------------------------
-    # 8) GROUP INCOME DATA (User Requested Section)
-    # -----------------------------
-    group_income_data = []
-    
-    # Use chart_anchor as the target date for calculation
-    calc_year = chart_anchor.year
-    calc_month = chart_anchor.month
-
-    # Get groups for the center with prefetching
-    groups_qs = Group.objects.select_related("oqituvchi").prefetch_related(
-        "enrollments__student",
-        "attendances"
-    )
-    if center:
-        groups_qs = groups_qs.filter(center=center)
-
-    # Filter groups if 'group' filter is applied
-    selected_group_id = request.GET.get("group")
-    if selected_group_id:
-        groups_qs = groups_qs.filter(id=selected_group_id)
-        
-    # Filter by teacher if applied
-    selected_teacher_id = request.GET.get("teacher")
-    if selected_teacher_id:
-        groups_qs = groups_qs.filter(oqituvchi_id=selected_teacher_id)
-
-    for grp in groups_qs:
-        # Filter attendances for this group in the specific month
-        month_att = grp.attendances.filter(
-            date__year=calc_year,
-            date__month=calc_month
-        ).filter(Q(present=True) | Q(forced=True))
-
-        enrollments_data = []
-        for enr in grp.enrollments.all():
-            attended = month_att.filter(student=enr.student).count()
-            
-            # Skip inactive if no attendance
-            if not enr.is_active and attended == 0:
-                continue
-
-            # Calculate income using the model method if available, or manual calc
-            # Manual calc to match teacher_groups logic strictly:
-            # Income = (Price * Percent * Attended) / MonthlyLessons
-            
-            price = enr.kurs_narhi or 0
-            percent = (enr.oqituvchi_foiz or 0) / 100
-            monthly_lessons = grp.oy_dars_soni or 12
-            
-            if monthly_lessons > 0:
-                income = (price * percent * attended) / monthly_lessons
-            else:
-                income = 0
-
-            enrollments_data.append({
-                "student": enr.student,
-                "kurs_narhi": price,
-                "foiz": int(percent * 100),
-                "attended": attended,
-                "daromad": int(income)
-            })
-
-        if enrollments_data:
-            total_grp_income = sum(x["daromad"] for x in enrollments_data)
-            
-            group_income_data.append({
-                "group": grp,
-                "enrollments": enrollments_data,
-                "students_count": len(enrollments_data),
-                "foiz": grp.oqituvchi_foiz,
-                "daromad": total_grp_income
-            })
+    uz_months = [
+        (1, "Yanvar"), (2, "Fevral"), (3, "Mart"), (4, "Aprel"),
+        (5, "May"), (6, "Iyun"), (7, "Iyul"), (8, "Avgust"),
+        (9, "Sentyabr"), (10, "Oktyabr"), (11, "Noyabr"), (12, "Dekabr"),
+    ]
 
     return render(request, "education/tolovlar_list.html", {
         "page_obj": page_obj,
-        "payments": page_obj,
         "total_count": paginator.count,
-
         "total_income": total_income,
         "filtered_income": filtered_income,
-
         "chart_data": chart_data,
         "chart_labels": chart_labels,
-        "show_chart": show_chart,
-
         "groups": groups,
         "teachers": teachers_qs,
         "courses": courses,
         "staffs": staffs,
-
+        "uz_months": uz_months,
         "q": q,
         "date_from": date_from,
         "date_to": date_to,
-        "month": tm_filter,
-
-        "selected_group": request.GET.get("group"),
-        "selected_teacher": request.GET.get("teacher"),
-        "selected_course": request.GET.get("course"),
-        "selected_type": request.GET.get("payment_type"),
-        "selected_staff": request.GET.get("staff"),
-        "pay_month": pay_month,
-
+        "sel_group": sel_group,
+        "sel_teacher": sel_teacher,
+        "sel_course": sel_course,
+        "sel_staff": sel_staff,
+        "sel_type": sel_type,
+        "sel_month": sel_month,
         "page_size": page_size,
         "allowed_page_sizes": allowed_page_sizes,
         "query_string": query_params.urlencode(),
         "is_paginated": page_obj.has_other_pages(),
-        
-        "group_income_data": group_income_data,
-        "calc_date": chart_anchor,
     })
 
 @login_required

@@ -914,7 +914,27 @@
             if (d.error) throw new Error(d.error);
 
             // Update Main Chart
-            dashboardCharts.main.updateOptions({ xaxis: { categories: d.charts.labels } });
+            dashboardCharts.main.updateOptions({
+                xaxis: { categories: d.charts.labels },
+                tooltip: {
+                    theme: 'dark',
+                    y: {
+                        formatter: function (val, opts) {
+                            let seriesName = opts.w.globals.seriesNames[opts.seriesIndex];
+                            let formattedVal = new Intl.NumberFormat('uz-UZ').format(val) + " so'm";
+
+                            if (seriesName === 'Qarzdorlik' && d.charts.debt_students) {
+                                let stCount = d.charts.debt_students[opts.dataPointIndex] || 0;
+                                return formattedVal + ` | ${stCount} ta o'quvchi`;
+                            } else if (seriesName === 'Tushum' && d.charts.income_students) {
+                                let stCount = d.charts.income_students[opts.dataPointIndex] || 0;
+                                return formattedVal + ` | ${stCount} ta o'quvchi`;
+                            }
+                            return formattedVal;
+                        }
+                    }
+                }
+            });
             dashboardCharts.main.updateSeries([
                 { name: 'Qarzdorlik', type: 'line', data: d.charts.debt_series },
                 { name: 'Tushum', type: 'line', data: d.charts.income },
