@@ -194,25 +194,27 @@ class DirectorDashboardAPIView(View):
         from education.models import TuitionMonth, PaymentAllocation
         from django.db.models import OuterRef, Subquery, Sum, F
         from django.db.models.functions import Coalesce
-        from education.services.tuition import tuition_month_fee_field, ensure_all_tuition_months_since_start
+        from education.services.tuition import tuition_month_fee_field
         
         cur_month = today.replace(day=1)
         
-        # 1. Sync tuition months to ensure no data is missing before calculating
-        for e in active_enrollments:
-            ensure_all_tuition_months_since_start(e, cur_month)
-            
+        # ✅ [FIX] ensure_all_tuition_months_since_start O'CHIRILDI!
+        # Bu funksiya har dashboard ochilganda yangi TuitionMonth yozuvlar yaratib
+        # qarzlarni avtomatik ko'paytirardi. Endi faqat MAVJUD yozuvlardan hisoblaymiz.
+        
         fee_field = tuition_month_fee_field()
         
+        # Faqat JORIY OY uchun (month=cur_month, not month__lte)
         total_fee_sub = TuitionMonth.objects.filter(
-            enrollment=OuterRef("pk"), month__lte=cur_month
+            enrollment=OuterRef("pk"), month=cur_month
         ).values("enrollment").annotate(s=Sum(fee_field)).values("s")
         
         total_paid_sub = PaymentAllocation.objects.filter(
             tuition_month__enrollment=OuterRef("pk")
         ).values("tuition_month__enrollment").annotate(s=Sum("amount")).values("s")
         
-        debt_qs = active_enrollments.annotate(
+        active_enrollments_filtered = active_enrollments.filter(group__is_archived=False)
+        debt_qs = active_enrollments_filtered.annotate(
             f=Coalesce(Subquery(total_fee_sub), 0),
             p=Coalesce(Subquery(total_paid_sub), 0)
         ).annotate(d=F("f") - F("p")).filter(d__gt=0)
