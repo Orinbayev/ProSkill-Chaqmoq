@@ -508,8 +508,7 @@
             {% if request.GET.date_from or request.GET.date_to or request.GET.q or request.GET.payment_type or
             request.GET.group or request.GET.course or request.GET.teacher or request.GET.staff %}
             <div class="clear-filter-wrap">
-                <a href="?" class="clear-filter-btn">
-                    <i class="fa-solid fa-xmark"></i> Filtrlarni tozalash
+                <a href="?" class="clear-filter-btn"> <i class="fa-solid fa-xmark"></i> Filtrlarni tozalash
                 </a>
             </div>
             {% endif %}
@@ -648,27 +647,20 @@
                         </td>
                         <td class="text-end">
                             <div class="d-flex justify-content-end gap-1">
-                                {# Izoh ko'rish #}
                                 {% if p.note %}
                                 <button class="action-btn" title="Izohni ko'rish"
                                     onclick="showNote('{{ p.note|escapejs }}')">
                                     <i class="fas fa-comment-dots"></i>
                                 </button>
                                 {% endif %}
-                                {# Tahrirlash #}
                                 <button class="action-btn edit" title="Tahrirlash"
                                     onclick="openEditModal({{ p.id }}, {{ p.cash_amount }}, {{ p.card_amount }}, '{{ p.note|escapejs }}')">
                                     <i class="fas fa-pen"></i>
                                 </button>
-                                {# O'chirish #}
-                                <form action="{% url 'education:payment_delete' p.id %}" method="post" class="d-inline"
-                                    onsubmit="return confirm('To\'lovni o\'chirmoqchimisiz? O\'quvchi avtomatik Qarzdorlar ro\'yxatiga qaytadi.');">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="next" value="{% url 'education:qarzdorlar_home' %}">
-                                    <button type="submit" class="action-btn delete" title="O'chirish">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
+                                <button class="action-btn delete" title="O'chirish"
+                                    onclick="openDeleteModal({{ p.id }}, '{{ p.student.ism|escapejs }} {{ p.student.familya|escapejs }}', '{{ p.summa|escapejs }}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
                         </td>
                     </tr>
@@ -711,6 +703,92 @@
 
 {% endblock %}
 
+{% block modals %}
+<!-- NOTE MODAL -->
+<div class="modal fade glass-modal" id="noteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-white"><span class="me-2">💬</span> Izoh</h5>
+                <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-white-50 m-0" id="noteModalText" style="font-size:15px;line-height:1.8;"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal fade glass-modal" id="editPayModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-white"><span class="me-2">✏️</span> To'lovni tahrirlash</h5>
+                <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editPayForm" method="post" action="">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="filter-label">Naqd pul (so'm)</label>
+                        <input type="number" name="cash_amount" id="editCash" class="filter-input" min="0" value="0">
+                    </div>
+                    <div class="mb-3">
+                        <label class="filter-label">Karta / Click (so'm)</label>
+                        <input type="number" name="card_amount" id="editCard" class="filter-input" min="0" value="0">
+                    </div>
+                    <div class="mb-3">
+                        <label class="filter-label">Izoh (Comment)</label>
+                        <textarea name="note" id="editNote" class="filter-input" rows="2"
+                            placeholder="Izoh qoldirish..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link text-secondary text-decoration-none"
+                        data-bs-dismiss="modal">Bekor qilish</button>
+                    <button type="submit" class="btn btn-warning px-4 rounded-3 fw-bold">💾 Saqlash</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal fade glass-modal" id="deletePayModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:380px;">
+        <div class="modal-content" style="border:1px solid rgba(239,68,68,0.3);">
+            <div class="modal-header" style="border-bottom:1px solid rgba(239,68,68,0.15);">
+                <h5 class="modal-title fw-bold text-white"><span class="me-2">🗑️</span> To'lovni o'chirish</h5>
+                <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div
+                    style="width:56px;height:56px;border-radius:50%;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 16px;">
+                    🗑️</div>
+                <p class="text-white fw-bold mb-1" id="delStudentName" style="font-size:17px;"></p>
+                <p class="text-secondary small mb-3">uchun <span class="text-danger fw-bold" id="delAmount"></span>
+                    to'lov o'chiriladi.</p>
+                <div class="p-3 rounded-3"
+                    style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);">
+                    <p class="text-warning small m-0">⚠️ <strong>Diqqat:</strong> O'quvchi avtomatik
+                        <strong>Qarzdorlar</strong> ro'yxatiga qaytadi.</p>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid rgba(239,68,68,0.15);">
+                <button type="button" class="btn btn-link text-secondary text-decoration-none"
+                    data-bs-dismiss="modal">Bekor qilish</button>
+                <form id="deletePayForm" method="post" action="" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="/talim/qarzdorlar/">
+                    <button type="submit" class="btn btn-danger px-4 rounded-3 fw-bold">Ha, o'chirish</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
 {% block extra_js %}
 {{ chart_data|json_script:"tl-chart-data" }}
 {{ chart_labels|json_script:"tl-chart-labels" }}
@@ -724,13 +802,21 @@
             new bootstrap.Modal(document.getElementById('noteModal')).show();
         };
 
-        // Open edit modal
+        // Open edit modal - URL: /talim/tolov/update/<id>/
         window.openEditModal = function (paymentId, cash, card, note) {
             document.getElementById('editCash').value = cash || 0;
             document.getElementById('editCard').value = card || 0;
             document.getElementById('editNote').value = note || '';
-            document.getElementById('editPayForm').action = '/talim/tolovlar/payment/' + paymentId + '/update/';
+            document.getElementById('editPayForm').action = '/talim/tolov/update/' + paymentId + '/';
             new bootstrap.Modal(document.getElementById('editPayModal')).show();
+        };
+
+        // Open delete confirm modal
+        window.openDeleteModal = function (paymentId, studentName, amount) {
+            document.getElementById('delStudentName').textContent = studentName;
+            document.getElementById('delAmount').textContent = Number(amount).toLocaleString() + " so'm";
+            document.getElementById('deletePayForm').action = '/talim/tolovlar/payment/' + paymentId + '/delete/';
+            new bootstrap.Modal(document.getElementById('deletePayModal')).show();
         };
 
         document.addEventListener("DOMContentLoaded", function () {
