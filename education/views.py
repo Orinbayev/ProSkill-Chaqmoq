@@ -129,19 +129,27 @@ def first_day_of_current_month():
     return date(d.year, d.month, 1)
 
 
-# def sync_tuition_fee(enrollment, start_month: date, new_fee: int):
-#     # 1) shu oydan boshlab update
-#     TuitionMonth.objects.filter(
-#         enrollment=enrollment,
-#         month__gte=start_month
-#     ).update(fee_amount=new_fee)
+def sync_tuition_fee(enrollment, new_fee: int):
+    """
+    Narx o'zgarganda: barcha TuitionMonth yozuvlarini o'chirib,
+    faqat joriy oy uchun bitta yangi yozuv yaratadi.
+    Narx 0 bo'lsa - TuitionMonth yaratilmaydi (qarzdorlarga tushmaydi).
+    """
+    from django.utils import timezone
+    from education.services.tuition import tuition_month_fee_field
+    fee_field = tuition_month_fee_field()
+    cur_month = timezone.localdate().replace(day=1)
 
-#     # 2) aynan shu oy yo'q bo'lsa - yaratadi
-#     TuitionMonth.objects.update_or_create(
-#         enrollment=enrollment,
-#         month=start_month,
-#         defaults={"fee_amount": new_fee},
-#     )
+    # Barcha eski qarzlarni o'chiramiz
+    TuitionMonth.objects.filter(enrollment=enrollment).delete()
+
+    # Yangi narx > 0 bo'lsagina qarz yaratamiz
+    if new_fee > 0:
+        TuitionMonth.objects.create(
+            enrollment=enrollment,
+            month=cur_month,
+            **{fee_field: new_fee}
+        )
 
 
 def _get_int(querydict, key, default=0):
@@ -728,9 +736,9 @@ def enrollment_edit(request, enrollment_id):
 
         enr.save()
 
-        # ✅ MUHIM: TuitionMonth ham yangilansin (ro'yxat shu yerdan ko'rsatadi)
-        if new_price != old_price:
-            sync_tuition_fee(enr, start_month, new_price)
+        # ✅ MUHIM: Narx o'zgagan bo'lsa yoki o'zgarmasada TuitionMonth'ni yangilaymiz
+        # Bu eski 50M kabi noto'g'ri qarzlarni ham to'g'irlaydi
+        sync_tuition_fee(enr, new_price)
 
         messages.success(request, "O'quvchi ma'lumotlari muvaffaqiyatli yangilandi!")
         return redirect(next_url)
