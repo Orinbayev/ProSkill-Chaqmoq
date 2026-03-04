@@ -1366,12 +1366,13 @@ def qarzdorlar_home(request):
     start_date_str = request.GET.get("start_date")
     end_date_str = request.GET.get("end_date")
 
-    # Base Query: Active Enrollments (student archived bo'lmagan)
+    # Base Query: Active Enrollments (student va guruh arxivda bo'lmagan)
     enrollments = (
         Enrollment.objects
         .select_related("student", "group", "group__oqituvchi")
-        .filter(is_active=True, student__is_archived=False)
+        .filter(is_active=True, student__is_archived=False, group__is_archived=False)
     )
+
 
     if center:
         enrollments = enrollments.filter(center=center)

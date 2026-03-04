@@ -34,7 +34,8 @@ def final_complete_fix():
         enrollments = list(Enrollment.objects.filter(
             is_active=True,
             student__is_archived=False,
-            center=my_center
+            center=my_center,
+            group__is_archived=False    # ✅ arxivdagi guruh pullari qo'shilmasin
         ).select_related('student', 'group'))
         
         enr_ids = [e.id for e in enrollments]
