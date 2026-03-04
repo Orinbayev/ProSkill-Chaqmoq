@@ -1401,19 +1401,20 @@ def qarzdorlar_home(request):
     cur_month = today.replace(day=1)
     fee_field = tuition_month_fee_field()
 
-    # Step 1: Optimization - Accurate Global Totals & Queryset Filter
+    # ✅ [FIX] Use ONLY current month (month=cur_month), not all historical months
+    # This ensures filter total matches what's shown in the table rows
     total_fee_sub = TuitionMonth.objects.filter(
-        enrollment=OuterRef("pk"), month__lte=cur_month
+        enrollment=OuterRef("pk"), month=cur_month
     ).values("enrollment").annotate(s=Sum(fee_field)).values("s")
 
-    # [FIX] PaymentAllocation should NOT be limited by month__lte=cur_month
-    # If a student pays in advance, they are not a debtor.
     total_paid_sub = PaymentAllocation.objects.filter(
         tuition_month__enrollment=OuterRef("pk")
     ).values("tuition_month__enrollment").annotate(s=Sum("amount")).values("s")
 
-    # Global total for Center (all active enrollments under this center)
-    center_qs = Enrollment.objects.filter(is_active=True, student__is_archived=False)
+    # Global total for Center (only non-archived groups)
+    center_qs = Enrollment.objects.filter(
+        is_active=True, student__is_archived=False, group__is_archived=False
+    )
     if center: center_qs = center_qs.filter(center=center)
     
     total_center_debt = center_qs.annotate(
@@ -1427,8 +1428,7 @@ def qarzdorlar_home(request):
         p=Coalesce(Subquery(total_paid_sub), 0)
     ).annotate(calculated_debt=F("f")-F("p")).filter(calculated_debt__gt=0)
 
-    # Filtered total (for the summary stats)
-    filtered_debt = enrollments.aggregate(total=Sum("calculated_debt"))["total"] or 0
+    # filtered_debt will be calculated AFTER student grouping (accurate per-student sum)
     
     rows = []
     graph_map = {m: 0 for m in range(1, 13)}
@@ -1478,6 +1478,9 @@ def qarzdorlar_home(request):
     rows = list(student_map.values())
     for row in rows:
         row["group_label"] = ", ".join(row["group_names"]) if row["group_names"] else "—"
+
+    # ✅ filtered_debt = actual sum from rows (matches exactly what table shows)
+    filtered_debt = sum(r["debt"] for r in rows)
 
     # Paginator
     from django.core.paginator import Paginator
