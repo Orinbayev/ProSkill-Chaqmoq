@@ -411,16 +411,23 @@ class DirectorDashboardAPIView(View):
             end_date = date(y, m, calendar.monthrange(y, m)[1])
             
             from django.db.models import OuterRef, Subquery, IntegerField
+            from datetime import date as _date
             
+            # ✅ [FIX] Faqat shu oy uchun (month=date(y,m,1)) - o'tgan oylarni qo'shmaymiz
+            month_first = _date(y, m, 1)
             total_fee_sub = TuitionMonth.objects.filter(
-                enrollment=OuterRef("pk"), month__lte=end_date
+                enrollment=OuterRef("pk"), month=month_first
             ).values("enrollment").annotate(s=Sum(fee_field)).values("s")
 
             total_paid_sub = PaymentAllocation.objects.filter(
                 tuition_month__enrollment=OuterRef("pk")
             ).values("tuition_month__enrollment").annotate(s=Sum("amount")).values("s")
 
-            center_qs = Enrollment.objects.filter(is_active=True, student__is_archived=False, center=center)
+            # Arxivlangan guruhlarni ham o'tkazib yuboramiz
+            center_qs = Enrollment.objects.filter(
+                is_active=True, student__is_archived=False,
+                center=center, group__is_archived=False
+            )
             
             calculated_qs = center_qs.annotate(
                 f=Coalesce(Subquery(total_fee_sub, output_field=IntegerField()), 0),
