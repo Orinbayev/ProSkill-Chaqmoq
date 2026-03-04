@@ -187,16 +187,39 @@ class DirectorDashboardAPIView(View):
         base_qs = User.objects.filter(center=center, role='student', is_archived=False)
         
         total_count = base_qs.count()
-        active_enrollments = Enrollment.objects.filter(group__center=center, is_active=True)
+        active_enrollments = Enrollment.objects.filter(group__center=center, is_active=True, student__is_archived=False)
         active_count = active_enrollments.values('student').distinct().count()
-        prev_active_count = Enrollment.objects.filter(group__center=center, is_active=True, created_at__date__lt=start).values('student').distinct().count()
+        prev_active_count = Enrollment.objects.filter(group__center=center, is_active=True, student__is_archived=False, created_at__date__lt=start).values('student').distinct().count()
         
-        debt_amount = active_enrollments.filter(jami_tolangan__lt=F('kurs_narhi')).annotate(
-            rem=F('kurs_narhi') - F('jami_tolangan')
-        ).aggregate(d=Sum('rem'))['d'] or 0
+        from education.models import TuitionMonth, PaymentAllocation
+        from django.db.models import OuterRef, Subquery, Sum, F
+        from django.db.models.functions import Coalesce
+        from education.services.tuition import tuition_month_fee_field, ensure_all_tuition_months_since_start
         
-        debtors_count = active_enrollments.filter(jami_tolangan__lt=F('kurs_narhi')).values('student').distinct().count()
-
+        cur_month = today.replace(day=1)
+        
+        # 1. Sync tuition months to ensure no data is missing before calculating
+        for e in active_enrollments:
+            ensure_all_tuition_months_since_start(e, cur_month)
+            
+        fee_field = tuition_month_fee_field()
+        
+        total_fee_sub = TuitionMonth.objects.filter(
+            enrollment=OuterRef("pk"), month__lte=cur_month
+        ).values("enrollment").annotate(s=Sum(fee_field)).values("s")
+        
+        total_paid_sub = PaymentAllocation.objects.filter(
+            tuition_month__enrollment=OuterRef("pk")
+        ).values("tuition_month__enrollment").annotate(s=Sum("amount")).values("s")
+        
+        debt_qs = active_enrollments.annotate(
+            f=Coalesce(Subquery(total_fee_sub), 0),
+            p=Coalesce(Subquery(total_paid_sub), 0)
+        ).annotate(d=F("f") - F("p")).filter(d__gt=0)
+        
+        debt_amount = debt_qs.aggregate(total=Sum("d"))["total"] or 0
+        debtors_count = debt_qs.values('student').distinct().count()
+        
         thirty_days_ago = today - timedelta(days=30)
         low_activity_candidates = base_qs.annotate(
             att_count=Count('attendance', filter=Q(attendance__date__gte=thirty_days_ago, attendance__present=True))
@@ -335,6 +358,9 @@ class DirectorDashboardAPIView(View):
         uz_months = {1: 'Yanvar', 2: 'Fevral', 3: 'Mart', 4: 'Aprel', 5: 'May', 6: 'Iyun', 7: 'Iyul', 8: 'Avgust', 9: 'Sentabr', 10: 'Oktabr', 11: 'Noyabr', 12: 'Dekabr'}
         
         from education.models import TuitionMonth, PaymentAllocation
+        from education.services.tuition import tuition_month_fee_field
+        
+        fee_field = tuition_month_fee_field()
         
         months_to_query = []
         
@@ -386,11 +412,10 @@ class DirectorDashboardAPIView(View):
             
             total_fee_sub = TuitionMonth.objects.filter(
                 enrollment=OuterRef("pk"), month__lte=end_date
-            ).values("enrollment").annotate(s=Sum('fee_amount')).values("s")
+            ).values("enrollment").annotate(s=Sum(fee_field)).values("s")
 
             total_paid_sub = PaymentAllocation.objects.filter(
-                tuition_month__enrollment=OuterRef("pk"),
-                tuition_month__month__lte=end_date
+                tuition_month__enrollment=OuterRef("pk")
             ).values("tuition_month__enrollment").annotate(s=Sum("amount")).values("s")
 
             center_qs = Enrollment.objects.filter(is_active=True, student__is_archived=False, center=center)

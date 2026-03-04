@@ -238,7 +238,7 @@
           <label class="form-label">Guruh</label>
           <select name="group_id" class="form-select custom-select">
             {% for g in groups %}
-            <option value="{{ g.id }}" {% if g.id == enr.group.id %}selected{% endif %}>{{ g.nom }}</option>
+            <option value="{{ g.id }}" {% if g.id==enr.group.id %}selected{% endif %}>{{ g.nom }}</option>
             {% endfor %}
           </select>
         </div>
@@ -269,5 +269,35 @@
     </form>
   </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const groupSelect = document.querySelector('select[name="group_id"]');
+    const priceInput = document.querySelector('input[name="kurs_narhi"]');
+    const percentInput = document.querySelector('input[name="oqituvchi_foiz"]');
+
+    if (groupSelect && priceInput && percentInput) {
+      groupSelect.addEventListener('change', (e) => {
+        const groupId = e.target.value;
+        if (groupId) {
+          fetch(`/education/api/groups/${groupId}/price/`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.price !== undefined) {
+                // If the user wants to keep the old price, they can manually change,
+                // but by default we update for clarity if the group changed:
+                priceInput.value = data.price;
+              }
+              if (data.oqituvchi_foiz !== undefined) {
+                // Instantly update teacher percentage to match the new group!
+                percentInput.value = data.oqituvchi_foiz;
+              }
+            })
+            .catch(err => console.error("Error fetching group data", err));
+        }
+      });
+    }
+  });
+</script>
 
 {% endblock %}

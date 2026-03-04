@@ -703,6 +703,7 @@ def enrollment_edit(request, enrollment_id):
 
         # --- group update ---
         gid = request.POST.get("group_id")
+        old_group_id = enr.group_id
         if gid:
             enr.group_id = int(gid)
 
@@ -711,8 +712,19 @@ def enrollment_edit(request, enrollment_id):
         enr.kurs_narhi = new_price
 
         oqf = request.POST.get("oqituvchi_foiz")
-        if oqf is not None and str(oqf).strip() != "":
-            enr.oqituvchi_foiz = int(oqf)
+        
+        # O'quvchi boshqa guruhga o'tkazilganda avtomatik yangi guruhning foizini oladi
+        if gid and int(gid) != old_group_id:
+            new_group = Group.objects.filter(id=int(gid)).first()
+            if new_group:
+                enr.oqituvchi_foiz = new_group.oqituvchi_foiz
+                # Agar kurs narxini ham avto o'zgartirish kerak bo'lsa (lekin formadan kegan price eski bo'lsa)
+                # Odatda o'quvchi o'zining eski narxida qolishi yoki yangi narxga o'tishi mumkin,
+                # lekin foydalanuvchi qatiy ravishda "foiz (40%) ga tushmayapti" degan. 
+                # Shuning uchun foizni yangilaymiz:
+        else:
+            if oqf is not None and str(oqf).strip() != "":
+                enr.oqituvchi_foiz = int(oqf)
 
         enr.save()
 
@@ -3788,7 +3800,9 @@ def group_create(request, category=None):
             g.kurs_narxi = 500000  # faqat bo‘sh bo‘lsa default beramiz
 
         # ✅ O‘qituvchi foizi
-        if not g.oqituvchi_foiz:
+        if g.oqituvchi and getattr(g.oqituvchi, 'oqituvchi_foizi', None) is not None:
+            g.oqituvchi_foiz = g.oqituvchi.oqituvchi_foizi
+        elif not g.oqituvchi_foiz:
             g.oqituvchi_foiz = 40
 
         # ✅ Oylik dars soni
@@ -3818,10 +3832,37 @@ def group_edit(request, pk):
         qs = qs.filter(center=center)
     g = get_object_or_404(qs, pk=pk)
 
+    # Eski qiymatlarni forma o'zgartirmasdan oldin saqlab qolamiz
+    old_foiz = g.oqituvchi_foiz
+    old_narx = g.kurs_narxi
+    old_oqituvchi_id = g.oqituvchi_id
+
     form = GroupForm(request.POST or None, instance=g, center=center)
 
     if request.method == "POST" and form.is_valid():
-        form.save()
+        updated_group = form.save(commit=False)
+        
+        # Agar o'qituvchi o'zgargan bo'lsa, mos foizni avtomatik olamiz
+        if updated_group.oqituvchi and updated_group.oqituvchi_id != old_oqituvchi_id:
+            teacher_foiz = getattr(updated_group.oqituvchi, 'oqituvchi_foizi', None)
+            if teacher_foiz is not None:
+                updated_group.oqituvchi_foiz = teacher_foiz
+        
+        updated_group.save()
+        
+        # Agar guruhning foizi yoki narxi o'zgargan bo'lsa, joriy o'quvchilarga ham ta'sir qilsin
+        if updated_group.oqituvchi_foiz != old_foiz or updated_group.kurs_narxi != old_narx:
+            from education.models import Enrollment
+            enrollments = Enrollment.objects.filter(group=updated_group)
+            update_data = {}
+            if updated_group.oqituvchi_foiz != old_foiz:
+                update_data["oqituvchi_foiz"] = updated_group.oqituvchi_foiz
+            if updated_group.kurs_narxi != old_narx:
+                update_data["kurs_narhi"] = updated_group.kurs_narxi
+                
+            if update_data:
+                enrollments.update(**update_data)
+                
         messages.success(request, "✅ Guruh yangilandi.")
         return redirect("education:group_detail", pk=g.id)
 
@@ -3860,7 +3901,10 @@ def get_group_price(request, pk):
         if center:
             qs = qs.filter(center=center)
         group = qs.get(pk=pk)
-        return JsonResponse({"price": group.kurs_narhi})
+        return JsonResponse({
+            "price": group.kurs_narxi,
+            "oqituvchi_foiz": group.oqituvchi_foiz
+        })
     except Group.DoesNotExist:
         return JsonResponse({"price": 0})
 
