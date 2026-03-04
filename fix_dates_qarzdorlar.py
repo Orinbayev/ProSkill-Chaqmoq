@@ -52,18 +52,19 @@ def final_complete_fix():
         skipped = 0
 
         for e in enrollments:
-            # Sana mutlaqo martga bog'lansin
-            e.created_at = march_dt
-            
             # Narxni aniqlaymiz
             narx = e.kurs_narhi or 0
             if not narx and getattr(e, 'group', None):
                 narx = getattr(e.group, 'kurs_narxi', 0) or 0
+
+            # ✅ Narxi 0 bo'lsa - qarz yaratmaymiz, qarzdorlar ro'yxatiga tushmasin
             if narx <= 0:
-                narx = 500_000
-                e.kurs_narhi = narx
-                
-            e.save(update_fields=['created_at', 'kurs_narhi'])
+                skipped += 1
+                continue
+
+            # Sana mutlaqo martga bog'lansin (avtomat ko'payishni oldini olish)
+            e.created_at = march_dt
+            e.save(update_fields=['created_at'])
 
             # get_or_create - xato chiqmasin uchun
             tm, was_created = TuitionMonth.objects.get_or_create(
@@ -75,7 +76,7 @@ def final_complete_fix():
             if not was_created:
                 setattr(tm, fee_field, narx)
                 tm.save(update_fields=[fee_field])
-                
+
             created += 1
 
     print(f"\n✅ Jami {created} ta Enrollment uchun Mart qarzi yaratildi!")
