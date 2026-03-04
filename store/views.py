@@ -385,7 +385,23 @@ def lead_create(request):
                 lead.yosh = 0
                 
             lead.save()
-            messages.success(request, "✅ Yangi o‘quvchi (lead) qo‘shildi!")
+
+            # ✅ STATUS "Tasdiqlandi" bo'lsa avtomatik studentga o'tkazamiz
+            if lead.status and (lead.status.nom or "").strip().lower() == "tasdiqlandi":
+                user, password, created = convert_lead_to_student(lead, request.user)
+                if created:
+                    messages.success(
+                        request,
+                        f"✅ Yangi lead o‘quvchiga aylanib qo‘shildi! Login: {user.email} | Parol: {password}"
+                    )
+                else:
+                    messages.info(
+                        request,
+                        f"ℹ️ Lead oldindan mavjud o‘quvchiga bog‘landi: {user.email}"
+                    )
+            else:
+                messages.success(request, "✅ Yangi o‘quvchi (lead) qo‘shildi!")
+
             return redirect('store:lead_list')
     else:
         form = LeadForm(center=center)
