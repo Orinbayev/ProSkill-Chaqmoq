@@ -1425,12 +1425,12 @@ def qarzdorlar_home(request):
     graph_map = {m: 0 for m in range(1, 13)}
 
     for e in enrollments:
-        # 1. Sync all months to ensure accuracy (freshly created months included)
-        ensure_all_tuition_months_since_start(e, cur_month)
+        # ✅ [FIX] ensure_all_tuition_months_since_start() was auto-creating debt records
+        # for all months from enrollment start. This caused 2x/3x debt stacking.
+        # Now we ONLY use explicitly created TuitionMonth records (faqat mart oyi).
         
-        # 2. Get real-time sum (SAFE: separate queries avoid join multiplication)
-        # We RE-CALCULATE here because e.calculated_debt might be stale after sync
-        total_fee = TuitionMonth.objects.filter(enrollment=e, month__lte=cur_month).aggregate(s=Sum(fee_field))["s"] or 0
+        # Get real-time sum using ONLY existing TuitionMonth records
+        total_fee = TuitionMonth.objects.filter(enrollment=e, month=cur_month).aggregate(s=Sum(fee_field))["s"] or 0
         total_paid = PaymentAllocation.objects.filter(tuition_month__enrollment=e).aggregate(s=Sum("amount"))["s"] or 0
         debt = total_fee - total_paid
 

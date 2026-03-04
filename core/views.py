@@ -1129,12 +1129,18 @@ def user_edit(request, pk):
                     enroll.kurs_narhi = new_price
                     enroll.save(update_fields=["kurs_narhi"])
 
-                    # Faqat MAVJUD TuitionMonth larni yangilaymiz.
-                    # YANGI TuitionMonth yaratilmaydi (o'quvchi darhol qarzdor bo'lib qolmasin)
-                    TuitionMonth.objects.filter(
+                    # ✅ [FIX] Narx o'zgarganda BARCHA eski TuitionMonth yozuvlarini o'chirib,
+                    # FAQAT joriy oy uchun bitta yangi yozuv yaratamiz.
+                    # Bu 2x/3x narx stacking muammosini oldini oladi!
+                    from education.services.tuition import tuition_month_fee_field as _fee_field
+                    from django.utils.timezone import localdate
+                    _cur_month = localdate().replace(day=1)
+                    TuitionMonth.objects.filter(enrollment=enroll).delete()
+                    TuitionMonth.objects.create(
                         enrollment=enroll,
-                        month__gte=selected_month
-                    ).update(fee_amount=new_price)
+                        month=_cur_month,
+                        **{_fee_field(): new_price}
+                    )
                 except ValueError:
                     pass
 

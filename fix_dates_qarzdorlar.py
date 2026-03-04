@@ -11,76 +11,71 @@ from accounts.models import Center, User
 from education.models import Enrollment, TuitionMonth, Payment
 from education.services.tuition import tuition_month_fee_field
 
-def final_fix():
-    print("\n" + "="*50)
-    print("🚀 QARZDORLIKNI 100% TO'G'IRLASH (CREATED_AT MUAMMOSI)")
-    print("="*50)
+def final_complete_fix():
+    print("\n" + "="*55)
+    print("🚀 TO'LIQ TUZATISH: Faqat MART oyi uchun 1 ta qarz")
+    print("="*55)
 
-    # Faqat PROSKILL
     proskill_centers = Center.objects.filter(name__icontains='proskill')
     my_center = max(proskill_centers, key=lambda c: User.objects.filter(role='student', is_archived=False, center=c).count()) if proskill_centers else None
 
     if not my_center:
-        print("PROSKILL markazi topilmadi!")
+        print("❌ PROSKILL markazi topilmadi!")
         return
 
+    print(f"✅ Markaz: {my_center.name} (ID: {my_center.id})")
+    
+    fee_field = tuition_month_fee_field()
     march_first = date(2026, 3, 1)
     march_dt = timezone.make_aware(datetime(2026, 3, 1, 0, 0, 0))
-    fee_field = tuition_month_fee_field()
 
     with transaction.atomic():
-        # 1. ESKI QARZLARNI (TUITIONMONTH) BUTUNLAY O'CHIRISH
-        TuitionMonth.objects.filter(enrollment__student__center=my_center).delete()
-        
-        # 2. TO'LOVLARNI HAM TOZALASH (Eskilardan qolib ketmasligi uchun)
-        Payment.objects.filter(center=my_center).delete()
+        # 1. BARCHA eski TuitionMonth larni o'chirish
+        deleted, _ = TuitionMonth.objects.filter(enrollment__student__center=my_center).delete()
+        print(f"🗑️  Eski qarzlar o'chirildi: {deleted} ta")
 
-        # 3. GURUHLARNI TOZALASH (1 O'QUVCHI FAQAT 1 MAROTABA ENROLL QILINGAN BO'LISHI SHART)
-        # Agar xatolik bilan ikkita 'BackEnd' ga biriktirilgan bo'lsa bittasi olib tashlanadi
+        # 2. To'lovlarni ham tozalash
+        pd, _ = Payment.objects.filter(center=my_center).delete()
+        print(f"🗑️  Eski to'lovlar o'chirildi: {pd} ta")
+
+        created = 0
+        skipped = 0
+
         students = User.objects.filter(role='student', is_archived=False, center=my_center)
-        active_enr_topildi = 0
-        
         for s in students:
-            # Bitta guruhni o'quvchida dublikat ekanligini topamiz
-            enrolls = list(Enrollment.objects.filter(student=s, is_active=True).order_by('id'))
+            # Eng so'nggi FAOL Enrollment ni olamiz (1 o'quvchi = 1 ta qarz)
+            e = Enrollment.objects.filter(student=s, is_active=True, center=my_center).order_by('-id').first()
+            if not e:
+                skipped += 1
+                continue
+
+            # Sana ham mutlaqo martga bog'lansin (avtomat ko'paytiruvni oldini olish)
+            e.created_at = march_dt
             
-            # Agar bitta guruh turidan 2 tadan ochilib qolgan bo'lsa (Backend03 va Backend03) eski idsini o'chiramiz
-            seen_groups = set()
-            for e in enrolls:
-                if getattr(e, 'group_id', None) in seen_groups:
-                    e.is_active = False # Bekor qilamiz
-                    e.save(update_fields=['is_active'])
-                else:
-                    if e.group_id:
-                        seen_groups.add(e.group_id)
-            
-            # Endi tozza active enrollments larni 100% Mart oyi deb belgilaymiz!!!
-            clean_enrolls = Enrollment.objects.filter(student=s, is_active=True)
-            for e in clean_enrolls:
-                # MANA SHU QATOR BO'LMAGANI UCHUN VIEWS.PY YANA O'ZICHA FEVRALGA QARZ TO'QIB CHIQARYAPTI!
-                e.created_at = march_dt
-                
-                # Narxni kafolatlash
-                narx = e.kurs_narhi or 0
-                if not narx and getattr(e, 'group', None):
-                    narx = getattr(e.group, "kurs_narxi", 0) or getattr(e.group, "kurs_narhi", 0) or 0
-                if narx <= 0:
-                    narx = 500000
+            # Narxni aniqlaymiz
+            narx = e.kurs_narhi or 0
+            if not narx and getattr(e, 'group', None):
+                narx = getattr(e.group, 'kurs_narxi', 0) or 0
+            if narx <= 0:
+                narx = 500_000
                 e.kurs_narhi = narx
                 
-                # O'zgarishlarni saqlash
-                e.save(update_fields=['created_at', 'kurs_narhi'])
-                
-                # FAQAT MART OYI UCHUN QARZ YOZISH
-                TuitionMonth.objects.create(
-                    enrollment=e,
-                    month=march_first,
-                    **{fee_field: narx}
-                )
-                active_enr_topildi += 1
+            e.save(update_fields=['created_at', 'kurs_narhi'])
 
-        print(f"✅ Bajarildi! Jami {active_enr_topildi} ta enrollment sanasi Mutaqo MART OYIGA O'ZGARDI!")
-        print(f"✅ Endi tizim Qarzdorlar menyusida fevral va yanvar uchun qarz TUZMAYDI!")
+            # FAQAT 1 TA (mart) qarz yozamiz
+            TuitionMonth.objects.create(
+                enrollment=e,
+                month=march_first,
+                **{fee_field: narx}
+            )
+            created += 1
+
+    print(f"\n✅ Jami {created} ta o'quvchiga FAQAT 1 ta Mart qarzi yozildi!")
+    print(f"⏭️  Guruhsiz (skip qilingan): {skipped} ta")
+    print("\n" + "="*55)
+    print("🎯 Endi Qarzdorlar sahifasini yangilang!")
+    print("   Har bir o'quvchi faqat o'zining HAQIQIY narxida ko'rinadi!")
+    print("="*55 + "\n")
 
 if __name__ == '__main__':
-    final_fix()
+    final_complete_fix()
