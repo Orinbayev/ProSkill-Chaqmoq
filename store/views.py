@@ -353,8 +353,33 @@ def lead_list(request):
     else:
         base_leads_qs = Lead.objects.filter(center=center)
 
+    from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
+    page_num = request.GET.get('page', 1)
+    page_size = request.GET.get('page_size', '10')
+
+    if page_size == "all":
+        paginator = Paginator(leads, max(1, leads.count()))
+    else:
+        try:
+            page_size = int(page_size)
+            if page_size < 1:
+                page_size = 10
+        except ValueError:
+            page_size = 10
+        paginator = Paginator(leads, page_size)
+
+    try:
+        page_obj = paginator.page(page_num)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
     context = {
-        'leads': leads,
+        'leads': page_obj.object_list,
+        'page_obj': page_obj,
+        'page_size': page_size,
         'statuses': statuses,
         'selected_status': status_id,
         'q': q,

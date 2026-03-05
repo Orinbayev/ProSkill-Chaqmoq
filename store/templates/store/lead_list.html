@@ -840,7 +840,7 @@ Jadval scrollsiz sig‘adi
                   </div>
 
                   <div class="head-right">
-                    {% if request.user.is_superuser or request.user.role == 'manager' or request.user.role == 'director' %}
+                    {% if request.user.is_superuser or request.user.role == 'manager' or request.user.role == 'director'  %}
                     {% if not l.converted_user %}
                     <form method="post" action="{% url 'store:lead_convert' l.id %}" style="display:inline;">
                       {% csrf_token %}
@@ -947,6 +947,9 @@ Jadval scrollsiz sig‘adi
       </table>
     </div>
   </div>
+
+  <!-- Pagination -->
+  {% include "partials/pagination.html" %}
 
 </div>
 

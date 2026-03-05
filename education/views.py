@@ -3894,10 +3894,35 @@ def group_list(request):
     if center:
         rows = rows.filter(center=center)
 
+    from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
+    page_num = request.GET.get('page', 1)
+    page_size = request.GET.get('page_size', '10')
+
+    if page_size == "all":
+        paginator = Paginator(rows, max(1, rows.count()))
+    else:
+        try:
+            page_size = int(page_size)
+            if page_size < 1:
+                page_size = 10
+        except ValueError:
+            page_size = 10
+        paginator = Paginator(rows, page_size)
+
+    try:
+        page_obj = paginator.page(page_num)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
     can_manage = request.user.is_superuser or request.user.role in ["director", "manager", "teacher"]
 
     context = {
-        "rows": rows,
+        "rows": page_obj.object_list,
+        "page_obj": page_obj,
+        "page_size": page_size,
         "can_manage": can_manage,
     }
     return render(request, "education/groups.html", context)
