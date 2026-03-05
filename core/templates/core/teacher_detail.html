@@ -5,231 +5,6 @@
 👨‍🏫 {{ teacher.get_full_name }} — O‘qituvchi profili
 {% endblock %}
 
-{% block content %}
-<div class="container-fluid py-4 animate__animated animate__fadeIn">
-
-  <!-- HERO SECTION -->
-  <div class="row g-4 mb-4">
-    <div class="col-12">
-      <div
-        class="profile-hero-card glass p-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-4">
-        <div class="d-flex align-items-center gap-4">
-          <div class="profile-avatar-wrapper position-relative">
-            {% if teacher.avatar %}
-            <img src="{{ teacher.avatar.url }}" alt="{{ teacher.get_full_name }}" class="profile-avatar-img">
-            {% else %}
-            <div class="avatar-placeholder-large shadow-lg">
-              {{ teacher.ism|first }}{{ teacher.familya|first }}
-            </div>
-            {% endif %}
-            <span class="status-indicator online"></span>
-          </div>
-          <div>
-            <h1 class="fs-2 fw-bold text-white mb-2">{{ teacher.get_full_name }}</h1>
-            <div class="d-flex flex-wrap gap-2 align-items-center text-white-50">
-              <span class="badge border border-light-subtle px-3 py-2 rounded-pill">O‘qituvchi</span>
-              {% if teacher.center %}
-              <span class="ms-2"><i class="fa-solid fa-building-columns me-1"></i> {{ teacher.center.name }}</span>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-        <div class="d-flex gap-2">
-          <div class="dropdown">
-            <button class="btn btn-glass dropdown-toggle d-flex align-items-center gap-2" type="button"
-              data-bs-toggle="dropdown">
-              <i class="fa-solid fa-gear"></i> Bo'limlar
-            </button>
-            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow-lg border-white-10 p-2">
-              <li>
-                <a class="dropdown-item rounded-3 d-flex align-items-center gap-2 py-2"
-                  href="{% url 'core:teacher_edit' teacher.id %}">
-                  <i class="fa-solid fa-pen-to-square text-warning"></i> Tahrirlash
-                </a>
-              </li>
-              <li>
-                <hr class="dropdown-divider opacity-10">
-              </li>
-              <li>
-                <button class="dropdown-item rounded-3 d-flex align-items-center gap-2 py-2 text-warning"
-                  data-bs-toggle="modal" data-bs-target="#passwordResetModal">
-                  <i class="fa-solid fa-key"></i> Parolni o'zgartirish
-                </button>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- STATS CARDS -->
-  <div class="row g-4 mb-4">
-    <div class="col-lg-3 col-md-6">
-      <div class="stat-card glass p-3 h-100 d-flex align-items-center gap-3">
-        <div class="ico-box bg-primary-subtle text-primary fs-3 rounded-4 p-3 anim-pulse">
-          <i class="fa-solid fa-envelope"></i>
-        </div>
-        <div class="flex-grow-1">
-          <div class="text-white-50 small mb-1">EMAIL</div>
-          <div class="fw-bold text-white" style="word-break: break-all; font-size: 0.9rem;">{{ teacher.email|default:"—" }}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-lg-3 col-md-6">
-      <div class="stat-card glass p-3 h-100 d-flex align-items-center gap-3">
-        <div class="ico-box bg-success-subtle text-success fs-3 rounded-4 p-3">
-          <i class="fa-solid fa-phone"></i>
-        </div>
-        <div>
-          <div class="text-white-50 small mb-1">TELEFON</div>
-          <div class="fw-bold text-white">{{ teacher.telefon1|default:"—" }}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-lg-3 col-md-6">
-      <div class="stat-card glass p-3 h-100 d-flex align-items-center gap-3">
-        <div class="ico-box bg-info-subtle text-info fs-3 rounded-4 p-3">
-          <i class="fa-solid fa-building"></i>
-        </div>
-        <div>
-          <div class="text-white-50 small mb-1">CENTER</div>
-          <div class="fw-bold text-white">{{ teacher.center|default:"—" }}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-lg-3 col-md-6">
-      <div class="stat-card glass p-3 h-100 d-flex align-items-center gap-3">
-        <div class="ico-box bg-warning-subtle text-warning fs-3 rounded-4 p-3">
-          <i class="fa-solid fa-percent"></i>
-        </div>
-        <div>
-          <div class="text-white-50 small mb-1">OYLIK ULUSHI</div>
-          <div class="fw-bold text-white">{{ teacher.oqituvchi_foizi|default:"0" }}%</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- GROUPS TABLE -->
-  <div class="row">
-    <div class="col-12">
-      <div class="glass p-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-          <h5 class="m-0 fw-bold text-white">
-            <i class="fa-solid fa-layer-group me-2 text-warning"></i> O‘qituvchi guruhlari
-          </h5>
-          <span class="badge bg-white-10 text-white-50 px-3 py-2 rounded-pill">{{ groups.count }} ta</span>
-        </div>
-
-        {% if groups %}
-        <div class="table-responsive">
-          <table class="table table-dark-custom mb-0">
-            <thead>
-              <tr>
-                <th class="ps-4">#</th>
-                <th>Guruh Nomi</th>
-                <th>Markaz</th>
-                <th>O‘quvchilar soni</th>
-                <th class="text-end pe-4">Batafsil</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for g in groups %}
-              <tr class="align-middle">
-                <td class="ps-4 fw-bold text-white-50">{{ forloop.counter }}</td>
-                <td>
-                  <div class="fw-bold text-white">{{ g.nom }}</div>
-                </td>
-                <td>
-                  <span class="text-white-50">{{ g.center|default:"—" }}</span>
-                </td>
-                <td>
-                  <span class="badge bg-white-5 text-white-50 rounded-pill px-3">{{ g.enrollments.count }}</span>
-                </td>
-                <td class="text-end pe-4">
-                  <a href="{% url 'education:group_detail' g.id %}" class="btn btn-sm btn-glass rounded-pill px-3">
-                    <i class="fa-solid fa-eye me-1"></i> Ko‘rish
-                  </a>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        {% else %}
-        <div class="text-center py-5 opacity-25">
-          <i class="fa-solid fa-inbox fs-1 mb-2"></i>
-          <p>Hozircha guruhlari yo‘q.</p>
-        </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<!-- PASSWORD RESET MODAL -->
-<div class="modal fade" id="passwordResetModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content glass-dark border border-white-10 text-white rounded-4 shadow-3d">
-      <div class="modal-header border-0 pb-0 px-4 pt-4">
-        <h5 class="modal-title fw-bold text-warning d-flex align-items-center gap-2">
-          <i class="fa-solid fa-key"></i> Parolni o‘zgartirish
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <form method="POST">
-        {% csrf_token %}
-        <div class="modal-body p-4">
-          <p class="small text-white-50 mb-4">
-            O'qituvchi uchun yangi parolni kiriting. Bu amal uning eski parolini bekor qiladi.
-          </p>
-          <div class="mb-3">
-            <label class="form-label small text-warning fw-bold">Yangi Parol</label>
-            <div class="input-group input-group-premium overflow-hidden rounded-3 border border-white-10">
-              <span class="input-group-text bg-white-5 border-0">
-                <i class="fa-solid fa-lock text-warning"></i>
-              </span>
-              <input type="password" name="new_password" id="id_new_password"
-                class="form-control bg-transparent border-0 text-white" placeholder="Kamida 6 ta belgi..." required
-                minlength="6" autocomplete="new-password">
-              <button class="btn bg-white-5 border-0 text-white-50" type="button"
-                onclick="togglePass('id_new_password')">
-                <i class="fa-solid fa-eye"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer border-0 pb-4 px-4 justify-content-center gap-2">
-          <button type="button" class="btn btn-glass px-4 rounded-pill" data-bs-dismiss="modal">Bekor qilish</button>
-          <button type="submit" class="btn btn-warning px-5 rounded-pill fw-bold shadow-warning">Parolni
-            Yangilash</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<script>
-  function togglePass(id) {
-    const el = document.getElementById(id);
-    const btn = event.currentTarget;
-    const icon = btn.querySelector('i');
-    if (el.type === "password") {
-      el.type = "text";
-      icon.classList.replace('fa-eye', 'fa-eye-slash');
-    } else {
-      el.type = "password";
-      icon.classList.replace('fa-eye-slash', 'fa-eye');
-    }
-  }
-</script>
-{% endblock %}
-
 {% block extra_css %}
 <style>
   :root {
@@ -253,8 +28,9 @@
     animation: gradientBG 10s ease infinite;
     border: 1px solid rgba(250, 204, 21, 0.2);
     position: relative;
-    overflow: hidden;
+    overflow: visible !important;
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    z-index: 5;
   }
 
   @keyframes gradientBG {
@@ -421,8 +197,30 @@
     }
   }
 
-  .bg-white-5 {
-    background: rgba(255, 255, 255, 0.05);
+  .dropdown-menu-dark {
+    position: absolute !important;
+    background: #1e293b !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    z-index: 1040 !important;
+    /* Lower than modal backdrop (1050) */
+    min-width: 220px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8) !important;
+    margin-top: 10px !important;
+  }
+
+  .dropdown-item {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 12px 16px !important;
+    transition: all 0.2s;
+  }
+
+  .dropdown-item:hover {
+    background: rgba(250, 204, 21, 0.1) !important;
+    color: var(--text-warning) !important;
   }
 
   .glass-dark {
@@ -433,21 +231,229 @@
   .shadow-3d {
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
   }
-
-  .dropdown-menu-dark {
-    background: #1e293b !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  }
-
-  .dropdown-item {
-    color: rgba(255, 255, 255, 0.8) !important;
-    font-size: 0.9rem;
-    font-weight: 500;
-  }
-
-  .dropdown-item:hover {
-    background: rgba(255, 255, 255, 0.05) !important;
-    color: #fff !important;
-  }
 </style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 animate__animated animate__fadeIn">
+
+  <!-- HERO SECTION -->
+  <div class="row g-4 mb-4">
+    <div class="col-12">
+      <div
+        class="profile-hero-card glass p-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-4">
+        <div class="d-flex align-items-center gap-4">
+          <div class="profile-avatar-wrapper position-relative">
+            {% if teacher.avatar %}
+            <img src="{{ teacher.avatar.url }}" alt="{{ teacher.get_full_name }}" class="profile-avatar-img">
+            {% else %}
+            <div class="avatar-placeholder-large shadow-lg">
+              {{ teacher.ism|first }}{{ teacher.familya|first }}
+            </div>
+            {% endif %}
+            <span class="status-indicator online"></span>
+          </div>
+          <div>
+            <h1 class="fs-2 fw-bold text-white mb-2">{{ teacher.get_full_name }}</h1>
+            <div class="d-flex flex-wrap gap-2 align-items-center text-white-50">
+              <span class="badge border border-light-subtle px-3 py-2 rounded-pill">O‘qituvchi</span>
+              {% if teacher.center %}
+              <span class="ms-2"><i class="fa-solid fa-building-columns me-1"></i> {{ teacher.center.name }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="d-flex gap-2">
+          <div class="dropdown">
+            <button class="btn btn-glass dropdown-toggle d-flex align-items-center gap-2" type="button"
+              data-bs-toggle="dropdown">
+              <i class="fa-solid fa-gear"></i> Bo'limlar
+            </button>
+            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow-lg border-white-10 p-2">
+              <li>
+                <a class="dropdown-item rounded-3 d-flex align-items-center gap-2 py-2"
+                  href="{% url 'core:teacher_edit' teacher.id %}">
+                  <i class="fa-solid fa-pen-to-square text-warning"></i> Tahrirlash
+                </a>
+              </li>
+              <li>
+                <hr class="dropdown-divider opacity-10">
+              </li>
+              <li>
+                <button class="dropdown-item rounded-3 d-flex align-items-center gap-2 py-2 text-warning"
+                  data-bs-toggle="modal" data-bs-target="#passwordResetModal">
+                  <i class="fa-solid fa-key"></i> Parolni o'zgartirish
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS CARDS -->
+  <div class="row g-4 mb-4">
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card glass p-3 h-100 d-flex align-items-center gap-3">
+        <div class="ico-box bg-primary-subtle text-primary fs-3 rounded-4 p-3 anim-pulse">
+          <i class="fa-solid fa-envelope"></i>
+        </div>
+        <div class="flex-grow-1">
+          <div class="text-white-50 small mb-1">EMAIL</div>
+          <div class="fw-bold text-white" style="word-break: break-all; font-size: 0.9rem;">{{ teacher.email|default:"—" }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card glass p-3 h-100 d-flex align-items-center gap-3">
+        <div class="ico-box bg-success-subtle text-success fs-3 rounded-4 p-3">
+          <i class="fa-solid fa-phone"></i>
+        </div>
+        <div>
+          <div class="text-white-50 small mb-1">TELEFON</div>
+          <div class="fw-bold text-white">{{ teacher.telefon1|default:"—" }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card glass p-3 h-100 d-flex align-items-center gap-3">
+        <div class="ico-box bg-info-subtle text-info fs-3 rounded-4 p-3">
+          <i class="fa-solid fa-building"></i>
+        </div>
+        <div>
+          <div class="text-white-50 small mb-1">CENTER</div>
+          <div class="fw-bold text-white">{{ teacher.center|default:"—" }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card glass p-3 h-100 d-flex align-items-center gap-3">
+        <div class="ico-box bg-warning-subtle text-warning fs-3 rounded-4 p-3">
+          <i class="fa-solid fa-percent"></i>
+        </div>
+        <div>
+          <div class="text-white-50 small mb-1">OYLIK ULUSHI</div>
+          <div class="fw-bold text-white">{{ teacher.oqituvchi_foizi|default:"0" }}%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GROUPS TABLE -->
+  <div class="row">
+    <div class="col-12">
+      <div class="glass p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h5 class="m-0 fw-bold text-white">
+            <i class="fa-solid fa-layer-group me-2 text-warning"></i> O‘qituvchi guruhlari
+          </h5>
+          <span class="badge bg-white-10 text-white-50 px-3 py-2 rounded-pill">{{ groups.count }} ta</span>
+        </div>
+
+        {% if groups %}
+        <div class="table-responsive">
+          <table class="table table-dark-custom mb-0">
+            <thead>
+              <tr>
+                <th class="ps-4">#</th>
+                <th>Guruh Nomi</th>
+                <th>Markaz</th>
+                <th>O‘quvchilar soni</th>
+                <th class="text-end pe-4">Batafsil</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for g in groups %}
+              <tr class="align-middle">
+                <td class="ps-4 fw-bold text-white-50">{{ forloop.counter }}</td>
+                <td>
+                  <div class="fw-bold text-white">{{ g.nom }}</div>
+                </td>
+                <td><span class="text-white-50">{{ g.center|default:"—" }}</span></td>
+                <td><span class="badge bg-white-5 text-white-50 rounded-pill px-3">{{ g.enrollments.count }}</span></td>
+                <td class="text-end pe-4">
+                  <a href="{% url 'education:group_detail' g.id %}" class="btn btn-sm btn-glass rounded-pill px-3">
+                    <i class="fa-solid fa-eye me-1"></i> Ko‘rish
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 opacity-25">
+          <i class="fa-solid fa-inbox fs-1 mb-2"></i>
+          <p>Hozircha guruhlari yo‘q.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- PASSWORD RESET MODAL -->
+<div class="modal fade" id="passwordResetModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content glass-dark border border-white-10 text-white rounded-4 shadow-3d">
+      <div class="modal-header border-0 pb-0 px-4 pt-4">
+        <h5 class="modal-title fw-bold text-warning d-flex align-items-center gap-2">
+          <i class="fa-solid fa-key"></i> Parolni o‘zgartirish
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST">
+        {% csrf_token %}
+        <div class="modal-body p-4">
+          <p class="small text-white-50 mb-4">
+            O'qituvchi uchun yangi parolni kiriting. Bu amal uning eski parolini bekor qiladi.
+          </p>
+          <div class="mb-3">
+            <label class="form-label small text-warning fw-bold">Yangi Parol</label>
+            <div class="input-group input-group-premium overflow-hidden rounded-3 border border-white-10">
+              <span class="input-group-text bg-white-5 border-0">
+                <i class="fa-solid fa-lock text-warning"></i>
+              </span>
+              <input type="password" name="new_password" id="id_new_password"
+                class="form-control bg-transparent border-0 text-white" placeholder="Kamida 6 ta belgi..." required
+                minlength="6" autocomplete="new-password">
+              <button class="btn bg-white-5 border-0 text-white-50" type="button"
+                onclick="togglePass('id_new_password')">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pb-4 px-4 justify-content-center gap-2">
+          <button type="button" class="btn btn-glass px-4 rounded-pill" data-bs-dismiss="modal">Bekor qilish</button>
+          <button type="submit" class="btn btn-warning px-5 rounded-pill fw-bold shadow-warning">Parolni
+            Yangilash</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function togglePass(id) {
+    const el = document.getElementById(id);
+    const btn = event.currentTarget;
+    const icon = btn.querySelector('i');
+    if (el.type === "password") {
+      el.type = "text";
+      icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+      el.type = "password";
+      icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+  }
+</script>
 {% endblock %}
