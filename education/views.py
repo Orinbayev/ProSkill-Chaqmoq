@@ -2034,10 +2034,10 @@ def payment_delete(request, payment_id):
 def student_groups_api(request, student_id):
     """Return all active group names for a student (for payment modal display)."""
     center = get_active_center(request)
-    qs = Enrollment.objects.filter(student_id=student_id, is_active=True).select_related('group')
+    qs = Enrollment.objects.filter(student_id=student_id, is_active=True, group__is_archived=False).select_related('group')
     if center:
         qs = qs.filter(center=center)
-    groups = [e.group.nom for e in qs if e.group]
+    groups = [e.group.nom for e in qs if e.group and not getattr(e.group, "is_archived", False)]
     return JsonResponse({"groups": " + ".join(groups) if groups else ""})
 
 
