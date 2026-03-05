@@ -3221,7 +3221,7 @@ def teacher_salary_list(request):
     for t in teachers:
         groups = (
             Group.objects
-            .filter(oqituvchi=t)
+            .filter(oqituvchi=t, is_archived=False)
             .prefetch_related("enrollments", "attendances")
         )
 
@@ -3267,7 +3267,7 @@ def teacher_groups(request, teacher_id):
 
     groups = (
         Group.objects
-        .filter(oqituvchi=teacher)
+        .filter(oqituvchi=teacher, is_archived=False)
         .prefetch_related(
             "enrollments__student",
             "attendances",
@@ -3829,7 +3829,7 @@ def group_create(request, category=None):
 
 @login_required
 def group_edit(request, pk):
-    if not request.user.is_superuser and request.user.role not in ["Director", "Manager", "Teacher"]:
+    if not request.user.is_superuser and request.user.role not in ["director", "manager", "teacher"]:
         messages.error(request, "Sizda ruxsat yo‘q.")
         return redirect("education:groups")
 
@@ -3876,7 +3876,8 @@ def group_edit(request, pk):
 
     return render(request, "education/group_form.html", {
         "form": form,
-        "title": "✏️ Guruhni tahrirlash",
+        "title": "Guruhni tahrirlash",
+        "description": "Guruh ma'lumotlarini tahrirlash",
     })
 
 
@@ -3893,7 +3894,7 @@ def group_list(request):
     if center:
         rows = rows.filter(center=center)
 
-    can_manage = request.user.is_superuser or request.user.role in ["Director", "Manager", "Teacher"]
+    can_manage = request.user.is_superuser or request.user.role in ["director", "manager", "teacher"]
 
     context = {
         "rows": rows,

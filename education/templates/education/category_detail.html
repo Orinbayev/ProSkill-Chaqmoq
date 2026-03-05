@@ -526,15 +526,16 @@
         </a>
 
         <!-- ARCHIVE -->
-        <form action="{% url 'education:group_toggle_archive' g.id %}" method="post" style="display:inline;">
+        <form action="{% url 'education:group_toggle_archive' g.id %}" method="post" style="display:inline;"
+          id="archive-form-{{ g.id }}">
           {% csrf_token %}
-          <button type="submit" class="icon i-view" data-stop="1" style="border:none; cursor:pointer;"
+          <button type="button" class="icon i-view btn-archive" data-stop="1" style="border:none; cursor:pointer;"
             title="{% if g.is_archived %}Tiklash{% else %}Arxivlash{% endif %}"
-            onclick="return confirm('Siz haqiqatdan ham bu guruhni {% if g.is_archived %}tiklamoqchimisiz{% else %}arxivlamoqchimisiz{% endif %}?')">
+            onclick="confirmArchive('{{ g.id }}', {{ g.is_archived|yesno:'true,false' }})">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
               stroke-linejoin="round">
               {% if g.is_archived %}
-              <path d="M3 10h18M3 14h18m-9-4v8m-4-4h8" /> <!-- Simple restore icon representation -->
+              <path d="M3 10h18M3 14h18m-9-4v8m-4-4h8" />
               {% else %}
               <path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4" />
               {% endif %}
@@ -543,8 +544,8 @@
         </form>
 
         <!-- DELETE -->
-        <a class="icon i-del" data-stop="1" title="O‘chirish" href="{% url 'education:group_delete' g.id %}"
-          aria-label="O‘chirish" onclick="return confirm('“{{ g.nom }}” guruhini o‘chirilsinmi?')">
+        <a class="icon i-del" data-stop="1" title="O‘chirish" href="#" aria-label="O‘chirish"
+          onclick="confirmDelete('{% url 'education:group_delete' g.id %}', '{{ g.nom|escapejs }}')">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
             <path d="M8 6V4h8v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -583,6 +584,24 @@
           </a>
 
           {% if user.is_superuser or user.role == 'director' or user.role == 'manager' %}
+          <!-- ARCHIVE -->
+          <form action="{% url 'education:group_toggle_archive' g.id %}" method="post" style="display:inline;"
+            id="archive-form-m-{{ g.id }}">
+            {% csrf_token %}
+            <button type="button" class="icon i-view btn-archive" data-stop="1" style="border:none; cursor:pointer;"
+              title="{% if g.is_archived %}Tiklash{% else %}Arxivlash{% endif %}"
+              onclick="confirmArchive('m-{{ g.id }}', {{ g.is_archived|yesno:'true,false' }})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                {% if g.is_archived %}
+                <path d="M3 10h18M3 14h18m-9-4v8m-4-4h8" />
+                {% else %}
+                <path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4" />
+                {% endif %}
+              </svg>
+            </button>
+          </form>
+
           <a class="icon i-edit" data-stop="1" title="Tahrirlash" href="{% url 'education:group_edit' g.id %}">
             <svg viewBox="0 0 24 24" fill="none">
               <path d="M12 20h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
@@ -591,8 +610,8 @@
             </svg>
           </a>
 
-          <a class="icon i-del" data-stop="1" title="O‘chirish" href="{% url 'education:group_delete' g.id %}"
-            onclick="return confirm('“{{ g.nom }}” guruhini o‘chirilsinmi?')">
+          <a class="icon i-del" data-stop="1" title="O‘chirish" href="#"
+            onclick="confirmDelete('{% url 'education:group_delete' g.id %}', '{{ g.nom|escapejs }}')">
             <svg viewBox="0 0 24 24" fill="none">
               <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
               <path d="M8 6V4h8v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -666,5 +685,76 @@
 
   applyFilter();
 </script>
+
+<!-- SweetAlert2 for beautiful popups -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+  const swalConfig = {
+    background: '#0f172a',
+    color: '#e5e7eb',
+    customClass: {
+      popup: 'swal2-dark-popup',
+      title: 'swal2-dark-title',
+      cancelButton: 'swal2-dark-cancel'
+    }
+  };
+
+  function confirmArchive(formId, isArchived) {
+    const actionText = isArchived ? "haqiqatan ham bu guruhni arxivdan chiqarmoqchimisiz?" : "haqiqatan ham bu guruhni arxivlamoqchimisiz?";
+    const confirmButtonText = isArchived ? "Ha, chiqarish" : "Ha, arxivlash";
+    const confirmButtonColor = isArchived ? "#22c55e" : "#facc15";
+
+    Swal.fire({
+      title: "Tasdiqlang",
+      text: "Siz " + actionText,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: confirmButtonColor,
+      cancelButtonColor: "rgba(255, 255, 255, 0.1)",
+      confirmButtonText: confirmButtonText,
+      cancelButtonText: "Bekor qilish",
+      ...swalConfig
+    }).then((result) => {
+      if (result.isConfirmed) {
+        document.getElementById("archive-form-" + formId).submit();
+      }
+    });
+  }
+
+  function confirmDelete(url, groupName) {
+    Swal.fire({
+      title: "O‘chirish",
+      html: `Siz haqiqatan ham <b style="color:#ef4444;">${groupName}</b> guruhini o‘chirmoqchimisiz?`,
+      icon: "error",
+      showCancelButton: true,
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "rgba(255, 255, 255, 0.1)",
+      confirmButtonText: "Ha, o‘chirish",
+      cancelButtonText: "Bekor qilish",
+      ...swalConfig
+    }).then((result) => {
+      if (result.isConfirmed) {
+        window.location.href = url;
+      }
+    });
+  }
+</script>
+
+<style>
+  .swal2-dark-popup {
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  .swal2-dark-title {
+    color: #f8fafc !important;
+  }
+
+  .swal2-dark-cancel {
+    color: #e5e7eb !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+</style>
 
 {% endblock %}
