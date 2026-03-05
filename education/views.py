@@ -491,7 +491,8 @@ def create_payment(request):
         if center: user_qs = user_qs.filter(center=center)
         student = get_object_or_404(user_qs, id=student_id)
         
-        enrollments = Enrollment.objects.filter(student=student, is_active=True).order_by('id')
+        # ✅ ONLY Active and NOT ARCHIVED groups
+        enrollments = Enrollment.objects.filter(student=student, is_active=True, group__is_archived=False).order_by('id')
         if not enrollments.exists():
             messages.error(request, "O‘quvchida faol kurslar topilmadi.")
             return redirect(next_url)
@@ -1379,7 +1380,7 @@ def qarzdorlar_home(request):
     # Base Query: Active Enrollments (student va guruh arxivda bo'lmagan)
     enrollments = (
         Enrollment.objects
-        .select_related("student", "group", "group__oqituvchi")
+        .select_related("student", "group", "group__oqituvchi", "group__category_obj")
         .filter(is_active=True, student__is_archived=False, group__is_archived=False)
     )
 

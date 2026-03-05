@@ -614,9 +614,11 @@
                         <td>
                             <div class="d-flex flex-column gap-1">
                                 {% for alloc in p.allocations.all|dictsort:"tuition_month.month" %}
+                                {% if not alloc.tuition_month.enrollment.group.is_archived %}
                                 {% ifchanged alloc.tuition_month.month %}
-                                <span class="month-tag">{{ alloc.tuition_month.month.month|get_month_name }} {{ alloc.tuition_month.month.year }}</span>
+                                <span class="month-tag">{{ alloc.tuition_month.month.month|get_month_name }} {{  alloc.tuition_month.month.year }}</span>
                                 {% endifchanged %}
+                                {% endif %}
                                 {% empty %}
                                 <span class="text-secondary opacity-50 small">—</span>
                                 {% endfor %}
@@ -627,14 +629,17 @@
                                 {% with groups_seen=p.allocations.all %}
                                 {% if groups_seen %}
                                 {% for alloc in groups_seen %}
+                                {% if not alloc.tuition_month.enrollment.group.is_archived %}
                                 {% ifchanged alloc.tuition_month.enrollment.group.id %}
                                 <span class="group-tag">{{ alloc.tuition_month.enrollment.group.nom|default:"—" }}</span>
-                                <small class="text-secondary opacity-50">{{ alloc.tuition_month.enrollment.group.category_obj.name|default:"—" }}</small>
+                                <small class="text-secondary opacity-50">{{  alloc.tuition_month.enrollment.group.category_obj.name|default:"—" }}</small>
                                 {% endifchanged %}
+                                {% endif %}
                                 {% endfor %}
                                 {% else %}
                                 <span class="group-tag">{{ p.group.nom|default:"—" }}</span>
-                                <small class="text-secondary opacity-50">{{ p.group.category_obj.name|default:"—" }}</small>
+                                <small class="text-secondary opacity-50">{{ p.group.category_obj.name|default:"—"
+                                    }}</small>
                                 {% endif %}
                                 {% endwith %}
                             </div>
