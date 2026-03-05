@@ -3512,6 +3512,7 @@ def teacher_salary_summary(request):
                 month_turnover = m_turnover
 
         teacher_data.append({
+            "id": teacher.id,
             "teacher": teacher.get_full_name() or teacher.email,
             "groups": teacher.group_set.count(),
             "lessons": month_lessons,
@@ -3525,13 +3526,13 @@ def teacher_salary_summary(request):
     # ================================
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         return JsonResponse({
-            "year": selected_year,
-            "month": selected_month,
+            "year": int(selected_year),
+            "month": int(selected_month),
             "teacher_data": teacher_data,
             "chart_labels": chart_labels,
-            "chart_teacher_income": chart_teacher_income,
-            "chart_center_income": chart_center_income,
-            "chart_total_turnover": chart_total_turnover,
+            "chart_teacher_income": [float(x) for x in chart_teacher_income],
+            "chart_center_income": [float(x) for x in chart_center_income],
+            "chart_total_turnover": [float(x) for x in chart_total_turnover],
         })
 
     # ================================
@@ -3540,13 +3541,19 @@ def teacher_salary_summary(request):
     return render(request, "education/teacher_salary_summary.html", {
         "years": list(range(2024, 2036)),
         "months": months,
-        "selected_year": selected_year,
-        "selected_month": selected_month,
+        "selected_year": int(selected_year),
+        "selected_month": int(selected_month),
         "teacher_data": teacher_data,
         "chart_labels": chart_labels,
         "chart_teacher_income": chart_teacher_income,
         "chart_center_income": chart_center_income,
         "chart_total_turnover": chart_total_turnover,
+        # Safely pass data as JSON strings
+        "teacher_data_json": json.dumps(teacher_data),
+        "chart_labels_json": json.dumps(chart_labels),
+        "chart_teacher_income_json": json.dumps([float(x) for x in chart_teacher_income]),
+        "chart_center_income_json": json.dumps([float(x) for x in chart_center_income]),
+        "chart_total_turnover_json": json.dumps([float(x) for x in chart_total_turnover]),
     })
 
     # Tanlangan yil / oy

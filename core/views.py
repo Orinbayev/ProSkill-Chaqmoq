@@ -1974,5 +1974,36 @@ def low_activity_students(request):
             'reasons': reasons,
         })
 
-    return render(request, 'core/low_activity_students.html', {'low_list': low_list})
+    # Filters and Search
+    q = request.GET.get('q', '').strip()
+    filter_reason = request.GET.get('reason', '').strip()
+    
+    final_list = []
+    for item in low_list:
+        # Search check
+        if q and q.lower() not in item['name'].lower():
+            continue
+        
+        # Reason check
+        if filter_reason:
+            match = False
+            for r in item['reasons']:
+                if filter_reason.lower() in r.lower():
+                    match = True
+                    break
+            if not match:
+                continue
+                
+        final_list.append(item)
+
+    # Paginator implementation (10 items per page)
+    paginator = Paginator(final_list, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'core/low_activity_students.html', {
+        'page_obj': page_obj,
+        'q': q,
+        'selected_reason': filter_reason
+    })
 

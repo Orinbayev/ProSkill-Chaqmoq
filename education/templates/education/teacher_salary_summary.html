@@ -1,380 +1,619 @@
 {% extends 'base.html' %}
-{% load humanize %}
-{% block content %}
+{% load static humanize %}
 
+{% block title %}Director Dashboard | Maoshlar va Foyda{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
 <style>
+  :root {
+    --bg-deep: #070a13;
+    --card-bg: rgba(15, 23, 42, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --accent: #FACC15;
+    --rose: #F43F5E;
+    --teal: #10B981;
+    --indigo: #6366F1;
+    --slate-300: #cbd5e1;
+    --slate-400: #94a3b8;
+    --slate-500: #64748b;
+    --gradient-primary: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
+    --gradient-success: linear-gradient(135deg, #10B981 0%, #059669 100%);
+    --gradient-warning: linear-gradient(135deg, #FACC15 0%, #EAB308 100%);
+  }
+
   body {
-    background: linear-gradient(135deg, #0f172a, #1e293b);
-    font-family: 'Poppins', sans-serif;
-    color: #e2e8f0;
+    background-color: var(--bg-deep) !important;
+    color: #f1f5f9;
+    font-family: 'Plus Jakarta Sans', sans-serif;
   }
 
-  .dashboard-container {
-    max-width: 1100px;
-    margin: 40px auto;
-    padding: 30px;
+  .report-container {
+    padding: 30px 20px;
+    max-width: 1300px;
+    margin: 0 auto;
+  }
+
+  /* ===== HEADER ===== */
+  .dashboard-header {
+    background: rgba(15, 23, 42, 0.4);
     border-radius: 24px;
-    background: rgba(255, 255, 255, 0.05);
-    box-shadow: 0 0 40px rgba(59, 130, 246, 0.2);
-    backdrop-filter: blur(14px);
-  }
-
-  h3 {
-    text-align: center;
-    font-weight: 700;
-    color: #fbbf24;
-    text-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
+    padding: 20px 30px;
     margin-bottom: 25px;
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(20px);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
   }
 
-  select {
-    background: #1e293b;
-    color: #f8fafc;
-    border: 1px solid #475569;
-    border-radius: 10px;
-    padding: 8px 12px;
-    outline: none;
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .back-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    text-decoration: none;
     transition: 0.3s;
   }
 
-  select:hover {
-    border-color: #facc15;
+  .back-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(-3px);
   }
 
-  .card {
-    background: rgba(255, 255, 255, 0.08);
-    border: none;
-    border-radius: 20px;
-    box-shadow: 0 0 20px rgba(251, 191, 36, 0.15);
+  .header-title-box h1 {
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0;
+    color: #fff;
   }
 
-  /* --- TABLE --- */
-  table {
-    margin-top: 20px;
-    border-collapse: collapse;
-    width: 100%;
-    border-radius: 12px;
-    overflow: hidden;
-    color: #f1f5f9;
-  }
-
-  thead {
-    background: linear-gradient(90deg, #f59e0b, #fbbf24);
-    color: #1e293b;
-    font-weight: 700;
-  }
-
-  th,
-  td {
-    padding: 14px 12px;
-    text-align: center;
-    vertical-align: middle;
-  }
-
-  tbody tr {
-    transition: background .25s ease, transform .25s ease;
-    will-change: transform;
-  }
-
-  tbody tr:hover {
-    background: rgba(255, 255, 255, 0.08);
-    transform: scale(1.01);
-  }
-
-  .no-data {
-    padding: 18px 12px;
-    color: #cbd5e1;
-    text-align: center;
-  }
-
-  canvas {
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.02);
-    box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.1);
-    max-width: 100%;
-  }
-
-  /* ============================
-     ✅ RESPONSIVE (MOBILE FIRST)
-     Dizayn o‘zgarmaydi, faqat moslashadi
-  ============================ */
-
-  /* Filter blokini tartibga keltiramiz */
-  .filters-row {
+  .filters-bar {
     display: flex;
-    justify-content: center;
     align-items: center;
-    flex-wrap: wrap;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 6px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--glass-border);
+  }
+
+  .nav-select {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    outline: none;
+  }
+
+  /* ===== KPI CARDS ===== */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 25px;
+  }
+
+  .kpi-card {
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: 0.3s;
+  }
+
+  .kpi-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .kpi-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    margin-bottom: 15px;
+  }
+
+  .icon-turnover {
+    background: rgba(250, 204, 21, 0.1);
+    color: var(--accent);
+  }
+
+  .icon-payout {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--teal);
+  }
+
+  .icon-profit {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--indigo);
+  }
+
+  .kpi-label {
+    color: var(--slate-400);
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 5px;
+  }
+
+  .kpi-value {
+    font-size: 24px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
+
+  /* ===== CHART & TABLE PANELS ===== */
+  .dashboard-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 30px;
+    padding: 25px;
+    backdrop-filter: blur(20px);
+    margin-bottom: 25px;
+  }
+
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .panel-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--slate-300);
+  }
+
+  /* ===== TABLE STYLING ===== */
+  .premium-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 10px;
+  }
+
+  .premium-table thead th {
+    padding: 12px 20px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--slate-500);
+    text-align: left;
+  }
+
+  .premium-table tbody tr {
+    transition: 0.3s;
+  }
+
+  .premium-table tbody tr:hover {
+    transform: scale(1.005);
+  }
+
+  .premium-table td {
+    padding: 16px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    vertical-align: middle;
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .premium-table tr td:first-child {
+    border-top-left-radius: 18px;
+    border-bottom-left-radius: 18px;
+    width: 50px;
+    text-align: center;
+  }
+
+  .premium-table tr td:last-child {
+    border-top-right-radius: 18px;
+    border-bottom-right-radius: 18px;
+  }
+
+  .teacher-identity {
+    display: flex;
+    align-items: center;
     gap: 12px;
   }
 
-  .filters-row label {
-    margin: 0;
-    white-space: nowrap;
+  .teacher-name {
+    color: #fff;
+    font-weight: 700;
+    transition: 0.2s;
   }
 
-  /* Jadvalni mobileda scroll qilamiz */
-  .table-scroll {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    border-radius: 12px;
-    margin-top: 14px;
+  .teacher-name:hover {
+    color: var(--accent);
   }
 
-  .table-scroll table {
-    margin-top: 0;
-    min-width: 860px;
-    /* ustunlar siqilib ketmasin */
+  .val-badge {
+    font-size: 12px;
+    font-weight: 800;
+    padding: 5px 10px;
+    border-radius: 10px;
+    display: inline-block;
   }
 
-  /* 📱 Telefon */
-  @media (max-width: 576px) {
-    .dashboard-container {
-      max-width: 100%;
-      margin: 14px 10px;
-      padding: 16px;
-      border-radius: 18px;
-    }
-
-    h3 {
-      font-size: 1.05rem;
-      margin-bottom: 16px;
-    }
-
-    /* Filterlar: ustma-ust va 100% */
-    .filters-row {
-      justify-content: stretch;
-      gap: 10px;
-    }
-
-    .filters-row label {
-      display: block;
-      width: 100%;
-      text-align: left;
-      font-weight: 600;
-      color: #e5e7eb;
-    }
-
-    .filters-row select {
-      width: 100%;
-      padding: 10px 12px;
-      border-radius: 12px;
-    }
-
-    #report-title {
-      font-size: .95rem;
-      margin-bottom: 12px !important;
-    }
-
-    .card.p-3 {
-      padding: 12px !important;
-      border-radius: 16px;
-    }
-
-    th,
-    td {
-      padding: 10px 10px;
-      font-size: .92rem;
-    }
-
-    /* mobileda hover scale bo‘lmasin (silkinmasin) */
-    tbody tr:hover {
-      transform: none;
-    }
+  .val-lessons {
+    color: var(--indigo);
+    background: rgba(99, 102, 241, 0.08);
   }
 
-  /* 🧾 Tablet */
-  @media (min-width: 577px) and (max-width: 991px) {
-    .dashboard-container {
-      margin: 24px 18px;
-      padding: 22px;
-      border-radius: 22px;
-    }
-
-    th,
-    td {
-      padding: 12px 10px;
-    }
-
-    /* tabletda ham hover scale yumshoqroq */
-    tbody tr:hover {
-      transform: scale(1.005);
-    }
+  .val-groups {
+    color: var(--teal);
+    background: rgba(16, 185, 129, 0.08);
   }
 
-  /* 🖥️ Desktop: hover scale o‘z holida qolsin */
-  @media (min-width: 992px) {
-    tbody tr:hover {
-      transform: scale(1.01);
+  .val-money {
+    font-weight: 700;
+  }
+
+  .text-teal {
+    color: var(--teal);
+  }
+
+  .text-indigo {
+    color: var(--indigo);
+  }
+
+  .text-accent {
+    color: var(--accent);
+  }
+
+  @media (max-width: 768px) {
+    .dashboard-header {
+      padding: 15px;
+    }
+
+    .kpi-grid {
+      grid-template-columns: 1fr;
     }
   }
 </style>
+{% endblock %}
 
-<div class="dashboard-container">
-  <h3>📊 O‘qituvchilar Umumiy Oylik Hisobot Paneli</h3>
+{% block content %}
+<div class="report-container">
+  <!-- HEADER -->
+  <header class="dashboard-header animate__animated animate__fadeInDown">
+    <div class="header-left">
+      <a href="{% url 'core:home' %}" class="back-btn"><i class="fa-solid fa-chevron-left"></i></a>
+      <div class="header-title-box">
+        <h1>Moliya Paneli</h1>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="filters-bar">
+        <i class="fa-solid fa-calendar-days text-slate-500"></i>
+        <select id="year" class="nav-select">
+          {% for y in years %}
+          <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }} yil</option>
+          {% endfor %}
+        </select>
+        <div style="width: 1px; height: 20px; background: var(--glass-border);"></div>
+        <select id="month" class="nav-select">
+          {% for num, name in months %}
+          <option value="{{ num }}" {% if num == selected_month %}selected{% endif %}>{{ name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </header>
 
-  <div class="text-center mb-4 filters-row">
-    <label class="fw-semibold me-2">Yil:</label>
-    <select id="year">
-      {% for y in years %}
-      <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
-      {% endfor %}
-    </select>
-
-    <label class="fw-semibold ms-4 me-2">Oy:</label>
-    <select id="month">
-      {% for num, name in months %}
-      <option value="{{ num }}" {% if num == selected_month %}selected{% endif %}>{{ name }}</option>
-      {% endfor %}
-    </select>
+  <!-- CHART PANEL -->
+  <div class="dashboard-panel animate__animated animate__fadeInUp">
+    <div class="panel-header">
+      <div class="panel-title">Moliyaviy O'sish Retrospektivasi</div>
+      <div id="report-title" class="text-slate-500 font-bold small">Hisobot — {{ selected_year }} yil</div>
+    </div>
+    <div style="height: 400px; position: relative;">
+      <canvas id="incomeChart"></canvas>
+    </div>
   </div>
 
-  <p id="report-title" class="text-center text-slate-400 mb-4">
-    Hisobot — <strong>{{ selected_year }}</strong> yil
-  </p>
-
-  <div class="card p-3 mb-4">
-    <canvas id="incomeChart" height="120" data-labels="{{ chart_labels|safe }}"></canvas>
-  </div>
-
-  <!-- ✅ MOBILE: jadval kesilib qolmasin -->
-  <div class="table-scroll">
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>👨‍🏫 O‘qituvchi</th>
-          <th>📚 Darslar</th>
-          <th>👥 Guruhlar</th>
-          <th>💰 O‘qituvchi Daromadi</th>
-          <th>🏫 Markaz foydasi</th>
-          <th>💵 Umumiy aylanma</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {% for t in teacher_data %}
-        <tr>
-          <td>{{ forloop.counter }}</td>
-          <td>{{ t.teacher }}</td>
-          <td>{{ t.lessons }}</td>
-          <td>{{ t.groups }}</td>
-          <td class="text-success">{{ t.teacher_income|floatformat:0 }} so‘m</td>
-          <td class="text-primary">{{ t.center_profit|floatformat:0 }} so‘m</td>
-          <td class="fw-bold">{{ t.total_turnover|floatformat:0 }} so‘m</td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="7" class="no-data">Ma’lumot topilmadi ⚡</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <!-- TABLE PANEL -->
+  <div class="dashboard-panel animate__animated animate__fadeInUp" style="animation-delay: 0.1s;">
+    <div class="panel-header">
+      <div class="panel-title">O'qituvchilar bo'yicha tahlil</div>
+    </div>
+    <div class="table-responsive" style="overflow-x: auto;">
+      <table class="premium-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>O'qituvchi</th>
+            <th>Darslar</th>
+            <th>Guruhlar</th>
+            <th>O'qituvchi Haqi</th>
+            <th>Markaz Foydasi</th>
+            <th>Umumiy Aylanma</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          {% for t in teacher_data %}
+          <tr>
+            <td class="text-slate-500">{{ forloop.counter }}</td>
+            <td>
+              <div class="teacher-identity">
+                <a href="{% url 'core:teacher_detail' t.id %}" class="teacher-name" style="text-decoration: none;">{{  t.teacher }}</a>
+              </div>
+            </td>
+            <td><span class="val-badge val-lessons">{{ t.lessons }}</span></td>
+            <td><span class="val-badge val-groups">{{ t.groups }}</span></td>
+            <td class="val-money text-teal">{{ t.teacher_income|floatformat:0|intcomma }} so'm</td>
+            <td class="val-money text-indigo">{{ t.center_profit|floatformat:0|intcomma }} so'm</td>
+            <td class="val-money text-accent">{{ t.total_turnover|floatformat:0|intcomma }} so'm</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center py-5">
+              <i class="fa-solid fa-face-meh text-slate-500 mb-2" style="font-size: 30px;"></i>
+              <p class="text-slate-500">Ma'lumotlar topilmadi.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
+
+<!-- Safely embed Django data as JSON for JS -->
+<script id="dashboard-data-json" type="application/json">
+{
+    "teacher_data": {{ teacher_data_json|safe }},
+    "chart_labels": {{ chart_labels_json|safe }},
+    "chart_teacher_income": {{ chart_teacher_income_json|safe }},
+    "chart_center_income": {{ chart_center_income_json|safe }},
+    "chart_total_turnover": {{ chart_total_turnover_json|safe }}
+}
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-
     const yearSelect = document.getElementById("year");
     const monthSelect = document.getElementById("month");
-    const tableBody = document.querySelector("tbody");
+    const tableBody = document.getElementById("table-body");
     const reportTitle = document.getElementById("report-title");
     const ctx = document.getElementById("incomeChart");
+
+    const kpiTurnover = document.getElementById("kpi-total-turnover");
+    const kpiTeacher = document.getElementById("kpi-total-teacher");
+    const kpiProfit = document.getElementById("kpi-total-profit");
 
     let chartInstance = null;
 
     function formatNum(num) {
-      return Number(num).toLocaleString("uz-UZ") + " so‘m";
+      return Number(num).toLocaleString("uz-UZ") + " so'm";
+    }
+
+    function updateKPIs(teacherData) {
+      let totalTurnover = 0;
+      let totalTeacher = 0;
+      let totalProfit = 0;
+
+      teacherData.forEach(t => {
+        totalTurnover += t.total_turnover;
+        totalTeacher += t.teacher_income;
+        totalProfit += t.center_profit;
+      });
+
+      // KPIs are removed from HTML, but the JS logic for updating them remains.
+      // If these KPIs are no longer displayed, this function could be removed or adapted.
+      // For now, keeping it as it doesn't cause errors.
+      if (kpiTurnover) kpiTurnover.innerText = formatNum(totalTurnover);
+      if (kpiTeacher) kpiTeacher.innerText = formatNum(totalTeacher);
+      if (kpiProfit) kpiProfit.innerText = formatNum(totalProfit);
+    }
+
+    function createChart(labels, teacherData, centerData, totalData) {
+      if (chartInstance) chartInstance.destroy();
+
+      const ctx_canvas = ctx.getContext('2d');
+
+      // Create gradients
+      const gradTeal = ctx_canvas.createLinearGradient(0, 0, 0, 400);
+      gradTeal.addColorStop(0, 'rgba(16, 185, 129, 0.4)');
+      gradTeal.addColorStop(1, 'rgba(16, 185, 129, 0)');
+
+      const gradIndigo = ctx_canvas.createLinearGradient(0, 0, 0, 400);
+      gradIndigo.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
+      gradIndigo.addColorStop(1, 'rgba(99, 102, 241, 0)');
+
+      const gradRose = ctx_canvas.createLinearGradient(0, 0, 0, 400);
+      gradRose.addColorStop(0, 'rgba(244, 63, 94, 0.4)');
+      gradRose.addColorStop(1, 'rgba(244, 63, 94, 0)');
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: "Umumiy Aylanma",
+              data: totalData,
+              borderColor: '#FACC15',
+              backgroundColor: 'rgba(250, 204, 21, 0.1)',
+              borderWidth: 3,
+              tension: 0.45,
+              fill: true,
+              pointStyle: 'circle',
+              pointRadius: 4,
+              pointHoverRadius: 8,
+              pointBackgroundColor: '#FACC15',
+              pointBorderColor: '#070a13',
+              pointBorderWidth: 2
+            },
+            {
+              label: "O'qituvchi Haqi",
+              data: teacherData,
+              borderColor: '#10B981',
+              backgroundColor: gradTeal,
+              borderWidth: 3,
+              tension: 0.45,
+              fill: true,
+              pointRadius: 0
+            },
+            {
+              label: "Markaz Foydasi",
+              data: centerData,
+              borderColor: '#F43F5E',
+              backgroundColor: gradRose,
+              borderWidth: 3,
+              tension: 0.45,
+              fill: true,
+              pointRadius: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: '#94a3b8',
+                usePointStyle: true,
+                padding: 25,
+                font: { family: 'Plus Jakarta Sans', size: 12, weight: '600' }
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(7, 10, 19, 0.8)',
+              backdropFilter: 'blur(8px)',
+              titleColor: '#fff',
+              bodyColor: '#cbd5e1',
+              padding: 12,
+              borderColor: 'rgba(255, 255, 255, 0.1)',
+              borderWidth: 1,
+              callbacks: {
+                label: function (context) {
+                  return context.dataset.label + ': ' + formatNum(context.raw);
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false },
+              ticks: {
+                color: '#64748b',
+                font: { size: 11, weight: '500' },
+                callback: function (value) {
+                  if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                  if (value >= 1000) return (value / 1000).toFixed(0) + 'K';
+                  return value;
+                }
+              }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { color: '#64748b', font: { size: 11, weight: '500' } }
+            }
+          }
+        }
+      });
     }
 
     function loadData() {
       const year = yearSelect.value;
       const month = monthSelect.value;
+      console.log("Loading data for:", year, month);
 
-      fetch(`/talim/teacher-salary/summary/?year=${year}&month=${month}`, {
+      fetch(`${window.location.pathname}?year=${year}&month=${month}`, {
         headers: { "X-Requested-With": "XMLHttpRequest" }
       })
         .then(res => res.json())
         .then(data => {
-
-          reportTitle.innerHTML = `Hisobot — <strong>${data.year}</strong> yil`;
-
+          reportTitle.innerHTML = `Hisobot — <span class="text-white">${data.year} yil</span>`;
           tableBody.innerHTML = "";
 
           if (data.teacher_data.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="7" class="no-data">Ma’lumot topilmadi ⚡</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-slate-500">Ma'lumotlar topilmadi.</td></tr>`;
           } else {
             data.teacher_data.forEach((t, i) => {
+              // Assuming 'core:teacher_detail' URL pattern is '/teachers/<int:pk>/'
+              const detailUrl = `/teachers/${t.id}/`;
               tableBody.insertAdjacentHTML("beforeend", `
-            <tr>
-              <td>${i + 1}</td>
-              <td>${t.teacher}</td>
-              <td>${t.lessons}</td>
-              <td>${t.groups}</td>
-              <td class="text-success">${formatNum(t.teacher_income)}</td>
-              <td class="text-primary">${formatNum(t.center_profit)}</td>
-              <td class="fw-bold">${formatNum(t.total_turnover)}</td>
-            </tr>
-          `);
+                        <tr>
+                            <td class="text-slate-500">${i + 1}</td>
+                            <td><a href="${detailUrl}" class="teacher-name" style="text-decoration: none;">${t.teacher}</a></td>
+                            <td><span class="val-badge val-lessons">${t.lessons}</span></td>
+                            <td><span class="val-badge val-groups">${t.groups}</span></td>
+                            <td class="val-money text-teal">${formatNum(t.teacher_income)}</td>
+                            <td class="val-money text-indigo">${formatNum(t.center_profit)}</td>
+                            <td class="val-money text-accent">${formatNum(t.total_turnover)}</td>
+                        </tr>
+                    `);
             });
           }
-
+          createChart(data.chart_labels, data.chart_teacher_income, data.chart_center_income, data.chart_total_turnover);
+          updateKPIs(data.teacher_data);
+        })
+        .catch(error => {
+          console.error("Error loading data:", error);
+          tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-rose">Ma'lumotlarni yuklashda xatolik yuz berdi.</td></tr>`;
+          // Optionally clear chart or show error
           if (chartInstance) chartInstance.destroy();
-
-          let labels = data.chart_labels || [];
-          if (labels.length === 0) {
-            try {
-              // Fallback (ehtiyot shart)
-              const raw = ctx.dataset.labels;
-              if (raw) labels = JSON.parse(raw.replace(/'/g, '"')); // Python list fix
-            } catch (e) { console.error(e); }
-          }
-
-          chartInstance = new Chart(ctx, {
-            type: "bar",
-            data: {
-              labels: labels,
-              datasets: [
-                {
-                  label: "O‘qituvchi daromadi",
-                  data: data.chart_teacher_income,
-                  backgroundColor: "rgba(34, 197, 94, 0.6)",
-                  borderColor: "#22c55e",
-                  borderWidth: 1.5,
-                  borderRadius: 6,
-                },
-                {
-                  label: "Markaz foydasi",
-                  data: data.chart_center_income,
-                  backgroundColor: "rgba(56, 189, 248, 0.6)",
-                  borderColor: "#38bdf8",
-                  borderWidth: 1.5,
-                  borderRadius: 6,
-                },
-                {
-                  label: "Umumiy aylanma",
-                  data: data.chart_total_turnover,
-                  backgroundColor: "rgba(251, 191, 36, 0.6)",
-                  borderColor: "#fbbf24",
-                  borderWidth: 1.5,
-                  borderRadius: 6,
-                }
-              ]
-            }
-          });
-
+          kpiTurnover.innerText = "N/A";
+          kpiTeacher.innerText = "N/A";
+          kpiProfit.innerText = "N/A";
         });
     }
 
     yearSelect.addEventListener("change", loadData);
     monthSelect.addEventListener("change", loadData);
 
-    loadData();
+    function initDashboard(data) {
+      console.log("Initializing dashboard with data:", data);
+      if (!data || !data.teacher_data) {
+        console.warn("No teacher data found in JSON block.");
+        return;
+      }
+      updateKPIs(data.teacher_data);
+      createChart(data.chart_labels, data.chart_teacher_income, data.chart_center_income, data.chart_total_turnover);
+    }
+
+    try {
+      const jsonEl = document.getElementById('dashboard-data-json');
+      if (jsonEl) {
+        const jsonData = JSON.parse(jsonEl.textContent);
+        initDashboard(jsonData);
+      } else {
+        console.error("Critical: dashboard-data-json element not found.");
+      }
+    } catch (e) {
+      console.error("Dashboard Init Error:", e);
+    }
   });
 </script>
-
 {% endblock %}
