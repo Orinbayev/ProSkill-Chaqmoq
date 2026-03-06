@@ -133,7 +133,7 @@ def link_telegram_api(request):
 
 @csrf_exempt
 def unlink_telegram_api(request):
-    """Disconnect telegram_id from any linked user."""
+    """Disconnect telegram_id from a specific user or all linked users."""
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed"}, status=405)
     
@@ -144,15 +144,19 @@ def unlink_telegram_api(request):
     try:
         data = json.loads(request.body)
         tg_id = data.get("telegram_id")
+        user_email = data.get("email") # To unlink a specific profile
         
         if not tg_id:
             return JsonResponse({"error": "Missing telegram_id"}, status=400)
         
-        # Unlink all users with this telegram_id
-        users = User.objects.filter(telegram_id=tg_id, is_telegram_linked=True)
-        count = users.count()
+        # Build queryset
+        users_qs = User.objects.filter(telegram_id=tg_id, is_telegram_linked=True)
+        if user_email:
+            users_qs = users_qs.filter(email=user_email)
+            
+        count = users_qs.count()
         
-        for user in users:
+        for user in users_qs:
             record_activity(user, "Telegram account unlinked (via Bot)", device_info=f"TG ID: {tg_id}")
             user.telegram_id = None
             user.is_telegram_linked = False

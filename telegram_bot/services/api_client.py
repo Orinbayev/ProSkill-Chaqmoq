@@ -47,9 +47,11 @@ async def get_user_details_api(telegram_id: str, email: str = None):
             return response.status_code, response.json()
         except Exception as e:
             return 500, {"error": str(e)}
-async def unlink_account_api(telegram_id: str):
+async def unlink_account_api(telegram_id: str, email: str = None):
     url = f"{BACKEND_URL}/hisob/login/bot-unlink-telegram/"
     data = {"telegram_id": telegram_id}
+    if email:
+        data["email"] = email
     headers = {"X-API-SECRET": API_SECRET}
     
     async with httpx.AsyncClient() as client:
