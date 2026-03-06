@@ -69,22 +69,27 @@ async def start_api():
     app.router.add_post("/send_message", handle_send_message)
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, "127.0.0.1", api_port)
+    # Binding to 0.0.0.0 inside the container is more reliable on Render
+    site = web.TCPSite(runner, "0.0.0.0", api_port)
     await site.start()
-    logging.info(f"Bot Internal API started on port {api_port}")
+    logging.info(f"🚀 Bot Internal API strictly started on port {api_port} (via 0.0.0.0)")
 
 async def main():
-    # 1. Start the Internal API FIRST (await it here)
-    logging.info("Starting Bot Internal API on 127.0.0.1...")
-    await start_api()
-    
-    # 2. Start polling in a robust loop
+    # 1. Start the Internal API FIRST
+    try:
+        await start_api()
+    except Exception as e:
+        logging.error(f"❌ Failed to start Internal API: {e}")
+
+    # 2. Start polling in a robust infinite loop
+    logging.info("🤖 Starting Bot Polling loop...")
     while True:
         try:
-            logging.info("Starting Bot Polling...")
-            await dp.start_polling(bot)
+            # We use a fresh polling session each time
+            await dp.start_polling(bot, handle_signals=False)
         except Exception as e:
-            logging.error(f"Polling error: {e}. Retrying in 10 seconds...")
+            logging.error(f"⚠️ Polling encountered an error: {e}")
+            logging.info("🔄 Retrying in 10 seconds... (Make sure no other bot is running!)")
             await asyncio.sleep(10)
         
 if __name__ == "__main__":
