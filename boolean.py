@@ -68,4 +68,10 @@ else:
 # if ovqat.lower() not in menu:
 #     print('Afsuski bizda bunday ovqat yo\'q')
 # else:
-#     print('Buyurtma qabul qilindi.')
+#     print('Buyurtma qabul qilindi.')\
+
+
+
+number = [2, 7, 6, 20, 24]
+number.sort(reverse=True)
+print(number)

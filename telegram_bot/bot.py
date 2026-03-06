@@ -69,7 +69,7 @@ async def start_api():
     app.router.add_post("/send_message", handle_send_message)
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", api_port)
+    site = web.TCPSite(runner, "127.0.0.1", api_port)
     await site.start()
     logging.info(f"Bot Internal API started on port {api_port}")
 
