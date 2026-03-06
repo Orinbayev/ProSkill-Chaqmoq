@@ -74,12 +74,12 @@ async def start_api():
     logging.info(f"Bot Internal API started on port {api_port}")
 
 async def main():
-    # Start polling AND the internal API
-    logging.info("Starting bot and internal API...")
-    await asyncio.gather(
-        dp.start_polling(bot),
-        start_api()
-    )
+    # 🚨 CRITICAL: Start the Internal API FIRST
+    await start_api()
+    
+    # Then start polling
+    logging.info("Starting Bot Polling...")
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
     try:

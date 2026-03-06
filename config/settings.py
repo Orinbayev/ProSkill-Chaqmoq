@@ -168,7 +168,7 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
 # Bot Configuration
-BOT_INTERNAL_API_URL = os.getenv("BOT_INTERNAL_API_URL", "http://localhost:8080")
+BOT_INTERNAL_API_URL = os.getenv("BOT_INTERNAL_API_URL", "http://127.0.0.1:8080")
 API_SECRET = os.getenv("API_SECRET", "7d8a9c1e2f3b4a5d6e7f8g9h0i1j2k3l4m5n6o7p8q9r0s1t2u3v4w5x6y7z8a9b")
 
 
