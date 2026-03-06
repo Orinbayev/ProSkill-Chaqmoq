@@ -1,11 +1,13 @@
-from aiogram import Router, types, F
+from aiogram.fsm.context import FSMContext
 from services.api_client import get_user_details_api
 
 router = Router()
 
 @router.message(F.text == "📜 Faoliyat tarixi")
-async def show_activity(message: types.Message):
-    status_code, response = await get_user_details_api(str(message.from_user.id))
+async def show_activity(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    email = data.get("current_user_email")
+    status_code, response = await get_user_details_api(str(message.from_user.id), email=email)
     
     if status_code == 200:
         activities = response.get("activities", [])

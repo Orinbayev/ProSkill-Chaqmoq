@@ -39,14 +39,18 @@ async def handle_code(message: types.Message, state: FSMContext):
         updated_phone = response.get("updated_phone", phone)
         user_email = response.get("user", "")
         
+        # Save current user email for multi-profile support
+        await state.clear()
+        await state.update_data(current_user_email=user_email)
+        
         # Proper Telegram formatting (using HTML parse_mode correctly)
         msg = (
             f"✅ <b>Hisobingiz muvaffaqiyatli bog'landi</b>\n\n"
             f"Tasdiqlangan telefon raqami: <b>{updated_phone}</b>\n"
-            f"Ushbu raqam hisobingizga (<code>{user_email}</code>) biktirildi."
+            f"Ushbu raqam hisobingizga (<code>{user_email}</code>) biriktirildi.\n\n"
+            f"Agar sizda bir nechta profil bo'lsa (masalan, ota-ona va o'quvchi), ularning barchasini bitta Telegramga ulashingiz mumkin."
         )
         await message.answer(msg, reply_markup=get_main_menu(), parse_mode="HTML")
-        await state.clear()
     else:
         error_msg = response.get("error", "Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.")
         await message.answer(f"❌ {error_msg}")

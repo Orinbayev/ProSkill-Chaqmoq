@@ -265,10 +265,10 @@ class User(AbstractUser):
     email = models.EmailField(_("Login email (Gmail bo‘lishi mumkin)"), unique=True)
 
     # ✅ phone login
-    phone_number = models.CharField(_("Telefon raqami (Login uchun)"), max_length=20, unique=True, null=True, blank=True)
+    phone_number = models.CharField(_("Telefon raqami (Login uchun)"), max_length=20, null=True, blank=True)
     
     # ✅ Telegram bot
-    telegram_id = models.CharField(_("Telegram ID"), max_length=50, unique=True, null=True, blank=True)
+    telegram_id = models.CharField(_("Telegram ID"), max_length=50, null=True, blank=True)
     telegram_username = models.CharField(_("Telegram Username"), max_length=100, null=True, blank=True)
     is_telegram_linked = models.BooleanField(_("Telegram Ulangan"), default=False)
     

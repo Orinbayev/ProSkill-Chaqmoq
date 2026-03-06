@@ -1,30 +1,17 @@
 #!/bin/bash
-# Chaqmoq Academy Unified Startup Script
+# Chaqmoq Academy - ULTIMATE STARTUP SCRIPT
+echo '--- 🚀 Starting Chaqmoq Academy System ---'
 
-echo "--- 🚀 System Startup Initiated ---"
+# 1. Start the bot and pipe logs directly to the main console (stdout) 
+# so we can see errors in the Render log dashboard!
+echo '🤖 Launching Telegram Bot...'
+python3 -u telegram_bot/bot.py 2>&1 | sed 's/^/[BOT] /' &
 
-# 1. Start the Telegram Bot in the background and redirect logs to a file
-echo "🤖 Starting Telegram Bot..."
-# Use python3 -u for unbuffered output to see logs faster
-python3 -u telegram_bot/bot.py > bot_output.log 2>&1 &
-BOT_PID=$!
-
-# 2. Wait a bit and check if bot is still alive
-sleep 3
-if ps -p $BOT_PID > /dev/null
-then
-   echo "✅ Bot is running effectively (PID: $BOT_PID)"
-else
-   echo "❌ ERROR: Bot failed to start! Check bot_output.log"
-   cat bot_output.log
-fi
-
-# 3. Start the Django application
-if [ -z "$PORT" ]; then
-  echo "🏠 Running locally on port 8000"
+# 2. Start the Django application
+if [ -z "" ]; then
+  echo '🏠 Local dev mode'
   python3 manage.py runserver 0.0.0.0:8000
 else
-  echo "🌐 Running on Render port $PORT"
-  # Using "python3 -m gunicorn" instead of just "gunicorn" is more robust on some server environments
-  python3 -m gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 60 --access-logfile - --error-logfile -
+  echo "🌐 Production mode on port "
+  python3 -m gunicorn config.wsgi:application --bind 0.0.0.0: --workers 2 --threads 4 --timeout 120 --access-logfile - --error-logfile -
 fi

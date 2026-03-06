@@ -34,9 +34,11 @@ async def get_user_status_api(telegram_id: str):
         except Exception as e:
             return 500, {"error": str(e)}
 
-async def get_user_details_api(telegram_id: str):
+async def get_user_details_api(telegram_id: str, email: str = None):
     url = f"{BACKEND_URL}/hisob/login/bot-user-details/"
     params = {"telegram_id": telegram_id}
+    if email:
+        params["email"] = email
     headers = {"X-API-SECRET": API_SECRET}
     
     async with httpx.AsyncClient() as client:

@@ -112,19 +112,9 @@ def link_telegram_api(request):
         # we will DISCONNECT it from the old user and MOVING it to the current one.
         # This is because the user has proven ownership via 6-digit code + TG Contact.
         
-        # 1. Handle Telegram ID uniqueness
-        # If another user has this Telegram ID, disconnect them
-        User.objects.filter(telegram_id=tg_id).exclude(id=user.id).update(
-            telegram_id=None,
-            is_telegram_linked=False
-        )
-
-        # 2. Handle Phone Number uniqueness
-        # If another user has this phone number, clear it from them
-        # (Since phone_number must be unique, we set it to None or empty string)
-        User.objects.filter(phone_number=phone_from_tg).exclude(id=user.id).update(
-            phone_number=None 
-        )
+        # Handle multiple profiles logic: 
+        # We NO LONGER disconnect others. We allow many users to share one TG ID.
+        # This allows a parent and student to share a Telegram account.
             
         # 3. Finalize current user linking
         user.phone_number = phone_from_tg
@@ -174,7 +164,7 @@ def unlink_telegram_api(request):
 
 @csrf_exempt
 def get_bot_user_status(request):
-    """Check if telegram_id is linked to any user."""
+    """Check if telegram_id is linked to any user(s)."""
     if request.method != "GET":
         return JsonResponse({"error": "Method not allowed"}, status=405)
     
@@ -186,22 +176,31 @@ def get_bot_user_status(request):
     if not tg_id:
         return JsonResponse({"error": "Missing telegram_id"}, status=400)
     
-    user = User.objects.filter(telegram_id=tg_id, is_telegram_linked=True).first()
-    if user:
+    users = User.objects.filter(telegram_id=tg_id, is_telegram_linked=True)
+    if users.exists():
+        user_list = []
+        for u in users:
+            user_list.append({
+                "id": u.id,
+                "ism": u.ism,
+                "familya": u.familya,
+                "phone": u.phone_number,
+                "role": u.role,
+                "role_display": u.get_role_display(),
+                "email": u.email
+            })
+        
         return JsonResponse({
             "status": "linked",
-            "user": {
-                "ism": user.ism,
-                "phone": user.phone_number,
-                "role": user.role
-            }
+            "users": user_list,
+            "count": len(user_list)
         })
     else:
         return JsonResponse({"status": "unlinked"})
 
 @csrf_exempt
 def get_bot_user_details(request):
-    """Retrieve profile, activity and security history for bot."""
+    """Retrieve profile, activity and security history for a specific user via bot."""
     if request.method != "GET":
         return JsonResponse({"error": "Method not allowed"}, status=405)
     
@@ -210,19 +209,32 @@ def get_bot_user_details(request):
         return JsonResponse({"error": "Unauthorized"}, status=401)
     
     tg_id = request.GET.get("telegram_id")
+    user_email = request.GET.get("email") # To select specifically which profile
+    
     if not tg_id:
         return JsonResponse({"error": "Missing telegram_id"}, status=400)
     
-    user = User.objects.filter(telegram_id=tg_id, is_telegram_linked=True).first()
+    users_qs = User.objects.filter(telegram_id=tg_id, is_telegram_linked=True)
+    
+    if user_email:
+        user = users_qs.filter(email=user_email).first()
+    else:
+        user = users_qs.first() # Default to first if not specified
+        
     if not user:
         return JsonResponse({"error": "User not found or not linked"}, status=404)
     
     # Profile
     profile = {
+        "id": user.id,
+        "ism": user.ism,
+        "familya": user.familya,
         "full_name": user.get_full_name(),
         "phone": user.phone_number,
         "role": user.get_role_display(),
-        "linked_at": user.date_joined.strftime("%d.%m.%Y") # Fallback to join date if you don't have linked_at field
+        "role_key": user.role,
+        "email": user.email,
+        "linked_at": user.date_joined.strftime("%d.%m.%Y")
     }
     
     # Activity & Security
