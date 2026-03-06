@@ -1,0 +1,228 @@
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from accounts.models import User
+import json
+from django.conf import settings
+from django.utils import timezone
+
+from accounts.utils import normalize_phone
+from accounts.models import User, UserActivity
+
+from accounts.utils_bot import send_telegram_message
+
+def get_device_info(ua_string):
+    if not ua_string: return "Noma'lum"
+    ua = ua_string.lower()
+    if 'iphone' in ua: return 'iPhone'
+    if 'android' in ua: return 'Android'
+    if 'windows' in ua: return 'Windows'
+    if 'macintosh' in ua: return 'MacBook'
+    return 'Brauzer'
+
+def record_activity(user, action, request=None, device_info=None):
+    ip = None
+    ua = None
+    if request:
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        ua = request.META.get('HTTP_USER_AGENT')
+    
+    # Auto-generate device_info if it's empty but we have request
+    if not device_info and ua:
+        device_info = get_device_info(ua)
+
+    now = timezone.now()
+    
+    UserActivity.objects.create(
+        user=user,
+        action=action,
+        ip_address=ip,
+        user_agent=ua,
+        device_info=device_info,
+        created_at=now
+    )
+
+    # Part 8: Security alerts
+    if user.telegram_id and user.is_telegram_linked:
+        # Avoid redundant alerts: Don't send alert for "code requested" if you want to be "Ideal"
+        # Just send for key events: Success login, Password change, Link
+        critical_actions = ["Login successful", "Password changed", "Telegram account linked", "Failed login attempt detected"]
+        
+        if any(ca in action for ca in critical_actions):
+            from django.utils.timezone import localtime
+            local_time = localtime(now).strftime('%d.%m.%Y %H:%M')
+            
+            icon = "⚠️" if "Failed" in action else "✅"
+            if "Login successful" in action: icon = "🔓"
+            
+            # Translate action to Uzbek for better UX
+            action_uz = action
+            if "Login successful" in action: action_uz = "Muvaffaqiyatli kirish"
+            if "Failed login attempt" in action: action_uz = "Muvaffaqiyatsiz kirish urinishi"
+            if "Password changed" in action: action_uz = "Parol o'zgartirildi"
+            if "linked" in action: action_uz = "Telegram hisobga bog'landi"
+
+            msg = (
+                f"{icon} <b>{action_uz}</b>\n\n"
+                f"IP: <code>{ip or 'Nomalum'}</code>\n"
+                f"Vaqt: <code>{local_time}</code>\n"
+            )
+            if device_info:
+                msg += f"Ma'lumot: <i>{device_info}</i>\n"
+            
+            msg += "\nAgar bu siz bo'lmasangiz, darhol parolingizni o'zgartiring."
+            send_telegram_message(user.telegram_id, msg)
+
+@csrf_exempt
+def link_telegram_api(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+    # Check API Secret
+    secret = request.headers.get("X-API-SECRET")
+    if secret != settings.API_SECRET:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+    
+    try:
+        data = json.loads(request.body)
+        code = data.get("code")
+        tg_id = data.get("telegram_id")
+        tg_username = data.get("telegram_username")
+        phone_from_tg = normalize_phone(data.get("phone"))
+        
+        if not code or not tg_id or not phone_from_tg:
+            return JsonResponse({"error": "Missing parameters"}, status=400)
+        
+        # Find user by code and check if not expired and not used
+        user = User.objects.filter(
+            reset_code=code, 
+            reset_code_expire_at__gt=timezone.now(),
+            reset_code_used=False
+        ).first()
+        
+        if not user:
+            return JsonResponse({"error": "Ulash kodi noto'g'ri yoki vaqti o'tib ketgan. Iltimos, saytdan yangi kod oling."}, status=404)
+
+        # Current phone logic:
+
+        # If the Telegram verified phone or ID already belongs to another user,
+        # we will DISCONNECT it from the old user and MOVING it to the current one.
+        # This is because the user has proven ownership via 6-digit code + TG Contact.
+        
+        # 1. Handle Telegram ID uniqueness
+        # If another user has this Telegram ID, disconnect them
+        User.objects.filter(telegram_id=tg_id).exclude(id=user.id).update(
+            telegram_id=None,
+            is_telegram_linked=False
+        )
+
+        # 2. Handle Phone Number uniqueness
+        # If another user has this phone number, clear it from them
+        # (Since phone_number must be unique, we set it to None or empty string)
+        User.objects.filter(phone_number=phone_from_tg).exclude(id=user.id).update(
+            phone_number=None 
+        )
+            
+        # 3. Finalize current user linking
+        user.phone_number = phone_from_tg
+        user.telegram_id = tg_id
+        user.telegram_username = tg_username
+        user.is_telegram_linked = True
+        user.reset_code_used = True
+        user.save()
+        
+        record_activity(user, "Telegram account linked", device_info=f"TG ID: {tg_id}")
+        
+        return JsonResponse({"status": "ok", "user": user.email, "updated_phone": user.phone_number})
+        
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt
+def get_bot_user_status(request):
+    """Check if telegram_id is linked to any user."""
+    if request.method != "GET":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+    secret = request.headers.get("X-API-SECRET")
+    if secret != settings.API_SECRET:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+    
+    tg_id = request.GET.get("telegram_id")
+    if not tg_id:
+        return JsonResponse({"error": "Missing telegram_id"}, status=400)
+    
+    user = User.objects.filter(telegram_id=tg_id, is_telegram_linked=True).first()
+    if user:
+        return JsonResponse({
+            "status": "linked",
+            "user": {
+                "ism": user.ism,
+                "phone": user.phone_number,
+                "role": user.role
+            }
+        })
+    else:
+        return JsonResponse({"status": "unlinked"})
+
+@csrf_exempt
+def get_bot_user_details(request):
+    """Retrieve profile, activity and security history for bot."""
+    if request.method != "GET":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+    secret = request.headers.get("X-API-SECRET")
+    if secret != settings.API_SECRET:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+    
+    tg_id = request.GET.get("telegram_id")
+    if not tg_id:
+        return JsonResponse({"error": "Missing telegram_id"}, status=400)
+    
+    user = User.objects.filter(telegram_id=tg_id, is_telegram_linked=True).first()
+    if not user:
+        return JsonResponse({"error": "User not found or not linked"}, status=404)
+    
+    # Profile
+    profile = {
+        "full_name": user.get_full_name(),
+        "phone": user.phone_number,
+        "role": user.get_role_display(),
+        "linked_at": user.date_joined.strftime("%d.%m.%Y") # Fallback to join date if you don't have linked_at field
+    }
+    
+    # Activity & Security
+    from django.utils.timezone import localtime
+    activities_qs = user.activities.all()[:15]
+    activities = []
+    
+    for act in activities_qs:
+        # Translate action for bot display
+        action_uz = act.action
+        if "Login successful" in act.action: action_uz = "Muvaffaqiyatli kirish"
+        if "Failed login attempt" in act.action: action_uz = "Muvaffaqiyatsiz kirish"
+        if "Password reset code requested" in act.action: action_uz = "Parolni tiklash kodi"
+        if "Login code requested" in act.action: action_uz = "Kirish kodi so'raldi"
+        if "Telegram account linked" in act.action: action_uz = "Telegram bog'landi"
+        if "Password changed" in act.action: action_uz = "Parol o'zgartirildi"
+
+        activities.append({
+            "action": action_uz,
+            "raw_action": act.action,
+            "created_at": localtime(act.created_at).strftime("%d.%m.%Y %H:%M"),
+            "device": act.device_info or "Brauzer",
+            "ip": act.ip_address or ".."
+        })
+
+    return JsonResponse({
+        "profile": profile,
+        "activities": activities
+    })
+
+
+
+
+

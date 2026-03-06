@@ -7,6 +7,8 @@ from django.urls import re_path
 from django.views.static import serve
 from django.shortcuts import redirect
 from django.http import HttpResponse
+from accounts import api_auth
+
 
 # TEMPORARY EMERGENCY LOGIN VIEW
 from django.contrib.auth import login, get_user_model
@@ -38,6 +40,8 @@ urlpatterns = [
 
     # 🔹 Auth
     path('hisob/login/', include('accounts.auth_urls')),
+    path('api/v1/auth/link-telegram/', api_auth.link_telegram_api, name='api_link_telegram'),
+
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
 
     # 🔹 Global Platform (Fixed Prefix)

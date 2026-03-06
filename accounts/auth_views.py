@@ -7,6 +7,7 @@ from django.shortcuts import redirect
 from django.urls import reverse, NoReverseMatch
 from django.conf import settings
 from accounts.models import Center
+from accounts.api_auth import record_activity
 
 
 class SecureLoginView(auth_views.LoginView):
@@ -15,6 +16,24 @@ class SecureLoginView(auth_views.LoginView):
     """
     
     template_name = 'accounts/login.html'
+    
+    def form_invalid(self, form):
+        response = super().form_invalid(form)
+        email = form.data.get('username') # Login form uses 'username' field for email/phone
+        from accounts.models import User
+        user = User.objects.filter(email__iexact=email).first()
+        if not user:
+             # Try phone
+             user = User.objects.filter(phone_number=email).first()
+             
+        if user:
+            record_activity(user, "Failed login attempt detected", request=self.request)
+        return response
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        record_activity(self.request.user, "Login successful (Website)", request=self.request)
+        return response
     
     def dispatch(self, request, *args, **kwargs):
         """

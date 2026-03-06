@@ -141,6 +141,14 @@
     color: #facc15 !important;
   }
 
+  .text-danger {
+    color: #ef4444 !important;
+  }
+
+  .bg-danger-subtle {
+    background: rgba(239, 68, 68, 0.1) !important;
+  }
+
   .btn-glass {
     background: rgba(255, 255, 255, 0.05);
     color: #fff;
@@ -371,7 +379,16 @@
               <tr class="align-middle">
                 <td class="ps-4 fw-bold text-white-50">{{ forloop.counter }}</td>
                 <td>
-                  <div class="fw-bold text-white">{{ g.nom }}</div>
+                  <div class="fw-bold text-white d-flex align-items-center gap-2">
+                    {{ g.nom }}
+                    {% if g.is_archived %}
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill"
+                      style="font-size: 10px; font-weight: 800; letter-spacing: 0.5px;">ARXIV</span>
+                    {% else %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill"
+                      style="font-size: 10px; font-weight: 800; letter-spacing: 0.5px;">AKTIV</span>
+                    {% endif %}
+                  </div>
                 </td>
                 <td><span class="text-white-50">{{ g.center|default:"—" }}</span></td>
                 <td><span class="badge bg-white-5 text-white-50 rounded-pill px-3">{{ g.enrollments.count }}</span></td>

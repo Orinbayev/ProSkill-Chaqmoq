@@ -6,293 +6,521 @@
   :root {
     --profile-bg: #070A12;
     --card-bg: #0f172a;
-    --input-bg: rgba(255, 255, 255, 0.03);
-    --input-border: rgba(255, 255, 255, 0.1);
-    --accent-blue: #38bdf8;
-    --accent-green: #10b981;
-    --text-white: #f8fafc;
-    --text-muted: #94a3b8;
+    --input-bg: #0d1526;
+    --border-color: rgba(255, 255, 255, 0.05);
+  }
+
+  body {
+    background-color: var(--profile-bg) !important;
+    color: white;
+    -webkit-font-smoothing: antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 
   .profile-container {
-    max-width: 850px;
-    margin: 20px auto;
-    padding: 0 20px;
+    max-width: 1240px;
+    margin: 40px auto;
+    padding: 0 24px;
+    opacity: 0;
+    animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
-  .profile-header {
-    text-align: center;
-    margin-bottom: 30px;
-  }
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
 
-  .profile-header h1 {
-    font-size: 24px;
-    font-weight: 800;
-    color: var(--text-white);
-    margin-bottom: 6px;
-  }
-
-  .profile-header p {
-    color: var(--text-muted);
-    font-size: 13px;
-    font-weight: 500;
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .profile-grid {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 24px;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 28px;
+    align-items: stretch;
   }
 
-  @media (min-width: 992px) {
+  @media (min-width: 1024px) {
     .profile-grid {
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(3, 1fr);
     }
   }
 
   .profile-card {
-    background: var(--card-bg);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 20px;
-    padding: 24px;
-    height: 100%;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+    background: #0f172a;
+    border: 1px solid var(--border-color);
+    border-radius: 32px;
+    padding: 40px 32px;
+    display: flex;
+    flex-direction: column;
+    min-height: 560px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    position: relative;
+    overflow: hidden;
   }
 
-  .card-title {
+  .profile-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+  }
+
+  .card-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--text-white);
-    margin-bottom: 24px;
+    gap: 16px;
+    margin-bottom: 40px;
   }
 
-  .card-title i {
+  .header-icon-box {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 18px;
-    color: var(--text-muted);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   }
 
-  /* Avatar Section */
-  .avatar-upload-section {
+  .icon-user {
+    background: rgba(56, 189, 248, 0.1);
+    color: #38bdf8;
+  }
+
+  .icon-shield {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+  }
+
+  .icon-tg-circle {
+    background: #0088cc;
+    color: white;
+    border-radius: 50%;
+  }
+
+  .card-title-text {
+    font-size: 20px;
+    font-weight: 800;
+    color: white;
+    letter-spacing: -0.02em;
+  }
+
+  .avatar-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: 30px;
+    margin-bottom: 44px;
   }
 
-  .avatar-preview-box {
-    width: 100px;
-    height: 100px;
+  .avatar-outer {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    border: 2px solid #3b82f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px;
+    margin-bottom: 16px;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    background: rgba(59, 130, 246, 0.05);
+  }
+
+  .avatar-outer:hover {
+    transform: scale(1.05);
+    border-color: #60a5fa;
+    box-shadow: 0 0 25px rgba(59, 130, 246, 0.2);
+  }
+
+  .avatar-inner {
+    width: 100%;
+    height: 100%;
     border-radius: 50%;
     background: #1e293b;
-    border: 2px solid var(--accent-blue);
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    margin-bottom: 12px;
-    position: relative;
-    cursor: pointer;
-    transition: 0.3s;
   }
 
-  .avatar-preview-box:hover {
-    border-color: #fff;
-    transform: scale(1.02);
-  }
-
-  .avatar-preview-box img {
+  .avatar-inner img {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
 
-  .avatar-placeholder-large {
-    font-size: 32px;
-    font-weight: 800;
-    color: var(--accent-blue);
+  .avatar-initial-text {
+    font-size: 48px;
+    font-weight: 900;
+    color: #3b82f6;
   }
 
-  .change-avatar-text {
-    font-size: 13px;
-    color: var(--text-muted);
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  /* Form Elements */
-  .form-group {
-    margin-bottom: 20px;
-  }
-
-  .form-label {
-    display: block;
+  .avatar-change-btn {
     font-size: 11px;
+    color: #64748b;
     font-weight: 800;
-    color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 6px;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    transition: color 0.2s;
   }
 
-  .uniform-input {
-    background: var(--input-bg) !important;
-    border: 1px solid var(--input-border) !important;
-    border-radius: 10px !important;
-    color: #fff !important;
-    height: 48px !important;
+  .avatar-change-btn:hover {
+    color: #94a3b8;
+  }
+
+  .input-label-premium {
+    font-size: 10px;
+    font-weight: 900;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    margin-bottom: 12px;
+    display: block;
+    opacity: 0.8;
+  }
+
+  .input-field-premium {
+    background: #0a0f1d !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-radius: 16px !important;
+    color: white !important;
+    padding: 16px 20px !important;
+    font-size: 15px !important;
     font-weight: 600 !important;
-    padding: 0 14px !important;
-    transition: 0.3s !important;
-    font-size: 14px !important;
+    width: 100% !important;
+    margin-bottom: 28px;
+    outline: none;
+    transition: all 0.3s ease;
   }
 
-  .uniform-input:focus {
-    border-color: var(--accent-blue) !important;
-    box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.1) !important;
-    outline: none !important;
+  .input-field-premium:focus {
+    border-color: rgba(59, 130, 246, 0.4) !important;
+    background: #0d1526 !important;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.08) !important;
   }
 
-  /* Buttons */
-  .btn-submit {
-    width: 100%;
-    height: 48px;
-    border-radius: 10px;
-    font-weight: 800;
+  .btn-premium {
+    height: 52px;
+    border-radius: 16px;
+    font-weight: 900;
     font-size: 14px;
-    display: flex;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    transition: 0.3s;
-    border: none;
-  }
-
-  .btn-blue {
-    background: var(--accent-blue);
-    color: #000;
-  }
-
-  .btn-blue:hover {
-    background: #fff;
-    transform: translateY(-2px);
-  }
-
-  .btn-green {
-    background: var(--accent-green);
-    color: #fff;
-  }
-
-  .btn-green:hover {
-    filter: brightness(1.1);
-    transform: translateY(-2px);
-  }
-
-  /* Info Box */
-  .info-box {
-    background: rgba(56, 189, 248, 0.03);
-    border: 1px solid rgba(56, 189, 248, 0.1);
-    border-radius: 16px;
-    padding: 16px;
-    display: flex;
     gap: 12px;
-    margin-top: 20px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
   }
 
-  .info-box i {
-    color: var(--accent-blue);
-    margin-top: 2px;
+  .btn-premium:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
   }
 
-  .info-box p {
+  .btn-premium:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  .btn-white {
+    background: white !important;
+    color: #0f172a !important;
+    width: 100% !important;
+    max-width: 150px;
+  }
+
+  .btn-white:hover {
+    background: #f8fafc !important;
+  }
+
+  .btn-dark {
+    background: #1e293b !important;
+    color: #cbd5e1 !important;
+    width: auto !important;
+    padding: 0 32px !important;
+  }
+
+  .btn-dark:hover {
+    background: #2d3748 !important;
+    color: white;
+  }
+
+  .security-info-box {
+    background: rgba(10, 15, 29, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 20px;
+    padding: 20px;
+    display: flex;
+    gap: 16px;
+    margin-top: auto;
+  }
+
+  .security-info-box p {
     font-size: 12px;
-    color: var(--text-muted);
-    line-height: 1.5;
-    margin: 0;
+    color: #64748b;
+    line-height: 1.7;
+    font-weight: 600;
+  }
+
+  .tg-status-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #10b981;
+    font-size: 14px;
+    font-weight: 900;
+    margin-bottom: 40px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .status-dot-pulse {
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.8);
+    position: relative;
+  }
+
+  .status-dot-pulse::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    border-radius: 50%;
+    border: 2px solid #10b981;
+    opacity: 0;
+    animation: pulse-ring 2s infinite;
+  }
+
+  @keyframes pulse-ring {
+    0% {
+      transform: scale(0.5);
+      opacity: 0.8;
+    }
+
+    100% {
+      transform: scale(1.5);
+      opacity: 0;
+    }
+  }
+
+  .tg-info-label {
+    font-size: 11px;
+    font-weight: 900;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 10px;
+    opacity: 0.7;
+  }
+
+  .tg-info-value {
+    font-size: 24px;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 36px;
+    display: block;
+    letter-spacing: -0.02em;
+  }
+
+  .tg-link-action {
+    background: rgba(56, 189, 248, 0.06);
+    border: 1px solid rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+    font-size: 13px;
+    font-weight: 900;
+    padding: 14px 24px;
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+  }
+
+  .tg-link-action:hover {
+    background: rgba(56, 189, 248, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(56, 189, 248, 0.1);
+  }
+
+  .card-footer-security {
+    margin-top: auto;
+    padding-top: 40px;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+
+  .card-footer-security .flex {
+    gap: 10px;
   }
 </style>
 
 <div class="profile-container">
-  <div class="profile-header">
-    <h1>Mening Profilim</h1>
-    <p>Shaxsiy ma'lumotlar va xavfsizlik</p>
-  </div>
-
   <div class="profile-grid">
-    <!-- Profile Info Card -->
+    <!-- Card 1: Ma'lumotlar -->
     <div class="profile-card">
-      <div class="card-title">
-        <i class="fa-solid fa-circle-user"></i>
-        Profil ma'lumotlari
+      <div class="card-header">
+        <div class="header-icon-box icon-user">
+          <i class="fa-solid fa-user"></i>
+        </div>
+        <span class="card-title-text">Ma'lumotlar</span>
       </div>
 
-      <form method="post" enctype="multipart/form-data">
+      <form method="post" enctype="multipart/form-data" class="flex-1 flex flex-col">
         {% csrf_token %}
         <input type="hidden" name="action" value="update_profile">
 
-        <div class="avatar-upload-section">
-          <div class="avatar-preview-box" onclick="document.getElementById('id_avatar_input').click()">
-            {% if user_obj.avatar %}
-            <img src="{{ user_obj.avatar.url }}" id="avatarPreview" alt="Avatar">
-            {% else %}
-            <div class="avatar-placeholder-large" id="avatarInitial">{{ user_obj.ism|first|upper }}</div>
-            <img id="avatarPreview" style="display:none;" alt="Avatar">
-            {% endif %}
+        <div class="avatar-container">
+          <div class="avatar-outer" onclick="document.getElementById('avatar-input-node').click()">
+            <div class="avatar-inner">
+              {% if user_obj.avatar %}
+              <img src="{{ user_obj.avatar.url }}" id="avatarPreview" alt="Avatar">
+              {% else %}
+              <div class="avatar-initial-text" id="avatarInitial">{{ user_obj.ism|first|upper }}</div>
+              <img id="avatarPreview" style="display:none;" alt="Avatar">
+              {% endif %}
+            </div>
           </div>
-          {{ profile_form.avatar }}
-          <div class="change-avatar-text" onclick="document.getElementById('id_avatar_input').click()">
-            Rasmni o'zgartirish
-          </div>
+          <!-- Hidden Native Input -->
+          <input type="file" name="avatar" id="avatar-input-node" style="display: none !important;" accept="image/*"
+            onchange="previewImage(this)">
+          <span class="avatar-change-btn" onclick="document.getElementById('avatar-input-node').click()">Rasmni
+            o'zgartirish</span>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Ism</label>
-          {{ profile_form.ism }}
+        <div class="mb-4">
+          <label class="input-label-premium">ISM</label>
+          <input type="text" name="ism" value="{{ user_obj.ism }}" class="input-field-premium" autocomplete="off"
+            placeholder="Ismingizni kiriting">
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Familiya</label>
-          {{ profile_form.familya }}
+        <div class="mb-10">
+          <label class="input-label-premium">FAMILIYA</label>
+          <input type="text" name="familya" value="{{ user_obj.familya }}" class="input-field-premium"
+            autocomplete="off" placeholder="Familiyangizni kiriting">
         </div>
 
-        <button type="submit" class="btn-submit btn-blue mt-4">
-          <i class="fa-solid fa-save"></i> Saqlash
-        </button>
+        <div class="mt-auto">
+          <button type="submit" class="btn-premium btn-white">
+            <i class="fa-solid fa-save"></i> Saqlash
+          </button>
+        </div>
       </form>
     </div>
 
-    <!-- Password Update Card -->
+    <!-- Card 2: Xavfsizlik -->
     <div class="profile-card">
-      <div class="card-title">
-        <i class="fa-solid fa-key"></i>
-        Parolni yangilash
+      <div class="card-header">
+        <div class="header-icon-box icon-shield">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <span class="card-title-text">Xavfsizlik</span>
       </div>
 
-      <form method="post">
+      <form method="post" class="flex-1 flex flex-col">
         {% csrf_token %}
         <input type="hidden" name="action" value="update_password">
 
-        <div class="form-group">
-          <label class="form-label">Yangi parol</label>
-          {{ password_form.new_password }}
+        <div class="mb-4">
+          <label class="input-label-premium">YANGI PAROL</label>
+          <input type="password" name="new_password" class="input-field-premium" placeholder="••••••••">
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Yangi parol (takror)</label>
-          {{ password_form.confirm_password }}
+        <div class="mb-10">
+          <label class="input-label-premium">PAROLNI TAKRORLANG</label>
+          <input type="password" name="confirm_password" class="input-field-premium" placeholder="••••••••">
         </div>
 
-        <button type="submit" class="btn-submit btn-green mt-4">
-          <i class="fa-solid fa-check-double"></i> Yangilash
+        <button type="submit" class="btn-premium btn-dark">
+          <i class="fa-regular fa-circle-check"></i> Yangilash
         </button>
 
-        <div class="info-box">
-          <i class="fa-solid fa-circle-info"></i>
-          <p>Kamida 8 ta belgi. Katta/kichik harf va raqamlar bo'lishi tavsiya etiladi.</p>
+        <div class="security-info-box">
+          <i class="fa-solid fa-circle-info text-sky-400 mt-1" style="font-size: 16px;"></i>
+          <p>Sizning xavfsizligingiz – bizning ustuvor vazifamizdir. Kamida 8 ta belgili murakkab paroldan foydalaning.
+          </p>
         </div>
       </form>
+    </div>
+
+    <!-- Card 3: Telegram -->
+    <div class="profile-card">
+      <div class="card-header">
+        <div class="header-icon-box icon-tg-circle">
+          <i class="fa-brands fa-telegram"></i>
+        </div>
+        <span class="card-title-text">Telegram</span>
+      </div>
+
+      <div class="flex-1 flex flex-col">
+        {% if user_obj.is_telegram_linked %}
+        <div class="tg-status-row">
+          <div class="status-dot-pulse"></div>
+          Bog'langan
+        </div>
+
+        <div class="mb-6">
+          <span class="tg-info-label">ID RAQAMI</span>
+          <span class="tg-info-value">{{ user_obj.telegram_id }}</span>
+        </div>
+
+        <div class="mb-12">
+          <span class="tg-info-label">USERNAME</span>
+          <span class="tg-info-value">@{{ user_obj.telegram_username|default:user_obj.ism }}</span>
+        </div>
+
+        <div>
+          <a href="{% url 'connect_telegram' %}" class="tg-link-action">
+            <i class="fa-solid fa-rotate"></i> Boshqa raqam ulash
+          </a>
+        </div>
+        {% else %}
+        <div class="flex items-center gap-3 mb-10 text-slate-700 font-black text-xs uppercase tracking-[0.2em]">
+          <span class="w-2 h-2 rounded-full bg-slate-800"></span> Ulanmagan
+        </div>
+        <p class="text-slate-500 text-[14px] mb-12 leading-relaxed font-bold opacity-90">
+          Botni ulab, hisobingiz xavfsizligini yangi bosqichga ko'taring va parolni istalgan vaqtda tiklang.
+        </p>
+        <a href="{% url 'connect_telegram' %}" class="tg-link-action !text-sky-400">
+          <i class="fa-brands fa-telegram text-lg"></i> Botga ulanish
+        </a>
+        {% endif %}
+      </div>
+
+      <div class="card-footer-security">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-shield-check text-sky-500/40" style="font-size: 16px;"></i>
+          High-Security Mode
+        </div>
+        <i class="fa-solid fa-check-circle text-emerald-500 opacity-30" style="font-size: 18px;"></i>
+      </div>
     </div>
   </div>
 </div>
@@ -304,7 +532,6 @@
       reader.onload = function (e) {
         var preview = document.getElementById('avatarPreview');
         var initial = document.getElementById('avatarInitial');
-
         preview.src = e.target.result;
         preview.style.display = 'block';
         if (initial) initial.style.display = 'none';

@@ -264,6 +264,20 @@ class User(AbstractUser):
     # ✅ login email bo‘ladi
     email = models.EmailField(_("Login email (Gmail bo‘lishi mumkin)"), unique=True)
 
+    # ✅ phone login
+    phone_number = models.CharField(_("Telefon raqami (Login uchun)"), max_length=20, unique=True, null=True, blank=True)
+    
+    # ✅ Telegram bot
+    telegram_id = models.CharField(_("Telegram ID"), max_length=50, unique=True, null=True, blank=True)
+    telegram_username = models.CharField(_("Telegram Username"), max_length=100, null=True, blank=True)
+    is_telegram_linked = models.BooleanField(_("Telegram Ulangan"), default=False)
+    
+    reset_code = models.CharField(_("Reset kod"), max_length=10, null=True, blank=True)
+    reset_code_expire_at = models.DateTimeField(null=True, blank=True)
+    reset_code_used = models.BooleanField(default=False)
+    reset_attempts = models.PositiveIntegerField(default=0)
+    reset_last_attempt = models.DateTimeField(null=True, blank=True)
+
     # ✅ profil rasm
     avatar = models.ImageField(upload_to="avatars/", null=True, blank=True)
 
@@ -329,6 +343,15 @@ class User(AbstractUser):
 
     objects = UserManager()
 
+    def save(self, *args, **kwargs):
+        from accounts.utils import normalize_phone
+        if self.phone_number:
+            self.phone_number = normalize_phone(self.phone_number)
+        if self.telefon1:
+            self.telefon1 = normalize_phone(self.telefon1)
+        super().save(*args, **kwargs)
+
+
     class Meta:
         verbose_name = "Foydalanuvchi"
         verbose_name_plural = "Foydalanuvchilar"
@@ -347,9 +370,18 @@ class User(AbstractUser):
     def get_full_name(self) -> str:
         return self.full_name()
 
+class UserActivity(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="activities")
+    action = models.CharField(max_length=255)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(null=True, blank=True)
+    device_info = models.CharField(max_length=255, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "User Activity"
+        verbose_name_plural = "User Activities"
+
     def __str__(self):
-        try:
-            role = self.get_role_display()
-        except Exception:
-            role = self.role
-        return f"{self.get_full_name()} — {role}"
+        return f"{self.user.email} - {self.action} ({self.created_at})"
