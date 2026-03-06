@@ -1,5 +1,6 @@
-from django.urls import path
+from django.urls import path, include
 from . import views, api_views, api_dashboard
+from accounts import views as accounts_views
 
 app_name = 'core'
 
@@ -31,7 +32,9 @@ urlpatterns = [
     path('stat/ledger/',    views.stat_ledger,    name='stat_ledger'),
     path("users/import-excel/", views.users_import_excel, name="users_import_excel"),
     path("users/download-template/", views.users_download_template, name="users_download_template"),
-    path("profil/", views.profile_view, name="profile"),
+    path("profil/", include([
+        path("", accounts_views.user_edit, name="profile"),
+    ])),
     
     # ✅ Student Archive Actions
     path("students/<int:pk>/archive/", views.archive_student, name="archive_student"),

@@ -22,7 +22,7 @@
                 {% endif %}
             </div>
             <div>
-                <div class="name text-white fw-bold" style="font-size:14px;">{{  request.user.get_full_name|default:request.user.email }}</div>
+                <div class="name text-white fw-bold" style="font-size:14px;">{{ request.user.get_full_name|default:request.user.email }}</div>
                 <div class="role text-white-50">
                     {% if request.user.is_superuser %}
                     Super Admin
@@ -46,7 +46,7 @@
         <div class="dropdown-divider my-2" style="border-color:rgba(255,255,255,0.1);"></div>
 
         <!-- Links based on Role -->
-        <a href="{% url 'core:profile' %}" class="dropdown-item text-white">
+        <a href="{% url 'accounts:profile' %}" class="dropdown-item text-white">
             <i class="bi bi-person me-2"></i> Profilim
         </a>
 
