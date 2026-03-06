@@ -74,18 +74,18 @@ async def start_api():
     logging.info(f"Bot Internal API started on port {api_port}")
 
 async def main():
-    # 1. Start the Internal API as a separate background task
-    logging.info("Starting Bot Internal API...")
-    api_task = asyncio.create_task(start_api())
+    # 1. Start the Internal API FIRST (await it here)
+    logging.info("Starting Bot Internal API on 127.0.0.1...")
+    await start_api()
     
-    # 2. Start polling and keep trying even if it fails due to conflict
+    # 2. Start polling in a robust loop
     while True:
         try:
             logging.info("Starting Bot Polling...")
             await dp.start_polling(bot)
         except Exception as e:
             logging.error(f"Polling error: {e}. Retrying in 10 seconds...")
-            await asyncio.sleep(10) # Wait before retry to avoid spamming
+            await asyncio.sleep(10)
         
 if __name__ == "__main__":
     try:
