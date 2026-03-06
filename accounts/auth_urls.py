@@ -21,6 +21,7 @@ urlpatterns = [
     # Internal Bot API
     path('bot-user-status/', api_auth.get_bot_user_status, name='bot_user_status'),
     path('bot-user-details/', api_auth.get_bot_user_details, name='bot_user_details'),
+    path('bot-unlink-telegram/', api_auth.unlink_telegram_api, name='bot_unlink_telegram'),
     
 ]
 

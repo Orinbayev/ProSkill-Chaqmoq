@@ -9,6 +9,9 @@ def get_main_menu():
         [
             KeyboardButton(text="🔐 Xavfsizlik"),
             KeyboardButton(text="ℹ️ Yordam")
+        ],
+        [
+            KeyboardButton(text="🔄 Profilni almashtirish")
         ]
     ]
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)

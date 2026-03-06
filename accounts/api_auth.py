@@ -142,6 +142,37 @@ def link_telegram_api(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 @csrf_exempt
+def unlink_telegram_api(request):
+    """Disconnect telegram_id from any linked user."""
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+    secret = request.headers.get("X-API-SECRET")
+    if secret != settings.API_SECRET:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+    
+    try:
+        data = json.loads(request.body)
+        tg_id = data.get("telegram_id")
+        
+        if not tg_id:
+            return JsonResponse({"error": "Missing telegram_id"}, status=400)
+        
+        # Unlink all users with this telegram_id
+        users = User.objects.filter(telegram_id=tg_id, is_telegram_linked=True)
+        count = users.count()
+        
+        for user in users:
+            record_activity(user, "Telegram account unlinked (via Bot)", device_info=f"TG ID: {tg_id}")
+            user.telegram_id = None
+            user.is_telegram_linked = False
+            user.save()
+            
+        return JsonResponse({"status": "ok", "unlinked_count": count})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt
 def get_bot_user_status(request):
     """Check if telegram_id is linked to any user."""
     if request.method != "GET":
