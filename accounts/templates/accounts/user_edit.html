@@ -428,7 +428,8 @@
         </div>
 
         <div class="mt-auto">
-          <button type="submit" class="btn-premium btn-white">
+          <button type="submit" class="btn-premium btn-white"
+            onclick="return confirm('Ma\'lumotlarni saqlashni tasdiqlaysizmi?')">
             <i class="fa-solid fa-save"></i> Saqlash
           </button>
         </div>
@@ -458,7 +459,8 @@
           <input type="password" name="confirm_password" class="input-field-premium" placeholder="••••••••">
         </div>
 
-        <button type="submit" class="btn-premium btn-dark">
+        <button type="submit" class="btn-premium btn-dark"
+          onclick="return confirm('Parolni yangilashni tasdiqlaysizmi?')">
           <i class="fa-regular fa-circle-check"></i> Yangilash
         </button>
 
@@ -497,7 +499,8 @@
         </div>
 
         <div>
-          <a href="{% url 'connect_telegram' %}" class="tg-link-action">
+          <a href="{% url 'connect_telegram' %}" class="tg-link-action"
+            onclick="return confirm('Haqiqatan ham boshqa raqamga ulashni xohlaysizmi?')">
             <i class="fa-solid fa-rotate"></i> Boshqa raqam ulash
           </a>
         </div>
@@ -508,7 +511,8 @@
         <p class="text-slate-500 text-[14px] mb-12 leading-relaxed font-bold opacity-90">
           Botni ulab, hisobingiz xavfsizligini yangi bosqichga ko'taring va parolni istalgan vaqtda tiklang.
         </p>
-        <a href="{% url 'connect_telegram' %}" class="tg-link-action !text-sky-400">
+        <a href="{% url 'connect_telegram' %}" class="tg-link-action !text-sky-400"
+          onclick="return confirm('Telegram botni ulashni xohlaysizmi?')">
           <i class="fa-brands fa-telegram text-lg"></i> Botga ulanish
         </a>
         {% endif %}

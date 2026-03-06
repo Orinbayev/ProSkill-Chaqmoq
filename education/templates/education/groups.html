@@ -464,7 +464,8 @@
             {% if can_manage %}
             <td class="text-center">
               <a href="{% url 'education:group_edit' g.id %}" class="btn btn-action btn-edit me-1">✏️</a>
-              <a href="{% url 'education:group_delete' g.id %}" class="btn btn-action btn-delete">🗑️</a>
+              <a href="{% url 'education:group_delete' g.id %}" class="btn btn-action btn-delete"
+                onclick="return confirm('Haqiqatan ham ushbu guruhni o\'chirishni xohlaysizmi?')">🗑️</a>
             </td>
             {% endif %}
           </tr>
@@ -506,7 +507,8 @@
       {% if can_manage %}
       <div class="m-actions">
         <a href="{% url 'education:group_edit' g.id %}" class="btn btn-action btn-edit">✏️ Tahrirlash</a>
-        <a href="{% url 'education:group_delete' g.id %}" class="btn btn-action btn-delete">🗑️ O‘chirish</a>
+        <a href="{% url 'education:group_delete' g.id %}" class="btn btn-action btn-delete"
+          onclick="return confirm('Haqiqatan ham ushbu guruhni o\'chirishni xohlaysizmi?')">🗑️ O‘chirish</a>
       </div>
       {% endif %}
     </div>

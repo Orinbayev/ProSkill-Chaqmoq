@@ -444,8 +444,9 @@
           <div>
             <h3 class="head-title">{{ title|default:"Yangi guruh yaratish" }}</h3>
             <p class="head-sub">
-              {{ description|default:"Markaz uchun yangi o‘quv guruhini barcha kerakli ma’lumotlar bilan  shakllantiring." }}
-            <!-- <span class="pill">Dark • Glass • Neon</span> -->
+              {{ description|default:"Markaz uchun yangi o‘quv guruhini barcha kerakli ma’lumotlar bilan
+              shakllantiring." }}
+              <!-- <span class="pill">Dark • Glass • Neon</span> -->
             </p>
           </div>
         </div>
@@ -539,7 +540,8 @@
           </div>
 
           <div class="actions">
-            <button type="submit" class="btn-save">
+            <button type="submit" class="btn-save"
+              onclick="return confirm('Guruh ma\'lumotlarini saqlashni tasdiqlaysizmi?')">
               <span aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;">
                   <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" stroke="currentColor"
