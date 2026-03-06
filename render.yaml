@@ -12,16 +12,19 @@ services:
       python manage.py collectstatic --noinput
       python manage.py migrate --noinput
     
-    # ==================== START COMMAND ====================
-    # CRITICAL: Must bind to $PORT (Render sets this automatically)
-    # OPTIMIZATION: Use gthread for better concurrency on free tier (avoid blocking)
-    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 60 --access-logfile - --error-logfile -
+    startCommand: ./start.sh
     
     # ==================== ENVIRONMENT VARIABLES ====================
     envVars:
       # Django settings
       - key: MODE
         value: production
+      
+      - key: BOT_API_PORT
+        value: 8080
+      
+      - key: BOT_INTERNAL_API_URL
+        value: http://localhost:8080
       
       - key: ROOT_DOMAIN
         sync: false  # Set manually in dashboard

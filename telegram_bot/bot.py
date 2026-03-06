@@ -43,8 +43,14 @@ async def handle_send_message(request):
         if reply_markup_data:
             from aiogram.types import InlineKeyboardMarkup
             try:
-                reply_markup = InlineKeyboardMarkup.model_validate(reply_markup_data)
-            except:
+                # If it's already a dict representation of InlineKeyboardMarkup
+                if isinstance(reply_markup_data, dict):
+                    reply_markup = InlineKeyboardMarkup.model_validate(reply_markup_data)
+                else: 
+                    reply_markup = reply_markup_data
+            except Exception as e:
+                logging.warning(f"Markup validation failed: {e}. Attempting raw dict...")
+                # Raw dict might work if aiogram allows it or if we cast it
                 reply_markup = reply_markup_data
 
         if not chat_id or not text:
@@ -53,23 +59,30 @@ async def handle_send_message(request):
         await bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.HTML, reply_markup=reply_markup)
         return web.json_response({"status": "ok"})
     except Exception as e:
+        logging.error(f"Error in send_message API: {e}")
         return web.json_response({"error": str(e)}, status=500)
 
 async def start_api():
-    port = int(os.getenv("PORT", 8080))
+    # Use a separate port for internal API to avoid conflict with Render's $PORT
+    api_port = int(os.getenv("BOT_API_PORT", 8080))
     app = web.Application()
     app.router.add_post("/send_message", handle_send_message)
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", port)
+    site = web.TCPSite(runner, "0.0.0.0", api_port)
     await site.start()
-    logging.info(f"Bot API started on port {port}")
+    logging.info(f"Bot Internal API started on port {api_port}")
 
 async def main():
+    # Start polling AND the internal API
+    logging.info("Starting bot and internal API...")
     await asyncio.gather(
         dp.start_polling(bot),
         start_api()
     )
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        logging.info("Bot stopped.")
