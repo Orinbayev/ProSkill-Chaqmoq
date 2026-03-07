@@ -1065,7 +1065,7 @@ def payment_receipt_pdf(request, payment_id: int):
     # Header text
     c.setFillColor(colors.white)
     c.setFont("Helvetica-Bold", 18)
-    c.drawString(x + 12*mm, y + card_h - 18*mm, "Chaqmoq Academy")
+    c.drawString(x + 12*mm, y + card_h - 18*mm, "ChaqmoqApp")
     c.setFont("Helvetica", 10)
     c.drawRightString(x + card_w - 12*mm, y + card_h - 18*mm, "TO'LOV CHEKI")
 
@@ -1168,7 +1168,7 @@ def payment_receipt_pdf(request, payment_id: int):
     # Footer
     c.setFillColor(colors.HexColor("#94A3B8"))
     c.setFont("Helvetica", 9)
-    c.drawCentredString(x + card_w/2, y + 10*mm, "Chaqmoq Academy • To'lov nazorati tizimi")
+    c.drawCentredString(x + card_w/2, y + 10*mm, "ChaqmoqApp • To'lov nazorati tizimi")
 
     c.showPage()
     c.save()

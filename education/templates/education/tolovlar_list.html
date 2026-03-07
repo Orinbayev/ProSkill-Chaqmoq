@@ -2,7 +2,7 @@
 {% load humanize custom_tags %}
 
 {% block title %}
-💰 To'lovlar — Chaqmoq Academy
+💰 To'lovlar — ChaqmoqApp
 {% endblock %}
 
 {% block content %}
@@ -505,7 +505,8 @@
     <!-- FILTERS -->
     <div class="filter-section anim-fade-in">
         <form method="get" id="tlFilterForm">
-            {% if request.GET.date_from or request.GET.date_to or request.GET.q or request.GET.payment_type or request.GET.group or request.GET.course or request.GET.teacher or request.GET.staff %}
+            {% if request.GET.date_from or request.GET.date_to or request.GET.q or request.GET.payment_type or
+            request.GET.group or request.GET.course or request.GET.teacher or request.GET.staff %}
             <div class="clear-filter-wrap">
                 <a href="?" class="clear-filter-btn"> <i class="fa-solid fa-xmark"></i> Filtrlarni tozalash
                 </a>
@@ -528,9 +529,9 @@
                     <label class="filter-label"> To'lov turi</label>
                     <select name="payment_type" class="filter-select">
                         <option value="">Barchasi</option>
-                        <option value="cash" {% if sel_type == "cash" %}selected{% endif %}>Naqd</option>
-                        <option value="card" {% if sel_type == "card" %}selected{% endif %}>Karta</option>
-                        <option value="mixed" {% if sel_type == "mixed" %}selected{% endif %}>Aralash</option>
+                        <option value="cash" {% if sel_type=="cash" %}selected{% endif %}>Naqd</option>
+                        <option value="card" {% if sel_type=="card" %}selected{% endif %}>Karta</option>
+                        <option value="mixed" {% if sel_type=="mixed" %}selected{% endif %}>Aralash</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -538,7 +539,8 @@
                     <select name="group" class="filter-select">
                         <option value="">Barchasi</option>
                         {% for g in groups %}
-                        <option value="{{ g.id }}" {% if sel_group == g.id|stringformat:"s" %}selected{% endif %}>{{ g.nom }}</option>
+                        <option value="{{ g.id }}" {% if sel_group==g.id|stringformat:"s" %}selected{% endif %}>{{ g.nom
+                            }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -547,7 +549,8 @@
                     <select name="course" class="filter-select">
                         <option value="">Barchasi</option>
                         {% for c in courses %}
-                        <option value="{{ c.id }}" {% if sel_course == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                        <option value="{{ c.id }}" {% if sel_course==c.id|stringformat:"s" %}selected{% endif %}>{{
+                            c.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -556,7 +559,8 @@
                     <select name="teacher" class="filter-select">
                         <option value="">Barchasi</option>
                         {% for t in teachers %}
-                        <option value="{{ t.id }}" {% if sel_teacher == t.id|stringformat:"s" %}selected{% endif %}>{{ t.ism }} {{ t.familya }}</option>
+                        <option value="{{ t.id }}" {% if sel_teacher==t.id|stringformat:"s" %}selected{% endif %}>{{
+                            t.ism }} {{ t.familya }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -565,7 +569,8 @@
                     <select name="staff" class="filter-select">
                         <option value="">Barchasi</option>
                         {% for s in staffs %}
-                        <option value="{{ s.id }}" {% if sel_staff == s.id|stringformat:"s" %} selected{% endif %}>{{ s.ism }} {{ s.familya }}</option>
+                        <option value="{{ s.id }}" {% if sel_staff==s.id|stringformat:"s" %} selected{% endif %}>{{
+                            s.ism }} {{ s.familya }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -607,7 +612,8 @@
                         <td>
                             <div class="student-info">
                                 <span class="student-name">{{ p.student.ism }} {{ p.student.familya }}</span>
-                                <span class="student-meta">{{ p.student.telefon1|default:p.student.telefon2|default:"—"  }}</span>
+                                <span class="student-meta">{{ p.student.telefon1|default:p.student.telefon2|default:"—"
+                                    }}</span>
                             </div>
                         </td>
                         <td><span class="amount-badge">{{ p.summa|intcomma }} so'm</span></td>
@@ -616,7 +622,8 @@
                                 {% for alloc in p.allocations.all|dictsort:"tuition_month.month" %}
                                 {% if not alloc.tuition_month.enrollment.group.is_archived %}
                                 {% ifchanged alloc.tuition_month.month %}
-                                <span class="month-tag">{{ alloc.tuition_month.month.month|get_month_name }} {{  alloc.tuition_month.month.year }}</span>
+                                <span class="month-tag">{{ alloc.tuition_month.month.month|get_month_name }} {{
+                                    alloc.tuition_month.month.year }}</span>
                                 {% endifchanged %}
                                 {% endif %}
                                 {% empty %}
@@ -631,8 +638,10 @@
                                 {% for alloc in groups_seen %}
                                 {% if not alloc.tuition_month.enrollment.group.is_archived %}
                                 {% ifchanged alloc.tuition_month.enrollment.group.id %}
-                                <span class="group-tag">{{ alloc.tuition_month.enrollment.group.nom|default:"—" }}</span>
-                                <small class="text-secondary opacity-50">{{  alloc.tuition_month.enrollment.group.category_obj.name|default:"—" }}</small>
+                                <span class="group-tag">{{ alloc.tuition_month.enrollment.group.nom|default:"—"
+                                    }}</span>
+                                <small class="text-secondary opacity-50">{{
+                                    alloc.tuition_month.enrollment.group.category_obj.name|default:"—" }}</small>
                                 {% endifchanged %}
                                 {% endif %}
                                 {% endfor %}

@@ -2,7 +2,7 @@
 {% load humanize %}
 
 {% block title %}
-📉 Qarzdorlar — Chaqmoq Academy
+📉 Qarzdorlar — ChaqmoqApp
 {% endblock %}
 
 {% block content %}
@@ -348,7 +348,7 @@
                     <select name="group" class="filter-select">
                         <option value="">Barchasi</option>
                         {% for g in groups %}
-                        <option value="{{ g.id }}" {% if selected_group == g.id %}selected{% endif %}>{{ g.nom }}</option>
+                        <option value="{{ g.id }}" {% if selected_group==g.id %}selected{% endif %}>{{ g.nom }}</option>
                         {% endfor %}
                     </select>
                 </div>

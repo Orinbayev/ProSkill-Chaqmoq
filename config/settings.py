@@ -57,10 +57,10 @@ INSTALLED_APPS = [
 
 JAZZMIN_SETTINGS = {
     "site_title": "⚡ Chaqmoq Admin",
-    "site_header": "⚡ Chaqmoq Academy",
+    "site_header": "⚡ ChaqmoqApp",
     "site_brand": "Chaqmoq Admin",
-    "welcome_sign": "Chaqmoq Academy boshqaruv paneliga xush kelibsiz",
-    "copyright": "Chaqmoq Academy © 2025",
+    "welcome_sign": "ChaqmoqApp boshqaruv paneliga xush kelibsiz",
+    "copyright": "ChaqmoqApp © 2025",
     "theme": "flatly",
     "topmenu_links": [
         {"name": "Bosh sahifa", "url": "admin:index", "permissions": ["auth.view_user"]},

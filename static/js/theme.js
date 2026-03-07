@@ -1,5 +1,5 @@
 /**
- * ⚡ Chaqmoq Academy - Theme Manager v2
+ * ⚡ ChaqmoqApp - Theme Manager v2
  */
 
 (function () {

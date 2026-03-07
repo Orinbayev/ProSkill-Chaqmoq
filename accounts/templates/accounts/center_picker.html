@@ -950,7 +950,7 @@
         onchange="this.form.submit()">
         <option value="" {% if not selected_status %}selected{% endif %}>Status: Barchasi</option>
         {% for s_code, s_label in statuses %}
-        <option value="{{ s_code }}" {% if selected_status == s_code %}selected{% endif %}>
+        <option value="{{ s_code }}" {% if selected_status==s_code %}selected{% endif %}>
           Status: {{ s_label }}
         </option>
         {% endfor %}
@@ -1148,8 +1148,8 @@
             <div class="row g-3">
               <div class="col-md-9">
                 <label class="form-label">Markaz Nomi <span class="text-danger">*</span></label>
-                <input type="text" name="name" id="name" class="form-control-dark"
-                  placeholder="Masalan: Chaqmoq Academy" required>
+                <input type="text" name="name" id="name" class="form-control-dark" placeholder="Masalan: ChaqmoqApp"
+                  required>
               </div>
 
               <div class="col-md-3">

@@ -2,7 +2,7 @@
 {% load humanize %}
 
 {% block title %}
-📉 Xarajatlar — Chaqmoq Academy
+📉 Xarajatlar — ChaqmoqApp
 {% endblock %}
 
 {% block content %}
@@ -306,7 +306,8 @@
     <!-- FILTERS & ACTIONS -->
     <div class="filter-section">
         <form method="get" id="expenseFilterForm">
-            {% if request.GET.sana_dan or request.GET.sana_gacha or request.GET.category or request.GET.payment_method or request.GET.q %}
+            {% if request.GET.sana_dan or request.GET.sana_gacha or request.GET.category or request.GET.payment_method
+            or request.GET.q %}
             <div class="clear-filter-wrap">
                 <a href="?" class="clear-filter-btn">
                     <i class="fa-solid fa-xmark"></i> Filtrlarni tozalash
@@ -327,7 +328,7 @@
                     <select name="category" class="filter-select">
                         <option value="">Barchasi</option>
                         {% for cat in categories %}
-                        <option value="{{ cat.id }}" {% if selected_cat == cat.id %}selected{% endif %}>{{ cat.nom }}
+                        <option value="{{ cat.id }}" {% if selected_cat==cat.id %}selected{% endif %}>{{ cat.nom }}
                         </option>
                         {% endfor %}
                     </select>
@@ -336,9 +337,9 @@
                     <label class="filter-label">💳 To'lov usuli</label>
                     <select name="payment_method" class="filter-select">
                         <option value="">Barchasi</option>
-                        <option value="naqd" {% if selected_method == 'naqd' %}selected{% endif %}>Naqd</option>
-                        <option value="plastik" {% if selected_method == 'plastik' %}selected{% endif %}>Plastik</option>
-                        <option value="otkazma" {% if selected_method == 'otkazma' %}selected{% endif %}>O'tkazma</option>
+                        <option value="naqd" {% if selected_method=='naqd' %}selected{% endif %}>Naqd</option>
+                        <option value="plastik" {% if selected_method=='plastik' %}selected{% endif %}>Plastik</option>
+                        <option value="otkazma" {% if selected_method=='otkazma' %}selected{% endif %}>O'tkazma</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -392,7 +393,8 @@
                             {% else %}<span class="text-warning small fw-bold">O'TKAZMA</span>{% endif %}
                         </td>
                         <td class="fw-bold text-white text-nowrap">{{ item.summa|intcomma }} so'm</td>
-                        <td><small class="text-secondary">{{ item.worker.get_full_name|default:item.worker.username }}</small></td>
+                        <td><small class="text-secondary">{{ item.worker.get_full_name|default:item.worker.username
+                                }}</small></td>
                         <td class="pe-4 text-end">
                             <div class="d-flex justify-content-end gap-1">
                                 <button class="action-icon-btn" data-bs-toggle="modal"
@@ -643,7 +645,7 @@
     function downloadCheck() {
         const receiptHTML = `<div id="receipt_content" style="padding: 30px; font-family: sans-serif; max-width: 400px; margin: 0 auto; color: #000;">
             <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 20px; margin-bottom: 20px;">
-                <h2 style="margin: 0;">Chaqmoq Academy</h2><p>Xarajat Cheki</p>
+                <h2 style="margin: 0;">ChaqmoqApp</h2><p>Xarajat Cheki</p>
             </div>
             <table style="width: 100%; font-size: 14px; border-spacing: 0 10px;">
                 <tr><td>Sana:</td><td align="right">${currentExpenseData.sana}</td></tr>

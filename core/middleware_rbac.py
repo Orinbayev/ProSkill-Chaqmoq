@@ -1,5 +1,5 @@
 """
-Role-based access control middleware for Chaqmoq Academy.
+Role-based access control middleware for ChaqmoqApp.
 
 Bu middleware:
 1. Har bir request'da foydalanuvchi rolini tekshiradi

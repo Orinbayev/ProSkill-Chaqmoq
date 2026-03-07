@@ -1,6 +1,6 @@
 #!/bin/bash
-# Chaqmoq Academy - ULTIMATE STARTUP SCRIPT
-echo '--- 🚀 Starting Chaqmoq Academy System ---'
+# ChaqmoqApp - ULTIMATE STARTUP SCRIPT
+echo '--- 🚀 Starting ChaqmoqApp System ---'
 
 # 1. Start the bot and pipe logs directly to the main console (stdout) 
 # so we can see errors in the Render log dashboard!

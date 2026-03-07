@@ -15,7 +15,7 @@ async def admin_start(message: types.Message):
         return # Do nothing for non-admins
 
     await message.answer(
-        "⚡️ <b>Chaqmoq Academy — Admin Panel</b>\n\n"
+        "⚡️ <b>ChaqmoqApp — Admin Panel</b>\n\n"
         "Xush kelibsiz! Kerakli bo'limni tanlang:",
         reply_markup=get_admin_main_kb(),
         parse_mode="HTML"
