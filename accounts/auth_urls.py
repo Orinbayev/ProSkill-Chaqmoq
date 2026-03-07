@@ -25,5 +25,13 @@ urlpatterns = [
     path('bot-user-details/', api_auth.get_bot_user_details, name='bot_user_details'),
     path('bot-unlink-telegram/', api_auth.unlink_telegram_api, name='bot_unlink_telegram'),
     
+    # Admin Bot API
+    path('bot-admin-dashboard/', api_auth.get_bot_admin_dashboard, name='bot_admin_dashboard'),
+    path('bot-linked-users/', api_auth.get_bot_linked_users, name='bot_linked_users'),
+    path('bot-broadcast-list/', api_auth.get_bot_broadcast_list, name='bot_broadcast_list'),
+    path('bot-excel-export/', api_auth.get_bot_excel_export, name='bot_excel_export'),
+    path('bot-manage-admins/', api_auth.manage_bot_admins_api, name='bot_manage_admins'),
+    path('bot-settings/', api_auth.bot_settings_api, name='bot_settings_api'),
+    path('bot-parent-reports-data/', api_auth.get_parent_reports_data, name='bot_parent_reports_data'),
 ]
 

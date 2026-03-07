@@ -385,3 +385,50 @@ class UserActivity(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.action} ({self.created_at})"
+
+class BotAdmin(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="bot_admin_profile")
+    telegram_id = models.CharField(max_length=50, unique=True)
+    username = models.CharField(max_length=100, null=True, blank=True)
+    added_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="added_admins")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Bot Admin"
+        verbose_name_plural = "Bot Adminlari"
+
+    def __str__(self):
+        return f"{self.user.full_name()} ({self.telegram_id})"
+
+class BotSettings(models.Model):
+    key = models.CharField(max_length=100, unique=True)
+    value = models.TextField()
+    description = models.CharField(max_length=255, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Bot Sozlamasi"
+        verbose_name_plural = "Bot Sozlamalari"
+
+    @classmethod
+    def get_val(cls, key, default=None):
+        setting = cls.objects.filter(key=key).first()
+        return setting.value if setting else default
+
+    def __str__(self):
+        return f"{self.key}: {self.value}"
+
+class AdminAuditLog(models.Model):
+    admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name="admin_actions")
+    action_type = models.CharField(max_length=100)
+    target_audience = models.CharField(max_length=255, null=True, blank=True)
+    details = models.TextField(null=True, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-timestamp"]
+        verbose_name = "Admin Audit Log"
+        verbose_name_plural = "Admin Audit Loglari"
+
+    def __str__(self):
+        return f"{self.admin.email} - {self.action_type} - {self.timestamp}"

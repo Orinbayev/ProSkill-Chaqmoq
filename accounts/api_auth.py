@@ -269,6 +269,351 @@ def get_bot_user_details(request):
         "activities": activities
     })
 
+# ==================================================
+# ADMIN PANEL APIS
+# ==================================================
+
+from django.db.models import Count
+from accounts.models import BotAdmin, BotSettings, AdminAuditLog, Roles
+import openpyxl
+from io import BytesIO
+from django.http import HttpResponse
+
+def is_bot_admin(tg_id):
+    return BotAdmin.objects.filter(telegram_id=tg_id).exists()
+
+@csrf_exempt
+def get_bot_admin_dashboard(request):
+    """Stats and Admin check."""
+    secret = request.headers.get("X-API-SECRET")
+    if secret != settings.API_SECRET:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+    
+    admin_tg_id = request.GET.get("admin_tg_id")
+    if not is_bot_admin(admin_tg_id):
+        return JsonResponse({"is_admin": False})
+
+    # Stats
+    total_linked = User.objects.filter(is_telegram_linked=True).count()
+    
+    role_stats = User.objects.filter(is_telegram_linked=True).values('role').annotate(count=Count('id'))
+    roles_data = {r[0]: 0 for r in Roles.choices}
+    for item in role_stats:
+        roles_data[item['role']] = item['count']
+
+    now = timezone.now()
+    today_count = User.objects.filter(is_telegram_linked=True, date_joined__date=now.date()).count()
+    week_start = now - timedelta(days=now.weekday())
+    week_count = User.objects.filter(is_telegram_linked=True, date_joined__gte=week_start).count()
+    month_count = User.objects.filter(is_telegram_linked=True, date_joined__month=now.month, date_joined__year=now.year).count()
+
+    return JsonResponse({
+        "is_admin": True,
+        "stats": {
+            "total": total_linked,
+            "roles": roles_data,
+            "today": today_count,
+            "week": week_count,
+            "month": month_count
+        }
+    })
+
+@csrf_exempt
+def get_bot_linked_users(request):
+    """List of linked users with filters."""
+    secret = request.headers.get("X-API-SECRET")
+    if secret != settings.API_SECRET:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+    
+    admin_tg_id = request.GET.get("admin_tg_id")
+    if not is_bot_admin(admin_tg_id):
+        return JsonResponse({"error": "Forbidden"}, status=403)
+
+    role_filter = request.GET.get("role")
+    users = User.objects.filter(is_telegram_linked=True).order_by("-date_joined")
+    
+    if role_filter and role_filter != "all":
+        users = users.filter(role=role_filter)
+
+    # Simplified pagination or limit
+    limit = int(request.GET.get("limit", 20))
+    offset = int(request.GET.get("offset", 0))
+    count = users.count()
+    users = users[offset:offset+limit]
+
+    data = []
+    for u in users:
+        data.append({
+            "full_name": u.full_name(),
+            "role": u.get_role_display(),
+            "phone": u.phone_number,
+            "tg_username": u.telegram_username or "Yo'q",
+            "tg_id": u.telegram_id,
+            "linked_at": u.date_joined.strftime("%Y-%m-%d %H:%M")
+        })
+
+    return JsonResponse({"users": data, "total": count})
+
+@csrf_exempt
+def get_bot_broadcast_list(request):
+    """Get list of TG IDs for broadcasting."""
+    secret = request.headers.get("X-API-SECRET")
+    if secret != settings.API_SECRET:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+    
+    admin_tg_id = request.GET.get("admin_tg_id")
+    if not is_bot_admin(admin_tg_id):
+        return JsonResponse({"error": "Forbidden"}, status=403)
+
+    role_filter = request.GET.get("role")
+    users = User.objects.filter(is_telegram_linked=True, telegram_id__isnull=False)
+    
+    if role_filter and role_filter != "all":
+        users = users.filter(role=role_filter)
+
+    # Return unique telegram IDs
+    tg_ids = list(users.values_list('telegram_id', flat=True).distinct())
+
+    # Log action
+    admin_user = BotAdmin.objects.get(telegram_id=admin_tg_id).user
+    AdminAuditLog.objects.create(
+        admin=admin_user,
+        action_type="Broadcast Started",
+        target_audience=role_filter or "all",
+        details=f"Target count: {len(tg_ids)}"
+    )
+
+    return JsonResponse({"tg_ids": tg_ids})
+
+@csrf_exempt
+def get_bot_excel_export(request):
+    """Generate Excel with role sheets."""
+    secret = request.headers.get("X-API-SECRET")
+    if secret != settings.API_SECRET:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+    
+    admin_tg_id = request.GET.get("admin_tg_id")
+    if not is_bot_admin(admin_tg_id):
+        return JsonResponse({"error": "Forbidden"}, status=403)
+
+    wb = openpyxl.Workbook()
+    
+    # Sheet 1: All Users
+    ws_all = wb.active
+    ws_all.title = "Barcha Foydalanuvchilar"
+    headers = ["Ism", "Familiya", "Rol", "Telefon", "Telegram ID", "Username", "Sana", "Vaqt"]
+    ws_all.append(headers)
+    
+    all_users = User.objects.filter(is_telegram_linked=True).order_by("-date_joined")
+    for u in all_users:
+        ws_all.append([
+            u.ism, u.familya, u.get_role_display(), u.phone_number, 
+            u.telegram_id, u.telegram_username or "", 
+            u.date_joined.strftime("%Y-%m-%d"), u.date_joined.strftime("%H:%M")
+        ])
+
+    # Role specific sheets
+    for role_key, role_name in Roles.choices:
+        ws = wb.create_sheet(title=role_name[:30]) # Excel sheet title limit
+        ws.append(headers)
+        role_users = all_users.filter(role=role_key)
+        for u in role_users:
+            ws.append([
+                u.ism, u.familya, u.get_role_display(), u.phone_number, 
+                u.telegram_id, u.telegram_username or "", 
+                u.date_joined.strftime("%Y-%m-%d"), u.date_joined.strftime("%H:%M")
+            ])
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    # Log action
+    admin_user = BotAdmin.objects.get(telegram_id=admin_tg_id).user
+    AdminAuditLog.objects.create(
+        admin=admin_user,
+        action_type="Excel Export",
+        details="All users and role sheets generated"
+    )
+
+    response = HttpResponse(
+        output.read(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response['Content-Disposition'] = 'attachment; filename=linked_users.xlsx'
+    return response
+
+@csrf_exempt
+def manage_bot_admins_api(request):
+    """List, Add, Remove bot admins."""
+    secret = request.headers.get("X-API-SECRET")
+    if secret != settings.API_SECRET:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+    
+    admin_tg_id = request.GET.get("admin_tg_id")
+    if not is_bot_admin(admin_tg_id):
+        return JsonResponse({"error": "Forbidden"}, status=403)
+
+    action = request.GET.get("action", "list")
+    
+    if action == "list":
+        admins = BotAdmin.objects.all().order_by("-created_at")
+        data = []
+        for a in admins:
+            data.append({
+                "full_name": a.user.full_name(),
+                "tg_id": a.telegram_id,
+                "username": a.username or "Yo'q",
+                "added_by": a.added_by.full_name() if a.added_by else "Tizim",
+                "created_at": a.created_at.strftime("%Y-%m-%d")
+            })
+        return JsonResponse({"admins": data})
+    
+    elif action == "add":
+        target_tg_id = request.GET.get("target_tg_id")
+        target_username = request.GET.get("target_username")
+        # Find user by TG ID - they must be linked first
+        user = User.objects.filter(telegram_id=target_tg_id, is_telegram_linked=True).first()
+        if not user:
+            return JsonResponse({"error": "Foydalanuvchi avval botdan ro'yxatdan o'tgan bo'lishi shart"}, status=400)
+        
+        if BotAdmin.objects.filter(telegram_id=target_tg_id).exists():
+            return JsonResponse({"error": "Bu foydalanuvchi allaqachon admin"}, status=400)
+
+        added_by = BotAdmin.objects.get(telegram_id=admin_tg_id).user
+        BotAdmin.objects.create(
+            user=user,
+            telegram_id=target_tg_id,
+            username=target_username,
+            added_by=added_by
+        )
+        AdminAuditLog.objects.create(
+            admin=added_by,
+            action_type="Admin Added",
+            details=f"Target: {user.full_name()} ({target_tg_id})"
+        )
+        return JsonResponse({"status": "ok"})
+
+    elif action == "remove":
+        target_tg_id = request.GET.get("target_tg_id")
+        if target_tg_id == admin_tg_id:
+             return JsonResponse({"error": "O'zingizni o'chira olmaysiz"}, status=400)
+        
+        BotAdmin.objects.filter(telegram_id=target_tg_id).delete()
+        admin_user = BotAdmin.objects.get(telegram_id=admin_tg_id).user
+        AdminAuditLog.objects.create(
+            admin=admin_user,
+            action_type="Admin Removed",
+            details=f"Target TG ID: {target_tg_id}"
+        )
+        return JsonResponse({"status": "ok"})
+
+    return JsonResponse({"error": "Invalid action"}, status=400)
+
+@csrf_exempt
+def bot_settings_api(request):
+    """Get/Set bot settings (e.g. report time)."""
+    secret = request.headers.get("X-API-SECRET")
+    if secret != settings.API_SECRET:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+    
+    admin_tg_id = request.GET.get("admin_tg_id")
+    if not is_bot_admin(admin_tg_id):
+        return JsonResponse({"error": "Forbidden"}, status=403)
+
+    if request.method == "GET":
+        report_time = BotSettings.get_val("parent_report_time", "20:00")
+        return JsonResponse({"parent_report_time": report_time})
+
+    elif request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            new_time = data.get("parent_report_time")
+            if not new_time:
+                return JsonResponse({"error": "Missing time"}, status=400)
+            
+            # Simple validation HH:MM
+            import re
+            if not re.match(r"^\d{2}:\d{2}$", new_time):
+                return JsonResponse({"error": "Format xato (HH:MM)"}, status=400)
+
+            setting, _ = BotSettings.objects.get_or_create(key="parent_report_time")
+            old_val = setting.value
+            setting.value = new_time
+            setting.save()
+
+            admin_user = BotAdmin.objects.get(telegram_id=admin_tg_id).user
+            AdminAuditLog.objects.create(
+                admin=admin_user,
+                action_type="Settings Changed",
+                details=f"Parent report time: {old_val} -> {new_time}"
+            )
+            return JsonResponse({"status": "ok"})
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+@csrf_exempt
+def get_parent_reports_data(request):
+    """Fetch daily report data for parents."""
+    secret = request.headers.get("X-API-SECRET")
+    if secret != settings.API_SECRET:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+    
+    now = timezone.now()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    from chaqmoq.models import Ledger
+    # Get all ledger entries for today
+    today_ledgers = Ledger.objects.filter(created_at__gte=today_start).select_related('student', 'beruvchi', 'rule')
+    
+    if not today_ledgers.exists():
+        return JsonResponse({"reports": {}})
+
+    # Group ledgers by student
+    student_reports = {}
+    for entry in today_ledgers:
+        sid = entry.student.id
+        if sid not in student_reports:
+            student_reports[sid] = {
+                "name": entry.student.full_name(),
+                "added": [],
+                "removed": [],
+                "total_today_plus": 0,
+                "total_today_minus": 0,
+                "current_total": entry.student.chaqmoq
+            }
+        
+        detail = {
+            "ball": abs(entry.ball),
+            "reason": entry.rule_nom or (entry.rule.nom if entry.rule else "Sabab ko'rsatilmadi"),
+            "by": entry.beruvchi.full_name() if entry.beruvchi else "Tizim"
+        }
+        
+        if entry.ball > 0:
+            student_reports[sid]["added"].append(detail)
+            student_reports[sid]["total_today_plus"] += entry.ball
+        else:
+            student_reports[sid]["removed"].append(detail)
+            student_reports[sid]["total_today_minus"] += abs(entry.ball)
+
+    # Now find parents for these students who are linked to TG
+    parent_messages = {}
+    
+    for sid, report in student_reports.items():
+        try:
+            student = User.objects.get(id=sid)
+            for parent in student.parents.filter(is_telegram_linked=True, telegram_id__isnull=False):
+                if parent.telegram_id not in parent_messages:
+                    parent_messages[parent.telegram_id] = []
+                parent_messages[parent.telegram_id].append(report)
+        except User.DoesNotExist:
+            continue
+
+    # Return data for bot
+    return JsonResponse({"reports": parent_messages})
+
 
 
 

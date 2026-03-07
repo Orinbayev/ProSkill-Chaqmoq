@@ -11,6 +11,8 @@ from aiogram.enums import ParseMode
 from aiohttp import web
 from config import BOT_TOKEN, API_SECRET
 from handlers import start, link_account, profile, activity, security, help
+from handlers import admin_panel, linked_users, broadcast, admins, parents, settings
+from services.scheduler import setup_scheduler
 
 # Logging
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
@@ -25,6 +27,14 @@ dp.include_router(profile.router)
 dp.include_router(activity.router)
 dp.include_router(security.router)
 dp.include_router(help.router)
+
+# Admin Routers
+dp.include_router(admin_panel.router)
+dp.include_router(linked_users.router)
+dp.include_router(broadcast.router)
+dp.include_router(admins.router)
+dp.include_router(parents.router)
+dp.include_router(settings.router)
 
 async def handle_send_message(request):
     """
@@ -81,7 +91,10 @@ async def main():
     except Exception as e:
         logging.error(f"❌ Failed to start Internal API: {e}")
 
-    # 2. Start polling in a robust infinite loop
+    # 2. Start Scheduler
+    await setup_scheduler(bot)
+
+    # 3. Start polling in a robust infinite loop
     logging.info("🤖 Starting Bot Polling loop...")
     while True:
         try:
