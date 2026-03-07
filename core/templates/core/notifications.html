@@ -4,15 +4,15 @@
 {% block content %}
 <div class="row">
     <!-- Header -->
-    <div class="col-12 d-flex justify-content-between align-items-center mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center mb-3 mt-2">
         <div>
-            <h1 class="h3 fw-bold text-white mb-1"><i class="fa-solid fa-bell text-warning me-2"></i> Xabarlar</h1>
-            <p class="text-secondary small mb-0">Sizga kelgan muhim bildirishnomalar</p>
+            <h1 class="h5 fw-bold text-white mb-1"><i class="fa-solid fa-bell text-warning me-2"></i> Xabarlar</h1>
+            <p class="text-secondary smaller mb-0" style="font-size: 11px;">Sizga kelgan muhim bildirishnomalar</p>
         </div>
         <div>
             {% if notifications %}
-            <a href="{% url 'core:notifications_mark_read' %}" class="btn btn-outline-secondary btn-sm rounded-3">
-                <i class="fa-solid fa-check-double me-2"></i> Hammasini o'qilgan deb belgilash
+            <a href="{% url 'core:notifications_mark_read' %}" class="btn btn-outline-secondary btn-xs rounded-3" style="font-size: 11px; padding: 4px 10px;">
+                <i class="fa-solid fa-check-double me-1"></i> Hammasini o'qilgan deb belgilash
             </a>
             {% endif %}
         </div>
@@ -20,24 +20,23 @@
 
     <!-- Manager/Director Broadcast Panel -->
     {% if request.user.role == 'director' or request.user.role == 'manager' or request.user.is_superuser %}
-    <div class="col-12 mb-4">
-        <div class="glass-card p-4">
-            <div class="d-flex align-items-center mb-4">
-                <div class="icon-sq me-3">
+    <div class="col-12 mb-3">
+        <div class="glass-card p-3">
+            <div class="d-flex align-items-center mb-3">
+                <div class="icon-sq me-3" style="width: 38px; height: 38px; font-size: 1rem;">
                     <i class="fa-solid fa-bullhorn"></i>
                 </div>
                 <div>
-                    <h5 class="text-white mb-0 fw-bold">Xabar yuborish (Admin)</h5>
-                    <p class="text-secondary small mb-0">Barcha foydalanuvchilarga bildirishnoma yuborish</p>
+                    <h6 class="text-white mb-0 fw-bold">Xabar yuborish (Admin)</h6>
+                    <p class="text-secondary smaller mb-0" style="font-size: 11px;">Barcha foydalanuvchilarga bildirishnoma yuborish</p>
                 </div>
             </div>
 
             <form method="post" action="{% url 'core:notification_broadcast' %}">
                 {% csrf_token %}
-                <div class="row g-4">
-                    <div class="col-md-4">
-                        <label class="form-label text-secondary small text-uppercase fw-bold ps-1">Qabul
-                            qiluvchi</label>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label text-secondary smaller text-uppercase fw-bold ps-1" style="font-size: 10px;">Qabul qiluvchi</label>
                         <select name="target" class="form-select glass-select">
                             <option value="students">🎓 Barcha O‘quvchilarga</option>
                             <option value="students_parents">🎓👨‍👩‍👧‍👦 O‘quvchi va Ota-onalarga</option>
@@ -45,24 +44,22 @@
                             <option value="all">📢 Markazdagi Hammani</option>
                         </select>
                     </div>
-                    <div class="col-md-8">
+                    <div class="col-md-9">
                         <div class="row g-3">
                             <div class="col-12">
-                                <label
-                                    class="form-label text-secondary small text-uppercase fw-bold ps-1">Sarlavha</label>
+                                <label class="form-label text-secondary smaller text-uppercase fw-bold ps-1" style="font-size: 10px;">Sarlavha</label>
                                 <input type="text" name="title" class="form-control glass-input"
                                     placeholder="Masalan: Muhim e'lon!" required>
                             </div>
                             <div class="col-12">
-                                <label class="form-label text-secondary small text-uppercase fw-bold ps-1">Xabar
-                                    matni</label>
+                                <label class="form-label text-secondary smaller text-uppercase fw-bold ps-1" style="font-size: 10px;">Xabar matni</label>
                                 <div class="d-flex position-relative">
                                     <input type="text" name="message" class="form-control glass-input pe-5"
                                         placeholder="Xabar mazmunini yozing..." required
-                                        style="padding-right: 140px !important;">
+                                        style="padding-right: 120px !important;">
                                     <button type="submit"
-                                        class="btn btn-primary glass-btn position-absolute top-0 end-0 h-100 px-4">
-                                        <i class="fa-solid fa-paper-plane me-2"></i> Yuborish
+                                        class="btn btn-primary glass-btn position-absolute top-0 end-0 h-100 px-3">
+                                        <i class="fa-solid fa-paper-plane me-1"></i> Yuborish
                                     </button>
                                 </div>
                             </div>
@@ -79,9 +76,9 @@
         {% if notifications %}
         <div class="glass-card p-0 overflow-hidden mb-3">
             {% for n in notifications %}
-            <div class="p-3 border-bottom border-secondary d-flex gap-3 align-items-start {% if not n.is_read %}bg-highlight{% endif %}"
+            <div class="p-2 border-bottom border-secondary d-flex gap-2 align-items-start {% if not n.is_read %}bg-highlight{% endif %}"
                 style="border-color: rgba(255,255,255,0.05) !important;">
-                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-1" style="width: 40px; height: 40px; font-size: 1rem;
+                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-1" style="width: 32px; height: 32px; font-size: 0.85rem;
                          {% if n.type == 'coin' %}background: rgba(234, 179, 8, 0.2); color: #eab308;
                          {% elif n.type == 'purchase' %}background: rgba(34, 197, 94, 0.2); color: #22c55e;
                          {% elif n.type == 'broadcast' %}background: rgba(59, 130, 246, 0.2); color: #3b82f6;
@@ -93,20 +90,20 @@
                 </div>
                 <div class="flex-grow-1">
                     <div class="d-flex justify-content-between align-items-center mb-1">
-                        <h6 class="text-white mb-0 fw-bold" style="font-size: 1rem;">{{ n.title }}
+                        <h6 class="text-white mb-0 fw-bold" style="font-size: 13.5px;">{{ n.title }}
                             {% if not n.is_read %} <span class="badge bg-danger ms-2"
-                                style="font-size: 0.65rem; padding: 3px 6px;">Yangi</span>{% endif %}
+                                style="font-size: 0.6rem; padding: 2px 5px;">Yangi</span>{% endif %}
                         </h6>
-                        <small class="text-secondary fw-bold" style="font-size: 0.8rem;">
+                        <small class="text-secondary fw-bold" style="font-size: 0.75rem;">
                             {{ n.created_at|date:"d.m.Y H:i" }}
                         </small>
                     </div>
-                    <div class="text-gray-400 mb-1" style="font-size: 0.9rem; line-height: 1.4;">{{ n.message|safe }}
+                    <div class="text-gray-400 mb-1" style="font-size: 12.5px; line-height: 1.3;">{{ n.message|safe }}
                     </div>
                     {% if n.sender %}
                     <div class="d-flex align-items-center mt-1">
-                        <i class="fa-solid fa-user-circle me-1 text-primary" style="font-size: 0.85rem;"></i>
-                        <span class="text-primary fw-bold" style="font-size: 0.85rem;">
+                        <i class="fa-solid fa-user-circle me-1 text-primary" style="font-size: 0.8rem;"></i>
+                        <span class="text-primary fw-bold" style="font-size: 0.8rem;">
                             {{ n.sender.get_full_name }}
                         </span>
                     </div>
@@ -224,30 +221,31 @@
 
     .glass-input {
         background-color: #1e293b !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
         color: #ffffff !important;
-        border-radius: 12px !important;
-        padding: 12px 16px !important;
-        font-size: 0.95rem;
+        border-radius: 10px !important;
+        padding: 10px 14px !important;
+        font-size: 0.88rem;
         transition: all 0.3s ease;
     }
 
     .glass-select {
         background-color: #1e293b !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
         color: #ffffff !important;
         border-radius: 8px !important;
-        padding: 4px 32px 4px 12px !important;
+        padding: 4px 28px 4px 10px !important;
         /* Right padding for arrow */
-        font-size: 0.85rem !important;
+        font-size: 0.82rem !important;
         transition: all 0.3s ease;
         appearance: none;
         -webkit-appearance: none;
         -moz-appearance: none;
         background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e") !important;
         background-repeat: no-repeat !important;
-        background-position: right 0.75rem center !important;
+        background-position: right 0.6rem center !important;
         background-size: 10px 8px !important;
+        height: 38px;
     }
 
     .glass-input:focus,
@@ -265,15 +263,16 @@
     }
 
     .glass-btn {
-        border-radius: 12px !important;
-        top: 4px !important;
-        right: 4px !important;
-        height: calc(100% - 8px) !important;
-        padding: 0 24px !important;
+        border-radius: 8px !important;
+        top: 3px !important;
+        right: 3px !important;
+        height: calc(100% - 6px) !important;
+        padding: 0 20px !important;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: 600;
+        font-weight: 700;
+        font-size: 13px;
         letter-spacing: 0.5px;
         background: #3b82f6;
         border: none;

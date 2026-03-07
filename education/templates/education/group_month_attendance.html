@@ -7,76 +7,68 @@
 
 <style>
   :root{
-    --bg1:#020617;
-    --bg2:#0b1226;
-
-    --panel: rgba(17,24,39,.62);
-    --panel2: rgba(2,6,23,.55);
-    --line: rgba(255,255,255,.09);
-
-    --text:#e5e7eb;
-    --muted:#94a3b8;
-
-    --blue1:#2563eb;
-    --blue2:#60a5fa;
-
-    --present:#22c55e;
-    --absent:#fb7185;
-    --forced:#fbbf24;
-
-    --shadow: 0 22px 70px rgba(0,0,0,.45);
-
-    /* ✅ responsive sizing */
-    --noW:56px;
-    --nameW:300px;
-    --cell:34px;
-    --cellRadius:12px;
+    --bg-dark: #020617;
+    --bg-card: rgba(15, 23, 42, 0.4);
+    --bg-hover: rgba(255, 255, 255, 0.04);
+    --border: rgba(255, 255, 255, 0.08);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --primary: #3b82f6;
+    --primary-glow: #38bdf8;
+    --present: #10b981;
+    --absent: #ef4444;
+    --forced: #fbbf24;
+    --radius: 14px;
+    --noW: 46px;
+    --nameW: 240px;
+    --cell: 34px;
+    --cellRadius: 8px;
   }
 
   body{
     background:
-      radial-gradient(900px 520px at 15% 0%, rgba(59,130,246,.18), transparent 55%),
-      radial-gradient(900px 520px at 85% 10%, rgba(34,197,94,.12), transparent 55%),
-      linear-gradient(180deg, var(--bg1), var(--bg2));
-    color: var(--text);
+      radial-gradient(1200px 500px at 50% -10%, rgba(59, 130, 246, 0.1), transparent 55%),
+      linear-gradient(180deg, var(--bg-dark), var(--bg-dark));
+    color: var(--text-main);
     min-height: 100vh;
+    font-family: system-ui, -apple-system, sans-serif;
   }
 
   /* page width */
   .att-page{
-    max-width: 1180px;
-    margin: 18px auto;
-    padding: 0 14px 26px;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 16px;
   }
 
   /* ===== Top bar ===== */
   .topbar{
     display:flex;
-    align-items:flex-start;
+    align-items:center;
     justify-content:space-between;
-    gap: 14px;
-    padding: 14px 16px;
-    border-radius: 18px;
-    background: linear-gradient(180deg, var(--panel), var(--panel2));
-    border: 1px solid var(--line);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(12px);
+    gap: 12px;
+    padding: 10px 16px;
+    border-radius: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+    margin-bottom: 12px;
   }
 
   .tb-left{
     display:flex;
-    align-items:flex-start;
+    align-items:center;
     gap: 12px;
     min-width: 0;
   }
 
   .backbtn{
-    width:40px; height:40px;
-    border-radius: 14px;
+    width:36px; height:36px;
+    border-radius: 10px;
     display:grid; place-items:center;
-    background: rgba(255,255,255,.06);
-    border: 1px solid rgba(255,255,255,.10);
-    color: rgba(229,231,235,.95);
+    background: rgba(255,255,255,.05);
+    border: 1px solid var(--border);
+    color: #fff;
     text-decoration:none;
     transition:.18s ease;
     flex: 0 0 auto;
@@ -88,21 +80,15 @@
 
   .tb-title{
     margin: 0;
-    font-weight: 900;
-    font-size: 22px;
-    line-height: 1.1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-weight: 800;
+    font-size: 16px;
+    color: #fff;
   }
   .tb-sub{
-    margin-top: 6px;
-    color: var(--muted);
-    font-weight: 700;
-    font-size: 12px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    margin-top: 2px;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 11px;
   }
 
   /* Right controls */
@@ -117,19 +103,21 @@
   .ctrl{
     display:flex;
     align-items:center;
-    gap: 10px;
-    padding: 9px 10px;
-    border-radius: 14px;
-    background: rgba(2,6,23,.30);
-    border: 1px solid rgba(255,255,255,.10);
+    gap: 8px;
+    padding: 0 10px;
+    border-radius: 10px;
+    background: rgba(0,0,0,.2);
+    border: 1px solid var(--border);
+    height: 38px;
   }
 
   .ctrl select{
     border:none !important;
     outline:none !important;
     background: transparent !important;
-    color: var(--text) !important;
-    font-weight: 900;
+    color: #fff !important;
+    font-weight: 700;
+    font-size: 13px;
     padding: 0 2px;
     color-scheme: dark;
   }
@@ -140,23 +128,24 @@
 
   .btn-view{
     border:none;
-    border-radius: 14px;
-    padding: 10px 14px;
-    font-weight: 900;
+    border-radius: 10px;
+    height: 38px;
+    padding: 0 16px;
+    font-weight: 700;
+    font-size: 13.5px;
     color:#fff;
-    background: linear-gradient(90deg, var(--blue1), #3b82f6);
-    box-shadow: 0 14px 28px rgba(37,99,235,.22);
+    background: var(--primary);
     transition:.18s ease;
   }
   .btn-view:hover{ transform: translateY(-1px); filter:brightness(1.05); }
 
   .btn-dl{
-    width:42px; height:42px;
-    border-radius: 14px;
+    width:38px; height:38px;
+    border-radius: 10px;
     display:grid; place-items:center;
-    background: rgba(255,255,255,.06);
-    border: 1px solid rgba(255,255,255,.12);
-    color: rgba(229,231,235,.95);
+    background: rgba(255,255,255,.05);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
     text-decoration:none;
     transition:.18s ease;
   }
@@ -170,20 +159,20 @@
     display:flex;
     gap: 10px;
     flex-wrap: wrap;
-    margin: 12px 2px 12px;
+    margin-bottom: 12px;
   }
 
   .leg{
     display:inline-flex;
     align-items:center;
-    gap: 10px;
-    padding: 9px 12px;
-    border-radius: 999px;
-    background: rgba(255,255,255,.05);
-    border: 1px solid rgba(255,255,255,.10);
-    font-weight: 900;
-    font-size: 12px;
-    color: rgba(229,231,235,.95);
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: rgba(255,255,255,.03);
+    border: 1px solid var(--border);
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--text-muted);
   }
 
   .dot{ width:10px; height:10px; border-radius: 999px; }
@@ -193,10 +182,9 @@
 
   /* ===== Table card ===== */
   .table-card{
-    border-radius: 20px;
-    background: linear-gradient(180deg, var(--panel), var(--panel2));
-    border: 1px solid var(--line);
-    box-shadow: var(--shadow);
+    border-radius: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
     overflow: hidden;
   }
 
@@ -216,39 +204,39 @@
     margin: 0 14px;
   }
   .table-scroll::-webkit-scrollbar-thumb{
-    background: linear-gradient(90deg, rgba(37,99,235,.80), rgba(96,165,250,.75));
+    background: rgba(59, 130, 246, 0.4);
     border-radius: 999px;
   }
 
   /* table */
   .att-table{
     width: 100%;
-    min-width: 1050px;
+    min-width: 1000px;
     border-collapse: separate;
     border-spacing: 0;
-    font-size: 13px;
-    color: var(--text);
+    font-size: 12.5px;
+    color: var(--text-main);
   }
 
   /* header */
   .att-table thead th{
-    background: linear-gradient(90deg, rgba(37,99,235,.95), rgba(59,130,246,.95));
+    background: linear-gradient(90deg, #2563eb, #3b82f6);
     color:#fff;
-    font-weight: 900;
-    padding: 11px 10px;
-    border-right: 1px solid rgba(255,255,255,.12);
-    border-bottom: 1px solid rgba(255,255,255,.12);
+    font-weight: 800;
+    padding: 10px 8px;
+    border-right: 1px solid rgba(255,255,255,.1);
+    border-bottom: 1px solid rgba(255,255,255,.1);
     white-space: nowrap;
     text-align:center;
   }
 
   /* body */
   .att-table tbody td{
-    background: rgba(2,6,23,.22);
-    padding: 11px 10px;
+    background: rgba(0,0,0,.1);
+    padding: 8px 10px;
     text-align:center;
-    border-right: 1px solid rgba(148,163,184,.18);
-    border-bottom: 1px solid rgba(148,163,184,.18);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
   }
 
   /* ✅ widths */
@@ -283,8 +271,7 @@
   /* sticky bg */
   .att-table tbody td.sticky,
   .att-table tbody td.sticky2{
-    background: rgba(2,6,23,.45);
-    backdrop-filter: blur(8px);
+    background: #020617;
   }
 
   /* separator */
@@ -310,14 +297,14 @@
   }
 
   /* hover */
-  .att-table tbody tr:hover td{ background: rgba(59,130,246,.08); }
+  .att-table tbody tr:hover td{ background: rgba(59,130,246,.05); }
   .att-table tbody tr:hover td.sticky,
-  .att-table tbody tr:hover td.sticky2{ background: rgba(2,6,23,.55); }
+  .att-table tbody tr:hover td.sticky2{ background: #0b1226; }
 
   /* day head */
-  .dayhead{ padding: 10px 8px !important; }
-  .daynum{ font-weight: 900; font-size: 13px; line-height: 1; }
-  .daydow{ margin-top: 4px; font-size: 10px; opacity:.88; font-weight: 900; }
+  .dayhead{ padding: 8px 6px !important; }
+  .daynum{ font-weight: 800; font-size: 13px; line-height: 1; }
+  .daydow{ margin-top: 3px; font-size: 9px; opacity:.8; font-weight: 700; }
 
   /* ✅ status box (checkbox ko‘rinishi) */
   .cellbtn{
@@ -332,8 +319,7 @@
     transition:.14s ease;
   }
   .cellbtn:hover{
-    background: rgba(255,255,255,.06);
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
+    background: rgba(255,255,255,.05);
   }
   .cellbtn:focus{
     outline: none;
@@ -343,26 +329,24 @@
   .sbox{
     width: 22px;
     height: 22px;
-    border-radius: 8px;
+    border-radius: 6px;
     display:grid;
     place-items:center;
-    border: 1px solid rgba(255,255,255,.14);
-    background: rgba(255,255,255,.04);
-    color: rgba(229,231,235,.92);
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.02);
+    color: var(--text-muted);
   }
   .sbox i{ font-size: 14px; line-height: 1; }
 
   .s-present{
-    border-color: rgba(34,197,94,.35);
-    background: rgba(34,197,94,.14);
-    color: #bbf7d0;
-    box-shadow: 0 0 12px rgba(34,197,94,.20);
+    border-color: rgba(16, 185, 129, 0.4);
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--green);
   }
   .s-absent{
-    border-color: rgba(251,113,133,.35);
-    background: rgba(251,113,133,.14);
-    color: #fecaca;
-    box-shadow: 0 0 12px rgba(251,113,133,.18);
+    border-color: rgba(239, 68, 68, 0.4);
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--red);
   }
   .s-none{
     border-color: rgba(148,163,184,.20);
@@ -527,7 +511,7 @@
           {% for row in rows %}
             <tr>
               <td class="sticky">{{ forloop.counter }}</td>
-              <td class="sticky2 col-name">{{ row.student.get_full_name }}</td>
+              <td class="sticky2 col-name" style="font-weight: 600;">{{ row.student.get_full_name }}</td>
 
               {% for cell in row.cells %}
                 <td>

@@ -3,22 +3,18 @@
 {% block content %}
 <style>
   :root {
-    --bg0: #020617;
-    --bg1: #070b16;
-    --bg2: #0b1226;
-    --glass: rgba(17, 24, 39, .58);
-    --glass2: rgba(2, 6, 23, .44);
-    --stroke: rgba(255, 255, 255, .10);
-    --text: #e5e7eb;
-    --muted: #94a3b8;
+    --bg-dark: #020617;
+    --bg-card: rgba(15, 23, 42, 0.4);
+    --bg-hover: rgba(255, 255, 255, 0.04);
+    --border: rgba(255, 255, 255, 0.08);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --primary: #3b82f6;
     --blue: #3b82f6;
     --cyan: #22d3ee;
     --amber: #fbbf24;
-    --green: #22c55e;
-    --r16: 16px;
-    --r20: 20px;
-    --r24: 24px;
-    --pad: clamp(12px, 2.8vw, 18px);
+    --green: #10b981;
+    --radius: 16px;
   }
 
   * {
@@ -34,9 +30,9 @@
   }
 
   .page-wrap {
-    width: min(900px, 100%);
+    width: min(800px, 100%);
     margin: 0 auto;
-    padding: 24px 16px 40px;
+    padding: 20px 16px;
   }
 
   /* ===== HERO TITLE ===== */
@@ -46,8 +42,8 @@
   }
 
   .hero-title {
-    font-size: clamp(24px, 5vw, 36px);
-    font-weight: 950;
+    font-size: 24px;
+    font-weight: 800;
     margin: 0;
     background: linear-gradient(135deg, var(--amber), var(--cyan));
     -webkit-background-clip: text;
@@ -56,7 +52,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 15px;
+    gap: 12px;
+    letter-spacing: -0.5px;
   }
 
   .hero-title i {
@@ -66,19 +63,19 @@
 
   /* ===== GLASS CARD ===== */
   .glass-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: var(--r24);
-    padding: var(--pad);
-    backdrop-filter: blur(16px);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
   }
 
   /* ===== FORM ELEMENTS ===== */
   .form-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 16px;
   }
 
   @media (min-width: 768px) {
@@ -90,15 +87,15 @@
   .fg {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }
 
   .fg-label {
-    font-weight: 800;
-    font-size: 13px;
-    color: var(--muted);
+    font-weight: 700;
+    font-size: 11.5px;
+    color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -111,15 +108,15 @@
   }
 
   .inp-wrap {
-    background: rgba(15, 23, 42, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 0 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0 14px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    min-height: 56px;
-    transition: all 0.3s;
+    gap: 10px;
+    height: 44px;
+    transition: all 0.2s;
   }
 
   .inp-wrap:focus-within {
@@ -134,8 +131,8 @@
     border: none;
     color: #fff;
     width: 100%;
-    font-weight: 700;
-    font-size: 15px;
+    font-weight: 600;
+    font-size: 14px;
     outline: none;
     color-scheme: dark;
   }
@@ -188,13 +185,13 @@
 
   /* ===== BUTTONS ===== */
   .btn-primary {
-    min-height: 56px;
-    border-radius: 16px;
-    background: linear-gradient(135deg, var(--green), #16a34a);
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--green), #059669);
     color: #fff;
     border: none;
-    font-weight: 950;
-    font-size: 15px;
+    font-weight: 800;
+    font-size: 14px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -202,8 +199,8 @@
     gap: 10px;
     transition: all 0.2s;
     width: 100%;
-    margin-top: 24px;
-    box-shadow: 0 10px 25px rgba(34, 197, 94, 0.2);
+    margin-top: 20px;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
   }
 
   .btn-primary:hover {

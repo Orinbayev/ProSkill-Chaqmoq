@@ -29,7 +29,7 @@
     min-height: 100vh;
     font-family: 'Plus Jakarta Sans', sans-serif;
     color: var(--text-main);
-    padding: 20px;
+    padding: 16px 20px;
   }
 
   /* HEAD & HEADER */
@@ -37,17 +37,17 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: 12px;
   }
 
   .page-title {
-    font-size: 28px;
+    font-size: 20px;
     font-weight: 800;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     color: #fff;
     letter-spacing: -0.5px;
   }
@@ -59,11 +59,11 @@
   }
 
   .btn-action {
-    height: 44px;
-    padding: 0 20px;
-    border-radius: 12px;
+    height: 38px;
+    padding: 0 16px;
+    border-radius: 10px;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 13px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -108,22 +108,23 @@
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 16px;
+    padding: 10px 14px;
     display: flex;
     gap: 12px;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 12px;
     flex-wrap: wrap;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
   }
 
   .filter-input {
     background: rgba(2, 6, 23, 0.5);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    height: 42px;
-    padding: 0 16px;
+    border-radius: 8px;
+    height: 38px;
+    padding: 0 14px;
     color: white;
-    font-size: 14px;
+    font-size: 13px;
     outline: none;
     transition: 0.2s;
   }
@@ -163,11 +164,11 @@
   }
 
   .btn-reset {
-    width: 42px;
-    height: 42px;
+    width: 38px;
+    height: 38px;
     display: grid;
     place-items: center;
-    border-radius: 10px;
+    border-radius: 8px;
     background: rgba(255, 255, 255, 0.05);
     color: var(--text-muted);
     cursor: pointer;
@@ -213,11 +214,11 @@
   }
 
   .custom-table tbody td {
-    padding: 16px 12px;
+    padding: 10px 12px;
     word-break: break-word;
     border-bottom: 1px solid var(--border);
     color: var(--text-main);
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
   }
 
@@ -451,19 +452,20 @@
   /* TABS */
   .tabs-container {
     display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
+    gap: 8px;
+    margin-bottom: 12px;
   }
 
   .tab-btn {
-    padding: 10px 24px;
-    border-radius: 12px;
+    padding: 8px 18px;
+    border-radius: 10px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--text-muted);
     font-weight: 700;
     cursor: pointer;
     transition: 0.2s;
+    font-size: 13px;
   }
 
   .tab-btn.active {
@@ -512,7 +514,7 @@
       {% else %}<i class="fa-solid fa-graduation-cap" style="color: var(--primary);"></i>{% endif %}
       {{ title|default:"Foydalanuvchilar" }}
       <span
-        style="font-size: 14px; background: rgba(255,255,255,0.05); padding: 4px 12px; border-radius: 20px; color: var(--text-muted); margin-left: 12px; border: 1px solid rgba(255,255,255,0.05);">
+        style="font-size: 12px; background: rgba(255,255,255,0.05); padding: 3px 10px; border-radius: 20px; color: var(--text-muted); margin-left: 8px; border: 1px solid rgba(255,255,255,0.05);">
         {{ total_count|default:0 }} ta
       </span>
     </div>

@@ -4,16 +4,18 @@
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
   :root {
-    --pjs: 'Plus Jakarta Sans', sans-serif;
-    --bg-deep: #020617;
-    --panel: rgba(15, 23, 42, 0.7);
-    --panel2: rgba(2, 6, 23, 0.45);
-    --muted: #94a3b8;
-    --text: #f8fafc;
-    --line: rgba(255, 255, 255, .08);
+    --bg-dark: #020617;
+    --bg-card: rgba(15, 23, 42, 0.4);
+    --bg-hover: rgba(255, 255, 255, 0.04);
+    --border: rgba(255, 255, 255, 0.08);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
     --primary: #3b82f6;
-    --success: #10b981;
-    --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    --primary-glow: #38bdf8;
+    --blue: #3b82f6;
+    --green: #22c55e;
+    --red: #ef4444;
+    --radius: 12px;
   }
 
   body {
@@ -33,9 +35,9 @@
 
   .lead-page {
     width: 100%;
-    max-width: 1400px;
-    margin: 40px auto;
-    padding: 0 24px;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 16px 20px;
     position: relative;
     z-index: 1;
   }
@@ -43,17 +45,15 @@
   /* ===== TOP TOOLBAR (rasmdagidek) ===== */
   .lead-toolbar {
     display: flex;
-    gap: 14px;
+    gap: 12px;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-
-    padding: 16px 18px;
-    border-radius: 18px;
-    background: linear-gradient(180deg, var(--panel), var(--panel2));
-    border: 1px solid var(--line);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(10px);
+    padding: 12px 18px;
+    border-radius: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(20px);
   }
 
   .lead-toolbar-left {
@@ -64,16 +64,16 @@
   }
 
   .lead-icon-premium {
-    width: 52px;
-    height: 52px;
-    background: linear-gradient(135deg, var(--primary), #1e40af);
-    border-radius: 14px;
+    width: 40px;
+    height: 40px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
-    color: white;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4), 0 0 15px rgba(59, 130, 246, 0.25);
+    font-size: 18px;
+    color: var(--blue);
   }
 
   .lead-icon {
@@ -88,17 +88,17 @@
 
   .lead-title {
     margin: 0;
-    font-weight: 900;
-    font-size: 24px;
-    line-height: 1.15;
+    font-weight: 800;
+    font-size: 20px;
+    color: white;
+    letter-spacing: -0.5px;
   }
 
   .lead-sub {
-    margin-top: 4px;
-    color: var(--muted);
-    font-weight: 700;
-    font-size: 12px;
-    opacity: .95;
+    margin-top: 2px;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 11.5px;
   }
 
   .lead-toolbar-right {
@@ -114,27 +114,36 @@
   }
 
   .filter {
-    background: rgba(2, 6, 23, .32);
-    border: 1px solid rgba(255, 255, 255, .12);
-    color: var(--text);
-    padding: 10px 12px;
-    border-radius: 14px;
-    min-width: 230px;
-    font-weight: 900;
+    background: rgba(2, 6, 23, .5);
+    border: 1px solid var(--border);
+    color: white;
+    padding: 8px 14px;
+    border-radius: 10px;
+    min-width: 180px;
+    font-weight: 600;
+    font-size: 13px;
     outline: none;
     color-scheme: dark;
+    height: 38px;
   }
 
   .btn-add {
-    background: linear-gradient(90deg, #22c55e, #16a34a);
-    color: #05210f;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
     border: 0;
-    padding: 10px 14px;
-    border-radius: 14px;
-    font-weight: 900;
+    padding: 0 16px;
+    height: 38px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     text-decoration: none;
     white-space: nowrap;
-    box-shadow: 0 14px 26px rgba(34, 197, 94, .18);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, .2);
+    transition: all 0.2s;
   }
 
   .btn-add:hover {
@@ -145,11 +154,10 @@
   /* ===== SEARCH BAR (rasmdagidek) ===== */
   .lead-search {
     margin-top: 12px;
-    padding: 12px 14px;
-    border-radius: 16px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(2, 6, 23, .18));
-    border: 1px solid var(--line);
-    box-shadow: var(--shadow);
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
   }
 
   .search-input {
@@ -157,10 +165,10 @@
     border: none;
     outline: none;
     background: transparent;
-    color: var(--text);
-    font-weight: 600;
-    padding: 12px 16px;
-    font-size: 1.05rem;
+    color: white;
+    font-weight: 500;
+    padding: 8px 12px;
+    font-size: 14px;
   }
 
   .search-input::placeholder {
@@ -170,11 +178,10 @@
 
   /* ===== TABLE CARD ===== */
   .table-card {
-    margin-top: 14px;
-    border-radius: 18px;
-    background: linear-gradient(180deg, var(--panel), var(--panel2));
-    border: 1px solid var(--line);
-    box-shadow: var(--shadow);
+    margin-top: 12px;
+    border-radius: var(--radius);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
     overflow: hidden;
   }
 
@@ -207,26 +214,23 @@
   }
 
   .tbl thead th {
-    background: rgba(2, 6, 23, .35);
-    color: rgba(148, 163, 184, .95);
-    font-weight: 900;
-    padding: 12px 12px;
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-muted);
+    font-weight: 700;
+    padding: 14px 12px;
     text-transform: uppercase;
-    font-size: 12px;
-    border-bottom: 1px solid var(--line);
+    font-size: 11px;
+    border-bottom: 1px solid var(--border);
     white-space: nowrap;
-    letter-spacing: .05em;
+    letter-spacing: 1px;
   }
 
   .tbl tbody td {
-    padding: 12px 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, .06);
-    color: var(--text);
-    font-weight: 800;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    /* default */
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-main);
+    font-weight: 500;
+    font-size: 13px;
   }
 
   .main-row {
@@ -236,7 +240,7 @@
   }
 
   .main-row:hover {
-    background: rgba(255, 255, 255, .04);
+    background: var(--bg-hover);
   }
 
   /* ✅ Ustun ENLARI: 100% zoomda ham rasm kabi joylashadi */
@@ -322,9 +326,9 @@
   }
 
   .badge.alt {
-    background: rgba(107, 114, 128, .14);
-    color: #cbd5e1;
-    border: 1px solid rgba(107, 114, 128, .22);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
   }
 
   .mini-check {
@@ -335,19 +339,21 @@
   }
 
   .btn-details {
-    border: 0;
-    background: linear-gradient(90deg, #2563eb, #3b82f6);
-    color: #fff;
-    padding: 9px 12px;
-    border-radius: 12px;
-    font-weight: 900;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--blue);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 12px;
     cursor: pointer;
     white-space: nowrap;
+    transition: all 0.2s;
   }
 
   .btn-details:hover {
-    filter: brightness(.97);
-    transform: translateY(-1px);
+    background: var(--blue);
+    color: white;
   }
 
   /* ===== DETAILS (sizdagi holicha qoldirdim) ===== */
@@ -723,11 +729,13 @@ Jadval scrollsiz sig‘adi
         </select>
       </form>
 
-
-
       <a class="btn-add" href="{% url 'store:lead_settings' %}"
-        style="background: linear-gradient(90deg, #3b82f6, #2563eb); color: #fff;">⚙️ Sozlamalar</a>
-      <a class="btn-add" href="{% url 'store:lead_create' %}">➕ Yangi lead</a>
+        style="background: rgba(59, 130, 246, 0.1); color: var(--blue); border: 1px solid rgba(59, 130, 246, 0.2); box-shadow: none;">
+        <i class="fa-solid fa-gear"></i> Sozlamalar
+      </a>
+      <a class="btn-add" href="{% url 'store:lead_create' %}">
+        <i class="fa-solid fa-plus"></i> Yangi lead
+      </a>
     </div>
   </div>
 

@@ -4,61 +4,76 @@
 {% block extra_css %}
 <style>
     :root {
-        --glass-bg: rgba(255, 255, 255, 0.03);
-        --glass-border: rgba(255, 255, 255, 0.08);
-        --glass-hover: rgba(56, 189, 248, 0.12);
-        --accent: #38bdf8;
-        --success: #22c55e;
-        --danger: #ef4444;
-        --warning: #f59e0b;
-        --muted: #94a3b8;
+        --bg-dark: #020617;
+        --bg-card: rgba(15, 23, 42, 0.4);
+        --bg-hover: rgba(255, 255, 255, 0.04);
+        --border: rgba(255, 255, 255, 0.08);
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+        --primary: #3b82f6;
+        --primary-glow: #38bdf8;
+        --green: #10b981;
+        --red: #ef4444;
+        --radius: 14px;
+    }
+
+    body {
+        background: radial-gradient(1200px 520px at 50% -10%, rgba(59, 130, 246, 0.1), transparent 60%),
+            linear-gradient(180deg, var(--bg-dark), var(--bg-dark));
+        color: var(--text-main);
+        min-height: 100vh;
+        font-family: system-ui, -apple-system, sans-serif;
     }
 
     .settings-container {
         max-width: 1000px;
-        margin: 2rem auto;
-        padding: 2.5rem;
-        border-radius: 24px;
-        background: linear-gradient(145deg, rgba(15, 23, 42, 0.4), rgba(2, 6, 23, 0.6));
-        border: 1px solid var(--glass-border);
-        backdrop-filter: blur(20px);
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        margin: 0 auto;
+        padding: 16px;
     }
 
     .header-box {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 2rem;
+        padding: 10px 16px;
+        border-radius: var(--radius);
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        backdrop-filter: blur(20px);
+        margin-bottom: 16px;
     }
 
     h2 {
         font-weight: 800;
         color: #fff;
         margin: 0;
-        font-size: 1.75rem;
+        font-size: 18px;
     }
 
     .btn-action {
-        padding: 10px 20px;
-        border-radius: 14px;
+        height: 36px;
+        padding: 0 16px;
+        border-radius: 10px;
         font-weight: 700;
+        font-size: 13px;
         text-decoration: none;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 8px;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
     }
 
     .btn-add {
-        background: var(--accent);
-        color: #0c4a6e;
+        background: var(--primary);
+        color: #fff;
     }
 
     .btn-add:hover {
         filter: brightness(1.1);
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px -5px rgba(56, 189, 248, 0.4);
+        transform: translateY(-1px);
     }
 
     .rules-list {
@@ -67,10 +82,10 @@
     }
 
     .rule-card {
-        background: var(--glass-bg);
-        border: 1px solid var(--glass-border);
-        border-radius: 18px;
-        padding: 1.25rem;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px 18px;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -78,8 +93,9 @@
     }
 
     .rule-card:hover {
-        background: var(--glass-hover);
-        border-color: rgba(56, 189, 248, 0.2);
+        background: var(--bg-hover);
+        border-color: var(--primary-glow);
+        transform: translateX(4px);
     }
 
     .rule-info {
@@ -89,40 +105,41 @@
     }
 
     .rule-type-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 14px;
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.25rem;
+        font-size: 16px;
     }
 
     .type-plus {
-        background: rgba(34, 197, 94, 0.1);
-        color: var(--success);
-        border: 1px solid rgba(34, 197, 94, 0.2);
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--green);
+        border: 1px solid rgba(16, 185, 129, 0.2);
     }
 
     .type-minus {
         background: rgba(239, 68, 68, 0.1);
-        color: var(--danger);
+        color: var(--red);
         border: 1px solid rgba(239, 68, 68, 0.2);
     }
 
     .rule-details h3 {
         margin: 0;
-        font-size: 1.1rem;
+        font-size: 15px;
         color: #fff;
         font-weight: 700;
     }
 
     .rule-meta {
-        font-size: 0.85rem;
-        color: var(--muted);
-        margin-top: 4px;
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 2px;
         display: flex;
         gap: 12px;
+        font-weight: 600;
     }
 
     .role-badges {
@@ -132,18 +149,20 @@
     }
 
     .role-badge {
-        font-size: 0.7rem;
-        padding: 2px 8px;
-        border-radius: 6px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid var(--glass-border);
-        color: var(--muted);
+        font-size: 9px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        font-weight: 700;
+        text-transform: uppercase;
     }
 
     .role-badge.active {
-        background: rgba(56, 189, 248, 0.1);
-        color: var(--accent);
-        border-color: rgba(56, 189, 248, 0.2);
+        background: rgba(59, 130, 246, 0.1);
+        color: var(--primary-glow);
+        border-color: rgba(59, 130, 246, 0.2);
     }
 
     .rule-actions {
@@ -152,17 +171,18 @@
     }
 
     .icon-btn {
-        width: 40px;
-        height: 40px;
-        border-radius: 12px;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--muted);
+        color: var(--text-muted);
         background: rgba(255, 255, 255, 0.05);
-        border: 1px solid var(--glass-border);
+        border: 1px solid var(--border);
         transition: all 0.2s;
         text-decoration: none;
+        font-size: 14px;
     }
 
     .icon-btn:hover {
@@ -171,15 +191,15 @@
     }
 
     .btn-edit:hover {
-        background: rgba(34, 197, 94, 0.15);
-        color: var(--success);
-        border-color: var(--success);
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--green);
+        border-color: var(--green);
     }
 
     .btn-del:hover {
-        background: rgba(239, 68, 68, 0.15);
-        color: var(--danger);
-        border-color: var(--danger);
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--red);
+        border-color: var(--red);
     }
 
     .empty-state {
@@ -206,38 +226,32 @@
     </div>
 
     <!-- General Settings Section -->
-    <div
-        style="margin-bottom: 2.5rem; background: rgba(56, 189, 248, 0.03); border: 1px solid rgba(56, 189, 248, 0.15); border-radius: 20px; padding: 1.5rem;">
-        <h4
-            style="color: var(--accent); font-weight: 800; margin-bottom: 1rem; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px;">
+    <div style="margin-bottom: 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; backdrop-filter: blur(20px);">
+        <h4 style="color: var(--primary-glow); font-weight: 800; margin-bottom: 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">
             <i class="fa-solid fa-sliders" style="margin-right: 8px;"></i> Umumiy Sozlamalar
         </h4>
-        <form action="{% url 'chaqmoq:rule_settings_update' %}" method="post"
-            style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+        <form action="{% url 'chaqmoq:rule_settings_update' %}" method="post" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
             {% csrf_token %}
             <div style="flex: 1; min-width: 250px;">
-                <label
-                    style="display: block; color: var(--muted); font-size: 0.8rem; font-weight: 700; margin-bottom: 6px;">
+                <label style="display: block; color: var(--text-muted); font-size: 11px; font-weight: 700; margin-bottom: 4px;">
                     O'quvchi uchun kunlik maksimal "+" chaqmoq limiti
                 </label>
-                <input type="number" name="max_daily_lightning" value="{{ center_limit }}"
-                    style="width: 100%; background: rgba(2, 6, 23, 0.4); border: 1px solid var(--glass-border); border-radius: 12px; padding: 10px 15px; color: #fff; font-weight: 700;"
+                <input type="number" name="max_daily_lightning" value="{{ center_limit }}" 
+                    style="width: 100%; height: 38px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border); border-radius: 10px; padding: 0 12px; color: #fff; font-weight: 600; font-size: 13px; outline: none;" 
                     placeholder="0 = cheksiz">
             </div>
             <div style="flex: 1; min-width: 250px;">
-                <label
-                    style="display: block; color: var(--muted); font-size: 0.8rem; font-weight: 700; margin-bottom: 6px;">
+                <label style="display: block; color: var(--text-muted); font-size: 11px; font-weight: 700; margin-bottom: 4px;">
                     O'quvchi uchun kunlik maksimal "-" chaqmoq limiti
                 </label>
-                <input type="number" name="max_daily_deduction" value="{{ center_deduction_limit }}"
-                    style="width: 100%; background: rgba(2, 6, 23, 0.4); border: 1px solid var(--glass-border); border-radius: 12px; padding: 10px 15px; color: #fff; font-weight: 700;"
+                <input type="number" name="max_daily_deduction" value="{{ center_deduction_limit }}" 
+                    style="width: 100%; height: 38px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border); border-radius: 10px; padding: 0 12px; color: #fff; font-weight: 600; font-size: 13px; outline: none;" 
                     placeholder="0 = cheksiz">
             </div>
-            <button type="submit" class="btn-action btn-add" style="height: 44px; padding: 0 25px;">SAQLASH</button>
+            <button type="submit" class="btn-action btn-add" style="height: 38px; padding: 0 20px;">SAQLASH</button>
         </form>
-        <p style="color: var(--muted); font-size: 0.75rem; margin-top: 10px;">
-            * Ushbu limitlar o'quvchi bir kun davomida olishi yoki yo'qotishi mumkin bo'lgan jami chaqmoqlar sonini
-            cheklaydi.
+        <p style="color: var(--text-muted); font-size: 10px; margin-top: 8px; font-weight: 500;">
+            * Ushbu limitlar o'quvchi bir kun davomida olishi yoki yo'qotishi mumkin bo'lgan jami chaqmoqlar sonini cheklaydi.
         </p>
     </div>
 
