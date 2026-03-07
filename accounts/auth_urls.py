@@ -9,6 +9,8 @@ urlpatterns = [
     
     # Password Reset
     path('parolni-tiklash/', password_reset_views.forgot_password_init, name='forgot_password_init'),
+    path('parolni-tiklash/tanlash/', password_reset_views.forgot_password_verify_choice, name='forgot_password_verify_choice'),
+    path('parolni-tiklash/tanlash-tasdiqlash/', password_reset_views.forgot_password_confirm_choice, name='forgot_password_confirm_choice'),
     path('parolni-tiklash/tasdiqlash/', password_reset_views.forgot_password_verify, name='forgot_password_verify'),
     path('parolni-tiklash/yangi/', password_reset_views.forgot_password_set, name='forgot_password_set'),
     

@@ -56,23 +56,32 @@ def forgot_password_init(request):
         
         if method == "phone":
             phone = normalize_phone(identifier)
-            user = User.objects.filter(phone_number=phone).first()
+            users = User.objects.filter(phone_number=phone)
             
-            if user:
-                success, msg = send_code_to_telegram(user)
-                if success:
-                    request.session['auth_user_id'] = user.id
-                    request.session['auth_flow_type'] = 'reset'
-                    record_activity(user, "Password reset code requested (via Phone)", request=request)
-                    messages.success(request, msg)
-                    return redirect("forgot_password_verify")
-                else:
-                    messages.error(request, msg)
+            if users.exists():
+                # Store potential users in session
+                request.session['auth_potential_user_ids'] = list(users.values_list('id', flat=True))
+                request.session['auth_flow_type'] = 'reset'
+                request.session['auth_identifier'] = phone
+                return redirect("accounts:forgot_password_verify_choice")
             else:
                 messages.error(request, "Bu telefon raqam bo'yicha foydalanuvchi topilmadi.")
         
         elif method == "email":
-            messages.info(request, "Email orqali tiklash tizimi ustida ishlanmoqda. Hozircha faqat Telefon orqali tiklash mumkin.")
+            user = User.objects.filter(email__iexact=identifier).first()
+            if user:
+                # Direct reset for unique email
+                success, msg = send_code_to_telegram(user)
+                if success:
+                    request.session['auth_user_id'] = user.id
+                    request.session['auth_flow_type'] = 'reset'
+                    record_activity(user, "Password reset code requested (via Email)", request=request)
+                    messages.success(request, msg)
+                    return redirect("accounts:forgot_password_verify")
+                else:
+                    messages.error(request, msg)
+            else:
+                messages.error(request, "Bu email bo'yicha foydalanuvchi topilmadi.")
             
     return render(request, "accounts/forgot_password_init.html")
 
@@ -82,21 +91,47 @@ def phone_login_init(request):
         phone_raw = request.POST.get("phone", "").strip()
         phone = normalize_phone(phone_raw)
         
-        user = User.objects.filter(phone_number=phone).first()
-        if user:
-            success, msg = send_code_to_telegram(user)
-            if success:
-                request.session['auth_user_id'] = user.id
-                request.session['auth_flow_type'] = 'login'
-                record_activity(user, "Login code requested (via Phone)", request=request)
-                messages.success(request, msg)
-                return redirect("forgot_password_verify") # Use shared verify page
-            else:
-                messages.error(request, msg)
+        users = User.objects.filter(phone_number=phone)
+        if users.exists():
+            request.session['auth_potential_user_ids'] = list(users.values_list('id', flat=True))
+            request.session['auth_flow_type'] = 'login'
+            request.session['auth_identifier'] = phone
+            return redirect("accounts:forgot_password_verify_choice")
         else:
             messages.error(request, "Bu telefon raqam bo'yicha foydalanuvchi topilmadi.")
             
     return render(request, "accounts/phone_login_init.html")
+
+def forgot_password_verify_choice(request):
+    """Page to select WHICH user profile is logging in/resetting."""
+    user_ids = request.session.get('auth_potential_user_ids')
+    if not user_ids:
+        return redirect("accounts:login")
+        
+    users = User.objects.filter(id__in=user_ids)
+    return render(request, "accounts/forgot_password_verify_choice.html", {"users": users})
+
+def forgot_password_confirm_choice(request):
+    """User selected a profile, now send code."""
+    if request.method == "POST":
+        user_id = request.POST.get("user_id")
+        user_ids = request.session.get('auth_potential_user_ids', [])
+        
+        if int(user_id) in user_ids:
+            user = get_object_or_404(User, id=user_id)
+            success, msg = send_code_to_telegram(user)
+            if success:
+                request.session['auth_user_id'] = user.id
+                # Keep auth_flow_type from session
+                record_activity(user, f"{request.session.get('auth_flow_type')} code requested after profile selection", request=request)
+                messages.success(request, msg)
+                return redirect("accounts:forgot_password_verify")
+            else:
+                messages.error(request, msg)
+        else:
+            messages.error(request, "Xavfsizlik yuzasidan xatolik yuz berdi.")
+            
+    return redirect("accounts:forgot_password_verify_choice")
 
 def forgot_password_verify(request):
     """Shared code verification page."""
