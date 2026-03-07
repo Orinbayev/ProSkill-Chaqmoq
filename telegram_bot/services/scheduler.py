@@ -5,6 +5,7 @@ from apscheduler.triggers.cron import CronTrigger
 from services.api_client import get_parent_reports_api, get_settings_api
 from datetime import datetime
 import pytz
+from aiogram import html
 
 logger = logging.getLogger(__name__)
 
@@ -26,29 +27,34 @@ async def send_daily_reports(bot):
     today_str = datetime.now(uz_tz).strftime("%Y-%m-%d")
 
     for tg_id, children in reports.items():
-        text = "📘 **Farzandingiz bo‘yicha kunlik hisobot**\n\n"
+        text = "📘 <b>Farzandingiz bo‘yicha kunlik hisobot</b>\n\n"
         
         for student in children:
-            text += f"👦 **O‘quvchi:** {student['name']}\n"
+            student_name = html.quote(student['name'])
+            text += f"👦 <b>O‘quvchi:</b> {student_name}\n"
             text += f"📅 Sana: {today_str}\n\n"
-            text += f"✅ Bugun qo‘shilgan: **{student['total_today_plus']}**\n"
-            text += f"❌ Bugun ayrilgan: **{student['total_today_minus']}**\n"
-            text += f"⚡ Joriy jami chaqmoq: **{student['current_total']}**\n\n"
+            text += f"✅ Bugun qo‘shilgan: <b>{student['total_today_plus']}</b>\n"
+            text += f"❌ Bugun ayrilgan: <b>{student['total_today_minus']}</b>\n"
+            text += f"⚡ Joriy jami chaqmoq: <b>{student['current_total']}</b>\n\n"
             
             if student['added']:
-                text += "**Qo‘shilganlar:**\n"
+                text += "<b>Qo‘shilganlar:</b>\n"
                 for pair in student['added']:
-                    text += f"- {pair['ball']} ta — {pair['reason']} — {pair['by']}\n"
+                    reason = html.quote(pair['reason'])
+                    by = html.quote(pair['by'])
+                    text += f"- {pair['ball']} ta — {reason} — {by}\n"
             
             if student['removed']:
-                text += "\n**Ayrilganlar:**\n"
+                text += "\n<b>Ayrilganlar:</b>\n"
                 for pair in student['removed']:
-                    text += f"- {pair['ball']} ta — {pair['reason']} — {pair['by']}\n"
+                    reason = html.quote(pair['reason'])
+                    by = html.quote(pair['by'])
+                    text += f"- {pair['ball']} ta — {reason} — {by}\n"
             
             text += "\n" + "—" * 15 + "\n\n"
 
         try:
-            await bot.send_message(tg_id, text, parse_mode="Markdown")
+            await bot.send_message(tg_id, text, parse_mode="HTML")
             sent += 1
             await asyncio.sleep(0.05) # Rate limit
         except Exception as e:
@@ -59,27 +65,12 @@ async def send_daily_reports(bot):
 async def setup_scheduler(bot):
     scheduler = AsyncIOScheduler(timezone='Asia/Tashkent')
     
-    # We fetch the time from backend settings
-    # For now we'll check it periodically or just set a default and allow dynamic updates
-    # A simple way is to check every minute if it's the right time
-    
     async def scheduled_task():
-        # Get current time in Tashkent
         uz_tz = pytz.timezone('Asia/Tashkent')
         now = datetime.now(uz_tz).strftime("%H:%M")
         
-        # Get target time from backend (we check a sample admin to get settings)
-        # We need a system admin ID or just an open endpoint.
-        # I added get_settings_api which needs an admin ID. 
-        # Better to have a system-level get_settings without ID for internal use.
-        # For simplicity, let's use a default 20:00 and we can improve later.
-        
-        # Let's try to get from settings for REAL
-        # We'll use a hardcoded first admin if exists, or just a default.
-        # Actually, let's just use 20:00 as default.
-        
+        # Default 20:00 (In a real app, fetch from settings)
         target_time = "20:00" 
-        # In a real production app, you'd fetch this from DB/Cache
         
         if now == target_time:
             await send_daily_reports(bot)

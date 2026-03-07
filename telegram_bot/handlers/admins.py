@@ -1,4 +1,4 @@
-from aiogram import Router, F, types
+from aiogram import Router, F, types, html
 from services.api_client import get_admin_dashboard_api, manage_admins_api
 from aiogram.fsm.context import FSMContext
 from states.admin_state import AdminState
@@ -15,14 +15,20 @@ async def admin_list(message: types.Message):
         return await message.answer("❌ Adminlar ro'yxatini yuklashda xatolik.")
 
     admins = d.get("admins", [])
-    text = "👨💼 **Bot Adminlari ro'yxati**\n\n"
+    text = "👨💼 <b>Bot Adminlari ro'yxati</b>\n\n"
     
     kb = types.InlineKeyboardMarkup(inline_keyboard=[])
     
     for a in admins:
-        username = f"@{a['username']}" if a['username'] != "Yo'q" else "Username yo'q"
-        text += f"• {a['full_name']} ({username})\n"
-        text += f"  ID: `{a['tg_id']}` | Qo'shildi: {a['created_at']}\n\n"
+        name = html.quote(a['full_name'])
+        username = a['username']
+        if username != "Yo'q":
+            username_display = f"@{html.quote(username)}"
+        else:
+            username_display = "<i>Username yo'q</i>"
+            
+        text += f"• {name} ({username_display})\n"
+        text += f"  ID: <code>{a['tg_id']}</code> | Qo'shildi: {a['created_at']}\n\n"
         
         # Add button to remove if not self
         if str(a['tg_id']) != str(message.from_user.id):
@@ -35,14 +41,15 @@ async def admin_list(message: types.Message):
         types.InlineKeyboardButton(text="➕ Yangi admin qo'shish", callback_data="add_admin_init")
     ])
 
-    await message.answer(text, reply_markup=kb, parse_mode="Markdown")
+    await message.answer(text, reply_markup=kb, parse_mode="HTML")
 
 @router.callback_query(F.data == "add_admin_init")
 async def add_admin_init(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(AdminState.waiting_for_admin_id)
     await callback.message.answer(
-        "📝 Yangi admin qo'shish uchun uning **Telegram ID** raqamini yuboring.\n\n"
-        "ℹ️ Eslatma: Foydalanuvchi avval botdan o'z profili bilan ro'yxatdan o'tgan bo'lishi shart."
+        "📝 Yangi admin qo'shish uchun uning <b>Telegram ID</b> raqamini yuboring.\n\n"
+        "ℹ️ Eslatma: Foydalanuvchi avval botdan o'z profili bilan ro'yxatdan o'tgan bo'lishi shart.",
+        parse_mode="HTML"
     )
 
 @router.message(AdminState.waiting_for_admin_id)
@@ -62,7 +69,7 @@ async def process_add_admin(message: types.Message, state: FSMContext):
         await admin_list(message)
     else:
         error_msg = data.get('error') or "Noma'lum xatolik"
-        await message.answer(f"❌ Xatolik: {error_msg}")
+        await message.answer(f"❌ Xatolik: {html.quote(error_msg)}", parse_mode="HTML")
         await state.clear()
 
 @router.callback_query(F.data.startswith("remove_admin_ask:"))
@@ -79,9 +86,9 @@ async def remove_admin_ask(callback: types.CallbackQuery):
     ])
     
     await callback.message.edit_text(
-        f"❓ Haqiqatdan ham **{target_name}** ({target_id}) ni adminlikdan o'chirmoqchimisiz?",
+        f"❓ Haqiqatdan ham <b>{html.quote(target_name)}</b> ({target_id}) ni adminlikdan o'chirmoqchimisiz?",
         reply_markup=kb,
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 @router.callback_query(F.data.startswith("remove_admin_yes:"))

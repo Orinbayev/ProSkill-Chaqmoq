@@ -1,4 +1,4 @@
-from aiogram import Router, F, types
+from aiogram import Router, F, types, html
 from services.api_client import get_linked_users_api, get_admin_dashboard_api
 
 router = Router()
@@ -20,13 +20,15 @@ async def linked_users_menu(message: types.Message):
     if not users:
         return await message.answer("ℹ️ Hozircha hech qanday profil ulanmagan.")
 
-    text = f"👥 **Ulangan profillar ({total} ta)**\n\n"
+    text = f"👥 <b>Ulangan profillar ({total} ta)</b>\n\n"
     for i, u in enumerate(users, 1):
-        text += f"{i}. {u['full_name']} — *{u['role']}*\n"
-        text += f"   📞 {u['phone']} | 🆔 {u['tg_id']}\n"
+        name = html.quote(u['full_name'])
+        role = html.quote(u['role'])
+        text += f"{i}. {name} — <i>{role}</i>\n"
+        text += f"   📞 {u['phone']} | 🆔 <code>{u['tg_id']}</code>\n"
         text += f"   📅 {u['linked_at']}\n\n"
 
     if total > 15:
         text += f"ℹ️ Faqat oxirgi 15 ta ko'rsatildi. To'liq ro'yxatni Excel orqali yuklab oling."
 
-    await message.answer(text, parse_mode="Markdown")
+    await message.answer(text, parse_mode="HTML")

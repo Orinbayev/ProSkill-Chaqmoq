@@ -1,4 +1,4 @@
-from aiogram import Router, F, types
+from aiogram import Router, F, types, html
 from services.api_client import get_admin_dashboard_api, get_parent_reports_api
 from keyboards.admin_menu import get_admin_main_kb
 
@@ -10,9 +10,9 @@ async def parent_panel(message: types.Message):
     if status != 200 or not data.get("is_admin"): return
 
     text = (
-        "👨👩👧 **Ota-onalar paneli**\n\n"
+        "👨👩👧 <b>Ota-onalar paneli</b>\n\n"
         "Ushbu bo'limda ota-onalarga farzandlari bo'yicha kunlik hisobotlarni boshqarishingiz mumkin.\n\n"
-        "🔹 Hisobot vaqti **Sozlamalar** bo'limidan o'zgartiriladi.\n"
+        "🔹 Hisobot vaqti <b>Sozlamalar</b> bo'limidan o'zgartiriladi.\n"
         "🔹 Hisobotlar avtomatik yuboriladi.\n\n"
         "Hozirda barcha ota-onalarga bugungi hisobotni yubormoqchimisiz?"
     )
@@ -21,7 +21,7 @@ async def parent_panel(message: types.Message):
         [types.InlineKeyboardButton(text="🚀 Hozir yuborish", callback_data="send_reports_now")],
     ])
     
-    await message.answer(text, reply_markup=kb, parse_mode="Markdown")
+    await message.answer(text, reply_markup=kb, parse_mode="HTML")
 
 @router.callback_query(F.data == "send_reports_now")
 async def send_reports_now(callback: types.CallbackQuery, bot):
@@ -42,29 +42,34 @@ async def send_reports_now(callback: types.CallbackQuery, bot):
 
     sent = 0
     for tg_id, children in reports.items():
-        text = "📘 **Farzandingiz bo‘yicha kunlik hisobot**\n\n"
+        text = "📘 <b>Farzandingiz bo‘yicha kunlik hisobot</b>\n\n"
         
         for student in children:
-            text += f"👦 **O‘quvchi:** {student['name']}\n"
+            student_name = html.quote(student['name'])
+            text += f"👦 <b>O‘quvchi:</b> {student_name}\n"
             text += f"📅 Sana: {timezone_now_str()}\n\n"
-            text += f"✅ Bugun qo‘shilgan: **{student['total_today_plus']}**\n"
-            text += f"❌ Bugun ayrilgan: **{student['total_today_minus']}**\n"
-            text += f"⚡ Joriy jami chaqmoq: **{student['current_total']}**\n\n"
+            text += f"✅ Bugun qo‘shilgan: <b>{student['total_today_plus']}</b>\n"
+            text += f"❌ Bugun ayrilgan: <b>{student['total_today_minus']}</b>\n"
+            text += f"⚡ Joriy jami chaqmoq: <b>{student['current_total']}</b>\n\n"
             
             if student['added']:
-                text += "**Qo‘shilganlar:**\n"
+                text += "<b>Qo‘shilganlar:</b>\n"
                 for pair in student['added']:
-                    text += f"- {pair['ball']} ta — {pair['reason']} — {pair['by']}\n"
+                    reason = html.quote(pair['reason'])
+                    by = html.quote(pair['by'])
+                    text += f"- {pair['ball']} ta — {reason} — {by}\n"
             
             if student['removed']:
-                text += "\n**Ayrilganlar:**\n"
+                text += "\n<b>Ayrilganlar:</b>\n"
                 for pair in student['removed']:
-                    text += f"- {pair['ball']} ta — {pair['reason']} — {pair['by']}\n"
+                    reason = html.quote(pair['reason'])
+                    by = html.quote(pair['by'])
+                    text += f"- {pair['ball']} ta — {reason} — {by}\n"
             
             text += "\n" + "—" * 15 + "\n\n"
 
         try:
-            await bot.send_message(tg_id, text, parse_mode="Markdown")
+            await bot.send_message(tg_id, text, parse_mode="HTML")
             sent += 1
         except:
             pass

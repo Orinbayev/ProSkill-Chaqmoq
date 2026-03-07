@@ -1,4 +1,4 @@
-from aiogram import Router, F, types
+from aiogram import Router, F, types, html
 from aiogram.filters import Command
 from services.api_client import get_admin_dashboard_api
 from keyboards.admin_menu import get_admin_main_kb
@@ -15,10 +15,10 @@ async def admin_start(message: types.Message):
         return # Do nothing for non-admins
 
     await message.answer(
-        "⚡️ **Chaqmoq Academy — Admin Panel**\n\n"
+        "⚡️ <b>Chaqmoq Academy — Admin Panel</b>\n\n"
         "Xush kelibsiz! Kerakli bo'limni tanlang:",
         reply_markup=get_admin_main_kb(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 @router.message(F.text == "📊 Statistika")
@@ -30,21 +30,21 @@ async def show_stats(message: types.Message):
     roles = stats.get("roles", {})
     
     text = (
-        "📊 **Umumiy statistika**\n\n"
-        f"Jami ulangan profillar: **{stats.get('total', 0)}**\n\n"
-        "**Rolelar bo‘yicha:**\n"
+        "📊 <b>Umumiy statistika</b>\n\n"
+        f"Jami ulangan profillar: <b>{stats.get('total', 0)}</b>\n\n"
+        "<b>Rolelar bo‘yicha:</b>\n"
         f"- Ota-ona: {roles.get('parent', 0)}\n"
         f"- Student: {roles.get('student', 0)}\n"
         f"- O‘qituvchi: {roles.get('teacher', 0)}\n"
         f"- Manager: {roles.get('manager', 0)}\n"
         f"- Direktor: {roles.get('director', 0)}\n"
         f"- Superadmin: {roles.get('superadmin', 0)}\n\n"
-        f"🗓 **Bugun:** {stats.get('today', 0)}\n"
-        f"📅 **Haftada:** {stats.get('week', 0)}\n"
-        f"🕒 **Oyda:** {stats.get('month', 0)}"
+        f"🗓 <b>Bugun:</b> {stats.get('today', 0)}\n"
+        f"📅 <b>Haftada:</b> {stats.get('week', 0)}\n"
+        f"🕒 <b>Oyda:</b> {stats.get('month', 0)}"
     )
     
-    await message.answer(text, parse_mode="Markdown")
+    await message.answer(text, parse_mode="HTML")
 
 @router.message(F.text == "⚙️ Sozlamalar")
 async def admin_settings(message: types.Message):
@@ -55,11 +55,11 @@ async def admin_settings(message: types.Message):
     report_time = data.get("parent_report_time", "20:00")
     
     text = (
-        "⚙️ **Tizim sozlamalari**\n\n"
-        f"Ota-onalarga kunlik hisobot vaqti: **{report_time}**\n\n"
-        "Vaqtni o'zgartirish uchun yangi vaqtni formatda yuboring (masalan: `19:30`)."
+        "⚙️ <b>Tizim sozlamalari</b>\n\n"
+        f"Ota-onalarga kunlik hisobot vaqti: <b>{report_time}</b>\n\n"
+        "Vaqtni o'zgartirish uchun yangi vaqtni formatda yuboring (masalan: <code>19:30</code>)."
     )
-    await message.answer(text, parse_mode="Markdown")
+    await message.answer(text, parse_mode="HTML")
 
 @router.message(F.text == "🏠 Asosiy menyu")
 async def back_to_main(message: types.Message):

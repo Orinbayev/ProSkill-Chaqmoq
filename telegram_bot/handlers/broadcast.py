@@ -1,4 +1,4 @@
-from aiogram import Router, F, types, Bot
+from aiogram import Router, F, types, Bot, html
 from aiogram.fsm.context import FSMContext
 from states.broadcast_state import BroadcastState
 from keyboards.admin_menu import get_role_filter_kb, get_admin_main_kb
@@ -33,7 +33,8 @@ async def broadcast_get_msg(message: types.Message, state: FSMContext):
         "text": message.text or message.caption,
         "photo": message.photo[-1].file_id if message.photo else None,
         "document": message.document.file_id if message.document else None,
-        "content_type": message.content_type
+        "content_type": message.content_type,
+        "entities": message.entities or message.caption_entities
     }
     
     await state.update_data(broadcast_msg=msg_data)
@@ -75,29 +76,31 @@ async def broadcast_send(message: types.Message, state: FSMContext, bot: Bot):
     for i, tg_id in enumerate(tg_ids):
         try:
             if msg["content_type"] == "text":
-                await bot.send_message(tg_id, msg["text"])
+                await bot.send_message(tg_id, msg["text"], entities=msg["entities"])
             elif msg["content_type"] == "photo":
-                await bot.send_photo(tg_id, msg["photo"], caption=msg["text"])
+                await bot.send_photo(tg_id, msg["photo"], caption=msg["text"], caption_entities=msg["entities"])
             elif msg["content_type"] == "document":
-                await bot.send_document(tg_id, msg["document"], caption=msg["text"])
+                await bot.send_document(tg_id, msg["document"], caption=msg["text"], caption_entities=msg["entities"])
             sent += 1
         except Exception:
             failed += 1
         
         # Update progress every 50 messages
         if i % 50 == 0 and i > 0:
-            await progress_msg.edit_text(f"🚀 Yuborilmoqda: {i}/{len(tg_ids)}...")
+            try:
+                await progress_msg.edit_text(f"🚀 Yuborilmoqda: {i}/{len(tg_ids)}...")
+            except: pass
         
         # Rate limit protection
         await asyncio.sleep(0.05)
 
     await progress_msg.delete()
     await message.answer(
-        f"✅ **Yuborish yakunlandi!**\n\n"
+        f"✅ <b>Yuborish yakunlandi!</b>\n\n"
         f"Muvaffaqiyatli: {sent}\n"
         f"Muvaffaqiyatsiz: {failed}",
         reply_markup=get_admin_main_kb(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
     await state.clear()
 
