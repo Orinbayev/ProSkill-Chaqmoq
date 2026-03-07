@@ -458,13 +458,15 @@ def manage_bot_admins_api(request):
     action = request.GET.get("action", "list")
     
     if action == "list":
-        admins = BotAdmin.objects.all().order_by("-created_at")
+        admins = BotAdmin.objects.all().order_by("-created_at").select_related('user', 'added_by')
         data = []
         for a in admins:
+            # Use User's telegram_username if available
+            uname = a.username or a.user.telegram_username or "Yo'q"
             data.append({
                 "full_name": a.user.full_name(),
                 "tg_id": a.telegram_id,
-                "username": a.username or "Yo'q",
+                "username": uname,
                 "added_by": a.added_by.full_name() if a.added_by else "Tizim",
                 "created_at": a.created_at.strftime("%Y-%m-%d")
             })
@@ -473,6 +475,7 @@ def manage_bot_admins_api(request):
     elif action == "add":
         target_tg_id = request.GET.get("target_tg_id")
         target_username = request.GET.get("target_username")
+        
         # Find user by TG ID - they must be linked first
         user = User.objects.filter(telegram_id=target_tg_id, is_telegram_linked=True).first()
         if not user:
@@ -482,6 +485,11 @@ def manage_bot_admins_api(request):
             return JsonResponse({"error": "Bu foydalanuvchi allaqachon admin"}, status=400)
 
         added_by = BotAdmin.objects.get(telegram_id=admin_tg_id).user
+        
+        # If no username passed, use user's telegram_username
+        if not target_username or target_username in ["Noma'lum", "None"]:
+            target_username = user.telegram_username
+
         BotAdmin.objects.create(
             user=user,
             telegram_id=target_tg_id,
