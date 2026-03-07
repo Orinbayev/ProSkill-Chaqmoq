@@ -61,6 +61,11 @@ async def admin_settings(message: types.Message):
     )
     await message.answer(text, parse_mode="Markdown")
 
+@router.message(F.text == "🏠 Asosiy menyu")
+async def back_to_main(message: types.Message):
+    from keyboards.menu import get_main_menu
+    await message.answer("🏠 Asosiy menyuga qaytdingiz.", reply_markup=get_main_menu())
+
 @router.message(F.text == "📁 Excel yuklab olish")
 async def export_excel(message: types.Message):
     from services.api_client import download_excel_api

@@ -1,5 +1,7 @@
 from aiogram import Router, F, types
 from services.api_client import get_admin_dashboard_api, manage_admins_api
+from aiogram.fsm.context import FSMContext
+from states.admin_state import AdminState
 
 router = Router()
 
@@ -35,13 +37,33 @@ async def admin_list(message: types.Message):
     await message.answer(text, reply_markup=kb, parse_mode="Markdown")
 
 @router.callback_query(F.data == "add_admin_init")
-async def add_admin_init(callback: types.CallbackQuery):
+async def add_admin_init(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(AdminState.waiting_for_admin_id)
     await callback.message.answer(
         "📝 Yangi admin qo'shish uchun uning **Telegram ID** raqamini yuboring.\n\n"
         "ℹ️ Eslatma: Foydalanuvchi avval botdan o'z profili bilan ro'yxatdan o'tgan bo'lishi shart."
     )
-    # Note: Simplified here, would usually use FSM to catch the ID
-    # For now, I'll just explain. To keep it professional, I'll add the FSM state below.
+
+@router.message(AdminState.waiting_for_admin_id)
+async def process_add_admin(message: types.Message, state: FSMContext):
+    if not message.text.isdigit():
+        return await message.answer("❌ Telegram ID faqat raqamlardan iborat bo'lishi kerak.")
+    
+    status, data = await manage_admins_api(
+        str(message.from_user.id), 
+        action="add", 
+        target_tg_id=message.text,
+        target_username="Noma'lum"
+    )
+    
+    if status == 200:
+        await message.answer(f"✅ Foydalanuvchi ({message.text}) adminlar qatoriga qo'shildi.")
+        await state.clear()
+        await admin_list(message)
+    else:
+        error_msg = data.get('error') if data.get('error') else "Noma'lum xatolik"
+        await message.answer(f"❌ Xatolik: {error_msg}")
+        await state.clear()
 
 @router.callback_query(F.data.startswith("remove_admin:"))
 async def remove_admin(callback: types.CallbackQuery):
@@ -52,4 +74,5 @@ async def remove_admin(callback: types.CallbackQuery):
         await callback.answer("✅ Admin o'chirildi", show_alert=True)
         await admin_list(callback.message) # Refresh
     else:
-        await callback.answer(f"❌ Xatolik: {d.get('error')}", show_alert=True)
+        error_msg = d.get('error') if d.get('error') else "Noma'lum xatolik"
+        await callback.answer(f"❌ Xatolik: {error_msg}", show_alert=True)
