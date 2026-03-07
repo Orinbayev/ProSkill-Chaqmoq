@@ -63,7 +63,7 @@ def forgot_password_init(request):
                 request.session['auth_potential_user_ids'] = list(users.values_list('id', flat=True))
                 request.session['auth_flow_type'] = 'reset'
                 request.session['auth_identifier'] = phone
-                return redirect("accounts:forgot_password_verify_choice")
+                return redirect("forgot_password_verify_choice")
             else:
                 messages.error(request, "Bu telefon raqam bo'yicha foydalanuvchi topilmadi.")
         
@@ -77,7 +77,7 @@ def forgot_password_init(request):
                     request.session['auth_flow_type'] = 'reset'
                     record_activity(user, "Password reset code requested (via Email)", request=request)
                     messages.success(request, msg)
-                    return redirect("accounts:forgot_password_verify")
+                    return redirect("forgot_password_verify")
                 else:
                     messages.error(request, msg)
             else:
@@ -96,7 +96,7 @@ def phone_login_init(request):
             request.session['auth_potential_user_ids'] = list(users.values_list('id', flat=True))
             request.session['auth_flow_type'] = 'login'
             request.session['auth_identifier'] = phone
-            return redirect("accounts:forgot_password_verify_choice")
+            return redirect("forgot_password_verify_choice")
         else:
             messages.error(request, "Bu telefon raqam bo'yicha foydalanuvchi topilmadi.")
             
@@ -106,7 +106,7 @@ def forgot_password_verify_choice(request):
     """Page to select WHICH user profile is logging in/resetting."""
     user_ids = request.session.get('auth_potential_user_ids')
     if not user_ids:
-        return redirect("accounts:login")
+        return redirect("login")
         
     users = User.objects.filter(id__in=user_ids)
     return render(request, "accounts/forgot_password_verify_choice.html", {"users": users})
@@ -125,13 +125,13 @@ def forgot_password_confirm_choice(request):
                 # Keep auth_flow_type from session
                 record_activity(user, f"{request.session.get('auth_flow_type')} code requested after profile selection", request=request)
                 messages.success(request, msg)
-                return redirect("accounts:forgot_password_verify")
+                return redirect("forgot_password_verify")
             else:
                 messages.error(request, msg)
         else:
             messages.error(request, "Xavfsizlik yuzasidan xatolik yuz berdi.")
             
-    return redirect("accounts:forgot_password_verify_choice")
+    return redirect("forgot_password_verify_choice")
 
 def forgot_password_verify(request):
     """Shared code verification page."""
