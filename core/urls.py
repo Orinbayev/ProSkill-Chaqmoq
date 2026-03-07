@@ -1,5 +1,5 @@
 from django.urls import path, include
-from . import views, api_views, api_dashboard
+from . import views, api_views, api_dashboard, trash
 from accounts import views as accounts_views
 
 app_name = 'core'
@@ -51,5 +51,12 @@ urlpatterns = [
     path('dashboard/stats/', views.dashboard_stats_premium, name='dashboard_stats_premium'),
     path('dashboard/students/low-activity/', views.low_activity_students, name='low_activity_students'),
     path('notifications/broadcast/', views.notification_broadcast, name="notification_broadcast"),
+
+    # ✅ Trash & Soft Delete
+    path('trash/', trash.deleted_items_list, name='deleted_items'),
+    path('trash/<str:model_key>/<int:pk>/restore/', trash.restore_item, name='restore_item'),
+    path('trash/<str:model_key>/<int:pk>/hard-delete/', trash.hard_delete_item, name='hard_delete_item'),
+    path('trash/toggle-access/', views.toggle_manager_trash_access, name='toggle_manager_trash_access'),
+    path('trash/manager-access/<int:user_id>/', trash.toggle_manager_user_trash_access, name='toggle_manager_user_trash_access'),
 ]
 

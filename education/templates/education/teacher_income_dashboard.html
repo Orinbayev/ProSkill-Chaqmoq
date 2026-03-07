@@ -27,12 +27,12 @@
                     <form method="get" class="d-flex gap-2 flex-wrap justify-content-center m-0">
                         <select name="year" class="form-select-glass" onchange="this.form.submit()">
                             {% for y in years %}
-                            <option value="{{ y }}" {% if y==selected_year %}selected{% endif %}>{{ y }}-yil</option>
+                            <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}-yil</option>
                             {% endfor %}
                         </select>
                         <select name="month" class="form-select-glass" onchange="this.form.submit()">
                             {% for m_id, m_name in months_list %}
-                            <option value="{{ m_id }}" {% if m_id==selected_month %}selected{% endif %}>{{ m_name }}
+                            <option value="{{ m_id }}" {% if m_id == selected_month %}selected{% endif %}>{{ m_name }}
                             </option>
                             {% endfor %}
                         </select>
@@ -95,7 +95,7 @@
                     </div>
 
                     <!-- Kutilayotgan prognoz qismi -->
-                    <div class="d-none d-sm-block bg-white opacity-25 mx-4" style="width: 2px; height: 60px;"></div>
+                    <!-- <div class="d-none d-sm-block bg-white opacity-25 mx-4" style="width: 2px; height: 60px;"></div>
 
                     <div id="expectedIncomeContainer" class="text-end mt-3 mt-sm-0 flex-grow-1 flex-sm-grow-0">
                         <div class="text-warning small mb-1 text-uppercase fw-bold"><i
@@ -103,7 +103,7 @@
                         <h1 class="fw-black text-warning mb-0">
                             <span class="spinner-border spinner-border-sm" role="status"></span>
                         </h1>
-                    </div>
+                    </div> -->
                 </div>
             </div>
         </div>

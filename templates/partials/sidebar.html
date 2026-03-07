@@ -319,6 +319,14 @@
       <span class="si-text">Bo‘limlar</span>
     </a>
 
+    {% if request.user.role == 'director' or request.user.is_superuser or request.center.manager_can_access_trash %}
+    <a href="{% url 'core:deleted_items' %}" class="sidebar-item {% if vn == 'core:deleted_items' %}active{% endif %}"
+      data-title="O'chirilganlar">
+      <span class="si-ico"><i class="fa-solid fa-trash-can"></i></span>
+      <span class="si-text">O‘chirilganlar</span>
+    </a>
+    {% endif %}
+
     <div class="sidebar-item-group">
       <div class="sidebar-item" id="manageMenuBtn" onclick="toggleManageMenu(this)" data-title="Boshqarish">
         <span class="si-ico"><i class="fa-solid fa-list-check"></i></span>

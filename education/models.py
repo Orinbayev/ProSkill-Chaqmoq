@@ -13,13 +13,14 @@ from django.db import models
 from django.conf import settings
 from django.db.models import Sum
 from django.db.models import Q
+from core.soft_delete import SoftDeleteMixin
 
 # education/models.py
 from django.db import models
 from django.conf import settings
 
 
-class Group(models.Model):
+class Group(SoftDeleteMixin, models.Model):
     LANG = "lang"
     IT = "it"
     CATEGORY_CHOICES = (
@@ -122,7 +123,7 @@ class GroupStudent(models.Model):
 
 
 
-class Enrollment(models.Model):
+class Enrollment(SoftDeleteMixin, models.Model):
     group = models.ForeignKey(
         "education.Group",
         on_delete=models.CASCADE,
@@ -214,7 +215,7 @@ class Enrollment(models.Model):
     
 
     
-class Payment(models.Model):
+class Payment(SoftDeleteMixin, models.Model):
     PAYMENT_TYPES = (
         ("cash", "Naqd"),
         ("card", "Karta"),
@@ -408,7 +409,7 @@ class AttendanceHistory(models.Model):
         return f"{self.student.get_full_name()} — {self.date} — {'✅' if self.is_present else '❌'}"
 
 
-class Category(models.Model):
+class Category(SoftDeleteMixin, models.Model):
     """Guruhlar kategoriyasi (masalan: Tillar, IT, Dizayn...)"""
     name = models.CharField(max_length=100)
     center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True)
@@ -510,7 +511,7 @@ class TuitionMonth(models.Model):
         return f"enr#{self.enrollment_id} - {self.month} - {self.fee_amount}"
 
 
-class PaymentAllocation(models.Model):
+class PaymentAllocation(SoftDeleteMixin, models.Model):
     """
     Payment qaysi oy(lar)ni yopganini yozib boradi.
     Masalan: 600k payment -> Jan 550k + Feb 50k

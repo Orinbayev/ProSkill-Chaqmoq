@@ -4,13 +4,14 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from core.soft_delete import SoftDeleteMixin
 
 User = get_user_model()
 
 # ===================================
 # 1️⃣ MAHSULOT MODELI
 # ===================================
-class Product(models.Model):
+class Product(SoftDeleteMixin, models.Model):
     nom = models.CharField(max_length=150)
     narx_chaqmoq = models.PositiveIntegerField(help_text="Mahsulot narxi (chaqmoqda)")
     narx_som = models.PositiveIntegerField(default=0, help_text="Mahsulot narxi (so‘mda)")

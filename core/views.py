@@ -12,7 +12,7 @@ import openpyxl
 from openpyxl.styles import Font, Alignment
 from openpyxl import load_workbook
 
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import get_user_model, update_session_auth_hash
@@ -68,7 +68,10 @@ def _try_center_filter(qs, center, lookups: list[str]):
         return qs.none()
     for lk in lookups:
         try:
-            return qs.filter(**{lk: center})
+            filtered_qs = qs.filter(**{lk: center})
+            if _has_field(qs.model, "is_deleted"):
+                filtered_qs = filtered_qs.filter(is_deleted=False)
+            return filtered_qs
         except FieldError:
             continue
     return qs.none()
@@ -85,14 +88,18 @@ def _filter_center(qs, center):
         return qs.none()
 
     m = qs.model
+    filtered_qs = qs.none()
     if _has_field(m, "center"):
-        return qs.filter(center=center)
-    if _has_field(m, "student"):
-        return qs.filter(student__center=center)
-    if _has_field(m, "group"):
-        return qs.filter(group__center=center)
+        filtered_qs = qs.filter(center=center)
+    elif _has_field(m, "student"):
+        filtered_qs = qs.filter(student__center=center)
+    elif _has_field(m, "group"):
+        filtered_qs = qs.filter(group__center=center)
 
-    return qs.none()  # ✅ leak bo'lmasin
+    if _has_field(m, "is_deleted"):
+        filtered_qs = filtered_qs.filter(is_deleted=False)
+
+    return filtered_qs
 
 
 def _staff_only(request) -> bool:
@@ -100,15 +107,37 @@ def _staff_only(request) -> bool:
     return bool(u and (u.is_superuser or getattr(u, "role", None) in ("manager", "director")))
 
 
-def _tenant_or_403(request):
-    """
-    Center yo‘q bo‘lsa — stats/listlarda leak bo‘lmasligi uchun qat'iy to‘xtatamiz.
-    Student/Teacher dashboardlarida ham center kerak bo'lsa shu ishlatiladi.
-    """
-    center = _get_center(request)
-    if not center and not request.user.is_superuser:
-        raise PermissionDenied("Center biriktirilmagan.")
     return center
+
+
+@login_required
+@require_POST
+def toggle_manager_trash_access(request):
+    if not (request.user.is_superuser or request.user.role == 'director'):
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({"ok": False, "error": "Permission denied"}, status=403)
+        raise PermissionDenied
+    
+    center = _get_center(request)
+    if not center:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({"ok": False, "error": "Center not found"}, status=404)
+        return JsonResponse({"ok": False, "error": "Center not found"}, status=404)
+        
+    center.manager_can_access_trash = not center.manager_can_access_trash
+    center.save()
+    
+    status_text = "yoqildi" if center.manager_can_access_trash else "o'chirildi"
+    
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({
+            "ok": True, 
+            "status": center.manager_can_access_trash,
+            "message": f"Managerlar uchun trash ruxsati {status_text} ✅"
+        })
+    
+    messages.success(request, f"Managerlar uchun trash ruxsati {status_text} ✅")
+    return redirect(request.META.get('HTTP_REFERER', 'core:home'))
 
 
 def _assert_same_center(obj, center):
@@ -348,7 +377,7 @@ def teacher_delete(request, pk):
     _assert_same_center(teacher, center)
 
     if request.method == "POST":
-        teacher.delete()
+        teacher.delete(deleted_by=request.user)
         messages.success(request, "O‘qituvchi o‘chirildi ✅")
         return redirect("core:teacher_list")
 
@@ -541,7 +570,7 @@ def parent_delete(request, pk):
     _assert_same_center(parent, center)
     
     if request.method == "POST":
-        parent.delete()
+        parent.delete(deleted_by=request.user)
         messages.success(request, "Ota-ona o'chirildi ✅")
         return redirect("core:stat_parents")
     return redirect("core:stat_parents")
@@ -804,13 +833,17 @@ def archive_student(request, pk):
         # 1. Archive User
         student.is_archived = True
         student.save(update_fields=["is_archived"])
-
+        
+        # ✅ Also mark as soft-deleted for the "O'chirilganlar" section
+        student.delete(deleted_by=request.user)
+        
         # 2. Deactivate Enrollments (Remove from active groups lists)
         # Enrollment has is_active field? Let's check model. 
         # Yes, education/models.py Enrollment has is_active field.
         Enrollment.objects.filter(student=student, is_active=True).update(is_active=False)
 
-    return HttpResponse(status=200)
+    messages.warning(request, f"O‘quvchi {student.get_full_name()} arxivga olindi va o'chirilganlar ro'yxatiga o'tkazildi.")
+    return redirect("core:stat_students")
 
 
 @login_required
@@ -830,10 +863,14 @@ def restore_student(request, pk):
         student.is_archived = False
         student.save(update_fields=["is_archived"])
         
+        # ✅ Also restore from soft-deleted state
+        student.restore(restored_by=request.user)
+        
         # ✅ Restore enrollments (activate them back)
         Enrollment.objects.filter(student=student, center=center).update(is_active=True)
 
-    return HttpResponse(status=200)
+    messages.success(request, f"O‘quvchi {student.get_full_name()} muvaffaqiyatli tiklandi.")
+    return redirect("core:stat_students")
 
 
 @login_required
@@ -870,9 +907,10 @@ def hard_delete_student(request, pk):
         Attendance.objects.filter(student=student).delete()
         
         # 6. Foydalanuvchini o'chiramiz
-        student.delete()
+        student.hard_delete()
 
-    return HttpResponse(status=200)
+    messages.success(request, "Ma'lumotlar butunlay o'chirildi.")
+    return redirect("core:stat_students")
 
 
 # =============================================================================

@@ -5,11 +5,10 @@ from django.utils import timezone
 import math
 
 
-# accounts/models.py
-from django.db import models
 from django.utils.text import slugify
+from core.soft_delete import SoftDeleteMixin
 
-class Center(models.Model):
+class Center(SoftDeleteMixin, models.Model):
     class Plan(models.TextChoices):
         FREE = "FREE", "FREE"
         STANDARD = "STANDARD", "STANDARD"
@@ -101,6 +100,9 @@ class Center(models.Model):
     promo_start = models.DateField(null=True, blank=True)
     promo_end = models.DateField(null=True, blank=True)
 
+    # ✅ Trash settings
+    manager_can_access_trash = models.BooleanField(default=False, verbose_name="Manager trashga kira olsinmi?")
+
 
     STATUS_ACTIVE = "ACTIVE"
     STATUS_BLOCKED = "BLOCKED"
@@ -112,7 +114,7 @@ class Center(models.Model):
     ]
     status = models.CharField(max_length=12, choices=STATUS_CHOICES, default=STATUS_ACTIVE)
     expires_at = models.DateTimeField(null=True, blank=True)
-    is_deleted = models.BooleanField(default=False)
+    # is_deleted field is now provided by SoftDeleteMixin
     
     # ✅ System Center - o'chirib bo'lmaydi (asosiy markaz)
     is_system = models.BooleanField(default=False, help_text="Tizim markazi - o'chirib bo'lmaydi") 
@@ -212,7 +214,11 @@ class Center(models.Model):
 
 
 
+from core.soft_delete import SoftDeleteQuerySet
+
 class UserManager(BaseUserManager):
+    def get_queryset(self):
+        return SoftDeleteQuerySet(self.model, using=self._db).filter(is_deleted=False)
     use_in_migrations = True
 
     def _create_user(self, email, password, **extra_fields):
@@ -257,7 +263,7 @@ class Roles(models.TextChoices):
     OTA_ONA = "parent", _("Ota-ona")
 
 
-class User(AbstractUser):
+class User(SoftDeleteMixin, AbstractUser):
     # ✅ username ishlatilmaydi
     username = None
 
@@ -276,6 +282,9 @@ class User(AbstractUser):
     reset_code_expire_at = models.DateTimeField(null=True, blank=True)
     reset_code_used = models.BooleanField(default=False)
     reset_attempts = models.PositiveIntegerField(default=0)
+
+    # ✅ Special Permissions
+    can_access_trash = models.BooleanField(default=False, verbose_name="Trash bo'limiga kira oladimi?")
     reset_last_attempt = models.DateTimeField(null=True, blank=True)
 
     # ✅ profil rasm

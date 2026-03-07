@@ -772,7 +772,7 @@ def enrollment_delete(request, enrollment_id: int):
     if request.method == "POST":
         student_name = f"{enr.student.ism} {enr.student.familya}"
         group_name = getattr(enr.group, "nom", "")
-        enr.delete()
+        enr.delete(deleted_by=request.user)
         messages.success(request, f"🗑️ {student_name} ({group_name}) guruhdan o‘chirildi.")
         return redirect(next_url)
 
@@ -2020,9 +2020,9 @@ def payment_delete(request, payment_id):
     
     try:
         with transaction.atomic():
-            # PaymentAllocation larni ham o'chiramiz (cascade bo'lmasa)
-            payment.allocations.all().delete()
-            payment.delete()
+            # ✅ Soft delete allocations as well
+            payment.allocations.all().delete(deleted_by=request.user)
+            payment.delete(deleted_by=request.user)
                  
         messages.success(request, "✅ To'lov o'chirildi. O'quvchi qarzdorlar ro'yxatiga qaytadi.")
     except Exception as e:
@@ -2131,7 +2131,7 @@ def group_delete_confirm(request, id):
         qs = qs.filter(center=center)
     group = get_object_or_404(qs, id=id)
     if request.method == "POST":
-        group.delete()
+        group.delete(deleted_by=request.user)
         return redirect("education:groups_home")
     return render(request, "education/group_delete_confirm.html", {"g": group})
 
@@ -2183,7 +2183,7 @@ def delete_category(request, id):
         cat = get_object_or_404(Category, center=center, id=id)
 
     if request.method == "POST":
-        cat.delete()
+        cat.delete(deleted_by=request.user)
         messages.success(request, "Bo‘lim o‘chirildi 🗑️")
         return redirect("education:groups_home")
     return render(request, "education/category_delete_confirm.html", {"cat": cat})
