@@ -37,7 +37,7 @@
   .wrap {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 30px 20px;
+    padding: 24px 20px;
   }
 
   /* =========================
@@ -49,7 +49,7 @@
     align-items: center;
     margin-bottom: 20px;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: 12px;
   }
 
   .title-group {
@@ -59,21 +59,21 @@
   }
 
   .icon-square {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     background: rgba(245, 158, 11, 0.1);
     border: 1px solid var(--primary-glow);
-    border-radius: 12px;
+    border-radius: 10px;
     display: grid;
     place-items: center;
     color: var(--primary);
-    font-size: 20px;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    font-size: 18px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
   }
 
   .page-title {
     margin: 0;
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 800;
     letter-spacing: -0.5px;
     background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
@@ -83,9 +83,9 @@
   }
 
   .page-subtitle {
-    margin: 4px 0 0;
+    margin: 2px 0 0;
     color: var(--text-muted);
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
   }
 
@@ -100,11 +100,11 @@
   }
 
   .btn-premium {
-    height: 42px;
+    height: 38px;
     padding: 0 18px;
-    border-radius: 12px;
+    border-radius: 10px;
     font-weight: 700;
-    font-size: 13px;
+    font-size: 12.5px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -138,11 +138,11 @@
   }
 
   .stats-pill {
-    padding: 8px 16px;
+    padding: 6px 12px;
     border-radius: 100px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--border);
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     color: var(--text-muted);
   }
@@ -156,19 +156,19 @@
      ========================= */
   .tabs-container {
     display: flex;
-    gap: 6px;
-    margin-bottom: 18px;
+    gap: 4px;
+    margin-bottom: 12px;
     background: rgba(255,255,255,0.02);
-    padding: 4px;
-    border-radius: 12px;
+    padding: 3px;
+    border-radius: 10px;
     border: 1px solid var(--border);
     width: fit-content;
   }
 
   .tab-item {
-    padding: 8px 18px;
-    border-radius: 10px;
-    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
     font-weight: 700;
     color: var(--text-muted);
     text-decoration: none !important;
@@ -200,8 +200,8 @@
     display: flex;
     gap: 12px;
     align-items: center;
-    margin-bottom: 20px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    margin-bottom: 12px;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.2);
     backdrop-filter: blur(10px);
   }
 
@@ -222,13 +222,13 @@
 
   .search-input {
     width: 100%;
-    height: 44px;
+    height: 42px;
     background: rgba(2, 6, 23, 0.4);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 0 18px 0 46px;
+    border-radius: 10px;
+    padding: 0 16px 0 44px;
     color: white;
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 600;
     outline: none;
     transition: all 0.3s;
@@ -236,7 +236,7 @@
 
   .search-input:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
     background: rgba(2, 6, 23, 0.6);
   }
 
@@ -246,7 +246,7 @@
 
   .num-input {
     width: 100%;
-    height: 44px;
+    height: 42px;
     background: rgba(2, 6, 23, 0.4);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -259,9 +259,9 @@
   }
 
   .btn-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
     background: rgba(255,255,255,0.03);
     border: 1px solid var(--border);
     color: var(--text-muted);
@@ -289,8 +289,8 @@
   .group-card {
     background: linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 12px 18px;
+    border-radius: var(--radius);
+    padding: 10px 18px;
     position: relative;
     overflow: hidden;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -298,7 +298,8 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 18px;
+    gap: 16px;
+    min-height: 64px;
     backdrop-filter: blur(12px);
     animation: cardIn 0.6s backwards;
   }
@@ -319,10 +320,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    padding-right: 18px;
+    gap: 4px;
+    padding-right: 14px;
     border-right: 1px solid rgba(255,255,255,0.05);
-    min-width: 68px;
+    min-width: 60px;
   }
 
   .card-no {
@@ -334,14 +335,14 @@
   }
 
   .card-icon-v2 {
-    width: 38px;
-    height: 38px;
+    width: 32px;
+    height: 32px;
     background: rgba(59, 130, 246, 0.1);
-    border-radius: 10px;
+    border-radius: 8px;
     display: grid;
     place-items: center;
     color: var(--blue);
-    font-size: 16px;
+    font-size: 14px;
   }
 
   .group-card:hover .card-icon-v2 {
@@ -364,7 +365,7 @@
   }
 
   .group-name {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 800;
     color: white;
     margin: 0;
@@ -374,7 +375,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text-muted);
   }
@@ -393,9 +394,9 @@
   }
 
   .action-btn-v2 {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
     display: grid;
     place-items: center;
     font-size: 13px;
@@ -571,8 +572,8 @@
   </div>
 
   {% if user.is_superuser or user.role == 'director' or user.role == 'manager' %}
-  <div style="display:flex; justify-content:center; margin-top:40px;">
-    <a href="{% url 'education:group_create_category' category.id %}" class="btn-premium btn-primary" style="padding: 0 40px; height: 56px; font-size: 16px;">
+  <div style="display:flex; justify-content:center; margin-top:24px;">
+    <a href="{% url 'education:group_create_category' category.id %}" class="btn-premium btn-primary" style="padding: 0 32px; height: 44px; font-size: 14px;">
       <i class="fa-solid fa-plus"></i> Yangi guruh yaratish
     </a>
   </div>

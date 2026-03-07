@@ -37,7 +37,7 @@
   .wrap {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 30px 20px;
+    padding: 24px 20px;
   }
 
   /* =========================
@@ -47,9 +47,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
     flex-wrap: wrap;
-    gap: 20px;
+    gap: 12px;
   }
 
   .title-group {
@@ -59,21 +59,21 @@
   }
 
   .icon-square {
-    width: 52px;
-    height: 52px;
+    width: 40px;
+    height: 40px;
     background: rgba(245, 158, 11, 0.1);
     border: 1px solid var(--primary-glow);
-    border-radius: 14px;
+    border-radius: 10px;
     display: grid;
     place-items: center;
     color: var(--primary);
-    font-size: 24px;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    font-size: 18px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
   }
 
   .page-title {
     margin: 0;
-    font-size: 28px;
+    font-size: 20px;
     font-weight: 800;
     letter-spacing: -0.5px;
     background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
@@ -83,9 +83,9 @@
   }
 
   .page-subtitle {
-    margin: 4px 0 0;
+    margin: 2px 0 0;
     color: var(--text-muted);
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
   }
 
@@ -100,11 +100,11 @@
   }
 
   .btn-premium {
-    height: 48px;
-    padding: 0 24px;
-    border-radius: 14px;
+    height: 38px;
+    padding: 0 18px;
+    border-radius: 10px;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 12.5px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -138,11 +138,11 @@
   }
 
   .stats-pill {
-    padding: 8px 16px;
+    padding: 6px 12px;
     border-radius: 100px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--border);
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     color: var(--text-muted);
   }
@@ -158,12 +158,12 @@
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 16px;
+    padding: 10px 14px;
     display: flex;
-    gap: 16px;
+    gap: 12px;
     align-items: center;
-    margin-bottom: 30px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    margin-bottom: 12px;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.2);
     backdrop-filter: blur(10px);
   }
 
@@ -184,13 +184,13 @@
 
   .search-input {
     width: 100%;
-    height: 52px;
+    height: 42px;
     background: rgba(2, 6, 23, 0.4);
     border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 0 20px 0 50px;
+    border-radius: 10px;
+    padding: 0 16px 0 44px;
     color: white;
-    font-size: 15px;
+    font-size: 13.5px;
     font-weight: 600;
     outline: none;
     transition: all 0.3s;
@@ -198,14 +198,14 @@
 
   .search-input:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
     background: rgba(2, 6, 23, 0.6);
   }
 
   .btn-icon {
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
     background: rgba(255,255,255,0.03);
     border: 1px solid var(--border);
     color: var(--text-muted);
@@ -234,7 +234,7 @@
     background: linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 16px 24px;
+    padding: 10px 20px;
     position: relative;
     overflow: hidden;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -242,8 +242,8 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 24px;
-    min-height: 100px;
+    gap: 20px;
+    min-height: 70px;
     backdrop-filter: blur(12px);
     animation: cardIn 0.6s backwards;
   }
@@ -278,42 +278,42 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     position: relative;
     z-index: 2;
-    padding-right: 20px;
+    padding-right: 16px;
     border-right: 1px solid rgba(255,255,255,0.05);
   }
 
   .card-icon {
-    width: 48px;
-    height: 48px;
+    width: 36px;
+    height: 36px;
     background: rgba(255,255,255,0.05);
-    border-radius: 12px;
+    border-radius: 10px;
     display: grid;
     place-items: center;
     color: var(--primary);
-    font-size: 20px;
+    font-size: 16px;
     transition: all 0.3s;
   }
 
   .category-card:hover .card-icon {
     background: var(--primary);
     color: #000;
-    transform: rotate(10deg);
+    transform: rotate(8deg);
   }
 
   .card-count {
     background: rgba(34, 197, 94, 0.1);
     border: 1px solid rgba(34, 197, 94, 0.2);
-    padding: 6px 14px;
+    padding: 4px 10px;
     border-radius: 30px;
-    font-size: 13px;
+    font-size: 11.5px;
     font-weight: 800;
     color: var(--green);
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
   }
 
   .card-count .pulse {
@@ -338,16 +338,16 @@
   }
 
   .card-title {
-    font-size: 20px;
+    font-size: 17px;
     font-weight: 800;
-    margin: 0 0 8px;
+    margin: 0 0 4px;
     color: white;
   }
 
   .card-desc {
-    font-size: 14px;
+    font-size: 12px;
     color: var(--text-muted);
-    line-height: 1.6;
+    line-height: 1.5;
     margin: 0;
   }
 
@@ -355,20 +355,20 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     position: relative;
     z-index: 2;
-    padding-left: 20px;
+    padding-left: 16px;
     border-left: 1px solid rgba(255,255,255,0.05);
   }
 
   .action-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
     display: grid;
     place-items: center;
-    font-size: 14px;
+    font-size: 13px;
     background: rgba(255,255,255,0.03);
     border: 1px solid var(--border);
     color: var(--text-muted);

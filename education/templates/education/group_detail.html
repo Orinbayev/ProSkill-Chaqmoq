@@ -6,760 +6,449 @@
 
 <style>
   :root {
-    --bg0: #050814;
-    --bg1: #070b14;
-
-    --panelA: rgba(17, 24, 39, .66);
-    --panelB: rgba(2, 6, 23, .52);
-
-    --line: rgba(255, 255, 255, .10);
-    --line2: rgba(255, 255, 255, .06);
-
-    --text: #e5e7eb;
-    --muted: #94a3b8;
-
-    --blue: #0095ff;
-    --blue2: #38bdf8;
-
-    --green: #16a34a;
+    --bg-dark: #020617;
+    --bg-card: #0f172a;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-hover: rgba(255, 255, 255, 0.15);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --primary: #3b82f6;
+    --primary-glow: rgba(59, 130, 246, 0.3);
+    --green: #22c55e;
     --red: #ef4444;
-    --orange: #f97316;
-
-    --shadow: 0 26px 90px rgba(0, 0, 0, .55);
-    --r14: 14px;
-    --r18: 18px;
-    --r22: 22px;
-
-    --ringBlue: 0 0 0 3px rgba(0, 149, 255, .18);
-    --ringAmber: 0 0 0 3px rgba(251, 191, 36, .18);
-    --ringRed: 0 0 0 3px rgba(239, 68, 68, .18);
-
-    --padX: clamp(12px, 2.6vw, 24px);
-    --padY: clamp(12px, 2.4vw, 20px);
-  }
-
-  * {
-    box-sizing: border-box;
-  }
-
-  html,
-  body {
-    height: 100%;
+    --orange: #f59e0b;
+    --radius: 16px;
+    --font: 'Inter', system-ui, -apple-system, sans-serif;
   }
 
   body {
-    font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    color: var(--text);
-    overflow-x: hidden;
-  }
-
-  :focus-visible {
-    outline: none;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    * {
-      transition: none !important;
-      animation: none !important;
-      scroll-behavior: auto !important;
-    }
-  }
-
-  .cq-page {
-    min-height: 100vh;
-    color: var(--text);
-    background:
-      radial-gradient(900px circle at 12% -10%, rgba(0, 149, 255, .10), transparent 52%),
-      radial-gradient(900px circle at 92% 10%, rgba(34, 197, 94, .08), transparent 56%),
-      radial-gradient(900px circle at 55% 120%, rgba(249, 115, 22, .08), transparent 60%),
-      linear-gradient(180deg, var(--bg1) 0%, var(--bg0) 60%, #04040c 100%);
+    background: var(--bg-dark);
+    color: var(--text-main);
+    font-family: var(--font);
+    background-image: 
+      radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.05) 0%, transparent 35%),
+      radial-gradient(circle at 100% 100%, rgba(245, 158, 11, 0.03) 0%, transparent 35%);
+    background-attachment: fixed;
   }
 
   .cq-wrap {
-    width: min(1850px, 100%);
+    max-width: 1600px;
     margin: 0 auto;
+    padding: 20px;
   }
 
-  .cq-card {
-    position: relative;
-    border-radius: var(--r22);
-    border: 1px solid rgba(255, 255, 255, .08);
-    background: linear-gradient(180deg, var(--panelA), var(--panelB));
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    overflow: hidden;
+  /* =========================
+     COMPACT CARDS
+     ========================= */
+  .glass-panel {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    margin-bottom: 12px;
   }
 
-  .cq-card::before {
-    content: "";
-    position: absolute;
-    inset: -2px;
-    background:
-      radial-gradient(900px circle at 18% 8%, rgba(0, 149, 255, .14), transparent 55%),
-      radial-gradient(900px circle at 88% 18%, rgba(34, 197, 94, .10), transparent 60%),
-      radial-gradient(900px circle at 60% 120%, rgba(249, 115, 22, .09), transparent 60%);
-    opacity: .42;
-    pointer-events: none;
-    filter: blur(16px);
+  /* =========================
+     HEADER 
+     ========================= */
+  .header-mini {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
   }
 
-  .cq-card>* {
-    position: relative;
-    z-index: 1;
+  .title-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
 
-  .cq-input,
-  .cq-select {
-    height: 44px;
-    border-radius: 14px;
-    border: 1px solid rgba(255, 255, 255, .12);
-    background: rgba(255, 255, 255, .05);
-    color: #fff;
-    outline: none;
-    transition: .14s ease;
+  .back-link {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    display: grid;
+    place-items: center;
+    color: var(--text-muted);
+    transition: all 0.2s;
   }
 
-  .cq-input {
-    padding: 10px 12px;
-    font-size: 13px;
-    font-weight: 900;
-    letter-spacing: .2px;
-    width: 100%;
-    max-width: 100%;
+  .back-link:hover {
+    background: rgba(255,255,255,0.1);
+    color: white;
+    transform: translateX(-2px);
   }
 
-  .cq-select {
-    padding: 9px 12px;
-    font-size: 13px;
-    font-weight: 900;
-    letter-spacing: .2px;
-    width: 100%;
-    max-width: 100%;
-    appearance: none;
-    -webkit-appearance: none;
-    background-image:
-      linear-gradient(45deg, transparent 50%, rgba(251, 191, 36, .95) 50%),
-      linear-gradient(135deg, rgba(251, 191, 36, .95) 50%, transparent 50%),
-      linear-gradient(to right, rgba(255, 255, 255, .12), rgba(255, 255, 255, .12));
-    background-position:
-      calc(100% - 18px) 50%,
-      calc(100% - 12px) 50%,
-      calc(100% - 42px) 50%;
-    background-size: 6px 6px, 6px 6px, 1px 22px;
-    background-repeat: no-repeat;
-    padding-right: 48px;
+  .main-title {
+    font-size: 20px;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.5px;
   }
 
-  .cq-input:focus,
-  .cq-select:focus {
-    box-shadow: var(--ringBlue);
-    border-color: rgba(0, 149, 255, .45);
-    background: rgba(255, 255, 255, .07);
-  }
-
-  input[type="date"]::-webkit-calendar-picker-indicator {
-    filter: invert(1);
-    cursor: pointer;
-  }
-
-  .cq-btn {
-    height: 44px;
-    border-radius: 14px;
-    padding: 0 14px;
+  .sub-title {
     font-size: 12px;
-    font-weight: 950;
-    letter-spacing: .2px;
-    border: 1px solid rgba(255, 255, 255, .10);
-    transition: transform .14s ease, filter .14s ease, box-shadow .14s ease, background .14s ease;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  /* =========================
+     BUTTONS (Ixcham)
+     ========================= */
+  .btn-ui {
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: 10px;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
     user-select: none;
     white-space: nowrap;
   }
 
-  .cq-btn:hover {
-    transform: translateY(-1px);
-  }
+  .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2); }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3); }
 
-  .cq-btn:active {
-    transform: translateY(0px) scale(.99);
-  }
+  .btn-danger-outline { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+  .btn-danger-outline:hover { background: rgba(239, 68, 68, 0.2); transform: translateY(-1px); }
+  .btn-danger-outline.rm-active { background: var(--red); color: white; border-color: transparent; }
 
-  .cq-btn:focus-visible {
-    box-shadow: var(--ringAmber);
-    border-color: rgba(251, 191, 36, .35);
-  }
-
-  .cq-btn-blue {
-    background: linear-gradient(180deg, rgba(0, 149, 255, .95), rgba(0, 149, 255, .82));
-    color: #fff;
-    box-shadow: 0 18px 38px rgba(0, 149, 255, .16);
-  }
-
-  .cq-btn-blue:hover {
-    filter: brightness(1.06);
-  }
-
-  .cq-btn-blue:focus-visible {
-    box-shadow: var(--ringBlue), 0 18px 38px rgba(0, 149, 255, .16);
-  }
-
-  .cq-btn-red-outline {
-    background: rgba(239, 68, 68, .10);
-    color: #ff8d8d;
-    border-color: rgba(239, 68, 68, .26);
-  }
-
-  .cq-btn-red-outline.rm-active {
-    background: rgba(239, 68, 68, .18);
-    border-color: rgba(239, 68, 68, .44);
-    color: #ffe1e1;
-  }
-
-  .cq-btn-red-outline:focus-visible {
-    box-shadow: var(--ringRed);
-    border-color: rgba(239, 68, 68, .55);
-  }
-
-  .cq-pill {
-    height: 40px !important;
-    padding: 0 14px !important;
-    font-size: 12px !important;
-    border-radius: 999px !important;
-    border: 1px solid rgba(255, 255, 255, .10) !important;
-  }
-
-  .cq-btn-green-pill {
-    background: rgba(22, 163, 74, .92);
-    color: #fff;
-    box-shadow: 0 12px 22px rgba(22, 163, 74, .14);
-  }
-
-  .cq-btn-red-pill {
-    background: rgba(239, 68, 68, .92);
-    color: #fff;
-    box-shadow: 0 12px 22px rgba(239, 68, 68, .14);
-  }
-
-  .cq-pill:focus-visible {
-    box-shadow: var(--ringBlue);
-    border-color: rgba(0, 149, 255, .35) !important;
-  }
-
-  .custom-checkbox {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 18px;
-    height: 18px;
-    border-radius: 7px;
-    border: 1.8px solid rgba(255, 255, 255, .28);
-    background: rgba(255, 255, 255, .03);
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transition: .12s ease;
-  }
-
-  .custom-checkbox:checked {
-    background: var(--blue);
-    border-color: rgba(0, 149, 255, .95);
-  }
-
-  .custom-checkbox:checked::after {
-    content: "✓";
-    color: #fff;
-    font-weight: 900;
-    font-size: 11px;
-    transform: translateY(-0.5px);
-  }
-
-  .custom-checkbox:focus-visible {
-    box-shadow: var(--ringBlue);
-  }
-
-  .cq-table thead tr {
-    background: rgba(255, 255, 255, .04);
-    border-bottom: 1px solid rgba(255, 255, 255, .08);
-  }
-
-  .cq-th {
-    padding: 12px 12px;
-    font-size: 10px;
-    font-weight: 950;
-    letter-spacing: .10em;
-    color: rgba(229, 231, 235, .85);
-    text-transform: uppercase;
-  }
-
-  .cq-td {
-    padding: 12px 12px;
-  }
-
-  .cq-row {
-    transition: .14s ease;
-    border-bottom: 1px solid rgba(255, 255, 255, .06);
-  }
-
-  .cq-row:hover {
-    background: rgba(255, 255, 255, .03);
-  }
-
-  .forced-row {
-    background-color: rgba(239, 68, 68, .07) !important;
-  }
-
-  .d-none {
-    display: none !important;
-  }
-
-  .balance-badge {
-    min-width: 54px;
-    padding: 6px 12px !important;
-    font-size: 12px;
-    font-weight: 950;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, .10);
-    line-height: 1;
-  }
-
-  .flash-pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 3px 10px;
-    border-radius: 999px;
-    font-weight: 950;
-    font-size: 11px;
-    border: 1px solid rgba(255, 255, 255, .10);
-    box-shadow: 0 10px 18px rgba(0, 0, 0, .22);
-    line-height: 1;
-    letter-spacing: .2px;
-  }
-
-  .flash-pill.plus {
-    color: #34d399;
-    background: rgba(16, 185, 129, .12);
-    border-color: rgba(16, 185, 129, .22);
-  }
-
-  .flash-pill.minus {
-    color: #fb7185;
-    background: rgba(244, 63, 94, .12);
-    border-color: rgba(244, 63, 94, .22);
-  }
-
-  .toast {
-    opacity: 0;
-    transform: translateX(20px);
-    transition: all .25s ease;
-  }
-
-  .toast.show {
-    opacity: 1;
-    transform: translateX(0);
-  }
-
-  .att-seg {
+  /* =========================
+     ATTENDANCE CONTROL
+     ========================= */
+  .attendance-bar {
     display: flex;
-    gap: 8px;
     align-items: center;
-    justify-content: center;
+    gap: 12px;
     flex-wrap: wrap;
   }
 
-  .att-btn {
-    height: 40px;
-    min-width: 92px;
+  .input-label-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(2, 6, 23, 0.4);
+    border: 1px solid var(--border);
+    border-radius: 10px;
     padding: 0 12px;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, .10);
-    background: rgba(255, 255, 255, .04);
-    color: rgba(229, 231, 235, .88);
-    font-weight: 950;
-    font-size: 12px;
-    letter-spacing: .2px;
-    transition: transform .12s ease, filter .12s ease, box-shadow .12s ease, background .12s ease;
-    user-select: none;
+    height: 38px;
   }
 
-  .att-btn:hover {
-    transform: translateY(-1px);
-    filter: brightness(1.06);
+  .date-picker {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    outline: none;
+    width: 130px;
   }
 
-  .att-btn:active {
-    transform: translateY(0) scale(.99);
+  .rule-select {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    outline: none;
+    padding-right: 20px;
+    cursor: pointer;
   }
 
-  .att-btn:focus-visible {
-    box-shadow: var(--ringBlue);
-    border-color: rgba(0, 149, 255, .45);
+  /* =========================
+     TABLE
+     ========================= */
+  .table-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
   }
 
-  .att-seg[data-status="present"] .att-btn.present {
-    background: rgba(0, 149, 255, .92);
-    border-color: rgba(0, 149, 255, .50);
-    color: #fff;
-    box-shadow: 0 12px 22px rgba(0, 149, 255, .14);
-  }
-
-  .att-seg[data-status="forced"] .att-btn.forced {
-    background: rgba(239, 68, 68, .92);
-    border-color: rgba(239, 68, 68, .45);
-    color: #fff;
-    box-shadow: 0 12px 22px rgba(239, 68, 68, .14);
-  }
-
-  .att-seg.loading .att-btn {
-    opacity: .55;
-    pointer-events: none;
-  }
-
-  .row-not-present .btn-add,
-  .row-not-present .btn-sub {
-    opacity: .40;
-    filter: saturate(.7);
-    pointer-events: none;
-  }
-
-  #group-table {
+  .student-table {
     width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
   }
 
-  #group-table tbody td {
+  .student-table th {
+    background: rgba(255,255,255,0.03);
+    padding: 10px 16px;
+    text-align: left;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .student-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.02);
     vertical-align: middle;
   }
 
-  #group-table a {
-    word-break: break-word;
+  .tr-student:hover {
+     background: rgba(255,255,255,0.02);
   }
 
-  .table-scroll {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+  .tr-student.forced-row { background: rgba(239, 68, 68, 0.05); }
+  .tr-student.row-not-present .student-actions { opacity: 0.3; pointer-events: none; }
+
+  /* =========================
+     NAME & INFO
+     ========================= */
+  .student-name {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--primary);
+    text-decoration: none !important;
   }
 
-  .table-scroll::-webkit-scrollbar {
-    height: 10px;
+  .student-email {
+    display: block;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-top: 1px;
   }
 
-  .table-scroll::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, .10);
-    border-radius: 999px;
+  /* =========================
+     ATTENDANCE TOGGLE
+     ========================= */
+  .att-switcher {
+    display: inline-flex;
+    background: rgba(0,0,0,0.2);
+    padding: 3px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
   }
 
-  .table-scroll::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, .05);
+  .att-btn-v2 {
+    height: 28px;
+    padding: 0 14px;
+    border-radius: 100px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s;
   }
 
-  @media (min-width: 768px) {
+  .att-switcher[data-status="present"] .att-btn-v2.present { background: var(--green); color: white; }
+  .att-switcher[data-status="forced"] .att-btn-v2.forced { background: var(--red); color: white; }
 
-    .cq-input,
-    .cq-select {
-      height: 38px;
-      border-radius: 12px;
-    }
-
-    .cq-btn {
-      height: 38px;
-      border-radius: 12px;
-      font-size: 11px;
-      padding: 0 12px;
-    }
-
-    .cq-pill {
-      height: 32px !important;
-      padding: 0 12px !important;
-      font-size: 11px !important;
-    }
-
-    .att-btn {
-      height: 30px;
-      min-width: 74px;
-      font-size: 11px;
-    }
-
-    .balance-badge {
-      padding: 4px 10px !important;
-      border-radius: 10px;
-    }
-
-    .cq-td {
-      padding: 10px 12px;
-    }
-
-    .cq-th {
-      padding: 10px 12px;
-    }
+  /* =========================
+     POINTS UI
+     ========================= */
+  .point-badge {
+    padding: 3px 10px;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 12px;
+    min-width: 48px;
+    text-align: center;
   }
 
-  @media (max-width: 430px) {
-    .cq-page {
-      padding-left: 12px !important;
-      padding-right: 12px !important;
-    }
+  .badge-pos { background: rgba(34, 197, 94, 0.1); color: var(--green); border: 1px solid rgba(34, 197, 94, 0.2); }
+  .badge-neg { background: rgba(239, 68, 68, 0.1); color: var(--red); border: 1px solid rgba(239, 68, 68, 0.2); }
 
-    .cq-card {
-      border-radius: 18px;
-    }
+  .action-pills {
+    display: flex;
+    gap: 6px;
+  }
 
-    .cq-th {
-      padding: 10px 10px;
-    }
+  .pill-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.03);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0;
+  }
 
-    .cq-td {
-      padding: 10px 10px;
-    }
+  .pill-btn:hover { background: rgba(255,255,255,0.08); transform: scale(1.05); }
+  .btn-plus-p:hover { color: var(--green); border-color: rgba(34, 197, 94, 0.3); }
+  .btn-minus-p:hover { color: var(--red); border-color: rgba(239, 68, 68, 0.3); }
+
+  /* =========================
+     MODALS & OTHER
+     ========================= */
+  .chaqmoq-pill {
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 6px;
+    margin-left: 4px;
+  }
+  .cp-plus { background: rgba(34,197,94,0.15); color: #4ade80; }
+  .cp-minus { background: rgba(239,68,68,0.15); color: #f87171; }
+
+  @media (max-width: 768px) {
+    .attendance-bar { justify-content: space-between; }
+    .student-table td, .student-table th { padding: 10px 12px; }
   }
 </style>
 
-<div class="cq-page px-4 lg:px-6 py-4">
+<div class="cq-wrap">
   <div id="toast-container" class="fixed top-5 right-5 z-[100] space-y-3 pointer-events-none"></div>
 
-  <div class="cq-wrap space-y-3">
-
-    <div class="cq-card p-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
-      <div class="flex items-center gap-4">
-        <a href="javascript:history.back()"
-          class="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 group">
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-            class="text-slate-400 group-hover:text-white transition-colors">
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </a>
-        <div>
-          <h1 class="text-[22px] font-black text-white tracking-tight leading-tight">{{ g.nom }}</h1>
-          <div class="flex flex-wrap gap-2 mt-1 text-[12px] font-semibold text-slate-400">
-            <span>Center: <span class="text-slate-200">{{ g.center }}</span></span>
-            <span class="text-slate-600">|</span>
-            <span>O'qituvchi:
-              <span class="text-slate-200">
-                {% if g.oqituvchi %}{{ g.oqituvchi.ism }} {{ g.oqituvchi.familya }}{% else %}—{% endif %}
-              </span>
-            </span>
-          </div>
+  <!-- HEADER AREA -->
+  <div class="glass-panel header-mini">
+    <div class="title-area">
+      <a href="javascript:history.back()" class="back-link" title="Orqaga">
+        <i class="fa-solid fa-chevron-left"></i>
+      </a>
+      <div>
+        <h1 class="main-title">{{ g.nom }}</h1>
+        <div class="sub-title">
+          {{ g.center }} <span class="mx-1 opacity-40">|</span> 
+          {% if g.oqituvchi %}{{ g.oqituvchi.ism }} {{ g.oqituvchi.familya }}{% else %}O'qituvchi tayinlanmagan{% endif %}
         </div>
-      </div>
-
-      <div class="flex gap-2 w-full md:w-auto">
-        <button id="remove-mode-btn"
-          class="cq-btn cq-btn-red-outline flex-1 md:flex-none flex items-center justify-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 6h18" />
-            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-          </svg>
-          <span id="remove-mode-label">O'quvchilarni chiqarish</span>
-        </button>
-
-        {% if can_add_student %}
-        <a href="{% url 'education:add_student_to_group' g.id %}"
-          class="cq-btn cq-btn-blue flex-1 md:flex-none flex items-center justify-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-          O'quvchi qo'shish
-        </a>
-        {% endif %}
       </div>
     </div>
 
-    <div class="cq-card p-3 flex flex-col md:flex-row justify-between items-center gap-3">
-      <div class="flex items-center gap-3 w-full md:w-auto">
-        <div
-          class="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-[var(--blue)] font-black text-[12px] whitespace-nowrap">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
-            <path d="M16 2v4" />
-            <path d="M8 2v4" />
-            <path d="M3 10h18" />
-          </svg>
-          <span>Davomat sanasi:</span>
-        </div>
+    <div class="flex gap-2">
+      <button id="remove-mode-btn" class="btn-ui btn-danger-outline">
+        <i class="fa-solid fa-user-minus"></i>
+        <span id="remove-mode-label">O'quvchilarni chiqarish</span>
+      </button>
 
-        <input id="attendance-date" type="date" value="{{ selected_date|default:today }}"
-          class="cq-input w-full md:w-52">
-      </div>
+      {% if can_add_student %}
+      <a href="{% url 'education:add_student_to_group' g.id %}" class="btn-ui btn-primary">
+        <i class="fa-solid fa-user-plus"></i> O'quvchi qo'shish
+      </a>
+      {% endif %}
+    </div>
+  </div>
 
-      <div class="text-[12px] font-bold text-slate-500">
-        Tanlangan sana:
-        <span class="text-white ml-1 font-black" id="label-date">{{ selected_date|default:today }}</span>
-      </div>
+  <!-- ATTENDANCE & ACTIONS BAR -->
+  <div class="glass-panel attendance-bar">
+    <div class="input-label-box">
+      <i class="fa-solid fa-calendar-day text-blue-400 text-xs"></i>
+      <input id="attendance-date" type="date" value="{{ selected_date|default:today }}" class="date-picker">
     </div>
 
-    <div class="cq-card p-3">
-      <div class="w-full flex flex-col lg:flex-row lg:flex-nowrap items-stretch lg:items-center gap-2">
-
-        <div class="flex items-center gap-3 px-4 py-2 rounded-xl border border-white/10 bg-white/5 flex-1 lg:flex-none">
-          <svg class="text-pink-500" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path
-              d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04Z" />
-            <path
-              d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04Z" />
-          </svg>
-
-          <span class="text-[12px] font-black text-slate-300 whitespace-nowrap">Qoida:</span>
-
-          <select id="rule-global" class="cq-select bg-transparent text-white min-w-[150px]">
-            <option value="" class="bg-[#0b1220]">— Qoida tanlang —</option>
-            <optgroup label="Qo‘shish" class="bg-[#0b1220]">
-              {% for r in rules_plus %}
-              <option value="{{ r.id }}" data-type="+" data-min="{{ r.min_baho }}" data-max="{{ r.max_baho }}"
-                class="bg-[#0b1220]">{{ r.nom }}</option>
-              {% endfor %}
-            </optgroup>
-            <optgroup label="Ayirish" class="bg-[#0b1220]">
-              {% for r in rules_minus %}
-              <option value="{{ r.id }}" data-type="-" data-min="{{ r.min_baho }}" data-max="{{ r.max_baho }}"
-                class="bg-[#0b1220]">{{ r.nom }}</option>
-              {% endfor %}
-            </optgroup>
-          </select>
-        </div>
-
-        <button id="points-all-btn" class="cq-btn cq-btn-blue gap-2 whitespace-nowrap">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-          </svg>
-          Joriy qilish
-        </button>
-
-        <button id="attend-all-present-btn"
-          class="cq-btn gap-2 bg-emerald-600 text-white border border-white/10 rounded-xl hover:brightness-110 transition-all whitespace-nowrap">
-          Hammasi keldi
-        </button>
-
-        <button id="attend-all-forced-btn"
-          class="cq-btn gap-2 bg-red-500 text-white border border-white/10 rounded-xl hover:brightness-110 transition-all whitespace-nowrap">
-          Kelmadi
-        </button>
-
-        <div class="lg:ml-auto flex items-center justify-between lg:justify-end gap-3">
-          <div
-            class="flex items-center gap-2 text-[var(--orange)] font-black uppercase text-[11px] tracking-widest whitespace-nowrap">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-            </svg>
-            BALL: <span id="rule-range-hint" class="text-slate-500 lowercase font-bold ml-1 text-[10px]"></span>
-          </div>
-
-          <div
-            class="flex items-center border border-white/10 rounded-xl overflow-hidden h-[44px] md:h-[38px] bg-white/5">
-            <button id="glob-minus"
-              class="px-3 hover:bg-white/5 transition-colors text-slate-200 font-black text-lg">−</button>
-            <input id="amount-global" type="number" value="3" min="1"
-              class="w-16 md:w-14 bg-transparent text-center font-black text-white border-x border-white/10 text-base outline-none">
-            <button id="glob-plus"
-              class="px-3 hover:bg-white/5 transition-colors text-slate-200 font-black text-lg">+</button>
-          </div>
-        </div>
-
-      </div>
+    <div class="input-label-box">
+      <i class="fa-solid fa-scroll text-orange-400 text-xs"></i>
+      <select id="rule-global" class="rule-select">
+        <option value="">— Qoida —</option>
+        <optgroup label="Qo‘shish">
+          {% for r in rules_plus %}
+          <option value="{{ r.id }}" data-type="+" data-min="{{ r.min_baho }}" data-max="{{ r.max_baho }}">{{ r.nom }}</option>
+          {% endfor %}
+        </optgroup>
+        <optgroup label="Ayirish">
+          {% for r in rules_minus %}
+          <option value="{{ r.id }}" data-type="-" data-min="{{ r.min_baho }}" data-max="{{ r.max_baho }}">{{ r.nom }}</option>
+          {% endfor %}
+        </optgroup>
+      </select>
     </div>
 
-    <div class="cq-card overflow-hidden">
-      <div class="table-scroll">
-        <table id="group-table" class="cq-table w-full text-left border-collapse">
-          <thead>
-            <tr>
-              <th class="cq-th text-center remove-col d-none">
-                <button id="remove-selected-btn"
-                  class="d-none inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-red-600 text-white font-black text-[11px] hover:brightness-110 transition-all">
-                  Tanlanganlarni chiqarish
-                </button>
-              </th>
+    <div class="flex items-center gap-1">
+      <button id="points-all-btn" class="btn-ui btn-primary !h-[38px] !px-3" title="Qoidani barchaga joriy qilish">
+        <i class="fa-solid fa-bolt-lightning"></i>
+      </button>
+      <button id="attend-all-present-btn" class="btn-ui !bg-emerald-600 !text-white !h-[38px] !px-3" title="Barchani KELDI qilish">
+        <i class="fa-solid fa-check-double"></i>
+      </button>
+      <button id="attend-all-forced-btn" class="btn-ui !bg-red-600 !text-white !h-[38px] !px-3" title="Barchani KELMADI qilish">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
 
-              <th class="cq-th text-center w-10">#</th>
-              <th class="cq-th">O'QUVCHI F.I.SH</th>
-              <th class="cq-th text-center hidden sm:table-cell">TELEFON</th>
+    <div class="ml-auto flex items-center gap-3">
+       <div class="text-[11px] font-black uppercase text-orange-500 tracking-tighter">
+          Ball: <span id="rule-range-hint" class="text-slate-400 font-bold lowercase"></span>
+       </div>
+       <div class="flex items-center bg-black/30 rounded-lg border border-white/5 h-[34px] overflow-hidden">
+          <button id="glob-minus" class="w-8 h-full flex items-center justify-center hover:bg-white/5 text-slate-400 text-base leading-none translate-y-[-1px]">−</button>
+          <input id="amount-global" type="number" value="3" class="w-10 bg-transparent text-center text-sm font-bold border-x border-white/5 outline-none">
+          <button id="glob-plus" class="w-8 h-full flex items-center justify-center hover:bg-white/5 text-slate-400 text-base leading-none translate-y-[-1px]">+</button>
+       </div>
+    </div>
+  </div>
 
-              <th class="cq-th text-center">DAVOMAT</th>
-
-              <th class="cq-th text-center">
-                <span class="flex items-center justify-center gap-1 text-orange-500">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
-                    fill="currentColor">
-                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                  </svg>
-                  CHAQMOQ
-                </span>
-              </th>
-
-              <th class="cq-th text-center">AMAL</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {% for e in enrollments %}
-            <tr class="cq-row
-                {% if e.student.forced_today %}forced-row{% endif %}
-                {% if not e.student.present_today %}row-not-present{% endif %}">
-              <td class="cq-td text-center remove-col d-none">
-                <input type="checkbox" class="remove-check custom-checkbox" value="{{ e.id }}">
-              </td>
-
-              <td class="cq-td font-black text-slate-500 text-center text-sm">{{ forloop.counter }}</td>
-
-              <td class="cq-td">
-                <a href="{% url 'education:student_detail' e.student.id %}"
-                  class="font-black text-[var(--blue)] hover:opacity-90 transition-colors text-[14px] block leading-tight">
-                  {{ e.student.ism }}
-                  {% if e.student.familya %} {{ e.student.familya }}{% endif %}
-                  {% if e.student.otchestvo %} {{ e.student.otchestvo }}{% endif %}
-                </a>
-                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                  {{ e.student.email }}
-                </span>
-              </td>
-
-              <td class="cq-td text-center text-slate-200 font-black text-sm hidden sm:table-cell">
-                {{ e.student.telefon1|default:"—" }}
-              </td>
-
-              <td class="cq-td text-center">
-                <div class="att-seg" data-enrollment="{{ e.id }}" data-student="{{ e.student.id }}"
-                  data-status="{% if e.student.present_today %}present{% elif e.student.forced_today %}forced{% else %}none{% endif %}">
-                  <button type="button" class="att-btn present">KELDI</button>
-                  <button type="button" class="att-btn forced">KELMADI</button>
+  <!-- STUDENT TABLE -->
+  <div class="table-container">
+    <div class="overflow-x-auto">
+      <table id="group-table" class="student-table">
+        <thead>
+          <tr>
+            <th class="remove-col d-none w-10 text-center">
+               <button id="remove-selected-btn" class="d-none text-red-500 hover:text-red-400"><i class="fa-solid fa-trash-can"></i></button>
+            </th>
+            <th class="w-10 text-center">#</th>
+            <th>O'QUVCHI</th>
+            <th class="hidden md:table-cell">TELEFON</th>
+            <th class="text-center">DAVOMAT</th>
+            <th class="text-center">BALL</th>
+            <th class="text-center">AMAL</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in enrollments %}
+          <tr class="tr-student {% if e.student.forced_today %}forced-row{% endif %} {% if not e.student.present_today %}row-not-present{% endif %}">
+            <td class="remove-col d-none text-center">
+              <input type="checkbox" class="remove-check custom-checkbox" value="{{ e.id }}">
+            </td>
+            <td class="text-center opacity-40 font-bold text-xs">{{ forloop.counter }}</td>
+            <td>
+              <a href="{% url 'education:student_detail' e.student.id %}" class="student-name">{{ e.student.ism }} {{ e.student.familya|default:"" }}</a>
+              <span class="student-email">{{ e.student.email|default:"email mavjud emas" }}</span>
+            </td>
+            <td class="hidden md:table-cell text-slate-300 font-semibold text-xs">{{ e.student.telefon1|default:"—" }}</td>
+            <td class="text-center">
+              <div class="att-switcher att-seg" data-enrollment="{{ e.id }}" data-student="{{ e.student.id }}"
+                   data-status="{% if e.student.present_today %}present{% elif e.student.forced_today %}forced{% else %}none{% endif %}">
+                <button type="button" class="att-btn-v2 present">KELDI</button>
+                <button type="button" class="att-btn-v2 forced">KELMADI</button>
+              </div>
+            </td>
+            <td class="text-center">
+              <div class="flex items-center justify-center gap-1">
+                <div id="balance-{{ e.student.id }}" class="point-badge {% if e.student.balance >= 0 %}badge-pos{% else %}badge-neg{% endif %}">
+                  {{ e.student.balance|default:0 }}
                 </div>
-              </td>
-
-              <td class="cq-td text-center">
-                <div class="flex items-center justify-center gap-2">
-                  <div id="balance-{{ e.student.id }}" class="balance-badge inline-flex items-center justify-center text-white
-                       {% if e.student.balance >= 0 %}bg-emerald-600{% else %}bg-red-600{% endif %}">
-                    {{ e.student.balance|default:0 }}
-                  </div>
-                  <div id="flash-{{ e.student.id }}" class="min-h-[20px]"></div>
-                </div>
-              </td>
-
-              <td class="cq-td">
-                <div class="flex justify-center gap-2 flex-wrap md:flex-nowrap">
-                  <button type="button" class="btn-add cq-pill cq-btn-green-pill" data-student="{{ e.student.id }}">
-                    Qo'shish
-                  </button>
-                  <button type="button" class="btn-sub cq-pill cq-btn-red-pill" data-student="{{ e.student.id }}">
-                    Ayirish
-                  </button>
-                </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-
-        </table>
-      </div>
+                <div id="flash-{{ e.student.id }}" class="flex"></div>
+              </div>
+            </td>
+            <td class="text-center">
+              <div class="action-pills student-actions justify-center">
+                <button type="button" class="pill-btn btn-plus-p btn-add" data-student="{{ e.student.id }}"><span class="translate-y-[-1px]">+</span></button>
+                <button type="button" class="pill-btn btn-minus-p btn-sub" data-student="{{ e.student.id }}"><span class="translate-y-[-1px]">−</span></button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
+  </div>
+</div>
 
   </div>
 
@@ -992,14 +681,14 @@
       // Render Plus
       if (rec.plus > 0) {
         const p1 = document.createElement("span");
-        p1.className = "flash-pill plus mr-1";
+        p1.className = "chaqmoq-pill cp-plus";
         p1.textContent = "+" + rec.plus;
         box.appendChild(p1);
       }
       // Render Minus (stored as negative number)
       if (rec.minus < 0) {
         const p2 = document.createElement("span");
-        p2.className = "flash-pill minus";
+        p2.className = "chaqmoq-pill cp-minus";
         p2.textContent = rec.minus;
         box.appendChild(p2);
       }
@@ -1060,9 +749,9 @@
       if (Number.isNaN(nb)) return;
 
       b.textContent = nb;
-      b.classList.remove("bg-emerald-600", "bg-red-600");
-      if (nb >= 0) b.classList.add("bg-emerald-600");
-      else b.classList.add("bg-red-600");
+      b.classList.remove("badge-pos", "badge-neg");
+      if (nb >= 0) b.classList.add("badge-pos");
+      else b.classList.add("badge-neg");
     }
 
     function setRowStatusUI(segEl, status) {
@@ -1102,8 +791,8 @@
       const enrId = seg.dataset.enrollment;
       const sid = seg.dataset.student;
 
-      const btnPresent = seg.querySelector(".att-btn.present");
-      const btnForced = seg.querySelector(".att-btn.forced");
+      const btnPresent = seg.querySelector(".att-btn-v2.present");
+      const btnForced = seg.querySelector(".att-btn-v2.forced");
 
       async function apply(nextStatus) {
         seg.classList.add("loading");
