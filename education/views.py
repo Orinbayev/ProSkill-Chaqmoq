@@ -3018,6 +3018,7 @@ def groups_home(request):
         
     counts_qs = (
         counts_qs
+        .filter(is_archived=False)
         .values("category_obj")          # FK field nomi sizda shu: category_obj
         .annotate(c=Count("id"))
     )

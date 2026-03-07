@@ -204,7 +204,7 @@ class Center(SoftDeleteMixin, models.Model):
             is_archived=False
         ).count()
         
-        groups_count = Group.objects.filter(center=self).count()
+        groups_count = Group.objects.filter(center=self, is_archived=False).count()
         
         return {
             'students': students_count,
