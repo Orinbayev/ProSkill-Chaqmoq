@@ -43,10 +43,14 @@
           <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
         </svg>
       </div>
-      <div class="d-flex flex-column">
+      <div class="d-flex flex-column logo-text-wrapper">
         <span class="logo-text">{% if not request.center %}Chaqmoq{% else %}Chaqmoq{% endif %}</span>
       </div>
     </a>
+
+    {% if request.center %}
+    <div class="sidebar-section-label sidebar-title center-name">{{ request.center.name|upper }}</div>
+    {% endif %}
 
     <button class="sb-toggle-btn" onclick="toggleSidebarDesktop()" aria-label="Toggle Sidebar">
       <i class="fa-solid fa-chevron-left"></i>
@@ -76,7 +80,7 @@
     ================================ -->
     {% if request.user.is_superuser and not request.center %}
 
-    <div class="sidebar-section-label">GLOBAL MANAGEMENT</div>
+    <div class="sidebar-section-label sidebar-title center-name">GLOBAL MANAGEMENT</div>
 
     <a href="{% url 'platform_global:superadmin_dashboard' %}"
       class="sidebar-item {% if vn == 'platform_global:superadmin_dashboard' %}active{% endif %}"
@@ -112,7 +116,7 @@
     ================================ -->
     {% elif request.center %}
 
-    <div class="sidebar-section-label">{{ request.center.name|upper }}</div>
+
 
     {% if sub_ui and sub_ui.in_grace_period %}
     {% if request.user.role == 'director' or request.user.role == 'manager' or request.user.role == 'admin' %}
@@ -1178,7 +1182,12 @@
     padding-left: 12px;
     padding-right: 12px;
     position: relative;
-    height: 60px;
+    height: auto;
+    min-height: 80px;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 8px;
   }
 
   .sidebar-logo {
@@ -1193,11 +1202,34 @@
 
   /* ===== COLLAPSED STATE ===== */
   body.sidebar-collapsed .logo-text,
+  body.sidebar-collapsed .logo-text-wrapper,
   body.sidebar-collapsed .si-text,
   body.sidebar-collapsed .arrow-icon,
   body.sidebar-collapsed .sub-info-mini,
+  body.sidebar-collapsed .sidebar-title,
+  body.sidebar-collapsed .center-name,
+  body.sidebar-collapsed .sidebar-section-label,
   body.sidebar-collapsed .sub-progress-bar-mini {
     display: none !important;
+  }
+
+  .center-name,
+  .sidebar-section-label {
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--muted);
+    letter-spacing: 1px;
+    padding: 0 12px;
+    margin-top: 4px;
+    opacity: 0.8;
+  }
+
+  .sidebar-header .sidebar-section-label {
+    padding: 0;
+    margin-top: 0;
+    margin-bottom: 4px;
+    width: 100%;
   }
 
   body.sidebar-collapsed .sidebar-sub-widget-mini {
@@ -1244,6 +1276,7 @@
     padding-left: 0;
     padding-right: 0;
     justify-content: center;
+    align-items: center;
   }
 
   body.sidebar-collapsed .sb-toggle-btn {
