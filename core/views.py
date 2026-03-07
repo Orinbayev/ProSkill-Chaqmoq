@@ -201,6 +201,8 @@ def home(request):
         return render(request, "core/dashboard_premium.html", ctx)
 
     if role == "manager":
+        # Add low activity students for manager
+        ctx["low_activity_list"] = _get_low_activity_data(center, limit=5)
         return render(request, "core/dashboard_manager.html", ctx)
 
     if role == "teacher":
@@ -1920,6 +1922,58 @@ def notification_broadcast(request):
         return redirect("core:notifications")
     
     return redirect("core:notifications")
+
+def _get_low_activity_data(center, limit=10):
+    if not center:
+        return []
+        
+    from django.utils import timezone
+    from datetime import timedelta
+    from django.db.models import Count, Q
+    from education.models import Enrollment
+    from accounts.models import User
+    
+    today = timezone.localtime(timezone.now()).date()
+    thirty_days_ago = today - timedelta(days=30)
+    
+    base_qs = User.objects.filter(center=center, role='student', is_archived=False)
+    # Get students with low attendance in last 30 days
+    candidates = base_qs.annotate(
+        att_count=Count('attendance', filter=Q(attendance__date__gte=thirty_days_ago, attendance__present=True))
+    ).order_by('att_count')
+    
+    low_list = []
+    for s in candidates:
+        if s.att_count >= 8: # Arbitrary threshold for "active"
+            continue
+            
+        enr = s.enrollments.filter(is_active=True).first()
+        reasons = []
+        att_pct = round((s.att_count / 12) * 100) if s.att_count < 12 else 100
+        
+        if s.att_count < 5:
+            reasons.append(f"Davomat past ({att_pct}%)")
+        if enr and getattr(enr, 'jami_tolangan', 0) < getattr(enr, 'kurs_narhi', 0):
+            reasons.append("To'lov kechikkan")
+        if getattr(s, 'last_login', None) and (timezone.now() - s.last_login).days > 10:
+            reasons.append("Kirmagan (10+ kun)")
+
+        if not reasons:
+            reasons.append("Kam faol")
+
+        low_list.append({
+            'student_id': s.id,
+            'name': f"{s.ism} {s.familya}",
+            'avatar': s.avatar.url if getattr(s, 'avatar', None) else f"https://ui-avatars.com/api/?name={s.ism}+{s.familya}&background=random",
+            'course': enr.group.nom if enr else "Guruhsiz",
+            'phone': s.telefon1 or "Kiritilmagan",
+            'status': att_pct,
+            'reasons': reasons,
+        })
+        if len(low_list) >= limit:
+            break
+            
+    return low_list
 
 @login_required
 def low_activity_students(request):

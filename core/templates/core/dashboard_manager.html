@@ -1,462 +1,639 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static humanize %}
 
-{% block title %}
-💼 Manager paneli — ChaqmoqApp
-{% endblock %}
+{% block title %}💼 Manager Paneli — ChaqmoqApp{% endblock %}
 
-{% block content %}
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
 <style>
   :root {
-    --text-warning: #facc15;
-    --text-info: #38bdf8;
-    --text-success: #22c55e;
-    --text-danger: #ef4444;
-    --white-5: rgba(255, 255, 255, 0.05);
-    --white-10: rgba(255, 255, 255, 0.1);
+    --bg-deep: #070a13;
+    --card-bg: rgba(15, 23, 42, 0.4);
+    --glass-border: rgba(255, 255, 255, 0.05);
+    --accent: #FACC15;
+    --blue-glow: #38bdf8;
+    --green-glow: #22d3ee;
+    --red-glow: #ef4444;
+    --gold-glow: #fbbf24;
+    --slate-500: #64748b;
   }
 
-  .glass {
-    background: rgba(15, 23, 42, 0.6);
+  body {
+    background-color: var(--bg-deep) !important;
+    color: #f1f5f9;
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  }
+
+  .stat-container {
+    padding: 24px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  /* PREMIUM HEADER */
+  .dashboard-header {
+    background: linear-gradient(135deg, rgba(30, 27, 75, 0.4) 0%, rgba(15, 23, 42, 0.4) 100%);
+    border-radius: 20px;
+    padding: 16px 24px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--glass-border);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 24px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-  }
-
-  /* HEADER CARD */
-  .header-card {
-    background: linear-gradient(-45deg, rgba(34, 197, 94, 0.1), rgba(15, 23, 42, 0.95), rgba(56, 189, 248, 0.1), rgba(15, 23, 42, 0.95));
-    background-size: 400% 400%;
-    animation: gradientBG 15s ease infinite;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 28px;
     position: relative;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
-    z-index: 10;
+    z-index: 100;
   }
 
-  .header-glow-wrapper {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    border-radius: inherit;
-    pointer-events: none;
-    z-index: 0;
+  .header-content {
+    display: flex;
+    align-items: center;
+    gap: 20px;
   }
 
-  .header-glow-wrapper::before {
-    content: "";
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle at center, rgba(34, 197, 94, 0.05) 0%, transparent 60%);
-    animation: rotateGlow 20s linear infinite;
-  }
-
-  @keyframes gradientBG {
-    0% {
-      background-position: 0% 50%;
-    }
-
-    50% {
-      background-position: 100% 50%;
-    }
-
-    100% {
-      background-position: 0% 50%;
-    }
-  }
-
-  @keyframes rotateGlow {
-    from {
-      transform: rotate(0deg);
-    }
-
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  .icon-box {
-    width: 60px;
-    height: 60px;
-    border-radius: 18px;
+  .header-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: rgba(250, 204, 21, 0.1);
+    border: 1px solid rgba(250, 204, 21, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(34, 197, 94, 0.1);
-    border: 1px solid rgba(34, 197, 94, 0.2);
-    color: #22c55e;
-    font-size: 24px;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    font-size: 22px;
+    color: var(--accent);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   }
 
-  /* ACTIONS & PROFILE */
-  .top-right-actions {
+  .header-text h1 {
+    font-size: 20px;
+    font-weight: 900;
+    margin: 0;
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
+
+  .header-text p {
+    margin: 0;
+    color: var(--slate-500);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  /* SEARCH BAR IN HEADER */
+  .search-wrapper {
+    flex-grow: 1;
+    max-width: 450px;
+    margin: 0 40px;
+    position: relative;
+  }
+
+  .search-input-group {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.3s;
+  }
+
+  .search-input-group:focus-within {
+    border-color: var(--accent);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 20px rgba(250, 204, 21, 0.1);
+  }
+
+  .search-input-group input {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 500;
+    outline: none;
+    width: 100%;
+  }
+
+  .search-input-group i {
+    color: var(--slate-500);
+    font-size: 16px;
+  }
+
+  /* TOP PROFILE & NOTIFS */
+  .top-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .meta-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: #fff;
+    cursor: pointer;
+    transition: 0.2s;
+    text-decoration: none;
+  }
+
+  .meta-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  /* KPI CARDS - DIRECTOR STYLE */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 40px;
+  }
+
+  .kpi-card-premium {
+    background: rgba(15, 23, 42, 0.45);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none !important;
+  }
+
+  .kpi-card-premium:hover {
+    transform: translateY(-8px);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  }
+
+  .kpi-card-premium::before {
+    content: '';
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    width: 100px;
+    height: 100px;
+    filter: blur(60px);
+    opacity: 0.15;
+    z-index: 0;
+    border-radius: 50%;
+  }
+
+  .kpi-blue::before {
+    background: #38bdf8;
+  }
+
+  .kpi-green::before {
+    background: #10b981;
+  }
+
+  .kpi-gold::before {
+    background: #fbbf24;
+  }
+
+  .kpi-red::before {
+    background: #ef4444;
+  }
+
+  .kpi-icon-premium {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    margin-bottom: 16px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .glass-blue {
+    background: rgba(56, 189, 248, 0.1);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+  }
+
+  .glass-green {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+  }
+
+  .glass-gold {
+    background: rgba(251, 191, 36, 0.1);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.2);
+  }
+
+  .glass-red {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+  }
+
+  .kpi-label {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--slate-500);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .kpi-value {
+    font-size: 32px;
+    font-weight: 950;
+    color: #fff;
+    line-height: 1;
+  }
+
+  /* SECTION CARDS */
+  .section-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+
+  .card-premium-glass {
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid var(--glass-border);
+    border-radius: 36px;
+    padding: 32px;
+    backdrop-filter: blur(30px);
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+  }
+
+  .section-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: #fff;
     display: flex;
     align-items: center;
     gap: 12px;
   }
 
-  .icon-btn-glass {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
+  .section-title i {
+    color: var(--accent);
+  }
+
+  /* LOW ACTIVITY LIST */
+  .student-list-mini {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .student-item-card {
     display: flex;
     align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-    position: relative;
-  }
-
-  .icon-btn-glass:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-warning);
-    border-color: var(--text-warning);
-    transform: translateY(-2px);
-  }
-
-  .avatar-circle {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    border: 2px solid var(--text-warning);
-    object-fit: cover;
-  }
-
-  .avatar-placeholder {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: var(--text-warning);
-    color: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 900;
-  }
-
-  /* DROPDOWN */
-  .no-caret::after {
-    display: none !important;
-  }
-
-  .glass-dropdown {
-    background: rgba(15, 23, 42, 0.95) !important;
-    backdrop-filter: blur(20px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 16px !important;
-    padding: 8px !important;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
-    min-width: 200px;
-  }
-
-  .glass-dropdown .dropdown-item {
-    color: white !important;
-    border-radius: 10px !important;
-    padding: 10px 16px !important;
-    font-weight: 600 !important;
-    transition: all 0.2s !important;
-    font-size: 0.9rem !important;
-  }
-
-  .glass-dropdown .dropdown-item:hover {
-    background: rgba(255, 255, 255, 0.1) !important;
-    color: var(--text-warning) !important;
-  }
-
-  .glass-dropdown .dropdown-item.text-danger:hover {
-    background: rgba(239, 68, 68, 0.1) !important;
-    color: #f87171 !important;
-  }
-
-  /* MINI STATS CARDS */
-  .stat-card-mini {
+    gap: 16px;
+    padding: 16px;
     background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid transparent;
     border-radius: 20px;
-    padding: 20px;
-    text-align: center;
-    transition: all 0.3s ease;
+    transition: 0.3s;
+    text-decoration: none !important;
   }
 
-  .stat-card-mini:hover {
-    background: rgba(255, 255, 255, 0.08);
-    transform: translateY(-5px);
-    border-color: rgba(255, 255, 255, 0.2);
+  .student-item-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+    transform: translateX(8px);
   }
 
-  .stat-label {
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.5);
-    margin-bottom: 5px;
-  }
-
-  .stat-value {
-    font-size: 28px;
-    font-weight: 900;
-    color: white;
-    line-height: 1;
-  }
-
-  /* SECTION CARDS */
-  .section-card {
-    height: 100%;
-    transition: all 0.3s ease;
-  }
-
-  .section-card:hover {
-    transform: translateY(-5px);
-    border-color: rgba(255, 255, 255, 0.15);
-  }
-
-  .section-icon-bg {
-    width: 50px;
-    height: 50px;
+  .student-avatar {
+    width: 48px;
+    height: 48px;
     border-radius: 14px;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .student-info {
+    flex-grow: 1;
+  }
+
+  .student-info .name {
+    font-size: 15px;
+    font-weight: 800;
+    color: #fff;
+    display: block;
+  }
+
+  .student-info .course {
+    font-size: 11px;
+    color: var(--slate-500);
+    font-weight: 600;
+  }
+
+  .activity-status-box {
+    text-align: right;
+  }
+
+  .activity-status-box .pct {
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--red-glow);
+  }
+
+  .activity-status-box .label {
+    font-size: 9px;
+    color: var(--slate-500);
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  /* QUICK ACTIONS BOX */
+  .action-box-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .quick-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    text-decoration: none !important;
+    transition: 0.3s;
+  }
+
+  .quick-action-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: scale(1.02);
+  }
+
+  .action-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
-    color: white;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    font-size: 16px;
   }
 
-  .bg-blue-gradient {
-    background: linear-gradient(135deg, #38bdf8, #2563eb);
+  .action-text .title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    display: block;
   }
 
-  .bg-green-gradient {
-    background: linear-gradient(135deg, #22c55e, #16a34a);
+  .action-text .sub {
+    font-size: 12px;
+    color: var(--slate-500);
   }
 
-  .bg-amber-gradient {
-    background: linear-gradient(135deg, #facc15, #d97706);
+  .quick-action-btn {
+    padding: 12px 14px;
   }
 
-  .bg-red-gradient {
-    background: linear-gradient(135deg, #f87171, #dc2626);
+  /* RESPONSIVE */
+  @media (max-width: 1200px) {
+    .section-grid {
+      grid-template-columns: 1fr;
+    }
   }
 
-  .action-btn {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 16px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 13px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.2s;
-  }
+  @media (max-width: 991px) {
+    .dashboard-header {
+      flex-direction: column;
+      gap: 20px;
+      align-items: stretch;
+      text-align: center;
+    }
 
-  .action-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: white;
-    border-color: rgba(255, 255, 255, 0.2);
-    transform: translateX(3px);
-  }
+    .header-content {
+      flex-direction: column;
+    }
 
-  .action-btn i {
-    opacity: 0.7;
+    .search-wrapper {
+      margin: 0;
+      max-width: 100%;
+    }
   }
 </style>
+{% endblock %}
 
-<div class="container-fluid py-4 animate__animated animate__fadeIn">
+{% block content %}
+<div class="stat-container">
 
-  <!-- HEADER -->
-  <div class="header-card p-4 mb-4">
-    <div class="header-glow-wrapper"></div>
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-4 position-relative z-1">
-
-      <!-- Left: Title -->
-      <div class="d-flex align-items-center gap-3">
-        <div class="icon-box">
-          <i class="fa-solid fa-briefcase"></i>
-        </div>
-        <div>
-          <h2 class="m-0 fw-black text-white" style="letter-spacing: -1px;">Manager paneli</h2>
-          <div class="d-flex align-items-center gap-2 mt-1">
-            <span class="badge bg-warning text-dark fw-bold px-2 py-1 rounded-3">Manager</span>
-            <p class="m-0 text-white-50 small">Markaz faoliyati va statistikasi</p>
-          </div>
-        </div>
+  <!-- PREMIUM HEADER WITH SEARCH -->
+  <header class="dashboard-header animate__animated animate__fadeInDown">
+    <div class="header-content">
+      <div class="header-icon">
+        <i class="fa-solid fa-bolt-lightning text-amber"></i>
       </div>
-
-      <!-- Right: Actions -->
-      <div class="top-right-actions">
-        <!-- Notification Bell (Reverted) -->
-        <button class="icon-btn-glass position-relative" title="Bildirishnomalar" onclick="toggleNotificationSidebar()">
-          <i class="fa-regular fa-bell"></i>
-          {% if unread_notifications_count > 0 %}
-          <span
-            class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-dark rounded-circle"
-            style="width:10px;height:10px;">
-          </span>
-          {% endif %}
-        </button>
-
-        <!-- Profile Dropdown -->
-        {% include "components/profile_dropdown.html" %}
-      </div>
-
-    </div>
-  </div>
-
-  <!-- STATS OVERVIEW -->
-  <div class="row g-3 mb-4">
-    <div class="col-6 col-lg-3">
-      <a href="{% url 'core:stat_teachers' %}" class="d-block text-decoration-none">
-        <div class="stat-card-mini">
-          <div class="stat-label">O'qituvchilar</div>
-          <div class="stat-value">{{ stats.teachers|default:0 }}</div>
-        </div>
-      </a>
-    </div>
-    <div class="col-6 col-lg-3">
-      <a href="{% url 'core:stat_students' %}" class="d-block text-decoration-none">
-        <div class="stat-card-mini">
-          <div class="stat-label">O'quvchilar</div>
-          <div class="stat-value">{{ stats.students|default:0 }}</div>
-        </div>
-      </a>
-    </div>
-    <div class="col-6 col-lg-3">
-      <a href="/do'kon/mahsulotlar/" class="d-block text-decoration-none">
-        <div class="stat-card-mini">
-          <div class="stat-label">Mahsulotlar</div>
-          <div class="stat-value">{{ stats.products|default:0 }}</div>
-        </div>
-      </a>
-    </div>
-    <div class="col-6 col-lg-3">
-      <a href="/do'kon/so'rovlar/" class="d-block text-decoration-none">
-        <div class="stat-card-mini">
-          <div class="stat-label">So'rovlar</div>
-          <div class="stat-value">{{ stats.requests|default:0 }}</div>
-        </div>
-      </a>
-    </div>
-  </div>
-
-  <!-- MAIN SECTIONS -->
-  <div class="row g-4">
-
-    <!-- Education -->
-    <div class="col-md-6">
-      <div class="glass p-4 section-card d-flex flex-column">
-        <div class="d-flex align-items-center gap-3 mb-4">
-          <div class="section-icon-bg bg-blue-gradient">
-            <i class="fa-solid fa-graduation-cap"></i>
-          </div>
-          <div>
-            <h5 class="m-0 fw-bold text-white">Ta'lim & Guruhlar</h5>
-            <p class="m-0 text-white-50 small">O'quvchilar hisobi va guruhlar nazorati</p>
-          </div>
-        </div>
-        <div class="mt-auto d-grid gap-2">
-          <a href="{% url 'core:stat_students' %}" class="action-btn">
-            <i class="fa-solid fa-users text-info"></i> Barcha o'quvchilar
-          </a>
-          <a href="{% url 'education:groups_home' %}" class="action-btn">
-            <i class="fa-solid fa-layer-group text-info"></i> Guruhlar ro'yxati
-          </a>
-          <a href="{% url 'education:attendance_groups' %}" class="action-btn">
-            <i class="fa-solid fa-clipboard-user text-info"></i> Davomatni tekshirish
-          </a>
-        </div>
+      <div class="header-text">
+        <h1>Manager Paneli</h1>
+        <p>Markaz faoliyati va boshqaruvi</p>
       </div>
     </div>
+
+    <!-- STUDENT SEARCH -->
+    <div class="search-wrapper">
+      <form action="{% url 'core:stat_students' %}" method="get">
+        <div class="search-input-group">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" name="q" placeholder="Foydalanuvchini ism yoki telefon bo'yicha qidiring..."
+            autocomplete="off">
+          <button type="submit" style="display: none;"></button>
+        </div>
+      </form>
+    </div>
+
+    <div class="top-meta">
+      <div class="meta-btn position-relative" onclick="toggleNotificationSidebar()" title="Bildirishnomalar">
+        <i class="fa-regular fa-bell"></i>
+        {% if unread_notifications_count > 0 %}
+        <span class="position-absolute translate-middle p-1 bg-danger rounded-circle"
+          style="top: 12px; right: 8px; width: 10px; height: 10px; border: 2px solid var(--bg-deep);"></span>
+        {% endif %}
+      </div>
+
+      {% include "components/profile_dropdown.html" %}
+    </div>
+  </header>
+
+  <!-- MAIN KPI GRID -->
+  <div class="kpi-grid">
+    <!-- Students -->
+    <a href="{% url 'core:stat_students' %}" class="kpi-card-premium kpi-green animate__animated animate__zoomIn">
+      <div class="kpi-icon-premium glass-green">
+        <i class="fa-solid fa-graduation-cap"></i>
+      </div>
+      <div class="kpi-label">O'quvchilar</div>
+      <div class="kpi-value counter">{{ stats.students|default:0 }}</div>
+    </a>
 
     <!-- Teachers -->
-    <div class="col-md-6">
-      <div class="glass p-4 section-card d-flex flex-column">
-        <div class="d-flex align-items-center gap-3 mb-4">
-          <div class="section-icon-bg bg-green-gradient">
-            <i class="fa-solid fa-chalkboard-user"></i>
+    <a href="{% url 'core:stat_teachers' %}" class="kpi-card-premium kpi-blue animate__animated animate__zoomIn"
+      style="animation-delay: 0.1s;">
+      <div class="kpi-icon-premium glass-blue">
+        <i class="fa-solid fa-chalkboard-user"></i>
+      </div>
+      <div class="kpi-label">O'qituvchilar</div>
+      <div class="kpi-value counter">{{ stats.teachers|default:0 }}</div>
+    </a>
+
+    <!-- Products -->
+    <a href="{% url 'core:stat_products' %}" class="kpi-card-premium kpi-gold animate__animated animate__zoomIn"
+      style="animation-delay: 0.2s;">
+      <div class="kpi-icon-premium glass-gold">
+        <i class="fa-solid fa-box-open"></i>
+      </div>
+      <div class="kpi-label">Mahsulotlar</div>
+      <div class="kpi-value counter">{{ stats.products|default:0 }}</div>
+    </a>
+
+    <!-- Requests -->
+    <a href="{% url 'core:stat_requests' %}" class="kpi-card-premium kpi-red animate__animated animate__zoomIn"
+      style="animation-delay: 0.3s;">
+      <div class="kpi-icon-premium glass-red">
+        <i class="fa-solid fa-cart-shopping"></i>
+      </div>
+      <div class="kpi-label">So'rovlar</div>
+      <div class="kpi-value counter">{{ stats.pending_requests|default:0 }}</div>
+    </a>
+  </div>
+
+  <!-- MAIN WORKSPACE -->
+  <div class="section-grid">
+
+    <!-- LEFT: LOW ACTIVITY STUDENTS -->
+    <div class="card-premium-glass animate__animated animate__fadeInUp">
+      <div class="section-header">
+        <h2 class="section-title"><i class="fa-solid fa-user-clock"></i> Faolligi Past Talabalar</h2>
+        <a href="{% url 'core:low_activity_students' %}"
+          class="btn badge rounded-pill bg-white bg-opacity-10 text-white-50 xs-text text-uppercase px-3 py-2">Barchasi...</a>
+      </div>
+
+      <div class="student-list-mini">
+        {% for s in low_activity_list %}
+        <a href="{% url 'core:user_view' s.student_id %}" class="student-item-card">
+          <img src="{{ s.avatar }}" alt="{{ s.name }}" class="student-avatar">
+          <div class="student-info">
+            <span class="name">{{ s.name }}</span>
+            <div class="course">{{ s.course }} • {{ s.phone }}</div>
           </div>
-          <div>
-            <h5 class="m-0 fw-bold text-white">O'qituvchilar</h5>
-            <p class="m-0 text-white-50 small">Xodimlar ro'yxati va oyliklar</p>
+          <div class="activity-status-box">
+            <div class="pct">{{ s.status }}%</div>
+            <div class="label">Faollik</div>
           </div>
+        </a>
+        {% empty %}
+        <div class="text-center py-5">
+          <i class="fa-solid fa-circle-check text-success fa-3x mb-3 opacity-25"></i>
+          <p class="text-white-50">Hamma talabalar faol! Mukammal natija.</p>
         </div>
-        <div class="mt-auto d-grid gap-2">
-          <a href="{% url 'core:stat_teachers' %}" class="action-btn">
-            <i class="fa-solid fa-user-tie text-success"></i> O'qituvchilar ro'yxati
-          </a>
-          <a href="{% url 'education:teacher_salary_list' %}" class="action-btn">
-            <i class="fa-solid fa-money-bill-wave text-success"></i> Oylik maoshlar
-          </a>
-        </div>
+        {% endfor %}
       </div>
     </div>
 
-    <!-- Store -->
-    <div class="col-md-6">
-      <div class="glass p-4 section-card d-flex flex-column">
-        <div class="d-flex align-items-center gap-3 mb-4">
-          <div class="section-icon-bg bg-amber-gradient">
-            <i class="fa-solid fa-store"></i>
-          </div>
-          <div>
-            <h5 class="m-0 fw-bold text-white">Ombor & Do'kon</h5>
-            <p class="m-0 text-white-50 small">Mahsulotlar va so'rovlar menejmenti</p>
-          </div>
-        </div>
-        <div class="mt-auto d-grid gap-2">
-          <a href="{% url 'core:stat_products' %}" class="action-btn">
-            <i class="fa-solid fa-box-open text-warning"></i> Mahsulotlar ombori
-          </a>
-          <a href="{% url 'core:stat_requests' %}" class="action-btn">
-            <i class="fa-solid fa-hand-holding-dollar text-warning"></i> Xarid so'rovlari
-          </a>
-          <a href="{% url 'store:products' %}" class="action-btn">
-            <i class="fa-solid fa-eye text-warning"></i> Do'kon vitrinasi
-          </a>
-        </div>
+    <!-- RIGHT: QUICK NAVIGATION -->
+    <div class="card-premium-glass animate__animated animate__fadeInUp" style="animation-delay: 0.2s;">
+      <div class="section-header">
+        <h2 class="section-title"><i class="fa-solid fa-compass"></i> Tezkor Navigatsiya</h2>
+        <span class="text-white-50 small opacity-50">Tezkor kirish</span>
       </div>
-    </div>
 
-    <!-- Finance -->
-    <div class="col-md-6">
-      <div class="glass p-4 section-card d-flex flex-column">
-        <div class="d-flex align-items-center gap-3 mb-4">
-          <div class="section-icon-bg bg-red-gradient">
-            <i class="fa-solid fa-wallet"></i>
+      <div class="action-box-grid">
+        <!-- Education -->
+        <a href="{% url 'education:groups_home' %}" class="quick-action-btn">
+          <div class="action-icon glass-blue"><i class="fa-solid fa-layer-group"></i></div>
+          <div class="action-text">
+            <span class="title">Guruhlar</span>
+            <span class="sub">Ro'yxat va nazorat</span>
           </div>
-          <div>
-            <h5 class="m-0 fw-bold text-white">Moliya & Kassa</h5>
-            <p class="m-0 text-white-50 small">Tushumlar va chiqimlar nazorati</p>
+        </a>
+
+        <a href="{% url 'education:attendance_groups' %}" class="quick-action-btn">
+          <div class="action-icon glass-green"><i class="fa-solid fa-clipboard-user"></i></div>
+          <div class="action-text">
+            <span class="title">Davomat</span>
+            <span class="sub">Yo'qlama qilish</span>
           </div>
-        </div>
-        <div class="mt-auto d-grid gap-2">
-          <a href="{% url 'education:tolovlar_home' %}" class="action-btn">
-            <i class="fa-solid fa-receipt text-danger"></i> To'lovlar tarixi
-          </a>
-          <a href="{% url 'education:tolovlar_home' %}" class="action-btn">
-            <i class="fa-solid fa-sack-dollar text-danger"></i> Umumiy g'azna
-          </a>
-          <a href="{% url 'core:stat_ledger' %}" class="action-btn">
-            <i class="fa-solid fa-chart-line text-danger"></i> Moliyaviy hisobot
-          </a>
-        </div>
+        </a>
+
+        <!-- Store -->
+        <a href="{% url 'core:stat_products' %}" class="quick-action-btn">
+          <div class="action-icon glass-gold"><i class="fa-solid fa-box-open"></i></div>
+          <div class="action-text">
+            <span class="title">Ombor</span>
+            <span class="sub">Mahsulotlar boshqaruvi</span>
+          </div>
+        </a>
+
+        <a href="{% url 'education:teacher_salary_list' %}" class="quick-action-btn">
+          <div class="action-icon glass-red"><i class="fa-solid fa-money-bill-wave"></i></div>
+          <div class="action-text">
+            <span class="title">Oyliklar</span>
+            <span class="sub">Xodimlar maoshi</span>
+          </div>
+        </a>
+
+        <!-- Leads -->
+        <a href="{% url 'store:lead_list' %}" class="quick-action-btn">
+          <div class="action-icon"
+            style="background: rgba(99, 102, 241, 0.1); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.2);"><i
+              class="fa-solid fa-filter-circle-dollar"></i></div>
+          <div class="action-text">
+            <span class="title">Leadlar</span>
+            <span class="sub">Potentsial mijozlar</span>
+          </div>
+        </a>
       </div>
     </div>
 
   </div>
 
 </div>
+
 {% include "components/grace_period_modal.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Simple counter animation
+  document.addEventListener('DOMContentLoaded', () => {
+    const counters = document.querySelectorAll('.counter');
+    counters.forEach(counter => {
+      const target = +counter.innerText;
+      const inc = target / 20;
+      let count = 0;
+
+      const updateCount = () => {
+        if (count < target) {
+          count += inc;
+          counter.innerText = Math.ceil(count);
+          setTimeout(updateCount, 20);
+        } else {
+          counter.innerText = target;
+        }
+      };
+      updateCount();
+    });
+  });
+</script>
 {% endblock %}
