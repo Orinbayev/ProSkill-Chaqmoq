@@ -4,6 +4,7 @@ from accounts.models import User
 import json
 from django.conf import settings
 from django.utils import timezone
+from datetime import timedelta
 
 from accounts.utils import normalize_phone
 from accounts.models import User, UserActivity
