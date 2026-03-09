@@ -152,9 +152,15 @@ class EnrollmentExistingForm(forms.Form):
         self.group = group
 
     def save(self):
-        return Enrollment.objects.get_or_create(
+        # Use all_objects to handle soft-deleted enrollments
+        enr, created = Enrollment.all_objects.get_or_create(
             group=self.group, student=self.cleaned_data["student"]
-        )[0]
+        )
+        if not created and enr.is_deleted:
+            enr.restore()
+        enr.is_active = True
+        enr.save()
+        return enr
 
 
 class EnrollmentCreateStudentForm(forms.Form):
@@ -210,7 +216,14 @@ class EnrollmentCreateStudentForm(forms.Form):
         )
         u.set_password(self.cleaned_data["password1"])
         u.save()
-        enr = Enrollment.objects.create(group=self.group, student=u)
+        # Use all_objects to handle soft-deleted enrollments
+        enr, created = Enrollment.all_objects.get_or_create(
+            group=self.group, student=u
+        )
+        if not created and enr.is_deleted:
+            enr.restore()
+        enr.is_active = True
+        enr.save()
         return u, enr
 
 class GroupCreateForm(forms.ModelForm):

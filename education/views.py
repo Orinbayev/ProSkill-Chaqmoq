@@ -4080,14 +4080,23 @@ def add_student_to_group(request, pk: int):
         existing_enr = Enrollment.objects.filter(student=student, center=target_center).first()
         kurs_narhi = existing_enr.kurs_narhi if existing_enr else g.kurs_narxi
 
-        # Qo'shish
-        enr = Enrollment.objects.create(
+        # Qo'shish (all_objects orqali soft-deleted bo'lsa tiklaymiz)
+        enr, created = Enrollment.all_objects.get_or_create(
             group=g,
             student=student,
-            center=target_center,
-            kurs_narhi=kurs_narhi,
-            oqituvchi_foiz=g.oqituvchi_foiz or 40,
+            defaults={
+                "center": target_center,
+                "kurs_narhi": kurs_narhi,
+                "oqituvchi_foiz": g.oqituvchi_foiz or 40,
+                "is_active": True,
+            }
         )
+        if not created:
+            if enr.is_deleted:
+                enr.restore(restored_by=request.user)
+            enr.is_active = True
+            enr.kurs_narhi = kurs_narhi
+            enr.save()
 
         from education.services.tuition import ensure_tuition_month
         from django.utils import timezone

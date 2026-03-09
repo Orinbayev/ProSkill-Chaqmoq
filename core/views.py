@@ -1212,11 +1212,16 @@ def user_edit(request, pk):
                 messages.error(request, "Bu guruh boshqa centerga tegishli.")
                 return redirect(next_url)
 
-            enroll, _created = Enrollment.objects.get_or_create(
+            enroll, _created = Enrollment.all_objects.get_or_create(
                 student=user,
                 group=group,
                 defaults={"center": group.center, "oqituvchi_foiz": group.oqituvchi_foiz or 40}
             )
+            if not _created and enroll.is_deleted:
+                enroll.restore(restored_by=request.user)
+            
+            # Ensure it's active if we're re-adding
+            enroll.is_active = True
             if yangi_group_price:
                 try:
                     enroll.kurs_narhi = int(yangi_group_price)

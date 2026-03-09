@@ -104,11 +104,14 @@ def ensure_tuition_month(enrollment: Enrollment, month: date) -> TuitionMonth:
     fee = int(get_fee_amount(enrollment) or 0)
     fee_field = tuition_month_fee_field()
 
-    tm, _ = TuitionMonth.objects.get_or_create(
+    tm, created = TuitionMonth.all_objects.get_or_create(
         enrollment=enrollment,
         month=month,
         defaults={fee_field: fee},
     )
+    if not created and tm.is_deleted:
+        tm.restore()
+
 
     cur_fee = int(getattr(tm, fee_field, 0) or 0)
     if cur_fee <= 0 and fee > 0:
