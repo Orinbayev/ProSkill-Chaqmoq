@@ -18,7 +18,18 @@
                     </div>
                     <div>
                         <h2 class="m-0 fw-black text-white" style="letter-spacing: -1px;">Mening daromadim</h2>
-                        <p class="m-0 text-white-50 small">Kunlik va oylik daromadlar tahlili</p>
+                        <div class="d-flex align-items-center gap-2">
+                            <p class="m-0 text-white-50 small">Kunlik va oylik daromadlar tahlili</p>
+                            {% if is_locked %}
+                            <span class="badge bg-danger rounded-pill px-3 py-1 animate__animated animate__pulse animate__infinite">
+                                <i class="fa-solid fa-lock me-1"></i> MUZLATILGAN
+                            </span>
+                            {% else %}
+                            <span class="badge bg-success rounded-pill px-3 py-1">
+                                <i class="fa-solid fa-lock-open me-1"></i> OCHIQ
+                            </span>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
 
@@ -37,6 +48,18 @@
                             {% endfor %}
                         </select>
                     </form>
+
+                    <!-- CLOSE MONTH BUTTON (FOR ADMINS) -->
+                    {% if is_admin and not is_locked %}
+                    <form action="{% url 'education:close_finance_month' %}" method="post" class="m-0" onsubmit="return confirm('Haqiqatan ham ushbu oyni yopmoqchimisiz? Yopilgandan so‘ng ma‘lumotlar o‘zgarmas bo‘lib qoladi.')">
+                        {% csrf_token %}
+                        <input type="hidden" name="year" value="{{ selected_year }}">
+                        <input type="hidden" name="month" value="{{ selected_month }}">
+                        <button type="submit" class="btn btn-danger btn-sm rounded-pill px-3">
+                            <i class="fa-solid fa-folder-closed me-1"></i> Oyni yopish
+                        </button>
+                    </form>
+                    {% endif %}
 
                     <!-- USER PROFILE -->
                     <div class="dropdown">
@@ -84,7 +107,7 @@
                     <div>
                         <!-- Daromad qatori qo'lda break qilindi (formatter buzguncha) -->
                         <h1 class="fw-black text-white mb-0">
-                            <span class="format-money">{{ current_month_total|floatformat:0 }}</span>
+                            <span class="format-money">{{ salary_data.salary|floatformat:0 }}</span>
                             <small class="fs-6 opacity-50">so'm</small>
                         </h1>
                         <div class="mt-3">
@@ -113,7 +136,7 @@
                 <div class="position-relative z-1">
                     <!-- Yillik qator ham break qilindi -->
                     <h1 class="fw-black text-white mb-0">
-                        <span class="format-money">{{ total_year_income|floatformat:0 }}</span>
+                        <span class="format-money">{{ total_year_income|default:0|floatformat:0 }}</span>
                         <small class="fs-6 opacity-50">so'm</small>
                     </h1>
                     <div class="mt-3">
@@ -153,8 +176,6 @@
                 </div>
             </div>
         </div>
-    </div>
-
 
 </div>
 {% endblock %}
@@ -301,6 +322,25 @@
         border: 2px solid #facc15;
         object-fit: cover;
     }
+    .table-dark-glass {
+        color: white;
+    }
+    .table-dark-glass thead th {
+        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        text-transform: uppercase;
+        font-size: 11px;
+        letter-spacing: 1px;
+        padding: 15px;
+        color: rgba(255, 255, 255, 0.5);
+    }
+    .table-dark-glass tbody td {
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 15px;
+        vertical-align: middle;
+    }
+    .table-dark-glass tbody tr:hover {
+        background: rgba(255, 255, 255, 0.03);
+    }
 </style>
 {{ daily_labels|json_script:"daily-labels-data" }}
 {{ daily_income|json_script:"daily-income-data" }}
@@ -337,11 +377,21 @@
             animation: { duration: 2000, easing: 'easeOutElastic' }
         };
 
-        // Initialize data from Django (using json_script for safety and IDE peace)
-        const dailyLabels = JSON.parse(document.getElementById('daily-labels-data').textContent);
-        const dailyIncome = JSON.parse(document.getElementById('daily-income-data').textContent);
-        const monthlyLabels = JSON.parse(document.getElementById('monthly-labels-data').textContent);
-        const monthlyIncome = JSON.parse(document.getElementById('monthly-income-data').textContent);
+        // Initialize data from Django (using json_script for safety)
+        let dailyLabels = [];
+        let dailyIncome = [];
+        let monthlyLabels = [];
+        let monthlyIncome = [];
+        
+        try {
+            dailyLabels = JSON.parse(document.getElementById('daily-labels-data').textContent) || [];
+            dailyIncome = JSON.parse(document.getElementById('daily-income-data').textContent) || [];
+            monthlyLabels = JSON.parse(document.getElementById('monthly-labels-data').textContent) || [];
+            monthlyIncome = JSON.parse(document.getElementById('monthly-income-data').textContent) || [];
+        } catch(e) {
+            console.error("Chart data parse error:", e);
+        }
+        
         const selectedMonth = parseInt('{{ selected_month|escapejs }}') || 0;
 
         // DAILY CHART

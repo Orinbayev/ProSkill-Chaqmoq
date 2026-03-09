@@ -588,3 +588,72 @@ class TeacherExpectedIncomeSnapshot(models.Model):
         ]
         unique_together = [['teacher', 'year', 'month', 'center']]
 
+
+class StudentGroupHistory(models.Model):
+    """Tracks student's membership in a group over time for accurate historical calculations."""
+    student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='group_history')
+    group = models.ForeignKey('Group', on_delete=models.CASCADE, related_name='student_history')
+    center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, null=True, blank=True)
+    start_date = models.DateField(default=timezone.localdate)
+    end_date = models.DateField(null=True, blank=True, help_text="Null means currently in the group")
+    
+    # Store rates at the time of entry, though they could change monthly
+    kurs_narxi = models.PositiveIntegerField(default=0)
+    oqituvchi_foiz = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "O‘quvchi guruh tarixi"
+        verbose_name_plural = "O‘quvchilar guruh tarixi"
+        ordering = ['-start_date']
+
+    def __str__(self):
+        return f"{self.student.get_full_name()} in {self.group.nom} ({self.start_date} to {self.end_date or 'Present'})"
+
+
+class FinancialMonth(models.Model):
+    """Represents a financial period that can be locked."""
+    center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE)
+    year = models.IntegerField()
+    month = models.IntegerField()
+    is_closed = models.BooleanField(default=False, verbose_name="Yopilganmi?")
+    closed_at = models.DateTimeField(null=True, blank=True)
+    closed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        unique_together = ('center', 'year', 'month')
+        verbose_name = "Moliyaviy oy"
+        verbose_name_plural = "Moliyaviy oylar"
+
+    def __str__(self):
+        return f"{self.year}-{self.month:02d} ({self.center.name})"
+
+
+class MonthlyFinanceSnapshot(models.Model):
+    """Permanent storage for center-level financial data of a closed month."""
+    financial_month = models.OneToOneField(FinancialMonth, on_delete=models.CASCADE, related_name='snapshot')
+    total_income = models.BigIntegerField(default=0)
+    total_expense = models.BigIntegerField(default=0)
+    center_profit = models.BigIntegerField(default=0)
+    student_count = models.IntegerField(default=0)
+    attendance_rate = models.FloatField(default=0.0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Oylik moliya snapshoti"
+        verbose_name_plural = "Oylik moliya snapshotlari"
+
+
+class TeacherSalarySnapshot(models.Model):
+    """Permanent storage for teacher salary data of a closed month."""
+    teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='salary_snapshots')
+    financial_month = models.ForeignKey(FinancialMonth, on_delete=models.CASCADE, related_name='teacher_snapshots')
+    salary = models.BigIntegerField(default=0)
+    attendance_count = models.IntegerField(default=0)
+    details = models.JSONField(default=dict, help_text="Breakdown by group and student")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('teacher', 'financial_month')
+        verbose_name = "O‘qituvchi oylik snapshoti"
+        verbose_name_plural = "O‘qituvchilar oylik snapshotlari"
+

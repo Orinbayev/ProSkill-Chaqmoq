@@ -69,9 +69,15 @@ from .models import (
     OylikHisobot,
     Payment,
     PaymentAllocation,
-    Student,           # agar sizda bor bo‘lsa; bo‘lmasa o‘chirib tashlang
+    Student,
     TuitionMonth,
+    StudentGroupHistory,
+    FinancialMonth,
+    MonthlyFinanceSnapshot,
+    TeacherSalarySnapshot,
 )
+from education.services.historical_finance_service import HistoricalFinanceService
+from education.services.enrollment_service import EnrollmentService
 from accounts.models import Center
 from .permissions import user_can_manage_payments
 from django.db import transaction
@@ -2394,8 +2400,8 @@ def attendance_force(request):
         qs = qs.filter(center=center)
     g = get_object_or_404(qs, pk=group_id)
 
-    # Shu guruhdagi barcha enrollments
-    enrollments = Enrollment.objects.filter(group=g).select_related("student")
+    # Shu guruhdagi barcha faol enrollments (arxivlanganlar istisno)
+    enrollments = Enrollment.objects.filter(group=g, is_active=True).select_related("student")
 
     # Shu sana uchun mavjud attendance yozuvlari
     att_qs = Attendance.objects.filter(group=g, date=date_obj)
@@ -2455,8 +2461,8 @@ def attend_all(request, pk):
     date_str = request.POST.get("date")
     selected_date = parse_date(date_str) if date_str else localdate()
 
-    # davomat qayd qilish
-    students = Enrollment.objects.filter(group=g)
+    # davomat qayd qilish (faqat faol o'quvchilar uchun)
+    students = Enrollment.objects.filter(group=g, is_active=True)
     count = 0
 
     for e in students:
@@ -2490,7 +2496,7 @@ def attend_all_students(request, g_id):
     adj_rule = _attendance_adjust_rule()
     start, end = _day_range(selected_date)
 
-    enrollments = Enrollment.objects.filter(group=g).select_related("student")
+    enrollments = Enrollment.objects.filter(group=g, is_active=True).select_related("student")
 
     items = []
     count = 0
@@ -3703,7 +3709,7 @@ def force_absent_attendance(request):
 
     date = parse_date(date_str)
 
-    enrollments = Enrollment.objects.filter(group=group)
+    enrollments = Enrollment.objects.filter(group=group, is_active=True)
     forced_count = 0
 
     for enr in enrollments:
@@ -4080,23 +4086,14 @@ def add_student_to_group(request, pk: int):
         existing_enr = Enrollment.objects.filter(student=student, center=target_center).first()
         kurs_narhi = existing_enr.kurs_narhi if existing_enr else g.kurs_narxi
 
-        # Qo'shish (all_objects orqali soft-deleted bo'lsa tiklaymiz)
-        enr, created = Enrollment.all_objects.get_or_create(
-            group=g,
+        # Qo'shish (EnrollmentService orqali tarix bilan)
+        from education.services.enrollment_service import EnrollmentService
+        enr = EnrollmentService.enroll_student(
             student=student,
-            defaults={
-                "center": target_center,
-                "kurs_narhi": kurs_narhi,
-                "oqituvchi_foiz": g.oqituvchi_foiz or 40,
-                "is_active": True,
-            }
+            group=g,
+            kurs_narxi=kurs_narhi,
+            oqituvchi_foiz=g.oqituvchi_foiz or 40
         )
-        if not created:
-            if enr.is_deleted:
-                enr.restore(restored_by=request.user)
-            enr.is_active = True
-            enr.kurs_narhi = kurs_narhi
-            enr.save()
 
         from education.services.tuition import ensure_tuition_month
         from django.utils import timezone
@@ -4207,10 +4204,10 @@ def enrollment_remove(request, pk):
         return redirect("education:group_detail", pk=enr.group_id)
         
     if request.method == "POST":
-        # ✅ SOFT DELETE: Tarix saqlanib qolishi uchun o'chirmaymiz, faqat nofaol qilamiz.
-        enr.is_active = False
-        enr.save()
-        messages.success(request, "O‘quvchi guruhdan chiqarildi (Arxivlandi). Tarix saqlanib qoldi.")
+        # ✅ EnrollmentService orqali o'chiramiz (tarix yopiladi)
+        from education.services.enrollment_service import EnrollmentService
+        EnrollmentService.remove_student(enr.student, enr.group)
+        messages.success(request, "O‘quvchi guruhdan chiqarildi. Tarix saqlanib qoldi.")
         
     return redirect("education:group_detail", pk=enr.group_id)
 
@@ -4234,7 +4231,7 @@ def my_groups(request):
 def teacher_income_dashboard(request):
     """
     O'qituvchining shaxsiy daromadlari panelini ko'rsatadi.
-    Kunlik va oylik daromadlarni diagramma uchun tayyorlab beradi.
+    Snapshot tizimi yordamida o'tgan oylar ma'lumotlari muzlatilgan (immutable).
     """
     if request.user.role not in ['teacher', 'director', 'manager'] and not request.user.is_superuser:
         messages.error(request, "Bu bo'lim ushbu rol uchun emas.")
@@ -4242,82 +4239,81 @@ def teacher_income_dashboard(request):
         
     is_admin = request.user.role in ['director', 'manager'] or request.user.is_superuser
     
-    teacher = request.user
+    # Agar admin bo'lsa va teacher_id berilgan bo'lsa - o'shani ko'ramiz
+    teacher_id = request.GET.get('teacher_id')
+    if is_admin and teacher_id:
+        teacher = get_object_or_404(User, id=teacher_id, role='teacher')
+    else:
+        teacher = request.user
+
     today = timezone.localdate()
-    
-    # Tanlangan yil va oy (filterdan yoki joriydan)
     selected_year = _get_int(request.GET, "year", today.year)
     selected_month = _get_int(request.GET, "month", today.month)
     
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+
+    # HistoricalFinanceService orqali ma'lumotlarni olish (snapshot yoki dinamik)
+    salary_data = HistoricalFinanceService.calculate_teacher_salary(teacher, selected_year, selected_month, center)
+    
+    # Get all 12 months for the yearly chart efficiently
+    monthly_income = HistoricalFinanceService.get_yearly_teacher_salary(teacher, selected_year, center)
+    total_year_income = sum(monthly_income)
+    
+    # Get daily breakdown for the selected month (now returned by the service)
+    _, num_days = calendar.monthrange(selected_year, selected_month)
+    daily_income_long = salary_data.get('daily_breakdown', [0] * 31)
+    daily_income = daily_income_long[:num_days]
+
+    # Yearly labels for JS
+    monthly_labels = ["Yan", "Fev", "Mar", "Apr", "May", "Iyun", "Iyul", "Avg", "Sen", "Okt", "Noy", "Dek"]
+    daily_labels = [str(i) for i in range(1, num_days + 1)]
+
+    # Selectors options
+    years = range(today.year - 2, today.year + 2)
     months_list = [
         (1, "Yanvar"), (2, "Fevral"), (3, "Mart"), (4, "Aprel"),
         (5, "May"), (6, "Iyun"), (7, "Iyul"), (8, "Avgust"),
-        (9, "Sentyabr"), (10, "Oktyabr"), (11, "Noyabr"), (12, "Dekabr"),
+        (9, "Sentyabr"), (10, "Oktyabr"), (11, "Noyabr"), (12, "Dekabr")
     ]
-    
-    # 1) Davomat ma'lumotlarini olish (yil bo'yicha)
-    # present=True YOKI forced=True bo'lgan holatlar daromad hisoblanadi.
-    att_qs = Attendance.objects.filter(
-        teacher=teacher,
-        date__year=selected_year
-    ).filter(Q(present=True) | Q(forced=True))
-    
-    # 2) O'qituvchi guruhlari va o'quvchilar narxini xaritaga yig'ish
-    # Bu orqali har bir dars uchun qancha daromad tushishini bilib olamiz.
-    enrollment_map = {}
-    groups = Group.objects.filter(oqituvchi=teacher).prefetch_related('enrollments')
-    for g in groups:
-        for enr in g.enrollments.all():
-            enrollment_map[(g.id, enr.student_id)] = {
-                'kurs': enr.kurs_narhi or 0,
-                'foiz': (enr.oqituvchi_foiz or 0) / 100,
-                'lessons_per_month': g.oy_dars_soni or 12
-            }
-            
-    # Oylik daromad (12 oy uchun)
-    monthly_income = [0] * 12
-    # Kunlik daromad (tanlangan oy uchun)
-    _, num_days = calendar.monthrange(selected_year, selected_month)
-    daily_income = [0] * num_days
-    
-    # Davomatlarni hisoblab chiqamiz
-    attendances = att_qs.annotate(
-        m=ExtractMonth('date'),
-        d=ExtractDay('date')
-    ).values('group_id', 'student_id', 'm', 'd')
-    
-    for att in attendances:
-        info = enrollment_map.get((att['group_id'], att['student_id']))
-        if info:
-            # Bir dars uchun o'qituvchi ulushi
-            income_per_lesson = (info['kurs'] * info['foiz']) / info['lessons_per_month']
-            
-            # Oylik yig'indiga qo'shish
-            monthly_income[att['m'] - 1] += float(income_per_lesson)
-            
-            # Agar tanlangan oy bo'lsa, kunlik yig'indiga qo'shish
-            if att['m'] == selected_month:
-                daily_income[att['d'] - 1] += float(income_per_lesson)
-                
-    # Diagramma uchun belgilarni tayyorlash
-    daily_labels = [str(d) for d in range(1, num_days + 1)]
-    monthly_labels = [m[1] for m in months_list]
-    
-    # Hozirgi oy uchun umumiy daromad
-    current_month_total = monthly_income[selected_month - 1]
-    
+
     ctx = {
+        'teacher': teacher,
         'selected_year': selected_year,
         'selected_month': selected_month,
-        'months_list': months_list,
+        'salary_data': salary_data,
         'daily_income': daily_income,
-        'daily_labels': daily_labels,
         'monthly_income': monthly_income,
+        'total_year_income': total_year_income,
+        'daily_labels': daily_labels,
         'monthly_labels': monthly_labels,
-        'current_month_total': current_month_total,
-        'total_year_income': sum(monthly_income),
-        'years': range(today.year - 2, today.year + 2),
+        'years': years,
+        'months_list': months_list,
+        'is_locked': salary_data.get('is_locked', False),
         'is_admin': is_admin,
     }
     
+    if is_admin:
+        ctx['teachers_list'] = User.objects.filter(role='teacher', is_active=True)
+    
     return render(request, "education/teacher_income_dashboard.html", ctx)
+
+
+@login_required
+def close_finance_month_view(request):
+    """View to close (lock) a financial month for a center."""
+    if request.user.role not in ['director', 'manager'] and not request.user.is_superuser:
+        messages.error(request, "Sizda bu bo'limga ruxsat yo'q.")
+        return redirect('education:teacher_income_dashboard')
+
+    if request.method == "POST":
+        year = int(request.POST.get('year'))
+        month = int(request.POST.get('month'))
+        
+        from core.tenant import get_request_center
+        center = get_request_center(request)
+        
+        HistoricalFinanceService.close_month(center, year, month, request.user)
+        messages.success(request, f"{year}-yil {month}-oy muvaffaqiyatli yopildi va ma'lumotlar saqlandi.")
+        
+    return redirect(f"{reverse('education:teacher_income_dashboard')}?year={year}&month={month}")

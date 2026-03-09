@@ -1,7 +1,8 @@
 from django.db.models import F, Sum, Count, Q
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from education.models import Group, Enrollment, TeacherExpectedIncomeSnapshot
+from education.models import Group, Enrollment, TeacherExpectedIncomeSnapshot, StudentGroupHistory
+from datetime import date
 
 User = get_user_model()
 
@@ -46,25 +47,28 @@ def calculate_expected_income(teacher, year=None, month=None, center=None, cours
     breakdown = []
     
     for group in groups:
-        # Har bir guruh uchun faqat aktiv o'quvchilarni olish
-        active_enrollments = Enrollment.objects.filter(
-            group=group, 
-            is_active=True
+        # Har bir guruh uchun o'sha oyda aktiv bo'lgan o'quvchilarni olish
+        month_start = date(req_year, req_month, 1)
+        if req_month == 12:
+            month_end = date(req_year + 1, 1, 1)
+        else:
+            month_end = date(req_year, req_month + 1, 1)
+            
+        active_histories = StudentGroupHistory.objects.filter(
+            group=group,
+            start_date__lt=month_end
+        ).filter(
+            Q(end_date__isnull=True) | Q(end_date__gte=month_start)
         )
         
-        student_count = active_enrollments.count()
+        student_count = active_histories.count()
         if student_count == 0:
             continue
             
-        # O'qituvchi ulushini hisoblash 
-        # (ChaqmoqApp da foiz va narx asosan Enrollment ga yoki Group ga bog'langan bo'ladi)
-        # Guruhning o'zidan olamiz (Agar foizli bo'lsa)
-        monthly_fee = group.kurs_narxi or 0
-        teacher_percent = group.oqituvchi_foiz or 0
-        
-        income_per_student = (monthly_fee * teacher_percent) / 100
-        
-        group_expected_income = student_count * income_per_student
+        group_expected_income = 0
+        for h in active_histories:
+            income_per_student = (h.kurs_narxi * h.oqituvchi_foiz) / 100
+            group_expected_income += income_per_student
         
         total_expected_income += group_expected_income
         total_active_students += student_count
@@ -72,7 +76,6 @@ def calculate_expected_income(teacher, year=None, month=None, center=None, cours
         breakdown.append({
             "group_name": group.nom,
             "students": student_count,
-            "per_student_income": income_per_student,
             "group_total": group_expected_income
         })
 
