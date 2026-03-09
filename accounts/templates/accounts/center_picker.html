@@ -950,7 +950,7 @@
         onchange="this.form.submit()">
         <option value="" {% if not selected_status %}selected{% endif %}>Status: Barchasi</option>
         {% for s_code, s_label in statuses %}
-        <option value="{{ s_code }}" {% if selected_status==s_code %}selected{% endif %}>
+        <option value="{{ s_code }}" {% if selected_status == s_code %}selected{% endif %}>
           Status: {{ s_label }}
         </option>
         {% endfor %}
