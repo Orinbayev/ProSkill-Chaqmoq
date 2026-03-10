@@ -1193,10 +1193,15 @@ def user_edit(request, pk):
                     from django.utils.timezone import localdate
                     _cur_month = localdate().replace(day=1)
                     TuitionMonth.objects.filter(enrollment=enroll).delete()
-                    TuitionMonth.objects.create(
+                    TuitionMonth.all_objects.update_or_create(
                         enrollment=enroll,
                         month=_cur_month,
-                        **{_fee_field(): new_price}
+                        defaults={
+                            _fee_field(): new_price,
+                            "is_deleted": False,
+                            "deleted_at": None,
+                            "deleted_by": None
+                        }
                     )
                 except ValueError:
                     pass
