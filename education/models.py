@@ -487,7 +487,7 @@ def auto_attach_enrollment(sender, instance, **kwargs):
 
 
 
-class TuitionMonth(models.Model):
+class TuitionMonth(SoftDeleteMixin, models.Model):
     """
     Har bir Enrollment uchun har oy narx.
     month = oy 1-kuni (2026-01-01)
