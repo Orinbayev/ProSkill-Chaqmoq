@@ -1198,7 +1198,13 @@ def payment_receipt_pdf(request, payment_id: int):
 @login_required
 def attendance_groups(request):
     q = (request.GET.get("q") or "").strip()
-    teacher_id = _get_int(request.GET, "teacher", 0)
+    
+    # If the user is a teacher, force them to only see their own groups
+    is_teacher = getattr(request.user, 'role', '') == 'teacher'
+    if is_teacher:
+        teacher_id = request.user.id
+    else:
+        teacher_id = _get_int(request.GET, "teacher", 0)
 
 
     # ✅ Teacher dropdown uchun

@@ -255,6 +255,12 @@
       <span class="si-text">Daromadim</span>
     </a>
 
+    <a href="{% url 'education:attendance_groups' %}"
+      class="sidebar-item {% if vn == 'education:attendance_groups' %}active{% endif %}" data-title="Mening guruhlarim">
+      <span class="si-ico"><i class="fa-solid fa-users-viewfinder"></i></span>
+      <span class="si-text">Mening guruhlarim</span>
+    </a>
+
     {% elif request.user.role == 'student' %}
     <a href="/"
       class="sidebar-item {% if p == '/' or vn == 'core:home' or vn == 'core:dashboard_student' %}active{% endif %}"

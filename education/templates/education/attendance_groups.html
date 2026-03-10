@@ -368,7 +368,13 @@
         <i class="fa-solid fa-calendar-check"></i>
       </div>
       <div>
-        <h1 class="hero-title">Guruhlar davomati</h1>
+        <h1 class="hero-title">
+          {% if request.user.role == 'teacher' %}
+          Mening guruhlarim (Davomat)
+          {% else %}
+          Guruhlar davomati
+          {% endif %}
+        </h1>
         <div class="hero-sub">Oxirgi davomat va guruhlar holati bilan tanishing</div>
       </div>
     </div>
@@ -392,6 +398,7 @@
   <!-- FILTER -->
   <section class="filter-card">
     <form method="get" class="filter-form">
+      {% if request.user.role != 'teacher' %}
       <div class="fg">
         <i class="fa-solid fa-user-tie"></i>
         <select name="teacher">
@@ -403,6 +410,7 @@
           {% endfor %}
         </select>
       </div>
+      {% endif %}
 
       <div class="fg">
         <i class="fa-solid fa-magnifying-glass"></i>
