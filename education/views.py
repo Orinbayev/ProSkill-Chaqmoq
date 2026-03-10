@@ -3401,61 +3401,16 @@ def teacher_salary_summary(request):
     chart_labels = [m[1] for m in months]
 
     # ================================
-    # 1) Attendance: yil bo'yicha
-    #    present=True VA forced=True ikkala holat ham dars hisoblanadi
+    # 2) O'qituvchilar va ularning hisob-kitobi (Yagona To'g'ri Manba)
     # ================================
     from core.tenant import get_request_center
     center = get_request_center(request)
-    att_qs = Attendance.objects.all()
-    if center:
-        # attendance -> group -> center
-        att_qs = att_qs.filter(group__center=center)
-
-    attendance = (
-        att_qs
-        .annotate(
-            y=ExtractYear("date"),
-            m=ExtractMonth("date"),
-        )
-        .filter(y=selected_year)
-        .filter(Q(present=True) | Q(forced=True))  # 🔥 MUHIM JOY
-        .values("group_id", "student_id", "m")
-        .annotate(les=Count("id"))
-    )
-
-    # (group, student, month) => darslar soni
-    attendance_map = {
-        (a["group_id"], a["student_id"], a["m"]): a["les"]
-        for a in attendance
-    }
-
-    # ================================
-    # 2) O'qituvchilar + guruhlari + enrollment
-    # ================================
-    user_qs = User.objects.filter(role="teacher")
+    
+    user_qs = User.objects.filter(role="teacher", is_archived=False)
     if center:
         user_qs = user_qs.filter(center=center)
-
-    # Guruhlar kvartirasi - faqat shu markazniki bo'lishi shart!
-    group_qs = Group.objects.all()
-    if center:
-        group_qs = group_qs.filter(center=center)
-
-    teachers = (
-        user_qs
-        .prefetch_related(
-            Prefetch(
-                "group_set",
-                queryset=group_qs.prefetch_related(
-                    Prefetch(
-                        "enrollments",
-                        # ✅ Tarixiy hisobda inactive enrollments ham qatnashishi kerak
-                        queryset=Enrollment.objects.all().select_related("student")
-                    )
-                )
-            )
-        )
-    )
+        
+    teachers = user_qs.order_by('ism', 'familya', 'id')
 
     # ================================
     # Grafik uchun bo'sh massivlar (12 oy)
@@ -3465,67 +3420,33 @@ def teacher_salary_summary(request):
     chart_total_turnover = [0] * 12
 
     # ================================
-    # 3) HISOB-KITOB
+    # 3) HISOB-KITOB (HistoricalFinanceService orqali)
     # ================================
     teacher_data = []
 
     for teacher in teachers:
-
-        # Tanlangan oy uchun ko'rsatkichlar
-        month_lessons = 0
-        month_teacher_income = 0
-        month_center_profit = 0
-        month_turnover = 0
-
-        # 12 oy bo'yicha aylanib chiqamiz
-        for month_num, _ in months:
-
-            m_lessons = 0
-            m_teacher_income = 0
-            m_center_profit = 0
-            m_turnover = 0
-
-            for group in teacher.group_set.all():
-                for enr in group.enrollments.all():
-
-                    kurs = enr.kurs_narhi or 0
-                    foiz = (enr.oqituvchi_foiz or 0) / 100
-
-                    # Shu oyda shu o'quvchi nechta dars qilgan?
-                    les = attendance_map.get((group.id, enr.student.id, month_num), 0)
-
-                    if les > 0:
-                        # 1 oy = 12 ta dars deb qabul qilingan
-                        lessons_per_month = group.oy_dars_soni or 12
-                        teacher_part = kurs * foiz / lessons_per_month
-                        center_part = kurs * (1 - foiz) / 12
-                        turnover_part = kurs / 12
-
-                        m_lessons += les
-                        m_teacher_income += teacher_part * les
-                        m_center_profit += center_part * les
-                        m_turnover += turnover_part * les
-
-            # 🔹 Grafiklar uchun yig'amiz
-            chart_teacher_income[month_num - 1] += m_teacher_income
-            chart_center_income[month_num - 1] += m_center_profit
-            chart_total_turnover[month_num - 1] += m_turnover
-
-            # 🔹 Jadval faqat tanlangan oy uchun
-            if month_num == selected_month:
-                month_lessons = m_lessons
-                month_teacher_income = m_teacher_income
-                month_center_profit = m_center_profit
-                month_turnover = m_turnover
+        yearly_stats = HistoricalFinanceService.get_yearly_teacher_stats(teacher, selected_year, center)
+        
+        # Hamma oylar bo'yicha markazning umumiy summasini grafik uchun yig'amiz
+        for m in range(12):
+            chart_teacher_income[m] += yearly_stats[m]['salary']
+            chart_center_income[m] += yearly_stats[m]['center_profit']
+            chart_total_turnover[m] += yearly_stats[m]['turnover']
+            
+        # Jadval uchun faqat tanlangan oyni olamiz
+        m_stat = yearly_stats[selected_month - 1]
+        
+        # O'qituvchining nechta guruhi bor?
+        groups_count = teacher.group_set.filter(is_archived=False).count()
 
         teacher_data.append({
             "id": teacher.id,
             "teacher": teacher.get_full_name() or teacher.email,
-            "groups": teacher.group_set.count(),
-            "lessons": month_lessons,
-            "teacher_income": round(month_teacher_income),
-            "center_profit": round(month_center_profit),
-            "total_turnover": round(month_turnover),
+            "groups": groups_count,
+            "lessons": m_stat['lessons'],
+            "teacher_income": int(m_stat['salary']),
+            "center_profit": int(m_stat['center_profit']),
+            "total_turnover": int(m_stat['turnover']),
         })
 
     # ================================

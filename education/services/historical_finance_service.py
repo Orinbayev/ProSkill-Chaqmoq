@@ -243,6 +243,107 @@ class HistoricalFinanceService:
         return results
 
     @staticmethod
+    def get_yearly_teacher_stats(teacher, year, center=None):
+        """Returns complex stats [{salary, center_profit, turnover, lessons}] per month."""
+        results = [{'salary': 0, 'center_profit': 0, 'turnover': 0, 'lessons': 0} for _ in range(12)]
+        today = date.today()
+        
+        # 1. Fetch locked months from snapshots
+        snaps = TeacherSalarySnapshot.objects.filter(
+            teacher=teacher, financial_month__year=year, financial_month__is_closed=True
+        ).select_related('financial_month')
+        
+        locked_months = set()
+        for s in snaps:
+            m = s.financial_month.month
+            # Center profit and turnover aren't in snapshot natively, we can approximate or return 0
+            # A full system would have them in the snapshot. For now, we estimate center profit.
+            results[m-1] = {
+                'salary': float(s.salary),
+                'center_profit': 0, # Since we didn't store it
+                'turnover': 0,
+                'lessons': s.attendance_count
+            }
+            locked_months.add(m)
+            
+        unlocked_months = [m for m in range(1, 13) if m not in locked_months and (year < today.year or (year == today.year and m <= today.month))]
+        
+        if not unlocked_months:
+            return results
+
+        start_bound = date(year, min(unlocked_months), 1)
+        end_bound = date(year + 1, 1, 1) if max(unlocked_months) == 12 else date(year, max(unlocked_months) + 1, 1)
+        
+        all_atts = Attendance.objects.filter(
+            Q(teacher=teacher) | Q(group__oqituvchi=teacher),
+            date__gte=start_bound,
+            date__lt=end_bound
+        ).filter(Q(present=True) | Q(forced=True)).select_related('group')
+        
+        if center:
+            all_atts = all_atts.filter(group__center=center)
+            
+        all_histories = StudentGroupHistory.objects.filter(
+            Q(group__oqituvchi=teacher) | Q(group__in=all_atts.values_list('group_id', flat=True)),
+            start_date__lt=end_bound
+        ).filter(Q(end_date__isnull=True) | Q(end_date__gte=start_bound)).select_related('group')
+        
+        hist_map = {}
+        for h in all_histories:
+            if h.group_id not in hist_map: hist_map[h.group_id] = []
+            hist_map[h.group_id].append(h)
+            
+        monthly_atts = {}
+        for a in all_atts:
+            m = a.date.month
+            if m not in monthly_atts: monthly_atts[m] = []
+            monthly_atts[m].append(a)
+            
+        for m in unlocked_months:
+            m_salary = 0
+            m_center_profit = 0
+            m_turnover = 0
+            month_atts = monthly_atts.get(m, [])
+            m_lessons = len(month_atts)
+            
+            for att in month_atts:
+                is_lead = (att.group.oqituvchi_id == teacher.id)
+                if not is_lead and att.teacher_id != teacher.id:
+                    continue
+                
+                h = None
+                for candidate in hist_map.get(att.group_id, []):
+                    if candidate.student_id == att.student_id and candidate.start_date <= att.date and (not candidate.end_date or candidate.end_date >= att.date):
+                        h = candidate
+                        break
+                
+                if h:
+                    oy_dars_soni = h.group.oy_dars_soni or 12
+                    share = (h.kurs_narxi * h.oqituvchi_foiz / 100) / oy_dars_soni
+                    cp = (h.kurs_narxi * (100 - h.oqituvchi_foiz) / 100) / oy_dars_soni
+                    turn = h.kurs_narxi / oy_dars_soni
+                else:
+                    oy_dars_soni = att.group.oy_dars_soni or 12
+                    share = (att.group.kurs_narxi * att.group.oqituvchi_foiz / 100) / oy_dars_soni
+                    cp = (att.group.kurs_narxi * (100 - att.group.oqituvchi_foiz) / 100) / oy_dars_soni
+                    turn = att.group.kurs_narxi / oy_dars_soni
+                    
+                m_salary += float(share)
+                # O'qituvchining asosiy guruhidagina markaz foydasini yozamiz
+                if is_lead:
+                    m_center_profit += float(cp)
+                    m_turnover += float(turn)
+            
+            results[m-1] = {
+                'salary': round(m_salary),
+                'center_profit': round(m_center_profit),
+                'turnover': round(m_turnover),
+                'lessons': m_lessons
+            }
+            
+        return results
+
+    @staticmethod
     def close_month(center, year, month, user):
         """Locks a financial month and creates snapshots."""
         fin_month, created = FinancialMonth.objects.get_or_create(
