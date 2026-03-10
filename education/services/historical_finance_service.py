@@ -98,6 +98,9 @@ class HistoricalFinanceService:
                 membership_map[m.group_id] = []
             membership_map[m.group_id].append(m)
 
+        all_enrs = getattr(Enrollment, 'all_objects', Enrollment.objects).filter(group_id__in=all_group_ids)
+        enr_map = {(e.group_id, e.student_id): e for e in all_enrs}
+
         for group in groups:
             # Determine which attendances this teacher gets paid for in this group
             group_atts_qs = Attendance.objects.filter(
@@ -135,11 +138,18 @@ class HistoricalFinanceService:
                     group_salary += float(share)
                     daily_breakdown[att.date.day - 1] += float(share)
                 else:
-                    # Fallback to group current rates if history record is missing
-                    oy_dars_soni = group.oy_dars_soni or 12
-                    share = (group.kurs_narxi * group.oqituvchi_foiz / 100) / oy_dars_soni
-                    group_salary += float(share)
-                    daily_breakdown[att.date.day - 1] += float(share)
+                    enr = enr_map.get((group.id, att.student_id))
+                    if enr:
+                        oy_dars_soni = group.oy_dars_soni or 12
+                        share = ((enr.kurs_narhi or 0) * (enr.oqituvchi_foiz or 0) / 100) / oy_dars_soni
+                        group_salary += float(share)
+                        daily_breakdown[att.date.day - 1] += float(share)
+                    else:
+                        # Fallback to group current rates if history record is missing
+                        oy_dars_soni = group.oy_dars_soni or 12
+                        share = (group.kurs_narxi * group.oqituvchi_foiz / 100) / oy_dars_soni
+                        group_salary += float(share)
+                        daily_breakdown[att.date.day - 1] += float(share)
 
             if round(group_salary) > 0 or group_attendance > 0:
                 total_salary += round(group_salary)
@@ -206,6 +216,9 @@ class HistoricalFinanceService:
             if h.group_id not in hist_map: hist_map[h.group_id] = []
             hist_map[h.group_id].append(h)
             
+        all_enrs = getattr(Enrollment, 'all_objects', Enrollment.objects).filter(group_id__in=all_atts.values_list('group_id', flat=True))
+        enr_map = {(e.group_id, e.student_id): e for e in all_enrs}
+            
         # Group attendances by month
         monthly_atts = {} # month -> list of atts
         for a in all_atts:
@@ -235,8 +248,13 @@ class HistoricalFinanceService:
                     share = (h.kurs_narxi * h.oqituvchi_foiz / 100) / (h.group.oy_dars_soni or 12)
                     month_salary += float(share)
                 else:
-                    share = (att.group.kurs_narxi * att.group.oqituvchi_foiz / 100) / (att.group.oy_dars_soni or 12)
-                    month_salary += float(share)
+                    enr = enr_map.get((att.group_id, att.student_id))
+                    if enr:
+                        share = ((enr.kurs_narhi or 0) * (enr.oqituvchi_foiz or 0) / 100) / (att.group.oy_dars_soni or 12)
+                        month_salary += float(share)
+                    else:
+                        share = (att.group.kurs_narxi * att.group.oqituvchi_foiz / 100) / (att.group.oy_dars_soni or 12)
+                        month_salary += float(share)
             
             results[m-1] = round(month_salary)
             
@@ -293,6 +311,9 @@ class HistoricalFinanceService:
             if h.group_id not in hist_map: hist_map[h.group_id] = []
             hist_map[h.group_id].append(h)
             
+        all_enrs = getattr(Enrollment, 'all_objects', Enrollment.objects).filter(group_id__in=all_atts.values_list('group_id', flat=True))
+        enr_map = {(e.group_id, e.student_id): e for e in all_enrs}
+            
         monthly_atts = {}
         for a in all_atts:
             m = a.date.month
@@ -323,10 +344,17 @@ class HistoricalFinanceService:
                     cp = (h.kurs_narxi * (100 - h.oqituvchi_foiz) / 100) / oy_dars_soni
                     turn = h.kurs_narxi / oy_dars_soni
                 else:
-                    oy_dars_soni = att.group.oy_dars_soni or 12
-                    share = (att.group.kurs_narxi * att.group.oqituvchi_foiz / 100) / oy_dars_soni
-                    cp = (att.group.kurs_narxi * (100 - att.group.oqituvchi_foiz) / 100) / oy_dars_soni
-                    turn = att.group.kurs_narxi / oy_dars_soni
+                    enr = enr_map.get((att.group_id, att.student_id))
+                    if enr:
+                        oy_dars_soni = att.group.oy_dars_soni or 12
+                        share = ((enr.kurs_narhi or 0) * (enr.oqituvchi_foiz or 0) / 100) / oy_dars_soni
+                        cp = ((enr.kurs_narhi or 0) * (100 - (enr.oqituvchi_foiz or 0)) / 100) / oy_dars_soni
+                        turn = (enr.kurs_narhi or 0) / oy_dars_soni
+                    else:
+                        oy_dars_soni = att.group.oy_dars_soni or 12
+                        share = (att.group.kurs_narxi * att.group.oqituvchi_foiz / 100) / oy_dars_soni
+                        cp = (att.group.kurs_narxi * (100 - att.group.oqituvchi_foiz) / 100) / oy_dars_soni
+                        turn = att.group.kurs_narxi / oy_dars_soni
                     
                 m_salary += float(share)
                 # O'qituvchining asosiy guruhidagina markaz foydasini yozamiz
