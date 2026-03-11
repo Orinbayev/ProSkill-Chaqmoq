@@ -485,10 +485,14 @@ class DailyLightningSetting(models.Model):
 
 class TeacherIncome(models.Model):
     center = models.ForeignKey("accounts.Center", on_delete=models.SET_NULL, null=True, blank=True)
-    teacher = models.ForeignKey(User, on_delete=models.CASCADE)
-    group = models.ForeignKey(Group, on_delete=models.CASCADE)
-    attendance = models.OneToOneField(Attendance, on_delete=models.CASCADE)
-    amount = models.PositiveIntegerField(default=0)
+    teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name="teacher_incomes")
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="teacher_incomes")
+    attendance = models.OneToOneField(Attendance, on_delete=models.CASCADE, related_name="teacher_income_record")
+    
+    amount = models.PositiveIntegerField(default=0, verbose_name="O'qituvchi ulushi")
+    center_amount = models.PositiveIntegerField(default=0, verbose_name="Markaz ulushi")
+    total_amount = models.PositiveIntegerField(default=0, verbose_name="Umumiy aylanma")
+    
     created_at = models.DateTimeField(auto_now_add=True)
 
 

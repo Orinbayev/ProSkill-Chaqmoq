@@ -75,6 +75,7 @@ from .models import (
     FinancialMonth,
     MonthlyFinanceSnapshot,
     TeacherSalarySnapshot,
+    TeacherIncome,
 )
 from education.services.historical_finance_service import HistoricalFinanceService
 from education.services.enrollment_service import EnrollmentService
@@ -3284,29 +3285,35 @@ def teacher_salary_list(request):
         teacher_qs = teacher_qs.filter(center=center)
     teachers = teacher_qs.order_by("ism")
 
+    
+    # Bitta query bilan o'qituvchilarning ushbu oydagi barcha daromadlarini olamiz
+    income_data = (
+        TeacherIncome.objects
+        .filter(attendance__date__year=year, attendance__date__month=month)
+    )
+    if center:
+        income_data = income_data.filter(center=center)
+        
+    income_summands = (
+        income_data
+        .values('teacher_id')
+        .annotate(total=Sum('amount'), gc=Count('group_id', distinct=True))
+    )
+    
+    income_map = {item['teacher_id']: item for item in income_summands}
+
     teacher_rows = []
     total_all = 0
 
-    # Oddiy, tushunarli hisob (keyin xohlasa optimallashtirib beraman)
     for t in teachers:
-        groups = (
-            Group.objects
-            .filter(oqituvchi=t, is_archived=False)
-            .prefetch_related("enrollments", "attendances")
-        )
-
-        teacher_total = 0
-        for g in groups:
-            for enr in g.enrollments.all():
-                # siz ishlatayotgan method
-                teacher_total += enr.real_oqituvchi_daromadi(year=year, month=month)
-
-        total_all += teacher_total
+        data = income_map.get(t.id, {'total': 0, 'gc': 0})
+        salary = data['total'] or 0
+        total_all += salary
 
         teacher_rows.append({
             "teacher": t,
-            "month_salary": teacher_total,
-            "groups_count": groups.count(),
+            "month_salary": salary,
+            "groups_count": data['gc'],
         })
 
     return render(request, "education/teacher_salary_list.html", {
@@ -3364,7 +3371,16 @@ def teacher_groups(request, teacher_id):
             if not enr.is_active and attended == 0:
                  continue
 
-            daromad = enr.real_oqituvchi_daromadi(year=year, month=month)
+            # Daromadni TeacherIncome jadvalidan olamiz
+            daromad_entry = TeacherIncome.objects.filter(
+                teacher=teacher,
+                group=group,
+                attendance__student=enr.student,
+                attendance__date__year=year,
+                attendance__date__month=month
+            ).aggregate(total=Sum('amount'))
+            
+            daromad = daromad_entry['total'] or 0
 
             enrollments.append({
                 "student": enr.student,      # ✅ student obyekt
@@ -3413,12 +3429,18 @@ def teacher_salary_report(request, group_id):
 
     student_summaries = []
     for e in enrollments:
-        attended = Attendance.objects.filter(group=group, student=e.student, present=True).count()
-        teacher_income = attended * per_lesson_income
+        data = TeacherIncome.objects.filter(
+            group=group,
+            attendance__student=e.student
+        ).aggregate(
+            total=Sum('amount'),
+            count=Count('id')
+        )
+        
         student_summaries.append({
             "student": e.student,
-            "attended": attended,
-            "teacher_income": teacher_income
+            "attended": data['count'] or 0,
+            "teacher_income": data['total'] or 0
         })
 
     teacher_total_income = sum(s["teacher_income"] for s in student_summaries)

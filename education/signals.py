@@ -1,47 +1,101 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import Attendance, TeacherIncome, Enrollment
+from .models import Attendance, TeacherIncome, Enrollment, Group
 
 
 @receiver(post_save, sender=Attendance)
 def create_teacher_income(sender, instance, created, **kwargs):
-    # To'lanadigan holatlar: "present" (Keldi) YOKI "absent_unexcused" (Sababsiz)
-    # SHUNINGDEK: instance.forced (backward compatibility uchun)
-    is_billable = instance.status == 'present' or instance.status == 'absent_unexcused' or instance.forced or instance.present
+    """
+    Davomat saqlanganda o'qituvchining darslik ulushini (TeacherIncome) hisoblaydi.
+    """
+    # 1. To'lanadigan holatlar: "Keldi" yoki "Sababsiz"
+    is_billable = instance.status == 'present' or instance.status == 'absent_unexcused' or getattr(instance, 'forced', False) or getattr(instance, 'present', False)
 
     if not is_billable:
-        # Agar to'lanmaydigan holat bo'lsa (masalan: Sababli), mavjud income bo'lsa o'chiramiz
+        # To'lanmaydigan holatda (Sababli) eski yozuvni o'chiradi
         TeacherIncome.objects.filter(attendance=instance).delete()
         return
 
+    # 2. O'quvchining ushbu guruhdagi faol Enrollmentini topish
     try:
-        enrollment = Enrollment.objects.get(
+        from .models import Enrollment
+        enrollment = Enrollment.objects.filter(
             group=instance.group,
-            student=instance.student
-        )
-    except Enrollment.DoesNotExist:
+            student=instance.student,
+        ).order_by('-is_active', '-created_at').first()
+        
+        if not enrollment:
+            return
+    except Exception:
         return
 
-    # Daromadni hisoblaymiz
-    kurs_narhi = enrollment.kurs_narhi or 0
-    foiz = enrollment.oqituvchi_foiz or 0
-    oy_dars_soni = instance.group.oy_dars_soni or 12
+    # 4. Yozuvni yangilash yoki yaratish (FAQAT guruh o'qituvchisiga yozamiz)
+    teacher = instance.group.oqituvchi if instance.group else None
+    if not teacher:
+        return
 
-    if kurs_narhi > 0 and foiz > 0 and oy_dars_soni > 0:
-        amount = round((kurs_narhi * foiz / 100) / oy_dars_soni)
+    # 3. Daromad mantiqiy hisobi
+    # MUHIM: Foydalanuvchi talabiga ko'ra, O'qituvchi profildagi foiz MASTER (asosiy) hisoblanadi.
+    # Agar profildagi foiz 0 bo'lmasa, uni ishlatamiz.
+    foiz = getattr(teacher, 'oqituvchi_foizi', 0)
+    
+    # Agar o'qituvchi profilida foiz bo'lmasa (0 bo'lsa), unda Enrollmentdagi foizga qaraymiz
+    if foiz is None or foiz == 0:
+        foiz = enrollment.oqituvchi_foiz
+        
+    kurs_narhi = enrollment.kurs_narhi or 0
+    
+    oy_dars_soni = instance.group.oy_dars_soni or 12
+    if oy_dars_soni <= 0: oy_dars_soni = 12
+
+    if kurs_narhi > 0 and foiz > 0:
+        total_per_lesson = kurs_narhi / oy_dars_soni
+        amount = round(total_per_lesson * (foiz / 100))
+        center_amount = round(total_per_lesson * ((100 - foiz) / 100))
+        total_amount = round(total_per_lesson)
     else:
         amount = 0
+        center_amount = 0
+        total_amount = 0
 
-    # Mavjud bo'lsa yangilaymiz, bo'lmasa yaratamiz
     TeacherIncome.objects.update_or_create(
         attendance=instance,
         defaults={
             'center': instance.center or (instance.group.center if instance.group else None),
-            'teacher': instance.teacher,
+            'teacher': teacher,
             'group': instance.group,
-            'amount': amount
+            'amount': amount,
+            'center_amount': center_amount,
+            'total_amount': total_amount
         }
     )
+
+from django.contrib.auth import get_user_model
+User = get_user_model()
+
+@receiver(post_save, sender=Enrollment)
+@receiver(post_save, sender=Group)
+@receiver(post_save, sender=User)
+def handle_rate_change(sender, instance, **kwargs):
+    """
+    Kurs narxi yoki foiz o'zgarganda ushbu oydagi daromadlarni qayta hisoblaydi.
+    """
+    from django.utils import timezone
+    from .models import Attendance
+    today = timezone.localdate()
+    
+    if isinstance(instance, Group):
+        atts = Attendance.objects.filter(group=instance, date__year=today.year, date__month=today.month)
+    elif isinstance(instance, Enrollment):
+        atts = Attendance.objects.filter(group=instance.group, student=instance.student, date__year=today.year, date__month=today.month)
+    elif isinstance(instance, User) and instance.role == 'teacher':
+        # Agar o'qituvchi o'z foizini o'zgartirsa, hamma guruhlarini qayta hisoblaymiz
+        atts = Attendance.objects.filter(group__oqituvchi=instance, date__year=today.year, date__month=today.month)
+    else:
+        return
+        
+    for att in atts:
+        create_teacher_income(Attendance, att, created=False)
 
     # NOTE: Enrollment yaratilganda avtomatik TuitionMonth YARATILMAYDI.
     # Yangi qo'shilgan o'quvchi KEYINGI oydan boshlab qarzli hisoblanadi.
