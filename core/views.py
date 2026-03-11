@@ -1006,11 +1006,29 @@ def user_view(request, pk):
     month_calendar = calendar.monthcalendar(selected_year, selected_month) # [[0,0,1,2,3,4,5], ...]
     
     # ✅ Enrollments (ONLY FOR THIS CENTER)
-    enrollments = Enrollment.objects.filter(
+    # Include both active and inactive so history is visible
+    enrollments_qs = Enrollment.all_objects.filter(
         student=user, 
         group__center=center
-    ).select_related('group', 'group__category_obj', 'group__oqituvchi').order_by("-id")
+    ).select_related('group', 'group__category_obj', 'group__oqituvchi').order_by("-is_active", "-id")
     
+    enrollments = list(enrollments_qs)
+    enrolled_group_ids = {e.group_id for e in enrollments}
+    
+    # O'quvchida davomat bor, lekin qandaydir sabab bilan Enrollment qattiq o'chirilgan (Hard Delete) bo'lsa,
+    # ularning tarixini ham ko'rsatish uchun ularni ushlaymiz:
+    from education.models import Group
+    attendance_group_ids = Attendance.objects.filter(student=user, group__center=center).values_list('group_id', flat=True).distinct()
+    missing_group_ids = set(attendance_group_ids) - enrolled_group_ids
+    
+    if missing_group_ids:
+        missing_groups = Group.objects.filter(id__in=missing_group_ids).select_related('category_obj', 'oqituvchi')
+        for g in missing_groups:
+            # Soxta Enrollment yasab, tarixga qo'shamiz
+            mock_enr = Enrollment(student=user, group=g, is_active=False)
+            mock_enr.created_at = None
+            enrollments.append(mock_enr)
+
     for enr in enrollments:
         # Stats (Total)
         enr.total = Attendance.objects.filter(student=user, group=enr.group).count()

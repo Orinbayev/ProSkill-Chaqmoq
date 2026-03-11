@@ -59,6 +59,11 @@
                             <i class="fa-solid fa-folder-closed me-1"></i> Oyni yopish
                         </button>
                     </form>
+                    
+                    <a href="{% url 'education:fix_all_incomes' %}" class="btn btn-warning btn-sm rounded-pill px-3"
+                       onclick="return confirm('⚠️ DIQQAT!  Global serverdagi barcha eski davomatlar TeacherIncome tizimiga hisoblab chiqiladi. Bu amal bir muncha vaqt olishi mumkin. Rozimisiz?');">
+                        <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Bazani yangilash
+                    </a>
                     {% endif %}
 
                     <!-- USER PROFILE -->

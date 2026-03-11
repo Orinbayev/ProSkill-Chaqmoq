@@ -179,39 +179,44 @@ O‘quvchi profili -
                 </div>
             </div>
             <div class="glass p-3">
-                <h5 class="mb-4 fw-bold text-white"><i class="fa-solid fa-layer-group me-2 text-warning"></i> Faol
-                    Kurslar</h5>
+                <h5 class="mb-4 fw-bold text-white"><i class="fa-solid fa-layer-group me-2 text-warning"></i> Kurslar (<span style="color:red; font-size:12px">arxividagilar bilan</span>)</h5>
                 <div class="groups-v2-list d-flex flex-column gap-3">
                     {% for enr in enrollments %}
-                    <div class="group-v2-card p-3 rounded-4 border border-white-5 bg-white-3">
-                        <div class="d-flex justify-content-between align-items-start mb-2"> <span
-                                class="small text-warning fw-bold">
+                    <div class="group-v2-card p-3 rounded-4 border border-white-5 {% if not enr.is_active %}bg-danger-subtle opacity-75{% else %}bg-white-3{% endif %}">
+                        <div class="d-flex justify-content-between align-items-start mb-2"> 
+                            <span class="small {% if not enr.is_active %}text-danger{% else %}text-warning{% endif %} fw-bold">
                                 {{ enr.group.category_obj.icon|default:"📚" }}
                                 {{ enr.group.category_obj.name }}
-                            </span> <span class="badge 
-{% if enr.is_active %}
-bg-success-subtle text-success
-{% else %}
-bg-secondary-subtle text-secondary
-{% endif %}
- rounded-pill small">
+                            </span> 
+                            <span class="badge 
+                                {% if enr.is_active %}
+                                bg-success-subtle text-success
+                                {% else %}
+                                bg-danger-subtle text-danger
+                                {% endif %}
+                                rounded-pill small">
                                 {% if enr.is_active %}
                                 O‘qimoqda
                                 {% else %}
-                                Yakunlangan
+                                Guruhdan chetlashtirilgan
                                 {% endif %}
-                            </span> </div>
-                        <div class="fs-5 fw-bold text-white mb-2">
+                            </span> 
+                        </div>
+                        <div class="fs-5 fw-bold {% if not enr.is_active %}text-danger{% else %}text-white{% endif %} mb-2">
                             {{ enr.group.nom }}
                         </div>
-                        <div class="d-flex gap-3 small text-white-50"> <span><i class="fa-solid fa-user-tie me-1"></i>
+                        <div class="d-flex gap-3 small text-white-50"> 
+                            <span><i class="fa-solid fa-user-tie me-1"></i>
                                 {{ enr.group.oqituvchi.get_full_name }}
-                            </span> <span><i class="fa-solid fa-clock me-1"></i>
+                            </span> 
+                            <span><i class="fa-solid fa-clock me-1"></i>
                                 {{ enr.created_at|date:"M Y" }}
-                            </span> </div>
+                            </span> 
+                        </div>
                     </div>
                     {% empty %}
-                    <div class="text-center py-5 opacity-25"> <i class="fa-solid fa-inbox fs-1 mb-2"></i>
+                    <div class="text-center py-5 opacity-25"> 
+                        <i class="fa-solid fa-inbox fs-1 mb-2"></i>
                         <p>Kurslar topilmadi</p>
                     </div>
                     {% endfor %}

@@ -2210,7 +2210,7 @@ def groups_by_category(request, category):
     rows = (
         Group.objects.filter(category=category)
         .select_related("center", "oqituvchi")
-        .annotate(student_count=Count("enrollments"))
+        .annotate(student_count=Count("enrollments", filter=Q(enrollments__is_active=True, enrollments__is_deleted=False)))
         .order_by("nom")
     )
     from core.tenant import get_request_center
@@ -2272,7 +2272,7 @@ def create_group_for_category(request, category_id):
 def guruhlar(request):
     rows = (
         Group.objects.select_related("center", "oqituvchi")
-        .annotate(student_count=Count("enrollments"))
+        .annotate(student_count=Count("enrollments", filter=Q(enrollments__is_active=True, enrollments__is_deleted=False)))
         .order_by("nom")
     )
     from core.tenant import get_request_center
@@ -4222,7 +4222,7 @@ def my_groups(request):
     rows = (
         Group.objects.filter(oqituvchi=request.user, is_archived=False)
         .select_related("center", "oqituvchi")
-        .annotate(student_count=Count("enrollments"))
+        .annotate(student_count=Count("enrollments", filter=Q(enrollments__is_active=True, enrollments__is_deleted=False)))
         .order_by("nom")
     )
     from core.tenant import get_request_center
@@ -4322,3 +4322,83 @@ def close_finance_month_view(request):
         messages.success(request, f"{year}-yil {month}-oy muvaffaqiyatli yopildi va ma'lumotlar saqlandi.")
         
     return redirect(f"{reverse('education:teacher_income_dashboard')}?year={year}&month={month}")
+
+@login_required
+def fix_all_incomes(request):
+    """
+    Global/Production muhitda o'tgan oydagi eski Attendance malumotlarini 
+    TeacherIncome tizimiga generator qilib beruvchi bir martalik master funktsiya
+    """
+    if not request.user.is_superuser:
+        if request.user.role != 'director':
+            return HttpResponseForbidden("Faqat Direktor uchun!")
+
+    from education.models import Attendance, TeacherIncome, Enrollment
+    from django.db import transaction
+    
+    all_attendances = Attendance.objects.all().select_related('group', 'student', 'teacher', 'group__center')
+    
+    created_count = 0
+    updated_count = 0
+
+    with transaction.atomic():
+        for i, att in enumerate(all_attendances):
+            # 1. To'lanadigan holatmi?
+            is_billable = att.status == 'present' or att.status == 'absent_unexcused' or getattr(att, 'forced', False) or getattr(att, 'present', False)
+
+            if not is_billable:
+                TeacherIncome.objects.filter(attendance=att).delete()
+                continue
+            
+            # 2. Enrollmentni topish
+            enrollment = Enrollment.all_objects.filter(
+                group=att.group,
+                student=att.student
+            ).order_by('-is_active', '-created_at').first()
+
+            if not enrollment:
+                TeacherIncome.objects.filter(attendance=att).delete()
+                continue
+
+            teacher = att.group.oqituvchi if att.group else None
+            if not teacher:
+                continue
+
+            foiz = getattr(teacher, 'oqituvchi_foizi', 0)
+            if foiz is None or foiz == 0:
+                foiz = enrollment.oqituvchi_foiz
+                
+            kurs_narhi = enrollment.kurs_narhi or 0
+            
+            oy_dars_soni = att.group.oy_dars_soni or 12
+            if oy_dars_soni <= 0: oy_dars_soni = 12
+
+            if kurs_narhi > 0 and foiz > 0:
+                total_per_lesson = kurs_narhi / oy_dars_soni
+                amount = round(total_per_lesson * (foiz / 100))
+                center_amount = round(total_per_lesson * ((100 - foiz) / 100))
+                total_amount = round(total_per_lesson)
+            else:
+                amount = 0
+                center_amount = 0
+                total_amount = 0
+
+            obj, created = TeacherIncome.objects.update_or_create(
+                attendance=att,
+                defaults={
+                    'center': att.center or (att.group.center if att.group else None),
+                    'teacher': teacher,
+                    'group': att.group,
+                    'amount': amount,
+                    'center_amount': center_amount,
+                    'total_amount': total_amount
+                }
+            )
+            
+            if created:
+                created_count += 1
+            else:
+                updated_count += 1
+
+    messages.success(request, f"🚀 Barcha daromadlar qayta hisoblandi! Yangi tizim qo'llandi. Yaratildi: {created_count}, Yangilandi: {updated_count}.")
+    return redirect('education:teacher_income_dashboard')

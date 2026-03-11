@@ -8,6 +8,15 @@ def create_teacher_income(sender, instance, created, **kwargs):
     """
     Davomat saqlanganda o'qituvchining darslik ulushini (TeacherIncome) hisoblaydi.
     """
+    # 0. MOLIYA YOPILGANLIKKA TEKSHIRAMIZ (TARIXIY HIMOYALANISH)
+    # Agar bu oy yopilgan bo'lsa (Moliya muzlatilgan), hech qanday o'zgartirish qilish mumkin emas!
+    from .models import FinancialMonth
+    center = instance.center or (instance.group.center if instance.group else None)
+    if center and instance.date:
+        closed = FinancialMonth.objects.filter(center=center, year=instance.date.year, month=instance.date.month, is_closed=True).exists()
+        if closed:
+            return  # QULFLANGAN OY - tegilmasin!
+
     # 1. To'lanadigan holatlar: "Keldi" yoki "Sababsiz"
     is_billable = instance.status == 'present' or instance.status == 'absent_unexcused' or getattr(instance, 'forced', False) or getattr(instance, 'present', False)
 

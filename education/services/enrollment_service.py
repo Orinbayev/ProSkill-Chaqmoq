@@ -13,16 +13,24 @@ class EnrollmentService:
         narx = kurs_narxi if kurs_narxi is not None else group.kurs_narxi
         foiz = oqituvchi_foiz if oqituvchi_foiz is not None else group.oqituvchi_foiz
         
-        enrollment, created = Enrollment.objects.get_or_create(
-            student=student,
-            group=group,
-            defaults={
-                'kurs_narhi': narx,
-                'oqituvchi_foiz': foiz,
-                'center': group.center,
-                'is_active': True
-            }
-        )
+        # Use all_objects to check if a soft-deleted enrollment exists (Fix for IntegrityError)
+        enrollment = Enrollment.all_objects.filter(student=student, group=group).first()
+        created = False
+        
+        if enrollment:
+            # Resurrect if it was deleted
+            if getattr(enrollment, 'is_deleted', False):
+                enrollment.restore()
+        else:
+            enrollment = Enrollment.objects.create(
+                student=student,
+                group=group,
+                kurs_narhi=narx,
+                oqituvchi_foiz=foiz,
+                center=group.center,
+                is_active=True
+            )
+            created = True
         
         if not created and not enrollment.is_active:
             enrollment.is_active = True

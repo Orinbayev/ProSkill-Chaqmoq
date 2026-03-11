@@ -82,6 +82,7 @@ urlpatterns = [
     path("mening_guruhlarim/", views.my_groups, name="mening_guruhlarim"),
     path("daromadim/", views.teacher_income_dashboard, name="teacher_income_dashboard"),
     path("finance/close-month/", views.close_finance_month_view, name="close_finance_month"),
+    path("fix-incomes/", views.fix_all_incomes, name="fix_all_incomes"),
 
     # === 🧍‍♂️ O‘QUVCHILAR ===
     path("student/<int:student_id>/", views.student_detail, name="student_detail"),
