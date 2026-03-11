@@ -14,7 +14,7 @@ def require_center(request):
     if center is None:
         user = getattr(request, "user", None)
         if user and user.is_authenticated and user.is_superuser:
-            return redirect("platform_global:center_picker")
+            return redirect("platform_global:superadmin_dashboard")
         raise Http404("Center not found")
     return center
 

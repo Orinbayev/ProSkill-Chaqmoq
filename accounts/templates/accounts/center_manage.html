@@ -219,6 +219,78 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
+
+  /* --- CUSTOM MODAL --- */
+  .cm-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+  }
+  .cm-overlay.show {
+    opacity: 1;
+    visibility: visible;
+  }
+  .cm-modal {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    max-width: 500px;
+    transform: scale(0.95) translateY(20px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0;
+  }
+  .cm-overlay.show .cm-modal {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+  .cm-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .cm-title {
+    color: white;
+    font-weight: 800;
+    font-size: 1.25rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .cm-body {
+    padding: 1.5rem;
+  }
+  .cm-footer {
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+  .cm-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .cm-close:hover {
+    color: white;
+  }
 </style>
 
 <div class="manage-scope">
@@ -230,7 +302,7 @@
     </div>
 
     <div class="d-flex gap-3">
-      <a class="btn-action-outline" href="{% url 'platform_global:center_picker' %}">
+      <a class="btn-action-outline" href="{% url 'platform_global:superadmin_dashboard' %}">
         <i class="fa-solid fa-arrow-left"></i> Centerlar
       </a>
       <a class="btn-action-outline" href="/admin/accounts/center/{{ center.id }}/change/" target="_blank">
@@ -277,6 +349,7 @@
                   <tr>
                     <th>Role</th>
                     <th>Email / Ism</th>
+                    <th class="text-end">Amallar</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -284,13 +357,20 @@
                   <tr>
                     <td><span class="role-badge">{{ u.role }}</span></td>
                     <td>
-                      <div style="color: white;">{{ u.get_full_name|default:"Nomlanmagan" }}</div>
+                      <div style="color: white; font-weight: 700;">{{ u.get_full_name|default:"Nomlanmagan" }}</div>
                       <div style="font-size: 0.75rem; color: var(--text-muted);">{{ u.email }}</div>
+                    </td>
+                    <td class="text-end">
+                      <button type="button" class="btn btn-sm" 
+                              style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 8px; font-weight: 600;" 
+                              onclick="openEditModal('{{ u.id }}', '{{ u.ism|escapejs }}', '{{ u.familya|escapejs }}', '{{ u.email|escapejs }}')">
+                        <i class="fa-solid fa-pen"></i> Tahrirlash
+                      </button>
                     </td>
                   </tr>
                   {% empty %}
                   <tr>
-                    <td colspan="3" class="text-center py-4" style="color: var(--text-muted);">
+                    <td colspan="4" class="text-center py-4" style="color: var(--text-muted);">
                       <i class="fa-solid fa-user-slash d-block mb-2 fs-3"></i>
                       Hali xodimlar biriktirilmagan
                     </td>
@@ -354,5 +434,79 @@
     </div>
   </div>
 </div>
+
+<!-- Edit Employee Modal (Custom) -->
+<div class="cm-overlay" id="editEmployeeModal" onclick="if(event.target===this) closeEditModal()">
+  <div class="cm-modal">
+    <div class="cm-header">
+      <h5 class="cm-title">
+        <i class="fa-solid fa-user-pen" style="color: var(--primary-blue);"></i>
+        Xodimni tahrirlash
+      </h5>
+      <button type="button" class="cm-close" onclick="closeEditModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="edit_director">
+      <input type="hidden" name="user_id" id="edit_user_id">
+      
+      <div class="cm-body">
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="m-label">Ism</label>
+            <input class="m-input" name="ism" id="edit_ism" required>
+          </div>
+          <div class="col-md-6">
+            <label class="m-label">Familya</label>
+            <input class="m-input" name="familya" id="edit_familya" required>
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <label class="m-label">Email / Login</label>
+          <input class="m-input" name="email" id="edit_email" type="email" required>
+        </div>
+        
+        <div class="mb-2">
+          <label class="m-label">Yangi parol <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: none;">(faqat o'zgartirish uchun kiritamiz)</span></label>
+          <input class="m-input" name="password" id="edit_password" type="password" placeholder="••••••••">
+        </div>
+      </div>
+      
+      <div class="cm-footer">
+        <button type="button" class="btn-action-outline m-0" onclick="closeEditModal()">
+          Bekor qilish
+        </button>
+        <button type="submit" class="btn-m-primary m-0" style="width: auto; padding: 10px 24px;">
+          <i class="fa-solid fa-check me-2"></i> Saqlash
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openEditModal(id, ism, familya, email) {
+    document.getElementById('edit_user_id').value = id;
+    document.getElementById('edit_ism').value = ism;
+    document.getElementById('edit_familya').value = familya;
+    document.getElementById('edit_email').value = email;
+    document.getElementById('edit_password').value = '';
+    
+    document.getElementById('editEmployeeModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeEditModal() {
+    document.getElementById('editEmployeeModal').classList.remove('show');
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('keydown', function(event) {
+    if (event.key === "Escape") {
+      closeEditModal();
+    }
+  });
+</script>
 
 {% endblock %}

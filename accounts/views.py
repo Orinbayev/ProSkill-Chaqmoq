@@ -304,6 +304,34 @@ def center_manage(request, pk: int):
             messages.success(request, f"✅ Yangi director yaratildi: {email}")
             return redirect("accounts:center_manage", pk=center.id)
 
+        if action == "edit_director":
+            user_id = request.POST.get("user_id")
+            email = (request.POST.get("email") or "").strip().lower()
+            password = (request.POST.get("password") or "").strip()
+            ism = (request.POST.get("ism") or "").strip()
+            familya = (request.POST.get("familya") or "").strip()
+            
+            u = User.objects.filter(id=user_id, center=center, role__in=["director", "manager"]).first()
+            if not u:
+                messages.error(request, "Xodim topilmadi.")
+                return redirect("accounts:center_manage", pk=center.id)
+                
+            if email and email != u.email:
+                if User.objects.filter(email=email).exclude(id=u.id).exists():
+                    messages.error(request, "Bu email allaqachon boshqa xodimda mavjud.")
+                    return redirect("accounts:center_manage", pk=center.id)
+                u.email = email
+            
+            u.ism = ism
+            u.familya = familya
+            
+            if password:
+                u.set_password(password)
+                
+            u.save()
+            messages.success(request, f"✅ Xodim ma'lumotlari yangilandi: {u.email}")
+            return redirect("accounts:center_manage", pk=center.id)
+
     return render(request, "accounts/center_manage.html", {
         "center": center,
         "staff": staff,

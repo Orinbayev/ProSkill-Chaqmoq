@@ -60,10 +60,10 @@ class GroupForm(forms.ModelForm):
 
 
 class LangGroupForm(GroupForm):
+    category = forms.ChoiceField(choices=Group.CATEGORY_CHOICES, widget=forms.HiddenInput(), initial=Group.LANG, required=False)
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["category"].initial = Group.LANG
-        self.fields["category"].widget = forms.HiddenInput()
 
     def save(self, commit=True):
         obj = super().save(commit=False)
@@ -76,10 +76,10 @@ class LangGroupForm(GroupForm):
         return obj
 
 class ITGroupForm(GroupForm):
+    category = forms.ChoiceField(choices=Group.CATEGORY_CHOICES, widget=forms.HiddenInput(), initial=Group.IT, required=False)
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["category"].initial = Group.IT
-        self.fields["category"].widget = forms.HiddenInput()
 
     def save(self, commit=True):
         obj = super().save(commit=False)

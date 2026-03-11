@@ -32,7 +32,7 @@
 
   <!-- HEADER: LOGO + TOGGLE -->
   <div class="sidebar-header">
-    <a href="{% if request.user.is_superuser and not request.center %}/platform/{% elif request.user.is_superuser and request.center %}{% url 'platform_global:center_picker' %}{% else %}/{% endif %}"
+    <a href="{% if request.user.is_superuser and not request.center %}/platform/{% elif request.user.is_superuser and request.center %}{% url 'platform_global:superadmin_dashboard' %}{% else %}/{% endif %}"
       class="sidebar-logo" aria-label="Bosh sahifa" data-title="Bosh sahifa">
       <div class="ultimate-bolt-container">
         <div class="spark-particle s1"></div>
@@ -89,11 +89,7 @@
       <span class="si-text">Global Panel</span>
     </a>
 
-    <a href="{% url 'platform_global:center_picker' %}"
-      class="sidebar-item {% if vn == 'platform_global:center_picker' %}active{% endif %}" data-title="Markazlar">
-      <span class="si-ico"><i class="fa-solid fa-hotel"></i></span>
-      <span class="si-text">Markazlar</span>
-    </a>
+
 
     <a href="{% url 'platform_global:plans_ui' %}" class="sidebar-item {% if '/plans' in p %}active{% endif %}"
       data-title="Tariflar">
@@ -377,7 +373,7 @@
     {% endif %}
 
     {% if request.user.is_superuser and request.center %}
-    <a href="{% url 'platform_global:center_picker' %}" class="sidebar-item settings-item btn-back-platform"
+    <a href="{% url 'platform_global:superadmin_dashboard' %}" class="sidebar-item settings-item btn-back-platform"
       data-title="Platformaga qaytish">
       <span class="si-ico"><i class="fa-solid fa-arrow-left-long"></i></span>
       <span class="si-text">Platformaga qaytish</span>

@@ -923,9 +923,51 @@ def payment_history_api(request):
     if not is_superadmin(request.user):
         return HttpResponseForbidden("Faqat superadmin uchun")
     
-    qs = SubscriptionOrder.objects.filter(
-        status='PAID'
-    ).select_related('center', 'plan').order_by('-paid_at')[:100]
+    # 1. Base query for all paid orders
+    paid_orders = SubscriptionOrder.objects.filter(status='PAID')
+    
+    # 2. Key Metrics (KPIs)
+    total_revenue = paid_orders.aggregate(s=Sum('final_price'))['s'] or 0
+    
+    from django.utils import timezone
+    from datetime import timedelta
+    today = timezone.localdate()
+    first_day_this_month = today.replace(day=1)
+    
+    this_month_revenue = paid_orders.filter(paid_at__gte=first_day_this_month).aggregate(s=Sum('final_price'))['s'] or 0
+    total_subscribers = paid_orders.values('center').distinct().count()
+    
+    kpi = {
+        "total_revenue": total_revenue,
+        "this_month_revenue": this_month_revenue,
+        "total_subscribers": total_subscribers,
+    }
+    
+    # 3. Chart Data (Last 6 months)
+    revenue_chart = []
+    for i in range(5, -1, -1):
+        target_year = today.year
+        target_month = today.month - i
+        while target_month <= 0:
+            target_month += 12
+            target_year -= 1
+        d = today.replace(year=target_year, month=target_month, day=1)
+
+        y, m = d.year, d.month
+        month_start = d
+        if m == 12:
+            next_month = d.replace(year=y+1, month=1, day=1)
+        else:
+            next_month = d.replace(month=m+1, day=1)
+            
+        rev = paid_orders.filter(paid_at__gte=month_start, paid_at__lt=next_month).aggregate(s=Sum('final_price'))['s'] or 0
+        revenue_chart.append({
+            "label": month_start.strftime("%b %Y"),
+            "value": rev
+        })
+    
+    # 4. Recent 100 Payments List
+    qs = paid_orders.select_related('center', 'plan').order_by('-paid_at')[:100]
     
     data = []
     for order in qs:
@@ -940,4 +982,15 @@ def payment_history_api(request):
             "paid_at": order.paid_at.strftime("%d.%m.%Y %H:%M") if order.paid_at else order.created_at.strftime("%d.%m.%Y %H:%M"),
         })
         
-    return JsonResponse({"payments": data})
+    # 5. Plan Distribution (Which plan sold how many times)
+    plan_distribution = list(paid_orders.values('plan__title', 'plan__code').annotate(
+        count=Count('id'),
+        total_revenue=Sum('final_price')
+    ).order_by('-count'))
+        
+    return JsonResponse({
+        "payments": data,
+        "kpi": kpi,
+        "chart": revenue_chart,
+        "plan_stats": plan_distribution
+    })

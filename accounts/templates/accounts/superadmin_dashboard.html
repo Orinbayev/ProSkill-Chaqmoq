@@ -1833,8 +1833,7 @@
                             {% if sub %}
                             <div class="sa-plan-row">
                                 <span class="sa-badge sa-badge-plan">{{ sub.plan.code }}</span>
-                                <span style="font-size:0.75rem;color:var(--sa-muted);">{{ c.student_count }}/{{
-                                    c.effective_student_limit }}</span>
+                                <span style="font-size:0.75rem;color:var(--sa-muted);">{{ c.student_count }}/{{ c.effective_student_limit }}</span>
                             </div>
                             <div class="sa-progress">
                                 {% if c.effective_student_limit > 0 %}
@@ -2272,7 +2271,9 @@
         openArchiveModal(id, action);
     }
 
-    // ── SaaS Payments History (AJAX) ───────────────────
+    let saasChartInstance = null;
+    let saasPlanChartInstance = null;
+
     async function openPaymentsModal() {
         const overlay = document.getElementById('payOverlay');
         const body = document.getElementById('payTableBody');
@@ -2284,12 +2285,28 @@
             <tr class="pay-loading-shimmer"><td></td><td></td><td></td><td></td></tr>
             <tr class="pay-loading-shimmer"><td></td><td></td><td></td><td></td></tr>
             <tr class="pay-loading-shimmer"><td></td><td></td><td></td><td></td></tr>
-            <tr class="pay-loading-shimmer"><td></td><td></td><td></td><td></td></tr>
         `;
 
         try {
             const r = await fetch('/platform/api/finance/payments/');
             const d = await r.json();
+
+            // Set KPIs
+            if (d.kpi) {
+                document.getElementById('saasTotalRev').textContent = d.kpi.total_revenue.toLocaleString() + ' UZS';
+                document.getElementById('saasMonthRev').textContent = d.kpi.this_month_revenue.toLocaleString() + ' UZS';
+                document.getElementById('saasSubsCount').textContent = d.kpi.total_subscribers;
+            }
+
+            // Render Trends Chart
+            if (d.chart) {
+                renderSaasChart(d.chart);
+            }
+
+            // Render Plan Stats Donut Chart
+            if (d.plan_stats) {
+                renderPlanChart(d.plan_stats);
+            }
 
             if (d.payments && d.payments.length > 0) {
                 body.innerHTML = '';
@@ -2303,14 +2320,14 @@
                         </td>
                         <td>
                             <div class="pay-plan-badge">${p.plan_code}</div>
-                            <div style="font-size:0.7rem; color:#64748b; margin-top:4px;">${p.duration} oylik obuna</div>
+                            <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">${p.duration} oylik obuna</div>
                         </td>
                         <td>
                             <div class="pay-amount">${p.amount.toLocaleString()} UZS</div>
                         </td>
                         <td>
                             <div class="pay-date">${p.paid_at}</div>
-                            <div class="pay-status-ok"><i class="bi bi-check-all"></i> Muvaffaqiyatli</div>
+                            <div class="pay-status-ok" style="font-size:0.75rem;"><i class="bi bi-check-all"></i> Muvaffaqiyatli</div>
                         </td>
                     `;
                     body.appendChild(tr);
@@ -2327,6 +2344,124 @@
             }
         } catch (e) {
             body.innerHTML = `<tr><td colspan="4" class="pay-empty" style="color:#ef4444;">Server bilan aloqa xatosi...</td></tr>`;
+        }
+    }
+
+    function renderSaasChart(chartData) {
+        if (!chartData || chartData.length === 0) return;
+        
+        let labels = chartData.map(c => c.label);
+        let values = chartData.map(c => c.value);
+
+        const options = {
+            series: [{
+                name: "Daromad (UZS)",
+                data: values
+            }],
+            chart: {
+                height: 250,
+                type: 'area',
+                toolbar: { show: false },
+                background: 'transparent',
+                fontFamily: 'Inter, sans-serif'
+            },
+            colors: ['#3b82f6'],
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.4,
+                    opacityTo: 0.05,
+                    stops: [0, 90, 100]
+                }
+            },
+            dataLabels: { enabled: false },
+            stroke: { curve: 'smooth', width: 3 },
+            xaxis: {
+                categories: labels,
+                labels: { style: { colors: '#94a3b8' } },
+                axisBorder: { show: false },
+                axisTicks: { show: false }
+            },
+            yaxis: {
+                labels: {
+                    style: { colors: '#94a3b8' },
+                    formatter: (value) => {
+                        if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                        if (value >= 1000) return (value / 1000).toFixed(0) + 'k';
+                        return value;
+                    }
+                }
+            },
+            grid: {
+                borderColor: 'rgba(255,255,255,0.05)',
+                strokeDashArray: 4,
+            },
+            tooltip: {
+                theme: 'dark',
+                y: { formatter: function (val) { return val.toLocaleString() + " UZS" } }
+            }
+        };
+
+        if (saasChartInstance) {
+            saasChartInstance.updateOptions(options);
+        } else {
+            saasChartInstance = new ApexCharts(document.querySelector("#saasRevenueChart"), options);
+            saasChartInstance.render();
+        }
+    }
+
+    function renderPlanChart(planStats) {
+        if (!planStats || planStats.length === 0) return;
+        
+        let labels = planStats.map(p => p.plan__title + ' (' + p.count + ')');
+        let values = planStats.map(p => p.count);
+
+        const options = {
+            series: values,
+            labels: labels,
+            chart: {
+                type: 'donut',
+                height: 280,
+                fontFamily: 'Inter, sans-serif',
+                background: 'transparent'
+            },
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: '70%',
+                        labels: {
+                            show: true,
+                            name: { color: '#94a3b8' },
+                            value: { color: '#fff', fontSize: '20px', fontWeight: 800 },
+                            total: {
+                                show: true,
+                                label: 'Sotuvlar',
+                                color: '#94a3b8',
+                                formatter: function (w) {
+                                    return w.globals.seriesTotals.reduce((a, b) => a + b, 0)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            theme: { mode: 'dark' },
+            dataLabels: { enabled: false },
+            colors: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'],
+            stroke: { show: true, colors: ['#0d1526'], width: 3 },
+            legend: {
+                position: 'right',
+                offsetY: 20,
+                labels: { colors: '#94a3b8' }
+            }
+        };
+
+        if (saasPlanChartInstance) {
+            saasPlanChartInstance.updateOptions(options);
+        } else {
+            saasPlanChartInstance = new ApexCharts(document.querySelector("#saasPlanChart"), options);
+            saasPlanChartInstance.render();
         }
     }
 
@@ -2349,19 +2484,112 @@
 </script>
 
 <!-- ── SaaS Payments Modal ──────────────────────── -->
+<!-- ── SaaS Payments Modal ──────────────────────── -->
+<style>
+    .saas-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        padding: 24px 32px 0 32px;
+    }
+    .saas-kpi-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    .saas-kpi-card .icon {
+        width: 48px; height: 48px;
+        border-radius: 12px;
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem;
+    }
+    .saas-kpi-card .info p {
+        margin: 0;
+        font-size: 0.8rem;
+        color: #94a3b8;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .saas-kpi-card .info h3 {
+        margin: 4px 0 0 0;
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: white;
+    }
+    .saas-chart-container {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 24px;
+        padding: 20px 32px;
+        margin-top: 10px;
+        min-height: 250px;
+        align-items: center;
+    }
+    .pay-body-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0 32px 32px 32px;
+    }
+    
+    /* Modify modal for larger width */
+    .pay-modal {
+        max-width: 1250px !important;
+        max-height: 90vh !important;
+    }
+</style>
+
 <div class="pay-overlay" id="payOverlay">
     <div class="pay-modal" role="dialog" aria-modal="true" aria-labelledby="payTitle">
         <div class="pay-head">
             <h2 id="payTitle">
-                <i class="bi bi-patch-check-fill"></i>
-                SaaS Tushumlari & To'lovlar Tarixi
+                <i class="bi bi-patch-check-fill" style="color: #10b981;"></i>
+                SaaS Tushumlari & Analitikasi
             </h2>
             <button class="pay-close" onclick="closePaymentsModal()">
                 <i class="bi bi-x-lg"></i>
             </button>
         </div>
-        <div class="pay-body" id="payBody">
-            <table class="pay-table">
+        
+        <div class="saas-kpi-grid">
+            <div class="saas-kpi-card">
+                <div class="icon"><i class="bi bi-cash-stack"></i></div>
+                <div class="info">
+                    <p>Umumiy Tushum</p>
+                    <h3 id="saasTotalRev">0 UZS</h3>
+                </div>
+            </div>
+            <div class="saas-kpi-card">
+                <div class="icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;"><i class="bi bi-graph-up-arrow"></i></div>
+                <div class="info">
+                    <p>Shu Oy Tushumi</p>
+                    <h3 id="saasMonthRev">0 UZS</h3>
+                </div>
+            </div>
+            <div class="saas-kpi-card">
+                <div class="icon" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6;"><i class="bi bi-buildings"></i></div>
+                <div class="info">
+                    <p>Faol Markazlar</p>
+                    <h3 id="saasSubsCount">0</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="saas-chart-container">
+            <!-- ApexCharts Line Chart (Revenue) -->
+            <div id="saasRevenueChart" style="border-right: 1px dashed rgba(255,255,255,0.05); padding-right: 20px;"></div>
+            <!-- ApexCharts Donut Chart (Plan Stats) -->
+            <div id="saasPlanChart"></div>
+        </div>
+
+        <div class="pay-body-list" id="payBody">
+            <table class="pay-table" style="width: 100%;">
                 <thead>
                     <tr>
                         <th style="width: 35%;">Markaz</th>
