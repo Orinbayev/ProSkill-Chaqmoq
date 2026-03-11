@@ -5,7 +5,7 @@
 <style>
     :root {
         --bg-dark: #020617;
-        --bg-card: rgba(15, 23, 42, 0.4);
+        --bg-card: rgba(15, 23, 42, 0.5);
         --bg-hover: rgba(255, 255, 255, 0.04);
         --border: rgba(255, 255, 255, 0.08);
         --text-main: #f8fafc;
@@ -14,27 +14,23 @@
         --primary-glow: #38bdf8;
         --green: #10b981;
         --red: #ef4444;
+        --amber: #f59e0b;
         --radius: 14px;
     }
 
     body {
-        background: radial-gradient(1200px 520px at 50% -10%, rgba(59, 130, 246, 0.1), transparent 60%),
-            linear-gradient(180deg, var(--bg-dark), var(--bg-dark));
+        background: radial-gradient(1200px 520px at 50% -10%, rgba(59,130,246,0.09), transparent 60%),
+                    linear-gradient(180deg, var(--bg-dark), var(--bg-dark));
         color: var(--text-main);
         min-height: 100vh;
         font-family: system-ui, -apple-system, sans-serif;
     }
 
-    .settings-container {
-        max-width: 1000px;
-        margin: 0 auto;
-        padding: 16px;
-    }
+    .sc { max-width: 1000px; margin: 0 auto; padding: 16px; }
 
+    /* ─── Header row ─── */
     .header-box {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        display: flex; justify-content: space-between; align-items: center;
         padding: 10px 16px;
         border-radius: var(--radius);
         background: var(--bg-card);
@@ -42,256 +38,588 @@
         backdrop-filter: blur(20px);
         margin-bottom: 16px;
     }
+    .header-box h2 { font-weight: 800; color: #fff; margin: 0; font-size: 18px; }
 
-    h2 {
-        font-weight: 800;
-        color: #fff;
-        margin: 0;
-        font-size: 18px;
-    }
-
-    .btn-action {
-        height: 36px;
-        padding: 0 16px;
-        border-radius: 10px;
-        font-weight: 700;
-        font-size: 13px;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        transition: all 0.2s;
-        border: none;
-        cursor: pointer;
-    }
-
-    .btn-add {
-        background: var(--primary);
-        color: #fff;
-    }
-
-    .btn-add:hover {
-        filter: brightness(1.1);
-        transform: translateY(-1px);
-    }
-
-    .rules-list {
-        display: grid;
-        gap: 1rem;
-    }
-
-    .rule-card {
-        background: rgba(255, 255, 255, 0.02);
+    /* ─── Section card ─── */
+    .section-card {
+        background: var(--bg-card);
         border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 12px 18px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        transition: all 0.2s;
+        border-radius: var(--radius);
+        backdrop-filter: blur(20px);
+        margin-bottom: 16px;
+        overflow: hidden;
     }
-
-    .rule-card:hover {
-        background: var(--bg-hover);
-        border-color: var(--primary-glow);
-        transform: translateX(4px);
+    .section-head {
+        display: flex; align-items: center; gap: 10px;
+        padding: 13px 18px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(255,255,255,0.015);
     }
-
-    .rule-info {
-        display: flex;
-        align-items: center;
-        gap: 1.5rem;
-    }
-
-    .rule-type-icon {
-        width: 38px;
-        height: 38px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 16px;
-    }
-
-    .type-plus {
-        background: rgba(16, 185, 129, 0.1);
-        color: var(--green);
-        border: 1px solid rgba(16, 185, 129, 0.2);
-    }
-
-    .type-minus {
-        background: rgba(239, 68, 68, 0.1);
-        color: var(--red);
-        border: 1px solid rgba(239, 68, 68, 0.2);
-    }
-
-    .rule-details h3 {
-        margin: 0;
-        font-size: 15px;
-        color: #fff;
-        font-weight: 700;
-    }
-
-    .rule-meta {
-        font-size: 11px;
-        color: var(--text-muted);
-        margin-top: 2px;
-        display: flex;
-        gap: 12px;
-        font-weight: 600;
-    }
-
-    .role-badges {
-        display: flex;
-        gap: 6px;
-        margin-top: 8px;
-    }
-
-    .role-badge {
-        font-size: 9px;
-        padding: 2px 6px;
-        border-radius: 4px;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid var(--border);
-        color: var(--text-muted);
-        font-weight: 700;
-        text-transform: uppercase;
-    }
-
-    .role-badge.active {
-        background: rgba(59, 130, 246, 0.1);
-        color: var(--primary-glow);
-        border-color: rgba(59, 130, 246, 0.2);
-    }
-
-    .rule-actions {
-        display: flex;
-        gap: 8px;
-    }
-
-    .icon-btn {
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-muted);
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid var(--border);
-        transition: all 0.2s;
-        text-decoration: none;
+    .section-head .icon-wrap {
+        width: 32px; height: 32px; border-radius: 9px;
+        display: flex; align-items: center; justify-content: center;
         font-size: 14px;
     }
+    .icon-blue  { background: rgba(59,130,246,0.12); color: #38bdf8; border: 1px solid rgba(59,130,246,0.2); }
+    .icon-red   { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+    .icon-bolt  { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+    .section-head h4 {
+        margin: 0; font-size: 12px; font-weight: 800;
+        text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted);
+    }
+    .section-body { padding: 16px 18px; }
 
-    .icon-btn:hover {
-        color: #fff;
-        background: rgba(255, 255, 255, 0.1);
+    /* ─── Inputs ─── */
+    .field-label {
+        display: block; color: var(--text-muted); font-size: 10px;
+        font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 5px;
+    }
+    .field-input {
+        width: 100%; height: 38px;
+        background: rgba(0,0,0,0.25); border: 1px solid var(--border);
+        border-radius: 10px; padding: 0 12px; color: #fff;
+        font-weight: 600; font-size: 13px; outline: none;
+        transition: border-color 0.18s;
+    }
+    .field-input:focus { border-color: rgba(59,130,246,0.5); }
+    .field-input.inp-red:focus { border-color: rgba(239,68,68,0.5); }
+    .field-note { color: var(--text-muted); font-size: 10px; margin-top: 8px; font-weight: 500; }
+
+    /* ─── Buttons ─── */
+    .btn {
+        height: 36px; padding: 0 16px; border-radius: 10px; font-weight: 700;
+        font-size: 13px; display: inline-flex; align-items: center; justify-content: center;
+        gap: 7px; transition: all 0.18s; border: none; cursor: pointer; text-decoration: none;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { filter: brightness(1.12); transform: translateY(-1px); }
+    .btn-danger  { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+    .btn-danger:hover  { background: rgba(239,68,68,0.22); }
+    .btn-ghost   { background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .btn-sm { height: 30px; padding: 0 12px; font-size: 11px; border-radius: 8px; }
+
+    /* ─── Penalty rule cards ─── */
+    .penalty-card {
+        display: flex; align-items: center; gap: 14px;
+        background: rgba(239,68,68,0.05);
+        border: 1px solid rgba(239,68,68,0.15);
+        border-radius: 12px; padding: 14px 16px;
+        transition: all 0.2s;
+    }
+    .penalty-card:hover { background: rgba(239,68,68,0.08); }
+    .penalty-icon {
+        width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0;
+        text-align: center; line-height: 42px; font-size: 18px;
+        background: rgba(239,68,68,0.12); color: #f87171;
+        border: 1px solid rgba(239,68,68,0.2);
+    }
+    .penalty-body { flex: 1; }
+    .penalty-name { font-size: 14px; font-weight: 800; color: #fff; margin: 0 0 3px 0; }
+    .penalty-meta { display: flex; gap: 14px; flex-wrap: wrap; }
+    .penalty-chip {
+        font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 20px;
+        display: inline-flex; align-items: center; gap: 5px;
+    }
+    .chip-limit { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+    .chip-penalty { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+    .chip-period { background: rgba(148,163,184,0.08); color: var(--text-muted); border: 1px solid var(--border); }
+
+    /* ─── Modal ─── */
+    .modal-overlay {
+        position: fixed; inset: 0; z-index: 99999;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(2,6,23,0.82); backdrop-filter: blur(8px);
+        opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal-box {
+        background: #131a2e; border: 1px solid rgba(239,68,68,0.2);
+        border-radius: 18px; max-width: 440px; width: 100%; margin: 16px;
+        transform: scale(0.95); transition: transform 0.2s;
+    }
+    .modal-overlay.open .modal-box { transform: scale(1); }
+    .modal-head {
+        padding: 18px 20px; border-bottom: 1px solid rgba(255,255,255,0.06);
+        display: flex; align-items: center; gap: 10px;
+    }
+    .modal-head h3 { margin: 0; font-size: 16px; font-weight: 800; color: #fff; }
+    .modal-body { padding: 18px 20px; display: grid; gap: 14px; }
+    .modal-foot { padding: 0 20px 18px; display: flex; gap: 10px; justify-content: flex-end; }
+    .modal-foot .btn { flex: 1; }
+
+    /* Theme overrides for modal */
+    .modal-box.theme-red { border-color: rgba(239,68,68,0.3); }
+    .modal-box.theme-green { border-color: rgba(16,185,129,0.3); }
+    .icon-green { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+
+    /* Bonus card styles */
+    .bonus-card {
+        display: flex; align-items: center; gap: 14px;
+        background: rgba(16,185,129,0.05);
+        border: 1px solid rgba(16,185,129,0.15);
+        border-radius: 12px; padding: 14px 16px; transition: all 0.2s;
+    }
+    .bonus-card:hover { background: rgba(16,185,129,0.08); }
+    .bonus-icon {
+        width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0;
+        text-align: center; line-height: 42px; font-size: 18px;
+        background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.2);
     }
 
-    .btn-edit:hover {
-        background: rgba(16, 185, 129, 0.1);
-        color: var(--green);
-        border-color: var(--green);
+    /* ─── Rule cards (Plus/Minus) ─── */
+    .rule-card {
+        background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+        border-radius: 12px; padding: 12px 18px;
+        display: flex; justify-content: space-between; align-items: center;
+        transition: all 0.2s;
     }
+    .rule-card:hover { background: var(--bg-hover); border-color: var(--primary-glow); transform: translateX(4px); }
+    .rule-info { display: flex; align-items: center; gap: 1.5rem; }
+    .rule-type-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .type-plus { background: rgba(16,185,129,0.1); color: var(--green); border: 1px solid rgba(16,185,129,0.2); }
+    .type-minus { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+    .rule-details h3 { margin: 0; font-size: 15px; color: #fff; font-weight: 700; }
+    .rule-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; display: flex; gap: 12px; font-weight: 600; }
+    .role-badges { display: flex; gap: 6px; margin-top: 8px; }
+    .role-badge { font-size: 9px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-muted); font-weight: 700; text-transform: uppercase; }
+    .role-badge.active { background: rgba(59,130,246,0.1); color: var(--primary-glow); border-color: rgba(59,130,246,0.2); }
+    .rule-actions { display: flex; gap: 8px; }
+    .icon-btn { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); background: rgba(255,255,255,0.05); border: 1px solid var(--border); transition: all 0.2s; text-decoration: none; font-size: 14px; }
+    .icon-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+    .btn-edit:hover { background: rgba(16,185,129,0.1); color: var(--green); border-color: var(--green); }
+    .btn-del:hover { background: rgba(239,68,68,0.1); color: var(--red); border-color: var(--red); }
 
-    .btn-del:hover {
-        background: rgba(239, 68, 68, 0.1);
-        color: var(--red);
-        border-color: var(--red);
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 4rem 2rem;
-        color: var(--muted);
-    }
-
-    .empty-icon {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        opacity: 0.5;
-    }
 </style>
+{% if messages %}
+<style>
+    .message-toast { position: fixed; top: 20px; right: 20px; z-index: 99999; display: flex; flex-direction: column; gap: 8px; }
+    .toast-item { padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; animation: slideIn 0.3s ease; }
+    .toast-success { background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #34d399; }
+    .toast-error   { background: rgba(239,68,68,0.15);  border: 1px solid rgba(239,68,68,0.3);  color: #f87171; }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+</style>
+{% endif %}
 {% endblock %}
 
 {% block content %}
-<div class="settings-container">
+{% if messages %}
+<div class="message-toast" id="msg-toast">
+    {% for msg in messages %}
+    <div class="toast-item {% if msg.tags == 'success' %}toast-success{% else %}toast-error{% endif %}">
+        {{ msg }}
+    </div>
+    {% endfor %}
+</div>
+<script>setTimeout(() => { const t = document.getElementById('msg-toast'); if(t) t.remove(); }, 4000);</script>
+{% endif %}
+
+<div class="sc">
+
+    <!-- ─── Header ─── -->
     <div class="header-box">
         <h2>Chaqmoq Qoidalari</h2>
-        <a href="{% url 'chaqmoq:rule_add' %}" class="btn-action btn-add">
+        <a href="{% url 'chaqmoq:rule_add' %}" class="btn btn-primary">
             <i class="fa-solid fa-plus"></i> Yangi qoida
         </a>
     </div>
 
-    <!-- General Settings Section -->
-    <div style="margin-bottom: 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; backdrop-filter: blur(20px);">
-        <h4 style="color: var(--primary-glow); font-weight: 800; margin-bottom: 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">
-            <i class="fa-solid fa-sliders" style="margin-right: 8px;"></i> Umumiy Sozlamalar
-        </h4>
-        <form action="{% url 'chaqmoq:rule_settings_update' %}" method="post" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
-            {% csrf_token %}
-            <div style="flex: 1; min-width: 250px;">
-                <label style="display: block; color: var(--text-muted); font-size: 11px; font-weight: 700; margin-bottom: 4px;">
-                    O'quvchi uchun kunlik maksimal "+" chaqmoq limiti
-                </label>
-                <input type="number" name="max_daily_lightning" value="{{ center_limit }}" 
-                    style="width: 100%; height: 38px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border); border-radius: 10px; padding: 0 12px; color: #fff; font-weight: 600; font-size: 13px; outline: none;" 
-                    placeholder="0 = cheksiz">
-            </div>
-            <div style="flex: 1; min-width: 250px;">
-                <label style="display: block; color: var(--text-muted); font-size: 11px; font-weight: 700; margin-bottom: 4px;">
-                    O'quvchi uchun kunlik maksimal "-" chaqmoq limiti
-                </label>
-                <input type="number" name="max_daily_deduction" value="{{ center_deduction_limit }}" 
-                    style="width: 100%; height: 38px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border); border-radius: 10px; padding: 0 12px; color: #fff; font-weight: 600; font-size: 13px; outline: none;" 
-                    placeholder="0 = cheksiz">
-            </div>
-            <button type="submit" class="btn-action btn-add" style="height: 38px; padding: 0 20px;">SAQLASH</button>
-        </form>
-        <p style="color: var(--text-muted); font-size: 10px; margin-top: 8px; font-weight: 500;">
-            * Ushbu limitlar o'quvchi bir kun davomida olishi yoki yo'qotishi mumkin bo'lgan jami chaqmoqlar sonini cheklaydi.
-        </p>
+    <!-- ══════════════════════════════════════════════
+         1. UMUMIY SOZLAMALAR
+    ══════════════════════════════════════════════ -->
+    <div class="section-card">
+        <div class="section-head">
+            <div class="icon-wrap icon-blue"><i class="fa-solid fa-sliders"></i></div>
+            <h4>Umumiy chaqmoq limiti</h4>
+        </div>
+        <div class="section-body">
+            <form action="{% url 'chaqmoq:rule_settings_update' %}" method="post">
+                {% csrf_token %}
+                <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+                    <div style="flex:1; min-width:240px;">
+                        <label class="field-label">Kunlik maksimal + chaqmoq limiti</label>
+                        <input type="number" name="max_daily_lightning" value="{{ center_limit }}"
+                               class="field-input" placeholder="0 = cheksiz" min="0">
+                    </div>
+                    <div style="flex:1; min-width:240px;">
+                        <label class="field-label">Kunlik maksimal − chaqmoq limiti</label>
+                        <input type="number" name="max_daily_deduction" value="{{ center_deduction_limit }}"
+                               class="field-input inp-red" placeholder="0 = cheksiz" min="0">
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="height:38px;">SAQLASH</button>
+                </div>
+                <p class="field-note" style="margin-top:10px;">
+                    * O'quvchi bir kun davomida olishi yoki yo'qotishi mumkin bo'lgan maksimal chaqmoq soni.
+                    0 = cheksiz.
+                </p>
+            </form>
+        </div>
     </div>
 
-    <div class="rules-list">
-        {% for rule in rules %}
-        <div class="rule-card">
-            <div class="rule-info">
-                <div class="rule-type-icon {% if rule.tur == 'plus' %}type-plus{% else %}type-minus{% endif %}">
-                    {% if rule.tur == 'plus' %}<i class="fa-solid fa-bolt"></i>{% else %}<i
-                        class="fa-solid fa-bolt-slash"></i>{% endif %}
-                </div>
-                <div class="rule-details">
-                    <h3>{{ rule.nom }}</h3>
-                    <div class="rule-meta">
-                        <span>Range: {{ rule.min_baho }} .. {{ rule.max_baho }}</span>
-                        <span>Tur: {% if rule.tur == 'plus' %}+ Chaqmoq{% else %}− Chaqmoq{% endif %}</span>
-                    </div>
-                    <div class="role-badges">
-                        <span class="role-badge {% if rule.can_director %}active{% endif %}">Director</span>
-                        <span class="role-badge {% if rule.can_manager %}active{% endif %}">Manager</span>
-                        <span class="role-badge {% if rule.can_teacher %}active{% endif %}">Teacher</span>
-                    </div>
+    <!-- ══════════════════════════════════════════════
+         2. DAVOMAT JARIMASI SOZLAMALARI
+    ══════════════════════════════════════════════ -->
+    <div class="section-card">
+        <div class="section-head" style="justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div class="icon-wrap icon-red"><i class="fa-solid fa-user-slash"></i></div>
+                <div>
+                    <h4 style="margin-bottom:0;">Davomat Jarimasi</h4>
+                    <p style="margin:2px 0 0; font-size:10px; color:var(--text-muted); font-weight:500;">
+                        O'quvchi belgilangan marta sababsiz kelmasa, avtomatik chaqmoq ayiriladi
+                    </p>
                 </div>
             </div>
-            <div class="rule-actions">
-                <a href="{% url 'chaqmoq:rule_edit' rule.id %}" class="icon-btn btn-edit" title="Tahrirlash">
-                    <i class="fa-solid fa-pen-to-square"></i>
-                </a>
-                <a href="{% url 'chaqmoq:rule_delete' rule.id %}" class="icon-btn btn-del"
-                    onclick="return confirm('Haqiqatan ham bu qoidani o\'chirmoqchimisiz?')" title="O'chirish">
-                    <i class="fa-solid fa-trash-can"></i>
-                </a>
+            <button class="btn btn-danger btn-sm" onclick="openPenaltyModal()">
+                <i class="fa-solid fa-plus"></i> Qoida qo'shish
+            </button>
+        </div>
+
+        <div class="section-body">
+            {% if penalty_rules %}
+            <div style="display:grid; gap:10px;">
+                {% for pr in penalty_rules %}
+                <div class="penalty-card" id="pcard-{{ pr.id }}">
+                    <div class="penalty-icon">
+                        <i class="fa-solid fa-user-slash"></i>
+                    </div>
+                    <div class="penalty-body">
+                        <p class="penalty-name">{{ pr.nom }}</p>
+                        <div class="penalty-meta">
+                            <span class="penalty-chip chip-limit">
+                                <i class="fa-solid fa-calendar-xmark" style="font-size:10px;"></i>
+                                {{ pr.absence_limit }} dars qoldirilsa
+                            </span>
+                            <span class="penalty-chip chip-penalty">
+                                <i class="fa-solid fa-bolt" style="font-size:10px;"></i>
+                                {{ pr.lightning_penalty }} chaqmoq jarima
+                            </span>
+                            <span class="penalty-chip chip-period">
+                                <i class="fa-regular fa-clock" style="font-size:10px;"></i>
+                                {% if pr.period == "monthly" %}Oylik{% else %}{{ pr.period }}{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:6px; flex-shrink:0;">
+                        <button class="icon-btn btn-edit" title="Tahrirlash"
+                                onclick="openPenaltyModal({{ pr.id }}, '{{ pr.nom|escapejs }}', {{ pr.absence_limit }}, {{ pr.lightning_penalty }})">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        <a href="{% url 'chaqmoq:penalty_rule_delete' pr.id %}"
+                           class="icon-btn btn-del" title="O'chirish"
+                           onclick="return confirm('Bu qoidani o\'chirmoqchimisizmi?')">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
+            {% else %}
+            <div style="text-align:center; padding:30px 0; color:var(--text-muted);">
+                <div style="font-size:2.5rem; margin-bottom:10px; opacity:0.3;">
+                    <i class="fa-solid fa-user-slash"></i>
+                </div>
+                <p style="font-size:13px; font-weight:600; margin:0 0 4px;">Davomat jarimasi qoidalari yo'q</p>
+                <p style="font-size:11px; margin:0;">Yuqoridagi tugma orqali yangi qoida qo'shing</p>
+            </div>
+            {% endif %}
         </div>
-        {% empty %}
-        <div class="empty-state">
-            <div class="empty-icon"><i class="fa-solid fa-scroll"></i></div>
-            <p>Hali hech qanday qoida yaratilmagan.</p>
+
+        <!-- Eslatma box -->
+        <div style="margin:0 18px 16px; padding:10px 14px; background:rgba(245,158,11,0.06);
+                    border:1px solid rgba(245,158,11,0.15); border-radius:10px;">
+            <p style="margin:0; font-size:11px; font-weight:600; color:#fbbf24; line-height:1.6;">
+                <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i>
+                <strong>Qanday ishlaydi?</strong> O'quvchi sababsiz yo'qlik (SABABSIZ) belgilanganda tizim
+                joriy oy ichidagi umumiy sababsiz yo'qliklarni hisoblaydi. Agar belgilangan limitga yetsa,
+                jarima chaqmoqi avtomatik ayiriladi va o'quvchiga bildirishnoma yuboriladi.
+                <strong>Bir oy davomida bir marta jarima beriladi.</strong>
+            </p>
         </div>
-        {% endfor %}
+    </div>
+    <!-- ══════════════════════════════════════════════
+         3. DAVOMAT BONUSI SOZLAMALARI
+    ══════════════════════════════════════════════ -->
+    <div class="section-card">
+        <div class="section-head" style="justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div class="icon-wrap icon-bolt"><i class="fa-solid fa-star"></i></div>
+                <div>
+                    <h4 style="margin-bottom:0; color:#34d399;">Davomat Bonusi</h4>
+                    <p style="margin:2px 0 0; font-size:10px; color:var(--text-muted); font-weight:500;">
+                        O'quvchi belgilangan marta darsga kelsa, avtomatik chaqmoq qo'shiladi
+                    </p>
+                </div>
+            </div>
+            <button class="btn btn-primary btn-sm" style="background:#10b981;" onclick="openPenaltyModal(null, '', null, null, 'attendance_bonus')">
+                <i class="fa-solid fa-plus"></i> Qoida qo'shish
+            </button>
+        </div>
+
+        <div class="section-body">
+            {% if bonus_rules %}
+            <div style="display:grid; gap:10px;">
+                {% for br in bonus_rules %}
+                <div class="bonus-card" id="bcard-{{ br.id }}">
+                    <div class="bonus-icon">
+                        <i class="fa-solid fa-award"></i>
+                    </div>
+                    <div class="bonus-body" style="flex:1;">
+                        <p class="penalty-name">{{ br.nom }}</p>
+                        <div class="penalty-meta">
+                            <span class="penalty-chip chip-green">
+                                <i class="fa-solid fa-calendar-check" style="font-size:10px;"></i>
+                                {{ br.presence_limit }} dars kelsa
+                            </span>
+                            <span class="penalty-chip chip-green" style="background:rgba(59,130,246,0.12); color:#38bdf8; border-color:rgba(59,130,246,0.2);">
+                                <i class="fa-solid fa-bolt" style="font-size:10px;"></i>
+                                +{{ br.lightning_bonus }} chaqmoq bonus
+                            </span>
+                            <span class="penalty-chip chip-period">
+                                <i class="fa-regular fa-clock" style="font-size:10px;"></i>
+                                {% if br.period == "monthly" %}Oylik{% else %}{{ br.period }}{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:6px; flex-shrink:0;">
+                        <button class="icon-btn btn-edit" title="Tahrirlash"
+                                onclick="openPenaltyModal({{ br.id }}, '{{ br.nom|escapejs }}', {{ br.presence_limit }}, {{ br.lightning_bonus }}, 'attendance_bonus')">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        <a href="{% url 'chaqmoq:penalty_rule_delete' br.id %}"
+                           class="icon-btn btn-del" title="O'chirish"
+                           onclick="return confirm('Bu qoidani o\'chirmoqchimisizmi?')">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="text-align:center; padding:30px 0; color:var(--text-muted);">
+                <div style="font-size:2.5rem; margin-bottom:10px; opacity:0.3;">
+                    <i class="fa-solid fa-award"></i>
+                </div>
+                <p style="font-size:13px; font-weight:600; margin:0 0 4px;">Davomat bonusi qoidalari yo'q</p>
+                <p style="font-size:11px; margin:0;">Faol o'quvchilarni rag'batlantirish uchun qoida qo'shing</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+         3. ODATIY QOIDALAR (plus / minus)
+    ══════════════════════════════════════════════ -->
+    <div class="section-card">
+        <div class="section-head" style="justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div class="icon-wrap icon-bolt"><i class="fa-solid fa-bolt"></i></div>
+                <h4>Chaqmoq qoidalari (+ / −)</h4>
+            </div>
+            <a href="{% url 'chaqmoq:rule_add' %}" class="btn btn-ghost btn-sm">
+                <i class="fa-solid fa-plus"></i> Qoida qo'shish
+            </a>
+        </div>
+        <div class="section-body">
+            {% if rules %}
+            <div style="display:grid; gap:8px;">
+                {% for rule in rules %}
+                <div class="rule-card">
+                    <div class="rule-info">
+                        <div class="rule-type-icon {% if rule.tur == 'plus' %}type-plus{% else %}type-minus{% endif %}">
+                            {% if rule.tur == 'plus' %}<i class="fa-solid fa-bolt"></i>
+                            {% else %}<i class="fa-solid fa-bolt-slash"></i>{% endif %}
+                        </div>
+                        <div class="rule-details">
+                            <h3>{{ rule.nom }}</h3>
+                            <div class="rule-meta">
+                                <span>Range: {{ rule.min_baho }} .. {{ rule.max_baho }}</span>
+                                <span>Tur: {% if rule.tur == 'plus' %}+ Chaqmoq{% else %}− Chaqmoq{% endif %}</span>
+                            </div>
+                            <div class="role-badges">
+                                <span class="role-badge {% if rule.can_director %}active{% endif %}">Director</span>
+                                <span class="role-badge {% if rule.can_manager %}active{% endif %}">Manager</span>
+                                <span class="role-badge {% if rule.can_teacher %}active{% endif %}">Teacher</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="rule-actions">
+                        <a href="{% url 'chaqmoq:rule_edit' rule.id %}" class="icon-btn btn-edit" title="Tahrirlash">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </a>
+                        <a href="{% url 'chaqmoq:rule_delete' rule.id %}" class="icon-btn btn-del"
+                           onclick="return confirm('Haqiqatan ham bu qoidani o\'chirmoqchimisiz?')" title="O'chirish">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="text-align:center; padding:30px 0; color:var(--text-muted);">
+                <div style="font-size:2.5rem; margin-bottom:10px; opacity:0.3;"><i class="fa-solid fa-scroll"></i></div>
+                <p style="font-size:13px; font-weight:600; margin:0;">Hali hech qanday qoida qo'shilmagan.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════
+     DAVOMAT JARIMASI — QOIDA QO'SHISH / TAHRIRLASH MODALI
+══════════════════════════════════════════════ -->
+<div class="modal-overlay" id="penalty-modal">
+    <div class="modal-box" id="modal-container">
+        <div class="modal-head">
+            <div class="icon-wrap" id="modal-icon-wrap" style="flex-shrink:0;"><i id="modal-icon" class="fa-solid fa-user-slash"></i></div>
+            <h3 id="modal-title">Davomat qoidasi</h3>
+        </div>
+        <form action="{% url 'chaqmoq:penalty_rule_save' %}" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="rule_id" id="modal-rule-id" value="">
+            <input type="hidden" name="tur" id="modal-tur" value="attendance_penalty">
+
+            <div class="modal-body">
+                <!-- Qoida nomi -->
+                <div>
+                    <label class="field-label">Qoida nomi</label>
+                    <input type="text" name="nom" id="modal-nom" class="field-input"
+                           placeholder="Qoida nomini kiriting..." required>
+                </div>
+
+                <!-- Limit va jarima -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items: start;">
+                    <div>
+                        <label class="field-label" id="lbl-limit" style="min-height:24px; display:flex; align-items:center;">
+                            Limit
+                        </label>
+                        <input type="number" name="absence_limit" id="modal-limit" class="field-input"
+                               placeholder="3" min="1" max="30" value="3" required>
+                        <p style="margin:4px 0 0; font-size:10px; color:var(--text-muted);" id="sub-limit">limit</p>
+                    </div>
+                    <div>
+                        <label class="field-label" id="lbl-points" style="min-height:24px; display:flex; align-items:center;">
+                            Qiymat
+                        </label>
+                        <input type="number" name="lightning_penalty" id="modal-points" class="field-input"
+                               placeholder="5" min="1" max="100" value="5" required>
+                        <p style="margin:4px 0 0; font-size:10px; color:var(--text-muted);" id="sub-points">chaqmoq</p>
+                    </div>
+                </div>
+
+                <!-- Visual preview -->
+                <div id="preview-box" style="border-radius:10px; padding:12px 14px; border:1px solid;">
+                    <p style="margin:0; font-size:12px; font-weight:700; line-height:1.7;" id="preview-text">
+                        Habar
+                    </p>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="btn btn-ghost" onclick="closePenaltyModal()">
+                    Bekor qilish
+                </button>
+                <button type="submit" class="btn" id="modal-submit-btn" style="color:#fff;">
+                    <i class="fa-solid fa-floppy-disk"></i> Saqlash
+                </button>
+            </div>
+        </form>
     </div>
 </div>
+
+<script>
+function openPenaltyModal(ruleId, nom, limit, points, tur) {
+    const modal = document.getElementById('penalty-modal');
+    const container = document.getElementById('modal-container');
+    const title = document.getElementById('modal-title');
+    const icon = document.getElementById('modal-icon');
+    const iconWrap = document.getElementById('modal-icon-wrap');
+    const submitBtn = document.getElementById('modal-submit-btn');
+    const turInput = document.getElementById('modal-tur');
+    const limitInput = document.getElementById('modal-limit');
+    const pointsInput = document.getElementById('modal-points');
+
+    tur = tur || 'attendance_penalty';
+    turInput.value = tur;
+
+    document.getElementById('modal-rule-id').value = ruleId || '';
+    document.getElementById('modal-nom').value    = nom    || (tur === 'attendance_penalty' ? 'Davomat jarimasi' : 'Davomat bonusi');
+    
+    // Input name larni turga qarab o'zgartiramiz
+    if (tur === 'attendance_bonus') {
+        limitInput.name = 'presence_limit';
+        pointsInput.name = 'lightning_bonus';
+        limitInput.value = limit || 12;
+        pointsInput.value = points ? Math.abs(points) : 10;
+        
+        container.className = 'modal-box theme-green';
+        iconWrap.className = 'icon-wrap icon-green';
+        icon.className = 'fa-solid fa-award';
+        submitBtn.style.background = '#10b981';
+        title.textContent = ruleId ? 'Bonusni tahrirlash' : 'Yangi davomat bonusi';
+        
+        document.getElementById('lbl-limit').innerHTML = '<i class="fa-solid fa-calendar-check" style="color:#34d399; margin-right:4px;"></i> Kamida necha dars kelsa';
+        document.getElementById('lbl-points').innerHTML = '<i class="fa-solid fa-bolt" style="color:#38bdf8; margin-right:4px;"></i> Necha chaqmoq qo\'shilsin';
+        document.getElementById('sub-limit').textContent = 'dars (oyiga)';
+        document.getElementById('sub-points').textContent = 'chaqmoq bonus';
+    } else {
+        limitInput.name = 'absence_limit';
+        pointsInput.name = 'lightning_penalty';
+        limitInput.value = limit || 3;
+        pointsInput.value = points ? Math.abs(points) : 5;
+        
+        container.className = 'modal-box theme-red';
+        iconWrap.className = 'icon-wrap icon-red';
+        icon.className = 'fa-solid fa-user-slash';
+        submitBtn.style.background = '#ef4444';
+        title.textContent = ruleId ? 'Jarimani tahrirlash' : 'Yangi davomat jarimasi';
+
+        document.getElementById('lbl-limit').innerHTML = '<i class="fa-solid fa-calendar-xmark" style="color:#fbbf24; margin-right:4px;"></i> Necha dars qoldirilsa';
+        document.getElementById('lbl-points').innerHTML = '<i class="fa-solid fa-bolt" style="color:#f87171; margin-right:4px;"></i> Necha chaqmoq ayirilsin';
+        document.getElementById('sub-limit').textContent = 'dars (oyiga)';
+        document.getElementById('sub-points').textContent = 'chaqmoq jarima';
+    }
+
+    updatePreview();
+    modal.classList.add('open');
+    setTimeout(() => document.getElementById('modal-nom').focus(), 80);
+}
+
+function closePenaltyModal() {
+    document.getElementById('penalty-modal').classList.remove('open');
+}
+
+function updatePreview() {
+    const tur = document.getElementById('modal-tur').value;
+    const l = document.getElementById('modal-limit').value  || '?';
+    const p = document.getElementById('modal-points').value || '?';
+    const box = document.getElementById('preview-box');
+    const txt = document.getElementById('preview-text');
+
+    if (tur === 'attendance_bonus') {
+        box.style.background = 'rgba(16,185,129,0.06)';
+        box.style.borderColor = 'rgba(16,185,129,0.15)';
+        txt.style.color = '#34d399';
+        txt.innerHTML = `<i class="fa-solid fa-circle-info" style="margin-right:6px;"></i> Oy davomida o'quvchi <strong style="color:#fff;">${l}</strong> marta yoki undan ko'p darsga kelsa, unga <strong style="color:#38bdf8;">${p}</strong> ta bonus chaqmoq beriladi.`;
+    } else {
+        box.style.background = 'rgba(239,68,68,0.06)';
+        box.style.borderColor = 'rgba(239,68,68,0.15)';
+        txt.style.color = '#f87171';
+        txt.innerHTML = `<i class="fa-solid fa-circle-info" style="margin-right:6px;"></i> Oy davomida o'quvchi <strong style="color:#fbbf24;">${l}</strong> marta sababsiz kelmasa, uning hisobidan <strong style="color:#fff;">${p}</strong> ta chaqmoq ayiriladi.`;
+    }
+}
+
+document.getElementById('modal-limit').addEventListener('input', updatePreview);
+document.getElementById('modal-points').addEventListener('input', updatePreview);
+
+// Background click — close
+document.getElementById('penalty-modal').addEventListener('click', function(e) {
+    if (e.target === this) closePenaltyModal();
+});
+
+// ESC — close
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closePenaltyModal();
+});
+</script>
 {% endblock %}

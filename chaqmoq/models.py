@@ -7,13 +7,19 @@ User = settings.AUTH_USER_MODEL
 class Rule(models.Model):
     PLUS = 'plus'
     MINUS = 'minus'
+    ATTENDANCE_PENALTY = 'attendance_penalty'
+    ATTENDANCE_BONUS = 'attendance_bonus'
+    PAYMENT_BONUS = 'payment_bonus'
     TUR_CHOICES = (
         (PLUS, '+ Chaqmoq'),
         (MINUS, '− Chaqmoq'),
+        (ATTENDANCE_PENALTY, 'Davomat jarimasi'),
+        (ATTENDANCE_BONUS, 'Davomat bonusi'),
+        (PAYMENT_BONUS, 'To‘lov bonusi'),
     )
     nom = models.CharField(max_length=150)
     center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True)
-    tur = models.CharField(max_length=10, choices=TUR_CHOICES)
+    tur = models.CharField(max_length=50, choices=TUR_CHOICES)
     min_baho = models.PositiveSmallIntegerField(default=1)
     max_baho = models.PositiveSmallIntegerField(default=10)
 
@@ -21,6 +27,21 @@ class Rule(models.Model):
     can_director = models.BooleanField(default=True, verbose_name="Director ishlata oladi")
     can_manager = models.BooleanField(default=True, verbose_name="Manager ishlata oladi")
     can_teacher = models.BooleanField(default=True, verbose_name="O'qituvchi ishlata oladi")
+
+    # Attendance Penalty/Bonus fields
+    absence_limit = models.PositiveSmallIntegerField(default=3, blank=True, null=True, verbose_name="Sababsiz qoldirish limiti")
+    presence_limit = models.PositiveSmallIntegerField(default=12, blank=True, null=True, verbose_name="Darsga kelish limiti")
+    
+    PERIOD_CHOICES = (
+        ('monthly', 'Oylik'),
+    )
+    period = models.CharField(max_length=20, choices=PERIOD_CHOICES, default='monthly', blank=True, null=True)
+    lightning_penalty = models.SmallIntegerField(default=-5, blank=True, null=True, verbose_name="Ayiriladigan chaqmoq")
+    lightning_bonus = models.SmallIntegerField(default=10, blank=True, null=True, verbose_name="Qo'shiladigan chaqmoq")
+
+    # Payment Bonus fields
+    payment_bonus_lightning = models.SmallIntegerField(default=5, blank=True, null=True, verbose_name="To'lov uchun bonus chaqmoq")
+
 
     class Meta:
         verbose_name = 'Chaqmoq qoida'

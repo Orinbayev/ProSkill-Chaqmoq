@@ -228,17 +228,19 @@
   /* =========================
      ATTENDANCE TOGGLE
      ========================= */
-  .att-switcher {
+  .att-wrap {
     display: inline-flex;
-    background: rgba(0,0,0,0.2);
+  }
+  .att-layer1 {
+    display: inline-flex;
+    background: rgba(0,0,0,0.22);
     padding: 3px;
     border-radius: 100px;
     border: 1px solid var(--border);
   }
-
-  .att-btn-v2 {
+  .att-btn {
     height: 28px;
-    padding: 0 14px;
+    padding: 0 13px;
     border-radius: 100px;
     border: none;
     background: transparent;
@@ -246,11 +248,19 @@
     font-size: 11px;
     font-weight: 800;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.18s;
+    white-space: nowrap;
   }
+  .att-btn:hover { color: #fff; }
 
-  .att-switcher[data-status="present"] .att-btn-v2.present { background: var(--green); color: white; }
-  .att-switcher[data-status="forced"] .att-btn-v2.forced { background: var(--red); color: white; }
+  /* Active states */
+  .att-wrap[data-status="present"]          .btn-keldi   { background: var(--green); color: #fff; }
+  .att-wrap[data-status="absent_excused"]   .btn-kelmadi { background: #eab308; color: #0f172a; }
+  .att-wrap[data-status="absent_unexcused"] .btn-kelmadi { background: var(--red); color: #fff; }
+
+  /* Row ranglar */
+  .tr-student.row-excused   { background: rgba(234,179,8,0.07); }
+  .tr-student.row-unexcused { background: rgba(239,68,68,0.07); }
 
   /* =========================
      POINTS UI
@@ -411,7 +421,7 @@
         </thead>
         <tbody>
           {% for e in enrollments %}
-          <tr class="tr-student {% if e.student.forced_today %}forced-row{% endif %} {% if not e.student.present_today %}row-not-present{% endif %}">
+          <tr class="tr-student {% if e.student.attendance_status == 'absent_excused' %}row-excused{% elif e.student.attendance_status == 'absent_unexcused' %}row-unexcused{% elif not e.student.present_today %}row-not-present{% endif %}">
             <td class="remove-col d-none text-center">
               <input type="checkbox" class="remove-check custom-checkbox" value="{{ e.id }}">
             </td>
@@ -422,10 +432,12 @@
             </td>
             <td class="hidden md:table-cell text-slate-300 font-semibold text-xs">{{ e.student.telefon1|default:"—" }}</td>
             <td class="text-center">
-              <div class="att-switcher att-seg" data-enrollment="{{ e.id }}" data-student="{{ e.student.id }}"
-                   data-status="{% if e.student.present_today %}present{% elif e.student.forced_today %}forced{% else %}none{% endif %}">
-                <button type="button" class="att-btn-v2 present">KELDI</button>
-                <button type="button" class="att-btn-v2 forced">KELMADI</button>
+              <div class="att-wrap att-seg" data-enrollment="{{ e.id }}" data-student="{{ e.student.id }}"
+                   data-status="{{ e.student.attendance_status|default:'none' }}">
+                <div class="att-layer1">
+                  <button type="button" class="att-btn btn-keldi">KELDI</button>
+                  <button type="button" class="att-btn btn-kelmadi">KELMADI</button>
+                </div>
               </div>
             </td>
             <td class="text-center">
@@ -487,6 +499,65 @@
       <button id="custom-confirm-ok"
         class="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-[14px] transition-all hover:shadow-[0_0_15px_rgba(220,38,38,0.3)] active:scale-95">Tasdiqlash</button>
     </div>
+  </div>
+</div>
+
+<!-- ═══ KELMADI CHOICE POPUP (ekran markazida) ═══ -->
+<div id="absent-popup"
+     class="fixed inset-0 z-[999999] flex items-center justify-center
+            opacity-0 pointer-events-none transition-all duration-200">
+  <div class="absolute inset-0 bg-[#020617]/75 backdrop-blur-sm" id="absent-popup-bg"></div>
+
+  <div id="absent-popup-box"
+       class="relative bg-[#131a2e] border border-white/10 rounded-2xl shadow-2xl
+              max-w-xs w-full mx-4 overflow-hidden transform scale-95 transition-transform duration-200">
+
+    <!-- Header -->
+    <div class="px-5 pt-5 pb-3 border-b border-white/5">
+      <p class="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Sabab tanlang</p>
+      <p id="absent-popup-student-name" class="text-white font-black text-[16px] tracking-tight"></p>
+    </div>
+
+    <!-- Step 1: SABABLI | SABABSIZ buttons -->
+    <div id="absent-step1" class="p-4 flex gap-3">
+      <button id="btn-choose-excused"
+              class="flex-1 py-3 rounded-xl font-black text-[13px] tracking-tight transition-all active:scale-95
+                     bg-amber-500/10 border border-amber-500/25 text-amber-300
+                     hover:bg-amber-500/20 hover:border-amber-500/50">
+        SABABLI
+      </button>
+      <button id="btn-choose-unexcused"
+              class="flex-1 py-3 rounded-xl font-black text-[13px] tracking-tight transition-all active:scale-95
+                     bg-red-500/10 border border-red-500/25 text-red-300
+                     hover:bg-red-500/20 hover:border-red-500/50">
+        SABABSIZ
+      </button>
+    </div>
+
+    <!-- Step 2: SABABLI — sabab yozish (initially hidden) -->
+    <div id="absent-step2" class="hidden px-4 pb-4">
+      <p class="text-[11px] font-bold text-amber-400 uppercase tracking-wider mb-2">Sabab yozing</p>
+      <textarea id="absent-note-textarea" rows="3"
+        class="w-full rounded-xl bg-black/30 border border-white/10 text-white text-[13px]
+               font-medium p-3 resize-none outline-none focus:border-amber-500/40
+               placeholder-slate-500 transition-colors"
+        placeholder="Masalan: Kasal, musobaqa, ota-onasi xabar berdi..."
+        style="font-family:inherit;"></textarea>
+      <p class="text-slate-500 text-[10px] mt-1 mb-3">Ctrl+Enter — saqlash</p>
+      <div class="flex gap-2">
+        <button id="absent-note-back"
+          class="px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10
+                 text-slate-300 font-bold text-[12px] transition-all active:scale-95">
+          ← Orqaga
+        </button>
+        <button id="absent-note-ok"
+          class="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black
+                 font-black text-[13px] transition-all active:scale-95">
+          SABABLI qayd etish
+        </button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -759,8 +830,18 @@
 
       const row = segEl.closest("tr");
       if (row) {
-        row.classList.toggle("forced-row", status === "forced");
-        row.classList.toggle("row-not-present", status !== "present");
+        row.classList.remove("forced-row", "row-not-present", "row-excused", "row-unexcused");
+        if (status === "present") {
+          // yashil - hech qanday class kerak emas
+        } else if (status === "absent_excused") {
+          row.classList.add("row-excused");
+          row.classList.add("row-not-present");
+        } else if (status === "absent_unexcused" || status === "forced") {
+          row.classList.add("row-unexcused");
+          row.classList.add("row-not-present");
+        } else {
+          row.classList.add("row-not-present");
+        }
       }
     }
 
@@ -773,11 +854,12 @@
       return getStatusByStudent(studentId) === "present";
     }
 
-    async function sendAttendanceStatus(enrId, status) {
+    async function sendAttendanceStatus(enrId, status, note) {
       const fd = new FormData();
       fd.append("enr_id", enrId);
       fd.append("status", status);
       fd.append("date", dateInput.value || "");
+      if (note) fd.append("note", note);
 
       const res = await fetch(urls.attend, {
         method: "POST",
@@ -787,63 +869,177 @@
       return await res.json();
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ABSENT POPUP — Markaziy tanlov popup
+    // ═══════════════════════════════════════════════════════════════════════════
+    const absentPopup    = document.getElementById("absent-popup");
+    const absentPopupBox = document.getElementById("absent-popup-box");
+    const absentPopupBg  = document.getElementById("absent-popup-bg");
+    const absentNameEl   = document.getElementById("absent-popup-student-name");
+    const absentStep1    = document.getElementById("absent-step1");
+    const absentStep2    = document.getElementById("absent-step2");
+    const btnExcused     = document.getElementById("btn-choose-excused");
+    const btnUnexcused   = document.getElementById("btn-choose-unexcused");
+    const noteTextarea   = document.getElementById("absent-note-textarea");
+    const noteBack       = document.getElementById("absent-note-back");
+    const noteOk         = document.getElementById("absent-note-ok");
+
+    // Active segment reference
+    let _activeSeg = null;
+    let _activeApply = null;
+
+    function openAbsentPopup(seg, studentName, applyFn) {
+      _activeSeg    = seg;
+      _activeApply  = applyFn;
+
+      // Reset to Step 1
+      absentStep1.classList.remove("hidden");
+      absentStep2.classList.add("hidden");
+      if (absentNameEl) absentNameEl.textContent = studentName || "";
+      if (noteTextarea) noteTextarea.value = "";
+
+      // Show popup
+      absentPopup.classList.remove("opacity-0", "pointer-events-none");
+      absentPopupBox.classList.remove("scale-95");
+      absentPopupBox.classList.add("scale-100");
+    }
+
+    function closeAbsentPopup() {
+      absentPopup.classList.add("opacity-0", "pointer-events-none");
+      absentPopupBox.classList.remove("scale-100");
+      absentPopupBox.classList.add("scale-95");
+      _activeSeg   = null;
+      _activeApply = null;
+    }
+
+    // Background click → close
+    absentPopupBg?.addEventListener("click", closeAbsentPopup);
+
+    // ESC → close
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !absentPopup.classList.contains("opacity-0")) {
+        closeAbsentPopup();
+      }
+    });
+
+    // SABABSIZ — to'g'ridan saqlaydi, popup yopiladi
+    btnUnexcused?.addEventListener("click", async () => {
+      const applyFn = _activeApply;
+      closeAbsentPopup();
+      if (applyFn) await applyFn("absent_unexcused", "");
+    });
+
+    // SABABLI — Step 2 ni ko'rsatadi (sabab yozish)
+    btnExcused?.addEventListener("click", () => {
+      absentStep1.classList.add("hidden");
+      absentStep2.classList.remove("hidden");
+      setTimeout(() => noteTextarea?.focus(), 80);
+    });
+
+    // Step 2: Orqaga
+    noteBack?.addEventListener("click", () => {
+      absentStep2.classList.add("hidden");
+      absentStep1.classList.remove("hidden");
+    });
+
+    // Step 2: SABABLI qayd etish
+    noteOk?.addEventListener("click", async () => {
+      const note    = noteTextarea?.value.trim() || "";
+      const applyFn = _activeApply;
+      closeAbsentPopup();
+      if (applyFn) await applyFn("absent_excused", note);
+    });
+
+    // Step 2: Ctrl+Enter
+    noteTextarea?.addEventListener("keydown", async (e) => {
+      if (e.key === "Enter" && e.ctrlKey) {
+        const note    = noteTextarea.value.trim();
+        const applyFn = _activeApply;
+        closeAbsentPopup();
+        if (applyFn) await applyFn("absent_excused", note);
+      }
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ATTENDANCE CORE LOGIC
+    // ═══════════════════════════════════════════════════════════════════════════
     document.querySelectorAll(".att-seg").forEach(seg => {
       const enrId = seg.dataset.enrollment;
-      const sid = seg.dataset.student;
+      const sid   = seg.dataset.student;
 
-      const btnPresent = seg.querySelector(".att-btn-v2.present");
-      const btnForced = seg.querySelector(".att-btn-v2.forced");
+      // Student ism ni olish (link text dan)
+      const studentName = seg.closest("tr")?.querySelector(".student-name")?.textContent?.trim() || "";
 
-      async function apply(nextStatus) {
-        seg.classList.add("loading");
+      async function apply(nextStatus, note) {
+        seg.style.opacity = "0.6";
+        seg.style.pointerEvents = "none";
         try {
-          const data = await sendAttendanceStatus(enrId, nextStatus);
+          const data = await sendAttendanceStatus(enrId, nextStatus, note);
 
           if (!data.ok) {
             showToast(data.error || "Xato yuz berdi", "error");
-            seg.classList.remove("loading");
             return;
           }
 
-          const newStatus = data.status || (data.present ? "present" : (data.forced ? "forced" : "none"));
+          const newStatus = data.status || (data.present ? "present" : "none");
+          seg.dataset.status = newStatus;
           setRowStatusUI(seg, newStatus);
-
           setBalance(sid, data.balance);
 
-          if (newStatus !== "present") {
-            removeFlash(sid);
+          const removedCount = Number(data.removed_count || 0);
+          const removedSum   = Math.abs(Number(data.removed_sum || 0));
 
-            const removedSum = Number(data.removed_sum || 0);
-            const removedCount = Number(data.removed_count || 0);
-
-            if (removedCount > 0) {
-              showToast(`Davomat bekor qilindi — ${removedCount} ta chaqmoq qaytarildi (${Math.abs(removedSum)} ball)`, "error");
+          if (newStatus === "present") {
+            if (data.bonus_applied) {
+              showToast("KELDI! Faollik bonusi berildi 🎉", "success");
             } else {
-              showToast(`Davomat: ${newStatus === "forced" ? "KELMADI (PUL)" : "—"} qilib belgilandi`, "error");
+              showToast("KELDI deb belgilandi", "success");
+            }
+          } else if (newStatus === "absent_excused") {
+            showToast(removedCount > 0
+              ? `SABABLI — ${removedSum} ball qaytarildi`
+              : "SABABLI kelmadi deb belgilandi", "error");
+          } else if (newStatus === "absent_unexcused") {
+            if (data.penalty_applied) {
+              showToast("SABABSIZ! Limitga yetdi va jarima qo'llanildi ⚡", "error");
+            } else {
+              showToast("SABABSIZ kelmadi qayd etildi", "error");
             }
           } else {
-            showToast("Davomat: KELDI ✅", "success");
+            showToast(removedCount > 0
+              ? `Bekor qilindi — ${removedSum} ball qaytarildi`
+              : "Davomat bekor qilindi", "error");
+            removeFlash(sid);
           }
-
         } catch (e) {
           showToast("Server bilan aloqa yo'q", "error");
         } finally {
-          seg.classList.remove("loading");
+          seg.style.opacity = "";
+          seg.style.pointerEvents = "";
         }
       }
 
-      btnPresent.addEventListener("click", () => {
+      // KELDI tugmasi
+      seg.querySelector(".btn-keldi")?.addEventListener("click", () => {
         const cur = seg.dataset.status || "none";
-        const next = (cur === "present") ? "none" : "present";
-        apply(next);
+        apply(cur === "present" ? "none" : "present");
       });
 
-      btnForced.addEventListener("click", () => {
+      // KELMADI tugmasi → markaziy popup
+      seg.querySelector(".btn-kelmadi")?.addEventListener("click", () => {
         const cur = seg.dataset.status || "none";
-        const next = (cur === "forced") ? "none" : "forced";
-        apply(next);
+        if (cur === "absent_excused" || cur === "absent_unexcused") {
+          // Allaqachon belgilangan → bekor qilish
+          apply("none");
+        } else {
+          // Popup ochish
+          openAbsentPopup(seg, studentName, apply);
+        }
       });
     });
+    // ═══════════════════════════════════════════════════════════════════════════
+
+
 
     if (attendAllPresentBtn) {
       attendAllPresentBtn.addEventListener("click", async () => {

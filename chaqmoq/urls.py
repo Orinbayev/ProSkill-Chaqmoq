@@ -23,4 +23,9 @@ urlpatterns = [
     path('rules/<int:pk>/edit/', views.rule_edit, name='rule_edit'),
     path('rules/<int:pk>/delete/', views.rule_delete, name='rule_delete'),
 
+    # Davomat jarimasi qoidalarini inline boshqarish
+    path('rules/penalty/save/', views.penalty_rule_save, name='penalty_rule_save'),
+    path('rules/penalty/<int:pk>/delete/', views.penalty_rule_delete, name='penalty_rule_delete'),
+
+
 ]

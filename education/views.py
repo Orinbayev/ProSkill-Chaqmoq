@@ -2337,16 +2337,20 @@ def group_detail(request, pk: int):
 
     pres_map   = {}
     forced_map = {}
+    status_map = {}
     for a in att_qs:
         pres_map[a.student_id]   = a.present
         forced_map[a.student_id] = getattr(a, "forced", False)
+        status_map[a.student_id] = getattr(a, "status", "present" if a.present else "none")
 
     # Studentga soxta fieldlar
     for e in enrollments:
         s = e.student
-        s.balance       = int(bal_map.get(s.id, 0))
-        s.present_today = bool(pres_map.get(s.id, False))
-        s.forced_today  = bool(forced_map.get(s.id, False))
+        s.balance           = int(bal_map.get(s.id, 0))
+        s.present_today     = bool(pres_map.get(s.id, False))
+        s.forced_today      = bool(forced_map.get(s.id, False))
+        s.attendance_status = status_map.get(s.id, "none")  # 'present' | 'absent_excused' | 'absent_unexcused' | 'none'
+
 
     can_add_student = request.user.role in ["director", "manager", "teacher"]
 
@@ -2512,7 +2516,7 @@ def attend_all_students(request, g_id):
             group=g,
             student=e.student,
             date=selected_date,
-            defaults={"present": True, "forced": False, "teacher": request.user, "center": g.center},
+            defaults={"present": True, "forced": False, "status": "present", "teacher": request.user, "center": g.center, "created_by": request.user},
         )
 
         # Shu kunga qo‘yilgan adjustment bo‘lsa — delete → ball qaytadi
@@ -2543,13 +2547,14 @@ def attend_all_students(request, g_id):
 def attendance_today(request, pk: int):
     """
     status:
-      - 'present' -> present=True,  forced=False  (chaqmoq mumkin)
-      - 'forced'  -> present=False, forced=True   (kelmadi, pul yoziladi)
-      - 'none'    -> attendance yo'q (bekor qilish)
+      - 'present'          -> present=True,  forced=False, status='present'
+      - 'absent_excused'   -> present=False, forced=False, status='absent_excused'   (sababli)
+      - 'absent_unexcused' -> present=False, forced=False, status='absent_unexcused' (sababsiz) + Rule Engine
+      - 'forced'           -> present=False, forced=True,  status='absent_unexcused' (eski logika saqlanadi)
+      - 'none'             -> attendance yozuvi o'chiriladi
     Backward compatible: present=1/0 yuborilsa ham ishlaydi.
     """
     g = get_object_or_404(Group, pk=pk)
-    # Check center (implicit in get_object_or_404 if we filter queryset, but let's do it explicitly if needed or use standard pattern)
     from core.tenant import get_request_center
     center = get_request_center(request)
     if center and g.center_id != center.id:
@@ -2557,7 +2562,7 @@ def attendance_today(request, pk: int):
 
     # faqat direktor/manager/teacher
     if request.user.role == "teacher" and g.oqituvchi != request.user:
-        return JsonResponse({"ok": False, "error": "ruxsat yo‘q"}, status=403)
+        return JsonResponse({"ok": False, "error": "ruxsat yo'q"}, status=403)
 
     enr_id = request.POST.get("enr_id")
     if not enr_id:
@@ -2567,11 +2572,13 @@ def attendance_today(request, pk: int):
     date_str = request.POST.get("date")
     selected_date = parse_date(date_str) if date_str else localdate()
 
-    # status (yangi)
+    # status (yangi: 5 ta holat)
     status = (request.POST.get("status") or "").strip().lower()
 
+    VALID_STATUSES = ("present", "absent_excused", "absent_unexcused", "forced", "none")
+
     # backward compatibility (eski front bo'lsa)
-    if status not in ("present", "forced", "none"):
+    if status not in VALID_STATUSES:
         pv = request.POST.get("present")
         if pv is None:
             return JsonResponse({"ok": False, "error": "status/present required"}, status=400)
@@ -2594,36 +2601,83 @@ def attendance_today(request, pk: int):
     removed_sum = int(removed["removed_sum"] or 0)
     removed_count = int(removed["removed_count"] or 0)
 
-    # Agar status present bo'lmasa -> shu kundagi chaqmoqlarni bekor qilamiz
+    # Agar 'present' bo'lmasa -> shu kundagi chaqmoqlarni bekor qilamiz
     if status != "present" and removed_count:
         day_ledgers.delete()
 
-    # Attendance ni yaratish/yangilash/o'chirish
+    # ── Attendance ni yaratish/yangilash/o'chirish ──
+    present = False
+    forced = False
+
     if status == "none":
         Attendance.objects.filter(group=g, student=student, date=selected_date).delete()
-        present = False
-        forced = False
 
     elif status == "present":
         Attendance.objects.update_or_create(
-            group=g,
-            student=student,
-            date=selected_date,
+            group=g, student=student, date=selected_date,
             defaults={
                 "teacher": request.user,
                 "present": True,
                 "forced": False,
+                "status": "present",
                 "center": g.center,
+                "created_by": request.user,
             }
         )
         present = True
-        forced = False
+        # ── RULE ENGINE: davomat bonusi tekshirish ──
+        bonused = False
+        try:
+            from chaqmoq.services import check_attendance_bonus
+            bonused = check_attendance_bonus(
+                student=student,
+                center=center,
+                created_by=request.user,
+            )
+        except Exception as exc:
+            logger.warning("Rule engine bonus xato: %s", exc)
+
+    elif status == "absent_excused":
+        Attendance.objects.update_or_create(
+            group=g, student=student, date=selected_date,
+            defaults={
+                "teacher": request.user,
+                "present": False,
+                "forced": False,
+                "status": "absent_excused",
+                "center": g.center,
+                "created_by": request.user,
+            }
+        )
+
+    elif status == "absent_unexcused":
+        Attendance.objects.update_or_create(
+            group=g, student=student, date=selected_date,
+            defaults={
+                "teacher": request.user,
+                "present": False,
+                "forced": False,
+                "status": "absent_unexcused",
+                "center": g.center,
+                "created_by": request.user,
+            }
+        )
+        # ── RULE ENGINE: davomat jarima tekshirish ──
+        penalized = False
+        try:
+            from chaqmoq.services import check_attendance_penalty
+            penalized = check_attendance_penalty(
+                student=student,
+                center=center,
+                created_by=request.user,
+            )
+        except Exception as exc:
+            logger.warning("Rule engine xato: %s", exc)
 
     elif status == "forced":
+        # eski forced logika (backward compat)
         Attendance.objects.update_or_create(
-            group=g,
-            student=student,
-            date=selected_date,
+            group=g, student=student, date=selected_date,
             defaults={
                 "teacher": request.user,
                 "present": False,
@@ -2648,6 +2702,8 @@ def attendance_today(request, pk: int):
         "removed_sum": removed_sum,
         "removed_count": removed_count,
         "balance": bal,
+        "penalty_applied": penalized if 'penalized' in locals() else False,
+        "bonus_applied": bonused if 'bonused' in locals() else False,
     })
 
 

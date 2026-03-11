@@ -420,19 +420,31 @@ def rule_list(request):
     if request.user.role not in ['director', 'manager'] and not request.user.is_superuser:
         messages.error(request, "Sizda ruxsat yo'q")
         return redirect("education:groups_home")
-    
-    rules = Rule.objects.all()
+
+    all_rules = Rule.objects.all()
     if center:
-        rules = rules.filter(center=center)
+        all_rules = all_rules.filter(center=center)
     else:
-        # Superadmin center tanlamagan bo'lsa global qoidalarni ko'radi
-        rules = rules.filter(center__isnull=True)
-    
-    return render(request, "chaqmoq/rule_settings.html", {
-        "rules": rules,
+        all_rules = all_rules.filter(center__isnull=True)
+
+    # Regular rules (plus / minus only)
+    rules = all_rules.filter(tur__in=[Rule.PLUS, Rule.MINUS]).order_by('tur') # simple order
+
+    # Attendance Penalty & Bonus rules separately
+    penalty_rules = all_rules.filter(tur=Rule.ATTENDANCE_PENALTY)
+    bonus_rules   = all_rules.filter(tur=Rule.ATTENDANCE_BONUS)
+
+    context = {
+        'center': center,
+        'rules': rules,
+        'penalty_rules': penalty_rules,
+        'bonus_rules': bonus_rules,
+        'Rule': Rule,
         "center_limit": center.max_daily_lightning if center else 0,
         "center_deduction_limit": center.max_daily_deduction if center else 0,
-    })
+    }
+    return render(request, "chaqmoq/rule_settings.html", context)
+
 
 @login_required
 def rule_settings_update(request):
@@ -451,8 +463,76 @@ def rule_settings_update(request):
                 messages.success(request, "Sozlamalar yangilandi ✅")
         except ValueError:
             messages.error(request, "Noto'g'ri qiymat kiritildi")
-            
+
     return redirect("chaqmoq:rule_list")
+
+
+@login_required
+def penalty_rule_save(request):
+    """Davomat jarimasi qoidasini inline saqlash yoki yangilash."""
+    center = get_active_center(request)
+    if request.user.role not in ['director', 'manager'] and not request.user.is_superuser:
+        messages.error(request, "Sizda ruxsat yo'q")
+        return redirect("chaqmoq:rule_list")
+
+    if request.method != "POST":
+        return redirect("chaqmoq:rule_list")
+
+    try:
+        rule_id  = request.POST.get("rule_id") or None
+        tur      = request.POST.get("tur") or Rule.ATTENDANCE_PENALTY
+        nom      = request.POST.get("nom", "").strip() or ("Davomat jarimasi" if tur == Rule.ATTENDANCE_PENALTY else "Davomat bonusi")
+        
+        # Limit va Qiymat turga qarab olinadi
+        if tur == Rule.ATTENDANCE_BONUS:
+            limit    = int(request.POST.get("presence_limit", 12))
+            points   = int(request.POST.get("lightning_bonus", 10))
+            if points < 0: points = abs(points) # bonus doim musbat
+        else:
+            limit    = int(request.POST.get("absence_limit", 3))
+            points   = int(request.POST.get("lightning_penalty", -5))
+            if points > 0: points = -points # jarima doim manfiy
+
+        if rule_id:
+            ruleobj = Rule.objects.get(id=rule_id, center=center)
+        else:
+            ruleobj = Rule(center=center, tur=tur)
+
+        ruleobj.nom = nom
+        if tur == Rule.ATTENDANCE_BONUS:
+            ruleobj.presence_limit = limit
+            ruleobj.lightning_bonus = points
+        else:
+            ruleobj.absence_limit = limit
+            ruleobj.lightning_penalty = points
+        
+        ruleobj.period = 'monthly'
+        ruleobj.save()
+        messages.success(request, f"Davomat qoidasi saqlandi ✅")
+    except Exception as e:
+        messages.error(request, f"Xato: {str(e)}")
+
+    return redirect("chaqmoq:rule_list")
+
+
+@login_required
+def penalty_rule_delete(request, pk):
+    """Davomat jarimasi qoidasini o'chirish."""
+    center = get_active_center(request)
+    if request.user.role not in ['director', 'manager'] and not request.user.is_superuser:
+        messages.error(request, "Sizda ruxsat yo'q")
+        return redirect("chaqmoq:rule_list")
+
+    try:
+        rule = Rule.objects.get(pk=pk, center=center, tur=Rule.ATTENDANCE_PENALTY)
+        rule.delete()
+        messages.success(request, "Qoida o'chirildi")
+    except Rule.DoesNotExist:
+        messages.error(request, "Qoida topilmadi")
+
+    return redirect("chaqmoq:rule_list")
+
+
 
 @login_required
 def rule_add(request):

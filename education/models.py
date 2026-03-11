@@ -309,9 +309,24 @@ class Payment(SoftDeleteMixin, models.Model):
 
         super().save(*args, **kwargs)
 
-        # 3) Enrollment jami_tolangan ni yangilaymiz
+        # 4) Enrollment jami_tolangan ni yangilaymiz
         agg = Payment.objects.filter(enrollment_id=self.enrollment_id).aggregate(s=Sum("summa"))
         Enrollment.objects.filter(pk=self.enrollment_id).update(jami_tolangan=agg["s"] or 0)
+
+        # 5) ✅ PAYMENT BONUS: 100% to'lov bo'lsa chaqmoq bonus bering
+        if self.enrollment_id:
+            try:
+                enr = Enrollment.objects.get(pk=self.enrollment_id)
+                from chaqmoq.services import check_payment_bonus
+                check_payment_bonus(
+                    enrollment=enr,
+                    center=enr.center,
+                    created_by=self.created_by,
+                )
+            except Exception:
+                pass  # Xato bo'lsa ham asosiy to'lovni buzmalik
+
+
 
 
 
@@ -352,15 +367,32 @@ class Attendance(models.Model):
         verbose_name="Sana"
     )
 
+    # 🔥 YANGI STATUS MAYDONI
+    STATUS_CHOICES = (
+        ('present', 'Keldi'),
+        ('absent_excused', 'Sababli (Kelmadi)'),
+        ('absent_unexcused', 'Sababsiz (Kelmadi)'),
+    )
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default='present', verbose_name="Holati"
+    )
+
+    # Eski maydon. Backward compatibility uchun
     present = models.BooleanField(
         default=False,
         verbose_name="Kelganmi"
     )
 
-    # 🔥 YANGI MAYDON
+    # Eski maydon
     forced = models.BooleanField(
         default=False,
         verbose_name="Kelmadi – lekin o‘qituvchiga pul yozilsin"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="created_attendances", verbose_name="Kiritgan xodim"
     )
 
     class Meta:
@@ -370,8 +402,12 @@ class Attendance(models.Model):
         ordering = ['-date']
 
     def __str__(self):
-        if self.present:
+        if self.status == 'present' or self.present:
             belgi = "✅ Kelgan"
+        elif self.status == 'absent_excused':
+            belgi = "🟡 Sababli Kelmadi"
+        elif self.status == 'absent_unexcused':
+            belgi = "🔴 Sababsiz Kelmadi"
         elif self.forced:
             belgi = "🔴 Kelmadi (pul yozildi)"
         else:
