@@ -4329,9 +4329,8 @@ def fix_all_incomes(request):
     Global/Production muhitda o'tgan oydagi eski Attendance malumotlarini 
     TeacherIncome tizimiga generator qilib beruvchi bir martalik master funktsiya
     """
-    if not request.user.is_superuser:
-        if request.user.role != 'director':
-            return HttpResponseForbidden("Faqat Direktor uchun!")
+    if not request.user.is_superuser and request.user.role not in ['director', 'manager']:
+        return HttpResponseForbidden("Faqat Direktor uchun!")
 
     from education.models import Attendance, TeacherIncome, Enrollment
     from django.db import transaction
