@@ -19,9 +19,12 @@ async def create_db_backup():
     bot_token = os.getenv("BOT_TOKEN")
     group_id = os.getenv("BACKUP_GROUP_ID")
 
-    # Local mode check: If no DATABASE_URL, look for db.sqlite3 in project root
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    sqlite_path = os.path.join(base_dir, "db.sqlite3")
+    # Local mode check: Go up 3 levels to reach ChaqmoqApp root
+    telegram_bot_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    project_root = os.path.dirname(telegram_bot_dir)
+    sqlite_path = os.path.join(project_root, "db.sqlite3")
+    
+    logger.info(f"🔎 Searching for SQLite at: {sqlite_path}")
     
     is_postgres = bool(db_url)
     is_sqlite = not is_postgres and os.path.exists(sqlite_path)
@@ -111,7 +114,7 @@ async def setup_backup_scheduler():
     scheduler = AsyncIOScheduler(timezone='Asia/Tashkent')
     
     # Har kuni soat 20:00 da ishga tushirish
-    trigger = CronTrigger(hour=21, minute=45)
+    trigger = CronTrigger(hour=22, minute=00)
     
     scheduler.add_job(create_db_backup, trigger, name="daily_db_backup")
     scheduler.start()
