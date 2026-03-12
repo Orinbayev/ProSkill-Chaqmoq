@@ -111,7 +111,7 @@ async def setup_backup_scheduler():
     scheduler = AsyncIOScheduler(timezone='Asia/Tashkent')
     
     # Har kuni soat 20:00 da ishga tushirish
-    trigger = CronTrigger(hour=21, minute=35)
+    trigger = CronTrigger(hour=21, minute=45)
     
     scheduler.add_job(create_db_backup, trigger, name="daily_db_backup")
     scheduler.start()
