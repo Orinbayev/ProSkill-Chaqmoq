@@ -13,6 +13,8 @@ from config import BOT_TOKEN, API_SECRET
 from handlers import start, link_account, profile, activity, security, help
 from handlers import admin_panel, linked_users, broadcast, admins, parents, settings
 from services.scheduler import setup_scheduler
+from backup.backup_service import setup_backup_scheduler
+
 
 # Logging
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
@@ -93,6 +95,8 @@ async def main():
 
     # 2. Start Scheduler
     await setup_scheduler(bot)
+    await setup_backup_scheduler()
+
 
     # 3. Start polling in a robust infinite loop
     logging.info("🤖 Starting Bot Polling loop...")
