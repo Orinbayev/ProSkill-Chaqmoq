@@ -58,6 +58,29 @@
     gap: 12px;
   }
 
+  .back-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-decoration: none !important;
+  }
+
+  .back-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  }
+
   .icon-square {
     width: 40px;
     height: 40px;
@@ -470,6 +493,9 @@
   <!-- PAGE HEADER -->
   <div class="page-header">
     <div class="title-group">
+      <a href="{% url 'education:groups_home' %}" class="back-btn" title="Orqaga">
+        <i class="fa-solid fa-chevron-left"></i>
+      </a>
       <div class="icon-square">
         <i class="fa-solid fa-folder-open"></i>
       </div>

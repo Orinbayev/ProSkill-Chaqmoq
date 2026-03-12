@@ -322,10 +322,10 @@
     </a>
 
     {% if feature_store or request.user.is_superuser %}
-    <a href="{% url 'store:expenses' %}" class="sidebar-item {% if vn == 'store:expenses' %}active{% endif %}"
-      data-title="Xarajatlar">
-      <span class="si-ico"><i class="fa-solid fa-receipt"></i></span>
-      <span class="si-text">Xarajatlar</span>
+    <a href="{% url 'education:qarzdorlar_home' %}" class="sidebar-item {% if vn == 'education:qarzdorlar_home' %}active{% endif %}"
+      data-title="Qarzdorlar">
+      <span class="si-ico"><i class="fa-solid fa-user-minus"></i></span>
+      <span class="si-text">Qarzdorlar</span>
     </a>
     {% endif %}
 
