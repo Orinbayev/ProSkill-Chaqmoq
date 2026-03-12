@@ -19,8 +19,15 @@ async def create_db_backup():
     bot_token = os.getenv("BOT_TOKEN")
     group_id = os.getenv("BACKUP_GROUP_ID")
 
-    if not db_url:
-        logger.error("❌ Database backup failed: DATABASE_URL environment variable is not set.")
+    # Local mode check: If no DATABASE_URL, look for db.sqlite3 in project root
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sqlite_path = os.path.join(base_dir, "db.sqlite3")
+    
+    is_postgres = bool(db_url)
+    is_sqlite = not is_postgres and os.path.exists(sqlite_path)
+
+    if not is_postgres and not is_sqlite:
+        logger.error("❌ Database backup failed: No DATABASE_URL found and db.sqlite3 is missing.")
         return
     
     if not bot_token or not group_id:
@@ -29,31 +36,34 @@ async def create_db_backup():
 
     now = datetime.now().strftime("%Y_%m_%d")
     sql_filename = f"backup_{now}.sql"
+    db_file_to_zip = sql_filename
     zip_filename = f"backup_{now}.zip"
 
     try:
-        logger.info(f"🔄 Starting database backup process: {sql_filename}")
-        
-        # 1. Run pg_dump
-        # We use pg_dump with the connection string.
-        # Render's environment usually has pg_dump installed.
-        process = await asyncio.create_subprocess_exec(
-            "pg_dump", db_url, "-f", sql_filename,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-        
-        stdout, stderr = await process.communicate()
+        if is_postgres:
+            logger.info(f"🔄 Starting PostgreSQL backup via pg_dump: {sql_filename}")
+            process = await asyncio.create_subprocess_exec(
+                "pg_dump", db_url, "-f", sql_filename,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await process.communicate()
 
-        if process.returncode != 0:
-            error_msg = stderr.decode().strip()
-            logger.error(f"❌ pg_dump failed with return code {process.returncode}: {error_msg}")
-            return
+            if process.returncode != 0:
+                error_msg = stderr.decode().strip()
+                logger.error(f"❌ pg_dump failed with return code {process.returncode}: {error_msg}")
+                return
+        else:
+            logger.info("🔄 SQLite detected. Using db.sqlite3 for backup.")
+            db_file_to_zip = sqlite_path
+            # We don't need to create a new file, we'll zip the existing one
 
-        # 2. Compress the SQL file into a ZIP archive
+        # 2. Compress the DB file into a ZIP archive
         logger.info(f"📦 Compressing backup to {zip_filename}...")
         with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            zipf.write(sql_filename)
+            # For SQLite, we might want to name the file inside zip as 'db.sqlite3'
+            arcname = "db.sqlite3" if is_sqlite else sql_filename
+            zipf.write(db_file_to_zip, arcname=arcname)
         
         # 3. Send the ZIP file to the Telegram Group
         logger.info(f"📤 Sending backup to Telegram group: {group_id}")
@@ -63,10 +73,11 @@ async def create_db_backup():
         bot_instance = Bot(token=bot_token)
         try:
             document = FSInputFile(zip_filename)
+            type_name = "PostgreSQL" if is_postgres else "SQLite"
             await bot_instance.send_document(
                 chat_id=group_id,
                 document=document,
-                caption=f"✅ <b>Yutuq (Database Backup)</b>\n📅 Sana: <code>{now}</code>\n📂 Fayl: <code>{zip_filename}</code>",
+                caption=f"✅ <b>Yutuq (Database Backup)</b>\n📅 Sana: <code>{now}</code>\n🗄 Turi: <code>{type_name}</code>\n📂 Fayl: <code>{zip_filename}</code>",
                 parse_mode="HTML"
             )
             logger.info("✅ Backup successfully sent to Telegram!")
@@ -100,7 +111,7 @@ async def setup_backup_scheduler():
     scheduler = AsyncIOScheduler(timezone='Asia/Tashkent')
     
     # Har kuni soat 20:00 da ishga tushirish
-    trigger = CronTrigger(hour=20, minute=0)
+    trigger = CronTrigger(hour=21, minute=35)
     
     scheduler.add_job(create_db_backup, trigger, name="daily_db_backup")
     scheduler.start()
