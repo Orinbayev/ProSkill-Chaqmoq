@@ -95,18 +95,17 @@ async def create_db_backup():
         logger.info("✨ Backup process finished.")
 
 async def setup_backup_scheduler():
-    """
-    Initializes and starts the non-blocking scheduler for daily backups.
-    """
-    # Use Tashkent timezone as per the existing project structure (Asia/Tashkent)
-    # Alternatively, use 'UTC' or None for server time. 
-    # Since existing logic uses Asia/Tashkent, we stay consistent.
+    """Vaqtinchalik test rejimi: har 5 daqiqada va bot ishga tushishi bilan bir marta."""
     scheduler = AsyncIOScheduler(timezone='Asia/Tashkent')
     
-    # Schedule to run every day at 20:00 (8 PM)
-    trigger = CronTrigger(hour=20, minute=0)
+    # 1. Asosiy reja: Har kuni 20:00 da
+    scheduler.add_job(create_db_backup, CronTrigger(hour=20, minute=0), name="daily_db_backup")
     
-    scheduler.add_job(create_db_backup, trigger, name="daily_db_backup")
+    # 2. TEST: Har 5 daqiqada bir marta (ishlayotganini ko'rish uchun)
+    scheduler.add_job(create_db_backup, 'interval', minutes=5, name="test_backup_5m")
+    
+    # 3. TEST: Bot ishga tushishi bilan DARHOL bir marta
+    scheduler.add_job(create_db_backup, name="immediate_test_backup")
+    
     scheduler.start()
-    
-    logger.info("🚀 Database backup scheduler started (Daily at 20:00).")
+    logger.info("🚀 TEST REJIMI: Backup scheduleri ishga tushdi (Darhol va har 5 daqiqada).")
