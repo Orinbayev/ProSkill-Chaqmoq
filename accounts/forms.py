@@ -161,7 +161,10 @@ class AddUserForm(forms.ModelForm):
             group = data.get("group")
             if user.role == "student" and group:
                 from education.models import Enrollment
-                Enrollment.objects.get_or_create(
+                from education.services.tuition import ensure_tuition_month
+                from django.utils import timezone
+                
+                enr, created = Enrollment.objects.get_or_create(
                     group=group,
                     student=user,
                     defaults={
@@ -170,6 +173,11 @@ class AddUserForm(forms.ModelForm):
                         'center': group.center
                     }
                 )
+                
+                # Agar o'quvchi birinchi marta shu guruhga qo'shilayotgan bo'lsa,
+                # darhol joriy oy uchun TuitionMonth (qarz) yaratamiz
+                if created:
+                    ensure_tuition_month(enr, timezone.localdate())
 
         return user
 
