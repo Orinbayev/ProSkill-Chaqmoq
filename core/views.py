@@ -834,15 +834,12 @@ def archive_student(request, pk):
         student.is_archived = True
         student.save(update_fields=["is_archived"])
         
-        # ✅ Also mark as soft-deleted for the "O'chirilganlar" section
-        student.delete(deleted_by=request.user)
-        
         # 2. Deactivate Enrollments (Remove from active groups lists)
         # Enrollment has is_active field? Let's check model. 
         # Yes, education/models.py Enrollment has is_active field.
         Enrollment.objects.filter(student=student, is_active=True).update(is_active=False)
 
-    messages.warning(request, f"O‘quvchi {student.get_full_name()} arxivga olindi va o'chirilganlar ro'yxatiga o'tkazildi.")
+    messages.warning(request, f"O‘quvchi {student.get_full_name()} arxivga olindi.")
     return redirect("core:stat_students")
 
 
@@ -862,9 +859,6 @@ def restore_student(request, pk):
     with transaction.atomic():
         student.is_archived = False
         student.save(update_fields=["is_archived"])
-        
-        # ✅ Also restore from soft-deleted state
-        student.restore(restored_by=request.user)
         
         # ✅ Restore enrollments (activate them back)
         Enrollment.objects.filter(student=student, center=center).update(is_active=True)
