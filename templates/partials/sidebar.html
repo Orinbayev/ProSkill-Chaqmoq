@@ -321,11 +321,11 @@
       <span class="si-text">Bo‘limlar</span>
     </a>
 
-    {% if request.user.role == 'director' or request.user.is_superuser or request.center.manager_can_access_trash %}
-    <a href="{% url 'core:deleted_items' %}" class="sidebar-item {% if vn == 'core:deleted_items' %}active{% endif %}"
-      data-title="O'chirilganlar">
-      <span class="si-ico"><i class="fa-solid fa-trash-can"></i></span>
-      <span class="si-text">O‘chirilganlar</span>
+    {% if feature_store or request.user.is_superuser %}
+    <a href="{% url 'store:expenses' %}" class="sidebar-item {% if vn == 'store:expenses' %}active{% endif %}"
+      data-title="Xarajatlar">
+      <span class="si-ico"><i class="fa-solid fa-receipt"></i></span>
+      <span class="si-text">Xarajatlar</span>
     </a>
     {% endif %}
 
@@ -415,10 +415,12 @@
     <div class="fi-icon"><i class="fa-solid fa-store"></i></div>
     <span>Do‘kon</span>
   </a>
+  {% endif %}
 
-  <a href="{% url 'store:expenses' %}" class="floating-item">
-    <div class="fi-icon"><i class="fa-solid fa-receipt"></i></div>
-    <span>Xarajatlar</span>
+  {% if request.user.role == 'director' or request.user.is_superuser or request.center.manager_can_access_trash %}
+  <a href="{% url 'core:deleted_items' %}" class="floating-item">
+    <div class="fi-icon"><i class="fa-solid fa-trash-can"></i></div>
+    <span>O‘chirilganlar</span>
   </a>
   {% endif %}
 
