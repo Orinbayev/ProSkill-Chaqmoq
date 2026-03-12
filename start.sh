@@ -8,10 +8,10 @@ echo '🤖 Launching Telegram Bot...'
 python3 -u telegram_bot/bot.py 2>&1 | sed 's/^/[BOT] /' &
 
 # 2. Start the Django application
-if [ -z "" ]; then
+if [ -z "$RENDER" ]; then
   echo '🏠 Local dev mode'
   python3 manage.py runserver 0.0.0.0:8000
 else
-  echo "🌐 Production mode on port "
-  python3 -m gunicorn config.wsgi:application --bind 0.0.0.0: --workers 2 --threads 4 --timeout 120 --access-logfile - --error-logfile -
+  echo "🌐 Production mode on Render (Port $PORT)"
+  python3 -m gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 --access-logfile - --error-logfile -
 fi

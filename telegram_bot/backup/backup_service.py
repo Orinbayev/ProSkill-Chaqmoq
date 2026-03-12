@@ -11,26 +11,56 @@ from apscheduler.triggers.cron import CronTrigger
 # Set up logging
 logger = logging.getLogger(__name__)
 
+# This is for manual command handling
+from aiogram import Router, types
+from aiogram.filters import Command
+router = Router()
+
 async def create_db_backup():
     """
     Creates a PostgreSQL backup using pg_dump, zips it, sends to Telegram, and cleans up.
     """
     db_url = os.getenv("DATABASE_URL")
+    
+    # 🚨 Render Production Logic: Construct URL if DATABASE_URL is missing but separate bits exist
+    if not db_url:
+        db_name = os.getenv("DB_NAME")
+        db_user = os.getenv("DB_USER")
+        db_pass = os.getenv("DB_PASSWORD")
+        db_host = os.getenv("DB_HOST")
+        db_port = os.getenv("DB_PORT", "5432")
+        if all([db_name, db_user, db_pass, db_host]):
+            db_url = f"postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
+            print("[BACKUP] 🔗 Constructed DB URL from individual env vars.")
+
     bot_token = os.getenv("BOT_TOKEN")
     group_id = os.getenv("BACKUP_GROUP_ID")
 
-    # Local mode check: Go up 3 levels to reach ChaqmoqApp root
-    telegram_bot_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    project_root = os.path.dirname(telegram_bot_dir)
+    # Force integer ID for Telegram API
+    if group_id:
+        try:
+            # Handle string IDs with '-' correctly
+            group_id = int(str(group_id).strip())
+        except ValueError:
+            print(f"[BACKUP] ⚠️ Invalid BACKUP_GROUP_ID format: {group_id}")
+            pass
+
+    # Local mode check: Robust project root finding
+    # Current file: telegram_bot/backup/backup_service.py
+    # Project root: 3 levels up
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.abspath(os.path.join(current_dir, "..", ".."))
     sqlite_path = os.path.join(project_root, "db.sqlite3")
     
-    logger.info(f"🔎 Searching for SQLite at: {sqlite_path}")
+    print(f"[BACKUP] 🔎 System searching for database at: {sqlite_path}")
+    logger.info(f"🔎 System searching for database at: {sqlite_path}")
     
     is_postgres = bool(db_url)
     is_sqlite = not is_postgres and os.path.exists(sqlite_path)
 
     if not is_postgres and not is_sqlite:
-        logger.error("❌ Database backup failed: No DATABASE_URL found and db.sqlite3 is missing.")
+        print(f"[BACKUP] ❌ FAILED: Database not found. (Postgres URL: {bool(db_url)}, SQLite exists: {os.path.exists(sqlite_path)})")
+        logger.error(f"❌ Database backup failed: No DATABASE_URL found and db.sqlite3 is missing at {sqlite_path}.")
         return
     
     if not bot_token or not group_id:
@@ -43,18 +73,36 @@ async def create_db_backup():
     zip_filename = f"backup_{now}.zip"
 
     try:
+        print(f"[BACKUP] 🚀 STARTING BACKUP. Mode: {'PostgreSQL' if is_postgres else 'SQLite'}")
         if is_postgres:
-            logger.info(f"🔄 Starting PostgreSQL backup via pg_dump: {sql_filename}")
+            print(f"[BACKUP] 🔄 Attempting PostgreSQL backup using pg_dump...")
+            try:
+                # Check if pg_dump is available first
+                check_process = await asyncio.create_subprocess_exec(
+                    "pg_dump", "--version",
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                await check_process.communicate()
+            except FileNotFoundError:
+                err = "❌ 'pg_dump' command not found on this server! Postgres backup is impossible without it."
+                print(f"[BACKUP] {err}")
+                if bot_token and group_id:
+                    temp_bot = Bot(token=bot_token)
+                    await temp_bot.send_message(group_id, f"⚠️ <b>Zahira nusxa xatosi:</b>\nServerda <code>pg_dump</code> topilmadi. PostgreSQL zahirasi uchun u zarur.\n\n💡 <b>Yechim:</b> Render'da 'Docker' muhitiga o'ting yoki qo'llab-quvvatlash bilan bog'laning.", parse_mode="HTML")
+                    await temp_bot.session.close()
+                return
+
             process = await asyncio.create_subprocess_exec(
                 "pg_dump", db_url, "-f", sql_filename,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
             stdout, stderr = await process.communicate()
-
+            
             if process.returncode != 0:
                 error_msg = stderr.decode().strip()
-                logger.error(f"❌ pg_dump failed with return code {process.returncode}: {error_msg}")
+                print(f"[BACKUP] ❌ pg_dump failed: {error_msg}")
                 return
         else:
             logger.info("🔄 SQLite detected. Using db.sqlite3 for backup.")
@@ -114,9 +162,18 @@ async def setup_backup_scheduler():
     scheduler = AsyncIOScheduler(timezone='Asia/Tashkent')
     
     # Har kuni soat 20:00 da ishga tushirish
-    trigger = CronTrigger(hour=22, minute=00)
+    trigger = CronTrigger(hour=22, minute=20)
     
     scheduler.add_job(create_db_backup, trigger, name="daily_db_backup")
     scheduler.start()
     
+    print("🚀 Database backup scheduler initialized (Daily at 20:00).")
     logger.info("🚀 Database backup scheduler started (Daily at 20:00).")
+
+@router.message(Command("backup_now"))
+async def manual_backup_command(message: types.Message):
+    """Admin uchun manunal backup buyrug'i (faqat test uchun)"""
+    # Check if user is director or admin in your system logic if needed
+    await message.answer("🔄 Zahira nusxasini yaratish boshlandi...")
+    await create_db_backup()
+    await message.answer("✅ Jarayon yakunlandi. Agar hammasi to'g'ri bo'lsa, guruhga fayl yuborildi.")

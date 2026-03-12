@@ -13,7 +13,7 @@ from config import BOT_TOKEN, API_SECRET
 from handlers import start, link_account, profile, activity, security, help
 from handlers import admin_panel, linked_users, broadcast, admins, parents, settings
 from services.scheduler import setup_scheduler
-from backup.backup_service import setup_backup_scheduler
+from backup.backup_service import setup_backup_scheduler, router as backup_router
 
 
 # Logging
@@ -37,6 +37,7 @@ dp.include_router(broadcast.router)
 dp.include_router(admins.router)
 dp.include_router(parents.router)
 dp.include_router(settings.router)
+dp.include_router(backup_router) # Register manual backup command
 
 async def handle_send_message(request):
     """
@@ -96,11 +97,14 @@ async def main():
     # 2. Start Scheduler
     await setup_scheduler(bot)
     await setup_backup_scheduler()
+    print("✅ All Schedulers started.")
 
 
     # 3. Start polling in a robust infinite loop
+    print("🤖 Bot Polling is starting NOW...")
     logging.info("🤖 Starting Bot Polling loop...")
     while True:
+        print("💡 Polling iteration started...")
         try:
             # We use a fresh polling session each time
             await dp.start_polling(bot, handle_signals=False)
