@@ -428,6 +428,102 @@
       border-radius: 16px;
     }
   }
+
+  /* Modal Styles */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(5, 8, 18, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .custom-modal {
+    background: linear-gradient(180deg, var(--panelA), var(--panelB));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border-radius: var(--r22);
+    padding: 30px;
+    width: 90%;
+    max-width: 400px;
+    transform: translateY(20px) scale(0.95);
+    transition: transform 0.3s ease;
+    text-align: center;
+  }
+  .modal-overlay.active .custom-modal {
+    transform: translateY(0) scale(1);
+  }
+  .modal-icon {
+    width: 60px;
+    height: 60px;
+    background: rgba(250, 204, 21, 0.15);
+    border: 1px solid rgba(250, 204, 21, 0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    color: var(--amber2);
+  }
+  .modal-icon svg {
+    width: 30px;
+    height: 30px;
+  }
+  .modal-title {
+    color: #fff;
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0 0 10px;
+  }
+  .modal-text {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0 0 24px;
+  }
+  .modal-actions {
+    display: flex;
+    gap: 12px;
+  }
+  .modal-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+  }
+  .modal-btn-cancel {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .modal-btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .modal-btn-confirm {
+    background: linear-gradient(90deg, rgba(250, 204, 21, .98), rgba(245, 158, 11, .98));
+    color: #111827;
+    box-shadow: 0 10px 20px rgba(245, 158, 11, .2);
+  }
+  .modal-btn-confirm:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 25px rgba(245, 158, 11, .3);
+  }
 </style>
 
 <div class="cq-page">
@@ -539,8 +635,7 @@
           </div>
 
           <div class="actions">
-            <button type="submit" class="btn-save"
-              onclick="return confirm('Guruh ma\'lumotlarini saqlashni tasdiqlaysizmi?')">
+            <button type="submit" class="btn-save">
               <span aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;">
                   <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" stroke="currentColor"
@@ -572,6 +667,23 @@
   </div>
 </div>
 
+<!-- Modal HTML -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="custom-modal">
+    <div class="modal-icon">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h3 class="modal-title">Tasdiqlaysizmi?</h3>
+    <p class="modal-text">Yangi guruh ma'lumotlarini saqlashni xohlaysizmi? Barcha kiritilgan ma'lumotlar to'g'riligini tekshiring.</p>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-cancel" id="cancelBtn">Bekor qilish</button>
+      <button class="modal-btn modal-btn-confirm" id="confirmBtn">Ha, saqlash</button>
+    </div>
+  </div>
+</div>
+
 <script>
   document.addEventListener("DOMContentLoaded", () => {
     const nom = document.getElementById("id_nom");
@@ -579,6 +691,35 @@
 
     const izoh = document.getElementById("id_izoh");
     if (izoh) izoh.placeholder = "Guruh haqida qo‘shimcha ma’lumot...";
+
+    const form = document.querySelector("form");
+    const saveBtn = document.querySelector(".btn-save");
+    const modal = document.getElementById("confirmModal");
+    const cancelBtn = document.getElementById("cancelBtn");
+    const confirmBtn = document.getElementById("confirmBtn");
+    
+    if (saveBtn && modal && form) {
+      saveBtn.addEventListener("click", (e) => {
+        // Form field tekshiruvi (required va h.k.)
+        if (form.checkValidity()) {
+          e.preventDefault();
+          modal.classList.add("active");
+        } else {
+          // Agar validation xatosi bo'lsa, brauzer o'z xabarini chiqaradi,
+          // submit bo'lishda davom etaveradi va to'xtab qoladi.
+        }
+      });
+
+      cancelBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        modal.classList.remove("active");
+      });
+
+      confirmBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        form.submit();
+      });
+    }
   });
 </script>
 

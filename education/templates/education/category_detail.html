@@ -516,7 +516,7 @@
            style="animation-delay: {{ forloop.counter0|add:1 }}00ms;"
            onclick="if(!event.target.closest('.card-footer-v2')) window.location.href='{% url 'education:group_detail' g.id %}'"
            data-no="{{ forloop.counter }}" data-name="{{ g.nom|default_if_none:'' }}"
-           data-center="{{ g.center|default_if_none:'' }}" data-teacher="{{ g.oqituvchi|default_if_none:'' }}">
+           data-center="{{ g.center|default_if_none:'' }}" data-teacher="{% if g.oqituvchi.ism or g.oqituvchi.familya %}{{ g.oqituvchi.ism|default_if_none:'' }} {{ g.oqituvchi.familya|default_if_none:'' }}{% else %}{{ g.oqituvchi.email|default_if_none:'' }}{% endif %}">
         
         <div class="card-header-v2">
           <span class="card-no">№ {{ forloop.counter }}</span>
@@ -532,7 +532,17 @@
           </div>
           
           <div class="info-tag"><i class="fa-solid fa-building-columns"></i> {{ g.center }}</div>
-          <div class="info-tag"><i class="fa-solid fa-user-tie"></i> {{ g.oqituvchi }}</div>
+          <div class="info-tag"><i class="fa-solid fa-user-tie"></i> 
+            {% if g.oqituvchi %}
+              {% if g.oqituvchi.ism or g.oqituvchi.familya %}
+                {{ g.oqituvchi.ism|default_if_none:'' }} {{ g.oqituvchi.familya|default_if_none:'' }}
+              {% else %}
+                {{ g.oqituvchi.email }}
+              {% endif %}
+            {% else %}
+              Biriktirilmagan
+            {% endif %}
+          </div>
         </div>
 
         <div class="card-footer-v2">

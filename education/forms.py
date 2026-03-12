@@ -32,6 +32,7 @@ class GroupForm(forms.ModelForm):
             if center:
                 teach_qs = teach_qs.filter(center=center)
             self.fields["oqituvchi"].queryset = teach_qs.order_by("ism", "familya")
+            self.fields["oqituvchi"].label_from_instance = lambda obj: f"{obj.ism or ''} {obj.familya or ''}".strip() or obj.email
 
         # Filter categories by center
         if "category_obj" in self.fields:

@@ -348,6 +348,12 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
+  /* ✅ Oq bo'lib qoladigan dropdown variantlari (options) uchun alohida dizayn */
+  .lead-form-premium select option {
+    background-color: #0f172a !important; /* Windows uchun qat'iy rank (var ishlamasligi mumkin ba'zan) */
+    color: #ffffff !important;
+  }
+
   .lead-form-premium textarea {
     min-height: 120px;
   }
@@ -360,6 +366,28 @@
     background-repeat: no-repeat;
     background-position: right 14px center;
     background-size: 16px;
+  }
+
+  .lead-form-premium input:focus,
+  .lead-form-premium select:focus,
+  .lead-form-premium textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: rgba(2, 6, 23, 0.6);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+  }
+
+  /* Autofill fix (for when browser automatically fills fields) */
+  .lead-form-premium input:-webkit-autofill,
+  .lead-form-premium input:-webkit-autofill:hover, 
+  .lead-form-premium input:-webkit-autofill:focus, 
+  .lead-form-premium input:-webkit-autofill:active,
+  .lead-form-premium select:-webkit-autofill,
+  .lead-form-premium select:-webkit-autofill:hover,
+  .lead-form-premium select:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 30px #0f172a inset !important;
+    -webkit-text-fill-color: white !important;
+    transition: background-color 5000s ease-in-out 0s;
   }
 
   .lead-form-premium input:focus+.icon,
