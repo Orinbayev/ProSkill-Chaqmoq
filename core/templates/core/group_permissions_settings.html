@@ -1,0 +1,434 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Ruxsatlar Sozlamalari | ChaqmoqApp{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root {
+    --bg-dark: #020617;
+    --bg-card: rgba(15, 23, 42, 0.5);
+    --border: rgba(255, 255, 255, 0.08);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --primary: #3b82f6;
+    --green: #10b981;
+    --red: #ef4444;
+    --orange: #f59e0b;
+    --radius: 16px;
+  }
+
+  body {
+    background: radial-gradient(1200px 520px at 50% -10%, rgba(59, 130, 246, .08), transparent 60%),
+        linear-gradient(180deg, var(--bg-dark), var(--bg-dark));
+    color: var(--text-main);
+    min-height: 100vh;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .perm-wrap {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 28px 20px;
+  }
+
+  /* Header */
+  .page-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .back-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    display: grid;
+    place-items: center;
+    text-decoration: none;
+    transition: all 0.2s;
+    font-size: 14px;
+  }
+  .back-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+  .page-title {
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0;
+    background: linear-gradient(135deg, #fff, #94a3b8);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .page-subtitle {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 2px;
+  }
+
+  /* Section Card */
+  .perm-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    backdrop-filter: blur(20px);
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+
+  .perm-section-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+  }
+  .badge-manager {
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    color: #fbbf24;
+  }
+  .badge-teacher {
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    color: #60a5fa;
+  }
+
+  .section-desc {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 500;
+    margin-left: auto;
+  }
+
+  /* Perm Row */
+  .perm-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    transition: background 0.2s;
+  }
+  .perm-row:not(:last-child) {
+    border-bottom: 1px solid var(--border);
+  }
+  .perm-row:hover {
+    background: rgba(255,255,255,0.02);
+  }
+
+  .perm-info {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .perm-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+  .icon-add { background: rgba(16, 185, 129, 0.12); color: #34d399; }
+  .icon-remove { background: rgba(239, 68, 68, 0.12); color: #f87171; }
+
+  .perm-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0 0 2px;
+  }
+  .perm-desc {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  /* Toggle Switch */
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 26px;
+    flex-shrink: 0;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #1e293b;
+    border: 1px solid rgba(255,255,255,0.1);
+    transition: .35s;
+    border-radius: 26px;
+  }
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background: #64748b;
+    transition: .35s;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+  input:checked + .slider { background: var(--green); border-color: var(--green); }
+  input:checked + .slider:before {
+    transform: translateX(22px);
+    background: white;
+  }
+
+  /* Status indicator dot */
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 5px;
+    background: var(--red);
+    transition: background 0.3s;
+  }
+  .status-dot.on { background: var(--green); }
+
+  /* Toast */
+  .toast-fixed {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+  }
+  .toast-item {
+    padding: 12px 18px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(255,255,255,0.1);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+    pointer-events: all;
+  }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes toastOut {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-6px); }
+  }
+
+  .info-card {
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.15);
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .info-card i { color: var(--primary); margin-top: 2px; }
+  .info-card p { margin: 0; font-size: 12.5px; color: var(--text-muted); line-height: 1.6; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="perm-wrap">
+  <!-- Page Header -->
+  <div class="page-header">
+    <a href="javascript:history.back()" class="back-btn" title="Orqaga">
+      <i class="fa-solid fa-chevron-left"></i>
+    </a>
+    <div>
+      <h1 class="page-title"><i class="fa-solid fa-shield-halved" style="font-size:18px; -webkit-text-fill-color: #3b82f6;"></i> Ruxsatlar Sozlamalari</h1>
+      <p class="page-subtitle">Manager va O'qituvchilarga o'quvchi boshqarish huquqlarini bering yoki oling</p>
+    </div>
+  </div>
+
+  <!-- Info -->
+  <div class="info-card">
+    <i class="fa-solid fa-circle-info fa-fw"></i>
+    <p>
+      Bu sahifada siz <b>Manager</b> va <b>O'qituvchi</b> rollariga guruhlarga o'quvchi qo'shish va o'chirish
+      ruxsatlarini yoqib yoki o'chirib qo'ya olasiz. O'zgarishlar darhol kuchga kiradi.
+    </p>
+  </div>
+
+  <!-- ========= MANAGER ========= -->
+  <div class="perm-section">
+    <div class="perm-section-header">
+      <span class="role-badge badge-manager">
+        <i class="fa-solid fa-user-tie"></i> MANAGER
+      </span>
+      <span class="section-desc">{{ center.name }}</span>
+    </div>
+
+    <!-- Manager: Add Student -->
+    <div class="perm-row">
+      <div class="perm-info">
+        <div class="perm-icon icon-add">
+          <i class="fa-solid fa-user-plus"></i>
+        </div>
+        <div>
+          <p class="perm-label">O'quvchi qo'shish</p>
+          <p class="perm-desc">Manager guruhga yangi o'quvchi qo'sha olsin</p>
+        </div>
+      </div>
+      <form class="ajax-toggle-form" action="{% url 'core:toggle_manager_can_add_student' %}" method="post">
+        {% csrf_token %}
+        <label class="switch">
+          <input type="checkbox" {% if center.manager_can_add_student %}checked{% endif %}>
+          <span class="slider"></span>
+        </label>
+      </form>
+    </div>
+
+    <!-- Manager: Remove Student -->
+    <div class="perm-row">
+      <div class="perm-info">
+        <div class="perm-icon icon-remove">
+          <i class="fa-solid fa-user-minus"></i>
+        </div>
+        <div>
+          <p class="perm-label">O'quvchini chiqarish</p>
+          <p class="perm-desc">Manager guruhdan o'quvchilarni o'chirishi mumkin</p>
+        </div>
+      </div>
+      <form class="ajax-toggle-form" action="{% url 'core:toggle_manager_can_remove_student' %}" method="post">
+        {% csrf_token %}
+        <label class="switch">
+          <input type="checkbox" {% if center.manager_can_remove_student %}checked{% endif %}>
+          <span class="slider"></span>
+        </label>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========= TEACHER ========= -->
+  <div class="perm-section">
+    <div class="perm-section-header">
+      <span class="role-badge badge-teacher">
+        <i class="fa-solid fa-chalkboard-user"></i> O'QITUVCHI
+      </span>
+      <span class="section-desc">{{ center.name }}</span>
+    </div>
+
+    <!-- Teacher: Add Student -->
+    <div class="perm-row">
+      <div class="perm-info">
+        <div class="perm-icon icon-add">
+          <i class="fa-solid fa-user-plus"></i>
+        </div>
+        <div>
+          <p class="perm-label">O'quvchi qo'shish</p>
+          <p class="perm-desc">O'qituvchi o'z guruhiga yangi o'quvchi qo'sha olsin</p>
+        </div>
+      </div>
+      <form class="ajax-toggle-form" action="{% url 'core:toggle_teacher_can_add_student' %}" method="post">
+        {% csrf_token %}
+        <label class="switch">
+          <input type="checkbox" {% if center.teacher_can_add_student %}checked{% endif %}>
+          <span class="slider"></span>
+        </label>
+      </form>
+    </div>
+
+    <!-- Teacher: Remove Student -->
+    <div class="perm-row">
+      <div class="perm-info">
+        <div class="perm-icon icon-remove">
+          <i class="fa-solid fa-user-minus"></i>
+        </div>
+        <div>
+          <p class="perm-label">O'quvchini chiqarish</p>
+          <p class="perm-desc">O'qituvchi guruhdan o'quvchilarni o'chira olsin</p>
+        </div>
+      </div>
+      <form class="ajax-toggle-form" action="{% url 'core:toggle_teacher_can_remove_student' %}" method="post">
+        {% csrf_token %}
+        <label class="switch">
+          <input type="checkbox" {% if center.teacher_can_remove_student %}checked{% endif %}>
+          <span class="slider"></span>
+        </label>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-fixed" id="toastContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function showToast(msg, success = true) {
+    const container = document.getElementById('toastContainer');
+    const t = document.createElement('div');
+    t.className = 'toast-item';
+    t.innerHTML = `<i class="fa-solid ${success ? 'fa-circle-check' : 'fa-circle-xmark'}" style="color:${success ? '#10b981' : '#ef4444'};"></i> ${msg}`;
+    container.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+
+  document.querySelectorAll('.ajax-toggle-form').forEach(form => {
+    const cb = form.querySelector('input[type="checkbox"]');
+    cb.addEventListener('change', function () {
+      const url = form.getAttribute('action');
+      const csrf = form.querySelector('[name=csrfmiddlewaretoken]').value;
+
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrf,
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          showToast(data.message, true);
+        } else {
+          cb.checked = !cb.checked; // revert
+          showToast(data.error || "Xatolik yuz berdi", false);
+        }
+      })
+      .catch(() => {
+        cb.checked = !cb.checked;
+        showToast("Server bilan aloqa uzildi", false);
+      });
+    });
+  });
+</script>
+{% endblock %}

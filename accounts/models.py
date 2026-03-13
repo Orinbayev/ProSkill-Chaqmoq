@@ -103,6 +103,12 @@ class Center(SoftDeleteMixin, models.Model):
     # ✅ Trash settings
     manager_can_access_trash = models.BooleanField(default=False, verbose_name="Manager trashga kira olsinmi?")
 
+    # ✅ Student Management settings
+    manager_can_add_student = models.BooleanField(default=True, verbose_name="Manager o'quvchi qo'shishi mumkinmi?")
+    manager_can_remove_student = models.BooleanField(default=True, verbose_name="Manager o'quvchilarni o'chirishi mumkinmi?")
+    teacher_can_add_student = models.BooleanField(default=False, verbose_name="O'qituvchi o'quvchi qo'shishi mumkinmi?")
+    teacher_can_remove_student = models.BooleanField(default=False, verbose_name="O'qituvchi o'quvchilarni o'chirishi mumkinmi?")
+
 
     STATUS_ACTIVE = "ACTIVE"
     STATUS_BLOCKED = "BLOCKED"

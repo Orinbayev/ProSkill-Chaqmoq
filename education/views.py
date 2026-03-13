@@ -2353,7 +2353,19 @@ def group_detail(request, pk: int):
         s.attendance_status = status_map.get(s.id, "none")  # 'present' | 'absent_excused' | 'absent_unexcused' | 'none'
 
 
-    can_add_student = request.user.role in ["director", "manager", "teacher"]
+    can_add_student = False
+    can_remove_student = False
+    
+    if request.user.role == "director" or request.user.is_superuser:
+        can_add_student = True
+        can_remove_student = True
+    elif center:
+        if request.user.role == "manager":
+            can_add_student = center.manager_can_add_student
+            can_remove_student = center.manager_can_remove_student
+        elif request.user.role == "teacher":
+            can_add_student = center.teacher_can_add_student
+            can_remove_student = center.teacher_can_remove_student
 
     # ✅ Filter rules by center and role
     rules_qs = Rule.objects.filter(Q(center=center) | Q(center__isnull=True))
@@ -2370,6 +2382,7 @@ def group_detail(request, pk: int):
         "rules_plus": rules_qs.filter(tur=Rule.PLUS).order_by("nom"),
         "rules_minus": rules_qs.filter(tur=Rule.MINUS).order_by("nom"),
         "can_add_student": can_add_student,
+        "can_remove_student": can_remove_student,
         "selected_date": selected_date.isoformat(),
         "today": localdate().isoformat(),
     }
@@ -2722,8 +2735,17 @@ def group_bulk_remove(request, pk):
     g = get_object_or_404(qs, pk=pk)
 
     # ruxsat tekshirish
-    if request.user.role not in ["director", "manager", "teacher", "admin"]:
-        return JsonResponse({"ok": False, "msg": "Ruxsat yo‘q."})
+    can_remove = False
+    if request.user.role == "director" or request.user.is_superuser:
+        can_remove = True
+    elif center:
+        if request.user.role == "manager":
+            can_remove = center.manager_can_remove_student
+        elif request.user.role == "teacher":
+            can_remove = center.teacher_can_remove_student
+
+    if not can_remove:
+        return JsonResponse({"ok": False, "msg": "Sizda o'quvchilarni o'chirish huquqi yo'q."})
 
     ids = request.POST.getlist("enrollment_ids")
 
@@ -4023,8 +4045,16 @@ def add_student_to_group(request, pk: int):
     g = get_object_or_404(qs, pk=pk)
 
     # Ruxsat tekshirish
-    allowed_roles = ['admin', 'manager', 'teacher', 'director']
-    if request.user.role not in allowed_roles:
+    can_add = False
+    if request.user.role == "director" or request.user.is_superuser:
+        can_add = True
+    elif center:
+        if request.user.role == "manager":
+            can_add = center.manager_can_add_student
+        elif request.user.role == "teacher":
+            can_add = center.teacher_can_add_student
+
+    if not can_add:
         if request.headers.get("x-requested-with") == "XMLHttpRequest":
             return JsonResponse({"error": "Sizda ruxsat yo'q"}, status=403)
         return HttpResponseForbidden("❌ Sizda bu amalni bajarish uchun ruxsat yo‘q.")

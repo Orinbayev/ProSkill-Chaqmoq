@@ -139,6 +139,82 @@ def toggle_manager_trash_access(request):
     messages.success(request, f"Managerlar uchun trash ruxsati {status_text} ✅")
     return redirect(request.META.get('HTTP_REFERER', 'core:home'))
 
+@login_required
+@require_POST
+def toggle_manager_can_add_student(request):
+    if not (request.user.is_superuser or request.user.role == 'director'):
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({"ok": False, "error": "Permission denied"}, status=403)
+        raise PermissionDenied
+    center = _get_center(request)
+    if not center:
+        return JsonResponse({"ok": False, "error": "Center not found"}, status=404)
+    center.manager_can_add_student = not center.manager_can_add_student
+    center.save()
+    status_text = "yoqildi" if center.manager_can_add_student else "o'chirildi"
+    return JsonResponse({"ok": True, "status": center.manager_can_add_student, "message": f"Managerlar o'quvchi qo'shishi {status_text} ✅"})
+
+@login_required
+@require_POST
+def toggle_manager_can_remove_student(request):
+    if not (request.user.is_superuser or request.user.role == 'director'):
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({"ok": False, "error": "Permission denied"}, status=403)
+        raise PermissionDenied
+    center = _get_center(request)
+    if not center:
+        return JsonResponse({"ok": False, "error": "Center not found"}, status=404)
+    center.manager_can_remove_student = not center.manager_can_remove_student
+    center.save()
+    status_text = "yoqildi" if center.manager_can_remove_student else "o'chirildi"
+    return JsonResponse({"ok": True, "status": center.manager_can_remove_student, "message": f"Managerlar o'quvchi o'chirishi {status_text} ✅"})
+
+@login_required
+@require_POST
+def toggle_teacher_can_add_student(request):
+    if not (request.user.is_superuser or request.user.role == 'director'):
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({"ok": False, "error": "Permission denied"}, status=403)
+        raise PermissionDenied
+    center = _get_center(request)
+    if not center:
+        return JsonResponse({"ok": False, "error": "Center not found"}, status=404)
+    center.teacher_can_add_student = not center.teacher_can_add_student
+    center.save()
+    status_text = "yoqildi" if center.teacher_can_add_student else "o'chirildi"
+    return JsonResponse({"ok": True, "status": center.teacher_can_add_student, "message": f"O'qituvchilar o'quvchi qo'shishi {status_text} ✅"})
+
+@login_required
+@require_POST
+def toggle_teacher_can_remove_student(request):
+    if not (request.user.is_superuser or request.user.role == 'director'):
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({"ok": False, "error": "Permission denied"}, status=403)
+        raise PermissionDenied
+    center = _get_center(request)
+    if not center:
+        return JsonResponse({"ok": False, "error": "Center not found"}, status=404)
+    center.teacher_can_remove_student = not center.teacher_can_remove_student
+    center.save()
+    status_text = "yoqildi" if center.teacher_can_remove_student else "o'chirildi"
+    return JsonResponse({"ok": True, "status": center.teacher_can_remove_student, "message": f"O'qituvchilar o'quvchi o'chirishi {status_text} ✅"})
+
+
+@login_required
+def group_permissions_settings(request):
+    """
+    Direktor paneli: Manager va Teacher uchun
+    O'quvchi qo'shish/o'chirish ruxsatlarini boshqarish sahifasi.
+    """
+    if not (request.user.is_superuser or request.user.role == 'director'):
+        raise PermissionDenied
+    center = _get_center(request)
+    if not center:
+        messages.error(request, "Center topilmadi.")
+        return redirect('core:home')
+    return render(request, 'core/group_permissions_settings.html', {'center': center})
+
+
 
 def _assert_same_center(obj, center):
     """

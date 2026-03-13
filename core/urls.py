@@ -58,5 +58,12 @@ urlpatterns = [
     path('trash/<str:model_key>/<int:pk>/hard-delete/', trash.hard_delete_item, name='hard_delete_item'),
     path('trash/toggle-access/', views.toggle_manager_trash_access, name='toggle_manager_trash_access'),
     path('trash/manager-access/<int:user_id>/', trash.toggle_manager_user_trash_access, name='toggle_manager_user_trash_access'),
+    
+    # ✅ Group permissions
+    path('permissions/manager-add-student/', views.toggle_manager_can_add_student, name='toggle_manager_can_add_student'),
+    path('permissions/manager-remove-student/', views.toggle_manager_can_remove_student, name='toggle_manager_can_remove_student'),
+    path('permissions/teacher-add-student/', views.toggle_teacher_can_add_student, name='toggle_teacher_can_add_student'),
+    path('permissions/teacher-remove-student/', views.toggle_teacher_can_remove_student, name='toggle_teacher_can_remove_student'),
+    path('permissions/', views.group_permissions_settings, name='group_permissions_settings'),
 ]
 

@@ -459,6 +459,12 @@
     <div class="fi-icon"><i class="fa-solid fa-sliders"></i></div>
     <span>Lead sozlamalari</span>
   </a>
+  {% if request.user.role == 'director' or request.user.is_superuser %}
+  <a href="{% url 'core:group_permissions_settings' %}" class="floating-item">
+    <div class="fi-icon"><i class="fa-solid fa-shield-halved"></i></div>
+    <span>Ruxsatlar</span>
+  </a>
+  {% endif %}
 </div>
 
 <script>
