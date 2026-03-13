@@ -5,6 +5,7 @@ import zipfile
 from datetime import datetime
 from aiogram import Bot
 from aiogram.types import FSInputFile
+from aiogram.exceptions import TelegramMigrateToChat
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -132,6 +133,20 @@ async def create_db_backup():
                 parse_mode="HTML"
             )
             logger.info("✅ Backup successfully sent to Telegram!")
+        except TelegramMigrateToChat as e:
+            new_id = e.migrate_to_chat_id
+            print(f"[BACKUP] ⚠️ Group migrated to supergroup! New ID: {new_id}")
+            logger.error(f"❌ Migration error: Group upgraded. Please update BACKUP_GROUP_ID to {new_id}")
+            # Try once with the new ID
+            try:
+                await bot_instance.send_document(
+                    chat_id=new_id,
+                    document=FSInputFile(zip_filename),
+                    caption=f"✅ <b>Yutuq (Database Backup)</b>\n📅 Sana: <code>{now}</code>\n🗄 Turi: {type_name}\n⚠️ <i>Guruh superguruhga o'zgardi. Yangi ID: {new_id}</i>",
+                    parse_mode="HTML"
+                )
+            except Exception as e2:
+                logger.error(f"Failed again with new ID: {e2}")
         finally:
             # Important: Close the session to prevent memory leaks or warnings
             await bot_instance.session.close()
