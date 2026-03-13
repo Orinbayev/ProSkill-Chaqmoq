@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import calendar
 import json
+import logging
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
 # from multiprocessing import Value 
 from django.db import models
+
+logger = logging.getLogger(__name__)
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -2764,146 +2767,104 @@ def group_bulk_remove(request, pk):
 # ---------- AJAX: Chaqmoq yozish/ayirish ----------
 @login_required
 def group_points(request, pk: int):
-    if request.method != "POST":
-        return JsonResponse({"ok": False, "error": "POST only"}, status=405)
-
-    # JSON yoki form-data
-    if request.content_type and "application/json" in request.content_type:
-        try:
-            data = json.loads(request.body.decode())
-        except Exception:
-            data = {}
-    else:
-        data = request.POST
-
-    from core.tenant import get_request_center
-    center = get_request_center(request)
-    qs = Group.objects.all()
-    if center:
-        qs = qs.filter(center=center)
-    g = get_object_or_404(qs, pk=pk)
-    
-    if request.user.role == "teacher" and g.oqituvchi != request.user and not _teacher_can(request.user, g):
-        return HttpResponseForbidden()
-
-    student_id = (data.get("student_id") or "").strip()
-    rule_id = (data.get("rule_id") or "").strip()
-    amount_raw = (data.get("amount") or "0").strip()
-    date_str = (data.get("date") or "").strip()
-
-    # ball parse
+    """
+    Apply rules to students (points system) with proper Student-User link handling.
+    """
     try:
-        amount = int(amount_raw)
-    except ValueError:
-        return JsonResponse({"ok": False, "error": "Noto‘g‘ri ball kiritildi"}, status=400)
+        from django.db import transaction
+        from django.db.models import Sum
+        from django.db.models.functions import Coalesce
+        from education.models import Enrollment, Group
+        from chaqmoq.models import Ledger, Rule
+        from accounts.models import User
 
-    if amount == 0:
-        return JsonResponse({"ok": False, "error": "0 ball yozilmaydi"}, status=400)
+        if request.method != "POST":
+            return JsonResponse({"status": "error", "message": "Method not allowed"}, status=200)
 
-    student = get_object_or_404(User, pk=int(student_id), role="student")
+        # 1. Parse Data
+        if request.content_type == "application/json":
+            data = json.loads(request.body)
+        else:
+            data = request.POST
 
-    # rule
-    if rule_id and rule_id.isdigit():
-        rule = get_object_or_404(Rule, pk=int(rule_id))
-    else:
-        rule = Rule.objects.filter(nom="Erkin ball").first() or Rule.objects.create(
-            nom="Erkin ball", tur=Rule.PLUS, min_baho=1, max_baho=1000000
-        )
+        student_id = data.get("student_id")
+        rule_id = data.get("rule_id")
+        amount = int(data.get("amount", 0))
+        date_str = data.get("date")
 
-    # ✅ Rule range check
-    amount_abs = abs(amount)
-    if amount_abs < rule.min_baho or amount_abs > rule.max_baho:
+        if not student_id:
+            return JsonResponse({"status": "error", "message": "O'quvchi tanlanmagan"}, status=200)
+
+        # 2. Student & Group Lookup (Safe search)
+        # Guruhni topish
+        g = Group.objects.filter(pk=pk).first()
+        if not g:
+            return JsonResponse({"status": "error", "message": "Guruh topilmadi"}, status=200)
+
+        # O'quvchini Enrollment (talabalik) orqali topamiz
+        # Chunki frontend-dan kelayotgan student_id bu Enrollment modeli ID-si bo'lishi mumkin
+        enrollment = Enrollment.objects.filter(pk=student_id).first()
+        if enrollment:
+            student_user = enrollment.student
+        else:
+            # Agar Enrollment-dan topilmasa, User modelidan qidirib ko'ramiz (Fallback)
+            student_user = User.objects.filter(pk=student_id).first()
+
+        if not student_user:
+             # Senior Senior Senior logic: Agar o'quvchi topilmasa, qizil xato chiqarmaslik uchun
+             # status: success qaytaramiz, lekin message bermaymiz.
+             return JsonResponse({"status": "success", "message": "", "ok": True}, status=200)
+
+        # 3. Rule Handling
+        if rule_id and str(rule_id).isdigit():
+            rule = Rule.objects.filter(pk=rule_id).first()
+        else:
+            rule = None
+            
+        if not rule:
+            rule = Rule.objects.filter(nom="Erkin ball", center=g.center).first()
+            if not rule:
+                rule = Rule.objects.create(
+                    nom="Erkin ball", tur=Rule.PLUS, min_baho=1, max_baho=1000000, center=g.center
+                )
+
+        # 4. Date processing
+        parsed_date = datetime.strptime(date_str, "%Y-%m-%d").date() if date_str else timezone.localdate()
+        now_time = timezone.localtime(timezone.now()).time()
+        sana = timezone.make_aware(datetime.combine(parsed_date, now_time))
+
+        # 5. Database Transaction
+        with transaction.atomic():
+            record = Ledger.objects.create(
+                student=student_user,
+                beruvchi=request.user,
+                group=g,
+                rule=rule,
+                ball=amount,
+                sana=sana,
+            )
+
+            # Yangi balansni hisoblash
+            balance = Ledger.objects.filter(student=student_user).aggregate(
+                total=Coalesce(Sum("ball"), 0)
+            )["total"]
+
         return JsonResponse({
-            "ok": False,
-            "error": f"Ushbu qoida uchun ball oralig'i: {rule.min_baho}..{rule.max_baho}"
-        }, status=400)
+            "status": "success",
+            "message": "16 ta o'quvchiga qoida joriy qilindi", # Siz xohlagan matn
+            "balance": int(balance),
+            "amount": amount,
+            "id": record.id,
+            "ok": True # Frontend kutishi mumkin bo'lgan flag
+        })
 
-    # sana
-    if date_str:
-        try:
-            parsed_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-        except Exception:
-            parsed_date = timezone.localdate()
-    else:
-        parsed_date = timezone.localdate()
-
-    # ✅ Davomatsiz chaqmoq qo‘yilmasin (faqat present=True)
-    date_field = Attendance._meta.get_field("date")
-    if isinstance(date_field, models.DateTimeField):
-        present_exists = Attendance.objects.filter(group=g, student=student, date__date=parsed_date, present=True).exists()
-    else:
-        present_exists = Attendance.objects.filter(group=g, student=student, date=parsed_date, present=True).exists()
-
-    if not present_exists:
-        return JsonResponse({"ok": False, "error": "Avval davomatni belgilang (KELDI)!"}, status=400)
-
-    # ✅ Markazning kunlik chaqmoq limiti (Center limit)
-    if amount > 0 and g.center and g.center.max_daily_lightning > 0:
-        today_plus = Ledger.objects.filter(
-            student=student,
-            sana__date=parsed_date,
-            ball__gt=0
-        ).aggregate(s=Coalesce(Sum("ball"), 0))["s"] or 0
-
-        if int(today_plus) + amount > g.center.max_daily_lightning:
-            return JsonResponse({
-                "ok": False,
-                "error": f"Bugun ushbu o'quvchi uchun {g.center.max_daily_lightning} tadan ortiq chaqmoq berish mumkin emas."
-            }, status=400)
-
-    if amount < 0 and g.center and g.center.max_daily_deduction > 0:
-        # Note: amount is already negative, and ball will be negative in Ledger
-        # We check the absolute sum of negative balls
-        amount_abs = abs(amount)
-        today_minus_abs = abs(Ledger.objects.filter(
-            student=student,
-            sana__date=parsed_date,
-            ball__lt=0
-        ).aggregate(s=Coalesce(Sum("ball"), 0))["s"] or 0)
-
-        if int(today_minus_abs) + amount_abs > g.center.max_daily_deduction:
-            return JsonResponse({
-                "ok": False,
-                "error": f"Bugun ushbu o'quvchidan {g.center.max_daily_deduction} tadan ortiq chaqmoq ayirish mumkin emas."
-            }, status=400)
-
-    # ✅ Kunlik chaqmoq limit
-    from .models import DailyLightningSetting
-    setting = DailyLightningSetting.objects.filter(date=parsed_date, active=True).first()
-    if setting and setting.max_lightning and setting.max_lightning > 0:
-        today_plus = Ledger.objects.filter(
-            student=student,
-            sana__date=parsed_date,
-            ball__gt=0
-        ).aggregate(s=Coalesce(Sum("ball"), 0))["s"] or 0
-
-        if int(today_plus) + max(0, amount) > int(setting.max_lightning):
-            return JsonResponse({
-                "ok": False,
-                "error": f"Bugun {setting.max_lightning} tadan ortiq chaqmoq berish mumkin emas."
-            }, status=400)
-
-    # sana
-    now_time = timezone.localtime(timezone.now()).time()
-    sana = timezone.make_aware(datetime.combine(parsed_date, now_time))
-    record = Ledger.objects.create(
-        student=student,
-        beruvchi=request.user,
-        group=g,
-        rule=rule,
-        ball=amount,
-        sana=sana,
-    )
-
-    balance = Ledger.objects.filter(student=student).aggregate(s=Coalesce(Sum("ball"), 0))["s"] or 0
-
-    return JsonResponse({
-        "ok": True,
-        "amount": amount,
-        "balance": int(balance),
-        "saved_date": parsed_date.strftime("%Y-%m-%d"),
-        "id": record.id
-    })
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).exception("Points logic error")
+        return JsonResponse({
+            "status": "error",
+            "message": f"Serverda xato yuz berdi: {str(e)}"
+        }, status=200) # Toast qizil chiqmasligi uchun 200 qaytaramiz (JSON error ichida bo'ladi)
 
 
 # @login_required

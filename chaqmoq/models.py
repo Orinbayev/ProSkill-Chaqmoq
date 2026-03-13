@@ -61,7 +61,7 @@ class Ledger(models.Model):
 
     # ✅ History uchun snapshot (qoida o‘chsa ham nomi qoladi)
     rule_nom = models.CharField(max_length=150, blank=True, default="")
-    rule_tur = models.CharField(max_length=10, blank=True, default="")
+    rule_tur = models.CharField(max_length=50, blank=True, default="")
     rule_min_baho = models.PositiveSmallIntegerField(null=True, blank=True)
     rule_max_baho = models.PositiveSmallIntegerField(null=True, blank=True)
 

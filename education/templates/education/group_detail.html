@@ -696,7 +696,7 @@
       amountInput.value = Math.min(maxBaho, val + 1);
     });
 
-    const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+    const TWO_HOURS_MS = 5 * 60 * 60 * 1000;  // 5 soat
     const groupId = urls.groupId || "0";
 
     function flashStorageKey() {
@@ -1178,7 +1178,8 @@
         if (ruleType === "-") amount = -Math.abs(amount);
         else amount = Math.abs(amount);
 
-        const presentSegs = Array.from(document.querySelectorAll('.att-seg[data-status="present"]'));
+        // Milliars foiz aniqlik bilan faqat jadval ichidagi o'quvchilarni olamiz
+        const presentSegs = Array.from(document.querySelectorAll('tbody .att-seg[data-status="present"]'));
         if (!presentSegs.length) { showToast("Davomat KELDI bo‘lgan o‘quvchi yo‘q!", "error"); return; }
 
         let count = 0;
@@ -1186,6 +1187,9 @@
 
         for (const seg of presentSegs) {
           const sid = seg.dataset.student;
+          // ID bo'sh bo'lsa yoki raqam bo'lmasa o'tkazib yuboramiz
+          if (!sid || isNaN(parseInt(sid))) continue; 
+
           try {
             const data = await sendPoints(sid, amount, ruleId);
             if (data.ok) {
@@ -1193,10 +1197,11 @@
               updateFlash(sid, amount);
               count++;
             } else {
-              errors.push(data.error || "Xato");
+              // Backendda biz 'message' maydonidan foydalandik
+              errors.push(data.message || data.error || "Xato");
             }
           } catch (e) {
-            errors.push("Server hatosi");
+            errors.push("Aloqa hatosi");
           }
         }
 
@@ -1204,6 +1209,7 @@
           showToast(`${count} ta o'quvchiga qoida joriy qilindi`, "success");
         }
         if (errors.length > 0) {
+          // Faqat takrorlanmas xatolarni ko'rsatamiz
           const uniqueErrors = [...new Set(errors)];
           uniqueErrors.forEach(err => showToast(err, "error"));
         }
