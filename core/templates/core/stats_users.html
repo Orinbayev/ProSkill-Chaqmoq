@@ -587,6 +587,13 @@
     </select>
     {% endif %}
 
+    {% if user_kind == 'students' %}
+    <select name="multi_group" class="filter-input filter-select" onchange="this.form.submit()" title="Bir nechta guruhda o'qiydiganlarni filterlash">
+      <option value="">👥 Guruhlar: Barchasi</option>
+      <option value="yes" {% if multi_group_filter == 'yes' %}selected{% endif %}>⚡ Ko'p guruhda (2+)</option>
+    </select>
+    {% endif %}
+
     <a href="?{% if page_size %}size={{ page_size }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}"
       class="btn-reset" title="Tozalash">
       <i class="fa-solid fa-arrows-rotate"></i>

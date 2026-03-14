@@ -348,14 +348,30 @@ body{
         </div>
 
         <div class="month-summary">
-          <div class="ms-left">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#e5e7eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-              <path d="M16 2v4"></path>
-              <path d="M8 2v4"></path>
-              <path d="M3 10h18"></path>
-            </svg>
-            <div>{{ month_name }} ({{ year }})</div>
+          <div class="ms-left" style="display:flex; gap:15px; align-items:center;">
+            <div style="display:flex;gap:8px;align-items:center;">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#e5e7eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                <path d="M16 2v4"></path>
+                <path d="M8 2v4"></path>
+                <path d="M3 10h18"></path>
+              </svg>
+              <div>{{ month_name }} ({{ year }})</div>
+            </div>
+            
+            {% if request.user.role == 'director' or request.user.role == 'manager' or request.user.is_superuser %}
+              {% if is_closed %}
+                <button type="button" id="lockToggleBtn" class="filter-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706); color:#0b1220; height:34px; font-size:12.5px; font-weight:900; padding:0 16px; display:flex; gap:7px; align-items:center; border-radius:10px; border:none; cursor:pointer;" onclick="openLockModal('unlock')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>
+                  🔓 Qulfni yechish
+                </button>
+              {% else %}
+                <button type="button" id="lockToggleBtn" class="filter-btn" style="background:linear-gradient(135deg,#10b981,#059669); color:#fff; height:34px; font-size:12.5px; font-weight:900; padding:0 16px; display:flex; gap:7px; align-items:center; border-radius:10px; border:none; cursor:pointer;" onclick="openLockModal('lock')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                  🔒 Oyni Yopish
+                </button>
+              {% endif %}
+            {% endif %}
           </div>
 
           <div class="ms-right">
@@ -437,5 +453,82 @@ body{
     </div>
   </div>
 </main>
+
+<!-- ===== Lock/Unlock Modal ===== -->
+<div id="lockModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.65); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); align-items:center; justify-content:center;">
+  <div style="background:linear-gradient(145deg,rgba(15,23,42,0.98),rgba(11,18,32,0.98)); border:1px solid rgba(255,255,255,0.12); border-radius:24px; padding:36px 32px; max-width:420px; width:90%; box-shadow:0 30px 80px rgba(0,0,0,0.7); position:relative;">
+    
+    <!-- Icon -->
+    <div id="modalIcon" style="width:64px; height:64px; border-radius:18px; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; font-size:28px;"></div>
+    
+    <!-- Title -->
+    <h3 id="modalTitle" style="text-align:center; color:#fff; font-weight:900; font-size:20px; margin:0 0 10px;"></h3>
+    
+    <!-- Body -->
+    <p id="modalBody" style="text-align:center; color:rgba(255,255,255,0.65); font-size:14px; line-height:1.65; margin:0 0 28px;"></p>
+    
+    <!-- Buttons -->
+    <div style="display:flex; gap:12px;">
+      <button onclick="closeLockModal()" style="flex:1; padding:13px; border-radius:12px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); color:#e5e7eb; font-weight:800; font-size:14px; cursor:pointer; transition:.2s;">Bekor qilish</button>
+      <form id="lockForm" method="post" action="{% url 'education:close_finance_month' %}" style="flex:1;">
+        {% csrf_token %}
+        <input type="hidden" name="year" value="{{ year }}">
+        <input type="hidden" name="month" value="{{ month }}">
+        <input type="hidden" id="lockActionInput" name="action" value="">
+        <button id="modalConfirmBtn" type="submit" style="width:100%; padding:13px; border-radius:12px; border:none; color:#fff; font-weight:900; font-size:14px; cursor:pointer; transition:.2s;"></button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function openLockModal(action) {
+  const modal = document.getElementById('lockModal');
+  const icon = document.getElementById('modalIcon');
+  const title = document.getElementById('modalTitle');
+  const body = document.getElementById('modalBody');
+  const confirmBtn = document.getElementById('modalConfirmBtn');
+  const actionInput = document.getElementById('lockActionInput');
+  
+  actionInput.value = action;
+  
+  if (action === 'lock') {
+    icon.textContent = '🔒';
+    icon.style.background = 'rgba(16,185,129,0.15)';
+    icon.style.border = '1px solid rgba(16,185,129,0.3)';
+    title.textContent = 'Oyni qulflash';
+    body.textContent = 'Rostdan ham bu oyni yopmoqchimisiz? Barcha oʻqituvchilarning oyligi hozirgi holatida qotirib saqlanadi. Keyinchalik oʻquvchi oʻzgarishlari bu oyga taʼsir qilmaydi.';
+    confirmBtn.textContent = '🔒 Ha, qulflash';
+    confirmBtn.style.background = 'linear-gradient(135deg,#10b981,#059669)';
+  } else {
+    icon.textContent = '🔓';
+    icon.style.background = 'rgba(245,158,11,0.15)';
+    icon.style.border = '1px solid rgba(245,158,11,0.3)';
+    title.textContent = 'Qulfni yechish';
+    body.textContent = 'Rostdan ham bu oyni ochmoqchimisiz? Qotirilgan oylik maʼlumotlari oʻchiriladi va oyliklar yana jonli hisoblanadi. Oʻquvchi oʻzgarishlari hisobga olinadi.';
+    confirmBtn.textContent = '🔓 Ha, qulfni yechish';
+    confirmBtn.style.background = 'linear-gradient(135deg,#f59e0b,#d97706)';
+    confirmBtn.style.color = '#0b1220';
+  }
+  
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLockModal() {
+  document.getElementById('lockModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// Close on backdrop click
+document.getElementById('lockModal').addEventListener('click', function(e) {
+  if (e.target === this) closeLockModal();
+});
+
+// Close on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeLockModal();
+});
+</script>
 
 {% endblock %}

@@ -3263,48 +3263,41 @@ def teacher_salary_list(request):
     
     from core.tenant import get_request_center
     center = get_request_center(request)
+    
     teacher_qs = User.objects.filter(role="teacher")
     if center:
         teacher_qs = teacher_qs.filter(center=center)
     teachers = teacher_qs.order_by("ism")
 
-    
-    # Bitta query bilan o'qituvchilarning ushbu oydagi barcha daromadlarini olamiz
-    income_data = (
-        TeacherIncome.objects
-        .filter(attendance__date__year=year, attendance__date__month=month)
-    )
-    if center:
-        income_data = income_data.filter(center=center)
-        
-    income_summands = (
-        income_data
-        .values('teacher_id')
-        .annotate(total=Sum('amount'), gc=Count('group_id', distinct=True))
-    )
-    
-    income_map = {item['teacher_id']: item for item in income_summands}
-
     teacher_rows = []
     total_all = 0
 
+    from education.models import FinancialMonth
+    fin_month = FinancialMonth.objects.filter(year=year, month=month, center=center).first()
+    is_closed = fin_month.is_closed if fin_month else False
+
+    from education.services.historical_finance_service import HistoricalFinanceService
+
     for t in teachers:
-        data = income_map.get(t.id, {'total': 0, 'gc': 0})
-        salary = data['total'] or 0
-        total_all += salary
+        # Dynanic calculation or Snapshot for the teacher
+        salary_data = HistoricalFinanceService.calculate_teacher_salary(t, year, month, center)
+        teacher_salary = salary_data['salary']
+        groups_count = len(salary_data['details'])
+        total_all += teacher_salary
 
         teacher_rows.append({
             "teacher": t,
-            "month_salary": salary,
-            "groups_count": data['gc'],
+            "month_salary": teacher_salary,
+            "groups_count": groups_count,
         })
-
+        
     return render(request, "education/teacher_salary_list.html", {
         "teachers": teacher_rows,
         "year": year,
         "month": month,
         "month_name": month_name,
         "total_all": total_all,
+        "is_closed": is_closed,
     })
 
 # 🔹 2. O‘qituvchining barcha guruhlari
@@ -3334,62 +3327,44 @@ def teacher_groups(request, teacher_id):
         )
     )
 
+    from education.services.historical_finance_service import HistoricalFinanceService
+    salary_data = HistoricalFinanceService.calculate_teacher_salary(teacher, year, month, center)
+    
     teacher_data = []
-    for group in groups:
-
-        # ✅ shu group uchun kerakli oy attendances'ni oldindan filtrlab olamiz
-        month_att = group.attendances.filter(
-            date__year=year,
-            date__month=month
-        ).filter(Q(present=True) | Q(forced=True))
-
-        # ✅ active/inactive hammasi kerak, chunki o'sha oyda o'qigan bo'lishi mumkin
+    
+    for gcd in salary_data['details']:
+        # Fetch group object to pass to template (template still uses `group` var)
+        group_obj = Group.objects.filter(id=gcd['group_id']).first()
+        if not group_obj: continue
+        
         enrollments = []
-        for enr in group.enrollments.all():
-
-            attended = month_att.filter(student=enr.student).count()
-            # Agar bu oyda umuman darsga kelmagan bo'lsa va inactive bo'lsa -> ro'yxatda ko'rsatmasak ham mayli
-            # LEKIN: Agar attendance > 0 bo'lsa, albatta ko'rsatish shart.
-            
-            if not enr.is_active and attended == 0:
-                 continue
-
-            # Daromadni TeacherIncome jadvalidan olamiz
-            daromad_entry = TeacherIncome.objects.filter(
-                teacher=teacher,
-                group=group,
-                attendance__student=enr.student,
-                attendance__date__year=year,
-                attendance__date__month=month
-            ).aggregate(total=Sum('amount'))
-            
-            daromad = daromad_entry['total'] or 0
-
+        for en in gcd.get('enrollments', []):
             enrollments.append({
-                "student": enr.student,      # ✅ student obyekt
-                "kurs_narhi": enr.kurs_narhi,
-                "foiz": enr.oqituvchi_foiz,
-                "attended": attended,
-                "daromad": daromad,
+                "student_name": en.get('student_name', 'Noma\'lum'),
+                "kurs_narhi": en.get('kurs_narhi', 0),
+                "foiz": en.get('foiz', 0),
+                "attended": en.get('attended', 0),
+                "daromad": en.get('daromad', 0)
             })
-
-        total_income = sum(x["daromad"] for x in enrollments)
-
+            
         teacher_data.append({
-            "group": group,
+            "group": group_obj,
             "enrollments": enrollments,
-            "foiz": group.oqituvchi_foiz,
-            "daromad": total_income,
+            "foiz": gcd.get('fi', getattr(teacher, 'oqituvchi_foizi', 0) or group_obj.oqituvchi_foiz),
+            "daromad": gcd['salary'],
             "students_count": len(enrollments),
         })
+
+    jami_umumiy_daromad = salary_data['salary']
 
     return render(request, "education/teacher_groups.html", {
         "teacher": teacher,
         "teacher_data": teacher_data,
         "year": year,
         "month": month,
-        "years": years,   # ✅ SHU QO‘SHILDI
-
+        "years": years,
+        "jami_umumiy_daromad": jami_umumiy_daromad,
+        "is_locked": salary_data['is_locked'],
     })
 
 
@@ -3402,38 +3377,34 @@ def teacher_salary_report(request, group_id):
         qs = qs.filter(center=center)
     group = get_object_or_404(qs, id=group_id)
     
-    # ✅ Arxivlangan (inactive) o‘quvchilar ham hisobga olinishi uchun:
-    # Biz .filter(is_active=True) ISHLATMAYMIZ. 
-    # Chunki o‘tgan darslar uchun pul to‘lanishi shart.
-    enrollments = group.enrollments.all().select_related("student")
-
-    total_lessons = Attendance.objects.filter(group=group).values("date").distinct().count()
-    per_lesson_income = group.dars_boshiga_tolov()
-
+    now = timezone.localdate()
+    year = _get_int(request.GET, "year", now.year)
+    month = _get_int(request.GET, "month", now.month)
+    
+    from education.services.historical_finance_service import HistoricalFinanceService
+    salary_data = HistoricalFinanceService.calculate_teacher_salary(group.oqituvchi, year, month, center)
+    
     student_summaries = []
-    for e in enrollments:
-        data = TeacherIncome.objects.filter(
-            group=group,
-            attendance__student=e.student
-        ).aggregate(
-            total=Sum('amount'),
-            count=Count('id')
-        )
-        
-        student_summaries.append({
-            "student": e.student,
-            "attended": data['count'] or 0,
-            "teacher_income": data['total'] or 0
-        })
-
-    teacher_total_income = sum(s["teacher_income"] for s in student_summaries)
+    teacher_total_income = 0
+    
+    for gcd in salary_data['details']:
+        if gcd['group_id'] == group.id:
+            teacher_total_income = gcd['salary']
+            for en in gcd.get('enrollments', []):
+                student_summaries.append({
+                    "student_name": en.get('student_name', 'Noma\'lum'),
+                    "attended": en.get('attended', 0),
+                    "teacher_income": en.get('daromad', 0)
+                })
+            break
 
     ctx = {
         "group": group,
         "student_summaries": student_summaries,
         "teacher_total_income": teacher_total_income,
-        "month": timezone.now().strftime("%B"),
-        "year": timezone.now().year,
+        "month": month,
+        "year": year,
+        "is_locked": salary_data['is_locked'],
     }
     return render(request, "education/teacher_salary_report.html", ctx)
 
@@ -4297,7 +4268,7 @@ def teacher_income_dashboard(request):
 
 @login_required
 def close_finance_month_view(request):
-    """View to close (lock) a financial month for a center."""
+    """View to close (lock) or open (unlock) a financial month for a center."""
     if request.user.role not in ['director', 'manager'] and not request.user.is_superuser:
         messages.error(request, "Sizda bu bo'limga ruxsat yo'q.")
         return redirect('education:teacher_income_dashboard')
@@ -4305,14 +4276,19 @@ def close_finance_month_view(request):
     if request.method == "POST":
         year = int(request.POST.get('year'))
         month = int(request.POST.get('month'))
+        action = request.POST.get('action', 'lock')
         
         from core.tenant import get_request_center
         center = get_request_center(request)
         
-        HistoricalFinanceService.close_month(center, year, month, request.user)
-        messages.success(request, f"{year}-yil {month}-oy muvaffaqiyatli yopildi va ma'lumotlar saqlandi.")
+        if action == 'unlock':
+            HistoricalFinanceService.open_month(center, year, month, request.user)
+            messages.success(request, f"{year}-yil {month}-oy muvaffaqiyatli ochildi. Endi oyliklar avtomatik (jonli) tarzda hisoblanadi.")
+        else:
+            HistoricalFinanceService.close_month(center, year, month, request.user)
+            messages.success(request, f"{year}-yil {month}-oy muvaffaqiyatli yopildi va qotirildi. Endi o'zgarishlar tasir qilmaydi.")
         
-    return redirect(f"{reverse('education:teacher_income_dashboard')}?year={year}&month={month}")
+    return redirect(f"{reverse('education:teacher_salary_list')}?year={year}&month={month}")
 
 @login_required
 def fix_all_incomes(request):

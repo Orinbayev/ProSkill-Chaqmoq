@@ -810,6 +810,7 @@ def stat_students(request):
     q = request.GET.get("q", "").strip()
     gender = request.GET.get("gender", "").strip()
     section_id = request.GET.get("section", "").strip()
+    multi_group = request.GET.get("multi_group", "").strip()   # NEW: "yes" = ko'p guruhda
     status = request.GET.get("status", "active").strip() # default active
 
     page_size = request.GET.get("size", "10")
@@ -863,8 +864,18 @@ def stat_students(request):
         if section_id.isdigit():
              rows = rows.filter(enrollments__group__category_obj__id=int(section_id)).distinct()
         else:
-             # Fallback for string names
              rows = rows.filter(enrollments__group__category_obj__name=section_id).distinct()
+
+    # Ko'p guruhda o'qiydiganlar filtri
+    if multi_group == 'yes':
+        from django.db.models import Count as AnnotCount
+        rows = rows.annotate(
+            active_group_count=AnnotCount(
+                'enrollments',
+                filter=Q(enrollments__is_active=True, enrollments__group__center=center),
+                distinct=True
+            )
+        ).filter(active_group_count__gt=1)
 
     paginator = Paginator(rows, page_size)
     page_obj = paginator.get_page(request.GET.get("page"))
@@ -882,6 +893,7 @@ def stat_students(request):
         "active_count": active_count,
         "archived_count": archived_count,
         "center": center,
+        "multi_group_filter": multi_group,
     }
 
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
