@@ -38,9 +38,20 @@ class HistoricalFinanceService:
                     'salary': 0, 'attendance_count': 0, 'details': [], 'daily_breakdown': [0]*31, 'is_locked': True
                 }
 
-        groups = Group.objects.filter(oqituvchi=teacher, is_archived=False).prefetch_related('enrollments__student')
+        groups = Group.objects.filter(oqituvchi=teacher, is_archived=False)
         if center:
             groups = groups.filter(center=center)
+        
+        # MUHIM: Barcha enrollmentlarni olamiz (faol va nofaol ham)
+        # Guruhdan chiqarilgan o'quvchi uchun ham davomat hisoblanishi kerak
+        from django.db.models import Prefetch
+        groups = groups.prefetch_related(
+            Prefetch(
+                'enrollments',
+                queryset=Enrollment.objects.filter(is_deleted=False).select_related('student'),
+                to_attr='all_enrollments'
+            )
+        )
             
         atts = Attendance.objects.filter(
             group__in=groups,
@@ -72,11 +83,13 @@ class HistoricalFinanceService:
             oy_dars_soni = g.oy_dars_soni or 12
             if oy_dars_soni <= 0: oy_dars_soni = 12
             
-            for enr in g.enrollments.all():
+            for enr in g.all_enrollments:
                 sid = enr.student_id
                 days = att_lookup.get(g.id, {}).get(sid, [])
                 
-                if not days and not enr.is_active:
+                # Faqat davomati bo'lganlarnigina hisoblaymiz
+                # (faol yoki nofaol bo'lishi muhim emas — davomat qilingan bo'lsa hisob ishlaydi)
+                if not days:
                     continue
                 
                 c = len(days)
@@ -187,9 +200,19 @@ class HistoricalFinanceService:
                     results[m-1]['turnover'] = snap_turnover
                     results[m-1]['center_profit'] = snap_center_profit
                     
-        groups = Group.objects.filter(oqituvchi=teacher, is_archived=False).prefetch_related('enrollments__student')
+        groups = Group.objects.filter(oqituvchi=teacher, is_archived=False)
         if center:
             groups = groups.filter(center=center)
+        
+        # Barcha enrollmentlarni olamiz (faol va nofaol ham)
+        from django.db.models import Prefetch
+        groups = groups.prefetch_related(
+            Prefetch(
+                'enrollments',
+                queryset=Enrollment.objects.filter(is_deleted=False).select_related('student'),
+                to_attr='all_enrollments'
+            )
+        )
             
         att_counts = Attendance.objects.filter(
             group__in=groups,
@@ -213,11 +236,12 @@ class HistoricalFinanceService:
             oy_dars_soni = g.oy_dars_soni or 12
             if oy_dars_soni <= 0: oy_dars_soni = 12
             
-            for enr in g.enrollments.all():
+            for enr in g.all_enrollments:
                 sid = enr.student_id
                 month_counts = att_lookup.get(g.id, {}).get(sid, {})
                 
-                if not month_counts and not enr.is_active:
+                # Davomati bo'lmasa o'tkazib yuboramiz
+                if not month_counts:
                     continue
                     
                 foiz = getattr(teacher, 'oqituvchi_foizi', 0)
