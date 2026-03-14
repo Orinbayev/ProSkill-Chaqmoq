@@ -65,7 +65,9 @@ class HistoricalFinanceService:
             group_id__in=group_ids,
             date__year=year,
             date__month=month
-        ).filter(Q(present=True) | Q(forced=True)).values(
+        ).filter(
+            Q(present=True) | Q(forced=True) | Q(status='present') | Q(status='absent_unexcused')
+        ).values(
             'group_id', 'student_id', 'date__day'
         )
         
@@ -284,7 +286,9 @@ class HistoricalFinanceService:
         att_counts = Attendance.objects.filter(
             group_id__in=group_ids,
             date__year=year
-        ).filter(Q(present=True) | Q(forced=True)).values(
+        ).filter(
+            Q(present=True) | Q(forced=True) | Q(status='present') | Q(status='absent_unexcused')
+        ).values(
             'group_id', 'student_id', 'date__month'
         ).annotate(count=Count('id'))
         
@@ -370,7 +374,9 @@ class HistoricalFinanceService:
             group__in=groups,
             date__year=year,
             date__month=month
-        ).filter(Q(present=True) | Q(forced=True)).values(
+        ).filter(
+            Q(present=True) | Q(forced=True) | Q(status='present') | Q(status='absent_unexcused')
+        ).values(
             'group_id', 'student_id', 'date__day'
         )
 
