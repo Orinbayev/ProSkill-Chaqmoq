@@ -42,9 +42,10 @@ class HistoricalFinanceService:
         if center:
             groups = groups.filter(center=center)
         
-        # MUHIM: Enrollment.all_objects — faol, nofaol VA soft-deleted enrollment'larni ham olamiz
-        # Guruhdan chiqarilgan o'quvchi uchun ham o'sha oyda qilingan davomat hisoblanishi kerak
+        # Barcha enrollmentlarni olamiz (faol, nofaol, hatto soft-deleted ham)
         from django.db.models import Prefetch
+        from datetime import date as date_cls
+        import calendar
         groups = list(groups.prefetch_related(
             Prefetch(
                 'enrollments',
@@ -54,6 +55,11 @@ class HistoricalFinanceService:
         ))
             
         group_ids = [g.id for g in groups]
+        
+        # O'sha oy uchun sana oralig'ini aniqlaymiz
+        month_start = date_cls(year, month, 1)
+        month_end_day = calendar.monthrange(year, month)[1]
+        month_end = date_cls(year, month, month_end_day)
         
         atts = Attendance.objects.filter(
             group_id__in=group_ids,
@@ -74,7 +80,6 @@ class HistoricalFinanceService:
                 att_lookup[gid][sid] = []
             att_lookup[gid][sid].append(day)
         
-        # Enrollment orqali hisob-kitob: enrollment ma'lumotlaridan kurs narhi va foizni olamiz
         # enr_lookup[group_id][student_id] = enrollment
         enr_lookup = {}
         for g in groups:
@@ -82,9 +87,30 @@ class HistoricalFinanceService:
             for enr in g.all_enrollments:
                 enr_lookup[g.id][enr.student_id] = enr
         
-        # Davomatda bor lekin enrollment'da topilmagan o'quvchilarni ham qo'shamiz
-        # (enrollment soft-delete qilingan bo'lsa all_objects orqali ham topilmagan bo'lishi mumkin)
-        # Shu sababli att_lookup dan ham botamiz
+        # O'quvchining guruhda bo'lish tarixini olamiz
+        # history_lookup[group_id][student_id] = [(start_date, end_date), ...]
+        histories = StudentGroupHistory.objects.filter(
+            group_id__in=group_ids
+        ).values('group_id', 'student_id', 'start_date', 'end_date')
+        
+        history_lookup = {}
+        for h in histories:
+            gid = h['group_id']
+            sid = h['student_id']
+            if gid not in history_lookup:
+                history_lookup[gid] = {}
+            if sid not in history_lookup[gid]:
+                history_lookup[gid][sid] = []
+            history_lookup[gid][sid].append((h['start_date'], h['end_date']))
+        
+        def student_was_in_group(gid, sid, m_start, m_end):
+            """O'quvchi o'sha oyda guruhda bo'lganligini tekshiradi."""
+            for start, end in history_lookup.get(gid, {}).get(sid, []):
+                # Tarix o'sha oydagi biror kunga to'g'ri kelishi kerak
+                period_end = end if end else date_cls.today()
+                if start <= m_end and period_end >= m_start:
+                    return True
+            return False
         
         total_salary = 0
         total_turnover = 0
@@ -99,20 +125,35 @@ class HistoricalFinanceService:
             
             group_atts = att_lookup.get(g.id, {})
             
-            # Davomati bor barcha o'quvchilar uchun hisoblaylik (enrollment holatidan qat'i nazar)
             for sid, days in group_atts.items():
                 if not days:
                     continue
                 
                 # Enrollment ma'lumotlarini topamiz
                 enr = enr_lookup.get(g.id, {}).get(sid)
+                
+                # Agar enrollment topilmasa — o'quvchi bu guruhga
+                # rasman yozilmagan, uni hisoblamaymiz
                 if enr is None:
-                    # Enrollment topilmadi — guruh default foiz va narxini ishlatamiz
-                    foiz = getattr(teacher, 'oqituvchi_foizi', 0) or g.oqituvchi_foiz or 0
-                    k = g.kurs_narxi or 0
+                    continue
+                
+                # O'quvchi o'sha oyda guruhda bo'lganligini tekshiramiz
+                # Bu "Mart qo'shilgan → Fevralda ko'rinmasin" muammosini hal qiladi
+                group_has_history = bool(history_lookup.get(g.id, {}).get(sid))
+                if group_has_history:
+                    # Tarix bor — shu orqali tekshiramiz
+                    if not student_was_in_group(g.id, sid, month_start, month_end):
+                        continue
                 else:
-                    foiz = getattr(teacher, 'oqituvchi_foizi', 0) or enr.oqituvchi_foiz or 0
-                    k = enr.kurs_narhi or 0
+                    # Tarix yo'q — enrollment created_at dan foydalanamiz
+                    enr_created = None
+                    if hasattr(enr, 'created_at') and enr.created_at:
+                        enr_created = enr.created_at.date() if hasattr(enr.created_at, 'date') else enr.created_at
+                    if enr_created and enr_created > month_end:
+                        continue
+                
+                foiz = getattr(teacher, 'oqituvchi_foizi', 0) or enr.oqituvchi_foiz or 0
+                k = enr.kurs_narhi or 0
                 
                 c = len(days)
                 
@@ -125,7 +166,6 @@ class HistoricalFinanceService:
                     center_amount = 0
                     turnover_amount = 0
                     
-                c = len(days)
                 if c > 0:
                     total_salary += amount * c
                     total_turnover += turnover_amount * c
@@ -150,12 +190,10 @@ class HistoricalFinanceService:
                     details_map[gid]['turnover'] += turnover_amount * c
                     details_map[gid]['attendance'] += c
                     
-                    student_name = 'Noma\'lum'
-                    if enr is not None:
-                        try:
-                            student_name = enr.student.get_full_name() or enr.student.email
-                        except Exception:
-                            pass
+                    try:
+                        student_name = enr.student.get_full_name() or enr.student.email
+                    except Exception:
+                        student_name = 'Noma\'lum'
                     
                     details_map[gid]['enrollments'].append({
                         'student_id': sid,
@@ -171,6 +209,7 @@ class HistoricalFinanceService:
                         day_idx = day - 1
                         if 0 <= day_idx < 31:
                             daily_breakdown[day_idx] += amount
+
                             
         details = list(details_map.values())
         return {
