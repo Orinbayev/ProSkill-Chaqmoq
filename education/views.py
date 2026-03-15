@@ -2833,35 +2833,56 @@ def group_points(request, pk: int):
         now_time = timezone.localtime(timezone.now()).time()
         sana = timezone.make_aware(datetime.combine(parsed_date, now_time))
 
-        # ✅ IDEMPOTENCY: Bir xil so'rov 10 soniya ichida qayta kelsa, dublikat yaratmaymiz
-        # Bu global (render) serverida sekin network tufayli yuz beradigan duplicate requestlarni to'xtatadi
-        ten_sec_ago = timezone.now() - timedelta(seconds=10)
+        # ✅ REQUEST_ID bo'yicha idempotency - ENG ISHONCHLI YECHIM
+        # Frontend har bosishda noyob request_id yuboradi
+        # Xuddi shu request_id qayta kelsa - eski natijani qaytaramiz
+        request_id = data.get("request_id", "")
+        if request_id:
+            from django.core.cache import cache
+            cache_key = f"ledger_req_{request_id}"
+            cached = cache.get(cache_key)
+            if cached:
+                # Dublikat request - cached natijani qaytaramiz
+                return JsonResponse(cached)
 
-        existing = Ledger.objects.filter(
-            student=student_user,
-            group=g,
-            rule=rule,
-            ball=amount,
-            sana__gte=ten_sec_ago,
-            sana__date=parsed_date,
-        ).order_by('-sana').first()
 
-        if existing:
-            # Dublikat - eski yozuvni qaytaramiz, yangi yaratmaymiz
-            balance = Ledger.objects.filter(student=student_user).aggregate(
-                total=Coalesce(Sum("ball"), 0)
-            )["total"]
-            return JsonResponse({
-                "status": "success",
-                "message": "Ball allaqachon saqlangan (dublikat oldini olindi)",
-                "balance": int(balance),
-                "amount": amount,
-                "id": existing.id,
-                "ok": True
-            })
+        # ✅ DATABASE-LEVEL LOCK bilan idempotency
+        # select_for_update() - parallel workerlar (gunicorn) bir vaqtda create qilishini oldini oladi
+        # 30 soniya ichida bir xil (student + group + rule + amount) kombinatsiya kelsa - dublikat yaratilmaydi
+        thirty_sec_ago = timezone.now() - timedelta(seconds=30)
 
-        # 5. Database Transaction
         with transaction.atomic():
+            # Lock: bir vaqtda faqat bitta worker shu student uchun ishlay oladi
+            # Bu Render.com da parallel workerlar muammosini hal qiladi
+            existing = (
+                Ledger.objects
+                .select_for_update()  # ROW-LEVEL LOCK - boshqa worker kutib turadi
+                .filter(
+                    student=student_user,
+                    group=g,
+                    rule=rule,
+                    ball=amount,
+                    created_at__gte=thirty_sec_ago,
+                )
+                .order_by('-created_at')
+                .first()
+            )
+
+            if existing:
+                # Dublikat - eski yozuvni qaytaramiz, yangi yaratmaymiz
+                balance = Ledger.objects.filter(student=student_user).aggregate(
+                    total=Coalesce(Sum("ball"), 0)
+                )["total"]
+                return JsonResponse({
+                    "status": "success",
+                    "message": "Ball allaqachon saqlangan",
+                    "balance": int(balance),
+                    "amount": amount,
+                    "id": existing.id,
+                    "ok": True
+                })
+
+            # Yangi yozuv yaratish
             record = Ledger.objects.create(
                 student=student_user,
                 beruvchi=request.user,
@@ -2876,14 +2897,22 @@ def group_points(request, pk: int):
                 total=Coalesce(Sum("ball"), 0)
             )["total"]
 
-        return JsonResponse({
+        response_data = {
             "status": "success",
-            "message": f"Ball saqlandi",
+            "message": "Ball saqlandi",
             "balance": int(balance),
             "amount": amount,
             "id": record.id,
             "ok": True
-        })
+        }
+
+        # ✅ Muvaffaqiyatli response ni cache ga yozamiz (60 soniya)
+        # Xuddi shu request_id qayta kelsa - yangi yozuv yaratilmaydi
+        if request_id:
+            from django.core.cache import cache
+            cache.set(f"ledger_req_{request_id}", response_data, timeout=60)
+
+        return JsonResponse(response_data)
 
     except Exception as e:
         import logging

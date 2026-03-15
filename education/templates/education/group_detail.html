@@ -1108,12 +1108,14 @@
       });
     }
 
-    async function sendPoints(studentId, amount, ruleId) {
+    async function sendPoints(studentId, amount, ruleId, requestId) {
       const fd = new FormData();
       fd.append("student_id", studentId);
       fd.append("amount", amount);
       fd.append("rule_id", ruleId);
       fd.append("date", dateInput.value || "");
+      // ✅ Noyob request ID - backend dublikat tekshiradi
+      fd.append("request_id", requestId || (Date.now() + "_" + studentId + "_" + Math.random().toString(36).slice(2)));
 
       const res = await fetch(urls.points, {
         method: "POST",
@@ -1149,8 +1151,11 @@
       if (addBtn) addBtn.disabled = true;
       if (subBtn) subBtn.disabled = true;
 
+      // Noyob request ID yaratamiz
+      const reqId = `${Date.now()}_${studentId}_${Math.random().toString(36).slice(2)}`;
+
       try {
-        const data = await sendPoints(studentId, amount, ruleId);
+        const data = await sendPoints(studentId, amount, ruleId, reqId);
         if (data.ok) {
           setBalance(studentId, data.balance);
           updateFlash(studentId, amount);
@@ -1216,7 +1221,9 @@
             if (!sid || isNaN(parseInt(sid))) continue;
 
             try {
-              const data = await sendPoints(sid, amount, ruleId);
+              // Har student uchun noyob requestId
+              const reqId = `${Date.now()}_${sid}_${Math.random().toString(36).slice(2)}`;
+              const data = await sendPoints(sid, amount, ruleId, reqId);
               if (data.ok) {
                 setBalance(sid, data.balance);
                 updateFlash(sid, amount);
