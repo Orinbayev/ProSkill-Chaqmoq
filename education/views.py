@@ -2853,34 +2853,34 @@ def group_points(request, pk: int):
 
         with transaction.atomic():
             # Lock: bir vaqtda faqat bitta worker shu student uchun ishlay oladi
-            # Bu Render.com da parallel workerlar muammosini hal qiladi
-            existing = (
-                Ledger.objects
-                .select_for_update()  # ROW-LEVEL LOCK - boshqa worker kutib turadi
-                .filter(
-                    student=student_user,
-                    group=g,
-                    rule=rule,
-                    ball=amount,
-                    created_at__gte=thirty_sec_ago,
-                )
-                .order_by('-created_at')
-                .first()
-            )
+            # Render.com dagi parallel workerlar yaratishda "phantom read" muammosini oldini olish
+            # uchun Ledger ni emas (u hali yo'q bo'lishi mumkin), aynan User ni qulflaymiz
+            _lock_student = User.objects.select_for_update().get(id=student_user.id)
 
-            if existing:
-                # Dublikat - eski yozuvni qaytaramiz, yangi yaratmaymiz
-                balance = Ledger.objects.filter(student=student_user).aggregate(
-                    total=Coalesce(Sum("ball"), 0)
-                )["total"]
-                return JsonResponse({
-                    "status": "success",
-                    "message": "Ball allaqachon saqlangan",
-                    "balance": int(balance),
-                    "amount": amount,
-                    "id": existing.id,
-                    "ok": True
-                })
+            # ✅ TIMEZONE xatolarini oldini olish uchun (SQLite vs PostgreSQL):
+            # Eng so'nggi yaratilgan Ledger ni olamiz va vaqtini Pythonda hisoblaymiz.
+            last_record = Ledger.objects.filter(
+                student=student_user,
+                group=g,
+                rule=rule,
+                ball=amount
+            ).order_by('-id').first()
+
+            if last_record:
+                # Agar ushbu yozuv so'nggi 30 soniya ichida qo'shilgan bo'lsa, uni dublikat deb hisoblaymiz.
+                diff = (timezone.now() - last_record.created_at).total_seconds()
+                if diff <= 30:
+                    balance = Ledger.objects.filter(student=student_user).aggregate(
+                        total=Coalesce(Sum("ball"), 0)
+                    )["total"]
+                    return JsonResponse({
+                        "status": "success",
+                        "message": "Ball allaqachon saqlangan",
+                        "balance": int(balance),
+                        "amount": amount,
+                        "id": last_record.id,
+                        "ok": True
+                    })
 
             # Yangi yozuv yaratish
             record = Ledger.objects.create(
