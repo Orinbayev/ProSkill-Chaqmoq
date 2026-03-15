@@ -2801,14 +2801,10 @@ def group_points(request, pk: int):
         if not g:
             return JsonResponse({"status": "error", "message": "Guruh topilmadi"}, status=200)
 
-        # O'quvchini Enrollment (talabalik) orqali topamiz
-        # Chunki frontend-dan kelayotgan student_id bu Enrollment modeli ID-si bo'lishi mumkin
-        enrollment = Enrollment.objects.filter(pk=student_id).first()
-        if enrollment:
-            student_user = enrollment.student
-        else:
-            # Agar Enrollment-dan topilmasa, User modelidan qidirib ko'ramiz (Fallback)
-            student_user = User.objects.filter(pk=student_id).first()
+        # O'quvchini bevosita User modeli orqali topamiz.
+        # Agar bu yerda Enrollment bo'yicha qidirsak, bir xil ID ga ega boshqa o'quvchi
+        # tanlanib qolishi va "refresh davomida points yo'qolish" muammosi yuzaga keladi.
+        student_user = User.objects.filter(pk=student_id, role='student').first()
 
         if not student_user:
              # Senior Senior Senior logic: Agar o'quvchi topilmasa, qizil xato chiqarmaslik uchun
@@ -2833,31 +2829,25 @@ def group_points(request, pk: int):
         now_time = timezone.localtime(timezone.now()).time()
         sana = timezone.make_aware(datetime.combine(parsed_date, now_time))
 
-        # ✅ REQUEST_ID bo'yicha idempotency - ENG ISHONCHLI YECHIM
-        # Frontend har bosishda noyob request_id yuboradi
-        # Xuddi shu request_id qayta kelsa - eski natijani qaytaramiz
         request_id = data.get("request_id", "")
-        if request_id:
-            from django.core.cache import cache
-            cache_key = f"ledger_req_{request_id}"
-            cached = cache.get(cache_key)
-            if cached:
-                # Dublikat request - cached natijani qaytaramiz
-                return JsonResponse(cached)
-
+        from django.core.cache import cache
+        cache_key = f"ledger_req_{request_id}" if request_id else None
 
         # ✅ DATABASE-LEVEL LOCK bilan idempotency
         # select_for_update() - parallel workerlar (gunicorn) bir vaqtda create qilishini oldini oladi
-        # 30 soniya ichida bir xil (student + group + rule + amount) kombinatsiya kelsa - dublikat yaratilmaydi
-        thirty_sec_ago = timezone.now() - timedelta(seconds=30)
-
         with transaction.atomic():
             # Lock: bir vaqtda faqat bitta worker shu student uchun ishlay oladi
             # Render.com dagi parallel workerlar yaratishda "phantom read" muammosini oldini olish
             # uchun Ledger ni emas (u hali yo'q bo'lishi mumkin), aynan User ni qulflaymiz
             _lock_student = User.objects.select_for_update().get(id=student_user.id)
 
-            # ✅ TIMEZONE xatolarini oldini olish uchun (SQLite vs PostgreSQL):
+            # ✅ 1-HIMOYA: Lock olingach yana Cache ni tekshirish.
+            if cache_key:
+                cached = cache.get(cache_key)
+                if cached:
+                    return JsonResponse(cached)
+
+            # ✅ 2-HIMOYA: TIMEZONE xatolarini oldini olish uchun (SQLite vs PostgreSQL):
             # Eng so'nggi yaratilgan Ledger ni olamiz va vaqtini Pythonda hisoblaymiz.
             last_record = Ledger.objects.filter(
                 student=student_user,
@@ -2867,20 +2857,23 @@ def group_points(request, pk: int):
             ).order_by('-id').first()
 
             if last_record:
-                # Agar ushbu yozuv so'nggi 30 soniya ichida qo'shilgan bo'lsa, uni dublikat deb hisoblaymiz.
+                # Agar ushbu yozuv so'nggi 10 soniya ichida qo'shilgan bo'lsa, uni dublikat deb hisoblaymiz.
                 diff = (timezone.now() - last_record.created_at).total_seconds()
-                if diff <= 30:
+                if abs(diff) <= 10:
                     balance = Ledger.objects.filter(student=student_user).aggregate(
                         total=Coalesce(Sum("ball"), 0)
                     )["total"]
-                    return JsonResponse({
+                    response_data = {
                         "status": "success",
                         "message": "Ball allaqachon saqlangan",
                         "balance": int(balance),
                         "amount": amount,
                         "id": last_record.id,
                         "ok": True
-                    })
+                    }
+                    if cache_key:
+                        cache.set(cache_key, response_data, timeout=60)
+                    return JsonResponse(response_data)
 
             # Yangi yozuv yaratish
             record = Ledger.objects.create(
