@@ -2833,6 +2833,33 @@ def group_points(request, pk: int):
         now_time = timezone.localtime(timezone.now()).time()
         sana = timezone.make_aware(datetime.combine(parsed_date, now_time))
 
+        # ✅ IDEMPOTENCY: Bir xil so'rov 10 soniya ichida qayta kelsa, dublikat yaratmaymiz
+        # Bu global (render) serverida sekin network tufayli yuz beradigan duplicate requestlarni to'xtatadi
+        ten_sec_ago = timezone.now() - timedelta(seconds=10)
+
+        existing = Ledger.objects.filter(
+            student=student_user,
+            group=g,
+            rule=rule,
+            ball=amount,
+            sana__gte=ten_sec_ago,
+            sana__date=parsed_date,
+        ).order_by('-sana').first()
+
+        if existing:
+            # Dublikat - eski yozuvni qaytaramiz, yangi yaratmaymiz
+            balance = Ledger.objects.filter(student=student_user).aggregate(
+                total=Coalesce(Sum("ball"), 0)
+            )["total"]
+            return JsonResponse({
+                "status": "success",
+                "message": "Ball allaqachon saqlangan (dublikat oldini olindi)",
+                "balance": int(balance),
+                "amount": amount,
+                "id": existing.id,
+                "ok": True
+            })
+
         # 5. Database Transaction
         with transaction.atomic():
             record = Ledger.objects.create(
@@ -2851,11 +2878,11 @@ def group_points(request, pk: int):
 
         return JsonResponse({
             "status": "success",
-            "message": "16 ta o'quvchiga qoida joriy qilindi", # Siz xohlagan matn
+            "message": f"Ball saqlandi",
             "balance": int(balance),
             "amount": amount,
             "id": record.id,
-            "ok": True # Frontend kutishi mumkin bo'lgan flag
+            "ok": True
         })
 
     except Exception as e:
