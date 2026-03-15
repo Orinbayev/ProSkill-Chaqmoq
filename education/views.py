@@ -2847,33 +2847,7 @@ def group_points(request, pk: int):
                 if cached:
                     return JsonResponse(cached)
 
-            # ✅ 2-HIMOYA: TIMEZONE xatolarini oldini olish uchun (SQLite vs PostgreSQL):
-            # Eng so'nggi yaratilgan Ledger ni olamiz va vaqtini Pythonda hisoblaymiz.
-            last_record = Ledger.objects.filter(
-                student=student_user,
-                group=g,
-                rule=rule,
-                ball=amount
-            ).order_by('-id').first()
 
-            if last_record:
-                # Agar ushbu yozuv so'nggi 10 soniya ichida qo'shilgan bo'lsa, uni dublikat deb hisoblaymiz.
-                diff = (timezone.now() - last_record.created_at).total_seconds()
-                if abs(diff) <= 10:
-                    balance = Ledger.objects.filter(student=student_user).aggregate(
-                        total=Coalesce(Sum("ball"), 0)
-                    )["total"]
-                    response_data = {
-                        "status": "success",
-                        "message": "Ball allaqachon saqlangan",
-                        "balance": int(balance),
-                        "amount": amount,
-                        "id": last_record.id,
-                        "ok": True
-                    }
-                    if cache_key:
-                        cache.set(cache_key, response_data, timeout=60)
-                    return JsonResponse(response_data)
 
             # Yangi yozuv yaratish
             record = Ledger.objects.create(

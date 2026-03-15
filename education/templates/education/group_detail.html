@@ -1127,8 +1127,11 @@
 
     // ✅ Bir vaqtda faqat 1ta umumiy so'rov ketayotganligini kuzatuvchi flag
     let _pointSending = false;
+    const _studentProcessing = new Set();
 
     async function handlePoint(studentId, mode) {
+      if (_studentProcessing.has(studentId)) return;
+
       if (!isPresent(studentId)) {
         showToast("Avval davomatni KELDI ✅ qiling!", "error");
         return;
@@ -1144,6 +1147,8 @@
 
       if (ruleType === "-" && amount > 0) amount = -amount;
       if (ruleType === "+" && amount < 0) amount = Math.abs(amount);
+
+      _studentProcessing.add(studentId);
 
       // ✅ Faqat shu student uchun ikkala tugmani disable qilamiz
       const addBtn = document.querySelector(`.btn-add[data-student="${studentId}"]`);
@@ -1166,6 +1171,7 @@
       } catch (err) {
         showToast("Server bilan aloqa yo'q", "error");
       } finally {
+        _studentProcessing.delete(studentId);
         // ✅ So'rov tugagach qayta faollashtirish
         if (addBtn) addBtn.disabled = false;
         if (subBtn) subBtn.disabled = false;
