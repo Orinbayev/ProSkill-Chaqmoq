@@ -91,9 +91,31 @@ class Ledger(models.Model):
         from chaqmoq.models import LightningHistory
         from django.db.models.functions import Coalesce
         from django.db.models import Sum
-        qs = LightningHistory.objects.filter(student_id=student_id)
-        s = qs.aggregate(total=Coalesce(Sum('points'), 0))['total']
-        return int(s)
+        from django.db.models import Q
+
+        # student_id odatda User.id bo'lib keladi; avval user orqali Studentni topamiz.
+        student_obj = Student.objects.filter(user_id=student_id).first()
+        if not student_obj:
+            student_obj = Student.objects.filter(id=student_id).first()
+        if not student_obj:
+            return 0
+
+        qs = LightningHistory.objects.filter(student=student_obj)
+        if center:
+            qs = qs.filter(student__user__center=center)
+
+        s = qs.aggregate(total=Coalesce(Sum("points"), 0))["total"]
+        if s is not None and int(s) != 0:
+            return int(s)
+
+        # Legacy fallback: eski yozuvlar faqat Ledgerda bo'lsa, vaqtincha shu yerdan olamiz.
+        legacy_qs = Ledger.objects.filter(student_id=student_obj.user_id)
+        if center:
+            legacy_qs = legacy_qs.filter(
+                Q(group__center=center) | Q(rule__center=center) | Q(rule__center__isnull=True)
+            )
+        legacy = legacy_qs.aggregate(total=Coalesce(Sum("ball"), 0))["total"]
+        return int(legacy or 0)
 
 class LightningHistory(models.Model):
     SOURCE_CHOICES = (

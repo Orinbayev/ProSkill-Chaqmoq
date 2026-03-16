@@ -27,6 +27,41 @@ def get_active_center(request):
     return None
 
 
+def _get_balances_with_legacy_fallback(student_ids, center=None):
+    """
+    Balans manbasi: avval LightningHistory, agar studentda history bo'lmasa Ledger fallback.
+    """
+    if not student_ids:
+        return {}
+
+    from chaqmoq.models import LightningHistory
+
+    history_qs = LightningHistory.objects.filter(student__user_id__in=student_ids)
+    if center:
+        history_qs = history_qs.filter(student__user__center=center)
+    history_map = {
+        row["student__user_id"]: int(row["total"] or 0)
+        for row in (
+            history_qs.values("student__user_id").annotate(total=Coalesce(Sum("points"), 0))
+        )
+    }
+
+    missing_ids = [sid for sid in student_ids if sid not in history_map]
+    ledger_map = {}
+    if missing_ids:
+        ledger_qs = Ledger.objects.filter(student_id__in=missing_ids)
+        if center:
+            ledger_qs = ledger_qs.filter(student__center=center)
+        ledger_map = {
+            row["student_id"]: int(row["total"] or 0)
+            for row in (
+                ledger_qs.values("student_id").annotate(total=Coalesce(Sum("ball"), 0))
+            )
+        }
+
+    return {sid: history_map.get(sid, ledger_map.get(sid, 0)) for sid in student_ids}
+
+
 def reyting(request):
     q = (request.GET.get("q") or "").strip()
     per_page = request.GET.get("per_page", "10")
@@ -39,43 +74,45 @@ def reyting(request):
     if per_page not in (10, 20, 50, 100):
         per_page = 50
 
-    # ✅ Tenant isolation
     center = get_active_center(request)
-    from chaqmoq.models import LightningHistory
-    base = LightningHistory.objects.filter(student__user__role="student")
+    students_qs = User.objects.filter(role="student")
     if center:
-        base = base.filter(student__user__center=center)
+        students_qs = students_qs.filter(center=center)
 
-    # ✅ Umumiy leaderboard (Tenant Scoped)
-    leaderboard_all = (
-        base.values(
-            student__id=F("student__user__id"),
-            student__ism=F("student__user__ism"),
-            student__familya=F("student__user__familya")
-        )
-        .annotate(jami=Coalesce(Sum("points"), 0))
-        .order_by("-jami", "student__ism", "student__id")
-    )
+    students = list(students_qs.values("id", "ism", "familya"))
+    student_ids = [row["id"] for row in students]
+    balance_map = _get_balances_with_legacy_fallback(student_ids, center=center)
+
+    leaderboard_all = [
+        {
+            "student__id": row["id"],
+            "student__ism": row["ism"],
+            "student__familya": row["familya"],
+            "jami": int(balance_map.get(row["id"], 0)),
+        }
+        for row in students
+    ]
+    leaderboard_all.sort(key=lambda r: (-int(r["jami"]), r["student__ism"] or "", r["student__id"]))
 
     is_search = bool(q)
     rank_map = None
 
-    # ✅ Agar qidiruv bo‘lsa: hamma ro‘yxatdan REAL rank chiqarib olamiz
     if is_search:
         rank_map = {}
-        for idx, sid in enumerate(leaderboard_all.values_list("student__id", flat=True), start=1):
-            rank_map[sid] = idx
+        for idx, row in enumerate(leaderboard_all, start=1):
+            rank_map[row["student__id"]] = idx
 
-        leaderboard_qs = leaderboard_all.filter(
-            Q(student__ism__icontains=q) | Q(student__familya__icontains=q)
-        )
+        ql = q.lower()
+        leaderboard_qs = [
+            row for row in leaderboard_all
+            if ql in (row["student__ism"] or "").lower() or ql in (row["student__familya"] or "").lower()
+        ]
     else:
         leaderboard_qs = leaderboard_all
 
     paginator = Paginator(leaderboard_qs, per_page)
     page_obj = paginator.get_page(page)
 
-    # ✅ Page ichidagi dictlarga rank qo‘shib yuboramiz (faqat qidiruvda)
     if rank_map is not None:
         for row in page_obj.object_list:
             row["rank"] = rank_map.get(row["student__id"])
@@ -127,22 +164,37 @@ def student_detail(request, pk):
         .order_by('-created_at')
     )
 
-    # ✅ Umumiy totals (plus/minus/balance) LightningHistory orqali
+    # ✅ Umumiy totals (asosan LightningHistory); history bo'lmasa Ledger fallback
     from chaqmoq.models import LightningHistory
     lh_qs = LightningHistory.objects.filter(student__user=student)
-    totals = lh_qs.aggregate(
-        total_plus=Coalesce(Sum(Case(
-            When(points__gt=0, then=F("points")),
-            default=Value(0),
-            output_field=IntegerField()
-        )), 0),
-        total_minus=Coalesce(Sum(Case(
-            When(points__lt=0, then=Abs(F("points"))),
-            default=Value(0),
-            output_field=IntegerField()
-        )), 0),
-        balance=Coalesce(Sum("points"), 0)
-    )
+    if lh_qs.exists():
+        totals = lh_qs.aggregate(
+            total_plus=Coalesce(Sum(Case(
+                When(points__gt=0, then=F("points")),
+                default=Value(0),
+                output_field=IntegerField()
+            )), 0),
+            total_minus=Coalesce(Sum(Case(
+                When(points__lt=0, then=Abs(F("points"))),
+                default=Value(0),
+                output_field=IntegerField()
+            )), 0),
+            balance=Coalesce(Sum("points"), 0)
+        )
+    else:
+        totals = led_qs.aggregate(
+            total_plus=Coalesce(Sum(Case(
+                When(ball__gt=0, then=F("ball")),
+                default=Value(0),
+                output_field=IntegerField()
+            )), 0),
+            total_minus=Coalesce(Sum(Case(
+                When(ball__lt=0, then=Abs(F("ball"))),
+                default=Value(0),
+                output_field=IntegerField()
+            )), 0),
+            balance=Coalesce(Sum("ball"), 0)
+        )
 
     # ✅ Teacher/Manager/Director bo‘yicha statistika (role bilan)
     teacher_stats = (

@@ -2372,6 +2372,20 @@ def group_detail(request, pk: int):
         .annotate(s=Coalesce(Sum("points"), 0))
     )
     bal_map = {b["student_id"]: b["s"] for b in bal_qs}
+    history_user_ids = {
+        user_id for user_id, student_model in student_models.items()
+        if student_model.id in bal_map
+    }
+    missing_balance_user_ids = [user_id for user_id in student_user_ids if user_id not in history_user_ids]
+    ledger_balance_map = {}
+    if missing_balance_user_ids:
+        ledger_qs = (
+            Ledger.objects
+            .filter(student_id__in=missing_balance_user_ids)
+            .values("student_id")
+            .annotate(s=Coalesce(Sum("ball"), 0))
+        )
+        ledger_balance_map = {row["student_id"]: int(row["s"] or 0) for row in ledger_qs}
 
     # Sana bo'yicha Attendance (DateTimeField bo'lsa ham ishlaydi)
     try:
@@ -2394,7 +2408,10 @@ def group_detail(request, pk: int):
     for e in enrollments:
         s = e.student
         student_model = student_models.get(s.id)
-        s.balance           = int(bal_map.get(student_model.id, 0)) if student_model else 0
+        if student_model and student_model.id in bal_map:
+            s.balance = int(bal_map.get(student_model.id, 0) or 0)
+        else:
+            s.balance = int(ledger_balance_map.get(s.id, 0))
         s.present_today     = bool(pres_map.get(s.id, False))
         s.forced_today      = bool(forced_map.get(s.id, False))
         s.attendance_status = status_map.get(s.id, "none")  # 'present' | 'absent_excused' | 'absent_unexcused' | 'none'
@@ -2585,9 +2602,6 @@ def attend_all_students(request, g_id):
     date_str = request.POST.get("date")
     selected_date = parse_date(date_str) if date_str else localdate()
 
-    adj_rule = _attendance_adjust_rule()
-    start, end = _day_range(selected_date)
-
     enrollments = Enrollment.objects.filter(group=g, is_active=True).select_related("student")
 
     items = []
@@ -2600,12 +2614,7 @@ def attend_all_students(request, g_id):
             date=selected_date,
             defaults={"present": True, "forced": False, "status": "present", "teacher": request.user, "center": g.center, "created_by": request.user},
         )
-        from chaqmoq.models import LightningHistory
-
-        balance = int(
-            LightningHistory.objects.filter(student_id=e.student.id)
-            .aggregate(s=Coalesce(Sum("points"), 0))["s"] or 0
-        )
+        balance = Ledger.student_balansi(e.student.id, center=g.center)
 
         items.append({"student_id": e.student.id, "balance": balance, "restored_sum": 0})
         count += 1
@@ -3244,18 +3253,9 @@ def group_rollcall(request, pk):
     pres_map = {
         a.student_id: a.present for a in Attendance.objects.filter(group=g, date=the_date)
     }
-    from chaqmoq.models import LightningHistory
-    student_ids = [s.id for s in students]
-    bal_qs = (
-        LightningHistory.objects.filter(student_id__in=student_ids)
-        .values("student_id")
-        .annotate(total=Sum("points"))
-    )
-    bal_map = {row["student_id"]: (row["total"] or 0) for row in bal_qs}
-
     for s in students:
         s.present = pres_map.get(s.id, False)
-        s.balance = bal_map.get(s.id, 0)
+        s.balance = Ledger.student_balansi(s.id, center=g.center)
 
     rules = Rule.objects.order_by("nom")
 

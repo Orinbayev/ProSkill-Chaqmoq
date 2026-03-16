@@ -97,7 +97,11 @@ if "DATABASE_URL" in os.environ:
         )
     }
 else:
-    # Fallback to SQLite (not recommended for production)
+    # Render productionda DATABASE_URL bo'lmasa sqlitega tushib qolish ma'lumot yo'qolishiga olib keladi.
+    if os.getenv("RENDER"):
+        raise RuntimeError("DATABASE_URL topilmadi. Render production uchun Postgres ulanmagan.")
+
+    # Local fallback
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
