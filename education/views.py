@@ -2343,49 +2343,41 @@ def group_detail(request, pk: int):
     )
     student_user_ids = [e.student_id for e in enrollments]
 
-    from chaqmoq.models import LightningHistory
-    student_models = {
-        student.user_id: student
-        for student in Student.objects.filter(user_id__in=student_user_ids)
-    }
-    missing_user_ids = [user_id for user_id in student_user_ids if user_id not in student_models]
-    if missing_user_ids:
-        Student.objects.bulk_create(
-            [
-                Student(user_id=enrollment.student_id, center=enrollment.student.center)
-                for enrollment in enrollments
-                if enrollment.student_id in missing_user_ids
-            ],
-            ignore_conflicts=True,
+    # Balanslar: avval Ledger, agar studentda umuman Ledger bo'lmasa LightningHistory fallback.
+    ledger_qs = Ledger.objects.filter(student_id__in=student_user_ids)
+    if center:
+        ledger_qs = ledger_qs.filter(
+            Q(group__center=center) | Q(rule__center=center) | Q(rule__center__isnull=True)
         )
-        student_models = {
-            student.user_id: student
-            for student in Student.objects.filter(user_id__in=student_user_ids)
-        }
-    student_model_ids = [student.id for student in student_models.values()]
-
-    # Balanslar (LightningHistory orqali)
-    bal_qs = (
-        LightningHistory.objects
-        .filter(student_id__in=student_model_ids)
-        .values("student_id")
-        .annotate(s=Coalesce(Sum("points"), 0))
-    )
-    bal_map = {b["student_id"]: b["s"] for b in bal_qs}
-    history_user_ids = {
-        user_id for user_id, student_model in student_models.items()
-        if student_model.id in bal_map
+    ledger_balance_map = {
+        row["student_id"]: int(row["s"] or 0)
+        for row in (
+            ledger_qs.values("student_id").annotate(s=Coalesce(Sum("ball"), 0))
+        )
     }
-    missing_balance_user_ids = [user_id for user_id in student_user_ids if user_id not in history_user_ids]
-    ledger_balance_map = {}
+    history_balance_map = {}
+    missing_balance_user_ids = [sid for sid in student_user_ids if sid not in ledger_balance_map]
     if missing_balance_user_ids:
-        ledger_qs = (
-            Ledger.objects
-            .filter(student_id__in=missing_balance_user_ids)
-            .values("student_id")
-            .annotate(s=Coalesce(Sum("ball"), 0))
-        )
-        ledger_balance_map = {row["student_id"]: int(row["s"] or 0) for row in ledger_qs}
+        from chaqmoq.models import LightningHistory
+
+        student_models = {
+            st.user_id: st.id
+            for st in Student.objects.filter(user_id__in=missing_balance_user_ids)
+        }
+        if student_models:
+            history_qs = LightningHistory.objects.filter(student_id__in=student_models.values())
+            if center:
+                history_qs = history_qs.filter(student__user__center=center)
+            history_totals = {
+                row["student_id"]: int(row["s"] or 0)
+                for row in (
+                    history_qs.values("student_id").annotate(s=Coalesce(Sum("points"), 0))
+                )
+            }
+            history_balance_map = {
+                user_id: history_totals.get(student_pk, 0)
+                for user_id, student_pk in student_models.items()
+            }
 
     # Sana bo'yicha Attendance (DateTimeField bo'lsa ham ishlaydi)
     try:
@@ -2407,11 +2399,7 @@ def group_detail(request, pk: int):
     # Studentga soxta fieldlar
     for e in enrollments:
         s = e.student
-        student_model = student_models.get(s.id)
-        if student_model and student_model.id in bal_map:
-            s.balance = int(bal_map.get(student_model.id, 0) or 0)
-        else:
-            s.balance = int(ledger_balance_map.get(s.id, 0))
+        s.balance = int(ledger_balance_map.get(s.id, history_balance_map.get(s.id, 0)))
         s.present_today     = bool(pres_map.get(s.id, False))
         s.forced_today      = bool(forced_map.get(s.id, False))
         s.attendance_status = status_map.get(s.id, "none")  # 'present' | 'absent_excused' | 'absent_unexcused' | 'none'
@@ -2667,9 +2655,6 @@ def attendance_today(request, pk: int):
     e = get_object_or_404(Enrollment, id=enr_id, group=g)
     student = e.student
 
-    from education.models import Student
-    from chaqmoq.models import LightningHistory
-    student_model, _ = Student.objects.get_or_create(user=student)
     removed_sum = 0
     removed_count = 0
     penalized = False
@@ -2697,11 +2682,8 @@ def attendance_today(request, pk: int):
             }
         )
 
-    # yangi balans (LightningHistory bo'yicha)
-    bal = LightningHistory.objects.filter(student=student_model).aggregate(
-        s=Coalesce(Sum("points"), 0)
-    )["s"]
-    bal = int(bal or 0)
+    # yangi balans
+    bal = Ledger.student_balansi(student.id, center=g.center)
 
     return JsonResponse({
         "ok": True,
@@ -2869,9 +2851,7 @@ def group_points(request, pk: int):
             )
 
             # Yangi balansni hisoblash
-            balance = LightningHistory.objects.filter(student=st_model).aggregate(
-                total=Coalesce(Sum("points"), 0)
-            )["total"]
+            balance = Ledger.student_balansi(student_user.id, center=g.center)
 
         response_data = {
             "status": "success",

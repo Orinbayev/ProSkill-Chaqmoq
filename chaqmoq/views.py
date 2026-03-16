@@ -29,37 +29,39 @@ def get_active_center(request):
 
 def _get_balances_with_legacy_fallback(student_ids, center=None):
     """
-    Balans manbasi: avval LightningHistory, agar studentda history bo'lmasa Ledger fallback.
+    Balans manbasi: avval Ledger, agar umuman ledger yozuvi bo'lmasa LightningHistory fallback.
     """
     if not student_ids:
         return {}
 
     from chaqmoq.models import LightningHistory
 
-    history_qs = LightningHistory.objects.filter(student__user_id__in=student_ids)
+    ledger_qs = Ledger.objects.filter(student_id__in=student_ids)
     if center:
-        history_qs = history_qs.filter(student__user__center=center)
-    history_map = {
-        row["student__user_id"]: int(row["total"] or 0)
+        ledger_qs = ledger_qs.filter(
+            Q(group__center=center) | Q(rule__center=center) | Q(rule__center__isnull=True)
+        )
+    ledger_map = {
+        row["student_id"]: int(row["total"] or 0)
         for row in (
-            history_qs.values("student__user_id").annotate(total=Coalesce(Sum("points"), 0))
+            ledger_qs.values("student_id").annotate(total=Coalesce(Sum("ball"), 0))
         )
     }
 
-    missing_ids = [sid for sid in student_ids if sid not in history_map]
-    ledger_map = {}
+    missing_ids = [sid for sid in student_ids if sid not in ledger_map]
+    history_map = {}
     if missing_ids:
-        ledger_qs = Ledger.objects.filter(student_id__in=missing_ids)
+        history_qs = LightningHistory.objects.filter(student__user_id__in=missing_ids)
         if center:
-            ledger_qs = ledger_qs.filter(student__center=center)
-        ledger_map = {
-            row["student_id"]: int(row["total"] or 0)
+            history_qs = history_qs.filter(student__user__center=center)
+        history_map = {
+            row["student__user_id"]: int(row["total"] or 0)
             for row in (
-                ledger_qs.values("student_id").annotate(total=Coalesce(Sum("ball"), 0))
+                history_qs.values("student__user_id").annotate(total=Coalesce(Sum("points"), 0))
             )
         }
 
-    return {sid: history_map.get(sid, ledger_map.get(sid, 0)) for sid in student_ids}
+    return {sid: ledger_map.get(sid, history_map.get(sid, 0)) for sid in student_ids}
 
 
 def reyting(request):
@@ -164,37 +166,20 @@ def student_detail(request, pk):
         .order_by('-created_at')
     )
 
-    # ✅ Umumiy totals (asosan LightningHistory); history bo'lmasa Ledger fallback
-    from chaqmoq.models import LightningHistory
-    lh_qs = LightningHistory.objects.filter(student__user=student)
-    if lh_qs.exists():
-        totals = lh_qs.aggregate(
-            total_plus=Coalesce(Sum(Case(
-                When(points__gt=0, then=F("points")),
-                default=Value(0),
-                output_field=IntegerField()
-            )), 0),
-            total_minus=Coalesce(Sum(Case(
-                When(points__lt=0, then=Abs(F("points"))),
-                default=Value(0),
-                output_field=IntegerField()
-            )), 0),
-            balance=Coalesce(Sum("points"), 0)
-        )
-    else:
-        totals = led_qs.aggregate(
-            total_plus=Coalesce(Sum(Case(
-                When(ball__gt=0, then=F("ball")),
-                default=Value(0),
-                output_field=IntegerField()
-            )), 0),
-            total_minus=Coalesce(Sum(Case(
-                When(ball__lt=0, then=Abs(F("ball"))),
-                default=Value(0),
-                output_field=IntegerField()
-            )), 0),
-            balance=Coalesce(Sum("ball"), 0)
-        )
+    # ✅ Umumiy totals
+    totals = led_qs.aggregate(
+        total_plus=Coalesce(Sum(Case(
+            When(ball__gt=0, then=F("ball")),
+            default=Value(0),
+            output_field=IntegerField()
+        )), 0),
+        total_minus=Coalesce(Sum(Case(
+            When(ball__lt=0, then=Abs(F("ball"))),
+            default=Value(0),
+            output_field=IntegerField()
+        )), 0),
+        balance=Coalesce(Sum("ball"), 0)
+    )
 
     # ✅ Teacher/Manager/Director bo‘yicha statistika (role bilan)
     teacher_stats = (
