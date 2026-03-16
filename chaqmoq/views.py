@@ -41,15 +41,19 @@ def reyting(request):
 
     # ✅ Tenant isolation
     center = get_active_center(request)
-    base = Ledger.objects.filter(student__role="student")
+    from chaqmoq.models import LightningHistory
+    base = LightningHistory.objects.filter(student__user__role="student")
     if center:
-        base = base.filter(student__center=center)
+        base = base.filter(student__user__center=center)
 
     # ✅ Umumiy leaderboard (Tenant Scoped)
-    # Biz global qoidalarni (center=None) ham hisobga olamiz
     leaderboard_all = (
-        base.values("student__id", "student__ism", "student__familya")
-        .annotate(jami=Coalesce(Sum("ball", filter=Q(group__center=center) | Q(rule__center=center) | Q(rule__center__isnull=True)) if center else Sum("ball"), 0))
+        base.values(
+            student__id=F("student__user__id"),
+            student__ism=F("student__user__ism"),
+            student__familya=F("student__user__familya")
+        )
+        .annotate(jami=Coalesce(Sum("points"), 0))
         .order_by("-jami", "student__ism", "student__id")
     )
 
@@ -123,19 +127,21 @@ def student_detail(request, pk):
         .order_by('-created_at')
     )
 
-    # ✅ Umumiy totals (plus/minus/balance)
-    totals = led_qs.aggregate(
+    # ✅ Umumiy totals (plus/minus/balance) LightningHistory orqali
+    from chaqmoq.models import LightningHistory
+    lh_qs = LightningHistory.objects.filter(student__user=student)
+    totals = lh_qs.aggregate(
         total_plus=Coalesce(Sum(Case(
-            When(ball__gt=0, then=F("ball")),
+            When(points__gt=0, then=F("points")),
             default=Value(0),
             output_field=IntegerField()
         )), 0),
         total_minus=Coalesce(Sum(Case(
-            When(ball__lt=0, then=Abs(F("ball"))),
+            When(points__lt=0, then=Abs(F("points"))),
             default=Value(0),
             output_field=IntegerField()
         )), 0),
-        balance=Coalesce(Sum("ball"), 0)
+        balance=Coalesce(Sum("points"), 0)
     )
 
     # ✅ Teacher/Manager/Director bo‘yicha statistika (role bilan)

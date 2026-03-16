@@ -66,6 +66,7 @@ from .forms import GroupForm, ITGroupForm, LangGroupForm
 from .models import (
     Attendance,
     Category,
+    DailyLightningRecord,
     Dars,
     Enrollment,
     Group,
@@ -109,6 +110,27 @@ def _day_range(d):
     start = make_aware(datetime.combine(d, datetime.min.time()))
     end = make_aware(datetime.combine(d + timedelta(days=1), datetime.min.time()))
     return start, end
+
+
+def _accumulate_daily_lightning(*, group, student, date_value, points_delta):
+    record, _ = DailyLightningRecord.objects.get_or_create(
+        group=group,
+        student=student,
+        date=date_value,
+        defaults={
+            "center": getattr(group, "center", None),
+            "plus_points": 0,
+            "minus_points": 0,
+        },
+    )
+    if points_delta > 0:
+        record.plus_points = int(record.plus_points or 0) + int(points_delta)
+    elif points_delta < 0:
+        record.minus_points = int(record.minus_points or 0) + int(points_delta)
+    if not record.center_id and getattr(group, "center_id", None):
+        record.center = group.center
+    record.save(update_fields=["plus_points", "minus_points", "center", "updated_at"])
+    return record
 
 
 def _attendance_adjust_rule():
@@ -2319,14 +2341,35 @@ def group_detail(request, pk: int):
         .select_related("student", "group")   # ✅ MUHIM
         .order_by("student__ism", "student__familya")
     )
-    student_ids = [e.student_id for e in enrollments]
+    student_user_ids = [e.student_id for e in enrollments]
 
-    # Balanslar
+    from chaqmoq.models import LightningHistory
+    student_models = {
+        student.user_id: student
+        for student in Student.objects.filter(user_id__in=student_user_ids)
+    }
+    missing_user_ids = [user_id for user_id in student_user_ids if user_id not in student_models]
+    if missing_user_ids:
+        Student.objects.bulk_create(
+            [
+                Student(user_id=enrollment.student_id, center=enrollment.student.center)
+                for enrollment in enrollments
+                if enrollment.student_id in missing_user_ids
+            ],
+            ignore_conflicts=True,
+        )
+        student_models = {
+            student.user_id: student
+            for student in Student.objects.filter(user_id__in=student_user_ids)
+        }
+    student_model_ids = [student.id for student in student_models.values()]
+
+    # Balanslar (LightningHistory orqali)
     bal_qs = (
-        Ledger.objects
-        .filter(student_id__in=student_ids)
+        LightningHistory.objects
+        .filter(student_id__in=student_model_ids)
         .values("student_id")
-        .annotate(s=Coalesce(Sum("ball"), 0))
+        .annotate(s=Coalesce(Sum("points"), 0))
     )
     bal_map = {b["student_id"]: b["s"] for b in bal_qs}
 
@@ -2350,7 +2393,8 @@ def group_detail(request, pk: int):
     # Studentga soxta fieldlar
     for e in enrollments:
         s = e.student
-        s.balance           = int(bal_map.get(s.id, 0))
+        student_model = student_models.get(s.id)
+        s.balance           = int(bal_map.get(student_model.id, 0)) if student_model else 0
         s.present_today     = bool(pres_map.get(s.id, False))
         s.forced_today      = bool(forced_map.get(s.id, False))
         s.attendance_status = status_map.get(s.id, "none")  # 'present' | 'absent_excused' | 'absent_unexcused' | 'none'
@@ -2379,6 +2423,28 @@ def group_detail(request, pk: int):
     elif request.user.role == 'director':
         rules_qs = rules_qs.filter(can_director=True)
 
+    # Tanlangan sana bo'yicha kunlik chaqmoq o'zgarishlari (student + group + date)
+    recent_history = (
+        DailyLightningRecord.objects.filter(
+            group=g,
+            date=selected_date,
+            student_id__in=student_user_ids,
+        )
+        .values("student_id")
+        .annotate(
+            recent_add=Coalesce(Sum("plus_points"), 0),
+            recent_sub=Coalesce(Sum("minus_points"), 0),
+        )
+    )
+    recent_history_map = {
+        str(item["student_id"]): {
+            "add": int(item["recent_add"] or 0),
+            "sub": int(item["recent_sub"] or 0),
+        }
+        for item in recent_history
+        if item["recent_add"] or item["recent_sub"]
+    }
+
     ctx = {
         "g": g,
         "enrollments": enrollments,
@@ -2388,6 +2454,7 @@ def group_detail(request, pk: int):
         "can_remove_student": can_remove_student,
         "selected_date": selected_date.isoformat(),
         "today": localdate().isoformat(),
+        "recent_history_map": recent_history_map,
     }
     return render(request, "education/group_detail.html", ctx)
 
@@ -2488,8 +2555,7 @@ def attend_all(request, pk):
     date_str = request.POST.get("date")
     selected_date = parse_date(date_str) if date_str else localdate()
 
-    # davomat qayd qilish (faqat faol o'quvchilar uchun)
-    students = Enrollment.objects.filter(group=g, is_active=True)
+    students = Enrollment.objects.filter(group=g, is_active=True).select_related("student")
     count = 0
 
     for e in students:
@@ -2497,8 +2563,7 @@ def attend_all(request, pk):
             group=g,
             student=e.student,
             date=selected_date,
-            defaults={"present": True, "forced": False, "teacher": request.user}
-
+            defaults={"present": True, "forced": False, "status": "present", "teacher": request.user}
         )
         count += 1
 
@@ -2535,25 +2600,14 @@ def attend_all_students(request, g_id):
             date=selected_date,
             defaults={"present": True, "forced": False, "status": "present", "teacher": request.user, "center": g.center, "created_by": request.user},
         )
-
-        # Shu kunga qo‘yilgan adjustment bo‘lsa — delete → ball qaytadi
-        adj_qs = Ledger.objects.filter(
-            student=e.student,
-            group=g,
-            rule=adj_rule,
-            sana__gte=start,
-            sana__lt=end,
-        )
-        adj_sum = int(adj_qs.aggregate(s=Coalesce(Sum("ball"), 0))["s"] or 0)
-        restored_sum = int(-adj_sum) if adj_sum else 0
-        adj_qs.delete()
+        from chaqmoq.models import LightningHistory
 
         balance = int(
-            Ledger.objects.filter(student=e.student)
-            .aggregate(s=Coalesce(Sum("ball"), 0))["s"] or 0
+            LightningHistory.objects.filter(student_id=e.student.id)
+            .aggregate(s=Coalesce(Sum("points"), 0))["s"] or 0
         )
 
-        items.append({"student_id": e.student.id, "balance": balance, "restored_sum": restored_sum})
+        items.append({"student_id": e.student.id, "balance": balance, "restored_sum": 0})
         count += 1
 
     return JsonResponse({"ok": True, "count": count, "items": items})
@@ -2604,23 +2658,13 @@ def attendance_today(request, pk: int):
     e = get_object_or_404(Enrollment, id=enr_id, group=g)
     student = e.student
 
-    # shu kunlik ledgerlarni topish (shu guruh + shu student + shu sana)
-    day_ledgers = Ledger.objects.filter(
-        group=g,
-        student=student,
-        sana__date=selected_date
-    )
-
-    removed = day_ledgers.aggregate(
-        removed_sum=Coalesce(Sum("ball"), 0),
-        removed_count=Count("id")
-    )
-    removed_sum = int(removed["removed_sum"] or 0)
-    removed_count = int(removed["removed_count"] or 0)
-
-    # Agar 'present' bo'lmasa -> shu kundagi chaqmoqlarni bekor qilamiz
-    if status != "present" and removed_count:
-        day_ledgers.delete()
+    from education.models import Student
+    from chaqmoq.models import LightningHistory
+    student_model, _ = Student.objects.get_or_create(user=student)
+    removed_sum = 0
+    removed_count = 0
+    penalized = False
+    bonused = False
 
     # ── Attendance ni yaratish/yangilash/o'chirish ──
     present = False
@@ -2628,86 +2672,25 @@ def attendance_today(request, pk: int):
 
     if status == "none":
         Attendance.objects.filter(group=g, student=student, date=selected_date).delete()
-
-    elif status == "present":
+    else:
+        # qolgan statuslar uchun update_or_create
+        present = (status == "present")
+        forced = (status == "forced")
         Attendance.objects.update_or_create(
             group=g, student=student, date=selected_date,
             defaults={
                 "teacher": request.user,
-                "present": True,
-                "forced": False,
-                "status": "present",
-                "center": g.center,
-                "created_by": request.user,
-            }
-        )
-        present = True
-        # ── RULE ENGINE: davomat bonusi tekshirish ──
-        bonused = False
-        try:
-            from chaqmoq.services import check_attendance_bonus
-            bonused = check_attendance_bonus(
-                student=student,
-                center=center,
-                created_by=request.user,
-            )
-        except Exception as exc:
-            logger.warning("Rule engine bonus xato: %s", exc)
-
-    elif status == "absent_excused":
-        Attendance.objects.update_or_create(
-            group=g, student=student, date=selected_date,
-            defaults={
-                "teacher": request.user,
-                "present": False,
-                "forced": False,
-                "status": "absent_excused",
+                "present": present,
+                "forced": forced,
+                "status": status,
                 "center": g.center,
                 "created_by": request.user,
             }
         )
 
-    elif status == "absent_unexcused":
-        Attendance.objects.update_or_create(
-            group=g, student=student, date=selected_date,
-            defaults={
-                "teacher": request.user,
-                "present": False,
-                "forced": False,
-                "status": "absent_unexcused",
-                "center": g.center,
-                "created_by": request.user,
-            }
-        )
-        # ── RULE ENGINE: davomat jarima tekshirish ──
-        penalized = False
-        try:
-            from chaqmoq.services import check_attendance_penalty
-            penalized = check_attendance_penalty(
-                student=student,
-                center=center,
-                created_by=request.user,
-            )
-        except Exception as exc:
-            logger.warning("Rule engine xato: %s", exc)
-
-    elif status == "forced":
-        # eski forced logika (backward compat)
-        Attendance.objects.update_or_create(
-            group=g, student=student, date=selected_date,
-            defaults={
-                "teacher": request.user,
-                "present": False,
-                "forced": True,
-                "center": g.center,
-            }
-        )
-        present = False
-        forced = True
-
-    # yangi balans (hamma ledgerlar yig'indisi)
-    bal = Ledger.objects.filter(student=student).aggregate(
-        s=Coalesce(Sum("ball"), 0)
+    # yangi balans (LightningHistory bo'yicha)
+    bal = LightningHistory.objects.filter(student=student_model).aggregate(
+        s=Coalesce(Sum("points"), 0)
     )["s"]
     bal = int(bal or 0)
 
@@ -2719,8 +2702,8 @@ def attendance_today(request, pk: int):
         "removed_sum": removed_sum,
         "removed_count": removed_count,
         "balance": bal,
-        "penalty_applied": penalized if 'penalized' in locals() else False,
-        "bonus_applied": bonused if 'bonused' in locals() else False,
+        "penalty_applied": penalized,
+        "bonus_applied": bonused,
     })
 
 
@@ -2859,9 +2842,26 @@ def group_points(request, pk: int):
                 sana=sana,
             )
 
+            from chaqmoq.models import LightningHistory
+            from education.models import Student as EdStudent
+            st_model, _ = EdStudent.objects.get_or_create(user=student_user)
+            LightningHistory.objects.create(
+                student=st_model,
+                points=amount,
+                reason=rule.nom if rule else "Erkin ball",
+                source="manual",
+                teacher=request.user
+            )
+            _accumulate_daily_lightning(
+                group=g,
+                student=student_user,
+                date_value=parsed_date,
+                points_delta=amount,
+            )
+
             # Yangi balansni hisoblash
-            balance = Ledger.objects.filter(student=student_user).aggregate(
-                total=Coalesce(Sum("ball"), 0)
+            balance = LightningHistory.objects.filter(student=st_model).aggregate(
+                total=Coalesce(Sum("points"), 0)
             )["total"]
 
         response_data = {
@@ -3146,11 +3146,34 @@ def student_detail(request, student_id: int):
         month=ExtractMonth('date')
     ).order_by('-date')
 
-    # 🔹 Chaqmoqlar ham guruh bo‘yicha hisoblanadi
-    ledgers = Ledger.objects.filter(student=student).select_related("group").annotate(
-        year=ExtractYear('sana'),
-        month=ExtractMonth('sana')
-    )
+    daily_records = DailyLightningRecord.objects.filter(student=student)
+    month_lightning_map = {
+        (row["group_id"], row["year"], row["month"]): {
+            "plus": int(row["plus_total"] or 0),
+            "minus": abs(int(row["minus_total"] or 0)),
+        }
+        for row in (
+            daily_records.annotate(
+                year=ExtractYear("date"),
+                month=ExtractMonth("date"),
+            ).values("group_id", "year", "month").annotate(
+                plus_total=Coalesce(Sum("plus_points"), 0),
+                minus_total=Coalesce(Sum("minus_points"), 0),
+            )
+        )
+    }
+    day_lightning_map = {
+        (row["group_id"], row["date"]): {
+            "plus": int(row["plus_total"] or 0),
+            "minus": abs(int(row["minus_total"] or 0)),
+        }
+        for row in (
+            daily_records.values("group_id", "date").annotate(
+                plus_total=Coalesce(Sum("plus_points"), 0),
+                minus_total=Coalesce(Sum("minus_points"), 0),
+            )
+        )
+    }
 
     # 🔹 Har bir guruh bo‘yicha ajratamiz
     grouped_by_group = {}
@@ -3167,9 +3190,9 @@ def student_detail(request, student_id: int):
 
         for (year, month), records in grouped_by_month.items():
             total_present = sum(1 for r in records if r.present)
-            month_ledgers = ledgers.filter(year=year, month=month, group=group)
-            plus_sum = month_ledgers.filter(ball__gt=0).aggregate(total=Sum('ball'))['total'] or 0
-            minus_sum = month_ledgers.filter(ball__lt=0).aggregate(total=Sum('ball'))['total'] or 0
+            month_lightning = month_lightning_map.get((group.id, year, month), {"plus": 0, "minus": 0})
+            plus_sum = month_lightning["plus"]
+            minus_sum = month_lightning["minus"]
 
             month_summaries.append({
                 "group": group.nom,  # 🔹 Guruh nomini qo‘shamiz
@@ -3178,13 +3201,13 @@ def student_detail(request, student_id: int):
                 "month_name": MONTH_NAMES.get(month, "Noma’lum oy"),
                 "present_days": total_present,
                 "plus": plus_sum,
-                "minus": abs(minus_sum),
+                "minus": minus_sum,
                 "days": [
                     {
                         "date": r.date,
                         "present": r.present,
-                        "plus": ledgers.filter(group=group, sana__date=r.date, ball__gt=0).aggregate(total=Sum('ball'))['total'] or 0,
-                        "minus": abs(ledgers.filter(group=group, sana__date=r.date, ball__lt=0).aggregate(total=Sum('ball'))['total'] or 0)
+                        "plus": day_lightning_map.get((group.id, r.date), {}).get("plus", 0),
+                        "minus": day_lightning_map.get((group.id, r.date), {}).get("minus", 0),
                     }
                     for r in records
                 ]
@@ -3221,13 +3244,14 @@ def group_rollcall(request, pk):
     pres_map = {
         a.student_id: a.present for a in Attendance.objects.filter(group=g, date=the_date)
     }
-    bal_map = {
-        row["student_id"]: (row["total"] or 0)
-        for row in (
-            Ledger.objects.filter(student_id__in=[s.id for s in students])
-            .values("student_id").annotate(total=Sum("ball"))
-        )
-    }
+    from chaqmoq.models import LightningHistory
+    student_ids = [s.id for s in students]
+    bal_qs = (
+        LightningHistory.objects.filter(student_id__in=student_ids)
+        .values("student_id")
+        .annotate(total=Sum("points"))
+    )
+    bal_map = {row["student_id"]: (row["total"] or 0) for row in bal_qs}
 
     for s in students:
         s.present = pres_map.get(s.id, False)
@@ -3259,6 +3283,17 @@ def group_rollcall(request, pk):
                     now_local = timezone.localtime(timezone.now()).time()
                     sana = timezone.make_aware(datetime.combine(the_date, now_local))
                     Ledger.objects.create(student=s, beruvchi=request.user, group=g, rule=rule, ball=signed, sana=sana)
+                    
+                    from chaqmoq.models import LightningHistory
+                    from education.models import Student as EdStudent
+                    st_model, _ = EdStudent.objects.get_or_create(user=s)
+                    LightningHistory.objects.create(
+                        student=st_model,
+                        points=signed,
+                        reason=rule.nom if rule else "Manual ball",
+                        source="manual",
+                        teacher=request.user
+                    )
                     saved += 1
         messages.success(request, f"Saqlash tugadi. {saved} ta chaqmoq yozildi.")
         return redirect(f"{request.path}?date={the_date.isoformat()}")

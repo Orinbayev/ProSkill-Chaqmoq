@@ -467,6 +467,7 @@
   </div>
 
   <form id="csrf-form" class="hidden">{% csrf_token %}</form>
+  {{ recent_history_map|json_script:"recent-history-data" }}
 
   <div id="js-urls" class="hidden" data-attend="{% url 'education:attendance_today' g.id %}"
     data-points="{% url 'education:group_points' g.id %}" data-remove="{% url 'education:group_bulk_remove' g.id %}"
@@ -696,51 +697,19 @@
       amountInput.value = Math.min(maxBaho, val + 1);
     });
 
-    const TWO_HOURS_MS = 5 * 60 * 60 * 1000;  // 5 soat
-    const groupId = urls.groupId || "0";
+    const recentHistoryData = JSON.parse(
+      document.getElementById("recent-history-data")?.textContent || "{}"
+    );
+    let flashState = recentHistoryData;
 
-    function flashStorageKey() {
-      const d = dateInput.value || "";
-      return `chaqmoq_flash_v2_${groupId}_${d}`;
-    }
-
-    let flashState = {};
-
-    function loadFlashState() {
-      flashState = {};
-      try {
-        const raw = localStorage.getItem(flashStorageKey());
-        if (!raw) return;
-        const parsed = JSON.parse(raw) || {};
-        const now = Date.now();
-
-        Object.keys(parsed).forEach(sid => {
-          const rec = parsed[sid];
-          if (!rec) return;
-          const updatedAt = rec.updatedAt || now;
-          if (now - updatedAt <= TWO_HOURS_MS) {
-            // Keep if has any value
-            if (rec.plus || rec.minus) {
-              flashState[sid] = { plus: rec.plus || 0, minus: rec.minus || 0, updatedAt };
-            }
-          }
-        });
-        saveFlashState();
-      } catch (e) {
-        flashState = {};
-      }
-    }
-
-    function saveFlashState() {
-      try { localStorage.setItem(flashStorageKey(), JSON.stringify(flashState)); }
-      catch (e) { }
+    function initAllFlashes() {
+      Object.keys(flashState).forEach((sid) => renderFlash(sid));
     }
 
     function removeFlash(studentId) {
       const box = document.getElementById(`flash-${studentId}`);
       if (box) box.innerHTML = "";
       delete flashState[String(studentId)];
-      saveFlashState();
     }
 
     function renderFlash(studentId) {
@@ -749,70 +718,44 @@
       if (!box) return;
 
       box.innerHTML = "";
-      if (!rec) return;
+      if (!rec || typeof rec !== "object") return;
 
-      // Render Plus
-      if (rec.plus > 0) {
-        const p1 = document.createElement("span");
-        p1.className = "chaqmoq-pill cp-plus";
-        p1.textContent = "+" + rec.plus;
-        box.appendChild(p1);
+      const add = Number(rec.add || 0);
+      const sub = Number(rec.sub || 0);
+
+      if (add > 0) {
+        const plusPill = document.createElement("span");
+        plusPill.className = "chaqmoq-pill cp-plus";
+        plusPill.textContent = `+${add}`;
+        box.appendChild(plusPill);
       }
-      // Render Minus (stored as negative number)
-      if (rec.minus < 0) {
-        const p2 = document.createElement("span");
-        p2.className = "chaqmoq-pill cp-minus";
-        p2.textContent = rec.minus;
-        box.appendChild(p2);
+      if (sub < 0) {
+        const minusPill = document.createElement("span");
+        minusPill.className = "chaqmoq-pill cp-minus";
+        minusPill.textContent = `${sub}`;
+        box.appendChild(minusPill);
       }
-    }
-
-    function scheduleFlashCleanup(studentId) {
-      const rec = flashState[String(studentId)];
-      if (!rec) return;
-
-      const now = Date.now();
-      const remaining = TWO_HOURS_MS - (now - rec.updatedAt);
-
-      if (remaining <= 0) { removeFlash(studentId); return; }
-
-      setTimeout(() => {
-        const r = flashState[String(studentId)];
-        if (!r) return;
-        if (Date.now() - r.updatedAt >= TWO_HOURS_MS) removeFlash(studentId);
-      }, remaining);
     }
 
     function updateFlash(studentId, delta) {
       if (!delta) return;
-      const now = Date.now();
       const key = String(studentId);
-
-      // Initialize if not exists
-      const prev = flashState[key] || { plus: 0, minus: 0, updatedAt: now };
-
-      if (delta > 0) {
-        prev.plus = (prev.plus || 0) + delta;
+      const prev = flashState[key] || { add: 0, sub: 0 };
+      const next = {
+        add: Number(prev.add || 0),
+        sub: Number(prev.sub || 0),
+      };
+      if (Number(delta) > 0) {
+        next.add += Number(delta);
       } else {
-        prev.minus = (prev.minus || 0) + delta;
+        next.sub += Number(delta);
       }
-      prev.updatedAt = now;
-
-      // If both are 0, delete
-      if (prev.plus === 0 && prev.minus === 0) delete flashState[key];
-      else flashState[key] = prev;
-
-      saveFlashState();
+      if (!next.add && !next.sub) {
+        delete flashState[key];
+      } else {
+        flashState[key] = next;
+      }
       renderFlash(studentId);
-      scheduleFlashCleanup(studentId);
-    }
-
-    function initAllFlashes() {
-      loadFlashState();
-      Object.keys(flashState).forEach(sid => {
-        renderFlash(sid);
-        scheduleFlashCleanup(sid);
-      });
     }
 
     function setBalance(studentId, newBalance) {
@@ -1011,7 +954,6 @@
             showToast(removedCount > 0
               ? `Bekor qilindi — ${removedSum} ball qaytarildi`
               : "Davomat bekor qilindi", "error");
-            removeFlash(sid);
           }
         } catch (e) {
           showToast("Server bilan aloqa yo'q", "error");
@@ -1098,7 +1040,6 @@
             if (data.ok) {
               setRowStatusUI(seg, "forced");
               setBalance(sid, data.balance);
-              removeFlash(sid);
               changed++;
             }
           } catch (e) { }

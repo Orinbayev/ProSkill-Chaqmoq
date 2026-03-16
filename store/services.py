@@ -42,6 +42,17 @@ def approve_purchase(pr: PurchaseRequest, manager):
         ball=-umumiy_narx
     )
 
+    from chaqmoq.models import LightningHistory
+    from education.models import Student as EdStudent
+    st_model, _ = EdStudent.objects.get_or_create(user=student)
+    LightningHistory.objects.create(
+        student=st_model,
+        points=-umumiy_narx,
+        reason=f"Do'kondan xarid: {product.nom}",
+        source="manual",
+        teacher=manager
+    )
+
     # ✅ 4. Sotuv yozuvini yaratish
     Sale.objects.create(
         student=student,

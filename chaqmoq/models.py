@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from education.models import Group
+from education.models import Group, Student
 from django.utils import timezone
 User = settings.AUTH_USER_MODEL
 
@@ -88,9 +88,31 @@ class Ledger(models.Model):
 
     @staticmethod
     def student_balansi(student_id: int, center=None) -> int:
-        from django.db.models import Sum, Q
-        qs = Ledger.objects.filter(student_id=student_id)
-        if center:
-            qs = qs.filter(Q(group__center=center) | Q(rule__center=center) | Q(rule__center__isnull=True))
-        s = qs.aggregate(Sum('ball'))['ball__sum']
-        return s or 0
+        from chaqmoq.models import LightningHistory
+        from django.db.models.functions import Coalesce
+        from django.db.models import Sum
+        qs = LightningHistory.objects.filter(student_id=student_id)
+        s = qs.aggregate(total=Coalesce(Sum('points'), 0))['total']
+        return int(s)
+
+class LightningHistory(models.Model):
+    SOURCE_CHOICES = (
+        ("attendance", "Davomat"),
+        ("bonus", "Bonus"),
+        ("penalty", "Jarima"),
+        ("manual", "Boshqa"),
+    )
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="lightning_history")
+    points = models.IntegerField(default=0)
+    reason = models.CharField(max_length=255)
+    source = models.CharField(max_length=50, choices=SOURCE_CHOICES, default="manual")
+    teacher = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Chaqmoq tarixi'
+        verbose_name_plural = 'Chaqmoq tarixlari'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.student} — {self.points} ({self.source})"

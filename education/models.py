@@ -445,6 +445,37 @@ class AttendanceHistory(models.Model):
         return f"{self.student.get_full_name()} — {self.date} — {'✅' if self.is_present else '❌'}"
 
 
+class DailyLightningRecord(models.Model):
+    """
+    Har bir student/guruh/sana uchun kunlik chaqmoq o'zgarishi.
+    Bu jadval UI uchun kunlik ko'rinishni ajratadi, umumiy balans esa
+    LightningHistory orqali hisoblanadi.
+    """
+    center = models.ForeignKey("accounts.Center", on_delete=models.SET_NULL, null=True, blank=True)
+    group = models.ForeignKey("education.Group", on_delete=models.CASCADE, related_name="daily_lightning_records")
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        limit_choices_to={"role": "student"},
+        related_name="daily_lightning_records",
+    )
+    date = models.DateField()
+    attendance_status = models.CharField(max_length=20, blank=True, default="")
+    plus_points = models.IntegerField(default=0)
+    minus_points = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = (("group", "student", "date"), ("center", "group", "student", "date"))
+        ordering = ("-date", "-updated_at")
+        verbose_name = "Kunlik chaqmoq yozuvi"
+        verbose_name_plural = "Kunlik chaqmoq yozuvlari"
+
+    def __str__(self):
+        return f"{self.student.get_full_name()} | {self.group.nom} | {self.date} (+{self.plus_points} / {self.minus_points})"
+
+
 class Category(SoftDeleteMixin, models.Model):
     """Guruhlar kategoriyasi (masalan: Tillar, IT, Dizayn...)"""
     name = models.CharField(max_length=100)
@@ -696,4 +727,3 @@ class TeacherSalarySnapshot(models.Model):
         unique_together = ('teacher', 'financial_month')
         verbose_name = "O‘qituvchi oylik snapshoti"
         verbose_name_plural = "O‘qituvchilar oylik snapshotlari"
-
