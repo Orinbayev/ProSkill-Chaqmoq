@@ -3136,7 +3136,7 @@ def student_detail(request, student_id: int):
     ).order_by('-date')
 
     daily_records = DailyLightningRecord.objects.filter(student=student)
-    month_lightning_map = {
+    daily_month_lightning_map = {
         (row["group_id"], row["year"], row["month"]): {
             "plus": int(row["plus_total"] or 0),
             "minus": abs(int(row["minus_total"] or 0)),
@@ -3151,7 +3151,7 @@ def student_detail(request, student_id: int):
             )
         )
     }
-    day_lightning_map = {
+    daily_day_lightning_map = {
         (row["group_id"], row["date"]): {
             "plus": int(row["plus_total"] or 0),
             "minus": abs(int(row["minus_total"] or 0)),
@@ -3163,6 +3163,48 @@ def student_detail(request, student_id: int):
             )
         )
     }
+
+    # DailyLightningRecord mavjud bo'lmagan yozuvlar uchun Ledger fallback.
+    ledger_month_lightning_map = {}
+    ledger_day_lightning_map = {}
+    ledger_rows = (
+        Ledger.objects
+        .filter(student=student)
+        .exclude(group_id__isnull=True)
+        .values("group_id", "sana", "ball")
+    )
+    for row in ledger_rows:
+        dt = row.get("sana")
+        if not dt:
+            continue
+
+        local_dt = timezone.localtime(dt) if timezone.is_aware(dt) else dt
+        ledger_date = local_dt.date()
+        group_id = row["group_id"]
+        ball = int(row.get("ball") or 0)
+
+        month_key = (group_id, ledger_date.year, ledger_date.month)
+        day_key = (group_id, ledger_date)
+
+        if month_key not in ledger_month_lightning_map:
+            ledger_month_lightning_map[month_key] = {"plus": 0, "minus": 0}
+        if day_key not in ledger_day_lightning_map:
+            ledger_day_lightning_map[day_key] = {"plus": 0, "minus": 0}
+
+        if ball > 0:
+            ledger_month_lightning_map[month_key]["plus"] += ball
+            ledger_day_lightning_map[day_key]["plus"] += ball
+        elif ball < 0:
+            minus_abs = abs(ball)
+            ledger_month_lightning_map[month_key]["minus"] += minus_abs
+            ledger_day_lightning_map[day_key]["minus"] += minus_abs
+
+    # Asosiy manba DailyLightningRecord; unda bo'lmagan kalitlar Ledger'dan olinadi.
+    month_lightning_map = dict(ledger_month_lightning_map)
+    month_lightning_map.update(daily_month_lightning_map)
+
+    day_lightning_map = dict(ledger_day_lightning_map)
+    day_lightning_map.update(daily_day_lightning_map)
 
     # 🔹 Har bir guruh bo‘yicha ajratamiz
     grouped_by_group = {}
