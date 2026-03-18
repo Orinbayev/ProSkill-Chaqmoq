@@ -24,7 +24,6 @@ NO_REDIRECT_PREFIXES = (
     '/admin/', '/platform/', '/static/', '/media/',
     '/health/', '/logout/', '/emergency-enter-now/',
     '/hisob/', '/c/', '/api/',
-    '/do\'kon/',
 )
 
 _SLUG_RE = re.compile(r'^/([a-z0-9][a-z0-9\-]{0,62})/')
@@ -123,9 +122,9 @@ class TenantMiddleware:
                         request.center = center
                         request.active_center = center
 
-        # ── AUTO-REDIRECT: logged-in user → /<slug>/... ─────────
-        # ONLY for browser page requests, NOT api/ajax/assets
-        is_api = ('/api/' in path or path.startswith('/api/'))
+        # ── AUTO-REDIRECT: logged-in user with center → /<slug>/current_path ───
+        # Covers /, /stat/students/, /do'kon/leads/ etc.
+        is_api = '/api/' in path
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         is_excluded = any(path.startswith(p) for p in NO_REDIRECT_PREFIXES)
 
@@ -136,8 +135,7 @@ class TenantMiddleware:
                 and request.method == 'GET'
                 and not is_api
                 and not is_ajax
-                and not is_excluded
-                and path not in ('/', '')):
+                and not is_excluded):
             slug = request.center.slug
             return redirect(f'/{slug}{path}', permanent=False)
 

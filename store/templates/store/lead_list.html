@@ -18,10 +18,9 @@
     --radius: 12px;
   }
 
-  body {
-    background-color: var(--bg-deep);
-    font-family: var(--pjs);
-    color: var(--text);
+  /* ✅ Font faqat lead sahifasi ichida — global fontni o'zgartirmaydi */
+  .lead-page, .lead-page * {
+    font-family: 'Plus Jakarta Sans', var(--font), sans-serif;
   }
 
   .lead-bg {
