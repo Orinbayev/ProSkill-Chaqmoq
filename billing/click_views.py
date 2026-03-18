@@ -445,6 +445,15 @@ def click_prepare(request):
     )
     logger.debug("[CLICK] PREPARE payload: %s", _safe_payload_for_log(data))
 
+    if request.method == "GET":
+        return JsonResponse({
+            "ok": True,
+            "message": "Click PREPARE endpoint is active at root level.",
+            "hint": "Click must send a POST request with payload. Browser GET is for diagnostics only.",
+            "service_id": getattr(settings, "CLICK_SERVICE_ID", "not_set"),
+            "merchant_id": getattr(settings, "CLICK_MERCHANT_ID", "not_set"),
+        })
+
     if not data:
         logger.warning("[CLICK] PREPARE rejected: empty payload")
         return _click_response(error=ClickError.REQUEST_ERROR, error_note="Empty payload", click_trans_id="", merchant_trans_id="")
@@ -553,6 +562,15 @@ def click_complete(request):
         current_host, client_ip, merchant_trans_id, click_trans_id, amount
     )
     logger.debug("[CLICK] COMPLETE payload: %s", _safe_payload_for_log(data))
+
+    if request.method == "GET":
+        return JsonResponse({
+            "ok": True,
+            "message": "Click COMPLETE endpoint is active at root level.",
+            "hint": "Click must send a POST request with payload. Browser GET is for diagnostics only.",
+            "service_id": getattr(settings, "CLICK_SERVICE_ID", "not_set"),
+            "merchant_id": getattr(settings, "CLICK_MERCHANT_ID", "not_set"),
+        })
 
     if not data:
         logger.warning("[CLICK] COMPLETE rejected: empty payload")

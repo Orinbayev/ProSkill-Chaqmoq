@@ -15,8 +15,4 @@ urlpatterns = [
     path('chaqmoq/', include('chaqmoq.urls')),
     path('talim/', include('education.urls')),
     path("do'kon/", include('store.urls')),
-
-    # ✅ Click endpoints (slug-prefixed fallback)
-    path('click/prepare/', billing_click_views.click_prepare),
-    path('click/complete/', billing_click_views.click_complete),
 ]
