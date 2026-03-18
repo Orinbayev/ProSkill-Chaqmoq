@@ -450,6 +450,45 @@ class ClickPrepareCompleteTests(TestCase):
         self.assertTrue(payload["ok"])
         self.assertEqual(payload["endpoint"], "/api/click/webhook/")
 
+    @patch("billing.click_views.send_payment_success_notification")
+    def test_click_webhook_accepts_json_payload(self, mocked_notify):
+        click_trans_id = "2007"
+        merchant_trans_id = self.sub_request.merchant_trans_id
+        merchant_prepare_id = str(self.sub_request.id)
+        amount = str(self.sub_request.amount)
+        sign_time = "2026-03-18 12:05:00"
+        sign_string = self._complete_sign(
+            service_id="36302",
+            secret_key="test-click-secret",
+            click_trans_id=click_trans_id,
+            merchant_trans_id=merchant_trans_id,
+            merchant_prepare_id=merchant_prepare_id,
+            amount=amount,
+            action="1",
+            sign_time=sign_time,
+        )
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                "/api/click/webhook/",
+                data=json.dumps(
+                    {
+                        "click_trans_id": click_trans_id,
+                        "service_id": "36302",
+                        "merchant_trans_id": merchant_trans_id,
+                        "merchant_prepare_id": merchant_prepare_id,
+                        "amount": amount,
+                        "action": "1",
+                        "error": "0",
+                        "sign_time": sign_time,
+                        "sign_string": sign_string,
+                    }
+                ),
+                content_type="application/json",
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["error"], 0)
+        self.assertTrue(mocked_notify.called)
+
 
 @override_settings(
     CLICK_SERVICE_ID="36302",

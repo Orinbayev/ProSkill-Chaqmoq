@@ -46,6 +46,7 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
 
     # ✅ Click Shop API endpoints — global root
+    path('api/click/webhook', billing_click_views.click_webhook, name='click_webhook_no_slash'),
     path('api/click/webhook/', billing_click_views.click_webhook, name='click_webhook'),
     path('click/prepare/', billing_click_views.click_prepare, name='click_prepare'),
     path('click/complete/', billing_click_views.click_complete, name='click_complete'),

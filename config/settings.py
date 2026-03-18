@@ -194,8 +194,8 @@ CLICK_SECRET_KEY = os.getenv("CLICK_SECRET_KEY", "")
 CLICK_RETURN_URL = os.getenv("CLICK_RETURN_URL", "http://127.0.0.1:8000/platform/")
 CLICK_SUCCESS_REDIRECT_URL = os.getenv("CLICK_SUCCESS_REDIRECT_URL", "http://127.0.0.1:8000/platform/")
 CLICK_WEBHOOK_URL = os.getenv("CLICK_WEBHOOK_URL", "https://chaqmoqapp.uz/api/click/webhook/")
-CLICK_PREPARE_URL = os.getenv("CLICK_PREPARE_URL", "https://chaqmoqapp.uz/click/prepare/")
-CLICK_COMPLETE_URL = os.getenv("CLICK_COMPLETE_URL", "https://chaqmoqapp.uz/click/complete/")
+CLICK_PREPARE_URL = os.getenv("CLICK_PREPARE_URL", "https://chaqmoqapp.uz/api/click/webhook/")
+CLICK_COMPLETE_URL = os.getenv("CLICK_COMPLETE_URL", "https://chaqmoqapp.uz/api/click/webhook/")
 
 
 # Telegram bot for payment notifications (official Telegram API via aiogram)

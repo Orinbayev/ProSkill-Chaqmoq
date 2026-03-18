@@ -930,11 +930,12 @@ def payment_history_api(request):
     total_revenue = paid_orders.aggregate(s=Sum('final_price'))['s'] or 0
     
     from django.utils import timezone
-    from datetime import timedelta
+    from datetime import datetime, time
     today = timezone.localdate()
     first_day_this_month = today.replace(day=1)
+    first_day_this_month_dt = timezone.make_aware(datetime.combine(first_day_this_month, time.min))
     
-    this_month_revenue = paid_orders.filter(paid_at__gte=first_day_this_month).aggregate(s=Sum('final_price'))['s'] or 0
+    this_month_revenue = paid_orders.filter(paid_at__gte=first_day_this_month_dt).aggregate(s=Sum('final_price'))['s'] or 0
     total_subscribers = paid_orders.values('center').distinct().count()
     
     kpi = {
@@ -951,18 +952,19 @@ def payment_history_api(request):
         while target_month <= 0:
             target_month += 12
             target_year -= 1
-        d = today.replace(year=target_year, month=target_month, day=1)
-
-        y, m = d.year, d.month
-        month_start = d
+        month_start_date = today.replace(year=target_year, month=target_month, day=1)
+        y, m = month_start_date.year, month_start_date.month
         if m == 12:
-            next_month = d.replace(year=y+1, month=1, day=1)
+            next_month_date = month_start_date.replace(year=y+1, month=1, day=1)
         else:
-            next_month = d.replace(month=m+1, day=1)
+            next_month_date = month_start_date.replace(month=m+1, day=1)
+
+        month_start = timezone.make_aware(datetime.combine(month_start_date, time.min))
+        next_month = timezone.make_aware(datetime.combine(next_month_date, time.min))
             
         rev = paid_orders.filter(paid_at__gte=month_start, paid_at__lt=next_month).aggregate(s=Sum('final_price'))['s'] or 0
         revenue_chart.append({
-            "label": month_start.strftime("%b %Y"),
+            "label": month_start_date.strftime("%b %Y"),
             "value": rev
         })
     

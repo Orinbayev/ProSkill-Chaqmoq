@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 from datetime import timedelta
 from urllib.parse import urlencode
@@ -54,6 +55,25 @@ def _click_response(
 
 def _request_post_value(data, key: str) -> str:
     return (data.get(key) or "").strip()
+
+
+def _request_payload(request):
+    """
+    Supports form POST (Click default) and JSON POST payloads.
+    """
+    if request.POST:
+        return request.POST
+
+    content_type = (request.content_type or "").split(";")[0].strip().lower()
+    if request.method == "POST" and content_type == "application/json":
+        try:
+            payload = json.loads((request.body or b"").decode("utf-8"))
+            if isinstance(payload, dict):
+                return payload
+        except Exception:
+            logger.warning("Click webhook JSON payload parse failed")
+
+    return request.GET
 
 
 def _extract_merchant_params(data, *, require_merchant_trans_id: bool = False) -> tuple[str, str]:
@@ -151,19 +171,6 @@ def _payment_status_payload(sub_request: SubscriptionRequest) -> dict:
         "seconds_left": seconds_left,
         "redirect_url": _redirect_url_for_status(sub_request),
     }
-
-
-def _cancel_if_pending_timeout(sub_request: SubscriptionRequest, timeout_minutes: int = 15) -> SubscriptionRequest:
-    if sub_request.status != SubscriptionRequest.Status.PENDING:
-        return sub_request
-
-    deadline = sub_request.created_at + timedelta(minutes=timeout_minutes)
-    if timezone.now() <= deadline:
-        return sub_request
-
-    sub_request.status = SubscriptionRequest.Status.CANCELLED
-    sub_request.save(update_fields=["status", "updated_at"])
-    return sub_request
 
 
 def _assign_unique_merchant_trans_id(sub_request: SubscriptionRequest, max_attempts: int = 10) -> str:
@@ -344,7 +351,6 @@ def payment_status_api(request):
     by_pk = {}
     by_merchant = {}
     for req in queryset:
-        req = _cancel_if_pending_timeout(req)
         payload = _payment_status_payload(req)
         by_pk[req.pk] = payload
         if req.merchant_trans_id:
@@ -374,7 +380,7 @@ def payment_status_api(request):
 @csrf_exempt
 @require_POST
 def click_prepare(request):
-    data = request.POST
+    data = _request_payload(request)
     click_trans_id = (data.get("click_trans_id") or "").strip()
     service_id = (data.get("service_id") or "").strip()
     merchant_id = (data.get("merchant_id") or "").strip()
@@ -506,7 +512,7 @@ def click_prepare(request):
 @csrf_exempt
 @require_POST
 def click_complete(request):
-    data = request.POST
+    data = _request_payload(request)
     click_trans_id = (data.get("click_trans_id") or "").strip()
     service_id = (data.get("service_id") or "").strip()
     merchant_id = (data.get("merchant_id") or "").strip()
@@ -790,7 +796,10 @@ def click_webhook(request):
     - 0: prepare
     - 1: complete
     """
-    if request.method == "GET":
+    data = _request_payload(request)
+    action = _request_post_value(data, "action")
+
+    if request.method == "GET" and not action:
         return JsonResponse(
             {
                 "ok": True,
@@ -809,7 +818,6 @@ def click_webhook(request):
             status=405,
         )
 
-    action = _request_post_value(request.POST, "action")
     if action == "0":
         return click_prepare(request)
     if action == "1":
@@ -819,8 +827,8 @@ def click_webhook(request):
     return _click_response(
         error=ClickError.ACTION_NOT_FOUND,
         error_note="Action not found",
-        click_trans_id=_request_post_value(request.POST, "click_trans_id"),
-        merchant_trans_id=_request_post_value(request.POST, "merchant_trans_id"),
+        click_trans_id=_request_post_value(data, "click_trans_id"),
+        merchant_trans_id=_request_post_value(data, "merchant_trans_id"),
     )
 
 
