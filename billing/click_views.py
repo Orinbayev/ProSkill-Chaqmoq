@@ -783,7 +783,6 @@ def click_complete(request):
 
 
 @csrf_exempt
-@require_POST
 def click_webhook(request):
     """
     Single public webhook endpoint for Click Shop API.
@@ -791,6 +790,25 @@ def click_webhook(request):
     - 0: prepare
     - 1: complete
     """
+    if request.method == "GET":
+        return JsonResponse(
+            {
+                "ok": True,
+                "endpoint": "/api/click/webhook/",
+                "message": "Webhook is alive. Click must send POST with action=0|1.",
+            }
+        )
+
+    if request.method != "POST":
+        return JsonResponse(
+            {
+                "ok": False,
+                "error": "method_not_allowed",
+                "message": "Use POST for Click webhook.",
+            },
+            status=405,
+        )
+
     action = _request_post_value(request.POST, "action")
     if action == "0":
         return click_prepare(request)

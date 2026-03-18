@@ -443,6 +443,13 @@ class ClickPrepareCompleteTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["error"], -3)
 
+    def test_click_webhook_get_health(self):
+        response = self.client.get("/api/click/webhook/")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["endpoint"], "/api/click/webhook/")
+
 
 @override_settings(
     CLICK_SERVICE_ID="36302",
