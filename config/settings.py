@@ -187,15 +187,20 @@ LOGGING = {
 }
 
 # ==================== CLICK PAYMENT ====================
-CLICK_SERVICE_ID = os.getenv("CLICK_SERVICE_ID", "")
-CLICK_MERCHANT_ID = os.getenv("CLICK_MERCHANT_ID", "")
-CLICK_SECRET_KEY = os.getenv("CLICK_SECRET_KEY", "")
-# Local default: return to platform dashboard after payment.
-CLICK_RETURN_URL = os.getenv("CLICK_RETURN_URL", "http://127.0.0.1:8000/platform/")
-CLICK_SUCCESS_REDIRECT_URL = os.getenv("CLICK_SUCCESS_REDIRECT_URL", "http://127.0.0.1:8000/platform/")
+CLICK_SERVICE_ID = ("36302")
+CLICK_MERCHANT_ID = ("36302")
+CLICK_SECRET_KEY = ("tFFjf4jX2kn9OJ69Ex")
+# Safer default for production: never fallback to localhost URLs on Render.
+_CLICK_DEFAULT_RETURN_URL = (
+    "https://chaqmoqapp.uz/platform/"
+    if (os.getenv("RENDER") or os.getenv("MODE") in {"production", "render"})
+    else "http://127.0.0.1:8000/platform/"
+)
+CLICK_RETURN_URL = os.getenv("CLICK_RETURN_URL", _CLICK_DEFAULT_RETURN_URL)
+CLICK_SUCCESS_REDIRECT_URL = os.getenv("CLICK_SUCCESS_REDIRECT_URL", _CLICK_DEFAULT_RETURN_URL)
 CLICK_WEBHOOK_URL = os.getenv("CLICK_WEBHOOK_URL", "https://chaqmoqapp.uz/api/click/webhook/")
-CLICK_PREPARE_URL = os.getenv("CLICK_PREPARE_URL", "https://chaqmoqapp.uz/api/click/webhook/")
-CLICK_COMPLETE_URL = os.getenv("CLICK_COMPLETE_URL", "https://chaqmoqapp.uz/api/click/webhook/")
+CLICK_PREPARE_URL = os.getenv("CLICK_PREPARE_URL", "https://chaqmoqapp.uz/click/prepare/")
+CLICK_COMPLETE_URL = os.getenv("CLICK_COMPLETE_URL", "https://chaqmoqapp.uz/click/complete/")
 
 
 # Telegram bot for payment notifications (official Telegram API via aiogram)

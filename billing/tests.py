@@ -298,6 +298,36 @@ class ClickPrepareCompleteTests(TestCase):
         self.assertEqual(payload["merchant_trans_id"], merchant_trans_id)
         self.assertEqual(payload["merchant_prepare_id"], str(self.sub_request.id))
 
+    def test_click_prepare_requires_exact_merchant_trans_id(self):
+        click_trans_id = "2001A"
+        wrong_merchant_trans_id = str(self.sub_request.id)
+        amount = str(self.sub_request.amount)
+        sign_time = "2026-03-18 12:00:30"
+        sign_string = self._prepare_sign(
+            service_id="36302",
+            secret_key="test-click-secret",
+            click_trans_id=click_trans_id,
+            merchant_trans_id=wrong_merchant_trans_id,
+            amount=amount,
+            action="0",
+            sign_time=sign_time,
+        )
+        response = self.client.post(
+            "/click/prepare/",
+            data={
+                "click_trans_id": click_trans_id,
+                "service_id": "36302",
+                "merchant_trans_id": wrong_merchant_trans_id,
+                "transaction_param": str(self.sub_request.id),
+                "amount": amount,
+                "action": "0",
+                "sign_time": sign_time,
+                "sign_string": sign_string,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["error"], -5)
+
     @patch("billing.click_views.send_payment_success_notification")
     def test_click_complete_marks_request_paid(self, mocked_notify):
         click_trans_id = "2002"
@@ -484,6 +514,45 @@ class ClickPrepareCompleteTests(TestCase):
                     }
                 ),
                 content_type="application/json",
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["error"], 0)
+        self.assertTrue(mocked_notify.called)
+
+    @patch("billing.click_views.send_payment_success_notification")
+    def test_click_webhook_accepts_raw_form_body(self, mocked_notify):
+        click_trans_id = "2008"
+        merchant_trans_id = self.sub_request.merchant_trans_id
+        merchant_prepare_id = str(self.sub_request.id)
+        amount = str(self.sub_request.amount)
+        sign_time = "2026-03-18 12:06:00"
+        sign_string = self._complete_sign(
+            service_id="36302",
+            secret_key="test-click-secret",
+            click_trans_id=click_trans_id,
+            merchant_trans_id=merchant_trans_id,
+            merchant_prepare_id=merchant_prepare_id,
+            amount=amount,
+            action="1",
+            sign_time=sign_time,
+        )
+        body = (
+            f"click_trans_id={click_trans_id}"
+            f"&service_id=36302"
+            f"&merchant_trans_id={merchant_trans_id}"
+            f"&merchant_prepare_id={merchant_prepare_id}"
+            f"&amount={amount}"
+            f"&action=1"
+            f"&error=0"
+            f"&sign_time={sign_time.replace(' ', '%20')}"
+            f"&sign_string={sign_string}"
+        )
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.generic(
+                "POST",
+                "/api/click/webhook/",
+                data=body,
+                content_type="text/plain",
             )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["error"], 0)

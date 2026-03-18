@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from datetime import timedelta
-from urllib.parse import urlencode
+from urllib.parse import parse_qsl, urlencode
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -54,7 +54,30 @@ def _click_response(
 
 
 def _request_post_value(data, key: str) -> str:
-    return (data.get(key) or "").strip()
+    value = data.get(key)
+    return str(value).strip() if value is not None else ""
+
+
+def _request_value(data, *keys: str) -> str:
+    for key in keys:
+        raw_value = data.get(key)
+        value = str(raw_value).strip() if raw_value is not None else ""
+        if value:
+            return value
+    return ""
+
+
+def _safe_payload_for_log(data) -> dict:
+    if not hasattr(data, "items"):
+        return {}
+    payload = {}
+    hidden_keys = {"sign_string", "signature", "sign"}
+    for key, value in data.items():
+        if key in hidden_keys:
+            payload[key] = "***"
+        else:
+            payload[key] = value
+    return payload
 
 
 def _request_payload(request):
@@ -73,12 +96,19 @@ def _request_payload(request):
         except Exception:
             logger.warning("Click webhook JSON payload parse failed")
 
+    if request.method == "POST" and request.body:
+        # Fallback for incorrect/missing content-type from payment gateway.
+        try:
+            return dict(parse_qsl((request.body or b"").decode("utf-8"), keep_blank_values=True))
+        except Exception:
+            logger.warning("Click webhook form payload parse failed")
+
     return request.GET
 
 
 def _extract_merchant_params(data, *, require_merchant_trans_id: bool = False) -> tuple[str, str]:
-    merchant_trans_id = (data.get("merchant_trans_id") or "").strip()
-    transaction_param = (data.get("transaction_param") or "").strip()
+    merchant_trans_id = _request_value(data, "merchant_trans_id")
+    transaction_param = _request_value(data, "transaction_param")
     if require_merchant_trans_id and not merchant_trans_id:
         raise ValueError("merchant_trans_id is required")
     if not merchant_trans_id and not transaction_param:
@@ -94,7 +124,10 @@ def _resolve_subscription_request(data, *, require_merchant_trans_id: bool = Fal
     queryset = SubscriptionRequest.objects.select_related("user", "center", "plan")
 
     sub_request = None
-    if merchant_trans_id:
+    if require_merchant_trans_id:
+        # Security: Click callbacks must be matched by exact merchant_trans_id only.
+        sub_request = queryset.filter(merchant_trans_id=merchant_trans_id).first()
+    elif merchant_trans_id:
         sub_request = queryset.filter(merchant_trans_id=merchant_trans_id).first()
         # Backward compatibility for old numeric merchant_trans_id values.
         if not sub_request and merchant_trans_id.isdigit():
@@ -160,10 +193,23 @@ def _redirect_url_for_status(sub_request: SubscriptionRequest) -> str:
 def _payment_status_payload(sub_request: SubscriptionRequest) -> dict:
     expires_at = sub_request.created_at + timedelta(minutes=15)
     seconds_left = max(int((expires_at - timezone.now()).total_seconds()), 0)
+
+    # If the timer has expired and the order is still pending, auto-cancel it
+    # so the frontend stops polling and clears the UI.
+    if seconds_left == 0 and sub_request.status == SubscriptionRequest.Status.PENDING:
+        sub_request.status = SubscriptionRequest.Status.CANCELLED
+        sub_request.save(update_fields=["status", "updated_at"])
+        logger.info(
+            "Auto-cancelled expired pending order req_id=%s (>15 min elapsed)",
+            sub_request.id,
+        )
+
+    frontend_status = "success" if sub_request.status == SubscriptionRequest.Status.PAID else sub_request.status
     return {
         "id": sub_request.id,
         "merchant_trans_id": sub_request.merchant_trans_id,
         "status": sub_request.status,
+        "frontend_status": frontend_status,
         "status_display": sub_request.get_status_display(),
         "amount": _request_amount(sub_request),
         "created_at": sub_request.created_at.isoformat(),
@@ -261,6 +307,7 @@ def create_order_and_redirect(request):
                 duration_months=months,
                 amount=pricing.final_price,
                 price=pricing.final_price,
+                promo_code=promo,
                 status=SubscriptionRequest.Status.PENDING,
             )
             merchant_trans_id = _assign_unique_merchant_trans_id(sub_request)
@@ -378,17 +425,23 @@ def payment_status_api(request):
 
 
 @csrf_exempt
-@require_POST
 def click_prepare(request):
     data = _request_payload(request)
-    click_trans_id = (data.get("click_trans_id") or "").strip()
-    service_id = (data.get("service_id") or "").strip()
-    merchant_id = (data.get("merchant_id") or "").strip()
-    action = (data.get("action") or "").strip()
-    amount = (data.get("amount") or "").strip()
-    sign_time = (data.get("sign_time") or "").strip()
-    sign_string = (data.get("sign_string") or "").strip()
-    logger.info("Click PREPARE webhook received click_trans_id=%s merchant_trans_id=%s", click_trans_id, data.get("merchant_trans_id", ""))
+    click_trans_id = _request_value(data, "click_trans_id", "transaction_id")
+    service_id = _request_value(data, "service_id")
+    merchant_id = _request_value(data, "merchant_id")
+    action = _request_value(data, "action")
+    amount = _request_value(data, "amount")
+    sign_time = _request_value(data, "sign_time")
+    sign_string = _request_value(data, "sign_string", "signature", "sign")
+    logger.info(
+        "Click PREPARE webhook received method=%s action=%s click_trans_id=%s merchant_trans_id=%s payload=%s",
+        request.method,
+        action,
+        click_trans_id,
+        data.get("merchant_trans_id", ""),
+        _safe_payload_for_log(data),
+    )
 
     try:
         incoming_merchant_trans_id, _ = _extract_merchant_params(data, require_merchant_trans_id=True)
@@ -510,18 +563,24 @@ def click_prepare(request):
 
 
 @csrf_exempt
-@require_POST
 def click_complete(request):
     data = _request_payload(request)
-    click_trans_id = (data.get("click_trans_id") or "").strip()
-    service_id = (data.get("service_id") or "").strip()
-    merchant_id = (data.get("merchant_id") or "").strip()
-    action = (data.get("action") or "").strip()
-    amount = (data.get("amount") or "").strip()
-    sign_time = (data.get("sign_time") or "").strip()
-    sign_string = (data.get("sign_string") or "").strip()
-    merchant_prepare_id = (data.get("merchant_prepare_id") or "").strip()
-    logger.info("Click COMPLETE webhook received click_trans_id=%s merchant_trans_id=%s", click_trans_id, data.get("merchant_trans_id", ""))
+    click_trans_id = _request_value(data, "click_trans_id", "transaction_id")
+    service_id = _request_value(data, "service_id")
+    merchant_id = _request_value(data, "merchant_id")
+    action = _request_value(data, "action")
+    amount = _request_value(data, "amount")
+    sign_time = _request_value(data, "sign_time")
+    sign_string = _request_value(data, "sign_string", "signature", "sign")
+    merchant_prepare_id = _request_value(data, "merchant_prepare_id")
+    logger.info(
+        "Click COMPLETE webhook received method=%s action=%s click_trans_id=%s merchant_trans_id=%s payload=%s",
+        request.method,
+        action,
+        click_trans_id,
+        data.get("merchant_trans_id", ""),
+        _safe_payload_for_log(data),
+    )
 
     try:
         incoming_merchant_trans_id, _ = _extract_merchant_params(data, require_merchant_trans_id=True)
@@ -721,6 +780,7 @@ def click_complete(request):
                     "amount": expected_amount,
                     "status": PaymentTransaction.Status.PAID,
                     "click_trans_id": click_trans_id,
+                    "paid_at": timezone.now(),
                 },
             )
             if not created:
@@ -728,16 +788,20 @@ def click_complete(request):
                 tx.amount = expected_amount
                 tx.status = PaymentTransaction.Status.PAID
                 tx.click_trans_id = click_trans_id
-                tx.save(update_fields=["user", "amount", "status", "click_trans_id"])
-
-            subscription = give_subscription(sub_request.user, plan)
+                tx.paid_at = timezone.now()
+                tx.save(update_fields=["user", "amount", "status", "click_trans_id", "paid_at"])
+            elif hasattr(tx, "paid_at"):
+                tx.paid_at = timezone.now()
+                tx.save(update_fields=["paid_at"])
 
             normalized_months = sub_request.duration_months if sub_request.duration_months in DURATIONS else 1
+            subscription = give_subscription(sub_request.user, plan, duration_months=normalized_months)
+
             legacy_order = create_order(
                 center=sub_request.center,
                 plan=plan,
                 months=normalized_months,
-                promo_code=None,
+                promo_code=sub_request.promo_code,
             )
             mark_order_paid(legacy_order)
 
@@ -798,6 +862,18 @@ def click_webhook(request):
     """
     data = _request_payload(request)
     action = _request_post_value(data, "action")
+    client_ip = (
+        request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip()
+        or request.META.get("REMOTE_ADDR", "")
+    )
+    logger.info(
+        "Click webhook hit method=%s path=%s action=%s ip=%s payload=%s",
+        request.method,
+        request.path,
+        action,
+        client_ip,
+        _safe_payload_for_log(data),
+    )
 
     if request.method == "GET" and not action:
         return JsonResponse(
@@ -808,12 +884,12 @@ def click_webhook(request):
             }
         )
 
-    if request.method != "POST":
+    if request.method not in {"POST", "GET"}:
         return JsonResponse(
             {
                 "ok": False,
                 "error": "method_not_allowed",
-                "message": "Use POST for Click webhook.",
+                "message": "Use POST (or GET only for diagnostics).",
             },
             status=405,
         )
@@ -864,9 +940,7 @@ def payment_success(request):
         cancel_url = reverse("billing:payment_cancel")
         return redirect(f"{cancel_url}?merchant_trans_id={merchant_trans_id}&click_trans_id={click_trans_id}")
 
-    success_redirect_url = str(
-        getattr(settings, "CLICK_SUCCESS_REDIRECT_URL", "http://127.0.0.1:8000/platform/")
-    ).strip() or "/platform/"
+    success_redirect_url = str(getattr(settings, "CLICK_SUCCESS_REDIRECT_URL", "")).strip() or "/platform/"
     return redirect(success_redirect_url)
 
 

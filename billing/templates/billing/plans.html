@@ -671,20 +671,20 @@
                   </td>
                   <td style="color: #64748b; white-space: nowrap;">{{ order.updated_at|date:"d.m.Y H:i" }}</td>
                   <td>
-                    <span class="fw-bold text-white">{{ order.amount|default:order.price|intcomma }} so'm</span>
+                    <span class="fw-bold text-white">{{ order.amount|intcomma }} so'm</span>
                   </td>
                   <td style="text-align: right; padding-right: 24px;">
                     {% if order.status == 'paid' %}
                       <span style="background: rgba(34,197,94,0.1); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); padding: 3px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; white-space: nowrap;">
-                        <i class="bi bi-check-circle me-1"></i>Paid
+                        <i class="bi bi-check-circle me-1"></i>Muvaffaqiyatli
                       </span>
                     {% elif order.status == 'cancelled' %}
                       <span style="background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); padding: 3px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; white-space: nowrap;">
-                        <i class="bi bi-x-circle me-1"></i>Cancelled
+                        <i class="bi bi-x-circle me-1"></i>Bekor qilindi
                       </span>
                     {% else %}
                       <span style="background: rgba(148,163,184,0.1); color: #94a3b8; border: 1px solid rgba(148,163,184,0.15); padding: 3px 10px; border-radius: 8px; font-size: 12px; font-weight: 700;">
-                        {{ order.get_status_display }}
+                        {{ order.status_display|default:order.status }}
                       </span>
                     {% endif %}
                   </td>
@@ -1027,7 +1027,39 @@
     }
 
     const statusEndpoint = "{% url 'billing:payment_status_api' %}";
+    const pendingSection = document.querySelector('.pending-section');
     const pendingEntries = new Map();
+    let countdownIntervalId = null;
+    let pollIntervalId = null;
+
+    function finalizePendingSection() {
+      if (pendingEntries.size) return;
+      if (countdownIntervalId) {
+        clearInterval(countdownIntervalId);
+        countdownIntervalId = null;
+      }
+      if (pollIntervalId) {
+        clearInterval(pollIntervalId);
+        pollIntervalId = null;
+      }
+      if (pendingSection && !pendingSection.querySelector('.js-pending-order')) {
+        pendingSection.remove();
+      }
+    }
+
+    function removePendingEntry(orderId) {
+      const entry = pendingEntries.get(orderId);
+      if (!entry) return;
+      pendingEntries.delete(orderId);
+      const item = entry.item;
+      setTimeout(function () {
+        if (item && item.parentNode) {
+          item.parentNode.removeChild(item);
+        }
+        finalizePendingSection();
+      }, 700);
+    }
+
     document.querySelectorAll('.js-pending-order').forEach(function (item) {
       const orderId = item.dataset.orderId;
       if (!orderId) return;
@@ -1060,8 +1092,7 @@
         const diffSec = Math.floor((entry.deadline.getTime() - now.getTime()) / 1000);
         if (diffSec <= 0) {
           timer.textContent = "Qolgan vaqt: 00:00";
-          applyPendingState(item, 'cancelled', "To'lov vaqti tugadi");
-          item.dataset.status = 'cancelled';
+          applyPendingState(item, 'pending', "Tekshirilmoqda...");
           return;
         }
         timer.textContent = `Qolgan vaqt: ${formatDuration(diffSec)}`;
@@ -1094,6 +1125,7 @@
           if (statusInfo.status === 'paid') {
             applyPendingState(item, 'paid', "To'lov muvaffaqiyatli");
             if (timer) timer.textContent = "To'lov tasdiqlandi";
+            removePendingEntry(orderId);
             if (statusInfo.redirect_url) {
               window.location.href = statusInfo.redirect_url;
             }
@@ -1103,6 +1135,7 @@
           if (statusInfo.status === 'cancelled') {
             applyPendingState(item, 'cancelled', "To'lov bekor qilindi");
             if (timer) timer.textContent = "Bekor qilingan";
+            removePendingEntry(orderId);
             if (statusInfo.redirect_url) {
               window.location.href = statusInfo.redirect_url;
             }
@@ -1121,9 +1154,9 @@
 
     if (pendingEntries.size) {
       tickPendingCountdown();
-      setInterval(tickPendingCountdown, 1000);
+      countdownIntervalId = setInterval(tickPendingCountdown, 1000);
       pollPaymentStatus();
-      setInterval(pollPaymentStatus, 5000);
+      pollIntervalId = setInterval(pollPaymentStatus, 5000);
     }
 
     const paymentForms = document.querySelectorAll('.js-click-payment-form');

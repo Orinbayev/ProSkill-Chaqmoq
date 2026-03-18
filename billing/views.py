@@ -97,39 +97,64 @@ def plans(request):
         pr = calculate_price(p, duration, promo, center=center)
         pricing_map[p.code] = pr
 
-    # Pending orders for this center
+    from datetime import timedelta
+    from django.utils import timezone as tz_now
+
+    # Auto-expire truly stale pending orders (older than 30 min with no webhook received)
+    stale_cutoff = tz_now.now() - timedelta(minutes=30)
+    if center:
+        SubscriptionRequest.objects.filter(
+            center=center,
+            status=SubscriptionRequest.Status.PENDING,
+            created_at__lt=stale_cutoff,
+        ).update(status=SubscriptionRequest.Status.CANCELLED, updated_at=tz_now.now())
+
+    # Pending orders for this center (only truly recent/active ones)
+    recent_cutoff = tz_now.now() - timedelta(minutes=30)
     my_pending_orders = SubscriptionRequest.objects.filter(
         status=SubscriptionRequest.Status.PENDING,
+        created_at__gte=recent_cutoff,
     ).order_by("-created_at")
-    
-    # History for this center
-    my_history = SubscriptionRequest.objects.exclude(
-        status=SubscriptionRequest.Status.PENDING,
-    ).order_by("-created_at")
-    
+
+    # Payment history: use actual paid SubscriptionOrders with exact date info
+    from billing.models import SubscriptionOrder as SO
+    my_history_qs = SO.objects.filter(
+        status=SO.Status.PAID,
+    ).select_related("plan").order_by("-paid_at")
+
     if center:
         my_pending_orders = my_pending_orders.filter(center=center)
-        my_history = my_history.filter(center=center)
+        my_history_qs = my_history_qs.filter(center=center)
     else:
         my_pending_orders = my_pending_orders.filter(user=request.user)
-        my_history = my_history.filter(user=request.user)
 
-    from datetime import timedelta
-    for order in my_history:
-        order.start_date = order.updated_at.date()
-        order.end_date = (order.updated_at + timedelta(days=30 * order.duration_months)).date()
+    # Build history list with real start/end dates from the payment timestamp
+    my_history = []
+    for o in my_history_qs[:20]:
+        paid_on = o.paid_at or o.created_at
+        my_history.append({
+            "plan_name": o.plan.title if o.plan else "—",
+            "duration_months": o.duration_months,
+            "amount": o.final_price,
+            "updated_at": paid_on,
+            "start_date": paid_on.date(),
+            "end_date": (paid_on + timedelta(days=30 * o.duration_months)).date(),
+            "status": "paid",
+            "status_display": "Muvaffaqiyatli",
+        })
 
     context = {
         "sub": ui,
         "plans": plans,
-        "my_pending_orders": my_pending_orders, # <--- Added
-        "my_history": my_history, # <--- Added history
+        "my_pending_orders": my_pending_orders,
+        "my_history": my_history,
         "durations": DURATIONS,
         "duration": duration,
         "promo": promo,
         "pricing": pricing_map,
     }
     return render(request, "billing/plans.html", context)
+
 
 
 @login_required

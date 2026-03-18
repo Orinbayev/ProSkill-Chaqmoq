@@ -129,6 +129,14 @@ def superadmin_dashboard(request):
         role='student', is_archived=False
     ).count()
 
+    # ── Payment History (last 50 paid orders) ─────────────────
+    payment_history = (
+        SubscriptionOrder.objects
+        .filter(status=SubscriptionOrder.Status.PAID)
+        .select_related('center', 'plan')
+        .order_by('-paid_at')[:50]
+    )
+
     # ── 6. Context ──────────────────────────────────────────────
     context = {
         'centers': centers,
@@ -148,6 +156,7 @@ def superadmin_dashboard(request):
         'expired_count':       kpis['expired_count']       or 0,
         'expiring_soon_count': kpis['expiring_soon_count'] or 0,
         'total_students_global': total_students_global,
+        'payment_history':     payment_history,
 
         # Dropdown choices
         'plans':    SubscriptionPlan.objects.filter(active=True).values_list('code', 'title'),

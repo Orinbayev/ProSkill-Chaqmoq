@@ -246,6 +246,7 @@ class PaymentTransaction(models.Model):
     transaction_id = models.CharField(max_length=64, unique=True, db_index=True)
     # Click platform's own transaction ID (for reconciliation / debugging)
     click_trans_id = models.CharField(max_length=64, blank=True, default="", db_index=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -369,6 +370,7 @@ class SubscriptionRequest(models.Model):
     amount = models.PositiveIntegerField(default=0)
     # Legacy field: kept for backward compatibility with old templates/services.
     price = models.PositiveIntegerField(default=0)
+    promo_code = models.CharField(max_length=30, null=True, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

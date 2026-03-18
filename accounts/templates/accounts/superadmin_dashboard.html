@@ -1711,6 +1711,76 @@
     </div>
 
     <!-- ══════════════════════════════════
+       PAYMENT HISTORY TABLE
+  ══════════════════════════════════ -->
+    {% if payment_history %}
+    <div class="sa-table-card" style="margin-bottom: 24px;">
+        <div class="sa-table-head-bar">
+            <h5><i class="bi bi-credit-card-2-front-fill" style="color:#22c55e;"></i> To'lovlar Tarixi
+                <span style="font-size:0.72rem;font-weight:600;color:#64748b;margin-left:6px;">so'ngi 50 ta</span>
+            </h5>
+            <span class="sa-count-badge">{{ payment_history|length }} ta to'lov</span>
+        </div>
+        <div class="sa-table-wrap">
+            <table class="sa-table">
+                <thead>
+                    <tr>
+                        <th>Markaz</th>
+                        <th>Tarif / Muddat</th>
+                        <th>To'lov summasi</th>
+                        <th>Sana & Status</th>
+                        <th>Obuna davri</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in payment_history %}
+                    <tr>
+                        <!-- Center -->
+                        <td>
+                            <div style="font-weight:700;color:#f1f5f9;font-size:0.86rem;">{{ p.center.name }}</div>
+                            <div style="font-size:0.72rem;color:#6366f1;font-weight:600;">@{{ p.center.slug }}</div>
+                        </td>
+                        <!-- Plan + Duration -->
+                        <td>
+                            <span style="background:rgba(6,182,212,0.1);color:#06b6d4;border:1px solid rgba(6,182,212,0.2);padding:3px 10px;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;">
+                                {{ p.plan.title|default:p.plan.code }}
+                            </span>
+                            <div style="font-size:0.75rem;color:#64748b;margin-top:4px;">{{ p.duration_months }} oylik obuna</div>
+                        </td>
+                        <!-- Amount -->
+                        <td>
+                            <span style="font-weight:800;color:#4ade80;font-size:0.95rem;">{{ p.final_price|floatformat:0 }} UZS</span>
+                            {% if p.discount_percent > 0 %}
+                            <div style="font-size:0.72rem;color:#f59e0b;">-{{ p.discount_percent }}% chegirma</div>
+                            {% endif %}
+                        </td>
+                        <!-- Date & Status -->
+                        <td style="white-space:nowrap;">
+                            <div style="color:#f1f5f9;font-size:0.84rem;font-weight:600;">{{ p.paid_at|date:"d.m.Y H:i" }}</div>
+                            <span style="background:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2);padding:2px 9px;border-radius:6px;font-size:11px;font-weight:700;">
+                                ✓ Muvaffaqiyatli
+                            </span>
+                        </td>
+                        <!-- Subscription Period -->
+                        <td style="white-space:nowrap;color:#64748b;font-size:0.82rem;">
+                            {{ p.paid_at|date:"d.m.Y" }}
+                            <i class="bi bi-arrow-right" style="font-size:10px;margin:0 4px;"></i>
+                            {% load humanize %}
+                            <span style="color:#f1f5f9;font-weight:600;">
+                                {{ p.paid_at|date:"d.m.Y"|slice:":0" }}
+                                {# We calculate end date as paid_at + 30*duration #}
+                            </span>
+                            +{{ p.duration_months }}oy
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ══════════════════════════════════
        CENTERS TABLE
   ══════════════════════════════════ -->
     <div class="sa-table-card">

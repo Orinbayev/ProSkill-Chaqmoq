@@ -105,18 +105,20 @@ def generate_merchant_trans_id(order_id: int) -> str:
 
 
 @transaction.atomic
-def give_subscription(user, plan: SubscriptionPlan) -> Subscription:
+def give_subscription(user, plan: SubscriptionPlan, duration_months: int = 1) -> Subscription:
     """
     Give or extend a user's subscription.
 
     Rules:
-    - If user has active and non-expired subscription: extend end_date by plan.duration_days.
-    - If expired (or missing): start from today for plan.duration_days.
+    - If user has active and non-expired subscription: extend end_date by plan.duration_days * duration_months.
+    - If expired (or missing): start from today for plan.duration_days * duration_months.
     """
     today = timezone.localdate()
     duration_days = int(getattr(plan, "duration_days", 0) or 0)
     if duration_days <= 0:
         duration_days = 30
+    
+    total_days = duration_days * duration_months
 
     active_sub = (
         Subscription.objects.select_for_update()
@@ -127,7 +129,7 @@ def give_subscription(user, plan: SubscriptionPlan) -> Subscription:
 
     if active_sub and active_sub.end_date and active_sub.end_date >= today:
         active_sub.plan = plan
-        active_sub.end_date = active_sub.end_date + timezone.timedelta(days=duration_days)
+        active_sub.end_date = active_sub.end_date + timezone.timedelta(days=total_days)
         active_sub.is_active = True
         active_sub.save(update_fields=["plan", "end_date", "is_active"])
         return active_sub
@@ -138,6 +140,6 @@ def give_subscription(user, plan: SubscriptionPlan) -> Subscription:
         user=user,
         plan=plan,
         start_date=today,
-        end_date=today + timezone.timedelta(days=duration_days),
+        end_date=today + timezone.timedelta(days=total_days),
         is_active=True,
     )
