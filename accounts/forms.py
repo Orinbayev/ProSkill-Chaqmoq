@@ -246,6 +246,16 @@ class CenterAdminForm(forms.ModelForm):
         slug = slugify(slug)
         if not slug:
             raise forms.ValidationError("Slug faqat harf va raqamlardan iborat bo'lishi kerak.")
+        # Reject reserved slugs that conflict with URL routing
+        RESERVED_SLUGS = {
+            'admin', 'platform', 'hisob', 'static', 'media', 'api',
+            'health', 'logout', 'c', 'emergency-enter-now', 'chaqmoq',
+            'talim', 'store', 'billing', 'favicon',
+        }
+        if slug in RESERVED_SLUGS:
+            raise forms.ValidationError(
+                f'"{slug}" tizim tomonidan band qilingan. Boshqa slug tanlang.'
+            )
         # Check uniqueness against ALL rows (including soft-deleted),
         # because the DB UNIQUE constraint covers every row.
         qs = Center._default_manager.all().filter(slug=slug)

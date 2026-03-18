@@ -10,21 +10,6 @@ from django.http import HttpResponse
 from accounts import api_auth
 
 
-# ✅ Center slug home redirect: /<slug>/ → /c/<slug>/hisob/login/
-def center_slug_home(request, center_slug):
-    """
-    Allows each center to have its own entry URL like /amirxon2/
-    Redirects to the center's scoped login page.
-    Returns 404 if no center with that slug exists.
-    """
-    from accounts.models import Center
-    from django.http import Http404
-    center = Center._default_manager.filter(slug=center_slug, is_deleted=False).first()
-    if not center:
-        raise Http404(f"'{center_slug}' slugli markaz topilmadi.")
-    return redirect(f'/c/{center_slug}/hisob/login/')
-
-
 # TEMPORARY EMERGENCY LOGIN VIEW
 from django.contrib.auth import login, get_user_model
 def emergency_login_view(request):
@@ -63,6 +48,8 @@ urlpatterns = [
     path('platform/', include(('accounts.urls', 'accounts'), namespace='platform_global')),
 
     # 🔹 Main Application (Tenant Aware)
+    # Middleware strips /<slug>/ prefix and rewrites path_info,
+    # so these patterns match both /stat/students/ and /proskill/stat/students/
     path('', include(('core.urls', 'core'), namespace='core')),
     path('hisob/', include(('accounts.urls_tenant', 'accounts'), namespace='accounts')),
     path('hisob/billing/', include(('billing.urls', 'billing'), namespace='billing')),
@@ -70,13 +57,13 @@ urlpatterns = [
     path('talim/', include(('education.urls', 'education'), namespace='education')),
     path("do'kon/", include(('store.urls', 'store'), namespace='store')),
 
-    # ✅ Center-scoped optional routes: /c/<center_slug>/hisob/login/ and /c/<center_slug>/hisob/billing/
-    # These are ADDITIVE — all existing routes above remain untouched.
+    # ✅ Center-scoped login/billing (legacy /c/<slug>/ support)
     path('c/<slug:center_slug>/', include(('core.center_urls', 'center'), namespace='center')),
 
-    # ✅ Root-level center slug: /<center_slug>/ → redirect to center login
-    # IMPORTANT: This MUST be the LAST pattern — only activates when nothing else matched.
-    path('<slug:center_slug>/', center_slug_home),
+    # ✅ /<center_slug>/ prefix — NON-CAPTURING re_path so center_slug is NOT
+    # passed as kwarg to views (avoids TypeError in all view functions).
+    # Middleware reads slug from request.path and sets request.center.
+    re_path(r'^(?:[a-z0-9][a-z0-9\-]{0,62})/', include('config.slug_prefix_urls')),
 ]
 
 

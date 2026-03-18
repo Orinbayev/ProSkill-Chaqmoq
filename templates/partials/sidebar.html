@@ -1224,11 +1224,27 @@
   body.sidebar-collapsed .si-text,
   body.sidebar-collapsed .arrow-icon,
   body.sidebar-collapsed .sub-info-mini,
-  body.sidebar-collapsed .sidebar-title,
-  body.sidebar-collapsed .center-name,
-  body.sidebar-collapsed .sidebar-section-label,
+  body.sidebar-collapsed .sidebar-title:not(.center-name),
+  body.sidebar-collapsed .sidebar-section-label:not(.center-name),
   body.sidebar-collapsed .sub-progress-bar-mini {
     display: none !important;
+  }
+
+  /* Center name stays visible in collapsed mode — compact badge */
+  body.sidebar-collapsed .center-name {
+    display: block !important;
+    font-size: 7px;
+    font-weight: 900;
+    letter-spacing: 0.8px;
+    text-align: center;
+    padding: 3px 2px;
+    margin: 0 0 4px 0;
+    color: #facc15;
+    opacity: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
   }
 
   .center-name,

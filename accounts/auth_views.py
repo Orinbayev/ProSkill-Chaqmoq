@@ -52,16 +52,20 @@ class SecureLoginView(auth_views.LoginView):
         """
         Role-based redirect after login.
         - SuperAdmin  → /platform/
-        - Director/Manager/Teacher/Student → /  (core:home, middleware sets center)
+        - Users with center → /<center_slug>/  (slug-prefixed home)
+        - Orphan users → /
         """
         if user.is_superuser:
             try:
                 return reverse('platform_global:superadmin_dashboard')
             except NoReverseMatch:
-                pass
+                return '/platform/'
 
-        # Check if URL contained center_slug — if so, go to center home
-        # (middleware already attached request.center from the slug)
+        # Redirect to /<slug>/ so URL bar always shows center name
+        center = getattr(user, 'center', None)
+        if center and hasattr(center, 'slug') and center.slug:
+            return f'/{center.slug}/'
+
         try:
             return reverse('core:home')
         except NoReverseMatch:
