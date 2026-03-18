@@ -435,13 +435,15 @@ def click_prepare(request):
     sign_time = _request_value(data, "sign_time")
     sign_string = _request_value(data, "sign_string", "signature", "sign")
     logger.info(
-        "Click PREPARE webhook received method=%s action=%s click_trans_id=%s merchant_trans_id=%s payload=%s",
+        "Click PREPARE webhook: method=%s path=%s host=%s params=%s data=%s",
         request.method,
-        action,
-        click_trans_id,
-        data.get("merchant_trans_id", ""),
+        request.path,
+        request.get_host(),
+        request.GET.dict(),
         _safe_payload_for_log(data),
     )
+    if not data:
+        logger.warning("Click PREPARE received EMPTY payload. Raw body: %s", request.body[:500] if request.body else "None")
 
     try:
         incoming_merchant_trans_id, _ = _extract_merchant_params(data, require_merchant_trans_id=True)
@@ -574,13 +576,15 @@ def click_complete(request):
     sign_string = _request_value(data, "sign_string", "signature", "sign")
     merchant_prepare_id = _request_value(data, "merchant_prepare_id")
     logger.info(
-        "Click COMPLETE webhook received method=%s action=%s click_trans_id=%s merchant_trans_id=%s payload=%s",
+        "Click COMPLETE webhook: method=%s path=%s host=%s params=%s data=%s",
         request.method,
-        action,
-        click_trans_id,
-        data.get("merchant_trans_id", ""),
+        request.path,
+        request.get_host(),
+        request.GET.dict(),
         _safe_payload_for_log(data),
     )
+    if not data:
+        logger.warning("Click COMPLETE received EMPTY payload. Raw body: %s", request.body[:500] if request.body else "None")
 
     try:
         incoming_merchant_trans_id, _ = _extract_merchant_params(data, require_merchant_trans_id=True)
