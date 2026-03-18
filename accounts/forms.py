@@ -119,7 +119,11 @@ class AddUserForm(forms.ModelForm):
             if center:
                 from accounts.student_limit import check_student_limit
                 try:
-                    check_student_limit(center, raise_error=True)
+                    check_student_limit(
+                        center,
+                        raise_error=True,
+                        actor=getattr(self.request, "user", None),
+                    )
                 except ValidationError as e:
                     # Re-raise the student limit validation error
                     raise e
@@ -232,6 +236,27 @@ class CenterAdminForm(forms.ModelForm):
             dt = datetime.datetime.combine(date_val, datetime.time.min)
             return timezone.make_aware(dt)
         return None
+
+    def clean_slug(self):
+        from django.utils.text import slugify
+        slug = self.cleaned_data.get('slug', '').strip().lower()
+        if not slug:
+            raise forms.ValidationError("Slug bo'sh bo'lishi mumkin emas.")
+        # Normalise
+        slug = slugify(slug)
+        if not slug:
+            raise forms.ValidationError("Slug faqat harf va raqamlardan iborat bo'lishi kerak.")
+        # Check uniqueness against ALL rows (including soft-deleted),
+        # because the DB UNIQUE constraint covers every row.
+        qs = Center._default_manager.all().filter(slug=slug)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError(
+                f'"{slug}" slugli markaz allaqachon mavjud (yoki o\'chirilgan). '
+                f'Boshqa noyob slug tanlang.'
+            )
+        return slug
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

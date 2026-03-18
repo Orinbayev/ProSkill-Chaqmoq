@@ -2,8 +2,9 @@
 from functools import wraps
 from django.shortcuts import redirect
 from django.contrib import messages
+from django.http import JsonResponse
 
-from .services import get_feature_flags, ensure_center_subscription
+from .services import get_feature_flags, ensure_center_subscription, check_subscription
 
 
 def require_active_subscription(view_func):
@@ -47,3 +48,25 @@ def require_feature(feature_name: str):
             return view_func(request, *args, **kwargs)
         return _wrapped
     return decorator
+
+
+def require_pro(view_func):
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        user = getattr(request, "user", None)
+        if user and user.is_authenticated and user.is_superuser:
+            return view_func(request, *args, **kwargs)
+
+        sub = check_subscription(user)
+        plan_code = (sub.plan.code or "").upper() if sub and sub.plan else "FREE"
+        has_pro_access = bool(sub and plan_code != "FREE")
+        if has_pro_access:
+            return view_func(request, *args, **kwargs)
+
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse({"error": "PRO subscription required."}, status=403)
+
+        messages.warning(request, "Bu bo'lim PRO obuna uchun mavjud.")
+        return redirect("billing:plans")
+
+    return _wrapped

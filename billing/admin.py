@@ -1,6 +1,15 @@
 # billing/admin.py
 from django.contrib import admin
-from .models import SubscriptionPlan, CenterSubscription, PromoCode, SubscriptionOrder, PlanFeature
+from .models import (
+    SubscriptionPlan,
+    CenterSubscription,
+    PromoCode,
+    SubscriptionOrder,
+    PlanFeature,
+    Subscription,
+    PaymentTransaction,
+    SubscriptionRequest,
+)
 from .services import mark_order_paid
 
 
@@ -13,9 +22,21 @@ class PlanFeatureAdmin(admin.ModelAdmin):
 
 @admin.register(SubscriptionPlan)
 class SubscriptionPlanAdmin(admin.ModelAdmin):
-    list_display = ("code", "title", "monthly_price", "max_students", "max_users", "max_groups", "is_popular", "active")
+    list_display = (
+        "code",
+        "title",
+        "name",
+        "monthly_price",
+        "price",
+        "duration_days",
+        "max_students",
+        "max_users",
+        "max_groups",
+        "is_popular",
+        "active",
+    )
     list_filter = ("active", "is_popular")
-    search_fields = ("code", "title")
+    search_fields = ("code", "title", "name")
     filter_horizontal = ("plan_features",)
 
 
@@ -45,3 +66,33 @@ class SubscriptionOrderAdmin(admin.ModelAdmin):
         for order in queryset:
             mark_order_paid(order)
     make_paid.short_description = "Tanlangan orderlarni PAID qilish"
+
+
+@admin.register(Subscription)
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_display = ("id", "user", "plan", "start_date", "end_date", "is_active", "created_at")
+    list_filter = ("is_active", "plan")
+    search_fields = ("user__email", "user__ism", "user__familya", "plan__code")
+
+
+@admin.register(PaymentTransaction)
+class PaymentTransactionAdmin(admin.ModelAdmin):
+    list_display = ("transaction_id", "user", "amount", "status", "created_at")
+    list_filter = ("status",)
+    search_fields = ("transaction_id", "user__email")
+
+
+@admin.register(SubscriptionRequest)
+class SubscriptionRequestAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "center",
+        "user",
+        "plan_name",
+        "duration_months",
+        "price",
+        "status",
+        "created_at",
+    )
+    list_filter = ("status", "plan_name", "duration_months")
+    search_fields = ("center__name", "user__email", "plan_name")

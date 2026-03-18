@@ -5,214 +5,359 @@
 
 {% block content %}
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
   :root {
     --bg-dark: #020617;
-    --bg-card: rgba(15, 23, 42, 0.4);
+    --bg-card: rgba(15, 23, 42, 0.6);
     --bg-hover: rgba(255, 255, 255, 0.04);
     --border: rgba(255, 255, 255, 0.08);
+    --border-hover: rgba(59, 130, 246, 0.4);
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
     --primary: #3b82f6;
-    --primary-glow: #38bdf8;
+    --primary-glow: #60a5fa;
     --accent: #fbbf24;
-    --radius: 16px;
+    --success: #22c55e;
+    --radius: 18px;
   }
 
-  body {
-    background: radial-gradient(1200px 500px at 50% -10%, rgba(59, 130, 246, 0.1), transparent 55%),
-      linear-gradient(180deg, var(--bg-dark), var(--bg-dark));
-    color: var(--text-main);
+  body { font-family: 'Inter', system-ui, sans-serif; }
+
+  /* ═══════════════════════════════════════════
+     PAGE WRAPPER
+  ═══════════════════════════════════════════ */
+  .plans-page {
     min-height: 100vh;
-    font-family: system-ui, -apple-system, sans-serif;
+    padding: 32px 0 60px;
   }
 
-  /* Header Section */
-  .plans-header {
-    margin-bottom: 24px;
-    padding: 12px 16px;
-    border-radius: var(--radius);
-    background: var(--bg-card);
+  /* ═══════════════════════════════════════════
+     HEADER CARD
+  ═══════════════════════════════════════════ */
+  .plans-hero {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(99, 102, 241, 0.04) 100%);
     border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
     backdrop-filter: blur(20px);
   }
 
-  .plans-title {
-    font-size: 20px;
+  .plans-hero-left h1 {
+    font-size: 22px;
     font-weight: 800;
     color: #fff;
-    margin-bottom: 2px;
+    margin: 0 0 4px;
+    letter-spacing: -0.3px;
   }
 
-  .plans-subtitle {
+  .plans-hero-left p {
     color: var(--text-muted);
-    font-size: 11px;
-    font-weight: 600;
-    max-width: 600px;
+    font-size: 13px;
+    font-weight: 500;
+    margin: 0;
   }
 
-  /* Controls Row */
+  .btn-history {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    color: #c4d4ea;
+    height: 38px;
+    padding: 0 16px;
+    border-radius: 10px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .btn-history:hover {
+    background: rgba(59,130,246,0.12);
+    border-color: rgba(59,130,246,0.35);
+    color: var(--primary-glow);
+  }
+
+  /* ═══════════════════════════════════════════
+     CONTROLS ROW
+  ═══════════════════════════════════════════ */
   .controls-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 28px;
     flex-wrap: wrap;
     gap: 12px;
   }
 
-  /* Duration Switcher */
   .switcher-wrapper {
-    background: rgba(0,0,0,0.2);
+    background: rgba(0,0,0,0.25);
     border: 1px solid var(--border);
     padding: 3px;
-    border-radius: 10px;
+    border-radius: 12px;
     display: inline-flex;
-    height: 38px;
+    height: 40px;
   }
 
   .dur-btn {
-    padding: 0 16px;
-    border-radius: 7px;
+    padding: 0 18px;
+    border-radius: 9px;
     color: var(--text-muted);
     font-weight: 700;
-    font-size: 12.5px;
+    font-size: 13px;
     text-decoration: none;
     display: flex;
     align-items: center;
     transition: all 0.2s;
   }
 
-  .dur-btn:hover {
-    color: #fff;
-  }
+  .dur-btn:hover { color: #fff; }
 
   .dur-btn.active {
-    background: #fff;
-    color: #000;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    color: #fff;
+    box-shadow: 0 2px 12px rgba(59,130,246,0.35);
   }
 
-  /* Plan Card - Compact Version */
+  .btn-promo-action {
+    background: rgba(251, 191, 36, 0.08);
+    border: 1px solid rgba(251,191,36,0.2);
+    color: #fbbf24;
+    height: 40px;
+    padding: 0 18px;
+    border-radius: 10px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .btn-promo-action:hover {
+    background: rgba(251,191,36,0.14);
+    border-color: rgba(251,191,36,0.4);
+  }
+
+  /* ═══════════════════════════════════════════
+     PROMO ALERT
+  ═══════════════════════════════════════════ */
+  .promo-alert {
+    background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(59,130,246,0.05));
+    border: 1px solid rgba(34,197,94,0.2);
+    border-radius: 12px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    color: #4ade80;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  /* ═══════════════════════════════════════════
+     PLAN CARDS
+  ═══════════════════════════════════════════ */
   .plan-card {
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(15, 23, 42, 0.55);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 20px;
+    border-radius: var(--radius);
+    padding: 26px 22px 22px;
     height: 100%;
     display: flex;
     flex-direction: column;
     position: relative;
-    z-index: 1;
-    transition: all 0.2s;
-  }
-
-  /* CRITICAL: Disable transform when modal is open to avoid stacking context issues */
-  body.modal-open .plan-card {
-    transform: none !important;
-    z-index: 0 !important;
+    overflow: visible;
+    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    backdrop-filter: blur(12px);
   }
 
   .plan-card:hover {
-    background: var(--bg-hover);
-    border-color: var(--primary-glow);
-    transform: translateY(-2px);
+    transform: translateY(-4px);
+    border-color: rgba(99,102,241,0.4);
+    box-shadow: 0 16px 40px rgba(59,130,246,0.12);
   }
 
   .plan-card.popular {
-    border-color: var(--primary);
-    background: rgba(59, 130, 246, 0.03);
+    border-color: rgba(59,130,246,0.35);
+    background: linear-gradient(160deg, rgba(59,130,246,0.07) 0%, rgba(15,23,42,0.6) 60%);
+    box-shadow: 0 0 0 1px rgba(59,130,246,0.12), inset 0 1px 0 rgba(255,255,255,0.04);
   }
 
-  /* Popular Badge - Smaller */
-  .popular-label {
+  .plan-card.popular:hover {
+    border-color: rgba(99,102,241,0.6);
+    box-shadow: 0 20px 50px rgba(59,130,246,0.18);
+  }
+
+  .popular-badge {
     position: absolute;
-    top: -10px;
+    top: -12px;
     left: 50%;
     transform: translateX(-50%);
-    background: var(--primary);
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
     color: #fff;
-    padding: 2px 10px;
+    padding: 3px 14px;
     border-radius: 100px;
     font-size: 10px;
     font-weight: 800;
     text-transform: uppercase;
+    letter-spacing: 0.6px;
+    box-shadow: 0 4px 14px rgba(59,130,246,0.4);
   }
 
-  /* Typography */
-  .plan-type {
-    font-size: 16px;
+  .plan-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  .plan-icon.free-icon { background: rgba(148,163,184,0.1); color: #94a3b8; }
+  .plan-icon.standard-icon { background: rgba(59,130,246,0.12); color: #60a5fa; }
+  .plan-icon.pro-icon { background: rgba(99,102,241,0.12); color: #a78bfa; }
+  .plan-icon.premium-icon { background: rgba(251,191,36,0.1); color: #fbbf24; }
+  .plan-icon.enterprise-icon { background: rgba(34,197,94,0.1); color: #4ade80; }
+
+  .plan-name {
+    font-size: 17px;
     font-weight: 800;
     color: #fff;
-    margin-bottom: 12px;
+    margin-bottom: 4px;
+    letter-spacing: -0.2px;
   }
 
-  .limit-text {
+  .plan-limit {
     color: var(--text-muted);
     font-size: 12px;
-    margin-bottom: 4px;
     font-weight: 600;
+    margin-bottom: 18px;
   }
 
-  .price-box {
-    margin-bottom: 12px;
+  .price-divider {
+    height: 1px;
+    background: var(--border);
+    margin-bottom: 18px;
   }
 
-  .old-price {
-    color: var(--text-muted);
+  .price-old {
+    color: #475569;
     text-decoration: line-through;
     font-size: 12px;
-    margin-bottom: 2px;
-    opacity: 0.6;
     font-weight: 600;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
-  .price-text {
-    font-size: 24px;
+  .discount-badge {
+    background: rgba(34,197,94,0.1);
+    color: #4ade80;
+    border: 1px solid rgba(34,197,94,0.2);
+    padding: 1px 7px;
+    border-radius: 5px;
+    font-size: 10px;
     font-weight: 800;
+  }
+
+  .price-main {
+    font-size: 26px;
+    font-weight: 900;
     color: #fff;
     line-height: 1;
+    margin-bottom: 4px;
+    letter-spacing: -0.5px;
   }
 
-  .period-text {
+  .price-main.free-price {
+    background: linear-gradient(135deg, #94a3b8, #cbd5e1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .price-period {
     color: var(--text-muted);
-    font-size: 11px;
-    margin-bottom: 12px;
+    font-size: 12px;
     font-weight: 600;
+    margin-bottom: 14px;
   }
 
-  .caption-text {
-    color: var(--text-muted);
-    font-size: 11px;
-    line-height: 1.5;
+  .plan-caption {
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.6;
     margin-bottom: 20px;
-    min-height: 34px;
+    flex-grow: 1;
+    font-weight: 500;
+  }
+
+  /* Active plan indicator */
+  .active-plan-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(34,197,94,0.1);
+    border: 1px solid rgba(34,197,94,0.25);
+    color: #4ade80;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+  }
+
+  .days-left-info {
+    text-align: center;
+    font-size: 11.5px;
+    color: #64748b;
+    margin-top: 8px;
     font-weight: 500;
   }
 
   /* Buttons */
-  .btn-primary-plan {
-    background: var(--primary);
+  .btn-plan-primary {
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
     color: #fff;
     border: none;
-    border-radius: 10px;
-    height: 40px;
+    border-radius: 11px;
+    height: 42px;
     font-weight: 700;
     width: 100%;
     margin-bottom: 8px;
     transition: all 0.2s;
-    font-size: 13.5px;
+    font-size: 14px;
+    letter-spacing: 0.1px;
+    cursor: pointer;
   }
 
-  .btn-primary-plan:hover {
-    filter: brightness(1.1);
+  .btn-plan-primary:hover {
+    filter: brightness(1.12);
     transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(59,130,246,0.35);
   }
 
-  .btn-secondary-plan {
-    background: rgba(255, 255, 255, 0.05);
+  .btn-plan-secondary {
+    background: rgba(255,255,255,0.04);
     border: 1px solid var(--border);
-    color: #fff;
-    border-radius: 10px;
-    height: 38px;
+    color: #94a3b8;
+    border-radius: 11px;
+    height: 40px;
     font-weight: 600;
     width: 100%;
     text-align: center;
@@ -222,388 +367,575 @@
     justify-content: center;
     transition: all 0.2s;
     font-size: 13px;
+    gap: 6px;
   }
 
-  .btn-secondary-plan:hover {
-    background: #ffffff05;
-    border-color: rgba(255, 255, 255, 0.2);
+  .btn-plan-secondary:hover {
+    background: rgba(255,255,255,0.07);
+    border-color: rgba(255,255,255,0.15);
+    color: #cbd5e1;
   }
 
-  /* Promokod Button */
-  .btn-promo-action {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--border);
-    color: #fff;
-    height: 38px;
-    padding: 0 16px;
-    border-radius: 10px;
-    font-weight: 700;
+  /* ═══════════════════════════════════════════
+     PENDING ORDERS SECTION
+  ═══════════════════════════════════════════ */
+  .pending-section {
+    background: linear-gradient(135deg, rgba(251,191,36,0.06) 0%, rgba(245,158,11,0.02) 100%);
+    border: 1px solid rgba(251,191,36,0.2);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 28px;
+  }
+
+  .pending-header {
+    background: rgba(251,191,36,0.07);
+    border-bottom: 1px solid rgba(251,191,36,0.15);
+    padding: 16px 22px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    transition: all 0.2s;
-    font-size: 13px;
-    text-decoration: none;
-    cursor: pointer;
-  }
-
-  .btn-promo-action:hover {
-    background: #ffffff05;
-    border-color: rgba(255, 255, 255, 0.2);
-  }
-
-  .btn-promo-action i {
-    color: var(--primary-glow);
+    gap: 10px;
+    color: #fbbf24;
+    font-weight: 700;
     font-size: 14px;
   }
 
-  /* --------------------------------------------------- */
-  /* BULLETPROOF MODAL FIXES */
-  /* --------------------------------------------------- */
-
-  /* Ensure modal is above everything */
-  .modal {
-    z-index: 1060 !important;
+  .pending-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 22px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
   }
 
-  .modal-backdrop {
-    z-index: 1050 !important;
+  .pending-item:last-child { border-bottom: none; }
+
+  /* ═══════════════════════════════════════════
+     BOTTOM CTA
+  ═══════════════════════════════════════════ */
+  .bottom-cta {
+    margin-top: 56px;
+    text-align: center;
   }
 
-  .modal-content-dark {
-    background: #0f172a !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 16px !important;
+  .bottom-cta p {
+    color: #475569;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 16px;
   }
 
-  .form-control-promo {
-    background: rgba(0, 0, 0, 0.2) !important;
-    border: 1px solid var(--border) !important;
-    color: #fff !important;
-    border-radius: 10px !important;
-    padding: 0 12px !important;
-    height: 40px !important;
+  .btn-telegram {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(99,102,241,0.08));
+    border: 1px solid rgba(59,130,246,0.2);
+    color: var(--primary-glow);
+    border-radius: 14px;
+    padding: 14px 32px;
+    font-weight: 700;
+    font-size: 15px;
+    text-decoration: none;
+    transition: all 0.3s;
+  }
+
+  .btn-telegram:hover {
+    background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(99,102,241,0.14));
+    border-color: rgba(59,130,246,0.4);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(59,130,246,0.2);
+  }
+
+  /* ═══════════════════════════════════════════
+     MODALS — PREMIUM DARK STYLE
+  ═══════════════════════════════════════════ */
+  .modal-dark .modal-content {
+    background: #0c1220;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 18px;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+  }
+
+  .modal-dark .modal-header {
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 20px 24px 16px;
+  }
+
+  .modal-dark .modal-title {
+    color: #fff;
+    font-weight: 800;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .modal-dark .modal-body { padding: 20px 24px; }
+  .modal-dark .modal-footer {
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 16px 24px 20px;
+    justify-content: center;
+  }
+
+  .modal-dark .btn-close-white {
+    filter: invert(1) grayscale(1) brightness(0.7);
+    opacity: 0.6;
+  }
+
+  .modal-dark .btn-close-white:hover { opacity: 1; }
+
+  /* History table */
+  .history-table {
     width: 100%;
+    border-collapse: collapse;
   }
 
-  .form-control-promo:focus {
-    border-color: var(--primary) !important;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1) !important;
-    outline: none !important;
+  .history-table thead th {
+    color: #475569;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    white-space: nowrap;
   }
 
-  /* Modal har doim hamma narsadan ustun bo'lishi kerak */
-  .modal-backdrop {
-    z-index: 1040 !important;
+  .history-table tbody td {
+    padding: 12px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 13px;
+    vertical-align: middle;
   }
 
-  .modal {
-    z-index: 1050 !important;
+  .history-table tbody tr:last-child td { border-bottom: none; }
+
+  .history-table tbody tr:hover td {
+    background: rgba(255,255,255,0.02);
   }
 
-  /* Agar karta modalga xalaqit bersa, ularni pastga tushiramiz */
-  .plan-card {
-    position: relative;
-    z-index: 1;
-    /* Buni 1 qiling */
+  /* Promo input */
+  .promo-input {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #fff;
+    border-radius: 10px;
+    padding: 10px 14px;
+    height: 44px;
+    width: 100%;
+    font-size: 14px;
+    font-weight: 600;
+    transition: border-color 0.2s, box-shadow 0.2s;
   }
 
-  /* Majburiy tuzatish: Sahifa qotib qolishini oldini olish */
-  body:not(.modal-open) .modal-backdrop {
-    display: none !important;
+  .promo-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+    outline: none;
+    background: rgba(0,0,0,0.4);
   }
 
-  /* Loaderlarni majburan yashirish (agar ular bloklayotgan bo'lsa) */
-  .preloader,
-  #global-loader,
-  .loader-wrapper {
-    display: none !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
+  .promo-input::placeholder { color: #334155; font-weight: 500; }
+
+  /* BLOCKED ALERT */
+  .blocked-alert {
+    background: linear-gradient(135deg, rgba(239,68,68,0.1) 0%, rgba(220,38,38,0.04) 100%);
+    border: 1px solid rgba(239,68,68,0.25);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    display: flex;
+    gap: 16px;
+    margin-bottom: 28px;
+    align-items: flex-start;
   }
 
-  /* Modal ochiq bo'lganda skroll ishlashi uchun */
-  body.modal-open {
-    overflow: auto !important;
-    padding-right: 0 !important;
+  .blocked-icon {
+    width: 44px;
+    height: 44px;
+    background: rgba(239,68,68,0.12);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
   }
 </style>
 
-<div class="container py-5">
-  <!-- ⚠️ BLOCKED CENTER WARNING (Only for Admin & Manager) -->
-  {% if request.center and request.center.status == 'BLOCKED' and request.user.role in 'admin,manager' %}
-  <div class="alert d-flex align-items-start gap-3 mb-5 p-4" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.05) 100%); 
-           border: 1px solid rgba(239, 68, 68, 0.3); 
-           border-radius: 16px; 
-">
-    <div style="flex-shrink: 0; width: 48px; height: 48px; 
-                background: rgba(239, 68, 68, 0.15); 
-                border-radius: 12px; 
-                display: flex; 
-                align-items: center; 
-                justify-content: center;">
-      <i class="bi bi-exclamation-triangle-fill" style="color: #ef4444; font-size: 1.5rem;"></i>
-    </div>
-    <div class="flex-grow-1">
-      <h5 class="text-white fw-bold mb-2" style="font-size: 1.15rem;">
-        <i class="bi bi-lock-fill text-danger me-2"></i>
-        Markazingiz bloklangan
-      </h5>
-      <p class="text-white-50 mb-0" style="font-size: 0.95rem; line-height: 1.6;">
-        Markazingiz to'lov amalga oshirilmaganligi sababli yoki boshqa sabablar tufayli bloklangan.
-        Tizimni davom ettirish uchun quyidagi tariflardan birini tanlang va to'lovni amalga oshiring.
-      </p>
-
-      <!-- ✅ Action Buttons for Blocked Users -->
-      <div class="mt-4 d-flex gap-3 flex-wrap">
-        <a href="{% url 'platform_global:superadmin_dashboard' %}" class="btn btn-sm btn-outline-light px-3 py-2"
-          style="border-radius: 10px;">
-          <i class="bi bi-grid-fill me-2"></i>Boshqa markaz tanlash
-        </a>
-        <form action="{% url 'accounts:logout' %}" method="post" class="d-inline">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-sm btn-danger px-3 py-2" style="border-radius: 10px;">
-            <i class="bi bi-box-arrow-right me-2"></i>Tizimdan chiqish
-          </button>
-        </form>
+<!-- ═══════════════════════════════════════════════════════
+     HISTORY MODAL — JS will move this to body level
+═══════════════════════════════════════════════════════ -->
+<div class="modal fade modal-dark" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="historyModalLabel">
+          <i class="bi bi-clock-history" style="color: #60a5fa;"></i>
+          To'lovlar Tarixi
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-    </div>
-  </div>
-  {% endif %}
-
-  <!-- Pending Orders (User View) -->
-  {% if my_pending_orders %}
-  <div class="card bg-dark border-warning mb-5 shadow-lg">
-    <div class="card-header border-warning bg-warning bg-opacity-10">
-      <h5 class="text-warning fw-bold m-0"><i class="bi bi-hourglass-split me-2"></i> Kutilayotgan So'rovlar</h5>
-    </div>
-    <div class="card-body p-0">
-      <ul class="list-group list-group-flush bg-transparent">
-        {% for order in my_pending_orders %}
-        <li
-          class="list-group-item bg-transparent border-secondary text-white d-flex justify-content-between align-items-center p-3">
-          <div>
-            <span class="fw-bold text-white">{{ order.plan.title }}</span>
-            <span class="badge bg-secondary bg-opacity-25 border border-secondary border-opacity-25 ms-2">{{
-              order.duration_months }} oy</span>
-            <div class="small text-white-50 mt-1">{{ order.created_at|date:"d.m.Y H:i" }}</div>
+      <div class="modal-body p-0">
+        {% if my_history %}
+          <div class="table-responsive">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th style="padding-left: 24px;">Tarif</th>
+                  <th>Muddat</th>
+                  <th>Amal qilish davri</th>
+                  <th>Tushum sana</th>
+                  <th>Narx</th>
+                  <th style="text-align: right; padding-right: 24px;">Holat</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for order in my_history %}
+                <tr>
+                  <td style="padding-left: 24px;">
+                    <span class="fw-bold text-white">{{ order.plan_name }}</span>
+                  </td>
+                  <td>
+                    <span style="background: rgba(99,102,241,0.12); color: #a78bfa; border: 1px solid rgba(99,102,241,0.2); padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 700;">
+                      {{ order.duration_months }} oy
+                    </span>
+                  </td>
+                  <td style="white-space: nowrap; color: #64748b;">
+                    {{ order.start_date|date:"d.m.Y" }}
+                    <i class="bi bi-arrow-right" style="font-size:10px; margin: 0 4px;"></i>
+                    {{ order.end_date|date:"d.m.Y" }}
+                  </td>
+                  <td style="color: #64748b; white-space: nowrap;">{{ order.updated_at|date:"d.m.Y H:i" }}</td>
+                  <td>
+                    <span class="fw-bold text-white">{{ order.price|intcomma }} so'm</span>
+                  </td>
+                  <td style="text-align: right; padding-right: 24px;">
+                    {% if order.status == 'approved' %}
+                      <span style="background: rgba(34,197,94,0.1); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); padding: 3px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; white-space: nowrap;">
+                        <i class="bi bi-check-circle me-1"></i>Tasdiqlangan
+                      </span>
+                    {% elif order.status == 'rejected' %}
+                      <span style="background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); padding: 3px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; white-space: nowrap;">
+                        <i class="bi bi-x-circle me-1"></i>Rad etilgan
+                      </span>
+                    {% else %}
+                      <span style="background: rgba(148,163,184,0.1); color: #94a3b8; border: 1px solid rgba(148,163,184,0.15); padding: 3px 10px; border-radius: 8px; font-size: 12px; font-weight: 700;">
+                        {{ order.get_status_display }}
+                      </span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
-          <div class="text-end">
-            <div class="fw-bold text-success mb-1">{{ order.final_price|intcomma }} so'm</div>
-            <span class="badge bg-warning text-dark border border-warning">Admin tasdig'i kutilmoqda</span>
+        {% else %}
+          <div class="text-center py-5">
+            <i class="bi bi-receipt" style="font-size: 3rem; color: #1e293b;"></i>
+            <p class="mt-3 mb-0" style="color: #475569; font-weight: 600;">Hozircha to'lovlar tarixi yo'q.</p>
           </div>
-        </li>
-        {% endfor %}
-      </ul>
-    </div>
-  </div>
-  {% endif %}
-
-  <!-- Header Section -->
-  <div class="plans-header">
-    <h1 class="plans-title">Oylik tariflar</h1>
-    <p class="plans-subtitle">Kerakli tarifni tanlang va to'lov qiling. Chaqmoq bilan ta'lim markazingizni
-      rivojlantiring.</p>
-  </div>
-
-  <!-- Controls Row -->
-  <div class="controls-row">
-    <!-- Duration Selector -->
-    <div class="switcher-wrapper">
-      {% for m in durations %}
-      <a href="?m={{ m }}{% if promo %}&promo={{ promo }}{% endif %}"
-        class="dur-btn {% if m == duration %}active{% endif %}">
-        {{ m }} oy
-      </a>
-      {% endfor %}
-    </div>
-
-    <!-- Promo Button -->
-    <button class="btn-promo-action" data-bs-toggle="modal" data-bs-target="#promoModal">
-      <i class="bi bi-plus-circle-fill"></i>
-      Promokod
-    </button>
-  </div>
-
-  <!-- Active Promo Alert -->
-  {% if promo %}
-  <div class="alert alert-success d-flex align-items-center gap-3 mb-4"
-    style="background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.2); color: var(--primary-glow); border-radius: 12px;">
-    <i class="bi bi-check-circle-fill fs-5"></i>
-    <div>Promokod faollashtirildi: <span class="fw-bold text-white">{{ promo }}</span></div>
-    <a href="?m={{ duration }}" class="ms-auto text-decoration-none text-white opacity-50">Bekor qilish</a>
-  </div>
-  {% endif %}
-
-  <!-- Plans Grid -->
-  <div class="row g-4">
-    {% for p in plans %}
-    {% with code=p.code|upper %}
-    {% with pr=pricing|get_item:p.code %}
-    <div class="col-12 col-md-6 col-xl-4">
-      <div class="plan-card {% if p.is_popular or code == 'PRO' %}popular{% endif %}">
-
-        <!-- Popular Badge -->
-        {% if p.is_popular or code == 'PRO' %}
-        <div class="popular-label">Popular</div>
         {% endif %}
-
-        <!-- Title -->
-        <h3 class="plan-type">
-          {% if code == "STANDARD" %}STANDART
-          {% elif code == "PREMIUM" %}PREMIUM
-          {% else %}{{ p.title }}
-          {% endif %}
-        </h3>
-
-        <!-- Limits -->
-        <div class="limit-text">
-          {% if p.max_students > 10000 %}Cheksiz{% else %}1–{{ p.max_students }}{% endif %} o'quvchi
-        </div>
-
-        <!-- Price -->
-        <div class="price-box">
-          {% if code != "FREE" and pr.discount_percent %}
-          <div class="d-flex align-items-center gap-2 mb-1">
-            <span class="old-price">{{ pr.base_price|intcomma }} so'm</span>
-            <span class="badge"
-              style="background: rgba(34, 197, 94, 0.1); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.2); padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 700;">-{{pr.discount_percent}}%</span>
-          </div>
-          {% endif %}
-          <div class="price-text">
-            {% if code == "FREE" %}BEPUL{% else %}{{ pr.final_price|intcomma }} so'm{% endif %}
-          </div>
-        </div>
-
-        <!-- Duration -->
-        <div class="period-text">
-          {% if code == "FREE" %}7 kunlik sinov muddati{% else %}{{ duration }} oy{% endif %}
-        </div>
-
-        <!-- Caption -->
-        <div class="caption-text">
-          {% if p.caption %}
-          {{ p.caption }}
-          {% else %}
-          {{ p.title }} reja oyi — {{ p.max_students }} tagacha o'quvchi uchun mo'ljallangan
-          {% endif %}
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="mt-auto">
-          {% if code == sub.plan_code %}
-          <form method="post" action="{% url 'billing:order_create' %}">
-            {% csrf_token %}
-            <input type="hidden" name="plan" value="{{ p.code }}">
-            <input type="hidden" name="months" value="{{ duration }}">
-            <input type="hidden" name="promo" value="{{ promo }}">
-            <button class="btn-primary-plan">Uzaytirish</button>
-          </form>
-
-          <a href="https://t.me/de_amirxon" target="_blank" class="btn-secondary-plan mt-1">
-            Savdo bo'yicha suhbat
-          </a>
-
-          <div class="text-center small mt-2" style="font-size: 0.75rem; color: #94a3b8;">
-            {{ sub.days_left }} kun qoldi ({{ sub.expires_at|date:"d.m.Y" }})
-          </div>
-          {% else %}
-          <form method="post" action="{% url 'billing:order_create' %}">
-            {% csrf_token %}
-            <input type="hidden" name="plan" value="{{ p.code }}">
-            <input type="hidden" name="months" value="{{ duration }}">
-            <input type="hidden" name="promo" value="{{ promo }}">
-            <button class="btn-primary-plan">Tanlash</button>
-          </form>
-
-          <a href="https://t.me/de_amirxon" target="_blank" class="btn-secondary-plan mt-1">
-            Savdo bo'yicha suhbat
-          </a>
-          {% endif %}
-        </div>
-
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-plan-primary" style="width: auto; padding: 0 32px; height: 40px;" data-bs-dismiss="modal">
+          Yopish
+        </button>
       </div>
     </div>
-    {% endwith %}
-    {% endwith %}
-    {% endfor %}
-  </div>
-
-  <!-- Bottom CTA -->
-  <div class="mt-5 pt-5 text-center">
-    <p class="text-secondary mb-3">Savollaringiz bormi yoki maxsus tarif kerakmi?</p>
-    <a href="https://t.me/de_amirxon" target="_blank" class="btn d-inline-flex align-items-center gap-3 px-5 py-3"
-      style="background: rgba(59, 130, 246, 0.1); color: var(--primary-glow); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 14px; font-weight: 700; text-decoration: none; transition: all 0.3s;">
-      <i class="bi bi-telegram fs-4"></i>
-      <span>Admin bilan bog'lanish</span>
-    </a>
   </div>
 </div>
 
-<!-- Promo Modal (Moved outside containers for z-index purposes) -->
-<div class="modal fade" id="promoModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content modal-content-dark">
-      <div class="modal-header border-bottom border-secondary border-opacity-20">
-        <h5 class="modal-title text-white">Promokod</h5>
+<!-- ═══════════════════════════════════════════════════════
+     PROMO MODAL — JS will move this to body level
+═══════════════════════════════════════════════════════ -->
+<div class="modal fade modal-dark" id="promoModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-gift" style="color: #fbbf24;"></i>
+          Promokod
+        </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <form method="get">
         <div class="modal-body">
           <input type="hidden" name="m" value="{{ duration }}">
-          <label class="form-label text-white-50 mb-3">Promokodni kiriting</label>
-          <input type="text" name="promo" class="form-control-promo" placeholder="Masalan: START2026"
+          <label class="form-label mb-2" style="color: #94a3b8; font-size: 13px; font-weight: 600;">
+            Promokodni kiriting
+          </label>
+          <input type="text" name="promo" class="promo-input" placeholder="Masalan: START2026"
             value="{{ promo }}" autocomplete="off">
-          <div class="mt-3 text-white-50 small">
-            Promokodni kiritganingizdan so'ng narxlar avtomatik ravishda yangilanadi.
-          </div>
+          <p class="mt-3 mb-0" style="color: #475569; font-size: 12.5px; font-weight: 500;">
+            Promokod kiritilgandan so'ng narxlar avtomatik yangilanadi.
+          </p>
         </div>
-        <div class="modal-footer border-top border-secondary border-opacity-20">
-          <button type="button" class="btn btn-link text-white-50 text-decoration-none" data-bs-dismiss="modal">Bekor
-            qilish</button>
-          <button type="submit" class="btn btn-primary px-4 fw-bold"
-            style="background: var(--primary); border: none;">Qo'llash</button>
+        <div class="modal-footer" style="justify-content: space-between;">
+          <button type="button" class="btn btn-link text-secondary text-decoration-none" data-bs-dismiss="modal">Bekor qilish</button>
+          <button type="submit" class="btn-plan-primary" style="width: auto; padding: 0 24px; height: 40px;">
+            <i class="bi bi-check2 me-1"></i> Qo'llash
+          </button>
         </div>
       </form>
     </div>
   </div>
 </div>
 
+<div class="plans-page">
+  <div class="container">
+
+    <!-- ⚠️ BLOCKED CENTER WARNING -->
+    {% if request.center and request.center.status == 'BLOCKED' and request.user.role in 'admin,manager' %}
+    <div class="blocked-alert">
+      <div class="blocked-icon">
+        <i class="bi bi-lock-fill" style="color: #ef4444; font-size: 1.3rem;"></i>
+      </div>
+      <div class="flex-grow-1">
+        <h5 class="text-white fw-bold mb-2" style="font-size: 15px;">Markazingiz bloklangan</h5>
+        <p style="color: #94a3b8; font-size: 13.5px; line-height: 1.7; margin-bottom: 16px;">
+          Markazingiz to'lov amalga oshirilmaganligi sababli bloklangan.
+          Davom etish uchun quyidagi tariflardan birini tanlang.
+        </p>
+        <div class="d-flex gap-3 flex-wrap">
+          <a href="{% url 'platform_global:superadmin_dashboard' %}" class="btn btn-sm btn-outline-light px-3 py-2" style="border-radius: 9px;">
+            <i class="bi bi-grid-fill me-2"></i>Boshqa markaz
+          </a>
+          <form action="{% url 'accounts:logout' %}" method="post" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-danger px-3 py-2" style="border-radius: 9px;">
+              <i class="bi bi-box-arrow-right me-2"></i>Chiqish
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- HERO HEADER -->
+    <div class="plans-hero">
+      <div class="plans-hero-left">
+        <h1>Oylik tariflar</h1>
+        <p>Kerakli tarifni tanlang va to'lov qiling. Chaqmoq bilan ta'lim markazingizni rivojlantiring.</p>
+      </div>
+      <button class="btn-history" data-bs-toggle="modal" data-bs-target="#historyModal">
+        <i class="bi bi-clock-history"></i>
+        To'lovlar tarixi
+      </button>
+    </div>
+
+    <!-- PENDING ORDERS -->
+    {% if my_pending_orders %}
+    <div class="pending-section">
+      <div class="pending-header">
+        <i class="bi bi-hourglass-split"></i>
+        Kutilayotgan So'rovlar
+      </div>
+      {% for order in my_pending_orders %}
+      <div class="pending-item">
+        <div>
+          <span class="fw-bold text-white">{{ order.plan_name }}</span>
+          <span style="background: rgba(148,163,184,0.08); border: 1px solid rgba(148,163,184,0.15); color: #94a3b8; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; margin-left: 8px;">
+            {{ order.duration_months }} oy
+          </span>
+          <div style="color: #475569; font-size: 12px; margin-top: 4px;">{{ order.created_at|date:"d.m.Y H:i" }}</div>
+        </div>
+        <div class="text-end">
+          <div class="fw-bold" style="color: #4ade80; margin-bottom: 4px;">{{ order.price|intcomma }} so'm</div>
+          <span style="background: rgba(251,191,36,0.1); color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); padding: 2px 10px; border-radius: 6px; font-size: 11px; font-weight: 700;">
+            Admin tasdig'i kutilmoqda
+          </span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- CONTROLS ROW -->
+    <div class="controls-row">
+      <!-- Duration Switcher -->
+      <div class="switcher-wrapper">
+        {% for m in durations %}
+        <a href="?m={{ m }}{% if promo %}&promo={{ promo }}{% endif %}"
+          class="dur-btn {% if m == duration %}active{% endif %}">
+          {{ m }} oy
+        </a>
+        {% endfor %}
+      </div>
+
+      <!-- Promo Button -->
+      <button class="btn-promo-action" data-bs-toggle="modal" data-bs-target="#promoModal">
+        <i class="bi bi-gift"></i>
+        Promokod
+      </button>
+    </div>
+
+    <!-- Active Promo Alert -->
+    {% if promo %}
+    <div class="promo-alert">
+      <i class="bi bi-check-circle-fill fs-5"></i>
+      <div>Promokod faollashtirildi: <span class="text-white fw-bold">{{ promo }}</span></div>
+      <a href="?m={{ duration }}" class="ms-auto text-decoration-none" style="color: #475569; font-size: 13px;">
+        <i class="bi bi-x-lg"></i> Bekor qilish
+      </a>
+    </div>
+    {% endif %}
+
+    <!-- PLANS GRID -->
+    <div class="row g-4">
+      {% for p in plans %}
+      {% with code=p.code|upper %}
+      {% with pr=pricing|get_item:p.code %}
+      <div class="col-12 col-md-6 col-xl-4">
+        <div class="plan-card {% if p.is_popular or code == 'PRO' %}popular{% endif %}">
+
+          {% if p.is_popular or code == 'PRO' %}
+          <div class="popular-badge">⚡ Eng mashhur</div>
+          {% endif %}
+
+          <!-- Icon -->
+          <div class="plan-icon
+            {% if code == 'FREE' %}free-icon
+            {% elif code == 'STANDARD' %}standard-icon
+            {% elif code == 'PRO' %}pro-icon
+            {% elif code == 'PREMIUM' %}premium-icon
+            {% else %}enterprise-icon{% endif %}">
+            {% if code == 'FREE' %}<i class="bi bi-gift"></i>
+            {% elif code == 'STANDARD' %}<i class="bi bi-lightning-fill"></i>
+            {% elif code == 'PRO' %}<i class="bi bi-stars"></i>
+            {% elif code == 'PREMIUM' %}<i class="bi bi-gem"></i>
+            {% else %}<i class="bi bi-building"></i>{% endif %}
+          </div>
+
+          <!-- Name -->
+          <div class="plan-name">
+            {% if code == "STANDARD" %}Standart
+            {% elif code == "PREMIUM" %}Premium
+            {% elif code == "PRO" %}Pro
+            {% elif code == "FREE" %}Bepul
+            {% else %}{{ p.title }}{% endif %}
+          </div>
+
+          <!-- Limit -->
+          <div class="plan-limit">
+            <i class="bi bi-people-fill me-1"></i>
+            {% if p.max_students > 10000 %}Cheksiz{% else %}1–{{ p.max_students }}{% endif %} o'quvchi
+          </div>
+
+          <div class="price-divider"></div>
+
+          <!-- Price -->
+          <div style="margin-bottom: 6px;">
+            {% if code != "FREE" and pr.discount_percent %}
+            <div class="price-old">
+              {{ pr.base_price|intcomma }} so'm
+              <span class="discount-badge">-{{ pr.discount_percent }}%</span>
+            </div>
+            {% endif %}
+            <div class="price-main {% if code == 'FREE' %}free-price{% endif %}">
+              {% if code == "FREE" %}BEPUL{% else %}{{ pr.final_price|intcomma }} so'm{% endif %}
+            </div>
+          </div>
+
+          <div class="price-period">
+            {% if code == "FREE" %}7 kunlik sinov muddati{% else %}{{ duration }} oy uchun{% endif %}
+          </div>
+
+          <!-- Caption -->
+          <div class="plan-caption">
+            {% if p.caption %}
+              {{ p.caption }}
+            {% else %}
+              {{ p.title }} reja — {{ p.max_students }} tagacha o'quvchi uchun mo'ljallangan
+            {% endif %}
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="mt-auto">
+            {% if code == sub.plan_code %}
+            <div class="active-plan-badge mb-2">
+              <i class="bi bi-check-circle-fill"></i> Joriy rejangiz
+            </div>
+            <form method="post" action="{% url 'billing:order_create' %}">
+              {% csrf_token %}
+              <input type="hidden" name="plan" value="{{ p.code }}">
+              <input type="hidden" name="months" value="{{ duration }}">
+              <input type="hidden" name="promo" value="{{ promo }}">
+              <button class="btn-plan-primary">
+                <i class="bi bi-arrow-repeat me-1"></i> Uzaytirish
+              </button>
+            </form>
+            <div class="days-left-info">
+              <i class="bi bi-calendar3 me-1"></i>
+              {{ sub.days_left }} kun qoldi · {{ sub.expires_at|date:"d.m.Y" }}gacha
+            </div>
+            {% else %}
+            <form method="post" action="{% url 'billing:order_create' %}">
+              {% csrf_token %}
+              <input type="hidden" name="plan" value="{{ p.code }}">
+              <input type="hidden" name="months" value="{{ duration }}">
+              <input type="hidden" name="promo" value="{{ promo }}">
+              <button class="btn-plan-primary">
+                {% if code == "FREE" %}Bepul boshlash{% else %}Tanlash{% endif %}
+              </button>
+            </form>
+            {% endif %}
+
+            <a href="https://t.me/de_amirxon" target="_blank" class="btn-plan-secondary mt-2">
+              <i class="bi bi-telegram"></i> Savdo bo'yicha suhbat
+            </a>
+          </div>
+
+        </div>
+      </div>
+      {% endwith %}
+      {% endwith %}
+      {% endfor %}
+    </div>
+
+    <!-- BOTTOM CTA -->
+    <div class="bottom-cta">
+      <p>Savollaringiz bormi yoki maxsus tarif kerakmi?</p>
+      <a href="https://t.me/de_amirxon" target="_blank" class="btn-telegram">
+        <i class="bi bi-telegram fs-5"></i>
+        <span>Admin bilan bog'lanish</span>
+      </a>
+    </div>
+
+  </div>
+</div>
+
 <script>
   document.addEventListener('DOMContentLoaded', function () {
+    // ✅ Modallarni body oxiriga ko'chirish (z-index muammosini hal qiladi)
+    ['historyModal', 'promoModal'].forEach(function(id) {
+      const el = document.getElementById(id);
+      if (el && el.parentElement !== document.body) {
+        document.body.appendChild(el);
+      }
+    });
+
+    // ✅ Promo modal ochilganda inputga focus
     const promoModal = document.getElementById('promoModal');
-
-    // 1. Modalni body oxiriga ko'chirish
     if (promoModal) {
-      document.body.appendChild(promoModal);
-
       promoModal.addEventListener('shown.bs.modal', function () {
         const input = promoModal.querySelector('input[name="promo"]');
         if (input) input.focus();
       });
     }
 
-    // 2. AGRESSIV TOZALASH (Sahifa yuklanganda hamma narsani ochish)
-    function clearAllOverlays() {
-      // Barcha loaderlarni o'chirish
-      document.querySelectorAll('.preloader, #global-loader, .loader, .loader-wrapper').forEach(el => {
-        el.remove(); // Shunchaki yashirmaymiz, DOMdan o'chirib tashlaymiz
-      });
-
-      // Agar modal ochiq bo'lmasa, barcha backdrop (qora fon) larni o'chirish
+    // ✅ Sahifa yuklanishida qolgan backdrop va bloklarni tozalash
+    function cleanupOverlays() {
       if (!document.body.classList.contains('modal-open')) {
         document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-        document.body.style.pointerEvents = 'auto';
-        document.body.style.overflow = 'auto';
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
       }
-
-      console.log('🛡️ Billing page forced clear.');
+      document.querySelectorAll('.preloader, #global-loader, .loader-wrapper').forEach(el => el.remove());
     }
 
-    // Bir necha marta tekshirib o'chiradi (ba'zi scriptlar kechroq ishga tushishi mumkin)
-    clearAllOverlays();
-    setTimeout(clearAllOverlays, 300);
-    setTimeout(clearAllOverlays, 1000);
+    cleanupOverlays();
+    setTimeout(cleanupOverlays, 200);
+    setTimeout(cleanupOverlays, 800);
   });
 </script>
 {% endblock %}

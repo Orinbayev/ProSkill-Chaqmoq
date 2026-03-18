@@ -20,6 +20,14 @@ def tenant_context(request):
 
     sub_ui = None
     features = set()
+    user_subscription_data = None
+
+    # User-level subscription (auto-expire check)
+    try:
+        from billing.services import get_user_subscription_dashboard_data
+        user_subscription_data = get_user_subscription_dashboard_data(user)
+    except Exception as e:
+        logger.warning(f"tenant_context user subscription error: {e}")
 
     # ── Subscription check (faqat center mavjud bo'lsa) ────────
     # ensure_center_subscription() har requestda emas,
@@ -47,6 +55,7 @@ def tenant_context(request):
             "request_center": center,
             "is_superadmin": True,
             "sub_ui": sub_ui,
+            "user_subscription": user_subscription_data,
             "feature_flags": {"leads", "finance", "kpi", "store", "tasks", "sms"},
             "feature_leads": True,
             "feature_finance": True,
@@ -60,6 +69,7 @@ def tenant_context(request):
             "request_center": center,
             "is_superadmin": False,
             "sub_ui": sub_ui,
+            "user_subscription": user_subscription_data,
             "feature_flags": features,
             "feature_leads": "leads" in features,
             "feature_finance": "finance" in features,

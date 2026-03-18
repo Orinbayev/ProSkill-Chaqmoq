@@ -21,7 +21,7 @@ def superadmin_dashboard(request):
     from django.db.models import Count, Sum, Q, Prefetch, Case, When, IntegerField
     from django.utils import timezone
     from datetime import timedelta
-    from billing.models import SubscriptionOrder, CenterSubscription
+    from billing.models import SubscriptionRequest, CenterSubscription, SubscriptionOrder
     from accounts.models import User
 
     now = timezone.now()
@@ -102,13 +102,21 @@ def superadmin_dashboard(request):
         active_centers_count=Count('id', filter=Q(status='ACTIVE')),
         blocked_centers_count=Count('id', filter=Q(status='BLOCKED')),
         archived_centers_count=Count('id', filter=Q(status='ARCHIVED')),
-        mrr=Sum('monthly_price', filter=Q(status='ACTIVE')),
         active_subs_count=Count('id', filter=Q(status='ACTIVE', expires_at__gt=now)),
         expired_count=Count('id', filter=Q(expires_at__lt=now)),
         expiring_soon_count=Count('id', filter=Q(
             expires_at__gte=now, expires_at__lte=seven_days_later
         )),
     )
+
+    # ── Real MRR: sum of all PAID orders this month ─────────────
+    # mark_order_paid() PAID statusini qo'yadi har safar savdo tasdiqlanganda
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    mrr = SubscriptionOrder.objects.filter(
+        status='PAID',
+        paid_at__gte=month_start,
+        paid_at__lte=now,
+    ).aggregate(total=Sum('final_price'))['total'] or 0
 
     # ── 5. Global student count ─────────────────────────────────
     # Filter over-capacity centers if requested
@@ -123,12 +131,12 @@ def superadmin_dashboard(request):
 
     # ── 6. Pending orders ───────────────────────────────────────
     pending_orders = (
-        SubscriptionOrder.objects
-        .filter(status='PENDING')
-        .select_related('center', 'plan')
+        SubscriptionRequest.objects
+        .filter(status=SubscriptionRequest.Status.PENDING)
+        .select_related('center', 'user')
         .only(
-            'id', 'center__name', 'plan__code', 'plan__title',
-            'duration_months', 'final_price', 'created_at',
+            'id', 'center__name', 'user__email',
+            'plan_name', 'duration_months', 'price', 'created_at',
         )
         .order_by('-created_at')
     )
@@ -148,7 +156,7 @@ def superadmin_dashboard(request):
         'active_centers_count': kpis['active_centers_count'] or 0,
         'blocked_centers_count': kpis['blocked_centers_count'] or 0,
         'archived_centers_count': kpis['archived_centers_count'] or 0,
-        'mrr':                 kpis['mrr']                 or 0,
+        'mrr':                 mrr,
         'active_subs_count':   kpis['active_subs_count']   or 0,
         'expired_count':       kpis['expired_count']       or 0,
         'expiring_soon_count': kpis['expiring_soon_count'] or 0,
@@ -231,7 +239,15 @@ def center_create(request):
                     )
                     return redirect('platform_global:superadmin_dashboard')
             except Exception as e:
-                messages.error(request, f"Xatolik: {str(e)}")
+                from django.db import IntegrityError
+                if isinstance(e, IntegrityError) and 'slug' in str(e).lower():
+                    center_form.add_error(
+                        'slug',
+                        'Bu slug allaqachon mavjud. Boshqa noyob slug tanlang.'
+                    )
+                    messages.error(request, "❌ Slug allaqachon mavjud — boshqa slug kiriting.")
+                else:
+                    messages.error(request, f"Xatolik: {str(e)}")
         else:
             messages.error(request, "Formada xatolar bor. Iltimos tekshiring.")
     

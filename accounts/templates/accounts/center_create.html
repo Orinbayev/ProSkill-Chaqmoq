@@ -23,6 +23,7 @@
         --sa-green-m: rgba(34, 197, 94, 0.12);
         --sa-amber: #f59e0b;
         --sa-amber-m: rgba(245, 158, 11, 0.12);
+        --sa-red: #ef4444;
     }
 
     .sa-page {
@@ -229,9 +230,13 @@
     }
 
     .sa-field .error-text {
-        font-size: 0.75rem;
-        color: var(--sa-red);
+        font-size: 0.78rem;
+        color: #ef4444 !important;
+        font-weight: 600;
         margin-top: 6px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
     }
 
     /* ── Feature Toggles ────────────────────────── */
@@ -417,6 +422,19 @@
 
     <form method="post">
         {% csrf_token %}
+
+        {% if center_form.errors or director_form.errors %}
+        <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.35);border-radius:12px;padding:14px 20px;margin-bottom:20px;color:#fca5a5;font-size:0.9rem;">
+            <i class="bi bi-exclamation-triangle-fill" style="color:#ef4444;"></i>
+            <strong>Formada xatolar bor. Iltimos quyidagi maydonlarni tekshiring:</strong>
+            {% for field in center_form %}{% if field.errors %}
+            <div style="margin-top:4px;">• {{ field.label }}: {{ field.errors.0 }}</div>
+            {% endif %}{% endfor %}
+            {% for field in director_form %}{% if field.errors %}
+            <div style="margin-top:4px;">• {{ field.label }}: {{ field.errors.0 }}</div>
+            {% endif %}{% endfor %}
+        </div>
+        {% endif %}
 
         <!-- 1. Markaz Ma'lumotlari -->
         <div class="sa-card">

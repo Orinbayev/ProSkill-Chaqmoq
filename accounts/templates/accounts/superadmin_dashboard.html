@@ -1614,7 +1614,7 @@
         </a>
 
         <!-- MRR -->
-        <div class="sa-kpi kpi-green" id="mrrCard" onclick="openPaymentsModal()">
+        <div class="sa-kpi kpi-green" id="mrrCard" onclick="openPaymentsModal()" style="cursor:pointer;">
             <div class="sa-kpi-head">
                 <span class="sa-kpi-label">MRR (Oylik tushum)</span>
                 <span class="sa-kpi-icon"><i class="bi bi-bank2"></i></span>
@@ -1622,8 +1622,8 @@
             <div class="sa-kpi-value" style="font-size:1.55rem;">{{ mrr|intcomma }} <span
                     style="font-size:0.9rem;font-weight:500;color:var(--sa-muted);">so'm</span></div>
             <div class="sa-kpi-sub" style="margin-top:10px; display: flex; align-items: center; gap: 6px;">
-                Faol obunalar asosida hisoblangan
-                <i class="bi bi-info-circle-fill" style="opacity: 0.5;"></i>
+                Shu oylik haqiqiy savdo · bosib ko'ring
+                <i class="bi bi-arrow-up-right-circle-fill" style="opacity: 0.6;"></i>
             </div>
             <div
                 style="position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: rgba(34, 197, 94, 0.2);">
@@ -1663,8 +1663,7 @@
         <div class="sa-alert-head">
             <h6><i class="bi bi-hourglass-split"></i> Tasdiqlash Kutilayotgan Obunalar</h6>
             <span class="sa-badge"
-                style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.25);font-size:0.72rem;">{{
-                pending_orders.count }} ta so'rov</span>
+                style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.25);font-size:0.72rem;">{{ pending_orders.count }} ta so'rov</span>
         </div>
         <div class="sa-table-wrap">
             <table class="sa-table">
@@ -1682,22 +1681,28 @@
                     {% for order in pending_orders %}
                     <tr>
                         <td style="font-weight:700;">{{ order.center.name }}</td>
-                        <td><span class="sa-badge sa-badge-plan">{{ order.plan.code }}</span></td>
+                        <td><span class="sa-badge sa-badge-plan">{{ order.plan_name }}</span></td>
                         <td style="color:var(--sa-muted);">{{ order.duration_months }} oy</td>
-                        <td style="font-weight:700;color:var(--sa-green);">{{ order.final_price|intcomma }} so'm</td>
+                        <td style="font-weight:700;color:var(--sa-green);">{{ order.price|intcomma }} so'm</td>
                         <td style="color:var(--sa-muted);font-size:0.78rem;">{{ order.created_at|date:"d.m.Y H:i" }}
                         </td>
                         <td style="text-align:right;">
                             <div style="display:flex;gap:8px;justify-content:flex-end;">
-                                <a href="{% url 'billing:order_confirm_demo' order.id %}" class="sa-btn sa-btn-primary"
-                                    style="padding:6px 14px;font-size:0.78rem;border-radius:8px;">
-                                    <i class="bi bi-check-lg"></i> Tasdiqlash
-                                </a>
-                                <a href="{% url 'billing:order_reject_demo' order.id %}" class="sa-btn sa-btn-secondary"
-                                    style="padding:6px 12px;font-size:0.78rem;border-radius:8px;color:#f87171;"
-                                    onclick="return confirm('Rad etishni tasdiqlaysizmi?')">
-                                    <i class="bi bi-x-lg"></i>
-                                </a>
+                                <form method="post" action="{% url 'billing:subscription_request_approve' order.id %}" style="margin:0;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="sa-btn sa-btn-primary"
+                                        style="padding:6px 14px;font-size:0.78rem;border-radius:8px;">
+                                        <i class="bi bi-check-lg"></i> Tasdiqlash
+                                    </button>
+                                </form>
+                                <form method="post" action="{% url 'billing:subscription_request_reject' order.id %}" style="margin:0;"
+                                      onsubmit="return confirm('Rad etishni tasdiqlaysizmi?')">
+                                    {% csrf_token %}
+                                    <button type="submit" class="sa-btn sa-btn-secondary"
+                                        style="padding:6px 12px;font-size:0.78rem;border-radius:8px;color:#f87171;">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </form>
                             </div>
                         </td>
                     </tr>
@@ -1796,6 +1801,7 @@
                                 <div class="sa-center-avatar"><i class="bi bi-building"></i></div>
                                 <div>
                                     <div class="sa-center-name">{{ c.name }}</div>
+                                    <div style="font-size:0.72rem;color:#6366f1;font-weight:600;letter-spacing:0.3px;margin-top:1px;">@{{ c.slug }}</div>
                                     <div class="sa-center-addr"><i class="bi bi-geo-alt" style="font-size:0.7rem;"></i>
                                         {{ c.address|default:"Manzil yo'q" }}</div>
                                 </div>

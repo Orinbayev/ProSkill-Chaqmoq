@@ -1,4 +1,7 @@
 # billing/models.py
+import uuid
+
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -50,7 +53,10 @@ class SubscriptionPlan(models.Model):
     
     code = models.CharField(max_length=20, unique=True)
     title = models.CharField(max_length=50)
+    name = models.CharField(max_length=100, blank=True, default="")
     monthly_price = models.PositiveIntegerField(default=0)
+    price = models.PositiveIntegerField(default=0, help_text="Narx (so'm)")
+    duration_days = models.PositiveIntegerField(default=30)
 
     max_users = models.PositiveIntegerField(default=50)
     max_groups = models.PositiveIntegerField(default=30)
@@ -76,12 +82,25 @@ class SubscriptionPlan(models.Model):
         verbose_name="Ruxsatlar (M2M)"
     )
     active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now, editable=False)
 
     class Meta:
         ordering = ("tier", "monthly_price",) # Order by Tier first
 
     def __str__(self):
         return f"[{self.tier}] {self.title} ({self.code})"
+
+    def save(self, *args, **kwargs):
+        # Backward-compatible synchronization between old/new naming and pricing fields.
+        if not self.name and self.title:
+            self.name = self.title
+        if self.name and not self.title:
+            self.title = self.name
+        if not self.price and self.monthly_price:
+            self.price = self.monthly_price
+        if not self.monthly_price and self.price:
+            self.monthly_price = self.price
+        super().save(*args, **kwargs)
 
 
 def default_trial_expires():
@@ -164,6 +183,84 @@ class CenterSubscription(models.Model):
         return f"{self.center} → {self.plan.code} [{self.status}]"
 
 
+class Subscription(models.Model):
+    """
+    User-level subscription (SaaS).
+    Existing CenterSubscription logic is kept intact for backward compatibility.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="billing_subscriptions",
+    )
+    plan = models.ForeignKey(SubscriptionPlan, on_delete=models.PROTECT, related_name="user_subscriptions")
+    start_date = models.DateField(default=timezone.localdate)
+    end_date = models.DateField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user"],
+                condition=models.Q(is_active=True),
+                name="unique_active_subscription_per_user",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["user", "is_active"]),
+            models.Index(fields=["end_date"]),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self.start_date:
+            self.start_date = timezone.localdate()
+        if not self.end_date and self.plan_id and self.start_date:
+            self.end_date = self.start_date + timezone.timedelta(days=self.plan.duration_days)
+        super().save(*args, **kwargs)
+
+    @property
+    def remaining_days(self) -> int:
+        if not self.end_date:
+            return 0
+        return max((self.end_date - timezone.localdate()).days, 0)
+
+    def __str__(self):
+        return f"{self.user_id} → {self.plan.code} ({self.start_date} - {self.end_date})"
+
+
+class PaymentTransaction(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        PAID = "paid", "Paid"
+        CANCELLED = "cancelled", "Cancelled"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="payment_transactions",
+    )
+    amount = models.PositiveIntegerField()
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    transaction_id = models.CharField(max_length=64, unique=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["user", "status"]),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self.transaction_id:
+            self.transaction_id = uuid.uuid4().hex
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.transaction_id} ({self.status})"
+
+
 class PromoCode(models.Model):
     code = models.CharField(max_length=30, unique=True)
     percent_off = models.PositiveIntegerField(
@@ -182,6 +279,22 @@ class PromoCode(models.Model):
     plans = models.ManyToManyField(SubscriptionPlan, blank=True, related_name="promocodes")
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def discount_percent(self):
+        return self.percent_off
+
+    @discount_percent.setter
+    def discount_percent(self, value):
+        self.percent_off = value
+
+    @property
+    def is_active(self):
+        return self.active
+
+    @is_active.setter
+    def is_active(self, value):
+        self.active = value
 
     def is_valid_now(self) -> bool:
         now = timezone.now()
@@ -222,3 +335,38 @@ class SubscriptionOrder(models.Model):
 
     def __str__(self):
         return f"#{self.id} {self.center.slug} {self.plan.code} x{self.duration_months} ({self.status})"
+
+
+class SubscriptionRequest(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="subscription_requests",
+    )
+    center = models.ForeignKey(
+        Center,
+        on_delete=models.CASCADE,
+        related_name="subscription_requests",
+    )
+    plan_name = models.CharField(max_length=120)
+    duration_months = models.PositiveIntegerField(default=1)
+    price = models.PositiveIntegerField(default=0)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["status", "created_at"]),
+            models.Index(fields=["user", "status"]),
+            models.Index(fields=["center", "status"]),
+        ]
+
+    def __str__(self):
+        return f"REQ#{self.id} {self.center.name} {self.plan_name} ({self.status})"

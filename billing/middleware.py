@@ -1,10 +1,8 @@
 # billing/middleware.py
 from django.shortcuts import redirect
-from django.urls import reverse
 from django.utils.deprecation import MiddlewareMixin
-from django.utils import timezone
 
-from .services import ensure_center_subscription
+from .services import ensure_center_subscription, check_subscription
 
 
 class SubscriptionMiddleware(MiddlewareMixin):
@@ -20,6 +18,10 @@ class SubscriptionMiddleware(MiddlewareMixin):
 
         if not user or not user.is_authenticated:
             return None
+
+        # Auto-expire user subscriptions on request.
+        if not user.is_superuser:
+            check_subscription(user)
 
         # superadmin bloklanmaydi (u platforma egasi)
         if user.is_superuser:
@@ -52,4 +54,17 @@ class SubscriptionMiddleware(MiddlewareMixin):
             if user_role not in ("student", "parent", "teacher"):
                 return redirect("billing:blocked")
 
+        return None
+
+
+class UserSubscriptionExpiryMiddleware(MiddlewareMixin):
+    """
+    Lightweight middleware for user-level subscriptions only.
+    Use this if you don't need center-level blocking rules.
+    """
+
+    def process_request(self, request):
+        user = getattr(request, "user", None)
+        if user and user.is_authenticated and not user.is_superuser:
+            check_subscription(user)
         return None

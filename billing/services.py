@@ -1,6 +1,10 @@
 # billing/services.py
 from __future__ import annotations
 from dataclasses import dataclass
+from datetime import date, datetime
+
+from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.db import transaction
 from django.db import models
@@ -8,7 +12,15 @@ from django.db.models import Q
 import logging
 
 from accounts.models import Center
-from .models import SubscriptionPlan, CenterSubscription, PromoCode, SubscriptionOrder, PlanFeature
+from .models import (
+    SubscriptionPlan,
+    CenterSubscription,
+    PromoCode,
+    SubscriptionOrder,
+    PlanFeature,
+    Subscription,
+    PaymentTransaction,
+)
 
 
 # ============================================================
@@ -96,6 +108,190 @@ class PricingResult:
     discount_percent: int
     final_price: int
     promo: PromoCode | None
+
+
+def _resolve_plan(plan: SubscriptionPlan | int | str) -> SubscriptionPlan:
+    if isinstance(plan, SubscriptionPlan):
+        if not plan.pk:
+            raise ValidationError("Subscription plan does not exist.")
+        return plan
+
+    if isinstance(plan, int):
+        resolved = SubscriptionPlan.objects.filter(pk=plan, active=True).first()
+    else:
+        plan_key = str(plan or "").strip()
+        resolved = SubscriptionPlan.objects.filter(
+            Q(code__iexact=plan_key) | Q(name__iexact=plan_key) | Q(title__iexact=plan_key),
+            active=True,
+        ).order_by("-id").first()
+
+    if not resolved:
+        raise ValidationError("Subscription plan not found or inactive.")
+    return resolved
+
+
+@transaction.atomic
+def activate_subscription(
+    user,
+    plan: SubscriptionPlan | int | str,
+    start_date: date | datetime | None = None,
+) -> Subscription:
+    """
+    Activates a user subscription:
+    1) deactivates old active subscriptions
+    2) creates a new active subscription
+    3) auto-calculates end_date from plan.duration_days
+    """
+    if not user or not getattr(user, "pk", None):
+        raise ValidationError("Valid user is required.")
+
+    plan_obj = _resolve_plan(plan)
+
+    if start_date is None:
+        start = timezone.localdate()
+    elif isinstance(start_date, datetime):
+        start = start_date.date()
+    else:
+        start = start_date
+
+    Subscription.objects.select_for_update().filter(user_id=user.pk, is_active=True).update(is_active=False)
+
+    subscription = Subscription.objects.create(
+        user=user,
+        plan=plan_obj,
+        start_date=start,
+        is_active=True,
+    )
+    return subscription
+
+
+def check_subscription(user) -> Subscription | None:
+    """
+    Returns active subscription for user.
+    If expired, deactivates it automatically and returns None.
+    """
+    if not user or not getattr(user, "pk", None):
+        return None
+
+    sub = (
+        Subscription.objects
+        .filter(user_id=user.pk, is_active=True)
+        .select_related("plan")
+        .order_by("-created_at")
+        .first()
+    )
+    if not sub:
+        return None
+
+    today = timezone.localdate()
+    if sub.end_date and sub.end_date < today:
+        Subscription.objects.filter(pk=sub.pk).update(is_active=False)
+        return None
+
+    return sub
+
+
+def get_subscription_owner_for_center(center: Center, actor=None):
+    """
+    Resolves which user's subscription should be used for center-level limits.
+    Priority:
+    1) director of center
+    2) actor in same center
+    3) manager of center
+    """
+    if not center:
+        return None
+
+    UserModel = get_user_model()
+    owner = UserModel.objects.filter(center=center, role="director").order_by("id").first()
+    if owner:
+        return owner
+
+    if actor and getattr(actor, "center_id", None) == center.id:
+        return actor
+
+    return UserModel.objects.filter(center=center, role="manager").order_by("id").first()
+
+
+def get_student_limit_for_user(user, free_limit: int = 50) -> int:
+    sub = check_subscription(user)
+    if not sub or not sub.plan:
+        return free_limit
+
+    plan_code = (sub.plan.code or sub.plan.name or sub.plan.title or "").upper()
+    if plan_code == "FREE":
+        return free_limit
+
+    return sub.plan.max_students or free_limit
+
+
+def get_center_student_limit(center: Center, actor=None, free_limit: int = 50) -> int:
+    """
+    Student limit policy:
+    - FREE  -> 50
+    - PRO/* -> plan.max_students
+    """
+    owner = get_subscription_owner_for_center(center=center, actor=actor)
+    if owner:
+        return get_student_limit_for_user(owner, free_limit=free_limit)
+
+    # Backward compatibility fallback for older center-based subscriptions.
+    sub = getattr(center, "active_subscription", None) or getattr(center, "subscription", None)
+    if sub and getattr(sub, "plan", None):
+        plan_code = (sub.plan.code or sub.plan.name or sub.plan.title or "").upper()
+        if plan_code == "FREE":
+            return free_limit
+        return sub.plan.max_students or free_limit
+    return free_limit
+
+
+def get_user_subscription_dashboard_data(user) -> dict:
+    """
+    Dashboard payload for frontend/API:
+    - current plan
+    - start_date
+    - end_date
+    - remaining_days
+    """
+    sub = check_subscription(user)
+    if not sub:
+        return {
+            "has_active_subscription": False,
+            "plan": "FREE",
+            "start_date": None,
+            "end_date": None,
+            "remaining_days": 0,
+        }
+
+    return {
+        "has_active_subscription": True,
+        "plan": sub.plan.name or sub.plan.title or sub.plan.code,
+        "plan_code": sub.plan.code,
+        "start_date": sub.start_date,
+        "end_date": sub.end_date,
+        "remaining_days": sub.remaining_days,
+    }
+
+
+def get_billing_history(user):
+    if not user or not getattr(user, "pk", None):
+        return PaymentTransaction.objects.none()
+    return PaymentTransaction.objects.filter(user_id=user.pk).order_by("-created_at")
+
+
+def get_plan_list_payload() -> list[dict]:
+    plans = SubscriptionPlan.objects.filter(active=True).order_by("price", "monthly_price", "id")
+    payload = []
+    for plan in plans:
+        payload.append({
+            "id": plan.id,
+            "code": plan.code,
+            "name": plan.name or plan.title,
+            "price": plan.price or plan.monthly_price,
+            "duration_days": plan.duration_days,
+            "max_students": plan.max_students,
+        })
+    return payload
 
 
 def ensure_center_subscription(center: Center) -> CenterSubscription | None:

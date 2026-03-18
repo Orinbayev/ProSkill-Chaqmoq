@@ -33,6 +33,7 @@ from education.models import Group, Enrollment, TuitionMonth, Category
 from store.models import Product, PurchaseRequest, Sale
 
 from .forms import ProfileForm
+from billing.decorators import require_pro
 
 U = get_user_model()
 logger = logging.getLogger(__name__)
@@ -328,6 +329,7 @@ def home(request):
     return redirect("/admin/accounts/user/")
 
 @login_required
+@require_pro
 def dashboard_stats_premium(request):
     if not (request.user.is_superuser or getattr(request.user, 'role', None) in ('director', 'manager')):
         return redirect("core:home")
@@ -1520,6 +1522,7 @@ def _process_user_import(request, role="student"):
 
     created, skipped, errors, coins_added = 0, 0, 0, 0
     problems = []
+    limit_reached_message = ""
 
     # ✅ Case-insensitive email check: hamma emaillarni lower() qilib olamiz
     all_known_emails = set(e.lower() for e in U.objects.values_list("email", flat=True) if e)
@@ -1569,6 +1572,16 @@ def _process_user_import(request, role="student"):
                 email_val = cand
 
             tel1 = _normalize_phone(_cell_to_str(r[col_map["tel1"]])) if (col_map["tel1"] is not None and col_map["tel1"] < len(r)) else ""
+
+            if normalized_role == "student":
+                from accounts.student_limit import check_student_limit
+                limit_state = check_student_limit(center, raise_error=False, actor=request.user)
+                if limit_state["is_at_limit"]:
+                    limit_reached_message = (
+                        f"O'quvchi limiti to'ldi ({limit_state['current_count']}/{limit_state['limit']}, "
+                        f"tarif: {limit_state['plan_name']}). Import to'xtatildi."
+                    )
+                    break
             
             with transaction.atomic():
                 u = U.objects.create(
@@ -1643,6 +1656,8 @@ def _process_user_import(request, role="student"):
         msg += f" {coins_added} ta o'quvchiga chaqmoq berildi."
     
     messages.success(request, msg)
+    if limit_reached_message:
+        messages.error(request, f"❌ {limit_reached_message}")
     if skipped: messages.info(request, f"ℹ️ {skipped} ta qator ism yo'qligi sabab tashlab o'tildi.")
     if errors: messages.warning(request, f"⚠️ {errors} ta qatorda texnik xatolik: {', '.join(problems[:3])}")
     
@@ -2208,4 +2223,3 @@ def low_activity_students(request):
         'q': q,
         'selected_reason': filter_reason
     })
-
