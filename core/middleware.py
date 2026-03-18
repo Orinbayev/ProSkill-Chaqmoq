@@ -23,7 +23,7 @@ EXCLUDED_PREFIXES = {
 NO_REDIRECT_PREFIXES = (
     '/admin/', '/platform/', '/static/', '/media/',
     '/health/', '/logout/', '/emergency-enter-now/',
-    '/hisob/', '/c/', '/api/', '/click/',
+    '/hisob/', '/c/', '/api/', '/click',
 )
 
 _SLUG_RE = re.compile(r'^/([a-z0-9][a-z0-9\-]{0,62})/')

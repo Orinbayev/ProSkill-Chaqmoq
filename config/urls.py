@@ -46,14 +46,11 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
 
     # ✅ Click Shop API endpoints — global root
-    path('api/click/webhook', billing_click_views.click_webhook, name='click_webhook_no_slash'),
-    path('api/click/webhook/', billing_click_views.click_webhook, name='click_webhook'),
-    path('click/prepare', billing_click_views.click_prepare, name='click_prepare_no_slash'),
     path('click/prepare/', billing_click_views.click_prepare, name='click_prepare'),
-    path('click/complete', billing_click_views.click_complete, name='click_complete_no_slash'),
     path('click/complete/', billing_click_views.click_complete, name='click_complete'),
-    # Legacy callback alias for old merchant settings
-    path('click/callback/', billing_click_views.click_webhook, name='click_callback'),
+    path('click/webhook/', billing_click_views.click_webhook, name='click_webhook'),
+
+    # Browser Redirects
     path('payment/success/', billing_click_views.payment_success, name='payment_success'),
     path('payment/cancel/', billing_click_views.payment_cancel, name='payment_cancel'),
 

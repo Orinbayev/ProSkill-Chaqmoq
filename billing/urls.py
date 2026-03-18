@@ -11,8 +11,6 @@ urlpatterns = [
     path("api/plans/", views.plans_api, name="plans_api"),
     path("api/current-subscription/", views.current_subscription_api, name="current_subscription_api"),
     path("api/payment-status/", click_views.payment_status_api, name="payment_status_api"),
-    path("api/click/webhook", click_views.click_webhook, name="click_webhook_no_slash"),
-    path("api/click/webhook/", click_views.click_webhook, name="click_webhook"),
     path("order/create/", views.order_create, name="order_create"),
     path("requests/<int:pk>/approve/", views.subscription_request_approve, name="subscription_request_approve"),
     path("requests/<int:pk>/reject/", views.subscription_request_reject, name="subscription_request_reject"),
@@ -24,8 +22,6 @@ urlpatterns = [
     # ✅ Click payment integration
     path("order/click-create/", click_views.create_order_and_redirect, name="click_create"),
     path("order/click-payment-url/", click_views.create_order_and_redirect, name="click_payment_url"),
-    path("click/prepare/", click_views.click_prepare, name="click_prepare"),
-    path("click/complete/", click_views.click_complete, name="click_complete"),
     path("payment/success/", click_views.payment_success, name="payment_success"),
     path("payment/cancel/", click_views.payment_cancel, name="payment_cancel"),
 ]
