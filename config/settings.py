@@ -186,6 +186,21 @@ LOGGING = {
     "root": {"handlers": ["console"], "level": "INFO"},
 }
 
+# ==================== CLICK PAYMENT ====================
+CLICK_SERVICE_ID = os.getenv("CLICK_SERVICE_ID", "")
+CLICK_MERCHANT_ID = os.getenv("CLICK_MERCHANT_ID", "")
+CLICK_SECRET_KEY = os.getenv("CLICK_SECRET_KEY", "")
+# Local default: return to platform dashboard after payment.
+CLICK_RETURN_URL = os.getenv("CLICK_RETURN_URL", "http://127.0.0.1:8000/platform/")
+CLICK_SUCCESS_REDIRECT_URL = os.getenv("CLICK_SUCCESS_REDIRECT_URL", "http://127.0.0.1:8000/platform/")
+CLICK_WEBHOOK_URL = os.getenv("CLICK_WEBHOOK_URL", "https://chaqmoqapp.uz/api/click/webhook/")
+CLICK_PREPARE_URL = os.getenv("CLICK_PREPARE_URL", "https://chaqmoqapp.uz/click/prepare/")
+CLICK_COMPLETE_URL = os.getenv("CLICK_COMPLETE_URL", "https://chaqmoqapp.uz/click/complete/")
+
+
+# Telegram bot for payment notifications (official Telegram API via aiogram)
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", os.getenv("BOT_TOKEN", ""))
+
 # ==================== PRODUCTION OVERRIDE ====================
 # Auto-load production settings when deployed to Render
 if os.getenv("MODE") == "production" or os.getenv("RENDER"):

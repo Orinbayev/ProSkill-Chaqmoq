@@ -21,7 +21,7 @@ def superadmin_dashboard(request):
     from django.db.models import Count, Sum, Q, Prefetch, Case, When, IntegerField
     from django.utils import timezone
     from datetime import timedelta
-    from billing.models import SubscriptionRequest, CenterSubscription, SubscriptionOrder
+    from billing.models import SubscriptionOrder
     from accounts.models import User
 
     now = timezone.now()
@@ -129,19 +129,7 @@ def superadmin_dashboard(request):
         role='student', is_archived=False
     ).count()
 
-    # ── 6. Pending orders ───────────────────────────────────────
-    pending_orders = (
-        SubscriptionRequest.objects
-        .filter(status=SubscriptionRequest.Status.PENDING)
-        .select_related('center', 'user')
-        .only(
-            'id', 'center__name', 'user__email',
-            'plan_name', 'duration_months', 'price', 'created_at',
-        )
-        .order_by('-created_at')
-    )
-
-    # ── 7. Context ──────────────────────────────────────────────
+    # ── 6. Context ──────────────────────────────────────────────
     context = {
         'centers': centers,
         'search_q': search_q,
@@ -149,7 +137,6 @@ def superadmin_dashboard(request):
         'plan_filter': plan_filter,
         'expiry_filter': expiry_filter,
         'limit_filter': limit_filter,
-        'pending_orders': pending_orders,
 
         # KPIs (from single aggregate)
         'total_centers':       kpis['total_centers']       or 0,

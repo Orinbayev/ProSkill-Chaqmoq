@@ -1,24 +1,22 @@
 # billing/views.py
+import json
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-from django.db import transaction
-from django.db.models import Q
 
-from .models import SubscriptionPlan, SubscriptionOrder, SubscriptionRequest
+from . import click_views
+from .models import SubscriptionPlan, SubscriptionRequest
 from .services import (
     DURATIONS,
     ensure_center_subscription,
     calculate_price,
-    create_order,
-    mark_order_paid,
     get_subscription_ui_state,
     get_plan_list_payload,
     get_user_subscription_dashboard_data,
     get_billing_history,
-    activate_subscription,
 )
 
 
@@ -136,6 +134,10 @@ def plans(request):
 
 @login_required
 def order_create(request):
+    """
+    Backward-compatible endpoint.
+    Old flow used manual admin approval; now it is fully automatic via Click webhook.
+    """
     role = getattr(request.user, "role", None)
     if role in ("student", "parent"):
         return redirect("core:home")
@@ -148,61 +150,48 @@ def order_create(request):
         messages.error(request, "Center topilmadi.")
         return redirect("core:home")
 
-    plan_code = (request.POST.get("plan") or "").strip().upper()
+    click_response = click_views.create_order_and_redirect(request)
+    wants_json = (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or "application/json" in (request.headers.get("Accept") or "")
+    )
+    if wants_json:
+        return click_response
+
+    if click_response.status_code != 200:
+        try:
+            payload = json.loads(click_response.content.decode("utf-8"))
+        except (TypeError, ValueError, UnicodeDecodeError):
+            payload = {}
+        messages.error(request, payload.get("error_note") or "Click order yaratishda xatolik.")
+        return redirect("billing:plans")
+
     try:
-        months = int(request.POST.get("months") or 1)
-    except (TypeError, ValueError):
-        months = 1
-    if months not in DURATIONS:
-        months = 1
-    promo = (request.POST.get("promo") or "").strip().upper()
+        payload = json.loads(click_response.content.decode("utf-8"))
+    except (TypeError, ValueError, UnicodeDecodeError):
+        messages.error(request, "To'lov URL ni olishda xatolik.")
+        return redirect("billing:plans")
 
-    plan = get_object_or_404(SubscriptionPlan, code=plan_code, active=True)
+    payment_url = (payload.get("payment_url") or "").strip()
+    if not payment_url:
+        messages.error(request, "To'lov URL bo'sh qaytdi.")
+        return redirect("billing:plans")
 
-    pricing = calculate_price(plan, months, promo, center=center)
-    SubscriptionRequest.objects.create(
-        user=request.user,
-        center=center,
-        plan_name=plan.title,
-        duration_months=months,
-        price=pricing.final_price,
-        status=SubscriptionRequest.Status.PENDING,
-    )
-
-    messages.success(
-        request,
-        f"So'rov yuborildi ✅ '{plan.title}' tarifi ({months} oy) uchun so'rovingiz admin tasdiqlagach faollashadi."
-    )
-    return redirect("billing:plans")
+    return redirect(payment_url)
 
 
 @login_required
 def order_confirm_demo(request, pk: int):
-    """
-    DEMO: superadmin tez test qilish uchun.
-    """
-    if not request.user.is_superuser:
-        return redirect("billing:plans")
-
-    order = get_object_or_404(SubscriptionOrder, pk=pk)
-    mark_order_paid(order)
-    messages.success(request, "To'lov tasdiqlandi ✅")
-    return redirect("platform_global:superadmin_dashboard")
+    if request.user.is_superuser:
+        return redirect("platform_global:superadmin_dashboard")
+    return redirect("billing:plans")
 
 
 @login_required
 def order_reject_demo(request, pk: int):
-    """
-    DEMO: superadmin to'lov so'rovini rad etishi uchun.
-    """
-    if not request.user.is_superuser:
-        return redirect("billing:plans")
-
-    order = get_object_or_404(SubscriptionOrder, pk=pk)
-    order.status = SubscriptionOrder.Status.CANCELED
-    order.save()
-    messages.warning(request, "To'lov so'rovi rad etildi ❌")
-    return redirect("platform_global:superadmin_dashboard")
+    if request.user.is_superuser:
+        return redirect("platform_global:superadmin_dashboard")
+    return redirect("billing:plans")
 
 
 @login_required
@@ -238,91 +227,17 @@ def current_subscription_api(request):
     })
 
 
-def _resolve_plan_from_name(plan_name: str) -> SubscriptionPlan | None:
-    return (
-        SubscriptionPlan.objects
-        .filter(
-            Q(code__iexact=plan_name) |
-            Q(name__iexact=plan_name) |
-            Q(title__iexact=plan_name),
-            active=True,
-        )
-        .order_by("-id")
-        .first()
-    )
-
-
 @login_required
 @require_POST
 def subscription_request_approve(request, pk: int):
-    if not request.user.is_superuser:
-        return redirect("billing:plans")
-
-    with transaction.atomic():
-        sub_request = (
-            SubscriptionRequest.objects
-            .select_for_update()
-            .select_related("user", "center")
-            .filter(pk=pk)
-            .first()
-        )
-        if not sub_request:
-            messages.error(request, "So'rov topilmadi.")
-            return redirect("platform_global:superadmin_dashboard")
-
-        if sub_request.status != SubscriptionRequest.Status.PENDING:
-            messages.warning(request, "Bu so'rov allaqachon ko'rib chiqilgan.")
-            return redirect("platform_global:superadmin_dashboard")
-
-        plan = _resolve_plan_from_name(sub_request.plan_name)
-        if not plan:
-            messages.error(request, f"Tarif topilmadi: {sub_request.plan_name}")
-            return redirect("platform_global:superadmin_dashboard")
-
-        # 1) User-level access activation (PRO gating etc.)
-        activate_subscription(sub_request.user, plan)
-
-        # 2) Keep center-level subscription flow consistent with existing logic.
-        normalized_months = sub_request.duration_months if sub_request.duration_months in DURATIONS else 1
-        legacy_order = create_order(
-            center=sub_request.center,
-            plan=plan,
-            months=normalized_months,
-            promo_code=None,
-        )
-        mark_order_paid(legacy_order)
-
-        sub_request.status = SubscriptionRequest.Status.APPROVED
-        sub_request.save(update_fields=["status", "updated_at"])
-
-    messages.success(request, "Obuna so'rovi tasdiqlandi ✅")
-    return redirect("platform_global:superadmin_dashboard")
+    if request.user.is_superuser:
+        return redirect("platform_global:superadmin_dashboard")
+    return redirect("billing:plans")
 
 
 @login_required
 @require_POST
 def subscription_request_reject(request, pk: int):
-    if not request.user.is_superuser:
-        return redirect("billing:plans")
-
-    with transaction.atomic():
-        sub_request = (
-            SubscriptionRequest.objects
-            .select_for_update()
-            .select_related("center")
-            .filter(pk=pk)
-            .first()
-        )
-        if not sub_request:
-            messages.error(request, "So'rov topilmadi.")
-            return redirect("platform_global:superadmin_dashboard")
-
-        if sub_request.status != SubscriptionRequest.Status.PENDING:
-            messages.warning(request, "Bu so'rov allaqachon ko'rib chiqilgan.")
-            return redirect("platform_global:superadmin_dashboard")
-
-        sub_request.status = SubscriptionRequest.Status.REJECTED
-        sub_request.save(update_fields=["status", "updated_at"])
-
-    messages.warning(request, "Obuna so'rovi rad etildi ❌")
-    return redirect("platform_global:superadmin_dashboard")
+    if request.user.is_superuser:
+        return redirect("platform_global:superadmin_dashboard")
+    return redirect("billing:plans")

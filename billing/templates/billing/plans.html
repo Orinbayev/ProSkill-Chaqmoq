@@ -352,6 +352,15 @@
     box-shadow: 0 8px 24px rgba(59,130,246,0.35);
   }
 
+  .btn-plan-primary:disabled,
+  .btn-plan-primary.is-loading {
+    opacity: 0.8;
+    cursor: wait;
+    transform: none;
+    box-shadow: none;
+    filter: none;
+  }
+
   .btn-plan-secondary {
     background: rgba(255,255,255,0.04);
     border: 1px solid var(--border);
@@ -405,9 +414,64 @@
     align-items: center;
     padding: 14px 22px;
     border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.25s ease;
+  }
+
+  .pending-item:hover {
+    background: rgba(255,255,255,0.02);
   }
 
   .pending-item:last-child { border-bottom: none; }
+
+  .pending-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  .pending-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.15px;
+    border: 1px solid transparent;
+  }
+
+  .pending-badge.pending {
+    color: #fbbf24;
+    background: rgba(251,191,36,0.12);
+    border-color: rgba(251,191,36,0.28);
+    animation: pendingPulse 1.8s ease-in-out infinite;
+  }
+
+  .pending-badge.paid {
+    color: #4ade80;
+    background: rgba(34,197,94,0.12);
+    border-color: rgba(34,197,94,0.28);
+  }
+
+  .pending-badge.cancelled {
+    color: #f87171;
+    background: rgba(239,68,68,0.12);
+    border-color: rgba(239,68,68,0.28);
+  }
+
+  .pending-timer {
+    color: #93c5fd;
+    font-size: 12px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  @keyframes pendingPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(251,191,36,0.25); }
+    50% { box-shadow: 0 0 0 8px rgba(251,191,36,0); }
+  }
 
   /* ═══════════════════════════════════════════
      BOTTOM CTA
@@ -607,16 +671,16 @@
                   </td>
                   <td style="color: #64748b; white-space: nowrap;">{{ order.updated_at|date:"d.m.Y H:i" }}</td>
                   <td>
-                    <span class="fw-bold text-white">{{ order.price|intcomma }} so'm</span>
+                    <span class="fw-bold text-white">{{ order.amount|default:order.price|intcomma }} so'm</span>
                   </td>
                   <td style="text-align: right; padding-right: 24px;">
-                    {% if order.status == 'approved' %}
+                    {% if order.status == 'paid' %}
                       <span style="background: rgba(34,197,94,0.1); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); padding: 3px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; white-space: nowrap;">
-                        <i class="bi bi-check-circle me-1"></i>Tasdiqlangan
+                        <i class="bi bi-check-circle me-1"></i>Paid
                       </span>
-                    {% elif order.status == 'rejected' %}
+                    {% elif order.status == 'cancelled' %}
                       <span style="background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); padding: 3px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; white-space: nowrap;">
-                        <i class="bi bi-x-circle me-1"></i>Rad etilgan
+                        <i class="bi bi-x-circle me-1"></i>Cancelled
                       </span>
                     {% else %}
                       <span style="background: rgba(148,163,184,0.1); color: #94a3b8; border: 1px solid rgba(148,163,184,0.15); padding: 3px 10px; border-radius: 8px; font-size: 12px; font-weight: 700;">
@@ -731,7 +795,12 @@
         Kutilayotgan So'rovlar
       </div>
       {% for order in my_pending_orders %}
-      <div class="pending-item">
+      <div
+        class="pending-item js-pending-order"
+        data-order-id="{{ order.id }}"
+        data-status="{{ order.status }}"
+        data-created-at="{{ order.created_at|date:'c' }}"
+      >
         <div>
           <span class="fw-bold text-white">{{ order.plan_name }}</span>
           <span style="background: rgba(148,163,184,0.08); border: 1px solid rgba(148,163,184,0.15); color: #94a3b8; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; margin-left: 8px;">
@@ -739,11 +808,12 @@
           </span>
           <div style="color: #475569; font-size: 12px; margin-top: 4px;">{{ order.created_at|date:"d.m.Y H:i" }}</div>
         </div>
-        <div class="text-end">
-          <div class="fw-bold" style="color: #4ade80; margin-bottom: 4px;">{{ order.price|intcomma }} so'm</div>
-          <span style="background: rgba(251,191,36,0.1); color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); padding: 2px 10px; border-radius: 6px; font-size: 11px; font-weight: 700;">
-            Admin tasdig'i kutilmoqda
+        <div class="pending-right">
+          <div class="fw-bold" style="color: #4ade80; margin-bottom: 4px;">{{ order.amount|default:order.price|intcomma }} so'm</div>
+          <span class="pending-badge pending js-pending-badge">
+            <i class="bi bi-hourglass-split"></i> To'lov kutilmoqda
           </span>
+          <div class="pending-timer js-pending-timer">Qolgan vaqt: 15:00</div>
         </div>
       </div>
       {% endfor %}
@@ -855,12 +925,12 @@
             <div class="active-plan-badge mb-2">
               <i class="bi bi-check-circle-fill"></i> Joriy rejangiz
             </div>
-            <form method="post" action="{% url 'billing:order_create' %}">
+            <form method="post" action="{% url 'billing:click_create' %}" class="js-click-payment-form">
               {% csrf_token %}
               <input type="hidden" name="plan" value="{{ p.code }}">
               <input type="hidden" name="months" value="{{ duration }}">
               <input type="hidden" name="promo" value="{{ promo }}">
-              <button class="btn-plan-primary">
+              <button type="submit" class="btn-plan-primary">
                 <i class="bi bi-arrow-repeat me-1"></i> Uzaytirish
               </button>
             </form>
@@ -869,13 +939,13 @@
               {{ sub.days_left }} kun qoldi · {{ sub.expires_at|date:"d.m.Y" }}gacha
             </div>
             {% else %}
-            <form method="post" action="{% url 'billing:order_create' %}">
+            <form method="post" action="{% url 'billing:click_create' %}" class="js-click-payment-form">
               {% csrf_token %}
               <input type="hidden" name="plan" value="{{ p.code }}">
               <input type="hidden" name="months" value="{{ duration }}">
               <input type="hidden" name="promo" value="{{ promo }}">
-              <button class="btn-plan-primary">
-                {% if code == "FREE" %}Bepul boshlash{% else %}Tanlash{% endif %}
+              <button type="submit" class="btn-plan-primary">
+                {% if code == "FREE" %}Bepul boshlash{% else %}Tanlash ⚡{% endif %}
               </button>
             </form>
             {% endif %}
@@ -936,6 +1006,170 @@
     cleanupOverlays();
     setTimeout(cleanupOverlays, 200);
     setTimeout(cleanupOverlays, 800);
+
+    function formatDuration(seconds) {
+      const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
+      const secs = String(Math.max(seconds % 60, 0)).padStart(2, '0');
+      return `${mins}:${secs}`;
+    }
+
+    function applyPendingState(item, state, text) {
+      const badge = item.querySelector('.js-pending-badge');
+      if (!badge) return;
+      const iconByState = {
+        pending: 'bi-hourglass-split',
+        paid: 'bi-check-circle-fill',
+        cancelled: 'bi-x-circle-fill'
+      };
+      badge.classList.remove('pending', 'paid', 'cancelled');
+      badge.classList.add(state);
+      badge.innerHTML = `<i class=\"bi ${iconByState[state] || 'bi-hourglass-split'}\"></i> ${text}`;
+    }
+
+    const statusEndpoint = "{% url 'billing:payment_status_api' %}";
+    const pendingEntries = new Map();
+    document.querySelectorAll('.js-pending-order').forEach(function (item) {
+      const orderId = item.dataset.orderId;
+      if (!orderId) return;
+
+      const createdAtRaw = item.dataset.createdAt || '';
+      const createdAt = new Date(createdAtRaw);
+      const deadline = Number.isNaN(createdAt.getTime())
+        ? null
+        : new Date(createdAt.getTime() + (15 * 60 * 1000));
+
+      pendingEntries.set(orderId, {
+        item: item,
+        deadline: deadline,
+      });
+    });
+
+    function tickPendingCountdown() {
+      const now = new Date();
+      pendingEntries.forEach(function (entry) {
+        const item = entry.item;
+        if (item.dataset.status !== 'pending') return;
+
+        const timer = item.querySelector('.js-pending-timer');
+        if (!timer) return;
+        if (!entry.deadline) {
+          timer.textContent = "Qolgan vaqt: --:--";
+          return;
+        }
+
+        const diffSec = Math.floor((entry.deadline.getTime() - now.getTime()) / 1000);
+        if (diffSec <= 0) {
+          timer.textContent = "Qolgan vaqt: 00:00";
+          applyPendingState(item, 'cancelled', "To'lov vaqti tugadi");
+          item.dataset.status = 'cancelled';
+          return;
+        }
+        timer.textContent = `Qolgan vaqt: ${formatDuration(diffSec)}`;
+      });
+    }
+
+    async function pollPaymentStatus() {
+      if (!pendingEntries.size) return;
+
+      const ids = Array.from(pendingEntries.keys()).join(',');
+      try {
+        const response = await fetch(`${statusEndpoint}?ids=${encodeURIComponent(ids)}`, {
+          headers: { 'Accept': 'application/json' },
+          credentials: 'same-origin'
+        });
+        if (!response.ok) return;
+
+        const payload = await response.json();
+        const items = Array.isArray(payload.items) ? payload.items : [];
+
+        items.forEach(function (statusInfo) {
+          const orderId = String(statusInfo.id);
+          const entry = pendingEntries.get(orderId);
+          if (!entry) return;
+
+          const item = entry.item;
+          const timer = item.querySelector('.js-pending-timer');
+          item.dataset.status = statusInfo.status;
+
+          if (statusInfo.status === 'paid') {
+            applyPendingState(item, 'paid', "To'lov muvaffaqiyatli");
+            if (timer) timer.textContent = "To'lov tasdiqlandi";
+            if (statusInfo.redirect_url) {
+              window.location.href = statusInfo.redirect_url;
+            }
+            return;
+          }
+
+          if (statusInfo.status === 'cancelled') {
+            applyPendingState(item, 'cancelled', "To'lov bekor qilindi");
+            if (timer) timer.textContent = "Bekor qilingan";
+            if (statusInfo.redirect_url) {
+              window.location.href = statusInfo.redirect_url;
+            }
+            return;
+          }
+
+          applyPendingState(item, 'pending', "To'lov kutilmoqda");
+          if (typeof statusInfo.seconds_left === 'number') {
+            entry.deadline = new Date(Date.now() + Math.max(statusInfo.seconds_left, 0) * 1000);
+          }
+        });
+      } catch (error) {
+        console.debug('Payment status poll error', error);
+      }
+    }
+
+    if (pendingEntries.size) {
+      tickPendingCountdown();
+      setInterval(tickPendingCountdown, 1000);
+      pollPaymentStatus();
+      setInterval(pollPaymentStatus, 5000);
+    }
+
+    const paymentForms = document.querySelectorAll('.js-click-payment-form');
+    paymentForms.forEach(function (form) {
+      form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+
+        const submitButton = form.querySelector('button[type="submit"]');
+        if (!submitButton || submitButton.disabled) return;
+
+        const originalButtonHtml = submitButton.innerHTML;
+        submitButton.disabled = true;
+        submitButton.classList.add('is-loading');
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Yuklanmoqda...';
+
+        try {
+          const response = await fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'Accept': 'application/json'
+            },
+            credentials: 'same-origin'
+          });
+
+          let payload = {};
+          try {
+            payload = await response.json();
+          } catch (e) {
+            payload = {};
+          }
+
+          if (!response.ok || (!payload.payment_url && !payload.redirect_url)) {
+            throw new Error(payload.error_note || "Click to'lov sahifasi ochilmadi.");
+          }
+
+          window.location.href = payload.payment_url || payload.redirect_url;
+        } catch (error) {
+          alert(error.message || "Noma'lum xatolik yuz berdi.");
+          submitButton.disabled = false;
+          submitButton.classList.remove('is-loading');
+          submitButton.innerHTML = originalButtonHtml;
+        }
+      });
+    });
   });
 </script>
 {% endblock %}

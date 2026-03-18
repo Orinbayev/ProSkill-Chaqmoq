@@ -244,6 +244,8 @@ class PaymentTransaction(models.Model):
     amount = models.PositiveIntegerField()
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     transaction_id = models.CharField(max_length=64, unique=True, db_index=True)
+    # Click platform's own transaction ID (for reconciliation / debugging)
+    click_trans_id = models.CharField(max_length=64, blank=True, default="", db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -340,8 +342,8 @@ class SubscriptionOrder(models.Model):
 class SubscriptionRequest(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
-        APPROVED = "approved", "Approved"
-        REJECTED = "rejected", "Rejected"
+        PAID = "paid", "Paid"
+        CANCELLED = "cancelled", "Cancelled"
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -353,8 +355,19 @@ class SubscriptionRequest(models.Model):
         on_delete=models.CASCADE,
         related_name="subscription_requests",
     )
+    plan = models.ForeignKey(
+        SubscriptionPlan,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="subscription_requests",
+    )
     plan_name = models.CharField(max_length=120)
     duration_months = models.PositiveIntegerField(default=1)
+    # Unique transaction reference sent to Click.
+    merchant_trans_id = models.CharField(max_length=80, null=True, blank=True, unique=True, db_index=True)
+    amount = models.PositiveIntegerField(default=0)
+    # Legacy field: kept for backward compatibility with old templates/services.
     price = models.PositiveIntegerField(default=0)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -370,3 +383,11 @@ class SubscriptionRequest(models.Model):
 
     def __str__(self):
         return f"REQ#{self.id} {self.center.name} {self.plan_name} ({self.status})"
+
+    def save(self, *args, **kwargs):
+        # Keep `amount` and legacy `price` consistent during migration period.
+        if self.amount and not self.price:
+            self.price = self.amount
+        elif self.price and not self.amount:
+            self.amount = self.price
+        super().save(*args, **kwargs)

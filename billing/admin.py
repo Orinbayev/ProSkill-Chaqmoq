@@ -10,7 +10,6 @@ from .models import (
     PaymentTransaction,
     SubscriptionRequest,
 )
-from .services import mark_order_paid
 
 
 @admin.register(PlanFeature)
@@ -60,12 +59,6 @@ class SubscriptionOrderAdmin(admin.ModelAdmin):
     list_display = ("id", "center", "plan", "duration_months", "final_price", "status", "created_at", "paid_at")
     list_filter = ("status", "plan")
     search_fields = ("center__name", "center__slug", "id")
-    actions = ["make_paid"]
-
-    def make_paid(self, request, queryset):
-        for order in queryset:
-            mark_order_paid(order)
-    make_paid.short_description = "Tanlangan orderlarni PAID qilish"
 
 
 @admin.register(Subscription)
@@ -88,8 +81,11 @@ class SubscriptionRequestAdmin(admin.ModelAdmin):
         "id",
         "center",
         "user",
+        "merchant_trans_id",
+        "plan",
         "plan_name",
         "duration_months",
+        "amount",
         "price",
         "status",
         "created_at",

@@ -1656,64 +1656,6 @@
     </div>
 
     <!-- ══════════════════════════════════
-       PENDING ORDERS
-  ══════════════════════════════════ -->
-    {% if pending_orders %}
-    <div class="sa-alert-card">
-        <div class="sa-alert-head">
-            <h6><i class="bi bi-hourglass-split"></i> Tasdiqlash Kutilayotgan Obunalar</h6>
-            <span class="sa-badge"
-                style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.25);font-size:0.72rem;">{{ pending_orders.count }} ta so'rov</span>
-        </div>
-        <div class="sa-table-wrap">
-            <table class="sa-table">
-                <thead>
-                    <tr>
-                        <th>Markaz</th>
-                        <th>Tarif</th>
-                        <th>Muddat</th>
-                        <th>Narx</th>
-                        <th>Sana</th>
-                        <th style="text-align:right;">Amallar</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for order in pending_orders %}
-                    <tr>
-                        <td style="font-weight:700;">{{ order.center.name }}</td>
-                        <td><span class="sa-badge sa-badge-plan">{{ order.plan_name }}</span></td>
-                        <td style="color:var(--sa-muted);">{{ order.duration_months }} oy</td>
-                        <td style="font-weight:700;color:var(--sa-green);">{{ order.price|intcomma }} so'm</td>
-                        <td style="color:var(--sa-muted);font-size:0.78rem;">{{ order.created_at|date:"d.m.Y H:i" }}
-                        </td>
-                        <td style="text-align:right;">
-                            <div style="display:flex;gap:8px;justify-content:flex-end;">
-                                <form method="post" action="{% url 'billing:subscription_request_approve' order.id %}" style="margin:0;">
-                                    {% csrf_token %}
-                                    <button type="submit" class="sa-btn sa-btn-primary"
-                                        style="padding:6px 14px;font-size:0.78rem;border-radius:8px;">
-                                        <i class="bi bi-check-lg"></i> Tasdiqlash
-                                    </button>
-                                </form>
-                                <form method="post" action="{% url 'billing:subscription_request_reject' order.id %}" style="margin:0;"
-                                      onsubmit="return confirm('Rad etishni tasdiqlaysizmi?')">
-                                    {% csrf_token %}
-                                    <button type="submit" class="sa-btn sa-btn-secondary"
-                                        style="padding:6px 12px;font-size:0.78rem;border-radius:8px;color:#f87171;">
-                                        <i class="bi bi-x-lg"></i>
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- ══════════════════════════════════
        FILTER TOOLBAR (STICKY)
   ══════════════════════════════════ -->
     <div class="sa-toolbar-wrap">

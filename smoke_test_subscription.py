@@ -34,6 +34,7 @@ req = SubscriptionRequest.objects.create(
     center=center,
     plan_name=plan.title,
     duration_months=1,
+    amount=plan.monthly_price,
     price=plan.monthly_price,
     status=SubscriptionRequest.Status.PENDING,
 )
@@ -45,4 +46,3 @@ pending = SubscriptionRequest.objects.filter(status=SubscriptionRequest.Status.P
 print(f"Total pending requests in DB: {pending.count()}")
 for p in pending:
     print(f" - {p.id}: {p.center.name} - {p.plan_name} - {p.status}")
-

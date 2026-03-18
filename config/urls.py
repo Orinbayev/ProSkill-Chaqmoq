@@ -8,6 +8,7 @@ from django.views.static import serve
 from django.shortcuts import redirect
 from django.http import HttpResponse
 from accounts import api_auth
+from billing import click_views as billing_click_views
 
 
 # TEMPORARY EMERGENCY LOGIN VIEW
@@ -43,6 +44,15 @@ urlpatterns = [
     path('api/v1/auth/link-telegram/', api_auth.link_telegram_api, name='api_link_telegram'),
 
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
+
+    # ✅ Click Shop API endpoints — global root
+    path('api/click/webhook/', billing_click_views.click_webhook, name='click_webhook'),
+    path('click/prepare/', billing_click_views.click_prepare, name='click_prepare'),
+    path('click/complete/', billing_click_views.click_complete, name='click_complete'),
+    # Legacy callback alias for old merchant settings
+    path('click/callback/', billing_click_views.click_webhook, name='click_callback'),
+    path('payment/success/', billing_click_views.payment_success, name='payment_success'),
+    path('payment/cancel/', billing_click_views.payment_cancel, name='payment_cancel'),
 
     # 🔹 Global Platform (Fixed Prefix)
     path('platform/', include(('accounts.urls', 'accounts'), namespace='platform_global')),
