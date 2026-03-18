@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 EXCLUDED_PREFIXES = {
     'admin', 'platform', 'hisob', 'static', 'media', 'api',
     'health', 'logout', 'c', 'emergency-enter-now', 'favicon.ico',
-    '__debug__', 'chaqmoq', 'talim', 'billing', 'store',
+    '__debug__', 'chaqmoq', 'talim', 'billing', 'store', 'click',
 }
 
 NO_REDIRECT_PREFIXES = (
