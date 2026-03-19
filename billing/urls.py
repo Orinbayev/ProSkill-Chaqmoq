@@ -24,4 +24,6 @@ urlpatterns = [
     path("order/click-payment-url/", click_views.create_order_and_redirect, name="click_payment_url"),
     path("payment/success/", click_views.payment_success, name="payment_success"),
     path("payment/cancel/", click_views.payment_cancel, name="payment_cancel"),
+    path("click/prepare/", click_views.click_prepare),
+    path("click/complete/", click_views.click_complete),
 ]
