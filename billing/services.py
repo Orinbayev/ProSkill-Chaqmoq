@@ -82,11 +82,37 @@ def can_center_use_feature(center: Center, feature_code: str) -> bool:
         return bool(center_features[feature_code])
 
     # 2. Check active subscription plan's M2M features
-    sub = center.active_subscription or center.subscription
+    sub = get_active_subscription(center)
     if sub and sub.plan:
         return sub.plan.plan_features.filter(code=feature_code).exists()
 
     return False
+
+
+# ============================================================
+# SUBSCRIPTION HELPERS (No cached_property)
+# ============================================================
+
+def get_active_subscription(center: Center) -> CenterSubscription | None:
+    """
+    Returns the currently ACTIVE center subscription from DB.
+    """
+    return CenterSubscription.objects.filter(
+        center=center,
+        status=CenterSubscription.Status.ACTIVE
+    ).select_related("plan").order_by("-expires_at", "-id").first()
+
+
+def get_paused_subscription(center: Center) -> CenterSubscription | None:
+    """
+    Returns the best candidate for resumption (PAUSED with remaining time).
+    Priority: Highest Tier first, then oldest started_at.
+    """
+    return CenterSubscription.objects.filter(
+        center=center,
+        status=CenterSubscription.Status.PAUSED,
+        remaining_seconds__gt=0
+    ).select_related("plan").order_by("-plan__tier", "started_at").first()
 
 
 
@@ -236,7 +262,7 @@ def get_center_student_limit(center: Center, actor=None, free_limit: int = 50) -
         return get_student_limit_for_user(owner, free_limit=free_limit)
 
     # Backward compatibility fallback for older center-based subscriptions.
-    sub = getattr(center, "active_subscription", None) or getattr(center, "subscription", None)
+    sub = get_active_subscription(center)
     if sub and getattr(sub, "plan", None):
         plan_code = (sub.plan.code or sub.plan.name or sub.plan.title or "").upper()
         if plan_code == "FREE":
@@ -300,7 +326,13 @@ def ensure_center_subscription(center: Center) -> CenterSubscription | None:
     """
     try:
         # Check active or paused
-        sub = center.subscription
+        sub = CenterSubscription.objects.filter(
+            center=center,
+            status__in=[
+                CenterSubscription.Status.ACTIVE,
+                CenterSubscription.Status.PAUSED
+            ]
+        ).order_by("-started_at").first()
         if sub:
             return sub
 
@@ -333,7 +365,8 @@ def default_trial_expires():
 
 
 def get_feature_flags(center: Center) -> set[str]:
-    sub = center.active_subscription or center.subscription # Prioritize active
+    sub = get_active_subscription(center)
+    # Fallback to center.plan if no active sub exists
     code = sub.plan.code if (sub and sub.plan) else center.plan
     
     features = FEATURES_BY_PLAN.get(code, set()).copy()
@@ -402,60 +435,47 @@ def create_order(center: Center, plan: SubscriptionPlan, months: int, promo_code
 def mark_order_paid(order: SubscriptionOrder) -> None:
     """
     PAID Logic with PAUSE/RESUME support.
+    Explicit DB queries, no cached_property.
     """
+    import logging
+    from .utils import give_subscription
+    
+    logger = logging.getLogger(__name__)
+    
+    print(f"🔥 PAID START - Order ID: {order.id}")
+    logger.info("mark_order_paid started: order_id=%s center=%s", order.id, order.center.slug)
+
     if order.status == SubscriptionOrder.Status.PAID:
+        print(f"ℹ️ Order {order.id} is already marked as PAID. Skipping.")
         return
 
-    now = timezone.now()
-    order.status = SubscriptionOrder.Status.PAID
-    order.paid_at = now
-    order.save(update_fields=["status", "paid_at"])
+    try:
+        now = timezone.now()
+        center = order.center
+        new_plan = order.plan
+        duration_months = int(order.duration_months or 1)
+        duration_days = 30 * duration_months
 
-    if order.promo:
-        PromoCode.objects.filter(id=order.promo.id).update(used_count=models.F("used_count") + 1)
+        # 1. Update Order Status
+        print(f"👉 Order: {order.id}, Center: {center.slug}, Plan: {new_plan.code}")
+        order.status = SubscriptionOrder.Status.PAID
+        order.paid_at = now
+        order.save(update_fields=["status", "paid_at"])
+        print(f"✅ Order status updated to PAID")
 
-    center = order.center
-    
-    # ensure active sub
-    ensure_center_subscription(center)
+        # 2. Update PromoCode Usage
+        if order.promo:
+             PromoCode.objects.filter(id=order.promo.id).update(used_count=models.F("used_count") + 1)
 
-    # 1. Get currently ACTIVE subscription
-    active_sub = center.active_subscription
-    new_plan = order.plan
-    duration_days = 30 * int(order.duration_months)
+        # 3. Ensure Center has basic subscription setup
+        ensure_center_subscription(center)
 
-    if not active_sub:
-        # No active sub -> Create new immediate one
-        CenterSubscription.objects.create(
-            center=center,
-            plan=new_plan,
-            status=CenterSubscription.Status.ACTIVE,
-            started_at=now,
-            expires_at=now + timezone.timedelta(days=duration_days)
-        )
-    else:
-        # Check TIER
-        current_tier = active_sub.plan.tier
-        new_tier = new_plan.tier
+        # 4. Handle Stacking Logic (Upgrade, Extend, Downgrade)
+        active_sub = get_active_subscription(center)
+        print(f"👉 Active Sub found in DB: {active_sub}")
 
-        if new_tier > current_tier:
-            # === UPGRADE: PAUSE CURRENT ===
-            remaining_seconds = 0
-            if active_sub.expires_at > now:
-                remaining = (active_sub.expires_at - now).total_seconds()
-                remaining_seconds = int(remaining)
-            
-            if remaining_seconds > 0:
-                active_sub.remaining_seconds = remaining_seconds
-                active_sub.paused_at = now
-                active_sub.status = CenterSubscription.Status.PAUSED
-                active_sub.save()
-            else:
-                # Already expired logically
-                active_sub.status = CenterSubscription.Status.EXPIRED
-                active_sub.save()
-
-            # Create NEW active subscription
+        if not active_sub:
+            print("👉 No active sub, creating new one")
             CenterSubscription.objects.create(
                 center=center,
                 plan=new_plan,
@@ -463,96 +483,120 @@ def mark_order_paid(order: SubscriptionOrder) -> None:
                 started_at=now,
                 expires_at=now + timezone.timedelta(days=duration_days)
             )
-
-        elif new_tier == current_tier:
-            # === EXTEND: SAME PLAN ===
-            # Just add time
-            if active_sub.expires_at > now:
-                active_sub.expires_at += timezone.timedelta(days=duration_days)
-            else:
-                active_sub.expires_at = now + timezone.timedelta(days=duration_days)
-            active_sub.save()
-
         else:
-            # === DOWNGRADE: QUEUE IT ===
-            # New Plan is LOWER tier (e.g. Standard bought while Pro active)
-            # Create as PAUSED/QUEUED with full duration
-            # Only logical if user wants to use it AFTER current high tier finishes.
-            # We treat it as a "Paused" subscription with full duration remaining.
-            CenterSubscription.objects.create(
-                center=center,
-                plan=new_plan,
-                status=CenterSubscription.Status.PAUSED,
-                remaining_seconds=duration_days * 86400, # Full duration saved in seconds
-                started_at=now, 
-                expires_at=now # Irrelevant until activated
-            )
+            current_tier = active_sub.plan.tier
+            new_tier = new_plan.tier
+            print(f"👉 Tiers: Current={current_tier}, New={new_tier}")
 
-    # Sync Center fields to ACTIVE sub's plan
-    # (re-fetch to be sure)
-    final_active = center.active_subscription
-    if final_active:
-        center.plan = final_active.plan.code
-        center.max_users = final_active.plan.max_users
-        center.max_groups = final_active.plan.max_groups
-        center.max_students = final_active.plan.max_students
-        center.status = Center.STATUS_ACTIVE
-        center.expires_at = final_active.expires_at
-        center.monthly_price = final_active.plan.monthly_price
-        center.save()
+            if new_tier > current_tier:
+                print("🚀 UPGRADE: Pausing current subscription")
+                remaining_seconds = 0
+                if active_sub.expires_at > now:
+                    remaining_seconds = int((active_sub.expires_at - now).total_seconds())
+                
+                if remaining_seconds > 0:
+                    active_sub.remaining_seconds = remaining_seconds
+                    active_sub.paused_at = now
+                    active_sub.status = CenterSubscription.Status.PAUSED
+                    active_sub.save(update_fields=["remaining_seconds", "paused_at", "status"])
+                else:
+                    active_sub.status = CenterSubscription.Status.EXPIRED
+                    active_sub.save(update_fields=["status"])
+
+                CenterSubscription.objects.create(
+                    center=center,
+                    plan=new_plan,
+                    status=CenterSubscription.Status.ACTIVE,
+                    started_at=now,
+                    expires_at=now + timezone.timedelta(days=duration_days)
+                )
+            elif new_tier == current_tier:
+                print("➕ EXTEND: Same tier, adding time")
+                if active_sub.expires_at > now:
+                     active_sub.expires_at += timezone.timedelta(days=duration_days)
+                else:
+                     active_sub.expires_at = now + timezone.timedelta(days=duration_days)
+                active_sub.save(update_fields=["expires_at"])
+            else:
+                print("📉 DOWNGRADE: Queueing as PAUSED")
+                CenterSubscription.objects.create(
+                    center=center,
+                    plan=new_plan,
+                    status=CenterSubscription.Status.PAUSED,
+                    remaining_seconds=duration_days * 86400,
+                    started_at=now, 
+                    expires_at=now
+                )
+
+        # 5. Sync Center fields from the now ACTIVE subscription
+        final_active = get_active_subscription(center)
+        print(f"👉 Final Active Sub (DB): {final_active}")
+
+        if final_active:
+            print(f"👉 Syncing Center fields to Plan: {final_active.plan.code}")
+            center.plan = final_active.plan.code
+            center.max_users = final_active.plan.max_users
+            center.max_groups = final_active.plan.max_groups
+            center.max_students = final_active.plan.max_students
+            center.status = Center.STATUS_ACTIVE
+            center.expires_at = final_active.expires_at
+            center.monthly_price = final_active.plan.monthly_price
+            center.save(update_fields=[
+                "plan", "max_users", "max_groups", "max_students", 
+                "status", "expires_at", "monthly_price"
+            ])
+            print("✅ Center fields updated")
+
+        # 6. Sync User-Level Subscription for Director
+        owner = get_subscription_owner_for_center(center)
+        if owner:
+            print(f"👉 Syncing Director: {owner.email}")
+            give_subscription(owner, new_plan, duration_months=duration_months)
+
+        print(f"✅ PAID DONE")
+
+    except Exception as e:
+        import traceback
+        logger.error("mark_order_paid error: %s", traceback.format_exc())
+        raise e
 
 
 def check_subscription_expiry(center: Center):
     """
     Checks if active subscription expired. 
     If yes -> Resume a PAUSED one if exists.
-    Call this periodically or in middleware.
     """
     now = timezone.now()
-    active = center.active_subscription
+    active = get_active_subscription(center)
     
-    if active and active.is_expired():
-        # 1. Mark current as EXPIRED
+    if active and active.expires_at <= now:
         active.status = CenterSubscription.Status.EXPIRED
-        active.save()
-        
-    # If no active subscription (or just expired one), check for resumable
-    if not center.active_subscription:
-        # 2. Find PAUSED subscriptions
-        # Prioritize: Highest Tier first, then created_earliest?
-        # Logic: If I have Pro (Paused) and Standard (Paused), which one first?
-        # Usually higher tier first.
-        paused_sub = center.subscriptions.filter(
-            status=CenterSubscription.Status.PAUSED,
-            remaining_seconds__gt=0
-        ).order_by('-plan__tier', 'started_at').first()
-        
-        if paused_sub:
-            # RESUME IT
-            paused_sub.status = CenterSubscription.Status.ACTIVE
-            paused_sub.paused_at = None
-            # New expiry = Now + Remaining
-            paused_sub.expires_at = now + timezone.timedelta(seconds=paused_sub.remaining_seconds)
-            # Reset remaining (it's consumed now)
-            paused_sub.remaining_seconds = 0
-            paused_sub.save()
+        active.save(update_fields=["status"])
+        # Fetch again to be sure it's gone from "active" lookup
+        active = None
+
+    if not active:
+        paused = get_paused_subscription(center)
+        if paused:
+            paused.status = CenterSubscription.Status.ACTIVE
+            paused.expires_at = now + timezone.timedelta(seconds=paused.remaining_seconds)
+            paused.remaining_seconds = 0
+            paused.save(update_fields=["status", "expires_at", "remaining_seconds"])
             
             # Sync Center
-            center.plan = paused_sub.plan.code
-            center.expires_at = paused_sub.expires_at
+            center.plan = paused.plan.code
+            center.expires_at = paused.expires_at
             center.status = Center.STATUS_ACTIVE
-            center.save()
+            center.save(update_fields=["plan", "expires_at", "status"])
 
 
 def get_subscription_ui_state(center: Center) -> dict | None:
     try:
-        # Check active sub validity first
-        check_subscription_expiry(center) # 🔥 Auto-check logic
-
-        sub = center.active_subscription
+        check_subscription_expiry(center)
+        sub = get_active_subscription(center)
         if not sub:
-            # Fallback to any prop
-            sub = center.subscription
+            # Try to show any current/relevant sub for UI
+            sub = CenterSubscription.objects.filter(center=center).order_by("-id").first()
             if not sub: return None
             
         days_left = sub.days_left()
