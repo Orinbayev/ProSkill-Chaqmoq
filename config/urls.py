@@ -8,6 +8,7 @@ from django.views.static import serve
 from django.shortcuts import redirect
 from django.http import HttpResponse
 from accounts import api_auth
+from accounts.views import test_db, test_center
 from billing import click_views as billing_click_views
 
 
@@ -34,6 +35,11 @@ def emergency_login_view(request):
 
 urlpatterns = [
     # 🚨 EMERGENCY LOGIN URL (Remove after fixing login!)
+        # ✅ TEST URLS (MUST BE FIRST)
+    path('test-db/', test_db),
+    path('test-center/', test_center),
+
+    # 🚨 EMERGENCY LOGIN URL
     path('emergency-enter-now/', emergency_login_view),
 
     # 🔹 Admin panel
@@ -77,6 +83,7 @@ urlpatterns = [
 ]
 
 
+
 # 🔹 Media
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
@@ -89,4 +96,4 @@ else:
 def health_check(request):
     return HttpResponse("OK", status=200)
 
-urlpatterns.insert(0, path('health/', health_check))
+urlpatterns.insert(2, path('health/', health_check))

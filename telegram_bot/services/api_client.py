@@ -1,5 +1,5 @@
 import httpx
-from config import BACKEND_URL, API_SECRET
+from app_config import BACKEND_URL, API_SECRET
 
 async def link_account_api(phone: str, code: str, telegram_id: str, telegram_username: str = None):
     url = f"{BACKEND_URL}/hisob/login/bot-link-telegram/" # Changed to match typical URL pattern if needed, but let's check auth_urls.py

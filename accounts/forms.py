@@ -206,7 +206,9 @@ class CenterAdminForm(forms.ModelForm):
     class Meta:
         model = Center
         fields = [
-            "name", "slug", "address", "plan", 
+            "name", "slug", "address",
+            "db_name", "db_user", "db_password", "db_host", "db_port",
+            "plan",
             "capacity_limit", "expires_at",
             "status", "features"
         ]
@@ -214,6 +216,11 @@ class CenterAdminForm(forms.ModelForm):
             "name": forms.TextInput(attrs={"class": "form-control bg-dark text-white border-secondary"}),
             "slug": forms.TextInput(attrs={"class": "form-control bg-dark text-white border-secondary"}),
             "address": forms.TextInput(attrs={"class": "form-control bg-dark text-white border-secondary"}),
+            "db_name": forms.TextInput(attrs={"class": "form-control bg-dark text-white border-secondary"}),
+            "db_user": forms.TextInput(attrs={"class": "form-control bg-dark text-white border-secondary"}),
+            "db_password": forms.PasswordInput(attrs={"class": "form-control bg-dark text-white border-secondary"}, render_value=True),
+            "db_host": forms.TextInput(attrs={"class": "form-control bg-dark text-white border-secondary"}),
+            "db_port": forms.TextInput(attrs={"class": "form-control bg-dark text-white border-secondary"}),
             "capacity_limit": forms.NumberInput(attrs={"class": "form-control bg-dark text-white border-secondary"}),
             "status": forms.Select(attrs={"class": "form-select bg-dark text-white border-secondary"}),
             "features": forms.HiddenInput(),

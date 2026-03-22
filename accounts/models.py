@@ -18,6 +18,11 @@ class Center(SoftDeleteMixin, models.Model):
     name = models.CharField(max_length=120)
     address = models.CharField(max_length=255, blank=True, default="")
     phone = models.CharField(max_length=20, blank=True, default="") 
+    db_name = models.CharField(max_length=128, blank=True, null=True, help_text="Имя отдельной базы данных центра (PostgreSQL)")
+    db_user = models.CharField(max_length=128, blank=True, null=True, help_text="Пользователь БД центра")
+    db_password = models.CharField(max_length=128, blank=True, null=True, help_text="Пароль БД центра (TODO: хранить безопасно, использовать env или vault)")
+    db_host = models.CharField(max_length=128, blank=True, null=True, help_text="Хост БД центра")
+    db_port = models.CharField(max_length=16, blank=True, null=True, help_text="Порт БД центра")
 
     slug = models.SlugField(unique=True) 
     # active field removed in favor of status
@@ -447,3 +452,12 @@ class AdminAuditLog(models.Model):
 
     def __str__(self):
         return f"{self.admin.email} - {self.action_type} - {self.timestamp}"
+
+    # --- Multi-tenant DB metadata (foundation, safe for future use) ---
+    db_name = models.CharField(max_length=128, blank=True, null=True, help_text="Имя отдельной базы данных центра (PostgreSQL)")
+    db_user = models.CharField(max_length=128, blank=True, null=True, help_text="Пользователь БД центра")
+    db_password = models.CharField(max_length=128, blank=True, null=True, help_text="Пароль БД центра (TODO: хранить безопасно, использовать env или vault)")
+    db_host = models.CharField(max_length=128, blank=True, null=True, help_text="Хост БД центра")
+    db_port = models.CharField(max_length=16, blank=True, null=True, help_text="Порт БД центра")
+    is_active = models.BooleanField(default=True, help_text="Активен ли центр и его база данных")
+    # --- Конец foundation для multi-tenant ---

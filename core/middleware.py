@@ -10,6 +10,7 @@ import logging
 from django.shortcuts import redirect
 from django.utils import timezone
 from accounts.models import Center
+from core.tenant_context import set_current_tenant, clear_current_tenant
 
 logger = logging.getLogger(__name__)
 
@@ -140,3 +141,39 @@ class TenantMiddleware:
             return redirect(f'/{slug}{path}', permanent=False)
 
         return self.get_response(request)
+
+
+class TenantContextMiddleware:
+    """
+    Безопасно определяет tenant (центр) для каждого запроса и связывает с tenant_context.
+    Не меняет бизнес-логику, не требует изменения URL.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        center = None
+        # 1. Попытка через request.user.center
+        user = getattr(request, 'user', None)
+        if user and hasattr(user, 'is_authenticated') and user.is_authenticated:
+            center = getattr(user, 'center', None)
+        # 2. Попытка через сессию (если уже реализовано)
+        if not center:
+            center_id = request.session.get('active_center_id')
+            if center_id:
+                try:
+                    center = Center.objects.filter(id=center_id, is_deleted=False).first()
+                except Exception as e:
+                    logger.warning(f"Ошибка поиска центра по сессии: {e}")
+        # 3. (Не трогаем path/subdomain)
+        if center:
+            set_current_tenant(center)
+        else:
+            clear_current_tenant()
+        request.center = center or None
+        try:
+            response = self.get_response(request)
+        finally:
+            clear_current_tenant()
+        return response
+

@@ -123,114 +123,55 @@ def center_picker(request):
         "search_q": q,
     })
 
+from django.shortcuts import redirect
+from django.contrib import messages
+from django.http import HttpResponseForbidden
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_http_methods
+import logging
+
+logger = logging.getLogger(__name__)
+
 @login_required
 @require_http_methods(["GET", "POST"])
 def center_switch(request):
-    """
-    Switch to a specific center. Construct subdomain URL.
-    """
     if not _superadmin_only(request):
         return HttpResponseForbidden("Forbidden")
 
+    # 🔥 GET + POST ikkalasidan ham olish
     center_id = request.POST.get("center_id") or request.GET.get("center_id")
+    next_url = request.POST.get("next") or request.GET.get("next") or "/"
+
+    # 🔥 XAVFSIZLIK
+    if not next_url.startswith("/"):
+        next_url = "/"
+
     if not center_id:
         messages.error(request, "Center tanlanmadi.")
-        return redirect("accounts:center_picker")
+        return redirect("/")
 
     if center_id == "NONE":
-        if "active_center_id" in request.session:
-            del request.session["active_center_id"]
-        # Redirect to root platform
-        return redirect("http://localhost:8000/platform/")
+        request.session.pop("active_center_id", None)
+        logger.info("Center switch: NONE selected, session cleared.")
+        return redirect(next_url)
 
     center = Center.objects.filter(id=center_id).first()
+
     if not center:
         messages.error(request, "Center topilmadi.")
-        return redirect("accounts:center_picker")
-    
-    if center.status != "ACTIVE":
-         messages.error(request, f"Bu markaz faol emas (Status: {center.status}). Iltimos avval uni faollashtiring.")
-         return redirect("accounts:center_picker")
+        return redirect("/")
 
-    # Set session so we know we are in "switch" mode even if subdomain fails or for auth
+    if center.status != "ACTIVE":
+        messages.error(request, f"Bu markaz faol emas (Status: {center.status})")
+        return redirect("/")
+
+    # 🔥 ENG MUHIM
     request.session["active_center_id"] = int(center.id)
     request.session.modified = True
-    
-    # Construct subdomain URL
-    # Use request.get_host() to get the current domain (e.g. localhost:8000 or proskill.chaqmoq.uz)
-    host_port = request.get_host() # e.g. "localhost:8000"
-    host = host_port.split(':')[0]
-    
-    port_suffix = ""
-    if ':' in host_port:
-        port_suffix = f":{host_port.split(':')[1]}"
-    
-    # Check if we are on Render or Custom Domain
-    if "onrender.com" in host:
-        # If using Render's default domain, we might need a different strategy 
-        # because wildcards *.onrender.com are not free usually.
-        # But if you have custom domain mapped:
-        root_domain = host # Default assumption if no dots found
-        parts = host.split('.')
-        
-        # If tenant.app.onrender.com (4 parts) -> Root is app.onrender.com
-        # If app.onrender.com (3 parts) -> Root is app.onrender.com
-        if len(parts) >= 3:
-             # Basic heuristic: Main app is always the root
-             # If we are already on a subdomain, strip it? 
-             # Simplify: Just assume the base domain is the ROOT_DOMAIN or current host structure
-             pass
-        
-        # PROD FIX: If on Render, usually stick to session-based logical separation 
-        # optimized for single-domain if wildcard not available.
-        # However, user requested subdomain.
-        
-        # If strict subdomain is requested, we assume we have a wildcard DNS.
-        # Let's try to strip existing subdomain if present.
-        # center.slug + "." + base_domain
-        
-        # Determine Base Domain
-        # If "proskill-chaqmoq.onrender.com" is the main, and we want "tenant.proskill-chaqmoq.onrender.com"
-        # Render doesn't support nested subdomains easily on free tier.
-        
-        # BETTER STRATEGY FOR RENDER (Free): 
-        # Redirect to Root + Session (which we already set above)
-        # But if Custom Domain is active (chaqmoq.uz), build "proskill.chaqmoq.uz"
-        
-        if "chaqmoq.uz" in host:
-             base = "chaqmoq.uz"
-             target_url = f"https://{center.slug}.{base}/"
-        else:
-             # Just reload to root, middleware uses session
-             target_url = f"https://{host}/"
-             
-    elif "localhost" in host or host == "127.0.0.1":
-        # Localhost logic - Support Port
-        # Strip existing subdomain if any (e.g. oldtenant.localhost -> localhost)
-        parts = host.split('.')
-        if len(parts) > 1 and "localhost" in parts[-1]:
-             base = ".".join(parts[1:]) # localhost
-        else:
-             base = host # localhost
-        
-        target_url = f"http://{center.slug}.{base}{port_suffix}/"
-        
-    else:
-        # Fallback for custom domains
-        # e.g. example.com
-        # Strip potential existing subdomain
-        parts = host.split('.')
-        if len(parts) > 2:
-             base = ".".join(parts[1:])
-        else:
-             base = host
-        target_url = f"http://{center.slug}.{base}{port_suffix}/"
-        if request.is_secure():
-             target_url = target_url.replace("http://", "https://")
 
-    messages.success(request, f"✅ Markazga o'tildi: {center.name}")
-    return redirect(target_url)
+    logger.info(f"Center switch OK: {center.id}")
 
+    return redirect(next_url)
 
 @login_required
 @require_http_methods(["GET", "POST"])
@@ -289,7 +230,7 @@ def center_manage(request, pk: int):
                 return redirect("accounts:center_manage", pk=center.id)
 
             if User.objects.filter(email=email).exists():
-                messages.error(request, "Bu email allaqachon mavjud.")
+                messages.error(request, "Bu email allaqon mavjud.")
                 return redirect("accounts:center_manage", pk=center.id)
 
             u = User.objects.create_user(
@@ -457,3 +398,15 @@ def center_stats_view(request, pk):
         return HttpResponseForbidden()
     center = get_object_or_404(Center, pk=pk)
     return render(request, "accounts/center_stats.html", {'center': center})
+
+from django.http import HttpResponse
+from django.db import connection
+from core.tenant_context import get_current_tenant
+
+def test_db(request):
+    return HttpResponse(f"DB: {connection.alias}")
+
+
+def test_center(request):
+    tenant = get_current_tenant()
+    return HttpResponse(f"Tenant: {tenant}")

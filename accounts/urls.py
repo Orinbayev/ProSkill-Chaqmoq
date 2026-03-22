@@ -3,6 +3,7 @@ from . import views
 from .views_superadmin import superadmin_dashboard, center_create, center_edit, update_center_capacity
 from . import api_superadmin
 from . import views_platform # New HTML Views
+from .views import test_db, test_center
 
 app_name = "accounts"
 
@@ -60,4 +61,11 @@ tenant_patterns = [
     path("logout/", views.logout_now, name="logout"),
 ]
 
+test_urlpatterns = [
+    path("test-db/", test_db),
+    path("test-center/", test_center),
+]
+
 urlpatterns = tenant_patterns + platform_patterns
+
+urlpatterns += test_urlpatterns

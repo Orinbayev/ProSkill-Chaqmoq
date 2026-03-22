@@ -146,6 +146,11 @@ else:
         }
     }
 
+# ===== Database Routers (multi-tenant foundation) =====
+DATABASE_ROUTERS = [
+    'core.db_router.TenantDatabaseRouter',
+]
+
 # ===== Authentication =====
 AUTH_USER_MODEL = "accounts.User"
 AUTHENTICATION_BACKENDS = [
@@ -210,6 +215,7 @@ CLICK_COMPLETE_URL = "/click/complete/"
 
 # Telegram bot for payment notifications (official Telegram API via aiogram)
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", os.getenv("BOT_TOKEN", ""))
+TELEGRAM_GROUP_ID = os.getenv("TELEGRAM_GROUP_ID", os.getenv("BACKUP_GROUP_ID", ""))
 
 # ==================== PRODUCTION OVERRIDE ====================
 # Auto-load production settings when deployed to Render
