@@ -1,0 +1,60 @@
+{% extends 'marketing/superadmin/base.html' %}
+
+{% block page_title %}Demo so'rovlari{% endblock %}
+{% block breadcrumb_items %}<span>/</span><span class="is-current">Demo so'rovlari</span>{% endblock %}
+{% block heading %}Demo so'rovlari{% endblock %}
+{% block subtitle %}Landing form orqali kelgan potensial mijozlar ro'yxati.{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'platform_global:marketing:dashboard' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-speedometer2"></i> Boshqaruv paneli</a>
+{% endblock %}
+
+{% block superadmin_content %}
+<div class="mkt-card">
+    <div class="mkt-card-head"><h3>Demo so'rovlari</h3><span class="mkt-count">{{ page_obj.paginator.count }} ta</span></div>
+    <div class="mkt-card-body" style="border-bottom:1px solid var(--mkt-line);">
+        <form method="get" class="mkt-filter-grid compact">
+            <input type="text" name="q" value="{{ q }}" class="sa-input" placeholder="Ism, markaz yoki telefon bo'yicha qidirish">
+            <select name="plan" class="sa-select">
+                <option value="">Tarif (barchasi)</option>
+                {% for p in plans %}
+                <option value="{{ p.pk }}" {% if plan_id == p.pk|stringformat:'s' %}selected{% endif %}>{{ p.name }} ({{ p.duration_months }} oy)</option>
+                {% endfor %}
+            </select>
+            <select name="contacted" class="sa-select">
+                <option value="">Aloqa holati (barchasi)</option>
+                <option value="0" {% if contacted == '0' %}selected{% endif %}>Bog'lanilmagan</option>
+                <option value="1" {% if contacted == '1' %}selected{% endif %}>Bog'langan</option>
+            </select>
+            <button type="submit" class="mkt-btn mkt-btn-muted"><i class="bi bi-search"></i> Qidirish</button>
+        </form>
+    </div>
+
+    <div class="mkt-table-wrap">
+        <table class="mkt-table">
+            <thead><tr><th>So'rov</th><th>Telefon</th><th>Tarif</th><th>Rozilik</th><th>Sana</th><th>Holat</th><th class="text-end">Amallar</th></tr></thead>
+            <tbody>
+                {% for obj in objects %}
+                <tr>
+                    <td><div class="mkt-inline-stack"><a href="{% url 'platform_global:marketing:demo_lead_detail' obj.pk %}" class="mkt-title">{{ obj.full_name }}</a><span class="mkt-muted">{{ obj.center_name }}</span></div></td>
+                    <td>{{ obj.phone }}</td>
+                    <td>{{ obj.selected_plan.name|default:'Belgilanmagan' }}</td>
+                    <td>{% if obj.consent %}<span class="mkt-badge mkt-badge-active">Ha</span>{% else %}<span class="mkt-badge mkt-badge-inactive">Yo'q</span>{% endif %}</td>
+                    <td>{{ obj.created_at|date:"d.m.Y H:i" }}</td>
+                    <td>{% if obj.is_contacted %}<span class="mkt-badge mkt-badge-active">Bog'langan</span>{% else %}<span class="mkt-badge mkt-badge-amber">Kutilmoqda</span>{% endif %}</td>
+                    <td>
+                        <div class="mkt-actions">
+                            <form method="post" action="{% url 'platform_global:marketing:demo_lead_toggle_contacted' obj.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button type="submit" class="mkt-btn mkt-btn-sm {% if obj.is_contacted %}mkt-btn-danger{% else %}mkt-btn-primary{% endif %}">{% if obj.is_contacted %}Qayta ochish{% else %}Bog'landi{% endif %}</button></form>
+                            <a href="{% url 'platform_global:marketing:demo_lead_detail' obj.pk %}" class="mkt-btn mkt-btn-sm mkt-btn-muted"><i class="bi bi-eye"></i></a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="mkt-empty">Demo so'rovlari topilmadi.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include 'marketing/superadmin/partials/pagination.html' with page_obj=page_obj %}
+</div>
+{% endblock %}

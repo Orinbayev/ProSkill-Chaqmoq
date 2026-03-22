@@ -1,0 +1,16 @@
+{% extends 'marketing/superadmin/base.html' %}
+
+{% block page_title %}{{ page_title|default:'Statik sahifa' }}{% endblock %}
+{% block breadcrumb_items %}<span>/</span><a href="{% url 'platform_global:marketing:static_page_list' %}">Statik sahifalar</a><span>/</span><span class="is-current">Forma</span>{% endblock %}
+{% block heading %}{{ page_title|default:'Statik sahifa' }}{% endblock %}
+{% block subtitle %}Statik sahifa kontentini boshqaring.{% endblock %}
+{% block header_actions %}<a href="{% url 'platform_global:marketing:static_page_list' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-arrow-left"></i> Ro'yxat</a>{% endblock %}
+
+{% block superadmin_content %}
+<div class="mkt-card"><div class="mkt-card-body"><form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="mkt-errors">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="mkt-form-grid single">{% include 'marketing/superadmin/partials/form_fields.html' with form=form %}</div>
+    <div class="mkt-form-actions"><a href="{% url 'platform_global:marketing:static_page_list' %}" class="mkt-btn mkt-btn-muted">Bekor</a><button class="mkt-btn mkt-btn-primary" type="submit">Saqlash</button></div>
+</form></div></div>
+{% endblock %}

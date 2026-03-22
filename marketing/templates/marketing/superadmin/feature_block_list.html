@@ -1,0 +1,77 @@
+{% extends 'marketing/superadmin/base.html' %}
+
+{% block page_title %}Imkoniyat bloklari{% endblock %}
+{% block breadcrumb_items %}<span>/</span><span class="is-current">Imkoniyat bloklari</span>{% endblock %}
+{% block heading %}Imkoniyat bloklari{% endblock %}
+{% block subtitle %}Imkoniyatlar, integratsiyalar va yechim kartalarini boshqaring.{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'platform_global:marketing:feature_block_create' %}" class="mkt-btn mkt-btn-primary"><i class="bi bi-plus-lg"></i> Imkoniyat qo'shish</a>
+{% endblock %}
+
+{% block superadmin_content %}
+<div class="mkt-card">
+    <div class="mkt-card-head"><h3>Imkoniyat bloklari</h3><span class="mkt-count">{{ page_obj.paginator.count }} ta</span></div>
+    <div class="mkt-card-body" style="border-bottom:1px solid var(--mkt-line);">
+        <form method="get" class="mkt-filter-grid compact">
+            <input type="text" name="q" value="{{ q }}" placeholder="Sarlavha yoki matn bo'yicha qidirish" class="sa-input">
+            <select name="section" class="sa-select">
+                <option value="">Barcha bo'limlar</option>
+                {% for key, label in section_choices %}
+                <option value="{{ key }}" {% if section == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <select name="active" class="sa-select">
+                <option value="">Barchasi</option>
+                <option value="1" {% if active == '1' %}selected{% endif %}>Faol</option>
+                <option value="0" {% if active == '0' %}selected{% endif %}>Nofaol</option>
+            </select>
+            <button type="submit" class="mkt-btn mkt-btn-muted"><i class="bi bi-search"></i> Qidirish</button>
+        </form>
+    </div>
+
+    <div class="mkt-table-wrap">
+        <table class="mkt-table">
+            <thead>
+                <tr>
+                    <th>Rasm</th>
+                    <th>Bo'lim / Nomi</th>
+                    <th>Tavsif</th>
+                    <th>Tartib</th>
+                    <th>Holat</th>
+                    <th class="text-end">Amallar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for obj in objects %}
+                <tr>
+                    <td>{% if obj.image %}<img src="{{ obj.image.url }}" class="mkt-thumb" alt="{{ obj.title }}">{% endif %}</td>
+                    <td>
+                        <div class="mkt-inline-stack">
+                            <span class="mkt-badge mkt-badge-info">{{ obj.get_section_display }}</span>
+                            <span class="mkt-title">{{ obj.title }}</span>
+                            {% if obj.subtitle %}<span class="mkt-muted">{{ obj.subtitle }}</span>{% endif %}
+                        </div>
+                    </td>
+                    <td>{{ obj.description|truncatechars:90 }}</td>
+                    <td>{{ obj.order }}</td>
+                    <td>{% if obj.is_active %}<span class="mkt-badge mkt-badge-active">Faol</span>{% else %}<span class="mkt-badge mkt-badge-inactive">Nofaol</span>{% endif %}</td>
+                    <td>
+                        <div class="mkt-actions">
+                            <form method="post" action="{% url 'platform_global:marketing:feature_block_move_up' obj.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="mkt-btn mkt-btn-sm mkt-btn-muted"><i class="bi bi-arrow-up"></i></button></form>
+                            <form method="post" action="{% url 'platform_global:marketing:feature_block_move_down' obj.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="mkt-btn mkt-btn-sm mkt-btn-muted"><i class="bi bi-arrow-down"></i></button></form>
+                            <form method="post" action="{% url 'platform_global:marketing:feature_block_toggle_active' obj.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="mkt-btn mkt-btn-sm {% if obj.is_active %}mkt-btn-danger{% else %}mkt-btn-muted{% endif %}">{% if obj.is_active %}Nofaol qilish{% else %}Faol qilish{% endif %}</button></form>
+                            <a href="{% url 'platform_global:marketing:feature_block_edit' obj.pk %}" class="mkt-btn mkt-btn-sm mkt-btn-muted"><i class="bi bi-pencil"></i></a>
+                            <a href="{% url 'platform_global:marketing:feature_block_delete' obj.pk %}" class="mkt-btn mkt-btn-sm mkt-btn-danger"><i class="bi bi-trash"></i></a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="mkt-empty">Imkoniyat bloki topilmadi.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include 'marketing/superadmin/partials/pagination.html' with page_obj=page_obj %}
+</div>
+{% endblock %}

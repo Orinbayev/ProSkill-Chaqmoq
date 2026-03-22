@@ -1,0 +1,7 @@
+{% extends 'marketing/superadmin/base.html' %}
+{% block page_title %}Yordam kartasini o'chirish{% endblock %}
+{% block breadcrumb_items %}<span>/</span><a href="{% url 'platform_global:marketing:support_card_list' %}">Yordam kartalari</a><span>/</span><span class="is-current">O'chirish</span>{% endblock %}
+{% block heading %}Yordam kartasi o'chirish{% endblock %}
+{% block superadmin_content %}
+<div class="mkt-danger-zone"><h5 class="mb-2">"{{ object_to_delete }}" kartani o'chirmoqchimisiz?</h5><form method="post">{% csrf_token %}<div class="mkt-form-actions"><a href="{% url 'platform_global:marketing:support_card_list' %}" class="mkt-btn mkt-btn-muted">Bekor</a><button class="mkt-btn mkt-btn-danger" type="submit">O'chirish</button></div></form></div>
+{% endblock %}

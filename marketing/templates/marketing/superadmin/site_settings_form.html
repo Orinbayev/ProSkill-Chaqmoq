@@ -1,0 +1,66 @@
+{% extends 'marketing/superadmin/base.html' %}
+
+{% block page_title %}Sayt sozlamalari{% endblock %}
+{% block breadcrumb_items %}<span>/</span><span class="is-current">Sayt sozlamalari</span>{% endblock %}
+{% block heading %}Sayt sozlamalari{% endblock %}
+{% block subtitle %}Landing page asosiy kontenti va SEO sozlamalarini yangilang.{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'platform_global:marketing:site_hero_image' %}" class="mkt-btn mkt-btn-primary">
+    <i class="bi bi-image"></i> Hero rasmni almashtirish
+</a>
+<a href="{% url 'platform_global:marketing:dashboard' %}" class="mkt-btn mkt-btn-muted">
+    <i class="bi bi-arrow-left"></i> Boshqaruv paneli
+</a>
+{% endblock %}
+
+{% block superadmin_content %}
+<div class="mkt-card">
+    <div class="mkt-card-head">
+        <h3>Asosiy sozlamalar</h3>
+    </div>
+    <div class="mkt-card-body">
+        <form method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="mkt-errors">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="mkt-form-grid">
+                {% include 'marketing/superadmin/partials/form_fields.html' with form=form %}
+            </div>
+
+            {% if object_for_preview %}
+            <div class="mkt-preview-grid">
+                {% if object_for_preview.logo %}
+                <div class="mkt-preview-item">
+                    <small>Logo</small>
+                    <img src="{{ object_for_preview.logo.url }}" alt="logo" class="mkt-thumb mkt-thumb-lg">
+                </div>
+                {% endif %}
+                {% if object_for_preview.favicon %}
+                <div class="mkt-preview-item">
+                    <small>Favicon</small>
+                    <img src="{{ object_for_preview.favicon.url }}" alt="favicon" class="mkt-thumb mkt-thumb-lg">
+                </div>
+                {% endif %}
+                {% if object_for_preview.hero_image %}
+                <div class="mkt-preview-item">
+                    <small>Hero rasmi</small>
+                    <img src="{{ object_for_preview.hero_image.url }}" alt="hero" class="mkt-thumb mkt-thumb-lg">
+                    <a href="{% url 'platform_global:marketing:site_hero_image' %}" class="mkt-btn mkt-btn-sm mkt-btn-muted" style="margin-top:6px;">
+                        <i class="bi bi-pencil"></i> Hero rasmni o'zgartirish
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="mkt-form-actions">
+                <a href="{% url 'platform_global:marketing:dashboard' %}" class="mkt-btn mkt-btn-muted">Bekor qilish</a>
+                <button type="submit" class="mkt-btn mkt-btn-primary"><i class="bi bi-check2"></i> Saqlash</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

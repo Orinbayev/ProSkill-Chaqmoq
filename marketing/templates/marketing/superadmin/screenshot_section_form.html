@@ -1,0 +1,18 @@
+{% extends 'marketing/superadmin/base.html' %}
+
+{% block page_title %}{{ page_title|default:'Ekran ko'rinishi' }}{% endblock %}
+{% block breadcrumb_items %}<span>/</span><a href="{% url 'platform_global:marketing:screenshot_section_list' %}">Ekran ko'rinishlari</a><span>/</span><span class="is-current">Forma</span>{% endblock %}
+{% block heading %}{{ page_title|default:'Ekran ko'rinishi' }}{% endblock %}
+{% block subtitle %}Ekran ko'rinishi kontentini kiriting.{% endblock %}
+
+{% block header_actions %}<a href="{% url 'platform_global:marketing:screenshot_section_list' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-arrow-left"></i> Ro'yxat</a>{% endblock %}
+
+{% block superadmin_content %}
+<div class="mkt-card"><div class="mkt-card-body"><form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="mkt-errors">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="mkt-form-grid">{% include 'marketing/superadmin/partials/form_fields.html' with form=form %}</div>
+    {% if object_for_preview and object_for_preview.image %}<div class="mkt-preview-grid"><div class="mkt-preview-item"><small>Joriy rasm</small><img src="{{ object_for_preview.image.url }}" class="mkt-thumb mkt-thumb-lg" alt="preview"></div></div>{% endif %}
+    <div class="mkt-form-actions"><a href="{% url 'platform_global:marketing:screenshot_section_list' %}" class="mkt-btn mkt-btn-muted">Bekor</a><button type="submit" class="mkt-btn mkt-btn-primary">Saqlash</button></div>
+</form></div></div>
+{% endblock %}

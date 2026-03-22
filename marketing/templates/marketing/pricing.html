@@ -1,0 +1,96 @@
+{% extends 'marketing/base.html' %}
+{% load humanize %}
+
+{% block title %}{{ ui.pricing_title }} | {{ site_setting.site_name|default:'ChaqmoqApp' }}{% endblock %}
+
+{% block content %}
+<section class="page-hero page-hero-centered">
+    <div class="container">
+        <h1>{{ ui.pricing_title }}</h1>
+        <p>{{ ui.pricing_page_desc }}</p>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="duration-filters" data-pricing-toggle>
+            {% for duration in duration_filters %}
+            <button type="button" class="duration-btn {% if forloop.first %}active{% endif %}" data-duration-btn="{{ duration }}">{{ duration }} {{ ui.month_label }}</button>
+            {% empty %}
+            <button type="button" class="duration-btn active" data-duration-btn="all">{{ ui.pricing_filter_all }}</button>
+            {% endfor %}
+        </div>
+
+        <div class="pricing-preview-grid pricing-page-grid">
+            {% for duration, plans in duration_map.items %}
+                {% for plan in plans %}
+                <article class="pricing-preview-card {% if plan.is_recommended %}is-recommended{% endif %} reveal-up" data-duration="{{ duration }}">
+                    {% if plan.is_recommended %}
+                    <div class="recommended-pill">{{ plan.badge_text|default:'Top' }}</div>
+                    {% elif plan.badge_text %}
+                    <div class="recommended-pill muted">{{ plan.badge_text }}</div>
+                    {% endif %}
+
+                    <h3>{{ plan.name }}</h3>
+                    <p class="plan-range">{{ plan.student_range }}</p>
+
+                    <div class="plan-price-row">
+                        <strong>{{ plan.current_price|floatformat:0|intcomma }}</strong>
+                        <span>{{ ui.money_label }} / {{ ui.month_label }}</span>
+                    </div>
+                    {% if plan.old_price %}
+                    <p class="plan-old-price">{{ plan.old_price|floatformat:0|intcomma }} {{ ui.money_label }}</p>
+                    {% endif %}
+                    {% if plan.discount_label %}
+                    <p class="plan-discount">{{ plan.discount_label }}</p>
+                    {% endif %}
+
+                    <ul class="plan-features">
+                        {% for feature_text in plan.features %}
+                        <li>{{ feature_text }}</li>
+                        {% empty %}
+                        <li>{{ ui.plan_feature_fallback_1 }}</li>
+                        <li>{{ ui.plan_feature_fallback_2 }}</li>
+                        {% endfor %}
+                    </ul>
+
+                    <div class="pricing-actions">
+                        <a class="btn {% if plan.is_recommended %}btn-dark{% else %}btn-light{% endif %} btn-block" href="{{ routes.demo }}">{{ ui.pricing_demo }}</a>
+                        <a class="btn btn-primary btn-block" href="/hisob/billing/plans/">{{ ui.pricing_pay }}</a>
+                    </div>
+                </article>
+                {% endfor %}
+            {% empty %}
+            <div class="empty-note">{{ ui.pricing_empty }}</div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="pricing-benefit-shell">
+            <article class="pricing-benefit-item reveal-up">
+                <div class="pricing-benefit-icon"><i class="bi bi-lightning-charge-fill"></i></div>
+                <h3>{{ ui.pricing_benefit_1_title }}</h3>
+                <p>{{ ui.pricing_benefit_1_desc }}</p>
+            </article>
+            <article class="pricing-benefit-item reveal-up">
+                <div class="pricing-benefit-icon"><i class="bi bi-shield-check"></i></div>
+                <h3>{{ ui.pricing_benefit_2_title }}</h3>
+                <p>{{ ui.pricing_benefit_2_desc }}</p>
+            </article>
+            <article class="pricing-benefit-item reveal-up">
+                <div class="pricing-benefit-icon"><i class="bi bi-headset"></i></div>
+                <h3>{{ ui.pricing_benefit_3_title }}</h3>
+                <p>{{ ui.pricing_benefit_3_desc }}</p>
+            </article>
+            <article class="pricing-benefit-item reveal-up">
+                <div class="pricing-benefit-icon"><i class="bi bi-globe"></i></div>
+                <h3>{{ ui.pricing_benefit_4_title }}</h3>
+                <p>{{ ui.pricing_benefit_4_desc }}</p>
+            </article>
+        </div>
+    </div>
+</section>
+{% endblock %}

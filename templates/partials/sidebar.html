@@ -103,6 +103,12 @@
       <span class="si-text">Promokodlar</span>
     </a>
 
+    <a href="{% url 'platform_global:marketing:dashboard' %}"
+      class="sidebar-item {% if '/platform/marketing' in p %}active{% endif %}" data-title="Marketing">
+      <span class="si-ico"><i class="fa-solid fa-bullhorn"></i></span>
+      <span class="si-text">Marketing</span>
+    </a>
+
     <div class="sidebar-bottom p-0 mt-3 border-top border-secondary pt-2">
       <!-- Logout removed, moved to profile dropdown -->
     </div>

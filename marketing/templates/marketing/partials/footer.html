@@ -1,0 +1,64 @@
+<footer class="site-footer">
+    <div class="container footer-inner">
+        <div class="footer-grid">
+            <div class="footer-brand-block">
+                <a class="brand" href="{{ routes.index }}">
+                    {% if site_setting.logo %}
+                    <img src="{{ site_setting.logo.url }}" alt="{{ site_setting.site_name|default:'ChaqmoqApp' }}" class="brand-logo" loading="lazy" decoding="async">
+                    {% else %}
+                    <span class="brand-mark"><i class="bi bi-lightning-charge-fill"></i></span>
+                    <span class="brand-name">{{ site_setting.site_name|default:'ChaqmoqApp' }}</span>
+                    {% endif %}
+                </a>
+                <p>{{ ui.footer_tagline }}</p>
+
+                <div class="footer-socials">
+                    {% if site_setting.instagram %}
+                    <a href="{{ site_setting.instagram }}" target="_blank" rel="noopener" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
+                    {% endif %}
+                    {% if site_setting.telegram %}
+                    <a href="{{ site_setting.telegram }}" target="_blank" rel="noopener" aria-label="Telegram"><i class="bi bi-telegram"></i></a>
+                    {% endif %}
+                    {% if site_setting.youtube %}
+                    <a href="{{ site_setting.youtube }}" target="_blank" rel="noopener" aria-label="YouTube"><i class="bi bi-youtube"></i></a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div>
+                <h4>{{ ui.footer_pages }}</h4>
+                <ul>
+                    <li><a href="{{ routes.pricing }}">{{ ui.menu_pricing }}</a></li>
+                    <li><a href="{{ routes.demo }}">{{ ui.menu_demo }}</a></li>
+                    <li><a href="{{ routes.support }}">{{ ui.menu_support }}</a></li>
+                    <li><a href="{{ routes.vacancies }}">{{ ui.menu_vacancies }}</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h4>{{ ui.footer_legal }}</h4>
+                <ul>
+                    <li><a href="{{ routes.privacy }}">{{ ui.privacy_default_title }}</a></li>
+                    <li><a href="{{ routes.terms }}">{{ ui.terms_default_title }}</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h4>{{ ui.footer_contact }}</h4>
+                <ul>
+                    {% if site_setting.phone %}<li><a href="tel:{{ site_setting.phone }}">{{ site_setting.phone }}</a></li>{% endif %}
+                    {% if site_setting.address %}<li>{{ site_setting.address }}</li>{% endif %}
+                </ul>
+
+                <div class="footer-cta-buttons">
+                    <a class="btn btn-primary btn-block" href="{{ routes.demo }}">{{ ui.menu_demo }}</a>
+                    <a class="btn btn-dark btn-block" href="/hisob/login/">{{ ui.menu_login }}</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>© {{ current_year }} {{ site_setting.site_name|default:'ChaqmoqApp' }}. {{ ui.copyright }}</p>
+        </div>
+    </div>
+</footer>

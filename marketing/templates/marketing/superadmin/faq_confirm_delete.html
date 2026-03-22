@@ -1,0 +1,7 @@
+{% extends 'marketing/superadmin/base.html' %}
+{% block page_title %}Savol-javobni o'chirish{% endblock %}
+{% block breadcrumb_items %}<span>/</span><a href="{% url 'platform_global:marketing:faq_list' %}">Ko'p so'raladigan savollar</a><span>/</span><span class="is-current">O'chirish</span>{% endblock %}
+{% block heading %}Savol-javobni o'chirish{% endblock %}
+{% block superadmin_content %}
+<div class="mkt-danger-zone"><h5 class="mb-2">Tanlangan savol-javobni o'chirmoqchimisiz?</h5><form method="post">{% csrf_token %}<div class="mkt-form-actions"><a href="{% url 'platform_global:marketing:faq_list' %}" class="mkt-btn mkt-btn-muted">Bekor</a><button class="mkt-btn mkt-btn-danger" type="submit">O'chirish</button></div></form></div>
+{% endblock %}

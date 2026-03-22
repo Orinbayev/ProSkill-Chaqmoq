@@ -10,6 +10,7 @@ from billing import click_views as billing_click_views
 
 urlpatterns = [
     path('', include('core.urls')),
+    path('', include(('marketing.urls', 'marketing_slug'), namespace='marketing_slug')),
     path('hisob/', include('accounts.urls_tenant')),
     path('hisob/billing/', include('billing.urls')),
     path('chaqmoq/', include('chaqmoq.urls')),

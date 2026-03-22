@@ -1,0 +1,289 @@
+{% extends 'marketing/base.html' %}
+{% load humanize static %}
+
+{% block title %}{{ site_content.meta_title }}{% endblock %}
+
+{% block content %}
+<section class="home-hero" aria-labelledby="hero-title">
+    <div class="hero-bg-blob hero-bg-blob-right"></div>
+    <div class="hero-bg-blob hero-bg-blob-left"></div>
+
+    <div class="container home-hero-grid">
+        <div class="home-hero-content reveal-up">
+            <div class="hero-announcement">
+                <span class="dot"></span>
+                {{ ui.hero_benefit_3 }}
+            </div>
+
+            <h1 id="hero-title">{{ site_content.hero_title }}</h1>
+            <p class="home-hero-subtitle">{{ site_content.hero_subtitle }}</p>
+
+            <div class="home-hero-actions">
+                <a class="btn btn-dark" href="{{ site_content.primary_cta_url }}">{{ site_content.primary_cta_text }}</a>
+                <a class="btn btn-light" href="{{ site_content.secondary_cta_url }}">{{ site_content.secondary_cta_text }}</a>
+            </div>
+
+            <div class="home-hero-benefits">
+                <span><i class="bi bi-check-circle-fill"></i>{{ ui.hero_benefit_1 }}</span>
+                <span><i class="bi bi-check-circle-fill"></i>{{ ui.hero_benefit_2 }}</span>
+                <span><i class="bi bi-check-circle-fill"></i>{{ ui.hero_benefit_3 }}</span>
+            </div>
+        </div>
+
+        <div class="home-hero-visual reveal-up">
+            <div class="hero-image-wrap">
+                {% if site_setting.hero_image %}
+                <img src="{{ site_setting.hero_image.url }}" alt="{{ site_setting.site_name|default:'ChaqmoqApp' }}" class="hero-dashboard-image" loading="eager" decoding="async">
+                {% else %}
+                <img src="{% static 'img/chaqmoq_blue_logo_v2.png' %}" alt="{{ site_setting.site_name|default:'ChaqmoqApp' }}" class="hero-dashboard-image" loading="eager" decoding="async">
+                {% endif %}
+            </div>
+
+            <div class="floating-stat floating-stat-right">
+                <strong>+24%</strong>
+                <span>{{ ui.hero_metric_1 }}</span>
+            </div>
+            <div class="floating-stat floating-stat-left">
+                <strong>98%</strong>
+                <span>{{ ui.hero_metric_2 }}</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="partners-strip" aria-labelledby="partners-title">
+    <div class="container">
+        <div class="partners-head">
+            <p id="partners-title">{{ ui.partners_title }}</p>
+        </div>
+
+        <div class="partners-logos {% if partner_logos|length == 1 %}is-single{% endif %}">
+            {% for logo in partner_logos %}
+            <a class="partner-logo-item" href="{{ logo.url|default:'#' }}" {% if logo.url %}target="_blank" rel="noopener"{% endif %}>
+                <img src="{{ logo.image.url }}" alt="{{ logo.name }}" loading="lazy" decoding="async">
+            </a>
+            {% empty %}
+            <div class="empty-note">{{ ui.partners_empty }}</div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="section section-slate" id="imkoniyatlar" aria-labelledby="features-title">
+    <div class="container">
+        <div class="section-header center">
+            <p class="eyebrow">{{ ui.features_eyebrow }}</p>
+            <h2 id="features-title">{{ ui.features_title }}</h2>
+        </div>
+
+        <div class="feature-grid">
+            {% for feature in feature_blocks %}
+            <article class="feature-card reveal-up">
+                <div class="feature-icon-box">
+                    {% if feature.icon %}<i class="{{ feature.icon }}"></i>{% else %}<i class="bi bi-lightning-charge-fill"></i>{% endif %}
+                </div>
+                <h3>{{ feature.title }}</h3>
+                <p>{{ feature.description }}</p>
+            </article>
+            {% empty %}
+            <article class="feature-card reveal-up">
+                <div class="feature-icon-box"><i class="bi bi-grid-1x2"></i></div>
+                <h3>{{ ui.feature_empty_title }}</h3>
+                <p>{{ ui.feature_empty_text }}</p>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="section" aria-labelledby="screens-title">
+    <div class="container">
+        <div class="section-header center">
+            <p class="eyebrow">{{ ui.screens_eyebrow }}</p>
+            <h2 id="screens-title">{{ ui.screens_title }}</h2>
+        </div>
+
+        <div class="screen-grid">
+            {% for shot in screenshots %}
+            <article class="screen-card reveal-up">
+                <img src="{{ shot.image.url }}" alt="{{ shot.title }}" loading="lazy" decoding="async">
+                <div class="screen-card-meta">
+                    <h3>{{ shot.title }}</h3>
+                    <p>{{ shot.description }}</p>
+                </div>
+            </article>
+            {% empty %}
+            <div class="empty-note">{{ ui.screens_empty }}</div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="section section-slate" id="integrations" aria-labelledby="integrations-title">
+    <div class="container integration-layout">
+        <div class="integration-copy reveal-up">
+            <p class="eyebrow">{{ ui.integrations_eyebrow }}</p>
+            <h2 id="integrations-title">{{ ui.integrations_title }}</h2>
+            <p>{{ ui.benefits_desc }}</p>
+
+            <ul class="integration-points">
+                <li>{{ ui.after_1 }}</li>
+                <li>{{ ui.after_2 }}</li>
+                <li>{{ ui.after_3 }}</li>
+                <li>{{ ui.after_4 }}</li>
+            </ul>
+        </div>
+
+        <div class="integration-grid">
+            {% for integration in integration_blocks %}
+            <article class="integration-card reveal-up">
+                <div class="integration-icon">
+                    {% if integration.icon %}<i class="{{ integration.icon }}"></i>{% else %}<i class="bi bi-link-45deg"></i>{% endif %}
+                </div>
+                <h3>{{ integration.title }}</h3>
+                <p>{{ integration.description }}</p>
+            </article>
+            {% empty %}
+            <div class="empty-note">{{ ui.integrations_empty }}</div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="section" aria-labelledby="pricing-title">
+    <div class="container">
+        <div class="section-header center">
+            <p class="eyebrow">{{ ui.pricing_eyebrow }}</p>
+            <h2 id="pricing-title">{{ ui.pricing_title }}</h2>
+        </div>
+
+        <div class="pricing-preview-grid">
+            {% for plan in pricing_preview %}
+            <article class="pricing-preview-card {% if plan.is_recommended %}is-recommended{% endif %} reveal-up">
+                {% if plan.is_recommended %}
+                <div class="recommended-pill">{{ plan.badge_text|default:'Top' }}</div>
+                {% elif plan.badge_text %}
+                <div class="recommended-pill muted">{{ plan.badge_text }}</div>
+                {% endif %}
+
+                <h3>{{ plan.name }}</h3>
+                <p class="plan-range">{{ plan.student_range }}</p>
+
+                <div class="plan-price-row">
+                    <strong>{{ plan.current_price|floatformat:0|intcomma }}</strong>
+                    <span>{{ ui.money_label }} / {{ ui.month_label }}</span>
+                </div>
+                {% if plan.old_price %}
+                <p class="plan-old-price">{{ plan.old_price|floatformat:0|intcomma }} {{ ui.money_label }}</p>
+                {% endif %}
+
+                <ul class="plan-features">
+                    {% for feature_text in plan.features|slice:':4' %}
+                    <li>{{ feature_text }}</li>
+                    {% empty %}
+                    <li>{{ ui.plan_feature_fallback_1 }}</li>
+                    <li>{{ ui.plan_feature_fallback_2 }}</li>
+                    {% endfor %}
+                </ul>
+
+                <a class="btn {% if plan.is_recommended %}btn-dark{% else %}btn-light{% endif %} btn-block" href="{{ routes.demo }}">{{ ui.pricing_demo }}</a>
+            </article>
+            {% empty %}
+            <div class="empty-note">{{ ui.pricing_empty }}</div>
+            {% endfor %}
+        </div>
+
+        <div class="center-action">
+            <a class="text-link" href="{{ routes.pricing }}">{{ ui.pricing_cta }} <i class="bi bi-arrow-right"></i></a>
+        </div>
+    </div>
+</section>
+
+<section class="section" aria-labelledby="testimonials-title">
+    <div class="container">
+        <div class="section-header center">
+            <p class="eyebrow">{{ ui.testimonials_eyebrow }}</p>
+            <h2 id="testimonials-title">{{ ui.testimonials_title }}</h2>
+        </div>
+
+        <div class="testimonial-grid">
+            {% for testimonial in testimonials %}
+            <article class="testimonial-card reveal-up">
+                <div class="testimonial-quote-badge"><i class="bi bi-quote"></i></div>
+                <div class="stars" aria-label="{{ testimonial.rating }} / 5">
+                    {% for star in "12345" %}
+                    {% if forloop.counter <= testimonial.rating %}
+                    <i class="bi bi-star-fill"></i>
+                    {% else %}
+                    <i class="bi bi-star"></i>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+
+                <p class="testimonial-text">&ldquo;{{ testimonial.text }}&rdquo;</p>
+
+                <div class="testimonial-person">
+                    {% if testimonial.avatar %}
+                    <img src="{{ testimonial.avatar.url }}" alt="{{ testimonial.full_name }}" loading="lazy" decoding="async">
+                    {% else %}
+                    <span class="avatar-fallback">{{ testimonial.full_name|first|upper }}</span>
+                    {% endif %}
+                    <div>
+                        <strong>{{ testimonial.full_name }}</strong>
+                        <small>{{ testimonial.center_name }}{% if testimonial.role %} • {{ testimonial.role }}{% endif %}</small>
+                    </div>
+                </div>
+            </article>
+            {% empty %}
+            <div class="empty-note">{{ ui.testimonials_empty }}</div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="section section-slate" aria-labelledby="faq-title">
+    <div class="container faq-shell">
+        <div class="section-header center">
+            <p class="eyebrow">{{ ui.faq_eyebrow }}</p>
+            <h2 id="faq-title">{{ ui.faq_title }}</h2>
+        </div>
+
+        <div class="faq-list" data-accordion>
+            {% for item in faqs %}
+            <article class="faq-item {% if forloop.first %}open{% endif %}">
+                <button type="button" class="faq-q" data-accordion-btn>
+                    <span>{{ item.question }}</span>
+                    <i class="bi bi-plus-lg"></i>
+                </button>
+                <div class="faq-a" data-accordion-content>
+                    <p>{{ item.answer }}</p>
+                </div>
+            </article>
+            {% empty %}
+            <article class="faq-item open">
+                <button type="button" class="faq-q" data-accordion-btn>
+                    <span>{{ ui.faq_empty_q }}</span>
+                    <i class="bi bi-plus-lg"></i>
+                </button>
+                <div class="faq-a" data-accordion-content>
+                    <p>{{ ui.faq_empty_a }}</p>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="section final-cta">
+    <div class="container final-cta-box reveal-up">
+        <div class="final-cta-icon"><i class="bi bi-lightning-charge-fill"></i></div>
+        <h2>{{ ui.final_title }}</h2>
+        <p>{{ ui.final_text }}</p>
+
+        <div class="final-cta-actions">
+            <a class="btn btn-primary" href="{{ routes.demo }}">{{ ui.final_demo }}</a>
+            <a class="btn btn-light on-dark" href="{{ routes.pricing }}">{{ ui.final_pricing }}</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

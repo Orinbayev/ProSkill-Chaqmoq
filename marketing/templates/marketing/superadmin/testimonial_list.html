@@ -1,0 +1,52 @@
+{% extends 'marketing/superadmin/base.html' %}
+
+{% block page_title %}Mijozlar fikri{% endblock %}
+{% block breadcrumb_items %}<span>/</span><span class="is-current">Mijozlar fikri</span>{% endblock %}
+{% block heading %}Mijozlar fikri{% endblock %}
+{% block subtitle %}Mijoz fikrlarini tahrirlash va joylash tartibini boshqarish.{% endblock %}
+
+{% block header_actions %}<a href="{% url 'platform_global:marketing:testimonial_create' %}" class="mkt-btn mkt-btn-primary"><i class="bi bi-plus-lg"></i> Sharh qo'shish</a>{% endblock %}
+
+{% block superadmin_content %}
+<div class="mkt-card">
+    <div class="mkt-card-head"><h3>Mijozlar fikri</h3><span class="mkt-count">{{ page_obj.paginator.count }} ta</span></div>
+    <div class="mkt-card-body" style="border-bottom:1px solid var(--mkt-line);">
+        <form method="get" class="mkt-filter-grid two">
+            <input type="text" name="q" value="{{ q }}" class="sa-input" placeholder="Ism yoki markaz bo'yicha qidirish">
+            <select name="active" class="sa-select">
+                <option value="">Holat (barchasi)</option>
+                <option value="1" {% if active == '1' %}selected{% endif %}>Faol</option>
+                <option value="0" {% if active == '0' %}selected{% endif %}>Nofaol</option>
+            </select>
+            <button class="mkt-btn mkt-btn-muted" type="submit"><i class="bi bi-search"></i> Qidirish</button>
+        </form>
+    </div>
+    <div class="mkt-table-wrap">
+        <table class="mkt-table">
+            <thead><tr><th>Avatar</th><th>F.I.Sh</th><th>Sharh</th><th>Reyting</th><th>Tartib</th><th>Holat</th><th class="text-end">Amallar</th></tr></thead>
+            <tbody>
+                {% for obj in objects %}
+                <tr>
+                    <td>{% if obj.avatar %}<img src="{{ obj.avatar.url }}" class="mkt-thumb" alt="{{ obj.full_name }}">{% endif %}</td>
+                    <td><div class="mkt-inline-stack"><span class="mkt-title">{{ obj.full_name }}</span><span class="mkt-muted">{{ obj.center_name }}{% if obj.role %} · {{ obj.role }}{% endif %}</span></div></td>
+                    <td>{{ obj.text|truncatechars:80 }}</td>
+                    <td>{{ obj.rating }}/5</td>
+                    <td>{{ obj.order }}</td>
+                    <td>{% if obj.is_active %}<span class="mkt-badge mkt-badge-active">Faol</span>{% else %}<span class="mkt-badge mkt-badge-inactive">Nofaol</span>{% endif %}</td>
+                    <td><div class="mkt-actions">
+                        <form method="post" action="{% url 'platform_global:marketing:testimonial_move_up' obj.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="mkt-btn mkt-btn-sm mkt-btn-muted"><i class="bi bi-arrow-up"></i></button></form>
+                        <form method="post" action="{% url 'platform_global:marketing:testimonial_move_down' obj.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="mkt-btn mkt-btn-sm mkt-btn-muted"><i class="bi bi-arrow-down"></i></button></form>
+                        <form method="post" action="{% url 'platform_global:marketing:testimonial_toggle_active' obj.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="mkt-btn mkt-btn-sm {% if obj.is_active %}mkt-btn-danger{% else %}mkt-btn-muted{% endif %}">{% if obj.is_active %}Nofaol qilish{% else %}Faol qilish{% endif %}</button></form>
+                        <a href="{% url 'platform_global:marketing:testimonial_edit' obj.pk %}" class="mkt-btn mkt-btn-sm mkt-btn-muted"><i class="bi bi-pencil"></i></a>
+                        <a href="{% url 'platform_global:marketing:testimonial_delete' obj.pk %}" class="mkt-btn mkt-btn-sm mkt-btn-danger"><i class="bi bi-trash"></i></a>
+                    </div></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="mkt-empty">Sharhlar topilmadi.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include 'marketing/superadmin/partials/pagination.html' with page_obj=page_obj %}
+</div>
+{% endblock %}

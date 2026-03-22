@@ -1,0 +1,45 @@
+{% extends 'marketing/superadmin/base.html' %}
+
+{% block page_title %}Statik sahifalar{% endblock %}
+{% block breadcrumb_items %}<span>/</span><span class="is-current">Statik sahifalar</span>{% endblock %}
+{% block heading %}Statik sahifalar{% endblock %}
+{% block subtitle %}Privacy va Terms kabi statik sahifalarni tahrirlash.{% endblock %}
+
+{% block header_actions %}<a href="{% url 'platform_global:marketing:static_page_create' %}" class="mkt-btn mkt-btn-primary"><i class="bi bi-plus-lg"></i> Sahifa qo'shish</a>{% endblock %}
+
+{% block superadmin_content %}
+<div class="mkt-card">
+    <div class="mkt-card-head"><h3>Statik sahifalar</h3><span class="mkt-count">{{ page_obj.paginator.count }} ta</span></div>
+    <div class="mkt-card-body" style="border-bottom:1px solid var(--mkt-line);">
+        <form method="get" class="mkt-filter-grid two">
+            <input type="text" name="q" value="{{ q }}" class="sa-input" placeholder="Key yoki title bo'yicha qidirish">
+            <select name="active" class="sa-select"><option value="">Holat (barchasi)</option><option value="1" {% if active == '1' %}selected{% endif %}>Faol</option><option value="0" {% if active == '0' %}selected{% endif %}>Nofaol</option></select>
+            <button class="mkt-btn mkt-btn-muted" type="submit"><i class="bi bi-search"></i> Qidirish</button>
+        </form>
+    </div>
+
+    <div class="mkt-table-wrap">
+        <table class="mkt-table">
+            <thead><tr><th>Key</th><th>Title</th><th>Yangilangan</th><th>Holat</th><th class="text-end">Amallar</th></tr></thead>
+            <tbody>
+                {% for obj in objects %}
+                <tr>
+                    <td><span class="mkt-badge mkt-badge-info">{{ obj.key }}</span></td>
+                    <td><span class="mkt-title">{{ obj.title }}</span><br><span class="mkt-muted">{{ obj.content|truncatechars:80 }}</span></td>
+                    <td>{{ obj.updated_at|date:"d.m.Y H:i" }}</td>
+                    <td>{% if obj.is_active %}<span class="mkt-badge mkt-badge-active">Faol</span>{% else %}<span class="mkt-badge mkt-badge-inactive">Nofaol</span>{% endif %}</td>
+                    <td><div class="mkt-actions">
+                        <form method="post" action="{% url 'platform_global:marketing:static_page_toggle_active' obj.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="mkt-btn mkt-btn-sm {% if obj.is_active %}mkt-btn-danger{% else %}mkt-btn-muted{% endif %}">{% if obj.is_active %}Nofaol qilish{% else %}Faol qilish{% endif %}</button></form>
+                        <a href="{% url 'platform_global:marketing:static_page_edit' obj.pk %}" class="mkt-btn mkt-btn-sm mkt-btn-muted"><i class="bi bi-pencil"></i></a>
+                        <a href="{% url 'platform_global:marketing:static_page_delete' obj.pk %}" class="mkt-btn mkt-btn-sm mkt-btn-danger"><i class="bi bi-trash"></i></a>
+                    </div></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="mkt-empty">Statik sahifa topilmadi.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include 'marketing/superadmin/partials/pagination.html' with page_obj=page_obj %}
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends 'marketing/superadmin/base.html' %}
+
+{% block page_title %}{{ page_title|default:"Ko'p so'raladigan savol" }}{% endblock %}
+{% block breadcrumb_items %}<span>/</span><a href="{% url 'platform_global:marketing:faq_list' %}">Ko'p so'raladigan savollar</a><span>/</span><span class="is-current">Forma</span>{% endblock %}
+{% block heading %}{{ page_title|default:"Ko'p so'raladigan savol" }}{% endblock %}
+{% block subtitle %}Savol-javob kontentini yangilang.{% endblock %}
+{% block header_actions %}<a href="{% url 'platform_global:marketing:faq_list' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-arrow-left"></i> Ro'yxat</a>{% endblock %}
+
+{% block superadmin_content %}
+<div class="mkt-card"><div class="mkt-card-body"><form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="mkt-errors">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="mkt-form-grid single">{% include 'marketing/superadmin/partials/form_fields.html' with form=form %}</div>
+    <div class="mkt-form-actions"><a href="{% url 'platform_global:marketing:faq_list' %}" class="mkt-btn mkt-btn-muted">Bekor</a><button type="submit" class="mkt-btn mkt-btn-primary">Saqlash</button></div>
+</form></div></div>
+{% endblock %}

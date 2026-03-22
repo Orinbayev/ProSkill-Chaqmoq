@@ -1,0 +1,54 @@
+{% extends 'marketing/superadmin/base.html' %}
+
+{% block page_title %}Tarif afzalliklari{% endblock %}
+{% block breadcrumb_items %}<span>/</span><span class="is-current">Tarif afzalliklari</span>{% endblock %}
+{% block heading %}Tarif afzalliklari{% endblock %}
+{% block subtitle %}Tariflarga biriktirilgan imkoniyat satrlarini boshqaring.{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'platform_global:marketing:pricing_feature_create' %}{% if plan_id %}?plan={{ plan_id }}{% endif %}" class="mkt-btn mkt-btn-primary"><i class="bi bi-plus-lg"></i> Afzallik qo'shish</a>
+{% endblock %}
+
+{% block superadmin_content %}
+<div class="mkt-card">
+    <div class="mkt-card-head"><h3>Tarif afzalliklari</h3><span class="mkt-count">{{ page_obj.paginator.count }} ta</span></div>
+    <div class="mkt-card-body" style="border-bottom:1px solid var(--mkt-line);">
+        <form method="get" class="mkt-filter-grid two">
+            <input type="text" name="q" class="sa-input" value="{{ q }}" placeholder="Afzallik matni bo'yicha qidirish">
+            <select name="plan" class="sa-select">
+                <option value="">Barcha tariflar</option>
+                {% for p in plans %}
+                <option value="{{ p.pk }}" {% if plan_id == p.pk|stringformat:'s' %}selected{% endif %}>{{ p.name }} ({{ p.duration_months }} oy)</option>
+                {% endfor %}
+            </select>
+            <button class="mkt-btn mkt-btn-muted" type="submit"><i class="bi bi-search"></i> Qidirish</button>
+        </form>
+    </div>
+
+    <div class="mkt-table-wrap">
+        <table class="mkt-table">
+            <thead><tr><th>Tarif</th><th>Afzallik</th><th>Tartib</th><th class="text-end">Amallar</th></tr></thead>
+            <tbody>
+                {% for obj in objects %}
+                <tr>
+                    <td><span class="mkt-title">{{ obj.pricing_plan.name }}</span><br><span class="mkt-muted">{{ obj.pricing_plan.duration_months }} oy</span></td>
+                    <td>{{ obj.text }}</td>
+                    <td>{{ obj.order }}</td>
+                    <td>
+                        <div class="mkt-actions">
+                            <form method="post" action="{% url 'platform_global:marketing:pricing_feature_move_up' obj.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="mkt-btn mkt-btn-sm mkt-btn-muted"><i class="bi bi-arrow-up"></i></button></form>
+                            <form method="post" action="{% url 'platform_global:marketing:pricing_feature_move_down' obj.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="mkt-btn mkt-btn-sm mkt-btn-muted"><i class="bi bi-arrow-down"></i></button></form>
+                            <a href="{% url 'platform_global:marketing:pricing_feature_edit' obj.pk %}" class="mkt-btn mkt-btn-sm mkt-btn-muted"><i class="bi bi-pencil"></i></a>
+                            <a href="{% url 'platform_global:marketing:pricing_feature_delete' obj.pk %}" class="mkt-btn mkt-btn-sm mkt-btn-danger"><i class="bi bi-trash"></i></a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="mkt-empty">Tarif afzalligi topilmadi.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include 'marketing/superadmin/partials/pagination.html' with page_obj=page_obj %}
+</div>
+{% endblock %}

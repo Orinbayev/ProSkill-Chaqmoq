@@ -1,0 +1,56 @@
+{% extends 'marketing/base.html' %}
+
+{% block title %}{{ ui.menu_vacancies }} | {{ site_setting.site_name|default:'ChaqmoqApp' }}{% endblock %}
+
+{% block content %}
+<section class="page-hero page-hero-centered">
+    <div class="container">
+        <h1>{{ ui.vacancy_page_title }}</h1>
+        <p>{{ ui.vacancy_page_desc }}</p>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container vacancy-grid">
+        {% for vacancy in vacancies %}
+        <article class="vacancy-card reveal-up">
+            <div class="vacancy-top-row">
+                <div class="vacancy-icon"><i class="bi bi-briefcase"></i></div>
+                {% if vacancy.department %}
+                <span class="vacancy-dept">{{ vacancy.department }}</span>
+                {% endif %}
+            </div>
+
+            <h2>{{ vacancy.title }}</h2>
+            <p>{{ vacancy.description }}</p>
+
+            <div class="vacancy-meta-row">
+                {% if vacancy.city %}<span><i class="bi bi-geo-alt"></i>{{ vacancy.city }}</span>{% endif %}
+                {% if vacancy.employment_type %}<span><i class="bi bi-clock"></i>{{ vacancy.employment_type }}</span>{% endif %}
+            </div>
+
+            <div class="vacancy-columns">
+                <div>
+                    <h3>{{ ui.vacancy_requirements }}</h3>
+                    <p>{{ vacancy.requirements|linebreaksbr }}</p>
+                </div>
+                <div>
+                    <h3>{{ ui.vacancy_responsibilities }}</h3>
+                    <p>{{ vacancy.responsibilities|linebreaksbr }}</p>
+                </div>
+            </div>
+
+            <div class="vacancy-actions">
+                {% if vacancy.apply_url %}
+                <a class="btn btn-dark" href="{{ vacancy.apply_url }}" target="_blank" rel="noopener">{{ vacancy.apply_button_text|default:ui.vacancy_apply }}</a>
+                {% else %}
+                <a class="btn btn-dark" href="{{ routes.demo }}">{{ vacancy.apply_button_text|default:ui.vacancy_apply }}</a>
+                {% endif %}
+            </div>
+        </article>
+        {% empty %}
+        <div class="empty-note">{{ ui.vacancy_empty }}</div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

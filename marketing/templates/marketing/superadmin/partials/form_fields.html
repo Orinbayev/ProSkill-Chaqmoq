@@ -1,0 +1,33 @@
+{% if form.has_i18n_fields %}
+<div class="mkt-lang-switch-wrap full">
+    <div class="mkt-lang-switch" data-lang-switch>
+        <button type="button" class="mkt-lang-btn is-active" data-lang-tab="uz">O'zbekcha</button>
+        <button type="button" class="mkt-lang-btn" data-lang-tab="ru">Ruscha</button>
+        <button type="button" class="mkt-lang-btn" data-lang-tab="en">Inglizcha</button>
+    </div>
+</div>
+{% endif %}
+
+{% for field in form %}
+{% with suffix=field.name|slice:"-3:" %}
+<div class="mkt-field {% if field.errors %}has-error{% endif %} {% if field.field.widget.input_type == 'textarea' %}full{% endif %} {% if suffix == '_uz' %}mkt-lang-field mkt-lang-uz{% elif suffix == '_ru' %}mkt-lang-field mkt-lang-ru{% elif suffix == '_en' %}mkt-lang-field mkt-lang-en{% else %}mkt-lang-base{% endif %}" {% if suffix == '_uz' %}data-lang-field="uz"{% elif suffix == '_ru' %}data-lang-field="ru"{% elif suffix == '_en' %}data-lang-field="en"{% endif %}>
+    {% if field.field.widget.input_type == 'checkbox' %}
+    <label class="mkt-check-row" for="{{ field.id_for_label }}">
+        {{ field }}
+        <span>{{ field.label }}</span>
+    </label>
+    {% else %}
+    <label class="mkt-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+    {{ field }}
+    {% endif %}
+
+    {% if field.help_text %}
+    <div class="mkt-help">{{ field.help_text }}</div>
+    {% endif %}
+
+    {% for error in field.errors %}
+    <div class="mkt-error">{{ error }}</div>
+    {% endfor %}
+</div>
+{% endwith %}
+{% endfor %}

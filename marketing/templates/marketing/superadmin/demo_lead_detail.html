@@ -1,0 +1,49 @@
+{% extends 'marketing/superadmin/base.html' %}
+
+{% block page_title %}Demo so'rovi tafsiloti{% endblock %}
+{% block breadcrumb_items %}<span>/</span><a href="{% url 'platform_global:marketing:demo_lead_list' %}">Demo so'rovlari</a><span>/</span><span class="is-current">{{ lead.full_name }}</span>{% endblock %}
+{% block heading %}{{ lead.full_name }}{% endblock %}
+{% block subtitle %}Demo so'rovi tafsilotlari va aloqa holati.{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'platform_global:marketing:demo_lead_list' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-arrow-left"></i> Ro'yxatga qaytish</a>
+<form method="post" action="{% url 'platform_global:marketing:demo_lead_toggle_contacted' lead.pk %}" style="display:inline;">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <button type="submit" class="mkt-btn {% if lead.is_contacted %}mkt-btn-danger{% else %}mkt-btn-primary{% endif %}">{% if lead.is_contacted %}Qayta ochish{% else %}Bog'landi{% endif %}</button>
+</form>
+{% endblock %}
+
+{% block superadmin_content %}
+<div class="mkt-grid-2">
+    <div class="mkt-card">
+        <div class="mkt-card-head"><h3>So'rov ma'lumotlari</h3></div>
+        <div class="mkt-card-body">
+            <div class="mkt-form-grid single">
+                <div class="mkt-field"><span class="mkt-label">Ism</span><span>{{ lead.full_name }}</span></div>
+                <div class="mkt-field"><span class="mkt-label">Markaz nomi</span><span>{{ lead.center_name }}</span></div>
+                <div class="mkt-field"><span class="mkt-label">Telefon</span><span>{{ lead.phone }}</span></div>
+                <div class="mkt-field"><span class="mkt-label">Tarif</span><span>{{ lead.selected_plan.name|default:'Belgilanmagan' }}</span></div>
+                <div class="mkt-field"><span class="mkt-label">Rozilik</span><span>{% if lead.consent %}Berilgan{% else %}Berilmagan{% endif %}</span></div>
+                <div class="mkt-field"><span class="mkt-label">Kelgan vaqt</span><span>{{ lead.created_at|date:"d.m.Y H:i" }}</span></div>
+                <div class="mkt-field"><span class="mkt-label">Holat</span><span>{% if lead.is_contacted %}<span class="mkt-badge mkt-badge-active">Bog'langan</span>{% else %}<span class="mkt-badge mkt-badge-amber">Kutilmoqda</span>{% endif %}</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mkt-card">
+        <div class="mkt-card-head"><h3>So'rovni yangilash</h3></div>
+        <div class="mkt-card-body">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {% if form.non_field_errors %}<div class="mkt-errors">{{ form.non_field_errors }}</div>{% endif %}
+                <div class="mkt-form-grid single">{% include 'marketing/superadmin/partials/form_fields.html' with form=form %}</div>
+                <div class="mkt-form-actions">
+                    <a href="{% url 'platform_global:marketing:demo_lead_delete' lead.pk %}" class="mkt-btn mkt-btn-danger">So'rovni o'chirish</a>
+                    <button class="mkt-btn mkt-btn-primary" type="submit">Saqlash</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

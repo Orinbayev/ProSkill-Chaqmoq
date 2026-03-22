@@ -1,0 +1,19 @@
+{% extends 'marketing/superadmin/base.html' %}
+
+{% block page_title %}Hamkor logosini o'chirish{% endblock %}
+{% block breadcrumb_items %}<span>/</span><a href="{% url 'platform_global:marketing:partner_logo_list' %}">Hamkor logolari</a><span>/</span><span class="is-current">O'chirish</span>{% endblock %}
+{% block heading %}Hamkor logosi o'chirish{% endblock %}
+{% block subtitle %}Bu amal qaytarilmaydi.{% endblock %}
+
+{% block superadmin_content %}
+<div class="mkt-danger-zone">
+    <h5 class="mb-2">"{{ object_to_delete }}" logoni o'chirmoqchimisiz?</h5>
+    <p class="mkt-muted mb-3">Tasdiqlasangiz ma'lumotlar butunlay o'chadi.</p>
+    <form method="post">{% csrf_token %}
+        <div class="mkt-form-actions">
+            <a href="{% url 'platform_global:marketing:partner_logo_list' %}" class="mkt-btn mkt-btn-muted">Bekor qilish</a>
+            <button type="submit" class="mkt-btn mkt-btn-danger">O'chirish</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

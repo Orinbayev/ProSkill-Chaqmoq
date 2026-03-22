@@ -21,6 +21,7 @@ platform_patterns = [
     # ✅ HTML Pages for Management (Fixing JSON Response Issue)
     path("plans/", views_platform.plans_list_view, name="plans_ui"),
     path("promos/", views_platform.promos_list_view, name="promos_ui"),
+    path("marketing/", include(("marketing.urls_superadmin", "marketing"), namespace="marketing")),
 
     # API Endpoints (Used by JS)
     path("api/centers/create/", api_superadmin.center_create_api, name="api_center_create"),

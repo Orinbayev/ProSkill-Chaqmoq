@@ -1,0 +1,161 @@
+{% extends 'marketing/superadmin/base.html' %}
+
+{% block page_title %}Marketing boshqaruvi{% endblock %}
+{% block heading %}Marketing boshqaruvi{% endblock %}
+{% block subtitle %}Marketing kontentlari, demo so'rovlari va sotuv oqimini bitta joydan boshqaring.{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'platform_global:marketing:site_settings' %}" class="mkt-btn mkt-btn-primary">
+    <i class="bi bi-gear"></i> Sayt sozlamalari
+</a>
+<a href="{% url 'platform_global:marketing:site_hero_image' %}" class="mkt-btn mkt-btn-muted">
+    <i class="bi bi-image"></i> Hero rasm
+</a>
+<a href="{% url 'platform_global:marketing:demo_lead_list' %}" class="mkt-btn mkt-btn-muted">
+    <i class="bi bi-telephone-inbound"></i> Demo so'rovlari
+</a>
+{% endblock %}
+
+{% block superadmin_content %}
+<div class="mkt-kpi-grid">
+    <a href="{% url 'platform_global:marketing:partner_logo_list' %}" class="mkt-kpi-card">
+        <div class="mkt-kpi-label">Hamkor logolari</div>
+        <div class="mkt-kpi-value">{{ counts.partner_logos }}</div>
+    </a>
+    <a href="{% url 'platform_global:marketing:feature_block_list' %}" class="mkt-kpi-card">
+        <div class="mkt-kpi-label">Imkoniyat bloklari</div>
+        <div class="mkt-kpi-value">{{ counts.feature_blocks }}</div>
+    </a>
+    <a href="{% url 'platform_global:marketing:pricing_plan_list' %}" class="mkt-kpi-card">
+        <div class="mkt-kpi-label">Tarif rejalari</div>
+        <div class="mkt-kpi-value">{{ counts.pricing_plans }}</div>
+    </a>
+    <a href="{% url 'platform_global:marketing:faq_list' %}" class="mkt-kpi-card">
+        <div class="mkt-kpi-label">Ko'p so'raladigan savollar</div>
+        <div class="mkt-kpi-value">{{ counts.faqs }}</div>
+    </a>
+    <a href="{% url 'platform_global:marketing:testimonial_list' %}" class="mkt-kpi-card">
+        <div class="mkt-kpi-label">Mijozlar fikri</div>
+        <div class="mkt-kpi-value">{{ counts.testimonials }}</div>
+    </a>
+    <a href="{% url 'platform_global:marketing:demo_lead_list' %}" class="mkt-kpi-card">
+        <div class="mkt-kpi-label">Demo so'rovlari</div>
+        <div class="mkt-kpi-value">{{ counts.demo_leads }}</div>
+    </a>
+    <a href="{% url 'platform_global:marketing:vacancy_list' %}" class="mkt-kpi-card">
+        <div class="mkt-kpi-label">Vakansiyalar</div>
+        <div class="mkt-kpi-value">{{ counts.vacancies }}</div>
+    </a>
+    <a href="{% url 'platform_global:marketing:support_card_list' %}" class="mkt-kpi-card">
+        <div class="mkt-kpi-label">Yordam kartalari</div>
+        <div class="mkt-kpi-value">{{ counts.support_cards }}</div>
+    </a>
+</div>
+
+<div class="mkt-card" style="margin-bottom:14px;">
+    <div class="mkt-card-head">
+        <h3>Tez boshqaruv</h3>
+    </div>
+    <div class="mkt-card-body">
+        <div class="mkt-quick-actions">
+            <a href="{% url 'platform_global:marketing:pricing_plan_list' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-cash-coin"></i> Tariflar</a>
+            <a href="{% url 'platform_global:marketing:demo_lead_list' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-telephone"></i> Demo so'rovlari</a>
+            <a href="{% url 'platform_global:marketing:faq_list' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-question-circle"></i> Savol-javoblar</a>
+            <a href="{% url 'platform_global:marketing:testimonial_list' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-chat-quote"></i> Mijozlar fikri</a>
+            <a href="{% url 'platform_global:marketing:partner_logo_list' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-grid-3x3-gap"></i> Hamkor logolari</a>
+            <a href="{% url 'platform_global:marketing:site_settings' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-sliders"></i> Sayt sozlamalari</a>
+            <a href="{% url 'platform_global:marketing:site_hero_image' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-image"></i> Hero rasm</a>
+        </div>
+    </div>
+</div>
+
+{% if site_setting and site_setting.hero_image %}
+<div class="mkt-card" style="margin-bottom:14px;">
+    <div class="mkt-card-head">
+        <h3>Joriy hero rasmi</h3>
+        <a href="{% url 'platform_global:marketing:site_hero_image' %}" class="mkt-btn mkt-btn-primary mkt-btn-sm">
+            <i class="bi bi-pencil"></i> O'zgartirish
+        </a>
+    </div>
+    <div class="mkt-card-body">
+        <img src="{{ site_setting.hero_image.url }}" alt="Hero rasm" class="mkt-thumb mkt-thumb-hero">
+    </div>
+</div>
+{% endif %}
+
+<div class="mkt-grid-2">
+    <div class="mkt-card">
+        <div class="mkt-card-head">
+            <h3>So'nggi demo so'rovlari</h3>
+            <span class="mkt-count">{{ counts.demo_leads }} ta</span>
+        </div>
+        <div class="mkt-table-wrap">
+            <table class="mkt-table">
+                <thead>
+                    <tr>
+                        <th>Ism</th>
+                        <th>Telefon</th>
+                        <th>Tarif</th>
+                        <th>Holat</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lead in recent_demo_leads %}
+                    <tr>
+                        <td>
+                            <div class="mkt-inline-stack">
+                                <a href="{% url 'platform_global:marketing:demo_lead_detail' lead.pk %}" class="mkt-title">{{ lead.full_name }}</a>
+                                <span class="mkt-muted">{{ lead.center_name }}</span>
+                            </div>
+                        </td>
+                        <td>{{ lead.phone }}</td>
+                        <td>{{ lead.selected_plan.name|default:"Belgilanmagan" }}</td>
+                        <td>
+                            {% if lead.is_contacted %}
+                            <span class="mkt-badge mkt-badge-active">Bog'langan</span>
+                            {% else %}
+                            <span class="mkt-badge mkt-badge-amber">Kutilmoqda</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="mkt-empty">Hozircha demo so'rovlari yo'q.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="mkt-card">
+        <div class="mkt-card-head">
+            <h3>So'nggi marketing yangilanishlari</h3>
+        </div>
+        <div class="mkt-table-wrap">
+            <table class="mkt-table">
+                <thead>
+                    <tr>
+                        <th>Bo'lim</th>
+                        <th>Nomi</th>
+                        <th>Vaqt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in recent_updates %}
+                    <tr>
+                        <td><span class="mkt-badge mkt-badge-info">{{ item.model_label }}</span></td>
+                        <td><a href="{{ item.url }}" class="mkt-title">{{ item.title }}</a></td>
+                        <td>{{ item.updated_at|date:"d.m.Y H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="mkt-empty">Yangilanishlar topilmadi.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

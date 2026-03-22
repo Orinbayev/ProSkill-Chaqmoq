@@ -1,0 +1,17 @@
+{% extends 'marketing/base.html' %}
+
+{% block title %}{{ page_title }} | {{ site_setting.site_name|default:'ChaqmoqApp' }}{% endblock %}
+
+{% block content %}
+<section class="page-hero page-hero-centered">
+    <div class="container">
+        <h1>{{ page_title }}</h1>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container legal-shell reveal-up">
+        {{ page_content|linebreaks }}
+    </div>
+</section>
+{% endblock %}

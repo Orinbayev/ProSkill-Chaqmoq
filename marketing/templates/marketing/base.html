@@ -1,0 +1,59 @@
+{% load static %}
+<!doctype html>
+<html lang="{{ current_lang|default:'uz' }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{{ meta_title|default:"ChaqmoqApp" }}{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}{{ meta_description|default:'' }}{% endblock %}">
+    <meta name="robots" content="index, follow">
+
+    <link rel="canonical" href="{{ canonical_url }}">
+    {% for lang_item in lang_links %}
+    <link rel="alternate" hreflang="{{ lang_item.code }}" href="{{ request.scheme }}://{{ request.get_host }}{{ lang_item.url }}">
+    {% endfor %}
+    <link rel="alternate" hreflang="x-default" href="{{ request.scheme }}://{{ request.get_host }}{{ routes.index }}">
+
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{{ meta_title|default:'ChaqmoqApp' }}">
+    <meta property="og:description" content="{{ meta_description|default:'' }}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    {% if site_setting.hero_image %}
+    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ site_setting.hero_image.url }}">
+    {% endif %}
+    <meta name="twitter:card" content="summary_large_image">
+
+    {% if site_setting.favicon %}
+    <link rel="icon" href="{{ site_setting.favicon.url }}">
+    {% else %}
+    <link rel="icon" href="{% static 'img/chaqmoq_logo_transparent.png' %}">
+    {% endif %}
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="{% static 'marketing/css/style.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="page-{{ active_menu|default:'home' }} lang-{{ current_lang|default:'uz' }}">
+    {% include 'marketing/partials/navbar.html' %}
+
+    {% if messages %}
+    <section class="container message-wrap" aria-label="{{ ui.messages_label }}">
+        {% for message in messages %}
+        <div class="message message-{{ message.tags|default:'info' }}">{{ message }}</div>
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    <main id="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% include 'marketing/partials/footer.html' %}
+
+    <script src="{% static 'marketing/js/main.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from django.utils.translation import gettext_lazy as _
 
 # ===== Load environment variables =====
 load_dotenv()
@@ -53,6 +54,7 @@ INSTALLED_APPS = [
     "store",
     "core",
     "billing",
+    "marketing",
 ]
 
 JAZZMIN_SETTINGS = {
@@ -94,6 +96,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -163,9 +166,15 @@ LOGIN_REDIRECT_URL = "core:home"
 LOGOUT_REDIRECT_URL = "login"
 
 LANGUAGE_CODE = os.getenv("LANGUAGE_CODE", "uz")
+LANGUAGES = [
+    ("uz", _("O'zbekcha")),
+    ("ru", _("Русский")),
+    ("en", _("English")),
+]
 TIME_ZONE = os.getenv("TIME_ZONE", "Asia/Tashkent")
 USE_I18N = True
 USE_TZ = True
+LOCALE_PATHS = [BASE_DIR / "locale"]
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"

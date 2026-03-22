@@ -62,6 +62,16 @@ urlpatterns = [
 
     # 🔹 Global Platform (Fixed Prefix)
     path('platform/', include(('accounts.urls', 'accounts'), namespace='platform_global')),
+    path("i18n/", include("django.conf.urls.i18n")),
+
+    # 🔹 Localized Marketing Website (/uz/, /ru/, /en/)
+    re_path(
+        r'^(?P<lang_code>uz|ru|en)/',
+        include(('marketing.urls_i18n', 'marketing_i18n'), namespace='marketing_i18n'),
+    ),
+
+    # 🔹 Public Marketing Website
+    path('', include(('marketing.urls', 'marketing'), namespace='marketing')),
 
     # 🔹 Main Application (Tenant Aware)
     # Middleware strips /<slug>/ prefix and rewrites path_info,

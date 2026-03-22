@@ -1,0 +1,48 @@
+<header class="site-header" id="top">
+    <div class="container nav-wrap">
+        <a class="brand" href="{{ routes.index }}" aria-label="{{ site_setting.site_name|default:'ChaqmoqApp' }}">
+            {% if site_setting.logo %}
+            <img src="{{ site_setting.logo.url }}" alt="{{ site_setting.site_name|default:'ChaqmoqApp' }}" class="brand-logo" loading="eager" decoding="async">
+            {% else %}
+            <span class="brand-mark"><i class="bi bi-lightning-charge-fill"></i></span>
+            <span class="brand-name">{{ site_setting.site_name|default:'ChaqmoqApp' }}</span>
+            {% endif %}
+        </a>
+
+        <nav class="nav" data-mobile-menu aria-label="{{ ui.menu_aria_label }}">
+            <a href="{{ routes.pricing }}" class="{% if active_menu == 'pricing' %}is-active{% endif %}">{{ ui.menu_pricing }}</a>
+            <a href="{% if active_menu == 'home' %}#imkoniyatlar{% else %}{{ routes.index }}#imkoniyatlar{% endif %}">{{ ui.menu_features }}</a>
+            <a href="{{ routes.support }}" class="{% if active_menu == 'support' %}is-active{% endif %}">{{ ui.menu_support }}</a>
+            <a href="{{ routes.vacancies }}" class="{% if active_menu == 'vacancies' %}is-active{% endif %}">{{ ui.menu_vacancies }}</a>
+
+            <div class="mobile-divider" aria-hidden="true"></div>
+
+            <div class="lang-switch lang-switch-mobile" aria-label="{{ ui.language_switcher_aria }}">
+                {% for lang_item in lang_links %}
+                <a href="{{ lang_item.url }}" class="{% if lang_item.is_current %}is-current{% endif %}" title="{{ lang_item.label }}">{{ lang_item.code|upper }}</a>
+                {% endfor %}
+            </div>
+
+            <div class="mobile-action-row">
+                <a class="btn btn-primary btn-block" href="{{ site_content.primary_cta_url }}">{{ site_content.primary_cta_text }}</a>
+                <a class="btn btn-dark btn-block" href="/hisob/login/">{{ ui.menu_login }}</a>
+            </div>
+        </nav>
+
+        <div class="nav-actions">
+            <div class="lang-switch" aria-label="{{ ui.language_switcher_aria }}">
+                {% for lang_item in lang_links %}
+                <a href="{{ lang_item.url }}" class="{% if lang_item.is_current %}is-current{% endif %}" title="{{ lang_item.label }}">{{ lang_item.code|upper }}</a>
+                {% endfor %}
+            </div>
+            <a class="nav-demo-link" href="{{ routes.demo }}">{{ ui.menu_demo }}</a>
+            <a class="btn btn-dark nav-login-btn" href="/hisob/login/">{{ ui.menu_login }}</a>
+        </div>
+
+        <button class="menu-toggle" type="button" aria-label="{{ ui.menu_toggle_aria }}" aria-expanded="false" data-mobile-toggle>
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </div>
+</header>

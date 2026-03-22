@@ -1,0 +1,47 @@
+{% extends 'marketing/superadmin/base.html' %}
+
+{% block page_title %}{{ page_title|default:'Tarif rejasi' }}{% endblock %}
+{% block breadcrumb_items %}<span>/</span><a href="{% url 'platform_global:marketing:pricing_plan_list' %}">Tarif rejalari</a><span>/</span><span class="is-current">Forma</span>{% endblock %}
+{% block heading %}{{ page_title|default:'Tarif rejasi' }}{% endblock %}
+{% block subtitle %}Tarif nomi, davomiyligi va narx konfiguratsiyasini kiriting.{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'platform_global:marketing:pricing_plan_list' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-arrow-left"></i> Tariflar ro'yxati</a>
+{% if object_for_preview %}
+<a href="{% url 'platform_global:marketing:pricing_feature_list' %}?plan={{ object_for_preview.pk }}" class="mkt-btn mkt-btn-muted"><i class="bi bi-list-check"></i> Afzalliklarni boshqarish</a>
+{% endif %}
+{% endblock %}
+
+{% block superadmin_content %}
+<div class="mkt-card" style="margin-bottom:12px;"><div class="mkt-card-body">
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="mkt-errors">{{ form.non_field_errors }}</div>{% endif %}
+        <div class="mkt-form-grid">{% include 'marketing/superadmin/partials/form_fields.html' with form=form %}</div>
+        <div class="mkt-form-actions"><a href="{% url 'platform_global:marketing:pricing_plan_list' %}" class="mkt-btn mkt-btn-muted">Bekor</a><button type="submit" class="mkt-btn mkt-btn-primary">Saqlash</button></div>
+    </form>
+</div></div>
+
+{% if plan_features %}
+<div class="mkt-card">
+    <div class="mkt-card-head"><h3>Ushbu tarifdagi afzalliklar</h3><span class="mkt-count">{{ plan_features|length }} ta</span></div>
+    <div class="mkt-table-wrap">
+        <table class="mkt-table">
+            <thead><tr><th>#</th><th>Afzallik matni</th><th>Tartib</th><th></th></tr></thead>
+            <tbody>
+                {% for f in plan_features %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ f.text }}</td>
+                    <td>{{ f.order }}</td>
+                    <td class="text-end"><a href="{% url 'platform_global:marketing:pricing_feature_edit' f.pk %}" class="mkt-btn mkt-btn-sm mkt-btn-muted">Tahrirlash</a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="mkt-empty">Afzallik mavjud emas.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

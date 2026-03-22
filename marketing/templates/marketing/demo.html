@@ -1,0 +1,73 @@
+{% extends 'marketing/base.html' %}
+
+{% block title %}{{ ui.menu_demo }} | {{ site_setting.site_name|default:'ChaqmoqApp' }}{% endblock %}
+
+{% block content %}
+<section class="page-hero page-hero-compact">
+    <div class="container demo-layout">
+        <div class="demo-left reveal-up">
+            <h1>{{ ui.demo_page_title }}</h1>
+            <p>{{ ui.demo_page_desc }}</p>
+
+            <div class="demo-benefit-cards">
+                <article class="demo-benefit-card">
+                    <div class="demo-benefit-icon"><i class="bi bi-lightning-charge-fill"></i></div>
+                    <div>
+                        <h3>{{ ui.demo_benefit_1 }}</h3>
+                    </div>
+                </article>
+                <article class="demo-benefit-card">
+                    <div class="demo-benefit-icon"><i class="bi bi-people"></i></div>
+                    <div>
+                        <h3>{{ ui.demo_benefit_2 }}</h3>
+                    </div>
+                </article>
+                <article class="demo-benefit-card">
+                    <div class="demo-benefit-icon"><i class="bi bi-shield-check"></i></div>
+                    <div>
+                        <h3>{{ ui.demo_benefit_3 }}</h3>
+                    </div>
+                </article>
+            </div>
+        </div>
+
+        <div class="demo-form-shell reveal-up">
+            <h2>{{ ui.demo_form_title }}</h2>
+
+            <form method="post" novalidate data-demo-form data-submitting-text="{{ ui.demo_submitting }}">
+                {% csrf_token %}
+
+                <label for="id_full_name">{{ form.full_name.label }}</label>
+                {{ form.full_name }}
+                {% for err in form.full_name.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+
+                <label for="id_center_name">{{ form.center_name.label }}</label>
+                {{ form.center_name }}
+                {% for err in form.center_name.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+
+                <label for="id_phone">{{ form.phone.label }}</label>
+                {{ form.phone }}
+                {% for err in form.phone.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+
+                <label for="id_selected_plan">{{ form.selected_plan.label }}</label>
+                {{ form.selected_plan }}
+                {% for err in form.selected_plan.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+
+                <label for="id_password">{{ form.password.label }}</label>
+                {{ form.password }}
+                {% for err in form.password.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+
+                <label class="consent-row" for="id_consent">
+                    {{ form.consent }}
+                    <span>{{ form.consent.label }}</span>
+                </label>
+                {% for err in form.consent.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+
+                {% for err in form.non_field_errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+
+                <button class="btn btn-dark btn-block" type="submit">{{ ui.demo_submit }}</button>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}
