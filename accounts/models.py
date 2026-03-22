@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
+from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 import math
@@ -133,6 +134,15 @@ class Center(SoftDeleteMixin, models.Model):
 
 
     def save(self, *args, **kwargs):
+        # Auto-fill tenant DB credentials from default DB config when not provided manually.
+        default_db = (getattr(settings, "DATABASES", {}) or {}).get("default", {})
+        if default_db and "postgresql" in str(default_db.get("ENGINE", "")).lower():
+            self.db_name = self.db_name or str(default_db.get("NAME", "") or "").strip() or None
+            self.db_user = self.db_user or str(default_db.get("USER", "") or "").strip() or None
+            self.db_password = self.db_password or str(default_db.get("PASSWORD", "") or "").strip() or None
+            self.db_host = self.db_host or str(default_db.get("HOST", "") or "localhost").strip() or "localhost"
+            self.db_port = self.db_port or str(default_db.get("PORT", "") or "5432").strip() or "5432"
+
         # 1. Generate or Clean Slug
         if not self.slug:
             # Auto-generate from name

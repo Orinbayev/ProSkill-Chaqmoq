@@ -52,6 +52,19 @@ def _get_center_db_credentials(center: Center) -> dict[str, str]:
         "port": str(getattr(center, "db_port", "") or "5432").strip() or "5432",
     }
 
+    default_db = (getattr(settings, "DATABASES", {}) or {}).get("default", {})
+    if default_db and "postgresql" in str(default_db.get("ENGINE", "")).lower():
+        if not credentials["name"]:
+            credentials["name"] = str(default_db.get("NAME", "") or "").strip()
+        if not credentials["user"]:
+            credentials["user"] = str(default_db.get("USER", "") or "").strip()
+        if not credentials["password"]:
+            credentials["password"] = str(default_db.get("PASSWORD", "") or "").strip()
+        if not credentials["host"]:
+            credentials["host"] = str(default_db.get("HOST", "") or "localhost").strip() or "localhost"
+        if not credentials["port"]:
+            credentials["port"] = str(default_db.get("PORT", "") or "5432").strip() or "5432"
+
     missing = [key for key in ("name", "user") if not credentials[key]]
     if missing:
         raise ValueError(f"missing DB credentials: {', '.join(missing)}")
