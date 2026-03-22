@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import shutil
 import subprocess
-import zipfile
 from pathlib import Path
 from typing import Any
 
@@ -13,7 +13,10 @@ from aiogram import Bot
 from aiogram.types import FSInputFile
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
+from django.apps import apps
 from django.conf import settings
+from django.core import serializers
+from django.db import models
 from django.utils import timezone
 
 from accounts.models import Center
@@ -21,6 +24,7 @@ from accounts.models import Center
 logger = logging.getLogger(__name__)
 
 _backup_scheduler: AsyncIOScheduler | None = None
+CENTER_EXPORT_APPS = {"accounts", "core", "billing", "education", "store", "chaqmoq"}
 
 
 def _get_backup_root() -> Path:
@@ -43,47 +47,34 @@ def _get_group_id() -> str | int:
         return raw_group_id
 
 
-def _get_center_db_credentials(center: Center) -> dict[str, str]:
-    credentials = {
-        "name": str(getattr(center, "db_name", "") or "").strip(),
-        "user": str(getattr(center, "db_user", "") or "").strip(),
-        "password": str(getattr(center, "db_password", "") or "").strip(),
-        "host": str(getattr(center, "db_host", "") or "localhost").strip() or "localhost",
-        "port": str(getattr(center, "db_port", "") or "5432").strip() or "5432",
-    }
-
+def _get_default_db_credentials() -> dict[str, str]:
     default_db = (getattr(settings, "DATABASES", {}) or {}).get("default", {})
-    if default_db and "postgresql" in str(default_db.get("ENGINE", "")).lower():
-        if not credentials["name"]:
-            credentials["name"] = str(default_db.get("NAME", "") or "").strip()
-        if not credentials["user"]:
-            credentials["user"] = str(default_db.get("USER", "") or "").strip()
-        if not credentials["password"]:
-            credentials["password"] = str(default_db.get("PASSWORD", "") or "").strip()
-        if not credentials["host"]:
-            credentials["host"] = str(default_db.get("HOST", "") or "localhost").strip() or "localhost"
-        if not credentials["port"]:
-            credentials["port"] = str(default_db.get("PORT", "") or "5432").strip() or "5432"
-
+    if not default_db or "postgresql" not in str(default_db.get("ENGINE", "")).lower():
+        raise ValueError("default DB is not PostgreSQL")
+    credentials = {
+        "name": str(default_db.get("NAME", "") or "").strip(),
+        "user": str(default_db.get("USER", "") or "").strip(),
+        "password": str(default_db.get("PASSWORD", "") or "").strip(),
+        "host": str(default_db.get("HOST", "") or "localhost").strip() or "localhost",
+        "port": str(default_db.get("PORT", "") or "5432").strip() or "5432",
+    }
     missing = [key for key in ("name", "user") if not credentials[key]]
     if missing:
-        raise ValueError(f"missing DB credentials: {', '.join(missing)}")
-
+        raise ValueError(f"missing default DB credentials: {', '.join(missing)}")
     return credentials
 
 
-def _build_backup_path(center: Center) -> Path:
+def _build_center_export_path(center: Center) -> Path:
     backup_date = timezone.localdate().isoformat()
-    return _get_backup_root() / f"{center.slug}_{backup_date}.sql"
+    return _get_backup_root() / f"{center.slug}_{backup_date}.json"
 
 
-def _build_combined_archive_path() -> Path:
+def _build_full_backup_path() -> Path:
     backup_date = timezone.localdate().isoformat()
-    return _get_backup_root() / f"all_centers_{backup_date}.zip"
+    return _get_backup_root() / f"postgres_full_{backup_date}.sql"
 
 
-def _build_pg_dump_command(center: Center, backup_path: Path) -> list[str]:
-    credentials = _get_center_db_credentials(center)
+def _build_pg_dump_command(credentials: dict[str, str], backup_path: Path) -> list[str]:
     return [
         "pg_dump",
         "-h",
@@ -102,12 +93,80 @@ def _build_pg_dump_command(center: Center, backup_path: Path) -> list[str]:
     ]
 
 
-def backup_center_database(center: Center) -> Path:
+def _iter_export_models() -> list[type[models.Model]]:
+    export_models: list[type[models.Model]] = []
+    for model in apps.get_models():
+        if model._meta.app_label not in CENTER_EXPORT_APPS:
+            continue
+        if model._meta.proxy or model._meta.auto_created:
+            continue
+        export_models.append(model)
+    return export_models
+
+
+def _build_center_lookup_map(export_models: list[type[models.Model]]) -> dict[type[models.Model], str]:
+    lookup_map: dict[type[models.Model], str] = {Center: ""}
+    unresolved = set(export_models) - {Center}
+
+    changed = True
+    while changed and unresolved:
+        changed = False
+        for model in list(unresolved):
+            for field in model._meta.fields:
+                if not isinstance(field, (models.ForeignKey, models.OneToOneField)):
+                    continue
+                related_model = field.related_model
+                if related_model not in lookup_map:
+                    continue
+                parent_lookup = lookup_map[related_model]
+                lookup_map[model] = f"{field.name}__{parent_lookup}" if parent_lookup else field.name
+                unresolved.remove(model)
+                changed = True
+                break
+
+    return lookup_map
+
+
+def export_center_snapshot(center: Center) -> Path:
+    export_models = _iter_export_models()
+    lookup_map = _build_center_lookup_map(export_models)
+
+    objects: list[dict[str, Any]] = []
+    for model in export_models:
+        if model is Center:
+            qs = model._default_manager.filter(pk=center.pk).order_by("pk")
+        else:
+            lookup = lookup_map.get(model)
+            if not lookup:
+                continue
+            qs = model._default_manager.filter(**{f"{lookup}_id": center.id}).order_by("pk").distinct()
+        serialized = serializers.serialize("json", qs)
+        objects.extend(json.loads(serialized))
+
+    export_path = _build_center_export_path(center)
+    payload = {
+        "meta": {
+            "type": "center_scoped_snapshot",
+            "center_id": center.id,
+            "center_slug": center.slug,
+            "generated_at": timezone.now().isoformat(),
+            "object_count": len(objects),
+        },
+        "objects": objects,
+    }
+    with export_path.open("w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+
+    logger.info("Center snapshot exported: center=%s file=%s objects=%s", center.slug, export_path, len(objects))
+    return export_path
+
+
+def backup_full_database() -> Path:
     if shutil.which("pg_dump") is None:
         raise RuntimeError("pg_dump is not available on this system")
 
-    backup_path = _build_backup_path(center)
-    credentials = _get_center_db_credentials(center)
+    backup_path = _build_full_backup_path()
+    credentials = _get_default_db_credentials()
 
     env = os.environ.copy()
     env["PGCONNECT_TIMEOUT"] = env.get("PGCONNECT_TIMEOUT", "15")
@@ -115,7 +174,7 @@ def backup_center_database(center: Center) -> Path:
         env["PGPASSWORD"] = credentials["password"]
 
     result = subprocess.run(
-        _build_pg_dump_command(center, backup_path),
+        _build_pg_dump_command(credentials, backup_path),
         env=env,
         capture_output=True,
         text=True,
@@ -128,23 +187,8 @@ def backup_center_database(center: Center) -> Path:
         error_text = (result.stderr or result.stdout or f"pg_dump exited with code {result.returncode}").strip()
         raise RuntimeError(error_text)
 
-    logger.info("Tenant backup created: center=%s file=%s", center.slug, backup_path)
+    logger.info("Full PostgreSQL backup created: file=%s", backup_path)
     return backup_path
-
-
-def create_combined_archive(file_paths: list[str | Path]) -> Path:
-    if not file_paths:
-        raise ValueError("No backup files found for combined archive")
-
-    archive_path = _build_combined_archive_path()
-    with zipfile.ZipFile(archive_path, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
-        for file_path in file_paths:
-            path = Path(file_path)
-            if path.exists():
-                zf.write(path, arcname=path.name)
-
-    logger.info("Combined backup archive created: file=%s", archive_path)
-    return archive_path
 
 
 async def send_file_to_telegram(file_path: str | Path, caption: str | None = None) -> None:
@@ -185,16 +229,17 @@ def backup_and_send_all_centers() -> dict[str, Any]:
         "backed_up": 0,
         "sent": 0,
         "combined_sent": 0,
+        "full_sent": 0,
         "skipped": 0,
         "failed": 0,
         "files": [],
-        "combined_archive": None,
+        "full_backup_file": None,
         "failed_centers": [],
     }
 
     centers = list(
         Center.objects.filter(status=Center.STATUS_ACTIVE)
-        .only("id", "slug", "name", "status", "db_name", "db_user", "db_password", "db_host", "db_port")
+        .only("id", "slug", "name", "status")
         .order_by("id")
     )
     summary["total"] = len(centers)
@@ -205,14 +250,14 @@ def backup_and_send_all_centers() -> dict[str, Any]:
 
     for center in centers:
         try:
-            backup_path = backup_center_database(center)
+            backup_path = export_center_snapshot(center)
             summary["backed_up"] += 1
             summary["files"].append(str(backup_path))
             _run_async(
                 send_file_to_telegram(
                     backup_path,
                     caption=(
-                        f"Center backup\n"
+                        f"Center scoped backup\n"
                         f"Center: {center.slug}\n"
                         f"Date: {timezone.localdate().isoformat()}\n"
                         f"File: {backup_path.name}"
@@ -229,34 +274,35 @@ def backup_and_send_all_centers() -> dict[str, Any]:
             summary["failed_centers"].append(center.slug)
             logger.exception("Tenant backup failed: center=%s", center.slug)
 
-    if summary["files"]:
-        try:
-            combined_archive = create_combined_archive(summary["files"])
-            summary["combined_archive"] = str(combined_archive)
-            _run_async(
-                send_file_to_telegram(
-                    combined_archive,
-                    caption=(
-                        f"Combined backup\n"
-                        f"Date: {timezone.localdate().isoformat()}\n"
-                        f"Centers: {summary['backed_up']}\n"
-                        f"File: {combined_archive.name}"
-                    ),
-                )
+    try:
+        full_backup_path = backup_full_database()
+        summary["full_backup_file"] = str(full_backup_path)
+        summary["files"].append(str(full_backup_path))
+        _run_async(
+            send_file_to_telegram(
+                full_backup_path,
+                caption=(
+                    f"Full PostgreSQL backup\n"
+                    f"Date: {timezone.localdate().isoformat()}\n"
+                    f"Centers: {summary['total']}\n"
+                    f"File: {full_backup_path.name}"
+                ),
             )
-            summary["sent"] += 1
-            summary["combined_sent"] = 1
-            logger.info("Combined backup sent: file=%s", combined_archive)
-        except Exception:
-            summary["failed"] += 1
-            logger.exception("Combined backup send failed")
+        )
+        summary["sent"] += 1
+        summary["combined_sent"] = 1
+        summary["full_sent"] = 1
+        logger.info("Full backup sent: file=%s", full_backup_path)
+    except Exception:
+        summary["failed"] += 1
+        logger.exception("Full backup failed")
 
     logger.info(
-        "Tenant backup job completed: total=%s backed_up=%s sent=%s combined_sent=%s skipped=%s failed=%s",
+        "Tenant backup job completed: total=%s backed_up=%s sent=%s full_sent=%s skipped=%s failed=%s",
         summary["total"],
         summary["backed_up"],
         summary["sent"],
-        summary["combined_sent"],
+        summary["full_sent"],
         summary["skipped"],
         summary["failed"],
     )

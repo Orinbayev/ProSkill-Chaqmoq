@@ -34,7 +34,7 @@ async def manual_backup_command(message: types.Message):
         f"Jami: {summary['total']}\n"
         f"Yaratildi: {summary['backed_up']}\n"
         f"Yuborildi: {summary['sent']}\n"
-        f"Umumiy arxiv: {summary.get('combined_sent', 0)}\n"
+        f"Umumiy backup: {summary.get('full_sent', summary.get('combined_sent', 0))}\n"
         f"O‘tkazib yuborildi: {summary['skipped']}\n"
         f"Xatolar: {summary['failed']}"
     )

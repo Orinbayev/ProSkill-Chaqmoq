@@ -14,6 +14,7 @@ class Command(BaseCommand):
                 f"total={summary['total']} "
                 f"backed_up={summary['backed_up']} "
                 f"sent={summary['sent']} "
+                f"full_sent={summary.get('full_sent', summary.get('combined_sent', 0))} "
                 f"combined_sent={summary.get('combined_sent', 0)} "
                 f"skipped={summary['skipped']} "
                 f"failed={summary['failed']}"
