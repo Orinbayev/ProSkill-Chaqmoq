@@ -23,7 +23,10 @@ from .services import (
     calculate_price,
     click_transaction_key_for_request,
 )
-from .telegram_notifications import send_payment_success_notification
+from .telegram_notifications import (
+    send_payment_group_receipt_notification,
+    send_payment_success_notification,
+)
 from .utils import (
     ClickError,
     amounts_match,
@@ -860,15 +863,31 @@ def click_complete(request):
                 or activation_result.new_end_date.date()
             )
 
-            # Telegram Notification
-            transaction.on_commit(lambda: send_payment_success_notification(
-                user=sub_request.user,
-                plan_name=plan.name or plan.title or plan.code,
-                end_date=notification_end_date,
-                center_name=getattr(sub_request.center, "name", "") or getattr(sub_request.center, "slug", ""),
-                duration_months=normalized_months,
-                paid_amount=expected_amount,
-            ))
+            # Telegram Notifications (user + group receipt)
+            def _notify_payment_success() -> None:
+                plan_display_name = plan.name or plan.title or plan.code
+                center_display_name = getattr(sub_request.center, "name", "") or getattr(sub_request.center, "slug", "")
+
+                send_payment_success_notification(
+                    user=sub_request.user,
+                    plan_name=plan_display_name,
+                    end_date=notification_end_date,
+                    center_name=center_display_name,
+                    duration_months=normalized_months,
+                    paid_amount=expected_amount,
+                )
+                send_payment_group_receipt_notification(
+                    center_name=center_display_name,
+                    plan_name=plan_display_name,
+                    duration_months=normalized_months,
+                    paid_amount=expected_amount,
+                    end_date=notification_end_date,
+                    click_trans_id=click_trans_id,
+                    merchant_trans_id=resolved_merchant_trans_id,
+                    request_id=sub_request.id,
+                )
+
+            transaction.on_commit(_notify_payment_success)
 
             logger.info(
                 (

@@ -389,8 +389,9 @@ class ClickPrepareCompleteTests(TestCase):
         self.assertEqual(legacy_request.status, SubscriptionRequest.Status.PAID)
         self.assertTrue(mocked_notify.called)
 
+    @patch("billing.click_views.send_payment_group_receipt_notification")
     @patch("billing.click_views.send_payment_success_notification")
-    def test_click_complete_marks_request_paid(self, mocked_notify):
+    def test_click_complete_marks_request_paid(self, mocked_notify, mocked_group_notify):
         click_trans_id = "2002"
         merchant_trans_id = self.sub_request.merchant_trans_id
         merchant_prepare_id = str(self.sub_request.id)
@@ -435,6 +436,16 @@ class ClickPrepareCompleteTests(TestCase):
             center_name=self.center.name,
             duration_months=1,
             paid_amount=self.sub_request.amount,
+        )
+        mocked_group_notify.assert_called_once_with(
+            center_name=self.center.name,
+            plan_name=self.plan.name,
+            duration_months=1,
+            paid_amount=self.sub_request.amount,
+            end_date=ANY,
+            click_trans_id=click_trans_id,
+            merchant_trans_id=merchant_trans_id,
+            request_id=self.sub_request.id,
         )
 
     @patch("billing.click_views.send_payment_success_notification")
