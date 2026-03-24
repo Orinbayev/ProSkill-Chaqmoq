@@ -756,7 +756,9 @@ def click_complete(request):
     # Main Processing
     try:
         with transaction.atomic():
-            sub_request = SubscriptionRequest.objects.select_for_update().select_related("user", "center", "plan").get(pk=sub_request.id)
+            # PostgreSQL limitation: FOR UPDATE cannot lock nullable-side OUTER JOIN targets.
+            # `plan` is nullable on SubscriptionRequest, so lock the base row first without JOINs.
+            sub_request = SubscriptionRequest.objects.select_for_update().get(pk=sub_request.id)
 
             # Amount Re-validation
             expected_amount = _request_amount(sub_request)
