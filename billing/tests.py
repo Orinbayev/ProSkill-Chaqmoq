@@ -1,6 +1,6 @@
 import json
 import hashlib
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 from django.test import TestCase
 from django.test import override_settings
 from django.test import RequestFactory
@@ -428,6 +428,14 @@ class ClickPrepareCompleteTests(TestCase):
         self.sub_request.refresh_from_db()
         self.assertEqual(self.sub_request.status, SubscriptionRequest.Status.PAID)
         self.assertTrue(mocked_notify.called)
+        mocked_notify.assert_called_once_with(
+            user=self.user,
+            plan_name=self.plan.name,
+            end_date=ANY,
+            center_name=self.center.name,
+            duration_months=1,
+            paid_amount=self.sub_request.amount,
+        )
 
     @patch("billing.click_views.send_payment_success_notification")
     def test_click_complete_extends_center_from_existing_future_end_date(self, mocked_notify):

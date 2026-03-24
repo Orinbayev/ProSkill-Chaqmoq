@@ -865,6 +865,9 @@ def click_complete(request):
                 user=sub_request.user,
                 plan_name=plan.name or plan.title or plan.code,
                 end_date=notification_end_date,
+                center_name=getattr(sub_request.center, "name", "") or getattr(sub_request.center, "slug", ""),
+                duration_months=normalized_months,
+                paid_amount=expected_amount,
             ))
 
             logger.info(

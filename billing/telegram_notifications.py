@@ -22,7 +22,23 @@ async def _send_message_async(token: str, chat_id: str, text: str) -> None:
         await bot.session.close()
 
 
-def send_payment_success_notification(user, plan_name: str, end_date) -> bool:
+def _format_amount(amount) -> str:
+    try:
+        value = int(amount)
+    except (TypeError, ValueError):
+        return "0"
+    return f"{value:,}".replace(",", " ")
+
+
+def send_payment_success_notification(
+    user,
+    plan_name: str,
+    end_date,
+    *,
+    center_name: str | None = None,
+    duration_months: int | None = None,
+    paid_amount: int | None = None,
+) -> bool:
     """
     Send payment confirmation to linked Telegram account.
     Uses official Telegram API via aiogram.
@@ -42,9 +58,22 @@ def send_payment_success_notification(user, plan_name: str, end_date) -> bool:
     else:
         formatted_end_date = timezone.localdate().strftime("%d.%m.%Y")
 
+    safe_center_name = (center_name or "Noma'lum markaz").strip() or "Noma'lum markaz"
+    try:
+        safe_months = int(duration_months or 1)
+    except (TypeError, ValueError):
+        safe_months = 1
+    if safe_months <= 0:
+        safe_months = 1
+
+    amount_text = _format_amount(paid_amount)
+
     text = (
         "To'lov qabul qilindi ✅\n"
-        f"Sizga {plan_name} tarif berildi\n"
+        f"Markaz: {safe_center_name}\n"
+        f"Tarif: {plan_name}\n"
+        f"Muddat: {safe_months} oy\n"
+        f"To'langan summa: {amount_text} so'm\n"
         f"Amal qilish muddati: {formatted_end_date}"
     )
 
