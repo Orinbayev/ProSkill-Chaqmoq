@@ -34,6 +34,10 @@ urlpatterns = [
     path("screenshot-sections/<int:pk>/move-down/", views.screenshot_section_move_down, name="screenshot_section_move_down"),
 
     path("pricing-plans/", views.pricing_plan_list, name="pricing_plan_list"),
+    path("pricing-plans/import/", views.pricing_plan_import, name="pricing_plan_import"),
+    path("pricing-plans/export/", views.pricing_plan_export, name="pricing_plan_export"),
+    path("pricing-plans/template/excel/", views.pricing_plan_template_excel, name="pricing_plan_template_excel"),
+    path("pricing-plans/template/json/", views.pricing_plan_template_json, name="pricing_plan_template_json"),
     path("pricing-plans/create/", views.pricing_plan_create, name="pricing_plan_create"),
     path("pricing-plans/<int:pk>/edit/", views.pricing_plan_edit, name="pricing_plan_edit"),
     path("pricing-plans/<int:pk>/delete/", views.pricing_plan_delete, name="pricing_plan_delete"),

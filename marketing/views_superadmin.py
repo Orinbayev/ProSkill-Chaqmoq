@@ -8,6 +8,7 @@ from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .forms import (
@@ -16,6 +17,7 @@ from .forms import (
     FeatureBlockForm,
     PartnerLogoForm,
     PricingFeatureForm,
+    PricingPlanImportForm,
     PricingPlanForm,
     ScreenshotSectionForm,
     SiteSettingForm,
@@ -40,6 +42,14 @@ from .models import (
     SupportCard,
     Testimonial,
     Vacancy,
+)
+from .pricing_plan_io import (
+    EXPORT_COLUMNS,
+    IMPORT_MODE_CREATE_ONLY,
+    IMPORT_MODE_SKIP_DUPLICATES,
+    IMPORT_MODE_UPDATE_EXISTING,
+    PricingPlanExportService,
+    PricingPlanImportService,
 )
 
 
@@ -591,13 +601,20 @@ def screenshot_section_delete(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
-@login_required
-@user_passes_test(is_superadmin)
-def pricing_plan_list(request: HttpRequest) -> HttpResponse:
-    q = request.GET.get("q", "").strip()
-    active = request.GET.get("active", "")
-    duration = request.GET.get("duration", "")
-    recommended = request.GET.get("recommended", "")
+def _pricing_plan_filters_from_request(request: HttpRequest) -> dict[str, str]:
+    return {
+        "q": request.GET.get("q", "").strip(),
+        "active": request.GET.get("active", ""),
+        "duration": request.GET.get("duration", ""),
+        "recommended": request.GET.get("recommended", ""),
+    }
+
+
+def _filtered_pricing_plan_queryset(filters: dict[str, str]):
+    q = filters["q"]
+    active = filters["active"]
+    duration = filters["duration"]
+    recommended = filters["recommended"]
 
     queryset = PricingPlan.objects.prefetch_related("features").all().order_by("duration_months", "order", "id")
     queryset = _apply_search(
@@ -629,12 +646,27 @@ def pricing_plan_list(request: HttpRequest) -> HttpResponse:
     if recommended == "1":
         queryset = queryset.filter(is_recommended=True)
 
+    return queryset
+
+
+@login_required
+@user_passes_test(is_superadmin)
+def pricing_plan_list(request: HttpRequest) -> HttpResponse:
+    filters = _pricing_plan_filters_from_request(request)
+    q = filters["q"]
+    active = filters["active"]
+    duration = filters["duration"]
+    recommended = filters["recommended"]
+
+    queryset = _filtered_pricing_plan_queryset(filters)
     page_obj = _paginate(request, queryset)
-    duration_values = (
-        PricingPlan.objects.order_by("duration_months")
-        .values_list("duration_months", flat=True)
-        .distinct()
-    )
+
+    export_query = request.GET.copy()
+    export_query.pop("page", None)
+    export_query_string = export_query.urlencode()
+
+    has_active_filters = bool(q or active or duration or recommended)
+    duration_values = PricingPlan.objects.order_by("duration_months").values_list("duration_months", flat=True).distinct()
 
     return render(
         request,
@@ -647,8 +679,111 @@ def pricing_plan_list(request: HttpRequest) -> HttpResponse:
             "duration": duration,
             "recommended": recommended,
             "duration_values": duration_values,
+            "export_query_string": export_query_string,
+            "has_active_filters": has_active_filters,
         },
     )
+
+
+@login_required
+@user_passes_test(is_superadmin)
+def pricing_plan_import(request: HttpRequest) -> HttpResponse:
+    form = PricingPlanImportForm(request.POST or None, request.FILES or None)
+    import_result = None
+
+    if request.method == "POST" and form.is_valid():
+        import_service = PricingPlanImportService(actor=request.user)
+        import_result = import_service.import_file(
+            uploaded_file=form.cleaned_data["file"],
+            mode=form.cleaned_data["import_mode"],
+            file_format=form.cleaned_data["file_format"],
+        )
+        if import_result.has_errors:
+            messages.error(request, "Import yakunlandi, lekin xatoliklar topildi. Tafsilotlar pastda.")
+        else:
+            messages.success(
+                request,
+                (
+                    "Import muvaffaqiyatli tugadi. "
+                    f"Qo'shildi: {import_result.created_count}, "
+                    f"yangilandi: {import_result.updated_count}, "
+                    f"o'tkazib yuborildi: {import_result.skipped_count}."
+                ),
+            )
+            return redirect("platform_global:marketing:pricing_plan_list")
+
+    mode_help = {
+        IMPORT_MODE_UPDATE_EXISTING: "Mavjud tarif topilsa to'liq yangilanadi (replace).",
+        IMPORT_MODE_SKIP_DUPLICATES: "Mavjud tariflar o'zgarmaydi, yangi tariflar qo'shiladi.",
+        IMPORT_MODE_CREATE_ONLY: "Mavjud tarif topilsa import xatolik bilan to'xtaydi.",
+    }
+
+    return render(
+        request,
+        "marketing/superadmin/pricing_plan_import.html",
+        {
+            "form": form,
+            "import_result": import_result,
+            "excel_columns": EXPORT_COLUMNS,
+            "mode_help": mode_help,
+        },
+    )
+
+
+@login_required
+@user_passes_test(is_superadmin)
+def pricing_plan_export(request: HttpRequest) -> HttpResponse:
+    export_format = request.GET.get("format", "xlsx").lower().strip()
+    if export_format not in {"xlsx", "json", "csv"}:
+        messages.error(request, "Noto'g'ri export format tanlandi.")
+        return redirect("platform_global:marketing:pricing_plan_list")
+
+    filters = _pricing_plan_filters_from_request(request)
+    queryset = _filtered_pricing_plan_queryset(filters)
+    export_service = PricingPlanExportService()
+
+    if export_format == "xlsx":
+        content = export_service.export_xlsx(queryset)
+        content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        extension = "xlsx"
+    elif export_format == "json":
+        content = export_service.export_json(queryset)
+        content_type = "application/json; charset=utf-8"
+        extension = "json"
+    else:
+        content = export_service.export_csv(queryset)
+        content_type = "text/csv; charset=utf-8"
+        extension = "csv"
+
+    date_part = timezone.localdate().strftime("%Y%m%d")
+    response = HttpResponse(content, content_type=content_type)
+    response["Content-Disposition"] = f'attachment; filename="pricing-plans-{date_part}.{extension}"'
+    return response
+
+
+@login_required
+@user_passes_test(is_superadmin)
+def pricing_plan_template_excel(request: HttpRequest) -> HttpResponse:
+    export_service = PricingPlanExportService()
+    content = export_service.sample_template_xlsx()
+
+    response = HttpResponse(
+        content,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = 'attachment; filename="pricing-plan-import-template.xlsx"'
+    return response
+
+
+@login_required
+@user_passes_test(is_superadmin)
+def pricing_plan_template_json(request: HttpRequest) -> HttpResponse:
+    export_service = PricingPlanExportService()
+    content = export_service.sample_template_json()
+
+    response = HttpResponse(content, content_type="application/json; charset=utf-8")
+    response["Content-Disposition"] = 'attachment; filename="pricing-plan-import-template.json"'
+    return response
 
 
 @login_required

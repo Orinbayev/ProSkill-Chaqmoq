@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static humanize %}
+{% load static humanize tz %}
 
 {% block title %}Global Boshqaruv — Chaqmoq{% endblock %}
 
@@ -526,6 +526,68 @@
         background: rgba(255, 255, 255, 0.05);
         border: 1px solid var(--sa-border);
         color: var(--sa-muted);
+    }
+
+    .sa-head-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .sa-mini-select {
+        min-width: 90px;
+        padding: 6px 10px;
+        font-size: 0.74rem;
+        border-radius: 8px;
+    }
+
+    .sa-pay-pagination {
+        border-top: 1px solid var(--sa-border);
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .sa-page-info {
+        color: var(--sa-muted);
+        font-size: 0.78rem;
+        font-weight: 600;
+    }
+
+    .sa-page-links {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .sa-page-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 10px;
+        border-radius: 8px;
+        border: 1px solid var(--sa-border);
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--sa-text);
+        text-decoration: none;
+        font-size: 0.76rem;
+        font-weight: 600;
+        transition: all 0.18s;
+    }
+
+    .sa-page-link:hover {
+        border-color: var(--sa-border-h);
+        background: rgba(255, 255, 255, 0.07);
+    }
+
+    .sa-page-link.disabled {
+        pointer-events: none;
+        opacity: 0.45;
     }
 
     .sa-table-wrap {
@@ -1526,6 +1588,69 @@
         color: #64748b;
     }
 
+    .pay-controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 12px 24px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        background: rgba(255, 255, 255, 0.01);
+    }
+
+    .pay-controls-left,
+    .pay-controls-right {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .pay-controls-label {
+        font-size: 0.76rem;
+        color: #94a3b8;
+        font-weight: 600;
+    }
+
+    .pay-select {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #e2e8f0;
+        font-size: 0.78rem;
+        border-radius: 8px;
+        padding: 6px 10px;
+        outline: none;
+    }
+
+    .pay-page-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #cbd5e1;
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-size: 0.76rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.18s;
+    }
+
+    .pay-page-btn:hover {
+        background: rgba(255, 255, 255, 0.11);
+    }
+
+    .pay-page-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+
+    .pay-page-info {
+        font-size: 0.78rem;
+        color: #94a3b8;
+        font-weight: 600;
+        min-width: 90px;
+        text-align: center;
+    }
+
     .pay-loading-shimmer {
         height: 60px;
         background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03), transparent);
@@ -1716,13 +1841,28 @@
     <!-- ══════════════════════════════════
        PAYMENT HISTORY TABLE
   ══════════════════════════════════ -->
-    {% if payment_history %}
+    {% if payment_history_page_obj and payment_history_page_obj.paginator.count %}
     <div class="sa-table-card" style="margin-bottom: 24px;">
         <div class="sa-table-head-bar">
             <h5><i class="bi bi-credit-card-2-front-fill" style="color:#22c55e;"></i> To'lovlar Tarixi
-                <span style="font-size:0.72rem;font-weight:600;color:#64748b;margin-left:6px;">so'ngi 50 ta</span>
+                <span style="font-size:0.72rem;font-weight:600;color:#64748b;margin-left:6px;">jami {{ payment_history_total }} ta</span>
             </h5>
-            <span class="sa-count-badge">{{ payment_history|length }} ta to'lov</span>
+            <div class="sa-head-actions">
+                <form method="get">
+                    <input type="hidden" name="q" value="{{ search_q }}">
+                    <input type="hidden" name="status" value="{{ status_filter }}">
+                    <input type="hidden" name="plan" value="{{ plan_filter }}">
+                    <input type="hidden" name="expiry" value="{{ expiry_filter }}">
+                    <input type="hidden" name="limit" value="{{ limit_filter }}">
+                    <input type="hidden" name="payments_page" value="1">
+                    <select name="payments_per_page" class="sa-select sa-mini-select" onchange="this.form.submit()">
+                        {% for size in payment_page_size_options %}
+                        <option value="{{ size }}" {% if payments_per_page == size %}selected{% endif %}>{{ size }} ta</option>
+                        {% endfor %}
+                    </select>
+                </form>
+                <span class="sa-count-badge">{{ payment_history_total }} ta to'lov</span>
+            </div>
         </div>
         <div class="sa-table-wrap">
             <table class="sa-table">
@@ -1738,6 +1878,7 @@
                 <tbody>
                     {% for p in payment_history %}
                     <tr>
+                        {% with paid_dt=p.paid_at|default:p.created_at %}
                         <!-- Center -->
                         <td>
                             <div style="font-weight:700;color:#f1f5f9;font-size:0.86rem;">{{ p.center.name }}</div>
@@ -1759,26 +1900,44 @@
                         </td>
                         <!-- Date & Status -->
                         <td style="white-space:nowrap;">
-                            <div style="color:#f1f5f9;font-size:0.84rem;font-weight:600;">{{ p.paid_at|date:"d.m.Y H:i" }}</div>
+                            <div style="color:#f1f5f9;font-size:0.84rem;font-weight:600;">{{ paid_dt|localtime|date:"d.m.Y H:i" }}</div>
                             <span style="background:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2);padding:2px 9px;border-radius:6px;font-size:11px;font-weight:700;">
                                 ✓ Muvaffaqiyatli
                             </span>
                         </td>
                         <!-- Subscription Period -->
                         <td style="white-space:nowrap;color:#64748b;font-size:0.82rem;">
-                            {{ p.paid_at|date:"d.m.Y" }}
+                            {{ paid_dt|localtime|date:"d.m.Y" }}
                             <i class="bi bi-arrow-right" style="font-size:10px;margin:0 4px;"></i>
-                            {% load humanize %}
-                            <span style="color:#f1f5f9;font-weight:600;">
-                                {{ p.paid_at|date:"d.m.Y"|slice:":0" }}
-                                {# We calculate end date as paid_at + 30*duration #}
-                            </span>
                             +{{ p.duration_months }}oy
                         </td>
+                        {% endwith %}
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+        <div class="sa-pay-pagination">
+            <span class="sa-page-info">
+                Sahifa {{ payment_history_page_obj.number }} / {{ payment_history_page_obj.paginator.num_pages }}
+            </span>
+            <div class="sa-page-links">
+                {% if payment_history_page_obj.has_previous %}
+                <a class="sa-page-link" href="?{{ payment_base_query }}{% if payment_base_query %}&{% endif %}payments_page={{ payment_history_page_obj.previous_page_number }}&payments_per_page={{ payments_per_page }}">
+                    <i class="bi bi-chevron-left"></i>&nbsp;Oldingi
+                </a>
+                {% else %}
+                <span class="sa-page-link disabled"><i class="bi bi-chevron-left"></i>&nbsp;Oldingi</span>
+                {% endif %}
+
+                {% if payment_history_page_obj.has_next %}
+                <a class="sa-page-link" href="?{{ payment_base_query }}{% if payment_base_query %}&{% endif %}payments_page={{ payment_history_page_obj.next_page_number }}&payments_per_page={{ payments_per_page }}">
+                    Keyingi&nbsp;<i class="bi bi-chevron-right"></i>
+                </a>
+                {% else %}
+                <span class="sa-page-link disabled">Keyingi&nbsp;<i class="bi bi-chevron-right"></i></span>
+                {% endif %}
+            </div>
         </div>
     </div>
     {% endif %}
@@ -2294,22 +2453,44 @@
 
     let saasChartInstance = null;
     let saasPlanChartInstance = null;
+    const paymentsModalState = {
+        page: 1,
+        perPage: 10,
+        totalPages: 1,
+    };
 
-    async function openPaymentsModal() {
-        const overlay = document.getElementById('payOverlay');
+    function renderPaymentsLoading() {
         const body = document.getElementById('payTableBody');
-
-        overlay.classList.add('show');
-
-        // Show loading shimmer
         body.innerHTML = `
             <tr class="pay-loading-shimmer"><td></td><td></td><td></td><td></td></tr>
             <tr class="pay-loading-shimmer"><td></td><td></td><td></td><td></td></tr>
             <tr class="pay-loading-shimmer"><td></td><td></td><td></td><td></td></tr>
         `;
+    }
+
+    function updateModalPagination(meta) {
+        const prevBtn = document.getElementById('payPrevBtn');
+        const nextBtn = document.getElementById('payNextBtn');
+        const pageInfo = document.getElementById('payPageInfo');
+
+        paymentsModalState.page = meta.page || 1;
+        paymentsModalState.totalPages = meta.total_pages || 1;
+
+        pageInfo.textContent = `${paymentsModalState.page} / ${paymentsModalState.totalPages}`;
+        prevBtn.disabled = !meta.has_previous;
+        nextBtn.disabled = !meta.has_next;
+    }
+
+    async function loadPaymentsModalData() {
+        const body = document.getElementById('payTableBody');
+        const perPageSelect = document.getElementById('payPerPageSelect');
+        perPageSelect.value = String(paymentsModalState.perPage);
+
+        renderPaymentsLoading();
 
         try {
-            const r = await fetch('/platform/api/finance/payments/');
+            const url = `/platform/api/finance/payments/?page=${paymentsModalState.page}&per_page=${paymentsModalState.perPage}`;
+            const r = await fetch(url);
             const d = await r.json();
 
             // Set KPIs
@@ -2327,6 +2508,17 @@
             // Render Plan Stats Donut Chart
             if (d.plan_stats) {
                 renderPlanChart(d.plan_stats);
+            }
+
+            if (d.pagination) {
+                updateModalPagination(d.pagination);
+            } else {
+                updateModalPagination({
+                    page: 1,
+                    total_pages: 1,
+                    has_previous: false,
+                    has_next: false,
+                });
             }
 
             if (d.payments && d.payments.length > 0) {
@@ -2365,7 +2557,34 @@
             }
         } catch (e) {
             body.innerHTML = `<tr><td colspan="4" class="pay-empty" style="color:#ef4444;">Server bilan aloqa xatosi...</td></tr>`;
+            updateModalPagination({
+                page: paymentsModalState.page,
+                total_pages: paymentsModalState.totalPages,
+                has_previous: paymentsModalState.page > 1,
+                has_next: false,
+            });
         }
+    }
+
+    async function openPaymentsModal() {
+        const overlay = document.getElementById('payOverlay');
+        overlay.classList.add('show');
+        paymentsModalState.page = 1;
+        await loadPaymentsModalData();
+    }
+
+    function changePaymentsPerPage(value) {
+        const parsed = parseInt(value, 10);
+        paymentsModalState.perPage = [10, 20, 50].includes(parsed) ? parsed : 10;
+        paymentsModalState.page = 1;
+        loadPaymentsModalData();
+    }
+
+    function goPaymentsPage(delta) {
+        const targetPage = paymentsModalState.page + delta;
+        if (targetPage < 1 || targetPage > paymentsModalState.totalPages) return;
+        paymentsModalState.page = targetPage;
+        loadPaymentsModalData();
     }
 
     function renderSaasChart(chartData) {
@@ -2491,8 +2710,13 @@
     }
 
     // Close on click outside or Esc
-    document.getElementById('payOverlay').addEventListener('click', (e) => {
-        if (e.target === document.getElementById('payOverlay')) closePaymentsModal();
+    document.addEventListener('DOMContentLoaded', () => {
+        const payOverlay = document.getElementById('payOverlay');
+        if (payOverlay) {
+            payOverlay.addEventListener('click', (e) => {
+                if (e.target === payOverlay) closePaymentsModal();
+            });
+        }
     });
 
     document.addEventListener('keydown', (e) => {
@@ -2610,6 +2834,21 @@
         </div>
 
         <div class="pay-body-list" id="payBody">
+            <div class="pay-controls">
+                <div class="pay-controls-left">
+                    <span class="pay-controls-label">Ko'rsatish:</span>
+                    <select id="payPerPageSelect" class="pay-select" onchange="changePaymentsPerPage(this.value)">
+                        <option value="10">10 ta</option>
+                        <option value="20">20 ta</option>
+                        <option value="50">50 ta</option>
+                    </select>
+                </div>
+                <div class="pay-controls-right">
+                    <button id="payPrevBtn" type="button" class="pay-page-btn" onclick="goPaymentsPage(-1)">Oldingi</button>
+                    <span id="payPageInfo" class="pay-page-info">1 / 1</span>
+                    <button id="payNextBtn" type="button" class="pay-page-btn" onclick="goPaymentsPage(1)">Keyingi</button>
+                </div>
+            </div>
             <table class="pay-table" style="width: 100%;">
                 <thead>
                     <tr>

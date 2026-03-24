@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db import transaction
+from django.core.paginator import Paginator
 from accounts.models import Center
 from billing.models import SubscriptionPlan, CenterSubscription
 from billing.services import ensure_center_subscription
@@ -129,13 +130,33 @@ def superadmin_dashboard(request):
         role='student', is_archived=False
     ).count()
 
-    # ── Payment History (last 50 paid orders) ─────────────────
-    payment_history = (
+    # ── Payment History (paginated paid orders) ───────────────
+    payments_per_page_raw = (request.GET.get("payments_per_page") or "10").strip()
+    allowed_payment_page_sizes = [10, 20, 50]
+    try:
+        payments_per_page = int(payments_per_page_raw)
+    except (TypeError, ValueError):
+        payments_per_page = 10
+    if payments_per_page not in allowed_payment_page_sizes:
+        payments_per_page = 10
+
+    payment_history_qs = (
         SubscriptionOrder.objects
         .filter(status=SubscriptionOrder.Status.PAID)
         .select_related('center', 'plan')
-        .order_by('-paid_at')[:50]
+        .order_by('-paid_at', '-id')
     )
+    payment_history_total = payment_history_qs.count()
+
+    payment_paginator = Paginator(payment_history_qs, payments_per_page)
+    payments_page_number = request.GET.get("payments_page") or 1
+    payment_history_page_obj = payment_paginator.get_page(payments_page_number)
+    payment_history = payment_history_page_obj.object_list
+
+    payment_query_params = request.GET.copy()
+    payment_query_params.pop("payments_page", None)
+    payment_query_params.pop("payments_per_page", None)
+    payment_base_query = payment_query_params.urlencode()
 
     # ── 6. Context ──────────────────────────────────────────────
     context = {
@@ -157,6 +178,11 @@ def superadmin_dashboard(request):
         'expiring_soon_count': kpis['expiring_soon_count'] or 0,
         'total_students_global': total_students_global,
         'payment_history':     payment_history,
+        'payment_history_page_obj': payment_history_page_obj,
+        'payment_history_total': payment_history_total,
+        'payments_per_page': payments_per_page,
+        'payment_page_size_options': allowed_payment_page_sizes,
+        'payment_base_query': payment_base_query,
 
         # Dropdown choices
         'plans':    SubscriptionPlan.objects.filter(active=True).values_list('code', 'title'),

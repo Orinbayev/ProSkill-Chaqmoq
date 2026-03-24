@@ -1,12 +1,48 @@
 {% extends 'marketing/superadmin/base.html' %}
+{% load static %}
 
 {% block page_title %}Tarif rejalari{% endblock %}
 {% block breadcrumb_items %}<span>/</span><span class="is-current">Tarif rejalari</span>{% endblock %}
 {% block heading %}Tarif rejalari{% endblock %}
 {% block subtitle %}Tariflar, narxlar va tavsiya etilgan rejalarni boshqaring.{% endblock %}
 
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'marketing/css/superadmin-pricing-io.css' %}?v=20260324-pricing-io-1">
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="{% static 'marketing/js/superadmin-pricing-io.js' %}?v=20260324-pricing-io-1"></script>
+{% endblock %}
+
 {% block header_actions %}
 <a href="{% url 'platform_global:marketing:pricing_feature_list' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-list-check"></i> Tarif afzalliklari</a>
+<details class="mkt-dropdown">
+    <summary class="mkt-btn mkt-btn-muted"><i class="bi bi-file-earmark-arrow-down"></i> Sample template</summary>
+    <div class="mkt-dropdown-menu">
+        <a href="{% url 'platform_global:marketing:pricing_plan_template_excel' %}" class="mkt-dropdown-item"><i class="bi bi-file-earmark-excel"></i> Excel template</a>
+        <a href="{% url 'platform_global:marketing:pricing_plan_template_json' %}" class="mkt-dropdown-item"><i class="bi bi-filetype-json"></i> JSON template</a>
+    </div>
+</details>
+<a href="{% url 'platform_global:marketing:pricing_plan_import' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-upload"></i> Import</a>
+<details class="mkt-dropdown">
+    <summary class="mkt-btn mkt-btn-muted"><i class="bi bi-download"></i> Export</summary>
+    <div class="mkt-dropdown-menu">
+        {% if export_query_string %}
+        <a href="{% url 'platform_global:marketing:pricing_plan_export' %}?{{ export_query_string }}&format=xlsx" class="mkt-dropdown-item"><i class="bi bi-file-earmark-excel"></i> Export Excel</a>
+        <a href="{% url 'platform_global:marketing:pricing_plan_export' %}?{{ export_query_string }}&format=json" class="mkt-dropdown-item"><i class="bi bi-filetype-json"></i> Export JSON</a>
+        <a href="{% url 'platform_global:marketing:pricing_plan_export' %}?{{ export_query_string }}&format=csv" class="mkt-dropdown-item"><i class="bi bi-filetype-csv"></i> Export CSV</a>
+        {% else %}
+        <a href="{% url 'platform_global:marketing:pricing_plan_export' %}?format=xlsx" class="mkt-dropdown-item"><i class="bi bi-file-earmark-excel"></i> Export Excel</a>
+        <a href="{% url 'platform_global:marketing:pricing_plan_export' %}?format=json" class="mkt-dropdown-item"><i class="bi bi-filetype-json"></i> Export JSON</a>
+        <a href="{% url 'platform_global:marketing:pricing_plan_export' %}?format=csv" class="mkt-dropdown-item"><i class="bi bi-filetype-csv"></i> Export CSV</a>
+        {% endif %}
+        {% if has_active_filters %}
+        <div class="mkt-dropdown-note"><i class="bi bi-funnel"></i> Joriy filtrlarga mos export qilinadi.</div>
+        {% endif %}
+    </div>
+</details>
 <a href="{% url 'platform_global:marketing:pricing_plan_create' %}" class="mkt-btn mkt-btn-primary"><i class="bi bi-plus-lg"></i> Tarif qo'shish</a>
 {% endblock %}
 

@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.http import JsonResponse, HttpResponseForbidden, HttpResponseBadRequest
 from django.db.models import Sum, Count, Q, Avg
 from django.db import models
+from django.core.paginator import Paginator
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
@@ -968,11 +969,31 @@ def payment_history_api(request):
             "value": rev
         })
     
-    # 4. Recent 100 Payments List
-    qs = paid_orders.select_related('center', 'plan').order_by('-paid_at')[:100]
+    # 4. Paginated Payments List
+    per_page_raw = (request.GET.get("per_page") or "10").strip()
+    allowed_page_sizes = (10, 20, 50)
+    try:
+        per_page = int(per_page_raw)
+    except (TypeError, ValueError):
+        per_page = 10
+    if per_page not in allowed_page_sizes:
+        per_page = 10
+
+    page_raw = (request.GET.get("page") or "1").strip()
+    try:
+        page_number = int(page_raw)
+    except (TypeError, ValueError):
+        page_number = 1
+    if page_number < 1:
+        page_number = 1
+
+    qs = paid_orders.select_related('center', 'plan').order_by('-paid_at', '-id')
+    paginator = Paginator(qs, per_page)
+    page_obj = paginator.get_page(page_number)
     
     data = []
-    for order in qs:
+    for order in page_obj.object_list:
+        paid_dt = timezone.localtime(order.paid_at or order.created_at)
         data.append({
             "id": order.id,
             "center_name": order.center.name,
@@ -981,7 +1002,7 @@ def payment_history_api(request):
             "plan_title": order.plan.title,
             "duration": order.duration_months,
             "amount": order.final_price,
-            "paid_at": order.paid_at.strftime("%d.%m.%Y %H:%M") if order.paid_at else order.created_at.strftime("%d.%m.%Y %H:%M"),
+            "paid_at": paid_dt.strftime("%d.%m.%Y %H:%M"),
         })
         
     # 5. Plan Distribution (Which plan sold how many times)
@@ -994,5 +1015,13 @@ def payment_history_api(request):
         "payments": data,
         "kpi": kpi,
         "chart": revenue_chart,
-        "plan_stats": plan_distribution
+        "plan_stats": plan_distribution,
+        "pagination": {
+            "page": page_obj.number,
+            "per_page": per_page,
+            "total_pages": paginator.num_pages,
+            "total_count": paginator.count,
+            "has_previous": page_obj.has_previous(),
+            "has_next": page_obj.has_next(),
+        },
     })

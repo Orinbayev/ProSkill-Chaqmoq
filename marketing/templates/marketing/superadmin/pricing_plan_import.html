@@ -1,0 +1,138 @@
+{% extends 'marketing/superadmin/base.html' %}
+{% load static %}
+
+{% block page_title %}Tarif importi{% endblock %}
+{% block breadcrumb_items %}<span>/</span><a href="{% url 'platform_global:marketing:pricing_plan_list' %}">Tarif rejalari</a><span>/</span><span class="is-current">Import</span>{% endblock %}
+{% block heading %}Tariflarni import qilish{% endblock %}
+{% block subtitle %}Excel yoki JSON fayldan tariflarni bir martada yuklang. Import atomik ishlaydi: xatolik bo'lsa yozuvlar saqlanmaydi.{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'marketing/css/superadmin-pricing-io.css' %}?v=20260324-pricing-io-1">
+{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'platform_global:marketing:pricing_plan_list' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-arrow-left"></i> Tariflar ro'yxati</a>
+<a href="{% url 'platform_global:marketing:pricing_plan_template_excel' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-file-earmark-excel"></i> Sample Excel</a>
+<a href="{% url 'platform_global:marketing:pricing_plan_template_json' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-filetype-json"></i> Sample JSON</a>
+{% endblock %}
+
+{% block superadmin_content %}
+<div class="pricing-io-grid">
+    <section class="mkt-card pricing-io-card">
+        <div class="mkt-card-head">
+            <h3>Import sozlamalari</h3>
+        </div>
+        <div class="mkt-card-body">
+            <form method="post" enctype="multipart/form-data" class="pricing-io-form" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="mkt-errors">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="mkt-field {% if form.file.errors %}has-error{% endif %}">
+                    <label class="mkt-label" for="{{ form.file.id_for_label }}">Fayl tanlash</label>
+                    {{ form.file }}
+                    <p class="mkt-help">Qo'llab-quvvatlanadigan formatlar: .xlsx va .json</p>
+                    {% for error in form.file.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                    <div class="pricing-io-file-name" data-file-name>Fayl tanlanmagan</div>
+                </div>
+
+                <div class="mkt-field {% if form.file_format.errors %}has-error{% endif %}">
+                    <label class="mkt-label" for="{{ form.file_format.id_for_label }}">Fayl formati</label>
+                    {{ form.file_format }}
+                    {% for error in form.file_format.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                </div>
+
+                <div class="mkt-field {% if form.import_mode.errors %}has-error{% endif %}">
+                    <label class="mkt-label">Import strategiyasi</label>
+                    <div class="pricing-io-radio-wrap">
+                        {{ form.import_mode }}
+                    </div>
+                    {% for error in form.import_mode.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                </div>
+
+                <div class="pricing-io-mode-help">
+                    {% for key, description in mode_help.items %}
+                    <div class="pricing-io-mode-row">
+                        <span class="mkt-count">{{ key }}</span>
+                        <span>{{ description }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="mkt-form-actions">
+                    <a href="{% url 'platform_global:marketing:pricing_plan_list' %}" class="mkt-btn mkt-btn-muted">Bekor</a>
+                    <button type="submit" class="mkt-btn mkt-btn-primary"><i class="bi bi-upload"></i> Import qilish</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <aside class="mkt-card pricing-io-card">
+        <div class="mkt-card-head">
+            <h3>Instruction</h3>
+        </div>
+        <div class="mkt-card-body pricing-io-instruction">
+            <p><strong>1.</strong> Avval sample template yuklab oling.</p>
+            <p><strong>2.</strong> Majburiy ustunlar: <code>name</code>, <code>student_range</code>, <code>duration_months</code>, <code>current_price</code>.</p>
+            <p><strong>3.</strong> Feature format (Excel): <code>highlight_features</code> va <code>detail_features</code> ustunlarida <code>|</code> bilan ajrating.</p>
+            <p><strong>4.</strong> JSON formatda nested <code>features.highlight</code> va <code>features.detail</code> qo'llab-quvvatlanadi.</p>
+            <p><strong>5.</strong> Mavjud tarifni topish tartibi: avval <code>id</code>, bo'lmasa <code>name + duration_months</code>.</p>
+            <p><strong>6.</strong> Validation xatosi bo'lsa import to'liq rollback bo'ladi.</p>
+
+            <div class="pricing-io-columns">
+                <h4>Excel ustunlari</h4>
+                <div class="pricing-io-columns-list">
+                    {% for column in excel_columns %}
+                    <code>{{ column }}</code>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </aside>
+</div>
+
+{% if import_result and import_result.errors %}
+<div class="mkt-card pricing-io-error-card">
+    <div class="mkt-card-head">
+        <h3>Import xatoliklari</h3>
+        <span class="mkt-count">{{ import_result.errors|length }} ta</span>
+    </div>
+    <div class="mkt-card-body">
+        <div class="pricing-io-summary">
+            <span class="mkt-count">Qatorlar: {{ import_result.total_rows }}</span>
+            <span class="mkt-count">Qo'shildi: {{ import_result.created_count }}</span>
+            <span class="mkt-count">Yangilandi: {{ import_result.updated_count }}</span>
+            <span class="mkt-count">Skip: {{ import_result.skipped_count }}</span>
+        </div>
+        <div class="mkt-table-wrap">
+            <table class="mkt-table">
+                <thead>
+                    <tr>
+                        <th>Row</th>
+                        <th>Field</th>
+                        <th>Xatolik</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for err in import_result.errors %}
+                    <tr>
+                        <td>{{ err.row }}</td>
+                        <td><code>{{ err.field }}</code></td>
+                        <td>{{ err.message }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="{% static 'marketing/js/superadmin-pricing-io.js' %}?v=20260324-pricing-io-1"></script>
+{% endblock %}

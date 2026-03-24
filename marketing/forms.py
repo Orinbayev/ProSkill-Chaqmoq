@@ -14,6 +14,11 @@ from .models import (
     Testimonial,
     Vacancy,
 )
+from .pricing_plan_io import (
+    IMPORT_MODE_CREATE_ONLY,
+    IMPORT_MODE_SKIP_DUPLICATES,
+    IMPORT_MODE_UPDATE_EXISTING,
+)
 
 
 DEMO_FORM_I18N = {
@@ -376,6 +381,42 @@ class PricingFeatureForm(StyledModelForm):
     class Meta:
         model = PricingFeature
         fields = ["pricing_plan", "text", "text_uz", "text_ru", "text_en", "order"]
+
+
+class PricingPlanImportForm(forms.Form):
+    file = forms.FileField(label="Import fayli")
+    file_format = forms.ChoiceField(
+        label="Fayl formati",
+        choices=[
+            ("auto", "Auto aniqlash"),
+            ("xlsx", "Excel (.xlsx)"),
+            ("json", "JSON (.json)"),
+        ],
+        initial="auto",
+    )
+    import_mode = forms.ChoiceField(
+        label="Import strategiyasi",
+        choices=[
+            (IMPORT_MODE_UPDATE_EXISTING, "Mavjudlarini yangilash (replace mode)"),
+            (IMPORT_MODE_SKIP_DUPLICATES, "Dublikatlarni o'tkazib yuborish"),
+            (IMPORT_MODE_CREATE_ONLY, "Hammasini yangi qo'shish"),
+        ],
+        initial=IMPORT_MODE_UPDATE_EXISTING,
+        widget=forms.RadioSelect,
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["file"].widget.attrs.setdefault("class", "sa-file")
+        self.fields["file_format"].widget.attrs.setdefault("class", "sa-select")
+        self.fields["import_mode"].widget.attrs.setdefault("class", "mkt-radio-grid")
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data["file"]
+        filename = (uploaded_file.name or "").lower()
+        if not (filename.endswith(".xlsx") or filename.endswith(".json")):
+            raise forms.ValidationError("Faqat .xlsx yoki .json fayl yuklash mumkin.")
+        return uploaded_file
 
 
 class TestimonialForm(StyledModelForm):
