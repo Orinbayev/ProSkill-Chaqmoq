@@ -7,7 +7,7 @@ from urllib.parse import parse_qsl, urlencode
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.db import IntegrityError, transaction
+from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
@@ -27,7 +27,6 @@ from .telegram_notifications import send_payment_success_notification
 from .utils import (
     ClickError,
     amounts_match,
-    generate_merchant_trans_id,
     verify_click_signature,
 )
 
@@ -123,32 +122,54 @@ def _resolve_subscription_request(data, *, require_merchant_trans_id: bool = Fal
     queryset = SubscriptionRequest.objects.select_related("user", "center", "plan")
 
     sub_request = None
-    if require_merchant_trans_id:
-        # Security: Click callbacks must be matched by exact merchant_trans_id only.
+    lookup_trace = []
+
+    if merchant_trans_id:
         sub_request = queryset.filter(merchant_trans_id=merchant_trans_id).first()
-    elif merchant_trans_id:
-        sub_request = queryset.filter(merchant_trans_id=merchant_trans_id).first()
-        # Backward compatibility for old numeric merchant_trans_id values.
-        if not sub_request and merchant_trans_id.isdigit():
-            sub_request = queryset.filter(pk=int(merchant_trans_id)).first()
+        lookup_trace.append(f"merchant_trans_id_exact={'hit' if sub_request else 'miss'}")
+
+    # Backward compatibility: old flows may pass numeric merchant_trans_id as SubscriptionRequest.pk.
+    if not sub_request and merchant_trans_id and merchant_trans_id.isdigit():
+        sub_request = queryset.filter(pk=int(merchant_trans_id)).first()
+        lookup_trace.append(f"merchant_trans_id_pk={'hit' if sub_request else 'miss'}")
 
     if (
         not sub_request
-        and not require_merchant_trans_id
         and transaction_param
         and transaction_param.isdigit()
+        and (not require_merchant_trans_id or (merchant_trans_id and merchant_trans_id.isdigit()))
     ):
         sub_request = queryset.filter(pk=int(transaction_param)).first()
+        lookup_trace.append(f"transaction_param_pk={'hit' if sub_request else 'miss'}")
 
     if not sub_request:
-        raise SubscriptionRequest.DoesNotExist
+        trace = ", ".join(lookup_trace) if lookup_trace else "no_lookup"
+        raise SubscriptionRequest.DoesNotExist(
+            f"SubscriptionRequest not found (merchant_trans_id={merchant_trans_id!r}, transaction_param={transaction_param!r}, trace={trace})"
+        )
 
     if transaction_param and transaction_param.isdigit() and sub_request.pk != int(transaction_param):
-        raise SubscriptionRequest.DoesNotExist
+        raise SubscriptionRequest.DoesNotExist(
+            f"transaction_param mismatch (transaction_param={transaction_param}, request_id={sub_request.pk})"
+        )
 
-    # Security: if request carries both identifiers they must resolve to the same order.
-    if merchant_trans_id and sub_request.merchant_trans_id and merchant_trans_id != sub_request.merchant_trans_id:
-        raise SubscriptionRequest.DoesNotExist
+    # Security: request identifiers must map to the same order.
+    # Compatibility: some historical Click callbacks send numeric ID even when
+    # merchant_trans_id was stored as legacy formatted value (e.g. ORD-<id>-...).
+    if merchant_trans_id:
+        is_numeric_self_id = merchant_trans_id.isdigit() and sub_request.pk == int(merchant_trans_id)
+        if sub_request.merchant_trans_id:
+            if merchant_trans_id != sub_request.merchant_trans_id:
+                if not is_numeric_self_id:
+                    raise SubscriptionRequest.DoesNotExist(
+                        "merchant_trans_id mismatch with stored SubscriptionRequest.merchant_trans_id"
+                    )
+        else:
+            # Legacy request without stored merchant_trans_id is accepted only for numeric self-id.
+            if not is_numeric_self_id:
+                raise SubscriptionRequest.DoesNotExist(
+                    "legacy numeric merchant_trans_id mismatch for request without stored merchant_trans_id"
+                )
 
     resolved_merchant_trans_id = sub_request.merchant_trans_id or merchant_trans_id or str(sub_request.id)
     return sub_request, resolved_merchant_trans_id
@@ -233,21 +254,17 @@ def _payment_status_payload(sub_request: SubscriptionRequest) -> dict:
     }
 
 
-def _assign_unique_merchant_trans_id(sub_request: SubscriptionRequest, max_attempts: int = 10) -> str:
-    if sub_request.merchant_trans_id:
-        return sub_request.merchant_trans_id
-
-    for _ in range(max_attempts):
-        candidate = generate_merchant_trans_id(sub_request.id)
-        sub_request.merchant_trans_id = candidate
-        try:
-            sub_request.save(update_fields=["merchant_trans_id", "updated_at"])
-            return candidate
-        except IntegrityError:
-            logger.warning("merchant_trans_id collision detected, retrying: %s", candidate)
-            continue
-
-    raise RuntimeError("Could not generate unique merchant_trans_id")
+def _assign_merchant_trans_id(sub_request: SubscriptionRequest) -> str:
+    """
+    Canonical Click merchant_trans_id format:
+    - ONLY integer SubscriptionRequest.id as string.
+    """
+    merchant_trans_id = str(sub_request.id)
+    if sub_request.merchant_trans_id == merchant_trans_id:
+        return merchant_trans_id
+    sub_request.merchant_trans_id = merchant_trans_id
+    sub_request.save(update_fields=["merchant_trans_id", "updated_at"])
+    return merchant_trans_id
 
 
 @login_required
@@ -324,7 +341,7 @@ def create_order_and_redirect(request):
                 promo_code=promo,
                 status=SubscriptionRequest.Status.PENDING,
             )
-            merchant_trans_id = _assign_unique_merchant_trans_id(sub_request)
+            merchant_trans_id = _assign_merchant_trans_id(sub_request)
     except Exception:
         logger.exception("Failed to create Click order: user_id=%s", request.user.id)
         return JsonResponse(
@@ -336,7 +353,7 @@ def create_order_and_redirect(request):
         "service_id": service_id,
         "merchant_id": merchant_id,
         "merchant_trans_id": merchant_trans_id,
-        "transaction_param": sub_request.id,
+        "transaction_param": str(sub_request.id),
         "amount": pricing.final_price,
         "return_url": return_url,
     }
@@ -344,7 +361,8 @@ def create_order_and_redirect(request):
     payment_url = "https://my.click.uz/services/pay?" + urlencode(params)
 
     logger.info(
-        "Click payment URL created merchant_trans_id=%s user_id=%s center=%s amount=%s",
+        "Click payment URL created request_id=%s merchant_trans_id=%s user_id=%s center=%s amount=%s",
+        sub_request.id,
         merchant_trans_id,
         request.user.id,
         center.id,
@@ -474,8 +492,13 @@ def click_prepare(request):
 
     try:
         sub_request, resolved_merchant_trans_id = _resolve_subscription_request(data, require_merchant_trans_id=True)
-    except SubscriptionRequest.DoesNotExist:
-        logger.warning("[CLICK] PREPARE rejected: order not found merchant_trans_id=%s", merchant_trans_id)
+    except SubscriptionRequest.DoesNotExist as e:
+        logger.warning(
+            "[CLICK] PREPARE rejected: order not found merchant_trans_id=%s transaction_param=%s reason=%s",
+            merchant_trans_id,
+            _request_value(data, "transaction_param"),
+            str(e),
+        )
         return _click_response(
             error=ClickError.ORDER_NOT_FOUND,
             error_note="Order not found",
@@ -621,8 +644,13 @@ def click_complete(request):
 
     try:
         sub_request, resolved_merchant_trans_id = _resolve_subscription_request(data, require_merchant_trans_id=True)
-    except SubscriptionRequest.DoesNotExist:
-        logger.warning("[CLICK] COMPLETE rejected: order not found merchant_trans_id=%s", merchant_trans_id)
+    except SubscriptionRequest.DoesNotExist as e:
+        logger.warning(
+            "[CLICK] COMPLETE rejected: order not found merchant_trans_id=%s transaction_param=%s reason=%s",
+            merchant_trans_id,
+            _request_value(data, "transaction_param"),
+            str(e),
+        )
         return _click_response(
             error=ClickError.ORDER_NOT_FOUND,
             error_note="Order not found",

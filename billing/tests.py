@@ -307,7 +307,7 @@ class ClickPrepareCompleteTests(TestCase):
 
     def test_click_prepare_requires_exact_merchant_trans_id(self):
         click_trans_id = "2001A"
-        wrong_merchant_trans_id = str(self.sub_request.id)
+        wrong_merchant_trans_id = str(self.sub_request.id + 999)
         amount = str(self.sub_request.amount)
         sign_time = "2026-03-18 12:00:30"
         sign_string = self._prepare_sign(
@@ -334,6 +334,60 @@ class ClickPrepareCompleteTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["error"], -5)
+
+    @patch("billing.click_views.send_payment_success_notification")
+    def test_click_complete_accepts_legacy_numeric_subscription_request_id(self, mocked_notify):
+        legacy_request = SubscriptionRequest.objects.create(
+            user=self.user,
+            center=self.center,
+            plan=self.plan,
+            plan_name=self.plan.title,
+            duration_months=1,
+            merchant_trans_id=None,
+            amount=300000,
+            price=300000,
+            status=SubscriptionRequest.Status.PENDING,
+        )
+
+        click_trans_id = "2001LEG"
+        merchant_trans_id = str(legacy_request.id)
+        merchant_prepare_id = str(legacy_request.id)
+        amount = str(legacy_request.amount)
+        sign_time = "2026-03-18 12:00:45"
+        sign_string = self._complete_sign(
+            service_id="36302",
+            secret_key="test-click-secret",
+            click_trans_id=click_trans_id,
+            merchant_trans_id=merchant_trans_id,
+            merchant_prepare_id=merchant_prepare_id,
+            amount=amount,
+            action="1",
+            sign_time=sign_time,
+        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                "/click/complete/",
+                data={
+                    "click_trans_id": click_trans_id,
+                    "service_id": "36302",
+                    "merchant_trans_id": merchant_trans_id,
+                    "transaction_param": merchant_prepare_id,
+                    "merchant_prepare_id": merchant_prepare_id,
+                    "amount": amount,
+                    "action": "1",
+                    "error": "0",
+                    "sign_time": sign_time,
+                    "sign_string": sign_string,
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["error"], 0)
+        legacy_request.refresh_from_db()
+        self.assertEqual(legacy_request.status, SubscriptionRequest.Status.PAID)
+        self.assertTrue(mocked_notify.called)
 
     @patch("billing.click_views.send_payment_success_notification")
     def test_click_complete_marks_request_paid(self, mocked_notify):
@@ -809,6 +863,7 @@ class ClickPaymentUrlCreateTests(TestCase):
         self.assertEqual(req.status, SubscriptionRequest.Status.PENDING)
         self.assertEqual(req.amount, 300000)
         self.assertEqual(req.merchant_trans_id, payload["merchant_trans_id"])
+        self.assertEqual(payload["merchant_trans_id"], str(payload["order_id"]))
 
     def test_payment_status_api_returns_pending_status(self):
         sub_request = SubscriptionRequest.objects.create(
