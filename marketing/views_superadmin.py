@@ -108,6 +108,96 @@ def _render_delete_page(
     )
 
 
+def _empty_plan_feature_row():
+    return {"id": "", "text": "", "text_uz": "", "text_ru": "", "text_en": ""}
+
+
+def _plan_feature_rows_from_instance(instance: PricingPlan | None):
+    if not instance:
+        return [_empty_plan_feature_row()]
+
+    rows = [
+        {
+            "id": str(feature.pk),
+            "text": feature.text or "",
+            "text_uz": feature.text_uz or "",
+            "text_ru": feature.text_ru or "",
+            "text_en": feature.text_en or "",
+        }
+        for feature in instance.features.all().order_by("order", "id")
+    ]
+    return rows or [_empty_plan_feature_row()]
+
+
+def _extract_plan_feature_rows_from_post(request: HttpRequest):
+    ids = request.POST.getlist("feature_id[]") or request.POST.getlist("feature_id")
+    base_texts = request.POST.getlist("feature_text[]") or request.POST.getlist("feature_text")
+    text_uz_list = request.POST.getlist("feature_text_uz[]") or request.POST.getlist("feature_text_uz")
+    text_ru_list = request.POST.getlist("feature_text_ru[]") or request.POST.getlist("feature_text_ru")
+    text_en_list = request.POST.getlist("feature_text_en[]") or request.POST.getlist("feature_text_en")
+
+    row_count = max(
+        len(ids),
+        len(base_texts),
+        len(text_uz_list),
+        len(text_ru_list),
+        len(text_en_list),
+    )
+    if row_count == 0:
+        return [_empty_plan_feature_row()]
+
+    rows = []
+    for index in range(row_count):
+        row = {
+            "id": (ids[index] if index < len(ids) else "").strip(),
+            "text": (base_texts[index] if index < len(base_texts) else "").strip(),
+            "text_uz": (text_uz_list[index] if index < len(text_uz_list) else "").strip(),
+            "text_ru": (text_ru_list[index] if index < len(text_ru_list) else "").strip(),
+            "text_en": (text_en_list[index] if index < len(text_en_list) else "").strip(),
+        }
+        if not any((row["text"], row["text_uz"], row["text_ru"], row["text_en"])):
+            continue
+        if not row["text"]:
+            row["text"] = row["text_uz"] or row["text_ru"] or row["text_en"]
+        rows.append(row)
+
+    return rows or [_empty_plan_feature_row()]
+
+
+def _sync_plan_features(plan: PricingPlan, rows: list[dict]):
+    existing = {str(feature.pk): feature for feature in plan.features.all()}
+    keep_ids: list[int] = []
+    order = 1
+
+    for row in rows:
+        base_text = (row.get("text") or "").strip()
+        text_uz = (row.get("text_uz") or "").strip()
+        text_ru = (row.get("text_ru") or "").strip()
+        text_en = (row.get("text_en") or "").strip()
+        if not any((base_text, text_uz, text_ru, text_en)):
+            continue
+
+        if not base_text:
+            base_text = text_uz or text_ru or text_en
+        feature_id = (row.get("id") or "").strip()
+
+        feature_obj = existing.get(feature_id)
+        if feature_obj is None:
+            feature_obj = PricingFeature(pricing_plan=plan)
+
+        feature_obj.text = base_text
+        feature_obj.text_uz = text_uz
+        feature_obj.text_ru = text_ru
+        feature_obj.text_en = text_en
+        feature_obj.order = order
+        feature_obj.save()
+
+        keep_ids.append(feature_obj.pk)
+        order += 1
+
+    plan.features.exclude(pk__in=keep_ids).delete()
+
+
 @dataclass
 class RecentUpdate:
     title: str
@@ -564,9 +654,15 @@ def pricing_plan_list(request: HttpRequest) -> HttpResponse:
 @login_required
 @user_passes_test(is_superadmin)
 def pricing_plan_create(request: HttpRequest) -> HttpResponse:
+    feature_rows = (
+        _extract_plan_feature_rows_from_post(request)
+        if request.method == "POST"
+        else _plan_feature_rows_from_instance(None)
+    )
     form = PricingPlanForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        form.save()
+        instance = form.save()
+        _sync_plan_features(instance, feature_rows)
         messages.success(request, "Tarif rejasi qo'shildi.")
         return redirect("platform_global:marketing:pricing_plan_list")
 
@@ -577,6 +673,7 @@ def pricing_plan_create(request: HttpRequest) -> HttpResponse:
         page_title="Tarif rejasi qo'shish",
         section_title="Marketing / Tarif rejalari",
         cancel_url_name="platform_global:marketing:pricing_plan_list",
+        extra_context={"feature_rows": feature_rows},
     )
 
 
@@ -584,13 +681,18 @@ def pricing_plan_create(request: HttpRequest) -> HttpResponse:
 @user_passes_test(is_superadmin)
 def pricing_plan_edit(request: HttpRequest, pk: int) -> HttpResponse:
     instance = get_object_or_404(PricingPlan, pk=pk)
+    feature_rows = (
+        _extract_plan_feature_rows_from_post(request)
+        if request.method == "POST"
+        else _plan_feature_rows_from_instance(instance)
+    )
     form = PricingPlanForm(request.POST or None, instance=instance)
     if request.method == "POST" and form.is_valid():
-        form.save()
+        instance = form.save()
+        _sync_plan_features(instance, feature_rows)
         messages.success(request, "Tarif rejasi yangilandi.")
         return redirect("platform_global:marketing:pricing_plan_list")
 
-    plan_features = instance.features.all().order_by("order", "id")
     return _render_form_page(
         request,
         template_name="marketing/superadmin/pricing_plan_form.html",
@@ -599,7 +701,7 @@ def pricing_plan_edit(request: HttpRequest, pk: int) -> HttpResponse:
         section_title="Marketing / Tarif rejalari",
         cancel_url_name="platform_global:marketing:pricing_plan_list",
         object_for_preview=instance,
-        extra_context={"plan_features": plan_features},
+        extra_context={"feature_rows": feature_rows},
     )
 
 

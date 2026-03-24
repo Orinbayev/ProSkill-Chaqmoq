@@ -293,6 +293,68 @@ class PricingPlanForm(StyledModelForm):
             "order",
         ]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        placeholders = {
+            "name": "Masalan: Start",
+            "name_uz": "Masalan: Boshlang'ich",
+            "name_ru": "Например: Старт",
+            "name_en": "For example: Starter",
+            "student_range": "Masalan: 0-200 ta",
+            "student_range_uz": "Masalan: 0-200 ta",
+            "student_range_ru": "Например: 0-200 учеников",
+            "student_range_en": "For example: 0-200 students",
+            "duration_months": "Masalan: 1, 3, 6, 12",
+            "current_price": "Masalan: 390000",
+            "old_price": "Masalan: 490000",
+            "discount_label": "Masalan: -20%",
+            "discount_label_uz": "Masalan: 2 oyda tejamkor",
+            "discount_label_ru": "Например: Выгоднее на 20%",
+            "discount_label_en": "For example: Save 20%",
+            "badge_text": "Masalan: Eng mashhur",
+            "badge_text_uz": "Masalan: Tavsiya etiladi",
+            "badge_text_ru": "Например: Популярный выбор",
+            "badge_text_en": "For example: Most popular",
+            "order": "Masalan: 1",
+        }
+        helper_texts = {
+            "student_range": "Masalan: 0-200 ta",
+            "duration_months": "Masalan: 1, 3, 6, 12 oy",
+            "current_price": "Joriy to'lov qiymatini kiriting (so'm).",
+            "old_price": "Aksiya bo'lsa eski narxni kiriting, bo'lmasa bo'sh qoldiring.",
+            "discount_label": "Masalan: -20% yoki 'Chegirma'.",
+            "badge_text": "Masalan: Eng mashhur, Tavsiya etiladi.",
+            "order": "Kichik raqam yuqoriroq ko'rinadi.",
+            "is_recommended": "Public pricing bo'limida tarifni ajratib ko'rsatadi.",
+            "is_active": "Nofaol tarif public sahifada ko'rinmaydi.",
+        }
+
+        for field_name, placeholder in placeholders.items():
+            if field_name in self.fields and not isinstance(self.fields[field_name].widget, forms.CheckboxInput):
+                self.fields[field_name].widget.attrs.setdefault("placeholder", placeholder)
+
+        for field_name, help_text in helper_texts.items():
+            if field_name in self.fields:
+                self.fields[field_name].help_text = help_text
+
+        if "duration_months" in self.fields:
+            self.fields["duration_months"].widget.attrs.setdefault("min", "1")
+            self.fields["duration_months"].widget.attrs.setdefault("step", "1")
+            self.fields["duration_months"].widget.attrs.setdefault("inputmode", "numeric")
+        if "order" in self.fields:
+            self.fields["order"].widget.attrs.setdefault("min", "1")
+            self.fields["order"].widget.attrs.setdefault("step", "1")
+            self.fields["order"].widget.attrs.setdefault("inputmode", "numeric")
+        if "current_price" in self.fields:
+            self.fields["current_price"].widget.attrs.setdefault("min", "0")
+            self.fields["current_price"].widget.attrs.setdefault("step", "0.01")
+            self.fields["current_price"].widget.attrs.setdefault("inputmode", "decimal")
+        if "old_price" in self.fields:
+            self.fields["old_price"].widget.attrs.setdefault("min", "0")
+            self.fields["old_price"].widget.attrs.setdefault("step", "0.01")
+            self.fields["old_price"].widget.attrs.setdefault("inputmode", "decimal")
+
     def clean_duration_months(self):
         duration = self.cleaned_data.get("duration_months")
         if duration is None or duration <= 0:

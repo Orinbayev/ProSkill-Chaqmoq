@@ -28,7 +28,7 @@
             <div>
                 <h4>{{ ui.footer_pages }}</h4>
                 <ul>
-                    <li><a href="{{ routes.pricing }}">{{ ui.menu_pricing }}</a></li>
+                    <li><a href="{% if active_menu == 'home' %}#pricing-plans{% else %}{{ routes.index }}#pricing-plans{% endif %}">{{ ui.menu_pricing }}</a></li>
                     <li><a href="{{ routes.demo }}">{{ ui.menu_demo }}</a></li>
                     <li><a href="{{ routes.support }}">{{ ui.menu_support }}</a></li>
                     <li><a href="{{ routes.vacancies }}">{{ ui.menu_vacancies }}</a></li>

@@ -1,62 +1,98 @@
 {% extends 'marketing/base.html' %}
-{% load humanize %}
+{% load humanize static %}
 
 {% block title %}{{ ui.pricing_title }} | {{ site_setting.site_name|default:'ChaqmoqApp' }}{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'marketing/css/pricing-v2.css' %}?v=20260324-pricing-v2-2">
+{% endblock %}
+
 {% block content %}
-<section class="page-hero page-hero-centered">
+<section class="page-hero page-hero-centered pricing-v2-hero">
     <div class="container">
+        <p class="eyebrow">{{ ui.pricing_eyebrow }}</p>
         <h1>{{ ui.pricing_title }}</h1>
         <p>{{ ui.pricing_page_desc }}</p>
     </div>
 </section>
 
-<section class="section">
+<section class="section pricing-v2-section">
     <div class="container">
-        <div class="duration-filters" data-pricing-toggle>
-            {% for duration in duration_filters %}
-            <button type="button" class="duration-btn {% if forloop.first %}active{% endif %}" data-duration-btn="{{ duration }}">{{ duration }} {{ ui.month_label }}</button>
-            {% empty %}
-            <button type="button" class="duration-btn active" data-duration-btn="all">{{ ui.pricing_filter_all }}</button>
-            {% endfor %}
+        <div class="pricing-v2-toolbar">
+            <div class="duration-filters pricing-v2-filters" data-pricing-toggle>
+                {% for duration in duration_filters %}
+                <button type="button" class="duration-btn pricing-v2-filter-btn {% if forloop.first %}active{% endif %}" data-duration-btn="{{ duration }}">{{ duration }} {{ ui.month_label }}</button>
+                {% empty %}
+                <button type="button" class="duration-btn pricing-v2-filter-btn active" data-duration-btn="all">{{ ui.pricing_filter_all }}</button>
+                {% endfor %}
+            </div>
+            <button
+                type="button"
+                class="pricing-v2-compare-toggle"
+                data-pricing-compare-toggle
+                data-show-label="{{ ui.pricing_compare_toggle|default:'Tariflarni solishtirish' }}"
+                data-hide-label="{{ ui.pricing_compare_hide|default:'Taqqoslashni yopish' }}"
+                aria-expanded="false"
+                aria-controls="pricing-compare-table"
+            >{{ ui.pricing_compare_toggle|default:"Tariflarni solishtirish" }}</button>
         </div>
 
-        <div class="pricing-preview-grid pricing-page-grid">
+        <div class="pricing-v2-grid pricing-page-grid">
             {% for duration, plans in duration_map.items %}
                 {% for plan in plans %}
-                <article class="pricing-preview-card {% if plan.is_recommended %}is-recommended{% endif %} reveal-up" data-duration="{{ duration }}">
-                    {% if plan.is_recommended %}
-                    <div class="recommended-pill">{{ plan.badge_text|default:'Top' }}</div>
-                    {% elif plan.badge_text %}
-                    <div class="recommended-pill muted">{{ plan.badge_text }}</div>
-                    {% endif %}
+                <article class="pricing-v2-card {% if plan.is_recommended %}is-recommended{% endif %} reveal-up" data-duration="{{ duration }}" data-plan-card>
+                    <header class="pricing-v2-card-head">
+                        <div>
+                            <h3>{{ plan.name }}</h3>
+                            <p class="pricing-v2-range"><i class="bi bi-people-fill" aria-hidden="true"></i>{{ plan.student_range }}</p>
+                        </div>
+                        {% if plan.is_recommended %}
+                        <span class="pricing-v2-badge is-recommended">{{ plan.badge_text|default:'Top' }}</span>
+                        {% elif plan.badge_text %}
+                        <span class="pricing-v2-badge">{{ plan.badge_text }}</span>
+                        {% endif %}
+                    </header>
 
-                    <h3>{{ plan.name }}</h3>
-                    <p class="plan-range">{{ plan.student_range }}</p>
-
-                    <div class="plan-price-row">
-                        <strong>{{ plan.current_price|floatformat:0|intcomma }}</strong>
-                        <span>{{ ui.money_label }} / {{ ui.month_label }}</span>
+                    <div class="pricing-v2-price-wrap">
+                        <div class="pricing-v2-price-row">
+                            <strong>{{ plan.current_price|floatformat:0|intcomma }}</strong>
+                            <span>{{ ui.money_label }}</span>
+                        </div>
+                        <p class="pricing-v2-price-meta">/ {{ ui.month_label|default:'oy' }}</p>
+                        {% if plan.old_price %}
+                        <p class="pricing-v2-old-price">{{ plan.old_price|floatformat:0|intcomma }} {{ ui.money_label }}</p>
+                        {% endif %}
+                        {% if plan.discount_label %}
+                        <p class="pricing-v2-discount">{{ plan.discount_label }}</p>
+                        {% endif %}
                     </div>
-                    {% if plan.old_price %}
-                    <p class="plan-old-price">{{ plan.old_price|floatformat:0|intcomma }} {{ ui.money_label }}</p>
-                    {% endif %}
-                    {% if plan.discount_label %}
-                    <p class="plan-discount">{{ plan.discount_label }}</p>
-                    {% endif %}
 
-                    <ul class="plan-features">
-                        {% for feature_text in plan.features %}
-                        <li>{{ feature_text }}</li>
-                        {% empty %}
-                        <li>{{ ui.plan_feature_fallback_1 }}</li>
-                        <li>{{ ui.plan_feature_fallback_2 }}</li>
-                        {% endfor %}
-                    </ul>
+                    <div class="pricing-v2-feature-block">
+                        <p class="pricing-v2-feature-title">{{ ui.pricing_highlights|default:"Asosiy imkoniyatlar" }}</p>
+                        <ul class="pricing-v2-features">
+                            {% for feature_text in plan.highlight_features %}
+                            <li><i class="bi bi-check2-circle" aria-hidden="true"></i><span>{{ feature_text }}</span></li>
+                            {% empty %}
+                            <li><i class="bi bi-check2-circle" aria-hidden="true"></i><span>{{ ui.plan_feature_fallback_1 }}</span></li>
+                            <li><i class="bi bi-check2-circle" aria-hidden="true"></i><span>{{ ui.plan_feature_fallback_2 }}</span></li>
+                            {% endfor %}
+                        </ul>
+                        {% if plan.extra_features_count > 0 %}
+                        <button
+                            type="button"
+                            class="pricing-v2-detail-btn"
+                            data-plan-open="{{ plan.id }}"
+                            aria-haspopup="dialog"
+                            aria-controls="pricing-modal-{{ plan.id }}"
+                        >
+                            {{ ui.pricing_view_details|default:"Batafsil ko'rish" }} (+{{ plan.extra_features_count }})
+                        </button>
+                        {% endif %}
+                    </div>
 
-                    <div class="pricing-actions">
-                        <a class="btn {% if plan.is_recommended %}btn-dark{% else %}btn-light{% endif %} btn-block" href="{{ routes.demo }}">{{ ui.pricing_demo }}</a>
-                        <a class="btn btn-primary btn-block" href="/hisob/billing/plans/">{{ ui.pricing_pay }}</a>
+                    <div class="pricing-v2-actions">
+                        <a class="btn {% if plan.is_recommended %}btn-dark{% else %}btn-light{% endif %}" href="{{ routes.demo }}">{{ ui.pricing_demo }}</a>
+                        <a class="btn btn-primary" href="/hisob/billing/plans/">{{ ui.pricing_pay }}</a>
                     </div>
                 </article>
                 {% endfor %}
@@ -64,8 +100,101 @@
             <div class="empty-note">{{ ui.pricing_empty }}</div>
             {% endfor %}
         </div>
+
+        <section id="pricing-compare-table" class="pricing-v2-compare" data-pricing-compare hidden>
+            <div class="pricing-v2-compare-head">
+                <h2>{{ ui.pricing_compare_title|default:"Tariflarni solishtirish" }}</h2>
+                <p>{{ ui.pricing_compare_subtitle|default:"Qisqa taqqoslash orqali markazingizga mos variantni tez tanlang." }}</p>
+            </div>
+            <div class="pricing-v2-compare-wrap">
+                <table class="pricing-v2-compare-table">
+                    <thead>
+                        <tr>
+                            <th>{{ ui.pricing_compare_plan|default:"Tarif" }}</th>
+                            <th>{{ ui.pricing_compare_students|default:"O'quvchi limiti" }}</th>
+                            <th>{{ ui.pricing_compare_duration|default:"Davomiylik" }}</th>
+                            <th>{{ ui.pricing_compare_price|default:"Joriy narx" }}</th>
+                            <th>{{ ui.pricing_compare_old_price|default:"Eski narx" }}</th>
+                            <th>{{ ui.pricing_compare_features|default:"Imkoniyatlar soni" }}</th>
+                            <th>{{ ui.pricing_compare_recommended|default:"Tavsiya" }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for duration, plans in duration_map.items %}
+                            {% for plan in plans %}
+                            <tr data-duration="{{ duration }}">
+                                <td>
+                                    <div class="pricing-v2-compare-plan">
+                                        <strong>{{ plan.name }}</strong>
+                                        {% if plan.badge_text %}<span>{{ plan.badge_text }}</span>{% endif %}
+                                    </div>
+                                </td>
+                                <td>{{ plan.student_range }}</td>
+                                <td>{{ plan.duration_months }} {{ ui.month_label }}</td>
+                                <td>{{ plan.current_price|floatformat:0|intcomma }} {{ ui.money_label }}</td>
+                                <td>{% if plan.old_price %}{{ plan.old_price|floatformat:0|intcomma }} {{ ui.money_label }}{% else %}-{% endif %}</td>
+                                <td>{{ plan.features_count }}</td>
+                                <td>
+                                    {% if plan.is_recommended %}
+                                    <span class="pricing-v2-compare-pill is-yes">{{ ui.pricing_compare_yes|default:"Ha" }}</span>
+                                    {% else %}
+                                    <span class="pricing-v2-compare-pill">{{ ui.pricing_compare_no|default:"Yo'q" }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </div>
 </section>
+
+{% for duration, plans in duration_map.items %}
+    {% for plan in plans %}
+    <section class="pricing-v2-modal" id="pricing-modal-{{ plan.id }}" data-plan-modal="{{ plan.id }}" hidden>
+        <div class="pricing-v2-modal-backdrop" data-plan-close></div>
+        <div class="pricing-v2-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="pricing-modal-title-{{ plan.id }}" tabindex="-1">
+            <button type="button" class="pricing-v2-modal-close" data-plan-close aria-label="{{ ui.pricing_close|default:'Yopish' }}">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+
+            <header class="pricing-v2-modal-head">
+                <p class="pricing-v2-modal-kicker">{{ ui.pricing_all_features|default:"To'liq imkoniyatlar" }}</p>
+                <h3 id="pricing-modal-title-{{ plan.id }}">{{ plan.name }}</h3>
+                <p>{{ plan.student_range }} · {{ plan.duration_months }} {{ ui.month_label }}</p>
+            </header>
+
+            <div class="pricing-v2-modal-groups">
+                {% for group in plan.feature_groups %}
+                <article class="pricing-v2-group-card">
+                    <h4>{{ group.title }}</h4>
+                    <ul>
+                        {% for item in group.items %}
+                        <li><i class="bi bi-check2" aria-hidden="true"></i><span>{{ item }}</span></li>
+                        {% endfor %}
+                    </ul>
+                </article>
+                {% empty %}
+                <article class="pricing-v2-group-card">
+                    <h4>{{ ui.pricing_all_features|default:"Imkoniyatlar" }}</h4>
+                    <ul>
+                        <li><i class="bi bi-check2" aria-hidden="true"></i><span>{{ ui.plan_feature_fallback_1 }}</span></li>
+                        <li><i class="bi bi-check2" aria-hidden="true"></i><span>{{ ui.plan_feature_fallback_2 }}</span></li>
+                    </ul>
+                </article>
+                {% endfor %}
+            </div>
+
+            <footer class="pricing-v2-modal-actions">
+                <a class="btn btn-light" href="{{ routes.demo }}">{{ ui.pricing_demo }}</a>
+                <a class="btn btn-primary" href="/hisob/billing/plans/">{{ ui.pricing_pay }}</a>
+            </footer>
+        </div>
+    </section>
+    {% endfor %}
+{% endfor %}
 
 <section class="section">
     <div class="container">
@@ -93,4 +222,8 @@
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'marketing/js/pricing-v2.js' %}?v=20260324-pricing-v2-1"></script>
 {% endblock %}

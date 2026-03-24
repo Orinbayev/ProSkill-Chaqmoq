@@ -187,7 +187,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (durationButtons.length && pricingCards.length) {
         const showByDuration = (value) => {
             pricingCards.forEach((card) => {
-                card.style.display = card.dataset.duration === value || value === "all" ? "block" : "none";
+                const isVisible = card.dataset.duration === value || value === "all";
+                card.hidden = !isVisible;
+                if (isVisible) {
+                    card.removeAttribute("aria-hidden");
+                } else {
+                    card.setAttribute("aria-hidden", "true");
+                }
             });
         };
 

@@ -58,7 +58,7 @@ MARKETING_UI = {
         "hero_metric_3": "Bulutli kirish",
         "partners_eyebrow": "Ishonch bloki",
         "partners_title": "Biz bilan ishlayotgan markazlar",
-        "partners_empty": "Hamkor logolarini admin paneldan qo'shing.",
+        "partners_empty": "Hamkor markazlar logolari hozircha qo'shilmagan.",
         "features_eyebrow": "Nega ChaqmoqApp?",
         "features_title": "Markaz egasi va administrator uchun eng zarur funksiyalar",
         "feature_empty_title": "CRM + Davomat",
@@ -206,7 +206,7 @@ MARKETING_UI = {
         "hero_metric_3": "Облачный доступ",
         "partners_eyebrow": "Доверие",
         "partners_title": "Центры, которые уже работают с нами",
-        "partners_empty": "Добавьте логотипы партнёров в админ-панели.",
+        "partners_empty": "Логотипы партнёрских центров пока не добавлены.",
         "features_eyebrow": "Почему ChaqmoqApp?",
         "features_title": "Ключевые функции для владельца и администратора",
         "feature_empty_title": "CRM и посещаемость",
@@ -354,7 +354,7 @@ MARKETING_UI = {
         "hero_metric_3": "Cloud access",
         "partners_eyebrow": "Trust",
         "partners_title": "Centers working with us",
-        "partners_empty": "Add partner logos from admin panel.",
+        "partners_empty": "Partner center logos have not been added yet.",
         "features_eyebrow": "Why ChaqmoqApp?",
         "features_title": "Core capabilities for owners and administrators",
         "feature_empty_title": "CRM + Attendance",
@@ -593,11 +593,180 @@ def _localize_screenshot(obj: ScreenshotSection, lang: str):
     }
 
 
+def _normalize_feature_text(value: str) -> str:
+    return re.sub(r"\s+", " ", (value or "").strip().lower())
+
+
+def _group_plan_features(features: list[str], lang: str):
+    labels = {
+        "uz": {
+            "management": "Boshqaruv",
+            "attendance": "Davomat",
+            "payments": "To'lovlar",
+            "reports": "Hisobotlar",
+            "notifications": "Telegram / xabarnoma",
+            "support": "Support / texnik yordam",
+            "extra": "Qo'shimcha imkoniyatlar",
+        },
+        "ru": {
+            "management": "Управление",
+            "attendance": "Посещаемость",
+            "payments": "Платежи",
+            "reports": "Отчеты",
+            "notifications": "Telegram / уведомления",
+            "support": "Поддержка / техпомощь",
+            "extra": "Дополнительные возможности",
+        },
+        "en": {
+            "management": "Management",
+            "attendance": "Attendance",
+            "payments": "Payments",
+            "reports": "Reports",
+            "notifications": "Telegram / notifications",
+            "support": "Support / technical help",
+            "extra": "Additional capabilities",
+        },
+    }.get(lang, {
+        "management": "Boshqaruv",
+        "attendance": "Davomat",
+        "payments": "To'lovlar",
+        "reports": "Hisobotlar",
+        "notifications": "Telegram / xabarnoma",
+        "support": "Support / texnik yordam",
+        "extra": "Qo'shimcha imkoniyatlar",
+    })
+
+    group_specs = [
+        (
+            "management",
+            (
+                "boshqaruv",
+                "admin",
+                "administrator",
+                "роль",
+                "role",
+                "ruxsat",
+                "permission",
+                "markaz",
+                "center",
+                "filial",
+                "branch",
+                "guruh",
+                "group",
+                "crm",
+                "student",
+                "o'quvchi",
+                "ученик",
+                "course",
+                "kurs",
+            ),
+        ),
+        (
+            "attendance",
+            (
+                "davomat",
+                "attendance",
+                "посещ",
+                "yo'qlama",
+                "yoqlama",
+                "jurnal",
+                "журнал",
+            ),
+        ),
+        (
+            "payments",
+            (
+                "to'lov",
+                "to‘lov",
+                "tolov",
+                "payment",
+                "оплат",
+                "payme",
+                "click",
+                "qarz",
+                "debt",
+                "invoice",
+                "billing",
+                "moliya",
+                "финан",
+            ),
+        ),
+        (
+            "reports",
+            (
+                "hisobot",
+                "report",
+                "analit",
+                "аналит",
+                "stat",
+                "статист",
+                "dashboard",
+                "дашборд",
+                "kpi",
+            ),
+        ),
+        (
+            "notifications",
+            (
+                "telegram",
+                "xabar",
+                "xabarnoma",
+                "notification",
+                "уведом",
+                "sms",
+                "bot",
+                "reminder",
+                "eslatma",
+            ),
+        ),
+        (
+            "support",
+            (
+                "support",
+                "yordam",
+                "texnik",
+                "поддерж",
+                "тех",
+                "onboarding",
+                "training",
+                "consult",
+                "konsult",
+                "qo'llab",
+                "qo‘llab",
+            ),
+        ),
+    ]
+
+    grouped: dict[str, list[str]] = {key: [] for key, _ in group_specs}
+    grouped["extra"] = []
+
+    for raw_feature in features:
+        feature_text = (raw_feature or "").strip()
+        if not feature_text:
+            continue
+
+        normalized = _normalize_feature_text(feature_text)
+        matched_group = "extra"
+        for key, keywords in group_specs:
+            if any(keyword in normalized for keyword in keywords):
+                matched_group = key
+                break
+        grouped[matched_group].append(feature_text)
+
+    ordered_keys = [key for key, _ in group_specs] + ["extra"]
+    return [
+        {"key": key, "title": labels[key], "items": grouped[key]}
+        for key in ordered_keys
+        if grouped[key]
+    ]
+
+
 def _localize_plan(plan: PricingPlan, lang: str):
     features = [
         feature.get_localized("text", lang) or feature.text
         for feature in plan.features.all().order_by("order", "id")
     ]
+    highlight_limit = 6
     return {
         "id": plan.id,
         "name": plan.get_localized("name", lang) or plan.name,
@@ -609,6 +778,10 @@ def _localize_plan(plan: PricingPlan, lang: str):
         "badge_text": plan.get_localized("badge_text", lang) or plan.badge_text,
         "is_recommended": plan.is_recommended,
         "features": features,
+        "highlight_features": features[:highlight_limit],
+        "extra_features_count": max(0, len(features) - highlight_limit),
+        "features_count": len(features),
+        "feature_groups": _group_plan_features(features, lang),
     }
 
 
@@ -702,10 +875,17 @@ def index(request, lang_code=None):
     solution_qs = FeatureBlock.objects.filter(is_active=True, section=FeatureBlock.Section.SOLUTION)
     pricing_qs = PricingPlan.objects.filter(is_active=True).prefetch_related("features").order_by("duration_months", "order", "id")
 
+    partner_logos = [logo for logo in PartnerLogo.objects.filter(is_active=True).order_by("order", "id") if logo.image]
+    partner_logo_count = len(partner_logos)
+
+    partner_marquee_logos = partner_logos
+
     context.update(
         {
             "active_menu": "home",
-            "partner_logos": PartnerLogo.objects.filter(is_active=True).order_by("order", "id"),
+            "partner_logos": partner_logos,
+            "partner_logo_count": partner_logo_count,
+            "partner_marquee_logos": partner_marquee_logos,
             "feature_blocks": [_localize_feature(obj, lang) for obj in feature_qs],
             "integration_blocks": [_localize_feature(obj, lang) for obj in integration_qs],
             "solution_blocks": [_localize_feature(obj, lang) for obj in solution_qs],
@@ -718,7 +898,7 @@ def index(request, lang_code=None):
                 for obj in Testimonial.objects.filter(is_active=True).order_by("order", "id")
             ],
             "faqs": [_localize_faq(obj, lang) for obj in FAQ.objects.filter(is_active=True).order_by("order", "id")],
-            "pricing_preview": [_localize_plan(plan, lang) for plan in pricing_qs[:4]],
+            "pricing_preview": [_localize_plan(plan, lang) for plan in pricing_qs],
         }
     )
     return render(request, "marketing/index.html", context)

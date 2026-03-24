@@ -1,47 +1,371 @@
 {% extends 'marketing/superadmin/base.html' %}
+{% load static %}
 
 {% block page_title %}{{ page_title|default:'Tarif rejasi' }}{% endblock %}
 {% block breadcrumb_items %}<span>/</span><a href="{% url 'platform_global:marketing:pricing_plan_list' %}">Tarif rejalari</a><span>/</span><span class="is-current">Forma</span>{% endblock %}
 {% block heading %}{{ page_title|default:'Tarif rejasi' }}{% endblock %}
-{% block subtitle %}Tarif nomi, davomiyligi va narx konfiguratsiyasini kiriting.{% endblock %}
+{% block subtitle %}Tarifni sectionlar bo'yicha tez va aniq to'ldiring. O'ng tarafda live preview avtomatik yangilanadi.{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'marketing/css/superadmin-pricing-plan.css' %}?v=20260324-superadmin-pricing-1">
+{% endblock %}
 
 {% block header_actions %}
 <a href="{% url 'platform_global:marketing:pricing_plan_list' %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-arrow-left"></i> Tariflar ro'yxati</a>
-{% if object_for_preview %}
-<a href="{% url 'platform_global:marketing:pricing_feature_list' %}?plan={{ object_for_preview.pk }}" class="mkt-btn mkt-btn-muted"><i class="bi bi-list-check"></i> Afzalliklarni boshqarish</a>
-{% endif %}
+<a href="{% url 'platform_global:marketing:pricing_feature_list' %}{% if object_for_preview %}?plan={{ object_for_preview.pk }}{% endif %}" class="mkt-btn mkt-btn-muted"><i class="bi bi-list-check"></i> Afzalliklar ro'yxati</a>
 {% endblock %}
 
 {% block superadmin_content %}
-<div class="mkt-card" style="margin-bottom:12px;"><div class="mkt-card-body">
-    <form method="post" novalidate>
-        {% csrf_token %}
-        {% if form.non_field_errors %}<div class="mkt-errors">{{ form.non_field_errors }}</div>{% endif %}
-        <div class="mkt-form-grid">{% include 'marketing/superadmin/partials/form_fields.html' with form=form %}</div>
-        <div class="mkt-form-actions"><a href="{% url 'platform_global:marketing:pricing_plan_list' %}" class="mkt-btn mkt-btn-muted">Bekor</a><button type="submit" class="mkt-btn mkt-btn-primary">Saqlash</button></div>
-    </form>
-</div></div>
+<form method="post" novalidate class="pp-plan-form" data-plan-form>
+    {% csrf_token %}
 
-{% if plan_features %}
-<div class="mkt-card">
-    <div class="mkt-card-head"><h3>Ushbu tarifdagi afzalliklar</h3><span class="mkt-count">{{ plan_features|length }} ta</span></div>
-    <div class="mkt-table-wrap">
-        <table class="mkt-table">
-            <thead><tr><th>#</th><th>Afzallik matni</th><th>Tartib</th><th></th></tr></thead>
-            <tbody>
-                {% for f in plan_features %}
-                <tr>
-                    <td>{{ forloop.counter }}</td>
-                    <td>{{ f.text }}</td>
-                    <td>{{ f.order }}</td>
-                    <td class="text-end"><a href="{% url 'platform_global:marketing:pricing_feature_edit' f.pk %}" class="mkt-btn mkt-btn-sm mkt-btn-muted">Tahrirlash</a></td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="4" class="mkt-empty">Afzallik mavjud emas.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    {% if form.non_field_errors %}
+    <div class="mkt-errors">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="pp-layout">
+        <div class="pp-main">
+            <section class="mkt-card pp-card">
+                <div class="mkt-card-head">
+                    <h3>1) Asosiy ma'lumotlar</h3>
+                </div>
+                <div class="mkt-card-body">
+                    <div class="pp-grid pp-grid-2">
+                        <div class="pp-field {% if form.name.errors %}has-error{% endif %}">
+                            <label class="mkt-label" for="{{ form.name.id_for_label }}">Tarif nomi (fallback) *</label>
+                            {{ form.name }}
+                            <p class="mkt-help">Public sahifada birinchi navbatda shu matn ishlatiladi.</p>
+                            {% for error in form.name.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                        </div>
+
+                        <div class="pp-field {% if form.student_range.errors %}has-error{% endif %}">
+                            <label class="mkt-label" for="{{ form.student_range.id_for_label }}">O'quvchi limiti (fallback) *</label>
+                            {{ form.student_range }}
+                            <p class="mkt-help">Masalan: 0-200 ta</p>
+                            {% for error in form.student_range.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                        </div>
+
+                        <div class="pp-field {% if form.duration_months.errors %}has-error{% endif %}">
+                            <label class="mkt-label" for="{{ form.duration_months.id_for_label }}">Davomiylik (oy) *</label>
+                            {{ form.duration_months }}
+                            <p class="mkt-help">Masalan: 1, 3, 6, 12 oy</p>
+                            {% for error in form.duration_months.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                        </div>
+
+                        <div class="pp-field {% if form.order.errors %}has-error{% endif %}">
+                            <label class="mkt-label" for="{{ form.order.id_for_label }}">Tartib raqami *</label>
+                            {{ form.order }}
+                            <p class="mkt-help">Kichik raqam yuqorida chiqadi.</p>
+                            {% for error in form.order.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="pp-switch-row">
+                        <label class="pp-switch" for="{{ form.is_active.id_for_label }}">
+                            {{ form.is_active }}
+                            <span class="pp-switch-ui" aria-hidden="true"></span>
+                            <span class="pp-switch-text">Faol holatda ko'rsatish</span>
+                        </label>
+                    </div>
+                    {% for error in form.is_active.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+
+                    <div class="pp-locale-block">
+                        <div class="pp-locale-head">
+                            <h4>Ko'p tilli maydonlar</h4>
+                            <p>UZ/RU/EN override maydonlari. Bo'sh qolsa fallback qiymat ishlatiladi.</p>
+                        </div>
+
+                        <div class="pp-lang-switch" data-plan-lang-switch role="tablist" aria-label="Til tanlash">
+                            <button type="button" class="pp-lang-btn is-active" data-lang-tab="uz" role="tab" aria-selected="true">UZ</button>
+                            <button type="button" class="pp-lang-btn" data-lang-tab="ru" role="tab" aria-selected="false">RU</button>
+                            <button type="button" class="pp-lang-btn" data-lang-tab="en" role="tab" aria-selected="false">EN</button>
+                        </div>
+
+                        <div class="pp-lang-panel is-active" data-lang-panel="uz" role="tabpanel">
+                            <div class="pp-grid pp-grid-2">
+                                <div class="pp-field {% if form.name_uz.errors %}has-error{% endif %}">
+                                    <label class="mkt-label" for="{{ form.name_uz.id_for_label }}">Tarif nomi (UZ)</label>
+                                    {{ form.name_uz }}
+                                    {% for error in form.name_uz.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                                </div>
+                                <div class="pp-field {% if form.student_range_uz.errors %}has-error{% endif %}">
+                                    <label class="mkt-label" for="{{ form.student_range_uz.id_for_label }}">O'quvchi limiti (UZ)</label>
+                                    {{ form.student_range_uz }}
+                                    {% for error in form.student_range_uz.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pp-lang-panel" data-lang-panel="ru" role="tabpanel" hidden>
+                            <div class="pp-grid pp-grid-2">
+                                <div class="pp-field {% if form.name_ru.errors %}has-error{% endif %}">
+                                    <label class="mkt-label" for="{{ form.name_ru.id_for_label }}">Tarif nomi (RU)</label>
+                                    {{ form.name_ru }}
+                                    {% for error in form.name_ru.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                                </div>
+                                <div class="pp-field {% if form.student_range_ru.errors %}has-error{% endif %}">
+                                    <label class="mkt-label" for="{{ form.student_range_ru.id_for_label }}">O'quvchi limiti (RU)</label>
+                                    {{ form.student_range_ru }}
+                                    {% for error in form.student_range_ru.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pp-lang-panel" data-lang-panel="en" role="tabpanel" hidden>
+                            <div class="pp-grid pp-grid-2">
+                                <div class="pp-field {% if form.name_en.errors %}has-error{% endif %}">
+                                    <label class="mkt-label" for="{{ form.name_en.id_for_label }}">Tarif nomi (EN)</label>
+                                    {{ form.name_en }}
+                                    {% for error in form.name_en.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                                </div>
+                                <div class="pp-field {% if form.student_range_en.errors %}has-error{% endif %}">
+                                    <label class="mkt-label" for="{{ form.student_range_en.id_for_label }}">O'quvchi limiti (EN)</label>
+                                    {{ form.student_range_en }}
+                                    {% for error in form.student_range_en.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="mkt-card pp-card">
+                <div class="mkt-card-head">
+                    <h3>2) Narxlash va badge</h3>
+                </div>
+                <div class="mkt-card-body">
+                    <div class="pp-grid pp-grid-2">
+                        <div class="pp-field {% if form.current_price.errors %}has-error{% endif %}">
+                            <label class="mkt-label" for="{{ form.current_price.id_for_label }}">Joriy narx *</label>
+                            {{ form.current_price }}
+                            <p class="mkt-help">Masalan: 390000</p>
+                            {% for error in form.current_price.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                        </div>
+
+                        <div class="pp-field {% if form.old_price.errors %}has-error{% endif %}">
+                            <label class="mkt-label" for="{{ form.old_price.id_for_label }}">Eski narx</label>
+                            {{ form.old_price }}
+                            <p class="mkt-help">Aksiya bo'lsa kiriting, bo'lmasa bo'sh qoldiring.</p>
+                            {% for error in form.old_price.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                        </div>
+
+                        <div class="pp-field {% if form.discount_label.errors %}has-error{% endif %}">
+                            <label class="mkt-label" for="{{ form.discount_label.id_for_label }}">Chegirma yorlig'i (fallback)</label>
+                            {{ form.discount_label }}
+                            <p class="mkt-help">Masalan: -20% yoki Tejamkor</p>
+                            {% for error in form.discount_label.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                        </div>
+
+                        <div class="pp-field {% if form.badge_text.errors %}has-error{% endif %}">
+                            <label class="mkt-label" for="{{ form.badge_text.id_for_label }}">Badge matni (fallback)</label>
+                            {{ form.badge_text }}
+                            <p class="mkt-help">Masalan: Eng mashhur</p>
+                            {% for error in form.badge_text.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="pp-switch-row">
+                        <label class="pp-switch" for="{{ form.is_recommended.id_for_label }}">
+                            {{ form.is_recommended }}
+                            <span class="pp-switch-ui" aria-hidden="true"></span>
+                            <span class="pp-switch-text">Tavsiya etilgan tarif sifatida ajratish</span>
+                        </label>
+                    </div>
+                    {% for error in form.is_recommended.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+
+                    <div class="pp-locale-block">
+                        <div class="pp-locale-head">
+                            <h4>Badge va chegirma (til bo'yicha)</h4>
+                            <p>Har bir tilda alohida badge/discount matnini kiriting.</p>
+                        </div>
+
+                        <div class="pp-lang-panel is-active" data-lang-panel="uz" role="tabpanel">
+                            <div class="pp-grid pp-grid-2">
+                                <div class="pp-field {% if form.badge_text_uz.errors %}has-error{% endif %}">
+                                    <label class="mkt-label" for="{{ form.badge_text_uz.id_for_label }}">Badge (UZ)</label>
+                                    {{ form.badge_text_uz }}
+                                    {% for error in form.badge_text_uz.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                                </div>
+                                <div class="pp-field {% if form.discount_label_uz.errors %}has-error{% endif %}">
+                                    <label class="mkt-label" for="{{ form.discount_label_uz.id_for_label }}">Chegirma (UZ)</label>
+                                    {{ form.discount_label_uz }}
+                                    {% for error in form.discount_label_uz.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pp-lang-panel" data-lang-panel="ru" role="tabpanel" hidden>
+                            <div class="pp-grid pp-grid-2">
+                                <div class="pp-field {% if form.badge_text_ru.errors %}has-error{% endif %}">
+                                    <label class="mkt-label" for="{{ form.badge_text_ru.id_for_label }}">Badge (RU)</label>
+                                    {{ form.badge_text_ru }}
+                                    {% for error in form.badge_text_ru.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                                </div>
+                                <div class="pp-field {% if form.discount_label_ru.errors %}has-error{% endif %}">
+                                    <label class="mkt-label" for="{{ form.discount_label_ru.id_for_label }}">Chegirma (RU)</label>
+                                    {{ form.discount_label_ru }}
+                                    {% for error in form.discount_label_ru.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pp-lang-panel" data-lang-panel="en" role="tabpanel" hidden>
+                            <div class="pp-grid pp-grid-2">
+                                <div class="pp-field {% if form.badge_text_en.errors %}has-error{% endif %}">
+                                    <label class="mkt-label" for="{{ form.badge_text_en.id_for_label }}">Badge (EN)</label>
+                                    {{ form.badge_text_en }}
+                                    {% for error in form.badge_text_en.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                                </div>
+                                <div class="pp-field {% if form.discount_label_en.errors %}has-error{% endif %}">
+                                    <label class="mkt-label" for="{{ form.discount_label_en.id_for_label }}">Chegirma (EN)</label>
+                                    {{ form.discount_label_en }}
+                                    {% for error in form.discount_label_en.errors %}<div class="mkt-error">{{ error }}</div>{% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="mkt-card pp-card">
+                <div class="mkt-card-head pp-card-head-split">
+                    <div>
+                        <h3>3) Tarif imkoniyatlari (Feature list)</h3>
+                        <p class="mkt-help">Qisqa highlightlarni yuqoriga qo'ying, qolganlari public sahifada "Batafsil ko'rish" ichida chiqadi.</p>
+                    </div>
+                    <button type="button" class="mkt-btn mkt-btn-primary mkt-btn-sm" data-feature-add><i class="bi bi-plus-lg"></i> Feature qo'shish</button>
+                </div>
+                <div class="mkt-card-body">
+                    <div class="pp-feature-hint-grid">
+                        <span>Boshqaruv</span>
+                        <span>Davomat</span>
+                        <span>To'lovlar</span>
+                        <span>Hisobotlar</span>
+                        <span>Telegram / xabarnoma</span>
+                        <span>Support</span>
+                        <span>Qo'shimcha</span>
+                    </div>
+
+                    <div class="pp-feature-list" data-feature-list>
+                        {% for row in feature_rows %}
+                        <article class="pp-feature-row" data-feature-row>
+                            <input type="hidden" name="feature_id[]" value="{{ row.id }}">
+                            <div class="pp-feature-row-top">
+                                <span class="pp-feature-index" data-feature-order>{{ forloop.counter }}</span>
+                                <div class="pp-feature-row-actions">
+                                    <button type="button" class="pp-row-btn" data-feature-up aria-label="Yuqoriga"><i class="bi bi-arrow-up"></i></button>
+                                    <button type="button" class="pp-row-btn" data-feature-down aria-label="Pastga"><i class="bi bi-arrow-down"></i></button>
+                                    <button type="button" class="pp-row-btn danger" data-feature-remove aria-label="O'chirish"><i class="bi bi-trash"></i></button>
+                                </div>
+                            </div>
+
+                            <div class="pp-field {% if form.errors and not row.text and not row.text_uz and not row.text_ru and not row.text_en %}has-error{% endif %}">
+                                <label class="mkt-label" for="feature-base-{{ forloop.counter }}">Asosiy matn (fallback)</label>
+                                <input id="feature-base-{{ forloop.counter }}" type="text" name="feature_text[]" class="sa-input" value="{{ row.text }}" placeholder="Masalan: Davomatni Telegram bot orqali qabul qilish" data-feature-base>
+                            </div>
+
+                            <div class="pp-feature-translations">
+                                <div class="pp-field" data-lang-field="uz">
+                                    <label class="mkt-label" for="feature-uz-{{ forloop.counter }}">UZ matn</label>
+                                    <input id="feature-uz-{{ forloop.counter }}" type="text" name="feature_text_uz[]" class="sa-input" value="{{ row.text_uz }}" placeholder="O'zbekcha variant" data-feature-uz>
+                                </div>
+                                <div class="pp-field" data-lang-field="ru" hidden>
+                                    <label class="mkt-label" for="feature-ru-{{ forloop.counter }}">RU matn</label>
+                                    <input id="feature-ru-{{ forloop.counter }}" type="text" name="feature_text_ru[]" class="sa-input" value="{{ row.text_ru }}" placeholder="Русский вариант" data-feature-ru>
+                                </div>
+                                <div class="pp-field" data-lang-field="en" hidden>
+                                    <label class="mkt-label" for="feature-en-{{ forloop.counter }}">EN matn</label>
+                                    <input id="feature-en-{{ forloop.counter }}" type="text" name="feature_text_en[]" class="sa-input" value="{{ row.text_en }}" placeholder="English variant" data-feature-en>
+                                </div>
+                            </div>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <aside class="pp-sidebar">
+            <div class="mkt-card pp-preview-card-wrap">
+                <div class="mkt-card-head">
+                    <h3>4) Live preview</h3>
+                </div>
+                <div class="mkt-card-body">
+                    <article class="pp-preview-card" data-plan-preview>
+                        <span class="pp-preview-badge" data-preview-badge hidden></span>
+                        <h4 data-preview-name>Tarif nomi</h4>
+                        <p class="pp-preview-range" data-preview-range>O'quvchi limiti</p>
+
+                        <div class="pp-preview-price-row">
+                            <strong data-preview-price>0</strong>
+                            <span>so'm / oy</span>
+                        </div>
+                        <p class="pp-preview-old" data-preview-old hidden></p>
+                        <p class="pp-preview-discount" data-preview-discount hidden></p>
+
+                        <ul class="pp-preview-features" data-preview-features>
+                            <li>Feature kiriting</li>
+                        </ul>
+                        <p class="pp-preview-more" data-preview-more hidden></p>
+
+                        <div class="pp-preview-actions">
+                            <button type="button" class="mkt-btn mkt-btn-muted" disabled>Demo olish</button>
+                            <button type="button" class="mkt-btn mkt-btn-primary" disabled>Tarifni tanlash</button>
+                        </div>
+                    </article>
+
+                    <p class="pp-preview-note">Preview card public pricing dizayniga mos holda real vaqt yangilanadi.</p>
+                </div>
+            </div>
+        </aside>
     </div>
-</div>
-{% endif %}
+
+    <div class="pp-sticky-actions">
+        <div class="pp-unsaved" data-unsaved-indicator>Saqlanmagan o'zgarishlar yo'q</div>
+        <div class="pp-sticky-buttons">
+            <a href="{% url 'platform_global:marketing:pricing_plan_list' %}" class="mkt-btn mkt-btn-muted">Bekor</a>
+            <button type="submit" class="mkt-btn mkt-btn-primary">Saqlash</button>
+        </div>
+    </div>
+</form>
+
+<template id="plan-feature-row-template">
+    <article class="pp-feature-row" data-feature-row>
+        <input type="hidden" name="feature_id[]" value="">
+        <div class="pp-feature-row-top">
+            <span class="pp-feature-index" data-feature-order>0</span>
+            <div class="pp-feature-row-actions">
+                <button type="button" class="pp-row-btn" data-feature-up aria-label="Yuqoriga"><i class="bi bi-arrow-up"></i></button>
+                <button type="button" class="pp-row-btn" data-feature-down aria-label="Pastga"><i class="bi bi-arrow-down"></i></button>
+                <button type="button" class="pp-row-btn danger" data-feature-remove aria-label="O'chirish"><i class="bi bi-trash"></i></button>
+            </div>
+        </div>
+
+        <div class="pp-field">
+            <label class="mkt-label" for="feature-base-__index__">Asosiy matn (fallback)</label>
+            <input id="feature-base-__index__" type="text" name="feature_text[]" class="sa-input" value="" placeholder="Masalan: Davomatni Telegram bot orqali qabul qilish" data-feature-base>
+        </div>
+
+        <div class="pp-feature-translations">
+            <div class="pp-field" data-lang-field="uz">
+                <label class="mkt-label" for="feature-uz-__index__">UZ matn</label>
+                <input id="feature-uz-__index__" type="text" name="feature_text_uz[]" class="sa-input" value="" placeholder="O'zbekcha variant" data-feature-uz>
+            </div>
+            <div class="pp-field" data-lang-field="ru" hidden>
+                <label class="mkt-label" for="feature-ru-__index__">RU matn</label>
+                <input id="feature-ru-__index__" type="text" name="feature_text_ru[]" class="sa-input" value="" placeholder="Русский вариант" data-feature-ru>
+            </div>
+            <div class="pp-field" data-lang-field="en" hidden>
+                <label class="mkt-label" for="feature-en-__index__">EN matn</label>
+                <input id="feature-en-__index__" type="text" name="feature_text_en[]" class="sa-input" value="" placeholder="English variant" data-feature-en>
+            </div>
+        </div>
+    </article>
+</template>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="{% static 'marketing/js/superadmin-pricing-plan.js' %}?v=20260324-superadmin-pricing-1"></script>
 {% endblock %}

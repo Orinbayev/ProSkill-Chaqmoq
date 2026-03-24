@@ -10,7 +10,7 @@
         </a>
 
         <nav class="nav" data-mobile-menu aria-label="{{ ui.menu_aria_label }}">
-            <a href="{{ routes.pricing }}" class="{% if active_menu == 'pricing' %}is-active{% endif %}">{{ ui.menu_pricing }}</a>
+            <a href="{% if active_menu == 'home' %}#pricing-plans{% else %}{{ routes.index }}#pricing-plans{% endif %}" class="{% if active_menu == 'pricing' %}is-active{% endif %}">{{ ui.menu_pricing }}</a>
             <a href="{% if active_menu == 'home' %}#imkoniyatlar{% else %}{{ routes.index }}#imkoniyatlar{% endif %}">{{ ui.menu_features }}</a>
             <a href="{{ routes.support }}" class="{% if active_menu == 'support' %}is-active{% endif %}">{{ ui.menu_support }}</a>
             <a href="{{ routes.vacancies }}" class="{% if active_menu == 'vacancies' %}is-active{% endif %}">{{ ui.menu_vacancies }}</a>
