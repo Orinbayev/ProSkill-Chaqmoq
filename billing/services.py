@@ -20,6 +20,7 @@ from .models import (
     PlanFeature,
     Subscription,
     PaymentTransaction,
+    SubscriptionRequest,
 )
 
 
@@ -134,6 +135,25 @@ class PricingResult:
     discount_percent: int
     final_price: int
     promo: PromoCode | None
+
+
+@dataclass
+class ClickSubscriptionActivationResult:
+    old_end_date: datetime | None
+    new_end_date: datetime
+    center_subscription_id: int
+    transaction_id: str
+    payment_transaction_id: int
+    order_id: int
+    owner_subscription_end_date: date | None
+
+
+def click_transaction_key_for_request(request_id: int) -> str:
+    """
+    Stable idempotency key for Click callbacks.
+    Same request must always map to one PaymentTransaction.
+    """
+    return f"click:req:{int(request_id)}"
 
 
 def _resolve_plan(plan: SubscriptionPlan | int | str) -> SubscriptionPlan:
@@ -429,6 +449,175 @@ def create_order(center: Center, plan: SubscriptionPlan, months: int, promo_code
         status=SubscriptionOrder.Status.PENDING,
     )
     return order
+
+
+@transaction.atomic
+def activate_center_subscription_from_click(
+    *,
+    sub_request: SubscriptionRequest,
+    plan: SubscriptionPlan,
+    click_trans_id: str,
+    payment_amount: int,
+    duration_months: int,
+) -> ClickSubscriptionActivationResult:
+    """
+    Deterministic center extension logic for successful Click callback.
+    Rules:
+    - if current end date is in the future -> extend from current end date
+    - else -> start from now
+    """
+    logger = logging.getLogger(__name__)
+    now = timezone.now()
+
+    months = int(duration_months or 1)
+    if months not in DURATIONS:
+        months = 1
+
+    duration_days = int(getattr(plan, "duration_days", 0) or 0)
+    if duration_days <= 0:
+        duration_days = 30
+    total_days = duration_days * months
+
+    center = Center.objects.select_for_update().get(pk=sub_request.center_id)
+    active_sub = (
+        CenterSubscription.objects
+        .select_for_update()
+        .select_related("plan")
+        .filter(center_id=center.id, status=CenterSubscription.Status.ACTIVE)
+        .order_by("-expires_at", "-id")
+        .first()
+    )
+
+    old_end_date = active_sub.expires_at if active_sub else center.expires_at
+    base_date = old_end_date if old_end_date and old_end_date > now else now
+    new_end_date = base_date + timezone.timedelta(days=total_days)
+
+    if active_sub:
+        is_fresh_period = not active_sub.expires_at or active_sub.expires_at <= now
+        if is_fresh_period:
+            active_sub.started_at = now
+        active_sub.plan = plan
+        active_sub.status = CenterSubscription.Status.ACTIVE
+        active_sub.expires_at = new_end_date
+        active_sub.paused_at = None
+        active_sub.remaining_seconds = 0
+        active_sub.manual_block = False
+        active_sub.save(
+            update_fields=[
+                "plan",
+                "status",
+                "started_at",
+                "expires_at",
+                "paused_at",
+                "remaining_seconds",
+                "manual_block",
+            ]
+        )
+        target_sub = active_sub
+    else:
+        target_sub = CenterSubscription.objects.create(
+            center=center,
+            plan=plan,
+            status=CenterSubscription.Status.ACTIVE,
+            started_at=now,
+            expires_at=new_end_date,
+            paused_at=None,
+            remaining_seconds=0,
+            manual_block=False,
+        )
+
+    center.plan = plan.code
+    center.max_users = plan.max_users
+    center.max_groups = plan.max_groups
+    center.max_students = plan.max_students
+    center.status = Center.STATUS_ACTIVE
+    center.expires_at = new_end_date
+    center.monthly_price = plan.monthly_price
+    center.save(
+        update_fields=[
+            "plan",
+            "max_users",
+            "max_groups",
+            "max_students",
+            "status",
+            "expires_at",
+            "monthly_price",
+        ]
+    )
+
+    # Keep feature flags in sync with selected plan.
+    apply_plan_to_center(center, plan)
+
+    tx_id = click_transaction_key_for_request(sub_request.id)
+    paid_at = now
+    payment_tx, _ = PaymentTransaction.objects.select_for_update().update_or_create(
+        transaction_id=tx_id,
+        defaults={
+            "user": sub_request.user,
+            "amount": int(payment_amount),
+            "status": PaymentTransaction.Status.PAID,
+            "click_trans_id": (click_trans_id or "")[:64],
+            "paid_at": paid_at,
+        },
+    )
+
+    promo = None
+    promo_code = (sub_request.promo_code or "").strip()
+    if promo_code:
+        promo = PromoCode.objects.filter(code__iexact=promo_code).first()
+
+    base_price = int((plan.monthly_price or plan.price or 0) * months)
+    if base_price <= 0:
+        base_price = int(payment_amount)
+    discount_percent = 0
+    if base_price > 0 and payment_amount < base_price:
+        discount_percent = int(round((base_price - payment_amount) * 100 / base_price))
+        discount_percent = max(0, min(100, discount_percent))
+
+    order = SubscriptionOrder.objects.create(
+        center=center,
+        plan=plan,
+        duration_months=months,
+        base_price=base_price,
+        discount_percent=discount_percent,
+        final_price=int(payment_amount),
+        promo=promo,
+        status=SubscriptionOrder.Status.PAID,
+        paid_at=paid_at,
+    )
+
+    from .utils import give_subscription
+
+    owner = get_subscription_owner_for_center(center=center, actor=sub_request.user)
+    owner_sub = None
+    if owner:
+        owner_sub = give_subscription(owner, plan, duration_months=months)
+
+    logger.info(
+        (
+            "Click subscription activation applied: request_id=%s center_id=%s "
+            "center_sub_id=%s old_end_date=%s new_end_date=%s total_days=%s "
+            "payment_tx_id=%s order_id=%s"
+        ),
+        sub_request.id,
+        center.id,
+        target_sub.id,
+        old_end_date.isoformat() if old_end_date else None,
+        new_end_date.isoformat(),
+        total_days,
+        payment_tx.id,
+        order.id,
+    )
+
+    return ClickSubscriptionActivationResult(
+        old_end_date=old_end_date,
+        new_end_date=new_end_date,
+        center_subscription_id=target_sub.id,
+        transaction_id=tx_id,
+        payment_transaction_id=payment_tx.id,
+        order_id=order.id,
+        owner_subscription_end_date=owner_sub.end_date if owner_sub else None,
+    )
 
 
 @transaction.atomic

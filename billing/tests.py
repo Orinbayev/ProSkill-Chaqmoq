@@ -10,10 +10,17 @@ from django.urls import reverse
 
 from accounts.models import Center, User
 from billing.click_views import create_order_and_redirect
-from billing.models import SubscriptionPlan, Subscription, SubscriptionRequest
+from billing.models import (
+    CenterSubscription,
+    PaymentTransaction,
+    SubscriptionPlan,
+    Subscription,
+    SubscriptionRequest,
+)
 from billing.services import (
     activate_subscription,
     check_subscription,
+    click_transaction_key_for_request,
     get_center_student_limit,
 )
 from billing.utils import give_subscription
@@ -366,6 +373,195 @@ class ClickPrepareCompleteTests(TestCase):
         self.assertEqual(payload["error"], 0)
         self.sub_request.refresh_from_db()
         self.assertEqual(self.sub_request.status, SubscriptionRequest.Status.PAID)
+        self.assertTrue(mocked_notify.called)
+
+    @patch("billing.click_views.send_payment_success_notification")
+    def test_click_complete_extends_center_from_existing_future_end_date(self, mocked_notify):
+        now = timezone.now()
+        old_end_date = now + timezone.timedelta(days=10)
+        active_sub = CenterSubscription.objects.create(
+            center=self.center,
+            plan=self.plan,
+            status=CenterSubscription.Status.ACTIVE,
+            started_at=now - timezone.timedelta(days=5),
+            expires_at=old_end_date,
+        )
+        self.center.expires_at = old_end_date
+        self.center.plan = self.plan.code
+        self.center.save(update_fields=["expires_at", "plan"])
+
+        click_trans_id = "2010"
+        merchant_prepare_id = str(self.sub_request.id)
+        amount = str(self.sub_request.amount)
+        sign_time = "2026-03-18 12:07:00"
+        sign_string = self._complete_sign(
+            service_id="36302",
+            secret_key="test-click-secret",
+            click_trans_id=click_trans_id,
+            merchant_trans_id=self.sub_request.merchant_trans_id,
+            merchant_prepare_id=merchant_prepare_id,
+            amount=amount,
+            action="1",
+            sign_time=sign_time,
+        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                "/click/complete/",
+                data={
+                    "click_trans_id": click_trans_id,
+                    "service_id": "36302",
+                    "merchant_trans_id": self.sub_request.merchant_trans_id,
+                    "merchant_prepare_id": merchant_prepare_id,
+                    "amount": amount,
+                    "action": "1",
+                    "error": "0",
+                    "sign_time": sign_time,
+                    "sign_string": sign_string,
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["error"], 0)
+        active_sub.refresh_from_db()
+        self.center.refresh_from_db()
+        expected_end_date = old_end_date + timezone.timedelta(days=self.plan.duration_days)
+        self.assertEqual(active_sub.expires_at, expected_end_date)
+        self.assertEqual(self.center.expires_at, expected_end_date)
+        self.assertTrue(mocked_notify.called)
+
+    @patch("billing.click_views.send_payment_success_notification")
+    def test_click_complete_sets_new_period_from_now_when_center_expired(self, mocked_notify):
+        now = timezone.now()
+        old_end_date = now - timezone.timedelta(days=2)
+        active_sub = CenterSubscription.objects.create(
+            center=self.center,
+            plan=self.plan,
+            status=CenterSubscription.Status.ACTIVE,
+            started_at=now - timezone.timedelta(days=40),
+            expires_at=old_end_date,
+        )
+        self.center.expires_at = old_end_date
+        self.center.plan = self.plan.code
+        self.center.save(update_fields=["expires_at", "plan"])
+
+        click_trans_id = "2011"
+        merchant_prepare_id = str(self.sub_request.id)
+        amount = str(self.sub_request.amount)
+        sign_time = "2026-03-18 12:08:00"
+        sign_string = self._complete_sign(
+            service_id="36302",
+            secret_key="test-click-secret",
+            click_trans_id=click_trans_id,
+            merchant_trans_id=self.sub_request.merchant_trans_id,
+            merchant_prepare_id=merchant_prepare_id,
+            amount=amount,
+            action="1",
+            sign_time=sign_time,
+        )
+
+        before_call = timezone.now()
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                "/click/complete/",
+                data={
+                    "click_trans_id": click_trans_id,
+                    "service_id": "36302",
+                    "merchant_trans_id": self.sub_request.merchant_trans_id,
+                    "merchant_prepare_id": merchant_prepare_id,
+                    "amount": amount,
+                    "action": "1",
+                    "error": "0",
+                    "sign_time": sign_time,
+                    "sign_string": sign_string,
+                },
+            )
+        after_call = timezone.now()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["error"], 0)
+        active_sub.refresh_from_db()
+        self.center.refresh_from_db()
+
+        min_expected = before_call + timezone.timedelta(days=self.plan.duration_days)
+        max_expected = after_call + timezone.timedelta(days=self.plan.duration_days)
+        self.assertGreaterEqual(active_sub.expires_at, min_expected)
+        self.assertLessEqual(active_sub.expires_at, max_expected)
+        self.assertEqual(self.center.expires_at, active_sub.expires_at)
+        self.assertTrue(mocked_notify.called)
+
+    @patch("billing.click_views.send_payment_success_notification")
+    def test_click_complete_is_idempotent_on_duplicate_callback(self, mocked_notify):
+        click_trans_id = "2012"
+        merchant_prepare_id = str(self.sub_request.id)
+        amount = str(self.sub_request.amount)
+        sign_time = "2026-03-18 12:09:00"
+        sign_string = self._complete_sign(
+            service_id="36302",
+            secret_key="test-click-secret",
+            click_trans_id=click_trans_id,
+            merchant_trans_id=self.sub_request.merchant_trans_id,
+            merchant_prepare_id=merchant_prepare_id,
+            amount=amount,
+            action="1",
+            sign_time=sign_time,
+        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            first_response = self.client.post(
+                "/click/complete/",
+                data={
+                    "click_trans_id": click_trans_id,
+                    "service_id": "36302",
+                    "merchant_trans_id": self.sub_request.merchant_trans_id,
+                    "merchant_prepare_id": merchant_prepare_id,
+                    "amount": amount,
+                    "action": "1",
+                    "error": "0",
+                    "sign_time": sign_time,
+                    "sign_string": sign_string,
+                },
+            )
+        self.assertEqual(first_response.status_code, 200)
+        self.assertEqual(first_response.json()["error"], 0)
+
+        self.center.refresh_from_db()
+        first_end_date = self.center.expires_at
+
+        with self.captureOnCommitCallbacks(execute=True):
+            second_response = self.client.post(
+                "/click/complete/",
+                data={
+                    "click_trans_id": click_trans_id,
+                    "service_id": "36302",
+                    "merchant_trans_id": self.sub_request.merchant_trans_id,
+                    "merchant_prepare_id": merchant_prepare_id,
+                    "amount": amount,
+                    "action": "1",
+                    "error": "0",
+                    "sign_time": sign_time,
+                    "sign_string": sign_string,
+                },
+            )
+
+        self.assertEqual(second_response.status_code, 200)
+        self.assertEqual(second_response.json()["error"], 0)
+        self.center.refresh_from_db()
+        self.assertEqual(self.center.expires_at, first_end_date)
+        self.assertEqual(
+            PaymentTransaction.objects.filter(
+                transaction_id=click_transaction_key_for_request(self.sub_request.id),
+                status=PaymentTransaction.Status.PAID,
+            ).count(),
+            1,
+        )
+        self.assertEqual(
+            CenterSubscription.objects.filter(
+                center=self.center,
+                status=CenterSubscription.Status.ACTIVE,
+            ).count(),
+            1,
+        )
         self.assertTrue(mocked_notify.called)
 
     def test_click_complete_rejects_wrong_amount(self):

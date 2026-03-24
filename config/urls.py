@@ -55,6 +55,10 @@ urlpatterns = [
     path('click/prepare/', billing_click_views.click_prepare, name='click_prepare'),
     path('click/complete/', billing_click_views.click_complete, name='click_complete'),
     path('click/webhook/', billing_click_views.click_webhook, name='click_webhook'),
+    # Backward-compatible legacy callback paths.
+    path('api/click/prepare/', billing_click_views.click_prepare, name='api_click_prepare'),
+    path('api/click/complete/', billing_click_views.click_complete, name='api_click_complete'),
+    path('api/click/webhook/', billing_click_views.click_webhook, name='api_click_webhook'),
 
     # Browser Redirects
     path('payment/success/', billing_click_views.payment_success, name='payment_success'),

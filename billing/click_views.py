@@ -19,16 +19,15 @@ from django.views.decorators.http import require_POST
 from .models import PaymentTransaction, SubscriptionPlan, SubscriptionRequest
 from .services import (
     DURATIONS,
+    activate_center_subscription_from_click,
     calculate_price,
-    create_order,
-    mark_order_paid,
+    click_transaction_key_for_request,
 )
 from .telegram_notifications import send_payment_success_notification
 from .utils import (
     ClickError,
     amounts_match,
     generate_merchant_trans_id,
-    give_subscription,
     verify_click_signature,
 )
 
@@ -164,6 +163,21 @@ def _merchant_id_is_valid(merchant_id: str) -> bool:
     if not merchant_id:
         return True
     return merchant_id == expected_merchant_id
+
+
+def _service_id_is_valid(service_id: str) -> bool:
+    expected_service_id = str(getattr(settings, "CLICK_SERVICE_ID", "")).strip()
+    if not service_id:
+        return True
+    return service_id == expected_service_id
+
+
+def _gateway_ids_are_valid(service_id: str, merchant_id: str) -> tuple[bool, str]:
+    if not _service_id_is_valid(service_id):
+        return False, "Invalid service_id"
+    if not _merchant_id_is_valid(merchant_id):
+        return False, "Invalid merchant_id"
+    return True, ""
 
 
 def _resolve_plan_for_request(sub_request: SubscriptionRequest) -> SubscriptionPlan | None:
@@ -477,11 +491,35 @@ def click_prepare(request):
             merchant_trans_id=merchant_trans_id,
         )
 
+    logger.info(
+        "[CLICK] PREPARE request resolved: request_id=%s center_id=%s user_id=%s status=%s",
+        sub_request.id,
+        sub_request.center_id,
+        sub_request.user_id,
+        sub_request.status,
+    )
+
     if action != "0":
         logger.warning("[CLICK] PREPARE rejected: invalid action=%s", action)
         return _click_response(
             error=ClickError.ACTION_NOT_FOUND,
             error_note="Action not found",
+            click_trans_id=click_trans_id,
+            merchant_trans_id=resolved_merchant_trans_id,
+        )
+
+    ids_valid, ids_error = _gateway_ids_are_valid(service_id, merchant_id)
+    if not ids_valid:
+        logger.warning(
+            "[CLICK] PREPARE rejected: %s request_id=%s service_id=%s merchant_id=%s",
+            ids_error,
+            sub_request.id,
+            service_id,
+            merchant_id,
+        )
+        return _click_response(
+            error=ClickError.REQUEST_ERROR,
+            error_note=ids_error,
             click_trans_id=click_trans_id,
             merchant_trans_id=resolved_merchant_trans_id,
         )
@@ -497,6 +535,11 @@ def click_prepare(request):
         amount=amount,
         action=action,
         sign_time=sign_time,
+    )
+    logger.info(
+        "[CLICK] PREPARE signature_check request_id=%s result=%s",
+        sub_request.id,
+        sign_ok,
     )
     if not sign_ok:
         logger.warning("[CLICK] PREPARE rejected: signature mismatch request_id=%s", sub_request.id)
@@ -595,11 +638,35 @@ def click_complete(request):
             merchant_trans_id=merchant_trans_id,
         )
 
+    logger.info(
+        "[CLICK] COMPLETE request resolved: request_id=%s center_id=%s user_id=%s status=%s",
+        sub_request.id,
+        sub_request.center_id,
+        sub_request.user_id,
+        sub_request.status,
+    )
+
     if action != "1":
         logger.warning("[CLICK] COMPLETE rejected: invalid action=%s", action)
         return _click_response(
             error=ClickError.ACTION_NOT_FOUND,
             error_note="Action not found",
+            click_trans_id=click_trans_id,
+            merchant_trans_id=resolved_merchant_trans_id,
+        )
+
+    ids_valid, ids_error = _gateway_ids_are_valid(service_id, merchant_id)
+    if not ids_valid:
+        logger.warning(
+            "[CLICK] COMPLETE rejected: %s request_id=%s service_id=%s merchant_id=%s",
+            ids_error,
+            sub_request.id,
+            service_id,
+            merchant_id,
+        )
+        return _click_response(
+            error=ClickError.REQUEST_ERROR,
+            error_note=ids_error,
             click_trans_id=click_trans_id,
             merchant_trans_id=resolved_merchant_trans_id,
         )
@@ -616,6 +683,11 @@ def click_complete(request):
         amount=amount,
         action=action,
         sign_time=sign_time,
+    )
+    logger.info(
+        "[CLICK] COMPLETE signature_check request_id=%s result=%s",
+        sub_request.id,
+        sign_ok,
     )
     if not sign_ok:
         logger.warning("[CLICK] COMPLETE rejected: signature mismatch request_id=%s", sub_request.id)
@@ -639,8 +711,9 @@ def click_complete(request):
 
     # Click Error Check
     try:
-        click_error = int((data.get("error") or "0").strip() or 0)
+        click_error = int(str(data.get("error") or "0").strip() or 0)
     except ValueError:
+        logger.warning("[CLICK] COMPLETE rejected: invalid error code request_id=%s raw_error=%s", sub_request.id, data.get("error"))
         return _click_response(error=ClickError.REQUEST_ERROR, error_note="Invalid error code", click_trans_id=click_trans_id, merchant_trans_id=resolved_merchant_trans_id)
 
     if click_error < 0:
@@ -656,64 +729,127 @@ def click_complete(request):
     try:
         with transaction.atomic():
             sub_request = SubscriptionRequest.objects.select_for_update().select_related("user", "center", "plan").get(pk=sub_request.id)
-            
+
             # Amount Re-validation
             expected_amount = _request_amount(sub_request)
             if not amounts_match(amount, expected_amount):
-                return _click_response(error=ClickError.INVALID_AMOUNT, error_note="Amount mismatch", click_trans_id=click_trans_id, merchant_trans_id=resolved_merchant_trans_id)
+                logger.warning(
+                    "[CLICK] COMPLETE rejected: amount mismatch request_id=%s expected=%s got=%s",
+                    sub_request.id,
+                    expected_amount,
+                    amount,
+                )
+                return _click_response(
+                    error=ClickError.INVALID_AMOUNT,
+                    error_note="Amount mismatch",
+                    click_trans_id=click_trans_id,
+                    merchant_trans_id=resolved_merchant_trans_id,
+                )
 
-            # Idempotency / Already Paid
-            tx_id = f"click:{sub_request.id}:{click_trans_id}"[:64]
-            if sub_request.status == SubscriptionRequest.Status.PAID:
-                if PaymentTransaction.objects.filter(transaction_id=tx_id, status=PaymentTransaction.Status.PAID).exists():
-                    logger.info("[CLICK] COMPLETE success (idempotent): request_id=%s", sub_request.id)
-                    return _click_response(
-                        error=ClickError.SUCCESS,
-                        error_note="Success",
-                        click_trans_id=click_trans_id,
-                        merchant_trans_id=resolved_merchant_trans_id,
-                        merchant_confirm_id=str(sub_request.id),
-                    )
-                return _click_response(error=ClickError.ALREADY_PAID, error_note="Already paid", click_trans_id=click_trans_id, merchant_trans_id=resolved_merchant_trans_id)
-
-            # Activate Subscription
             plan = _resolve_plan_for_request(sub_request)
             if not plan:
                 logger.error("[CLICK] COMPLETE failed: plan not found request_id=%s", sub_request.id)
                 return _click_response(error=ClickError.ORDER_NOT_FOUND, error_note="Plan not found", click_trans_id=click_trans_id, merchant_trans_id=resolved_merchant_trans_id)
 
-            # Create/Update PaymentTransaction
-            PaymentTransaction.objects.update_or_create(
-                transaction_id=tx_id,
-                defaults={
-                    "user": sub_request.user,
-                    "amount": expected_amount,
-                    "status": PaymentTransaction.Status.PAID,
-                    "click_trans_id": click_trans_id,
-                    "paid_at": timezone.now(),
-                },
+            tx_id = click_transaction_key_for_request(sub_request.id)
+            existing_tx = (
+                PaymentTransaction.objects
+                .select_for_update()
+                .filter(transaction_id=tx_id)
+                .first()
             )
 
-            # Update Center/User Subscription
+            # Idempotency: this request has already been finalized before.
+            if sub_request.status == SubscriptionRequest.Status.PAID:
+                if existing_tx:
+                    if existing_tx.status != PaymentTransaction.Status.PAID or existing_tx.amount != expected_amount:
+                        existing_tx.status = PaymentTransaction.Status.PAID
+                        existing_tx.amount = expected_amount
+                        existing_tx.click_trans_id = (click_trans_id or "")[:64]
+                        existing_tx.paid_at = existing_tx.paid_at or timezone.now()
+                        existing_tx.save(update_fields=["status", "amount", "click_trans_id", "paid_at"])
+                else:
+                    PaymentTransaction.objects.create(
+                        transaction_id=tx_id,
+                        user=sub_request.user,
+                        amount=expected_amount,
+                        status=PaymentTransaction.Status.PAID,
+                        click_trans_id=(click_trans_id or "")[:64],
+                        paid_at=timezone.now(),
+                    )
+
+                logger.info(
+                    "[CLICK] COMPLETE success (idempotent): request_id=%s tx_id=%s",
+                    sub_request.id,
+                    tx_id,
+                )
+                return _click_response(
+                    error=ClickError.SUCCESS,
+                    error_note="Success",
+                    click_trans_id=click_trans_id,
+                    merchant_trans_id=resolved_merchant_trans_id,
+                    merchant_confirm_id=str(sub_request.id),
+                )
+
+            if existing_tx and existing_tx.status == PaymentTransaction.Status.PAID:
+                # Safety net: if transaction was paid but request status lagged behind.
+                sub_request.status = SubscriptionRequest.Status.PAID
+                sub_request.save(update_fields=["status", "updated_at"])
+                logger.warning(
+                    "[CLICK] COMPLETE idempotent recovery: request_id=%s had pending status but paid transaction exists tx_id=%s",
+                    sub_request.id,
+                    tx_id,
+                )
+                return _click_response(
+                    error=ClickError.SUCCESS,
+                    error_note="Success",
+                    click_trans_id=click_trans_id,
+                    merchant_trans_id=resolved_merchant_trans_id,
+                    merchant_confirm_id=str(sub_request.id),
+                )
+
             normalized_months = sub_request.duration_months if sub_request.duration_months in DURATIONS else 1
-            subscription = give_subscription(sub_request.user, plan, duration_months=normalized_months)
-            
-            # Legacy sync
-            legacy_order = create_order(center=sub_request.center, plan=plan, months=normalized_months, promo_code=sub_request.promo_code)
-            mark_order_paid(legacy_order)
+            activation_result = activate_center_subscription_from_click(
+                sub_request=sub_request,
+                plan=plan,
+                click_trans_id=click_trans_id,
+                payment_amount=expected_amount,
+                duration_months=normalized_months,
+            )
 
             # Finalize Request
             sub_request.status = SubscriptionRequest.Status.PAID
-            sub_request.save(update_fields=["status", "updated_at"])
+            update_fields = ["status", "updated_at"]
+            if not sub_request.plan_id:
+                sub_request.plan = plan
+                update_fields.append("plan")
+            sub_request.save(update_fields=update_fields)
+
+            notification_end_date = (
+                activation_result.owner_subscription_end_date
+                or activation_result.new_end_date.date()
+            )
 
             # Telegram Notification
             transaction.on_commit(lambda: send_payment_success_notification(
                 user=sub_request.user,
                 plan_name=plan.name or plan.title or plan.code,
-                end_date=subscription.end_date,
+                end_date=notification_end_date,
             ))
 
-            logger.info("[CLICK] COMPLETE success: request_id=%s user_id=%s center=%s", sub_request.id, sub_request.user_id, sub_request.center.slug)
+            logger.info(
+                (
+                    "[CLICK] COMPLETE success: request_id=%s user_id=%s center_id=%s "
+                    "old_end_date=%s new_end_date=%s tx_id=%s order_id=%s"
+                ),
+                sub_request.id,
+                sub_request.user_id,
+                sub_request.center_id,
+                activation_result.old_end_date.isoformat() if activation_result.old_end_date else None,
+                activation_result.new_end_date.isoformat(),
+                activation_result.transaction_id,
+                activation_result.order_id,
+            )
             return _click_response(
                 error=ClickError.SUCCESS,
                 error_note="Success",
@@ -722,7 +858,7 @@ def click_complete(request):
                 merchant_confirm_id=str(sub_request.id),
             )
 
-    except Exception as e:
+    except Exception:
         logger.exception("[CLICK] COMPLETE error: request_id=%s", sub_request.id)
         return _click_response(error=ClickError.REQUEST_ERROR, error_note="Internal error", click_trans_id=click_trans_id, merchant_trans_id=resolved_merchant_trans_id)
 
