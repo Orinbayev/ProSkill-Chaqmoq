@@ -19,7 +19,7 @@ def _sql_literal(value):
     if value is None:
         return "NULL"
     if isinstance(value, bool):
-        return "1" if value else "0"
+        return "TRUE" if value else "FALSE"
     if isinstance(value, (int, float)):
         return str(value)
     return "'" + str(value).replace("'", "''") + "'"
