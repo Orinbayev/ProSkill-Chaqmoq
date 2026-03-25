@@ -150,6 +150,8 @@ class AddUserForm(forms.ModelForm):
         user = super().save(commit=False)
         user.center = center_to_set
         user.is_staff = (user.role in ("manager", "director"))
+        if user.is_demo_user is None:
+            user.is_demo_user = False
         
         if user.role == "teacher":
             user.oqituvchi_foizi = data.get("oqituvchi_foizi") or 40

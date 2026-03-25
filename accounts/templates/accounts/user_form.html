@@ -513,6 +513,7 @@
     const priceBlock = document.getElementById("priceBlock");
     const kursInput = document.getElementById("id_kurs_narhi");
     const foizField = document.getElementById("foizField");
+    const groupPriceUrlTemplate = "{% url 'education:group_price' 0 %}";
 
     if (role) {
       const studentFields = document.getElementById("studentFieldsBlock");
@@ -538,7 +539,8 @@
         const gid = groupSelect.value;
         if (!gid) { if (priceBlock) priceBlock.style.display = "none"; return; }
 
-        fetch(`/education/group-price/${gid}/`)
+        const groupPriceUrl = groupPriceUrlTemplate.replace(/0\/$/, `${gid}/`);
+        fetch(groupPriceUrl)
           .then(r => r.json())
           .then(data => {
             if (kursInput) kursInput.value = data.price;

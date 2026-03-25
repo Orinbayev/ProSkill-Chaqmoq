@@ -386,6 +386,9 @@ class User(SoftDeleteMixin, AbstractUser):
 
     def save(self, *args, **kwargs):
         from accounts.utils import normalize_phone
+        # Defensive guard: prevent null inserts for new non-nullable flag on older/stale payloads.
+        if self.is_demo_user is None:
+            self.is_demo_user = False
         if self.phone_number:
             self.phone_number = normalize_phone(self.phone_number)
         if self.telefon1:
