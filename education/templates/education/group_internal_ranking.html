@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+{% include "education/partials/phase_theme.html" %}
+<div class="ui-shell">
+  <div class="ui-panel ui-header">
+    <div>
+      <h3 class="ui-title">Guruh ichki aktivlik reytingi</h3>
+      <div class="ui-sub">{{ group.nom }} · {{ selected_date }}</div>
+    </div>
+    <div class="ui-actions">
+      <a href="{% url 'education:group_detail' group.id %}?date={{ selected_date|date:'Y-m-d' }}" class="ui-btn ui-btn-secondary">Guruhga qaytish</a>
+      <a href="{% url 'education:group_completion_recommendations' group.id %}?date={{ selected_date|date:'Y-m-d' }}" class="ui-btn ui-btn-primary">Yakuniy tavsiyalar</a>
+    </div>
+  </div>
+
+  <div class="ui-panel ui-section">
+    <form method="get" class="ui-grid">
+      <div class="ui-col-3">
+        <label class="ui-label">Sana</label>
+        <input type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+      </div>
+      <div class="ui-col-3">
+        <label class="ui-label">&nbsp;</label>
+        <button class="ui-btn ui-btn-primary w-100" type="submit">Hisoblash / yangilash</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="ui-note">
+    Bu reyting faqat shu guruh ichida hisoblanadi va global chaqmoq reytingidan alohida.
+    Formula vaznlari:
+    Davomat {{ weights.attendance|floatformat:2 }},
+    Faollik {{ weights.activity|floatformat:2 }},
+    Imtihon {{ weights.exam|floatformat:2 }},
+    Homework {{ weights.homework|floatformat:2 }},
+    Intizom {{ weights.discipline|floatformat:2 }},
+    Lightning bonus {{ weights.lightning_bonus|floatformat:2 }}.
+  </div>
+
+  <div class="ui-panel ui-section">
+    <div class="ui-table-wrap">
+      <table class="ui-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>O‘quvchi</th>
+            <th>Jami score</th>
+            <th>Davomat</th>
+            <th>Faollik</th>
+            <th>Imtihon</th>
+            <th>Homework</th>
+            <th>Intizom</th>
+            <th>Lightning bonus</th>
+            <th>Izoh</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>
+              {% if row.rank_position == 1 %}
+                <span class="ui-badge ui-badge-warning">🥇 1</span>
+              {% elif row.rank_position == 2 %}
+                <span class="ui-badge ui-badge-neutral">🥈 2</span>
+              {% elif row.rank_position == 3 %}
+                <span class="ui-badge ui-badge-danger">🥉 3</span>
+              {% else %}
+                <span class="ui-badge ui-badge-neutral">{{ row.rank_position }}</span>
+              {% endif %}
+            </td>
+            <td>{{ row.student.get_full_name }}</td>
+            <td><strong>{{ row.total_internal_score|floatformat:2 }}</strong></td>
+            <td>{{ row.attendance_score|floatformat:2 }}</td>
+            <td>{{ row.activity_score|floatformat:2 }}</td>
+            <td>{{ row.exam_score|floatformat:2 }}</td>
+            <td>{{ row.homework_score|floatformat:2 }}</td>
+            <td>{{ row.discipline_score|floatformat:2 }}</td>
+            <td>{{ row.lightning_bonus_score|floatformat:2 }}</td>
+            <td>
+              <details>
+                <summary>Sabab</summary>
+                <small class="ui-muted">{{ row.explanation_text }}</small>
+              </details>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="10" class="ui-empty">Reyting uchun ma’lumot topilmadi</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

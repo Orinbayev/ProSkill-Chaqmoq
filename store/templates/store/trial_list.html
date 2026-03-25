@@ -1,0 +1,528 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+  .trial-page {
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 16px 20px;
+    color: #f8fafc;
+  }
+
+  .trial-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(245, 158, 11, 0.08) 0%, transparent 50%),
+      #020617;
+  }
+
+  .trial-toolbar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    padding: 12px 18px;
+    border-radius: 16px;
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+  }
+
+  .trial-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .trial-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.24);
+    font-size: 17px;
+  }
+
+  .trial-title {
+    margin: 0;
+    font-weight: 800;
+    font-size: 26px;
+    letter-spacing: -0.45px;
+    color: #f8fafc;
+  }
+
+  .trial-sub {
+    margin-top: 2px;
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .trial-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-left: auto;
+  }
+
+  .trial-btn {
+    height: 38px;
+    border-radius: 10px;
+    padding: 0 15px;
+    border: 1px solid transparent;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+  }
+
+  .trial-btn-outline {
+    color: #e2e8f0;
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+
+  .trial-btn-outline:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+  }
+
+  .trial-btn-primary {
+    color: #ffffff;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    border-color: rgba(34, 197, 94, 0.4);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+  }
+
+  .trial-btn-primary:hover {
+    transform: translateY(-1px);
+    filter: brightness(0.98);
+  }
+
+  .stats-grid {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .stat-card {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 12px 14px;
+    background: rgba(15, 23, 42, 0.4);
+    min-height: 82px;
+  }
+
+  .stat-label {
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .stat-value {
+    margin-top: 6px;
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1;
+    color: #f8fafc;
+  }
+
+  .trial-filter-card {
+    margin-top: 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(15, 23, 42, 0.4);
+    padding: 12px;
+  }
+
+  .trial-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .trial-filter {
+    min-width: 180px;
+    height: 38px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(2, 6, 23, 0.58);
+    color: #e5e7eb;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 0 12px;
+    color-scheme: dark;
+    outline: none;
+  }
+
+  .trial-filter::placeholder {
+    color: #94a3b8;
+    font-weight: 600;
+  }
+
+  .trial-filter option {
+    background: #0b1226;
+    color: #e5e7eb;
+  }
+
+  .trial-filter:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+  }
+
+  .trial-filter-btn {
+    height: 38px;
+    border: 0;
+    border-radius: 10px;
+    background: #2563eb;
+    color: white;
+    padding: 0 16px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .trial-filter-btn:hover {
+    background: #1d4ed8;
+  }
+
+  .trial-clear-btn {
+    height: 38px;
+    border-radius: 10px;
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    background: rgba(239, 68, 68, 0.12);
+    color: #fda4af;
+    padding: 0 14px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .trial-clear-btn:hover {
+    background: rgba(239, 68, 68, 0.22);
+    color: #fecdd3;
+  }
+
+  .trial-table-card {
+    margin-top: 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(15, 23, 42, 0.4);
+    overflow: hidden;
+  }
+
+  .trial-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+    background: rgba(2, 6, 23, 0.18);
+  }
+
+  .trial-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .trial-table thead th {
+    background: rgba(255, 255, 255, 0.02);
+    color: #cbd5e1;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 1px;
+    font-weight: 700;
+    padding: 13px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    white-space: nowrap;
+  }
+
+  .trial-table tbody td {
+    color: #f8fafc;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 11px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    vertical-align: middle;
+  }
+
+  .trial-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .trial-link {
+    color: #38bdf8;
+    text-decoration: none;
+    font-weight: 700;
+  }
+
+  .trial-link:hover {
+    color: #7dd3fc;
+  }
+
+  .result-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+
+  .result-pending {
+    color: #94a3b8;
+    border-color: rgba(148, 163, 184, 0.28);
+    background: rgba(148, 163, 184, 0.12);
+  }
+
+  .result-attended {
+    color: #22c55e;
+    border-color: rgba(34, 197, 94, 0.3);
+    background: rgba(34, 197, 94, 0.14);
+  }
+
+  .result-absent {
+    color: #f87171;
+    border-color: rgba(248, 113, 113, 0.3);
+    background: rgba(239, 68, 68, 0.14);
+  }
+
+  .result-converted {
+    color: #38bdf8;
+    border-color: rgba(56, 189, 248, 0.32);
+    background: rgba(56, 189, 248, 0.14);
+  }
+
+  .result-not-interested {
+    color: #cbd5e1;
+    border-color: rgba(148, 163, 184, 0.24);
+    background: rgba(100, 116, 139, 0.22);
+  }
+
+  .result-follow-up-needed {
+    color: #facc15;
+    border-color: rgba(250, 204, 21, 0.32);
+    background: rgba(250, 204, 21, 0.15);
+  }
+
+  .trial-edit-btn {
+    border-radius: 8px;
+    border: 1px solid rgba(59, 130, 246, 0.24);
+    background: rgba(59, 130, 246, 0.12);
+    color: #93c5fd;
+    padding: 6px 10px;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .trial-edit-btn:hover {
+    background: rgba(59, 130, 246, 0.2);
+    color: #dbeafe;
+  }
+
+  .trial-empty {
+    text-align: center;
+    padding: 28px 10px;
+    color: #94a3b8;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .trial-pagination {
+    margin-top: 12px;
+  }
+
+  @media (max-width: 1100px) {
+    .stats-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 768px) {
+    .trial-page {
+      padding: 14px 0;
+    }
+
+    .trial-title {
+      font-size: 22px;
+    }
+
+    .trial-toolbar-right {
+      width: 100%;
+      margin-left: 0;
+    }
+
+    .trial-btn {
+      flex: 1;
+    }
+
+    .trial-filter {
+      width: 100%;
+    }
+
+    .trial-filter-btn {
+      width: 100%;
+    }
+
+    .trial-clear-btn {
+      width: 100%;
+    }
+
+    .trial-table {
+      min-width: 840px;
+    }
+  }
+</style>
+
+<div class="trial-bg"></div>
+<div class="trial-page animate__animated animate__fadeIn">
+  <div class="trial-toolbar">
+    <div class="trial-toolbar-left">
+      <div class="trial-icon">
+        <i class="fa-solid fa-chalkboard-user"></i>
+      </div>
+      <div>
+        <h3 class="trial-title">Sinov darslar</h3>
+        <p class="trial-sub mb-0">Lid -> sinov dars -> ro'yxatga o'tish jarayonini kuzatish</p>
+      </div>
+    </div>
+
+    <div class="trial-toolbar-right">
+      <a href="{% url 'store:lead_list' %}" class="trial-btn trial-btn-outline">Lidlar</a>
+      <a href="{% url 'store:trial_create' %}" class="trial-btn trial-btn-primary">+ Sinov dars qo'shish</a>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Jami</div>
+      <div class="stat-value">{{ analytics.overall.total }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Qatnashgan</div>
+      <div class="stat-value">{{ analytics.overall.attended }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Ro'yxatga o'tganlar</div>
+      <div class="stat-value">{{ analytics.overall.converted }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Kelmagan</div>
+      <div class="stat-value">{{ analytics.overall.absent }}</div>
+    </div>
+  </div>
+
+  <form method="get" class="trial-filter-card">
+    <div class="trial-filter-row">
+      <input
+        type="text"
+        name="q"
+        value="{{ q }}"
+        class="trial-filter"
+        style="max-width: 280px;"
+        placeholder="Lid / guruh / ustoz">
+
+      <select name="result" class="trial-filter" style="max-width: 220px;" onchange="this.form.submit()">
+        <option value="">Natija: barchasi</option>
+        {% for value, label in result_choices %}
+        <option value="{{ value }}" {% if result == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+
+      <select name="teacher" class="trial-filter" style="max-width: 240px;" onchange="this.form.submit()">
+        <option value="">Ustoz: barchasi</option>
+        {% for t in teachers %}
+        <option value="{{ t.id }}" {% if teacher_id == t.id|stringformat:'s' %}selected{% endif %}>
+          {{ t.ism }} {{ t.familya }}
+        </option>
+        {% endfor %}
+      </select>
+
+      <button class="trial-filter-btn" type="submit">Saralash</button>
+      <a href="{% url 'store:trial_list' %}" class="trial-clear-btn">Tozalash</a>
+    </div>
+  </form>
+
+  <div class="trial-table-card">
+    <div class="trial-table-scroll">
+      <table class="trial-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Lid</th>
+            <th>Guruh</th>
+            <th>Ustoz</th>
+            <th>Sana-vaqt</th>
+            <th>Natija</th>
+            <th>Amallar</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in trials %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>
+              <a href="{% url 'store:lead_detail' t.lead_id %}" class="trial-link">{{ t.lead.full_name }}</a>
+            </td>
+            <td>{{ t.group.nom|default:'-' }}</td>
+            <td>{% if t.teacher %}{{ t.teacher.ism }} {{ t.teacher.familya }}{% else %}-{% endif %}</td>
+            <td>{{ t.scheduled_at|date:"d.m.Y H:i" }}</td>
+            <td>
+              {% if t.result_status == 'pending' %}
+              <span class="result-badge result-pending">{{ t.get_result_status_display }}</span>
+              {% elif t.result_status == 'attended' %}
+              <span class="result-badge result-attended">{{ t.get_result_status_display }}</span>
+              {% elif t.result_status == 'absent' %}
+              <span class="result-badge result-absent">{{ t.get_result_status_display }}</span>
+              {% elif t.result_status == 'converted' %}
+              <span class="result-badge result-converted">{{ t.get_result_status_display }}</span>
+              {% elif t.result_status == 'not_interested' %}
+              <span class="result-badge result-not-interested">{{ t.get_result_status_display }}</span>
+              {% elif t.result_status == 'follow_up_needed' %}
+              <span class="result-badge result-follow-up-needed">{{ t.get_result_status_display }}</span>
+              {% else %}
+              <span class="result-badge result-pending">{{ t.get_result_status_display }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{% url 'store:trial_edit' t.id %}" class="trial-edit-btn">Tahrirlash</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="trial-empty">Sinov dars yozuvlari topilmadi.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="trial-pagination">
+    {% include "partials/pagination.html" %}
+  </div>
+</div>
+{% endblock %}

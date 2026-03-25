@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+{% include "education/partials/phase_theme.html" %}
+<div class="ui-shell">
+  <div class="ui-panel ui-header">
+    <div>
+      <h3 class="ui-title">Imtihon Sozlamalari</h3>
+      <div class="ui-sub">Markaz darajasidagi imtihon tizimi boshqaruvi</div>
+    </div>
+    <div class="ui-actions">
+      <a class="ui-btn ui-btn-secondary" href="{% url 'education:groups_home' %}">Orqaga</a>
+    </div>
+  </div>
+
+  {% if not can_edit %}
+    <div class="ui-note">Teacher rejimi: sozlamalarni ko‘rish mumkin, lekin tahrirlash faqat director/manager uchun.</div>
+  {% endif %}
+
+  <div class="ui-panel ui-section">
+    <form method="post">
+      {% csrf_token %}
+      <div class="ui-grid">
+        {% for field in form %}
+          <div class="ui-col-6">
+            <label class="ui-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {% if can_edit %}
+              {{ field }}
+            {% else %}
+              <div class="ui-note ui-note-muted mb-0">
+                {% if field.field.widget.input_type == 'checkbox' %}
+                  {% if field.value %}Yoqilgan{% else %}O‘chiq{% endif %}
+                {% else %}
+                  {{ field.value|default:"—" }}
+                {% endif %}
+              </div>
+            {% endif %}
+            {% for err in field.errors %}
+              <div class="text-danger small mt-1">{{ err }}</div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+      </div>
+      {% if can_edit %}
+        <div class="ui-actions mt-3">
+          <button class="ui-btn ui-btn-warning" type="submit">Saqlash</button>
+        </div>
+      {% endif %}
+    </form>
+  </div>
+</div>
+{% endblock %}

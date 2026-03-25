@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+{% include "education/partials/phase_theme.html" %}
+<div class="ui-shell" style="max-width:900px;">
+  <div class="ui-panel ui-header">
+    <div>
+      <h3 class="ui-title">Sertifikat tekshiruvi</h3>
+      <div class="ui-sub">No: {{ cert.certificate_number }}</div>
+    </div>
+    <div class="ui-actions">
+      {% if cert.status == 'issued' %}
+        <span class="ui-badge ui-badge-success">HAQIQIY</span>
+      {% elif cert.status == 'revoked' %}
+        <span class="ui-badge ui-badge-danger">BEKOR QILINGAN</span>
+      {% else %}
+        <span class="ui-badge ui-badge-warning">QORALAMA</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="ui-panel ui-section">
+    <div class="ui-kv">
+      <div class="ui-kv-key">Sertifikat raqami</div>
+      <div class="ui-kv-val">{{ cert.certificate_number }}</div>
+    </div>
+    <div class="ui-kv">
+      <div class="ui-kv-key">O‘quvchi</div>
+      <div class="ui-kv-val">{{ cert.student.get_full_name }}</div>
+    </div>
+    <div class="ui-kv">
+      <div class="ui-kv-key">Guruh/Kurs</div>
+      <div class="ui-kv-val">{{ cert.group.nom }}</div>
+    </div>
+    <div class="ui-kv">
+      <div class="ui-kv-key">Markaz</div>
+      <div class="ui-kv-val">{{ cert.center.name }}</div>
+    </div>
+    <div class="ui-kv">
+      <div class="ui-kv-key">Berilgan sana</div>
+      <div class="ui-kv-val">{{ cert.issue_date }}</div>
+    </div>
+    <div class="ui-kv">
+      <div class="ui-kv-key">Holati</div>
+      <div class="ui-kv-val">{{ cert.get_status_display }}</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

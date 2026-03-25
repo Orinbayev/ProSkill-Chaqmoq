@@ -36,6 +36,10 @@ from .utils import (
 logger = logging.getLogger(__name__)
 
 
+def _is_demo_center(center) -> bool:
+    return bool(center and getattr(center, "is_demo", False))
+
+
 def _click_response(
     *,
     error: int,
@@ -286,6 +290,14 @@ def create_order_and_redirect(request):
             {"error": "center_not_found", "error_note": "Center topilmadi."},
             status=400,
         )
+    if _is_demo_center(center):
+        return JsonResponse(
+            {
+                "error": "demo_payment_disabled",
+                "error_note": "Demo markazda real Click to'lovi o'chirilgan.",
+            },
+            status=403,
+        )
 
     service_id = str(getattr(settings, "CLICK_SERVICE_ID", "")).strip()
     merchant_id = str(getattr(settings, "CLICK_MERCHANT_ID", "")).strip()
@@ -524,6 +536,18 @@ def click_prepare(request):
         sub_request.user_id,
         sub_request.status,
     )
+    if _is_demo_center(sub_request.center):
+        logger.warning(
+            "[CLICK] PREPARE blocked for demo center: request_id=%s center_id=%s",
+            sub_request.id,
+            sub_request.center_id,
+        )
+        return _click_response(
+            error=ClickError.REQUEST_ERROR,
+            error_note="Demo center payment disabled",
+            click_trans_id=click_trans_id,
+            merchant_trans_id=resolved_merchant_trans_id,
+        )
 
     if action != "0":
         logger.warning("[CLICK] PREPARE rejected: invalid action=%s", action)
@@ -676,6 +700,18 @@ def click_complete(request):
         sub_request.user_id,
         sub_request.status,
     )
+    if _is_demo_center(sub_request.center):
+        logger.warning(
+            "[CLICK] COMPLETE blocked for demo center: request_id=%s center_id=%s",
+            sub_request.id,
+            sub_request.center_id,
+        )
+        return _click_response(
+            error=ClickError.REQUEST_ERROR,
+            error_note="Demo center payment disabled",
+            click_trans_id=click_trans_id,
+            merchant_trans_id=resolved_merchant_trans_id,
+        )
 
     if action != "1":
         logger.warning("[CLICK] COMPLETE rejected: invalid action=%s", action)
@@ -887,7 +923,13 @@ def click_complete(request):
                     request_id=sub_request.id,
                 )
 
-            transaction.on_commit(_notify_payment_success)
+            if _is_demo_center(sub_request.center):
+                logger.info(
+                    "[CLICK] COMPLETE skipped Telegram notifications for demo center request_id=%s",
+                    sub_request.id,
+                )
+            else:
+                transaction.on_commit(_notify_payment_success)
 
             logger.info(
                 (

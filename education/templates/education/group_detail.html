@@ -61,6 +61,13 @@
     flex-wrap: wrap;
   }
 
+  /* Header panel must stay above following cards so dropdown is never hidden */
+  .header-top-layer {
+    position: relative;
+    z-index: 500;
+    overflow: visible;
+  }
+
   .title-area {
     display: flex;
     align-items: center;
@@ -123,6 +130,118 @@
   .btn-danger-outline { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: #fca5a5; }
   .btn-danger-outline:hover { background: rgba(239, 68, 68, 0.2); transform: translateY(-1px); }
   .btn-danger-outline.rm-active { background: var(--red); color: white; border-color: transparent; }
+
+  .btn-muted {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--border);
+    color: #cbd5e1;
+  }
+  .btn-muted:hover {
+    background: rgba(255, 255, 255, 0.09);
+    transform: translateY(-1px);
+    color: #ffffff;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .header-actions-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .quick-menu {
+    position: relative;
+  }
+
+  .quick-menu-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 280px;
+    max-width: min(320px, 92vw);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: rgba(15, 23, 42, 0.98);
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
+    padding: 8px;
+    z-index: 9999;
+    display: none;
+    max-height: 56vh;
+    overflow-y: auto;
+  }
+
+  .quick-menu-panel.open {
+    display: block;
+  }
+
+  .quick-menu-title {
+    font-size: 10px;
+    font-weight: 800;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 4px 8px;
+  }
+
+  .quick-menu-link {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    border-radius: 9px;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #e2e8f0;
+    text-decoration: none;
+    transition: all 0.18s ease;
+  }
+
+  .quick-menu-link:hover {
+    background: rgba(59, 130, 246, 0.16);
+    color: #ffffff;
+    text-decoration: none;
+  }
+
+  .quick-menu-divider {
+    height: 1px;
+    margin: 6px 4px;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .compact-decision {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .compact-select {
+    height: 34px;
+    min-width: 170px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: rgba(2, 6, 23, 0.55);
+    color: #e2e8f0;
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 700;
+    outline: none;
+  }
+
+  .compact-note {
+    font-size: 12px;
+    color: #94a3b8;
+    font-weight: 600;
+  }
 
   /* =========================
      ATTENDANCE CONTROL
@@ -319,6 +438,16 @@
   @media (max-width: 768px) {
     .attendance-bar { justify-content: space-between; }
     .student-table td, .student-table th { padding: 10px 12px; }
+    .header-actions {
+      width: 100%;
+      justify-content: flex-start;
+    }
+    .quick-menu-panel {
+      right: 0;
+      left: auto;
+      min-width: min(300px, calc(100vw - 32px));
+      max-width: calc(100vw - 32px);
+    }
   }
 </style>
 
@@ -326,7 +455,7 @@
   <div id="toast-container" class="fixed top-5 right-5 z-[100] space-y-3 pointer-events-none"></div>
 
   <!-- HEADER AREA -->
-  <div class="glass-panel header-mini">
+  <div class="glass-panel header-mini header-top-layer">
     <div class="title-area">
       <a href="javascript:history.back()" class="back-link" title="Orqaga">
         <i class="fa-solid fa-chevron-left"></i>
@@ -340,18 +469,58 @@
       </div>
     </div>
 
-    <div class="flex gap-2">
-      {% if can_remove_student %}
-      <button id="remove-mode-btn" class="btn-ui btn-danger-outline">
-        <i class="fa-solid fa-user-minus"></i>
-        <span id="remove-mode-label">O'quvchilarni chiqarish</span>
-      </button>
-      {% endif %}
+    <div class="header-actions">
+      <div class="header-actions-main">
+        {% if can_remove_student %}
+        <button id="remove-mode-btn" class="btn-ui btn-danger-outline">
+          <i class="fa-solid fa-user-minus"></i>
+          <span id="remove-mode-label">O'quvchilarni chiqarish</span>
+        </button>
+        {% endif %}
 
-      {% if can_add_student %}
-      <a href="{% url 'education:add_student_to_group' g.id %}" class="btn-ui btn-primary">
-        <i class="fa-solid fa-user-plus"></i> O'quvchi qo'shish
-      </a>
+        {% if can_add_student %}
+        <a href="{% url 'education:add_student_to_group' g.id %}" class="btn-ui btn-primary">
+          <i class="fa-solid fa-user-plus"></i> O'quvchi qo'shish
+        </a>
+        {% endif %}
+      </div>
+
+      {% if request.user.role == 'teacher' or request.user.role == 'director' or request.user.role == 'manager' or request.user.is_superuser %}
+      <div class="quick-menu">
+        <button type="button" id="quick-menu-toggle" class="btn-ui btn-muted" aria-haspopup="true" aria-expanded="false">
+          <i class="fa-solid fa-grid-2"></i> Qo‘shimcha bo‘limlar
+          <i class="fa-solid fa-chevron-down text-[11px]"></i>
+        </button>
+        <div id="quick-menu-panel" class="quick-menu-panel" aria-hidden="true">
+          <div class="quick-menu-title">Imtihon va monitoring</div>
+          <a href="{% url 'education:group_exam_history' g.id %}" class="quick-menu-link">
+            <i class="fa-solid fa-list-check"></i> Imtihon tarixi
+          </a>
+          <a href="{% url 'education:teacher_exam_history' %}?group={{ g.id }}&back_group={{ g.id }}" class="quick-menu-link">
+            <i class="fa-solid fa-clipboard-list"></i> Sessiyalar
+          </a>
+          <a href="{% url 'education:group_internal_ranking' g.id %}?date={{ selected_date }}" class="quick-menu-link">
+            <i class="fa-solid fa-ranking-star"></i> Ichki reyting
+          </a>
+          <a href="{% url 'education:group_completion_recommendations' g.id %}?date={{ selected_date }}" class="quick-menu-link">
+            <i class="fa-solid fa-clipboard-check"></i> Yakuniy tavsiya
+          </a>
+          <a href="{% url 'education:group_certificate_candidates' g.id %}?date={{ selected_date }}" class="quick-menu-link">
+            <i class="fa-solid fa-certificate"></i> Sertifikat tavsiya
+          </a>
+
+          {% if request.user.role == 'director' or request.user.role == 'manager' or request.user.is_superuser %}
+          <div class="quick-menu-divider"></div>
+          <div class="quick-menu-title">Director bo‘limi</div>
+          <a href="{% url 'education:exam_settings' %}" class="quick-menu-link">
+            <i class="fa-solid fa-gear"></i> Imtihon sozlamalari
+          </a>
+          <a href="{% url 'education:failed_students_list' %}" class="quick-menu-link">
+            <i class="fa-solid fa-triangle-exclamation"></i> Past natijalar
+          </a>
+          {% endif %}
+        </div>
+      </div>
       {% endif %}
     </div>
   </div>
@@ -403,6 +572,137 @@
        </div>
     </div>
   </div>
+
+  {% if exam_reminder_state and exam_reminder_state.enabled %}
+  <div class="glass-panel" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px;">
+    {% if exam_reminder_state.due %}
+      <div style="font-weight:800; color:#facc15;">
+        {% if exam_reminder_state.reason == 'pending_results' and exam_reminder_state.existing_session %}
+          {{ exam_reminder_state.target_lesson_number }}-dars imtihoni ochiq.
+          {{ exam_reminder_state.progress.completed_students }}/{{ exam_reminder_state.progress.total_students }} yakunlangan,
+          qolgan: {{ exam_reminder_state.progress.pending_students }} ta.
+        {% elif exam_reminder_state.reason == 'deferred_checkpoint' %}
+          {{ exam_reminder_state.target_lesson_number }}-dars nazorat bosqichi keyinroqqa qoldirilgan.
+          Hozir natijalarni davom ettiring.
+        {% elif exam_reminder_state.is_overdue_checkpoint %}
+          {{ exam_reminder_state.target_lesson_number }}-dars nazorat bosqichi hali yopilmagan.
+          Imtihon natijalarini kiriting.
+        {% else %}
+          Bugun {{ exam_reminder_state.target_lesson_number|default:exam_reminder_state.lesson_number }}-dars nazorat bosqichi.
+          Imtihon o‘tkazilsinmi?
+        {% endif %}
+      </div>
+
+      <form method="post" action="{% url 'education:exam_reminder_action' g.id %}" class="compact-decision">
+        {% csrf_token %}
+        <input type="hidden" name="date" value="{{ selected_date }}">
+        <input type="hidden" name="action" value="yes">
+        <button class="btn-ui btn-primary" type="submit">
+          <i class="fa-solid fa-pen-to-square"></i>
+          {% if exam_reminder_state.existing_session %}Natijalarni davom ettirish{% else %}Natijalarni kiritish{% endif %}
+        </button>
+      </form>
+
+      {% if exam_reminder_state.can_skip %}
+      <form method="post" action="{% url 'education:exam_reminder_action' g.id %}" class="compact-decision">
+        {% csrf_token %}
+        <input type="hidden" name="date" value="{{ selected_date }}">
+        <input type="hidden" name="action" value="no">
+        <button class="btn-ui btn-muted" type="submit"><i class="fa-solid fa-ban"></i> Imtihon olmayman</button>
+      </form>
+      {% endif %}
+    {% else %}
+      <div style="font-weight:700; color:#94a3b8;">
+        Imtihon tizimi yoqilgan. Bugun majburiy nazorat bosqichi bo‘lmasligi mumkin, davomat odatdagidek davom etadi.
+      </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if can_view_internal_ranking %}
+  <div class="glass-panel" id="internal-ranking-panel" data-storage-key="group-internal-ranking-{{ g.id }}">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap;">
+      <div style="padding-right:8px;">
+        <div style="font-weight:800;">Guruh ichki aktivlik reytingi</div>
+        <div style="font-size:12px; color:#94a3b8;">Faqat guruh ichidagi real faoliyat asosida ko‘rsatiladi.</div>
+      </div>
+      <button
+        type="button"
+        id="internal-ranking-toggle"
+        class="btn-ui btn-muted"
+        aria-controls="internal-ranking-body"
+        aria-expanded="false"
+        title="Reyting blokini ochish/yopish"
+        style="min-width:36px; padding:0 12px; justify-content:center; font-size:20px; line-height:1;"
+      >
+        <span id="internal-ranking-toggle-icon">+</span>
+      </button>
+    </div>
+    <div id="internal-ranking-body" style="display:none; margin-top:10px;">
+      <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+        <a href="{% url 'education:group_internal_ranking' g.id %}?date={{ selected_date }}" class="btn-ui btn-primary">
+          Batafsil ko‘rish
+        </a>
+      </div>
+
+      {% if internal_ranking_preview %}
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px;">
+        {% for row in internal_ranking_preview %}
+          <div style="
+            border:1px solid var(--border);
+            border-radius:12px;
+            padding:10px;
+            {% if row.rank_position == 1 %}background:rgba(250, 204, 21, 0.12); border-color:rgba(250, 204, 21, 0.35);{% elif row.rank_position == 2 %}background:rgba(148, 163, 184, 0.18); border-color:rgba(148, 163, 184, 0.45);{% elif row.rank_position == 3 %}background:rgba(251, 146, 60, 0.12); border-color:rgba(251, 146, 60, 0.35);{% endif %}
+          ">
+            <div style="font-weight:800;">
+              {% if row.rank_position == 1 %}🥇{% elif row.rank_position == 2 %}🥈{% elif row.rank_position == 3 %}🥉{% endif %}
+              #{{ row.rank_position }} — {{ row.student.get_full_name }}
+            </div>
+            <div style="font-size:12px; color:#cbd5e1; margin-top:6px;">
+              Jami score: <strong>{{ row.total_internal_score|floatformat:2 }}</strong>
+            </div>
+            <div style="font-size:11px; color:#94a3b8;">
+              Davomat {{ row.attendance_score|floatformat:1 }}% · Imtihon {{ row.exam_score|floatformat:1 }}%
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="border:1px dashed var(--border); border-radius:12px; padding:14px; color:#94a3b8; font-size:13px; font-weight:600;">
+        Hozircha guruh ichida yetarli activity ma’lumoti yo‘q. Davomat yoki imtihonlar kiritilgach eng faol o‘quvchilar chiqadi.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if closure_state and closure_state.should_prompt and not closure_state.is_closed %}
+  <div class="glass-panel" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px;">
+    <div style="font-weight:800; color:#f59e0b;">
+      {{ closure_state.prompt_message|default:"Guruhni yopish jarayonini boshlaysizmi?" }}
+    </div>
+    <form method="post" action="{% url 'education:group_closure_action' g.id %}" class="compact-decision">
+      {% csrf_token %}
+      <input type="hidden" name="date" value="{{ selected_date }}">
+      <select name="action" class="compact-select" aria-label="Guruh yopish qarori">
+        {% if request.user.role == 'director' or request.user.role == 'manager' or request.user.is_superuser %}
+        <option value="yes">Ha, yopish</option>
+        {% endif %}
+        <option value="no">Yo‘q, davom etsin</option>
+        <option value="later">Keyinroq eslat</option>
+      </select>
+      <button class="btn-ui btn-primary" type="submit"><i class="fa-solid fa-check"></i> Saqlash</button>
+    </form>
+  </div>
+  {% elif closure_state and closure_state.is_closed %}
+  <div class="glass-panel" style="font-weight:700; color:#86efac;">
+    Guruh yopish jarayoni holati: YOPILGAN.
+    Tarixiy davomat va to‘lov yozuvlari saqlangan.
+    <a href="{% url 'education:group_certificate_candidates' g.id %}" class="btn-ui btn-primary" style="margin-left:8px;">
+      Sertifikatlar bo‘limiga o‘tish
+    </a>
+  </div>
+  {% endif %}
 
   <!-- STUDENT TABLE -->
   <div class="table-container">
@@ -586,11 +886,79 @@
     const removeModeBtn = document.getElementById('remove-mode-btn');
     const removeModeLabel = document.getElementById('remove-mode-label');
     const removeSelectedBtn = document.getElementById('remove-selected-btn');
+    const quickMenuToggle = document.getElementById("quick-menu-toggle");
+    const quickMenuPanel = document.getElementById("quick-menu-panel");
 
     const pointsAllBtn = document.getElementById('points-all-btn');
 
     const attendAllPresentBtn = document.getElementById('attend-all-present-btn');
     const attendAllForcedBtn = document.getElementById('attend-all-forced-btn');
+
+    function closeQuickMenu() {
+      if (!quickMenuToggle || !quickMenuPanel) return;
+      quickMenuPanel.classList.remove("open");
+      quickMenuToggle.setAttribute("aria-expanded", "false");
+      quickMenuPanel.setAttribute("aria-hidden", "true");
+    }
+
+    if (quickMenuToggle && quickMenuPanel) {
+      quickMenuToggle.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const isOpen = quickMenuPanel.classList.contains("open");
+        closeQuickMenu();
+        if (!isOpen) {
+          quickMenuPanel.classList.add("open");
+          quickMenuToggle.setAttribute("aria-expanded", "true");
+          quickMenuPanel.setAttribute("aria-hidden", "false");
+        }
+      });
+
+      document.addEventListener("click", (e) => {
+        if (!quickMenuPanel.classList.contains("open")) return;
+        const insidePanel = quickMenuPanel.contains(e.target);
+        const insideButton = quickMenuToggle.contains(e.target);
+        if (!insidePanel && !insideButton) closeQuickMenu();
+      });
+
+      quickMenuPanel.addEventListener("click", (e) => {
+        const link = e.target.closest("a");
+        if (link) closeQuickMenu();
+      });
+    }
+
+    const internalRankingPanel = document.getElementById("internal-ranking-panel");
+    const internalRankingToggle = document.getElementById("internal-ranking-toggle");
+    const internalRankingBody = document.getElementById("internal-ranking-body");
+    const internalRankingIcon = document.getElementById("internal-ranking-toggle-icon");
+
+    if (internalRankingPanel && internalRankingToggle && internalRankingBody && internalRankingIcon) {
+      const storageKey =
+        internalRankingPanel.dataset.storageKey ||
+        `group-internal-ranking-${urls.groupId || "default"}`;
+
+      const applyRankingExpandedState = (expanded) => {
+        internalRankingBody.style.display = expanded ? "" : "none";
+        internalRankingToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+        internalRankingIcon.textContent = expanded ? "−" : "+";
+      };
+
+      let expanded = false;
+      try {
+        const saved = window.localStorage.getItem(storageKey);
+        if (saved === "open") expanded = true;
+        if (saved === "closed") expanded = false;
+      } catch (e) {}
+      applyRankingExpandedState(expanded);
+
+      internalRankingToggle.addEventListener("click", () => {
+        expanded = !expanded;
+        applyRankingExpandedState(expanded);
+        try {
+          window.localStorage.setItem(storageKey, expanded ? "open" : "closed");
+        } catch (e) {}
+      });
+    }
 
     function customConfirm(message, title = "Tasdiqlash", isDanger = true) {
       return new Promise((resolve) => {
@@ -862,8 +1230,11 @@
 
     // ESC → close
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && !absentPopup.classList.contains("opacity-0")) {
-        closeAbsentPopup();
+      if (e.key === "Escape") {
+        if (!absentPopup.classList.contains("opacity-0")) {
+          closeAbsentPopup();
+        }
+        closeQuickMenu();
       }
     });
 
@@ -1213,53 +1584,54 @@
 
 
     let removeMode = false;
+    if (removeModeBtn && removeSelectedBtn) {
+      removeModeBtn.addEventListener("click", () => {
+        removeMode = !removeMode;
 
-    removeModeBtn.addEventListener("click", () => {
-      removeMode = !removeMode;
+        removeModeBtn.classList.toggle("rm-active", removeMode);
+        document.querySelectorAll(".remove-col").forEach(c => c.classList.toggle("d-none", !removeMode));
+        removeSelectedBtn.classList.toggle("d-none", !removeMode);
 
-      removeModeBtn.classList.toggle("rm-active", removeMode);
-      document.querySelectorAll(".remove-col").forEach(c => c.classList.toggle("d-none", !removeMode));
-      removeSelectedBtn.classList.toggle("d-none", !removeMode);
-
-      if (removeModeLabel) {
-        removeModeLabel.textContent = removeMode ? "O'quvchilarni chiqarish rejimi" : "O'quvchilarni chiqarish";
-      }
-    });
-
-    removeSelectedBtn.addEventListener("click", async () => {
-      const selected = Array.from(document.querySelectorAll(".remove-check:checked")).map(x => x.value);
-      if (!selected.length) { showToast("Hech kim tanlanmadi!", "error"); return; }
-
-      const confirmed = await customConfirm(
-        "Tanlangan o'quvchilarni guruhdan chiqarishni tasdiqlaysizmi?",
-        "O'quvchilarni chiqarish",
-        true
-      );
-      if (!confirmed) return;
-
-      const params = new URLSearchParams();
-      selected.forEach(id => params.append("enrollment_ids", id));
-
-      try {
-        const res = await fetch(urls.remove, {
-          method: "POST",
-          headers: {
-            "X-CSRFToken": csrfToken,
-            "Content-Type": "application/x-www-form-urlencoded"
-          },
-          body: params.toString()
-        });
-        const data = await res.json();
-        if (data.ok) {
-          showToast("Tanlanganlar chiqarildi", "success");
-          location.reload();
-        } else {
-          showToast(data.msg || "Xato", "error");
+        if (removeModeLabel) {
+          removeModeLabel.textContent = removeMode ? "O'quvchilarni chiqarish rejimi" : "O'quvchilarni chiqarish";
         }
-      } catch (err) {
-        showToast("Server bilan aloqa yo'q", "error");
-      }
-    });
+      });
+
+      removeSelectedBtn.addEventListener("click", async () => {
+        const selected = Array.from(document.querySelectorAll(".remove-check:checked")).map(x => x.value);
+        if (!selected.length) { showToast("Hech kim tanlanmadi!", "error"); return; }
+
+        const confirmed = await customConfirm(
+          "Tanlangan o'quvchilarni guruhdan chiqarishni tasdiqlaysizmi?",
+          "O'quvchilarni chiqarish",
+          true
+        );
+        if (!confirmed) return;
+
+        const params = new URLSearchParams();
+        selected.forEach(id => params.append("enrollment_ids", id));
+
+        try {
+          const res = await fetch(urls.remove, {
+            method: "POST",
+            headers: {
+              "X-CSRFToken": csrfToken,
+              "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: params.toString()
+          });
+          const data = await res.json();
+          if (data.ok) {
+            showToast("Tanlanganlar chiqarildi", "success");
+            location.reload();
+          } else {
+            showToast(data.msg || "Xato", "error");
+          }
+        } catch (err) {
+          showToast("Server bilan aloqa yo'q", "error");
+        }
+      });
+    }
 
     function updateButtonsByRule() {
       const opt = ruleSelect.options[ruleSelect.selectedIndex];

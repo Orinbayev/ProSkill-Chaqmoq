@@ -603,20 +603,99 @@
             </div>
             {% endif %}
 
-            {# ✅ Izoh (FULL WIDTH) #}
-            {% if form.izoh %}
-            <div class="fitem full">
-              <label for="{{ form.izoh.id_for_label }}">Izoh</label>
+            {# ✅ Kurs narxi #}
+            {% if form.kurs_narxi %}
+            <div class="fitem">
+              <label for="{{ form.kurs_narxi.id_for_label }}">Kurs narxi (so‘m)</label>
               <div class="field">
-                <span class="ic" aria-hidden="true" style="top:22px; transform:none;">
+                <span class="ic" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none">
-                    <path d="M4 5h16v14H7l-3 3V5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                      stroke-linejoin="round" />
+                    <path d="M12 2v20M17 6H9a3 3 0 0 0 0 6h6a3 3 0 1 1 0 6H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                   </svg>
                 </span>
-                {{ form.izoh }}
+                {{ form.kurs_narxi }}
               </div>
-              {% for e in form.izoh.errors %}<div class="err">{{ e }}</div>{% endfor %}
+              {% for e in form.kurs_narxi.errors %}<div class="err">{{ e }}</div>{% endfor %}
+            </div>
+            {% endif %}
+
+            {# ✅ Oy dars soni #}
+            {% if form.oy_dars_soni %}
+            <div class="fitem">
+              <label for="{{ form.oy_dars_soni.id_for_label }}">Bir oyda darslar soni</label>
+              <div class="field">
+                <span class="ic" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                </span>
+                {{ form.oy_dars_soni }}
+              </div>
+              {% for e in form.oy_dars_soni.errors %}<div class="err">{{ e }}</div>{% endfor %}
+            </div>
+            {% endif %}
+
+            {# ✅ Boshlanish sanasi #}
+            {% if form.course_start_date %}
+            <div class="fitem">
+              <label for="{{ form.course_start_date.id_for_label }}">Boshlanish sanasi</label>
+              <div class="field">
+                <span class="ic" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" />
+                  </svg>
+                </span>
+                {{ form.course_start_date }}
+              </div>
+              {% for e in form.course_start_date.errors %}<div class="err">{{ e }}</div>{% endfor %}
+            </div>
+            {% endif %}
+
+            {# ✅ Davomiylik #}
+            {% if form.duration_months %}
+            <div class="fitem">
+              <label for="{{ form.duration_months.id_for_label }}">Davomiyligi (oy)</label>
+              <div class="field">
+                <span class="ic" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M12 6v6l4 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke="currentColor" stroke-width="2" />
+                  </svg>
+                </span>
+                {{ form.duration_months }}
+              </div>
+              {% for e in form.duration_months.errors %}<div class="err">{{ e }}</div>{% endfor %}
+            </div>
+            {% endif %}
+
+            {# ✅ Haftalik darslar #}
+            {% if form.lessons_per_week %}
+            <div class="fitem">
+              <label for="{{ form.lessons_per_week.id_for_label }}">Haftasiga darslar soni</label>
+              <div class="field">
+                <span class="ic" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M4 5h16M4 12h16M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                </span>
+                {{ form.lessons_per_week }}
+              </div>
+              {% for e in form.lessons_per_week.errors %}<div class="err">{{ e }}</div>{% endfor %}
+            </div>
+            {% endif %}
+
+            {# ✅ Taxminiy tugash sanasi #}
+            {% if form.estimated_end_date %}
+            <div class="fitem">
+              <label for="{{ form.estimated_end_date.id_for_label }}">Taxminiy tugash sanasi</label>
+              <div class="field">
+                <span class="ic" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" />
+                  </svg>
+                </span>
+                {{ form.estimated_end_date }}
+              </div>
+              {% for e in form.estimated_end_date.errors %}<div class="err">{{ e }}</div>{% endfor %}
             </div>
             {% endif %}
 
@@ -689,8 +768,63 @@
     const nom = document.getElementById("id_nom");
     if (nom) nom.placeholder = "Masalan: Frontend A1, IELTS 7+";
 
-    const izoh = document.getElementById("id_izoh");
-    if (izoh) izoh.placeholder = "Guruh haqida qo‘shimcha ma’lumot...";
+    const startInput = document.getElementById("id_course_start_date");
+    const durationInput = document.getElementById("id_duration_months");
+    const lessonsInput = document.getElementById("id_lessons_per_week");
+    const estimatedEndInput = document.getElementById("id_estimated_end_date");
+
+    const formatDate = (dateObj) => {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const d = String(dateObj.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    };
+
+    const addMonths = (dateObj, months) => {
+      const monthIndex = dateObj.getMonth() + months;
+      const year = dateObj.getFullYear() + Math.floor(monthIndex / 12);
+      const month = ((monthIndex % 12) + 12) % 12;
+      const daysInTargetMonth = new Date(year, month + 1, 0).getDate();
+      const day = Math.min(dateObj.getDate(), daysInTargetMonth);
+      return new Date(year, month, day);
+    };
+
+    const recalcEstimatedEndDate = () => {
+      if (!startInput || !durationInput || !estimatedEndInput) return;
+      if (!startInput.value) return;
+
+      const months = parseInt(durationInput.value || "0", 10);
+      if (!Number.isFinite(months) || months <= 0) return;
+
+      const [year, month, day] = startInput.value.split("-").map(Number);
+      if (!year || !month || !day) return;
+
+      let endDate = addMonths(new Date(year, month - 1, day), months);
+
+      // Backend formula bilan bir xil minimal buffer.
+      const lessonsPerWeek = parseInt((lessonsInput && lessonsInput.value) || "3", 10);
+      if (Number.isFinite(lessonsPerWeek)) {
+        if (lessonsPerWeek < 3) {
+          endDate.setDate(endDate.getDate() + (3 - lessonsPerWeek) * Math.max(1, months));
+        } else if (lessonsPerWeek > 3) {
+          endDate.setDate(endDate.getDate() - Math.min(months, Math.floor(((lessonsPerWeek - 3) * months) / 2)));
+        }
+      }
+
+      estimatedEndInput.value = formatDate(endDate);
+    };
+
+    if (startInput && !startInput.value) {
+      const today = new Date();
+      startInput.value = formatDate(today);
+    }
+
+    if (startInput) startInput.addEventListener("change", recalcEstimatedEndDate);
+    if (durationInput) durationInput.addEventListener("input", recalcEstimatedEndDate);
+    if (durationInput) durationInput.addEventListener("change", recalcEstimatedEndDate);
+    if (lessonsInput) lessonsInput.addEventListener("input", recalcEstimatedEndDate);
+    if (lessonsInput) lessonsInput.addEventListener("change", recalcEstimatedEndDate);
+    recalcEstimatedEndDate();
 
     const form = document.querySelector("form");
     const saveBtn = document.querySelector(".btn-save");

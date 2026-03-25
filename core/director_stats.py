@@ -59,7 +59,7 @@ def _build_director_stats(center):
     students_qs = User.objects.filter(center=center, role="student", is_archived=False)
     teachers_qs = User.objects.filter(center=center, role="teacher")
     groups_qs = Group.objects.filter(center=center)
-    leads_qs = Lead.objects.filter(center=center)
+    leads_qs = Lead.objects.filter(center=center, is_archived=False)
     products_qs = Product.objects.filter(center=center)
     payments_qs = Payment.objects.filter(center=center)
     expenses_qs = Expense.objects.filter(center=center)

@@ -187,6 +187,46 @@
               {{ form.status.errors }}
             </div>
           </div>
+          <div class="col-md-6">
+            <div class="premium-input-group">
+              {{ form.parent_phone.label_tag }}
+              <div class="input-wrapper">
+                <i class="fa-solid fa-phone-volume icon"></i>
+                {{ form.parent_phone }}
+              </div>
+              {{ form.parent_phone.errors }}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="premium-input-group">
+              {{ form.assigned_manager.label_tag }}
+              <div class="input-wrapper">
+                <i class="fa-solid fa-user-tie icon"></i>
+                {{ form.assigned_manager }}
+              </div>
+              {{ form.assigned_manager.errors }}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="premium-input-group">
+              {{ form.next_follow_up_date.label_tag }}
+              <div class="input-wrapper">
+                <i class="fa-solid fa-calendar-check icon"></i>
+                {{ form.next_follow_up_date }}
+              </div>
+              {{ form.next_follow_up_date.errors }}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="premium-input-group">
+              {{ form.lost_reason.label_tag }}
+              <div class="input-wrapper">
+                <i class="fa-solid fa-circle-exclamation icon"></i>
+                {{ form.lost_reason }}
+              </div>
+              {{ form.lost_reason.errors }}
+            </div>
+          </div>
           <div class="col-12">
             <div class="premium-input-group">
               {{ form.comment.label_tag }}

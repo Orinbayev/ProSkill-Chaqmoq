@@ -310,10 +310,10 @@ class DirectorDashboardAPIView(View):
         }
 
     def get_marketing_stats(self, center, start, end):
-        leads = Lead.objects.filter(center=center, qoshilgan_sana__date__range=(start, end))
+        leads = Lead.objects.filter(center=center, is_archived=False, qoshilgan_sana__date__range=(start, end))
         by_source = leads.values('manba__nom').annotate(
             count=Count('id'),
-            converted=Count('converted_user', filter=Q(converted_user__isnull=False))
+            converted=Count('id', filter=Q(converted_to_student=True) | Q(converted_user__isnull=False))
         )
         
         out = []
@@ -343,7 +343,7 @@ class DirectorDashboardAPIView(View):
     def get_plans_stats(self, center, start, end):
         total_income = Payment.objects.filter(center=center, paid_date__range=(start, end)).aggregate(s=Sum('summa'))['s'] or 0
         student_count = User.objects.filter(center=center, role='student', is_archived=False).count()
-        leads_count = Lead.objects.filter(center=center, qoshilgan_sana__date__range=(start, end)).count()
+        leads_count = Lead.objects.filter(center=center, is_archived=False, qoshilgan_sana__date__range=(start, end)).count()
 
         targets = {'income': 50000000, 'students': 300, 'leads': 150}
         

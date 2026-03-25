@@ -372,7 +372,8 @@ def teacher_detail(request, user_id):
 @login_required
 def student_detail(request, user_id):
     student = get_object_or_404(User, id=user_id, role='student')
-    return render(request, "accounts/student_detail.html", {'student': student})
+    # Eski student_detail sahifasi o'rniga yagona premium student profiliga yo'naltiramiz.
+    return redirect("core:user_view", pk=student.id)
 
 @login_required
 def logout_view(request):

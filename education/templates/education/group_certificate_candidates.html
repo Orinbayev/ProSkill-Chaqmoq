@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block content %}
+{% include "education/partials/phase_theme.html" %}
+<div class="ui-shell">
+  <div class="ui-panel ui-header">
+    <div>
+      <h3 class="ui-title">Sertifikatga mos nomzodlar</h3>
+      <div class="ui-sub">{{ group.nom }} · {{ selected_date }}</div>
+    </div>
+    <div class="ui-actions">
+      <a href="{% url 'education:group_detail' group.id %}?date={{ selected_date|date:'Y-m-d' }}" class="ui-btn ui-btn-secondary">Guruhga qaytish</a>
+      <a href="{% url 'education:certificate_templates' %}" class="ui-btn ui-btn-primary">Shablonlar boshqaruvi</a>
+    </div>
+  </div>
+
+  <div class="ui-note ui-note-muted">
+    Tavsiya qoidalari:
+    Davomat ≥ {{ thresholds.attendance_threshold|floatformat:1 }}%,
+    O‘tish foizi ≥ {{ thresholds.pass_rate_threshold|floatformat:1 }}%,
+    Imtihondan o‘tish foizi ≥ {{ thresholds.passing_percent|floatformat:1 }}%.
+  </div>
+
+  <div class="ui-panel ui-section">
+    <div class="ui-table-wrap">
+      <table class="ui-table">
+        <thead>
+          <tr>
+            <th>O‘quvchi</th>
+            <th>Holat</th>
+            <th>Sabab</th>
+            <th>Imtihon</th>
+            <th>O‘rtacha %</th>
+            <th>O‘tish foizi</th>
+            <th>Davomat</th>
+            <th>Sertifikat</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>{{ row.student.get_full_name }}</td>
+            <td>
+              {% if row.completion_recommendation == 'eligible' %}
+                <span class="ui-badge ui-badge-success">Mos</span>
+              {% elif row.completion_recommendation == 'needs_review' %}
+                <span class="ui-badge ui-badge-warning">Ko‘rib chiqish kerak</span>
+              {% else %}
+                <span class="ui-badge ui-badge-danger">Mos emas</span>
+              {% endif %}
+            </td>
+            <td>{{ row.recommendation_reason }}</td>
+            <td>{{ row.exam_count }}</td>
+            <td>{% if row.average_percent is not None %}{{ row.average_percent|floatformat:2 }}%{% else %}—{% endif %}</td>
+            <td>{{ row.pass_rate_percent|floatformat:2 }}%</td>
+            <td>{{ row.attendance_score|floatformat:2 }}%</td>
+            <td>
+              {% if row.certificate %}
+                <a href="{% url 'education:certificate_detail' row.certificate.id %}" class="ui-btn ui-btn-primary">{{ row.certificate.certificate_number }}</a>
+              {% elif can_issue %}
+                <form method="post" action="{% url 'education:issue_certificate_action' group.id row.student.id %}" class="ui-inline-form">
+                  {% csrf_token %}
+                  <select name="certificate_type" style="width:140px;">
+                    <option value="certificate">Sertifikat</option>
+                    <option value="diploma">Diplom</option>
+                  </select>
+                  <input type="text" name="note" placeholder="Izoh" style="width:160px;">
+                  <button type="submit" class="ui-btn ui-btn-warning">Berish</button>
+                </form>
+              {% else %}
+                <span class="ui-muted">Ruxsat yo‘q</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8" class="ui-empty">Nomzodlar topilmadi</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

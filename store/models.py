@@ -276,11 +276,24 @@ class Manba(models.Model):
 
 
 class LeadStatus(models.Model):
+    class Code(models.TextChoices):
+        NEW = "new", "Yangi"
+        CONTACTED = "contacted", "Bog'lanildi"
+        NO_ANSWER = "no_answer", "Javob bermadi"
+        TRIAL_SCHEDULED = "trial_scheduled", "Sinov dars belgilandi"
+        TRIAL_ATTENDED = "trial_attended", "Sinov darsda qatnashdi"
+        REGISTERED = "registered", "Ro'yxatdan o'tdi"
+        LOST = "lost", "Yo'qotildi"
+
     nom = models.CharField(max_length=100)
+    code = models.CharField(max_length=32, choices=Code.choices, blank=True, default="", db_index=True)
+    order = models.PositiveSmallIntegerField(default=100)
+    is_active = models.BooleanField(default=True)
     center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True)
     
     class Meta:
         unique_together = ('nom', 'center')
+        ordering = ("order", "nom")
 
     def __str__(self):
         return self.nom
@@ -299,13 +312,32 @@ class Lead(models.Model):
     jshr = models.CharField(max_length=14, blank=True, null=True, verbose_name="JSHR")
     telefon1 = models.CharField(max_length=20)
     telefon2 = models.CharField(max_length=20, blank=True)
+    parent_phone = models.CharField(max_length=20, blank=True, default="")
     yosh = models.PositiveIntegerField()
     address = models.CharField(max_length=255, blank=True, verbose_name="Yashash manzili")
     manba = models.ForeignKey(Manba, on_delete=models.SET_NULL, null=True, blank=True)
     yonalish = models.ForeignKey(Yonalish, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.ForeignKey('LeadStatus', on_delete=models.SET_NULL, null=True, blank=True)
+    assigned_manager = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_leads",
+        limit_choices_to={"role": "manager"},
+    )
     comment = models.TextField(blank=True, null=True, verbose_name="Izoh (comment)")
+    lost_reason = models.CharField(max_length=255, blank=True, default="")
+    next_follow_up_date = models.DateField(null=True, blank=True, db_index=True)
     qoshilgan_sana = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_leads",
+    )
 
     # ✅ NEW: lead → student conversion info
     converted_user = models.ForeignKey(
@@ -321,6 +353,194 @@ class Lead(models.Model):
         related_name="converted_leads_by",
         verbose_name="Kim o‘tkazdi"
     )
+    converted_to_student = models.BooleanField(default=False, db_index=True)
+
+    is_archived = models.BooleanField(default=False, db_index=True)
+    archived_at = models.DateTimeField(null=True, blank=True)
+    archived_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="archived_leads",
+    )
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["center", "qoshilgan_sana"]),
+            models.Index(fields=["center", "status"]),
+            models.Index(fields=["center", "assigned_manager"]),
+            models.Index(fields=["center", "manba"]),
+            models.Index(fields=["center", "is_archived"]),
+            models.Index(fields=["center", "converted_to_student"]),
+            models.Index(fields=["next_follow_up_date"]),
+        ]
 
     def __str__(self):
         return f"{self.ism} {self.familya or ''}".strip()
+
+    @property
+    def full_name(self) -> str:
+        return " ".join(part for part in [self.ism, self.familya, self.otchestvo] if part).strip()
+
+    @property
+    def note(self) -> str:
+        return self.comment or ""
+
+    @property
+    def source(self):
+        return self.manba
+
+    @property
+    def interested_course(self):
+        return self.yonalish
+
+    def mark_archived(self, by_user=None):
+        self.is_archived = True
+        self.archived_at = timezone.now()
+        if by_user:
+            self.archived_by = by_user
+        self.save(update_fields=["is_archived", "archived_at", "archived_by", "updated_at"])
+
+    def mark_converted(self, converted_user=None, converted_by=None):
+        self.converted_to_student = True
+        if converted_user:
+            self.converted_user = converted_user
+        if converted_by:
+            self.converted_by = converted_by
+        if not self.converted_at:
+            self.converted_at = timezone.now()
+        self.save(update_fields=["converted_to_student", "converted_user", "converted_by", "converted_at", "updated_at"])
+
+
+class LeadActivity(models.Model):
+    class Action(models.TextChoices):
+        CREATED = "created", "Yaratildi"
+        UPDATED = "updated", "Yangilandi"
+        STATUS_CHANGED = "status_changed", "Status o'zgardi"
+        FOLLOW_UP_SET = "follow_up_set", "Qayta aloqa belgilandi"
+        CONVERTED = "converted", "Studentga o'tkazildi"
+        ARCHIVED = "archived", "Arxivlandi"
+        TRIAL_SCHEDULED = "trial_scheduled", "Sinov dars belgilandi"
+        TRIAL_RESULT_CHANGED = "trial_result_changed", "Sinov dars natijasi o'zgardi"
+
+    center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, null=True, blank=True)
+    lead = models.ForeignKey(Lead, on_delete=models.CASCADE, related_name="activities")
+    action = models.CharField(max_length=40, choices=Action.choices)
+    actor = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="lead_activities",
+    )
+    from_value = models.CharField(max_length=255, blank=True, default="")
+    to_value = models.CharField(max_length=255, blank=True, default="")
+    note = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["center", "action", "created_at"]),
+            models.Index(fields=["lead", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"Lead#{self.lead_id} {self.action}"
+
+
+class TrialLesson(models.Model):
+    class ResultStatus(models.TextChoices):
+        PENDING = "pending", "Kutilmoqda"
+        ATTENDED = "attended", "Qatnashdi"
+        ABSENT = "absent", "Kelmagan"
+        CONVERTED = "converted", "Ro'yxatdan o'tdi"
+        NOT_INTERESTED = "not_interested", "Qiziqmadi"
+        FOLLOW_UP_NEEDED = "follow_up_needed", "Qayta aloqa kerak"
+
+    center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, null=True, blank=True)
+    lead = models.ForeignKey(Lead, on_delete=models.CASCADE, related_name="trial_lessons")
+    group = models.ForeignKey("education.Group", on_delete=models.SET_NULL, null=True, blank=True, related_name="trial_lessons")
+    teacher = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="trial_lessons",
+        limit_choices_to={"role": "teacher"},
+    )
+    scheduled_at = models.DateTimeField()
+    attended = models.BooleanField(null=True, blank=True)
+    result_status = models.CharField(max_length=24, choices=ResultStatus.choices, default=ResultStatus.PENDING, db_index=True)
+    notes = models.TextField(blank=True, default="")
+    registered_after_trial = models.BooleanField(default=False, db_index=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_trial_lessons",
+    )
+    updated_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="updated_trial_lessons",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-scheduled_at", "-id")
+        indexes = [
+            models.Index(fields=["center", "scheduled_at"]),
+            models.Index(fields=["center", "result_status"]),
+            models.Index(fields=["teacher", "scheduled_at"]),
+            models.Index(fields=["lead", "scheduled_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.lead.full_name} sinov dars @ {self.scheduled_at:%Y-%m-%d %H:%M}"
+
+    def save(self, *args, **kwargs):
+        if not self.center_id:
+            if self.lead_id and self.lead.center_id:
+                self.center_id = self.lead.center_id
+            elif self.group_id and self.group.center_id:
+                self.center_id = self.group.center_id
+        super().save(*args, **kwargs)
+
+
+class TrialLessonActivity(models.Model):
+    class Action(models.TextChoices):
+        CREATED = "created", "Yaratildi"
+        UPDATED = "updated", "Yangilandi"
+        RESULT_CHANGED = "result_changed", "Natija o'zgardi"
+        CONVERTED = "converted", "Studentga o'tdi"
+
+    center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, null=True, blank=True)
+    trial_lesson = models.ForeignKey(TrialLesson, on_delete=models.CASCADE, related_name="activities")
+    action = models.CharField(max_length=32, choices=Action.choices)
+    actor = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="trial_lesson_activities",
+    )
+    from_value = models.CharField(max_length=255, blank=True, default="")
+    to_value = models.CharField(max_length=255, blank=True, default="")
+    note = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["center", "action", "created_at"]),
+            models.Index(fields=["trial_lesson", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"SinovDars#{self.trial_lesson_id} {self.action}"

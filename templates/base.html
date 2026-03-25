@@ -147,6 +147,24 @@
       width: 100%;
     }
 
+    .demo-mode-banner {
+      margin-bottom: 14px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      color: #fef3c7;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .demo-mode-banner i {
+      color: #f59e0b;
+    }
+
     /* ✅ Desktop: sidebar joyi faqat login bo‘lganda */
     @media (min-width: 992px) {
       body.layout-auth .app-shell {
@@ -459,6 +477,12 @@
       <main class="main-content" role="main">
 
         <div class="content-shell">
+          {% if request.user.is_authenticated and demo_mode_active %}
+          <div class="demo-mode-banner" role="status" aria-live="polite">
+            <i class="fa-solid fa-flask"></i>
+            Demo Mode: test data faol.
+          </div>
+          {% endif %}
 
           {% if messages %}
           <div class="row mb-4">

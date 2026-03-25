@@ -329,6 +329,10 @@
                         style="margin-top: 20px; width: 100%; justify-content: center; background: rgba(245, 158, 11, 0.1); color: var(--primary); border: 1px solid rgba(245, 158, 11, 0.2); text-decoration: none; padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 8px; font-weight: 700; transition: 0.2s;">
                         <i class="fa-solid fa-chart-line"></i> Reyting & Davomat
                     </a>
+                    <a href="{% url 'education:student_exam_report' child.id %}"
+                        style="margin-top: 10px; width: 100%; justify-content: center; background: rgba(56, 189, 248, 0.1); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.25); text-decoration: none; padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 8px; font-weight: 700; transition: 0.2s;">
+                        <i class="fa-solid fa-file-lines"></i> Imtihon natijalari
+                    </a>
                 </div>
                 {% empty %}
                 <div class="child-card"

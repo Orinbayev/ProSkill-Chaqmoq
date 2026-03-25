@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block content %}
+{% include "education/partials/phase_theme.html" %}
+<div class="ui-shell">
+  <div class="ui-panel ui-header">
+    <div>
+      <h3 class="ui-title">Guruh imtihon tarixi</h3>
+      <div class="ui-sub">Guruh: <strong>{{ group.nom }}</strong></div>
+    </div>
+    <div class="ui-actions">
+      <a href="{% url 'education:group_detail' group.id %}" class="ui-btn ui-btn-secondary">Guruhga qaytish</a>
+      <a href="{% url 'education:teacher_exam_history' %}?group={{ group.id }}&back_group={{ group.id }}" class="ui-btn ui-btn-primary">O‘qituvchi tarixi</a>
+    </div>
+  </div>
+
+  <div class="ui-panel ui-section">
+    <form method="get" class="ui-grid">
+      <div class="ui-col-3">
+        <label class="ui-label">Holat</label>
+        <select name="status">
+          <option value="">Barchasi</option>
+          <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Qoralama</option>
+          <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Yakunlangan</option>
+          <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Bekor qilingan</option>
+        </select>
+      </div>
+      <div class="ui-col-2">
+        <label class="ui-label">&nbsp;</label>
+        <button class="ui-btn ui-btn-warning w-100" type="submit">Saralash</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="ui-panel ui-section">
+    <div class="ui-table-wrap">
+      <table class="ui-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Sana</th>
+            <th>Dars #</th>
+            <th>O‘qituvchi</th>
+            <th>Qaror</th>
+            <th>Holat</th>
+            <th>Amal</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for s in sessions %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ s.exam_date }}</td>
+            <td>{{ s.lesson_number_reference }}</td>
+            <td>{% if s.teacher %}{{ s.teacher.get_full_name }}{% else %}—{% endif %}</td>
+            <td>{{ s.get_teacher_decision_display }}</td>
+            <td>
+              {% if s.status == "completed" %}
+                <span class="ui-badge ui-badge-success">Yakunlangan</span>
+              {% elif s.status == "cancelled" %}
+                <span class="ui-badge ui-badge-danger">Bekor qilingan</span>
+              {% else %}
+                <span class="ui-badge ui-badge-warning">Qoralama</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="ui-actions">
+                <a class="ui-btn ui-btn-secondary" href="{% url 'education:exam_session_detail' s.id %}">Batafsil</a>
+                <a class="ui-btn ui-btn-primary" href="{% url 'education:exam_session_entry' s.id %}">Tahrirlash</a>
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" class="ui-empty">Imtihon sessiyasi topilmadi</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

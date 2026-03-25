@@ -37,7 +37,7 @@ def superadmin_dashboard(request):
     # ── 2. Centers queryset (only needed fields) ────────────────
     centers = (
         Center.objects
-        .filter(is_deleted=False)
+        .filter(is_deleted=False, is_demo=False)
         .only(
             'id', 'name', 'address', 'phone', 'plan', 'status',
             'monthly_price', 'expires_at', 'capacity_limit', 'created_at',
@@ -98,7 +98,7 @@ def superadmin_dashboard(request):
             centers = centers.filter(expires_at__gt=now)
 
     # ── 4. KPI aggregates — ONE query instead of 6 ─────────────
-    kpis = Center.objects.filter(is_deleted=False).aggregate(
+    kpis = Center.objects.filter(is_deleted=False, is_demo=False).aggregate(
         total_centers=Count('id'),
         active_centers_count=Count('id', filter=Q(status='ACTIVE')),
         blocked_centers_count=Count('id', filter=Q(status='BLOCKED')),
@@ -115,6 +115,7 @@ def superadmin_dashboard(request):
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     mrr = SubscriptionOrder.objects.filter(
         status='PAID',
+        center__is_demo=False,
         paid_at__gte=month_start,
         paid_at__lte=now,
     ).aggregate(total=Sum('final_price'))['total'] or 0
@@ -127,7 +128,7 @@ def superadmin_dashboard(request):
         centers = centers.filter(student_count__gt=F('capacity_limit'))
 
     total_students_global = User.objects.filter(
-        role='student', is_archived=False
+        role='student', is_archived=False, center__is_demo=False
     ).count()
 
     # ── Payment History (paginated paid orders) ───────────────
@@ -142,7 +143,7 @@ def superadmin_dashboard(request):
 
     payment_history_qs = (
         SubscriptionOrder.objects
-        .filter(status=SubscriptionOrder.Status.PAID)
+        .filter(status=SubscriptionOrder.Status.PAID, center__is_demo=False)
         .select_related('center', 'plan')
         .order_by('-paid_at', '-id')
     )

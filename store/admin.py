@@ -1,5 +1,19 @@
 from django.contrib import admin
-from .models import Product, ProductImage, PurchaseRequest, Sale, Comment, Lead, Yonalish, Manba, LeadStatus, Expense
+from .models import (
+    Comment,
+    Expense,
+    Lead,
+    LeadActivity,
+    LeadStatus,
+    Manba,
+    Product,
+    ProductImage,
+    PurchaseRequest,
+    Sale,
+    TrialLesson,
+    TrialLessonActivity,
+    Yonalish,
+)
 
 
 @admin.register(Product)
@@ -33,10 +47,71 @@ class CommentAdmin(admin.ModelAdmin):
     list_display = ('user', 'product', 'text', 'created_at')
 
 
-admin.site.register(Lead)
-admin.site.register(Yonalish)
-admin.site.register(Manba)
-admin.site.register(LeadStatus)
+@admin.register(Lead)
+class LeadAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "ism",
+        "familya",
+        "telefon1",
+        "status",
+        "assigned_manager",
+        "next_follow_up_date",
+        "converted_to_student",
+        "is_archived",
+        "qoshilgan_sana",
+    )
+    list_filter = ("status", "manba", "assigned_manager", "converted_to_student", "is_archived", "qoshilgan_sana")
+    search_fields = ("ism", "familya", "telefon1", "parent_phone", "comment", "lost_reason")
+    readonly_fields = ("qoshilgan_sana", "updated_at", "converted_at")
+    raw_id_fields = ("assigned_manager", "manba", "yonalish", "status", "converted_user")
+
+
+@admin.register(TrialLesson)
+class TrialLessonAdmin(admin.ModelAdmin):
+    list_display = ("id", "lead", "group", "teacher", "scheduled_at", "result_status", "registered_after_trial")
+    list_filter = ("result_status", "teacher", "scheduled_at")
+    search_fields = ("lead__ism", "lead__familya", "group__nom", "teacher__ism", "teacher__familya")
+    raw_id_fields = ("lead", "group", "teacher", "created_by", "updated_by")
+    readonly_fields = ("created_at", "updated_at")
+
+
+@admin.register(LeadActivity)
+class LeadActivityAdmin(admin.ModelAdmin):
+    list_display = ("id", "lead", "action", "actor", "created_at")
+    list_filter = ("action", "created_at")
+    search_fields = ("lead__ism", "lead__familya", "from_value", "to_value", "note")
+    raw_id_fields = ("lead", "actor")
+    readonly_fields = ("created_at",)
+
+
+@admin.register(TrialLessonActivity)
+class TrialLessonActivityAdmin(admin.ModelAdmin):
+    list_display = ("id", "trial_lesson", "action", "actor", "created_at")
+    list_filter = ("action", "created_at")
+    search_fields = ("trial_lesson__lead__ism", "trial_lesson__lead__familya", "note")
+    raw_id_fields = ("trial_lesson", "actor")
+    readonly_fields = ("created_at",)
+
+
+@admin.register(Yonalish)
+class YonalishAdmin(admin.ModelAdmin):
+    list_display = ("nom", "center")
+    search_fields = ("nom",)
+
+
+@admin.register(Manba)
+class ManbaAdmin(admin.ModelAdmin):
+    list_display = ("nom", "center")
+    search_fields = ("nom",)
+
+
+@admin.register(LeadStatus)
+class LeadStatusAdmin(admin.ModelAdmin):
+    list_display = ("nom", "code", "order", "center", "is_active")
+    list_filter = ("code", "is_active")
+    search_fields = ("nom", "code")
+    list_editable = ("order", "is_active")
 
 @admin.register(Expense)
 class ExpenseAdmin(admin.ModelAdmin):

@@ -17,6 +17,8 @@ def tenant_context(request):
         return {}
 
     is_super = user.is_superuser
+    is_demo_center = bool(center and getattr(center, "is_demo", False))
+    is_demo_user = bool(getattr(user, "is_demo_user", False))
 
     sub_ui = None
     features = set()
@@ -94,6 +96,9 @@ def tenant_context(request):
     res.update({
         "unread_notifications_count": unread_count,
         "latest_notifications": latest_notifications,
+        "is_demo_center": is_demo_center,
+        "is_demo_user": is_demo_user,
+        "demo_mode_active": is_demo_center or is_demo_user,
     })
 
     return res

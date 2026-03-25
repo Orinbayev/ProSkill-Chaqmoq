@@ -15,6 +15,10 @@ def send_code_to_telegram(user):
     Generates 6-digit code and sends to linked Telegram.
     Checks rate limits and connection status.
     """
+    center = getattr(user, "center", None)
+    if getattr(user, "is_demo_user", False) or (center and getattr(center, "is_demo", False)):
+        return False, "Demo markaz uchun Telegram kod yuborish o'chirilgan."
+
     if not user.telegram_id or not user.is_telegram_linked:
         return False, "Bu hisob uchun Telegram hali ulanmagan."
         

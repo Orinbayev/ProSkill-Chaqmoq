@@ -2450,6 +2450,47 @@ def group_detail(request, pk: int):
         if item["recent_add"] or item["recent_sub"]
     }
 
+    exam_reminder_state = None
+    if request.user.role in ("teacher", "director", "manager") or request.user.is_superuser:
+        try:
+            from education.services.exam_service import get_exam_reminder_state
+            exam_reminder_state = get_exam_reminder_state(
+                group=g,
+                on_date=selected_date,
+            )
+        except Exception:
+            logger.exception("Failed to calculate exam reminder state")
+            exam_reminder_state = None
+
+    can_view_internal_ranking = request.user.role in ("teacher", "director", "manager") or request.user.is_superuser
+    internal_ranking_preview = []
+    if can_view_internal_ranking:
+        try:
+            from education.services.ranking_service import get_group_internal_ranking_preview
+
+            internal_ranking_preview = get_group_internal_ranking_preview(
+                group=g,
+                on_date=selected_date,
+                limit=3,
+                actor=request.user,
+            )
+        except Exception:
+            logger.exception("Failed to calculate group internal ranking preview")
+            internal_ranking_preview = []
+
+    closure_state = None
+    if request.user.role in ("teacher", "director", "manager") or request.user.is_superuser:
+        try:
+            from education.services.closure_service import get_group_closure_state
+
+            closure_state = get_group_closure_state(
+                group=g,
+                on_date=selected_date,
+            )
+        except Exception:
+            logger.exception("Failed to calculate group closure state")
+            closure_state = None
+
     ctx = {
         "g": g,
         "enrollments": enrollments,
@@ -2460,6 +2501,10 @@ def group_detail(request, pk: int):
         "selected_date": selected_date.isoformat(),
         "today": localdate().isoformat(),
         "recent_history_map": recent_history_map,
+        "exam_reminder_state": exam_reminder_state,
+        "internal_ranking_preview": internal_ranking_preview,
+        "can_view_internal_ranking": can_view_internal_ranking,
+        "closure_state": closure_state,
     }
     return render(request, "education/group_detail.html", ctx)
 
@@ -3015,6 +3060,15 @@ def group_create_by_category(request, category_id):
             group = form.save(commit=False)
             group.category_obj = category
             group.center = center
+
+            # O'qituvchi tanlanganda foiz teacher profilidan olinadi.
+            if group.oqituvchi and getattr(group.oqituvchi, "oqituvchi_foizi", None) is not None:
+                group.oqituvchi_foiz = group.oqituvchi.oqituvchi_foizi
+            elif not group.oqituvchi_foiz:
+                group.oqituvchi_foiz = 40
+
+            from education.services.group_schedule_service import apply_group_duration_defaults
+            apply_group_duration_defaults(group)
             group.save()
             return redirect("education:category_detail", category_id=category.id)
     else:
@@ -3841,7 +3895,9 @@ def group_create(request, category=None):
     else:
         FormCls, title = GroupForm, "Guruh yaratish"
 
-    form = FormCls(request.POST or None)
+    from core.tenant import get_request_center
+    center = get_request_center(request) or getattr(request.user, "center", None)
+    form = FormCls(request.POST or None, center=center)
 
     if request.method == "POST" and form.is_valid():
         g = form.save(commit=False)
@@ -3851,7 +3907,9 @@ def group_create(request, category=None):
 
         # 🔹 Center avtomatik foydalanuvchidan
         if not g.center_id:
-            if hasattr(request.user, "center") and request.user.center:
+            if center:
+                g.center = center
+            elif hasattr(request.user, "center") and request.user.center:
                 g.center = request.user.center
             else:
                 from accounts.models import Center
@@ -3871,6 +3929,8 @@ def group_create(request, category=None):
         if not g.oy_dars_soni:
             g.oy_dars_soni = 12
 
+        from education.services.group_schedule_service import apply_group_duration_defaults
+        apply_group_duration_defaults(g)
         g.save()
         messages.success(request, f"✅ {g.nom} guruhi muvaffaqiyatli yaratildi.")
         return redirect("education:group_detail", pk=g.pk)
@@ -3909,7 +3969,9 @@ def group_edit(request, pk):
             teacher_foiz = getattr(updated_group.oqituvchi, 'oqituvchi_foizi', None)
             if teacher_foiz is not None:
                 updated_group.oqituvchi_foiz = teacher_foiz
-        
+
+        from education.services.group_schedule_service import apply_group_duration_defaults
+        apply_group_duration_defaults(updated_group)
         updated_group.save()
         
         # Agar guruhning foizi yoki narxi o'zgargan bo'lsa, joriy o'quvchilarga ham ta'sir qilsin
@@ -4004,9 +4066,23 @@ def group_add(request):
         messages.error(request, "Sizda ruxsat yo‘q.")
         return redirect("education:groups")
 
-    form = GroupForm(request.POST or None)
+    from core.tenant import get_request_center
+    center = get_request_center(request) or getattr(request.user, "center", None)
+    form = GroupForm(request.POST or None, center=center)
     if request.method == "POST" and form.is_valid():
-        form.save()
+        group = form.save(commit=False)
+        if not group.center_id:
+            group.center = center
+
+        # O'qituvchi tanlanganda foiz teacher profilidan olinadi.
+        if group.oqituvchi and getattr(group.oqituvchi, "oqituvchi_foizi", None) is not None:
+            group.oqituvchi_foiz = group.oqituvchi.oqituvchi_foizi
+        elif not group.oqituvchi_foiz:
+            group.oqituvchi_foiz = 40
+
+        from education.services.group_schedule_service import apply_group_duration_defaults
+        apply_group_duration_defaults(group)
+        group.save()
         messages.success(request, "✅ Guruh muvaffaqiyatli qo‘shildi.")
         return redirect("education:groups")
 
@@ -4445,3 +4521,957 @@ def fix_all_incomes(request):
 
     messages.success(request, f"🚀 Barcha daromadlar qayta hisoblandi! Yangi tizim qo'llandi. Yaratildi: {created_count}, Yangilandi: {updated_count}.")
     return redirect('education:teacher_income_dashboard')
+
+
+# =============================================================================
+# PHASE 1: Exam foundation module (backward-compatible, non-blocking)
+# =============================================================================
+
+
+def _director_or_manager(user):
+    return user.is_superuser or getattr(user, "role", None) in ("director", "manager")
+
+
+def _teacher_can_view_settings(user):
+    return user.is_superuser or getattr(user, "role", None) in ("director", "manager", "teacher")
+
+
+def _teacher_or_management_can_access_group(user, group: Group):
+    if user.is_superuser or getattr(user, "role", None) in ("director", "manager"):
+        return True
+    return getattr(user, "role", None) == "teacher" and group.oqituvchi_id == user.id
+
+
+def _decode_exam_session_note(raw_text: str) -> dict:
+    """
+    Backward-compatible parser:
+    - yangi format: {"task": "...", "comment": "..."} (JSON)
+    - eski format: oddiy text (task sifatida olinadi)
+    """
+    raw_text = (raw_text or "").strip()
+    if not raw_text:
+        return {"task": "", "comment": ""}
+    try:
+        payload = json.loads(raw_text)
+        if isinstance(payload, dict):
+            return {
+                "task": (payload.get("task") or "").strip(),
+                "comment": (payload.get("comment") or "").strip(),
+            }
+    except Exception:
+        pass
+    return {"task": raw_text, "comment": ""}
+
+
+def _encode_exam_session_note(task: str, comment: str) -> str:
+    task = (task or "").strip()
+    comment = (comment or "").strip()
+    if not task and not comment:
+        return ""
+    return json.dumps({"task": task, "comment": comment}, ensure_ascii=False)
+
+
+@login_required
+def exam_settings_view(request):
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    if not center:
+        raise Http404("Center not found")
+
+    if not _teacher_can_view_settings(request.user):
+        return HttpResponseForbidden("Sizda bu bo‘limga ruxsat yo‘q.")
+
+    from .forms import CenterExamSettingForm
+    from education.services.exam_service import get_or_create_center_exam_settings
+
+    settings_obj = get_or_create_center_exam_settings(center)
+    can_edit = _director_or_manager(request.user)
+    form = CenterExamSettingForm(request.POST or None, instance=settings_obj)
+
+    if request.method == "POST":
+        if not can_edit:
+            return HttpResponseForbidden("Teacher bu sozlamalarni o‘zgartira olmaydi.")
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.center = center
+            obj.updated_by = request.user
+            obj.save()
+            from education.services.audit_service import log_education_event
+            log_education_event(
+                center=center,
+                actor=request.user,
+                action_type="director_settings_change",
+                entity=obj,
+                message="Exam settings updated",
+            )
+            messages.success(request, "Imtihon sozlamalari saqlandi.")
+            return redirect("education:exam_settings")
+
+    return render(
+        request,
+        "education/exam_settings.html",
+        {"form": form, "settings_obj": settings_obj, "can_edit": can_edit},
+    )
+
+
+@login_required
+@require_POST
+def exam_reminder_action(request, group_id: int):
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+
+    qs = Group.objects.all()
+    if center:
+        qs = qs.filter(center=center)
+    group = get_object_or_404(qs, pk=group_id)
+
+    if not _teacher_or_management_can_access_group(request.user, group):
+        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+
+    from education.models import ExamReminderLog
+    from education.services.exam_service import (
+        create_or_get_exam_session_from_reminder,
+        create_or_update_exam_session_decision,
+        get_exam_reminder_state,
+        log_exam_reminder_action,
+    )
+
+    action = (request.POST.get("action") or "").strip().lower()
+    date_str = request.POST.get("date")
+    selected_date = parse_date(date_str) if date_str else localdate()
+    note = (request.POST.get("note") or "").strip()
+
+    if action not in {ExamReminderLog.ACTION_YES, ExamReminderLog.ACTION_NO, ExamReminderLog.ACTION_LATER}:
+        messages.error(request, "Noto‘g‘ri action.")
+        return redirect("education:group_detail", pk=group.id)
+
+    reminder_state = get_exam_reminder_state(group=group, on_date=selected_date)
+    target_checkpoint = int(reminder_state.get("target_lesson_number") or 0)
+
+    if action == ExamReminderLog.ACTION_YES:
+        if not reminder_state.get("enabled"):
+            messages.info(request, "Imtihon tizimi o‘chiq. Sozlamani director yoqishi kerak.")
+            return redirect("education:group_detail", pk=group.id)
+        if not reminder_state.get("due"):
+            messages.info(request, "Hozircha majburiy imtihon darsi emas, lekin davomat davom etadi.")
+            return redirect("education:group_detail", pk=group.id)
+        session = create_or_get_exam_session_from_reminder(
+            group=group,
+            teacher=request.user,
+            attendance_date=selected_date,
+            created_by=request.user,
+            decision_note=note,
+            lesson_number_reference=target_checkpoint or reminder_state.get("target_lesson_number"),
+        )
+        messages.success(request, "Imtihon sessiyasi ochildi. Natijalarni kiriting.")
+        return redirect("education:exam_session_entry", session_id=session.id)
+
+    if not reminder_state.get("enabled"):
+        messages.info(request, "Imtihon tizimi o‘chiq. Sozlamani director yoqishi kerak.")
+        return redirect("education:group_detail", pk=group.id)
+    if not reminder_state.get("due"):
+        messages.info(request, "Hozircha bu nazorat bosqichi bo‘yicha amal talab qilinmaydi.")
+        return redirect("education:group_detail", pk=group.id)
+
+    decision_session = create_or_update_exam_session_decision(
+        group=group,
+        teacher=request.user,
+        attendance_date=selected_date,
+        actor=request.user,
+        decision=action,
+        decision_note=note,
+        lesson_number_reference=target_checkpoint,
+    )
+
+    log_exam_reminder_action(
+        group=group,
+        teacher=request.user,
+        action=action,
+        attendance_date=selected_date,
+        note=note,
+        metadata={
+            "session_id": decision_session.id,
+            "target_checkpoint": target_checkpoint,
+        },
+    )
+    if action == ExamReminderLog.ACTION_NO:
+        messages.warning(request, "Imtihon o‘tkazilmagan deb qayd etildi.")
+    else:
+        messages.info(request, "Imtihon eslatmasi keyinroq uchun saqlandi.")
+    return redirect("education:group_detail", pk=group.id)
+
+
+@login_required
+def exam_session_entry(request, session_id: int):
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    from .forms import ExamResultRowForm
+    from education.models import ExamSession, ExamResult
+    from education.services.exam_service import (
+        get_exam_session_progress,
+        get_or_create_center_exam_settings,
+        save_exam_session_task_files,
+        save_exam_results_batch,
+    )
+
+    qs = ExamSession.objects.select_related("group", "teacher", "center").prefetch_related("task_files")
+    if center:
+        qs = qs.filter(center=center)
+    session = get_object_or_404(qs, pk=session_id)
+
+    if not _teacher_or_management_can_access_group(request.user, session.group):
+        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+
+    settings_obj = get_or_create_center_exam_settings(session.center)
+    enrollments = (
+        Enrollment.objects.filter(group=session.group, is_active=True)
+        .select_related("student")
+        .order_by("student__ism", "student__familya")
+    )
+    existing_results = {
+        r.student_id: r
+        for r in ExamResult.objects.filter(session=session).select_related("student")
+    }
+    for enr in enrollments:
+        enr.existing_result = existing_results.get(enr.student_id)
+
+    parsed_note = _decode_exam_session_note(session.decision_note)
+    session_task_default = parsed_note["task"]
+    session_comment_default = parsed_note["comment"]
+
+    if request.method == "POST":
+        session_task = (request.POST.get("session_task") or "").strip()
+        session_comment = (request.POST.get("session_comment") or "").strip()
+        session_note = _encode_exam_session_note(session_task, session_comment)
+        if session.decision_note != session_note:
+            session.decision_note = session_note
+            session.updated_by = request.user
+            session.save(update_fields=["decision_note", "updated_by", "updated_at"])
+
+        session_task_default = session_task
+        session_comment_default = session_comment
+
+        uploaded_task_file_count = 0
+        session_task_files = request.FILES.getlist("session_task_files") or []
+        if session_task_files and settings_obj.exam_file_upload_enabled:
+            try:
+                uploaded_task_file_count = save_exam_session_task_files(
+                    session=session,
+                    actor=request.user,
+                    files=session_task_files,
+                )
+                if uploaded_task_file_count:
+                    messages.success(request, f"{uploaded_task_file_count} ta umumiy task fayli yuklandi.")
+            except ValueError as exc:
+                messages.error(request, str(exc))
+        elif session_task_files and not settings_obj.exam_file_upload_enabled:
+            messages.warning(request, "Task fayl yuklash markaz sozlamasida o‘chiq.")
+
+        rows = []
+        row_errors = []
+        for enr in enrollments:
+            sid = enr.student_id
+            existing_result = existing_results.get(sid)
+            work_files = request.FILES.getlist(f"work_files_{sid}") or []
+            task_files = request.FILES.getlist(f"task_files_{sid}") or []
+            result_value = (request.POST.get(f"result_{sid}", "") or "").strip()
+            legacy_percent = (request.POST.get(f"percent_{sid}", "") or "").strip()
+            legacy_score = (request.POST.get(f"score_{sid}", "") or "").strip()
+            if not result_value:
+                result_value = legacy_percent or legacy_score
+            row_teacher_comment = (request.POST.get(f"teacher_comment_{sid}") or "").strip() or session_comment
+            row_assignment = (request.POST.get(f"assignment_description_{sid}") or "").strip() or session_task
+
+            has_any_input = bool(result_value or work_files or task_files)
+            if not has_any_input:
+                continue
+            if existing_result is None and not result_value:
+                continue
+
+            # Ball yozilmasa, mavjud qiymatni o'chirib yubormaslik uchun oldingi qiymatni saqlaymiz.
+            effective_value = result_value
+            if not effective_value and existing_result:
+                if existing_result.percent is not None:
+                    effective_value = str(existing_result.percent)
+                elif existing_result.score is not None:
+                    effective_value = str(existing_result.score)
+
+            row_form = ExamResultRowForm(
+                {
+                    "score": effective_value,
+                    "percent": effective_value,
+                    "teacher_comment": row_teacher_comment,
+                    "assignment_description": row_assignment,
+                    "absent_in_exam": False,
+                    "retake_recommended": bool(request.POST.get(f"retake_{sid}")),
+                },
+                require_result=settings_obj.exam_result_required,
+            )
+            if not row_form.is_valid():
+                row_errors.append((enr.student.get_full_name(), row_form.errors.as_text()))
+                continue
+            rows.append(
+                {
+                    "student": enr.student,
+                    "score": row_form.cleaned_data.get("score"),
+                    "percent": row_form.cleaned_data.get("percent"),
+                    "teacher_comment": row_form.cleaned_data.get("teacher_comment"),
+                    "assignment_description": row_form.cleaned_data.get("assignment_description"),
+                    "absent_in_exam": row_form.cleaned_data.get("absent_in_exam"),
+                    "retake_recommended": row_form.cleaned_data.get("retake_recommended"),
+                    "work_files": work_files,
+                    "task_files": task_files,
+                }
+            )
+
+        if row_errors:
+            for student_name, err in row_errors:
+                messages.error(request, f"{student_name}: {err}")
+        elif not rows and not uploaded_task_file_count:
+            messages.info(request, "Hozircha saqlash uchun yangi natija yo‘q.")
+        else:
+            try:
+                saved_count = save_exam_results_batch(
+                    session=session,
+                    actor=request.user,
+                    rows=rows,
+                )
+                messages.success(request, f"{saved_count} ta o‘quvchi bo‘yicha imtihon natijalari saqlandi.")
+                return redirect("education:exam_session_entry", session_id=session.id)
+            except ValueError as exc:
+                messages.error(request, str(exc))
+
+    session_progress = get_exam_session_progress(session=session)
+
+    return render(
+        request,
+        "education/exam_session_entry.html",
+        {
+            "session": session,
+            "group": session.group,
+            "enrollments": enrollments,
+            "existing_results": existing_results,
+            "exam_settings": settings_obj,
+            "session_task_default": session_task_default,
+            "session_comment_default": session_comment_default,
+            "session_progress": session_progress,
+        },
+    )
+
+
+@login_required
+def group_exam_history(request, group_id: int):
+    from core.tenant import get_request_center
+    from education.models import ExamSession
+
+    center = get_request_center(request)
+    group_qs = Group.objects.all()
+    if center:
+        group_qs = group_qs.filter(center=center)
+    group = get_object_or_404(group_qs, pk=group_id)
+
+    if not _teacher_or_management_can_access_group(request.user, group):
+        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+
+    sessions = ExamSession.objects.filter(group=group).select_related("teacher", "created_by").order_by("-exam_date", "-id")
+    status_filter = (request.GET.get("status") or "").strip()
+    if status_filter in {ExamSession.STATUS_DRAFT, ExamSession.STATUS_COMPLETED, ExamSession.STATUS_CANCELLED}:
+        sessions = sessions.filter(status=status_filter)
+
+    return render(
+        request,
+        "education/group_exam_history.html",
+        {
+            "group": group,
+            "sessions": sessions,
+            "status_filter": status_filter,
+        },
+    )
+
+
+@login_required
+def teacher_exam_history(request):
+    from core.tenant import get_request_center
+    from education.models import ExamSession
+
+    center = get_request_center(request)
+    role = getattr(request.user, "role", None)
+    if not request.user.is_superuser and role not in ("director", "manager", "teacher"):
+        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+
+    sessions = ExamSession.objects.select_related("group", "teacher", "center").order_by("-exam_date", "-id")
+    if center:
+        sessions = sessions.filter(center=center)
+
+    if role == "teacher" and not request.user.is_superuser:
+        sessions = sessions.filter(teacher=request.user)
+    else:
+        teacher_id = _get_int(request.GET, "teacher", 0)
+        if teacher_id:
+            sessions = sessions.filter(teacher_id=teacher_id)
+
+    group_id = _get_int(request.GET, "group", 0)
+    if group_id:
+        sessions = sessions.filter(group_id=group_id)
+
+    back_group_id = _get_int(request.GET, "back_group", 0)
+    if not back_group_id and group_id:
+        back_group_id = group_id
+
+    date_from = parse_date(request.GET.get("date_from") or "")
+    date_to = parse_date(request.GET.get("date_to") or "")
+    if date_from:
+        sessions = sessions.filter(exam_date__gte=date_from)
+    if date_to:
+        sessions = sessions.filter(exam_date__lte=date_to)
+
+    teachers = User.objects.filter(role="teacher", center=center).order_by("ism", "familya") if center else User.objects.none()
+    groups = Group.objects.filter(center=center).order_by("nom") if center else Group.objects.none()
+    return render(
+        request,
+        "education/teacher_exam_history.html",
+        {
+            "sessions": sessions,
+            "teachers": teachers,
+            "groups": groups,
+            "back_group_id": back_group_id,
+            "filters": {
+                "teacher": _get_int(request.GET, "teacher", 0),
+                "group": group_id,
+                "back_group": back_group_id,
+                "date_from": date_from.isoformat() if date_from else "",
+                "date_to": date_to.isoformat() if date_to else "",
+            },
+        },
+    )
+
+
+@login_required
+def exam_session_detail(request, session_id: int):
+    from core.tenant import get_request_center
+    from education.models import ExamResult, ExamSession
+
+    center = get_request_center(request)
+    qs = ExamSession.objects.select_related("group", "teacher", "center")
+    if center:
+        qs = qs.filter(center=center)
+    session = get_object_or_404(qs, pk=session_id)
+
+    if not _teacher_or_management_can_access_group(request.user, session.group):
+        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+
+    results = (
+        ExamResult.objects.filter(session=session)
+        .select_related("student", "teacher")
+        .prefetch_related("files")
+        .order_by("student__ism", "student__familya")
+    )
+
+    return render(
+        request,
+        "education/exam_session_detail.html",
+        {
+            "session": session,
+            "group": session.group,
+            "results": results,
+        },
+    )
+
+
+@login_required
+def failed_students_list(request):
+    from core.tenant import get_request_center
+    from .forms import ExamResultFollowUpForm
+    from education.models import CertificateRecord, ExamResult
+    from education.services.audit_service import log_education_event
+
+    if not _director_or_manager(request.user):
+        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+
+    center = get_request_center(request)
+    qs = ExamResult.objects.select_related("student", "group", "teacher", "session")
+    if center:
+        qs = qs.filter(center=center)
+    qs = qs.filter(passed=False)
+
+    group_id = _get_int(request.GET, "group", 0)
+    teacher_id = _get_int(request.GET, "teacher", 0)
+    date_from = parse_date(request.GET.get("date_from") or "")
+    date_to = parse_date(request.GET.get("date_to") or "")
+    percent_min = request.GET.get("percent_min")
+    percent_max = request.GET.get("percent_max")
+    follow_up_status = (request.GET.get("follow_up_status") or "").strip()
+    follow_up_pending = (request.GET.get("follow_up_pending") or "").strip().lower() in {"1", "true", "yes", "on"}
+
+    if group_id:
+        qs = qs.filter(group_id=group_id)
+    if teacher_id:
+        qs = qs.filter(teacher_id=teacher_id)
+    if date_from:
+        qs = qs.filter(exam_date__gte=date_from)
+    if date_to:
+        qs = qs.filter(exam_date__lte=date_to)
+    if percent_min not in (None, ""):
+        try:
+            qs = qs.filter(percent__gte=Decimal(str(percent_min)))
+        except Exception:
+            pass
+    if percent_max not in (None, ""):
+        try:
+            qs = qs.filter(percent__lte=Decimal(str(percent_max)))
+        except Exception:
+            pass
+    valid_follow_statuses = {choice[0] for choice in ExamResult.FOLLOW_UP_CHOICES}
+    if follow_up_status in valid_follow_statuses:
+        qs = qs.filter(follow_up_status=follow_up_status)
+    if follow_up_pending:
+        qs = qs.filter(follow_up_status=ExamResult.FOLLOW_UP_PENDING)
+
+    if request.method == "POST":
+        result_id = _get_int(request.POST, "result_id", 0)
+        result = get_object_or_404(qs, pk=result_id)
+        follow_form = ExamResultFollowUpForm(request.POST, instance=result)
+        if follow_form.is_valid():
+            updated = follow_form.save(commit=False)
+            updated.follow_up_updated_by = request.user
+            updated.follow_up_updated_at = timezone.now()
+            updated.save(update_fields=["follow_up_status", "follow_up_note", "follow_up_updated_by", "follow_up_updated_at", "updated_at"])
+            log_education_event(
+                center=updated.center,
+                actor=request.user,
+                action_type="exam_followup_updated",
+                entity=updated,
+                payload={"follow_up_status": updated.follow_up_status},
+            )
+            messages.success(request, "Nazorat holati yangilandi.")
+        else:
+            messages.error(request, "Nazorat formasi xato.")
+        q = request.META.get("QUERY_STRING")
+        return redirect(f"{request.path}?{q}" if q else request.path)
+
+    rows = qs.order_by("-exam_date", "-id")
+    groups = Group.objects.filter(center=center).order_by("nom") if center else Group.objects.none()
+    teachers = User.objects.filter(role="teacher", center=center).order_by("ism", "familya") if center else User.objects.none()
+    follow_up_choices = ExamResult.FOLLOW_UP_CHOICES
+
+    return render(
+        request,
+        "education/failed_students_list.html",
+        {
+            "rows": rows,
+            "groups": groups,
+            "teachers": teachers,
+            "follow_up_choices": follow_up_choices,
+            "filters": {
+                "group": group_id,
+                "teacher": teacher_id,
+                "date_from": date_from.isoformat() if date_from else "",
+                "date_to": date_to.isoformat() if date_to else "",
+                "percent_min": percent_min or "",
+                "percent_max": percent_max or "",
+                "follow_up_status": follow_up_status,
+                "follow_up_pending": follow_up_pending,
+            },
+        },
+    )
+
+
+@login_required
+def group_internal_ranking(request, group_id: int):
+    from core.tenant import get_request_center
+    from education.services.ranking_service import INTERNAL_RANKING_WEIGHTS, build_group_internal_ranking
+
+    center = get_request_center(request)
+    group_qs = Group.objects.all()
+    if center:
+        group_qs = group_qs.filter(center=center)
+    group = get_object_or_404(group_qs, pk=group_id)
+
+    if not _teacher_or_management_can_access_group(request.user, group):
+        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+
+    selected_date = parse_date(request.GET.get("date") or "") or localdate()
+    rows = build_group_internal_ranking(
+        group=group,
+        on_date=selected_date,
+        actor=request.user,
+        persist=True,
+    )
+
+    return render(
+        request,
+        "education/group_internal_ranking.html",
+        {
+            "group": group,
+            "selected_date": selected_date,
+            "rows": rows,
+            "weights": INTERNAL_RANKING_WEIGHTS,
+        },
+    )
+
+
+@login_required
+def group_completion_recommendations(request, group_id: int):
+    from core.tenant import get_request_center
+    from education.services.ranking_service import build_group_completion_recommendations
+
+    center = get_request_center(request)
+    group_qs = Group.objects.all()
+    if center:
+        group_qs = group_qs.filter(center=center)
+    group = get_object_or_404(group_qs, pk=group_id)
+
+    if not _teacher_or_management_can_access_group(request.user, group):
+        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+
+    selected_date = parse_date(request.GET.get("date") or "") or localdate()
+    recommendation_payload = build_group_completion_recommendations(
+        group=group,
+        on_date=selected_date,
+        actor=request.user,
+        persist=True,
+    )
+    rows = recommendation_payload["rows"]
+    selected_status = (request.GET.get("status") or "").strip()
+    valid_statuses = {"eligible", "needs_review", "not_eligible"}
+    if selected_status in valid_statuses:
+        rows = [row for row in rows if row["completion_recommendation"] == selected_status]
+
+    days_to_estimated_end = None
+    days_to_estimated_end_abs = None
+    if group.estimated_end_date:
+        days_to_estimated_end = (group.estimated_end_date - selected_date).days
+        days_to_estimated_end_abs = abs(days_to_estimated_end)
+
+    return render(
+        request,
+        "education/group_completion_recommendations.html",
+        {
+            "group": group,
+            "selected_date": selected_date,
+            "rows": rows,
+            "thresholds": recommendation_payload["thresholds"],
+            "selected_status": selected_status,
+            "days_to_estimated_end": days_to_estimated_end,
+            "days_to_estimated_end_abs": days_to_estimated_end_abs,
+        },
+    )
+
+
+@login_required
+@require_POST
+def group_closure_action(request, group_id: int):
+    from core.tenant import get_request_center
+    from education.services.closure_service import apply_group_closure_action
+
+    center = get_request_center(request)
+    group_qs = Group.objects.all()
+    if center:
+        group_qs = group_qs.filter(center=center)
+    group = get_object_or_404(group_qs, pk=group_id)
+
+    if not _teacher_or_management_can_access_group(request.user, group):
+        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+
+    action = (request.POST.get("action") or "").strip().lower()
+    if action not in {"yes", "no", "later"}:
+        messages.error(request, "Noto‘g‘ri action.")
+        return redirect("education:group_detail", pk=group.id)
+
+    if action == "yes" and not _director_or_manager(request.user):
+        return HttpResponseForbidden("Guruhni yopish faqat director/manager uchun ruxsat etilgan.")
+
+    selected_date = parse_date(request.POST.get("date") or "") or localdate()
+    note = (request.POST.get("note") or "").strip()
+
+    workflow = apply_group_closure_action(
+        group=group,
+        actor=request.user,
+        action=action,
+        on_date=selected_date,
+        note=note,
+    )
+
+    if workflow.status == workflow.STATUS_CLOSED:
+        messages.success(request, "Guruhni yopish jarayoni yakunlandi. Tarixiy ma’lumotlar saqlandi.")
+    elif workflow.status == workflow.STATUS_CONTINUE:
+        messages.info(request, "Guruh davom etadi. Attendance va payment flow o‘zgarmaydi.")
+    else:
+        messages.info(request, "Closure eslatmasi keyinga qoldirildi.")
+    return redirect("education:group_detail", pk=group.id)
+
+
+@login_required
+def certificate_templates_view(request):
+    from core.tenant import get_request_center
+    from .forms import CertificateTemplateForm
+    from education.models import CertificateTemplate
+    from education.services.audit_service import log_education_event
+
+    center = get_request_center(request)
+    if not center:
+        raise Http404("Center not found")
+
+    if not _director_or_manager(request.user):
+        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+
+    form = CertificateTemplateForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        obj = form.save(commit=False)
+        obj.center = center
+        obj.uploaded_by = request.user
+        obj.save()
+        if obj.is_active:
+            CertificateTemplate.objects.filter(center=center, template_type=obj.template_type).exclude(pk=obj.pk).update(
+                is_active=False
+            )
+        log_education_event(
+            center=center,
+            actor=request.user,
+            action_type="certificate_template_uploaded",
+            entity=obj,
+            payload={"template_type": obj.template_type},
+        )
+        messages.success(request, "Shablon saqlandi.")
+        return redirect("education:certificate_templates")
+
+    templates = CertificateTemplate.objects.filter(center=center).order_by("-updated_at")
+    return render(
+        request,
+        "education/certificate_templates.html",
+        {
+            "form": form,
+            "templates": templates,
+        },
+    )
+
+
+@login_required
+@require_POST
+def certificate_template_activate(request, template_id: int):
+    from core.tenant import get_request_center
+    from education.models import CertificateTemplate
+    from education.services.audit_service import log_education_event
+
+    if not _director_or_manager(request.user):
+        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+
+    center = get_request_center(request)
+    qs = CertificateTemplate.objects.all()
+    if center:
+        qs = qs.filter(center=center)
+    template = get_object_or_404(qs, pk=template_id)
+
+    CertificateTemplate.objects.filter(center=template.center, template_type=template.template_type).update(is_active=False)
+    template.is_active = True
+    template.save(update_fields=["is_active", "updated_at"])
+
+    log_education_event(
+        center=template.center,
+        actor=request.user,
+        action_type="certificate_template_activated",
+        entity=template,
+        payload={"template_type": template.template_type},
+    )
+    messages.success(request, "Shablon faol qilib belgilandi.")
+    return redirect("education:certificate_templates")
+
+
+@login_required
+def group_certificate_candidates(request, group_id: int):
+    from core.tenant import get_request_center
+    from education.models import CertificateRecord
+    from education.services.ranking_service import build_group_completion_recommendations
+
+    center = get_request_center(request)
+    group_qs = Group.objects.all()
+    if center:
+        group_qs = group_qs.filter(center=center)
+    group = get_object_or_404(group_qs, pk=group_id)
+
+    if not _teacher_or_management_can_access_group(request.user, group):
+        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+
+    selected_date = parse_date(request.GET.get("date") or "") or localdate()
+    recommendation_payload = build_group_completion_recommendations(
+        group=group,
+        on_date=selected_date,
+        actor=request.user,
+        persist=True,
+    )
+    rows = recommendation_payload["rows"]
+    existing_certs = {
+        cert.student_id: cert
+        for cert in CertificateRecord.objects.filter(group=group, status=CertificateRecord.STATUS_ISSUED).select_related(
+            "student"
+        )
+    }
+    for row in rows:
+        row["certificate"] = existing_certs.get(row["student"].id)
+
+    return render(
+        request,
+        "education/group_certificate_candidates.html",
+        {
+            "group": group,
+            "selected_date": selected_date,
+            "rows": rows,
+            "thresholds": recommendation_payload["thresholds"],
+            "can_issue": _director_or_manager(request.user),
+        },
+    )
+
+
+@login_required
+@require_POST
+def issue_certificate_action(request, group_id: int, student_id: int):
+    from core.tenant import get_request_center
+    from .forms import CertificateIssueForm
+    from education.services.certificate_service import issue_certificate_for_student
+
+    if not _director_or_manager(request.user):
+        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+
+    center = get_request_center(request)
+    group_qs = Group.objects.all()
+    if center:
+        group_qs = group_qs.filter(center=center)
+    group = get_object_or_404(group_qs, pk=group_id)
+    student = get_object_or_404(User.objects.filter(role="student"), pk=student_id)
+
+    if not Enrollment.objects.filter(group=group, student=student, is_active=True).exists():
+        return HttpResponseForbidden("Student bu guruhda faol emas.")
+
+    form = CertificateIssueForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "Sertifikat berish formasi xato.")
+        return redirect("education:group_certificate_candidates", group_id=group.id)
+
+    cert = issue_certificate_for_student(
+        group=group,
+        student=student,
+        actor=request.user,
+        certificate_type=form.cleaned_data["certificate_type"],
+        note=form.cleaned_data.get("note", ""),
+        request=request,
+    )
+    messages.success(request, f"Sertifikat yaratildi: {cert.certificate_number}")
+    return redirect("education:certificate_detail", certificate_id=cert.id)
+
+
+@login_required
+def certificate_detail(request, certificate_id: int):
+    from core.tenant import get_request_center
+    from education.models import CertificateRecord
+    from education.services.certificate_service import user_can_view_certificate
+
+    center = get_request_center(request)
+    qs = CertificateRecord.objects.select_related("group", "student", "center", "template", "summary")
+    if center:
+        qs = qs.filter(center=center)
+    cert = get_object_or_404(qs, pk=certificate_id)
+
+    if not user_can_view_certificate(request.user, cert):
+        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+
+    return render(
+        request,
+        "education/certificate_detail.html",
+        {
+            "cert": cert,
+        },
+    )
+
+
+@login_required
+def certificate_download_pdf(request, certificate_id: int):
+    from core.tenant import get_request_center
+    from education.models import CertificateRecord
+    from education.services.certificate_service import regenerate_certificate_pdf, user_can_view_certificate
+
+    center = get_request_center(request)
+    qs = CertificateRecord.objects.select_related("group", "student", "center")
+    if center:
+        qs = qs.filter(center=center)
+    cert = get_object_or_404(qs, pk=certificate_id)
+
+    if not user_can_view_certificate(request.user, cert):
+        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+
+    if not cert.pdf_file:
+        cert = regenerate_certificate_pdf(record=cert, request=request)
+
+    cert.pdf_file.open("rb")
+    return FileResponse(
+        cert.pdf_file,
+        as_attachment=True,
+        filename=f"{cert.certificate_number}.pdf",
+        content_type="application/pdf",
+    )
+
+
+def certificate_verify(request, certificate_number: str):
+    from education.models import CertificateRecord
+    from education.services.certificate_service import record_verification_hit
+
+    cert = get_object_or_404(
+        CertificateRecord.objects.select_related("group", "student", "center"),
+        certificate_number=certificate_number,
+    )
+
+    record_verification_hit(record=cert, request=request)
+    return render(
+        request,
+        "education/certificate_verify.html",
+        {
+            "cert": cert,
+        },
+    )
+
+
+@login_required
+def student_exam_report(request, student_id: int):
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    student = get_object_or_404(User.objects.filter(role="student"), pk=student_id)
+
+    viewer = request.user
+    if viewer.role == "student" and viewer.id != student.id:
+        return HttpResponseForbidden("Siz faqat o‘zingizning natijangizni ko‘ra olasiz.")
+    if viewer.role == "parent" and student not in viewer.children.all():
+        return HttpResponseForbidden("Siz faqat farzandingizning natijalarini ko‘ra olasiz.")
+    if viewer.role == "teacher":
+        teaches_student = Enrollment.objects.filter(
+            student=student,
+            group__oqituvchi=viewer,
+            is_active=True,
+        ).exists()
+        if not teaches_student:
+            return HttpResponseForbidden("Siz bu o‘quvchining natijasini ko‘ra olmaysiz.")
+    if viewer.role not in ("student", "parent", "teacher", "director", "manager") and not viewer.is_superuser:
+        return HttpResponseForbidden("Ruxsat yo‘q.")
+
+    from education.models import ExamResult
+    from education.services.exam_service import get_student_exam_summary
+    from education.services.ranking_service import get_student_academic_summaries
+
+    qs = ExamResult.objects.select_related("group", "teacher", "session").filter(student=student)
+    if center:
+        qs = qs.filter(center=center)
+    certificate_qs = CertificateRecord.objects.select_related("group", "center").filter(student=student)
+    if center:
+        certificate_qs = certificate_qs.filter(center=center)
+
+    summary = get_student_exam_summary(student=student)
+    academic_summaries = get_student_academic_summaries(student=student, center=center)
+    return render(
+        request,
+        "education/student_exam_report.html",
+        {
+            "student": student,
+            "results": qs.order_by("-exam_date", "-id"),
+            "summary": summary,
+            "academic_summaries": academic_summaries,
+            "certificates": certificate_qs.order_by("-created_at", "-id"),
+        },
+    )

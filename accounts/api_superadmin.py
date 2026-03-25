@@ -925,7 +925,10 @@ def payment_history_api(request):
         return HttpResponseForbidden("Faqat superadmin uchun")
     
     # 1. Base query for all paid orders
-    paid_orders = SubscriptionOrder.objects.filter(status='PAID')
+    paid_orders = SubscriptionOrder.objects.filter(
+        status='PAID',
+        center__is_demo=False,
+    )
     
     # 2. Key Metrics (KPIs)
     total_revenue = paid_orders.aggregate(s=Sum('final_price'))['s'] or 0

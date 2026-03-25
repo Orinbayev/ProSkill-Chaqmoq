@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block content %}
+{% include "education/partials/phase_theme.html" %}
+<style>
+  .exam-card {
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.78), rgba(30, 41, 59, 0.52));
+    padding: 16px;
+  }
+  .exam-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .exam-badge {
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    color: #cbd5e1;
+    background: rgba(15, 23, 42, 0.55);
+  }
+  .exam-badge.ok {
+    color: #86efac;
+    border-color: rgba(34, 197, 94, 0.4);
+    background: rgba(20, 83, 45, 0.28);
+  }
+  .exam-badge.warn {
+    color: #fcd34d;
+    border-color: rgba(245, 158, 11, 0.4);
+    background: rgba(120, 53, 15, 0.28);
+  }
+  .exam-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  @media (max-width: 980px) {
+    .exam-grid-2 {
+      grid-template-columns: 1fr;
+    }
+  }
+  .exam-table input[type="number"],
+  .exam-table input[type="file"],
+  .exam-table textarea {
+    width: 100%;
+  }
+  .exam-table .student-name {
+    font-weight: 700;
+    color: #e2e8f0;
+  }
+  .exam-table .student-sub {
+    font-size: 12px;
+    color: #94a3b8;
+    margin-top: 2px;
+  }
+  .exam-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    color: #cbd5e1;
+    background: rgba(15, 23, 42, 0.55);
+  }
+  .exam-status.passed {
+    color: #86efac;
+    border-color: rgba(34, 197, 94, 0.4);
+    background: rgba(20, 83, 45, 0.28);
+  }
+  .exam-status.failed {
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.4);
+    background: rgba(127, 29, 29, 0.25);
+  }
+  .exam-status.pending {
+    color: #fcd34d;
+    border-color: rgba(245, 158, 11, 0.38);
+    background: rgba(120, 53, 15, 0.25);
+  }
+  .task-file-list {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .task-file-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 5px 10px;
+    border: 1px solid rgba(59, 130, 246, 0.36);
+    color: #bfdbfe;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    background: rgba(30, 64, 175, 0.2);
+  }
+  .task-file-link:hover {
+    color: #ffffff;
+    text-decoration: none;
+    background: rgba(37, 99, 235, 0.32);
+  }
+</style>
+
+<div class="ui-shell">
+  <div class="ui-panel ui-header">
+    <div>
+      <h3 class="ui-title">Imtihon natijalarini kiritish</h3>
+      <div class="ui-sub">
+        Guruh: <strong>{{ group.nom }}</strong> |
+        Nazorat darsi: <strong>{{ session.lesson_number_reference }}-dars</strong> |
+        Sana: <strong>{{ session.exam_date }}</strong>
+      </div>
+      <div class="exam-badges">
+        <span class="exam-badge">Jami: {{ session_progress.total_students }}</span>
+        <span class="exam-badge ok">Yakunlangan: {{ session_progress.completed_students }}</span>
+        <span class="exam-badge warn">Qolgan: {{ session_progress.pending_students }}</span>
+      </div>
+    </div>
+    <div class="ui-actions">
+      <a href="{% url 'education:group_detail' group.id %}" class="ui-btn ui-btn-secondary">Guruhga qaytish</a>
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="ui-panel ui-section exam-card">
+      <div class="exam-grid-2">
+        <div>
+          <label class="ui-sub" style="display:block; margin-bottom:6px;">Umumiy task / savollar (ixtiyoriy)</label>
+          <textarea name="session_task" rows="3" placeholder="Masalan: 1-savol..., 2-savol..., yoki umumiy topshiriq">{{ session_task_default }}</textarea>
+          {% if exam_settings.exam_file_upload_enabled %}
+          <label class="ui-sub" style="display:block; margin-top:10px; margin-bottom:6px;">Task fayli (PDF/WORD, ixtiyoriy)</label>
+          <input type="file" name="session_task_files" multiple accept=".pdf,.doc,.docx,.txt">
+          {% if session.task_files.all %}
+          <div class="task-file-list">
+            {% for tf in session.task_files.all %}
+              <a href="{{ tf.file.url }}" target="_blank" class="task-file-link">
+                <i class="fa-solid fa-file-arrow-down"></i> Task fayli {{ forloop.counter }}
+              </a>
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% endif %}
+        </div>
+        <div>
+          <label class="ui-sub" style="display:block; margin-bottom:6px;">Umumiy izoh (ixtiyoriy)</label>
+          <textarea name="session_comment" rows="3" placeholder="Masalan: baholash mezoni yoki umumiy eslatma">{{ session_comment_default }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="ui-panel ui-section">
+      <div class="ui-table-wrap exam-table">
+        <table class="ui-table">
+          <thead>
+            <tr>
+              <th style="width:52px;">#</th>
+              <th>O‘quvchi</th>
+              <th style="width:180px;">Natija (0-100)</th>
+              <th style="width:180px;">Holat</th>
+              {% if exam_settings.exam_file_upload_enabled %}
+                <th style="width:260px;">Ish fayli (ixtiyoriy)</th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for enr in enrollments %}
+              {% with r=enr.existing_result %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>
+                  <div class="student-name">{{ enr.student.get_full_name }}</div>
+                  <div class="student-sub">{{ enr.student.email }}</div>
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    name="result_{{ enr.student_id }}"
+                    placeholder="0..100"
+                    value="{% if r %}{% if r.percent is not None %}{{ r.percent }}{% elif r.score is not None %}{{ r.score }}{% endif %}{% endif %}"
+                  >
+                </td>
+                <td>
+                  {% if r %}
+                    {% if r.passed %}
+                      <span class="exam-status passed">O‘tdi</span>
+                    {% else %}
+                      <span class="exam-status failed">Yiqildi</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="exam-status pending">Kiritilmagan</span>
+                  {% endif %}
+                </td>
+                {% if exam_settings.exam_file_upload_enabled %}
+                  <td><input type="file" multiple name="work_files_{{ enr.student_id }}"></td>
+                {% endif %}
+              </tr>
+              {% endwith %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="ui-actions">
+      <button class="ui-btn ui-btn-primary" type="submit">Saqlash</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

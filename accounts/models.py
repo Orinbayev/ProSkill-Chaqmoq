@@ -130,6 +130,11 @@ class Center(SoftDeleteMixin, models.Model):
     
     # ✅ System Center - o'chirib bo'lmaydi (asosiy markaz)
     is_system = models.BooleanField(default=False, help_text="Tizim markazi - o'chirib bo'lmaydi") 
+    is_demo = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Demo markazmi (savdo/demo uchun test ma'lumotlar).",
+    )
 
 
 
@@ -357,6 +362,12 @@ class User(SoftDeleteMixin, AbstractUser):
     )
 
     is_archived = models.BooleanField(default=False, verbose_name="Arxivlangan")
+    is_demo_user = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name="Demo foydalanuvchi",
+        help_text="Demo markaz uchun yaratilgan test foydalanuvchi.",
+    )
 
     # Parent children
     children = models.ManyToManyField(

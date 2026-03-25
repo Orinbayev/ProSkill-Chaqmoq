@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block content %}
+{% include "education/partials/phase_theme.html" %}
+<div class="ui-shell">
+  <div class="ui-panel ui-header">
+    <div>
+      <h3 class="ui-title">Sertifikat / diplom shablonlari boshqaruvi</h3>
+      <div class="ui-sub">Shablon yuklash, ko‘rish va faollashtirish</div>
+    </div>
+    <div class="ui-actions">
+      <a href="javascript:history.back()" class="ui-btn ui-btn-secondary">Orqaga</a>
+    </div>
+  </div>
+
+  <div class="ui-panel ui-section">
+    <h4 class="ui-section-title">Yangi template yuklash</h4>
+    <form method="post" enctype="multipart/form-data" class="ui-grid">
+      {% csrf_token %}
+      <div class="ui-col-4">
+        <label class="ui-label">{{ form.name.label }}</label>
+        {{ form.name }}
+        {% for e in form.name.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="ui-col-3">
+        <label class="ui-label">{{ form.template_type.label }}</label>
+        {{ form.template_type }}
+        {% for e in form.template_type.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="ui-col-3">
+        <label class="ui-label">{{ form.template_file.label }}</label>
+        {{ form.template_file }}
+        {% for e in form.template_file.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="ui-col-2">
+        <label class="ui-label">{{ form.is_active.label }}</label>
+        <div class="ui-note ui-note-muted mb-0">
+          {{ form.is_active }}
+        </div>
+      </div>
+      <div class="ui-col-12">
+        <label class="ui-label">{{ form.note.label }}</label>
+        {{ form.note }}
+        {% for e in form.note.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="ui-col-12">
+        <button type="submit" class="ui-btn ui-btn-primary">Saqlash</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="ui-panel ui-section">
+    <h4 class="ui-section-title">Mavjud templatelar</h4>
+    <div class="ui-table-wrap">
+      <table class="ui-table">
+        <thead>
+          <tr>
+            <th>Nomi</th>
+            <th>Turi</th>
+            <th>Holat</th>
+            <th>Ko‘rish</th>
+            <th>Yangilangan</th>
+            <th>Amal</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for t in templates %}
+          <tr>
+            <td>{{ t.name }}</td>
+            <td>{{ t.get_template_type_display }}</td>
+            <td>
+              {% if t.is_active %}
+                <span class="ui-badge ui-badge-success">Faol</span>
+              {% else %}
+                <span class="ui-badge ui-badge-neutral">Nofaol</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if t.template_file %}
+                <a href="{{ t.template_file.url }}" target="_blank" class="ui-btn ui-btn-secondary">Ko‘rish</a>
+              {% else %}
+                <span class="ui-muted">—</span>
+              {% endif %}
+            </td>
+            <td>{{ t.updated_at|date:"Y-m-d H:i" }}</td>
+            <td>
+              {% if not t.is_active %}
+              <form method="post" action="{% url 'education:certificate_template_activate' t.id %}">
+                {% csrf_token %}
+                <button class="ui-btn ui-btn-primary" type="submit">Faollashtirish</button>
+              </form>
+              {% else %}
+              <span class="ui-muted">—</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="ui-empty">Shablon mavjud emas</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

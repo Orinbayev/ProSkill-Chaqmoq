@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block content %}
+{% include "education/partials/phase_theme.html" %}
+<div class="ui-shell">
+  <div class="ui-panel ui-header">
+    <div>
+      <h3 class="ui-title">Imtihon Hisobot: {{ student.get_full_name }}</h3>
+      <div class="ui-sub">O‘quvchining imtihon, yakuniy xulosa va sertifikat holati</div>
+    </div>
+    <div class="ui-actions">
+      <a href="javascript:history.back()" class="ui-btn ui-btn-secondary">Orqaga</a>
+    </div>
+  </div>
+
+  <div class="ui-panel ui-section">
+    <h4 class="ui-section-title">Umumiy ko‘rsatkichlar</h4>
+    <div class="ui-grid">
+      <div class="ui-col-3"><div class="ui-note ui-note-muted mb-0"><strong>Imtihonlar soni:</strong> {{ summary.exam_count }}</div></div>
+      <div class="ui-col-3"><div class="ui-note ui-note-muted mb-0"><strong>O‘rtacha foiz:</strong> {{ summary.average_percent|floatformat:2 }}%</div></div>
+      <div class="ui-col-3"><div class="ui-note ui-note-muted mb-0"><strong>O‘tish foizi:</strong> {{ summary.pass_rate_percent|floatformat:2 }}%</div></div>
+      <div class="ui-col-3"><div class="ui-note ui-note-muted mb-0"><strong>Oxirgi imtihon:</strong> {% if summary.last_exam %}{{ summary.last_exam.exam_date }}{% else %}—{% endif %}</div></div>
+    </div>
+  </div>
+
+  <div class="ui-panel ui-section">
+    <h4 class="ui-section-title">Akademik yakuniy xulosa</h4>
+    <div class="ui-table-wrap">
+      <table class="ui-table">
+        <thead>
+          <tr>
+            <th>Guruh</th>
+            <th>Holat</th>
+            <th>Imtihon</th>
+            <th>O‘rtacha %</th>
+            <th>O‘tish foizi</th>
+            <th>Davomat</th>
+            <th>Ichki rank</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for s in academic_summaries %}
+          <tr>
+            <td>{{ s.group.nom }}</td>
+            <td>
+              {% if s.completion_recommendation == 'eligible' %}
+                <span class="ui-badge ui-badge-success">Mos</span>
+              {% elif s.completion_recommendation == 'needs_review' %}
+                <span class="ui-badge ui-badge-warning">Ko‘rib chiqish kerak</span>
+              {% else %}
+                <span class="ui-badge ui-badge-danger">Mos emas</span>
+              {% endif %}
+            </td>
+            <td>{{ s.exam_count }}</td>
+            <td>{% if s.average_percent is not None %}{{ s.average_percent }}%{% else %}—{% endif %}</td>
+            <td>{{ s.pass_rate_percent|default:"0" }}%</td>
+            <td>{{ s.attendance_percent|default:"0" }}%</td>
+            <td>
+              {% if s.internal_rank_position %}
+                #{{ s.internal_rank_position }} ({{ s.internal_rank_score|floatformat:2 }})
+              {% else %}
+                —
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" class="ui-empty">Hali yakuniy summary shakllantirilmagan</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="ui-panel ui-section">
+    <h4 class="ui-section-title">Sertifikat holati</h4>
+    <div class="ui-table-wrap">
+      <table class="ui-table">
+        <thead>
+          <tr>
+            <th>Sertifikat raqami</th>
+            <th>Guruh</th>
+            <th>Turi</th>
+            <th>Holati</th>
+            <th>Berilgan sana</th>
+            <th>Amal</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for c in certificates %}
+          <tr>
+            <td>{{ c.certificate_number }}</td>
+            <td>{{ c.group.nom }}</td>
+            <td>{{ c.get_certificate_type_display }}</td>
+            <td>{{ c.get_status_display }}</td>
+            <td>{{ c.issue_date }}</td>
+            <td>
+              {% if request.user.role == 'director' or request.user.role == 'manager' or request.user.role == 'teacher' or request.user.role == 'student' or request.user.role == 'parent' or request.user.is_superuser %}
+                <a href="{% url 'education:certificate_detail' c.id %}" class="ui-btn ui-btn-secondary">Batafsil</a>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="ui-empty">Sertifikat yozuvlari mavjud emas</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="ui-panel ui-section">
+    <h4 class="ui-section-title">Imtihon natijalari tarixi</h4>
+    <div class="ui-table-wrap">
+      <table class="ui-table">
+        <thead>
+          <tr>
+            <th>Sana</th>
+            <th>Guruh</th>
+            <th>Foiz</th>
+            <th>Holat</th>
+            <th>Yiqilish sababi</th>
+            <th>Nazorat holati</th>
+            <th>Izoh</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for r in results %}
+          <tr>
+            <td>{{ r.exam_date }}</td>
+            <td>{{ r.group.nom }}</td>
+            <td>{{ r.percent|default:"—" }}%</td>
+            <td>
+              {% if r.passed %}
+                <span class="ui-badge ui-badge-success">O‘tdi</span>
+              {% else %}
+                <span class="ui-badge ui-badge-danger">Yiqildi</span>
+              {% endif %}
+            </td>
+            <td>{{ r.fail_reason|default:"—" }}</td>
+            <td>{{ r.get_follow_up_status_display }}</td>
+            <td>{{ r.teacher_comment|default:"—" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" class="ui-empty">Imtihon natijalari mavjud emas</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

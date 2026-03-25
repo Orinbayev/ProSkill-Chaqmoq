@@ -10,8 +10,8 @@ from django.urls import reverse
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
 
-    list_display = ('email', 'ism', 'familya', 'role', 'center', 'oqituvchi_foizi', 'is_staff')
-    list_filter = ('role', 'center', 'is_staff', 'is_active')
+    list_display = ('email', 'ism', 'familya', 'role', 'center', 'is_demo_user', 'oqituvchi_foizi', 'is_staff')
+    list_filter = ('role', 'center', 'is_demo_user', 'is_staff', 'is_active')
     search_fields = ('email', 'ism', 'familya')
     ordering = ('email',)
 
@@ -21,7 +21,7 @@ class UserAdmin(BaseUserAdmin):
         ('Shaxsiy maʼlumot', {
             'fields': (
                 'ism', 'familya', 'telefon1', 'telefon2',
-                'lavozim', 'gmail', 'role', 'center'
+                'lavozim', 'gmail', 'role', 'center', 'is_demo_user'
             )
         }),
 
@@ -62,6 +62,7 @@ class CenterAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "slug",
+        "is_demo",
         "plan",
         "status",
         "status_badge",
@@ -70,7 +71,7 @@ class CenterAdmin(admin.ModelAdmin):
         "switch_link",
         "created_at",
     )
-    list_filter = ("plan", "status")
+    list_filter = ("is_demo", "plan", "status")
     search_fields = ("name", "slug", "address")
     ordering = ("name",)
 

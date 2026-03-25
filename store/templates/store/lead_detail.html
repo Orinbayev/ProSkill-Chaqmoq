@@ -31,7 +31,7 @@
                     </button>
                 </form>
                 {% else %}
-                <a href="{% url 'accounts:student_detail' lead.converted_user.id %}" class="btn btn-view-student">
+                <a href="{% url 'core:user_view' lead.converted_user.id %}" class="btn btn-view-student">
                     <i class="fa-solid fa-user-graduate"></i> O'quvchini ko'rish
                 </a>
                 {% endif %}
@@ -102,6 +102,12 @@
                     <span class="value link"><a href="tel:{{ lead.telefon2 }}">{{ lead.telefon2 }}</a></span>
                 </div>
                 {% endif %}
+                {% if lead.parent_phone %}
+                <div class="info-row">
+                    <span class="label">Ota-ona telefoni:</span>
+                    <span class="value link"><a href="tel:{{ lead.parent_phone }}">{{ lead.parent_phone }}</a></span>
+                </div>
+                {% endif %}
                 <div class="info-row">
                     <span class="label">Manzil:</span>
                     <span class="value">{{ lead.address|default:"-" }}</span>
@@ -123,6 +129,26 @@
                     <span class="label">Status:</span>
                     <span class="value">{{ lead.status|default:"-" }}</span>
                 </div>
+                <div class="info-row">
+                    <span class="label">Manager:</span>
+                    <span class="value">
+                        {% if lead.assigned_manager %}
+                        {{ lead.assigned_manager.ism }} {{ lead.assigned_manager.familya }}
+                        {% else %}
+                        -
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Qayta aloqa:</span>
+                    <span class="value">{{ lead.next_follow_up_date|default:"-" }}</span>
+                </div>
+                {% if lead.lost_reason %}
+                <div class="info-row vertical">
+                    <span class="label">Yo'qotish sababi:</span>
+                    <span class="value comment-box">{{ lead.lost_reason }}</span>
+                </div>
+                {% endif %}
                 {% if lead.comment %}
                 <div class="info-row vertical">
                     <span class="label">Izoh:</span>
@@ -145,10 +171,50 @@
                 </div>
                 <div class="info-row">
                     <span class="label">Bog'langan Student:</span>
-                    <span class="value">{{ lead.converted_user.email }}</span>
+                    <span class="value">
+                        <a href="{% url 'core:user_view' lead.converted_user.id %}" class="student-link">
+                            {{ lead.converted_user.email }}
+                        </a>
+                    </span>
                 </div>
             </div>
             {% endif %}
+
+            <div class="detail-card full-width">
+                <h4 class="card-title"><i class="fa-solid fa-clipboard-check"></i> Sinov darslar</h4>
+                {% if trials %}
+                {% for t in trials %}
+                <div class="info-row">
+                    <span class="label">{{ t.scheduled_at|date:"d.m.Y H:i" }}</span>
+                    <span class="value">
+                        {{ t.group.nom|default:"-" }} | {{ t.teacher.ism|default:"-" }} {{ t.teacher.familya|default:"" }}
+                        <span class="status-badge status-{{ t.result_status }}">{{ t.get_result_status_display }}</span>
+                    </span>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="text-white-50 small">Sinov dars yozuvlari hali yo'q.</div>
+                {% endif %}
+            </div>
+
+            <div class="detail-card full-width">
+                <h4 class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> Audit Tarix</h4>
+                {% if activities %}
+                {% for a in activities %}
+                <div class="info-row">
+                    <span class="label">{{ a.created_at|date:"d.m.Y H:i" }}</span>
+                    <span class="value">
+                        {{ a.get_action_display }}{% if a.actor %} — {{ a.actor.ism }} {{ a.actor.familya }}{% endif %}
+                        {% if a.from_value or a.to_value %}
+                        ({{ a.from_value|default:"-" }} → {{ a.to_value|default:"-" }})
+                        {% endif %}
+                    </span>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="text-white-50 small">Audit yozuvlari hozircha mavjud emas.</div>
+                {% endif %}
+            </div>
 
         </div>
     </section>
@@ -158,7 +224,8 @@
     :root {
         --bg0: #070b14;
         --text: #e5e7eb;
-        --card-bg: rgba(255, 255, 255, 0.03);
+        --card-bg: rgba(15, 23, 42, 0.46);
+        --card-bg2: rgba(255, 255, 255, 0.03);
         --border: rgba(255, 255, 255, 0.08);
         --amber: #f59e0b;
         --blue: #38bdf8;
@@ -171,64 +238,152 @@
     }
 
     .lead-wrapper {
-        max-width: 1000px;
+        max-width: 1320px;
     }
 
     .lead-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 24px;
-        background: rgba(15, 23, 42, 0.6);
-        padding: 20px;
-        border-radius: 16px;
+        margin-bottom: 18px;
+        background:
+            radial-gradient(680px 260px at 10% 0%, rgba(56, 189, 248, 0.12), transparent 60%),
+            radial-gradient(560px 220px at 95% 0%, rgba(245, 158, 11, 0.11), transparent 62%),
+            rgba(15, 23, 42, 0.62);
+        padding: 18px 20px;
+        border-radius: 18px;
         border: 1px solid var(--border);
-        backdrop-filter: blur(10px);
+        backdrop-filter: blur(14px);
     }
 
     .page-title {
         margin: 0;
         font-weight: 800;
-        font-size: 1.5rem;
+        font-size: clamp(1.45rem, 1.1rem + 1vw, 2rem);
+        letter-spacing: -0.35px;
+    }
+
+    .header-content {
+        display: flex;
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .header-badges {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-size: 11px;
+        font-weight: 800;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(255, 255, 255, 0.08);
+        color: #e2e8f0;
+        white-space: nowrap;
+    }
+
+    .status-converted,
+    .status-registered {
+        color: #22c55e;
+        border-color: rgba(34, 197, 94, 0.3);
+        background: rgba(34, 197, 94, 0.14);
+    }
+
+    .status-new,
+    .status-contacted,
+    .status-trial-scheduled,
+    .status-follow_up_needed,
+    .status-follow-up-needed {
+        color: #facc15;
+        border-color: rgba(250, 204, 21, 0.3);
+        background: rgba(250, 204, 21, 0.14);
+    }
+
+    .status-no_answer,
+    .status-no-answer,
+    .status-absent,
+    .status-lost {
+        color: #f87171;
+        border-color: rgba(248, 113, 113, 0.3);
+        background: rgba(239, 68, 68, 0.14);
+    }
+
+    .status-trial_attended,
+    .status-trial-attended,
+    .status-attended {
+        color: #38bdf8;
+        border-color: rgba(56, 189, 248, 0.3);
+        background: rgba(56, 189, 248, 0.14);
+    }
+
+    .status-not_interested,
+    .status-not-interested,
+    .status-pending {
+        color: #cbd5e1;
+        border-color: rgba(203, 213, 225, 0.24);
+        background: rgba(100, 116, 139, 0.18);
     }
 
     .header-actions {
         display: flex;
         gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
     }
 
     .btn {
-        padding: 10px 16px;
-        border-radius: 10px;
-        font-weight: 600;
+        min-height: 42px;
+        padding: 0 16px;
+        border-radius: 12px;
+        font-weight: 700;
         text-decoration: none;
         border: none;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        font-size: 0.9rem;
+        font-size: 0.86rem;
         transition: all 0.2s;
+        white-space: nowrap;
     }
 
     .btn-convert {
-        background: var(--green);
-        color: #000;
+        background: linear-gradient(135deg, #22c55e, #16a34a);
+        color: #052813;
+        box-shadow: 0 8px 20px rgba(34, 197, 94, 0.22);
     }
 
     .btn-convert:hover {
-        filter: brightness(1.1);
-        transform: translateY(-2px);
+        filter: brightness(1.03);
+        transform: translateY(-1px);
     }
 
     .btn-view-student {
-        background: var(--blue);
-        color: #000;
+        background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+        color: #06202e;
+        box-shadow: 0 8px 20px rgba(56, 189, 248, 0.2);
+    }
+
+    .btn-view-student:hover {
+        filter: brightness(1.03);
+        transform: translateY(-1px);
     }
 
     .btn-edit {
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.08);
         color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.12);
     }
 
     .btn-edit:hover {
@@ -238,7 +393,10 @@
     .btn-delete {
         background: rgba(239, 68, 68, 0.2);
         color: #fca5a5;
-        padding: 10px 14px;
+        padding: 0 14px;
+        min-width: 42px;
+        justify-content: center;
+        border: 1px solid rgba(248, 113, 113, 0.22);
     }
 
     .btn-delete:hover {
@@ -248,15 +406,18 @@
 
     .lead-detail-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 20px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
     }
 
     .detail-card {
-        background: var(--card-bg);
+        background:
+            linear-gradient(180deg, var(--card-bg), var(--card-bg2));
         border: 1px solid var(--border);
         border-radius: 16px;
-        padding: 20px;
+        padding: 16px 16px 12px;
+        backdrop-filter: blur(10px);
+        min-height: 180px;
     }
 
     .detail-card.full-width {
@@ -278,12 +439,16 @@
         gap: 8px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        padding-bottom: 10px;
     }
 
     .info-row {
         display: flex;
         justify-content: space-between;
-        padding: 8px 0;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 9px 0;
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
 
@@ -305,6 +470,8 @@
     .value {
         font-weight: 600;
         font-size: 0.95rem;
+        text-align: right;
+        word-break: break-word;
     }
 
     .value.link a {
@@ -313,6 +480,16 @@
     }
 
     .value.link a:hover {
+        text-decoration: underline;
+    }
+
+    .student-link {
+        color: var(--blue);
+        text-decoration: none;
+        font-weight: 700;
+    }
+
+    .student-link:hover {
         text-decoration: underline;
     }
 
@@ -325,22 +502,43 @@
         color: rgba(255, 255, 255, 0.8);
     }
 
+    @media(max-width: 1100px) {
+        .lead-detail-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
     @media(max-width: 768px) {
         .lead-header {
             flex-direction: column;
             gap: 16px;
             align-items: flex-start;
+            padding: 14px;
         }
 
         .header-actions {
             width: 100%;
-            justify-content: space-between;
+            justify-content: stretch;
             flex-wrap: wrap;
         }
 
         .btn {
             flex: 1;
             justify-content: center;
+        }
+
+        .detail-card {
+            min-height: 0;
+            padding: 14px 14px 10px;
+        }
+
+        .info-row {
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .value {
+            text-align: left;
         }
     }
 </style>

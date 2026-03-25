@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block content %}
+{% include "education/partials/phase_theme.html" %}
+<div class="ui-shell">
+  <div class="ui-panel ui-header">
+    <div>
+      <h3 class="ui-title">Imtihondan Past Olgan O‘quvchilar</h3>
+      <div class="ui-sub">Direktor/manager nazorat bo‘limi</div>
+    </div>
+    <div class="ui-actions">
+      <a href="{% url 'education:teacher_exam_history' %}" class="ui-btn ui-btn-secondary">Sessiyalar tarixi</a>
+    </div>
+  </div>
+
+  <div class="ui-panel ui-section">
+    <form method="get" class="ui-grid">
+      <div class="ui-col-2">
+        <label class="ui-label">Guruh</label>
+        <select name="group">
+          <option value="">Barchasi</option>
+          {% for g in groups %}
+            <option value="{{ g.id }}" {% if filters.group == g.id %}selected{% endif %}>{{ g.nom }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="ui-col-2">
+        <label class="ui-label">O‘qituvchi</label>
+        <select name="teacher">
+          <option value="">Barchasi</option>
+          {% for t in teachers %}
+            <option value="{{ t.id }}" {% if filters.teacher == t.id %}selected{% endif %}>{{ t.get_full_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="ui-col-2">
+        <label class="ui-label">Dan</label>
+        <input type="date" name="date_from" value="{{ filters.date_from }}">
+      </div>
+      <div class="ui-col-2">
+        <label class="ui-label">Gacha</label>
+        <input type="date" name="date_to" value="{{ filters.date_to }}">
+      </div>
+      <div class="ui-col-1">
+        <label class="ui-label">Foiz min</label>
+        <input type="number" step="0.01" name="percent_min" value="{{ filters.percent_min }}">
+      </div>
+      <div class="ui-col-1">
+        <label class="ui-label">Foiz max</label>
+        <input type="number" step="0.01" name="percent_max" value="{{ filters.percent_max }}">
+      </div>
+      <div class="ui-col-2">
+        <label class="ui-label">Nazorat holati</label>
+        <select name="follow_up_status">
+          <option value="">Barchasi</option>
+          {% for value, label in follow_up_choices %}
+            <option value="{{ value }}" {% if filters.follow_up_status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="ui-col-2">
+        <label class="ui-label d-flex align-items-center gap-2">
+          <input type="checkbox" class="form-check-input" name="follow_up_pending" value="1" {% if filters.follow_up_pending %}checked{% endif %}>
+          Faqat kutilmoqda
+        </label>
+      </div>
+      <div class="ui-col-2">
+        <label class="ui-label">&nbsp;</label>
+        <button class="ui-btn ui-btn-warning w-100" type="submit">Saralash</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="ui-panel ui-section">
+    <div class="ui-table-wrap">
+      <table class="ui-table">
+        <thead>
+          <tr>
+            <th>O‘quvchi</th>
+            <th>Guruh</th>
+            <th>O‘qituvchi</th>
+            <th>Sana</th>
+            <th>Ball/Foiz</th>
+            <th>Yiqilish sababi</th>
+            <th>Nazorat holati</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>{{ row.student.get_full_name }}</td>
+            <td>{{ row.group.nom }}</td>
+            <td>{% if row.teacher %}{{ row.teacher.get_full_name }}{% else %}—{% endif %}</td>
+            <td>{{ row.exam_date }}</td>
+            <td>{{ row.score|default:"—" }} / {{ row.percent|default:"—" }}%</td>
+            <td>{{ row.fail_reason|default:"—" }}</td>
+            <td>
+              <form method="post" class="ui-inline-form">
+                {% csrf_token %}
+                <input type="hidden" name="result_id" value="{{ row.id }}">
+                <select name="follow_up_status" style="min-width:180px;">
+                  {% for value, label in follow_up_choices %}
+                    <option value="{{ value }}" {% if row.follow_up_status == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+                <input type="text" name="follow_up_note" style="min-width:190px;" value="{{ row.follow_up_note }}" placeholder="Izoh">
+                <button class="ui-btn ui-btn-warning" type="submit">Saqlash</button>
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" class="ui-empty">Ma’lumot topilmadi</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

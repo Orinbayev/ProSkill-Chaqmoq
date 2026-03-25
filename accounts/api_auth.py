@@ -20,6 +20,15 @@ def get_device_info(ua_string):
     if 'macintosh' in ua: return 'MacBook'
     return 'Brauzer'
 
+
+def _is_demo_user_context(user) -> bool:
+    center = getattr(user, "center", None)
+    return bool(
+        getattr(user, "is_demo_user", False)
+        or (center and getattr(center, "is_demo", False))
+    )
+
+
 def record_activity(user, action, request=None, device_info=None):
     ip = None
     ua = None
@@ -47,6 +56,10 @@ def record_activity(user, action, request=None, device_info=None):
     )
 
     # Part 8: Security alerts
+    # Demo users/centers must never trigger real Telegram messages.
+    if _is_demo_user_context(user):
+        return
+
     if user.telegram_id and user.is_telegram_linked:
         # Avoid redundant alerts: Don't send alert for "code requested" if you want to be "Ideal"
         # Just send for key events: Success login, Password change, Link
@@ -622,7 +635,6 @@ def get_parent_reports_data(request):
 
     # Return data for bot
     return JsonResponse({"reports": parent_messages})
-
 
 
 

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block content %}
+{% include "education/partials/phase_theme.html" %}
+<div class="ui-shell">
+  <div class="ui-panel ui-header">
+    <div>
+      <h3 class="ui-title">Sertifikat tafsiloti</h3>
+      <div class="ui-sub">Sertifikat raqami: {{ cert.certificate_number }}</div>
+    </div>
+    <div class="ui-actions">
+      <a href="javascript:history.back()" class="ui-btn ui-btn-secondary">Orqaga</a>
+    </div>
+  </div>
+
+  <div class="ui-panel ui-section">
+    <div class="ui-kv">
+      <div class="ui-kv-key">Sertifikat raqami</div>
+      <div class="ui-kv-val">{{ cert.certificate_number }}</div>
+    </div>
+    <div class="ui-kv">
+      <div class="ui-kv-key">O‘quvchi</div>
+      <div class="ui-kv-val">{{ cert.student.get_full_name }}</div>
+    </div>
+    <div class="ui-kv">
+      <div class="ui-kv-key">Guruh</div>
+      <div class="ui-kv-val">{{ cert.group.nom }}</div>
+    </div>
+    <div class="ui-kv">
+      <div class="ui-kv-key">Markaz</div>
+      <div class="ui-kv-val">{{ cert.center.name }}</div>
+    </div>
+    <div class="ui-kv">
+      <div class="ui-kv-key">Turi</div>
+      <div class="ui-kv-val">{{ cert.get_certificate_type_display }}</div>
+    </div>
+    <div class="ui-kv">
+      <div class="ui-kv-key">Holati</div>
+      <div class="ui-kv-val">{{ cert.get_status_display }}</div>
+    </div>
+    <div class="ui-kv">
+      <div class="ui-kv-key">Berilgan sana</div>
+      <div class="ui-kv-val">{{ cert.issue_date }}</div>
+    </div>
+    <div class="ui-kv">
+      <div class="ui-kv-key">Tavsiya</div>
+      <div class="ui-kv-val">{{ cert.get_recommendation_status_display }}</div>
+    </div>
+    <div class="ui-kv">
+      <div class="ui-kv-key">Sabab</div>
+      <div class="ui-kv-val">{{ cert.recommendation_reason|default:"—" }}</div>
+    </div>
+    <div class="ui-kv">
+      <div class="ui-kv-key">Tekshirish havolasi</div>
+      <div class="ui-kv-val">
+        <a href="{% url 'education:certificate_verify' cert.certificate_number %}" target="_blank">
+          {% url 'education:certificate_verify' cert.certificate_number %}
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="ui-actions">
+    <a class="ui-btn ui-btn-primary" href="{% url 'education:certificate_download_pdf' cert.id %}">PDF yuklab olish</a>
+    <a class="ui-btn ui-btn-secondary" href="{% url 'education:certificate_verify' cert.certificate_number %}" target="_blank">Tekshirish sahifasi</a>
+  </div>
+</div>
+{% endblock %}

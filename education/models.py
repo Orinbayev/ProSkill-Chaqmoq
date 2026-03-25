@@ -9,6 +9,7 @@ from django.db.models import Sum
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from decimal import Decimal
+import uuid
 from django.db import models
 from django.conf import settings
 from django.db.models import Sum
@@ -54,8 +55,31 @@ class Group(SoftDeleteMixin, models.Model):
     kurs_narxi = models.PositiveIntegerField(default=500000, help_text="Bir oylik to‘lov (so‘mda)")
     oqituvchi_foiz = models.PositiveIntegerField(default=40, help_text="O‘qituvchi foizi (%)")
     oy_dars_soni = models.PositiveIntegerField(default=12, help_text="Bir oyda nechta dars bo‘ladi")
-    
+
+    # Course duration planning (backward-compatible)
+    course_start_date = models.DateField(null=True, blank=True, verbose_name="Kurs boshlanish sanasi")
+    duration_months = models.PositiveSmallIntegerField(default=0, verbose_name="Davomiyligi (oy)")
+    lessons_per_week = models.PositiveSmallIntegerField(default=3, verbose_name="Haftalik darslar soni")
+    estimated_end_date = models.DateField(null=True, blank=True, verbose_name="Taxminiy tugash sanasi")
+    schedule_estimation_note = models.CharField(
+        max_length=255,
+        blank=True,
+        default="Bu sana taxminiy hisob bo‘lib, bayramlar, tadbirlar yoki dars ko‘chirilishlari sabab o‘zgarishi mumkin",
+        verbose_name="Tahmin izohi",
+    )
+    estimated_end_date_manual = models.BooleanField(default=False, verbose_name="Taxminiy sana qo'lda belgilang")
+
     is_archived = models.BooleanField(default=False, verbose_name="Arxivlangan")
+    # Group closure foundation (DB bilan backward-compatible sync)
+    is_closed = models.BooleanField(default=False, verbose_name="Yopilganmi?")
+    closed_at = models.DateTimeField(null=True, blank=True)
+    closed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="closed_groups",
+    )
 
     class Meta:
         verbose_name = "Guruh"
@@ -727,3 +751,655 @@ class TeacherSalarySnapshot(models.Model):
         unique_together = ('teacher', 'financial_month')
         verbose_name = "O‘qituvchi oylik snapshoti"
         verbose_name_plural = "O‘qituvchilar oylik snapshotlari"
+
+
+def exam_upload_path(instance, filename):
+    return f"education/exam_files/{timezone.localdate().year}/{timezone.localdate().month:02d}/{filename}"
+
+
+class CenterExamSetting(models.Model):
+    center = models.OneToOneField(
+        "accounts.Center",
+        on_delete=models.CASCADE,
+        related_name="exam_settings",
+    )
+    exam_system_enabled = models.BooleanField(default=False, verbose_name="Imtihon tizimi yoqilganmi")
+    exam_every_n_lessons = models.PositiveSmallIntegerField(
+        default=12,
+        validators=[MinValueValidator(1)],
+        verbose_name="Har N-darsda imtihon",
+    )
+    passing_score_percent = models.PositiveSmallIntegerField(
+        default=60,
+        validators=[MaxValueValidator(100), MinValueValidator(1)],
+        verbose_name="O‘tish foizi (%)",
+    )
+    failed_student_threshold = models.PositiveSmallIntegerField(
+        default=3,
+        validators=[MinValueValidator(1)],
+        verbose_name="Past natija threshold",
+    )
+    exam_file_upload_enabled = models.BooleanField(default=True, verbose_name="Imtihon fayl yuklash yoqilganmi")
+    exam_result_required = models.BooleanField(default=False, verbose_name="Imtihon natijasi majburiymi")
+    optional_task_upload_prompt_enabled = models.BooleanField(
+        default=True,
+        verbose_name="Ixtiyoriy topshiriq so‘rovi yoqilganmi",
+    )
+    minimum_certificate_attendance_percent = models.PositiveSmallIntegerField(
+        default=70,
+        validators=[MaxValueValidator(100), MinValueValidator(1)],
+        verbose_name="Sertifikat uchun min davomat (%)",
+    )
+    minimum_certificate_average_percent = models.PositiveSmallIntegerField(
+        default=60,
+        validators=[MaxValueValidator(100), MinValueValidator(1)],
+        verbose_name="Sertifikat uchun min o‘rtacha foiz (%)",
+    )
+
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="updated_exam_settings",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Markaz imtihon sozlamasi"
+        verbose_name_plural = "Markaz imtihon sozlamalari"
+
+    def __str__(self):
+        return f"{self.center.name} imtihon sozlamalari"
+
+
+class ExamReminderLog(models.Model):
+    ACTION_YES = "yes"
+    ACTION_NO = "no"
+    ACTION_LATER = "later"
+    ACTION_CHOICES = (
+        (ACTION_YES, "Ha"),
+        (ACTION_NO, "Yo‘q"),
+        (ACTION_LATER, "Keyinroq"),
+    )
+
+    center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, related_name="exam_reminder_logs")
+    group = models.ForeignKey("education.Group", on_delete=models.CASCADE, related_name="exam_reminder_logs")
+    teacher = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="exam_reminder_actions",
+    )
+    attendance_date = models.DateField(default=timezone.localdate)
+    lesson_number_reference = models.PositiveIntegerField(default=0)
+    action = models.CharField(max_length=10, choices=ACTION_CHOICES)
+    note = models.TextField(blank=True, default="")
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = "Imtihon eslatma actioni"
+        verbose_name_plural = "Imtihon eslatma actionlari"
+
+    def __str__(self):
+        return f"{self.group.nom} / {self.lesson_number_reference} / {self.action}"
+
+
+class ExamSession(models.Model):
+    DECISION_YES = "yes"
+    DECISION_NO = "no"
+    DECISION_LATER = "later"
+    DECISION_CHOICES = (
+        (DECISION_YES, "Ha"),
+        (DECISION_NO, "Yo‘q"),
+        (DECISION_LATER, "Keyinroq"),
+    )
+
+    STATUS_DRAFT = "draft"
+    STATUS_COMPLETED = "completed"
+    STATUS_CANCELLED = "cancelled"
+    STATUS_CHOICES = (
+        (STATUS_DRAFT, "Qoralama"),
+        (STATUS_COMPLETED, "Yakunlangan"),
+        (STATUS_CANCELLED, "Bekor qilingan"),
+    )
+
+    center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, related_name="exam_sessions")
+    group = models.ForeignKey("education.Group", on_delete=models.CASCADE, related_name="exam_sessions")
+    teacher = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="conducted_exam_sessions",
+        limit_choices_to={"role": "teacher"},
+    )
+    attendance_date = models.DateField(default=timezone.localdate)
+    exam_date = models.DateField(default=timezone.localdate)
+    lesson_number_reference = models.PositiveIntegerField(default=0)
+    exam_sequence_number = models.PositiveIntegerField(default=1)
+    teacher_decision = models.CharField(
+        max_length=10,
+        choices=DECISION_CHOICES,
+        default=DECISION_LATER,
+    )
+    decision_note = models.TextField(blank=True, default="")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_DRAFT)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_exam_sessions",
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="updated_exam_sessions",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-exam_date", "-id")
+        indexes = [
+            models.Index(fields=["center", "group", "exam_date"]),
+            models.Index(fields=["group", "lesson_number_reference"]),
+        ]
+
+    def __str__(self):
+        return f"{self.group.nom} - imtihon #{self.exam_sequence_number}"
+
+
+class ExamResult(models.Model):
+    FOLLOW_UP_NOT_REQUIRED = "not_required"
+    FOLLOW_UP_PENDING = "pending"
+    FOLLOW_UP_PARENT_CONTACTED = "parent_contacted"
+    FOLLOW_UP_SUPPORT_REQUIRED = "support_required"
+    FOLLOW_UP_REVIEWED = "reviewed"
+    FOLLOW_UP_CHOICES = (
+        (FOLLOW_UP_NOT_REQUIRED, "Talab etilmaydi"),
+        (FOLLOW_UP_PENDING, "Nazorat kerak"),
+        (FOLLOW_UP_PARENT_CONTACTED, "Ota-ona bilan bog‘lanilgan"),
+        (FOLLOW_UP_SUPPORT_REQUIRED, "Qo‘shimcha yordam kerak"),
+        (FOLLOW_UP_REVIEWED, "Ko‘rib chiqilgan"),
+    )
+
+    center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, related_name="exam_results")
+    session = models.ForeignKey("education.ExamSession", on_delete=models.CASCADE, related_name="results")
+    group = models.ForeignKey("education.Group", on_delete=models.CASCADE, related_name="exam_results")
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="exam_results",
+        limit_choices_to={"role": "student"},
+    )
+    teacher = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="entered_exam_results",
+        limit_choices_to={"role": "teacher"},
+    )
+
+    score = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    percent = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    passed = models.BooleanField(default=False)
+    teacher_comment = models.TextField(blank=True, default="")
+    assignment_description = models.TextField(blank=True, default="")
+    exam_date = models.DateField(default=timezone.localdate)
+    lesson_number_reference = models.PositiveIntegerField(default=0)
+    absent_in_exam = models.BooleanField(default=False)
+    retake_recommended = models.BooleanField(default=False)
+    fail_reason = models.CharField(max_length=255, blank=True, default="")
+    follow_up_status = models.CharField(
+        max_length=32,
+        choices=FOLLOW_UP_CHOICES,
+        default=FOLLOW_UP_NOT_REQUIRED,
+    )
+    follow_up_note = models.TextField(blank=True, default="")
+    follow_up_updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="exam_result_followups",
+    )
+    follow_up_updated_at = models.DateTimeField(null=True, blank=True)
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_exam_results",
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="updated_exam_results",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-exam_date", "-id")
+        unique_together = (("session", "student"),)
+        indexes = [
+            models.Index(fields=["center", "group", "exam_date"]),
+            models.Index(fields=["student", "exam_date"]),
+            models.Index(fields=["passed", "percent"]),
+            models.Index(fields=["follow_up_status", "exam_date"]),
+        ]
+
+    def __str__(self):
+        return f"{self.student.get_full_name()} / {self.group.nom} / {self.percent or 0}%"
+
+
+class ExamResultFile(models.Model):
+    FILE_WORK = "work"
+    FILE_TASK = "task"
+    FILE_OTHER = "other"
+    FILE_KIND_CHOICES = (
+        (FILE_WORK, "O‘quvchi ishi"),
+        (FILE_TASK, "Topshiriq fayli"),
+        (FILE_OTHER, "Boshqa"),
+    )
+
+    result = models.ForeignKey("education.ExamResult", on_delete=models.CASCADE, related_name="files")
+    file = models.FileField(upload_to=exam_upload_path)
+    file_kind = models.CharField(max_length=20, choices=FILE_KIND_CHOICES, default=FILE_WORK)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="uploaded_exam_files",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = "Imtihon fayli"
+        verbose_name_plural = "Imtihon fayllari"
+
+    def __str__(self):
+        return f"{self.result_id} - {self.file_kind}"
+
+
+class ExamSessionTaskFile(models.Model):
+    """
+    Sessiya darajasidagi (hamma o'quvchi uchun umumiy) task fayllar.
+    """
+    session = models.ForeignKey("education.ExamSession", on_delete=models.CASCADE, related_name="task_files")
+    file = models.FileField(upload_to=exam_upload_path)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="uploaded_exam_session_task_files",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = "Imtihon sessiya task fayli"
+        verbose_name_plural = "Imtihon sessiya task fayllari"
+
+    def __str__(self):
+        return f"Sessiya #{self.session_id} task fayli"
+
+
+class EducationAuditLog(models.Model):
+    center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, related_name="education_audit_logs")
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="education_audit_actions",
+    )
+    action_type = models.CharField(max_length=100)
+    entity_type = models.CharField(max_length=100, blank=True, default="")
+    entity_id = models.CharField(max_length=64, blank=True, default="")
+    message = models.TextField(blank=True, default="")
+    payload = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["center", "created_at"]),
+            models.Index(fields=["action_type", "created_at"]),
+        ]
+        verbose_name = "Education audit log"
+        verbose_name_plural = "Education audit logs"
+
+    def __str__(self):
+        return f"{self.action_type} ({self.entity_type}:{self.entity_id})"
+
+
+class GroupInternalRankingSnapshot(models.Model):
+    """
+    Guruh ichki faollik reytingi uchun kundalik snapshot.
+    Global chaqmoq reytingidan alohida saqlanadi.
+    """
+    center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, related_name="group_ranking_snapshots")
+    group = models.ForeignKey("education.Group", on_delete=models.CASCADE, related_name="internal_ranking_snapshots")
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="internal_group_rankings",
+        limit_choices_to={"role": "student"},
+    )
+    snapshot_date = models.DateField(default=timezone.localdate)
+    rank_position = models.PositiveIntegerField(default=0)
+
+    attendance_score = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    activity_score = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    exam_score = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    homework_score = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    discipline_score = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    lightning_bonus_score = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    total_internal_score = models.DecimalField(max_digits=7, decimal_places=2, default=0)
+
+    explanation_text = models.TextField(blank=True, default="")
+    metadata = models.JSONField(default=dict, blank=True)
+    calculated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="calculated_group_rankings",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("snapshot_date", "rank_position", "id")
+        unique_together = (("group", "student", "snapshot_date"),)
+        indexes = [
+            models.Index(fields=["group", "snapshot_date", "rank_position"]),
+            models.Index(fields=["student", "snapshot_date"]),
+        ]
+        verbose_name = "Guruh ichki reyting snapshoti"
+        verbose_name_plural = "Guruh ichki reyting snapshotlari"
+
+    def __str__(self):
+        return f"{self.group.nom} / {self.student.get_full_name()} / #{self.rank_position}"
+
+
+class StudentAcademicSummary(models.Model):
+    RECOMMENDATION_ELIGIBLE = "eligible"
+    RECOMMENDATION_NEEDS_REVIEW = "needs_review"
+    RECOMMENDATION_NOT_ELIGIBLE = "not_eligible"
+    RECOMMENDATION_CHOICES = (
+        (RECOMMENDATION_ELIGIBLE, "Mos"),
+        (RECOMMENDATION_NEEDS_REVIEW, "Ko‘rib chiqish kerak"),
+        (RECOMMENDATION_NOT_ELIGIBLE, "Mos emas"),
+    )
+
+    center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, related_name="academic_summaries")
+    group = models.ForeignKey("education.Group", on_delete=models.CASCADE, related_name="academic_summaries")
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="academic_summaries",
+        limit_choices_to={"role": "student"},
+    )
+
+    exam_count = models.PositiveIntegerField(default=0)
+    average_score = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    average_percent = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    pass_count = models.PositiveIntegerField(default=0)
+    fail_count = models.PositiveIntegerField(default=0)
+    pass_rate_percent = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+
+    attendance_total_lessons = models.PositiveIntegerField(default=0)
+    attendance_present_lessons = models.PositiveIntegerField(default=0)
+    attendance_percent = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+
+    internal_rank_position = models.PositiveIntegerField(null=True, blank=True)
+    internal_rank_score = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    completion_recommendation = models.CharField(
+        max_length=20,
+        choices=RECOMMENDATION_CHOICES,
+        default=RECOMMENDATION_NEEDS_REVIEW,
+    )
+    recommendation_reason = models.TextField(blank=True, default="")
+    ranking_explanation = models.TextField(blank=True, default="")
+    metadata = models.JSONField(default=dict, blank=True)
+
+    calculated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="calculated_academic_summaries",
+    )
+    calculated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = (("group", "student"),)
+        ordering = ("group", "student")
+        indexes = [
+            models.Index(fields=["center", "completion_recommendation"]),
+            models.Index(fields=["student", "group"]),
+        ]
+        verbose_name = "Akademik yakuniy xulosa"
+        verbose_name_plural = "Akademik yakuniy xulosalar"
+
+    def __str__(self):
+        return f"{self.student.get_full_name()} / {self.group.nom} / {self.completion_recommendation}"
+
+
+def certificate_template_upload_path(instance, filename):
+    center_id = getattr(instance, "center_id", "unknown")
+    return f"education/certificate_templates/{center_id}/{timezone.localdate().year}/{filename}"
+
+
+def certificate_pdf_upload_path(instance, filename):
+    center_id = getattr(instance, "center_id", "unknown")
+    return f"education/certificates/{center_id}/{timezone.localdate().year}/{filename}"
+
+
+class CertificateTemplate(models.Model):
+    TYPE_CERTIFICATE = "certificate"
+    TYPE_DIPLOMA = "diploma"
+    TYPE_CHOICES = (
+        (TYPE_CERTIFICATE, "Sertifikat"),
+        (TYPE_DIPLOMA, "Diplom"),
+    )
+
+    center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, related_name="certificate_templates")
+    name = models.CharField(max_length=150)
+    template_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default=TYPE_CERTIFICATE)
+    template_file = models.FileField(upload_to=certificate_template_upload_path, db_column="file")
+    is_active = models.BooleanField(default=True)
+    note = models.CharField(max_length=255, blank=True, default="")
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="uploaded_certificate_templates",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated_at", "-id")
+        indexes = [
+            models.Index(fields=["center", "template_type", "is_active"]),
+        ]
+        verbose_name = "Sertifikat shabloni"
+        verbose_name_plural = "Sertifikat shablonlari"
+
+    def __str__(self):
+        return f"{self.center.name} / {self.template_type} / {self.name}"
+
+
+class CertificateRecord(models.Model):
+    STATUS_DRAFT = "draft"
+    STATUS_ISSUED = "issued"
+    STATUS_REVOKED = "revoked"
+    STATUS_CHOICES = (
+        (STATUS_DRAFT, "Qoralama"),
+        (STATUS_ISSUED, "Berilgan"),
+        (STATUS_REVOKED, "Bekor qilingan"),
+    )
+
+    TYPE_CERTIFICATE = "certificate"
+    TYPE_DIPLOMA = "diploma"
+    TYPE_CHOICES = (
+        (TYPE_CERTIFICATE, "Sertifikat"),
+        (TYPE_DIPLOMA, "Diplom"),
+    )
+
+    center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, related_name="certificates")
+    group = models.ForeignKey("education.Group", on_delete=models.CASCADE, related_name="certificates")
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="certificates",
+        limit_choices_to={"role": "student"},
+    )
+    template = models.ForeignKey(
+        "education.CertificateTemplate",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="certificates",
+    )
+    summary = models.ForeignKey(
+        "education.StudentAcademicSummary",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="certificates",
+    )
+    certificate_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default=TYPE_CERTIFICATE)
+    certificate_number = models.CharField(max_length=64, unique=True)
+    verification_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    issue_date = models.DateField(default=timezone.localdate)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_DRAFT)
+    recommendation_status = models.CharField(
+        max_length=20,
+        choices=StudentAcademicSummary.RECOMMENDATION_CHOICES,
+        default=StudentAcademicSummary.RECOMMENDATION_NEEDS_REVIEW,
+    )
+    recommendation_reason = models.TextField(blank=True, default="")
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="approved_certificates",
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+    issued_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="issued_certificates",
+    )
+    issued_at = models.DateTimeField(null=True, blank=True)
+    pdf_file = models.FileField(upload_to=certificate_pdf_upload_path, null=True, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    note = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+        indexes = [
+            models.Index(fields=["center", "group", "status"]),
+            models.Index(fields=["certificate_number"]),
+            models.Index(fields=["student", "group"]),
+        ]
+        verbose_name = "Sertifikat yozuvi"
+        verbose_name_plural = "Sertifikat yozuvlari"
+
+    def __str__(self):
+        return f"{self.certificate_number} / {self.student.get_full_name()}"
+
+
+class CertificateVerificationLog(models.Model):
+    certificate = models.ForeignKey("education.CertificateRecord", on_delete=models.CASCADE, related_name="verification_logs")
+    verified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="certificate_verification_logs",
+    )
+    ip_address = models.CharField(max_length=64, blank=True, default="")
+    user_agent = models.TextField(blank=True, default="")
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["created_at"]),
+        ]
+        verbose_name = "Sertifikat tekshiruv jurnali"
+        verbose_name_plural = "Sertifikat tekshiruv jurnallari"
+
+    def __str__(self):
+        return f"verify {self.certificate.certificate_number} at {self.created_at}"
+
+
+class GroupClosureWorkflow(models.Model):
+    STATUS_OPEN = "open"
+    STATUS_CONTINUE = "continue"
+    STATUS_REMIND_LATER = "remind_later"
+    STATUS_CLOSED = "closed"
+    STATUS_CHOICES = (
+        (STATUS_OPEN, "Ochiq"),
+        (STATUS_CONTINUE, "Davom etadi"),
+        (STATUS_REMIND_LATER, "Keyinroq eslatilsin"),
+        (STATUS_CLOSED, "Yopilgan"),
+    )
+
+    center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, related_name="group_closure_workflows")
+    group = models.OneToOneField("education.Group", on_delete=models.CASCADE, related_name="closure_workflow")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_OPEN)
+    decision_date = models.DateField(null=True, blank=True)
+    reminder_date = models.DateField(null=True, blank=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+    closed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="closed_group_workflows",
+    )
+    note = models.TextField(blank=True, default="")
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated_at", "-id")
+        indexes = [
+            models.Index(fields=["center", "status"]),
+            models.Index(fields=["decision_date"]),
+        ]
+        verbose_name = "Guruh yopish jarayoni"
+        verbose_name_plural = "Guruh yopish jarayonlari"
+
+    def __str__(self):
+        return f"{self.group.nom} / {self.status}"

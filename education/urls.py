@@ -69,6 +69,47 @@ urlpatterns = [
     path("guruh/<int:pk>/points/", views.group_points, name="group_points"),
     path("attendance/toggle/", views.toggle_attendance, name="toggle_attendance"),
 
+    # === 🧪 Imtihon moduli ===
+    path("exam/settings/", views.exam_settings_view, name="exam_settings"),
+    path("exam/reminder/<int:group_id>/action/", views.exam_reminder_action, name="exam_reminder_action"),
+    path("exam/sessions/<int:session_id>/", views.exam_session_entry, name="exam_session_entry"),
+    path("exam/sessions/<int:session_id>/detail/", views.exam_session_detail, name="exam_session_detail"),
+    path("exam/groups/<int:group_id>/history/", views.group_exam_history, name="group_exam_history"),
+    path("exam/groups/<int:group_id>/internal-ranking/", views.group_internal_ranking, name="group_internal_ranking"),
+    path(
+        "exam/groups/<int:group_id>/completion-recommendations/",
+        views.group_completion_recommendations,
+        name="group_completion_recommendations",
+    ),
+    path("exam/groups/<int:group_id>/closure/action/", views.group_closure_action, name="group_closure_action"),
+    path("exam/teacher-history/", views.teacher_exam_history, name="teacher_exam_history"),
+    path("exam/failed-students/", views.failed_students_list, name="failed_students_list"),
+
+    # === 🎓 Certificate / Diploma moduli ===
+    path("certificates/templates/", views.certificate_templates_view, name="certificate_templates"),
+    path(
+        "certificates/templates/<int:template_id>/activate/",
+        views.certificate_template_activate,
+        name="certificate_template_activate",
+    ),
+    path(
+        "certificates/groups/<int:group_id>/candidates/",
+        views.group_certificate_candidates,
+        name="group_certificate_candidates",
+    ),
+    path(
+        "certificates/groups/<int:group_id>/students/<int:student_id>/issue/",
+        views.issue_certificate_action,
+        name="issue_certificate_action",
+    ),
+    path("certificates/<int:certificate_id>/", views.certificate_detail, name="certificate_detail"),
+    path(
+        "certificates/<int:certificate_id>/pdf/",
+        views.certificate_download_pdf,
+        name="certificate_download_pdf",
+    ),
+    path("certificates/verify/<str:certificate_number>/", views.certificate_verify, name="certificate_verify"),
+
     # === 💰 O‘QITUVCHI HISOBLARI ===
     path("teacher-salary/", views.teacher_salary_list, name="teacher_salary_list"),
     path("teacher-salary/<int:teacher_id>/", views.teacher_groups, name="teacher_groups"),
@@ -86,6 +127,7 @@ urlpatterns = [
 
     # === 🧍‍♂️ O‘QUVCHILAR ===
     path("student/<int:student_id>/", views.student_detail, name="student_detail"),
+    path("student/<int:student_id>/exam-report/", views.student_exam_report, name="student_exam_report"),
     path("kiritish/<int:pk>/olib-tashlash/", views.enrollment_remove, name="enrollment_remove"),
     path('guruhlar/<int:category_id>/', views.category_detail, name='category_detail'),
     # Guruh yaratish bo‘lim asosida
