@@ -719,10 +719,17 @@ def dashboard_parent(request):
 def toggle_child(request, student_id):
     if getattr(request.user, "role", None) != "parent":
         raise PermissionDenied
-    
-    student = get_object_or_404(User, pk=student_id, role="student")
+
+    center = _get_center(request)
+    student_qs = User.objects.filter(role="student")
+    if center:
+        student_qs = student_qs.filter(center=center)
+    student = get_object_or_404(student_qs, pk=student_id)
+
     parent = request.user
-    
+    if center and parent.center_id and student.center_id != parent.center_id:
+        raise PermissionDenied
+
     if student in parent.children.all():
         parent.children.remove(student)
         messages.warning(request, f"{student.get_full_name()} farzandlaringiz safidan olib tashlandi.")
@@ -1465,6 +1472,14 @@ def _process_user_import(request, role="student"):
     if not f:
         messages.error(request, "Excel fayl tanlanmadi.")
         return redirect(success_url)
+    file_name = (getattr(f, "name", "") or "").lower()
+    if not file_name.endswith(".xlsx"):
+        messages.error(request, "Faqat .xlsx formatdagi faylga ruxsat beriladi.")
+        return redirect(success_url)
+    max_size_bytes = 10 * 1024 * 1024
+    if getattr(f, "size", 0) > max_size_bytes:
+        messages.error(request, "Fayl hajmi 10MB dan katta bo'lmasligi kerak.")
+        return redirect(success_url)
 
     try:
         wb = load_workbook(filename=f, data_only=True)
@@ -1477,7 +1492,7 @@ def _process_user_import(request, role="student"):
                     break
     except Exception as e:
         logger.error(f"Excel load error for center {center.id}: {e}")
-        messages.error(request, f"Excel faylni o'qishda xatolik: {str(e)[:100]}")
+        messages.error(request, "Excel faylni o'qishda xatolik yuz berdi.")
         return redirect(success_url)
 
     all_rows = list(ws.iter_rows(values_only=True))
@@ -1750,6 +1765,12 @@ def stat_users_export_excel(request):
     if role == "student":
         rows = rows.annotate(jami_chaqmoq=Sum("ledger__ball"))
 
+    def _excel_safe(value):
+        text = "" if value is None else str(value)
+        if text.startswith(("=", "+", "-", "@")):
+            return f"'{text}"
+        return text
+
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = role.capitalize() + "lar"
@@ -1781,21 +1802,32 @@ def stat_users_export_excel(request):
             g_disp = gender_map.get(u.gender, "")
             
             ws.append([
-                u.ism, u.familya, u.otchestvo or "", 
-                u.telefon1 or "", u.telefon2 or "", 
-                u.birth_date.strftime("%Y-%m-%d") if u.birth_date else "",
-                g_disp, 
-                u.email, "***", u.jami_chaqmoq or 0
+                _excel_safe(u.ism),
+                _excel_safe(u.familya),
+                _excel_safe(u.otchestvo or ""),
+                _excel_safe(u.telefon1 or ""),
+                _excel_safe(u.telefon2 or ""),
+                _excel_safe(u.birth_date.strftime("%Y-%m-%d") if u.birth_date else ""),
+                _excel_safe(g_disp),
+                _excel_safe(u.email),
+                "***",
+                u.jami_chaqmoq or 0,
             ])
         else:
             ws.append([
-                u.ism, u.familya, u.otchestvo or "", 
-                u.telefon1 or "", u.telefon2 or "", 
-                u.birth_date.strftime("%Y-%m-%d") if u.birth_date else "",
-                u.email, "***"
+                _excel_safe(u.ism),
+                _excel_safe(u.familya),
+                _excel_safe(u.otchestvo or ""),
+                _excel_safe(u.telefon1 or ""),
+                _excel_safe(u.telefon2 or ""),
+                _excel_safe(u.birth_date.strftime("%Y-%m-%d") if u.birth_date else ""),
+                _excel_safe(u.email),
+                "***",
             ])
 
-    filename = f"{role.capitalize()}s_{center.name}"
+    safe_center_name = "".join(ch for ch in (center.name or "") if ch.isalnum() or ch in ("-", "_", " "))
+    safe_center_name = safe_center_name.strip() or f"center-{center.id}"
+    filename = f"{role.capitalize()}s_{safe_center_name}"
     if status == "archived":
         filename += "_Arxiv"
     
@@ -1987,7 +2019,6 @@ def profile_view(request):
 from core.models import Notification
 
 @login_required
-@login_required
 def notifications_view(request):
     from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
     
@@ -2035,9 +2066,17 @@ def notification_broadcast(request):
         return redirect("core:home")
 
     if request.method == "POST":
-        target = request.POST.get("target") # 'students', 'teachers', 'all'
-        message = request.POST.get("message")
-        title = request.POST.get("title", "Muhim xabar")
+        target = (request.POST.get("target") or "").strip()
+        message = (request.POST.get("message") or "").strip()
+        title = (request.POST.get("title") or "Muhim xabar").strip()
+
+        allowed_targets = {"students", "students_parents", "teachers", "all"}
+        if target not in allowed_targets:
+            messages.error(request, "Noto'g'ri qabul qiluvchi turi.")
+            return redirect("core:notifications")
+        if not message:
+            messages.error(request, "Xabar matni bo'sh bo'lmasligi kerak.")
+            return redirect("core:notifications")
         
         center = _get_center(request)
         if not center:
@@ -2076,7 +2115,7 @@ def notification_broadcast(request):
                 sender=request.user,
                 center=center,
                 title=f"Yuborildi: {title}",
-                message=f"<b>Kimlarga:</b> {target}<br>{message}",
+                message=f"Kimlarga: {target}\n{message}",
                 type='broadcast',
                 is_read=True
             )

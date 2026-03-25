@@ -458,7 +458,7 @@
             <td>{{ forloop.counter }}</td>
             <td class="fw-semibold text-info name">{{ g.nom }}</td>
             <td>{{ g.oqituvchi|default:"—" }}</td>
-            <td>{{ g.students.count }}</td>
+            <td>{{ g.students_count }}</td>
             <td>{{ g.sana|date:"d.m.Y" }}</td>
 
             {% if can_manage %}
@@ -500,7 +500,7 @@
         </div>
         <div class="m-row">
           <span class="m-k">O‘quvchilar</span>
-          <span class="m-v">{{ g.students.count }}</span>
+          <span class="m-v">{{ g.students_count }}</span>
         </div>
       </div>
 

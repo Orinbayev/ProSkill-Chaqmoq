@@ -183,7 +183,7 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
 # Bot Configuration
 BOT_INTERNAL_API_URL = os.getenv("BOT_INTERNAL_API_URL", "http://127.0.0.1:8080")
-API_SECRET = os.getenv("API_SECRET", "7d8a9c1e2f3b4a5d6e7f8g9h0i1j2k3l4m5n6o7p8q9r0s1t2u3v4w5x6y7z8a9b")
+API_SECRET = os.getenv("API_SECRET", "")
 
 
 MEDIA_URL = "/media/"
@@ -203,7 +203,7 @@ LOGGING = {
 # ==================== CLICK PAYMENT ====================
 CLICK_SERVICE_ID = os.getenv("CLICK_SERVICE_ID", "36302")
 CLICK_MERCHANT_ID = os.getenv("CLICK_MERCHANT_ID", "36302")
-CLICK_SECRET_KEY = os.getenv("CLICK_SECRET_KEY", "tFFjf4jX2kn9OJ69Ex")
+CLICK_SECRET_KEY = os.getenv("CLICK_SECRET_KEY", "")
 
 # Return URLs for browser redirect
 _CLICK_DEFAULT_RETURN_URL = (

@@ -1,5 +1,6 @@
+from django.core.cache import cache
 from django.db.models import Sum, Count, F, Q, Avg
-from django.db.models.functions import TruncMonth, TruncDay
+from django.db.models.functions import ExtractMonth, ExtractYear, TruncMonth, TruncDay
 from django.utils import timezone
 from datetime import timedelta, datetime
 from django.http import JsonResponse
@@ -29,6 +30,10 @@ class DirectorDashboardAPIView(View):
                 return JsonResponse({'error': 'Center not found'}, status=404)
 
             period = request.GET.get('period', 'this_month')
+            cache_key = f"director_dashboard:v2:center:{center.id}:period:{period}"
+            cached_payload = cache.get(cache_key)
+            if cached_payload is not None:
+                return JsonResponse(cached_payload)
             
             now = timezone.localtime(timezone.now())
             today = now.date()
@@ -90,6 +95,7 @@ class DirectorDashboardAPIView(View):
             # though usually they are in their own keys
             data['marketing'] = data['charts']['marketing'] 
             data['plans'] = self.get_plans_stats(center, start_date, end_date)
+            cache.set(cache_key, data, timeout=30)
             
             return JsonResponse(data)
         except Exception as e:
@@ -401,12 +407,58 @@ class DirectorDashboardAPIView(View):
         from django.db import models
         import calendar
         from datetime import date
+
+        # Pre-aggregate monthly stats once to avoid repeated per-month queries.
+        if months_to_query:
+            month_starts_for_range = [date(y, m, 1) for m, y in months_to_query]
+            agg_start = min(month_starts_for_range)
+            agg_end_month_start = max(month_starts_for_range)
+            if agg_end_month_start.month == 12:
+                agg_end = date(agg_end_month_start.year + 1, 1, 1) - timedelta(days=1)
+            else:
+                agg_end = date(agg_end_month_start.year, agg_end_month_start.month + 1, 1) - timedelta(days=1)
+        else:
+            agg_start = start
+            agg_end = end
+
+        income_rows = (
+            Payment.objects
+            .filter(center=center, paid_date__range=(agg_start, agg_end))
+            .annotate(y=ExtractYear("paid_date"), m=ExtractMonth("paid_date"))
+            .values("y", "m")
+            .annotate(total=Sum("summa"), students=Count("student", distinct=True))
+        )
+        income_map = {(r["y"], r["m"]): int(r["total"] or 0) for r in income_rows}
+        income_students_map = {(r["y"], r["m"]): int(r["students"] or 0) for r in income_rows}
+
+        expense_rows = (
+            Expense.objects
+            .filter(center=center, sana__date__range=(agg_start, agg_end))
+            .annotate(y=ExtractYear("sana"), m=ExtractMonth("sana"))
+            .values("y", "m")
+            .annotate(total=Sum("summa"))
+        )
+        expense_map = {(r["y"], r["m"]): int(r["total"] or 0) for r in expense_rows}
+
+        new_students_rows = (
+            User.objects
+            .filter(
+                center=center,
+                role="student",
+                is_archived=False,
+                date_joined__date__range=(agg_start, agg_end),
+            )
+            .annotate(y=ExtractYear("date_joined"), m=ExtractMonth("date_joined"))
+            .values("y", "m")
+            .annotate(total=Count("id"))
+        )
+        new_students_map = {(r["y"], r["m"]): int(r["total"] or 0) for r in new_students_rows}
         
         for m, y in months_to_query:
             labels.append(f"{uz_months[m]} {y}" if y != now.year else uz_months[m])
-            
-            inc = Payment.objects.filter(center=center, paid_date__year=y, paid_date__month=m).aggregate(s=Sum('summa'))['s'] or 0
-            exp = Expense.objects.filter(center=center, sana__year=y, sana__month=m).aggregate(s=Sum('summa'))['s'] or 0
+
+            inc = income_map.get((y, m), 0)
+            exp = expense_map.get((y, m), 0)
             
             end_date = date(y, m, calendar.monthrange(y, m)[1])
             
@@ -437,13 +489,8 @@ class DirectorDashboardAPIView(View):
             m_debt = calculated_qs.filter(d__gt=0).aggregate(total=Sum("d"))["total"] or 0
             m_debt_st = calculated_qs.filter(d__gt=0).values('student').distinct().count()
             
-            inc_st = Payment.objects.filter(
-                center=center, 
-                paid_date__year=y, 
-                paid_date__month=m
-            ).values('student').distinct().count()
-
-            new_st = User.objects.filter(center=center, role='student', date_joined__year=y, date_joined__month=m, is_archived=False).count()
+            inc_st = income_students_map.get((y, m), 0)
+            new_st = new_students_map.get((y, m), 0)
             
             income.append(int(inc))
             expenses.append(int(exp))
@@ -483,21 +530,36 @@ class StudentChartAPIView(View):
             except ValueError:
                 year = timezone.localtime(timezone.now()).year
 
+            cache_key = f"student_chart:v2:center:{center.id}:year:{year}"
+            cached_payload = cache.get(cache_key)
+            if cached_payload is not None:
+                return JsonResponse(cached_payload)
+
             uz_months = {1: 'Yanvar', 2: 'Fevral', 3: 'Mart', 4: 'Aprel', 5: 'May', 6: 'Iyun', 
                          7: 'Iyul', 8: 'Avgust', 9: 'Sentabr', 10: 'Oktabr', 11: 'Noyabr', 12: 'Dekabr'}
             
             labels = []
             new_students = []
-            
+
+            monthly_counts = (
+                User.objects
+                .filter(center=center, role='student', is_archived=False, date_joined__year=year)
+                .annotate(month=ExtractMonth('date_joined'))
+                .values('month')
+                .annotate(total=Count('id'))
+            )
+            month_map = {row['month']: row['total'] for row in monthly_counts}
+
             for m in range(1, 13):
                 labels.append(uz_months[m])
-                new_st = User.objects.filter(center=center, role='student', date_joined__year=year, date_joined__month=m, is_archived=False).count()
-                new_students.append(new_st)
-            
-            return JsonResponse({
+                new_students.append(int(month_map.get(m, 0)))
+
+            payload = {
                 'labels': labels,
                 'new_students': new_students
-            })
+            }
+            cache.set(cache_key, payload, timeout=300)
+            return JsonResponse(payload)
         except Exception as e:
             import traceback
             logger.error(traceback.format_exc())

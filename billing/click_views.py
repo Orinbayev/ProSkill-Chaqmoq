@@ -40,6 +40,17 @@ def _is_demo_center(center) -> bool:
     return bool(center and getattr(center, "is_demo", False))
 
 
+def _client_ip(request) -> str:
+    return request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip() or request.META.get("REMOTE_ADDR", "")
+
+
+def _is_allowed_click_source(request) -> bool:
+    allowed_ips = list(getattr(settings, "CLICK_ALLOWED_IPS", []) or [])
+    if not allowed_ips:
+        return True
+    return _client_ip(request) in allowed_ips
+
+
 def _click_response(
     *,
     error: int,
@@ -484,7 +495,7 @@ def click_prepare(request):
     sign_string = _request_value(data, "sign_string", "signature", "sign")
 
     current_host = request.get_host()
-    client_ip = request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip() or request.META.get("REMOTE_ADDR", "")
+    client_ip = _client_ip(request)
 
     logger.info(
         "[CLICK] PREPARE received: host=%s ip=%s merchant_trans_id=%s click_trans_id=%s amount=%s",
@@ -497,9 +508,16 @@ def click_prepare(request):
             "ok": True,
             "message": "Click PREPARE endpoint is active at root level.",
             "hint": "Click must send a POST request with payload. Browser GET is for diagnostics only.",
-            "service_id": getattr(settings, "CLICK_SERVICE_ID", "not_set"),
-            "merchant_id": getattr(settings, "CLICK_MERCHANT_ID", "not_set"),
         })
+
+    if not _is_allowed_click_source(request):
+        logger.warning("[CLICK] PREPARE rejected: IP not allowed ip=%s", client_ip)
+        return _click_response(
+            error=ClickError.REQUEST_ERROR,
+            error_note="Source IP is not allowed",
+            click_trans_id=click_trans_id,
+            merchant_trans_id=merchant_trans_id,
+        )
 
     if not data:
         logger.warning("[CLICK] PREPARE rejected: empty payload")
@@ -524,7 +542,7 @@ def click_prepare(request):
         logger.warning("[CLICK] PREPARE rejected: invalid request %s", str(e))
         return _click_response(
             error=ClickError.REQUEST_ERROR,
-            error_note=str(e),
+            error_note="Invalid request",
             click_trans_id=click_trans_id,
             merchant_trans_id=merchant_trans_id,
         )
@@ -576,6 +594,14 @@ def click_prepare(request):
 
     # Signature Validation
     secret_key = str(getattr(settings, "CLICK_SECRET_KEY", "")).strip()
+    if not secret_key:
+        logger.error("[CLICK] PREPARE rejected: CLICK_SECRET_KEY is empty")
+        return _click_response(
+            error=ClickError.REQUEST_ERROR,
+            error_note="Payment gateway misconfigured",
+            click_trans_id=click_trans_id,
+            merchant_trans_id=resolved_merchant_trans_id,
+        )
     sign_ok = verify_click_signature(
         sign_string=sign_string,
         click_trans_id=click_trans_id,
@@ -648,7 +674,7 @@ def click_complete(request):
     sign_string = _request_value(data, "sign_string", "signature", "sign")
 
     current_host = request.get_host()
-    client_ip = request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip() or request.META.get("REMOTE_ADDR", "")
+    client_ip = _client_ip(request)
 
     logger.info(
         "[CLICK] COMPLETE received: host=%s ip=%s merchant_trans_id=%s click_trans_id=%s amount=%s",
@@ -661,9 +687,16 @@ def click_complete(request):
             "ok": True,
             "message": "Click COMPLETE endpoint is active at root level.",
             "hint": "Click must send a POST request with payload. Browser GET is for diagnostics only.",
-            "service_id": getattr(settings, "CLICK_SERVICE_ID", "not_set"),
-            "merchant_id": getattr(settings, "CLICK_MERCHANT_ID", "not_set"),
         })
+
+    if not _is_allowed_click_source(request):
+        logger.warning("[CLICK] COMPLETE rejected: IP not allowed ip=%s", client_ip)
+        return _click_response(
+            error=ClickError.REQUEST_ERROR,
+            error_note="Source IP is not allowed",
+            click_trans_id=click_trans_id,
+            merchant_trans_id=merchant_trans_id,
+        )
 
     if not data:
         logger.warning("[CLICK] COMPLETE rejected: empty payload")
@@ -688,7 +721,7 @@ def click_complete(request):
         logger.warning("[CLICK] COMPLETE rejected: invalid request %s", str(e))
         return _click_response(
             error=ClickError.REQUEST_ERROR,
-            error_note=str(e),
+            error_note="Invalid request",
             click_trans_id=click_trans_id,
             merchant_trans_id=merchant_trans_id,
         )
@@ -740,6 +773,14 @@ def click_complete(request):
 
     # Signature Validation
     secret_key = str(getattr(settings, "CLICK_SECRET_KEY", "")).strip()
+    if not secret_key:
+        logger.error("[CLICK] COMPLETE rejected: CLICK_SECRET_KEY is empty")
+        return _click_response(
+            error=ClickError.REQUEST_ERROR,
+            error_note="Payment gateway misconfigured",
+            click_trans_id=click_trans_id,
+            merchant_trans_id=resolved_merchant_trans_id,
+        )
     sign_ok = verify_click_signature(
         sign_string=sign_string,
         click_trans_id=click_trans_id,

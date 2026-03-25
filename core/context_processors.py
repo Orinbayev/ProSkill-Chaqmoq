@@ -6,6 +6,8 @@
 # • is_superadmin context flag — sidebar va template uchun
 # ────────────────────────────────────────────────────────────
 import logging
+from django.core.cache import cache
+from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 
@@ -41,12 +43,31 @@ def tenant_context(request):
                 get_feature_flags,
                 ensure_center_subscription,
             )
-            # Only ensure/refresh if not superadmin (superadmins just view)
+            # Only ensure/refresh if not superadmin (superadmins just view).
+            # Throttle to avoid repeating heavy checks on every request.
             if not is_super:
-                ensure_center_subscription(center)
-            
-            sub_ui = get_subscription_ui_state(center)
-            features = get_feature_flags(center)
+                now_ts = int(timezone.now().timestamp())
+                last_ensure = int(request.session.get("_sub_ensure_ts", 0) or 0)
+                if now_ts - last_ensure > 600:
+                    ensure_center_subscription(center)
+                    request.session["_sub_ensure_ts"] = now_ts
+
+            sub_cache_key = f"tenant_ctx:sub:{center.id}"
+            cached_sub_data = cache.get(sub_cache_key)
+            if cached_sub_data:
+                sub_ui = cached_sub_data.get("sub_ui")
+                features = set(cached_sub_data.get("features", []))
+            else:
+                sub_ui = get_subscription_ui_state(center)
+                features = get_feature_flags(center)
+                cache.set(
+                    sub_cache_key,
+                    {
+                        "sub_ui": sub_ui,
+                        "features": sorted(features),
+                    },
+                    timeout=30,
+                )
         except Exception as e:
             logger.warning(f"tenant_context subscription error: {e}")
 
@@ -86,10 +107,23 @@ def tenant_context(request):
     latest_notifications = []
     try:
         from core.models import Notification
-        qs = Notification.objects.filter(recipient=user).order_by("-created_at")
-        # values_list avoids full model hydration for count
-        unread_count = qs.filter(is_read=False).count()
-        latest_notifications = list(qs[:5])
+        notif_cache_key = f"tenant_ctx:notif:{user.id}"
+        cached_notif = cache.get(notif_cache_key)
+        if cached_notif:
+            unread_count = int(cached_notif.get("unread_count", 0))
+            latest_notifications = cached_notif.get("latest_notifications", [])
+        else:
+            qs = Notification.objects.filter(recipient=user).order_by("-created_at")
+            unread_count = qs.filter(is_read=False).count()
+            latest_notifications = list(qs[:5])
+            cache.set(
+                notif_cache_key,
+                {
+                    "unread_count": unread_count,
+                    "latest_notifications": latest_notifications,
+                },
+                timeout=15,
+            )
     except Exception as e:
         logger.warning(f"tenant_context notification error: {e}")
 

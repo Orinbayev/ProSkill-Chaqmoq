@@ -1,0 +1,1028 @@
+{
+  "generated_at": "2026-03-25T16:40:28.539906Z",
+  "settings_debug": true,
+  "db_vendor": "sqlite",
+  "db_name": "/Users/amirxon/Desktop/ChaqmoqApp/db.sqlite3",
+  "center": {
+    "id": 38,
+    "name": "Chaqmoq Demo Center",
+    "slug": "demo-center"
+  },
+  "tenant_user": {
+    "id": 487,
+    "email": "director_demo@demo.chaqmoqapp.uz",
+    "role": "director",
+    "is_superuser": false
+  },
+  "superuser": {
+    "id": 1,
+    "email": "admin@gmail.cpm"
+  },
+  "runs_per_endpoint": 5,
+  "dataset": {
+    "users_total": 404,
+    "users_center": 41,
+    "groups_center": 6,
+    "enrollments_center": 29,
+    "payments_center": 30,
+    "attendance_center": 492,
+    "ledger_total": 5256,
+    "notifications_total": 5322,
+    "subscription_requests_center": 0
+  },
+  "endpoints": [
+    {
+      "name": "dashboard_home",
+      "method": "GET",
+      "path": "/demo-center/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 18.52,
+      "p95_response_ms": 19.09,
+      "avg_query_count": 22.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 78.05,
+      "avg_mem_peak_kb": 127.97,
+      "avg_mem_delta_kb": 145.54
+    },
+    {
+      "name": "students_list",
+      "method": "GET",
+      "path": "/demo-center/stat/students/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 27.13,
+      "p95_response_ms": 27.77,
+      "avg_query_count": 22.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 102.26,
+      "avg_mem_peak_kb": 247.77,
+      "avg_mem_delta_kb": 269.68
+    },
+    {
+      "name": "groups_list",
+      "method": "GET",
+      "path": "/demo-center/talim/groups/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 21.18,
+      "p95_response_ms": 21.44,
+      "avg_query_count": 17.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 66.88,
+      "avg_mem_peak_kb": 170.03,
+      "avg_mem_delta_kb": 192.23
+    },
+    {
+      "name": "attendance_groups",
+      "method": "GET",
+      "path": "/demo-center/talim/attendance/groups/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 24.29,
+      "p95_response_ms": 24.51,
+      "avg_query_count": 19.0,
+      "avg_query_ms": 2.0,
+      "avg_size_kb": 60.73,
+      "avg_mem_peak_kb": 197.32,
+      "avg_mem_delta_kb": 221.45
+    },
+    {
+      "name": "group_month_attendance",
+      "method": "GET",
+      "path": "/demo-center/talim/attendance/groups/50/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 36.68,
+      "p95_response_ms": 36.96,
+      "avg_query_count": 21.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 159.55,
+      "avg_mem_peak_kb": 271.83,
+      "avg_mem_delta_kb": 297.22
+    },
+    {
+      "name": "payments_list",
+      "method": "GET",
+      "path": "/demo-center/talim/tolovlar/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 41.24,
+      "p95_response_ms": 41.36,
+      "avg_query_count": 25.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 118.13,
+      "avg_mem_peak_kb": 383.19,
+      "avg_mem_delta_kb": 411.38
+    },
+    {
+      "name": "debtors_list",
+      "method": "GET",
+      "path": "/demo-center/talim/qarzdorlar/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 38.46,
+      "p95_response_ms": 39.44,
+      "avg_query_count": 18.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 114.67,
+      "avg_mem_peak_kb": 319.0,
+      "avg_mem_delta_kb": 341.76
+    },
+    {
+      "name": "notifications",
+      "method": "GET",
+      "path": "/demo-center/notifications/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 16.08,
+      "p95_response_ms": 21.14,
+      "avg_query_count": 17.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 56.72,
+      "avg_mem_peak_kb": 45.08,
+      "avg_mem_delta_kb": 120.7
+    },
+    {
+      "name": "chaqmoq_leaderboard",
+      "method": "GET",
+      "path": "/demo-center/chaqmoq/reyting/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 18.05,
+      "p95_response_ms": 18.3,
+      "avg_query_count": 18.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 62.81,
+      "avg_mem_peak_kb": 115.27,
+      "avg_mem_delta_kb": 132.19
+    },
+    {
+      "name": "chaqmoq_student_history",
+      "method": "GET",
+      "path": "/demo-center/chaqmoq/student/493/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 31.01,
+      "p95_response_ms": 31.29,
+      "avg_query_count": 21.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 67.68,
+      "avg_mem_peak_kb": 210.28,
+      "avg_mem_delta_kb": 233.14
+    },
+    {
+      "name": "billing_plans",
+      "method": "GET",
+      "path": "/demo-center/hisob/billing/plans/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 20.84,
+      "p95_response_ms": 21.54,
+      "avg_query_count": 23.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 77.67,
+      "avg_mem_peak_kb": 135.17,
+      "avg_mem_delta_kb": 158.46
+    },
+    {
+      "name": "billing_payment_status_api",
+      "method": "GET",
+      "path": "/demo-center/hisob/billing/api/payment-status/?ids=36",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 6.17,
+      "p95_response_ms": 6.25,
+      "avg_query_count": 8.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 0.06,
+      "avg_mem_peak_kb": 0.0,
+      "avg_mem_delta_kb": 47.06
+    },
+    {
+      "name": "director_dashboard_api",
+      "method": "GET",
+      "path": "/demo-center/api/director/dashboard/?period=all",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 5.82,
+      "p95_response_ms": 5.84,
+      "avg_query_count": 7.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 5.81,
+      "avg_mem_peak_kb": 1.99,
+      "avg_mem_delta_kb": 45.07
+    },
+    {
+      "name": "student_chart_api",
+      "method": "GET",
+      "path": "/demo-center/api/director/dashboard/students-chart/?year=2026",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 5.37,
+      "p95_response_ms": 5.5,
+      "avg_query_count": 7.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 0.17,
+      "avg_mem_peak_kb": 34.89,
+      "avg_mem_delta_kb": 44.33
+    },
+    {
+      "name": "superadmin_dashboard",
+      "method": "GET",
+      "path": "/platform/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 38.1,
+      "p95_response_ms": 39.17,
+      "avg_query_count": 41.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 178.78,
+      "avg_mem_peak_kb": 339.34,
+      "avg_mem_delta_kb": 362.46
+    },
+    {
+      "name": "superadmin_centers",
+      "method": "GET",
+      "path": "/platform/centers/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 20.46,
+      "p95_response_ms": 20.68,
+      "avg_query_count": 16.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 157.9,
+      "avg_mem_peak_kb": 277.85,
+      "avg_mem_delta_kb": 294.41
+    },
+    {
+      "name": "superadmin_center_stats",
+      "method": "GET",
+      "path": "/platform/centers/38/stats/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 11.48,
+      "p95_response_ms": 11.85,
+      "avg_query_count": 11.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 75.77,
+      "avg_mem_peak_kb": 16.6,
+      "avg_mem_delta_kb": 115.79
+    }
+  ],
+  "top_slowest_endpoints": [
+    {
+      "name": "payments_list",
+      "method": "GET",
+      "path": "/demo-center/talim/tolovlar/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 41.24,
+      "p95_response_ms": 41.36,
+      "avg_query_count": 25.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 118.13,
+      "avg_mem_peak_kb": 383.19,
+      "avg_mem_delta_kb": 411.38
+    },
+    {
+      "name": "debtors_list",
+      "method": "GET",
+      "path": "/demo-center/talim/qarzdorlar/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 38.46,
+      "p95_response_ms": 39.44,
+      "avg_query_count": 18.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 114.67,
+      "avg_mem_peak_kb": 319.0,
+      "avg_mem_delta_kb": 341.76
+    },
+    {
+      "name": "superadmin_dashboard",
+      "method": "GET",
+      "path": "/platform/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 38.1,
+      "p95_response_ms": 39.17,
+      "avg_query_count": 41.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 178.78,
+      "avg_mem_peak_kb": 339.34,
+      "avg_mem_delta_kb": 362.46
+    },
+    {
+      "name": "group_month_attendance",
+      "method": "GET",
+      "path": "/demo-center/talim/attendance/groups/50/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 36.68,
+      "p95_response_ms": 36.96,
+      "avg_query_count": 21.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 159.55,
+      "avg_mem_peak_kb": 271.83,
+      "avg_mem_delta_kb": 297.22
+    },
+    {
+      "name": "chaqmoq_student_history",
+      "method": "GET",
+      "path": "/demo-center/chaqmoq/student/493/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 31.01,
+      "p95_response_ms": 31.29,
+      "avg_query_count": 21.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 67.68,
+      "avg_mem_peak_kb": 210.28,
+      "avg_mem_delta_kb": 233.14
+    },
+    {
+      "name": "students_list",
+      "method": "GET",
+      "path": "/demo-center/stat/students/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 27.13,
+      "p95_response_ms": 27.77,
+      "avg_query_count": 22.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 102.26,
+      "avg_mem_peak_kb": 247.77,
+      "avg_mem_delta_kb": 269.68
+    },
+    {
+      "name": "attendance_groups",
+      "method": "GET",
+      "path": "/demo-center/talim/attendance/groups/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 24.29,
+      "p95_response_ms": 24.51,
+      "avg_query_count": 19.0,
+      "avg_query_ms": 2.0,
+      "avg_size_kb": 60.73,
+      "avg_mem_peak_kb": 197.32,
+      "avg_mem_delta_kb": 221.45
+    },
+    {
+      "name": "groups_list",
+      "method": "GET",
+      "path": "/demo-center/talim/groups/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 21.18,
+      "p95_response_ms": 21.44,
+      "avg_query_count": 17.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 66.88,
+      "avg_mem_peak_kb": 170.03,
+      "avg_mem_delta_kb": 192.23
+    },
+    {
+      "name": "billing_plans",
+      "method": "GET",
+      "path": "/demo-center/hisob/billing/plans/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 20.84,
+      "p95_response_ms": 21.54,
+      "avg_query_count": 23.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 77.67,
+      "avg_mem_peak_kb": 135.17,
+      "avg_mem_delta_kb": 158.46
+    },
+    {
+      "name": "superadmin_centers",
+      "method": "GET",
+      "path": "/platform/centers/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 20.46,
+      "p95_response_ms": 20.68,
+      "avg_query_count": 16.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 157.9,
+      "avg_mem_peak_kb": 277.85,
+      "avg_mem_delta_kb": 294.41
+    }
+  ],
+  "top_query_heavy_endpoints": [
+    {
+      "name": "superadmin_dashboard",
+      "method": "GET",
+      "path": "/platform/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 38.1,
+      "p95_response_ms": 39.17,
+      "avg_query_count": 41.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 178.78,
+      "avg_mem_peak_kb": 339.34,
+      "avg_mem_delta_kb": 362.46
+    },
+    {
+      "name": "payments_list",
+      "method": "GET",
+      "path": "/demo-center/talim/tolovlar/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 41.24,
+      "p95_response_ms": 41.36,
+      "avg_query_count": 25.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 118.13,
+      "avg_mem_peak_kb": 383.19,
+      "avg_mem_delta_kb": 411.38
+    },
+    {
+      "name": "billing_plans",
+      "method": "GET",
+      "path": "/demo-center/hisob/billing/plans/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 20.84,
+      "p95_response_ms": 21.54,
+      "avg_query_count": 23.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 77.67,
+      "avg_mem_peak_kb": 135.17,
+      "avg_mem_delta_kb": 158.46
+    },
+    {
+      "name": "dashboard_home",
+      "method": "GET",
+      "path": "/demo-center/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 18.52,
+      "p95_response_ms": 19.09,
+      "avg_query_count": 22.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 78.05,
+      "avg_mem_peak_kb": 127.97,
+      "avg_mem_delta_kb": 145.54
+    },
+    {
+      "name": "students_list",
+      "method": "GET",
+      "path": "/demo-center/stat/students/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 27.13,
+      "p95_response_ms": 27.77,
+      "avg_query_count": 22.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 102.26,
+      "avg_mem_peak_kb": 247.77,
+      "avg_mem_delta_kb": 269.68
+    },
+    {
+      "name": "group_month_attendance",
+      "method": "GET",
+      "path": "/demo-center/talim/attendance/groups/50/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 36.68,
+      "p95_response_ms": 36.96,
+      "avg_query_count": 21.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 159.55,
+      "avg_mem_peak_kb": 271.83,
+      "avg_mem_delta_kb": 297.22
+    },
+    {
+      "name": "chaqmoq_student_history",
+      "method": "GET",
+      "path": "/demo-center/chaqmoq/student/493/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 31.01,
+      "p95_response_ms": 31.29,
+      "avg_query_count": 21.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 67.68,
+      "avg_mem_peak_kb": 210.28,
+      "avg_mem_delta_kb": 233.14
+    },
+    {
+      "name": "attendance_groups",
+      "method": "GET",
+      "path": "/demo-center/talim/attendance/groups/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 24.29,
+      "p95_response_ms": 24.51,
+      "avg_query_count": 19.0,
+      "avg_query_ms": 2.0,
+      "avg_size_kb": 60.73,
+      "avg_mem_peak_kb": 197.32,
+      "avg_mem_delta_kb": 221.45
+    },
+    {
+      "name": "debtors_list",
+      "method": "GET",
+      "path": "/demo-center/talim/qarzdorlar/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 38.46,
+      "p95_response_ms": 39.44,
+      "avg_query_count": 18.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 114.67,
+      "avg_mem_peak_kb": 319.0,
+      "avg_mem_delta_kb": 341.76
+    },
+    {
+      "name": "chaqmoq_leaderboard",
+      "method": "GET",
+      "path": "/demo-center/chaqmoq/reyting/",
+      "runs": 5,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "redirects": [],
+      "avg_response_ms": 18.05,
+      "p95_response_ms": 18.3,
+      "avg_query_count": 18.0,
+      "avg_query_ms": 0.0,
+      "avg_size_kb": 62.81,
+      "avg_mem_peak_kb": 115.27,
+      "avg_mem_delta_kb": 132.19
+    }
+  ],
+  "top_heavy_queries": [
+    {
+      "endpoint": "attendance_groups",
+      "signature": "select \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", count(distinct \"?\".\"?\") as \"?\", max(\"?\".\"?\") as \"?",
+      "count": 5,
+      "total_ms": 10.0,
+      "max_ms": 2.0
+    },
+    {
+      "endpoint": "dashboard_home",
+      "signature": "select \"?\".\"?\", \"?\".\"?\", \"?\".\"?\" from \"?\" where (\"?\".\"?\" > ? and \"?\".\"?\" = ?) limit ?",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "dashboard_home",
+      "signature": "select \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"",
+      "count": 20,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "dashboard_home",
+      "signature": "select \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\" from \"?\" inner join \"?\" on (\"?\".\"?\" = \"?\".\"?\") where \"?\".\"?\" = ? order by \"?\".\"?\" desc, \"?\".\"?\" desc",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "dashboard_home",
+      "signature": "select \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\" from \"?\" where \"?\".\"?\" = ? limit ?",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "dashboard_home",
+      "signature": "select count(*) as \"?\" from \"?\" where (not \"?\".\"?\" and \"?\".\"?\" = ? and \"?\".\"?\" = ?)",
+      "count": 10,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "dashboard_home",
+      "signature": "select count(*) as \"?\" from \"?\" where (not \"?\".\"?\" and \"?\".\"?\" = ? and not \"?\".\"?\" and \"?\".\"?\" = ?)",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "dashboard_home",
+      "signature": "select count(*) as \"?\" from \"?\" where (not \"?\".\"?\" and \"?\".\"?\" = ? and not \"?\".\"?\")",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "dashboard_home",
+      "signature": "select count(*) as \"?\" from \"?\" where (\"?\".\"?\" = ? and \"?\".\"?\" = ?)",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "dashboard_home",
+      "signature": "select sum(\"?\".\"?\") as \"?\" from \"?\" inner join \"?\" on (\"?\".\"?\" = \"?\".\"?\") where \"?\".\"?\" = ?",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "dashboard_home",
+      "signature": "select count(*) as \"?\" from \"?\" where (\"?\".\"?\" = ? and django_datetime_cast_date(\"?\".\"?\", ?, ?) = ?)",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "dashboard_home",
+      "signature": "select \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\" from \"?\" inner join \"?\" on (\"?\".\"?\" = \"?\".",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "dashboard_home",
+      "signature": "select \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\" from \"?\" where (\"?\".\"?\" = ? and \"?\".\"?\" in (?, ?)) order by \"?\".\"?\" desc limit ?",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "dashboard_home",
+      "signature": "select \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\" from \"?\" inner ",
+      "count": 15,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "dashboard_home",
+      "signature": "select \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\" from \"?\" inner join \"?\" on (\"?\".\"?\" = \"?\".\"?\") where (\"?\".\"?\" = ? and \"?\".\"?\" = ?) order by \"?\".\"?\" desc, \"?\".\"?\" desc",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "dashboard_home",
+      "signature": "select count(*) as \"?\" from \"?\" where (\"?\".\"?\" = ? and not \"?\".\"?\")",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "dashboard_home",
+      "signature": "select \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\" from \"?\" where \"?\".\"?\" = ? order by \"?\".\"?\" desc limit ?",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "students_list",
+      "signature": "select \"?\".\"?\", \"?\".\"?\", \"?\".\"?\" from \"?\" where (\"?\".\"?\" > ? and \"?\".\"?\" = ?) limit ?",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "students_list",
+      "signature": "select \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"",
+      "count": 30,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "students_list",
+      "signature": "select \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\" from \"?\" inner join \"?\" on (\"?\".\"?\" = \"?\".\"?\") where \"?\".\"?\" = ? order by \"?\".\"?\" desc, \"?\".\"?\" desc",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "students_list",
+      "signature": "select \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\" from \"?\" where \"?\".\"?\" = ? limit ?",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "students_list",
+      "signature": "select count(*) as \"?\" from \"?\" where (not \"?\".\"?\" and \"?\".\"?\" = ? and \"?\".\"?\" = ? and not \"?\".\"?\" and not \"?\".\"?\")",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "students_list",
+      "signature": "select count(*) as \"?\" from \"?\" where (not \"?\".\"?\" and \"?\".\"?\" = ? and \"?\".\"?\" = ? and not \"?\".\"?\" and \"?\".\"?\")",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "students_list",
+      "signature": "select count(*) from (select \"?\".\"?\" as \"?\" from \"?\" left outer join \"?\" on (\"?\".\"?\" = \"?\".\"?\") left outer join \"?\" on (\"?\".\"?\" = \"?\".\"?\") left outer join \"?\" on (\"?\".\"?\" = \"?\".\"?\") where (not \"?\".\"?\" and \"?\".\"?\" = ? and \"?\".\"?\" = ? and not \"?\".\"?\" and not \"?\".\"?\") group by ?) subquery",
+      "count": 10,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "students_list",
+      "signature": "select \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\" from \"?\" inner join \"?\" on (\"?\".\"?\" = \"?\".",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "students_list",
+      "signature": "select \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\" from \"?\" where (\"?\".\"?\" = ? and \"?\".\"?\" in (?, ?)) order by \"?\".\"?\" desc limit ?",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "students_list",
+      "signature": "select \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\" from \"?\" inner ",
+      "count": 15,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "students_list",
+      "signature": "select \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\" from \"?\" inner join \"?\" on (\"?\".\"?\" = \"?\".\"?\") where (\"?\".\"?\" = ? and \"?\".\"?\" = ?) order by \"?\".\"?\" desc, \"?\".\"?\" desc",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "students_list",
+      "signature": "select count(*) as \"?\" from \"?\" where (\"?\".\"?\" = ? and not \"?\".\"?\")",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    },
+    {
+      "endpoint": "students_list",
+      "signature": "select \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\", \"?\".\"?\" from \"?\" where \"?\".\"?\" = ? order by \"?\".\"?\" desc limit ?",
+      "count": 5,
+      "total_ms": 0.0,
+      "max_ms": 0.0
+    }
+  ]
+}

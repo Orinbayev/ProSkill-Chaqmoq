@@ -3,10 +3,12 @@ Custom authentication views for role-based redirects.
 Subdomain logic removed — uses path-based resolution only.
 """
 
+import hashlib
+
 from django.contrib.auth import views as auth_views
+from django.core.cache import cache
 from django.shortcuts import redirect
 from django.urls import reverse, NoReverseMatch
-from django.conf import settings
 from accounts.api_auth import record_activity
 
 
@@ -17,11 +19,19 @@ class SecureLoginView(auth_views.LoginView):
     """
 
     template_name = 'accounts/login.html'
+    LOGIN_MAX_FAILED_ATTEMPTS = 8
+    LOGIN_THROTTLE_WINDOW_SECONDS = 15 * 60
 
     def dispatch(self, request, *args, **kwargs):
         """Prevent redirect loop — already authenticated users go home."""
         if request.user.is_authenticated:
             return redirect(self._get_home_url(request.user))
+        if request.method == "POST":
+            username = (request.POST.get("username") or "").strip().lower()
+            if self._is_login_locked(request, username):
+                form = self.get_form()
+                form.add_error(None, "Ko'p urinish bo'ldi. 15 daqiqadan keyin qayta urinib ko'ring.")
+                return self.render_to_response(self.get_context_data(form=form))
         return super().dispatch(request, *args, **kwargs)
 
     def form_invalid(self, form):
@@ -33,10 +43,12 @@ class SecureLoginView(auth_views.LoginView):
             user = User.objects.filter(phone_number=email).first()
         if user:
             record_activity(user, "Failed login attempt detected", request=self.request)
+        self._register_failed_attempt(self.request, email)
         return response
 
     def form_valid(self, form):
         response = super().form_valid(form)
+        self._clear_failed_attempts(self.request, form.cleaned_data.get("username", ""))
         record_activity(self.request.user, "Login successful (Website)", request=self.request)
         return response
 
@@ -47,6 +59,31 @@ class SecureLoginView(auth_views.LoginView):
         return self.get_success_url()
 
     # ── helpers ──────────────────────────────────────────────────
+
+    def _client_ip(self, request):
+        forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
+        return request.META.get("REMOTE_ADDR", "")
+
+    def _throttle_key(self, request, username):
+        normalized_username = (username or "").strip().lower()
+        raw_key = f"{self._client_ip(request)}:{normalized_username}"
+        key_hash = hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
+        return f"login:throttle:{key_hash}"
+
+    def _is_login_locked(self, request, username):
+        key = self._throttle_key(request, username)
+        return int(cache.get(key, 0) or 0) >= self.LOGIN_MAX_FAILED_ATTEMPTS
+
+    def _register_failed_attempt(self, request, username):
+        key = self._throttle_key(request, username)
+        attempts = int(cache.get(key, 0) or 0) + 1
+        cache.set(key, attempts, timeout=self.LOGIN_THROTTLE_WINDOW_SECONDS)
+
+    def _clear_failed_attempts(self, request, username):
+        key = self._throttle_key(request, username)
+        cache.delete(key)
 
     def _get_home_url(self, user):
         """

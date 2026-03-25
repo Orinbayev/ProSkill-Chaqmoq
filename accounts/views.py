@@ -366,12 +366,27 @@ def delete_user(request, pk):
 
 @login_required
 def teacher_detail(request, user_id):
-    teacher = get_object_or_404(User, id=user_id, role='teacher')
+    if not _is_staff_like(request.user):
+        return HttpResponseForbidden("Ruxsat yo'q.")
+
+    teacher_qs = User.objects.filter(role='teacher')
+    if not request.user.is_superuser:
+        center = get_request_center(request)
+        teacher_qs = teacher_qs.filter(center=center)
+    teacher = get_object_or_404(teacher_qs, id=user_id)
     return render(request, "accounts/teacher_detail.html", {'teacher': teacher})
 
 @login_required
 def student_detail(request, user_id):
-    student = get_object_or_404(User, id=user_id, role='student')
+    role = getattr(request.user, "role", None)
+    if not (_is_staff_like(request.user) or role == "parent"):
+        return HttpResponseForbidden("Ruxsat yo'q.")
+
+    student_qs = User.objects.filter(role='student')
+    if not request.user.is_superuser:
+        center = get_request_center(request)
+        student_qs = student_qs.filter(center=center)
+    student = get_object_or_404(student_qs, id=user_id)
     # Eski student_detail sahifasi o'rniga yagona premium student profiliga yo'naltiramiz.
     return redirect("core:user_view", pk=student.id)
 
@@ -404,10 +419,14 @@ from django.http import HttpResponse
 from django.db import connection
 from core.tenant_context import get_current_tenant
 
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
 def test_db(request):
     return HttpResponse(f"DB: {connection.alias}")
 
 
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
 def test_center(request):
     tenant = get_current_tenant()
     return HttpResponse(f"Tenant: {tenant}")

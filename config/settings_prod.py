@@ -4,11 +4,13 @@ Production settings for Render.com deployment
 SECURITY WARNING: Keep secret keys secure in environment variables!
 """
 import os
+from django.core.exceptions import ImproperlyConfigured
 from .settings import *
 
 # ==================== CORE SETTINGS ====================
 
 DEBUG = False
+is_production_runtime = bool(os.getenv("RENDER") or os.getenv("MODE") == "production")
 
 # Your production domain
 ROOT_DOMAIN = os.getenv("ROOT_DOMAIN", "chaqmoqapp.uz")
@@ -54,6 +56,8 @@ SESSION_COOKIE_DOMAIN = None
 CSRF_COOKIE_DOMAIN = None
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
 
 # If you need SSO across subdomains (uncomment):
 # SESSION_COOKIE_DOMAIN = f".{ROOT_DOMAIN}"
@@ -72,15 +76,28 @@ SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
 # Browser security
-SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 
 # HSTS (HTTP Strict Transport Security)
-# IMPORTANT: Only enable after confirming HTTPS works!
-# SECURE_HSTS_SECONDS = 31536000  # 1 year
-# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-# SECURE_HSTS_PRELOAD = True
+_enable_hsts = os.getenv("ENABLE_HSTS", "1") == "1"
+SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "31536000")) if _enable_hsts else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv("SECURE_HSTS_INCLUDE_SUBDOMAINS", "1") == "1"
+SECURE_HSTS_PRELOAD = os.getenv("SECURE_HSTS_PRELOAD", "0") == "1"
+
+if is_production_runtime:
+    if not SECRET_KEY or SECRET_KEY == "unsafe-secret-key":
+        raise ImproperlyConfigured("SECRET_KEY productionda environment orqali berilishi shart.")
+
+    if not API_SECRET or len(API_SECRET) < 32:
+        raise ImproperlyConfigured("API_SECRET productionda kamida 32 belgili bo'lishi shart.")
+
+    if not CLICK_SECRET_KEY or CLICK_SECRET_KEY == "tFFjf4jX2kn9OJ69Ex":
+        raise ImproperlyConfigured("CLICK_SECRET_KEY productionda environment orqali berilishi shart.")
+
+CLICK_ALLOWED_IPS = [ip.strip() for ip in os.getenv("CLICK_ALLOWED_IPS", "").split(",") if ip.strip()]
 
 # ==================== DATABASE ====================
 
@@ -97,9 +114,9 @@ if "DATABASE_URL" in os.environ:
         )
     }
 else:
-    # Render productionda DATABASE_URL bo'lmasa sqlitega tushib qolish ma'lumot yo'qolishiga olib keladi.
-    if os.getenv("RENDER"):
-        raise RuntimeError("DATABASE_URL topilmadi. Render production uchun Postgres ulanmagan.")
+    # Productionda DATABASE_URL bo'lmasa sqlitega tushib qolish ma'lumot yo'qolishiga olib keladi.
+    if is_production_runtime:
+        raise RuntimeError("DATABASE_URL topilmadi. Production uchun Postgres ulanmagan.")
 
     # Local fallback
     DATABASES = {
@@ -117,18 +134,30 @@ SESSION_ENGINE = "django.contrib.sessions.backends.db"
 SESSION_COOKIE_AGE = 1209600  # 2 weeks
 SESSION_SAVE_EVERY_REQUEST = False
 
+# Template loader caching for production render speed.
+if TEMPLATES and TEMPLATES[0].get("APP_DIRS", False):
+    TEMPLATES[0]["APP_DIRS"] = False
+    TEMPLATES[0]["OPTIONS"]["loaders"] = [
+        ("django.template.loaders.cached.Loader", [
+            "django.template.loaders.filesystem.Loader",
+            "django.template.loaders.app_directories.Loader",
+        ])
+    ]
+
 # ==================== STATIC FILES ====================
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATIC_URL = "/static/"
 
 # WhiteNoise for serving static files
-# Use CompressedStaticFilesStorage to avoid .map file issues
-STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+# Hash + compression for immutable static caching in production.
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Ignore missing source maps (they're not critical for production)
 WHITENOISE_KEEP_ONLY_HASHED_FILES = False
 WHITENOISE_ALLOW_ALL_ORIGINS = True
+WHITENOISE_MANIFEST_STRICT = False
+WHITENOISE_MAX_AGE = 31536000
 
 # Ensure WhiteNoise middleware is active (should be in MIDDLEWARE)
 # "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -188,7 +217,7 @@ LOGGING = {
         },
         "core.middleware": {
             "handlers": ["console"],
-            "level": "DEBUG",  # See tenant resolution logs
+            "level": "INFO",
             "propagate": False,
         },
     },
@@ -199,16 +228,22 @@ LOGGING = {
 # Connection pooling
 CONN_MAX_AGE = 600
 
-# Cache (optional - Redis recommended)
-# CACHES = {
-#     "default": {
-#         "BACKEND": "django_redis.cache.RedisCache",
-#         "LOCATION": os.getenv("REDIS_URL"),
-#         "OPTIONS": {
-#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-#         }
-#     }
-# }
+# Cache (Redis if REDIS_URL exists, otherwise local-memory fallback)
+if os.getenv("REDIS_URL"):
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": os.getenv("REDIS_URL"),
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "chaqmoq-prod-cache",
+            "TIMEOUT": 300,
+        }
+    }
 
 # ==================== ADMIN ====================
 

@@ -3,6 +3,7 @@ from django.db.models import Sum
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
+from django.core.exceptions import PermissionDenied
 
 from django.contrib.auth import get_user_model
 from .models import Ledger, Rule
@@ -25,6 +26,66 @@ def get_active_center(request):
     if hasattr(request.user, "center") and request.user.center:
         return request.user.center
     return None
+
+
+def _is_staff_role(user) -> bool:
+    role = getattr(user, "role", None)
+    return bool(user and (user.is_superuser or role in {"director", "manager", "teacher"}))
+
+
+def _student_scope(center):
+    qs = User.objects.filter(role="student")
+    if center:
+        qs = qs.filter(center=center)
+    return qs
+
+
+def _rule_scope_for_user(user, center):
+    if center:
+        rules = Rule.objects.filter(Q(center=center) | Q(center__isnull=True))
+    else:
+        rules = Rule.objects.filter(center__isnull=True)
+
+    role = getattr(user, "role", None)
+    if role == "teacher":
+        rules = rules.filter(can_teacher=True)
+    elif role == "manager":
+        rules = rules.filter(can_manager=True)
+    elif role == "director":
+        rules = rules.filter(can_director=True)
+    return rules
+
+
+def _group_scope_for_user(user, center):
+    groups = Group.objects.select_related("oqituvchi", "center").order_by("nom")
+    if center:
+        groups = groups.filter(center=center)
+    elif not user.is_superuser:
+        groups = groups.none()
+
+    if getattr(user, "role", None) == "teacher" and not user.is_superuser:
+        groups = groups.filter(oqituvchi=user)
+    return groups
+
+
+def _can_view_student(request, student) -> bool:
+    if request.user.is_superuser:
+        return True
+
+    center = get_active_center(request)
+    if center and student.center_id and student.center_id != center.id:
+        return False
+
+    role = getattr(request.user, "role", None)
+    if role in {"director", "manager", "teacher"}:
+        if center is None:
+            return False
+        return True
+    if role == "student":
+        return request.user.id == student.id
+    if role == "parent":
+        return request.user.children.filter(pk=student.pk).exists()
+    return False
 
 
 def _get_balances_with_legacy_fallback(student_ids, center=None):
@@ -64,6 +125,7 @@ def _get_balances_with_legacy_fallback(student_ids, center=None):
     return {sid: ledger_map.get(sid, history_map.get(sid, 0)) for sid in student_ids}
 
 
+@login_required
 def reyting(request):
     q = (request.GET.get("q") or "").strip()
     per_page = request.GET.get("per_page", "10")
@@ -138,7 +200,13 @@ def reyting(request):
 
 @login_required
 def student_detail(request, pk):
-    student = get_object_or_404(User, pk=pk, role='student')
+    center = get_active_center(request)
+    students_qs = User.objects.filter(role="student")
+    if center and not request.user.is_superuser:
+        students_qs = students_qs.filter(center=center)
+    student = get_object_or_404(students_qs, pk=pk)
+    if not _can_view_student(request, student):
+        raise PermissionDenied("Sizda bu ma'lumotni ko'rish ruxsati yo'q.")
 
     # ✅ per_page (10/20/50/100/all) va page
     per_page_raw = request.GET.get("per_page", "10")
@@ -147,8 +215,6 @@ def student_detail(request, pk):
     per_page = per_page_raw if per_page_raw == "all" else int(per_page_raw)
 
     # ✅ Tenant Isolation (Data Isolation)
-    center = get_active_center(request)
-    
     enrolls = Enrollment.objects.filter(student=student).select_related('group')
     if center:
         enrolls = enrolls.filter(group__center=center)
@@ -234,9 +300,20 @@ def student_detail(request, pk):
 
 @login_required
 def api_group_students(request, group_id: int):
+    if not _is_staff_role(request.user):
+        return HttpResponse("Ruxsat yo'q", status=403)
+
+    center = get_active_center(request)
+    group_qs = Group.objects.all()
+    if center and not request.user.is_superuser:
+        group_qs = group_qs.filter(center=center)
+    if getattr(request.user, "role", None) == "teacher" and not request.user.is_superuser:
+        group_qs = group_qs.filter(oqituvchi=request.user)
+    group = get_object_or_404(group_qs, pk=group_id)
+
     enrolls = (
         Enrollment.objects
-        .filter(group_id=group_id)
+        .filter(group=group)
         .select_related('student')
         .order_by('student__ism', 'student__familya')
     )
@@ -247,41 +324,59 @@ def api_group_students(request, group_id: int):
 
 @login_required
 def students_json(request):
+    if not _is_staff_role(request.user):
+        return JsonResponse({"students": []}, status=403)
+
+    center = get_active_center(request)
     gid = request.GET.get('group')
-    qs = User.objects.filter(role='student')
+    qs = _student_scope(center)
+
     if gid:
-        qs = qs.filter(enrollment__group_id=gid)
+        group_qs = Group.objects.all()
+        if center and not request.user.is_superuser:
+            group_qs = group_qs.filter(center=center)
+        if getattr(request.user, "role", None) == "teacher" and not request.user.is_superuser:
+            group_qs = group_qs.filter(oqituvchi=request.user)
+        group = group_qs.filter(pk=gid).first()
+        if not group:
+            return JsonResponse({"students": []})
+        qs = qs.filter(id__in=Enrollment.objects.filter(group=group).values_list("student_id", flat=True))
+
     data = [{'id': u.id, 'name': f"{u.ism} {u.familya}"} for u in qs.order_by('ism','familya').distinct()]
     return JsonResponse({'students': data})
 from datetime import date
 
 @login_required
 def berish(request):
+    if not _is_staff_role(request.user):
+        messages.error(request, "Sizda chaqmoq berish ruxsati yo'q.")
+        return redirect("core:home")
+
     # ✅ Tenant isolation
     center = get_active_center(request)
-    groups = Group.objects.select_related('oqituvchi', 'center').order_by('nom')
-    if center:
-        groups = groups.filter(center=center)
-    
-    rules = Rule.objects.filter(Q(center=center) | Q(center__isnull=True))
-    if request.user.role == 'teacher':
-        rules = rules.filter(can_teacher=True)
-    elif request.user.role == 'manager':
-        rules = rules.filter(can_manager=True)
-    elif request.user.role == 'director':
-        rules = rules.filter(can_director=True)
-    rules = rules.order_by('nom')
-
-    # O‘qituvchi faqat o‘z guruhlarini ko‘radi
-    if request.user.role == 'teacher':
-        groups = groups.filter(oqituvchi=request.user)
+    groups = _group_scope_for_user(request.user, center)
+    rules = _rule_scope_for_user(request.user, center).order_by("nom")
 
     selected_gid = request.GET.get('group') or request.POST.get('group')
+    selected_group = None
+    if selected_gid:
+        selected_group = groups.filter(pk=selected_gid).first()
+        if not selected_group:
+            messages.error(request, "Tanlangan guruhga ruxsat yo'q.")
+            selected_gid = ""
 
     # Faqat studentlarni chiqaramiz
-    students = User.objects.filter(role='student')
-    if selected_gid:
-        students = students.filter(enrollment__group_id=selected_gid)
+    students = _student_scope(center).none()
+    if selected_group:
+        students = _student_scope(center).filter(
+            id__in=Enrollment.objects.filter(group=selected_group).values_list("student_id", flat=True)
+        )
+    elif getattr(request.user, "role", None) == "teacher" and not request.user.is_superuser:
+        students = _student_scope(center).filter(
+            id__in=Enrollment.objects.filter(group__oqituvchi=request.user).values_list("student_id", flat=True)
+        )
+    else:
+        students = _student_scope(center)
     students = students.order_by('ism', 'familya').distinct()
 
     # POST so‘rov (ball berish/ayirish)
@@ -299,8 +394,17 @@ def berish(request):
             return redirect(f"{request.path}?group={selected_gid or ''}")
 
         # Student va qoida obyektlari
-        student = get_object_or_404(User, pk=student_id, role='student')
-        rule = get_object_or_404(Rule, pk=rule_id)
+        student_qs = _student_scope(center)
+        if selected_group:
+            student_qs = student_qs.filter(
+                id__in=Enrollment.objects.filter(group=selected_group).values_list("student_id", flat=True)
+            )
+        elif getattr(request.user, "role", None) == "teacher" and not request.user.is_superuser:
+            student_qs = student_qs.filter(
+                id__in=Enrollment.objects.filter(group__oqituvchi=request.user).values_list("student_id", flat=True)
+            )
+        student = get_object_or_404(student_qs, pk=student_id)
+        rule = get_object_or_404(_rule_scope_for_user(request.user, center), pk=rule_id)
 
         abs_ball = abs(raw_ball)
         if abs_ball < rule.min_baho or abs_ball > rule.max_baho:
@@ -311,7 +415,7 @@ def berish(request):
 
         # Ballni belgilang (+ yoki -)
         signed = abs_ball if rule.tur == Rule.PLUS else -abs_ball
-        group = Group.objects.filter(pk=selected_gid).first() if selected_gid else None
+        group = selected_group
 
         # 🔹 Tanlangan sanani olish
         davomat_sana_str = request.POST.get('davomat_sana')

@@ -2,6 +2,8 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from accounts.models import User
 import json
+import logging
+from hmac import compare_digest
 from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
@@ -10,6 +12,36 @@ from accounts.utils import normalize_phone
 from accounts.models import User, UserActivity
 
 from accounts.utils_bot import send_telegram_message
+
+logger = logging.getLogger(__name__)
+
+_WEAK_API_SECRETS = {
+    "",
+    "unsafe-secret-key",
+    "changeme",
+    "7d8a9c1e2f3b4a5d6e7f8g9h0i1j2k3l4m5n6o7p8q9r0s1t2u3v4w5x6y7z8a9b",
+}
+
+
+def _require_api_secret(request):
+    configured = str(getattr(settings, "API_SECRET", "") or "").strip()
+    provided = str(request.headers.get("X-API-SECRET", "") or "")
+
+    if configured in _WEAK_API_SECRETS or len(configured) < 32:
+        logger.error("API_SECRET is missing/weak. Internal bot API request denied.")
+        return JsonResponse({"error": "Server configuration error"}, status=503)
+
+    if not compare_digest(provided, configured):
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+    return None
+
+
+def _safe_excel_cell(value):
+    text = "" if value is None else str(value)
+    if text.startswith(("=", "+", "-", "@")):
+        return f"'{text}"
+    return text
+
 
 def get_device_info(ua_string):
     if not ua_string: return "Noma'lum"
@@ -94,11 +126,9 @@ def record_activity(user, action, request=None, device_info=None):
 def link_telegram_api(request):
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed"}, status=405)
-    
-    # Check API Secret
-    secret = request.headers.get("X-API-SECRET")
-    if secret != settings.API_SECRET:
-        return JsonResponse({"error": "Unauthorized"}, status=401)
+    auth_error = _require_api_secret(request)
+    if auth_error:
+        return auth_error
     
     try:
         data = json.loads(request.body)
@@ -142,8 +172,9 @@ def link_telegram_api(request):
         
         return JsonResponse({"status": "ok", "user": user.email, "updated_phone": user.phone_number})
         
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+    except Exception:
+        logger.exception("link_telegram_api failed")
+        return JsonResponse({"error": "Internal server error"}, status=500)
 
 @csrf_exempt
 def unlink_telegram_api(request):
@@ -151,9 +182,9 @@ def unlink_telegram_api(request):
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed"}, status=405)
     
-    secret = request.headers.get("X-API-SECRET")
-    if secret != settings.API_SECRET:
-        return JsonResponse({"error": "Unauthorized"}, status=401)
+    auth_error = _require_api_secret(request)
+    if auth_error:
+        return auth_error
     
     try:
         data = json.loads(request.body)
@@ -177,8 +208,9 @@ def unlink_telegram_api(request):
             user.save()
             
         return JsonResponse({"status": "ok", "unlinked_count": count})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+    except Exception:
+        logger.exception("unlink_telegram_api failed")
+        return JsonResponse({"error": "Internal server error"}, status=500)
 
 @csrf_exempt
 def get_bot_user_status(request):
@@ -186,9 +218,9 @@ def get_bot_user_status(request):
     if request.method != "GET":
         return JsonResponse({"error": "Method not allowed"}, status=405)
     
-    secret = request.headers.get("X-API-SECRET")
-    if secret != settings.API_SECRET:
-        return JsonResponse({"error": "Unauthorized"}, status=401)
+    auth_error = _require_api_secret(request)
+    if auth_error:
+        return auth_error
     
     tg_id = request.GET.get("telegram_id")
     if not tg_id:
@@ -222,9 +254,9 @@ def get_bot_user_details(request):
     if request.method != "GET":
         return JsonResponse({"error": "Method not allowed"}, status=405)
     
-    secret = request.headers.get("X-API-SECRET")
-    if secret != settings.API_SECRET:
-        return JsonResponse({"error": "Unauthorized"}, status=401)
+    auth_error = _require_api_secret(request)
+    if auth_error:
+        return auth_error
     
     tg_id = request.GET.get("telegram_id")
     user_email = request.GET.get("email") # To select specifically which profile
@@ -299,9 +331,9 @@ def is_bot_admin(tg_id):
 @csrf_exempt
 def get_bot_admin_dashboard(request):
     """Stats and Admin check."""
-    secret = request.headers.get("X-API-SECRET")
-    if secret != settings.API_SECRET:
-        return JsonResponse({"error": "Unauthorized"}, status=401)
+    auth_error = _require_api_secret(request)
+    if auth_error:
+        return auth_error
     
     admin_tg_id = request.GET.get("admin_tg_id")
     if not is_bot_admin(admin_tg_id):
@@ -335,9 +367,9 @@ def get_bot_admin_dashboard(request):
 @csrf_exempt
 def get_bot_linked_users(request):
     """List of linked users with filters."""
-    secret = request.headers.get("X-API-SECRET")
-    if secret != settings.API_SECRET:
-        return JsonResponse({"error": "Unauthorized"}, status=401)
+    auth_error = _require_api_secret(request)
+    if auth_error:
+        return auth_error
     
     admin_tg_id = request.GET.get("admin_tg_id")
     if not is_bot_admin(admin_tg_id):
@@ -350,8 +382,16 @@ def get_bot_linked_users(request):
         users = users.filter(role=role_filter)
 
     # Simplified pagination or limit
-    limit = int(request.GET.get("limit", 20))
-    offset = int(request.GET.get("offset", 0))
+    try:
+        limit = int(request.GET.get("limit", 20))
+    except (TypeError, ValueError):
+        limit = 20
+    try:
+        offset = int(request.GET.get("offset", 0))
+    except (TypeError, ValueError):
+        offset = 0
+    limit = max(1, min(limit, 200))
+    offset = max(0, offset)
     count = users.count()
     users = users[offset:offset+limit]
 
@@ -371,9 +411,9 @@ def get_bot_linked_users(request):
 @csrf_exempt
 def get_bot_broadcast_list(request):
     """Get list of TG IDs for broadcasting."""
-    secret = request.headers.get("X-API-SECRET")
-    if secret != settings.API_SECRET:
-        return JsonResponse({"error": "Unauthorized"}, status=401)
+    auth_error = _require_api_secret(request)
+    if auth_error:
+        return auth_error
     
     admin_tg_id = request.GET.get("admin_tg_id")
     if not is_bot_admin(admin_tg_id):
@@ -402,9 +442,9 @@ def get_bot_broadcast_list(request):
 @csrf_exempt
 def get_bot_excel_export(request):
     """Generate Excel with role sheets."""
-    secret = request.headers.get("X-API-SECRET")
-    if secret != settings.API_SECRET:
-        return JsonResponse({"error": "Unauthorized"}, status=401)
+    auth_error = _require_api_secret(request)
+    if auth_error:
+        return auth_error
     
     admin_tg_id = request.GET.get("admin_tg_id")
     if not is_bot_admin(admin_tg_id):
@@ -421,9 +461,14 @@ def get_bot_excel_export(request):
     all_users = User.objects.filter(is_telegram_linked=True).order_by("-date_joined")
     for u in all_users:
         ws_all.append([
-            u.ism, u.familya, u.get_role_display(), u.phone_number, 
-            u.telegram_id, u.telegram_username or "", 
-            u.date_joined.strftime("%Y-%m-%d"), u.date_joined.strftime("%H:%M")
+            _safe_excel_cell(u.ism),
+            _safe_excel_cell(u.familya),
+            _safe_excel_cell(u.get_role_display()),
+            _safe_excel_cell(u.phone_number),
+            _safe_excel_cell(u.telegram_id),
+            _safe_excel_cell(u.telegram_username or ""),
+            _safe_excel_cell(u.date_joined.strftime("%Y-%m-%d")),
+            _safe_excel_cell(u.date_joined.strftime("%H:%M")),
         ])
 
     # Role specific sheets
@@ -433,9 +478,14 @@ def get_bot_excel_export(request):
         role_users = all_users.filter(role=role_key)
         for u in role_users:
             ws.append([
-                u.ism, u.familya, u.get_role_display(), u.phone_number, 
-                u.telegram_id, u.telegram_username or "", 
-                u.date_joined.strftime("%Y-%m-%d"), u.date_joined.strftime("%H:%M")
+                _safe_excel_cell(u.ism),
+                _safe_excel_cell(u.familya),
+                _safe_excel_cell(u.get_role_display()),
+                _safe_excel_cell(u.phone_number),
+                _safe_excel_cell(u.telegram_id),
+                _safe_excel_cell(u.telegram_username or ""),
+                _safe_excel_cell(u.date_joined.strftime("%Y-%m-%d")),
+                _safe_excel_cell(u.date_joined.strftime("%H:%M")),
             ])
 
     output = BytesIO()
@@ -460,9 +510,9 @@ def get_bot_excel_export(request):
 @csrf_exempt
 def manage_bot_admins_api(request):
     """List, Add, Remove bot admins."""
-    secret = request.headers.get("X-API-SECRET")
-    if secret != settings.API_SECRET:
-        return JsonResponse({"error": "Unauthorized"}, status=401)
+    auth_error = _require_api_secret(request)
+    if auth_error:
+        return auth_error
     
     admin_tg_id = request.GET.get("admin_tg_id")
     if not is_bot_admin(admin_tg_id):
@@ -535,9 +585,9 @@ def manage_bot_admins_api(request):
 @csrf_exempt
 def bot_settings_api(request):
     """Get/Set bot settings (e.g. report time)."""
-    secret = request.headers.get("X-API-SECRET")
-    if secret != settings.API_SECRET:
-        return JsonResponse({"error": "Unauthorized"}, status=401)
+    auth_error = _require_api_secret(request)
+    if auth_error:
+        return auth_error
     
     admin_tg_id = request.GET.get("admin_tg_id")
     if not is_bot_admin(admin_tg_id):
@@ -571,17 +621,18 @@ def bot_settings_api(request):
                 details=f"Parent report time: {old_val} -> {new_time}"
             )
             return JsonResponse({"status": "ok"})
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=400)
+        except Exception:
+            logger.exception("bot_settings_api update failed")
+            return JsonResponse({"error": "Invalid request"}, status=400)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 @csrf_exempt
 def get_parent_reports_data(request):
     """Fetch daily report data for parents."""
-    secret = request.headers.get("X-API-SECRET")
-    if secret != settings.API_SECRET:
-        return JsonResponse({"error": "Unauthorized"}, status=401)
+    auth_error = _require_api_secret(request)
+    if auth_error:
+        return auth_error
     
     now = timezone.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -635,7 +686,5 @@ def get_parent_reports_data(request):
 
     # Return data for bot
     return JsonResponse({"reports": parent_messages})
-
-
 
 

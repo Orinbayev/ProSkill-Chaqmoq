@@ -10,6 +10,15 @@ from django.contrib.auth import login
 from .utils import normalize_phone
 from .api_auth import record_activity
 
+GENERIC_RESET_MESSAGE = "Agar ma'lumotlar mos bo'lsa, tasdiqlash kodi yuboriladi."
+
+
+def _is_strong_password(password: str) -> bool:
+    if len(password or "") < 8:
+        return False
+    return any(ch.isalpha() for ch in password) and any(ch.isdigit() for ch in password)
+
+
 def send_code_to_telegram(user):
     """
     Generates 6-digit code and sends to linked Telegram.
@@ -68,8 +77,7 @@ def forgot_password_init(request):
                 request.session['auth_flow_type'] = 'reset'
                 request.session['auth_identifier'] = phone
                 return redirect("forgot_password_verify_choice")
-            else:
-                messages.error(request, "Bu telefon raqam bo'yicha foydalanuvchi topilmadi.")
+            messages.success(request, GENERIC_RESET_MESSAGE)
         
         elif method == "email":
             user = User.objects.filter(email__iexact=identifier).first()
@@ -82,10 +90,7 @@ def forgot_password_init(request):
                     record_activity(user, "Password reset code requested (via Email)", request=request)
                     messages.success(request, msg)
                     return redirect("forgot_password_verify")
-                else:
-                    messages.error(request, msg)
-            else:
-                messages.error(request, "Bu email bo'yicha foydalanuvchi topilmadi.")
+            messages.success(request, GENERIC_RESET_MESSAGE)
             
     return render(request, "accounts/forgot_password_init.html")
 
@@ -101,8 +106,7 @@ def phone_login_init(request):
             request.session['auth_flow_type'] = 'login'
             request.session['auth_identifier'] = phone
             return redirect("forgot_password_verify_choice")
-        else:
-            messages.error(request, "Bu telefon raqam bo'yicha foydalanuvchi topilmadi.")
+        messages.success(request, GENERIC_RESET_MESSAGE)
             
     return render(request, "accounts/phone_login_init.html")
 
@@ -120,14 +124,21 @@ def forgot_password_confirm_choice(request):
     if request.method == "POST":
         user_id = request.POST.get("user_id")
         user_ids = request.session.get('auth_potential_user_ids', [])
-        
-        if int(user_id) in user_ids:
+
+        try:
+            user_id_int = int(user_id)
+        except (TypeError, ValueError):
+            messages.error(request, "Xavfsizlik yuzasidan xatolik yuz berdi.")
+            return redirect("forgot_password_verify_choice")
+
+        if user_id_int in user_ids:
             user = get_object_or_404(User, id=user_id)
             success, msg = send_code_to_telegram(user)
             if success:
                 request.session['auth_user_id'] = user.id
                 # Keep auth_flow_type from session
                 record_activity(user, f"{request.session.get('auth_flow_type')} code requested after profile selection", request=request)
+                request.session['auth_verify_attempts'] = 0
                 messages.success(request, msg)
                 return redirect("forgot_password_verify")
             else:
@@ -149,9 +160,15 @@ def forgot_password_verify(request):
     
     if request.method == "POST":
         code = request.POST.get("code", "").strip()
+        attempts = int(request.session.get("auth_verify_attempts", 0))
+        if attempts >= 5:
+            messages.error(request, "Juda ko'p noto'g'ri urinish. Qayta kod olib urinib ko'ring.")
+            return render(request, "accounts/forgot_password_verify.html", {"phone": user.phone_number or "..."})
+
         if user.reset_code == code and user.reset_code_expire_at and user.reset_code_expire_at > timezone.now() and not user.reset_code_used:
             user.reset_code_used = True
             user.save()
+            request.session['auth_verify_attempts'] = 0
             
             if flow_type == 'login':
                 # Direct login
@@ -166,6 +183,7 @@ def forgot_password_verify(request):
                 request.session['auth_verified'] = True
                 return redirect("forgot_password_set")
         else:
+            request.session['auth_verify_attempts'] = attempts + 1
             messages.error(request, "Kod noto'g'ri yoki eskirgan.")
             
     # Try to mask phone for display
@@ -186,7 +204,7 @@ def forgot_password_set(request):
         password = request.POST.get("password")
         confirm = request.POST.get("confirm_password")
         
-        if password == confirm and len(password) >= 4:
+        if password == confirm and _is_strong_password(password):
             user.set_password(password)
             user.save()
             record_activity(user, "Password changed successfully", request=request)
@@ -200,6 +218,6 @@ def forgot_password_set(request):
             messages.success(request, "Parolingiz muvaffaqiyatli o'zgartirildi.")
             return redirect("login")
         else:
-            messages.error(request, "Parollar mos kelmadi yoki juda qisqa.")
+            messages.error(request, "Parol kamida 8 belgidan iborat bo'lib, harf va raqamni o'z ichiga olishi kerak.")
             
     return render(request, "accounts/forgot_password_set.html")

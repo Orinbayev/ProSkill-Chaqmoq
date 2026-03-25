@@ -20,6 +20,7 @@ from django.db.models import (
 )
 from django.db.models.functions import Coalesce, TruncMonth
 from django.http import (
+    FileResponse,
     Http404,
     HttpResponse,
     HttpResponseForbidden,
@@ -1476,10 +1477,9 @@ def qarzdorlar_home(request):
     student_map = {}  # student_id -> aggregated row
 
     for e in enrollments:
-        # ✅ [FIX] Only use explicitly created TuitionMonth records for current month
-        total_fee = TuitionMonth.objects.filter(enrollment=e, month=cur_month).aggregate(s=Sum(fee_field))["s"] or 0
-        total_paid = PaymentAllocation.objects.filter(tuition_month__enrollment=e).aggregate(s=Sum("amount"))["s"] or 0
-        debt = total_fee - total_paid
+        total_fee = int(getattr(e, "f", 0) or 0)
+        total_paid = int(getattr(e, "p", 0) or 0)
+        debt = int(getattr(e, "calculated_debt", 0) or 0)
 
         if debt <= 0:
             continue
@@ -1594,18 +1594,26 @@ def group_month_attendance_export(request, group_id):
 
     # ✅ Excel uchun UTF-8 BOM
     response = HttpResponse(content_type="text/csv; charset=utf-8")
-    filename = f"{group.nom}_{year}-{month:02d}_attendance.csv"
+    safe_group_name = "".join(ch for ch in (group.nom or "") if ch.isalnum() or ch in ("-", "_", " "))
+    safe_group_name = safe_group_name.strip() or f"group-{group.id}"
+    filename = f"{safe_group_name}_{year}-{month:02d}_attendance.csv"
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     response.write("\ufeff")
 
     # ✅ MUHIM: delimiter=';' (Excel RU/UZ)
     writer = csv.writer(response, delimiter=';', lineterminator="\n", quoting=csv.QUOTE_MINIMAL)
 
+    def _csv_safe(value):
+        text = "" if value is None else str(value)
+        if text.startswith(("=", "+", "-", "@")):
+            return f"'{text}"
+        return text
+
     header = ["O'quvchi"] + [d.strftime("%d-%m-%Y") for d in day_list]
     writer.writerow(header)
 
     for s in students:
-        row = [s.get_full_name()]
+        row = [_csv_safe(s.get_full_name())]
         for d in day_list:
             a = att_map.get((s.id, d))
             if not a:
@@ -1811,9 +1819,20 @@ def tolovlar_home(request):
 
     # ✅ [FIX] Barcha to'lovlarni ko'rsatamiz (qarzi bormi yo'qmi farq qilmaydi)
     # Oldin: faqat qarzsiz o'quvchilar to'lovlari ko'rinardi — bu noto'g'ri edi!
+    allocation_prefetch = Prefetch(
+        "allocations",
+        queryset=PaymentAllocation.objects.select_related(
+            "tuition_month",
+            "tuition_month__enrollment",
+            "tuition_month__enrollment__group",
+            "tuition_month__enrollment__group__category_obj",
+        ).order_by("tuition_month__month", "id"),
+        to_attr="prefetched_allocations",
+    )
+
     pay_qs = base_payment_qs.select_related(
         "student", "group", "group__oqituvchi", "group__category_obj", "created_by"
-    ).prefetch_related("allocations", "allocations__tuition_month")
+    ).prefetch_related(allocation_prefetch)
 
     if q:
         pay_qs = pay_qs.filter(
@@ -4004,7 +4023,12 @@ def group_list(request):
     """
     Barcha guruhlar ro‘yxati.
     """
-    rows = Group.objects.select_related("center", "oqituvchi").all()
+    rows = (
+        Group.objects
+        .select_related("center", "oqituvchi")
+        .annotate(students_count=Count("students", distinct=True))
+        .order_by("-id")
+    )
     from core.tenant import get_request_center
     center = get_request_center(request)
     if center:
@@ -5387,10 +5411,14 @@ def certificate_detail(request, certificate_id: int):
 def certificate_download_pdf(request, certificate_id: int):
     from core.tenant import get_request_center
     from education.models import CertificateRecord
-    from education.services.certificate_service import regenerate_certificate_pdf, user_can_view_certificate
+    from education.services.certificate_service import (
+        PDF_LAYOUT_VERSION,
+        regenerate_certificate_pdf,
+        user_can_view_certificate,
+    )
 
     center = get_request_center(request)
-    qs = CertificateRecord.objects.select_related("group", "student", "center")
+    qs = CertificateRecord.objects.select_related("group", "student", "center", "summary")
     if center:
         qs = qs.filter(center=center)
     cert = get_object_or_404(qs, pk=certificate_id)
@@ -5398,7 +5426,9 @@ def certificate_download_pdf(request, certificate_id: int):
     if not user_can_view_certificate(request.user, cert):
         return HttpResponseForbidden("Sizda ruxsat yo‘q.")
 
-    if not cert.pdf_file:
+    metadata = cert.metadata if isinstance(cert.metadata, dict) else {}
+    layout_version = metadata.get("pdf_layout_version")
+    if (not cert.pdf_file) or layout_version != PDF_LAYOUT_VERSION:
         cert = regenerate_certificate_pdf(record=cert, request=request)
 
     cert.pdf_file.open("rb")
