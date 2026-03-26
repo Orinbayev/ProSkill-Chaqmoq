@@ -737,8 +737,12 @@
               <div class="att-wrap att-seg" data-enrollment="{{ e.id }}" data-student="{{ e.student.id }}"
                    data-status="{{ e.student.attendance_status|default:'none' }}">
                 <div class="att-layer1">
-                  <button type="button" class="att-btn btn-keldi">KELDI</button>
-                  <button type="button" class="att-btn btn-kelmadi">KELMADI</button>
+                  <button type="button" class="att-btn btn-keldi" title="Keldi" aria-label="Keldi">
+                    <i class="bi bi-check-lg" aria-hidden="true"></i>
+                  </button>
+                  <button type="button" class="att-btn btn-kelmadi" title="Kelmadi" aria-label="Kelmadi">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                  </button>
                 </div>
               </div>
             </td>
