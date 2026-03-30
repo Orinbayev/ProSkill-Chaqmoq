@@ -149,14 +149,14 @@ if TEMPLATES and TEMPLATES[0].get("APP_DIRS", False):
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATIC_URL = "/static/"
 
-# WhiteNoise for serving static files
-# Hash + compression for immutable static caching in production.
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# WhiteNoise for serving static files.
+# Custom subclass used instead of the default CompressedManifestStaticFilesStorage
+# to prevent MissingFileError caused by jazzmin's bootstrap.bundle.min.js
+# referencing a .map file that is not included in the jazzmin package.
+# See config/storage.py for details.
+STATICFILES_STORAGE = "config.storage.CustomManifestStaticFilesStorage"
 
-# Ignore missing source maps (they're not critical for production)
-WHITENOISE_KEEP_ONLY_HASHED_FILES = False
 WHITENOISE_ALLOW_ALL_ORIGINS = True
-WHITENOISE_MANIFEST_STRICT = False
 WHITENOISE_MAX_AGE = 31536000
 
 # Ensure WhiteNoise middleware is active (should be in MIDDLEWARE)
