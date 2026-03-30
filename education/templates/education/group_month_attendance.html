@@ -2,447 +2,277 @@
 {% load humanize %}
 {% block content %}
 
-{# ✅ Bootstrap Icons (agar base.html’da bo‘lmasa, shu yerda ham ishlaydi) #}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
 <style>
   :root{
     --bg-dark: #020617;
     --bg-card: rgba(15, 23, 42, 0.4);
-    --bg-hover: rgba(255, 255, 255, 0.04);
     --border: rgba(255, 255, 255, 0.08);
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
     --primary: #3b82f6;
-    --primary-glow: #38bdf8;
     --present: #10b981;
     --absent: #ef4444;
-    --forced: #fbbf24;
-    --radius: 14px;
+    --excused: #f59e0b;
     --noW: 46px;
     --nameW: 240px;
-    --cell: 34px;
-    --cellRadius: 8px;
+    --cell: 44px;
+    --cellRadius: 10px;
   }
 
   body{
     background:
-      radial-gradient(1200px 500px at 50% -10%, rgba(59, 130, 246, 0.1), transparent 55%),
+      radial-gradient(1200px 500px at 50% -10%, rgba(59,130,246,.1), transparent 55%),
       linear-gradient(180deg, var(--bg-dark), var(--bg-dark));
     color: var(--text-main);
     min-height: 100vh;
     font-family: system-ui, -apple-system, sans-serif;
   }
+  .att-page{ max-width:1300px; margin:0 auto; padding:16px; }
 
-  /* page width */
-  .att-page{
-    max-width: 1300px;
-    margin: 0 auto;
-    padding: 16px;
-  }
-
-  /* ===== Top bar ===== */
+  /* Topbar */
   .topbar{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap: 12px;
-    padding: 10px 16px;
-    border-radius: 12px;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    backdrop-filter: blur(20px);
-    margin-bottom: 12px;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; padding:10px 16px; border-radius:12px;
+    background:var(--bg-card); border:1px solid var(--border);
+    backdrop-filter:blur(20px); margin-bottom:12px;
   }
-
-  .tb-left{
-    display:flex;
-    align-items:center;
-    gap: 12px;
-    min-width: 0;
-  }
-
+  .tb-left{ display:flex; align-items:center; gap:12px; min-width:0; }
   .backbtn{
-    width:36px; height:36px;
-    border-radius: 10px;
+    width:36px; height:36px; border-radius:10px;
     display:grid; place-items:center;
-    background: rgba(255,255,255,.05);
-    border: 1px solid var(--border);
-    color: #fff;
-    text-decoration:none;
-    transition:.18s ease;
-    flex: 0 0 auto;
+    background:rgba(255,255,255,.05); border:1px solid var(--border);
+    color:#fff; text-decoration:none; transition:.18s ease; flex:0 0 auto;
   }
-  .backbtn:hover{
-    transform: translateY(-1px);
-    background: rgba(255,255,255,.09);
-  }
-
-  .tb-title{
-    margin: 0;
-    font-weight: 800;
-    font-size: 16px;
-    color: #fff;
-  }
-  .tb-sub{
-    margin-top: 2px;
-    color: var(--text-muted);
-    font-weight: 600;
-    font-size: 11px;
-  }
-
-  /* Right controls */
-  .tb-right{
-    display:flex;
-    align-items:center;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content:flex-end;
-  }
-
+  .backbtn:hover{ transform:translateY(-1px); background:rgba(255,255,255,.09); color:#fff; }
+  .tb-title{ margin:0; font-weight:800; font-size:16px; color:#fff; }
+  .tb-sub{ margin-top:2px; color:var(--text-muted); font-weight:600; font-size:11px; }
+  .tb-right{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
   .ctrl{
-    display:flex;
-    align-items:center;
-    gap: 8px;
-    padding: 0 10px;
-    border-radius: 10px;
-    background: rgba(0,0,0,.2);
-    border: 1px solid var(--border);
-    height: 38px;
+    display:flex; align-items:center; gap:8px; padding:0 10px;
+    border-radius:10px; background:rgba(0,0,0,.2); border:1px solid var(--border); height:38px;
   }
-
   .ctrl select{
-    border:none !important;
-    outline:none !important;
-    background: transparent !important;
-    color: #fff !important;
-    font-weight: 700;
-    font-size: 13px;
-    padding: 0 2px;
-    color-scheme: dark;
+    border:none !important; outline:none !important; background:transparent !important;
+    color:#fff !important; font-weight:700; font-size:13px; padding:0 2px; color-scheme:dark;
   }
-  .ctrl option{
-    background: rgba(2,6,23,.98);
-    color: var(--text);
-  }
-
+  .ctrl option{ background:rgba(2,6,23,.98); }
   .btn-view{
-    border:none;
-    border-radius: 10px;
-    height: 38px;
-    padding: 0 16px;
-    font-weight: 700;
-    font-size: 13.5px;
-    color:#fff;
-    background: var(--primary);
-    transition:.18s ease;
+    border:none; border-radius:10px; height:38px; padding:0 16px;
+    font-weight:700; font-size:13.5px; color:#fff; background:var(--primary);
+    transition:.18s ease; cursor:pointer;
   }
-  .btn-view:hover{ transform: translateY(-1px); filter:brightness(1.05); }
-
+  .btn-view:hover{ transform:translateY(-1px); filter:brightness(1.05); }
   .btn-dl{
-    width:38px; height:38px;
-    border-radius: 10px;
-    display:grid; place-items:center;
-    background: rgba(255,255,255,.05);
-    border: 1px solid var(--border);
-    color: var(--text-muted);
-    text-decoration:none;
-    transition:.18s ease;
+    width:38px; height:38px; border-radius:10px; display:grid; place-items:center;
+    background:rgba(255,255,255,.05); border:1px solid var(--border);
+    color:var(--text-muted); text-decoration:none; transition:.18s ease;
   }
-  .btn-dl:hover{
-    transform: translateY(-1px);
-    background: rgba(255,255,255,.10);
-  }
+  .btn-dl:hover{ transform:translateY(-1px); background:rgba(255,255,255,.10); color:#fff; }
 
-  /* ===== Legend ===== */
-  .legend{
-    display:flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 12px;
-  }
-
+  /* Legend */
+  .legend{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
   .leg{
-    display:inline-flex;
-    align-items:center;
-    gap: 8px;
-    padding: 6px 12px;
-    border-radius: 8px;
-    background: rgba(255,255,255,.03);
-    border: 1px solid var(--border);
-    font-weight: 700;
-    font-size: 11px;
-    color: var(--text-muted);
+    display:inline-flex; align-items:center; gap:8px;
+    padding:7px 14px; border-radius:8px;
+    background:rgba(255,255,255,.03); border:1px solid var(--border);
+    font-weight:700; font-size:11px; color:var(--text-muted);
   }
-
-  .dot{ width:10px; height:10px; border-radius: 999px; }
-  .dot.p{ background: var(--present); box-shadow: 0 0 10px rgba(34,197,94,.35); }
-  .dot.a{ background: var(--absent);  box-shadow: 0 0 10px rgba(251,113,133,.35); }
-  .dot.f{ background: var(--forced);  box-shadow: 0 0 10px rgba(251,191,36,.35); }
-
-  /* ===== Table card ===== */
-  .table-card{
-    border-radius: 12px;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    overflow: hidden;
+  .leg .pay-badge{
+    font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px;
+    text-transform:uppercase; letter-spacing:.5px;
   }
+  .pay-yes{ background:rgba(16,185,129,.15); color:#34d399; border:1px solid rgba(16,185,129,.25); }
+  .pay-no{  background:rgba(239,68,68,.12);  color:#f87171;  border:1px solid rgba(239,68,68,.2); }
+  .dot{ width:10px; height:10px; border-radius:999px; }
+  .dot.p{ background:var(--present); box-shadow:0 0 8px rgba(16,185,129,.4); }
+  .dot.a{ background:var(--absent);  box-shadow:0 0 8px rgba(239,68,68,.4); }
+  .dot.e{ background:var(--excused); box-shadow:0 0 8px rgba(245,158,11,.4); }
+  .dot.n{ background:rgba(148,163,184,.35); }
 
-  /* scroller */
+  /* Table */
+  .table-card{ border-radius:12px; background:var(--bg-card); border:1px solid var(--border); overflow:hidden; }
   .table-scroll{
-    overflow-x:auto;
-    background: rgba(2,6,23,.25);
-    padding-bottom: 10px;
-    -webkit-overflow-scrolling: touch;
+    overflow-x:auto; background:rgba(2,6,23,.25); padding-bottom:10px;
+    -webkit-overflow-scrolling:touch;
   }
-
-  /* nice scrollbar */
-  .table-scroll::-webkit-scrollbar{ height: 8px; }
-  .table-scroll::-webkit-scrollbar-track{
-    background: rgba(255,255,255,.05);
-    border-radius: 999px;
-    margin: 0 14px;
-  }
-  .table-scroll::-webkit-scrollbar-thumb{
-    background: rgba(59, 130, 246, 0.4);
-    border-radius: 999px;
-  }
-
-  /* table */
+  .table-scroll::-webkit-scrollbar{ height:8px; }
+  .table-scroll::-webkit-scrollbar-track{ background:rgba(255,255,255,.05); border-radius:999px; margin:0 14px; }
+  .table-scroll::-webkit-scrollbar-thumb{ background:rgba(59,130,246,.4); border-radius:999px; }
   .att-table{
-    width: 100%;
-    min-width: 1000px;
-    border-collapse: separate;
-    border-spacing: 0;
-    font-size: 12.5px;
-    color: var(--text-main);
+    width:100%; min-width:1000px; border-collapse:separate; border-spacing:0;
+    font-size:12.5px; color:var(--text-main);
   }
-
-  /* header */
   .att-table thead th{
-    background: linear-gradient(90deg, #2563eb, #3b82f6);
-    color:#fff;
-    font-weight: 800;
-    padding: 10px 8px;
-    border-right: 1px solid rgba(255,255,255,.1);
-    border-bottom: 1px solid rgba(255,255,255,.1);
-    white-space: nowrap;
-    text-align:center;
+    background:linear-gradient(90deg,#2563eb,#3b82f6); color:#fff;
+    font-weight:800; padding:10px 6px;
+    border-right:1px solid rgba(255,255,255,.1);
+    border-bottom:1px solid rgba(255,255,255,.1);
+    white-space:nowrap; text-align:center;
   }
-
-  /* body */
   .att-table tbody td{
-    background: rgba(0,0,0,.1);
-    padding: 8px 10px;
-    text-align:center;
-    border-right: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
+    background:rgba(0,0,0,.1); padding:6px 5px; text-align:center;
+    border-right:1px solid var(--border); border-bottom:1px solid var(--border);
   }
+  .col-no{ width:var(--noW); }
+  .col-name{ min-width:var(--nameW); text-align:left !important; padding-left:14px !important; white-space:nowrap; }
 
-  /* ✅ widths */
-  .col-no{ width: var(--noW); }
-  .col-name{
-    min-width: var(--nameW);
-    text-align:left !important;
-    padding-left: 14px !important;
-    white-space: nowrap;
-  }
-
-  /* ✅ STICKY FIRST COLUMNS */
+  /* Sticky */
   .att-table thead th.sticky,
   .att-table tbody td.sticky{
-    position: sticky;
-    left: 0;
-    z-index: 30;
-    width: var(--noW);
-    min-width: var(--noW);
-    max-width: var(--noW);
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+    position:sticky; left:0; z-index:30;
+    width:var(--noW); min-width:var(--noW); max-width:var(--noW);
+    padding-left:0 !important; padding-right:0 !important;
   }
-
   .att-table thead th.sticky2,
-  .att-table tbody td.sticky2{
-    position: sticky;
-    left: var(--noW);
-    z-index: 30;
-  }
-
-  /* sticky bg */
+  .att-table tbody td.sticky2{ position:sticky; left:var(--noW); z-index:30; }
   .att-table tbody td.sticky,
-  .att-table tbody td.sticky2{
-    background: #020617;
-  }
-
-  /* separator */
+  .att-table tbody td.sticky2{ background:#020617; }
   .att-table thead th.sticky,
-  .att-table tbody td.sticky{
-    border-right: 1px solid rgba(255,255,255,.10);
-  }
-
+  .att-table tbody td.sticky{ border-right:1px solid rgba(255,255,255,.10); }
   .att-table thead th.sticky2,
-  .att-table tbody td.sticky2{
-    border-right: 1px solid rgba(255,255,255,.12);
-  }
-
+  .att-table tbody td.sticky2{ border-right:1px solid rgba(255,255,255,.12); }
   .att-table thead th.sticky2::after,
   .att-table tbody td.sticky2::after{
-    content:"";
-    position:absolute;
-    top:0; right:-1px;
-    width: 6px;
-    height:100%;
-    pointer-events:none;
-    background: linear-gradient(90deg, rgba(0,0,0,.35), rgba(0,0,0,0));
+    content:""; position:absolute; top:0; right:-1px; width:6px; height:100%;
+    pointer-events:none; background:linear-gradient(90deg,rgba(0,0,0,.35),rgba(0,0,0,0));
   }
-
-  /* hover */
-  .att-table tbody tr:hover td{ background: rgba(59,130,246,.05); }
+  .att-table tbody tr:hover td{ background:rgba(59,130,246,.05); }
   .att-table tbody tr:hover td.sticky,
-  .att-table tbody tr:hover td.sticky2{ background: #0b1226; }
+  .att-table tbody tr:hover td.sticky2{ background:#0b1226; }
+  .dayhead{ padding:8px 5px !important; }
+  .daynum{ font-weight:800; font-size:13px; line-height:1; }
+  .daydow{ margin-top:3px; font-size:9px; opacity:.8; font-weight:700; }
 
-  /* day head */
-  .dayhead{ padding: 8px 6px !important; }
-  .daynum{ font-weight: 800; font-size: 13px; line-height: 1; }
-  .daydow{ margin-top: 3px; font-size: 9px; opacity:.8; font-weight: 700; }
-
-  /* ✅ status box (checkbox ko‘rinishi) */
+  /* Cell button */
   .cellbtn{
-    border:0;
-    background: transparent;
-    cursor:pointer;
-    width: var(--cell);
-    height: var(--cell);
-    border-radius: var(--cellRadius);
-    display:inline-grid;
-    place-items:center;
-    transition:.14s ease;
+    border:0; background:transparent; cursor:pointer;
+    width:var(--cell); height:var(--cell); border-radius:var(--cellRadius);
+    display:inline-grid; place-items:center; transition:.12s ease; position:relative;
   }
-  .cellbtn:hover{
-    background: rgba(255,255,255,.05);
-  }
-  .cellbtn:focus{
-    outline: none;
-    box-shadow: 0 0 0 4px rgba(96,165,250,.18), inset 0 0 0 1px rgba(255,255,255,.14);
-  }
+  .cellbtn:hover{ background:rgba(255,255,255,.06); }
+  .cellbtn:focus{ outline:none; box-shadow:0 0 0 3px rgba(96,165,250,.25); }
+  .cellbtn.loading{ opacity:.45; pointer-events:none; }
 
+  /* Status boxes */
   .sbox{
-    width: 22px;
-    height: 22px;
-    border-radius: 6px;
-    display:grid;
-    place-items:center;
-    border: 1px solid var(--border);
-    background: rgba(255,255,255,.02);
-    color: var(--text-muted);
+    width:28px; height:28px; border-radius:8px;
+    display:grid; place-items:center;
+    border:1.5px solid var(--border);
+    background:rgba(255,255,255,.02);
+    color:var(--text-muted);
+    transition:all .12s ease;
   }
-  .sbox i{ font-size: 14px; line-height: 1; }
+  .sbox i{ font-size:15px; line-height:1; }
 
+  /* Keldi — yashil — pul yoziladi */
   .s-present{
-    border-color: rgba(16, 185, 129, 0.4);
-    background: rgba(16, 185, 129, 0.1);
-    color: var(--green);
+    border-color:rgba(16,185,129,.55);
+    background:rgba(16,185,129,.13);
+    color:#34d399;
   }
+  /* Kelmadi sababsiz — qizil — pul yoziladi */
   .s-absent{
-    border-color: rgba(239, 68, 68, 0.4);
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--red);
+    border-color:rgba(239,68,68,.55);
+    background:rgba(239,68,68,.13);
+    color:#f87171;
   }
+  /* Kelmadi sababli — sariq — pul yozilmaydi */
+  .s-excused{
+    border-color:rgba(245,158,11,.55);
+    background:rgba(245,158,11,.13);
+    color:#fbbf24;
+  }
+  /* Eski forced yozuvlar — sariq qulf */
+  .s-forced{
+    border-color:rgba(245,158,11,.4);
+    background:rgba(245,158,11,.08);
+    color:rgba(251,191,36,.85);
+  }
+  /* Bo'sh */
   .s-none{
-    border-color: rgba(148,163,184,.20);
-    background: rgba(255,255,255,.03);
-    color: rgba(148,163,184,.95);
+    border-color:rgba(148,163,184,.18);
+    background:rgba(255,255,255,.02);
+    color:rgba(148,163,184,.5);
   }
 
-  /* ✅ forced (disabled checkbox style) */
-  .forced-wrap{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap: 6px;
-    width: var(--cell);
-    height: var(--cell);
-    border-radius: var(--cellRadius);
-    background: rgba(255,255,255,.03);
-    border: 1px solid rgba(255,255,255,.10);
+  /* Popover */
+  .att-pop{
+    position:fixed; z-index:9999;
+    background:rgba(8,15,35,.97);
+    backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
+    border:1px solid rgba(255,255,255,.14); border-radius:14px;
+    padding:6px; width:230px;
+    box-shadow:0 24px 60px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.04) inset;
+    display:none;
+    animation:popIn .15s cubic-bezier(.34,1.56,.64,1);
   }
-  .forced-check{
-    width: 16px;
-    height: 16px;
-    accent-color: var(--forced);
-    cursor: not-allowed;
-    opacity: .95;
+  .att-pop.show{ display:block; }
+  @keyframes popIn{
+    from{ opacity:0; transform:scale(.92) translateY(-4px); }
+    to{   opacity:1; transform:scale(1)  translateY(0); }
   }
-  .forced-ic{
-    color: rgba(251,191,36,.95);
-    font-size: 14px;
-    opacity: .95;
+  .pop-header{
+    font-size:10px; font-weight:800; text-transform:uppercase;
+    letter-spacing:.8px; color:rgba(255,255,255,.3); padding:4px 10px 8px;
   }
+  .pop-item{
+    display:flex; align-items:center; gap:10px;
+    padding:10px 12px; border-radius:9px; cursor:pointer;
+    font-size:13px; font-weight:600; color:rgba(255,255,255,.82);
+    border:none; background:none; width:100%; text-align:left;
+    transition:background .12s, color .12s;
+  }
+  .pop-item:hover{ background:rgba(255,255,255,.08); color:#fff; }
+  .pop-item .pop-sub{
+    font-size:10px; font-weight:600; margin-left:auto;
+    padding:2px 6px; border-radius:4px; white-space:nowrap;
+  }
+  .pop-item.is-current{ background:rgba(255,255,255,.06); color:#fff; }
+  .pop-item.is-current::after{ content:"✓"; margin-left:auto; font-size:11px; opacity:.6; }
+  .pop-item.is-current .pop-sub{ display:none; }
+  .pop-dot{ width:11px; height:11px; border-radius:999px; flex-shrink:0; }
+  .pop-dot.p{ background:var(--present); box-shadow:0 0 6px rgba(16,185,129,.5); }
+  .pop-dot.a{ background:var(--absent);  box-shadow:0 0 6px rgba(239,68,68,.5); }
+  .pop-dot.e{ background:var(--excused); box-shadow:0 0 6px rgba(245,158,11,.5); }
+  .pop-dot.n{ background:rgba(148,163,184,.4); }
+  .pop-divider{ height:1px; background:rgba(255,255,255,.07); margin:4px 4px; }
 
-  /* empty */
-  .empty{
-    text-align:center;
-    color: var(--muted);
-    padding: 18px;
-    font-weight: 900;
-  }
+  .empty{ text-align:center; color:var(--text-muted); padding:18px; font-weight:700; }
 
-  /* ✅ responsive improvements */
-  @media (max-width: 980px){
-    :root{ --nameW:260px; }
-    .att-table{ min-width: 980px; }
-  }
-
-  @media (max-width: 720px){
-    .att-page{ margin: 12px auto; }
-    .topbar{ flex-direction: column; align-items: stretch; }
+  @media (max-width:980px){ :root{ --nameW:220px; } .att-table{ min-width:900px; } }
+  @media (max-width:720px){
+    .att-page{ padding:10px; }
+    .topbar{ flex-direction:column; align-items:stretch; }
     .tb-right{ width:100%; justify-content:flex-start; }
     .ctrl{ width:100%; justify-content:space-between; }
-    .btn-view{ width:100%; }
-    .btn-dl{ width:100%; height:44px; justify-content:center; }
-
-    /* compact sizes */
-    :root{
-      --noW:48px;
-      --nameW:220px;
-      --cell:32px;
-      --cellRadius:12px;
-    }
-
-    .tb-title{ font-size: 18px; }
-    .tb-sub{ font-size: 12px; }
-
-    .att-table{ min-width: 900px; font-size: 12.5px; }
-    .daydow{ display:none; } /* mobile’da faqat raqam qolsin */
-    .dayhead{ padding: 10px 6px !important; }
+    .btn-view, .btn-dl{ width:100%; height:44px; justify-content:center; }
+    :root{ --noW:44px; --nameW:200px; --cell:40px; }
+    .att-table{ min-width:860px; font-size:12px; }
+    .daydow{ display:none; }
   }
-
-  /* ✅ box sizing */
-  .att-table th, .att-table td{ box-sizing: border-box; }
+  .att-table th, .att-table td{ box-sizing:border-box; }
 </style>
 
 <div class="att-page">
 
   <!-- TOPBAR -->
   <div class="topbar">
-
     <div class="tb-left">
-      <a class="backbtn" href="{% url 'education:attendance_groups' %}" title="Ortga" aria-label="Ortga">
+      <a class="backbtn" href="{% url 'education:attendance_groups' %}" title="Ortga">
         <i class="bi bi-arrow-left"></i>
       </a>
-
       <div style="min-width:0;">
         <h4 class="tb-title">{{ group.nom }}</h4>
         <div class="tb-sub">
-          {{ group.center }}{% if group.oqituvchi %} · O‘qituvchi: {{ group.oqituvchi.get_full_name }}{% endif %}
+          {{ group.center }}{% if group.oqituvchi %} · O'qituvchi: {{ group.oqituvchi.get_full_name }}{% endif %}
         </div>
       </div>
     </div>
-
     <div class="tb-right">
       <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
-
-        <div class="ctrl" title="Yil / Oy tanlang">
+        <div class="ctrl">
           <select name="year" aria-label="Yil">
             {% for y in years %}
               <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
@@ -454,28 +284,32 @@
             {% endfor %}
           </select>
         </div>
-
-        <button type="submit" class="btn-view">
-          <i class="bi bi-eye"></i> Ko‘rish
-        </button>
-
-        <!-- ✅ Download (CSV) -->
-        <a class="btn-dl"
-           title="Saqlab olish (CSV)"
-           href="{% url 'education:group_month_attendance_export' group.id %}?year={{ year }}&month={{ month }}"
-           aria-label="CSV yuklab olish">
+        <button type="submit" class="btn-view"><i class="bi bi-eye"></i> Ko'rish</button>
+        <a class="btn-dl" title="CSV yuklab olish"
+           href="{% url 'education:group_month_attendance_export' group.id %}?year={{ year }}&month={{ month }}">
           <i class="bi bi-download"></i>
         </a>
       </form>
     </div>
-
   </div>
 
-  <!-- LEGEND -->
+  <!-- LEGEND — to'lov ko'rsatkichi bilan -->
   <div class="legend">
-    <span class="leg"><span class="dot p"></span> KELGAN</span>
-    <span class="leg"><span class="dot a"></span> KELMADI</span>
-    <span class="leg"><span class="dot f"></span> KELMADI, LEKIN PUL YOZILGAN</span>
+    <span class="leg">
+      <span class="dot p"></span> KELGAN
+      <span class="pay-badge pay-yes">PUL ✓</span>
+    </span>
+    <span class="leg">
+      <span class="dot a"></span> KELMADI SABABSIZ
+      <span class="pay-badge pay-yes">PUL ✓</span>
+    </span>
+    <span class="leg">
+      <span class="dot e"></span> KELMADI SABABLI
+      <span class="pay-badge pay-no">PUL ✗</span>
+    </span>
+    <span class="leg">
+      <span class="dot n"></span> BELGILANMAGAN
+    </span>
   </div>
 
   <!-- TABLE -->
@@ -485,138 +319,212 @@
         <thead>
           <tr>
             <th class="col-no sticky">№</th>
-            <th class="col-name sticky2">O‘quvchi ismi</th>
-
+            <th class="col-name sticky2">O'quvchi ismi</th>
             {% for d in days %}
               <th class="dayhead">
                 <div class="daynum">{{ d|date:"d" }}</div>
                 <div class="daydow">
                   {% with d|date:"w" as w %}
-                    {% if w == "0" %}YAK
-                    {% elif w == "1" %}DUSH
-                    {% elif w == "2" %}SESH
-                    {% elif w == "3" %}CHOR
-                    {% elif w == "4" %}PAY
-                    {% elif w == "5" %}JUM
-                    {% else %}SHAN
-                    {% endif %}
+                    {% if w == "0" %}YAK{% elif w == "1" %}DUSH{% elif w == "2" %}SESH
+                    {% elif w == "3" %}CHOR{% elif w == "4" %}PAY{% elif w == "5" %}JUM
+                    {% else %}SHAN{% endif %}
                   {% endwith %}
                 </div>
               </th>
             {% endfor %}
           </tr>
         </thead>
-
         <tbody>
           {% for row in rows %}
             <tr>
               <td class="sticky">{{ forloop.counter }}</td>
-              <td class="sticky2 col-name" style="font-weight: 600;">{{ row.student.get_full_name }}</td>
-
+              <td class="sticky2 col-name" style="font-weight:600;">{{ row.student.get_full_name }}</td>
               {% for cell in row.cells %}
                 <td>
-                  {% if cell.status == 'forced' %}
-                    <div class="forced-wrap" title="Kelmadi, lekin pul yozilgan">
-                      <input class="form-check-input forced-check" type="checkbox" checked disabled>
-                      <i class="bi bi-lock-fill forced-ic"></i>
-                    </div>
-                  {% else %}
-                    <button type="button"
-                            class="cellbtn att-cell-toggle"
-                            data-student="{{ row.student.id }}"
-                            data-date="{{ cell.date|date:'Y-m-d' }}"
-                            data-status="{{ cell.status }}"
-                            aria-label="Davomat o‘zgartirish">
-                      {% if cell.status == 'present' %}
-                        <span class="sbox s-present" title="Kelgan"><i class="bi bi-check-lg"></i></span>
-                      {% elif cell.status == 'absent' %}
-                        <span class="sbox s-absent" title="Kelmadi"><i class="bi bi-x-lg"></i></span>
-                      {% else %}
-                        <span class="sbox s-none" title="Belgilanmagan"><i class="bi bi-dash-lg"></i></span>
-                      {% endif %}
-                    </button>
-                  {% endif %}
+                  <button type="button"
+                          class="cellbtn att-cell"
+                          data-student="{{ row.student.id }}"
+                          data-date="{{ cell.date|date:'Y-m-d' }}"
+                          data-status="{{ cell.status }}"
+                          title="{% if cell.status == 'present' %}Kelgan — pul yoziladi{% elif cell.status == 'absent' %}Kelmadi sababsiz — pul yoziladi{% elif cell.status == 'absent_excused' %}Kelmadi sababli — pul yozilmaydi{% elif cell.status == 'forced' %}Kelmadi (eski yozuv){% else %}Belgilanmagan{% endif %}">
+                    {% if cell.status == 'present' %}
+                      <span class="sbox s-present"><i class="bi bi-check-lg"></i></span>
+                    {% elif cell.status == 'absent' %}
+                      <span class="sbox s-absent"><i class="bi bi-x-lg"></i></span>
+                    {% elif cell.status == 'absent_excused' %}
+                      <span class="sbox s-excused"><i class="bi bi-clock"></i></span>
+                    {% elif cell.status == 'forced' %}
+                      <span class="sbox s-forced"><i class="bi bi-lock-fill"></i></span>
+                    {% else %}
+                      <span class="sbox s-none"><i class="bi bi-dash"></i></span>
+                    {% endif %}
+                  </button>
                 </td>
               {% endfor %}
             </tr>
           {% empty %}
             <tr>
-              <td colspan="{{ days|length|add:'2' }}" class="empty">
-                Bu guruhda o‘quvchilar yo‘q.
-              </td>
+              <td colspan="{{ days|length|add:'2' }}" class="empty">Bu guruhda o'quvchilar yo'q.</td>
             </tr>
           {% endfor %}
         </tbody>
-
       </table>
     </div>
   </div>
 
 </div>
 
+<!-- POPOVER -->
+<div class="att-pop" id="attPop" role="menu">
+  <div class="pop-header">Davomat holati</div>
+
+  <button class="pop-item" data-target="present" role="menuitem">
+    <span class="pop-dot p"></span>
+    Keldi
+    <span class="pop-sub pay-yes">PUL ✓</span>
+  </button>
+
+  <button class="pop-item" data-target="absent" role="menuitem">
+    <span class="pop-dot a"></span>
+    Kelmadi sababsiz
+    <span class="pop-sub pay-yes">PUL ✓</span>
+  </button>
+
+  <button class="pop-item" data-target="excused" role="menuitem">
+    <span class="pop-dot e"></span>
+    Kelmadi sababli
+    <span class="pop-sub pay-no">PUL ✗</span>
+  </button>
+
+  <div class="pop-divider"></div>
+
+  <button class="pop-item" data-target="none" role="menuitem">
+    <span class="pop-dot n"></span>
+    Tozalash
+  </button>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
-function getCookie(name) {
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== "") {
-    const cookies = document.cookie.split(";");
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim();
-      if (cookie.substring(0, name.length + 1) === (name + "=")) {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        break;
-      }
+(function () {
+  'use strict';
+
+  function getCookie(name) {
+    let v = null;
+    if (document.cookie) {
+      document.cookie.split(';').forEach(c => {
+        c = c.trim();
+        if (c.startsWith(name + '=')) v = decodeURIComponent(c.slice(name.length + 1));
+      });
     }
+    return v;
   }
-  return cookieValue;
-}
-const csrftoken = getCookie("csrftoken");
+  const csrf = getCookie('csrftoken');
+  const toggleUrl = "{% url 'education:attendance_toggle_cell' group.id %}";
 
-/* ✅ marker builder (new UI) */
-function renderStatusBox(status){
-  if (status === "present") {
-    return '<span class="sbox s-present" title="Kelgan"><i class="bi bi-check-lg"></i></span>';
-  } else if (status === "absent") {
-    return '<span class="sbox s-absent" title="Kelmadi"><i class="bi bi-x-lg"></i></span>';
+  /* Status → HTML */
+  function statusHtml(status) {
+    const map = {
+      present:       '<span class="sbox s-present"><i class="bi bi-check-lg"></i></span>',
+      absent:        '<span class="sbox s-absent"><i class="bi bi-x-lg"></i></span>',
+      absent_excused:'<span class="sbox s-excused"><i class="bi bi-clock"></i></span>',
+      forced:        '<span class="sbox s-forced"><i class="bi bi-lock-fill"></i></span>',
+      none:          '<span class="sbox s-none"><i class="bi bi-dash"></i></span>',
+    };
+    return map[status] || map.none;
   }
-  return '<span class="sbox s-none" title="Belgilanmagan"><i class="bi bi-dash-lg"></i></span>';
-}
 
-document.addEventListener("DOMContentLoaded", function () {
-  document.querySelectorAll(".att-cell-toggle").forEach(btn => {
-    btn.addEventListener("click", function () {
-      const studentId = this.dataset.student;
-      const date = this.dataset.date;
-      const currentStatus = this.dataset.status;
+  /* Status → tooltip */
+  function statusTitle(status) {
+    return {
+      present:       'Kelgan — pul yoziladi',
+      absent:        'Kelmadi sababsiz — pul yoziladi',
+      absent_excused:'Kelmadi sababli — pul yozilmaydi',
+      forced:        'Kelmadi (eski yozuv)',
+      none:          'Belgilanmagan',
+    }[status] || '';
+  }
 
-      fetch("{% url 'education:attendance_toggle_cell' group.id %}", {
-        method: "POST",
-        headers: {
-          "X-CSRFToken": csrftoken,
-          "X-Requested-With": "XMLHttpRequest",
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          student_id: studentId,
-          date: date,
-          status: currentStatus,
-        }),
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (!data.ok) return;
+  /* Popover */
+  const pop = document.getElementById('attPop');
+  let activeBtn = null;
 
-        const newStatus = data.status;
-        this.dataset.status = newStatus;
+  function closePopover() {
+    pop.classList.remove('show');
+    activeBtn = null;
+  }
 
-        /* ✅ update box */
-        this.innerHTML = renderStatusBox(newStatus);
-      })
-      .catch(err => console.error(err));
+  function openPopover(btn) {
+    if (activeBtn === btn) { closePopover(); return; }
+    closePopover();
+    activeBtn = btn;
+
+    const cur = btn.dataset.status;
+    pop.querySelectorAll('.pop-item').forEach(item => {
+      const isCur = item.dataset.target === cur ||
+                    (item.dataset.target === 'excused' && cur === 'absent_excused');
+      item.classList.toggle('is-current', isCur);
     });
+
+    pop.classList.add('show');
+
+    /* Smart positioning */
+    const rect = btn.getBoundingClientRect();
+    const pw = 230, ph = 200;
+    let left = rect.left + rect.width / 2 - pw / 2;
+    let top  = rect.bottom + 6;
+    if (left + pw > window.innerWidth - 10) left = window.innerWidth - pw - 10;
+    if (left < 6) left = 6;
+    if (top + ph > window.innerHeight - 10) top = rect.top - ph - 6;
+    pop.style.left = left + 'px';
+    pop.style.top  = top  + 'px';
+  }
+
+  /* Send to backend */
+  function setStatus(btn, targetStatus) {
+    btn.classList.add('loading');
+    closePopover();
+
+    fetch(toggleUrl, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': csrf,
+        'X-Requested-With': 'XMLHttpRequest',
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        student_id:    btn.dataset.student,
+        date:          btn.dataset.date,
+        target_status: targetStatus,
+      }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.ok) return;
+      const ns = data.status;
+      btn.dataset.status = ns;
+      btn.innerHTML = statusHtml(ns);
+      btn.title = statusTitle(ns);
+    })
+    .catch(err => console.error('Davomat xatosi:', err))
+    .finally(() => btn.classList.remove('loading'));
+  }
+
+  /* Event delegation */
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.att-cell');
+    if (btn) { e.stopPropagation(); openPopover(btn); return; }
+
+    const item = e.target.closest('.pop-item');
+    if (item && activeBtn) { e.stopPropagation(); setStatus(activeBtn, item.dataset.target); return; }
+
+    if (!e.target.closest('#attPop')) closePopover();
   });
-});
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closePopover(); });
+
+})();
 </script>
 {% endblock %}

@@ -1357,15 +1357,19 @@ def group_month_attendance(request, group_id):
             a = att_map.get((student.id, d))
             if not a:
                 status = "none"
-
-
             elif getattr(a, "present", False):
                 status = "present"
                 present_count += 1
+            elif getattr(a, "status", None) == "absent_excused":
+                # Sababli kelmagan — pul yozilmaydi
+                status = "absent_excused"
+                forced_count += 1
             elif getattr(a, "forced", False):
+                # Eski "forced" yozuvlar — ko'rsatish uchun saqlanadi
                 status = "forced"
                 forced_count += 1
             else:
+                # Sababsiz kelmagan — pul yoziladi
                 status = "absent"
                 absent_count += 1
 
@@ -1642,7 +1646,8 @@ def attendance_toggle_cell(request, group_id):
 
     student_id = request.POST.get("student_id")
     date_str = request.POST.get("date")
-    current_status = request.POST.get("status", "none")
+    target_status = request.POST.get("target_status")   # new: direct set from popover
+    current_status = request.POST.get("status", "none")  # legacy cycle fallback
 
     d = parse_date(date_str)
     if not d or not student_id:
@@ -1656,33 +1661,58 @@ def attendance_toggle_cell(request, group_id):
 
     att = Attendance.objects.filter(group=group, student=student, date=d).first()
 
-    if att and getattr(att, "forced", False):
-        return JsonResponse({"ok": True, "status": "forced"})
-
-    if current_status == "none":
+    def _prepare_att():
+        nonlocal att
         if not att:
-            att = Attendance(group=group, student=student, date=d, present=True)
-            # Center ID ni qo'shish (migrationdan keyin)
+            att = Attendance(group=group, student=student, date=d)
             if hasattr(att, "center"):
                 att.center = group.center
-        else:
-            att.present = True
-            att.forced = False
         if not getattr(att, "teacher_id", None) and getattr(group, "oqituvchi_id", None):
             att.teacher = group.oqituvchi
+        return att
+
+    # --- Direct set mode (from popover) ---
+    if target_status in ("present", "absent", "excused", "none"):
+        if target_status == "none":
+            if att:
+                att.delete()
+            return JsonResponse({"ok": True, "status": "none"})
+
+        att = _prepare_att()
+        if target_status == "present":
+            att.present = True
+            att.forced = False
+            if hasattr(att, "status"):
+                att.status = "present"
+        elif target_status == "absent":
+            # Sababsiz kelmagan — pul yoziladi
+            att.present = False
+            att.forced = False
+            if hasattr(att, "status"):
+                att.status = "absent_unexcused"
+        elif target_status == "excused":
+            # Sababli kelmagan — pul yozilmaydi
+            att.present = False
+            att.forced = False
+            if hasattr(att, "status"):
+                att.status = "absent_excused"
+        att.save()
+        # excused → display status is "absent_excused"
+        display = "absent_excused" if target_status == "excused" else target_status
+        return JsonResponse({"ok": True, "status": display})
+
+    # --- Legacy cycle mode (backward compat) ---
+    if current_status == "none":
+        att = _prepare_att()
+        att.present = True
+        att.forced = False
         att.save()
         new_status = "present"
 
     elif current_status == "present":
-        if not att:
-            att = Attendance(group=group, student=student, date=d, present=False)
-            if hasattr(att, "center"):
-                att.center = group.center
-        else:
-            att.present = False
-            att.forced = False
-        if not getattr(att, "teacher_id", None) and getattr(group, "oqituvchi_id", None):
-            att.teacher = group.oqituvchi
+        att = _prepare_att()
+        att.present = False
+        att.forced = False
         att.save()
         new_status = "absent"
 
@@ -1690,6 +1720,12 @@ def attendance_toggle_cell(request, group_id):
         if att:
             att.delete()
         new_status = "none"
+
+    elif current_status == "forced":
+        if att:
+            att.delete()
+        new_status = "none"
+
     else:
         new_status = current_status or "none"
 

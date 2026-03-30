@@ -1,0 +1,47 @@
+{# Boshqaruv collapsible section — sidebar floating menu ichida ishlatiladi #}
+{# boshqaruv_open: True/False (parent template o'rnatadi) #}
+{% with vn=request.resolver_match.view_name|default:'' %}
+
+<button class="floating-section-toggle{% if boshqaruv_open %} boshqaruv-open{% endif %}"
+        id="boshqaruvToggle"
+        onclick="toggleBoshqaruv()"
+        aria-expanded="{% if boshqaruv_open %}true{% else %}false{% endif %}"
+        aria-controls="boshqaruvNested">
+  <span class="floating-header-label">Boshqaruv</span>
+  <i class="fa-solid fa-chevron-down boshqaruv-chevron{% if boshqaruv_open %} rotated{% endif %}"></i>
+</button>
+
+<div class="floating-nested" id="boshqaruvNested"
+     style="{% if not boshqaruv_open %}display:none;{% endif %}">
+
+  <a href="{% url 'chaqmoq:rule_list' %}"
+     class="floating-item{% if vn == 'chaqmoq:rule_list' %} fi-active{% endif %}">
+    <div class="fi-icon"><i class="fa-solid fa-scale-balanced"></i></div>
+    <span>Chaqmoq qoidalari</span>
+  </a>
+
+  <a href="{% url 'store:lead_settings' %}"
+     class="floating-item{% if vn == 'store:lead_settings' %} fi-active{% endif %}">
+    <div class="fi-icon"><i class="fa-solid fa-sliders"></i></div>
+    <span>Lead sozlamalari</span>
+  </a>
+
+  {% if request.user.role == 'director' or request.user.is_superuser %}
+  <a href="{% url 'core:group_permissions_settings' %}"
+     class="floating-item{% if vn == 'core:group_permissions_settings' %} fi-active{% endif %}">
+    <div class="fi-icon"><i class="fa-solid fa-shield-halved"></i></div>
+    <span>Ruxsatlar</span>
+  </a>
+  {% endif %}
+
+  {% if request.user.role == 'director' or request.user.is_superuser or request.center.manager_can_access_trash %}
+  <a href="{% url 'core:deleted_items' %}"
+     class="floating-item{% if vn == 'core:deleted_items' %} fi-active{% endif %}">
+    <div class="fi-icon"><i class="fa-solid fa-box-archive"></i></div>
+    <span>Arxiv</span>
+  </a>
+  {% endif %}
+
+</div>
+
+{% endwith %}
