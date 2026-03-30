@@ -23,7 +23,7 @@
                 <div class="mkt-field"><span class="mkt-label">Ism</span><span>{{ lead.full_name }}</span></div>
                 <div class="mkt-field"><span class="mkt-label">Markaz nomi</span><span>{{ lead.center_name }}</span></div>
                 <div class="mkt-field"><span class="mkt-label">Telefon</span><span>{{ lead.phone }}</span></div>
-                <div class="mkt-field"><span class="mkt-label">Tarif</span><span>{{ lead.selected_plan.name|default:'Belgilanmagan' }}</span></div>
+                <div class="mkt-field"><span class="mkt-label">Viloyat</span><span>{{ lead.get_region_display_uz }}</span></div>
                 <div class="mkt-field"><span class="mkt-label">Rozilik</span><span>{% if lead.consent %}Berilgan{% else %}Berilmagan{% endif %}</span></div>
                 <div class="mkt-field"><span class="mkt-label">Kelgan vaqt</span><span>{{ lead.created_at|date:"d.m.Y H:i" }}</span></div>
                 <div class="mkt-field"><span class="mkt-label">Holat</span><span>{% if lead.is_contacted %}<span class="mkt-badge mkt-badge-active">Bog'langan</span>{% else %}<span class="mkt-badge mkt-badge-amber">Kutilmoqda</span>{% endif %}</span></div>

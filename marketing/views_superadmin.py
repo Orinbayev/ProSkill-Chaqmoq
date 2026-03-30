@@ -30,6 +30,7 @@ from .forms import (
 from accounts.views import is_superadmin
 
 from .models import (
+    REGION_CHOICES,
     DemoLead,
     FAQ,
     FeatureBlock,
@@ -234,7 +235,7 @@ def marketing_dashboard(request: HttpRequest) -> HttpResponse:
         "static_pages": StaticPage.objects.count(),
     }
 
-    recent_demo_leads = DemoLead.objects.select_related("selected_plan").order_by("-created_at")[:8]
+    recent_demo_leads = DemoLead.objects.order_by("-created_at")[:8]
 
     recent_updates: list[RecentUpdate] = []
     recent_models = [
@@ -1468,18 +1469,18 @@ def static_page_delete(request: HttpRequest, pk: int) -> HttpResponse:
 def demo_lead_list(request: HttpRequest) -> HttpResponse:
     q = request.GET.get("q", "").strip()
     contacted = request.GET.get("contacted", "")
-    plan_id = request.GET.get("plan", "")
+    region_filter = request.GET.get("region", "")
 
-    queryset = DemoLead.objects.select_related("selected_plan").all().order_by("-created_at")
-    queryset = _apply_search(queryset, q, ["full_name", "center_name", "phone", "note"])
+    queryset = DemoLead.objects.all().order_by("-created_at")
+    queryset = _apply_search(queryset, q, ["full_name", "center_name", "phone", "region", "note"])
 
     if contacted == "1":
         queryset = queryset.filter(is_contacted=True)
     elif contacted == "0":
         queryset = queryset.filter(is_contacted=False)
 
-    if plan_id:
-        queryset = queryset.filter(selected_plan_id=plan_id)
+    if region_filter:
+        queryset = queryset.filter(region=region_filter)
 
     page_obj = _paginate(request, queryset)
 
@@ -1491,8 +1492,8 @@ def demo_lead_list(request: HttpRequest) -> HttpResponse:
             "objects": page_obj.object_list,
             "q": q,
             "contacted": contacted,
-            "plan_id": plan_id,
-            "plans": PricingPlan.objects.filter(is_active=True).order_by("duration_months", "order"),
+            "region_filter": region_filter,
+            "regions": REGION_CHOICES,
         },
     )
 
@@ -1500,7 +1501,7 @@ def demo_lead_list(request: HttpRequest) -> HttpResponse:
 @login_required
 @user_passes_test(is_superadmin)
 def demo_lead_detail(request: HttpRequest, pk: int) -> HttpResponse:
-    instance = get_object_or_404(DemoLead.objects.select_related("selected_plan"), pk=pk)
+    instance = get_object_or_404(DemoLead, pk=pk)
     form = DemoLeadUpdateForm(request.POST or None, instance=instance)
 
     if request.method == "POST" and form.is_valid():

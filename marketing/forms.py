@@ -1,6 +1,7 @@
 from django import forms
 
 from .models import (
+    REGION_CHOICES,
     DemoLead,
     FAQ,
     FeatureBlock,
@@ -26,49 +27,46 @@ DEMO_FORM_I18N = {
         "full_name": "Ism va familiya",
         "center_name": "O'quv markaz nomi",
         "phone": "Telefon raqam",
-        "selected_plan": "Qiziqayotgan tarif",
-        "password": "Test akkaunt paroli (ixtiyoriy)",
+        "region": "Viloyatni tanlang",
         "consent": "Ma'lumotlarimni qayta ishlashga roziman",
         "ph_full_name": "Masalan: Amirxon O'rinbayev",
         "ph_center_name": "Masalan: Yuksalish o'quv markazi",
         "ph_phone": "+998901234567",
-        "ph_password": "Agar test akkaunt ochish kerak bo'lsa",
-        "plan_placeholder": "Tarifni tanlang",
+        "region_placeholder": "Viloyatni tanlang",
         "err_phone_prefix": "Telefon +998 bilan boshlanishi kerak.",
         "err_phone_length": "Telefon raqam 12 ta raqamdan iborat bo'lishi kerak.",
         "err_consent": "So'rov yuborish uchun rozilikni belgilang.",
+        "err_region": "Iltimos, viloyatingizni tanlang.",
     },
     "ru": {
         "full_name": "Имя и фамилия",
         "center_name": "Название учебного центра",
         "phone": "Номер телефона",
-        "selected_plan": "Интересующий тариф",
-        "password": "Пароль тестового аккаунта (необязательно)",
+        "region": "Выберите область",
         "consent": "Согласен на обработку данных",
         "ph_full_name": "Например: Амирхон Оринбаев",
         "ph_center_name": "Например: Учебный центр Yuksalish",
         "ph_phone": "+998901234567",
-        "ph_password": "Если нужен тестовый аккаунт",
-        "plan_placeholder": "Выберите тариф",
+        "region_placeholder": "Выберите область",
         "err_phone_prefix": "Телефон должен начинаться с +998.",
         "err_phone_length": "Телефон должен содержать 12 цифр после +.",
         "err_consent": "Для отправки заявки нужно отметить согласие.",
+        "err_region": "Пожалуйста, выберите область.",
     },
     "en": {
         "full_name": "Full name",
         "center_name": "Learning center name",
         "phone": "Phone number",
-        "selected_plan": "Interested plan",
-        "password": "Test account password (optional)",
+        "region": "Select region",
         "consent": "I agree to personal data processing",
         "ph_full_name": "For example: Amirxon O'rinbayev",
         "ph_center_name": "For example: Yuksalish Learning Center",
         "ph_phone": "+998901234567",
-        "ph_password": "If you need a test account",
-        "plan_placeholder": "Select a plan",
+        "region_placeholder": "Select region",
         "err_phone_prefix": "Phone number must start with +998.",
         "err_phone_length": "Phone number must contain 12 digits after +.",
         "err_consent": "Consent is required to submit the request.",
+        "err_region": "Please select your region.",
     },
 }
 
@@ -113,13 +111,12 @@ class StyledModelForm(forms.ModelForm):
 class DemoLeadForm(forms.ModelForm):
     class Meta:
         model = DemoLead
-        fields = ["full_name", "center_name", "phone", "selected_plan", "password", "consent"]
+        fields = ["full_name", "center_name", "phone", "region", "consent"]
         widgets = {
             "full_name": forms.TextInput(),
             "center_name": forms.TextInput(),
             "phone": forms.TextInput(),
-            "selected_plan": forms.Select(),
-            "password": forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+            "region": forms.Select(),
             "consent": forms.CheckboxInput(),
         }
 
@@ -129,25 +126,21 @@ class DemoLeadForm(forms.ModelForm):
 
         text_pack = DEMO_FORM_I18N.get(lang_code, DEMO_FORM_I18N["uz"])
         self.text_pack = text_pack
-        self.fields["selected_plan"].queryset = PricingPlan.objects.filter(is_active=True).order_by(
-            "duration_months", "order"
-        )
-        self.fields["selected_plan"].required = False
-        self.fields["selected_plan"].empty_label = text_pack["plan_placeholder"]
-        self.fields["password"].required = False
+
+        # region: bo'sh tanlov variantini qo'shamiz
+        self.fields["region"].required = True
+        self.fields["region"].choices = [("", text_pack["region_placeholder"])] + list(REGION_CHOICES)
         self.fields["consent"].required = True
 
         self.fields["full_name"].label = text_pack["full_name"]
         self.fields["center_name"].label = text_pack["center_name"]
         self.fields["phone"].label = text_pack["phone"]
-        self.fields["selected_plan"].label = text_pack["selected_plan"]
-        self.fields["password"].label = text_pack["password"]
+        self.fields["region"].label = text_pack["region"]
         self.fields["consent"].label = text_pack["consent"]
 
         self.fields["full_name"].widget.attrs["placeholder"] = text_pack["ph_full_name"]
         self.fields["center_name"].widget.attrs["placeholder"] = text_pack["ph_center_name"]
         self.fields["phone"].widget.attrs["placeholder"] = text_pack["ph_phone"]
-        self.fields["password"].widget.attrs["placeholder"] = text_pack["ph_password"]
 
         for field_name, field in self.fields.items():
             if field_name != "consent":
@@ -161,6 +154,12 @@ class DemoLeadForm(forms.ModelForm):
         if len(normalized) != 13:
             raise forms.ValidationError(self.text_pack["err_phone_length"])
         return normalized
+
+    def clean_region(self):
+        region = self.cleaned_data.get("region")
+        if not region:
+            raise forms.ValidationError(self.text_pack["err_region"])
+        return region
 
     def clean_consent(self):
         consent = self.cleaned_data.get("consent")

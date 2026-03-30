@@ -722,6 +722,74 @@
         right: -100%;
       }
     }
+
+    /* ===== GLOBAL TOAST SYSTEM (body-level, outside app-shell isolation) ===== */
+    #cq-toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 999999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+      width: 340px;
+      max-width: calc(100vw - 40px);
+    }
+
+    .cq-toast {
+      pointer-events: auto;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 13px 16px;
+      border-radius: 13px;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.45;
+      color: #fff;
+      word-break: break-word;
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      opacity: 0;
+      transform: translateX(115%);
+      transition: opacity 0.22s ease, transform 0.26s cubic-bezier(0.34, 1.5, 0.64, 1);
+      will-change: transform, opacity;
+    }
+    .cq-toast.cq-toast--in  { opacity: 1; transform: translateX(0); }
+    .cq-toast.cq-toast--out { opacity: 0; transform: translateX(115%);
+                               transition: opacity 0.2s ease, transform 0.2s ease; }
+
+    .cq-toast--success { background: rgba(21, 128, 61,  0.93); }
+    .cq-toast--error   { background: rgba(185, 28, 28,  0.93); }
+    .cq-toast--warning { background: rgba(180, 83, 9,   0.93); }
+    .cq-toast--info    { background: rgba(29,  78, 216, 0.93); }
+
+    .cq-toast__icon {
+      flex-shrink: 0;
+      margin-top: 1px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.22);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 900;
+    }
+    .cq-toast__msg { flex: 1; }
+
+    @media (max-width: 480px) {
+      #cq-toast-container {
+        top: 12px;
+        right: 10px;
+        left: 10px;
+        width: auto;
+      }
+    }
   </style>
 
   <script>
@@ -762,6 +830,44 @@
         if (sb) sb.classList.remove("open");
         if (ov) ov.classList.remove("open");
       } catch (e) { }
+    })();
+  </script>
+
+  <!-- ===== GLOBAL TOAST CONTAINER (body-level, outside app-shell stacking context) ===== -->
+  <div id="cq-toast-container" aria-live="polite" aria-atomic="false"></div>
+
+  <script>
+    /* Global showToast() — works from any template that extends base.html */
+    (function () {
+      var ICONS = { success: '✓', error: '✕', warning: '!', info: 'i' };
+
+      window.showToast = function (msg, type) {
+        type = type || 'success';
+        var container = document.getElementById('cq-toast-container');
+        if (!container) return;
+
+        var div = document.createElement('div');
+        div.className = 'cq-toast cq-toast--' + type;
+        div.setAttribute('role', 'alert');
+        div.innerHTML =
+          '<span class="cq-toast__icon">' + (ICONS[type] || ICONS.info) + '</span>' +
+          '<span class="cq-toast__msg">' + msg + '</span>';
+        container.appendChild(div);
+
+        /* Double rAF: ensures element is in DOM before transition starts */
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            div.classList.add('cq-toast--in');
+          });
+        });
+
+        /* Auto-dismiss after 2.8 s */
+        setTimeout(function () {
+          div.classList.remove('cq-toast--in');
+          div.classList.add('cq-toast--out');
+          setTimeout(function () { div.remove(); }, 230);
+        }, 2800);
+      };
     })();
   </script>
 

@@ -151,9 +151,9 @@ def mark_contacted(modeladmin, request, queryset):
 
 @admin.register(DemoLead)
 class DemoLeadAdmin(RichTextAdmin):
-    list_display = ("full_name", "center_name", "phone", "selected_plan", "is_contacted", "created_at")
-    search_fields = ("full_name", "center_name", "phone", "note")
-    list_filter = ("is_contacted", "selected_plan", "created_at")
+    list_display = ("full_name", "center_name", "phone", "region", "is_contacted", "created_at")
+    search_fields = ("full_name", "center_name", "phone", "region", "note")
+    list_filter = ("is_contacted", "region", "created_at")
     ordering = ("-created_at",)
     list_editable = ("is_contacted",)
     readonly_fields = ("created_at",)

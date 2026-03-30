@@ -273,20 +273,44 @@ phone_validator = RegexValidator(
     message="Telefon raqam +998XXXXXXXXX formatida bo'lishi kerak.",
 )
 
+REGION_CHOICES = [
+    ("andijon", "Andijon"),
+    ("buxoro", "Buxoro"),
+    ("fargona", "Farg'ona"),
+    ("jizzax", "Jizzax"),
+    ("xorazm", "Xorazm"),
+    ("namangan", "Namangan"),
+    ("navoiy", "Navoiy"),
+    ("qashqadaryo", "Qashqadaryo"),
+    ("qoraqalpogiston", "Qoraqalpog'iston Respublikasi"),
+    ("samarqand", "Samarqand"),
+    ("sirdaryo", "Sirdaryo"),
+    ("surxondaryo", "Surxondaryo"),
+    ("toshkent_viloyat", "Toshkent viloyati"),
+    ("toshkent_shahar", "Toshkent shahri"),
+]
+
 
 class DemoLead(TimeStampedModel):
     full_name = models.CharField(max_length=120, verbose_name="F.I.Sh")
     center_name = models.CharField(max_length=120, verbose_name="Markaz nomi")
     phone = models.CharField(max_length=20, validators=[phone_validator], verbose_name="Telefon")
+    region = models.CharField(
+        max_length=60,
+        blank=True,
+        choices=REGION_CHOICES,
+        verbose_name="Viloyat",
+    )
+    # selected_plan va password eski ma'lumotlar uchun saqlab qolindi (formda ishlatilmaydi)
     selected_plan = models.ForeignKey(
         PricingPlan,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="demo_leads",
-        verbose_name="Tanlangan tarif",
+        verbose_name="Tanlangan tarif (eski)",
     )
-    password = models.CharField(max_length=128, blank=True, verbose_name="Parol")
+    password = models.CharField(max_length=128, blank=True, verbose_name="Parol (eski)")
     consent = models.BooleanField(default=False, verbose_name="Rozilik")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Yaratilgan sana")
     is_contacted = models.BooleanField(default=False, verbose_name="Bog'lanilgan")
@@ -299,6 +323,9 @@ class DemoLead(TimeStampedModel):
 
     def __str__(self):
         return f"{self.full_name} - {self.phone}"
+
+    def get_region_display_uz(self):
+        return dict(REGION_CHOICES).get(self.region, self.region or "Belgilanmagan")
 
 
 class SupportCard(TimeStampedModel):

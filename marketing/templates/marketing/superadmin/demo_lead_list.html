@@ -15,10 +15,10 @@
     <div class="mkt-card-body" style="border-bottom:1px solid var(--mkt-line);">
         <form method="get" class="mkt-filter-grid compact">
             <input type="text" name="q" value="{{ q }}" class="sa-input" placeholder="Ism, markaz yoki telefon bo'yicha qidirish">
-            <select name="plan" class="sa-select">
-                <option value="">Tarif (barchasi)</option>
-                {% for p in plans %}
-                <option value="{{ p.pk }}" {% if plan_id == p.pk|stringformat:'s' %}selected{% endif %}>{{ p.name }} ({{ p.duration_months }} oy)</option>
+            <select name="region" class="sa-select">
+                <option value="">Viloyat (barchasi)</option>
+                {% for val, label in regions %}
+                <option value="{{ val }}" {% if region_filter == val %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
             </select>
             <select name="contacted" class="sa-select">
@@ -32,13 +32,13 @@
 
     <div class="mkt-table-wrap">
         <table class="mkt-table">
-            <thead><tr><th>So'rov</th><th>Telefon</th><th>Tarif</th><th>Rozilik</th><th>Sana</th><th>Holat</th><th class="text-end">Amallar</th></tr></thead>
+            <thead><tr><th>So'rov</th><th>Telefon</th><th>Viloyat</th><th>Rozilik</th><th>Sana</th><th>Holat</th><th class="text-end">Amallar</th></tr></thead>
             <tbody>
                 {% for obj in objects %}
                 <tr>
                     <td><div class="mkt-inline-stack"><a href="{% url 'platform_global:marketing:demo_lead_detail' obj.pk %}" class="mkt-title">{{ obj.full_name }}</a><span class="mkt-muted">{{ obj.center_name }}</span></div></td>
                     <td>{{ obj.phone }}</td>
-                    <td>{{ obj.selected_plan.name|default:'Belgilanmagan' }}</td>
+                    <td>{{ obj.get_region_display_uz }}</td>
                     <td>{% if obj.consent %}<span class="mkt-badge mkt-badge-active">Ha</span>{% else %}<span class="mkt-badge mkt-badge-inactive">Yo'q</span>{% endif %}</td>
                     <td>{{ obj.created_at|date:"d.m.Y H:i" }}</td>
                     <td>{% if obj.is_contacted %}<span class="mkt-badge mkt-badge-active">Bog'langan</span>{% else %}<span class="mkt-badge mkt-badge-amber">Kutilmoqda</span>{% endif %}</td>

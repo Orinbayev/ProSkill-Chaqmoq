@@ -49,13 +49,9 @@
                 {{ form.phone }}
                 {% for err in form.phone.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
 
-                <label for="id_selected_plan">{{ form.selected_plan.label }}</label>
-                {{ form.selected_plan }}
-                {% for err in form.selected_plan.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
-
-                <label for="id_password">{{ form.password.label }}</label>
-                {{ form.password }}
-                {% for err in form.password.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+                <label for="id_region">{{ form.region.label }}</label>
+                {{ form.region }}
+                {% for err in form.region.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
 
                 <label class="consent-row" for="id_consent">
                     {{ form.consent }}

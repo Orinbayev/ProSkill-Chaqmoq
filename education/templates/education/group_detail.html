@@ -449,10 +449,10 @@
       max-width: calc(100vw - 32px);
     }
   }
+
 </style>
 
 <div class="cq-wrap">
-  <div id="toast-container" class="fixed top-5 right-5 z-[100] space-y-3 pointer-events-none"></div>
 
   <!-- HEADER AREA -->
   <div class="glass-panel header-mini header-top-layer">
@@ -1011,18 +1011,7 @@
       });
     }
 
-    function showToast(msg, type = 'success') {
-      const container = document.getElementById('toast-container');
-      const div = document.createElement('div');
-      div.className = `toast pointer-events-auto px-4 py-2.5 rounded-xl font-black shadow-2xl border border-white/10 flex items-center gap-3 ${type === 'success' ? 'bg-emerald-600' : 'bg-red-600'}`;
-      div.innerHTML = `<span>${type === 'success' ? '✓' : '✕'}</span><span>${msg}</span>`;
-      container.appendChild(div);
-      requestAnimationFrame(() => div.classList.add('show'));
-      setTimeout(() => {
-        div.classList.remove('show');
-        setTimeout(() => div.remove(), 250);
-      }, 2600);
-    }
+    /* showToast() — global funksiya base.html da aniqlangan */
 
     function currentRule() {
       const opt = ruleSelect.options[ruleSelect.selectedIndex];

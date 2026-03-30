@@ -21,7 +21,7 @@ def notify_telegram_new_lead(lead):
         f"Ism: {lead.full_name}\n"
         f"Markaz: {lead.center_name}\n"
         f"Telefon: {lead.phone}\n"
-        f"Tarif: {lead.selected_plan or 'Belgilanmagan'}"
+        f"Viloyat: {lead.get_region_display_uz()}"
     )
 
     url = f"https://api.telegram.org/bot{token}/sendMessage"
