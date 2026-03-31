@@ -122,106 +122,226 @@ DURATIONS = [1, 3, 6, 9, 12]
 
 
 # ============================================================
-# UPGRADE CREDIT CONVERSION
+# PLAN PRICING HELPERS
 # ============================================================
 
 from decimal import Decimal, ROUND_DOWN
 
+# Period-specific price field mapping: months → model field name
+_PERIOD_PRICE_FIELDS: dict[int, str] = {
+    3:  "price_3m",
+    6:  "price_6m",
+    9:  "price_9m",
+    12: "price_12m",
+}
 
-def calculate_upgrade_preview(
-    active_sub: "CenterSubscription",
+
+def get_plan_period_base_price(plan: "SubscriptionPlan", months: int) -> int:
+    """
+    Tarif uchun berilgan oy soniga mos umumiy narxni qaytaradi.
+    Agar maxsus period narxi (price_3m, price_6m ...) belgilangan bo'lsa, shuni ishlatadi.
+    Aks holda: monthly_price × months.
+
+    Bu funksiya calculate_price() va calculate_plan_switch_days() da
+    yangi to'lov asosini aniqlash uchun ishlatiladi.
+    """
+    months = int(months or 1)
+    field = _PERIOD_PRICE_FIELDS.get(months)
+    if field:
+        period_price = getattr(plan, field, None)
+        if period_price and int(period_price) > 0:
+            return int(period_price)
+    # Fallback: monthly_price × months
+    return int((plan.monthly_price or 0) * months)
+
+
+# ============================================================
+# UNIVERSAL PLAN SWITCH CALCULATOR
+# ============================================================
+
+def calculate_plan_switch_days(
+    active_sub: "CenterSubscription | None",
     new_plan: "SubscriptionPlan",
     paid_days: int = 0,
 ) -> dict:
     """
-    Upgrade qilganda qolgan kreditni yangi tarifga konvertatsiya qilish.
+    Universal tarif almashtirish kalkulyatori. Uch holat:
 
-    Formula:
-      old_daily  = old_plan.monthly_price / 30
-      credit     = old_daily * remaining_days
-      new_daily  = new_plan.monthly_price / 30
-      new_days   = credit / new_daily
-      total_days = new_days + paid_days (to'langan yangi muddat)
+    MODE "new":
+      Faol obuna yo'q yoki tugagan → paid_days dan boshlanadi.
 
-    Faqat upgrade (new_plan.tier > active_sub.plan.tier) uchun ishlaydi.
+    MODE "extend":
+      Xuddi shu tarif qayta sotib olindi → mavjud expires_at ga paid_days qo'shiladi.
+      (Foydalanuvchi kredit konvertatsiyasiga yo'l qo'yilmaydi.)
+
+    MODE "convert":
+      Boshqa tarifga o'tish (arzonroqmi, qimmatroqmi farqi yo'q):
+        old_daily     = old_monthly_price / 30
+        credit        = old_daily × remaining_days          (floor, so'm)
+        new_daily     = new_monthly_price / 30
+        credit_days   = floor(credit / new_daily)            (floor, kun)
+        total_days    = paid_days + credit_days
+
+      Eski obuna EXPIRE bo'ladi, yangi obuna total_days bilan yaratiladi.
 
     Returns dict:
       {
-        "is_upgrade": bool,
-        "old_plan_title": str,
+        "mode":              "new" | "extend" | "convert",
+        "is_same_plan":      bool,
+        "remaining_days":    int,        # eski obunada qolgan kun
+        "remaining_credit":  Decimal,    # eski obunada qolgan so'm qiymati
+        "credit_days":       int,        # shu qiymat yangi tarifda necha kun
+        "paid_days":         int,        # yangi to'lov uchun kunlar
+        "total_new_days":    int,        # credit_days + paid_days
+        "old_plan_title":    str,
         "old_monthly_price": int,
-        "old_daily_price": Decimal,
-        "remaining_days": int,
-        "remaining_credit": Decimal,
-        "new_plan_title": str,
+        "old_daily_price":   Decimal,
+        "new_plan_title":    str,
         "new_monthly_price": int,
-        "new_daily_price": Decimal,
-        "credit_days": int,          # qolgan kredit → yangi tarifda kun
-        "paid_days": int,            # to'langan yangi tarif kunlari
-        "total_new_days": int,       # credit_days + paid_days
-        "new_expires_at": datetime,  # bugundan boshlab total_new_days
+        "new_daily_price":   Decimal,
+        "new_expires_at":    datetime,   # now + total_new_days
       }
     """
     now = timezone.now()
 
-    is_upgrade = (
+    # ── MODE: new ──────────────────────────────────────────────────────────
+    # Faol obuna yo'q yoki allaqachon tugagan
+    has_active_time = (
         active_sub is not None
-        and new_plan.tier > active_sub.plan.tier
+        and active_sub.expires_at is not None
         and active_sub.expires_at > now
     )
 
-    if not is_upgrade or not active_sub:
+    if not has_active_time:
+        total = max(paid_days, 1)
         return {
-            "is_upgrade": False,
+            "mode": "new",
+            "is_same_plan": False,
             "remaining_days": 0,
             "remaining_credit": Decimal(0),
             "credit_days": 0,
             "paid_days": paid_days,
-            "total_new_days": paid_days,
-            "new_expires_at": now + timezone.timedelta(days=paid_days),
+            "total_new_days": total,
+            "old_plan_title": "",
+            "old_monthly_price": 0,
+            "old_daily_price": Decimal(0),
+            "new_plan_title": new_plan.title,
+            "new_monthly_price": int(new_plan.monthly_price or 0),
+            "new_daily_price": (Decimal(new_plan.monthly_price or 0) / 30).quantize(Decimal("0.01")),
+            "new_expires_at": now + timezone.timedelta(days=total),
         }
 
-    old_monthly = Decimal(active_sub.plan.monthly_price or 0)
-    new_monthly = Decimal(new_plan.monthly_price or 0)
+    # ── MODE: extend ───────────────────────────────────────────────────────
+    # Xuddi shu tarif (plan.id == active_sub.plan.id) → vaqt ustiga qo'shiladi
+    is_same_plan = (active_sub.plan_id == new_plan.pk)
 
-    # Remaining days (floor, no negative)
-    remaining_days = max(0, (active_sub.expires_at.date() - now.date()).days)
-
-    if old_monthly <= 0 or new_monthly <= 0 or remaining_days <= 0:
+    if is_same_plan:
+        # Extend from current expiry
+        base_date = active_sub.expires_at  # already > now (checked above)
+        new_expires_at = base_date + timezone.timedelta(days=paid_days)
+        remaining_days = max(0, (active_sub.expires_at.date() - now.date()).days)
+        new_monthly = Decimal(new_plan.monthly_price or 0)
+        new_daily = (new_monthly / 30).quantize(Decimal("0.01")) if new_monthly > 0 else Decimal(0)
         return {
-            "is_upgrade": False,
+            "mode": "extend",
+            "is_same_plan": True,
             "remaining_days": remaining_days,
             "remaining_credit": Decimal(0),
             "credit_days": 0,
             "paid_days": paid_days,
-            "total_new_days": paid_days,
-            "new_expires_at": now + timezone.timedelta(days=paid_days),
+            "total_new_days": paid_days,   # faqat yangi to'lov kunlari qo'shiladi
+            "old_plan_title": active_sub.plan.title,
+            "old_monthly_price": int(active_sub.plan.monthly_price or 0),
+            "old_daily_price": (Decimal(active_sub.plan.monthly_price or 0) / 30).quantize(Decimal("0.01")),
+            "new_plan_title": new_plan.title,
+            "new_monthly_price": int(new_monthly),
+            "new_daily_price": new_daily,
+            "new_expires_at": new_expires_at,
         }
 
+    # ── MODE: convert ──────────────────────────────────────────────────────
+    # Boshqa tarifga o'tish → kredit konvertatsiyasi
+    old_monthly = Decimal(active_sub.plan.monthly_price or 0)
+    new_monthly = Decimal(new_plan.monthly_price or 0)
+
+    remaining_days = max(0, (active_sub.expires_at.date() - now.date()).days)
+
+    # Narx nolga teng bo'lsa yoki qolgan kun yo'q bo'lsa → oddiy yangi obuna
+    if old_monthly <= 0 or new_monthly <= 0 or remaining_days <= 0:
+        total = max(paid_days, 1)
+        new_monthly_safe = new_monthly if new_monthly > 0 else Decimal(0)
+        new_daily = (new_monthly_safe / 30).quantize(Decimal("0.01")) if new_monthly_safe > 0 else Decimal(0)
+        return {
+            "mode": "new",
+            "is_same_plan": False,
+            "remaining_days": remaining_days,
+            "remaining_credit": Decimal(0),
+            "credit_days": 0,
+            "paid_days": paid_days,
+            "total_new_days": total,
+            "old_plan_title": active_sub.plan.title,
+            "old_monthly_price": int(old_monthly),
+            "old_daily_price": (old_monthly / 30).quantize(Decimal("0.01")) if old_monthly > 0 else Decimal(0),
+            "new_plan_title": new_plan.title,
+            "new_monthly_price": int(new_monthly),
+            "new_daily_price": new_daily,
+            "new_expires_at": now + timezone.timedelta(days=total),
+        }
+
+    # Kredit hisoblash:
+    #   old_daily   = old_monthly_price / 30
+    #   credit      = old_daily × remaining_days       (so'm, floor)
+    #   credit_days = floor(credit / new_daily)         (kun, floor)
+    #   total       = paid_days + credit_days           (min 1)
     old_daily = old_monthly / Decimal(30)
     new_daily = new_monthly / Decimal(30)
-    remaining_credit = old_daily * remaining_days
+
+    # Floor kreditni hisoblaymiz (foydalanuvchi to'lamagan qismni bermaymiz)
+    remaining_credit = (old_daily * Decimal(remaining_days)).quantize(Decimal("1"), rounding=ROUND_DOWN)
     credit_days_exact = remaining_credit / new_daily
     credit_days = int(credit_days_exact.to_integral_value(rounding=ROUND_DOWN))
 
-    total_new_days = credit_days + paid_days
+    total_new_days = max(paid_days + credit_days, 1)
     new_expires_at = now + timezone.timedelta(days=total_new_days)
 
     return {
-        "is_upgrade": True,
-        "old_plan_title": active_sub.plan.title,
-        "old_monthly_price": int(old_monthly),
-        "old_daily_price": old_daily.quantize(Decimal("0.01")),
+        "mode": "convert",
+        "is_same_plan": False,
         "remaining_days": remaining_days,
-        "remaining_credit": remaining_credit.quantize(Decimal("1")),
-        "new_plan_title": new_plan.title,
-        "new_monthly_price": int(new_monthly),
-        "new_daily_price": new_daily.quantize(Decimal("0.01")),
+        "remaining_credit": remaining_credit,
         "credit_days": credit_days,
         "paid_days": paid_days,
         "total_new_days": total_new_days,
+        "old_plan_title": active_sub.plan.title,
+        "old_monthly_price": int(old_monthly),
+        "old_daily_price": old_daily.quantize(Decimal("0.01")),
+        "new_plan_title": new_plan.title,
+        "new_monthly_price": int(new_monthly),
+        "new_daily_price": new_daily.quantize(Decimal("0.01")),
         "new_expires_at": new_expires_at,
     }
+
+
+def calculate_upgrade_preview(
+    active_sub: "CenterSubscription | None",
+    new_plan: "SubscriptionPlan",
+    paid_days: int = 0,
+) -> dict:
+    """
+    Backward-compatible wrapper for the upgrade preview API/modal.
+    Delegates to calculate_plan_switch_days() and adds legacy keys.
+
+    Returns all keys from calculate_plan_switch_days() plus:
+      "is_upgrade": bool  — True if new plan tier > old plan tier and credit conversion happened
+    """
+    result = calculate_plan_switch_days(active_sub, new_plan, paid_days=paid_days)
+    is_upgrade = (
+        result["mode"] == "convert"
+        and active_sub is not None
+        and new_plan.tier > active_sub.plan.tier
+    )
+    result["is_upgrade"] = is_upgrade
+    return result
 
 FEATURES_BY_PLAN = {
     "FREE": set(),
@@ -527,13 +647,29 @@ def calculate_price(plan: SubscriptionPlan, months: int, promo_code: str | None,
     months = int(months or 1)
     if months not in DURATIONS: months = 1
 
-    base_price = plan.monthly_price * months
+    # Period-specific narxni ishlatamiz (price_3m, price_6m, price_9m, price_12m)
+    # Agar belgilangan bo'lsa shuni olamiz, aks holda monthly_price × months
+    base_price = get_plan_period_base_price(plan, months)
+
     promo = validate_promocode(promo_code or "", plan, center=center)
-    
-    plan_discount = getattr(plan, 'discount_percent', 0) or 0
+
+    # Tarif o'z chegirmasiga ega bo'lishi mumkin (plan.discount_percent)
+    # Lekin period narxlari allaqachon chegirma bilan belgilanishi mumkin.
+    # Shuning uchun: agar period narxi foydalanilsa va plan.discount_percent > 0
+    # bo'lsa, ularning qo'shilishidan ehtiyot bo'lish kerak.
+    # Biz faqat promo discount ni qo'shamiz (plan discount period narxiga kiritilgan deb hisoblaymiz).
+    field = _PERIOD_PRICE_FIELDS.get(months)
+    period_price_used = bool(field and getattr(plan, field, None) and int(getattr(plan, field, 0) or 0) > 0)
+
+    if period_price_used:
+        # Period narxi allaqachon chegirma bilan belgilangan → faqat promo discount qo'shamiz
+        plan_discount = 0
+    else:
+        plan_discount = getattr(plan, 'discount_percent', 0) or 0
+
     promo_discount = promo.percent_off if promo else 0
     total_discount = min(plan_discount + promo_discount, 100)
-    
+
     final_price = int(base_price * (100 - total_discount) / 100)
     return PricingResult(base_price, total_discount, final_price, promo)
 
@@ -593,36 +729,47 @@ def activate_center_subscription_from_click(
 
     old_end_date = active_sub.expires_at if active_sub else center.expires_at
 
-    # ── Upgrade credit conversion ──────────────────────────────────────────
-    # If upgrading (new plan tier > current plan tier) and there is remaining
-    # time, convert the old credit into new plan days instead of stacking.
-    is_upgrade = (
-        active_sub is not None
-        and plan.tier > active_sub.plan.tier
-        and active_sub.expires_at > now
+    # ── Universal plan switch logic ────────────────────────────────────────
+    # calculate_plan_switch_days handles three modes:
+    #   "new"     → no active sub or expired → fresh start with paid_days
+    #   "extend"  → same plan → extend existing expiry by paid_days
+    #   "convert" → different plan → convert remaining credit to new plan days
+    switch = calculate_plan_switch_days(
+        active_sub=active_sub,
+        new_plan=plan,
+        paid_days=total_days,
     )
 
-    if is_upgrade:
-        preview = calculate_upgrade_preview(
-            active_sub=active_sub,
-            new_plan=plan,
-            paid_days=total_days,
-        )
-        final_total_days = preview["total_new_days"]
-        logger.info(
-            "Click upgrade conversion: center=%s old=%s→new=%s "
-            "remaining_days=%s credit=%s credit_days=%s paid_days=%s total=%s",
-            center.id,
-            active_sub.plan.code, plan.code,
-            preview["remaining_days"],
-            preview["remaining_credit"],
-            preview["credit_days"],
-            total_days,
-            final_total_days,
-        )
-        new_end_date = now + timezone.timedelta(days=final_total_days)
+    logger.info(
+        "Click plan switch: center=%s mode=%s old_plan=%s→new_plan=%s "
+        "remaining_days=%s credit=%s credit_days=%s paid_days=%s total=%s",
+        center.id,
+        switch["mode"],
+        active_sub.plan.code if active_sub else "—",
+        plan.code,
+        switch["remaining_days"],
+        switch["remaining_credit"],
+        switch["credit_days"],
+        total_days,
+        switch["total_new_days"],
+    )
 
-        # Expire old subscription — credit already converted
+    new_end_date = switch["new_expires_at"]
+
+    if switch["mode"] == "extend":
+        # Xuddi shu tarif: extends_at ni yangilang, boshqa hech narsa o'zgarmaydi
+        active_sub.expires_at = new_end_date
+        active_sub.status = CenterSubscription.Status.ACTIVE
+        active_sub.paused_at = None
+        active_sub.remaining_seconds = 0
+        active_sub.manual_block = False
+        active_sub.save(update_fields=[
+            "status", "expires_at", "paused_at", "remaining_seconds", "manual_block",
+        ])
+        target_sub = active_sub
+
+    elif switch["mode"] == "convert":
+        # Boshqa tarifga o'tish: eski obuna EXPIRE, yangi obuna yaratiladi
         active_sub.status = CenterSubscription.Status.EXPIRED
         active_sub.save(update_fields=["status"])
 
@@ -636,34 +783,13 @@ def activate_center_subscription_from_click(
             remaining_seconds=0,
             manual_block=False,
         )
-    elif active_sub:
-        # Same tier (extend) or downgrade → old logic
-        base_date = old_end_date if old_end_date and old_end_date > now else now
-        new_end_date = base_date + timezone.timedelta(days=total_days)
-        is_fresh_period = not active_sub.expires_at or active_sub.expires_at <= now
-        if is_fresh_period:
-            active_sub.started_at = now
-        active_sub.plan = plan
-        active_sub.status = CenterSubscription.Status.ACTIVE
-        active_sub.expires_at = new_end_date
-        active_sub.paused_at = None
-        active_sub.remaining_seconds = 0
-        active_sub.manual_block = False
-        active_sub.save(
-            update_fields=[
-                "plan",
-                "status",
-                "started_at",
-                "expires_at",
-                "paused_at",
-                "remaining_seconds",
-                "manual_block",
-            ]
-        )
-        target_sub = active_sub
+
     else:
-        base_date = old_end_date if old_end_date and old_end_date > now else now
-        new_end_date = base_date + timezone.timedelta(days=total_days)
+        # mode == "new": yangi obuna (eski yo'q yoki tugagan)
+        if active_sub:
+            active_sub.status = CenterSubscription.Status.EXPIRED
+            active_sub.save(update_fields=["status"])
+
         target_sub = CenterSubscription.objects.create(
             center=center,
             plan=plan,
@@ -808,77 +934,76 @@ def mark_order_paid(order: SubscriptionOrder) -> None:
         # 3. Ensure Center has basic subscription setup
         ensure_center_subscription(center)
 
-        # 4. Handle Stacking Logic (Upgrade, Extend, Downgrade)
+        # 4. Universal plan switch logic (extend / convert / new)
         active_sub = get_active_subscription(center)
         print(f"👉 Active Sub found in DB: {active_sub}")
 
-        if not active_sub:
-            print("👉 No active sub, creating new one")
+        # calculate_plan_switch_days handles all three cases:
+        #   "extend"  → same plan_id  → add paid days to existing expiry
+        #   "convert" → different plan → convert remaining credit + add paid days
+        #   "new"     → no active sub / expired → fresh start
+        switch = calculate_plan_switch_days(
+            active_sub=active_sub,
+            new_plan=new_plan,
+            paid_days=duration_days,
+        )
+        print(
+            f"👉 Switch mode={switch['mode']} "
+            f"remaining_days={switch['remaining_days']} "
+            f"credit={switch['remaining_credit']} "
+            f"credit_days={switch['credit_days']} "
+            f"paid_days={switch['paid_days']} "
+            f"total={switch['total_new_days']}"
+        )
+
+        if switch["mode"] == "extend":
+            # Xuddi shu tarif → mavjud obuna muddatini uzaytirish
+            print("➕ EXTEND: Same plan, adding paid days to current expiry")
+            active_sub.expires_at = switch["new_expires_at"]
+            active_sub.status = CenterSubscription.Status.ACTIVE
+            active_sub.paused_at = None
+            active_sub.remaining_seconds = 0
+            active_sub.save(update_fields=["status", "expires_at", "paused_at", "remaining_seconds"])
+
+        elif switch["mode"] == "convert":
+            # Boshqa tarif → kredit konvertatsiyasi
+            print(
+                f"🔄 CONVERT: {active_sub.plan.code}→{new_plan.code} "
+                f"credit_days={switch['credit_days']} paid_days={switch['paid_days']} "
+                f"total={switch['total_new_days']}"
+            )
+            # Eski obunani EXPIRE qilamiz (kredit allaqachon konvert qilindi)
+            active_sub.status = CenterSubscription.Status.EXPIRED
+            active_sub.save(update_fields=["status"])
+
             CenterSubscription.objects.create(
                 center=center,
                 plan=new_plan,
                 status=CenterSubscription.Status.ACTIVE,
                 started_at=now,
-                expires_at=now + timezone.timedelta(days=duration_days)
+                expires_at=switch["new_expires_at"],
+                paused_at=None,
+                remaining_seconds=0,
+                manual_block=False,
             )
+
         else:
-            current_tier = active_sub.plan.tier
-            new_tier = new_plan.tier
-            print(f"👉 Tiers: Current={current_tier}, New={new_tier}")
-
-            if new_tier > current_tier:
-                print("🚀 UPGRADE: Converting old credit to new plan days")
-                # ── Credit conversion formula ──────────────────────────────
-                # 1) old_daily  = old_plan.monthly_price / 30
-                # 2) credit     = old_daily * remaining_days
-                # 3) new_daily  = new_plan.monthly_price / 30
-                # 4) credit_days = credit / new_daily  (floor)
-                # 5) total_days = duration_days (paid) + credit_days
-                from decimal import Decimal, ROUND_DOWN as _RD
-                preview = calculate_upgrade_preview(
-                    active_sub=active_sub,
-                    new_plan=new_plan,
-                    paid_days=duration_days,
-                )
-                total_days = preview["total_new_days"]
-                credit_days = preview["credit_days"]
-                remaining_credit = preview["remaining_credit"]
-                remaining_days_old = preview["remaining_days"]
-
-                print(
-                    f"   old_plan={active_sub.plan.code} remaining_days={remaining_days_old} "
-                    f"credit={remaining_credit} → credit_days={credit_days} "
-                    f"paid_days={duration_days} total={total_days}"
-                )
-
-                # Expire the old subscription (credit is already converted)
+            # mode == "new": faol obuna yo'q yoki tugagan
+            print("🆕 NEW: No active subscription, creating fresh one")
+            if active_sub:
                 active_sub.status = CenterSubscription.Status.EXPIRED
                 active_sub.save(update_fields=["status"])
 
-                CenterSubscription.objects.create(
-                    center=center,
-                    plan=new_plan,
-                    status=CenterSubscription.Status.ACTIVE,
-                    started_at=now,
-                    expires_at=now + timezone.timedelta(days=total_days),
-                )
-            elif new_tier == current_tier:
-                print("➕ EXTEND: Same tier, adding time")
-                if active_sub.expires_at > now:
-                     active_sub.expires_at += timezone.timedelta(days=duration_days)
-                else:
-                     active_sub.expires_at = now + timezone.timedelta(days=duration_days)
-                active_sub.save(update_fields=["expires_at"])
-            else:
-                print("📉 DOWNGRADE: Queueing as PAUSED")
-                CenterSubscription.objects.create(
-                    center=center,
-                    plan=new_plan,
-                    status=CenterSubscription.Status.PAUSED,
-                    remaining_seconds=duration_days * 86400,
-                    started_at=now, 
-                    expires_at=now
-                )
+            CenterSubscription.objects.create(
+                center=center,
+                plan=new_plan,
+                status=CenterSubscription.Status.ACTIVE,
+                started_at=now,
+                expires_at=switch["new_expires_at"],
+                paused_at=None,
+                remaining_seconds=0,
+                manual_block=False,
+            )
 
         # 5. Sync Center fields from the now ACTIVE subscription
         final_active = get_active_subscription(center)

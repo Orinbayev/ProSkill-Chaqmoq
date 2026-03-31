@@ -928,4 +928,250 @@ class ClickPaymentUrlCreateTests(TestCase):
             data={"merchant_trans_id": sub_request.merchant_trans_id},
         )
         self.assertEqual(response.status_code, 302)
+
+
+# ============================================================
+# PLAN SWITCH / CREDIT CONVERSION TESTS
+# ============================================================
+
+from decimal import Decimal
+from billing.services import (
+    calculate_plan_switch_days,
+    calculate_upgrade_preview,
+    get_plan_period_base_price,
+)
+
+
+def _make_sub(plan, remaining_days, now=None):
+    """
+    Test yordamchi: CenterSubscription-ga o'xshash simple namespace yaratadi.
+    Django DB ga ulanmaydi.
+    """
+    from types import SimpleNamespace
+    from django.utils import timezone as tz
+    _now = now or tz.now()
+
+    sub = SimpleNamespace()
+    sub.plan = plan
+    sub.plan_id = getattr(plan, "id", 1)
+    sub.expires_at = _now + tz.timedelta(days=remaining_days)
+    return sub
+
+
+def _make_plan(pk, code, monthly_price, tier,
+               price_3m=None, price_6m=None, price_9m=None, price_12m=None):
+    """Stub SubscriptionPlan."""
+    from types import SimpleNamespace
+    p = SimpleNamespace()
+    p.id = pk
+    p.pk = pk
+    p.code = code
+    p.title = code.capitalize()
+    p.monthly_price = monthly_price
+    p.tier = tier
+    p.price_3m = price_3m
+    p.price_6m = price_6m
+    p.price_9m = price_9m
+    p.price_12m = price_12m
+    return p
+
+
+class PlanSwitchDaysTests(TestCase):
+    """
+    calculate_plan_switch_days() uchun test suitlar.
+    DB ga ulanmasdan, faqat mantiq testlanadi.
+    """
+
+    def setUp(self):
+        from django.utils import timezone as tz
+        self.now = tz.now()
+
+        # Plan stubs (tier qiymatlari real DB ga mos kelishi shart emas bu testda)
+        self.standard = _make_plan(1, "STANDARD", 400_000, tier=10)
+        self.premium  = _make_plan(2, "PREMIUM",  600_000, tier=20)
+        self.pro      = _make_plan(3, "PRO",      900_000, tier=30)
+        self.free     = _make_plan(4, "FREE",           0, tier=1)
+
+        # Period narxlari bilan plan
+        self.std_period = _make_plan(
+            5, "STANDARD_P", 400_000, tier=10,
+            price_3m=1_080_000,   # 10% chegirma
+            price_12m=3_840_000,  # 20% chegirma
+        )
+
+    # ── CASE 1: Same plan extend ──────────────────────────────────────────
+    def test_case1_same_plan_extend(self):
+        """Standard × 300 kun qoldi + yana Standard 30 kun → extend"""
+        sub = _make_sub(self.standard, remaining_days=300, now=self.now)
+        result = calculate_plan_switch_days(sub, self.standard, paid_days=30)
+
+        self.assertEqual(result["mode"], "extend")
+        self.assertTrue(result["is_same_plan"])
+        self.assertEqual(result["credit_days"], 0)
+        self.assertEqual(result["total_new_days"], 30)
+        # expires_at = (now + 300 days) + 30 days
+        from django.utils import timezone as tz
+        expected = (self.now + tz.timedelta(days=300)) + tz.timedelta(days=30)
+        delta = abs((result["new_expires_at"] - expected).total_seconds())
+        self.assertLess(delta, 2)
+
+    # ── CASE 2: Standard → Premium (upgrade) ─────────────────────────────
+    def test_case2_standard_to_premium_upgrade(self):
+        """Standard × 300 kun qoldi → Premium (qimmatroq): kredit konvert"""
+        sub = _make_sub(self.standard, remaining_days=300, now=self.now)
+        result = calculate_plan_switch_days(sub, self.premium, paid_days=30)
+
+        self.assertEqual(result["mode"], "convert")
+        self.assertFalse(result["is_same_plan"])
+        self.assertEqual(result["remaining_days"], 300)
+
+        # credit = (400000/30) × 300 = 4_000_000
+        # credit_days = floor(4_000_000 / (600000/30)) = floor(200) = 200
+        self.assertEqual(result["remaining_credit"], Decimal("4000000"))
+        self.assertEqual(result["credit_days"], 200)
+        self.assertEqual(result["total_new_days"], 230)  # 200 + 30
+
+        # Muddat qisqarishi kerak (300 → 230)
+        self.assertLess(result["total_new_days"], 300)
+
+    # ── CASE 3: Premium → Standard (downgrade) ───────────────────────────
+    def test_case3_premium_to_standard_downgrade(self):
+        """Premium × 100 kun qoldi → Standard (arzonroq): kredit konvert, kun ko'payadi"""
+        sub = _make_sub(self.premium, remaining_days=100, now=self.now)
+        result = calculate_plan_switch_days(sub, self.standard, paid_days=30)
+
+        self.assertEqual(result["mode"], "convert")
+
+        # credit = (600000/30) × 100 = 2_000_000
+        # credit_days = floor(2_000_000 / (400000/30)) = floor(150) = 150
+        self.assertEqual(result["remaining_credit"], Decimal("2000000"))
+        self.assertEqual(result["credit_days"], 150)
+        self.assertEqual(result["total_new_days"], 180)  # 150 + 30
+
+        # Kun ko'payishi kerak (100 → 180)
+        self.assertGreater(result["total_new_days"], 100)
+
+    # ── CASE 4: Obuna tugagan → yangi xarid ──────────────────────────────
+    def test_case4_expired_sub_fresh_start(self):
+        """Obuna tugagan (remaining_days=0) → oddiy yangi obuna"""
+        sub = _make_sub(self.standard, remaining_days=0, now=self.now)
+        # Simulate: expires_at is in the past (0 days left means today or yesterday)
+        from django.utils import timezone as tz
+        sub.expires_at = self.now - tz.timedelta(days=1)
+
+        result = calculate_plan_switch_days(sub, self.pro, paid_days=30)
+
+        # has_active_time = False → mode="new"
+        self.assertEqual(result["mode"], "new")
+        self.assertEqual(result["credit_days"], 0)
+        self.assertEqual(result["total_new_days"], 30)
+
+    def test_case4b_no_active_sub(self):
+        """Faol obuna yo'q → oddiy yangi obuna"""
+        result = calculate_plan_switch_days(None, self.pro, paid_days=30)
+
+        self.assertEqual(result["mode"], "new")
+        self.assertEqual(result["credit_days"], 0)
+        self.assertEqual(result["total_new_days"], 30)
+
+    # ── CASE 5: Plan almashish + qo'shimcha to'lov ───────────────────────
+    def test_case5_plan_switch_with_extra_payment(self):
+        """Standard × 300 kun + Pro ga o'tish + 90 kun to'lov"""
+        sub = _make_sub(self.standard, remaining_days=300, now=self.now)
+        result = calculate_plan_switch_days(sub, self.pro, paid_days=90)
+
+        self.assertEqual(result["mode"], "convert")
+        # credit = (400000/30) × 300 = 4_000_000
+        # credit_days = floor(4_000_000 / (900000/30)) = floor(133.33) = 133
+        self.assertEqual(result["remaining_credit"], Decimal("4000000"))
+        self.assertEqual(result["credit_days"], 133)
+        self.assertEqual(result["total_new_days"], 223)  # 133 + 90
+
+    # ── Edge cases ────────────────────────────────────────────────────────
+    def test_zero_price_plan_falls_back_to_new(self):
+        """Narx 0 bo'lsa, kredit konvert qilinmaydi → new mode"""
+        sub = _make_sub(self.free, remaining_days=50, now=self.now)
+        result = calculate_plan_switch_days(sub, self.pro, paid_days=30)
+        # old_monthly = 0 → safe fallback
+        self.assertIn(result["mode"], ("new", "convert"))
+        self.assertGreaterEqual(result["total_new_days"], 1)
+
+    def test_no_negative_days(self):
+        """Hech qachon manfiy kun qaytmasligi kerak"""
+        sub = _make_sub(self.standard, remaining_days=1, now=self.now)
+        result = calculate_plan_switch_days(sub, self.pro, paid_days=0)
+        self.assertGreaterEqual(result["total_new_days"], 1)
+
+    def test_842_days_standard_to_pro(self):
+        """
+        Muammo holati: Standard × 842 kun + Pro ga o'tish → 842 emas, konvert bo'lishi kerak.
+        Standard=400k/month, Pro=900k/month
+        credit = (400000/30) × 842 = 11_226_666 so'm (floor)
+        credit_days = floor(11_226_666 / (900000/30)) = floor(374.22) = 374
+        """
+        sub = _make_sub(self.standard, remaining_days=842, now=self.now)
+        result = calculate_plan_switch_days(sub, self.pro, paid_days=30)
+
+        self.assertEqual(result["mode"], "convert")
+        # 842 days with Standard rate
+        expected_credit = Decimal("400000") / 30 * 842
+        expected_credit_floor = int(expected_credit.to_integral_value(rounding=Decimal.ROUND_DOWN if False else __import__('decimal').ROUND_DOWN))
+        self.assertEqual(int(result["remaining_credit"]), expected_credit_floor)
+
+        # credit_days must NOT be 842 (that would be the bug)
+        self.assertLess(result["credit_days"], 500)
+        # credit_days should be around 374
+        self.assertAlmostEqual(result["credit_days"], 374, delta=2)
+        self.assertEqual(result["total_new_days"], result["credit_days"] + 30)
+
+    # ── calculate_upgrade_preview backward compat ─────────────────────────
+    def test_upgrade_preview_backward_compat(self):
+        """calculate_upgrade_preview wrapper ishlasin"""
+        sub = _make_sub(self.standard, remaining_days=300, now=self.now)
+        result = calculate_upgrade_preview(sub, self.pro, paid_days=30)
+
+        self.assertIn("is_upgrade", result)
+        self.assertTrue(result["is_upgrade"])  # pro.tier > standard.tier
+        self.assertIn("mode", result)
+        self.assertEqual(result["mode"], "convert")
+
+    def test_upgrade_preview_downgrade_is_upgrade_false(self):
+        """Downgrade holida is_upgrade=False bo'lishi kerak"""
+        sub = _make_sub(self.pro, remaining_days=100, now=self.now)
+        result = calculate_upgrade_preview(sub, self.standard, paid_days=30)
+
+        self.assertFalse(result["is_upgrade"])
+        self.assertEqual(result["mode"], "convert")  # lekin convert hali ham ishlaydi
+
+
+class PlanPeriodPriceTests(TestCase):
+    """get_plan_period_base_price() uchun testlar."""
+
+    def setUp(self):
+        self.plan = _make_plan(
+            1, "STANDARD", 400_000, tier=10,
+            price_3m=1_080_000,
+            price_6m=2_040_000,
+            price_12m=3_840_000,
+        )
+        self.plan_no_period = _make_plan(2, "PRO", 900_000, tier=30)
+
+    def test_period_prices_used_when_set(self):
+        self.assertEqual(get_plan_period_base_price(self.plan, 3), 1_080_000)
+        self.assertEqual(get_plan_period_base_price(self.plan, 6), 2_040_000)
+        self.assertEqual(get_plan_period_base_price(self.plan, 12), 3_840_000)
+
+    def test_fallback_to_monthly_when_period_not_set(self):
+        # plan_no_period has no price_3m etc.
+        self.assertEqual(get_plan_period_base_price(self.plan_no_period, 3), 900_000 * 3)
+        self.assertEqual(get_plan_period_base_price(self.plan_no_period, 12), 900_000 * 12)
+
+    def test_1_month_always_monthly_price(self):
+        self.assertEqual(get_plan_period_base_price(self.plan, 1), 400_000)
+
+    def test_period_price_zero_falls_back(self):
+        """0 yoki None period narxida fallback ishlashi kerak"""
+        plan = _make_plan(3, "X", 300_000, tier=5, price_6m=0, price_12m=None)
+        self.assertEqual(get_plan_period_base_price(plan, 6), 300_000 * 6)
+        self.assertEqual(get_plan_period_base_price(plan, 12), 300_000 * 12)
         self.assertIn(reverse("billing:payment_cancel"), response.url)
