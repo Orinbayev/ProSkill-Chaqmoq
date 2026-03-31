@@ -447,7 +447,7 @@ def setup_backup_scheduler() -> BackgroundScheduler:
     scheduler = BackgroundScheduler(timezone=tz)
     scheduler.add_job(
         backup_and_send_all_centers,
-        CronTrigger(hour=16, minute=0, timezone=tz),
+        CronTrigger(hour=17, minute=35, timezone=tz),
         id="tenant-db-backup-daily",
         name="tenant-db-backup-daily",
         replace_existing=True,
