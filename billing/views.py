@@ -13,6 +13,8 @@ from .services import (
     DURATIONS,
     ensure_center_subscription,
     calculate_price,
+    calculate_upgrade_preview,
+    get_active_subscription,
     get_subscription_ui_state,
     get_plan_list_payload,
     get_user_subscription_dashboard_data,
@@ -226,6 +228,53 @@ def plans_api(request):
     - returns available plans
     """
     return JsonResponse({"plans": get_plan_list_payload()})
+
+
+@login_required
+def upgrade_preview_api(request):
+    """
+    GET /billing/api/upgrade-preview/?plan_id=<id>&months=<n>
+    Upgrade qilganda qolgan kreditni ko'rsatadi.
+    """
+    center = getattr(request, "center", None)
+    if not center:
+        return JsonResponse({"ok": False, "error": "Center topilmadi."}, status=400)
+
+    plan_id = request.GET.get("plan_id")
+    months = int(request.GET.get("months") or 1)
+    if months not in DURATIONS:
+        months = 1
+
+    try:
+        new_plan = SubscriptionPlan.objects.get(pk=plan_id, active=True)
+    except SubscriptionPlan.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "Tarif topilmadi."}, status=404)
+
+    active_sub = get_active_subscription(center)
+    duration_days = int(getattr(new_plan, "duration_days", 0) or 30) * months
+
+    preview = calculate_upgrade_preview(
+        active_sub=active_sub,
+        new_plan=new_plan,
+        paid_days=duration_days,
+    )
+
+    # Serialize Decimal / datetime for JSON
+    result = {
+        "ok": True,
+        "is_upgrade": preview["is_upgrade"],
+        "remaining_days": preview.get("remaining_days", 0),
+        "remaining_credit": str(preview.get("remaining_credit", 0)),
+        "credit_days": preview.get("credit_days", 0),
+        "paid_days": preview.get("paid_days", duration_days),
+        "total_new_days": preview.get("total_new_days", duration_days),
+        "old_plan_title": preview.get("old_plan_title", ""),
+        "old_monthly_price": preview.get("old_monthly_price", 0),
+        "new_plan_title": preview.get("new_plan_title", new_plan.title),
+        "new_monthly_price": preview.get("new_monthly_price", new_plan.monthly_price),
+        "new_expires_at": preview["new_expires_at"].strftime("%d.%m.%Y") if preview.get("new_expires_at") else "",
+    }
+    return JsonResponse(result)
 
 
 @login_required

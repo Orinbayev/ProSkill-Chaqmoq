@@ -9,6 +9,7 @@ urlpatterns = [
     path("blocked/", views.blocked, name="blocked"),
     path("plans/", views.plans, name="plans"),
     path("api/plans/", views.plans_api, name="plans_api"),
+    path("api/upgrade-preview/", views.upgrade_preview_api, name="upgrade_preview_api"),
     path("api/current-subscription/", views.current_subscription_api, name="current_subscription_api"),
     path("api/payment-status/", click_views.payment_status_api, name="payment_status_api"),
     path("order/create/", views.order_create, name="order_create"),

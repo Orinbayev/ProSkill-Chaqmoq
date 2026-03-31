@@ -120,6 +120,109 @@ def get_paused_subscription(center: Center) -> CenterSubscription | None:
 
 DURATIONS = [1, 3, 6, 9, 12]
 
+
+# ============================================================
+# UPGRADE CREDIT CONVERSION
+# ============================================================
+
+from decimal import Decimal, ROUND_DOWN
+
+
+def calculate_upgrade_preview(
+    active_sub: "CenterSubscription",
+    new_plan: "SubscriptionPlan",
+    paid_days: int = 0,
+) -> dict:
+    """
+    Upgrade qilganda qolgan kreditni yangi tarifga konvertatsiya qilish.
+
+    Formula:
+      old_daily  = old_plan.monthly_price / 30
+      credit     = old_daily * remaining_days
+      new_daily  = new_plan.monthly_price / 30
+      new_days   = credit / new_daily
+      total_days = new_days + paid_days (to'langan yangi muddat)
+
+    Faqat upgrade (new_plan.tier > active_sub.plan.tier) uchun ishlaydi.
+
+    Returns dict:
+      {
+        "is_upgrade": bool,
+        "old_plan_title": str,
+        "old_monthly_price": int,
+        "old_daily_price": Decimal,
+        "remaining_days": int,
+        "remaining_credit": Decimal,
+        "new_plan_title": str,
+        "new_monthly_price": int,
+        "new_daily_price": Decimal,
+        "credit_days": int,          # qolgan kredit → yangi tarifda kun
+        "paid_days": int,            # to'langan yangi tarif kunlari
+        "total_new_days": int,       # credit_days + paid_days
+        "new_expires_at": datetime,  # bugundan boshlab total_new_days
+      }
+    """
+    now = timezone.now()
+
+    is_upgrade = (
+        active_sub is not None
+        and new_plan.tier > active_sub.plan.tier
+        and active_sub.expires_at > now
+    )
+
+    if not is_upgrade or not active_sub:
+        return {
+            "is_upgrade": False,
+            "remaining_days": 0,
+            "remaining_credit": Decimal(0),
+            "credit_days": 0,
+            "paid_days": paid_days,
+            "total_new_days": paid_days,
+            "new_expires_at": now + timezone.timedelta(days=paid_days),
+        }
+
+    old_monthly = Decimal(active_sub.plan.monthly_price or 0)
+    new_monthly = Decimal(new_plan.monthly_price or 0)
+
+    # Remaining days (floor, no negative)
+    remaining_days = max(0, (active_sub.expires_at.date() - now.date()).days)
+
+    if old_monthly <= 0 or new_monthly <= 0 or remaining_days <= 0:
+        return {
+            "is_upgrade": False,
+            "remaining_days": remaining_days,
+            "remaining_credit": Decimal(0),
+            "credit_days": 0,
+            "paid_days": paid_days,
+            "total_new_days": paid_days,
+            "new_expires_at": now + timezone.timedelta(days=paid_days),
+        }
+
+    old_daily = old_monthly / Decimal(30)
+    new_daily = new_monthly / Decimal(30)
+    remaining_credit = old_daily * remaining_days
+    credit_days_exact = remaining_credit / new_daily
+    credit_days = int(credit_days_exact.to_integral_value(rounding=ROUND_DOWN))
+
+    total_new_days = credit_days + paid_days
+    new_expires_at = now + timezone.timedelta(days=total_new_days)
+
+    return {
+        "is_upgrade": True,
+        "old_plan_title": active_sub.plan.title,
+        "old_monthly_price": int(old_monthly),
+        "old_daily_price": old_daily.quantize(Decimal("0.01")),
+        "remaining_days": remaining_days,
+        "remaining_credit": remaining_credit.quantize(Decimal("1")),
+        "new_plan_title": new_plan.title,
+        "new_monthly_price": int(new_monthly),
+        "new_daily_price": new_daily.quantize(Decimal("0.01")),
+        "credit_days": credit_days,
+        "paid_days": paid_days,
+        "total_new_days": total_new_days,
+        "new_expires_at": new_expires_at,
+    }
+
 FEATURES_BY_PLAN = {
     "FREE": set(),
     "STANDARD": {"finance", "tasks"},
@@ -489,10 +592,54 @@ def activate_center_subscription_from_click(
     )
 
     old_end_date = active_sub.expires_at if active_sub else center.expires_at
-    base_date = old_end_date if old_end_date and old_end_date > now else now
-    new_end_date = base_date + timezone.timedelta(days=total_days)
 
-    if active_sub:
+    # ── Upgrade credit conversion ──────────────────────────────────────────
+    # If upgrading (new plan tier > current plan tier) and there is remaining
+    # time, convert the old credit into new plan days instead of stacking.
+    is_upgrade = (
+        active_sub is not None
+        and plan.tier > active_sub.plan.tier
+        and active_sub.expires_at > now
+    )
+
+    if is_upgrade:
+        preview = calculate_upgrade_preview(
+            active_sub=active_sub,
+            new_plan=plan,
+            paid_days=total_days,
+        )
+        final_total_days = preview["total_new_days"]
+        logger.info(
+            "Click upgrade conversion: center=%s old=%s→new=%s "
+            "remaining_days=%s credit=%s credit_days=%s paid_days=%s total=%s",
+            center.id,
+            active_sub.plan.code, plan.code,
+            preview["remaining_days"],
+            preview["remaining_credit"],
+            preview["credit_days"],
+            total_days,
+            final_total_days,
+        )
+        new_end_date = now + timezone.timedelta(days=final_total_days)
+
+        # Expire old subscription — credit already converted
+        active_sub.status = CenterSubscription.Status.EXPIRED
+        active_sub.save(update_fields=["status"])
+
+        target_sub = CenterSubscription.objects.create(
+            center=center,
+            plan=plan,
+            status=CenterSubscription.Status.ACTIVE,
+            started_at=now,
+            expires_at=new_end_date,
+            paused_at=None,
+            remaining_seconds=0,
+            manual_block=False,
+        )
+    elif active_sub:
+        # Same tier (extend) or downgrade → old logic
+        base_date = old_end_date if old_end_date and old_end_date > now else now
+        new_end_date = base_date + timezone.timedelta(days=total_days)
         is_fresh_period = not active_sub.expires_at or active_sub.expires_at <= now
         if is_fresh_period:
             active_sub.started_at = now
@@ -515,6 +662,8 @@ def activate_center_subscription_from_click(
         )
         target_sub = active_sub
     else:
+        base_date = old_end_date if old_end_date and old_end_date > now else now
+        new_end_date = base_date + timezone.timedelta(days=total_days)
         target_sub = CenterSubscription.objects.create(
             center=center,
             plan=plan,
@@ -678,26 +827,40 @@ def mark_order_paid(order: SubscriptionOrder) -> None:
             print(f"👉 Tiers: Current={current_tier}, New={new_tier}")
 
             if new_tier > current_tier:
-                print("🚀 UPGRADE: Pausing current subscription")
-                remaining_seconds = 0
-                if active_sub.expires_at > now:
-                    remaining_seconds = int((active_sub.expires_at - now).total_seconds())
-                
-                if remaining_seconds > 0:
-                    active_sub.remaining_seconds = remaining_seconds
-                    active_sub.paused_at = now
-                    active_sub.status = CenterSubscription.Status.PAUSED
-                    active_sub.save(update_fields=["remaining_seconds", "paused_at", "status"])
-                else:
-                    active_sub.status = CenterSubscription.Status.EXPIRED
-                    active_sub.save(update_fields=["status"])
+                print("🚀 UPGRADE: Converting old credit to new plan days")
+                # ── Credit conversion formula ──────────────────────────────
+                # 1) old_daily  = old_plan.monthly_price / 30
+                # 2) credit     = old_daily * remaining_days
+                # 3) new_daily  = new_plan.monthly_price / 30
+                # 4) credit_days = credit / new_daily  (floor)
+                # 5) total_days = duration_days (paid) + credit_days
+                from decimal import Decimal, ROUND_DOWN as _RD
+                preview = calculate_upgrade_preview(
+                    active_sub=active_sub,
+                    new_plan=new_plan,
+                    paid_days=duration_days,
+                )
+                total_days = preview["total_new_days"]
+                credit_days = preview["credit_days"]
+                remaining_credit = preview["remaining_credit"]
+                remaining_days_old = preview["remaining_days"]
+
+                print(
+                    f"   old_plan={active_sub.plan.code} remaining_days={remaining_days_old} "
+                    f"credit={remaining_credit} → credit_days={credit_days} "
+                    f"paid_days={duration_days} total={total_days}"
+                )
+
+                # Expire the old subscription (credit is already converted)
+                active_sub.status = CenterSubscription.Status.EXPIRED
+                active_sub.save(update_fields=["status"])
 
                 CenterSubscription.objects.create(
                     center=center,
                     plan=new_plan,
                     status=CenterSubscription.Status.ACTIVE,
                     started_at=now,
-                    expires_at=now + timezone.timedelta(days=duration_days)
+                    expires_at=now + timezone.timedelta(days=total_days),
                 )
             elif new_tier == current_tier:
                 print("➕ EXTEND: Same tier, adding time")
@@ -822,11 +985,12 @@ def get_subscription_ui_state(center: Center) -> dict | None:
         return {
             "plan_code": sub.plan.code,
             "plan_title": sub.plan.title,
+            "plan_tier": sub.plan.tier,
             "expires_at": sub.expires_at,
             "days_left": days_left,
             "blocked": blocked,
             "warn": warn,
-            "progress": progress, 
+            "progress": progress,
             "in_grace_period": in_grace_period,
             "grace_hours_left": grace_hours_left,
             "hard_expires_at": sub.hard_expires_at,

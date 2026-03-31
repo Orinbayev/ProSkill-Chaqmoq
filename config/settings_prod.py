@@ -57,7 +57,7 @@ CSRF_COOKIE_DOMAIN = None
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_HTTPONLY = True
-CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = False  # JS fetch uchun csrftoken o'qilishi kerak
 
 # If you need SSO across subdomains (uncomment):
 # SESSION_COOKIE_DOMAIN = f".{ROOT_DOMAIN}"

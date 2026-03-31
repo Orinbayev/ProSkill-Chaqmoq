@@ -745,6 +745,84 @@
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════
+     UPGRADE PREVIEW MODAL
+═══════════════════════════════════════════════════════ -->
+<div class="modal fade modal-dark" id="upgradePreviewModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-arrow-up-circle-fill" style="color: #60a5fa;"></i>
+          Upgrade — Kredit konvertatsiyasi
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="upgradePreviewBody">
+        <!-- JS fills this -->
+        <div class="text-center py-4">
+          <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button type="button" class="btn btn-link text-secondary text-decoration-none" data-bs-dismiss="modal">
+          Bekor qilish
+        </button>
+        <button type="button" class="btn-plan-primary js-upgrade-confirm"
+                id="upgradeConfirmBtn"
+                style="width: auto; padding: 0 28px; height: 42px;">
+          <i class="bi bi-lightning-fill me-1"></i> Tasdiqlash va to'lash
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .upg-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 13.5px;
+  }
+  .upg-row:last-child { border-bottom: none; }
+  .upg-label { color: #64748b; font-weight: 600; }
+  .upg-value { color: #e2e8f0; font-weight: 700; text-align: right; }
+  .upg-divider {
+    border-top: 1px solid rgba(255,255,255,0.08);
+    margin: 12px 0;
+  }
+  .upg-result-box {
+    background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(99,102,241,0.04));
+    border: 1px solid rgba(59,130,246,0.2);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-top: 14px;
+  }
+  .upg-result-title {
+    color: #93c5fd;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    margin-bottom: 8px;
+  }
+  .upg-result-value {
+    color: #fff;
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+  }
+  .upg-result-sub {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 4px;
+  }
+</style>
+
 <div class="plans-page">
   <div class="container">
 
@@ -939,12 +1017,17 @@
               {{ sub.days_left }} kun qoldi · {{ sub.expires_at|date:"d.m.Y" }}gacha
             </div>
             {% else %}
-            <form method="post" action="{% url 'billing:click_create' %}" class="js-click-payment-form">
+            <form method="post" action="{% url 'billing:click_create' %}" class="js-click-payment-form js-upgrade-form"
+                  data-plan-id="{{ p.id }}"
+                  data-plan-tier="{{ p.tier }}"
+                  data-months="{{ duration }}">
               {% csrf_token %}
               <input type="hidden" name="plan" value="{{ p.code }}">
               <input type="hidden" name="months" value="{{ duration }}">
               <input type="hidden" name="promo" value="{{ promo }}">
-              <button type="submit" class="btn-plan-primary">
+              <button type="submit" class="btn-plan-primary js-upgrade-btn"
+                      data-plan-id="{{ p.id }}"
+                      data-plan-tier="{{ p.tier }}">
                 {% if code == "FREE" %}Bepul boshlash{% else %}Tanlash ⚡{% endif %}
               </button>
             </form>
@@ -1159,47 +1242,151 @@
       pollIntervalId = setInterval(pollPaymentStatus, 5000);
     }
 
+    // ── Upgrade Preview Modal ─────────────────────────────────────────────
+    const upgradePreviewUrl = "{% url 'billing:upgrade_preview_api' %}";
+    const currentPlanTier = {{ sub.plan_tier|default:1 }};
+    const upgradeModal = document.getElementById('upgradePreviewModal');
+    let pendingUpgradeForm = null;
+
+    function fmt(n) {
+      return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    }
+
+    async function showUpgradePreview(form) {
+      const planId = form.dataset.planId;
+      const months = form.dataset.months || '1';
+      const body = document.getElementById('upgradePreviewBody');
+
+      body.innerHTML = '<div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
+
+      const modal = new bootstrap.Modal(upgradeModal);
+      modal.show();
+
+      try {
+        const resp = await fetch(
+          `${upgradePreviewUrl}?plan_id=${planId}&months=${months}`,
+          { headers: { 'Accept': 'application/json' } }
+        );
+        const data = await resp.json();
+
+        if (!data.ok || !data.is_upgrade) {
+          // Fallback: just submit
+          modal.hide();
+          pendingUpgradeForm = null;
+          directSubmitForm(form);
+          return;
+        }
+
+        body.innerHTML = `
+          <div class="upg-row">
+            <span class="upg-label">Eski tarif</span>
+            <span class="upg-value">${data.old_plan_title}</span>
+          </div>
+          <div class="upg-row">
+            <span class="upg-label">Eski tarifdagi qolgan kun</span>
+            <span class="upg-value" style="color:#fbbf24;">${data.remaining_days} kun</span>
+          </div>
+          <div class="upg-row">
+            <span class="upg-label">Qolgan kredit</span>
+            <span class="upg-value" style="color:#fbbf24;">${fmt(data.remaining_credit)} so'm</span>
+          </div>
+          <div class="upg-divider"></div>
+          <div class="upg-row">
+            <span class="upg-label">Yangi tarif</span>
+            <span class="upg-value">${data.new_plan_title}</span>
+          </div>
+          <div class="upg-row">
+            <span class="upg-label">Yangi tarif kunlik narxi</span>
+            <span class="upg-value">${fmt(Math.round(data.new_monthly_price / 30))} so'm</span>
+          </div>
+          <div class="upg-row">
+            <span class="upg-label">To'langan yangi muddat</span>
+            <span class="upg-value">${data.paid_days} kun</span>
+          </div>
+          <div class="upg-row">
+            <span class="upg-label">Kredit → yangi tarifda</span>
+            <span class="upg-value" style="color:#34d399;">+ ${data.credit_days} kun</span>
+          </div>
+          <div class="upg-result-box">
+            <div class="upg-result-title">Natija</div>
+            <div class="upg-result-value">${data.total_new_days} kun</div>
+            <div class="upg-result-sub">
+              Yangi tarif ${data.new_expires_at} gacha ishlaydi
+            </div>
+          </div>
+          <p style="color:#475569; font-size:12px; margin-top:14px; margin-bottom:0;">
+            Eski tarifdagi qolgan <strong style="color:#fbbf24;">${data.remaining_days} kun</strong>
+            kredit sifatida saqlanib, yangi tarifga aylantiriladi.
+            Hech qanday qiymat kuyib ketmaydi.
+          </p>`;
+      } catch (e) {
+        body.innerHTML = '<p style="color:#f87171; padding:16px;">Xatolik yuz berdi. Iltimos qaytadan urinib ko\'ring.</p>';
+      }
+    }
+
+    // Upgrade confirm button
+    const confirmBtn = document.getElementById('upgradeConfirmBtn');
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', function () {
+        if (!pendingUpgradeForm) return;
+        const modal = bootstrap.Modal.getInstance(upgradeModal);
+        if (modal) modal.hide();
+        const form = pendingUpgradeForm;
+        pendingUpgradeForm = null;
+        directSubmitForm(form);
+      });
+    }
+
+    // Direct form submit (no preview)
+    async function directSubmitForm(form) {
+      const submitButton = form.querySelector('button[type="submit"]');
+      const originalButtonHtml = submitButton ? submitButton.innerHTML : '';
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.classList.add('is-loading');
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Yuklanmoqda...';
+      }
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          },
+          credentials: 'same-origin'
+        });
+        let payload = {};
+        try { payload = await response.json(); } catch(e) {}
+        if (!response.ok || (!payload.payment_url && !payload.redirect_url)) {
+          throw new Error(payload.error_note || "Click to'lov sahifasi ochilmadi.");
+        }
+        window.location.href = payload.payment_url || payload.redirect_url;
+      } catch (error) {
+        alert(error.message || "Noma'lum xatolik yuz berdi.");
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.classList.remove('is-loading');
+          submitButton.innerHTML = originalButtonHtml;
+        }
+      }
+    }
+
+    // ── Attach listeners ──────────────────────────────────────────────────
     const paymentForms = document.querySelectorAll('.js-click-payment-form');
     paymentForms.forEach(function (form) {
       form.addEventListener('submit', async function (event) {
         event.preventDefault();
 
-        const submitButton = form.querySelector('button[type="submit"]');
-        if (!submitButton || submitButton.disabled) return;
+        const planTier = parseInt(form.dataset.planTier || '0');
+        const isUpgrade = planTier > currentPlanTier && currentPlanTier > 0;
 
-        const originalButtonHtml = submitButton.innerHTML;
-        submitButton.disabled = true;
-        submitButton.classList.add('is-loading');
-        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Yuklanmoqda...';
-
-        try {
-          const response = await fetch(form.action, {
-            method: 'POST',
-            body: new FormData(form),
-            headers: {
-              'X-Requested-With': 'XMLHttpRequest',
-              'Accept': 'application/json'
-            },
-            credentials: 'same-origin'
-          });
-
-          let payload = {};
-          try {
-            payload = await response.json();
-          } catch (e) {
-            payload = {};
-          }
-
-          if (!response.ok || (!payload.payment_url && !payload.redirect_url)) {
-            throw new Error(payload.error_note || "Click to'lov sahifasi ochilmadi.");
-          }
-
-          window.location.href = payload.payment_url || payload.redirect_url;
-        } catch (error) {
-          alert(error.message || "Noma'lum xatolik yuz berdi.");
-          submitButton.disabled = false;
-          submitButton.classList.remove('is-loading');
-          submitButton.innerHTML = originalButtonHtml;
+        if (isUpgrade && form.classList.contains('js-upgrade-form')) {
+          // Show upgrade preview modal first
+          pendingUpgradeForm = form;
+          await showUpgradePreview(form);
+        } else {
+          await directSubmitForm(form);
         }
       });
     });
