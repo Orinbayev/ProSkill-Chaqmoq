@@ -409,12 +409,12 @@
     <span>Xabar yuborish</span>
   </a>
 
-  {% if feature_finance or request.user.is_superuser %}
+  <!-- {% if feature_finance or request.user.is_superuser %} -->
   <a href="{% url 'education:teacher_salary_list' %}" class="floating-item">
     <div class="fi-icon"><i class="fa-solid fa-sack-dollar"></i></div>
     <span>To‘lov</span>
   </a>
-  {% endif %}
+  <!-- {% endif %} -->
 
   {% if feature_store or request.user.is_superuser %}
   <a href="{% url 'store:products' %}" class="floating-item">
