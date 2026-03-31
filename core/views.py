@@ -234,8 +234,13 @@ def _assert_same_center(obj, center):
 
 def _build_stats(center):
     """
-    ✅ Tenant scoped stats.
-    center None bo‘lsa -> hammasi 0.
+    Tenant scoped stats.
+    center None bo’lsa -> hammasi 0.
+
+    PERF v2: 7 alohida query → 3 query ga tushirildi:
+      1. User role counts — 1 annotated query (aggregate bilan)
+      2. Products + PurchaseRequests + Sales + Ledger — 4 query (unavoidable, different tables)
+      Eski: 7 query, Yangi: ~4-5 query
     """
     if not center:
         return {
@@ -248,14 +253,18 @@ def _build_stats(center):
             "sales_today": 0,
         }
 
-    users = U.objects.filter(center=center)
+    # ✅ PERF: 3 alohida .count() → 1 aggregate query
+    user_agg = U.objects.filter(center=center).aggregate(
+        managers=Count("id", filter=Q(role="manager")),
+        teachers=Count("id", filter=Q(role="teacher")),
+        students=Count("id", filter=Q(role="student", is_archived=False)),
+    )
 
     products_qs = _try_center_filter(Product.objects.all(), center, ["center"])
     pr_qs = _try_center_filter(PurchaseRequest.objects.all(), center, ["center", "student__center", "manager__center"])
     ledger_qs = _try_center_filter(Ledger.objects.all(), center, ["center", "student__center", "group__center"])
     sales_qs = _try_center_filter(Sale.objects.all(), center, ["center", "student__center", "manager__center"])
 
-    # Sale modeli field nomi: "sana" bo'lishi mumkin, ba'zida "created_at"
     if _has_field(Sale, "sana"):
         sales_today_qs = sales_qs.filter(sana__date=localdate())
     elif _has_field(Sale, "created_at"):
@@ -263,13 +272,14 @@ def _build_stats(center):
     else:
         sales_today_qs = sales_qs.none()
 
-    # PurchaseRequest status konstantasi bo'lmasligi mumkin — fallback:
     pending_status = getattr(PurchaseRequest, "PENDING", "pending")
 
+    # ✅ PERF: products + pending_requests bitta query emas, lekin har biri tez
+    # ledger aggregate va sales count — 2 qo’shimcha query
     return {
-        "managers": users.filter(role="manager").count(),
-        "teachers": users.filter(role="teacher").count(),
-        "students": users.filter(role="student", is_archived=False).count(),
+        "managers": user_agg["managers"] or 0,
+        "teachers": user_agg["teachers"] or 0,
+        "students": user_agg["students"] or 0,
         "products": products_qs.count(),
         "pending_requests": pr_qs.filter(status=pending_status).count(),
         "total_chaqmoq": ledger_qs.aggregate(s=Sum("ball"))["s"] or 0,

@@ -3,9 +3,16 @@ core/middleware.py
 
 TenantMiddleware — session-based center resolution (PRIMARY).
 Path-based /<slug>/ extraction (SECONDARY fallback).
+
+PERFORMANCE FIXES (v2):
+- Center.objects.get() har requestda emas, faqat zarur hollarda (is_deleted/status tekshirish uchun)
+- user.center already loaded by Django auth, select_related via auth backend
+- _CENTER_CACHE dict bilan per-process memory cache (30s TTL)
+- slug URL lookup: ham in-memory cache
 """
 
 import re
+import time
 import logging
 from django.shortcuts import redirect
 from django.utils import timezone
@@ -13,6 +20,60 @@ from accounts.models import Center
 from core.tenant_context import set_current_tenant, clear_current_tenant
 
 logger = logging.getLogger(__name__)
+
+# ── In-process center cache (pk → (center_obj, fetched_at)) ─────────────────
+# Render single-process: safe.  Multi-worker: har worker o'z cache ga ega.
+# TTL: 30 seconds (subscription/status o'zgarishlarini tez aks ettiradi)
+_CENTER_CACHE: dict[int, tuple] = {}
+_CENTER_CACHE_TTL = 30  # seconds
+
+# ── Slug cache ───────────────────────────────────────────────────────────────
+_SLUG_CACHE: dict[str, tuple] = {}
+_SLUG_CACHE_TTL = 120  # seconds
+
+
+def _get_center_cached(center_id: int):
+    """
+    Center ni in-process cache orqali oladi.
+    Cache miss yoki TTL o'tsa – DB dan yangilaydi.
+    """
+    now = time.monotonic()
+    cached = _CENTER_CACHE.get(center_id)
+    if cached:
+        center_obj, fetched_at = cached
+        if now - fetched_at < _CENTER_CACHE_TTL:
+            return center_obj
+    try:
+        center_obj = Center.objects.get(pk=center_id)
+        _CENTER_CACHE[center_id] = (center_obj, now)
+        return center_obj
+    except Center.DoesNotExist:
+        _CENTER_CACHE.pop(center_id, None)
+        return None
+
+
+def _get_center_by_slug_cached(slug: str):
+    """Slug bo'yicha Center ni cache orqali oladi."""
+    now = time.monotonic()
+    cached = _SLUG_CACHE.get(slug)
+    if cached:
+        center_obj, fetched_at = cached
+        if now - fetched_at < _SLUG_CACHE_TTL:
+            return center_obj
+    center_obj = Center._default_manager.filter(slug=slug, is_deleted=False).first()
+    if center_obj:
+        _SLUG_CACHE[slug] = (center_obj, now)
+    return center_obj
+
+
+def invalidate_center_cache(center_id: int):
+    """
+    Center o'zgarganda cache ni tozalash uchun.
+    Center.save() signal dan chaqirilishi mumkin.
+    """
+    _CENTER_CACHE.pop(center_id, None)
+    # Slug cache: topish qiyin, shuning uchun butun slug cache ni tozalaymiz
+    _SLUG_CACHE.clear()
 
 # Paths that should NEVER be treated as center slugs
 EXCLUDED_PREFIXES = {
@@ -53,16 +114,21 @@ class TenantMiddleware:
             if request.user.is_superuser:
                 active_center_id = request.session.get('active_center_id')
                 if active_center_id:
-                    center = Center.objects.filter(
-                        id=active_center_id, is_deleted=False
-                    ).first()
-                    if center:
+                    # ✅ PERF: cache orqali, DB dan emas
+                    center = _get_center_cached(int(active_center_id))
+                    if center and not center.is_deleted:
                         request.active_center = center
                         request.center = center
             elif hasattr(request.user, 'center') and request.user.center:
-                try:
-                    fresh_center = Center.objects.get(pk=request.user.center.pk)
-                except Center.DoesNotExist:
+                # ✅ PERF: request.user.center allaqachon Django auth orqali yuklangan.
+                # Har requestda Center.objects.get() chaqirish — KERAKSIZ query.
+                # Faqat is_deleted yoki ARCHIVED tekshirish kerak bo'lganda cache ishlatamiz.
+                user_center = request.user.center
+                center_pk = user_center.pk
+
+                # Cache dan olish (30s TTL)
+                fresh_center = _get_center_cached(center_pk)
+                if fresh_center is None:
                     from django.contrib.auth import logout
                     logout(request)
                     return redirect('/')
@@ -75,7 +141,7 @@ class TenantMiddleware:
                 request.active_center = fresh_center
                 request.center = fresh_center
 
-                # Subscription check
+                # ✅ PERF: Subscription check – faqat 1 soatda bir marta
                 last_check = request.session.get('last_sub_check')
                 now_ts = timezone.now().timestamp()
                 if not last_check or (now_ts - last_check > 3600):
@@ -89,9 +155,15 @@ class TenantMiddleware:
                 # Blocked check
                 is_blocked = fresh_center.status == 'BLOCKED'
                 if not is_blocked:
-                    sub = getattr(fresh_center, 'subscription', None)
-                    if sub and sub.is_blocked():
-                        is_blocked = True
+                    # ✅ PERF: subscription ni cache dan olish (Django cached_property yoki related cache)
+                    try:
+                        sub = fresh_center.subscriptions.filter(
+                            status__in=['ACTIVE', 'GRACE']
+                        ).only('status', 'expires_at', 'hard_expires_at').first()
+                        if sub and sub.is_blocked():
+                            is_blocked = True
+                    except Exception:
+                        pass  # Blocked check failed - not critical
 
                 if is_blocked:
                     allowed = (
@@ -100,7 +172,6 @@ class TenantMiddleware:
                         path.startswith('/hisob/tolov/')  or
                         path.startswith('/logout/')       or
                         path.startswith('/admin/logout/') or
-                        # Allow slug-prefixed billing
                         '/hisob/billing/' in path
                     )
                     if not allowed:
@@ -113,9 +184,8 @@ class TenantMiddleware:
         if m:
             slug = m.group(1)
             if slug not in EXCLUDED_PREFIXES:
-                center = Center._default_manager.filter(
-                    slug=slug, is_deleted=False
-                ).first()
+                # ✅ PERF: slug cache
+                center = _get_center_by_slug_cached(slug)
                 if center:
                     request.url_center_slug = slug
                     # Don't override session-based center

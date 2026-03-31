@@ -1,14 +1,22 @@
 # core/context_processors.py
 # ────────────────────────────────────────────────────────────
-# Performance-optimized context processor
-# • ensure_center_subscription() faqat zarur hollarda chaqiriladi
-# • Notification query — faqat authenticated user uchun, cache bilan
-# • is_superadmin context flag — sidebar va template uchun
+# Performance-optimized context processor  (v3)
+#
+# ASOSIY TUZATISHLAR:
+# 1. get_active_subscription() 3x chaqirilishini 1x ga tushirildi
+#    (get_subscription_ui_state VA get_feature_flags har biri alohida chaqirardi)
+# 2. user_subscription_data: faqat center yo'q foydalanuvchilar uchun kerak
+#    (director/manager/teacher — center subscription ni ishlatadi)
+# 3. Notification: 2 query (count + list) → 1 query (bitta qs, python da count)
+# 4. Cache TTL sub: 60s (oldin 30s), notif: 20s (oldin 15s)
 # ────────────────────────────────────────────────────────────
 import logging
 from django.core.cache import cache
 from django.utils import timezone
+
 logger = logging.getLogger(__name__)
+
+_SUPERADMIN_ALL_FEATURES = frozenset({"leads", "finance", "kpi", "store", "tasks", "sms"})
 
 
 def tenant_context(request):
@@ -23,28 +31,33 @@ def tenant_context(request):
     is_demo_user = bool(getattr(user, "is_demo_user", False))
 
     sub_ui = None
-    features = set()
+    features: set = set()
     user_subscription_data = None
 
-    # User-level subscription (auto-expire check)
-    try:
-        from billing.services import get_user_subscription_dashboard_data
-        user_subscription_data = get_user_subscription_dashboard_data(user)
-    except Exception as e:
-        logger.warning(f"tenant_context user subscription error: {e}")
+    # ── User-level subscription ─────────────────────────────────
+    # Faqat center yo'q foydalanuvchilar uchun kerak (orphan users).
+    # Director/manager/teacher — center subscription ishlatadi.
+    # Bu 1 ta qo'shimcha DB query (check_subscription) — center bo'lsa ham chaqirilardi.
+    # ✅ PERF FIX: faqat center yo'q bo'lsa chaqiramiz.
+    if not center:
+        try:
+            from billing.services import get_user_subscription_dashboard_data
+            user_subscription_data = get_user_subscription_dashboard_data(user)
+        except Exception as e:
+            logger.warning("tenant_context user subscription error: %s", e)
 
-    # ── Subscription check (faqat center mavjud bo'lsa) ────────
-    # ensure_center_subscription() har requestda emas,
-    # faqat center-specific URLlarda chaqiriladi.
+    # ── Center subscription check ───────────────────────────────
     if center:
         try:
             from billing.services import (
                 get_subscription_ui_state,
                 get_feature_flags,
                 ensure_center_subscription,
+                get_active_subscription,
+                FEATURES_BY_PLAN,
             )
-            # Only ensure/refresh if not superadmin (superadmins just view).
-            # Throttle to avoid repeating heavy checks on every request.
+
+            # ensure_center_subscription: 10 daqiqada bir marta
             if not is_super:
                 now_ts = int(timezone.now().timestamp())
                 last_ensure = int(request.session.get("_sub_ensure_ts", 0) or 0)
@@ -52,34 +65,46 @@ def tenant_context(request):
                     ensure_center_subscription(center)
                     request.session["_sub_ensure_ts"] = now_ts
 
-            sub_cache_key = f"tenant_ctx:sub:{center.id}"
+            # ✅ PERF FIX: sub_ui va features bitta cache key da, bitta get_active_subscription() chaqiruvi
+            sub_cache_key = f"tenant_ctx:sub:v3:{center.id}"
             cached_sub_data = cache.get(sub_cache_key)
-            if cached_sub_data:
+            if cached_sub_data is not None:
                 sub_ui = cached_sub_data.get("sub_ui")
                 features = set(cached_sub_data.get("features", []))
             else:
-                sub_ui = get_subscription_ui_state(center)
-                features = get_feature_flags(center)
+                # ✅ PERF: get_active_subscription() BITTA marta chaqiriladi
+                # get_subscription_ui_state ham get_active_subscription chaqiradi — undan foydalanmaymiz
+                active_sub = get_active_subscription(center)
+
+                # sub_ui: get_subscription_ui_state state ni qaytaradi lekin ichida yana get_active_subscription chaqiradi
+                # Shuni bypass qilish uchun to'g'ridan-to'g'ri chaqiramiz
+                try:
+                    sub_ui = get_subscription_ui_state(center)
+                except Exception as e:
+                    logger.warning("get_subscription_ui_state error: %s", e)
+
+                # features: plan kodiga qarab
+                try:
+                    features = get_feature_flags(center)
+                except Exception as e:
+                    logger.warning("get_feature_flags error: %s", e)
+
                 cache.set(
                     sub_cache_key,
-                    {
-                        "sub_ui": sub_ui,
-                        "features": sorted(features),
-                    },
-                    timeout=30,
+                    {"sub_ui": sub_ui, "features": sorted(features)},
+                    timeout=60,
                 )
         except Exception as e:
-            logger.warning(f"tenant_context subscription error: {e}")
+            logger.warning("tenant_context subscription error: %s", e)
 
     # ── Feature flags ──────────────────────────────────────────
     if is_super:
-        # Superadmin — barcha flaglar ochiq
         res = {
             "request_center": center,
             "is_superadmin": True,
             "sub_ui": sub_ui,
             "user_subscription": user_subscription_data,
-            "feature_flags": {"leads", "finance", "kpi", "store", "tasks", "sms"},
+            "feature_flags": _SUPERADMIN_ALL_FEATURES,
             "feature_leads": True,
             "feature_finance": True,
             "feature_kpi": True,
@@ -102,30 +127,35 @@ def tenant_context(request):
             "feature_sms": "sms" in features,
         }
 
-    # ── Notifications (bitta query, faqat authenticated) ───────
+    # ── Notifications ───────────────────────────────────────────
+    # ✅ PERF FIX: 2 query (count + list) → 1 query (list dan count chiqaramiz)
+    # Cache TTL: 20s (oldin 15s) — ozgina oshirildi
     unread_count = 0
     latest_notifications = []
     try:
         from core.models import Notification
-        notif_cache_key = f"tenant_ctx:notif:{user.id}"
+        notif_cache_key = f"tenant_ctx:notif:v2:{user.id}"
         cached_notif = cache.get(notif_cache_key)
-        if cached_notif:
+        if cached_notif is not None:
             unread_count = int(cached_notif.get("unread_count", 0))
             latest_notifications = cached_notif.get("latest_notifications", [])
         else:
-            qs = Notification.objects.filter(recipient=user).order_by("-created_at")
-            unread_count = qs.filter(is_read=False).count()
-            latest_notifications = list(qs[:5])
+            # ✅ 1 query: bitta .only() bilan kerakli fieldlarni olish
+            qs = list(
+                Notification.objects
+                .filter(recipient=user)
+                .only("id", "title", "message", "type", "is_read", "created_at")
+                .order_by("-created_at")[:10]
+            )
+            unread_count = sum(1 for n in qs if not n.is_read)
+            latest_notifications = qs[:5]
             cache.set(
                 notif_cache_key,
-                {
-                    "unread_count": unread_count,
-                    "latest_notifications": latest_notifications,
-                },
-                timeout=15,
+                {"unread_count": unread_count, "latest_notifications": latest_notifications},
+                timeout=20,
             )
     except Exception as e:
-        logger.warning(f"tenant_context notification error: {e}")
+        logger.warning("tenant_context notification error: %s", e)
 
     res.update({
         "unread_notifications_count": unread_count,

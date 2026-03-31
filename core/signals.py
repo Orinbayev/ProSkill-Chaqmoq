@@ -3,6 +3,7 @@ from django.dispatch import receiver
 from .models import Notification
 from chaqmoq.models import Ledger
 from store.models import PurchaseRequest
+from accounts.models import Center
 
 @receiver(post_save, sender=Ledger)
 def notify_ledger_change(sender, instance, created, **kwargs):
@@ -37,6 +38,16 @@ def notify_ledger_change(sender, instance, created, **kwargs):
             message=msg, 
             type='coin'
         )
+
+@receiver(post_save, sender=Center)
+def invalidate_center_middleware_cache(sender, instance, **kwargs):
+    """Center o'zgarganda middleware in-process cache ni tozalaydi."""
+    try:
+        from core.middleware import invalidate_center_cache
+        invalidate_center_cache(instance.pk)
+    except Exception:
+        pass
+
 
 @receiver(post_save, sender=PurchaseRequest)
 def notify_purchase_status(sender, instance, created, **kwargs):

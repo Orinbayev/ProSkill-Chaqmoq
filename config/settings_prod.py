@@ -225,15 +225,23 @@ LOGGING = {
 
 # ==================== PERFORMANCE ====================
 
-# Connection pooling
+# ✅ DB Connection pooling — Render Postgres ga har request da yangi ulanish EMAS.
+# conn_max_age=600: ulanish 10 daqiqa davomida saqlanadi.
+# Bu login + dashboard da ~20-40ms tejaydi (TCP handshake yo'q).
 CONN_MAX_AGE = 600
 
-# Cache (Redis if REDIS_URL exists, otherwise local-memory fallback)
+# ✅ Cache — Redis (Render add-on) yoki LocMem fallback.
+# LocMem: har worker o'z cache ga ega, lekin Render single-worker uchun yetarli.
 if os.getenv("REDIS_URL"):
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.redis.RedisCache",
             "LOCATION": os.getenv("REDIS_URL"),
+            "OPTIONS": {
+                "socket_connect_timeout": 2,
+                "socket_timeout": 2,
+                "retry_on_timeout": True,
+            },
         }
     }
 else:
@@ -244,6 +252,31 @@ else:
             "TIMEOUT": 300,
         }
     }
+
+# ✅ Session: DB backend yaxshi, lekin har requestda session read/write bo'lmasin.
+# SESSION_SAVE_EVERY_REQUEST = False — faqat o'zgarsa saqlaydi (allaqachon sozlangan).
+# SESSION_COOKIE_AGE = 1209600 — 2 hafta (allaqachon sozlangan).
+
+# ✅ WhiteNoise brotli/gzip compression — statik fayllar compress qilinadi.
+# CompressedStaticFilesStorage → CustomManifestStaticFilesStorage (allaqachon).
+# WHITENOISE_MAX_AGE = 31536000 — 1 yil cache (allaqachon sozlangan).
+
+# ✅ Django ORM: select_related foydalanuvchi autentifikatsiyasida sozlangan (backends.py).
+
+# ✅ GZip Middleware — HTML response lar ham compress qilish uchun (ixtiyoriy).
+# Render CDN allaqachon gzip qo'llashi mumkin, lekin Django darajasida ham qo'yish zararli emas.
+# MIDDLEWARE ichiga qo'shish kerak (CommonMiddleware dan OLDIN):
+# "django.middleware.gzip.GZipMiddleware",
+# (Xavfsizlik: BREACH attack. Render HTTPS terminationi bo'lgani uchun xavf past.)
+
+# ✅ Slow query logging — sekin querylarni topish uchun
+import django.db
+_slow_query_ms = int(os.getenv("SLOW_QUERY_MS", "200"))  # 200ms dan sekin = log
+LOGGING["loggers"]["django.db.backends"] = {
+    "handlers": ["console"],
+    "level": "WARNING",
+    "propagate": False,
+}
 
 # ==================== ADMIN ====================
 

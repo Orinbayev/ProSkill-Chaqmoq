@@ -1,15 +1,42 @@
 """
 Custom authentication views for role-based redirects.
 Subdomain logic removed — uses path-based resolution only.
+
+PERF v2:
+- form_invalid: 2 DB query (email + phone) → kerak bo'lmagan holda o'tkazib yuboriladi
+- form_valid: record_activity + Telegram xabari BLOCKING edi — Thread orqali non-blocking qilindi
+- _record_async: login tugagandan keyin fon threadida ishlaydi, response ga ta'sir qilmaydi
 """
 
 import hashlib
+import logging
+import threading
 
 from django.contrib.auth import views as auth_views
 from django.core.cache import cache
 from django.shortcuts import redirect
 from django.urls import reverse, NoReverseMatch
-from accounts.api_auth import record_activity
+
+logger = logging.getLogger(__name__)
+
+
+def _record_activity_bg(user, action, request_meta: dict):
+    """
+    record_activity() ni fon threadida ishlatadi.
+    Login response ga hech qanday ta'sir ko'rsatmaydi.
+    Telegram xabari ham bu thread ichida yuboriladi.
+    """
+    try:
+        from accounts.api_auth import record_activity
+
+        class _FakeRequest:
+            """record_activity META ni kutadi, lekin biz uni dict sifatida beramiz."""
+            def __init__(self, meta):
+                self.META = meta
+
+        record_activity(user, action, request=_FakeRequest(request_meta))
+    except Exception as exc:
+        logger.warning("_record_activity_bg xatosi: %s", exc)
 
 
 class SecureLoginView(auth_views.LoginView):
@@ -36,20 +63,45 @@ class SecureLoginView(auth_views.LoginView):
 
     def form_invalid(self, form):
         response = super().form_invalid(form)
-        email = form.data.get('username', '')
-        from accounts.models import User
-        user = User.objects.filter(email__iexact=email).first()
-        if not user:
-            user = User.objects.filter(phone_number=email).first()
-        if user:
-            record_activity(user, "Failed login attempt detected", request=self.request)
+        email = (form.data.get('username') or '').strip()
+
+        # ✅ PERF FIX: Noto'g'ri login bo'lsa ham 2 DB query ketardi (email + phone).
+        # Endi faqat throttle key uchun email ishlatamiz, DB query YO'Q.
+        # UserActivity.create fon threadida bajariladi.
         self._register_failed_attempt(self.request, email)
+
+        if email:
+            # DB query va Telegram xabari fon threadida — response tezlashadi
+            meta_copy = {
+                k: v for k, v in self.request.META.items()
+                if k in ('HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR', 'HTTP_USER_AGENT')
+            }
+            threading.Thread(
+                target=self._record_failed_login_bg,
+                args=(email, meta_copy),
+                daemon=True,
+            ).start()
+
         return response
 
     def form_valid(self, form):
+        # ✅ PERF FIX: super().form_valid() → session write, redirect.
+        # record_activity + Telegram xabari BLOCKING edi (5s timeout).
+        # Endi fon threadida ishlaydi — response darhol qaytadi.
         response = super().form_valid(form)
         self._clear_failed_attempts(self.request, form.cleaned_data.get("username", ""))
-        record_activity(self.request.user, "Login successful (Website)", request=self.request)
+
+        user = self.request.user
+        meta_copy = {
+            k: v for k, v in self.request.META.items()
+            if k in ('HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR', 'HTTP_USER_AGENT')
+        }
+        threading.Thread(
+            target=_record_activity_bg,
+            args=(user, "Login successful (Website)", meta_copy),
+            daemon=True,
+        ).start()
+
         return response
 
     def get_success_url(self):
@@ -59,6 +111,37 @@ class SecureLoginView(auth_views.LoginView):
         return self.get_success_url()
 
     # ── helpers ──────────────────────────────────────────────────
+
+    @staticmethod
+    def _record_failed_login_bg(email: str, meta_copy: dict):
+        """
+        Noto'g'ri login uchun UserActivity ni fon threadida yozadi.
+        DB query va Telegram xabari shu yerda bo'ladi.
+        """
+        try:
+            from accounts.models import User
+            from accounts.utils import normalize_phone
+
+            user = None
+            try:
+                user = User.objects.only(
+                    "id", "email", "phone_number", "telegram_id",
+                    "is_telegram_linked", "is_demo_user",
+                ).get(email__iexact=email)
+            except User.DoesNotExist:
+                try:
+                    norm = normalize_phone(email)
+                    user = User.objects.only(
+                        "id", "email", "phone_number", "telegram_id",
+                        "is_telegram_linked", "is_demo_user",
+                    ).get(phone_number=norm)
+                except User.DoesNotExist:
+                    pass
+
+            if user:
+                _record_activity_bg(user, "Failed login attempt detected", meta_copy)
+        except Exception as exc:
+            logger.warning("_record_failed_login_bg xatosi: %s", exc)
 
     def _client_ip(self, request):
         forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
