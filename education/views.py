@@ -1385,6 +1385,17 @@ def group_month_attendance(request, group_id):
 
     months = [(i, calendar.month_name[i]) for i in range(1, 13)]
 
+    # Ruxsat tekshiruvi: director/manager/superuser yoki guruh o'qituvchisi
+    user = request.user
+    can_edit = (
+        user.is_superuser
+        or getattr(user, "role", None) in ("director", "manager")
+        or (
+            getattr(user, "role", None) == "teacher"
+            and getattr(group, "oqituvchi_id", None) == user.id
+        )
+    )
+
     return render(request, "education/group_month_attendance.html", {
         "group": group,
         "rows": rows,
@@ -1394,6 +1405,7 @@ def group_month_attendance(request, group_id):
         "month_name": calendar.month_name[month],
         "years": years,
         "months": months,
+        "can_edit": can_edit,
     })
 
 
@@ -1643,6 +1655,19 @@ def attendance_toggle_cell(request, group_id):
     if center:
         qs = qs.filter(center=center)
     group = get_object_or_404(qs, pk=group_id)
+
+    # Ruxsat tekshiruvi: director/manager/superuser yoki guruh o'qituvchisi
+    user = request.user
+    is_allowed = (
+        user.is_superuser
+        or getattr(user, "role", None) in ("director", "manager")
+        or (
+            getattr(user, "role", None) == "teacher"
+            and getattr(group, "oqituvchi_id", None) == user.id
+        )
+    )
+    if not is_allowed:
+        return JsonResponse({"ok": False, "error": "Ruxsat yo'q"}, status=403)
 
     student_id = request.POST.get("student_id")
     date_str = request.POST.get("date")

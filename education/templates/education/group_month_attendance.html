@@ -154,6 +154,8 @@
   .cellbtn:hover{ background:rgba(255,255,255,.06); }
   .cellbtn:focus{ outline:none; box-shadow:0 0 0 3px rgba(96,165,250,.25); }
   .cellbtn.loading{ opacity:.45; pointer-events:none; }
+  /* Readonly — faqat ko'rish, o'zgartirish mumkin emas */
+  .att-cell-readonly{ cursor:default; opacity:.65; pointer-events:none; }
 
   /* Status boxes */
   .sbox{
@@ -342,11 +344,11 @@
               {% for cell in row.cells %}
                 <td>
                   <button type="button"
-                          class="cellbtn att-cell"
+                          class="cellbtn {% if can_edit %}att-cell{% else %}att-cell-readonly{% endif %}"
                           data-student="{{ row.student.id }}"
                           data-date="{{ cell.date|date:'Y-m-d' }}"
                           data-status="{{ cell.status }}"
-                          title="{% if cell.status == 'present' %}Kelgan — pul yoziladi{% elif cell.status == 'absent' %}Kelmadi sababsiz — pul yoziladi{% elif cell.status == 'absent_excused' %}Kelmadi sababli — pul yozilmaydi{% elif cell.status == 'forced' %}Kelmadi (eski yozuv){% else %}Belgilanmagan{% endif %}">
+                          {% if not can_edit %}disabled title="Faqat o'qituvchi o'z guruhini o'zgartira oladi"{% else %}title="{% if cell.status == 'present' %}Kelgan — pul yoziladi{% elif cell.status == 'absent' %}Kelmadi sababsiz — pul yoziladi{% elif cell.status == 'absent_excused' %}Kelmadi sababli — pul yozilmaydi{% elif cell.status == 'forced' %}Kelmadi (eski yozuv){% else %}Belgilanmagan{% endif %}"{% endif %}>
                     {% if cell.status == 'present' %}
                       <span class="sbox s-present"><i class="bi bi-check-lg"></i></span>
                     {% elif cell.status == 'absent' %}
@@ -423,6 +425,7 @@
   }
   const csrf = getCookie('csrftoken');
   const toggleUrl = "{% url 'education:attendance_toggle_cell' group.id %}";
+  const canEdit = {{ can_edit|yesno:"true,false" }};
 
   /* Status → HTML */
   function statusHtml(status) {
@@ -515,7 +518,12 @@
   /* Event delegation */
   document.addEventListener('click', function (e) {
     const btn = e.target.closest('.att-cell');
-    if (btn) { e.stopPropagation(); openPopover(btn); return; }
+    if (btn) {
+      e.stopPropagation();
+      if (!canEdit) return; // Ruxsat yo'q — popover ochilmaydi
+      openPopover(btn);
+      return;
+    }
 
     const item = e.target.closest('.pop-item');
     if (item && activeBtn) { e.stopPropagation(); setStatus(activeBtn, item.dataset.target); return; }
