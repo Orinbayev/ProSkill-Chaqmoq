@@ -94,9 +94,14 @@ async def main():
     except Exception as err:
         logging.error(f"❌ Failed to start Internal API: {err}")
 
-    # 2. Start Scheduler
+    # 2. Start Schedulers
     await setup_scheduler(bot)
-    await setup_backup_scheduler()
+    # BackgroundScheduler – sync, shuning uchun await KERAK EMAS
+    try:
+        setup_backup_scheduler()
+        print("✅ Backup scheduler (BackgroundScheduler) ishga tushdi.")
+    except Exception as _bs_err:
+        logging.error(f"❌ Backup scheduler xatosi: {_bs_err}")
     print("✅ All Schedulers started.")
 
 

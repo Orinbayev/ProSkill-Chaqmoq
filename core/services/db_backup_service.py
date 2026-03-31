@@ -1,17 +1,33 @@
+"""
+ChaqmoqApp – Markaz DB Backup Service
+======================================
+Har kuni 16:00 (Asia/Tashkent) da:
+  1. Barcha ACTIVE markazlar olinadi
+  2. Har biri uchun alohida JSON snapshot yaratiladi
+  3. To'liq PostgreSQL dump yaratiladi (pg_dump mavjud bo'lsa)
+  4. Har bir fayl Telegram guruhga document sifatida yuboriladi
+  5. Yuborilgan/xato bo'lgan markazlar logga aniq yoziladi
+
+MUHIM TUZATISHLAR (v2):
+- Async/Event-loop muammo YO'Q: `requests` (sync HTTP) ishlatiladi
+- BackgroundScheduler (thread-based) – Django WSGI/Gunicorn bilan mos
+- Token/GroupID env var fallback: TELEGRAM_BOT_TOKEN | BOT_TOKEN
+- To'liq traceback loglanadi
+"""
+
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import os
 import shutil
 import subprocess
+import traceback
 from pathlib import Path
 from typing import Any
 
-from aiogram import Bot
-from aiogram.types import FSInputFile
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import requests
+from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from django.apps import apps
 from django.conf import settings
@@ -23,7 +39,7 @@ from accounts.models import Center
 
 logger = logging.getLogger(__name__)
 
-_backup_scheduler: AsyncIOScheduler | None = None
+_backup_scheduler: BackgroundScheduler | None = None
 CENTER_EXPORT_APPS = {"accounts", "core", "billing", "education", "store", "chaqmoq"}
 
 
@@ -34,17 +50,21 @@ def _get_backup_root() -> Path:
 
 
 def _get_bot_token() -> str:
-    return str(getattr(settings, "TELEGRAM_BOT_TOKEN", "") or "").strip()
+    """Token: settings.TELEGRAM_BOT_TOKEN → BOT_TOKEN env var."""
+    return (
+        str(getattr(settings, "TELEGRAM_BOT_TOKEN", "") or "").strip()
+        or str(os.environ.get("TELEGRAM_BOT_TOKEN", "") or "").strip()
+        or str(os.environ.get("BOT_TOKEN", "") or "").strip()
+    )
 
 
-def _get_group_id() -> str | int:
-    raw_group_id = str(getattr(settings, "TELEGRAM_GROUP_ID", "") or "").strip()
-    if not raw_group_id:
-        return ""
-    try:
-        return int(raw_group_id)
-    except ValueError:
-        return raw_group_id
+def _get_group_id() -> str:
+    """Group ID: settings.TELEGRAM_GROUP_ID → BACKUP_GROUP_ID env var."""
+    return (
+        str(getattr(settings, "TELEGRAM_GROUP_ID", "") or "").strip()
+        or str(os.environ.get("TELEGRAM_GROUP_ID", "") or "").strip()
+        or str(os.environ.get("BACKUP_GROUP_ID", "") or "").strip()
+    )
 
 
 def _get_default_db_credentials() -> dict[str, str]:
@@ -191,39 +211,87 @@ def backup_full_database() -> Path:
     return backup_path
 
 
-async def send_file_to_telegram(file_path: str | Path, caption: str | None = None) -> None:
+# ────────────────────────────────────────────────────────────────────────────
+# TELEGRAM – SYNC (requests, HECH QANDAY async/event-loop muammo yo'q)
+# ────────────────────────────────────────────────────────────────────────────
+
+def send_file_to_telegram(file_path: str | Path, caption: str | None = None) -> None:
+    """
+    Faylni Telegram guruhga document sifatida yuboradi.
+
+    faqat `requests` ishlatadi – aiogram/asyncio event-loop muammo yo'q.
+
+    Raises:
+        ValueError      – token yoki group_id sozlanmagan bo'lsa
+        FileNotFoundError – fayl topilmasa
+        RuntimeError    – Telegram API xato qaytarsa
+        requests.RequestException – tarmoq xatosi
+    """
     token = _get_bot_token()
     group_id = _get_group_id()
 
     if not token:
-        raise ValueError("TELEGRAM_BOT_TOKEN is not configured")
+        raise ValueError(
+            "TELEGRAM_BOT_TOKEN yoki BOT_TOKEN muhit o'zgaruvchisi o'rnatilmagan! "
+            "Render Dashboard → Environment Variables ga qo'shing."
+        )
     if not group_id:
-        raise ValueError("TELEGRAM_GROUP_ID is not configured")
+        raise ValueError(
+            "TELEGRAM_GROUP_ID yoki BACKUP_GROUP_ID muhit o'zgaruvchisi o'rnatilmagan! "
+            "Render Dashboard → Environment Variables ga qo'shing."
+        )
 
     path = Path(file_path)
-    bot = Bot(token=token)
-    try:
-        await bot.send_document(
-            chat_id=group_id,
-            document=FSInputFile(str(path), filename=path.name),
-            caption=caption or path.name,
+    if not path.exists():
+        raise FileNotFoundError(f"Backup fayli topilmadi: {path}")
+
+    url = f"https://api.telegram.org/bot{token}/sendDocument"
+    caption_text = caption or path.name
+
+    logger.info(
+        "Telegram yuborish boshlandi: file=%s size=%d bytes chat_id=%s",
+        path.name,
+        path.stat().st_size,
+        group_id,
+    )
+
+    with path.open("rb") as fh:
+        resp = requests.post(
+            url,
+            data={"chat_id": str(group_id), "caption": caption_text},
+            files={"document": (path.name, fh, "application/octet-stream")},
+            timeout=120,
         )
-    finally:
-        await bot.session.close()
 
-
-def _run_async(coro: Any) -> Any:
     try:
-        return asyncio.run(coro)
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        try:
-            return loop.run_until_complete(coro)
-        finally:
-            loop.close()
+        result = resp.json()
+    except Exception:
+        result = {}
 
+    if not resp.ok or not result.get("ok"):
+        err_desc = result.get("description", resp.text[:400])
+        raise RuntimeError(
+            f"Telegram API xatosi [{resp.status_code}]: {err_desc}\n"
+            f"  Token prefix: {token[:10]}***\n"
+            f"  Chat ID: {group_id}"
+        )
+
+    logger.info("✅ Telegram muvaffaqiyatli yuborildi: file=%s", path.name)
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# MAIN JOB
+# ────────────────────────────────────────────────────────────────────────────
 
 def backup_and_send_all_centers() -> dict[str, Any]:
+    """
+    Barcha ACTIVE markazlar uchun backup yaratadi va Telegram guruhga yuboradi.
+
+    - Har bir markaz uchun alohida JSON snapshot
+    - To'liq PostgreSQL dump (pg_dump mavjud bo'lsa)
+    - Xato bo'lsa qolgan markazlar davom etadi
+    - To'liq traceback loglanadi
+    """
     summary: dict[str, Any] = {
         "total": 0,
         "backed_up": 0,
@@ -237,68 +305,112 @@ def backup_and_send_all_centers() -> dict[str, Any]:
         "failed_centers": [],
     }
 
+    logger.info("=" * 60)
+    logger.info("BACKUP JOB BOSHLANDI: %s", timezone.now().isoformat())
+    logger.info("=" * 60)
+
+    # ── Env var tekshiruvi ─────────────────────────────────────────────────
+    token = _get_bot_token()
+    group_id = _get_group_id()
+    if not token:
+        logger.error(
+            "BACKUP JOB TO'XTATILDI: TELEGRAM_BOT_TOKEN (yoki BOT_TOKEN) "
+            "env var o'rnatilmagan! Render Dashboard da sozlang."
+        )
+        return summary
+    if not group_id:
+        logger.error(
+            "BACKUP JOB TO'XTATILDI: TELEGRAM_GROUP_ID (yoki BACKUP_GROUP_ID) "
+            "env var o'rnatilmagan! Render Dashboard da sozlang."
+        )
+        return summary
+
+    logger.info("Token mavjud: %s***", token[:8])
+    logger.info("Group ID: %s", group_id)
+
+    # ── Markazlarni olish ──────────────────────────────────────────────────
     centers = list(
         Center.objects.filter(status=Center.STATUS_ACTIVE)
         .only("id", "slug", "name", "status")
         .order_by("id")
     )
     summary["total"] = len(centers)
+    logger.info("Aktiv markazlar: %d ta", len(centers))
 
     if not centers:
-        logger.info("Tenant backup skipped: no active centers found")
+        logger.warning("Hech qanday aktiv markaz topilmadi. Job tugadi.")
         return summary
 
+    date_str = timezone.localdate().isoformat()
+
+    # ── Har bir markaz ─────────────────────────────────────────────────────
     for center in centers:
+        logger.info("── Markaz: %s (%s) ──", center.name, center.slug)
+        backup_path: Path | None = None
         try:
+            # 1. JSON snapshot yaratish
             backup_path = export_center_snapshot(center)
             summary["backed_up"] += 1
             summary["files"].append(str(backup_path))
-            _run_async(
-                send_file_to_telegram(
-                    backup_path,
-                    caption=(
-                        f"Center scoped backup\n"
-                        f"Center: {center.slug}\n"
-                        f"Date: {timezone.localdate().isoformat()}\n"
-                        f"File: {backup_path.name}"
-                    ),
-                )
+
+            # 2. Telegram yuborish
+            caption = (
+                f"📦 Markaz backup\n"
+                f"🏢 Markaz: {center.name} ({center.slug})\n"
+                f"📅 Sana: {date_str}\n"
+                f"📁 Fayl: {backup_path.name}\n"
+                f"🔢 Tur: JSON snapshot"
             )
+            send_file_to_telegram(backup_path, caption=caption)
             summary["sent"] += 1
-            logger.info("Tenant backup sent: center=%s file=%s", center.slug, backup_path)
+            logger.info(
+                "✅ Yuborildi: center=%s file=%s",
+                center.slug,
+                backup_path.name,
+            )
+
         except ValueError as exc:
+            # Token/group_id muammosi
             summary["skipped"] += 1
-            logger.warning("Tenant backup skipped: center=%s reason=%s", center.slug, exc)
+            logger.warning("⚠️ O'tkazib yuborildi: center=%s sabab=%s", center.slug, exc)
+
         except Exception:
             summary["failed"] += 1
             summary["failed_centers"].append(center.slug)
-            logger.exception("Tenant backup failed: center=%s", center.slug)
-
-    try:
-        full_backup_path = backup_full_database()
-        summary["full_backup_file"] = str(full_backup_path)
-        summary["files"].append(str(full_backup_path))
-        _run_async(
-            send_file_to_telegram(
-                full_backup_path,
-                caption=(
-                    f"Full PostgreSQL backup\n"
-                    f"Date: {timezone.localdate().isoformat()}\n"
-                    f"Centers: {summary['total']}\n"
-                    f"File: {full_backup_path.name}"
-                ),
+            logger.error(
+                "❌ XATOLIK: center=%s\n%s",
+                center.slug,
+                traceback.format_exc(),
             )
+
+    # ── To'liq PostgreSQL dump ─────────────────────────────────────────────
+    logger.info("── To'liq PostgreSQL dump ──")
+    try:
+        full_path = backup_full_database()
+        summary["full_backup_file"] = str(full_path)
+        summary["files"].append(str(full_path))
+
+        caption = (
+            f"🗄️ To'liq PostgreSQL backup\n"
+            f"📅 Sana: {date_str}\n"
+            f"🏢 Markazlar soni: {summary['total']}\n"
+            f"📁 Fayl: {full_path.name}"
         )
+        send_file_to_telegram(full_path, caption=caption)
         summary["sent"] += 1
         summary["combined_sent"] = 1
         summary["full_sent"] = 1
-        logger.info("Full backup sent: file=%s", full_backup_path)
+        logger.info("✅ To'liq backup yuborildi: file=%s", full_path.name)
+
     except Exception:
         summary["failed"] += 1
-        logger.exception("Full backup failed")
+        logger.error("❌ To'liq backup XATOLIGI:\n%s", traceback.format_exc())
 
+    # ── Yakuniy hisobot ────────────────────────────────────────────────────
+    logger.info("=" * 60)
     logger.info(
-        "Tenant backup job completed: total=%s backed_up=%s sent=%s full_sent=%s skipped=%s failed=%s",
+        "BACKUP JOB TUGADI | total=%d backed_up=%d sent=%d "
+        "full_sent=%d skipped=%d failed=%d",
         summary["total"],
         summary["backed_up"],
         summary["sent"],
@@ -306,23 +418,36 @@ def backup_and_send_all_centers() -> dict[str, Any]:
         summary["skipped"],
         summary["failed"],
     )
+    if summary["failed_centers"]:
+        logger.error("XATO bo'lgan markazlar: %s", ", ".join(summary["failed_centers"]))
+    logger.info("=" * 60)
     return summary
 
 
-async def _run_scheduled_backup() -> None:
-    await asyncio.to_thread(backup_and_send_all_centers)
+# ────────────────────────────────────────────────────────────────────────────
+# SCHEDULER – BackgroundScheduler (Django WSGI / Gunicorn bilan mos)
+# ────────────────────────────────────────────────────────────────────────────
 
+def setup_backup_scheduler() -> BackgroundScheduler:
+    """
+    BackgroundScheduler (thread-based) yaratadi.
+    Har kuni 16:00 Asia/Tashkent da backup_and_send_all_centers() ishlatadi.
 
-async def setup_backup_scheduler() -> AsyncIOScheduler:
+    Django AppConfig.ready() dan chaqiriladi.
+    Gunicorn multi-worker: faqat bitta worker uchun
+      BACKUP_SCHEDULER_ENABLED=true env var o'rnating.
+    """
     global _backup_scheduler
 
     if _backup_scheduler and _backup_scheduler.running:
+        logger.info("Backup scheduler allaqachon ishlamoqda.")
         return _backup_scheduler
 
-    scheduler = AsyncIOScheduler(timezone=getattr(settings, "TIME_ZONE", "Asia/Tashkent"))
+    tz = getattr(settings, "TIME_ZONE", "Asia/Tashkent")
+    scheduler = BackgroundScheduler(timezone=tz)
     scheduler.add_job(
-        _run_scheduled_backup,
-        CronTrigger(hour=16, minute=0),
+        backup_and_send_all_centers,
+        CronTrigger(hour=16, minute=0, timezone=tz),
         id="tenant-db-backup-daily",
         name="tenant-db-backup-daily",
         replace_existing=True,
@@ -332,5 +457,18 @@ async def setup_backup_scheduler() -> AsyncIOScheduler:
     )
     scheduler.start()
     _backup_scheduler = scheduler
-    logger.info("Tenant backup scheduler started: daily at 16:00 %s", getattr(settings, "TIME_ZONE", "Asia/Tashkent"))
+    logger.info("✅ Backup scheduler ishga tushdi: har kuni 16:00 %s", tz)
     return scheduler
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# ASYNC WRAPPER – Bot handler'laridan chaqirish uchun
+# ────────────────────────────────────────────────────────────────────────────
+
+async def run_backup_async() -> dict[str, Any]:
+    """
+    Bot /backup_now handler uchun async wrapper.
+    backup_and_send_all_centers() ni thread pool da ishlatadi.
+    """
+    import asyncio
+    return await asyncio.to_thread(backup_and_send_all_centers)

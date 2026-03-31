@@ -69,3 +69,26 @@ services:
 #     databaseName: chaqmoq_db
 #     user: chaqmoq_user
 #     plan: free
+
+  # ==================== CRON JOB – DAILY BACKUP ====================
+  # Render Cron Job: har kuni 16:00 Asia/Tashkent = 11:00 UTC
+  # Bu ENG ISHONCHLI usul – bot jarayoniga bog'liq emas!
+  - type: cron
+    name: daily-center-backup
+    env: python
+    region: frankfurt
+    schedule: "0 11 * * *"   # 11:00 UTC = 16:00 Asia/Tashkent
+    buildCommand: pip install -r requirements.txt
+    startCommand: python manage.py backup_and_send
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings
+      - key: TIME_ZONE
+        value: Asia/Tashkent
+      # Quyidagilarni Render Dashboard da qo'shing (sync: false):
+      # - key: TELEGRAM_BOT_TOKEN
+      #   sync: false
+      # - key: TELEGRAM_GROUP_ID
+      #   sync: false
+      # - key: DATABASE_URL
+      #   sync: false
