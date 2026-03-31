@@ -413,17 +413,8 @@
 (function () {
   'use strict';
 
-  function getCookie(name) {
-    let v = null;
-    if (document.cookie) {
-      document.cookie.split(';').forEach(c => {
-        c = c.trim();
-        if (c.startsWith(name + '=')) v = decodeURIComponent(c.slice(name.length + 1));
-      });
-    }
-    return v;
-  }
-  const csrf = getCookie('csrftoken');
+  // CSRF tokenni Django template dan olish — cookie muammosini hal qiladi
+  const csrf = '{{ csrf_token }}';
   const toggleUrl = "{% url 'education:attendance_toggle_cell' group.id %}";
   const canEdit = {{ can_edit|yesno:"true,false" }};
 
