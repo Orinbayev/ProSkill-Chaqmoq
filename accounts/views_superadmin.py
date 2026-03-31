@@ -49,7 +49,17 @@ def superadmin_dashboard(request):
                 queryset=User.objects.filter(role='director').only('id', 'ism', 'familya', 'email', 'telefon1'),
                 to_attr='directors',
             ),
-            'subscriptions__plan',
+            # Faqat ACTIVE subscriptionlarni yuklaymiz.
+            # c.subscriptions.first() ishlatmang — u status filtrsiz
+            # tier+expires_at bo'yicha tartiblab, yashirilgan EXPIRED/PAUSED
+            # subscription ni qaytarishi mumkin.
+            Prefetch(
+                'subscriptions',
+                queryset=CenterSubscription.objects.filter(
+                    status=CenterSubscription.Status.ACTIVE,
+                ).select_related('plan').order_by('-expires_at', '-id'),
+                to_attr='active_subs_list',
+            ),
         )
         .annotate(
             student_count=Count(
@@ -308,16 +318,25 @@ def center_edit(request, pk):
     
     if request.method == 'POST' and form.is_valid():
         center = form.save()
-        
+
         try:
-            # Sync subscription expiry if exists
-            if hasattr(center, 'subscription') and center.subscription:
-                sub = center.subscription
-                sub.expires_at = center.expires_at
-                sub.save()
+            # form Center.plan yoki Center.expires_at o'zgargan bo'lsa
+            # CenterSubscription bilan sinxronlaymiz.
+            # superadmin_apply_subscription — yagona source of truth funksiyasi.
+            from billing.services import superadmin_apply_subscription
+            plan_obj = SubscriptionPlan.objects.filter(
+                code=center.plan, active=True
+            ).first()
+            if plan_obj and center.expires_at:
+                superadmin_apply_subscription(
+                    center=center,
+                    new_plan=plan_obj,
+                    expires_at=center.expires_at,
+                    actor=request.user,
+                )
         except Exception:
-            pass
-            
+            pass  # sync xato bo'lsa asosiy save saqlanadi
+
         messages.success(request, f"✅ Markaz '{center.name}' yangilandi!")
         return redirect('platform_global:superadmin_dashboard')
     

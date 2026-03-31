@@ -1038,6 +1038,123 @@ def mark_order_paid(order: SubscriptionOrder) -> None:
         raise e
 
 
+@transaction.atomic
+def sync_center_from_active_subscription(center: Center) -> bool:
+    """
+    CenterSubscription (source of truth) → Center modeli fieldlarini sinxronlaydi.
+
+    Bu funksiya **yagona** sync nuqtasi bo'lib, quyidagi hollarda chaqirilishi kerak:
+      - payment muvaffaqiyatli bo'lgandan keyin
+      - superadmin tarif/muddat o'zgartirganidan keyin
+      - manual subscription edit bo'lgandan keyin
+
+    Maqsad: Center.plan, Center.expires_at, Center.monthly_price,
+    Center.max_students kabilar ACTIVE CenterSubscription dan olinsin,
+    ikki joyda alohida-alohida hisob bo'lmasin.
+
+    Returns:
+      True  — sinxronizatsiya muvaffaqiyatli
+      False — faol obuna yo'q, Center o'zgartirilmaydi
+    """
+    active_sub = get_active_subscription(center)
+    if not active_sub:
+        return False
+
+    plan = active_sub.plan
+    center.plan          = plan.code
+    center.expires_at    = active_sub.expires_at
+    center.monthly_price = plan.monthly_price
+    center.max_students  = plan.max_students
+    center.max_groups    = plan.max_groups
+    center.max_users     = plan.max_users
+    center.save(update_fields=[
+        "plan", "expires_at", "monthly_price",
+        "max_students", "max_groups", "max_users",
+    ])
+    # Feature flaglarni ham sinxronlaymiz
+    apply_plan_to_center(center, plan)
+    return True
+
+
+@transaction.atomic
+def superadmin_apply_subscription(
+    center: Center,
+    new_plan: "SubscriptionPlan",
+    expires_at,
+    actor=None,
+) -> "CenterSubscription":
+    """
+    Superadmin tomonidan markazga tarif qo'lda belgilash yoki o'zgartirish.
+
+    Mantiq:
+      1. Mavjud ACTIVE obunani EXPIRED qilamiz
+      2. Yangi ACTIVE obuna yaratamiz
+      3. Center fieldlarini yangi obunadan sinxronlaymiz
+
+    expires_at — datetime yoki date (string emas)
+    """
+    from django.utils import timezone as tz
+    import datetime
+
+    now = tz.now()
+
+    # Agar string kelsa parse qilamiz
+    if isinstance(expires_at, str):
+        from django.utils.dateparse import parse_datetime, parse_date
+        dt = parse_datetime(expires_at)
+        if not dt:
+            d = parse_date(expires_at)
+            if d:
+                dt = tz.make_aware(datetime.datetime.combine(d, datetime.time.min))
+        expires_at = dt
+
+    if expires_at is None:
+        raise ValueError("expires_at required for superadmin_apply_subscription")
+
+    if tz.is_naive(expires_at):
+        expires_at = tz.make_aware(expires_at)
+
+    # 1. Expire all active subscriptions for this center
+    CenterSubscription.objects.filter(
+        center=center,
+        status=CenterSubscription.Status.ACTIVE,
+    ).update(status=CenterSubscription.Status.EXPIRED)
+
+    # 2. Create new ACTIVE subscription
+    new_sub = CenterSubscription.objects.create(
+        center=center,
+        plan=new_plan,
+        status=CenterSubscription.Status.ACTIVE,
+        started_at=now,
+        expires_at=expires_at,
+        paused_at=None,
+        remaining_seconds=0,
+        manual_block=False,
+    )
+
+    # 3. Sync Center fields from new subscription
+    center.plan          = new_plan.code
+    center.expires_at    = expires_at
+    center.monthly_price = new_plan.monthly_price
+    center.max_students  = new_plan.max_students
+    center.max_groups    = new_plan.max_groups
+    center.max_users     = new_plan.max_users
+    center.status        = Center.STATUS_ACTIVE
+    center.save(update_fields=[
+        "plan", "expires_at", "monthly_price",
+        "max_students", "max_groups", "max_users", "status",
+    ])
+
+    # 4. Feature sync
+    apply_plan_to_center(center, new_plan)
+
+    logging.getLogger(__name__).info(
+        "superadmin_apply_subscription: center=%s plan=%s expires=%s actor=%s sub_id=%s",
+        center.id, new_plan.code, expires_at.date(), getattr(actor, "id", None), new_sub.id,
+    )
+    return new_sub
+
+
 def check_subscription_expiry(center: Center):
     """
     Checks if active subscription expired. 

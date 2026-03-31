@@ -1967,7 +1967,9 @@
                 </thead>
                 <tbody>
                     {% for c in centers %}
-                    {% with sub=c.subscriptions.first %}
+                    {# active_subs_list prefetch faqat ACTIVE status subscriptionlarni qaytaradi. #}
+                    {# c.subscriptions.first ishlatmang — u EXPIRED/PAUSED ni ham olishi mumkin. #}
+                    {% with sub=c.active_subs_list.0 %}
                     <tr>
                         <!-- ── Markaz ── -->
                         <td>

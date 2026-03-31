@@ -1174,4 +1174,156 @@ class PlanPeriodPriceTests(TestCase):
         plan = _make_plan(3, "X", 300_000, tier=5, price_6m=0, price_12m=None)
         self.assertEqual(get_plan_period_base_price(plan, 6), 300_000 * 6)
         self.assertEqual(get_plan_period_base_price(plan, 12), 300_000 * 12)
+
+
+# ============================================================
+# SUPERADMIN SYNC TESTS — DB required
+# ============================================================
+
+class SuperadminApplySubscriptionTests(TestCase):
+    """
+    superadmin_apply_subscription() va sync_center_from_active_subscription()
+    uchun integration testlar.
+    DB ishlatadi.
+    """
+
+    def _create_center_and_plan(self, plan_code="STANDARD", monthly=400_000, tier=10):
+        from django.utils import timezone as tz
+        plan = SubscriptionPlan.objects.create(
+            code=plan_code,
+            title=plan_code.capitalize(),
+            monthly_price=monthly,
+            tier=tier,
+            max_students=200,
+            max_groups=50,
+            max_users=100,
+            active=True,
+        )
+        center = Center.objects.create(
+            name=f"Test Center {plan_code}",
+            slug=f"test-{plan_code.lower()}-{plan.pk}",
+            plan=plan_code,
+            monthly_price=monthly,
+            max_students=200,
+        )
+        return center, plan
+
+    def test_superadmin_apply_subscription_creates_active_sub(self):
+        """superadmin_apply_subscription yangi ACTIVE sub yaratishi kerak"""
+        from billing.services import superadmin_apply_subscription
+        from django.utils import timezone as tz
+        center, plan = self._create_center_and_plan("STANDARD")
+        expires = tz.now() + tz.timedelta(days=30)
+
+        sub = superadmin_apply_subscription(center, plan, expires)
+
+        self.assertEqual(sub.status, CenterSubscription.Status.ACTIVE)
+        self.assertEqual(sub.plan_id, plan.pk)
+        active_count = CenterSubscription.objects.filter(
+            center=center, status=CenterSubscription.Status.ACTIVE
+        ).count()
+        self.assertEqual(active_count, 1)
+
+    def test_superadmin_apply_expires_old_subscription(self):
+        """
+        Eski ACTIVE sub EXPIRED bo'lishi kerak.
+        Yangi ACTIVE sub yaratilishi kerak.
+        """
+        from billing.services import superadmin_apply_subscription
+        from django.utils import timezone as tz
+
+        center, old_plan = self._create_center_and_plan("STANDARD")
+        new_plan = SubscriptionPlan.objects.create(
+            code="PRO", title="Pro", monthly_price=900_000,
+            tier=30, max_students=2000, max_groups=999, max_users=999, active=True,
+        )
+
+        # Create old ACTIVE subscription
+        old_expires = tz.now() + tz.timedelta(days=300)
+        CenterSubscription.objects.create(
+            center=center, plan=old_plan,
+            status=CenterSubscription.Status.ACTIVE,
+            expires_at=old_expires, started_at=tz.now(),
+        )
+
+        # Apply new plan
+        new_expires = tz.now() + tz.timedelta(days=30)
+        new_sub = superadmin_apply_subscription(center, new_plan, new_expires)
+
+        # Old must be EXPIRED
+        old_sub_refreshed = CenterSubscription.objects.filter(
+            center=center, plan=old_plan
+        ).first()
+        self.assertEqual(old_sub_refreshed.status, CenterSubscription.Status.EXPIRED)
+
+        # New must be ACTIVE
+        self.assertEqual(new_sub.status, CenterSubscription.Status.ACTIVE)
+        self.assertEqual(new_sub.plan_id, new_plan.pk)
+
+        # Center must be synced
+        center.refresh_from_db()
+        self.assertEqual(center.plan, "PRO")
+        self.assertEqual(center.monthly_price, 900_000)
+
+    def test_sync_center_from_active_subscription(self):
+        """sync_center_from_active_subscription Center fieldlarini to'g'ri yangilashi kerak"""
+        from billing.services import sync_center_from_active_subscription
+        from django.utils import timezone as tz
+
+        center, plan = self._create_center_and_plan("PREMIUM", monthly=600_000, tier=20)
+        expires = tz.now() + tz.timedelta(days=60)
+        CenterSubscription.objects.create(
+            center=center, plan=plan,
+            status=CenterSubscription.Status.ACTIVE,
+            expires_at=expires, started_at=tz.now(),
+        )
+
+        # Artificially break center's cached fields
+        center.plan = "FREE"
+        center.monthly_price = 0
+        center.save(update_fields=["plan", "monthly_price"])
+
+        # Sync
+        result = sync_center_from_active_subscription(center)
+        self.assertTrue(result)
+
+        center.refresh_from_db()
+        self.assertEqual(center.plan, "PREMIUM")
+        self.assertEqual(center.monthly_price, 600_000)
+
+    def test_sync_center_no_active_sub_returns_false(self):
+        """Faol obuna yo'q bo'lsa sync False qaytarishi kerak"""
+        from billing.services import sync_center_from_active_subscription
+
+        center, _ = self._create_center_and_plan()
+        # No CenterSubscription created
+        result = sync_center_from_active_subscription(center)
+        self.assertFalse(result)
+
+    def test_no_duplicate_active_subs_after_multiple_applies(self):
+        """
+        superadmin_apply_subscription bir necha bor chaqirilsa ham
+        doim FAQAT BITTA ACTIVE subscription bo'lishi kerak.
+        """
+        from billing.services import superadmin_apply_subscription
+        from django.utils import timezone as tz
+
+        center, plan = self._create_center_and_plan()
+        expires1 = tz.now() + tz.timedelta(days=30)
+        expires2 = tz.now() + tz.timedelta(days=60)
+        expires3 = tz.now() + tz.timedelta(days=90)
+
+        superadmin_apply_subscription(center, plan, expires1)
+        superadmin_apply_subscription(center, plan, expires2)
+        superadmin_apply_subscription(center, plan, expires3)
+
+        active_count = CenterSubscription.objects.filter(
+            center=center, status=CenterSubscription.Status.ACTIVE
+        ).count()
+        self.assertEqual(active_count, 1)
+
+        latest = CenterSubscription.objects.get(center=center, status=CenterSubscription.Status.ACTIVE)
+        self.assertAlmostEqual(
+            (latest.expires_at - expires3).total_seconds(), 0, delta=2
+        )
         self.assertIn(reverse("billing:payment_cancel"), response.url)

@@ -12,7 +12,12 @@ from datetime import timedelta
 from accounts.models import Center, User
 from education.models import Group, Payment, Attendance, TeacherIncome
 from billing.models import SubscriptionPlan, PromoCode, PlanFeature, SubscriptionOrder
-from billing.services import apply_plan_to_center
+from billing.services import (
+    apply_plan_to_center,
+    superadmin_apply_subscription,
+    sync_center_from_active_subscription,
+)
+from billing.models import CenterSubscription
 
 logger = logging.getLogger(__name__)
 
@@ -277,17 +282,27 @@ def center_detail_api(request, center_id):
             })
 
 
-    # Feature codes from the center's current subscription plan (M2M)
+    # Feature codes from the center's ACTIVE subscription plan (M2M)
     feature_codes = []
     try:
-        from billing.models import CenterSubscription
-        sub = CenterSubscription.objects.filter(center=center, is_active=True).select_related('plan').first()
-        if sub and sub.plan:
-            feature_codes = list(sub.plan.plan_features.values_list('code', flat=True))
+        # CenterSubscription da is_active degan field yo'q — status='ACTIVE' ishlatamiz
+        active_sub = CenterSubscription.objects.filter(
+            center=center,
+            status=CenterSubscription.Status.ACTIVE,
+        ).select_related('plan').order_by('-expires_at').first()
+        if active_sub and active_sub.plan:
+            feature_codes = list(active_sub.plan.plan_features.values_list('code', flat=True))
     except Exception:
         # Fallback to features JSONField keys that are True
         if center.features:
             feature_codes = [k for k, v in center.features.items() if v]
+
+    # Tarif va muddat ma'lumotini ACTIVE subscription dan olamiz — yagona source of truth.
+    # Center.plan va Center.expires_at eski cache bo'lishi mumkin, lekin
+    # CenterSubscription — haqiqiy holat.
+    sub_plan_code = active_sub.plan.code if active_sub else center.plan
+    sub_expires   = active_sub.expires_at if active_sub else center.expires_at
+    sub_monthly   = active_sub.plan.monthly_price if active_sub else center.monthly_price
 
     # Send all needed info for edit form
     return JsonResponse({
@@ -295,14 +310,15 @@ def center_detail_api(request, center_id):
         "name": center.name,
         "address": center.address,
         "phone": center.phone,
-        "plan_code": center.plan,
+        # Plan va muddat — subscriptiondan (source of truth)
+        "plan_code": sub_plan_code,
         "status": center.status,
-        "monthly_price": center.monthly_price,
+        "monthly_price": sub_monthly,
         "payment_day": center.payment_day,
         "max_students": center.max_students,
         "features": center.features or {},
         "feature_codes": feature_codes,          # ← M2M codes
-        "expires_at": center.expires_at.strftime("%Y-%m-%d") if center.expires_at else None,
+        "expires_at": sub_expires.strftime("%Y-%m-%d") if sub_expires else None,
         "capacity_limit": center.capacity_limit,
         
         # Promo fields
@@ -391,43 +407,78 @@ def center_update_api(request, center_id):
         except (ValueError, TypeError):
             return JsonResponse({"success": False, "error": "Limit noto'g'ri formatda"}, status=400)
         
+        # Non-subscription fields: name, address, phone, status, promo etc.
         center.save()
 
-        # ✅ Sync expires_at AND PLAN with CenterSubscription if it exists
-        if hasattr(center, 'subscription'):
-            sub = center.subscription
-            
-            # 1. Sync Plan if changed
-            if sub.plan and sub.plan.code != center.plan:
-                # Find the plan object
-                new_plan_obj = SubscriptionPlan.objects.filter(code=center.plan).first()
-                if new_plan_obj:
-                    sub.plan = new_plan_obj
-                    sub.save(update_fields=['plan'])
-            
-            # 2. Sync Expiry
-            if center.expires_at:
-                from django.utils.dateparse import parse_datetime, parse_date
-                from datetime import datetime
-                
-                # Convert to datetime if string/date
-                dt = None
-                if isinstance(center.expires_at, str):
-                    dt = parse_datetime(center.expires_at)
-                    if not dt:
-                        d = parse_date(center.expires_at)
-                        if d:
-                            dt = datetime.combine(d, datetime.min.time())
-                            dt = timezone.make_aware(dt) if timezone.is_naive(dt) else dt
-                else:
-                    dt = center.expires_at
-                    if not hasattr(dt, 'date'): # Is date
-                         dt = datetime.combine(dt, datetime.min.time())
-                    dt = timezone.make_aware(dt) if timezone.is_naive(dt) else dt
-                
-                if dt:
-                    sub.expires_at = dt
-                    sub.save(update_fields=['expires_at'])
+        # ── Subscription sync ──────────────────────────────────────────────
+        # Superadmin plan/expires_at o'zgartirsa, CenterSubscription va Center
+        # IKKALASI ham SINXRON bo'lishi kerak.
+        # superadmin_apply_subscription — yagona source of truth funksiyasi:
+        #   1. Eski ACTIVE sub → EXPIRED
+        #   2. Yangi ACTIVE sub yaratadi
+        #   3. Center fieldlarini yangi subdan sync qiladi
+        plan_code_from_form = data.get('plan', '').strip().upper()
+        expires_str         = data.get('expires_at', '').strip()
+
+        if plan_code_from_form and expires_str:
+            # Admin ham plan ham sanani o'zgartirdi → full apply
+            new_plan_obj = SubscriptionPlan.objects.filter(
+                code=plan_code_from_form, active=True
+            ).first()
+            if new_plan_obj:
+                try:
+                    superadmin_apply_subscription(
+                        center=center,
+                        new_plan=new_plan_obj,
+                        expires_at=expires_str,
+                        actor=request.user,
+                    )
+                except Exception as sync_err:
+                    logger.warning("superadmin_apply_subscription failed: %s", sync_err)
+
+        elif expires_str:
+            # Faqat sana o'zgardi — mavjud ACTIVE sub ning expires_at ni yangilang
+            from django.utils.dateparse import parse_datetime, parse_date
+            import datetime as dt_module
+            raw_dt = parse_datetime(expires_str)
+            if not raw_dt:
+                raw_d = parse_date(expires_str)
+                if raw_d:
+                    raw_dt = timezone.make_aware(
+                        dt_module.datetime.combine(raw_d, dt_module.time.min)
+                    )
+            if raw_dt:
+                if timezone.is_naive(raw_dt):
+                    raw_dt = timezone.make_aware(raw_dt)
+                active_sub = CenterSubscription.objects.filter(
+                    center=center,
+                    status=CenterSubscription.Status.ACTIVE,
+                ).order_by('-expires_at').first()
+                if active_sub:
+                    active_sub.expires_at = raw_dt
+                    active_sub.save(update_fields=['expires_at'])
+                    # Center fieldini ham yangilaymiz
+                    center.expires_at = raw_dt
+                    center.save(update_fields=['expires_at'])
+
+        elif plan_code_from_form:
+            # Faqat plan o'zgardi, sana o'zgarmadi
+            active_sub = CenterSubscription.objects.filter(
+                center=center,
+                status=CenterSubscription.Status.ACTIVE,
+            ).select_related('plan').order_by('-expires_at').first()
+            if active_sub:
+                new_plan_obj = SubscriptionPlan.objects.filter(
+                    code=plan_code_from_form, active=True
+                ).first()
+                if new_plan_obj and active_sub.plan_id != new_plan_obj.pk:
+                    # Plan o'zgardi — expires_at ni saqlab, plan'ni almashtiramiz
+                    superadmin_apply_subscription(
+                        center=center,
+                        new_plan=new_plan_obj,
+                        expires_at=active_sub.expires_at,
+                        actor=request.user,
+                    )
 
 
         # 2. Update Director
