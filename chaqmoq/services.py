@@ -306,3 +306,149 @@ def check_payment_bonus(*, enrollment, center, created_by=None) -> bool:
         bonused = True
 
     return bonused
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4. PAYMENT DISCIPLINE ENGINE (YANGI)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def check_payment_discipline_bonus(*, enrollment, center, created_by=None) -> bool:
+    """
+    To'lov vaqtida chaqiriladi (PaymentAllocation.save -> check_payment_discipline_bonus).
+    Agar deadline'gacha to'liq to'lagan bo'lsa - bonus beradi.
+    """
+    rules = Rule.objects.filter(
+        tur=Rule.PAYMENT_DISCIPLINE,
+        discipline_active=True,
+    ).filter(
+        Q(center=center) | Q(center__isnull=True)
+    )
+
+    if not rules.exists():
+        return False
+
+    from education.services.tuition import get_month_paid, get_fee_amount, month_first_day
+    
+    now = timezone.localdate()
+    cur_month = month_first_day(now)
+    paid = get_month_paid(enrollment, cur_month)
+    fee = get_fee_amount(enrollment)
+
+    bonused = False
+    for rule in rules:
+        deadline_day = rule.discipline_deadline_day
+
+        # 1. To'liq to'lanmagan bo'lsa - bonus yo'q
+        if fee <= 0 or paid < fee:
+            continue
+
+        # 2. Deadline o'tib ketgan bo'lsa - bonus yo'q
+        if now.day > deadline_day:
+            continue
+
+        # 3. Bu oy uchun allaqachon (bonus yoki jarima) qo'llanganmi?
+        already = Ledger.objects.filter(
+            student=enrollment.student,
+            rule=rule,
+            related_month=cur_month
+        ).exists()
+
+        if already:
+            continue
+
+        # 4. Bonus berish
+        bonus = rule.discipline_bonus_score
+        if bonus and bonus > 0:
+            with transaction.atomic():
+                Ledger.objects.create(
+                    student=enrollment.student,
+                    beruvchi=created_by,
+                    rule=rule,
+                    ball=bonus,
+                    related_month=cur_month,
+                )
+                
+                # Bildirishnoma
+                send_notification(
+                    recipient=enrollment.student,
+                    center=center,
+                    title="✨ To'lov intizomi bonusi",
+                    message=f"To'lovni o'z vaqtida amalga oshirganingiz uchun +{bonus} chaqmoq berildi!",
+                    notification_type='coin',
+                    sender=created_by
+                )
+                bonused = True
+
+    return bonused
+
+
+def apply_payment_discipline_penalties(*, center: Center) -> int:
+    """
+    CRON yoki Management Command orqali har kuni ishga tushadi.
+    Deadline o'tgan bo'lsa va hali ham to'liq to'lanmagan bo'lsa - jarima qo'llaydi.
+    """
+    rule = Rule.objects.filter(
+        center=center, 
+        tur=Rule.PAYMENT_DISCIPLINE, 
+        discipline_active=True
+    ).first()
+
+    if not rule or not rule.discipline_penalty_score:
+        return 0
+
+    from education.models import Enrollment
+    from education.services.tuition import get_month_paid, get_fee_amount, month_first_day
+    
+    now = timezone.localdate()
+    deadline_day = rule.discipline_deadline_day
+    
+    # Bugun hali deadline bo'lmasa - hech narsa qilmaymiz
+    if now.day <= deadline_day:
+        return 0
+
+    cur_month = month_first_day(now)
+    
+    # Shu oyda allaqachon jarima qo'llanilgan student IDlar
+    already_served = Ledger.objects.filter(
+        rule=rule,
+        related_month=cur_month
+    ).values_list('student_id', flat=True)
+
+    # Faol enrollmentlar (hali jarima olmaganlar)
+    enrollments = Enrollment.objects.filter(
+        center=center, 
+        is_active=True
+    ).exclude(
+        student_id__in=already_served
+    ).select_related('student')
+
+    count = 0
+    penalty = rule.discipline_penalty_score # Manfiy son bo'lishi kerak
+
+    for enr in enrollments:
+        paid = get_month_paid(enr, cur_month)
+        fee = get_fee_amount(enr)
+
+        # Agar qarzdor bo'lsa -> Jarima
+        if fee > 0 and paid < fee:
+            with transaction.atomic():
+                Ledger.objects.create(
+                    student=enr.student,
+                    rule=rule,
+                    ball=penalty,
+                    related_month=cur_month,
+                )
+                
+                # Bildirishnoma
+                send_notification(
+                    recipient=enr.student,
+                    center=center,
+                    title="⚡ Kechiktirilgan to'lov jarimasi",
+                    message=f"Oylik to'lov muddati o'tgani uchun {abs(penalty)} chaqmoq ayirildi.",
+                    notification_type='coin'
+                )
+                count += 1
+                logger.info(f"Penalty applied to {enr.student.email} for {cur_month}")
+
+    return count
+

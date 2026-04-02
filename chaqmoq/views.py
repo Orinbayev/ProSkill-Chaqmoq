@@ -580,12 +580,16 @@ def rule_list(request):
     # Attendance Penalty & Bonus rules separately
     penalty_rules = all_rules.filter(tur=Rule.ATTENDANCE_PENALTY)
     bonus_rules   = all_rules.filter(tur=Rule.ATTENDANCE_BONUS)
+    
+    # Payment Discipline rule (only one should be active/main)
+    discipline_rule = all_rules.filter(tur=Rule.PAYMENT_DISCIPLINE).first()
 
     context = {
         'center': center,
         'rules': rules,
         'penalty_rules': penalty_rules,
         'bonus_rules': bonus_rules,
+        'discipline_rule': discipline_rule,
         'Rule': Rule,
         "center_limit": center.max_daily_lightning if center else 0,
         "center_deduction_limit": center.max_daily_deduction if center else 0,
@@ -676,6 +680,47 @@ def penalty_rule_delete(request, pk):
         messages.success(request, "Qoida o'chirildi")
     except Rule.DoesNotExist:
         messages.error(request, "Qoida topilmadi")
+
+    return redirect("chaqmoq:rule_list")
+
+
+@login_required
+def discipline_rule_save(request):
+    """To'lov intizomi qoidasini saqlash."""
+    center = get_active_center(request)
+    if request.user.role not in ['director', 'manager'] and not request.user.is_superuser:
+        messages.error(request, "Sizda ruxsat yo'q")
+        return redirect("chaqmoq:rule_list")
+
+    if request.method != "POST":
+        return redirect("chaqmoq:rule_list")
+
+    try:
+        rule_id = request.POST.get("rule_id") or None
+        nom = request.POST.get("nom", "").strip() or "To‘lov intizomi"
+        deadline_day = int(request.POST.get("discipline_deadline_day", 10))
+        bonus = int(request.POST.get("discipline_bonus_score", 5))
+        penalty = int(request.POST.get("discipline_penalty_score", -10))
+        is_active = request.POST.get("discipline_active") == "on"
+
+        if rule_id:
+            ruleobj = Rule.objects.get(id=rule_id, center=center, tur=Rule.PAYMENT_DISCIPLINE)
+        else:
+            # Markazda faqat bitta payment_discipline qoidasi bo'lishi kerak
+            ruleobj = Rule.objects.filter(center=center, tur=Rule.PAYMENT_DISCIPLINE).first()
+            if not ruleobj:
+                ruleobj = Rule(center=center, tur=Rule.PAYMENT_DISCIPLINE)
+
+        ruleobj.nom = nom
+        ruleobj.discipline_deadline_day = deadline_day
+        ruleobj.discipline_bonus_score = abs(bonus)
+        ruleobj.discipline_penalty_score = -abs(penalty) # har doim manfiy
+        ruleobj.discipline_active = is_active
+        ruleobj.save()
+        
+        messages.success(request, f"To'lov intizomi qoidasi yangilandi ✅")
+    except Exception as e:
+        messages.error(request, f"Xato: {str(e)}")
 
     return redirect("chaqmoq:rule_list")
 

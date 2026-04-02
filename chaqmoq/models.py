@@ -10,12 +10,14 @@ class Rule(models.Model):
     ATTENDANCE_PENALTY = 'attendance_penalty'
     ATTENDANCE_BONUS = 'attendance_bonus'
     PAYMENT_BONUS = 'payment_bonus'
+    PAYMENT_DISCIPLINE = 'payment_discipline'
     TUR_CHOICES = (
         (PLUS, '+ Chaqmoq'),
         (MINUS, '− Chaqmoq'),
         (ATTENDANCE_PENALTY, 'Davomat jarimasi'),
         (ATTENDANCE_BONUS, 'Davomat bonusi'),
         (PAYMENT_BONUS, 'To‘lov bonusi'),
+        (PAYMENT_DISCIPLINE, 'To‘lov intizomi'),
     )
     nom = models.CharField(max_length=150)
     center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True)
@@ -42,6 +44,12 @@ class Rule(models.Model):
     # Payment Bonus fields
     payment_bonus_lightning = models.SmallIntegerField(default=5, blank=True, null=True, verbose_name="To'lov uchun bonus chaqmoq")
 
+    # Payment Discipline fields (New)
+    discipline_deadline_day = models.PositiveSmallIntegerField(default=10, verbose_name="Deadline sanasi (oyning sanasi)")
+    discipline_bonus_score = models.SmallIntegerField(default=5, verbose_name="Deadline gacha to'lov bonusi")
+    discipline_penalty_score = models.SmallIntegerField(default=-10, verbose_name="Dedline gacha to'lov qilmaganlarga jarima")
+    discipline_active = models.BooleanField(default=False, verbose_name="Qoida faolmi?")
+
 
     class Meta:
         verbose_name = 'Chaqmoq qoida'
@@ -67,6 +75,11 @@ class Ledger(models.Model):
 
     ball = models.SmallIntegerField()
     sana = models.DateTimeField(default=timezone.now)
+    
+    # Qaysi oy/yil uchun qo'llanganligi (Audit/Duplicate protection)
+    # Masalan: 2026-03-01
+    related_month = models.DateField(null=True, blank=True, verbose_name="Tegishli oy")
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

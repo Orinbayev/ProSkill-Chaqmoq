@@ -27,5 +27,6 @@ urlpatterns = [
     path('rules/penalty/save/', views.penalty_rule_save, name='penalty_rule_save'),
     path('rules/penalty/<int:pk>/delete/', views.penalty_rule_delete, name='penalty_rule_delete'),
 
-
+    # To'lov intizomi qoidasi
+    path('rules/discipline/save/', views.discipline_rule_save, name='discipline_rule_save'),
 ]

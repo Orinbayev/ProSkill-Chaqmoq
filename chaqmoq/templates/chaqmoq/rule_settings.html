@@ -190,6 +190,36 @@
     .btn-edit:hover { background: rgba(16,185,129,0.1); color: var(--green); border-color: var(--green); }
     .btn-del:hover { background: rgba(239,68,68,0.1); color: var(--red); border-color: var(--red); }
 
+    /* ─── Toggle Switch ─── */
+    .switch {
+        position: relative; display: inline-block; width: 44px; height: 22px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+        position: absolute; cursor: pointer; inset: 0;
+        background-color: rgba(255,255,255,0.1); transition: .3s; border-radius: 22px;
+        border: 1px solid var(--border);
+    }
+    .slider:before {
+        position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 2px;
+        background-color: #94a3b8; transition: .3s; border-radius: 50%;
+    }
+    .switch input:checked + .slider { background-color: rgba(16,185,129,0.2); border-color: var(--green); }
+    .switch input:checked + .slider:before { transform: translateX(18px); background-color: #10b981; }
+
+    /* Additional UI refinements */
+    .discipline-card {
+        border-left: 4px solid var(--primary);
+    }
+    .discipline-active-badge {
+        font-size: 8px; padding: 1px 6px; border-radius: 10px;
+        background: rgba(16,185,129,0.1); color: var(--green); border: 1px solid rgba(16,185,129,0.2);
+    }
+    .discipline-inactive-badge {
+        font-size: 8px; padding: 1px 6px; border-radius: 10px;
+        background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.2);
+    }
+
 </style>
 {% if messages %}
 <style>
@@ -227,31 +257,127 @@
     <!-- ══════════════════════════════════════════════
          1. UMUMIY SOZLAMALAR
     ══════════════════════════════════════════════ -->
-    <div class="section-card">
+    <div class="section-card" style="margin-bottom: 16px;">
         <div class="section-head">
             <div class="icon-wrap icon-blue"><i class="fa-solid fa-sliders"></i></div>
             <h4>Umumiy chaqmoq limiti</h4>
         </div>
-        <div class="section-body">
+        <div class="section-body" style="padding: 16px 18px;">
             <form action="{% url 'chaqmoq:rule_settings_update' %}" method="post">
                 {% csrf_token %}
-                <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+                <div style="display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap;">
                     <div style="flex:1; min-width:240px;">
-                        <label class="field-label">Kunlik maksimal + chaqmoq limiti</label>
+                        <label class="field-label">Kunlik maksimal (+) ball limiti</label>
                         <input type="number" name="max_daily_lightning" value="{{ center_limit }}"
                                class="field-input" placeholder="0 = cheksiz" min="0">
                     </div>
                     <div style="flex:1; min-width:240px;">
-                        <label class="field-label">Kunlik maksimal − chaqmoq limiti</label>
+                        <label class="field-label">Kunlik maksimal (−) ball limiti</label>
                         <input type="number" name="max_daily_deduction" value="{{ center_deduction_limit }}"
                                class="field-input inp-red" placeholder="0 = cheksiz" min="0">
                     </div>
-                    <button type="submit" class="btn btn-primary" style="height:38px;">SAQLASH</button>
+                    <button type="submit" class="btn btn-primary" style="height:38px; min-width: 120px;">SAQLASH</button>
                 </div>
                 <p class="field-note" style="margin-top:10px;">
-                    * O'quvchi bir kun davomida olishi yoki yo'qotishi mumkin bo'lgan maksimal chaqmoq soni.
-                    0 = cheksiz.
+                    * O'quvchi bir kun davomida olishi yoki yo'qotishi mumkin bo'lgan maksimal chaqmoq soni. 0 = cheksiz.
                 </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+         2. TO‘LOV INTIZOMI (AVTOMATIK)
+    ══════════════════════════════════════════════ -->
+    <div class="section-card discipline-card">
+        <div class="section-head" style="justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div class="icon-wrap icon-blue"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                <div>
+                    <h4 style="margin-bottom:0;">To‘lov intizomi (Avtomatik)</h4>
+                    {% if discipline_rule and discipline_rule.discipline_active %}
+                        <span class="discipline-active-badge">FAOL</span>
+                    {% else %}
+                        <span class="discipline-inactive-badge">O'CHIRILGAN</span>
+                    {% endif %}
+                </div>
+            </div>
+            <p style="margin:0; font-size:10px; color:var(--text-muted); font-weight:600; max-width:400px; text-align:right;">
+                Oylik to'lovni vaqtida to'laganlarga bonus, kechiktirganlarga jarima berish qoidasi.
+            </p>
+        </div>
+        <div class="section-body" style="padding: 18px 20px;">
+            <form action="{% url 'chaqmoq:discipline_rule_save' %}" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="rule_id" value="{{ discipline_rule.id|default:'' }}">
+                
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:20px; align-items: flex-end;">
+                    <!-- Deadline -->
+                    <div>
+                        <label class="field-label">Deadline sana (oyning kuni)</label>
+                        <div style="position:relative;">
+                            <input type="number" name="discipline_deadline_day" 
+                                   value="{{ discipline_rule.discipline_deadline_day|default:10 }}"
+                                   class="field-input" min="1" max="31" required>
+                            <span style="position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:11px; color:var(--text-muted);">sana</span>
+                        </div>
+                    </div>
+
+                    <!-- Bonus -->
+                    <div>
+                        <label class="field-label" style="color:var(--green);">Vaqtida to'lasa (Bonus)</label>
+                        <div style="position:relative;">
+                            <input type="number" name="discipline_bonus_score" 
+                                   value="{{ discipline_rule.discipline_bonus_score|default:5 }}"
+                                   class="field-input" min="0" required>
+                            <span style="position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:12px; color:var(--green);">+ ball</span>
+                        </div>
+                    </div>
+
+                    <!-- Penalty -->
+                    <div>
+                        <label class="field-label" style="color:var(--red);">Kechiksa (Jarima)</label>
+                        <div style="position:relative;">
+                            <input type="number" name="discipline_penalty_score" 
+                                   value="{% if discipline_rule %}{{ discipline_rule.discipline_penalty_score|stringformat:'d'|cut:'-' }}{% else %}10{% endif %}"
+                                   class="field-input inp-red" min="0" required>
+                            <span style="position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:12px; color:var(--red);">- ball</span>
+                        </div>
+                    </div>
+
+                    <!-- Toggle & Save -->
+                    <div style="display:flex; align-items:center; gap:20px; justify-content: flex-end; min-width: 260px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span class="field-label" style="margin:0;">Qoida faol:</span>
+                            <label class="switch" style="width: 44px; height: 22px;">
+                                <input type="checkbox" name="discipline_active" {% if discipline_rule.discipline_active %}checked{% endif %}>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="height:38px; min-width: 120px;">SAQLASH</button>
+                    </div>
+                </div>
+
+                <!-- Guidance -->
+                <div style="margin-top:22px; padding:12px 18px; background:rgba(59,130,246,0.04); border:1px solid rgba(59,130,246,0.1); border-radius:12px;">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px;">
+                        <div>
+                            <p style="margin:0 0 6px; font-size:12px; font-weight:800; color:var(--primary-glow);">
+                                <i class="fa-solid fa-circle-check"></i> Bonus qachon beriladi?
+                            </p>
+                            <p style="margin:0; font-size:11px; color:var(--text-muted); line-height:1.6;">
+                                O'quvchi belgilangan deadline sanasigacha (shu kuni ham) joriy oy uchun <strong>to'liq to'lov</strong> qilsa, unga avtomatik bonus chaqmoqlar qo'shiladi. (Bir oyda 1 marta)
+                            </p>
+                        </div>
+                        <div>
+                            <p style="margin:0 0 6px; font-size:12px; font-weight:800; color:var(--red);">
+                                <i class="fa-solid fa-circle-exclamation"></i> Jarima qachon beriladi?
+                            </p>
+                            <p style="margin:0; font-size:11px; color:var(--text-muted); line-height:1.6;">
+                                Deadline sanasi o'tgandan keyin hali ham qarzdor bo'lgan o'quvchilardan tizim avtomatik belgilangan miqdorda chaqmoq ayiradi. (Bir oyda 1 marta)
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </form>
         </div>
     </div>

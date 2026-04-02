@@ -6,7 +6,6 @@ app_name = "education"
 
 urlpatterns = [
     # === 📚 HUB / RO‘YXATLAR ===
-    
     path("guruhlar/ro‘yxat/", views.group_list, name="group_list"),
     path("tolovlar/", views.tolovlar_home, name="tolovlar_home"),
     path("tolovlar/details/", views.get_payment_details, name="get_payment_details"),
@@ -24,9 +23,7 @@ urlpatterns = [
     views.group_month_attendance_export,
     name="group_month_attendance_export"
 ),
-
     path("tolov/create/", views.create_payment, name="create_payment"),
-
     path("tolovlar/tarix/enrollment/<int:enrollment_id>/", views.payment_history_enrollment, name="payment_history_enrollment"),
     path("tolov/chek/<int:payment_id>/", views.payment_receipt_pdf, name="payment_receipt_pdf"),
     path("tolovlar/enrollment/<int:enrollment_id>/edit/", views.enrollment_edit, name="enrollment_edit"),
@@ -34,8 +31,6 @@ urlpatterns = [
     path("tolov/update/<int:payment_id>/", views.payment_update, name="payment_update"),
     path("tolovlar/payment/<int:payment_id>/delete/", views.payment_delete, name="payment_delete"),
     path("tolovlar/student/<int:student_id>/groups/", views.student_groups_api, name="student_groups_api"),
-
-
     # 🔹 Guruhlar kategoriyasi bo‘yicha
     path("guruhlar/", views.groups_home, name="groups_home"),
     path("guruhlar/add/", views.add_category, name="add_category"),

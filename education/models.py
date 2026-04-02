@@ -341,7 +341,9 @@ class Payment(SoftDeleteMixin, models.Model):
         if self.enrollment_id:
             try:
                 enr = Enrollment.objects.get(pk=self.enrollment_id)
-                from chaqmoq.services import check_payment_bonus
+                from chaqmoq.services import check_payment_bonus, check_payment_discipline_bonus
+                
+                # Standart 100% to'lov bonusi
                 check_payment_bonus(
                     enrollment=enr,
                     center=enr.center,
@@ -625,6 +627,20 @@ class PaymentAllocation(SoftDeleteMixin, models.Model):
     amount = models.PositiveIntegerField(default=0)
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+        super().save(*args, **kwargs)
+        if is_new:
+            try:
+                from chaqmoq.services import check_payment_discipline_bonus
+                check_payment_discipline_bonus(
+                    enrollment=self.tuition_month.enrollment,
+                    center=self.center or self.payment.center,
+                    created_by=self.payment.created_by
+                )
+            except Exception:
+                pass
 
     class Meta:
         ordering = ("tuition_month__month", "id")
