@@ -34,7 +34,11 @@ class CustomManifestStaticFilesStorage(CompressedManifestStaticFilesStorage):
 
     CSS fayllardagi url() va @import qatorlari hali ham to'g'ri
     hash-substitute qilinadi.
+
+    manifest_strict=False: Jazzmin bootswatch tema fayllari (vendor/bootswatch/*)
+    manifest'da topilmasa ham 500 xato bermaydi — unhashed URL qaytaradi.
     """
+    manifest_strict = False
 
     # Django 5.0 default patterns-dan *.js bloki olib tashlangan.
     # *.css bloki to'liq saqlanib qolgan.

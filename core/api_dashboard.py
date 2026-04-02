@@ -2,7 +2,7 @@ from django.core.cache import cache
 from django.db.models import Sum, Count, F, Q, Avg
 from django.db.models.functions import ExtractMonth, ExtractYear, TruncMonth, TruncDay
 from django.utils import timezone
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date
 from django.http import JsonResponse
 from django.views import View
 from django.contrib.auth.decorators import login_required
@@ -29,51 +29,69 @@ class DirectorDashboardAPIView(View):
             if not center:
                 return JsonResponse({'error': 'Center not found'}, status=404)
 
+            now = timezone.localtime(timezone.now())
+            today = now.date()
+
             period = request.GET.get('period', 'this_month')
+            date_from_str = request.GET.get('date_from', '').strip()
+            date_to_str   = request.GET.get('date_to', '').strip()
+
+            # ── Date range mode ──
+            custom_range = False
+            if date_from_str and date_to_str:
+                try:
+                    from datetime import date as _date
+                    start_date = _date.fromisoformat(date_from_str)
+                    end_date   = _date.fromisoformat(date_to_str)
+                    if start_date <= end_date:
+                        custom_range = True
+                        period = f"custom:{date_from_str}:{date_to_str}"
+                    else:
+                        return JsonResponse({'error': 'date_from must be <= date_to'}, status=400)
+                except ValueError:
+                    return JsonResponse({'error': 'Invalid date format. Use YYYY-MM-DD'}, status=400)
+
+            if not custom_range:
+                if period == 'this_month':
+                    start_date = today.replace(day=1)
+                    end_date = today
+                elif period == 'last_month':
+                    first_this = today.replace(day=1)
+                    end_date = first_this - timedelta(days=1)
+                    start_date = end_date.replace(day=1)
+                elif period == '3_months':
+                    start_date = today - timedelta(days=90)
+                    end_date = today
+                elif period == 'this_year':
+                    start_date = today.replace(month=1, day=1)
+                    end_date = today  # cap at today to avoid showing future zero-months
+                elif period == 'last_year':
+                    start_date = today.replace(year=today.year-1, month=1, day=1)
+                    end_date = today.replace(year=today.year-1, month=12, day=31)
+                elif period.isdigit() and 1 <= int(period) <= 12:
+                    import calendar
+                    m = int(period)
+                    y = today.year
+                    start_date = date(y, m, 1)
+                    dr = calendar.monthrange(y, m)[1]
+                    end_date = date(y, m, dr)
+                elif period == 'all':
+                    first_pay = Payment.objects.filter(center=center).order_by('paid_date').first()
+                    if first_pay:
+                        st_date = first_pay.paid_date.date() if hasattr(first_pay.paid_date, 'date') else first_pay.paid_date
+                    else:
+                        st_date = today.replace(month=1, day=1)
+                    six_months_ago = today - timedelta(days=180)
+                    start_date = min(st_date, six_months_ago).replace(day=1)
+                    end_date = today
+                else:
+                    start_date = today.replace(day=1)
+                    end_date = today
+
             cache_key = f"director_dashboard:v2:center:{center.id}:period:{period}"
             cached_payload = cache.get(cache_key)
             if cached_payload is not None:
                 return JsonResponse(cached_payload)
-            
-            now = timezone.localtime(timezone.now())
-            today = now.date()
-            
-            if period == 'this_month':
-                start_date = today.replace(day=1)
-                end_date = today
-            elif period == 'last_month':
-                first_this = today.replace(day=1)
-                end_date = first_this - timedelta(days=1)
-                start_date = end_date.replace(day=1)
-            elif period == '3_months':
-                start_date = today - timedelta(days=90)
-                end_date = today
-            elif period == 'this_year':
-                start_date = today.replace(month=1, day=1)
-                end_date = today.replace(month=12, day=31)
-            elif period == 'last_year':
-                start_date = today.replace(year=today.year-1, month=1, day=1)
-                end_date = today.replace(year=today.year-1, month=12, day=31)
-            elif period.isdigit() and 1 <= int(period) <= 12:
-                import calendar
-                m = int(period)
-                y = today.year
-                start_date = date(y, m, 1)
-                dr = calendar.monthrange(y, m)[1]
-                end_date = date(y, m, dr)
-            elif period == 'all':
-                first_pay = Payment.objects.filter(center=center).order_by('paid_date').first()
-                if first_pay:
-                    st_date = first_pay.paid_date.date() if hasattr(first_pay.paid_date, 'date') else first_pay.paid_date
-                else:
-                    st_date = today.replace(month=1, day=1)
-                
-                six_months_ago = today - timedelta(days=180)
-                start_date = min(st_date, six_months_ago).replace(day=1)
-                end_date = today
-            else:
-                start_date = today.replace(day=1)
-                end_date = today
 
             delta = (end_date - start_date).days + 1
             p_end = start_date - timedelta(days=1)
@@ -91,17 +109,16 @@ class DirectorDashboardAPIView(View):
                     'end_date': end_date.strftime('%Y-%m-%d'),
                 }
             }
-            # Add marketing and plans for backward-compat at top level if needed, 
-            # though usually they are in their own keys
-            data['marketing'] = data['charts']['marketing'] 
+            data['marketing'] = data['charts']['marketing']
             data['plans'] = self.get_plans_stats(center, start_date, end_date)
             cache.set(cache_key, data, timeout=30)
-            
+
             return JsonResponse(data)
         except Exception as e:
             import traceback
             logger.error(traceback.format_exc())
             return JsonResponse({'error': str(e)}, status=500)
+
 
     def calculate_growth(self, current, previous):
         if not previous or previous == 0:
@@ -147,7 +164,7 @@ class DirectorDashboardAPIView(View):
         ).values('group_id', 'student_id').annotate(c=Count('id'))
         att_map_prev = {(a['group_id'], a['student_id']): a['c'] for a in att_counts_prev}
         
-        enrollments_prev = Enrollment.objects.filter(group__center=center).select_related('group')
+        enrollments_prev = Enrollment.objects.filter(group__center=center, is_active=True).select_related('group')
         for enr in enrollments_prev:
             count = att_map_prev.get((enr.group_id, enr.student_id), 0)
             if count > 0:
@@ -177,7 +194,7 @@ class DirectorDashboardAPIView(View):
             'teacher_shares': int(teacher_shares),
             'profit': int(profit),
             'profit_growth': self.calculate_growth(profit, profit_prev),
-            'avg_payment': round(inc_this / enrollments.count()) if enrollments.count() > 0 else 0,
+            'avg_payment': round(inc_this / payments.count()) if payments.count() > 0 else 0,
             'breakdown': {
                 'by_category': list(by_category),
                 'by_teacher': list(by_teacher),
@@ -216,9 +233,10 @@ class DirectorDashboardAPIView(View):
         ).values("enrollment").annotate(s=Sum(fee_field)).values("s")
         
         total_paid_sub = PaymentAllocation.objects.filter(
-            tuition_month__enrollment=OuterRef("pk")
+            tuition_month__enrollment=OuterRef("pk"),
+            tuition_month__month=cur_month
         ).values("tuition_month__enrollment").annotate(s=Sum("amount")).values("s")
-        
+
         active_enrollments_filtered = active_enrollments.filter(group__is_archived=False)
         debt_qs = active_enrollments_filtered.annotate(
             f=Coalesce(Subquery(total_fee_sub), 0),
@@ -259,7 +277,7 @@ class DirectorDashboardAPIView(View):
                 'attendance_pct': f"{att_pct}%",
             })
 
-        dropouts = base_qs.filter(is_archived=True).count()
+        dropouts = User.objects.filter(center=center, role='student', is_archived=True).count()
 
         return {
             'total': total_count, # Real count for home dashboard
@@ -290,29 +308,66 @@ class DirectorDashboardAPIView(View):
         }
 
         return {
+            'total_count': User.objects.filter(center=center, role='teacher').count(),
             'best': [fmt(t) for t in teachers[:5]],
             'low': [fmt(t) for t in teachers.order_by('revenue')[:5]],
-            'top': [fmt(t) for t in teachers[:3]] 
+            'top': [fmt(t) for t in teachers[:3]]
         }
 
     def get_group_stats(self, center, start, end):
-        groups = Group.objects.filter(center=center).annotate(
+        from education.models import TuitionMonth, PaymentAllocation
+        from education.services.tuition import tuition_month_fee_field
+        from django.db.models import OuterRef, Subquery, IntegerField
+        from django.db.models.functions import Coalesce
+        from django.utils import timezone as _tz
+        _cur_month = _tz.localdate().replace(day=1)
+        _fee_field = tuition_month_fee_field()
+        _fee_sub = TuitionMonth.objects.filter(
+            enrollment=OuterRef("pk"), month=_cur_month
+        ).values("enrollment").annotate(s=Sum(_fee_field)).values("s")
+        _paid_sub = PaymentAllocation.objects.filter(
+            tuition_month__enrollment=OuterRef("pk"),
+            tuition_month__month=_cur_month
+        ).values("tuition_month__enrollment").annotate(s=Sum("amount")).values("s")
+
+        groups = Group.objects.filter(center=center, is_archived=False).annotate(
             revenue=Sum('group_payments__summa', filter=Q(group_payments__paid_date__range=(start, end))),
-            debt=Sum(F('enrollments__kurs_narhi') - F('enrollments__jami_tolangan'), filter=Q(enrollments__is_active=True))
         ).order_by('-revenue')
 
-        most_debt = groups.order_by('-debt').first()
-        fmt = lambda g: {
-            'name': g.nom,
-            'revenue': int(g.revenue or 0),
-            'debt': int(g.debt or 0)
-        }
+        from django.db.models import IntegerField
+        from django.db.models.functions import Coalesce as _Coalesce
+        # Compute per-group debt using TuitionMonth for current month
+        enr_debt_qs = (
+            Enrollment.objects
+            .filter(group__center=center, is_active=True, student__is_archived=False, group__is_archived=False)
+            .annotate(
+                _f=Coalesce(Subquery(_fee_sub, output_field=IntegerField()), 0),
+                _p=Coalesce(Subquery(_paid_sub, output_field=IntegerField()), 0),
+            )
+            .annotate(_d=F("_f") - F("_p"))
+            .filter(_d__gt=0)
+            .values("group_id")
+            .annotate(group_debt=Sum("_d"))
+        )
+        debt_by_group = {row["group_id"]: row["group_debt"] for row in enr_debt_qs}
+
+        def fmt(g):
+            return {
+                'name': g.nom,
+                'revenue': int(g.revenue or 0),
+                'debt': int(debt_by_group.get(g.pk, 0))
+            }
+
+        groups_list = list(groups)
+        groups_by_debt = sorted(groups_list, key=lambda g: debt_by_group.get(g.pk, 0), reverse=True)
+        most_debt = groups_by_debt[0] if groups_by_debt else None
 
         return {
-            'top_5_income': [fmt(g) for g in groups[:5]],
-            'bottom_5_income': [fmt(g) for g in groups.order_by('revenue')[:5]],
+            'total_count': len(groups_list),
+            'top_5_income': [fmt(g) for g in groups_list[:5]],
+            'bottom_5_income': [fmt(g) for g in sorted(groups_list, key=lambda g: g.revenue or 0)[:5]],
             'most_indebted': fmt(most_debt) if most_debt else None,
-            'plan_fulfillment': 85 
+            'plan_fulfillment': 85
         }
 
     def get_marketing_stats(self, center, start, end):
@@ -374,7 +429,9 @@ class DirectorDashboardAPIView(View):
         
         if period in ['this_year', 'last_year']:
             year = now.year if period == 'this_year' else now.year - 1
-            for m in range(1, 13):
+            # this_year: faqat joriy oygacha ko'rsat (kelajakdagi bo'sh oylarni chiqarma)
+            cap_month = now.month if period == 'this_year' else 12
+            for m in range(1, cap_month + 1):
                 months_to_query.append((m, year))
         elif period == 'all':
             current_date = start.replace(day=1)
@@ -472,7 +529,8 @@ class DirectorDashboardAPIView(View):
             ).values("enrollment").annotate(s=Sum(fee_field)).values("s")
 
             total_paid_sub = PaymentAllocation.objects.filter(
-                tuition_month__enrollment=OuterRef("pk")
+                tuition_month__enrollment=OuterRef("pk"),
+                tuition_month__month=month_first
             ).values("tuition_month__enrollment").annotate(s=Sum("amount")).values("s")
 
             # Arxivlangan guruhlarni ham o'tkazib yuboramiz

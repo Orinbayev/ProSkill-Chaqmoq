@@ -586,8 +586,7 @@
       background: #0f172a;
       /* Dark background */
       border-left: 1px solid rgba(255, 255, 255, 0.1);
-      z-index: 1055;
-      /* Higher than modals */
+      z-index: 1048;  /* Bootstrap modal z-index:1055 dan past — modal ustiga chiqmasin */
       transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
       display: flex;
@@ -603,16 +602,18 @@
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.5);
-      z-index: 1050;
+      z-index: 1049;  /* Bootstrap modal-backdrop z-1040, modal z-1055 — bu orqali emas */
       opacity: 0;
       visibility: hidden;
-      transition: all 0.3s;
+      pointer-events: none;  /* FIX: xira holat clickni ushlamasin */
+      transition: opacity 0.3s, visibility 0.3s;
       backdrop-filter: blur(2px);
     }
 
     .ns-overlay.open {
       opacity: 1;
       visibility: visible;
+      pointer-events: auto;  /* Faqat ochiq holatda click ushlasin */
     }
 
     .ns-header {
@@ -796,11 +797,30 @@
     function toggleNotificationSidebar() {
       const sb = document.getElementById('notificationSidebar');
       const ov = document.getElementById('nsOverlay');
-      if (sb && ov) {
-        sb.classList.toggle('open');
-        ov.classList.toggle('open');
+      if (!sb || !ov) return;
+      const isOpen = sb.classList.contains('open');
+      if (isOpen) {
+        sb.classList.remove('open');
+        ov.classList.remove('open');
+      } else {
+        /* Bootstrap modal ochiq bo'lsa notif sidebar ochma */
+        if (document.body.classList.contains('modal-open')) return;
+        sb.classList.add('open');
+        ov.classList.add('open');
       }
     }
+
+    /* ESC bosilganda notification sidebar yopilsin */
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        const sb = document.getElementById('notificationSidebar');
+        const ov = document.getElementById('nsOverlay');
+        if (sb && sb.classList.contains('open')) {
+          sb.classList.remove('open');
+          ov && ov.classList.remove('open');
+        }
+      }
+    });
   </script>
 
 

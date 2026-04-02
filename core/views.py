@@ -314,7 +314,34 @@ def home(request):
     }
 
     if role == "director":
-        return render(request, "core/dashboard_premium.html", ctx)
+        # Director dashboard uchun qo'shimcha context
+        from billing.services import get_subscription_ui_state, get_active_subscription
+        from store.models import Lead
+        from django.utils import timezone as _tz
+
+        sub_ui = get_subscription_ui_state(center) if center else None
+
+        # Leads bugun / bu oy (DB ga ikki query, lekin yengil)
+        _today = _tz.localdate()
+        _month_start = _today.replace(day=1)
+
+        if center:
+            from django.db.models import Count as _Count
+            leads_today = Lead.objects.filter(
+                center=center, is_archived=False, qoshilgan_sana__date=_today
+            ).count()
+            leads_this_month = Lead.objects.filter(
+                center=center, is_archived=False,
+                qoshilgan_sana__date__gte=_month_start
+            ).count()
+        else:
+            leads_today = leads_this_month = 0
+
+        ctx["sub_ui"]           = sub_ui
+        ctx["leads_today"]      = leads_today
+        ctx["leads_this_month"] = leads_this_month
+        ctx["today"]            = _today
+        return render(request, "core/dashboard_director.html", ctx)
 
     if role == "manager":
         # Add low activity students for manager

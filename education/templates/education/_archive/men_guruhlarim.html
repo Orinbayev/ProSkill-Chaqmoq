@@ -1,0 +1,410 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+  :root{
+    --bg0:#070b14;
+    --bg1:#0b1224;
+    --bg2:#0f172a;
+
+    --panel: rgba(17, 24, 39, .62);
+    --panel2: rgba(2, 6, 23, .55);
+    --line: rgba(255,255,255,.10);
+
+    --text:#e5e7eb;
+    --muted:#94a3b8;
+
+    --amber:#f59e0b;
+    --amber2:#facc15;
+
+    --blue:#3b82f6;
+    --blue2:#60a5fa;
+
+    --green:#22c55e;
+    --green2:#4ade80;
+
+    --shadow: 0 24px 70px rgba(0,0,0,.55);
+    --radius: 18px;
+  }
+
+  body{
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(245, 158, 11, .20), transparent 55%),
+      radial-gradient(900px 500px at 95% 0%, rgba(59, 130, 246, .18), transparent 55%),
+      radial-gradient(800px 500px at 30% 105%, rgba(34, 197, 94, .12), transparent 55%),
+      linear-gradient(180deg, var(--bg1), var(--bg2), var(--bg1));
+    color: var(--text);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Poppins", sans-serif;
+    min-height: 100vh;
+  }
+
+  .page{
+    padding: clamp(14px, 2.2vw, 28px) 0;
+  }
+
+  .page-header{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .page-title{
+    margin:0;
+    font-weight: 900;
+    letter-spacing: .2px;
+    line-height: 1.15;
+    font-size: clamp(20px, 2.2vw, 28px);
+    color: var(--amber2);
+    text-shadow: 0 10px 30px rgba(250, 204, 21, .20);
+  }
+
+  .page-subtitle{
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 13.5px;
+  }
+
+  .shell{
+    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .shell::before{
+    content:"";
+    position:absolute;
+    inset:-1px;
+    background:
+      radial-gradient(800px 300px at 20% 0%, rgba(245, 158, 11, .16), transparent 60%),
+      radial-gradient(700px 260px at 90% 10%, rgba(59, 130, 246, .14), transparent 62%),
+      radial-gradient(700px 260px at 50% 120%, rgba(34, 197, 94, .10), transparent 62%);
+    pointer-events:none;
+    opacity:.95;
+  }
+
+  .shell-inner{
+    position: relative;
+    background: rgba(2, 6, 23, .35);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: clamp(12px, 2vw, 18px);
+  }
+
+  .table-topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .pill{
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(245, 158, 11, .28);
+    background: rgba(245, 158, 11, .10);
+    color: var(--amber2);
+    font-weight: 700;
+    font-size: 12.5px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .table-wrap{
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    overflow: hidden;
+    background: rgba(15, 23, 42, .45);
+  }
+
+  .table{
+    margin: 0;
+    color: var(--text);
+  }
+
+  .table thead th{
+    background: rgba(255,255,255,.08);
+    color: rgba(229, 231, 235, .92);
+    font-weight: 800;
+    border-bottom: 1px solid rgba(255,255,255,.10);
+    padding: 14px 12px;
+    vertical-align: middle;
+    font-size: 13px;
+    text-transform: none;
+    letter-spacing: .2px;
+    white-space: nowrap;
+  }
+
+  .table tbody td{
+    border-top: 1px solid rgba(255,255,255,.06);
+    padding: 12px;
+    vertical-align: middle;
+    color: rgba(229, 231, 235, .92);
+  }
+
+  .table tbody tr{
+    transition: background .18s ease, transform .18s ease;
+  }
+  .table tbody tr:hover{
+    background: rgba(255,255,255,.06);
+  }
+
+  .group-name{
+    font-weight: 800;
+    color: rgba(96, 165, 250, .95);
+    text-shadow: 0 8px 24px rgba(59, 130, 246, .10);
+  }
+
+  .badge-soft{
+    display:inline-flex;
+    align-items:center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.06);
+    color: rgba(229,231,235,.92);
+    white-space: nowrap;
+  }
+
+  .actions{
+    display:flex;
+    justify-content:center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .btn{
+    border-radius: 12px;
+    font-weight: 900;
+    letter-spacing: .1px;
+    padding: 9px 12px;
+    border-width: 1px;
+    transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease, color .15s ease;
+  }
+
+  .btn:focus{
+    outline: none;
+  }
+  .btn:focus-visible{
+    outline: 3px solid rgba(250, 204, 21, .35);
+    outline-offset: 2px;
+  }
+
+  .btn-view{
+    border-color: rgba(96, 165, 250, .65);
+    color: rgba(191, 219, 254, .95);
+    background: rgba(59, 130, 246, .10);
+  }
+  .btn-view:hover{
+    background: rgba(59, 130, 246, .22);
+    border-color: rgba(96, 165, 250, .95);
+    box-shadow: 0 14px 35px rgba(59, 130, 246, .18);
+    transform: translateY(-1px);
+    color: #ffffff;
+  }
+
+  .btn-roll{
+    border-color: rgba(74, 222, 128, .60);
+    color: rgba(187, 247, 208, .95);
+    background: rgba(34, 197, 94, .10);
+  }
+  .btn-roll:hover{
+    background: rgba(34, 197, 94, .22);
+    border-color: rgba(74, 222, 128, .95);
+    box-shadow: 0 14px 35px rgba(34, 197, 94, .16);
+    transform: translateY(-1px);
+    color: #ffffff;
+  }
+
+  .empty-text{
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  .mobile-card-list{
+    display: none;
+  }
+
+  .mobile-card{
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(2, 6, 23, .35);
+    border-radius: 16px;
+    padding: 12px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .mobile-row{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .mobile-title{
+    margin:0;
+    font-weight: 900;
+    color: rgba(96, 165, 250, .95);
+    line-height: 1.2;
+    font-size: 15px;
+  }
+
+  .mobile-meta{
+    display:flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .mobile-actions{
+    display:flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .mobile-actions .btn{
+    flex: 1 1 calc(50% - 10px);
+    min-width: 150px;
+    padding: 10px 12px;
+    border-radius: 14px;
+  }
+
+  @media (max-width: 992px){
+    .page-header{
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+
+  @media (max-width: 768px){
+    .table-topbar{
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .table-wrap{
+      display:none;
+    }
+    .mobile-card-list{
+      display:grid;
+      gap: 12px;
+    }
+    .mobile-actions .btn{
+      min-width: 0;
+    }
+  }
+
+  @media (max-width: 430px){
+    .mobile-actions .btn{
+      flex: 1 1 100%;
+    }
+  }
+</style>
+
+<main class="page">
+  <div class="container">
+
+    <header class="page-header">
+      <div>
+        <h3 class="page-title">📘 Mening guruhlarim</h3>
+        <p class="page-subtitle">Guruhlaringiz ro‘yxati va tezkor amallar.</p>
+      </div>
+      <span class="pill">⚡ Premium Dark • Glass UI</span>
+    </header>
+
+    <section class="shell" aria-label="Mening guruhlarim jadvali">
+      <div class="shell-inner">
+
+        <div class="table-topbar">
+          <div class="badge-soft">📚 Guruhlar</div>
+          <div class="badge-soft">🧑‍🎓 Talabalar soni: {{ total_students|default:"—" }}</div>
+        </div>
+
+        <div class="table-wrap" role="region" aria-label="Guruhlar jadvali" tabindex="0">
+          <table class="table table-custom table-hover align-middle">
+            <thead>
+              <tr>
+                <th>Guruh</th>
+                <th>Center</th>
+                <th>Talabalar</th>
+                <th class="text-center">Amallar</th>
+              </tr>
+            </thead>
+
+            <tbody>
+            {% for g in groups %}
+              <tr>
+                <td class="fw-semibold group-name">{{ g.nom }}</td>
+                <td>{{ g.center.nom }}</td>
+                <td>
+                  <span class="badge-soft">👥 {{ g.enrollments.count }}</span>
+                </td>
+
+                <td class="text-center text-nowrap">
+                  <div class="actions">
+                    <a href="{% url 'education:group_detail' g.pk %}"
+                       class="btn btn-sm btn-view">👁️ Ko‘rish</a>
+
+                    <a href="{% url 'education:group_rollcall' g.pk %}"
+                       class="btn btn-sm btn-roll">📋 Davomat / Chaqmoq</a>
+                  </div>
+                </td>
+              </tr>
+
+            {% empty %}
+              <tr>
+                <td colspan="4" class="text-center py-4 empty-text">
+                  Hozircha guruh yo‘q.
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mobile-card-list" aria-label="Guruhlar ro‘yxati (mobil)">
+          {% for g in groups %}
+            <article class="mobile-card">
+              <div class="mobile-row">
+                <h4 class="mobile-title">{{ g.nom }}</h4>
+                <span class="badge-soft">👥 {{ g.enrollments.count }}</span>
+              </div>
+
+              <div class="mobile-meta">
+                <span class="badge-soft">🏫 {{ g.center.nom }}</span>
+              </div>
+
+              <div class="mobile-actions mt-3">
+                <a href="{% url 'education:group_detail' g.pk %}"
+                   class="btn btn-sm btn-view">👁️ Ko‘rish</a>
+
+                <a href="{% url 'education:group_rollcall' g.pk %}"
+                   class="btn btn-sm btn-roll">📋 Davomat / Chaqmoq</a>
+              </div>
+            </article>
+
+          {% empty %}
+            <div class="text-center py-4 empty-text">
+              Hozircha guruh yo‘q.
+            </div>
+          {% endfor %}
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+</main>
+
+{% endblock %}

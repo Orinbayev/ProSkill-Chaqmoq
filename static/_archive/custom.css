@@ -1,0 +1,35 @@
+.card {
+  border-radius: 14px;
+}
+
+.accordion-button {
+  border-radius: 8px !important;
+  transition: background-color 0.3s ease;
+}
+
+.accordion-button:hover {
+  background-color: #f1faff !important;
+}
+
+.badge {
+  font-size: 0.85rem;
+}
+
+.table td, .table th {
+  vertical-align: middle !important;
+}
+
+
+.progress {
+  border-radius: 10px;
+  overflow: hidden;
+}
+.progress-bar {
+  font-weight: 600;
+  transition: width 0.6s ease;
+}
+.accordion-button:hover {
+  background-color: #eef8ff !important;
+}
+
+
