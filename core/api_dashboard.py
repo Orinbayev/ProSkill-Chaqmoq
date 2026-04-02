@@ -422,36 +422,21 @@ class DirectorDashboardAPIView(View):
         
         from education.models import TuitionMonth, PaymentAllocation
         from education.services.tuition import tuition_month_fee_field
+        from django.db.models.functions import Coalesce
+        from django.db import models
+        import calendar
+        from datetime import date
         
         fee_field = tuition_month_fee_field()
         
-        months_to_query = []
+        # ✅ [FIX] Force 12 months display for the selected year
+        year = start.year
+        months_to_query = [(m, year) for m in range(1, 13)]
         
-        if period in ['this_year', 'last_year']:
-            year = now.year if period == 'this_year' else now.year - 1
-            # this_year: faqat joriy oygacha ko'rsat (kelajakdagi bo'sh oylarni chiqarma)
-            cap_month = now.month if period == 'this_year' else 12
-            for m in range(1, cap_month + 1):
-                months_to_query.append((m, year))
-        elif period == 'all':
-            current_date = start.replace(day=1)
-            while current_date <= end.replace(day=1):
-                months_to_query.append((current_date.month, current_date.year))
-                if current_date.month == 12:
-                    current_date = current_date.replace(year=current_date.year + 1, month=1)
-                else:
-                    current_date = current_date.replace(month=current_date.month + 1)
-        else:
-            current_date = start.replace(day=1)
-            while current_date <= end.replace(day=1):
-                months_to_query.append((current_date.month, current_date.year))
-                if current_date.month == 12:
-                    current_date = current_date.replace(year=current_date.year + 1, month=1)
-                else:
-                    current_date = current_date.replace(month=current_date.month + 1)
-        
-        # If the duration is exactly 1 month and we are viewing exactly 1 month, we still show the single month logic.
-        
+        # Pre-aggregate monthly stats for the entire year
+        agg_start = date(year, 1, 1)
+        agg_end = date(year, 12, 31)
+
         labels = []
         income = []
         expenses = []
@@ -459,24 +444,6 @@ class DirectorDashboardAPIView(View):
         new_students = []
         income_students = []
         debt_students = []
-        
-        from django.db.models.functions import Coalesce
-        from django.db import models
-        import calendar
-        from datetime import date
-
-        # Pre-aggregate monthly stats once to avoid repeated per-month queries.
-        if months_to_query:
-            month_starts_for_range = [date(y, m, 1) for m, y in months_to_query]
-            agg_start = min(month_starts_for_range)
-            agg_end_month_start = max(month_starts_for_range)
-            if agg_end_month_start.month == 12:
-                agg_end = date(agg_end_month_start.year + 1, 1, 1) - timedelta(days=1)
-            else:
-                agg_end = date(agg_end_month_start.year, agg_end_month_start.month + 1, 1) - timedelta(days=1)
-        else:
-            agg_start = start
-            agg_end = end
 
         income_rows = (
             Payment.objects
@@ -517,12 +484,10 @@ class DirectorDashboardAPIView(View):
             inc = income_map.get((y, m), 0)
             exp = expense_map.get((y, m), 0)
             
-            end_date = date(y, m, calendar.monthrange(y, m)[1])
-            
             from django.db.models import OuterRef, Subquery, IntegerField
             from datetime import date as _date
             
-            # ✅ [FIX] Faqat shu oy uchun (month=date(y,m,1)) - o'tgan oylarni qo'shmaymiz
+            # ✅ [FIX] Only for that specific month
             month_first = _date(y, m, 1)
             total_fee_sub = TuitionMonth.objects.filter(
                 enrollment=OuterRef("pk"), month=month_first
@@ -533,7 +498,6 @@ class DirectorDashboardAPIView(View):
                 tuition_month__month=month_first
             ).values("tuition_month__enrollment").annotate(s=Sum("amount")).values("s")
 
-            # Arxivlangan guruhlarni ham o'tkazib yuboramiz
             center_qs = Enrollment.objects.filter(
                 is_active=True, student__is_archived=False,
                 center=center, group__is_archived=False
