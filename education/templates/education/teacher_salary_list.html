@@ -413,7 +413,8 @@ body{
             <button class="filter-btn" type="submit">Ko'rsatish</button>
           </form>
 
-          <a href="{% url 'education:teacher_salary_export' %}?month={{ month }}&year={{ year }}"
+          <a id="excelExportBtn"
+             href="{% url 'education:teacher_salary_export' %}?month={{ month }}&year={{ year }}"
              class="excel-export-btn"
              title="Tanlangan oy/yil bo'yicha Excel hisobotni yuklab olish">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
@@ -424,6 +425,25 @@ body{
             </svg>
             Excel yuklab olish
           </a>
+<script>
+(function() {
+  var BASE = "{% url 'education:teacher_salary_export' %}";
+  function updateExcelLink() {
+    var m = document.querySelector('select[name="month"]');
+    var y = document.querySelector('input[name="year"]');
+    var btn = document.getElementById('excelExportBtn');
+    if (!btn || !m || !y) return;
+    btn.href = BASE + '?month=' + m.value + '&year=' + y.value;
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    updateExcelLink();
+    var m = document.querySelector('select[name="month"]');
+    var y = document.querySelector('input[name="year"]');
+    if (m) m.addEventListener('change', updateExcelLink);
+    if (y) y.addEventListener('input', updateExcelLink);
+  });
+})();
+</script>
         </div>
 <style>
 .excel-export-btn {
