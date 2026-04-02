@@ -1429,115 +1429,194 @@ def qarzdorlar_home(request):
     end_date_str = request.GET.get("end_date")
 
     # Base Query: Active Enrollments (student va guruh arxivda bo'lmagan)
-    enrollments = (
-        Enrollment.objects
-        .select_related("student", "group", "group__oqituvchi", "group__category_obj")
-        .filter(is_active=True, student__is_archived=False, group__is_archived=False)
+    # Base Query: Start from User to ensure ALL students are included
+    from accounts.models import User as U
+    students_qs = U.objects.filter(
+        role="student",
+        is_archived=False,
     )
 
-
     if center:
-        enrollments = enrollments.filter(center=center)
-
-    if group_id:
-        enrollments = enrollments.filter(group_id=group_id)
+        students_qs = students_qs.filter(center=center)
 
     if q:
-        enrollments = enrollments.filter(
-            Q(student__ism__icontains=q) |
-            Q(student__familya__icontains=q) |
-            Q(student__telefon1__icontains=q) |
-            Q(student__telefon2__icontains=q)
+        students_qs = students_qs.filter(
+            Q(ism__icontains=q) |
+            Q(familya__icontains=q) |
+            Q(telefon1__icontains=q) |
+            Q(telefon2__icontains=q)
         )
+
+    # We still need Enrollments for detail calculations
+    enrollments_base = Enrollment.objects.filter(
+        student__is_archived=False, 
+        group__is_archived=False,
+        is_active=True
+    )
+    if center:
+        enrollments_base = enrollments_base.filter(center=center)
+    if group_id:
+        enrollments_base = enrollments_base.filter(group_id=group_id)
+
+    # If filtered by group, we only want students in that group
+    if group_id:
+        students_qs = students_qs.filter(enrollments__group_id=group_id).distinct()
 
     # --- DEBT CALCULATION ---
     today = timezone.localdate()
     cur_month = today.replace(day=1)
     fee_field = tuition_month_fee_field()
 
-    # ✅ [FIX] Use ONLY current month (month=cur_month), not all historical months
-    # This ensures filter total matches what's shown in the table rows
+    # ✅ ADDED MONTH FILTER
+    sel_month = request.GET.get("pay_month")
+    if sel_month and sel_month.isdigit():
+        cur_month = cur_month.replace(month=int(sel_month))
+
+    # --- AUTO CREATE MISSING TUITION MONTHS (CURRENT & HISTORICAL) ---
+    # Har bir faol o'quvchi uchun joriy oygacha barcha TuitionMonth'lar borligini ta'minlaymiz.
+    active_enrs = Enrollment.objects.filter(
+        is_active=True, student__is_archived=False, group__is_archived=False
+    )
+    if center:
+        active_enrs = active_enrs.filter(center=center)
+
+    # select_related va prefetch_related unumdorlik uchun
+    active_enrs = active_enrs.select_related("group")
+
+    from education.services.tuition import get_fee_amount, month_first_day, add_month
+    
+    tms_to_create = []
+    # Joriy oy (hisob-kitob uchun oxirgi nuqta)
+    final_m = cur_month
+
+    # Hozirgi barcha bor TM larni yig'amiz (duplicate bo'lmasligi u-n)
+    existing_tms = set(TuitionMonth.objects.filter(
+        enrollment__in=active_enrs,
+        month__lte=final_m
+    ).values_list("enrollment_id", "month"))
+
+    for enr in active_enrs:
+        # Enrollment boshlangan oy
+        start_date = getattr(enr, "created_at", None) or timezone.now()
+        cur_m = month_first_day(start_date.date())
+        
+        # 3 yil cheklov (xavfsizlik u-n)
+        limit = 36
+        while cur_m <= final_m and limit > 0:
+            if (enr.id, cur_m) not in existing_tms:
+                fee = get_fee_amount(enr)
+                tm = TuitionMonth(
+                    center=enr.center if hasattr(enr, "center") else center,
+                    enrollment=enr,
+                    month=cur_m
+                )
+                setattr(tm, fee_field, fee)
+                tms_to_create.append(tm)
+                # O'zimizni listga ham qo'shamiz (parallel kelsa bulk xato bermasligi u-n)
+                existing_tms.add((enr.id, cur_m))
+            
+            cur_m = add_month(cur_m, 1)
+            limit -= 1
+            
+    if tms_to_create:
+        TuitionMonth.objects.bulk_create(tms_to_create, ignore_conflicts=True)
+
+    # --- DEBT CALCULATION ---
+    # Barcha oylar bo'yicha umumiy qarz:
+    #   total_fee  = SUM(TuitionMonth.fee_amount)  WHERE month <= joriy oy
+    #   total_paid = SUM(PaymentAllocation.amount)  WHERE tuition_month.month <= joriy oy (historical too)
+    
+    # Prepare Subqueries for debt calculation
     total_fee_sub = TuitionMonth.objects.filter(
-        enrollment=OuterRef("pk"), month=cur_month
+        enrollment=OuterRef("pk"), month__lte=cur_month
     ).values("enrollment").annotate(s=Sum(fee_field)).values("s")
 
     total_paid_sub = PaymentAllocation.objects.filter(
-        tuition_month__enrollment=OuterRef("pk")
+        tuition_month__enrollment=OuterRef("pk"),
+        tuition_month__month__lte=cur_month
     ).values("tuition_month__enrollment").annotate(s=Sum("amount")).values("s")
 
-    # Global total for Center (only non-archived groups)
-    center_qs = Enrollment.objects.filter(
-        is_active=True, student__is_archived=False, group__is_archived=False
-    )
-    if center: center_qs = center_qs.filter(center=center)
-    
-    total_center_debt = center_qs.annotate(
+    # Global total for Center
+    total_center_debt = enrollments_base.annotate(
         f=Coalesce(Subquery(total_fee_sub), 0),
         p=Coalesce(Subquery(total_paid_sub), 0)
     ).annotate(d=F("f")-F("p")).filter(d__gt=0).aggregate(total=Sum("d"))["total"] or 0
 
-    # Apply filter to Main Queryset
-    enrollments = enrollments.annotate(
+    # Fetch Enrollments with calculated debt
+    enrs_with_debt = enrollments_base.annotate(
         f=Coalesce(Subquery(total_fee_sub), 0),
         p=Coalesce(Subquery(total_paid_sub), 0)
-    ).annotate(calculated_debt=F("f")-F("p")).filter(calculated_debt__gt=0)
+    ).annotate(calculated_debt=F("f")-F("p")).select_related("student", "group")
 
     # filtered_debt will be calculated AFTER student grouping (accurate per-student sum)
     
-    rows = []
+    # Group by student
     graph_map = {m: 0 for m in range(1, 13)}
-    student_map = {}  # student_id -> aggregated row
+    student_map = {s.id: {
+        "student": s,
+        "group_names": [],
+        "total_fee": 0,
+        "total_paid": 0,
+        "debt": 0,
+        "created_at": s.date_joined or timezone.now(),
+        "enrollment": None, # Fallback
+        "group": None,
+    } for s in students_qs}
 
-    for e in enrollments:
-        total_fee = int(getattr(e, "f", 0) or 0)
-        total_paid = int(getattr(e, "p", 0) or 0)
-        debt = int(getattr(e, "calculated_debt", 0) or 0)
-
-        if debt <= 0:
-            continue
-        if min_debt and debt < min_debt:
-            continue
-        if max_debt and debt > max_debt:
-            continue
-
+    for e in enrs_with_debt:
         sid = e.student_id
-        group_nom = getattr(e.group, "nom", "") if e.group else ""
-
         if sid in student_map:
-            # ✅ Same student, different group — merge into one row
-            student_map[sid]["debt"] += debt
-            student_map[sid]["total_fee"] += total_fee
-            student_map[sid]["total_paid"] += total_paid
-            if group_nom and group_nom not in student_map[sid]["group_names"]:
-                student_map[sid]["group_names"].append(group_nom)
-        else:
-            student_map[sid] = {
-                "enrollment": e,
-                "created_at": e.created_at or timezone.now(),
-                "student": e.student,
-                "group": e.group,
-                "group_names": [group_nom] if group_nom else [],
-                "total_fee": total_fee,
-                "total_paid": total_paid,
-                "debt": debt,
-                "staff": getattr(e.group, "oqituvchi", None),
-            }
-
-        e_date = (e.created_at.date() if getattr(e, "created_at", None) else today)
-        m_idx = e_date.month
-        if m_idx in graph_map:
-            graph_map[m_idx] += debt
+            row = student_map[sid]
+            row["total_fee"] += int(e.f or 0)
+            row["total_paid"] += int(e.p or 0)
+            row["debt"] += int(e.calculated_debt or 0)
+            if e.group:
+                row["group_names"].append(e.group.nom)
+                if not row["enrollment"]:
+                    row["enrollment"] = e
+                    row["group"] = e.group
+            
+            # Populate graph data
+            e_date = (e.created_at.date() if getattr(e, "created_at", None) else today)
+            m_idx = e_date.month
+            if m_idx in graph_map:
+                graph_map[m_idx] += int(e.calculated_debt or 0)
 
     rows = list(student_map.values())
-    for row in rows:
-        row["group_label"] = ", ".join(row["group_names"]) if row["group_names"] else "—"
+    
+    # Calculate Stats for the whole center (for UI summary)
+    total_active_students = students_qs.count()
+    debtors_count = 0
+    paid_count = 0
+    no_group_count = 0
+    
+    final_rows = []
+    for r in rows:
+        if not r["group_names"]:
+            no_group_count += 1
+        elif r["debt"] > 0:
+            debtors_count += 1
+            final_rows.append(r) # Only Debtors in the main table
+        else:
+            paid_count += 1
+            # Optional: include paid students? User said "MOVE" to payments,
+            # so we'll exclude them from this specific list to satisfy "decreasing" requirement.
 
-    # ✅ filtered_debt = actual sum from rows (matches exactly what table shows)
-    filtered_debt = sum(r["debt"] for r in rows)
+    # ✅ If user specifically searched for someone, or filtered by group, we might show them anyway?
+    # No, let's stick to "Debtors" if no search, or "Search matches" if searching.
+    if q or group_id:
+        # If searching, show all matches regardless of debt
+        display_rows = rows 
+    else:
+        # Standard view: only actual debtors
+        display_rows = final_rows
+
+    # filtered_debt = actual sum from display_rows
+    filtered_debt = sum(r["debt"] for r in display_rows)
 
     # Paginator
     from django.core.paginator import Paginator
-    paginator = Paginator(rows, 20)
+    paginator = Paginator(display_rows, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
@@ -1563,6 +1642,20 @@ def qarzdorlar_home(request):
         "max_debt": max_debt if max_debt else "",
         "start_date": start_date_str,
         "end_date": end_date_str,
+        "pay_month": sel_month,
+        "uz_months": [
+            (1, "Yanvar"), (2, "Fevral"), (3, "Mart"), (4, "Aprel"),
+            (5, "May"), (6, "Iyun"), (7, "Iyul"), (8, "Avgust"),
+            (9, "Sentyabr"), (10, "Oktyabr"), (11, "Noyabr"), (12, "Dekabr"),
+        ],
+
+        # Stats Summary
+        "stats_summary": {
+            "total": total_active_students,
+            "debtors": debtors_count,
+            "paid": paid_count,
+            "no_group": no_group_count,
+        }
     }
 
     return render(request, "education/qarzdorlar.html", context)
@@ -1907,10 +2000,20 @@ def tolovlar_home(request):
         pay_qs = pay_qs.filter(created_by_id=sel_staff)
     if sel_type:
         pay_qs = pay_qs.filter(payment_type=sel_type)
-    if sel_month and sel_month.isdigit():
-        pay_qs = pay_qs.filter(paid_date__month=int(sel_month))
+    from django.utils import timezone
+    cur_year = timezone.localdate().year
 
-    filtered_income = pay_qs.aggregate(s=Sum("summa"))["s"] or 0
+    if sel_month and sel_month.isdigit():
+        # Match both month and current year to avoid historical overlaps
+        pay_qs = pay_qs.filter(
+            allocations__tuition_month__month__month=int(sel_month),
+            allocations__tuition_month__month__year=cur_year
+        ).distinct()
+
+    # ✅ Fix: Summing on a filtered queryset with joins can double counts.
+    payment_ids = pay_qs.values_list("id", flat=True)
+    filtered_income = Payment.objects.filter(id__in=payment_ids).aggregate(s=Sum("summa"))["s"] or 0
+    unique_payers_count = Payment.objects.filter(id__in=payment_ids).values("student").distinct().count()
 
     # ── 5) CHART (12 oy) ──────────────────────────────────────────────────
     month_starts = _last_12_ending(cur_month_start)
@@ -1980,6 +2083,7 @@ def tolovlar_home(request):
         "filtered_income": filtered_income,
         "chart_data": chart_data,
         "chart_labels": chart_labels,
+        "unique_payers_count": unique_payers_count,
         "groups": groups,
         "teachers": teachers_qs,
         "courses": courses,

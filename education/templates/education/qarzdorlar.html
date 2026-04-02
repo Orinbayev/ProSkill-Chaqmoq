@@ -168,7 +168,40 @@
     }
 
     /* ===== PREMIUM TABLE ===== */
-    .table-container {
+    .stat-card {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        .stat-card:hover { 
+            transform: translateY(-4px); 
+            background: rgba(15, 23, 42, 0.6);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+        .bg-primary-soft { background: rgba(59, 130, 246, 0.1); }
+        .bg-danger-soft { background: rgba(239, 68, 68, 0.1); }
+        .bg-success-soft { background: rgba(16, 185, 129, 0.1); }
+        .bg-warning-soft { background: rgba(245, 158, 11, 0.1); }
+        
+        .stat-label { font-size: 12px; color: #94a3b8; font-weight: 600; text-transform: uppercase; }
+        .stat-value { font-size: 24px; font-weight: 800; color: #fff; }
+
+        .table-container {
         background: var(--card-bg);
         border: 1px solid var(--card-border);
         border-radius: 24px;
@@ -353,6 +386,15 @@
                     </select>
                 </div>
                 <div class="col-md-3">
+                    <label class="filter-label">📅 Qaysi oy uchun?</label>
+                    <select name="pay_month" class="filter-select">
+                        <option value="">Joriy oy</option>
+                        {% for mid, mname in uz_months %}
+                        <option value="{{ mid }}" {% if pay_month == mid|stringformat:"s" %}selected{% endif %}>{{ mname }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
                     <label class="filter-label">💰 Qarz miqdori (dan)</label>
                     <input type="number" name="min_debt" value="{{ min_debt }}" placeholder="0" class="filter-input">
                 </div>
@@ -365,7 +407,39 @@
     </div>
 
     <!-- TABLE -->
-    <div class="table-container shadow-lg">
+        <!-- Stats Summary Header -->
+        <div class="row g-3 mb-4 anim-fade-in">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-primary-soft text-primary"><i class="fas fa-users"></i></div>
+                    <div class="stat-label">Jami O'quvchilar</div>
+                    <div class="stat-value">{{ stats_summary.total }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-danger-soft text-danger"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="stat-label">Qarzdorlar</div>
+                    <div class="stat-value text-danger">{{ stats_summary.debtors }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-success-soft text-success"><i class="fas fa-check-circle"></i></div>
+                    <div class="stat-label">To'laganlar</div>
+                    <div class="stat-value text-success">{{ stats_summary.paid }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-warning-soft text-warning"><i class="fas fa-user-slash"></i></div>
+                    <div class="stat-label">Guruhsizlar</div>
+                    <div class="stat-value text-warning">{{ stats_summary.no_group }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-container anim-fade-in delay-2">
         <div class="p-4 d-flex justify-content-between align-items-center border-bottom border-white border-opacity-10">
             <h5 class="m-0 fw-bold text-white">Qarzdorlar Ro'yxati</h5>
             <span
@@ -402,8 +476,20 @@
                             <div class="debt-badge">{{ row.debt|intcomma }} so'm</div>
                             <div class="small text-secondary opacity-50">To'langan: {{ row.total_paid|intcomma }}</div>
                         </td>
-                        <td><span class="group-tag">{{ row.group_label }}</span></td>
-                        <td><span class="text-secondary">{{ row.group.category_obj.name|default:"Kurs" }}</span></td>
+                        <td>
+                            {% if row.group_label %}
+                                <span class="group-tag">{{ row.group_label }}</span>
+                            {% else %}
+                                <span class="text-secondary small italic">Guruhsiz</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if row.group %}
+                                <span class="text-secondary">{{ row.group.category_obj.name|default:"Kurs" }}</span>
+                            {% else %}
+                                <span class="text-secondary opacity-50">—</span>
+                            {% endif %}
+                        </td>
                         <td class="text-end">
                             <div class="d-flex justify-content-end gap-2">
                                 <button class="action-btn" data-bs-toggle="modal" data-bs-target="#paymentModal"
@@ -411,6 +497,7 @@
                                     data-student-name="{{ row.student.get_full_name }}" data-debt="{{ row.debt }}">
                                     <i class="fas fa-eye"></i>
                                 </button>
+                                {% if row.enrollment %}
                                 <a href="{% url 'education:enrollment_edit' row.enrollment.id %}?next={{ request.get_full_path|urlencode }}"
                                     class="action-btn" title="Tahrirlash">
                                     <i class="fas fa-pen"></i>
@@ -423,6 +510,9 @@
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </form>
+                                {% else %}
+                                <span class="text-secondary small">Ma'lumot yo'q</span>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>
@@ -460,8 +550,9 @@
             <form action="{% url 'education:create_payment' %}" method="post">
                 {% csrf_token %}
                 <div class="modal-body p-4">
-                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <input type="hidden" name="next" value="{% url 'education:tolovlar_home' %}{% if pay_month %}?pay_month={{ pay_month }}{% endif %}">
                     <input type="hidden" name="student_id" id="payStudentId">
+                    <input type="hidden" name="pay_month" value="{{ pay_month }}">
 
                     <div class="mb-4 text-center">
                         <h4 class="fw-bold mb-1 text-white" id="payStudentName">Ism Familya</h4>

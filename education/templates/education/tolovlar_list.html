@@ -490,6 +490,16 @@
                         <div class="tl-card-val">{{ filtered_income|intcomma }} so'm</div>
                     </div>
                 </div>
+                <div class="col-12 anim-fade-in delay-3">
+                    <div class="premium-card">
+                        <div class="card-icon-box"
+                            style="background: rgba(139, 92, 246, 0.1); color: var(--purple); border-color: rgba(139, 92, 246, 0.2);">
+                            <i class="fa-solid fa-user-graduate"></i>
+                        </div>
+                        <div class="tl-card-lbl">To'lagan o'quvchilar soni</div>
+                        <div class="tl-card-val">{{ unique_payers_count }} ta</div>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="col-lg-8 anim-fade-in delay-3">
@@ -531,6 +541,15 @@
                         <option value="cash" {% if sel_type == "cash" %}selected{% endif %}>Naqd</option>
                         <option value="card" {% if sel_type == "card" %}selected{% endif %}>Karta</option>
                         <option value="mixed" {% if sel_type == "mixed" %}selected{% endif %}>Aralash</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="filter-label">📅 Qaysi oy uchun?</label>
+                    <select name="pay_month" class="filter-select">
+                        <option value="">Barcha oylar</option>
+                        {% for mid, mname in uz_months %}
+                        <option value="{{ mid }}" {% if sel_month == mid|stringformat:"s" %}selected{% endif %}>{{ mname }}</option>
+                        {% endfor %}
                     </select>
                 </div>
                 <div class="col-md-3">
