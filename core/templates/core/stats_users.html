@@ -554,9 +554,13 @@
   {% if user_kind == 'students' %}
   <div class="tabs-container">
     <button class="tab-btn {% if current_status != 'archived' %}active{% endif %}"
-      onclick="switchTab('active')">Faol</button>
+      onclick="switchTab('active')">
+      Faol ({{ active_count|default:0 }})
+    </button>
     <button class="tab-btn {% if current_status == 'archived' %}active{% endif %}"
-      onclick="switchTab('archived')">Arxiv</button>
+      onclick="switchTab('archived')">
+      Arxiv ({{ archived_count|default:0 }})
+    </button>
   </div>
   {% endif %}
 
@@ -780,43 +784,65 @@
 </div>
 
 <script>
-  function closeAllMenus() { document.querySelectorAll('.menu-dropdown').forEach(m => m.classList.remove('open')); }
-  window.addEventListener('scroll', closeAllMenus, { passive: true });
-  window.addEventListener('resize', closeAllMenus, { passive: true });
+  function closeAllMenus() {
+    document.querySelectorAll('.menu-dropdown').forEach(m => m.classList.remove('open'));
+  }
 
+  // Handle all clicks for 3-dot menu and closing on outside click
   document.addEventListener('click', function (e) {
     const btn = e.target.closest('.menu-btn');
+    const insideMenu = e.target.closest('.menu-dropdown');
+
     if (btn) {
-      const menu = btn.nextElementSibling;
+      e.preventDefault();
+      e.stopPropagation();
+
+      const menu = btn.nextElementSibling || btn.parentElement.querySelector('.menu-dropdown');
+      if (!menu) return;
+
       const isOpen = menu.classList.contains('open');
       closeAllMenus();
+
       if (!isOpen) {
         menu.classList.add('open');
+
         const rect = btn.getBoundingClientRect();
-        const menuRect = menu.getBoundingClientRect();
         const vh = window.innerHeight;
         const vw = window.innerWidth;
 
+        // Give it a moment to render to get accurate offsetHeight if needed, 
+        // but here we use a safe estimation or just fixed positioning
+        let menuHeight = menu.offsetHeight || 180;
         let top = rect.bottom + 8;
         let left = rect.right - 160;
 
-        if (top + 120 > vh) top = rect.top - 120 - 8;
+        if (top + menuHeight > vh) {
+          top = rect.top - menuHeight - 8;
+        }
         if (left < 10) left = 10;
         else if (left + 160 > vw - 10) left = vw - 160 - 10;
 
         menu.style.top = top + 'px';
         menu.style.left = left + 'px';
       }
-    } else if (!e.target.closest('.menu-dropdown')) {
+    } else if (!insideMenu) {
       closeAllMenus();
     }
   });
 
+  // Close menus on scroll/resize
+  window.addEventListener('scroll', closeAllMenus, { passive: true });
+  window.addEventListener('resize', closeAllMenus, { passive: true });
+
   function updateQuery(params) {
-    const url = new URL(window.location);
+    const url = new URL(window.location.href);
     for (const [key, value] of Object.entries(params)) {
       if (value === null) url.searchParams.delete(key);
       else url.searchParams.set(key, value);
+    }
+    // Set to page 1 by default when switching tabs/filters unless specified
+    if (!params.hasOwnProperty('page')) {
+        url.searchParams.set('page', '1');
     }
     window.location.href = url.toString();
   }
@@ -865,8 +891,8 @@
 
   function showConfirmDelete(form) {
     showConfirmModal(
-      'O\'chirish',
-      'Haqiqatan ham ushbu ma'lumotni o'chirmoqchimisiz? Bu amalni qaytarib bo'lmaydi.',
+      "O'chirish",
+      "Haqiqatan ham ushbu ma'lumotni o'chirmoqchimisiz? Bu amalni qaytarib bo'lmaydi.",
       () => {
         form.submit();
       }
@@ -876,8 +902,8 @@
 
   async function archiveStudent(id) {
     showConfirmModal(
-      'Arxivlash',
-      'Ushbu o'quvchini arxivlamoqchimisiz?',
+      "Arxivlash",
+      "Ushbu o'quvchini arxivlamoqchimisiz?",
       async () => {
         try {
           const resp = await fetch(`/students/${id}/archive/`, {
@@ -885,10 +911,10 @@
             headers: { 'X-CSRFToken': '{{ csrf_token }}' }
           });
           if (resp.ok) window.location.reload();
-          else alert('Xatolik yuz berdi.');
+          else alert("Xatolik yuz berdi.");
         } catch (e) {
           console.error(e);
-          alert('Tarmoq xatosi.');
+          alert("Tarmoq xatosi.");
         }
       }
     );
@@ -896,8 +922,8 @@
 
   async function restoreStudent(id) {
     showConfirmModal(
-      'Tiklash',
-      'Ushbu o'quvchini arxivdan chiqarmoqchimisiz?',
+      "Tiklash",
+      "Ushbu o'quvchini arxivdan chiqarmoqchimisiz?",
       async () => {
         try {
           const resp = await fetch(`/students/${id}/restore/`, {
@@ -905,13 +931,33 @@
             headers: { 'X-CSRFToken': '{{ csrf_token }}' }
           });
           if (resp.ok) window.location.reload();
-          else alert('Xatolik yuz berdi.');
+          else alert("Xatolik yuz berdi.");
         } catch (e) {
           console.error(e);
-          alert('Tarmoq xatosi.');
+          alert("Tarmoq xatosi.");
         }
       },
       false
+    );
+  }
+
+  async function hardDeleteStudent(id) {
+    showConfirmModal(
+      "O'chirish (Butunlay)",
+      "Ushbu o'quvchini va uning barcha tòlov tarixini butunlay òchirmoqchimisiz? Bu amalni qaytarib bòlmaydi!",
+      async () => {
+        try {
+          const resp = await fetch(`/students/${id}/hard-delete/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+          });
+          if (resp.ok) window.location.reload();
+          else alert("Xatolik yuz berdi.");
+        } catch (e) {
+          console.error(e);
+          alert("Tarmoq xatosi.");
+        }
+      }
     );
   }
 

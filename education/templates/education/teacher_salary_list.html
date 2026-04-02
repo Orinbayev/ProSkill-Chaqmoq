@@ -414,7 +414,7 @@ body{
           </form>
 
           <a id="excelExportBtn"
-             href="{% url 'education:teacher_salary_export' %}?month={{ month }}&year={{ year }}"
+             href="export/?month={{ month }}&year={{ year }}"
              class="excel-export-btn"
              title="Tanlangan oy/yil bo'yicha Excel hisobotni yuklab olish">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
@@ -425,23 +425,42 @@ body{
             </svg>
             Excel yuklab olish
           </a>
+
 <script>
 (function() {
-  var BASE = "{% url 'education:teacher_salary_export' %}";
   function updateExcelLink() {
     var m = document.querySelector('select[name="month"]');
     var y = document.querySelector('input[name="year"]');
     var btn = document.getElementById('excelExportBtn');
     if (!btn || !m || !y) return;
-    btn.href = BASE + '?month=' + m.value + '&year=' + y.value;
+    
+    // We use a relative path 'export/' to stay within the current tenant prefix (e.g., /test/talim/teacher-salary/export/)
+    var baseUrl = 'export/';
+    var params = new URLSearchParams();
+    params.set('month', m.value);
+    params.set('year', y.value);
+    
+    btn.href = baseUrl + '?' + params.toString();
   }
-  document.addEventListener('DOMContentLoaded', function() {
+
+  // Use a more robust way to attach handlers that works with Turbo/HTMX
+  function initExcelExport() {
     updateExcelLink();
     var m = document.querySelector('select[name="month"]');
     var y = document.querySelector('input[name="year"]');
     if (m) m.addEventListener('change', updateExcelLink);
     if (y) y.addEventListener('input', updateExcelLink);
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initExcelExport);
+  } else {
+    initExcelExport();
+  }
+  
+  // Re-init for Turbo or dynamic content if needed
+  window.addEventListener('turbo:load', initExcelExport);
+  window.addEventListener('htmx:afterSwap', initExcelExport);
 })();
 </script>
         </div>

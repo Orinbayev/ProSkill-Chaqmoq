@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Menu Button Test</title>
+  <style>
+    .menu-wrapper {
+      position: relative;
+      display: inline-block;
+      z-index: 10;
+      margin: 50px;
+    }
+
+    .menu-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #333;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .menu-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+
+    .menu-dropdown {
+      display: none;
+      position: fixed;
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 6px;
+      min-width: 160px;
+      z-index: 9999;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+
+    .menu-dropdown.open {
+      display: block;
+      animation: menuFadeIn 0.2s ease-out;
+    }
+
+    @keyframes menuFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .menu-dropdown a,
+    .menu-dropdown button {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      color: #e2e8f0;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 8px;
+      transition: 0.2s;
+      background: none;
+      border: none;
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .menu-dropdown a:hover,
+    .menu-dropdown button:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fbbf24;
+    }
+  </style>
+</head>
+<body style="background: #0f172a; color: white; font-family: Arial, sans-serif;">
+  <h1>Menu Button Test</h1>
+  <p>Click the 3-dot button to test the menu:</p>
+
+  <div class="menu-wrapper">
+    <button class="menu-btn" type="button">⋮</button>
+    <div class="menu-dropdown">
+      <a href="#">Option 1</a>
+      <a href="#">Option 2</a>
+      <button onclick="alert('Archived!')">Archive</button>
+    </div>
+  </div>
+
+  <p id="log" style="margin-top: 50px; background: #1e293b; padding: 10px; border-radius: 8px; height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px;"></p>
+
+  <script>
+    function log(msg) {
+      const logEl = document.getElementById('log');
+      logEl.innerHTML += msg + '\n';
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function closeAllMenus() {
+      document.querySelectorAll('.menu-dropdown').forEach(m => m.classList.remove('open'));
+      log('closeAllMenus called');
+    }
+
+    function attachMenuButtonHandlers() {
+      log('attachMenuButtonHandlers called');
+      log('Found ' + document.querySelectorAll('.menu-btn').length + ' menu buttons');
+
+      document.querySelectorAll('.menu-btn').forEach((btn, idx) => {
+        log('Attaching handler to button ' + idx);
+
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          log('Button click fired!');
+
+          let menu = this.nextElementSibling;
+          log('Next sibling: ' + (menu ? menu.className : 'null'));
+
+          if (!menu || !menu.classList.contains('menu-dropdown')) {
+            log('Trying parent querySelector...');
+            menu = this.parentElement.querySelector('.menu-dropdown');
+          }
+
+          log('Final menu: ' + (menu ? menu.className : 'null'));
+
+          if (!menu) {
+            log('ERROR: Menu not found!');
+            return;
+          }
+
+          const isOpen = menu.classList.contains('open');
+          log('Menu is open: ' + isOpen);
+
+          closeAllMenus();
+
+          if (!isOpen) {
+            menu.classList.add('open');
+            log('Menu opened!');
+
+            const rect = this.getBoundingClientRect();
+            let top = rect.bottom + 8;
+            let left = rect.right - 160;
+
+            log('Positioning at: top=' + top + ', left=' + left);
+
+            menu.style.top = top + 'px';
+            menu.style.left = left + 'px';
+          }
+        }, false);
+      });
+    }
+
+    // Attach on load
+    window.addEventListener('load', attachMenuButtonHandlers);
+
+    // Also try immediately
+    log('Page loaded');
+    attachMenuButtonHandlers();
+  </script>
+</body>
+</html>

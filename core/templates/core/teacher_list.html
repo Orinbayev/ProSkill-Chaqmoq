@@ -520,16 +520,93 @@
   window.addEventListener('scroll', closeAllMenus, { passive: true });
   window.addEventListener('resize', closeAllMenus, { passive: true });
 
+  // Direct button click handler - attach to all menu buttons
+  function attachMenuButtonHandlers() {
+    document.querySelectorAll('.menu-btn').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Direct menu button click handler fired');
+
+        let menu = this.nextElementSibling;
+        if (!menu || !menu.classList.contains('menu-dropdown')) {
+          menu = this.parentElement.querySelector('.menu-dropdown');
+        }
+
+        if (!menu) {
+          console.warn('Menu dropdown topilmadi (direct handler)');
+          return;
+        }
+
+        const isOpen = menu.classList.contains('open');
+        closeAllMenus();
+
+        if (!isOpen) {
+          menu.classList.add('open');
+          const rect = this.getBoundingClientRect();
+          const menuRect = menu.getBoundingClientRect();
+          const vh = window.innerHeight;
+          const vw = window.innerWidth;
+
+          let top = rect.bottom + 8;
+          let left = rect.right - menuRect.width;
+
+          if (top + menuRect.height > vh) {
+            top = rect.top - menuRect.height - 8;
+          }
+
+          if (left < 10) {
+            left = 10;
+          } else if (left + menuRect.width > vw - 10) {
+            left = vw - menuRect.width - 10;
+          }
+
+          menu.style.top = top + 'px';
+          menu.style.left = left + 'px';
+          console.log('Menu opened via direct handler');
+        }
+      }, false);
+    });
+  }
+
+  // Attach handlers on initial load
+  attachMenuButtonHandlers();
+
+  // Re-attach after content changes
+  window.addEventListener('turbo:load', attachMenuButtonHandlers);
+  window.addEventListener('htmx:afterSwap', attachMenuButtonHandlers);
+
   document.addEventListener('click', function (e) {
     const btn = e.target.closest('.menu-btn');
+    console.log('Click detected on teacher list, target:', e.target, 'btn found:', !!btn);
+
     if (btn) {
-      const currentMenu = btn.nextElementSibling;
+      console.log('Menu btn clicked, looking for dropdown');
+      // Menu tugmasi yonidagi .menu-dropdown ni topamiz
+      // btn.nextElementSibling yoki btn.parentElement ichida bo'lishi mumkin
+      let currentMenu = btn.nextElementSibling;
+      console.log('Next sibling:', currentMenu, 'has menu-dropdown class:', currentMenu && currentMenu.classList.contains('menu-dropdown'));
+
+      if (!currentMenu || !currentMenu.classList.contains('menu-dropdown')) {
+        console.log('Trying parent query selector...');
+        currentMenu = btn.parentElement.querySelector('.menu-dropdown');
+      }
+
+      console.log('Final menu element:', currentMenu);
+
+      if (!currentMenu) {
+        console.warn('Menu dropdown topilmadi');
+        return;
+      }
+
       const isOpen = currentMenu.classList.contains('open');
+      console.log('Menu is open:', isOpen);
 
       closeAllMenus();
 
       if (!isOpen) {
         currentMenu.classList.add('open');
+        console.log('Menu opened, positioning...');
 
         // Position Logic
         const rect = btn.getBoundingClientRect();
@@ -549,6 +626,8 @@
         } else if (left + menuRect.width > vw - 10) {
           left = vw - menuRect.width - 10;
         }
+
+        console.log('Menu positioned at:', top, left);
 
         currentMenu.style.top = top + 'px';
         currentMenu.style.left = left + 'px';

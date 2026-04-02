@@ -34,9 +34,9 @@
     </td>
     <td>
         <div class="group-chips">
-            {% for e in u.enrollment_set.all %}
-            <a href="{% url 'education:group_detail' e.group.id %}" class="chip-link">
-                <span class="chip">{{ e.group.nom }}</span>
+            {% for enr in u.enrollments.all %}
+            <a href="{% url 'education:group_detail' enr.group.id %}" class="chip-link" style="text-decoration:none;">
+                <span class="chip">{{ enr.group.nom }}</span>
             </a>
             {% empty %}
             <span class="chip" style="opacity:0.5">—</span>
