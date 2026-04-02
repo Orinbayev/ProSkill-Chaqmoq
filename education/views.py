@@ -1522,18 +1522,18 @@ def qarzdorlar_home(request):
         TuitionMonth.objects.bulk_create(tms_to_create, ignore_conflicts=True)
 
     # --- DEBT CALCULATION ---
-    # Barcha oylar bo'yicha umumiy qarz:
-    #   total_fee  = SUM(TuitionMonth.fee_amount)  WHERE month <= joriy oy
-    #   total_paid = SUM(PaymentAllocation.amount)  WHERE tuition_month.month <= joriy oy (historical too)
+    # ✅ [FIX] User requested month-specific debt (matching the 88M dashboard logic).
+    # "menga xar oynikini chiqarib bersin!"
+    # Changing __lte to = for the selected month to show ONLY debt generated in that period.
     
     # Prepare Subqueries for debt calculation
     total_fee_sub = TuitionMonth.objects.filter(
-        enrollment=OuterRef("pk"), month__lte=cur_month
+        enrollment=OuterRef("pk"), month=cur_month
     ).values("enrollment").annotate(s=Sum(fee_field)).values("s")
 
     total_paid_sub = PaymentAllocation.objects.filter(
         tuition_month__enrollment=OuterRef("pk"),
-        tuition_month__month__lte=cur_month
+        tuition_month__month=cur_month
     ).values("tuition_month__enrollment").annotate(s=Sum("amount")).values("s")
 
     # Global total for Center
@@ -1582,6 +1582,10 @@ def qarzdorlar_home(request):
             if m_idx in graph_map:
                 graph_map[m_idx] += int(e.calculated_debt or 0)
 
+    # Process group labels for display
+    for r in student_map.values():
+        r["group_label"] = ", ".join(r["group_names"]) if r["group_names"] else ""
+        
     rows = list(student_map.values())
     
     # Calculate Stats for the whole center (for UI summary)
@@ -1635,6 +1639,12 @@ def qarzdorlar_home(request):
         "total_debt": total_center_debt,
         "filtered_debt": filtered_debt,
         "chart_data": chart_series,
+        "stats_summary": {
+            "total": total_active_students,
+            "debtors": debtors_count,
+            "paid": paid_count,
+            "no_group": no_group_count,
+        },
 
         # filters
         "q": q,

@@ -550,7 +550,7 @@
             <form action="{% url 'education:create_payment' %}" method="post">
                 {% csrf_token %}
                 <div class="modal-body p-4">
-                    <input type="hidden" name="next" value="{% url 'education:tolovlar_home' %}{% if pay_month %}?pay_month={{ pay_month }}{% endif %}">
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
                     <input type="hidden" name="student_id" id="payStudentId">
                     <input type="hidden" name="pay_month" value="{{ pay_month }}">
 
