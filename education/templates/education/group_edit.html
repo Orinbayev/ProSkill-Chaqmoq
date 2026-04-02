@@ -303,7 +303,7 @@
 
         <div class="section">
           <div class="field mb-3">
-            <label for="id_center">O‘quv markazi</label>
+            <label for="id_center">O'quv markazi</label>
             <select name="center" id="id_center" class="form-select">
               {% for c in centers %}
                 <option value="{{ c.id }}"
@@ -316,7 +316,7 @@
           </div>
 
           <div class="field mb-3">
-            <label>O‘qituvchi</label>
+            <label>O'qituvchi</label>
             <select name="oqituvchi" id="id_oqituvchi" class="form-select">
               {% for t in teachers %}
                 <option value="{{ t.id }}" {% if group.oqituvchi.id == t.id %}selected{% endif %}>
@@ -324,7 +324,7 @@
                 </option>
               {% endfor %}
             </select>
-            <div class="helper">Guruhga biriktirilgan o‘qituvchini belgilang.</div>
+            <div class="helper">Guruhga biriktirilgan o'qituvchini belgilang.</div>
           </div>
         </div>
       </div>

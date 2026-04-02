@@ -336,7 +336,7 @@
 </style>
 
 <main class="page-wrap">
-  <section class="glass-card" aria-label="Forma: bo‘limni tahrirlash">
+  <section class="glass-card" aria-label="Forma: bo'limni tahrirlash">
 
     <header class="head">
       <div class="head-icon" aria-hidden="true">
@@ -344,8 +344,8 @@
       </div>
 
       <div style="min-width:0;">
-        <h1 class="title"><span class="accent">Bo‘limni</span> tahrirlash</h1>
-        <p class="subtitle">Bo‘lim ma’lumotlarini yangilang (nom, tavsif va rasm)</p>
+        <h1 class="title"><span class="accent">Bo'limni</span> tahrirlash</h1>
+        <p class="subtitle">Bo'lim ma'lumotlarini yangilang (nom, tavsif va rasm)</p>
       </div>
     </header>
 
@@ -354,12 +354,12 @@
 
       <div class="form-grid">
         <div>
-          <label class="label" for="id_name"><span class="mark" aria-hidden="true"></span> Bo‘lim nomi</label>
+          <label class="label" for="id_name"><span class="mark" aria-hidden="true"></span> Bo'lim nomi</label>
           <input type="text" name="name" id="id_name" value="{{ cat.name }}" required autocomplete="off">
         </div>
 
         <div>
-          <label class="label" for="id_image"><span class="mark" aria-hidden="true"></span> Bo‘lim rasmi (ixtiyoriy)</label>
+          <label class="label" for="id_image"><span class="mark" aria-hidden="true"></span> Bo'lim rasmi (ixtiyoriy)</label>
           <input type="file" name="image" id="id_image" accept="image/*">
 
           <div class="preview {% if cat.image %}show{% endif %}" id="imagePreview">

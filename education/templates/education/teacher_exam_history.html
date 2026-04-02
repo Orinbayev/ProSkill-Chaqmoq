@@ -4,8 +4,8 @@
 <div class="ui-shell">
   <div class="ui-panel ui-header">
     <div>
-      <h3 class="ui-title">O‘qituvchi imtihon sessiyalari tarixi</h3>
-      <div class="ui-sub">O‘qituvchi va guruh kesimidagi imtihon sessiyalari</div>
+      <h3 class="ui-title">O'qituvchi imtihon sessiyalari tarixi</h3>
+      <div class="ui-sub">O'qituvchi va guruh kesimidagi imtihon sessiyalari</div>
     </div>
     <div class="ui-actions">
       {% if back_group_id %}
@@ -22,7 +22,7 @@
         <input type="hidden" name="back_group" value="{{ back_group_id }}">
       {% endif %}
       <div class="ui-col-3">
-        <label class="ui-label">O‘qituvchi</label>
+        <label class="ui-label">O'qituvchi</label>
         <select name="teacher">
           <option value="">Barchasi</option>
           {% for t in teachers %}
@@ -61,7 +61,7 @@
           <tr>
             <th>Sana</th>
             <th>Guruh</th>
-            <th>O‘qituvchi</th>
+            <th>O'qituvchi</th>
             <th>Dars #</th>
             <th>Qaror</th>
             <th>Holat</th>
@@ -90,7 +90,7 @@
             </td>
           </tr>
         {% empty %}
-          <tr><td colspan="7" class="ui-empty">Ma’lumot topilmadi</td></tr>
+          <tr><td colspan="7" class="ui-empty">Ma'lumot topilmadi</td></tr>
         {% endfor %}
         </tbody>
       </table>

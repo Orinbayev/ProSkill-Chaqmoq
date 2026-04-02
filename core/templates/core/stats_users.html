@@ -579,7 +579,7 @@
 
     {% if user_kind == 'students' %}
     <select name="section" class="filter-input filter-select" onchange="this.form.submit()">
-      <option value="">Bo‘lim: Barchasi</option>
+      <option value="">Bo'lim: Barchasi</option>
       {% for cat in categories %}
       <option value="{{ cat.id }}" {% if request.GET.section|default:'' == cat.id|stringformat:'s' %}selected{% endif %}>
         {{ cat.name }}</option>
@@ -650,7 +650,7 @@
                 {% for enr in u.enrollments.all %}
                 {% if enr.is_active %}
                 <a href="{% url 'education:group_detail' enr.group.id %}" class="chip"
-                  style="text-decoration:none; color:inherit; cursor:pointer;" title="Guruhga o‘tish">
+                  style="text-decoration:none; color:inherit; cursor:pointer;" title="Guruhga o'tish">
                   {{ enr.group.nom }}
                 </a>
                 {% endif %}
@@ -745,7 +745,7 @@
 
   <div class="footer-actions">
     <div class="size-selector">
-      <span>Ko‘rsatish:</span>
+      <span>Ko'rsatish:</span>
       <select class="size-select" onchange="updateQuery({size: this.value, page: 1})">
         <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
         <option value="25" {% if page_size == 25 %}selected{% endif %}>25</option>
@@ -866,7 +866,7 @@
   function showConfirmDelete(form) {
     showConfirmModal(
       'O\'chirish',
-      'Haqiqatan ham ushbu ma’lumotni o‘chirmoqchimisiz? Bu amalni qaytarib bo‘lmaydi.',
+      'Haqiqatan ham ushbu ma'lumotni o'chirmoqchimisiz? Bu amalni qaytarib bo'lmaydi.',
       () => {
         form.submit();
       }
@@ -877,7 +877,7 @@
   async function archiveStudent(id) {
     showConfirmModal(
       'Arxivlash',
-      'Ushbu o‘quvchini arxivlamoqchimisiz?',
+      'Ushbu o'quvchini arxivlamoqchimisiz?',
       async () => {
         try {
           const resp = await fetch(`/students/${id}/archive/`, {
@@ -897,7 +897,7 @@
   async function restoreStudent(id) {
     showConfirmModal(
       'Tiklash',
-      'Ushbu o‘quvchini arxivdan chiqarmoqchimisiz?',
+      'Ushbu o'quvchini arxivdan chiqarmoqchimisiz?',
       async () => {
         try {
           const resp = await fetch(`/students/${id}/restore/`, {

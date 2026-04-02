@@ -284,7 +284,7 @@
           <span class="role-badge" aria-label="User role">{{ user.get_role_display }}</span>
         </h3>
         <p class="dashboard-subtitle">
-          Tezkor bo‘limlar: kerakli sahifaga bosing. Mobil, planshet va kompyuterda qulay ishlaydi.
+          Tezkor bo'limlar: kerakli sahifaga bosing. Mobil, planshet va kompyuterda qulay ishlaydi.
         </p>
       </header>
 
@@ -293,19 +293,19 @@
 
           {% if user.role == 'director' %}
 
-              <a class="dashboard-card" href="/hisob/manager/oquvchi-qoshish/" aria-label="O‘quvchi qo‘shish">
-                  <div class="card-title">🧑‍🎓 O‘quvchi qo‘shish</div>
-                  <div class="card-sub">Yangi o‘quvchilarni ro‘yxatdan o‘tkazish</div>
+              <a class="dashboard-card" href="/hisob/manager/oquvchi-qoshish/" aria-label="O'quvchi qo'shish">
+                  <div class="card-title">🧑‍🎓 O'quvchi qo'shish</div>
+                  <div class="card-sub">Yangi o'quvchilarni ro'yxatdan o'tkazish</div>
               </a>
 
-              <a class="dashboard-card" href="/hisob/manager/oqituvchi-qoshish/" aria-label="O‘qituvchi qo‘shish">
-                  <div class="card-title">👨‍🏫 O‘qituvchi qo‘shish</div>
-                  <div class="card-sub">Yangi o‘qituvchilarni qo‘shish</div>
+              <a class="dashboard-card" href="/hisob/manager/oqituvchi-qoshish/" aria-label="O'qituvchi qo'shish">
+                  <div class="card-title">👨‍🏫 O'qituvchi qo'shish</div>
+                  <div class="card-sub">Yangi o'qituvchilarni qo'shish</div>
               </a>
 
               <a class="dashboard-card" href="/do'kon/mahsulotlar/" aria-label="Mahsulotlar">
                   <div class="card-title">🛒 Mahsulotlar</div>
-                  <div class="card-sub">Do‘kondagi mahsulotlar</div>
+                  <div class="card-sub">Do'kondagi mahsulotlar</div>
               </a>
 
               <a class="dashboard-card" href="/chaqmoq/reyting/" aria-label="Reyting">
@@ -315,14 +315,14 @@
 
           {% elif user.role == 'manager' %}
 
-              <a class="dashboard-card" href="/hisob/manager/oquvchi-qoshish/" aria-label="O‘quvchi qo‘shish">
-                  <div class="card-title">🧑‍🎓 O‘quvchi qo‘shish</div>
-                  <div class="card-sub">O‘quvchi ro‘yxatga olish</div>
+              <a class="dashboard-card" href="/hisob/manager/oquvchi-qoshish/" aria-label="O'quvchi qo'shish">
+                  <div class="card-title">🧑‍🎓 O'quvchi qo'shish</div>
+                  <div class="card-sub">O'quvchi ro'yxatga olish</div>
               </a>
 
-              <a class="dashboard-card" href="/hisob/manager/oqituvchi-qoshish/" aria-label="O‘qituvchi qo‘shish">
-                  <div class="card-title">👨‍🏫 O‘qituvchi qo‘shish</div>
-                  <div class="card-sub">O‘qituvchi qo‘shish sahifasi</div>
+              <a class="dashboard-card" href="/hisob/manager/oqituvchi-qoshish/" aria-label="O'qituvchi qo'shish">
+                  <div class="card-title">👨‍🏫 O'qituvchi qo'shish</div>
+                  <div class="card-sub">O'qituvchi qo'shish sahifasi</div>
               </a>
 
               <a class="dashboard-card" href="/ta'lim/guruhlar/" aria-label="Guruhlar">
@@ -330,8 +330,8 @@
                   <div class="card-sub">Tillar va IT guruhlari</div>
               </a>
 
-              <a class="dashboard-card" href="/do'kon/so'rovlar/" aria-label="Xarid so‘rovlari">
-                  <div class="card-title">🛒 Xarid so‘rovlari</div>
+              <a class="dashboard-card" href="/do'kon/so'rovlar/" aria-label="Xarid so'rovlari">
+                  <div class="card-title">🛒 Xarid so'rovlari</div>
                   <div class="card-sub">Tasdiqlash jarayoni</div>
               </a>
 
@@ -344,7 +344,7 @@
 
               <a class="dashboard-card" href="/ta'lim/guruhlar/meniki/" aria-label="Mening guruhlarim">
                   <div class="card-title">📘 Mening guruhlarim</div>
-                  <div class="card-sub">O‘qitadigan guruhlaringiz</div>
+                  <div class="card-sub">O'qitadigan guruhlaringiz</div>
               </a>
 
               <a class="dashboard-card" href="/chaqmoq/reyting/" aria-label="Reyting">
@@ -354,14 +354,14 @@
 
           {% elif user.role == 'student' %}
 
-              <a class="dashboard-card" href="/do'kon/" aria-label="Do‘kon">
-                  <div class="card-title">🛒 Do‘kon</div>
+              <a class="dashboard-card" href="/do'kon/" aria-label="Do'kon">
+                  <div class="card-title">🛒 Do'kon</div>
                   <div class="card-sub">Mahsulotlar va narxlar</div>
               </a>
 
               <a class="dashboard-card" href="/chaqmoq/reyting/" aria-label="Reyting">
                   <div class="card-title">⚡ Reyting</div>
-                  <div class="card-sub">Sizning o‘rningiz</div>
+                  <div class="card-sub">Sizning o'rningiz</div>
               </a>
 
           {% endif %}

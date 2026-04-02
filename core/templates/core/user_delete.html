@@ -183,17 +183,17 @@
 </style>
 
 <div class="delete-box">
-  <h2>🗑 O‘chirishni tasdiqlaysizmi?</h2>
+  <h2>🗑 O'chirishni tasdiqlaysizmi?</h2>
 
   <p>
     Siz <span class="text-info fw-bold">
       {{ user.ism }} {{ user.familya }}
-    </span> foydalanuvchisini butunlay o‘chirmoqchisiz.
+    </span> foydalanuvchisini butunlay o'chirmoqchisiz.
   </p>
 
   <form method="POST">
     {% csrf_token %}
-    <button class="btn-danger">Ha, o‘chirish</button>
+    <button class="btn-danger">Ha, o'chirish</button>
     <a href="javascript:history.back()" class="btn-secondary">Bekor qilish</a>
   </form>
 </div>

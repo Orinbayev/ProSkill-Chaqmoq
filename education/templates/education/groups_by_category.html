@@ -299,8 +299,8 @@
   <div class="gbc-top">
     <div class="gbc-head">
       <div style="min-width:0;">
-        <h3 class="gbc-title mb-0">👥 {% if category == "lang" %}Tillar{% else %}IT{% endif %} bo‘yicha guruhlar</h3>
-        <p class="gbc-sub mb-0">Premium dark • glassmorphism • mobil uchun card ko‘rinish</p>
+        <h3 class="gbc-title mb-0">👥 {% if category == "lang" %}Tillar{% else %}IT{% endif %} bo'yicha guruhlar</h3>
+        <p class="gbc-sub mb-0">Premium dark • glassmorphism • mobil uchun card ko'rinish</p>
       </div>
 
       {% if can_manage %}
@@ -323,7 +323,7 @@
             <th>#</th>
             <th>Guruh</th>
             <th>Center</th>
-            <th>O‘qituvchi</th>
+            <th>O'qituvchi</th>
             <th>Talabalar</th>
             <th>Amallar</th>
           </tr>
@@ -338,7 +338,7 @@
             <td>{{ g.oqituvchi }}</td>
             <td>{{ g.student_count }}</td>
             <td>
-              <a class="btn btn-sm btn-outline-primary" href="{% url 'education:group_detail' g.id %}">Ko‘rish</a>
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'education:group_detail' g.id %}">Ko'rish</a>
 
               {% if can_manage %}
                 <a class="btn btn-sm btn-outline-secondary" href="{% url 'education:group_edit' g.id %}">Tahrirlash</a>
@@ -346,13 +346,13 @@
                 <form method="post" action="{% url 'education:group_delete' g.id %}"
                       class="d-inline delete-form">
                   {% csrf_token %}
-                  <button type="submit" class="btn btn-sm btn-outline-danger">O‘chirish</button>
+                  <button type="submit" class="btn btn-sm btn-outline-danger">O'chirish</button>
                 </form>
               {% endif %}
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="6" class="text-muted text-center">Hozircha guruh yo‘q.</td></tr>
+          <tr><td colspan="6" class="text-muted text-center">Hozircha guruh yo'q.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -374,7 +374,7 @@
         </div>
 
         <div class="mc-row">
-          <span class="mc-label">👨‍🏫 O‘qituvchi:</span>
+          <span class="mc-label">👨‍🏫 O'qituvchi:</span>
           <span class="mc-value">{{ g.oqituvchi }}</span>
         </div>
 
@@ -385,7 +385,7 @@
 
         <div class="mc-actions mt-2">
           <a href="{% url 'education:group_detail' g.id %}"
-             class="btn btn-sm btn-outline-primary w-100">Ko‘rish</a>
+             class="btn btn-sm btn-outline-primary w-100">Ko'rish</a>
 
           {% if can_manage %}
           <a href="{% url 'education:group_edit' g.id %}"
@@ -395,14 +395,14 @@
                 action="{% url 'education:group_delete' g.id %}"
                 class="delete-form w-100 mt-2">
             {% csrf_token %}
-            <button type="submit" class="btn btn-sm btn-outline-danger w-100">O‘chirish</button>
+            <button type="submit" class="btn btn-sm btn-outline-danger w-100">O'chirish</button>
           </form>
           {% endif %}
         </div>
 
       </div>
       {% empty %}
-      <p class="text-muted">Hozircha guruh yo‘q.</p>
+      <p class="text-muted">Hozircha guruh yo'q.</p>
       {% endfor %}
     </div>
 
@@ -421,7 +421,7 @@ document.querySelectorAll('.row-link').forEach(tr=>{
 
 document.querySelectorAll('.delete-form').forEach(form=>{
   form.addEventListener('submit', e=>{
-    if(!confirm("Rostdan ham bu guruhni o‘chirmoqchimisiz?")) {
+    if(!confirm("Rostdan ham bu guruhni o'chirmoqchimisiz?")) {
       e.preventDefault();
     }
   });

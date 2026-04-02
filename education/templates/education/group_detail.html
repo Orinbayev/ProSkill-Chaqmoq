@@ -488,7 +488,7 @@
       {% if request.user.role == 'teacher' or request.user.role == 'director' or request.user.role == 'manager' or request.user.is_superuser %}
       <div class="quick-menu">
         <button type="button" id="quick-menu-toggle" class="btn-ui btn-muted" aria-haspopup="true" aria-expanded="false">
-          <i class="fa-solid fa-grid-2"></i> Qo‘shimcha bo‘limlar
+          <i class="fa-solid fa-grid-2"></i> Qo'shimcha bo'limlar
           <i class="fa-solid fa-chevron-down text-[11px]"></i>
         </button>
         <div id="quick-menu-panel" class="quick-menu-panel" aria-hidden="true">
@@ -511,7 +511,7 @@
 
           {% if request.user.role == 'director' or request.user.role == 'manager' or request.user.is_superuser %}
           <div class="quick-menu-divider"></div>
-          <div class="quick-menu-title">Director bo‘limi</div>
+          <div class="quick-menu-title">Director bo'limi</div>
           <a href="{% url 'education:exam_settings' %}" class="quick-menu-link">
             <i class="fa-solid fa-gear"></i> Imtihon sozlamalari
           </a>
@@ -536,7 +536,7 @@
       <i class="fa-solid fa-scroll text-orange-400 text-xs"></i>
       <select id="rule-global" class="rule-select">
         <option value="">— Qoida —</option>
-        <optgroup label="Qo‘shish">
+        <optgroup label="Qo'shish">
           {% for r in rules_plus %}
           <option value="{{ r.id }}" data-type="+" data-min="{{ r.min_baho }}" data-max="{{ r.max_baho }}">{{ r.nom }}</option>
           {% endfor %}
@@ -589,7 +589,7 @@
           Imtihon natijalarini kiriting.
         {% else %}
           Bugun {{ exam_reminder_state.target_lesson_number|default:exam_reminder_state.lesson_number }}-dars nazorat bosqichi.
-          Imtihon o‘tkazilsinmi?
+          Imtihon o'tkazilsinmi?
         {% endif %}
       </div>
 
@@ -613,7 +613,7 @@
       {% endif %}
     {% else %}
       <div style="font-weight:700; color:#94a3b8;">
-        Imtihon tizimi yoqilgan. Bugun majburiy nazorat bosqichi bo‘lmasligi mumkin, davomat odatdagidek davom etadi.
+        Imtihon tizimi yoqilgan. Bugun majburiy nazorat bosqichi bo'lmasligi mumkin, davomat odatdagidek davom etadi.
       </div>
     {% endif %}
   </div>
@@ -624,7 +624,7 @@
     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap;">
       <div style="padding-right:8px;">
         <div style="font-weight:800;">Guruh ichki aktivlik reytingi</div>
-        <div style="font-size:12px; color:#94a3b8;">Faqat guruh ichidagi real faoliyat asosida ko‘rsatiladi.</div>
+        <div style="font-size:12px; color:#94a3b8;">Faqat guruh ichidagi real faoliyat asosida ko'rsatiladi.</div>
       </div>
       <button
         type="button"
@@ -641,7 +641,7 @@
     <div id="internal-ranking-body" style="display:none; margin-top:10px;">
       <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
         <a href="{% url 'education:group_internal_ranking' g.id %}?date={{ selected_date }}" class="btn-ui btn-primary">
-          Batafsil ko‘rish
+          Batafsil ko'rish
         </a>
       </div>
 
@@ -669,7 +669,7 @@
       </div>
       {% else %}
       <div style="border:1px dashed var(--border); border-radius:12px; padding:14px; color:#94a3b8; font-size:13px; font-weight:600;">
-        Hozircha guruh ichida yetarli activity ma’lumoti yo‘q. Davomat yoki imtihonlar kiritilgach eng faol o‘quvchilar chiqadi.
+        Hozircha guruh ichida yetarli activity ma'lumoti yo'q. Davomat yoki imtihonlar kiritilgach eng faol o'quvchilar chiqadi.
       </div>
       {% endif %}
     </div>
@@ -688,7 +688,7 @@
         {% if request.user.role == 'director' or request.user.role == 'manager' or request.user.is_superuser %}
         <option value="yes">Ha, yopish</option>
         {% endif %}
-        <option value="no">Yo‘q, davom etsin</option>
+        <option value="no">Yo'q, davom etsin</option>
         <option value="later">Keyinroq eslat</option>
       </select>
       <button class="btn-ui btn-primary" type="submit"><i class="fa-solid fa-check"></i> Saqlash</button>
@@ -697,9 +697,9 @@
   {% elif closure_state and closure_state.is_closed %}
   <div class="glass-panel" style="font-weight:700; color:#86efac;">
     Guruh yopish jarayoni holati: YOPILGAN.
-    Tarixiy davomat va to‘lov yozuvlari saqlangan.
+    Tarixiy davomat va to'lov yozuvlari saqlangan.
     <a href="{% url 'education:group_certificate_candidates' g.id %}" class="btn-ui btn-primary" style="margin-left:8px;">
-      Sertifikatlar bo‘limiga o‘tish
+      Sertifikatlar bo'limiga o'tish
     </a>
   </div>
   {% endif %}

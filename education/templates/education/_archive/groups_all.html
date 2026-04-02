@@ -421,7 +421,7 @@
 
   <div class="top-controls">
     <span>Show</span>
-    <select id="showSelect" class="select-box" aria-label="Nechta ko‘rsatish">
+    <select id="showSelect" class="select-box" aria-label="Nechta ko'rsatish">
       <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
       <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
       <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
@@ -434,13 +434,13 @@
 
     <!-- Desktop table -->
     <div class="table-wrap">
-      <table class="table" aria-label="Guruhlar ro‘yxati">
+      <table class="table" aria-label="Guruhlar ro'yxati">
         <thead>
           <tr>
             <th>№</th>
             <th>Guruh</th>
-            <th>O‘quvchilar</th>
-            <th>O‘qituvchi</th>
+            <th>O'quvchilar</th>
+            <th>O'qituvchi</th>
             <th style="text-align:right;">Actions</th>
           </tr>
         </thead>
@@ -467,10 +467,10 @@
                 <button class="dots-btn" type="button" aria-label="Actions">⋮</button>
                 <div class="menu" role="menu" aria-label="Guruh amallari">
                   <a href="{% url 'education:group_detail' g.id %}">📘 Batafsil</a>
-                  <a href="{% url 'education:group_edit' g.id %}">✏️ O‘zgartirish</a>
-                  <form method="post" action="{% url 'education:group_delete' g.id %}" onsubmit="return confirm('Rostdan ham o‘chirmoqchimisiz?');">
+                  <a href="{% url 'education:group_edit' g.id %}">✏️ O'zgartirish</a>
+                  <form method="post" action="{% url 'education:group_delete' g.id %}" onsubmit="return confirm('Rostdan ham o'chirmoqchimisiz?');">
                     {% csrf_token %}
-                    <button type="submit">🗑️ O‘chirish</button>
+                    <button type="submit">🗑️ O'chirish</button>
                   </form>
                 </div>
               </div>
@@ -499,22 +499,22 @@
             <button class="dots-btn" type="button" aria-label="Actions">⋮</button>
             <div class="menu" role="menu" aria-label="Guruh amallari">
               <a href="{% url 'education:group_detail' g.id %}">📘 Batafsil</a>
-              <a href="{% url 'education:group_edit' g.id %}">✏️ O‘zgartirish</a>
-              <form method="post" action="{% url 'education:group_delete' g.id %}" onsubmit="return confirm('Rostdan ham o‘chirmoqchimisiz?');">
+              <a href="{% url 'education:group_edit' g.id %}">✏️ O'zgartirish</a>
+              <form method="post" action="{% url 'education:group_delete' g.id %}" onsubmit="return confirm('Rostdan ham o'chirmoqchimisiz?');">
                 {% csrf_token %}
-                <button type="submit">🗑️ O‘chirish</button>
+                <button type="submit">🗑️ O'chirish</button>
               </form>
             </div>
           </div>
         </div>
 
         <div class="m-row">
-          <div class="m-k">O‘quvchilar</div>
+          <div class="m-k">O'quvchilar</div>
           <div class="m-v">{{ g.student_count }}</div>
         </div>
 
         <div class="m-row">
-          <div class="m-k">O‘qituvchi</div>
+          <div class="m-k">O'qituvchi</div>
           <div class="m-v">
             {% if g.oqituvchi %}
               {{ g.oqituvchi.ism }} {{ g.oqituvchi.familya }}

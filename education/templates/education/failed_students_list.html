@@ -4,8 +4,8 @@
 <div class="ui-shell">
   <div class="ui-panel ui-header">
     <div>
-      <h3 class="ui-title">Imtihondan Past Olgan O‘quvchilar</h3>
-      <div class="ui-sub">Direktor/manager nazorat bo‘limi</div>
+      <h3 class="ui-title">Imtihondan Past Olgan O'quvchilar</h3>
+      <div class="ui-sub">Direktor/manager nazorat bo'limi</div>
     </div>
     <div class="ui-actions">
       <a href="{% url 'education:teacher_exam_history' %}" class="ui-btn ui-btn-secondary">Sessiyalar tarixi</a>
@@ -24,7 +24,7 @@
         </select>
       </div>
       <div class="ui-col-2">
-        <label class="ui-label">O‘qituvchi</label>
+        <label class="ui-label">O'qituvchi</label>
         <select name="teacher">
           <option value="">Barchasi</option>
           {% for t in teachers %}
@@ -75,9 +75,9 @@
       <table class="ui-table">
         <thead>
           <tr>
-            <th>O‘quvchi</th>
+            <th>O'quvchi</th>
             <th>Guruh</th>
-            <th>O‘qituvchi</th>
+            <th>O'qituvchi</th>
             <th>Sana</th>
             <th>Ball/Foiz</th>
             <th>Yiqilish sababi</th>
@@ -108,7 +108,7 @@
             </td>
           </tr>
         {% empty %}
-          <tr><td colspan="7" class="ui-empty">Ma’lumot topilmadi</td></tr>
+          <tr><td colspan="7" class="ui-empty">Ma'lumot topilmadi</td></tr>
         {% endfor %}
         </tbody>
       </table>

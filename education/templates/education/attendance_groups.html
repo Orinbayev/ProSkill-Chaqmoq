@@ -402,7 +402,7 @@
       <div class="fg">
         <i class="fa-solid fa-user-tie"></i>
         <select name="teacher">
-          <option value="">Barchasi (O‘qituvchi)</option>
+          <option value="">Barchasi (O'qituvchi)</option>
           {% for t in teachers %}
           <option value="{{ t.id }}" {% if selected_teacher == t.id %}selected{% endif %}>
             {{ t.get_full_name }}
@@ -418,7 +418,7 @@
       </div>
 
       <button class="btn-submit" type="submit">
-        <i class="fa-solid fa-filter"></i> Ko‘rsatish
+        <i class="fa-solid fa-filter"></i> Ko'rsatish
       </button>
       <a class="btn-reset" href="{% url 'education:attendance_groups' %}">
         <i class="fa-solid fa-rotate-left"></i> Tozalash

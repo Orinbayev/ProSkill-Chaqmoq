@@ -190,22 +190,22 @@
 </style>
 
 <main class="page-wrap">
-  <section class="glass-card" aria-label="O‘chirishni tasdiqlash">
+  <section class="glass-card" aria-label="O'chirishni tasdiqlash">
 
     <div class="icon" aria-hidden="true">🗑️</div>
 
-    <h3>🗑️ Guruhni o‘chirish</h3>
+    <h3>🗑️ Guruhni o'chirish</h3>
 
     <p>
-      «<b>{{ g.nom }}</b>» guruhini o‘chirmoqchimisiz?<br>
-      <small>Davomat va chaqmoq yozuvlari saqlanadi, faqat guruhning o‘zi o‘chadi.</small>
+      «<b>{{ g.nom }}</b>» guruhini o'chirmoqchimisiz?<br>
+      <small>Davomat va chaqmoq yozuvlari saqlanadi, faqat guruhning o'zi o'chadi.</small>
     </p>
 
     <form method="post" class="mt-3">
       {% csrf_token %}
 
       <div class="actions">
-        <button type="submit" class="btn btn-delete">Ha, o‘chirish</button>
+        <button type="submit" class="btn btn-delete">Ha, o'chirish</button>
         <a href="{% url 'education:group_detail' g.id %}" class="btn btn-cancel">Bekor qilish</a>
       </div>
     </form>

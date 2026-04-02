@@ -112,6 +112,7 @@ urlpatterns = [
 
     # === 💰 O‘QITUVCHI HISOBLARI ===
     path("teacher-salary/", views.teacher_salary_list, name="teacher_salary_list"),
+    path("teacher-salary/export/", views.teacher_salary_export, name="teacher_salary_export"),
     path("teacher-salary/<int:teacher_id>/", views.teacher_groups, name="teacher_groups"),
     path("teacher-salary/group/<int:group_id>/", views.teacher_salary_report, name="teacher_salary_report"),
     path("teacher-salary/summary/", views.teacher_salary_summary, name="teacher_salary_summary"),

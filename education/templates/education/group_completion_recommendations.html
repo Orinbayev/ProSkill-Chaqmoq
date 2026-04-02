@@ -25,7 +25,7 @@
         <select name="status">
           <option value="">Barchasi</option>
           <option value="eligible" {% if selected_status == 'eligible' %}selected{% endif %}>Mos</option>
-          <option value="needs_review" {% if selected_status == 'needs_review' %}selected{% endif %}>Ko‘rib chiqish kerak</option>
+          <option value="needs_review" {% if selected_status == 'needs_review' %}selected{% endif %}>Ko'rib chiqish kerak</option>
           <option value="not_eligible" {% if selected_status == 'not_eligible' %}selected{% endif %}>Mos emas</option>
         </select>
       </div>
@@ -38,12 +38,12 @@
 
   <div class="ui-note ui-note-muted">
     Tavsiya qoidalari: Davomat ≥ {{ thresholds.attendance_threshold|floatformat:1 }}%,
-    O‘tish foizi ≥ {{ thresholds.pass_rate_threshold|floatformat:1 }}%,
-    Imtihon o‘tish foizi ≥ {{ thresholds.passing_percent|floatformat:1 }}%.
+    O'tish foizi ≥ {{ thresholds.pass_rate_threshold|floatformat:1 }}%,
+    Imtihon o'tish foizi ≥ {{ thresholds.passing_percent|floatformat:1 }}%.
     {% if days_to_estimated_end is not None %}
       <br>
       {% if days_to_estimated_end < 0 %}
-        Kursning taxminiy tugash sanasidan {{ days_to_estimated_end_abs }} kun o‘tgan.
+        Kursning taxminiy tugash sanasidan {{ days_to_estimated_end_abs }} kun o'tgan.
       {% else %}
         Kurs taxminiy tugashigacha {{ days_to_estimated_end }} kun qoldi.
       {% endif %}
@@ -55,12 +55,12 @@
       <table class="ui-table">
         <thead>
           <tr>
-            <th>O‘quvchi</th>
+            <th>O'quvchi</th>
             <th>Holat</th>
             <th>Sabab</th>
             <th>Imtihonlar</th>
-            <th>O‘rtacha foiz</th>
-            <th>O‘tish foizi</th>
+            <th>O'rtacha foiz</th>
+            <th>O'tish foizi</th>
             <th>Davomat</th>
             <th>Ichki rank</th>
           </tr>
@@ -73,7 +73,7 @@
               {% if row.completion_recommendation == 'eligible' %}
                 <span class="ui-badge ui-badge-success">Mos</span>
               {% elif row.completion_recommendation == 'needs_review' %}
-                <span class="ui-badge ui-badge-warning">Ko‘rib chiqish kerak</span>
+                <span class="ui-badge ui-badge-warning">Ko'rib chiqish kerak</span>
               {% else %}
                 <span class="ui-badge ui-badge-danger">Mos emas</span>
               {% endif %}
@@ -86,7 +86,7 @@
             <td>#{{ row.rank_position }} ({{ row.total_internal_score|floatformat:2 }})</td>
           </tr>
         {% empty %}
-          <tr><td colspan="8" class="ui-empty">Tavsiya ma’lumotlari topilmadi</td></tr>
+          <tr><td colspan="8" class="ui-empty">Tavsiya ma'lumotlari topilmadi</td></tr>
         {% endfor %}
         </tbody>
       </table>

@@ -64,7 +64,7 @@
         <div class="menu-wrapper">
             <button class="menu-btn" type="button"><i class="fa-solid fa-ellipsis-vertical"></i></button>
             <div class="menu-dropdown">
-                <a href="{% url 'core:user_view' u.id %}"><i class="fa-solid fa-eye"></i> Ko‘rish</a>
+                <a href="{% url 'core:user_view' u.id %}"><i class="fa-solid fa-eye"></i> Ko'rish</a>
                 {% if user_kind == 'parents' %}
                 <a href="{% url 'core:parent_edit' u.id %}"><i class="fa-solid fa-pen"></i> Tahrirlash</a>
                 {% else %}
@@ -79,7 +79,7 @@
                     <i class="fa-solid fa-rotate-left"></i> Qayta faollashtirish
                 </a>
                 <a href="#" onclick="hardDeleteStudent('{{ u.id }}'); return false;" class="text-red">
-                    <i class="fa-solid fa-trash-can"></i> Butunlay o‘chirish
+                    <i class="fa-solid fa-trash-can"></i> Butunlay o'chirish
                 </a>
                 {% else %}
                 <!-- Active Actions -->
@@ -93,13 +93,13 @@
                     <a href="#"
                         onclick="if(confirm('Haqiqatan ham bu ota-onani o\'chirmoqchimisiz?')) this.parentNode.submit(); return false;"
                         class="text-red">
-                        <i class="fa-solid fa-trash"></i> O‘chirish
+                        <i class="fa-solid fa-trash"></i> O'chirish
                     </a>
                 </form>
                 {% else %}
                 <!-- Other users (Managers/Teachers) -->
                 <a href="{% url 'core:user_delete' u.id %}" class="text-red">
-                    <i class="fa-solid fa-trash"></i> O‘chirish
+                    <i class="fa-solid fa-trash"></i> O'chirish
                 </a>
                 {% endif %}
                 {% endif %}

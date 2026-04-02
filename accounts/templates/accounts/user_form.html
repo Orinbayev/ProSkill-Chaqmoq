@@ -288,7 +288,7 @@
 
   <div class="uhead">
     <h3><i class="fa-solid fa-user-pen text-[var(--blue)]"></i> {{ title }}</h3>
-    <p>O'quvchi ma’lumotlarini kiriting yoki rolni belgilang.</p>
+    <p>O'quvchi ma'lumotlarini kiriting yoki rolni belgilang.</p>
   </div>
 
   {% if form.errors %}
@@ -338,7 +338,7 @@
       <!-- Row 1: Birth Date & Gender -->
       <div class="grid-3">
         <div class="inp-group">
-          <label>Tug‘ilgan sana <span style="color:var(--red);">*</span></label>
+          <label>Tug'ilgan sana <span style="color:var(--red);">*</span></label>
           {{ form.birth_date }}
         </div>
         <div class="inp-group">
@@ -393,12 +393,12 @@
           {{ form.telefon1 }}
         </div>
         <div class="inp-group">
-          <label>Telefon (Qo‘shimcha)</label>
+          <label>Telefon (Qo'shimcha)</label>
           {{ form.telefon2 }}
         </div>
         {% if form.center.field.widget.input_type != 'hidden' %}
         <div class="inp-group">
-          <label>O‘quv Markaz (Filial)</label>
+          <label>O'quv Markaz (Filial)</label>
           {{ form.center }}
         </div>
         {% else %}
@@ -450,7 +450,7 @@
             </button>
           </div>
           <span class="text-[11px] text-slate-500 mt-1 pl-1 font-bold" style="white-space: nowrap;">
-            <!-- Bo‘sh qoldirilsa o‘zgarmaydi -->
+            <!-- Bo'sh qoldirilsa o'zgarmaydi -->
           </span>
         </div>
 
@@ -479,13 +479,13 @@
     <div id="priceBlock" class="field-group" style="display:none;">
       <div class="field-group-title"><i class="fa-solid fa-coins"></i> Kurs Narxi</div>
       <div class="inp-group max-w-md">
-        <label>Narx (so‘m)</label>
+        <label>Narx (so'm)</label>
         {{ form.kurs_narhi }}
       </div>
     </div>
 
     <div id="foizField" class="field-group" style="display:none;">
-      <div class="field-group-title"><i class="fa-solid fa-percent"></i> O‘qituvchi ulushi</div>
+      <div class="field-group-title"><i class="fa-solid fa-percent"></i> O'qituvchi ulushi</div>
       <div class="inp-group max-w-md">
         <label>Ulush foizi (%)</label>
         <input type="number" name="oqituvchi_foizi" id="id_oqituvchi_foizi" min="0" max="100">
@@ -601,7 +601,7 @@
           'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
           'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'x', 'ц': 'ts',
           'ч': 'ch', 'ш': 'sh', 'щ': 'sh', 'ъ': '', 'ы': 'i', 'ь': '', 'э': 'e', 'ю': 'yu',
-          'я': 'ya', 'o‘': 'o', 'g‘': 'g', 'sh': 'sh', 'ch': 'ch'
+          'я': 'ya', 'o'': 'o', 'g'': 'g', 'sh': 'sh', 'ch': 'ch'
         };
         return word.toLowerCase().split('').map(c => map[c] || c).join('').replace(/[^a-z0-9]/g, '');
       }

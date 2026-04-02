@@ -345,8 +345,8 @@
     <div class="sdash-left">
       <div class="sdash-ico"><i class="fa-solid fa-graduation-cap"></i></div>
       <div>
-        <h3 class="sdash-title">O‘quvchi paneli</h3>
-        <div class="sdash-sub">Do‘kon va reyting bo‘limlariga tez kirish</div>
+        <h3 class="sdash-title">O'quvchi paneli</h3>
+        <div class="sdash-sub">Do'kon va reyting bo'limlariga tez kirish</div>
       </div>
     </div>
 
@@ -373,7 +373,7 @@
 
     <div class="scard text-center">
       <h4 class="justify-content-center">
-        <i class="fa-solid fa-bolt"></i> Mening Chaqmog‘im
+        <i class="fa-solid fa-bolt"></i> Mening Chaqmog'im
       </h4>
       <div class="balance">
         {{ balance|default:"0" }} <small>⚡</small>
@@ -381,22 +381,22 @@
     </div>
 
     <div class="scard">
-      <h4><i class="fa-solid fa-cart-shopping" style="color:#60a5fa;"></i> Do‘kon</h4>
+      <h4><i class="fa-solid fa-cart-shopping" style="color:#60a5fa;"></i> Do'kon</h4>
       <a class="sbtn sbtn-blue" href="{% url 'store:products' %}">
-        Mahsulotlarni ko‘rish
+        Mahsulotlarni ko'rish
       </a>
       <div class="muted">
-        Savatchaga qo‘sh → Manager tasdiqlaydi → Chaqmoq yechiladi.
+        Savatchaga qo'sh → Manager tasdiqlaydi → Chaqmoq yechiladi.
       </div>
     </div>
 
     <div class="scard">
       <h4><i class="fa-solid fa-trophy" style="color:#22c55e;"></i> Reyting</h4>
       <a class="sbtn sbtn-green" href="{% url 'chaqmoq:reyting' %}">
-        Umumiy reytingni ko‘rish
+        Umumiy reytingni ko'rish
       </a>
       <div class="muted">
-        O‘zingizning o‘rningizni kuzatib boring va motivatsiyani oshiring.
+        O'zingizning o'rningizni kuzatib boring va motivatsiyani oshiring.
       </div>
     </div>
 
@@ -430,7 +430,7 @@
           </div>
         </div>
         {% empty %}
-        <div class="muted">Hozircha harakatlar yo‘q.</div>
+        <div class="muted">Hozircha harakatlar yo'q.</div>
         {% endfor %}
       </div>
 

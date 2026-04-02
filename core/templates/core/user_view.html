@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}
-O‘quvchi profili -
+O'quvchi profili -
 {{ u.get_full_name }}
 {% endblock %}
 {% block content %}
@@ -31,7 +31,7 @@ O‘quvchi profili -
                             {{ u.get_full_name }}
                         </h1>
                         <div class="d-flex flex-wrap gap-2 align-items-center text-white-50"> <span
-                                class="badge border border-light-subtle px-3 py-2 rounded-pill">O‘quvchi</span>
+                                class="badge border border-light-subtle px-3 py-2 rounded-pill">O'quvchi</span>
                             {% if u.center %}
                             <span class="ms-2"><i class="fa-solid fa-building-columns me-1"></i>
                                 {{ u.center.name }}
@@ -48,7 +48,7 @@ O‘quvchi profili -
                             {{ balance }}
                         </span> </div>
                     <div class="mt-2 pt-2 border-top border-white-10 text-white-50 small">
-                        Markaz reytingida: <span class="text-white fw-bold">#{{ rank }}</span> - o‘rin
+                        Markaz reytingida: <span class="text-white fw-bold">#{{ rank }}</span> - o'rin
                     </div>
                 </div>
             </div>
@@ -61,7 +61,7 @@ O‘quvchi profili -
                         class="fa-solid fa-calendar-check"></i> </div>
                 <div class="flex-grow-1" style="cursor: pointer;" data-bs-toggle="modal"
                     data-bs-target="#attendanceDetailModal" title="Batafsil ko'rish uchun bosing">
-                    <div class="text-white-50 small mb-1">Davomat Ko‘rsatkichi</div>
+                    <div class="text-white-50 small mb-1">Davomat Ko'rsatkichi</div>
                     <div class="d-flex align-items-baseline gap-2">
                         <div class="fw-bold fs-4 text-white mb-2">
                             {{ attendance_rate }}
@@ -110,7 +110,7 @@ O‘quvchi profili -
             <div class="glass p-3 mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h5 class="m-0 fw-bold text-white"><i class="fa-solid fa-user-gear me-2 text-warning"></i> Shaxsiy
-                        ma‘lumotlar</h5>
+                        ma'lumotlar</h5>
                     {% if request.user.role != 'parent' %}
                     <div class="dropdown"> <button class="btn btn-sm btn-glass dropdown-toggle" type="button"
                             data-bs-toggle="dropdown"> Amallar </button>
@@ -128,7 +128,7 @@ O‘quvchi profili -
                             </li>
                             <li><a class="dropdown-item text-warning py-2 px-3 small rounded-3" href="#"
                                     data-bs-toggle="modal" data-bs-target="#passwordResetModal"><i
-                                        class="fa-solid fa-key me-2 fs-mini"></i> Parolni o‘zgartirish</a></li>
+                                        class="fa-solid fa-key me-2 fs-mini"></i> Parolni o'zgartirish</a></li>
                         </ul>
                     </div>
                     {% endif %}
@@ -157,7 +157,7 @@ O‘quvchi profili -
 
                     <!-- ✅ Expansion -->
                     <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5">
-                        <span class="text-white-50">Tug‘ilgan sana</span>
+                        <span class="text-white-50">Tug'ilgan sana</span>
                         <span class="text-white fw-medium">{{ u.birth_date|date:"d.m.Y"|default:"Kiritilmagan" }}</span>
                     </div>
                     <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5">
@@ -196,7 +196,7 @@ O‘quvchi profili -
                                 {% endif %}
                                 rounded-pill small">
                                 {% if enr.is_active %}
-                                O‘qimoqda
+                                O'qimoqda
                                 {% else %}
                                 Guruhdan chetlashtirilgan
                                 {% endif %}
@@ -328,7 +328,7 @@ text-danger
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content glass-dark border border-white-10 text-white rounded-4 shadow-3d">
             <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold text-warning">Parolni o‘zgartirish</h5> <button type="button"
+                <h5 class="modal-title fw-bold text-warning">Parolni o'zgartirish</h5> <button type="button"
                     class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form method="POST">
@@ -381,7 +381,7 @@ text-danger
                                     <option value="{{ month.0 }}" {% if selected_month == month.0 %} selected{% endif %}>
                                         {{ month.1 }}</option>
                                     {% empty %}
-                                    <option value="">Oylar yo‘q</option>
+                                    <option value="">Oylar yo'q</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -398,7 +398,7 @@ text-danger
                                     <option value="{{ y }}" {% if selected_year == y %} selected{% endif %}>{{ y }}
                                     </option>
                                     {% empty %}
-                                    <option value="">Yillar yo‘q</option>
+                                    <option value="">Yillar yo'q</option>
                                     {% endfor %}
                                 </select>
                             </div>

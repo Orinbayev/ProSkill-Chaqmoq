@@ -51,7 +51,7 @@
 
                     <!-- CLOSE MONTH BUTTON (FOR ADMINS) -->
                     {% if is_admin and not is_locked %}
-                    <form action="{% url 'education:close_finance_month' %}" method="post" class="m-0" onsubmit="return confirm('Haqiqatan ham ushbu oyni yopmoqchimisiz? Yopilgandan so‘ng ma‘lumotlar o‘zgarmas bo‘lib qoladi.')">
+                    <form action="{% url 'education:close_finance_month' %}" method="post" class="m-0" onsubmit="return confirm('Haqiqatan ham ushbu oyni yopmoqchimisiz? Yopilgandan so'ng ma'lumotlar o'zgarmas bo'lib qoladi.')">
                         {% csrf_token %}
                         <input type="hidden" name="year" value="{{ selected_year }}">
                         <input type="hidden" name="month" value="{{ selected_month }}">

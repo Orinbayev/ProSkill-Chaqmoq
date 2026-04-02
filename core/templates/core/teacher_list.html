@@ -406,7 +406,7 @@
   <div class="page-header">
     <div class="page-title">
       <i class="fa-solid fa-chalkboard-user" style="color: var(--primary);"></i>
-      O‘qituvchilar <span
+      O'qituvchilar <span
         style="font-size: 14px; background: rgba(255,255,255,0.05); padding: 4px 12px; border-radius: 20px; color: var(--text-muted); margin-left: 12px; border: 1px solid rgba(255,255,255,0.05);">
         {{ teachers_count }} ta</span>
     </div>
@@ -416,7 +416,7 @@
       </button>
 
       <a href="{% url 'accounts:add_user' %}?role=teacher" class="btn-action btn-primary">
-        <i class="fa-solid fa-plus"></i> Yangi o‘qituvchi
+        <i class="fa-solid fa-plus"></i> Yangi o'qituvchi
       </a>
 
       <a href="{% url 'core:users_export_excel' %}?role=teacher" class="btn-action btn-excel">
@@ -446,7 +446,7 @@
             <th class="col-num">#</th>
             <th>F.I.SH</th>
             <th>Telefon</th>
-            <th>Tug‘ilgan sana</th>
+            <th>Tug'ilgan sana</th>
             <th>Ulushi (%)</th>
             <th>Guruh</th>
             <th style="width: 50px;"></th>
@@ -481,16 +481,16 @@
                 </button>
                 <div class="menu-dropdown">
                   <a href="{% url 'core:teacher_detail' t.id %}">
-                    <i class="fa-solid fa-eye"></i> Ko‘rish
+                    <i class="fa-solid fa-eye"></i> Ko'rish
                   </a>
                   <a href="{% url 'core:teacher_edit' t.id %}">
                     <i class="fa-solid fa-pen"></i> Tahrirlash
                   </a>
                   <form method="post" action="{% url 'core:teacher_delete' t.id %}"
-                    onsubmit="return confirm('O‘qituvchini o‘chirishni tasdiqlaysizmi?');" style="margin:0;">
+                    onsubmit="return confirm('O'qituvchini o'chirishni tasdiqlaysizmi?');" style="margin:0;">
                     {% csrf_token %}
                     <button type="submit" class="text-red">
-                      <i class="fa-solid fa-trash"></i> O‘chirish
+                      <i class="fa-solid fa-trash"></i> O'chirish
                     </button>
                   </form>
                 </div>
@@ -516,7 +516,7 @@
     document.querySelectorAll('.menu-dropdown').forEach(m => m.classList.remove('open'));
   }
 
-  // Scroll yoki resize bo‘lganda fixed menyuni yopish
+  // Scroll yoki resize bo'lganda fixed menyuni yopish
   window.addEventListener('scroll', closeAllMenus, { passive: true });
   window.addEventListener('resize', closeAllMenus, { passive: true });
 
@@ -660,7 +660,7 @@
         <div>
           <div style="color:white; font-weight:700; font-size:15px; margin-bottom:4px;">Shablonni yuklab oling</div>
           <p style="color:var(--text-muted); font-size:13px; line-height:1.5; margin-bottom:10px;">
-            Import to‘g‘ri ishlashi uchun maxsus Excel shablonidan foydalaning.
+            Import to'g'ri ishlashi uchun maxsus Excel shablonidan foydalaning.
           </p>
           <a href="{% url 'core:users_download_template' %}?role=teacher" class="btn-action btn-outline"
             style="height:36px; padding:0 14px; font-size:13px; display:inline-flex; border-color:rgba(245,158,11,0.3); color:var(--primary);">
@@ -674,9 +674,9 @@
           style="width:32px; height:32px; background:rgba(245,158,11,0.1); color:var(--primary); border-radius:50%; display:grid; place-items:center; flex-shrink:0; font-weight:800; font-size:14px;">
           2</div>
         <div>
-          <div style="color:white; font-weight:700; font-size:15px; margin-bottom:4px;">Ma'lumotlarni to‘ldiring</div>
+          <div style="color:white; font-weight:700; font-size:15px; margin-bottom:4px;">Ma'lumotlarni to'ldiring</div>
           <p style="color:var(--text-muted); font-size:13px; line-height:1.5;">
-            Yuklab olingan Excel faylga o‘qituvchilar ma'lumotlarini namunadagidek kiriting.
+            Yuklab olingan Excel faylga o'qituvchilar ma'lumotlarini namunadagidek kiriting.
           </p>
         </div>
       </div>

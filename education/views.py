@@ -87,11 +87,11 @@ from education.services.enrollment_service import EnrollmentService
 from accounts.models import Center
 from .permissions import user_can_manage_payments
 from django.db import transaction
-from django.db.models.functions import ExtractYear, ExtractMonth, ExtractDay  # student_detail dagi underline ham yo‘qoladi
+from django.db.models.functions import ExtractYear, ExtractMonth, ExtractDay  # student_detail dagi underline ham yo'qoladi
 from urllib.parse import urlparse, parse_qs
 from django.db import transaction
 from urllib.parse import urlparse, parse_qs, unquote
-from django.urls import reverse  # sizda reverse ishlatyapsiz, import yo‘q
+from django.urls import reverse  # sizda reverse ishlatyapsiz, import yo'q
 from django.db import transaction
 from django.db.models import Sum, F, Value as DJValue
 from django.db.models.functions import Coalesce
@@ -136,8 +136,8 @@ def _accumulate_daily_lightning(*, group, student, date_value, points_delta):
 
 def _attendance_adjust_rule():
     """
-    Davomat OFF bo‘lganda, o‘sha kundagi ballarni 'bekor qilish' uchun
-    maxsus Rule kerak bo‘ladi. (DBga 1 marta tushadi)
+    Davomat OFF bo'lganda, o'sha kundagi ballarni 'bekor qilish' uchun
+    maxsus Rule kerak bo'ladi. (DBga 1 marta tushadi)
     """
     rule, _ = Rule.objects.get_or_create(
         nom="Davomat bekor qilindi",
@@ -276,7 +276,7 @@ def _get_month_from_next(next_url: str, fallback: date) -> date:
     try:
         qs = parse_qs(urlparse(next_url).query)
 
-        # 1) eng to‘g‘risi: month=YYYY-MM
+        # 1) eng to'g'risi: month=YYYY-MM
         m = (qs.get("month", [""])[0] or "").strip()
         if m:
             return parse_month_str(m) or fallback
@@ -286,7 +286,7 @@ def _get_month_from_next(next_url: str, fallback: date) -> date:
         if pm.isdigit():
             mm = int(pm)
             if 1 <= mm <= 12:
-                # year bo‘lmasa joriy yil
+                # year bo'lmasa joriy yil
                 yy = (qs.get("year", [""])[0] or "").strip()
                 yy = int(yy) if yy.isdigit() else fallback.year
                 return date(yy, mm, 1)
@@ -358,7 +358,7 @@ def month_first_day(d: date) -> date:
 #         defaults={"fee_amount": fee},
 #     )
 
-#     # fee 0 bo‘lib qolsa fallback
+#     # fee 0 bo'lib qolsa fallback
 #     if not getattr(tm, "fee_amount", 0):
 #         tm.fee_amount = fee
 #         tm.save(update_fields=["fee_amount"])
@@ -391,16 +391,16 @@ def _model_has_field(model, field_name: str) -> bool:
 #     start_month: date | None = None,
 # ) -> Payment:
 #     """
-#     Payment yaratadi va pullarni TuitionMonth’larga ketma-ket taqsimlaydi:
+#     Payment yaratadi va pullarni TuitionMonth'larga ketma-ket taqsimlaydi:
 #     start_month -> keyingi oylar...
 #     """
 #     start_month = month_first_day(start_month or timezone.localdate())
 #     total = int(cash_amount or 0) + int(card_amount_som or 0)
 
 #     if total <= 0:
-#         raise ValueError("To‘lov summasi 0 bo‘lishi mumkin emas.")
+#         raise ValueError("To'lov summasi 0 bo'lishi mumkin emas.")
 
-#     # Payment create (fieldlar turlicha bo‘lishi mumkin)
+#     # Payment create (fieldlar turlicha bo'lishi mumkin)
 #     kwargs = {}
 #     if _model_has_field(Payment, "enrollment"):
 #         kwargs["enrollment"] = enrollment
@@ -412,7 +412,7 @@ def _model_has_field(model, field_name: str) -> bool:
 #     if _model_has_field(Payment, "cash_amount"):
 #         kwargs["cash_amount"] = int(cash_amount or 0)
 
-#     # kartani ba’zi loyihalarda card_amount_som, ba’zida card_amount
+#     # kartani ba'zi loyihalarda card_amount_som, ba'zida card_amount
 #     if _model_has_field(Payment, "card_amount_som"):
 #         kwargs["card_amount_som"] = int(card_amount_som or 0)
 #     elif _model_has_field(Payment, "card_amount"):
@@ -424,7 +424,7 @@ def _model_has_field(model, field_name: str) -> bool:
 #     if _model_has_field(Payment, "paid_at"):
 #         kwargs["paid_at"] = timezone.now()
 #     else:
-#         # eski fieldlar bo‘lsa
+#         # eski fieldlar bo'lsa
 #         if _model_has_field(Payment, "sana"):
 #             kwargs["sana"] = timezone.localdate()
 #         if _model_has_field(Payment, "vaqt"):
@@ -439,12 +439,12 @@ def _model_has_field(model, field_name: str) -> bool:
 #     left = total
 #     cur = start_month
 
-#     # 60 oy max (cheksiz loop bo‘lmasin)
+#     # 60 oy max (cheksiz loop bo'lmasin)
 #     for _ in range(60):
 #         tm = ensure_tuition_month(enrollment, cur)
 #         fee = int(getattr(tm, "fee_amount", 0) or 0)
 
-#         # fee 0 bo‘lsa — keyingi oyga o‘tamiz
+#         # fee 0 bo'lsa — keyingi oyga o'tamiz
 #         if fee <= 0:
 #             cur = _add_month(cur, 1)
 #             continue
@@ -465,7 +465,7 @@ def _model_has_field(model, field_name: str) -> bool:
 
 #         cur = _add_month(cur, 1)
 
-#     # Enrollment jami_tolangan update (agar field bo‘lsa)
+#     # Enrollment jami_tolangan update (agar field bo'lsa)
 #     if _model_has_field(Enrollment, "jami_tolangan"):
 #         Enrollment.objects.filter(pk=enrollment.pk).update(
 #             jami_tolangan=Coalesce(F("jami_tolangan"), 0) + total
@@ -477,7 +477,7 @@ def _model_has_field(model, field_name: str) -> bool:
 @login_required
 def create_payment(request):
     if not user_can_manage_payments(request.user):
-        messages.error(request, "Ruxsat yo‘q.")
+        messages.error(request, "Ruxsat yo'q.")
         return redirect("education:tolovlar_home")
 
     next_url = request.POST.get("next") or "education:tolovlar_home"
@@ -514,7 +514,7 @@ def create_payment(request):
                     start_month=start_month,
                     note=note,
                 )
-            messages.success(request, f"✅ {enrollment.student.get_full_name()} uchun to‘lov saqlandi!")
+            messages.success(request, f"✅ {enrollment.student.get_full_name()} uchun to'lov saqlandi!")
         except Exception as e:
             messages.error(request, f"❌ Xatolik: {e}")
             
@@ -527,7 +527,7 @@ def create_payment(request):
         # ✅ ONLY Active and NOT ARCHIVED groups
         enrollments = Enrollment.objects.filter(student=student, is_active=True, group__is_archived=False).order_by('id')
         if not enrollments.exists():
-            messages.error(request, "O‘quvchida faol kurslar topilmadi.")
+            messages.error(request, "O'quvchida faol kurslar topilmadi.")
             return redirect(next_url)
             
         try:
@@ -577,7 +577,7 @@ def create_payment(request):
                         start_month=start_month
                     )
             
-            messages.success(request, f"✅ {student.get_full_name()} uchun umumiy to‘lov saqlandi!")
+            messages.success(request, f"✅ {student.get_full_name()} uchun umumiy to'lov saqlandi!")
         except Exception as e:
             messages.error(request, f"❌ Xatolik: {e}")
 
@@ -790,7 +790,7 @@ def enrollment_edit(request, enrollment_id):
 @require_http_methods(["GET", "POST"])
 def enrollment_delete(request, enrollment_id: int):
     if not user_can_manage_payments(request.user):
-        messages.error(request, "Ruxsat yo‘q.")
+        messages.error(request, "Ruxsat yo'q.")
         return redirect("core:home")
 
     # from core.tenant import get_request_center
@@ -806,7 +806,7 @@ def enrollment_delete(request, enrollment_id: int):
         student_name = f"{enr.student.ism} {enr.student.familya}"
         group_name = getattr(enr.group, "nom", "")
         enr.delete(deleted_by=request.user)
-        messages.success(request, f"🗑️ {student_name} ({group_name}) guruhdan o‘chirildi.")
+        messages.success(request, f"🗑️ {student_name} ({group_name}) guruhdan o'chirildi.")
         return redirect(next_url)
 
     return render(request, "education/enrollment_delete_confirm.html", {"enr": enr, "next": next_url})
@@ -1280,14 +1280,14 @@ def attendance_groups(request):
     # ✅ Davomat qilinganlar tepada, qilinmaganlar pastda
     # -has_attendance: bor guruhlar birinchi
     # last_attendance: oxirgi davomat sanasi eng yangi birinchi
-    # nom: qolganlari nom bo‘yicha
+    # nom: qolganlari nom bo'yicha
     groups = groups.order_by(
         "-has_attendance",
         F("last_attendance").desc(nulls_last=True),
         "nom"
     )
 
-    # ✅ Statistikalar (tepada ko‘rsatish uchun)
+    # ✅ Statistikalar (tepada ko'rsatish uchun)
     total = groups.count()
     active_count = groups.filter(attendance_count__gt=0).count()
     inactive_count = total - active_count
@@ -1412,260 +1412,207 @@ def group_month_attendance(request, group_id):
 @login_required
 def qarzdorlar_home(request):
     from core.tenant import get_request_center
+    from education.services.tuition import ensure_tuition_month, month_first_day, add_month
 
     if not user_can_manage_payments(request.user):
-        messages.error(request, "Ruxsat yo‘q.")
+        messages.error(request, "Ruxsat yo'q.")
         return redirect("core:home")
 
     center = get_request_center(request)
 
-    # --- FILTERS ---
-    q = (request.GET.get("q") or "").strip()
-    group_id = _get_int(request.GET, "group", 0)
-    min_debt = _get_int(request.GET, "min_debt", 0)
-    max_debt = _get_int(request.GET, "max_debt", 0)
+    # ─── FILTERS ────────────────────────────────────────────────────────────
+    q          = (request.GET.get("q") or "").strip()
+    group_id   = _get_int(request.GET, "group", 0)
+    min_debt   = _get_int(request.GET, "min_debt", 0)
+    max_debt   = _get_int(request.GET, "max_debt", 0)
 
-    start_date_str = request.GET.get("start_date")
-    end_date_str = request.GET.get("end_date")
-
-    # Base Query: Active Enrollments (student va guruh arxivda bo'lmagan)
-    # Base Query: Start from User to ensure ALL students are included
-    from accounts.models import User as U
-    students_qs = U.objects.filter(
-        role="student",
-        is_archived=False,
-    )
-
-    if center:
-        students_qs = students_qs.filter(center=center)
-
-    if q:
-        students_qs = students_qs.filter(
-            Q(ism__icontains=q) |
-            Q(familya__icontains=q) |
-            Q(telefon1__icontains=q) |
-            Q(telefon2__icontains=q)
-        )
-
-    # We still need Enrollments for detail calculations
-    enrollments_base = Enrollment.objects.filter(
-        student__is_archived=False, 
-        group__is_archived=False,
-        is_active=True
-    )
-    if center:
-        enrollments_base = enrollments_base.filter(center=center)
-    if group_id:
-        enrollments_base = enrollments_base.filter(group_id=group_id)
-
-    # If filtered by group, we only want students in that group
-    if group_id:
-        students_qs = students_qs.filter(enrollments__group_id=group_id).distinct()
-
-    # --- DEBT CALCULATION ---
-    today = timezone.localdate()
+    # ─── JORIY OY ANIQLASH ──────────────────────────────────────────────────
+    today     = timezone.localdate()
     cur_month = today.replace(day=1)
-    fee_field = tuition_month_fee_field()
 
-    # ✅ ADDED MONTH FILTER
     sel_month = request.GET.get("pay_month")
     if sel_month and sel_month.isdigit():
-        cur_month = cur_month.replace(month=int(sel_month))
+        m = int(sel_month)
+        if 1 <= m <= 12:
+            cur_month = cur_month.replace(month=m)
 
-    # --- AUTO CREATE MISSING TUITION MONTHS (CURRENT & HISTORICAL) ---
-    # Har bir faol o'quvchi uchun joriy oygacha barcha TuitionMonth'lar borligini ta'minlaymiz.
-    active_enrs = Enrollment.objects.filter(
-        is_active=True, student__is_archived=False, group__is_archived=False
+    fee_field = tuition_month_fee_field()
+
+    # ─── FAOL ENROLLMENT'LAR ─────────────────────────────────────────────────
+    # Faqat:  is_active=True  +  student NOT archived  +  group NOT archived
+    active_enrs_qs = (
+        Enrollment.objects
+        .select_related("student", "group")
+        .filter(is_active=True, student__is_archived=False, group__is_archived=False)
     )
     if center:
-        active_enrs = active_enrs.filter(center=center)
+        active_enrs_qs = active_enrs_qs.filter(center=center)
 
-    # select_related va prefetch_related unumdorlik uchun
-    active_enrs = active_enrs.select_related("group")
+    # ─── TUITIONMONTH AUTO-ENSURE (joriy oy) ────────────────────────────────
+    # Har bir faol enrollment uchun JORIY OY TuitionMonth yozuvi bo'lishini
+    # kafolatlaymiz. `ensure_tuition_month` soft-deleted ni tiklaydi, 0-fee ni
+    # to'g'rilaydi — shuning uchun bulk_create dan ustunroq.
+    for enr in active_enrs_qs:
+        ensure_tuition_month(enr, cur_month)
 
-    from education.services.tuition import get_fee_amount, month_first_day, add_month
-    
-    tms_to_create = []
-    # Joriy oy (hisob-kitob uchun oxirgi nuqta)
-    final_m = cur_month
+    # ─── SUBQUERY: fee va paid (faqat TANLANGAN OY) ──────────────────────────
+    total_fee_sub = (
+        TuitionMonth.objects
+        .filter(enrollment=OuterRef("pk"), month=cur_month)
+        .values("enrollment")
+        .annotate(s=Sum(fee_field))
+        .values("s")
+    )
+    total_paid_sub = (
+        PaymentAllocation.objects
+        .filter(
+            tuition_month__enrollment=OuterRef("pk"),
+            tuition_month__month=cur_month,
+        )
+        .values("tuition_month__enrollment")
+        .annotate(s=Sum("amount"))
+        .values("s")
+    )
 
-    # Hozirgi barcha bor TM larni yig'amiz (duplicate bo'lmasligi u-n)
-    existing_tms = set(TuitionMonth.objects.filter(
-        enrollment__in=active_enrs,
-        month__lte=final_m
-    ).values_list("enrollment_id", "month"))
+    # ─── ENROLLMENTS (FILTER UCHUN BASE) ─────────────────────────────────────
+    enrs_base = active_enrs_qs
+    if group_id:
+        enrs_base = enrs_base.filter(group_id=group_id)
 
-    for enr in active_enrs:
-        # Enrollment boshlangan oy
-        start_date = getattr(enr, "created_at", None) or timezone.now()
-        cur_m = month_first_day(start_date.date())
-        
-        # 3 yil cheklov (xavfsizlik u-n)
-        limit = 36
-        while cur_m <= final_m and limit > 0:
-            if (enr.id, cur_m) not in existing_tms:
-                fee = get_fee_amount(enr)
-                tm = TuitionMonth(
-                    center=enr.center if hasattr(enr, "center") else center,
-                    enrollment=enr,
-                    month=cur_m
-                )
-                setattr(tm, fee_field, fee)
-                tms_to_create.append(tm)
-                # O'zimizni listga ham qo'shamiz (parallel kelsa bulk xato bermasligi u-n)
-                existing_tms.add((enr.id, cur_m))
-            
-            cur_m = add_month(cur_m, 1)
-            limit -= 1
-            
-    if tms_to_create:
-        TuitionMonth.objects.bulk_create(tms_to_create, ignore_conflicts=True)
+    # ─── JAMI MARKAZ QARZ SUMMASI ────────────────────────────────────────────
+    total_center_debt = (
+        enrs_base
+        .annotate(f=Coalesce(Subquery(total_fee_sub), 0),
+                  p=Coalesce(Subquery(total_paid_sub), 0))
+        .annotate(d=F("f") - F("p"))
+        .filter(d__gt=0)
+        .aggregate(total=Sum("d"))["total"] or 0
+    )
 
-    # --- DEBT CALCULATION ---
-    # ✅ [FIX] User requested month-specific debt (matching the 88M dashboard logic).
-    # "menga xar oynikini chiqarib bersin!"
-    # Changing __lte to = for the selected month to show ONLY debt generated in that period.
-    
-    # Prepare Subqueries for debt calculation
-    total_fee_sub = TuitionMonth.objects.filter(
-        enrollment=OuterRef("pk"), month=cur_month
-    ).values("enrollment").annotate(s=Sum(fee_field)).values("s")
+    # ─── ANNOTATE QARZ ──────────────────────────────────────────────────────
+    enrs_annotated = (
+        enrs_base
+        .annotate(f=Coalesce(Subquery(total_fee_sub), 0),
+                  p=Coalesce(Subquery(total_paid_sub), 0))
+        .annotate(calculated_debt=F("f") - F("p"))
+    )
 
-    total_paid_sub = PaymentAllocation.objects.filter(
-        tuition_month__enrollment=OuterRef("pk"),
-        tuition_month__month=cur_month
-    ).values("tuition_month__enrollment").annotate(s=Sum("amount")).values("s")
+    # ─── STUDENT MAP (student bo'yicha guruhlash) ────────────────────────────
+    graph_map   = {m: 0 for m in range(1, 13)}
+    student_map = {}   # {student_id: row_dict}
 
-    # Global total for Center
-    total_center_debt = enrollments_base.annotate(
-        f=Coalesce(Subquery(total_fee_sub), 0),
-        p=Coalesce(Subquery(total_paid_sub), 0)
-    ).annotate(d=F("f")-F("p")).filter(d__gt=0).aggregate(total=Sum("d"))["total"] or 0
+    for e in enrs_annotated:
+        sid  = e.student_id
+        debt = int(e.calculated_debt or 0)
+        f    = int(e.f or 0)
+        p    = int(e.p or 0)
 
-    # Fetch Enrollments with calculated debt
-    enrs_with_debt = enrollments_base.annotate(
-        f=Coalesce(Subquery(total_fee_sub), 0),
-        p=Coalesce(Subquery(total_paid_sub), 0)
-    ).annotate(calculated_debt=F("f")-F("p")).select_related("student", "group")
+        if sid not in student_map:
+            student_map[sid] = {
+                "student":     e.student,
+                "group_names": [],
+                "total_fee":   0,
+                "total_paid":  0,
+                "debt":        0,
+                "enrollment":  e,
+                "group":       e.group,
+                "staff":       getattr(e.group, "oqituvchi", None),
+            }
 
-    # filtered_debt will be calculated AFTER student grouping (accurate per-student sum)
-    
-    # Group by student
-    graph_map = {m: 0 for m in range(1, 13)}
-    student_map = {s.id: {
-        "student": s,
-        "group_names": [],
-        "total_fee": 0,
-        "total_paid": 0,
-        "debt": 0,
-        "created_at": s.date_joined or timezone.now(),
-        "enrollment": None, # Fallback
-        "group": None,
-    } for s in students_qs}
+        row = student_map[sid]
+        row["total_fee"]  += f
+        row["total_paid"] += p
+        row["debt"]       += debt
 
-    for e in enrs_with_debt:
-        sid = e.student_id
-        if sid in student_map:
-            row = student_map[sid]
-            row["total_fee"] += int(e.f or 0)
-            row["total_paid"] += int(e.p or 0)
-            row["debt"] += int(e.calculated_debt or 0)
-            if e.group:
-                row["group_names"].append(e.group.nom)
-                if not row["enrollment"]:
-                    row["enrollment"] = e
-                    row["group"] = e.group
-            
-            # Populate graph data
-            e_date = (e.created_at.date() if getattr(e, "created_at", None) else today)
-            m_idx = e_date.month
-            if m_idx in graph_map:
-                graph_map[m_idx] += int(e.calculated_debt or 0)
+        if e.group:
+            gnom = getattr(e.group, "nom", "")
+            if gnom and gnom not in row["group_names"]:
+                row["group_names"].append(gnom)
 
-    # Process group labels for display
+        # Grafik: enrollment oy bo'yicha
+        try:
+            m_idx = e.created_at.month if e.created_at else today.month
+        except Exception:
+            m_idx = today.month
+        if m_idx in graph_map and debt > 0:
+            graph_map[m_idx] += debt
+
+    # ─── GROUP LABEL ─────────────────────────────────────────────────────────
     for r in student_map.values():
-        r["group_label"] = ", ".join(r["group_names"]) if r["group_names"] else ""
-        
-    rows = list(student_map.values())
-    
-    # Calculate Stats for the whole center (for UI summary)
-    total_active_students = students_qs.count()
-    debtors_count = 0
-    paid_count = 0
+        r["group_label"] = ", ".join(r["group_names"]) if r["group_names"] else "—"
+
+    # ─── QIDIRUV: ism/familya/telefon bo'yicha ───────────────────────────────
+    all_rows = list(student_map.values())
+    if q:
+        ql = q.lower()
+        all_rows = [
+            r for r in all_rows
+            if ql in (r["student"].ism or "").lower()
+            or ql in (r["student"].familya or "").lower()
+            or ql in (r["student"].telefon1 or "").lower()
+            or ql in (r["student"].telefon2 or "").lower()
+        ]
+
+    # ─── STATISTIKA ──────────────────────────────────────────────────────────
+    debtors_count  = 0
+    paid_count     = 0
     no_group_count = 0
-    
-    final_rows = []
-    for r in rows:
+    debtor_rows    = []
+
+    for r in all_rows:
         if not r["group_names"]:
             no_group_count += 1
-        elif r["debt"] > 0:
+            continue
+        if r["debt"] > 0:
+            # Min/Max qarz filterlari
+            if min_debt and r["debt"] < min_debt:
+                continue
+            if max_debt and r["debt"] > max_debt:
+                continue
             debtors_count += 1
-            final_rows.append(r) # Only Debtors in the main table
+            debtor_rows.append(r)
         else:
             paid_count += 1
-            # Optional: include paid students? User said "MOVE" to payments,
-            # so we'll exclude them from this specific list to satisfy "decreasing" requirement.
+            # To'lov qilganlar → qarzdorlar ro'yxatiga kirmaydi
+            # Ular "To'lovlar" bo'limida ko'rinadi
 
-    # ✅ If user specifically searched for someone, or filtered by group, we might show them anyway?
-    # No, let's stick to "Debtors" if no search, or "Search matches" if searching.
-    if q or group_id:
-        # If searching, show all matches regardless of debt
-        display_rows = rows 
-    else:
-        # Standard view: only actual debtors
-        display_rows = final_rows
+    display_rows = debtor_rows
 
-    # filtered_debt = actual sum from display_rows
-    filtered_debt = sum(r["debt"] for r in display_rows)
+    filtered_debt   = sum(r["debt"] for r in display_rows)
+    chart_series    = [graph_map[m] for m in range(1, 13)]
 
-    # Paginator
+    # ─── PAGINATOR ───────────────────────────────────────────────────────────
     from django.core.paginator import Paginator
-    paginator = Paginator(display_rows, 20)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
+    paginator   = Paginator(display_rows, 20)
+    page_obj    = paginator.get_page(request.GET.get("page"))
 
-    # Groups for filter
-    groups = Group.objects.filter(is_archived=False)
+    # ─── GURUHLAR (filter uchun) ──────────────────────────────────────────────
+    groups_qs = Group.objects.filter(is_archived=False)
     if center:
-        groups = groups.filter(center=center)
-
-    # Chart data format: [Jan..Dec]
-    chart_series = [graph_map[m] for m in range(1, 13)]
+        groups_qs = groups_qs.filter(center=center)
 
     context = {
-        "page_obj": page_obj,
-        "groups": groups,
+        "page_obj":       page_obj,
+        "groups":         groups_qs,
         "selected_group": group_id,
-        "total_debt": total_center_debt,
-        "filtered_debt": filtered_debt,
-        "chart_data": chart_series,
-        "stats_summary": {
-            "total": total_active_students,
-            "debtors": debtors_count,
-            "paid": paid_count,
-            "no_group": no_group_count,
-        },
-
-        # filters
-        "q": q,
-        "min_debt": min_debt if min_debt else "",
-        "max_debt": max_debt if max_debt else "",
-        "start_date": start_date_str,
-        "end_date": end_date_str,
-        "pay_month": sel_month,
+        "total_debt":     total_center_debt,
+        "filtered_debt":  filtered_debt,
+        "chart_data":     chart_series,
+        "q":              q,
+        "min_debt":       min_debt if min_debt else "",
+        "max_debt":       max_debt if max_debt else "",
+        "pay_month":      sel_month,
         "uz_months": [
-            (1, "Yanvar"), (2, "Fevral"), (3, "Mart"), (4, "Aprel"),
-            (5, "May"), (6, "Iyun"), (7, "Iyul"), (8, "Avgust"),
+            (1, "Yanvar"),   (2, "Fevral"),   (3, "Mart"),    (4, "Aprel"),
+            (5, "May"),      (6, "Iyun"),     (7, "Iyul"),    (8, "Avgust"),
             (9, "Sentyabr"), (10, "Oktyabr"), (11, "Noyabr"), (12, "Dekabr"),
         ],
-
-        # Stats Summary
         "stats_summary": {
-            "total": total_active_students,
-            "debtors": debtors_count,
-            "paid": paid_count,
+            "total":    len(all_rows),
+            "debtors":  debtors_count,
+            "paid":     paid_count,
             "no_group": no_group_count,
-        }
+        },
     }
 
     return render(request, "education/qarzdorlar.html", context)
@@ -2277,7 +2224,7 @@ def student_groups_api(request, student_id):
 @login_required
 def payment_history(request, student_id):
     """
-    O‘quvchining (barcha kurslari bo‘yicha) to‘lov tarixini va joriy oy holatini xisoblaydi.
+    O'quvchining (barcha kurslari bo'yicha) to'lov tarixini va joriy oy holatini xisoblaydi.
     """
     month_str = request.GET.get("month")
     selected_month = parse_month_str(month_str) or first_day_of_current_month()
@@ -2339,9 +2286,9 @@ def tolov_oqituvchilar(request):
 @login_required
 def groups_hub(request):
     """
-    📘 Guruhlar markaziy sahifasi — barcha kategoriyalar ro‘yxati.
+    📘 Guruhlar markaziy sahifasi — barcha kategoriyalar ro'yxati.
     """
-    from .models import Category  # agar alohida model bo‘lsa
+    from .models import Category  # agar alohida model bo'lsa
     categories = Category.objects.all() if hasattr(Category, "objects") else []
     return render(request, "education/groups_home.html", {
         "categories": categories,
@@ -2383,12 +2330,12 @@ def edit_category(request, id):
         cat.name = name
         cat.description = description
 
-        # 🔹 Agar yangi rasm tanlangan bo‘lsa, yangisini saqlaymiz
+        # 🔹 Agar yangi rasm tanlangan bo'lsa, yangisini saqlaymiz
         if image:
             cat.image = image
 
         cat.save()
-        messages.success(request, "Bo‘lim muvaffaqiyatli tahrirlandi ✅")
+        messages.success(request, "Bo'lim muvaffaqiyatli tahrirlandi ✅")
         return redirect("education:groups_home")
 
     return render(request, "education/category_edit.html", {"cat": cat})
@@ -2408,7 +2355,7 @@ def delete_category(request, id):
 
     if request.method == "POST":
         cat.delete(deleted_by=request.user)
-        messages.success(request, "Bo‘lim o‘chirildi 🗑️")
+        messages.success(request, "Bo'lim o'chirildi 🗑️")
         return redirect("education:groups_home")
     return render(request, "education/category_delete_confirm.html", {"cat": cat})
 
@@ -2416,7 +2363,7 @@ def delete_category(request, id):
 @login_required
 def groups_by_category(request, category):
     if category not in ("lang", "it"):
-        raise Http404("Noto‘g‘ri kategoriya")
+        raise Http404("Noto'g'ri kategoriya")
 
     rows = (
         Group.objects.filter(category=category)
@@ -2440,7 +2387,7 @@ def groups_by_category(request, category):
 def create_group_for_category(request, category_id):
     category = get_object_or_404(Category, id=category_id)
     if not _can_manage(request.user):
-        messages.error(request, "Sizda guruh yaratish huquqi yo‘q.")
+        messages.error(request, "Sizda guruh yaratish huquqi yo'q.")
         return redirect("education:groups_home")
 
     if request.method == "POST":
@@ -2448,7 +2395,7 @@ def create_group_for_category(request, category_id):
         if form.is_valid():
             group = form.save(commit=False)
 
-            # 🟢 To‘g‘ri maydon: ForeignKey bo‘lgan 'category_obj'
+            # 🟢 To'g'ri maydon: ForeignKey bo'lgan 'category_obj'
             group.category_obj = category
 
             # Center assignment
@@ -2457,11 +2404,11 @@ def create_group_for_category(request, category_id):
             if center:
                 group.center = center
 
-            # Eski 'category' maydoni ham to‘ldirilsa yaxshi
+            # Eski 'category' maydoni ham to'ldirilsa yaxshi
             group.category = Group.IT  # yoki Group.LANG — kerakli turga qarab
             group.save()
 
-            messages.success(request, f"✅ '{group.nom}' guruhi {category.name} bo‘limiga qo‘shildi.")
+            messages.success(request, f"✅ '{group.nom}' guruhi {category.name} bo'limiga qo'shildi.")
             return redirect("education:category_detail", category_id=category.id)
     else:
         form = GroupForm()
@@ -2514,7 +2461,7 @@ def group_detail(request, pk: int):
     g = get_object_or_404(qs, pk=pk)
 
     if request.user.role == "teacher" and g.oqituvchi != request.user:
-        return HttpResponseForbidden("Siz bu guruhni ko‘ra olmaysiz.")
+        return HttpResponseForbidden("Siz bu guruhni ko'ra olmaysiz.")
 
     date_str = request.GET.get("date")
     selected_date = parse_date(date_str) if date_str else localdate()
@@ -2703,9 +2650,9 @@ from django.utils.dateparse import parse_date
 @require_POST
 def attendance_force(request):
     """
-    Tanlangan guruh va sana bo‘yicha:
-    ✅ kelmagan (present=False) o‘quvchilar uchun
-    forced=True qilib, o‘qituvchiga pul yoziladigan dars sifatida belgilaydi.
+    Tanlangan guruh va sana bo'yicha:
+    ✅ kelmagan (present=False) o'quvchilar uchun
+    forced=True qilib, o'qituvchiga pul yoziladigan dars sifatida belgilaydi.
 
     Frontend POST yuboradi:
       - group_id
@@ -2720,7 +2667,7 @@ def attendance_force(request):
 
     date_obj = parse_date(date_str)
     if not date_obj:
-        return JsonResponse({"ok": False, "error": "Sana noto‘g‘ri formatda"})
+        return JsonResponse({"ok": False, "error": "Sana noto'g'ri formatda"})
 
     # Guruhni olamiz
     from core.tenant import get_request_center
@@ -2743,18 +2690,18 @@ def attendance_force(request):
         att = att_by_student.get(enr.student_id)
 
         if att:
-            # Agar allaqachon present=True bo‘lsa, buni majburan "kelmadi" qilishni xohlamaymiz
-            # (agar kerak bo‘lsa, bu qismni o‘zing o‘zgartirasan)
+            # Agar allaqachon present=True bo'lsa, buni majburan "kelmadi" qilishni xohlamaymiz
+            # (agar kerak bo'lsa, bu qismni o'zing o'zgartirasan)
             if att.present:
                 continue
 
             if not att.forced:
                 att.forced = True
-                att.present = False  # forced bo‘lsa ham uni "kelmadi" deb saqlab qo‘yamiz
+                att.present = False  # forced bo'lsa ham uni "kelmadi" deb saqlab qo'yamiz
                 att.save()
                 forced_count += 1
         else:
-            # Hech qanday attendance yo‘q bo‘lsa, yangi "kelmadi, forced" yozuvi yaratamiz
+            # Hech qanday attendance yo'q bo'lsa, yangi "kelmadi, forced" yozuvi yaratamiz
             Attendance.objects.create(
                 group=g,
                 student=enr.student,
@@ -2786,7 +2733,7 @@ def attend_all(request, pk):
 
     # faqat direktor/manager/teacher
     if request.user.role == "teacher" and g.oqituvchi != request.user:
-        return JsonResponse({"ok": False, "error": "ruxsat yo‘q"})
+        return JsonResponse({"ok": False, "error": "ruxsat yo'q"})
 
     date_str = request.POST.get("date")
     selected_date = parse_date(date_str) if date_str else localdate()
@@ -2816,7 +2763,7 @@ def attend_all_students(request, g_id):
     g = get_object_or_404(qs, pk=g_id)
 
     if request.user.role == "teacher" and g.oqituvchi != request.user:
-        return JsonResponse({"ok": False, "error": "ruxsat yo‘q"})
+        return JsonResponse({"ok": False, "error": "ruxsat yo'q"})
 
     date_str = request.POST.get("date")
     selected_date = parse_date(date_str) if date_str else localdate()
@@ -2933,7 +2880,7 @@ def attendance_today(request, pk: int):
 @login_required
 def group_bulk_remove(request, pk):
     if request.method != "POST":
-        return JsonResponse({"ok": False, "msg": "POST bo‘lishi shart."})
+        return JsonResponse({"ok": False, "msg": "POST bo'lishi shart."})
 
     from core.tenant import get_request_center
     center = get_request_center(request)
@@ -3160,7 +3107,7 @@ def group_toggle_archive(request, pk):
     group = get_object_or_404(qs, pk=pk)
 
     if not _can_manage(request.user):
-         messages.error(request, "Ruxsat yo‘q.")
+         messages.error(request, "Ruxsat yo'q.")
          return redirect("education:category_detail", category_id=group.category_obj.id)
          
     if request.method == "POST":
@@ -3179,7 +3126,7 @@ from accounts.models import User
 
 @login_required
 def oylik_hisobot(request):
-    """Har bir o‘qituvchining oyligini avtomatik hisoblash"""
+    """Har bir o'qituvchining oyligini avtomatik hisoblash"""
     oy = datetime.now().strftime("%B")
     yil = datetime.now().year
     oylik_data = []
@@ -3213,7 +3160,7 @@ def oylik_hisobot(request):
             "markaz_foydasi": round(markaz_foydasi),
         })
 
-        # OylikHisobot jadvaliga yozib qo‘yish
+        # OylikHisobot jadvaliga yozib qo'yish
         OylikHisobot.objects.update_or_create(
             oqituvchi=teacher,
             oy=oy,
@@ -3286,7 +3233,7 @@ class CategoryForm(forms.ModelForm):
             "description": forms.Textarea(attrs={
                 "class": "form-control",
                 "rows": 3,
-                "placeholder": "Bo‘lim haqida qisqa izoh"
+                "placeholder": "Bo'lim haqida qisqa izoh"
             }),
         }
 
@@ -3328,7 +3275,7 @@ def groups_home(request):
     )
     count_map = {row["category_obj"]: row["c"] for row in counts_qs}
 
-    # template ishlatishi uchun cat.groups_count qo‘shib chiqamiz
+    # template ishlatishi uchun cat.groups_count qo'shib chiqamiz
     for cat in categories:
         cat.groups_count = count_map.get(cat.id, 0)
 
@@ -3348,7 +3295,7 @@ def add_category(request):
             cat = form.save(commit=False)
             cat.center = center
             cat.save()
-            messages.success(request, "Bo‘lim muvaffaqiyatli qo‘shildi ✅")
+            messages.success(request, "Bo'lim muvaffaqiyatli qo'shildi ✅")
             return redirect("education:groups_home")
     else:
         form = CategoryForm()
@@ -3446,14 +3393,14 @@ def student_detail(request, student_id: int):
     day_lightning_map = dict(ledger_day_lightning_map)
     day_lightning_map.update(daily_day_lightning_map)
 
-    # 🔹 Har bir guruh bo‘yicha ajratamiz
+    # 🔹 Har bir guruh bo'yicha ajratamiz
     grouped_by_group = {}
     for a in attendances:
         grouped_by_group.setdefault(a.group, []).append(a)
 
     month_summaries = []
     for group, group_attendances in grouped_by_group.items():
-        # Guruh bo‘yicha oylik natijalarni tayyorlash
+        # Guruh bo'yicha oylik natijalarni tayyorlash
         grouped_by_month = {}
         for a in group_attendances:
             key = (a.year, a.month)
@@ -3466,10 +3413,10 @@ def student_detail(request, student_id: int):
             minus_sum = month_lightning["minus"]
 
             month_summaries.append({
-                "group": group.nom,  # 🔹 Guruh nomini qo‘shamiz
+                "group": group.nom,  # 🔹 Guruh nomini qo'shamiz
                 "year": year,
                 "month": month,
-                "month_name": MONTH_NAMES.get(month, "Noma’lum oy"),
+                "month_name": MONTH_NAMES.get(month, "Noma'lum oy"),
                 "present_days": total_present,
                 "plus": plus_sum,
                 "minus": minus_sum,
@@ -3620,7 +3567,365 @@ def teacher_salary_list(request):
         "is_closed": is_closed,
     })
 
-# 🔹 2. O‘qituvchining barcha guruhlari
+# 🔹 Excel Export — O'qituvchi oyligi hisoboti
+@login_required
+def teacher_salary_export(request):
+    """
+    Tanlangan oy/yil bo'yicha barcha o'qituvchilar oylik hisobotini
+    professional Excel (.xlsx) fayl sifatida yuklab beradi.
+
+    Sheet 1: Umumiy hisobot (barchasi + bar chart)
+    Sheet 2..N: Har bir o'qituvchi uchun alohida — guruh va o'quvchi kesimida.
+    """
+    import io
+    import openpyxl
+    from openpyxl.styles import (
+        Font, PatternFill, Alignment, Border, Side, numbers
+    )
+    from openpyxl.utils import get_column_letter
+    from openpyxl.chart import BarChart, Reference
+
+    from core.tenant import get_request_center
+    from education.services.historical_finance_service import HistoricalFinanceService
+
+    # ── Parametrlar ──────────────────────────────────────────────────────────
+    now   = timezone.localdate()
+    year  = _get_int(request.GET, "year",  now.year)
+    month = _get_int(request.GET, "month", now.month)
+    if month < 1 or month > 12:
+        month = now.month
+
+    center = get_request_center(request)
+
+    MONTH_NAMES = [
+        "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
+        "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"
+    ]
+    month_name = MONTH_NAMES[month - 1]
+    period_label = f"{month_name} {year}"
+
+    # ── O'qituvchilar va oylik ma'lumot ──────────────────────────────────────
+    teacher_qs = User.objects.filter(role="teacher")
+    if center:
+        teacher_qs = teacher_qs.filter(center=center)
+    teachers = list(teacher_qs.order_by("ism"))
+
+    salary_rows = []
+    for t in teachers:
+        data = HistoricalFinanceService.calculate_teacher_salary(t, year, month, center)
+        salary_rows.append({
+            "teacher": t,
+            "salary":  data["salary"],
+            "details": data.get("details", []),
+        })
+
+    # ── Stil yordamchilari ───────────────────────────────────────────────────
+    def _hdr_fill(hex_color):
+        return PatternFill("solid", fgColor=hex_color)
+
+    def _border(style="thin"):
+        s = Side(style=style)
+        return Border(left=s, right=s, top=s, bottom=s)
+
+    def _bold(size=11, color="000000"):
+        return Font(bold=True, size=size, color=color)
+
+    def _money_fmt():
+        return "#,##0"
+
+    def _auto_width(ws, extra=4):
+        for col in ws.columns:
+            mx = 0
+            for cell in col:
+                try:
+                    mx = max(mx, len(str(cell.value or "")))
+                except Exception:
+                    pass
+            ws.column_dimensions[get_column_letter(col[0].column)].width = mx + extra
+
+    # ── Minimalist yorqin rang sxemasi ──────────────────────────────────────
+    # Asosiy: ko'k (2563EB) | Guruh: yashil (0EA472) | Jami: sariq (F59E0B)
+    # Fon: oq (FFFFFF) | Alt qator: och kulrang (F8FAFC) | Chegara: kulrang (CBD5E1)
+    HDR_DARK   = _hdr_fill("2563EB")   # bosh sarlavha — chuqur ko'k
+    HDR_BLUE   = _hdr_fill("3B82F6")   # ustun header — yorqin ko'k
+    HDR_GREEN  = _hdr_fill("0EA472")   # guruh blok — yashil
+    TOTAL_FILL = _hdr_fill("FEF3C7")   # jami satri — sariq fon
+    ALT_FILL   = _hdr_fill("F1F5F9")   # juft qatorlar — och kulrang
+    WHITE_FONT = Font(bold=True, color="FFFFFF", size=11)
+    DARK_FONT  = Font(color="1E293B", size=10)
+    TOTAL_FONT = Font(bold=True, color="92400E", size=11)   # jami — to'q jigarrang
+    MONEY_NUM  = _money_fmt()
+
+    wb = openpyxl.Workbook()
+
+    # ════════════════════════════════════════════════════════════════════════
+    # SHEET 1 — UMUMIY HISOBOT
+    # ════════════════════════════════════════════════════════════════════════
+    ws1 = wb.active
+    ws1.title = "Umumiy hisobot"
+    ws1.sheet_view.showGridLines = False
+
+    # Sarlavha
+    ws1.merge_cells("A1:G1")
+    title_cell = ws1["A1"]
+    title_cell.value = f"O'qituvchilar Oylik Hisoboti — {period_label}"
+    title_cell.font  = Font(bold=True, size=16, color="FFFFFF")
+    title_cell.fill  = HDR_DARK
+    title_cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws1.row_dimensions[1].height = 36
+
+    # Ustun sarlavhalari
+    headers1 = ["T/r", "O'qituvchi", "Guruhlar soni", "O'quvchilar soni",
+                 "Qatnashuv (dars)", "Hisoblangan oylik (so'm)", "Izoh"]
+    ws1.append([])  # bo'sh qator (row 2)
+    ws1.append(headers1)  # row 3
+    for ci, h in enumerate(headers1, 1):
+        cell = ws1.cell(row=3, column=ci)
+        cell.value  = h
+        cell.font   = WHITE_FONT
+        cell.fill   = HDR_BLUE
+        cell.border = _border()
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    ws1.row_dimensions[3].height = 28
+
+    total_sum = 0
+    chart_names    = []
+    chart_salaries = []
+
+    for idx, row in enumerate(salary_rows, 1):
+        t       = row["teacher"]
+        details = row["details"]
+        students_total = sum(len(d.get("enrollments", [])) for d in details)
+        attend_total   = sum(d.get("attendance", 0) for d in details)
+        salary         = row["salary"]
+        total_sum     += salary
+
+        name = t.get_full_name() or t.email
+        chart_names.append(name[:20])
+        chart_salaries.append(salary)
+
+        data_row = [idx, name, len(details), students_total, attend_total, salary, ""]
+        ws1.append(data_row)
+        ri = ws1.max_row
+        # Juft — och kulrang, toq — oq
+        fill = ALT_FILL if idx % 2 == 0 else _hdr_fill("FFFFFF")
+        for ci, val in enumerate(data_row, 1):
+            cell = ws1.cell(row=ri, column=ci)
+            cell.fill   = fill
+            cell.border = _border()
+            cell.font   = Font(color="334155", size=10)
+            cell.alignment = Alignment(vertical="center",
+                                       horizontal="center" if ci in (1,3,4,5) else "left")
+            if ci == 6:
+                cell.number_format = MONEY_NUM
+                cell.font = Font(color="1D4ED8", size=10, bold=True)
+
+    # JAMI SATRI
+    jami_ri = ws1.max_row + 1
+    ws1.cell(row=jami_ri, column=1).value = "JAMI"
+    ws1.cell(row=jami_ri, column=6).value = total_sum
+    ws1.cell(row=jami_ri, column=6).number_format = MONEY_NUM
+    for ci in range(1, 8):
+        cell = ws1.cell(row=jami_ri, column=ci)
+        cell.fill   = TOTAL_FILL
+        cell.font   = TOTAL_FONT
+        cell.border = _border()
+        cell.alignment = Alignment(horizontal="center" if ci == 1 else "left", vertical="center")
+    ws1.cell(row=jami_ri, column=6).font = Font(bold=True, color="92400E", size=11)
+    ws1.row_dimensions[jami_ri].height = 26
+
+    # BAR CHART
+    if chart_names:
+        chart = BarChart()
+        chart.type   = "col"
+        chart.title  = f"O'qituvchilar oyligi — {period_label}"
+        chart.y_axis.title = "Oylik (so'm)"
+        chart.x_axis.title = "O'qituvchi"
+        chart.style  = 10
+        chart.width  = 28
+        chart.height = 16
+
+        data_ref = Reference(ws1,
+                             min_col=6, max_col=6,
+                             min_row=3, max_row=3 + len(salary_rows) - 1)
+        cats_ref = Reference(ws1,
+                             min_col=2, max_col=2,
+                             min_row=4, max_row=3 + len(salary_rows))
+        chart.add_data(data_ref, titles_from_data=True)
+        chart.set_categories(cats_ref)
+        ws1.add_chart(chart, f"A{jami_ri + 2}")
+
+    ws1.freeze_panes = "A4"
+    _auto_width(ws1)
+
+    # ════════════════════════════════════════════════════════════════════════
+    # SHEET 2..N — HAR BIR O'QITUVCHI
+    # ════════════════════════════════════════════════════════════════════════
+    for row in salary_rows:
+        t       = row["teacher"]
+        details = row["details"]
+        salary  = row["salary"]
+
+        # Sheet nomi: Excel 31 belgidan oshmasin, noto'g'ri belgilar yo'qolsin
+        raw_name   = t.get_full_name() or t.email or f"Ustoz_{t.pk}"
+        sheet_name = raw_name[:28].translate(
+            str.maketrans(r'\/*?:[]', '_______')
+        )
+        # Takrorlanmaslik uchun son qo'shamiz
+        base = sheet_name
+        cnt  = 1
+        while sheet_name in [s.title for s in wb.worksheets]:
+            sheet_name = f"{base[:25]}_{cnt}"
+            cnt += 1
+
+        ws = wb.create_sheet(title=sheet_name)
+        ws.sheet_view.showGridLines = False
+
+        # ── HEADER blok ─────────────────────────────────────────────────────
+        students_total = sum(len(d.get("enrollments", [])) for d in details)
+        attend_total   = sum(d.get("attendance", 0) for d in details)
+
+        ws.merge_cells("A1:F1")
+        ws["A1"].value = f"O'qituvchi: {raw_name}  |  Davr: {period_label}"
+        ws["A1"].font  = Font(bold=True, size=14, color="FFFFFF")
+        ws["A1"].fill  = HDR_DARK
+        ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
+        ws.row_dimensions[1].height = 34
+
+        meta_rows = [
+            ("Guruhlar soni",          len(details)),
+            ("Jami o'quvchilar",        students_total),
+            ("Jami dars (qatnashuv)",   attend_total),
+            ("Hisoblangan jami oylik",  salary),
+        ]
+        for mi, (label, val) in enumerate(meta_rows, 2):
+            lbl_cell = ws.cell(row=mi, column=1)
+            lbl_cell.value = label
+            lbl_cell.font  = Font(bold=True, color="64748B", size=10)
+            lbl_cell.fill  = _hdr_fill("F8FAFC")
+
+            val_cell = ws.cell(row=mi, column=2)
+            val_cell.value = val
+            val_cell.font  = Font(color="1E293B", size=10)
+            val_cell.fill  = _hdr_fill("F8FAFC")
+            if mi == 5:  # oylik satri
+                val_cell.number_format = MONEY_NUM
+                val_cell.font = Font(bold=True, color="1D4ED8", size=11)
+
+        cur_row = 7  # guruh bloklari shu satrdan boshlanadi
+
+        if not details:
+            ws.cell(row=cur_row, column=1).value = "Bu oy uchun ma'lumot yo'q."
+            ws.cell(row=cur_row, column=1).font  = Font(color="94A3B8", italic=True)
+        else:
+            for gd in details:
+                gname       = gd.get("group_name", "Guruh")
+                g_salary    = gd.get("salary", 0)
+                g_attend    = gd.get("attendance", 0)
+                enrollments = gd.get("enrollments", [])
+
+                # ── Guruh sarlavhasi ─────────────────────────────────────────
+                ws.merge_cells(start_row=cur_row, start_column=1,
+                               end_row=cur_row, end_column=6)
+                hdr = ws.cell(row=cur_row, column=1)
+                hdr.value = f"  {gname}   |   Guruh daromadi: {g_salary:,} som   |   Dars: {g_attend} marta"
+                hdr.font  = Font(bold=True, color="FFFFFF", size=11)
+                hdr.fill  = HDR_GREEN
+                hdr.border = _border()
+                hdr.alignment = Alignment(vertical="center", horizontal="left")
+                ws.row_dimensions[cur_row].height = 26
+                cur_row += 1
+
+                # ── O'quvchilar jadval sarlavhasi ────────────────────────────
+                sub_hdrs = ["T/r", "O'quvchi", "Kurs narhi", "Qatnashuv (kun)",
+                            "Daromad (so'm)", "Izoh"]
+                for ci, h in enumerate(sub_hdrs, 1):
+                    cell = ws.cell(row=cur_row, column=ci)
+                    cell.value  = h
+                    cell.font   = Font(bold=True, color="FFFFFF", size=10)
+                    cell.fill   = HDR_BLUE
+                    cell.border = _border()
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
+                ws.row_dimensions[cur_row].height = 22
+                cur_row += 1
+
+                # ── O'quvchilar satrlari ──────────────────────────────────────
+                for si, en in enumerate(enrollments, 1):
+                    sname   = en.get("student_name", "Noma'lum")
+                    kn      = en.get("kurs_narhi", 0)
+                    att     = en.get("attended", 0)
+                    daromad = en.get("daromad", 0)
+
+                    # Juft — och kulrang, toq — oq
+                    fill = ALT_FILL if si % 2 == 0 else _hdr_fill("FFFFFF")
+                    data = [si, sname, kn, att, daromad, ""]
+                    for ci, v in enumerate(data, 1):
+                        cell = ws.cell(row=cur_row, column=ci)
+                        cell.value  = v
+                        cell.fill   = fill
+                        cell.border = _border()
+                        cell.font   = Font(color="334155", size=10)
+                        cell.alignment = Alignment(vertical="center",
+                                                   horizontal="center" if ci in (1,4) else "left")
+                        if ci == 3:
+                            cell.number_format = MONEY_NUM
+                            cell.font = Font(color="475569", size=10)
+                        if ci == 5:
+                            cell.number_format = MONEY_NUM
+                            cell.font = Font(color="1D4ED8", size=10, bold=True)
+                    cur_row += 1
+
+                # ── Guruh jami satri ─────────────────────────────────────────
+                for ci in range(1, 7):
+                    cell = ws.cell(row=cur_row, column=ci)
+                    cell.fill   = TOTAL_FILL
+                    cell.border = _border()
+                    cell.font   = TOTAL_FONT
+                    cell.alignment = Alignment(vertical="center", horizontal="left")
+                ws.cell(row=cur_row, column=2).value = "GURUH JAMI:"
+                ws.cell(row=cur_row, column=2).alignment = Alignment(horizontal="right", vertical="center")
+                ws.cell(row=cur_row, column=5).value = g_salary
+                ws.cell(row=cur_row, column=5).number_format = MONEY_NUM
+                ws.cell(row=cur_row, column=5).font = Font(bold=True, color="92400E", size=11)
+                ws.row_dimensions[cur_row].height = 22
+                cur_row += 2  # bo'sh qator + keyingi guruh
+
+            # ── Umumiy jami (sheet pastida) ──────────────────────────────────
+            ws.merge_cells(start_row=cur_row, start_column=1,
+                           end_row=cur_row, end_column=4)
+            lbl = ws.cell(row=cur_row, column=1)
+            lbl.value = "BARCHA GURUHLAR JAMI OYLIGI:"
+            lbl.font  = Font(bold=True, color="FFFFFF", size=12)
+            lbl.fill  = HDR_DARK
+            lbl.border = _border()
+            lbl.alignment = Alignment(horizontal="right", vertical="center")
+
+            tot = ws.cell(row=cur_row, column=5)
+            tot.value  = salary
+            tot.font   = Font(bold=True, color="FFFFFF", size=13)
+            tot.fill   = HDR_DARK
+            tot.border = _border()
+            tot.number_format = MONEY_NUM
+            ws.row_dimensions[cur_row].height = 32
+
+        ws.freeze_panes = "A7"
+        _auto_width(ws)
+
+    # ── Fayl qaytarish ───────────────────────────────────────────────────────
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    filename = f"oylik_hisobot_{year}_{month:02d}.xlsx"
+    response = HttpResponse(
+        buf.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+# 🔹 2. O'qituvchining barcha guruhlari
 @login_required
 def teacher_groups(request, teacher_id):
     from core.tenant import get_request_center
@@ -3855,7 +4160,7 @@ def teacher_salary_summary(request):
     # chart_labels = [m[1] for m in months]
 
     # # ---------------------------------------------
-    # #  1) Attendance ni to‘g‘ri olish (DateTimeField fix)
+    # #  1) Attendance ni to'g'ri olish (DateTimeField fix)
     # # ---------------------------------------------
     # attendance = (
     #     Attendance.objects
@@ -3885,7 +4190,7 @@ def teacher_salary_summary(request):
     #     )
     # )
 
-    # # Grafiklar uchun 12 oy bo‘yicha bo‘sh massiv
+    # # Grafiklar uchun 12 oy bo'yicha bo'sh massiv
     # chart_teacher_income = [0] * 12
     # chart_center_income = [0] * 12
     # chart_total_turnover = [0] * 12
@@ -3915,7 +4220,7 @@ def teacher_salary_summary(request):
     #                 kurs = enr.kurs_narhi or 0
     #                 foiz = (enr.oqituvchi_foiz or 0) / 100
 
-    #                 # Agar dars bo‘lmasa → daromad bo‘lmaydi
+    #                 # Agar dars bo'lmasa → daromad bo'lmaydi
     #                 les = attendance_map.get((group.id, enr.student.id, month_num), 0)
 
     #                 if les > 0:
@@ -3928,7 +4233,7 @@ def teacher_salary_summary(request):
     #                     m_center_profit += center_part * les
     #                     m_turnover += turnover_part * les
 
-    #         # Grafik to‘ldirish
+    #         # Grafik to'ldirish
     #         idx = month_num - 1
     #         chart_teacher_income[idx] += m_teacher_income
     #         chart_center_income[idx] += m_center_profit
@@ -3948,7 +4253,7 @@ def teacher_salary_summary(request):
     #         "total_turnover": round(total_turnover),
     #     })
 
-    # # AJAX so‘rovi (fetch)
+    # # AJAX so'rovi (fetch)
     # if request.headers.get("x-requested-with") == "XMLHttpRequest":
     #     return JsonResponse({
     #         "year": selected_year,
@@ -3999,7 +4304,7 @@ def force_absent_attendance(request):
             defaults={"present": False}
         )
 
-        # kelgan bo‘lsa — forced qilmaymiz
+        # kelgan bo'lsa — forced qilmaymiz
         if att.present:
             continue
 
@@ -4049,11 +4354,11 @@ def _render_salary(request, selected_year, selected_month,
 def teacher_salary_redirect(request):
     group = None
 
-    # O‘qituvchi bo‘lsa — o‘z guruhini topadi
+    # O'qituvchi bo'lsa — o'z guruhini topadi
     if request.user.role == "teacher":
         group = Group.objects.filter(oqituvchi=request.user).first()
 
-    # Direktor yoki superuser bo‘lsa — birinchi mavjud guruhni topadi
+    # Direktor yoki superuser bo'lsa — birinchi mavjud guruhni topadi
     elif request.user.role == "director" or request.user.is_superuser:
         group = Group.objects.first()
 
@@ -4062,7 +4367,7 @@ def teacher_salary_redirect(request):
         messages.warning(request, "Hech qanday guruh topilmadi!")
         return redirect("education:groups_it")
 
-    # Topilgan guruh bo‘yicha maosh sahifasiga yo‘naltirish
+    # Topilgan guruh bo'yicha maosh sahifasiga yo'naltirish
     return redirect("education:teacher_salary_report", group.id)
 
 
@@ -4071,13 +4376,13 @@ def teacher_salary_redirect(request):
 @login_required
 def group_create(request, category=None):
     if not _can_manage(request.user):
-        messages.error(request, "Sizda guruh yaratish huquqi yo‘q.")
+        messages.error(request, "Sizda guruh yaratish huquqi yo'q.")
         return redirect("education:groups_home")
 
     if category == Group.LANG:
-        FormCls, title = LangGroupForm, "Tillar bo‘yicha guruh yaratish"
+        FormCls, title = LangGroupForm, "Tillar bo'yicha guruh yaratish"
     elif category == Group.IT:
-        FormCls, title = ITGroupForm, "IT bo‘yicha guruh yaratish"
+        FormCls, title = ITGroupForm, "IT bo'yicha guruh yaratish"
     else:
         FormCls, title = GroupForm, "Guruh yaratish"
 
@@ -4088,7 +4393,7 @@ def group_create(request, category=None):
     if request.method == "POST" and form.is_valid():
         g = form.save(commit=False)
 
-        # 🔹 Kategoriya bo‘sh bo‘lsa, avtomatik to‘ldir
+        # 🔹 Kategoriya bo'sh bo'lsa, avtomatik to'ldir
         g.category = category or Group.LANG
 
         # 🔹 Center avtomatik foydalanuvchidan
@@ -4101,11 +4406,11 @@ def group_create(request, category=None):
                 from accounts.models import Center
                 g.center = Center.objects.first()
 
-        # ✅ Foydalanuvchi kurs narxini kiritgan bo‘lsa — o‘sha qiymatni saqlaymiz
+        # ✅ Foydalanuvchi kurs narxini kiritgan bo'lsa — o'sha qiymatni saqlaymiz
         if g.kurs_narxi in [None, "", 0]:
-            g.kurs_narxi = 500000  # faqat bo‘sh bo‘lsa default beramiz
+            g.kurs_narxi = 500000  # faqat bo'sh bo'lsa default beramiz
 
-        # ✅ O‘qituvchi foizi
+        # ✅ O'qituvchi foizi
         if g.oqituvchi and getattr(g.oqituvchi, 'oqituvchi_foizi', None) is not None:
             g.oqituvchi_foiz = g.oqituvchi.oqituvchi_foizi
         elif not g.oqituvchi_foiz:
@@ -4130,7 +4435,7 @@ def group_create(request, category=None):
 @login_required
 def group_edit(request, pk):
     if not request.user.is_superuser and request.user.role not in ["director", "manager", "teacher"]:
-        messages.error(request, "Sizda ruxsat yo‘q.")
+        messages.error(request, "Sizda ruxsat yo'q.")
         return redirect("education:groups")
 
     from core.tenant import get_request_center
@@ -4188,7 +4493,7 @@ def group_edit(request, pk):
 @login_required
 def group_list(request):
     """
-    Barcha guruhlar ro‘yxati.
+    Barcha guruhlar ro'yxati.
     """
     rows = (
         Group.objects
@@ -4254,7 +4559,7 @@ def get_group_price(request, pk):
 @login_required
 def group_add(request):
     if not _can_manage(request.user):
-        messages.error(request, "Sizda ruxsat yo‘q.")
+        messages.error(request, "Sizda ruxsat yo'q.")
         return redirect("education:groups")
 
     from core.tenant import get_request_center
@@ -4274,12 +4579,12 @@ def group_add(request):
         from education.services.group_schedule_service import apply_group_duration_defaults
         apply_group_duration_defaults(group)
         group.save()
-        messages.success(request, "✅ Guruh muvaffaqiyatli qo‘shildi.")
+        messages.success(request, "✅ Guruh muvaffaqiyatli qo'shildi.")
         return redirect("education:groups")
 
     return render(request, "education/group_form.html", {
         "form": form,
-        "title": "Yangi guruh qo‘shish",
+        "title": "Yangi guruh qo'shish",
     })
 
 
@@ -4290,7 +4595,7 @@ from django.contrib import messages
 @login_required
 def group_delete(request, pk):
     """
-    Guruhni o‘chirish — tasdiq bilan.
+    Guruhni o'chirish — tasdiq bilan.
     """
     from core.tenant import get_request_center
     center = get_request_center(request)
@@ -4302,7 +4607,7 @@ def group_delete(request, pk):
     if request.method == "POST":
         category = getattr(group, "category_obj", None)
         group.delete()
-        messages.success(request, "🗑️ Guruh o‘chirildi.")
+        messages.success(request, "🗑️ Guruh o'chirildi.")
 
         if category:
             return redirect("education:category_detail", category_id=category.id)
@@ -4336,7 +4641,7 @@ def add_student_to_group(request, pk: int):
     if not can_add:
         if request.headers.get("x-requested-with") == "XMLHttpRequest":
             return JsonResponse({"error": "Sizda ruxsat yo'q"}, status=403)
-        return HttpResponseForbidden("❌ Sizda bu amalni bajarish uchun ruxsat yo‘q.")
+        return HttpResponseForbidden("❌ Sizda bu amalni bajarish uchun ruxsat yo'q.")
 
     # Markazni aniqlash (Guruh markazi asosiy hisoblanadi)
     target_center = g.center
@@ -4488,7 +4793,7 @@ def toggle_attendance(request):
     if center and att.group.center_id != center.id:
         return JsonResponse({"error": "Center mismatch"}, status=403)
 
-    # Belgini o‘zgartiramiz (agar bor bo‘lsa)
+    # Belgini o'zgartiramiz (agar bor bo'lsa)
     att.present = not att.present
     att.teacher = request.user
     att.save()
@@ -4514,14 +4819,14 @@ def enrollment_remove(request, pk):
     enr = get_object_or_404(qs, pk=pk)
     
     if not _can_manage(request.user):
-        messages.error(request, "Sizda ruxsat yo‘q.")
+        messages.error(request, "Sizda ruxsat yo'q.")
         return redirect("education:group_detail", pk=enr.group_id)
         
     if request.method == "POST":
         # ✅ EnrollmentService orqali o'chiramiz (tarix yopiladi)
         from education.services.enrollment_service import EnrollmentService
         EnrollmentService.remove_student(enr.student, enr.group)
-        messages.success(request, "O‘quvchi guruhdan chiqarildi. Tarix saqlanib qoldi.")
+        messages.success(request, "O'quvchi guruhdan chiqarildi. Tarix saqlanib qoldi.")
         
     return redirect("education:group_detail", pk=enr.group_id)
 
@@ -4770,7 +5075,7 @@ def exam_settings_view(request):
         raise Http404("Center not found")
 
     if not _teacher_can_view_settings(request.user):
-        return HttpResponseForbidden("Sizda bu bo‘limga ruxsat yo‘q.")
+        return HttpResponseForbidden("Sizda bu bo'limga ruxsat yo'q.")
 
     from .forms import CenterExamSettingForm
     from education.services.exam_service import get_or_create_center_exam_settings
@@ -4781,7 +5086,7 @@ def exam_settings_view(request):
 
     if request.method == "POST":
         if not can_edit:
-            return HttpResponseForbidden("Teacher bu sozlamalarni o‘zgartira olmaydi.")
+            return HttpResponseForbidden("Teacher bu sozlamalarni o'zgartira olmaydi.")
         if form.is_valid():
             obj = form.save(commit=False)
             obj.center = center
@@ -4817,7 +5122,7 @@ def exam_reminder_action(request, group_id: int):
     group = get_object_or_404(qs, pk=group_id)
 
     if not _teacher_or_management_can_access_group(request.user, group):
-        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+        return HttpResponseForbidden("Sizda ruxsat yo'q.")
 
     from education.models import ExamReminderLog
     from education.services.exam_service import (
@@ -4833,7 +5138,7 @@ def exam_reminder_action(request, group_id: int):
     note = (request.POST.get("note") or "").strip()
 
     if action not in {ExamReminderLog.ACTION_YES, ExamReminderLog.ACTION_NO, ExamReminderLog.ACTION_LATER}:
-        messages.error(request, "Noto‘g‘ri action.")
+        messages.error(request, "Noto'g'ri action.")
         return redirect("education:group_detail", pk=group.id)
 
     reminder_state = get_exam_reminder_state(group=group, on_date=selected_date)
@@ -4841,7 +5146,7 @@ def exam_reminder_action(request, group_id: int):
 
     if action == ExamReminderLog.ACTION_YES:
         if not reminder_state.get("enabled"):
-            messages.info(request, "Imtihon tizimi o‘chiq. Sozlamani director yoqishi kerak.")
+            messages.info(request, "Imtihon tizimi o'chiq. Sozlamani director yoqishi kerak.")
             return redirect("education:group_detail", pk=group.id)
         if not reminder_state.get("due"):
             messages.info(request, "Hozircha majburiy imtihon darsi emas, lekin davomat davom etadi.")
@@ -4858,10 +5163,10 @@ def exam_reminder_action(request, group_id: int):
         return redirect("education:exam_session_entry", session_id=session.id)
 
     if not reminder_state.get("enabled"):
-        messages.info(request, "Imtihon tizimi o‘chiq. Sozlamani director yoqishi kerak.")
+        messages.info(request, "Imtihon tizimi o'chiq. Sozlamani director yoqishi kerak.")
         return redirect("education:group_detail", pk=group.id)
     if not reminder_state.get("due"):
-        messages.info(request, "Hozircha bu nazorat bosqichi bo‘yicha amal talab qilinmaydi.")
+        messages.info(request, "Hozircha bu nazorat bosqichi bo'yicha amal talab qilinmaydi.")
         return redirect("education:group_detail", pk=group.id)
 
     decision_session = create_or_update_exam_session_decision(
@@ -4886,7 +5191,7 @@ def exam_reminder_action(request, group_id: int):
         },
     )
     if action == ExamReminderLog.ACTION_NO:
-        messages.warning(request, "Imtihon o‘tkazilmagan deb qayd etildi.")
+        messages.warning(request, "Imtihon o'tkazilmagan deb qayd etildi.")
     else:
         messages.info(request, "Imtihon eslatmasi keyinroq uchun saqlandi.")
     return redirect("education:group_detail", pk=group.id)
@@ -4911,7 +5216,7 @@ def exam_session_entry(request, session_id: int):
     session = get_object_or_404(qs, pk=session_id)
 
     if not _teacher_or_management_can_access_group(request.user, session.group):
-        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+        return HttpResponseForbidden("Sizda ruxsat yo'q.")
 
     settings_obj = get_or_create_center_exam_settings(session.center)
     enrollments = (
@@ -4956,7 +5261,7 @@ def exam_session_entry(request, session_id: int):
             except ValueError as exc:
                 messages.error(request, str(exc))
         elif session_task_files and not settings_obj.exam_file_upload_enabled:
-            messages.warning(request, "Task fayl yuklash markaz sozlamasida o‘chiq.")
+            messages.warning(request, "Task fayl yuklash markaz sozlamasida o'chiq.")
 
         rows = []
         row_errors = []
@@ -5019,7 +5324,7 @@ def exam_session_entry(request, session_id: int):
             for student_name, err in row_errors:
                 messages.error(request, f"{student_name}: {err}")
         elif not rows and not uploaded_task_file_count:
-            messages.info(request, "Hozircha saqlash uchun yangi natija yo‘q.")
+            messages.info(request, "Hozircha saqlash uchun yangi natija yo'q.")
         else:
             try:
                 saved_count = save_exam_results_batch(
@@ -5027,7 +5332,7 @@ def exam_session_entry(request, session_id: int):
                     actor=request.user,
                     rows=rows,
                 )
-                messages.success(request, f"{saved_count} ta o‘quvchi bo‘yicha imtihon natijalari saqlandi.")
+                messages.success(request, f"{saved_count} ta o'quvchi bo'yicha imtihon natijalari saqlandi.")
                 return redirect("education:exam_session_entry", session_id=session.id)
             except ValueError as exc:
                 messages.error(request, str(exc))
@@ -5062,7 +5367,7 @@ def group_exam_history(request, group_id: int):
     group = get_object_or_404(group_qs, pk=group_id)
 
     if not _teacher_or_management_can_access_group(request.user, group):
-        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+        return HttpResponseForbidden("Sizda ruxsat yo'q.")
 
     sessions = ExamSession.objects.filter(group=group).select_related("teacher", "created_by").order_by("-exam_date", "-id")
     status_filter = (request.GET.get("status") or "").strip()
@@ -5088,7 +5393,7 @@ def teacher_exam_history(request):
     center = get_request_center(request)
     role = getattr(request.user, "role", None)
     if not request.user.is_superuser and role not in ("director", "manager", "teacher"):
-        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+        return HttpResponseForbidden("Sizda ruxsat yo'q.")
 
     sessions = ExamSession.objects.select_related("group", "teacher", "center").order_by("-exam_date", "-id")
     if center:
@@ -5149,7 +5454,7 @@ def exam_session_detail(request, session_id: int):
     session = get_object_or_404(qs, pk=session_id)
 
     if not _teacher_or_management_can_access_group(request.user, session.group):
-        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+        return HttpResponseForbidden("Sizda ruxsat yo'q.")
 
     results = (
         ExamResult.objects.filter(session=session)
@@ -5177,7 +5482,7 @@ def failed_students_list(request):
     from education.services.audit_service import log_education_event
 
     if not _director_or_manager(request.user):
-        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+        return HttpResponseForbidden("Sizda ruxsat yo'q.")
 
     center = get_request_center(request)
     qs = ExamResult.objects.select_related("student", "group", "teacher", "session")
@@ -5279,7 +5584,7 @@ def group_internal_ranking(request, group_id: int):
     group = get_object_or_404(group_qs, pk=group_id)
 
     if not _teacher_or_management_can_access_group(request.user, group):
-        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+        return HttpResponseForbidden("Sizda ruxsat yo'q.")
 
     selected_date = parse_date(request.GET.get("date") or "") or localdate()
     rows = build_group_internal_ranking(
@@ -5313,7 +5618,7 @@ def group_completion_recommendations(request, group_id: int):
     group = get_object_or_404(group_qs, pk=group_id)
 
     if not _teacher_or_management_can_access_group(request.user, group):
-        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+        return HttpResponseForbidden("Sizda ruxsat yo'q.")
 
     selected_date = parse_date(request.GET.get("date") or "") or localdate()
     recommendation_payload = build_group_completion_recommendations(
@@ -5362,11 +5667,11 @@ def group_closure_action(request, group_id: int):
     group = get_object_or_404(group_qs, pk=group_id)
 
     if not _teacher_or_management_can_access_group(request.user, group):
-        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+        return HttpResponseForbidden("Sizda ruxsat yo'q.")
 
     action = (request.POST.get("action") or "").strip().lower()
     if action not in {"yes", "no", "later"}:
-        messages.error(request, "Noto‘g‘ri action.")
+        messages.error(request, "Noto'g'ri action.")
         return redirect("education:group_detail", pk=group.id)
 
     if action == "yes" and not _director_or_manager(request.user):
@@ -5384,9 +5689,9 @@ def group_closure_action(request, group_id: int):
     )
 
     if workflow.status == workflow.STATUS_CLOSED:
-        messages.success(request, "Guruhni yopish jarayoni yakunlandi. Tarixiy ma’lumotlar saqlandi.")
+        messages.success(request, "Guruhni yopish jarayoni yakunlandi. Tarixiy ma'lumotlar saqlandi.")
     elif workflow.status == workflow.STATUS_CONTINUE:
-        messages.info(request, "Guruh davom etadi. Attendance va payment flow o‘zgarmaydi.")
+        messages.info(request, "Guruh davom etadi. Attendance va payment flow o'zgarmaydi.")
     else:
         messages.info(request, "Closure eslatmasi keyinga qoldirildi.")
     return redirect("education:group_detail", pk=group.id)
@@ -5404,7 +5709,7 @@ def certificate_templates_view(request):
         raise Http404("Center not found")
 
     if not _director_or_manager(request.user):
-        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+        return HttpResponseForbidden("Sizda ruxsat yo'q.")
 
     form = CertificateTemplateForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
@@ -5445,7 +5750,7 @@ def certificate_template_activate(request, template_id: int):
     from education.services.audit_service import log_education_event
 
     if not _director_or_manager(request.user):
-        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+        return HttpResponseForbidden("Sizda ruxsat yo'q.")
 
     center = get_request_center(request)
     qs = CertificateTemplate.objects.all()
@@ -5481,7 +5786,7 @@ def group_certificate_candidates(request, group_id: int):
     group = get_object_or_404(group_qs, pk=group_id)
 
     if not _teacher_or_management_can_access_group(request.user, group):
-        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+        return HttpResponseForbidden("Sizda ruxsat yo'q.")
 
     selected_date = parse_date(request.GET.get("date") or "") or localdate()
     recommendation_payload = build_group_completion_recommendations(
@@ -5521,7 +5826,7 @@ def issue_certificate_action(request, group_id: int, student_id: int):
     from education.services.certificate_service import issue_certificate_for_student
 
     if not _director_or_manager(request.user):
-        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+        return HttpResponseForbidden("Sizda ruxsat yo'q.")
 
     center = get_request_center(request)
     group_qs = Group.objects.all()
@@ -5563,7 +5868,7 @@ def certificate_detail(request, certificate_id: int):
     cert = get_object_or_404(qs, pk=certificate_id)
 
     if not user_can_view_certificate(request.user, cert):
-        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+        return HttpResponseForbidden("Sizda ruxsat yo'q.")
 
     return render(
         request,
@@ -5591,7 +5896,7 @@ def certificate_download_pdf(request, certificate_id: int):
     cert = get_object_or_404(qs, pk=certificate_id)
 
     if not user_can_view_certificate(request.user, cert):
-        return HttpResponseForbidden("Sizda ruxsat yo‘q.")
+        return HttpResponseForbidden("Sizda ruxsat yo'q.")
 
     metadata = cert.metadata if isinstance(cert.metadata, dict) else {}
     layout_version = metadata.get("pdf_layout_version")
@@ -5634,9 +5939,9 @@ def student_exam_report(request, student_id: int):
 
     viewer = request.user
     if viewer.role == "student" and viewer.id != student.id:
-        return HttpResponseForbidden("Siz faqat o‘zingizning natijangizni ko‘ra olasiz.")
+        return HttpResponseForbidden("Siz faqat o'zingizning natijangizni ko'ra olasiz.")
     if viewer.role == "parent" and student not in viewer.children.all():
-        return HttpResponseForbidden("Siz faqat farzandingizning natijalarini ko‘ra olasiz.")
+        return HttpResponseForbidden("Siz faqat farzandingizning natijalarini ko'ra olasiz.")
     if viewer.role == "teacher":
         teaches_student = Enrollment.objects.filter(
             student=student,
@@ -5644,9 +5949,9 @@ def student_exam_report(request, student_id: int):
             is_active=True,
         ).exists()
         if not teaches_student:
-            return HttpResponseForbidden("Siz bu o‘quvchining natijasini ko‘ra olmaysiz.")
+            return HttpResponseForbidden("Siz bu o'quvchining natijasini ko'ra olmaysiz.")
     if viewer.role not in ("student", "parent", "teacher", "director", "manager") and not viewer.is_superuser:
-        return HttpResponseForbidden("Ruxsat yo‘q.")
+        return HttpResponseForbidden("Ruxsat yo'q.")
 
     from education.models import ExamResult
     from education.services.exam_service import get_student_exam_summary

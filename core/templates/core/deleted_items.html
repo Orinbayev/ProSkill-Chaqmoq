@@ -374,7 +374,7 @@
     <!-- PREMIUM HEADER -->
     <div class="trash-header">
         <div class="header-info">
-            <h1><i class="fa-solid fa-trash-can" style="color: var(--primary);"></i> O‘chirilganlar</h1>
+            <h1><i class="fa-solid fa-trash-can" style="color: var(--primary);"></i> O'chirilganlar</h1>
             <p>O'chirilgan ma'lumotlarni boshqarish va audit paneli</p>
         </div>
 
@@ -414,7 +414,7 @@
                     <tr>
                         <th>Nomi</th>
                         <th>Turi</th>
-                        <th>O‘chirgan foydalanuvchi</th>
+                        <th>O'chirgan foydalanuvchi</th>
                         <th>Sana / Vaqt</th>
                         <th class="align-right-edge">Amallar</th>
                     </tr>
@@ -486,7 +486,7 @@
                                             class="dropdown-item d-flex align-items-center gap-2 rounded-2 text-danger"
                                             onclick="confirmHardDelete('{{ item.type_key }}', '{{ item.id }}')">
                                             <i class="fa-solid fa-trash-can"></i>
-                                            <span>Butunlay o‘chirish</span>
+                                            <span>Butunlay o'chirish</span>
                                         </button>
                                     </li>
                                 </ul>
@@ -599,7 +599,7 @@
             <div class="modal-content border-danger border-opacity-20">
                 <div class="modal-body text-center py-5">
                     <div style="font-size: 40px; color: var(--red);" class="mb-3">⚠️</div>
-                    <h4 class="fw-800 text-white mb-3">Butunlay o‘chirilsinmi?</h4>
+                    <h4 class="fw-800 text-white mb-3">Butunlay o'chirilsinmi?</h4>
                     <p class="text-muted small mb-4">Bu amal qaytarilmas hisoblanadi. Ma'lumotlar bazadan to'liq
                         yo'qoladi.
                     </p>
@@ -607,7 +607,7 @@
                         {% csrf_token %}
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-danger py-2 fw-800" style="border-radius: 12px;">HA,
-                                O‘CHIRILSIN</button>
+                                O'CHIRILSIN</button>
                             <button type="button" class="btn btn-outline-light py-2 text-muted" data-bs-dismiss="modal"
                                 style="border-radius: 12px; border-color: var(--glass-border);">BEKOR
                                 QILISH</button>

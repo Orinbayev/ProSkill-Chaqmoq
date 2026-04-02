@@ -270,7 +270,7 @@
     display: inline-block;
     /* ✅ SHU MUHIM */
     flex: 0 0 auto;
-    /* ✅ flex ichida cho‘zilmasin */
+    /* ✅ flex ichida cho'zilmasin */
   }
 
   .month-btn {
@@ -926,14 +926,14 @@
          HEADER: Title + Tools + Filters
          ======================================================= -->
     <div class="pay-headbox">
-      <h3 class="head-title">💰 O‘quvchilar to‘lov nazorati</h3>
+      <h3 class="head-title">💰 O'quvchilar to'lov nazorati</h3>
 
       <form method="get" class="tools" id="filterForm">
         {% if status_filter %}
         <input type="hidden" name="status" value="{{ status_filter }}">
         {% endif %}
 
-        <!-- ✅ per_page yo‘qolib qolmasin -->
+        <!-- ✅ per_page yo'qolib qolmasin -->
         <input type="hidden" name="per_page" value="{{ per_page|default:'10' }}">
 
         <!-- Search -->
@@ -979,7 +979,7 @@
 
             <div class="mm-actions">
               <button class="btn gray" type="button" id="mmToday">Joriy oy</button>
-              <button class="btn green" type="button" id="mmApply">Qo‘llash</button>
+              <button class="btn green" type="button" id="mmApply">Qo'llash</button>
             </div>
           </div>
         </div>
@@ -997,19 +997,19 @@
 
         <a class="pill {% if status_filter == 'full' %}active{% endif %}"
           href="?q={{ qenc }}&month={{ month_str }}&per_page={{ per_page|default:'10' }}&status=full">
-          ✅ To‘liq <span class="count">({{ full_count }})</span>
+          ✅ To'liq <span class="count">({{ full_count }})</span>
         </a>
 
-        <!-- ✅ per_page qo‘shildi -->
+        <!-- ✅ per_page qo'shildi -->
         <a class="pill {% if status_filter == 'partial' %}active{% endif %}"
           href="?q={{ qenc }}&month={{ month_str }}&per_page={{ per_page|default:'10' }}&status=partial">
           ⚠️ Qisman <span class="count">({{ partial_count }})</span>
         </a>
 
-        <!-- ✅ per_page qo‘shildi -->
+        <!-- ✅ per_page qo'shildi -->
         <a class="pill {% if status_filter == 'unpaid' %}active{% endif %}"
           href="?q={{ qenc }}&month={{ month_str }}&per_page={{ per_page|default:'10' }}&status=unpaid">
-          ❌ To‘lanmagan <span class="count">({{ unpaid_count }})</span>
+          ❌ To'lanmagan <span class="count">({{ unpaid_count }})</span>
         </a>
         {% endwith %}
       </div>
@@ -1033,7 +1033,7 @@
                 {{ s.student.get_full_name }}
               </span>
               <div style="font-size: 0.8rem; color: #64748b; font-weight: 700;">
-                Jamg‘arma: <b style="color: #94a3b8;">{{ s.jami_tolangan|intcomma }}</b>
+                Jamg'arma: <b style="color: #94a3b8;">{{ s.jami_tolangan|intcomma }}</b>
               </div>
             </div>
           </div>
@@ -1057,7 +1057,7 @@
             {% if s.status == "full" %}
             <span class="badge b-ok"
               style="padding: 8px 14px; border-radius: 12px; font-size: 0.8rem; background: #10b981; color: #062312; font-weight: 900;">✅
-              To‘liq</span>
+              To'liq</span>
             {% elif s.status == "partial" %}
             <span class="badge b-warn"
               style="padding: 8px 14px; border-radius: 12px; font-size: 0.8rem; background: #eab308; color: #1c1917; font-weight: 900;">⚠️
@@ -1065,7 +1065,7 @@
             {% else %}
             <span class="badge b-bad"
               style="padding: 8px 14px; border-radius: 12px; font-size: 0.8rem; background: #ef4444; color: #fff; font-weight: 900;">❌
-              To‘lanmagan</span>
+              To'lanmagan</span>
             {% endif %}
           </div>
 
@@ -1100,7 +1100,7 @@
               <button class="btn gray" type="button"
                 style="height: 48px; width: 42px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: rgba(255,255,255,0.04); font-size: 1.1rem; border: 1px solid rgba(255,255,255,0.05);"
                 onclick="openPayModalStudent('{{ s.student.id }}', '{{ s.student.get_full_name|escapejs }}')"
-                title="To‘lov tarixi">
+                title="To'lov tarixi">
                 🧾
               </button>
 
@@ -1116,7 +1116,7 @@
                 <a class="btn gray"
                   style="height: 22px; width: 34px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: rgba(255,255,255,0.05); font-size: 0.75rem;"
                   href="{% url 'education:enrollment_delete' enr_f.id %}?next={{ request.get_full_path|urlencode }}"
-                  title="O‘chirish" onclick="return confirm('Haqiqatan ham o‘chirmoqchimisiz?')">
+                  title="O'chirish" onclick="return confirm('Haqiqatan ham o'chirmoqchimisiz?')">
                   🗑️
                 </a>
               </div>
@@ -1128,7 +1128,7 @@
       </div>
       {% empty %}
       <div class="item" style="text-align:center; color:var(--muted); padding:18px;">
-        Ma’lumot topilmadi.
+        Ma'lumot topilmadi.
       </div>
       {% endfor %}
     </div>
@@ -1143,7 +1143,7 @@
         <input type="hidden" name="q" value="{{ query }}">
         <input type="hidden" name="month" value="{{ month_str }}">
 
-        <label for="perPageSel">Ko‘rsatish:</label>
+        <label for="perPageSel">Ko'rsatish:</label>
         <select id="perPageSel" name="per_page" onchange="this.form.submit()">
           <option value="10" {% if per_page_val|stringformat:"s" == "10" %}selected{% endif %}>10</option>
           <option value="20" {% if per_page_val|stringformat:"s" == "20" %}selected{% endif %}>20</option>
@@ -1206,13 +1206,13 @@
 </div>
 
 <!-- =========================================================
-     TO‘LOV TARIX MODAL
+     TO'LOV TARIX MODAL
      ========================================================= -->
 <div id="payModal" class="modal" onclick="backdropClose(event, 'payModal')">
   <div class="modal-box">
     <div class="modal-head">
       <div>
-        <p class="modal-title" id="mTitle">🧾 To‘lov tarixi</p>
+        <p class="modal-title" id="mTitle">🧾 To'lov tarixi</p>
         <div class="modal-sub" id="mSub"></div>
       </div>
       <button class="btn gray" onclick="closeModal('payModal')" type="button">✖ Yopish</button>
@@ -1222,7 +1222,7 @@
       <div class="modal-stats">
         <div class="stat"><small>Tanlangan oy</small><span id="mMonth">—</span></div>
         <div class="stat"><small>Oylik narx</small><span id="mFee">—</span></div>
-        <div class="stat"><small>Shu oy to‘langan</small><span id="mPaid">—</span></div>
+        <div class="stat"><small>Shu oy to'langan</small><span id="mPaid">—</span></div>
         <div class="stat"><small>Qoldiq</small><span id="mLeft">—</span></div>
       </div>
 
@@ -1254,7 +1254,7 @@
   <div class="modal-box" style="width:520px;">
     <div class="modal-head">
       <div>
-        <p class="modal-title">✏️ To‘lovni tahrirlash</p>
+        <p class="modal-title">✏️ To'lovni tahrirlash</p>
         <div class="modal-sub" id="epSub">—</div>
       </div>
       <button class="btn gray" onclick="closeModal('editPaymentModal')" type="button">✖ Yopish</button>
@@ -1285,7 +1285,7 @@
   <div class="modal-box">
     <div class="modal-head">
       <div>
-        <p class="modal-title">📊 To‘lov statistikasi</p>
+        <p class="modal-title">📊 To'lov statistikasi</p>
         <div class="modal-sub" id="statsSub">—</div>
       </div>
       <button class="btn gray" onclick="closeModal('statsModal')" type="button">✖ Yopish</button>
@@ -1324,8 +1324,8 @@
           <div class="chart-card">
             <div style="font-weight:900; margin-bottom:8px;">Izoh</div>
             <div style="color:var(--muted); font-weight:800; line-height:1.45;">
-              • “Tanlangan oy” — shu oy bo‘yicha To‘liq / Qisman / To‘lanmagan taqsimoti.<br>
-              • “Butun davr” — umumiy to‘lov qilgan o‘quvchilar va hech to‘lamaganlar taqsimoti.<br>
+              • "Tanlangan oy" — shu oy bo'yicha To'liq / Qisman / To'lanmagan taqsimoti.<br>
+              • "Butun davr" — umumiy to'lov qilgan o'quvchilar va hech to'lamaganlar taqsimoti.<br>
               • Foizlar avtomatik hisoblanadi.
             </div>
           </div>
@@ -1362,20 +1362,20 @@
       .then(r => r.json())
       .then(d => {
         document.getElementById("mMonth").innerText = d.month || "—";
-        document.getElementById("mFee").innerText = fmt(d.fee) + " so‘m";
-        document.getElementById("mPaid").innerText = fmt(d.paid_this_month) + " so‘m";
+        document.getElementById("mFee").innerText = fmt(d.fee) + " so'm";
+        document.getElementById("mPaid").innerText = fmt(d.paid_this_month) + " so'm";
 
         const leftEl = document.getElementById("mLeft");
-        leftEl.innerText = fmt(d.qoldiq) + " so‘m";
+        leftEl.innerText = fmt(d.qoldiq) + " so'm";
         leftEl.style.color = (Number(d.qoldiq || 0) === 0) ? "var(--ok)" : "var(--bad)";
 
         const payments = d.payments || [];
         if (!payments.length) {
           document.getElementById("mBody").innerHTML =
-            '<tr><td colspan="6" style="color:var(--muted); font-weight:900;">To‘lov topilmadi</td></tr>';
+            '<tr><td colspan="6" style="color:var(--muted); font-weight:900;">To'lov topilmadi</td></tr>';
         } else {
           document.getElementById("mBody").innerHTML = payments.map(p => {
-            const alloc = (p.allocations || []).map(a => `<div class="alloc">• <b>${a.month}</b> — ${fmt(a.amount)} so‘m</div>`).join("");
+            const alloc = (p.allocations || []).map(a => `<div class="alloc">• <b>${a.month}</b> — ${fmt(a.amount)} so'm</div>`).join("");
             const month = "{{ month_str|escapejs }}";
 
             const receipt = p.receipt_url
@@ -1426,20 +1426,20 @@
       .then(r => r.json())
       .then(d => {
         document.getElementById("mMonth").innerText = d.month || "—";
-        document.getElementById("mFee").innerText = fmt(d.fee) + " so‘m";
-        document.getElementById("mPaid").innerText = fmt(d.paid_this_month) + " so‘m";
+        document.getElementById("mFee").innerText = fmt(d.fee) + " so'm";
+        document.getElementById("mPaid").innerText = fmt(d.paid_this_month) + " so'm";
 
         const leftEl = document.getElementById("mLeft");
-        leftEl.innerText = fmt(d.qoldiq) + " so‘m";
+        leftEl.innerText = fmt(d.qoldiq) + " so'm";
         leftEl.style.color = (Number(d.qoldiq || 0) === 0) ? "var(--ok)" : "var(--bad)";
 
         const payments = d.payments || [];
         if (!payments.length) {
           document.getElementById("mBody").innerHTML =
-            '<tr><td colspan="6" style="color:var(--muted); font-weight:900;">To‘lov topilmadi</td></tr>';
+            '<tr><td colspan="6" style="color:var(--muted); font-weight:900;">To'lov topilmadi</td></tr>';
         } else {
           document.getElementById("mBody").innerHTML = payments.map(p => {
-            const alloc = (p.allocations || []).map(a => `<div class="alloc">• <b>${a.month}</b> — ${fmt(a.amount)} so‘m</div>`).join("");
+            const alloc = (p.allocations || []).map(a => `<div class="alloc">• <b>${a.month}</b> — ${fmt(a.amount)} so'm</div>`).join("");
             const editBtn = `<button class="btn gray" style="padding:8px 10px;" type="button"
             onclick="openEditPayment(${p.id}, ${p.cash || 0}, ${p.card || 0})">✏️</button>`;
             const receipt = p.receipt_url
@@ -1537,7 +1537,7 @@
           fillMonthMenu(state.m);
           setTopLabel(state.y, state.m);
 
-          syncHidden(); // ✅ SHUNI QO‘SHING
+          syncHidden(); // ✅ SHUNI QO'SHING
 
           mmMonthCol.classList.remove("open");
         });
@@ -1560,7 +1560,7 @@
           fillYearMenu(state.y, state.y);
           setTopLabel(state.y, state.m);
 
-          syncHidden(); // ✅ SHUNI QO‘SHING
+          syncHidden(); // ✅ SHUNI QO'SHING
 
           mmYearCol.classList.remove("open");
         });
@@ -1636,7 +1636,7 @@
     document.getElementById("tabMonth").classList.toggle("active", mode === "month");
     document.getElementById("tabAll").classList.toggle("active", mode === "all");
     document.getElementById("statsSub").innerText = (mode === "month")
-      ? "Tanlangan oy bo‘yicha tahlil" : "Butun davr bo‘yicha umumiy tahlil";
+      ? "Tanlangan oy bo'yicha tahlil" : "Butun davr bo'yicha umumiy tahlil";
     renderStats();
   }
   function renderStats() {
@@ -1645,39 +1645,39 @@
 
     let labels = [], values = [], colors = [];
     if (statsMode === "month") {
-      labels = ["To‘liq", "Qisman", "To‘lanmagan"];
+      labels = ["To'liq", "Qisman", "To'lanmagan"];
       values = [STATS_MONTH.full, STATS_MONTH.partial, STATS_MONTH.unpaid];
       colors = ["#22c55e", "#facc15", "#ef4444"];
       const total = STATS_MONTH.total || (values[0] + values[1] + values[2]) || 0;
 
       cards.innerHTML = `
       <div class="stat"><small>Tanlangan oy</small><span>${STATS_MONTH.month_label || "—"}</span></div>
-      <div class="stat"><small>O‘quvchilar soni</small><span>${total}</span></div>
-      <div class="stat"><small>Oylik jami (summa)</small><span>${fmt(STATS_MONTH.fee_total)} so‘m</span></div>
-      <div class="stat"><small>Shu oy to‘langan</small><span>${fmt(STATS_MONTH.paid_total)} so‘m</span></div>
-      <div class="stat"><small>Qoldiq</small><span style="color:var(--bad)">${fmt(STATS_MONTH.left_total)} so‘m</span></div>
+      <div class="stat"><small>O'quvchilar soni</small><span>${total}</span></div>
+      <div class="stat"><small>Oylik jami (summa)</small><span>${fmt(STATS_MONTH.fee_total)} so'm</span></div>
+      <div class="stat"><small>Shu oy to'langan</small><span>${fmt(STATS_MONTH.paid_total)} so'm</span></div>
+      <div class="stat"><small>Qoldiq</small><span style="color:var(--bad)">${fmt(STATS_MONTH.left_total)} so'm</span></div>
     `;
       tableBody.innerHTML = `
-      <tr><td>To‘liq</td><td>${values[0]}</td><td>${pct(values[0], total)}</td></tr>
+      <tr><td>To'liq</td><td>${values[0]}</td><td>${pct(values[0], total)}</td></tr>
       <tr><td>Qisman</td><td>${values[1]}</td><td>${pct(values[1], total)}</td></tr>
-      <tr><td>To‘lanmagan</td><td>${values[2]}</td><td>${pct(values[2], total)}</td></tr>
+      <tr><td>To'lanmagan</td><td>${values[2]}</td><td>${pct(values[2], total)}</td></tr>
     `;
     } else {
-      labels = ["To‘lov qilgan", "Hech to‘lamagan"];
+      labels = ["To'lov qilgan", "Hech to'lamagan"];
       values = [STATS_ALL.paid_students, STATS_ALL.never_paid_students];
       colors = ["#22c55e", "#ef4444"];
       const total = STATS_ALL.students_total || (values[0] + values[1]) || 0;
 
       cards.innerHTML = `
-      <div class="stat"><small>O‘quvchilar jami</small><span>${total}</span></div>
-      <div class="stat"><small>To‘lov qilgan</small><span>${values[0]}</span></div>
-      <div class="stat"><small>Hech to‘lamagan</small><span>${values[1]}</span></div>
-      <div class="stat"><small>Umumiy to‘lov (summa)</small><span>${fmt(STATS_ALL.paid_total)} so‘m</span></div>
-      <div class="stat"><small>To‘lovlar soni</small><span>${STATS_ALL.payments_count}</span></div>
+      <div class="stat"><small>O'quvchilar jami</small><span>${total}</span></div>
+      <div class="stat"><small>To'lov qilgan</small><span>${values[0]}</span></div>
+      <div class="stat"><small>Hech to'lamagan</small><span>${values[1]}</span></div>
+      <div class="stat"><small>Umumiy to'lov (summa)</small><span>${fmt(STATS_ALL.paid_total)} so'm</span></div>
+      <div class="stat"><small>To'lovlar soni</small><span>${STATS_ALL.payments_count}</span></div>
     `;
       tableBody.innerHTML = `
-      <tr><td>To‘lov qilgan</td><td>${values[0]}</td><td>${pct(values[0], total)}</td></tr>
-      <tr><td>Hech to‘lamagan</td><td>${values[1]}</td><td>${pct(values[1], total)}</td></tr>
+      <tr><td>To'lov qilgan</td><td>${values[0]}</td><td>${pct(values[0], total)}</td></tr>
+      <tr><td>Hech to'lamagan</td><td>${values[1]}</td><td>${pct(values[1], total)}</td></tr>
     `;
     }
 
@@ -1735,7 +1735,7 @@
     errEl.innerText = "";
 
     if ((cash + card) <= 0) {
-      errEl.innerText = "Summa 0 bo‘lishi mumkin emas";
+      errEl.innerText = "Summa 0 bo'lishi mumkin emas";
       return;
     }
 
@@ -1807,9 +1807,9 @@
 
         const raw = cleanDigits(view.value);
         hidden.value = raw;                 // ✅ serverga ketadigan
-        view.value = formatUZS(raw);        // ✅ ko‘rinadigan
+        view.value = formatUZS(raw);        // ✅ ko'rinadigan
 
-        preview.innerHTML = raw ? `<b>${formatUZS(raw)}</b> so‘m` : "—";
+        preview.innerHTML = raw ? `<b>${formatUZS(raw)}</b> so'm` : "—";
 
         // caretni qayta tiklaymiz
         setCaretByDigits(view, digitsBefore);
@@ -1822,7 +1822,7 @@
       // Sahifa yuklanganda ham
       sync();
 
-      // Form submit bo‘lganda ham hidden to‘g‘ri bo‘lsin
+      // Form submit bo'lganda ham hidden to'g'ri bo'lsin
       const form = view.closest("form");
       if (form) {
         form.addEventListener("submit", () => {

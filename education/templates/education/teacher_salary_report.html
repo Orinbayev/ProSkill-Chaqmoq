@@ -380,12 +380,12 @@
 
           <div class="info-body">
             <div class="meta">
-              <p>👩‍🏫 O‘qituvchi: <strong>{{ group.oqituvchi.get_full_name }}</strong></p>
+              <p>👩‍🏫 O'qituvchi: <strong>{{ group.oqituvchi.get_full_name }}</strong></p>
 
               <div class="meta-row">
                 <div class="meta-pill">
                   <span class="k">💰 Kurs narxi</span>
-                  <span class="v v-blue">{{ group.kurs_narxi|floatformat:0 }} so‘m</span>
+                  <span class="v v-blue">{{ group.kurs_narxi|floatformat:0 }} so'm</span>
                 </div>
 
                 <div class="meta-pill">
@@ -397,8 +397,8 @@
 
             <div class="quick-total">
               <div class="total-card">
-                <div class="total-label">Jami o‘qituvchi daromadi</div>
-                <div class="total-value">{{ teacher_total_income|floatformat:0 }} so‘m</div>
+                <div class="total-label">Jami o'qituvchi daromadi</div>
+                <div class="total-value">{{ teacher_total_income|floatformat:0 }} so'm</div>
               </div>
             </div>
           </div>
@@ -406,7 +406,7 @@
 
         <div class="table-card">
           <div class="table-head">
-            <h6 class="table-title">📋 O‘quvchilar bo‘yicha hisobot</h6>
+            <h6 class="table-title">📋 O'quvchilar bo'yicha hisobot</h6>
           </div>
 
           <div class="table-wrap">
@@ -414,9 +414,9 @@
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>O‘quvchi</th>
+                  <th>O'quvchi</th>
                   <th>Kelgan darslar</th>
-                  <th>O‘qituvchiga tushgan summa</th>
+                  <th>O'qituvchiga tushgan summa</th>
                 </tr>
               </thead>
               <tbody>
@@ -425,7 +425,7 @@
                   <td>{{ forloop.counter }}</td>
                   <td>{{ s.student_name }}</td>
                   <td>{{ s.attended }}</td>
-                  <td><strong class="money">{{ s.teacher_income|floatformat:0 }}</strong> so‘m</td>
+                  <td><strong class="money">{{ s.teacher_income|floatformat:0 }}</strong> so'm</td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -435,7 +435,7 @@
 
         <div class="chart-card">
           <div class="chart-head">
-            <h6 class="chart-title">📊 O‘quvchilar kesimida daromad</h6>
+            <h6 class="chart-title">📊 O'quvchilar kesimida daromad</h6>
           </div>
           <div class="chart-body">
             <canvas id="incomeChart" height="110"
@@ -471,7 +471,7 @@
       data: {
         labels: labels,
         datasets: [{
-          label: 'O‘qituvchining o‘quvchidan olgan daromadi (so‘m)',
+          label: 'O'qituvchining o'quvchidan olgan daromadi (so'm)',
           data: values,
           backgroundColor: 'rgba(96, 165, 250, 0.55)',
           borderColor: 'rgba(37, 99, 235, 1)',

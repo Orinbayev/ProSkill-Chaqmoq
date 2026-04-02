@@ -16,8 +16,8 @@
   <div class="ui-note ui-note-muted">
     Tavsiya qoidalari:
     Davomat ≥ {{ thresholds.attendance_threshold|floatformat:1 }}%,
-    O‘tish foizi ≥ {{ thresholds.pass_rate_threshold|floatformat:1 }}%,
-    Imtihondan o‘tish foizi ≥ {{ thresholds.passing_percent|floatformat:1 }}%.
+    O'tish foizi ≥ {{ thresholds.pass_rate_threshold|floatformat:1 }}%,
+    Imtihondan o'tish foizi ≥ {{ thresholds.passing_percent|floatformat:1 }}%.
   </div>
 
   <div class="ui-panel ui-section">
@@ -25,12 +25,12 @@
       <table class="ui-table">
         <thead>
           <tr>
-            <th>O‘quvchi</th>
+            <th>O'quvchi</th>
             <th>Holat</th>
             <th>Sabab</th>
             <th>Imtihon</th>
-            <th>O‘rtacha %</th>
-            <th>O‘tish foizi</th>
+            <th>O'rtacha %</th>
+            <th>O'tish foizi</th>
             <th>Davomat</th>
             <th>Sertifikat</th>
           </tr>
@@ -43,7 +43,7 @@
               {% if row.completion_recommendation == 'eligible' %}
                 <span class="ui-badge ui-badge-success">Mos</span>
               {% elif row.completion_recommendation == 'needs_review' %}
-                <span class="ui-badge ui-badge-warning">Ko‘rib chiqish kerak</span>
+                <span class="ui-badge ui-badge-warning">Ko'rib chiqish kerak</span>
               {% else %}
                 <span class="ui-badge ui-badge-danger">Mos emas</span>
               {% endif %}
@@ -67,7 +67,7 @@
                   <button type="submit" class="ui-btn ui-btn-warning">Berish</button>
                 </form>
               {% else %}
-                <span class="ui-muted">Ruxsat yo‘q</span>
+                <span class="ui-muted">Ruxsat yo'q</span>
               {% endif %}
             </td>
           </tr>

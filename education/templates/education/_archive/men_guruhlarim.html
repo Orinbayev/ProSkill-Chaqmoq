@@ -318,7 +318,7 @@
     <header class="page-header">
       <div>
         <h3 class="page-title">📘 Mening guruhlarim</h3>
-        <p class="page-subtitle">Guruhlaringiz ro‘yxati va tezkor amallar.</p>
+        <p class="page-subtitle">Guruhlaringiz ro'yxati va tezkor amallar.</p>
       </div>
       <span class="pill">⚡ Premium Dark • Glass UI</span>
     </header>
@@ -354,7 +354,7 @@
                 <td class="text-center text-nowrap">
                   <div class="actions">
                     <a href="{% url 'education:group_detail' g.pk %}"
-                       class="btn btn-sm btn-view">👁️ Ko‘rish</a>
+                       class="btn btn-sm btn-view">👁️ Ko'rish</a>
 
                     <a href="{% url 'education:group_rollcall' g.pk %}"
                        class="btn btn-sm btn-roll">📋 Davomat / Chaqmoq</a>
@@ -365,7 +365,7 @@
             {% empty %}
               <tr>
                 <td colspan="4" class="text-center py-4 empty-text">
-                  Hozircha guruh yo‘q.
+                  Hozircha guruh yo'q.
                 </td>
               </tr>
             {% endfor %}
@@ -373,7 +373,7 @@
           </table>
         </div>
 
-        <div class="mobile-card-list" aria-label="Guruhlar ro‘yxati (mobil)">
+        <div class="mobile-card-list" aria-label="Guruhlar ro'yxati (mobil)">
           {% for g in groups %}
             <article class="mobile-card">
               <div class="mobile-row">
@@ -387,7 +387,7 @@
 
               <div class="mobile-actions mt-3">
                 <a href="{% url 'education:group_detail' g.pk %}"
-                   class="btn btn-sm btn-view">👁️ Ko‘rish</a>
+                   class="btn btn-sm btn-view">👁️ Ko'rish</a>
 
                 <a href="{% url 'education:group_rollcall' g.pk %}"
                    class="btn btn-sm btn-roll">📋 Davomat / Chaqmoq</a>
@@ -396,7 +396,7 @@
 
           {% empty %}
             <div class="text-center py-4 empty-text">
-              Hozircha guruh yo‘q.
+              Hozircha guruh yo'q.
             </div>
           {% endfor %}
         </div>

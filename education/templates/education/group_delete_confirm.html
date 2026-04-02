@@ -195,14 +195,14 @@
 
 <main class="page-wrap">
   <div class="delete-card">
-    <h4 class="delete-title">🗑️ "{{ group.nom }}" guruhini o‘chirmoqchimisiz?</h4>
+    <h4 class="delete-title">🗑️ "{{ group.nom }}" guruhini o'chirmoqchimisiz?</h4>
 
     <form method="post" class="mt-4">
       {% csrf_token %}
 
       <div class="d-flex justify-content-between">
         <a href="javascript:history.back()" class="btn-cancel">Bekor qilish</a>
-        <button type="submit" class="btn-delete">Ha, o‘chirish</button>
+        <button type="submit" class="btn-delete">Ha, o'chirish</button>
       </div>
     </form>
   </div>

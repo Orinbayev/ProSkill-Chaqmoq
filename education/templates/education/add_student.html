@@ -78,19 +78,19 @@
 
 <div class="wrapper">
 
-  <h2>👤 {{ group.nom }} guruhiga o‘quvchi qo‘shish</h2>
+  <h2>👤 {{ group.nom }} guruhiga o'quvchi qo'shish</h2>
 
   <form method="post">
     {% csrf_token %}
 
-    <label for="student">O‘quvchini tanlang:</label>
+    <label for="student">O'quvchini tanlang:</label>
     <select name="student_id" id="student" required>
       {% for student in students %}
         <option value="{{ student.id }}">{{ student.get_full_name }}</option>
       {% endfor %}
     </select>
 
-    <button type="submit" class="btn-primary">➕ Qo‘shish</button>
+    <button type="submit" class="btn-primary">➕ Qo'shish</button>
   </form>
 
   <a href="{% url 'education:group_detail' group.id %}" class="back-link">⬅️ Ortga qaytish</a>

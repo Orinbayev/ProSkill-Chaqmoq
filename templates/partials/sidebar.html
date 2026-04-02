@@ -240,9 +240,9 @@
 
     <a href="{% url 'store:products' %}"
       class="sidebar-item {% if vn == 'store:products' or vn == 'store:product_detail' %}active{% endif %}"
-      data-title="Do‘kon">
+      data-title="Do'kon">
       <span class="si-ico"><i class="fa-solid fa-store"></i></span>
-      <span class="si-text">Do‘kon</span>
+      <span class="si-text">Do'kon</span>
     </a>
 
     <a href="{% url 'chaqmoq:reyting' %}" class="sidebar-item {% if vn == 'chaqmoq:reyting' %}active{% endif %}"
@@ -273,9 +273,9 @@
 
     <a href="{% url 'store:products' %}"
       class="sidebar-item {% if vn == 'store:products' or vn == 'store:product_detail' %}active{% endif %}"
-      data-title="Do‘kon">
+      data-title="Do'kon">
       <span class="si-ico"><i class="fa-solid fa-store"></i></span>
-      <span class="si-text">Do‘kon</span>
+      <span class="si-text">Do'kon</span>
     </a>
 
     <a href="{% url 'chaqmoq:reyting' %}" class="sidebar-item {% if vn == 'chaqmoq:reyting' %}active{% endif %}"
@@ -299,9 +299,9 @@
     </a>
 
     <a href="{% url 'core:stat_students' %}" class="sidebar-item {% if vn == 'core:stat_students' %}active{% endif %}"
-      data-title="O‘quvchilar">
+      data-title="O'quvchilar">
       <span class="si-ico"><i class="fa-solid fa-user-graduate"></i></span>
-      <span class="si-text">O‘quvchilar</span>
+      <span class="si-text">O'quvchilar</span>
     </a>
 
     {% if feature_leads or request.user.is_superuser %}
@@ -322,9 +322,9 @@
     {% endif %}
 
     <a href="{% url 'education:groups_home' %}"
-      class="sidebar-item {% if vn == 'education:groups_home' %}active{% endif %}" data-title="Bo‘limlar">
+      class="sidebar-item {% if vn == 'education:groups_home' %}active{% endif %}" data-title="Bo'limlar">
       <span class="si-ico"><i class="fa-solid fa-layer-group"></i></span>
-      <span class="si-text">Bo‘limlar</span>
+      <span class="si-text">Bo'limlar</span>
     </a>
 
     {% if feature_store or request.user.is_superuser %}
@@ -412,28 +412,28 @@
   <!-- {% if feature_finance or request.user.is_superuser %} -->
   <!-- <a href="{% url 'education:teacher_salary_list' %}" class="floating-item">
     <div class="fi-icon"><i class="fa-solid fa-sack-dollar"></i></div>
-    <span>To‘lov</span>
+    <span>To'lov</span>
   </a> -->
   <!-- {% endif %} -->
 
   {% if feature_finance or request.user.is_superuser or request.user.role == 'director' or request.user.role == 'manager' or request.user.role == 'admin' %}
   <a href="{% url 'education:teacher_salary_list' %}" class="floating-item">
     <div class="fi-icon"><i class="fa-solid fa-sack-dollar"></i></div>
-    <span>To‘lov</span>
+    <span>To'lov</span>
   </a>
 {% endif %}
 
   {% if feature_store or request.user.is_superuser %}
   <a href="{% url 'store:products' %}" class="floating-item">
     <div class="fi-icon"><i class="fa-solid fa-store"></i></div>
-    <span>Do‘kon</span>
+    <span>Do'kon</span>
   </a>
   {% endif %}
 
   {% if request.user.role == 'director' or request.user.is_superuser or request.center.manager_can_access_trash %}
   <a href="{% url 'core:deleted_items' %}" class="floating-item">
     <div class="fi-icon"><i class="fa-solid fa-trash-can"></i></div>
-    <span>O‘chirilganlar</span>
+    <span>O'chirilganlar</span>
   </a>
   {% endif %}
 
@@ -445,7 +445,7 @@
 
   <a href="{% url 'core:stat_teachers' %}" class="floating-item">
     <div class="fi-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
-    <span>O‘qituvchilar</span>
+    <span>O'qituvchilar</span>
   </a>
 
   <a href="{% url 'education:attendance_groups' %}" class="floating-item">

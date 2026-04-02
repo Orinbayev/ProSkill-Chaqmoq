@@ -5,7 +5,7 @@
   <div class="ui-panel ui-header">
     <div>
       <h3 class="ui-title">Imtihon Hisobot: {{ student.get_full_name }}</h3>
-      <div class="ui-sub">O‘quvchining imtihon, yakuniy xulosa va sertifikat holati</div>
+      <div class="ui-sub">O'quvchining imtihon, yakuniy xulosa va sertifikat holati</div>
     </div>
     <div class="ui-actions">
       <a href="javascript:history.back()" class="ui-btn ui-btn-secondary">Orqaga</a>
@@ -13,11 +13,11 @@
   </div>
 
   <div class="ui-panel ui-section">
-    <h4 class="ui-section-title">Umumiy ko‘rsatkichlar</h4>
+    <h4 class="ui-section-title">Umumiy ko'rsatkichlar</h4>
     <div class="ui-grid">
       <div class="ui-col-3"><div class="ui-note ui-note-muted mb-0"><strong>Imtihonlar soni:</strong> {{ summary.exam_count }}</div></div>
-      <div class="ui-col-3"><div class="ui-note ui-note-muted mb-0"><strong>O‘rtacha foiz:</strong> {{ summary.average_percent|floatformat:2 }}%</div></div>
-      <div class="ui-col-3"><div class="ui-note ui-note-muted mb-0"><strong>O‘tish foizi:</strong> {{ summary.pass_rate_percent|floatformat:2 }}%</div></div>
+      <div class="ui-col-3"><div class="ui-note ui-note-muted mb-0"><strong>O'rtacha foiz:</strong> {{ summary.average_percent|floatformat:2 }}%</div></div>
+      <div class="ui-col-3"><div class="ui-note ui-note-muted mb-0"><strong>O'tish foizi:</strong> {{ summary.pass_rate_percent|floatformat:2 }}%</div></div>
       <div class="ui-col-3"><div class="ui-note ui-note-muted mb-0"><strong>Oxirgi imtihon:</strong> {% if summary.last_exam %}{{ summary.last_exam.exam_date }}{% else %}—{% endif %}</div></div>
     </div>
   </div>
@@ -31,8 +31,8 @@
             <th>Guruh</th>
             <th>Holat</th>
             <th>Imtihon</th>
-            <th>O‘rtacha %</th>
-            <th>O‘tish foizi</th>
+            <th>O'rtacha %</th>
+            <th>O'tish foizi</th>
             <th>Davomat</th>
             <th>Ichki rank</th>
           </tr>
@@ -45,7 +45,7 @@
               {% if s.completion_recommendation == 'eligible' %}
                 <span class="ui-badge ui-badge-success">Mos</span>
               {% elif s.completion_recommendation == 'needs_review' %}
-                <span class="ui-badge ui-badge-warning">Ko‘rib chiqish kerak</span>
+                <span class="ui-badge ui-badge-warning">Ko'rib chiqish kerak</span>
               {% else %}
                 <span class="ui-badge ui-badge-danger">Mos emas</span>
               {% endif %}
@@ -131,7 +131,7 @@
             <td>{{ r.percent|default:"—" }}%</td>
             <td>
               {% if r.passed %}
-                <span class="ui-badge ui-badge-success">O‘tdi</span>
+                <span class="ui-badge ui-badge-success">O'tdi</span>
               {% else %}
                 <span class="ui-badge ui-badge-danger">Yiqildi</span>
               {% endif %}

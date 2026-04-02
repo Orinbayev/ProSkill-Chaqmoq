@@ -319,8 +319,8 @@
       </div>
 
       <div style="min-width:0;">
-        <h3 class="page-title">👥 Guruhlar ro‘yxati</h3>
-        <div class="subtitle">Ko‘rish yoki davomat/chaqmoq qilish uchun guruhni tanlang</div>
+        <h3 class="page-title">👥 Guruhlar ro'yxati</h3>
+        <div class="subtitle">Ko'rish yoki davomat/chaqmoq qilish uchun guruhni tanlang</div>
       </div>
     </div>
   </div>
@@ -333,7 +333,7 @@
           <tr>
             <th>Guruh</th>
             <th>Center</th>
-            <th>O‘qituvchi</th>
+            <th>O'qituvchi</th>
             <th>Talabalar</th>
             <th class="text-center">Amallar</th>
           </tr>
@@ -358,7 +358,7 @@
 
             <td class="text-center text-nowrap">
               <a href="{% url 'education:group_detail' g.pk %}"
-                 class="btn btn-sm btn-view me-1">👁️ Ko‘rish</a>
+                 class="btn btn-sm btn-view me-1">👁️ Ko'rish</a>
 
               <a href="{% url 'education:group_rollcall' g.pk %}"
                  class="btn btn-sm btn-roll">📋 Davomat / Chaqmoq</a>
@@ -368,7 +368,7 @@
         {% empty %}
           <tr>
             <td colspan="5" class="empty">
-              Guruh yo‘q.
+              Guruh yo'q.
             </td>
           </tr>
         {% endfor %}
@@ -395,7 +395,7 @@
           </div>
 
           <div class="m-row">
-            <span class="m-k">O‘qituvchi</span>
+            <span class="m-k">O'qituvchi</span>
             <span class="m-v">
               {% if g.oqituvchi %}
                 {{ g.oqituvchi.ism }} {{ g.oqituvchi.familya }}
@@ -413,7 +413,7 @@
 
         <div class="m-actions">
           <a href="{% url 'education:group_detail' g.pk %}"
-             class="btn btn-sm btn-view">👁️ Ko‘rish</a>
+             class="btn btn-sm btn-view">👁️ Ko'rish</a>
 
           <a href="{% url 'education:group_rollcall' g.pk %}"
              class="btn btn-sm btn-roll">📋 Davomat / Chaqmoq</a>
@@ -422,7 +422,7 @@
 
     {% empty %}
       <div class="m-card">
-        <div class="empty">Guruh yo‘q.</div>
+        <div class="empty">Guruh yo'q.</div>
       </div>
     {% endfor %}
   </div>

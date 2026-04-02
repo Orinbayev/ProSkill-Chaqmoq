@@ -388,7 +388,7 @@
 
     <div class="toolbar-right">
       <a href="{% url 'store:product_create' %}" class="btn-add">
-        <i class="fa-solid fa-plus"></i> Mahsulot qo‘shish
+        <i class="fa-solid fa-plus"></i> Mahsulot qo'shish
       </a>
     </div>
   </div>
@@ -396,7 +396,7 @@
   <!-- SEARCH BAR -->
   <form method="get" class="search-bar">
     <i class="fa-solid fa-magnifying-glass" style="color:var(--muted)"></i>
-    <input name="q" value="{{ request.GET.q|default:'' }}" class="search-input" placeholder="Nom bo‘yicha izlash..."
+    <input name="q" value="{{ request.GET.q|default:'' }}" class="search-input" placeholder="Nom bo'yicha izlash..."
       autocomplete="off">
     <button type="submit" class="btn-search">Izlash</button>
   </form>
@@ -433,9 +433,9 @@
                   <i class="fa-solid fa-pen"></i>
                 </a>
                 <form method="post" action="{% url 'store:product_delete' p.pk %}"
-                  onsubmit="return confirm('Haqiqatan ham o‘chirmoqchimisiz?');">
+                  onsubmit="return confirm('Haqiqatan ham o'chirmoqchimisiz?');">
                   {% csrf_token %}
-                  <button type="submit" class="a-btn del" title="O‘chirish">
+                  <button type="submit" class="a-btn del" title="O'chirish">
                     <i class="fa-solid fa-trash"></i>
                   </button>
                 </form>
@@ -471,9 +471,9 @@
           <i class="fa-solid fa-pen"></i>
         </a>
         <form method="post" action="{% url 'store:product_delete' p.pk %}"
-          onsubmit="return confirm('Haqiqatan ham o‘chirmoqchimisiz?');">
+          onsubmit="return confirm('Haqiqatan ham o'chirmoqchimisiz?');">
           {% csrf_token %}
-          <button type="submit" class="a-btn del" title="O‘chirish">
+          <button type="submit" class="a-btn del" title="O'chirish">
             <i class="fa-solid fa-trash"></i>
           </button>
         </form>

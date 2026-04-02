@@ -440,7 +440,7 @@ tr.unpaid{ background: rgba(250,204,21,0.08) !important; }
               </svg>
             </div>
             <div class="t-text">
-              <h2 class="t-title">💰 O‘quvchilar to‘lozorati</h2>
+              <h2 class="t-title">💰 O'quvchilar to'lozorati</h2>
               <div class="t-sub">F.I.Sh yoki email orqali qidiring — filtrlar bilan tez nazorat qiling</div>
             </div>
           </div>
@@ -452,7 +452,7 @@ tr.unpaid{ background: rgba(250,204,21,0.08) !important; }
 
         <div class="toolbar">
           <div class="search-card">
-            <form method="get" class="search-form" role="search" aria-label="To‘lov nazorati qidiruv">
+            <form method="get" class="search-form" role="search" aria-label="To'lov nazorati qidiruv">
               <div class="input-wrap">
                 <svg class="input-ico" viewBox="0 0 24 24" fill="none" stroke="rgba(229,231,235,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <circle cx="11" cy="11" r="7"></circle>
@@ -469,21 +469,21 @@ tr.unpaid{ background: rgba(250,204,21,0.08) !important; }
           <nav class="filter-bar" aria-label="Filtrlar">
             <div class="filter-buttons">
               <a href="?filter=" class="{% if not filter_type %}active{% endif %}">Hammasi</a>
-              <a href="?filter=full" class="{% if filter_type == 'full' %}active{% endif %}">To‘liq to‘laganlar ✅</a>
-              <a href="?filter=unpaid" class="{% if filter_type == 'unpaid' %}active{% endif %}">To‘lamaganlar ❌</a>
+              <a href="?filter=full" class="{% if filter_type == 'full' %}active{% endif %}">To'liq to'laganlar ✅</a>
+              <a href="?filter=unpaid" class="{% if filter_type == 'unpaid' %}active{% endif %}">To'lamaganlar ❌</a>
               <a href="?filter=late" class="{% if filter_type == 'late' %}active{% endif %}">Kechiktirganlar ⏳</a>
             </div>
           </nav>
         </div>
       </header>
 
-      <section class="table-card" aria-label="To‘lov jadvali">
+      <section class="table-card" aria-label="To'lov jadvali">
         <div class="table-head">
-          <h3 class="table-title">📋 To‘lov holati jadvali</h3>
-          <div class="table-note">⬅ Jadvalni yon tomonga surib ko‘ring</div>
+          <h3 class="table-title">📋 To'lov holati jadvali</h3>
+          <div class="table-note">⬅ Jadvalni yon tomonga surib ko'ring</div>
         </div>
 
-        <div class="table-wrapper" role="region" aria-label="To‘lov jadvali" tabindex="0">
+        <div class="table-wrapper" role="region" aria-label="To'lov jadvali" tabindex="0">
           <table class="table table-bordered table-striped align-middle">
             <thead>
               <tr>
@@ -491,7 +491,7 @@ tr.unpaid{ background: rgba(250,204,21,0.08) !important; }
                 <th>F.I.Sh</th>
                 <th>Guruh</th>
                 <th>Kurs narxi</th>
-                <th>Jami to‘langan</th>
+                <th>Jami to'langan</th>
                 <th>Qoldiq</th>
                 <th>Status</th>
               </tr>
@@ -508,24 +508,24 @@ tr.unpaid{ background: rgba(250,204,21,0.08) !important; }
                 <td>{{ forloop.counter }}</td>
                 <td>{{ s.student.ism }} {{ s.student.familya }}</td>
                 <td>{{ s.guruh.nom }}</td>
-                <td>{{ s.kurs_narhi|intcomma }} so‘m</td>
-                <td>{{ s.jami_tolangan|intcomma }} so‘m</td>
-                <td>{{ s.qoldiq|intcomma }} so‘m</td>
+                <td>{{ s.kurs_narhi|intcomma }} so'm</td>
+                <td>{{ s.jami_tolangan|intcomma }} so'm</td>
+                <td>{{ s.qoldiq|intcomma }} so'm</td>
 
                 <td>
                   {% if s.is_full %}
-                    <span class="status-badge status-full">To‘liq</span>
+                    <span class="status-badge status-full">To'liq</span>
                   {% elif s.is_late %}
                     <span class="status-badge status-late">Kechiktirgan</span>
                   {% else %}
-                    <span class="status-badge status-unpaid">To‘layotgan</span>
+                    <span class="status-badge status-unpaid">To'layotgan</span>
                   {% endif %}
                 </td>
               </tr>
               {% empty %}
               <tr>
                 <td colspan="7" class="text-center py-4" style="color: rgba(229,231,235,0.85); font-weight: 900;">
-                  Ma’lumot topilmadi.
+                  Ma'lumot topilmadi.
                 </td>
               </tr>
               {% endfor %}

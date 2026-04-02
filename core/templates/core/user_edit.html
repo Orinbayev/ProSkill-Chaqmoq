@@ -430,9 +430,9 @@
     {% if user_obj.role == 'manager' %}
     Managerni tahrirlash
     {% elif user_obj.role == 'teacher' %}
-    O‘qituvchini tahrirlash
+    O'qituvchini tahrirlash
     {% else %}
-    O‘quvchini tahrirlash
+    O'quvchini tahrirlash
     {% endif %}
   </div>
 
@@ -492,8 +492,8 @@
       <div class="col-12 mb-3">
         <label class="form-label">Role</label>
         <select name="role" class="form-control" aria-label="Role">
-          <option value="student" {% if user_obj.role == "student" %}selected{% endif %}>O‘quvchi</option>
-          <option value="teacher" {% if user_obj.role == "teacher" %}selected{% endif %}>O‘qituvchi</option>
+          <option value="student" {% if user_obj.role == "student" %}selected{% endif %}>O'quvchi</option>
+          <option value="teacher" {% if user_obj.role == "teacher" %}selected{% endif %}>O'qituvchi</option>
           <option value="manager" {% if user_obj.role == "manager" %}selected{% endif %}>Manager</option>
           <option value="director" {% if user_obj.role == "director" %}selected{% endif %}>Direktor</option>
         </select>
@@ -509,9 +509,9 @@
       <div class="row">
         <!-- Tug'ilgan sana -->
         <div class="col-md-6 col-12 mb-3">
-          <label class="form-label">Tug‘ilgan sana <span class="text-danger">*</span></label>
+          <label class="form-label">Tug'ilgan sana <span class="text-danger">*</span></label>
           <input type="date" name="birth_date" value="{{ user_obj.birth_date|date:'Y-m-d' }}" class="form-control"
-            aria-label="Tug‘ilgan sana">
+            aria-label="Tug'ilgan sana">
         </div>
 
         <!-- Jinsi -->
@@ -591,7 +591,7 @@
     <hr class="mt-4 mb-3" style="border-color: rgba(255,255,255,0.08);">
 
     <!-- ===== GROUP SECTION ===== -->
-    <div class="section-title">📘 O‘quvchining guruhlari va kurs narxlari</div>
+    <div class="section-title">📘 O'quvchining guruhlari va kurs narxlari</div>
 
     {% if enrollments %}
     {% for e in enrollments %}
@@ -611,7 +611,7 @@
         <div class="col-md-4 col-12 d-flex align-items-center">
           <label class="delete-toggle" title="O'quvchini guruhdan chiqarish">
             <input type="checkbox" name="delete_group_{{ e.id }}">
-            <span><i class="fa-solid fa-user-minus"></i> O‘chirish</span>
+            <span><i class="fa-solid fa-user-minus"></i> O'chirish</span>
           </label>
         </div>
 
@@ -620,7 +620,7 @@
     </div>
     {% endfor %}
     {% else %}
-    <p class="text-warning">O‘quvchi hali hech qaysi guruhga yozilmagan.</p>
+    <p class="text-warning">O'quvchi hali hech qaysi guruhga yozilmagan.</p>
     {% endif %}
     {% endif %}
 
@@ -628,7 +628,7 @@
     <hr class="mt-4 mb-3" style="border-color: rgba(255,255,255,0.08);">
 
     <!-- ===== ADD NEW GROUP ===== -->
-    <div class="section-title">➕ Yangi guruhga qo‘shish</div>
+    <div class="section-title">➕ Yangi guruhga qo'shish</div>
 
     <div class="row">
 
@@ -643,8 +643,8 @@
       </div>
 
       <div class="col-md-6 col-12 mb-3">
-        <label class="form-label">Kurs narxi (so‘m)</label>
-        <input type="number" name="yangi_group_price" class="form-control" min="0" aria-label="Kurs narxi (so‘m)">
+        <label class="form-label">Kurs narxi (so'm)</label>
+        <input type="number" name="yangi_group_price" class="form-control" min="0" aria-label="Kurs narxi (so'm)">
       </div>
 
     </div>

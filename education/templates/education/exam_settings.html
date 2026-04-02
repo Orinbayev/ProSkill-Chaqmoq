@@ -13,7 +13,7 @@
   </div>
 
   {% if not can_edit %}
-    <div class="ui-note">Teacher rejimi: sozlamalarni ko‘rish mumkin, lekin tahrirlash faqat director/manager uchun.</div>
+    <div class="ui-note">Teacher rejimi: sozlamalarni ko'rish mumkin, lekin tahrirlash faqat director/manager uchun.</div>
   {% endif %}
 
   <div class="ui-panel ui-section">
@@ -28,7 +28,7 @@
             {% else %}
               <div class="ui-note ui-note-muted mb-0">
                 {% if field.field.widget.input_type == 'checkbox' %}
-                  {% if field.value %}Yoqilgan{% else %}O‘chiq{% endif %}
+                  {% if field.value %}Yoqilgan{% else %}O'chiq{% endif %}
                 {% else %}
                   {{ field.value|default:"—" }}
                 {% endif %}

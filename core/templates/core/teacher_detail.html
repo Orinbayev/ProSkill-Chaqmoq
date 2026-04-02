@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}
-👨‍🏫 {{ teacher.get_full_name }} — O‘qituvchi profili
+👨‍🏫 {{ teacher.get_full_name }} — O'qituvchi profili
 {% endblock %}
 
 {% block extra_css %}
@@ -264,7 +264,7 @@
           <div>
             <h1 class="fs-2 fw-bold text-white mb-2">{{ teacher.get_full_name }}</h1>
             <div class="d-flex flex-wrap gap-2 align-items-center text-white-50">
-              <span class="badge border border-light-subtle px-3 py-2 rounded-pill">O‘qituvchi</span>
+              <span class="badge border border-light-subtle px-3 py-2 rounded-pill">O'qituvchi</span>
               {% if teacher.center %}
               <span class="ms-2"><i class="fa-solid fa-building-columns me-1"></i> {{ teacher.center.name }}</span>
               {% endif %}
@@ -357,7 +357,7 @@
       <div class="glass p-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
           <h5 class="m-0 fw-bold text-white">
-            <i class="fa-solid fa-layer-group me-2 text-warning"></i> O‘qituvchi guruhlari
+            <i class="fa-solid fa-layer-group me-2 text-warning"></i> O'qituvchi guruhlari
           </h5>
           <span class="badge bg-white-10 text-white-50 px-3 py-2 rounded-pill">{{ groups.count }} ta</span>
         </div>
@@ -370,7 +370,7 @@
                 <th class="ps-4">#</th>
                 <th>Guruh Nomi</th>
                 <th>Markaz</th>
-                <th>O‘quvchilar soni</th>
+                <th>O'quvchilar soni</th>
                 <th class="text-end pe-4">Batafsil</th>
               </tr>
             </thead>
@@ -394,7 +394,7 @@
                 <td><span class="badge bg-white-5 text-white-50 rounded-pill px-3">{{ g.enrollments.count }}</span></td>
                 <td class="text-end pe-4">
                   <a href="{% url 'education:group_detail' g.id %}" class="btn btn-sm btn-glass rounded-pill px-3">
-                    <i class="fa-solid fa-eye me-1"></i> Ko‘rish
+                    <i class="fa-solid fa-eye me-1"></i> Ko'rish
                   </a>
                 </td>
               </tr>
@@ -405,7 +405,7 @@
         {% else %}
         <div class="text-center py-5 opacity-25">
           <i class="fa-solid fa-inbox fs-1 mb-2"></i>
-          <p>Hozircha guruhlari yo‘q.</p>
+          <p>Hozircha guruhlari yo'q.</p>
         </div>
         {% endif %}
       </div>
@@ -421,7 +421,7 @@
     <div class="modal-content glass-dark border border-white-10 text-white rounded-4 shadow-3d">
       <div class="modal-header border-0 pb-0 px-4 pt-4">
         <h5 class="modal-title fw-bold text-warning d-flex align-items-center gap-2">
-          <i class="fa-solid fa-key"></i> Parolni o‘zgartirish
+          <i class="fa-solid fa-key"></i> Parolni o'zgartirish
         </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>

@@ -199,7 +199,7 @@
         <i class="fas fa-pencil-alt"></i>
       </div>
       <div class="title-area">
-        <h2><i class="fas fa-edit me-2" style="font-size: 24px;"></i> O‘quvchini tahrirlash</h2>
+        <h2><i class="fas fa-edit me-2" style="font-size: 24px;"></i> O'quvchini tahrirlash</h2>
         <div class="subtitle">
           {{ enr.student.get_full_name }} • Guruh: {{ enr.group.nom }}
         </div>
@@ -245,14 +245,14 @@
 
         <!-- Kurs Narxi -->
         <div class="col-md-6">
-          <label class="form-label">Kurs narxi (so‘m)</label>
+          <label class="form-label">Kurs narxi (so'm)</label>
           <input type="number" name="kurs_narhi" min="0" value="{{ enr.kurs_narhi|default:'0' }}"
             class="form-control custom-input" placeholder="Summani kiriting">
         </div>
 
         <!-- O'qituvchi Foizi -->
         <div class="col-md-6">
-          <label class="form-label">O‘qituvchi foizi (%)</label>
+          <label class="form-label">O'qituvchi foizi (%)</label>
           <input type="number" name="oqituvchi_foiz" min="0" max="100" value="{{ enr.oqituvchi_foiz|default:'40' }}"
             class="form-control custom-input" placeholder="Foizni kiriting">
         </div>

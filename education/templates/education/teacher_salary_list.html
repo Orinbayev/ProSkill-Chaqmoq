@@ -136,6 +136,10 @@ body{
   border-radius: 12px;
   background: rgba(255,255,255,0.03);
   border: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
 }
 .filter-form{
   display:flex;
@@ -341,8 +345,8 @@ body{
               </svg>
             </div>
             <div>
-              <div class="h-title">O‘qituvchilar ro‘yxati</div>
-              <div class="h-sub">O‘qituvchini tanlang va guruhlardagi oylik hisobini ko‘ring</div>
+              <div class="h-title">O'qituvchilar ro'yxati</div>
+              <div class="h-sub">O'qituvchini tanlang va guruhlardagi oylik hisobini ko'ring</div>
             </div>
           </div>
         </div>
@@ -377,7 +381,7 @@ body{
           <div class="ms-right">
             <span>Jami:</span>
             <span class="ms-money">{{ total_all|intcomma }}</span>
-            <span>so‘m</span>
+            <span>so'm</span>
           </div>
         </div>
 
@@ -406,9 +410,45 @@ body{
               <input name="year" type="number" value="{{ year }}" min="2020" max="2100" aria-label="Yil">
             </div>
 
-            <button class="filter-btn" type="submit">Ko‘rsatish</button>
+            <button class="filter-btn" type="submit">Ko'rsatish</button>
           </form>
+
+          <a href="{% url 'education:teacher_salary_export' %}?month={{ month }}&year={{ year }}"
+             class="excel-export-btn"
+             title="Tanlangan oy/yil bo'yicha Excel hisobotni yuklab olish">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Excel yuklab olish
+          </a>
         </div>
+<style>
+.excel-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 12px;
+  color: #4ade80;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  margin-left: 8px;
+}
+.excel-export-btn:hover {
+  background: rgba(34, 197, 94, 0.22);
+  border-color: rgba(34, 197, 94, 0.5);
+  color: #86efac;
+  text-decoration: none;
+}
+</style>
 
         <div class="list-card">
           {% if teachers %}
@@ -429,13 +469,13 @@ body{
 
                     <div class="t-meta">
                       <div class="pill">Guruh: <strong>{{ row.groups_count }}</strong></div>
-                      <div class="pill">Oylik: <strong class="t-salary">{{ row.month_salary|intcomma }}</strong> so‘m</div>
+                      <div class="pill">Oylik: <strong class="t-salary">{{ row.month_salary|intcomma }}</strong> so'm</div>
                     </div>
                   </div>
                 </div>
 
                 <div class="go-badge">
-                  Ko‘rish
+                  Ko'rish
                   <svg viewBox="0 0 24 24" fill="none" stroke="#0b1220" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M5 12h14"></path>
                     <path d="M13 5l7 7-7 7"></path>
@@ -445,7 +485,7 @@ body{
               </a>
             {% endfor %}
           {% else %}
-            <div class="empty">O‘qituvchilar topilmadi.</div>
+            <div class="empty">O'qituvchilar topilmadi.</div>
           {% endif %}
         </div>
 

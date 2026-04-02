@@ -504,7 +504,7 @@
                                 </a>
                                 <form action="{% url 'education:enrollment_delete' row.enrollment.id %}" method="post"
                                     style="display:inline;"
-                                    onsubmit="return confirm('Haqiqatan ham o‘chirmoqchimisiz?');">
+                                    onsubmit="return confirm('Haqiqatan ham o'chirmoqchimisiz?');">
                                     {% csrf_token %}
                                     <button type="submit" class="action-btn delete" title="O'chirish">
                                         <i class="fas fa-trash"></i>

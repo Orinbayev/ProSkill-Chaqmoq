@@ -395,7 +395,7 @@
             <div class="icon">👩‍🏫</div>
             <div>
               <div class="title">{{ teacher.ism }} {{ teacher.familya }}</div>
-              <div class="sub">O‘qituvchi guruhlari</div>
+              <div class="sub">O'qituvchi guruhlari</div>
             </div>
             <div style="margin-left: auto; text-align: right;">
               <div class="sub" style="font-size: 11px; opacity: 0.9; text-transform: uppercase; font-weight: 700;">Jami Yig'ilgan Summa</div>
@@ -429,7 +429,7 @@
               <input name="year" type="number" value="{{ year }}" min="2020" max="2100" aria-label="Yil">
             </div>
 
-            <button class="filter-btn" type="submit">Ko‘rsatish</button>
+            <button class="filter-btn" type="submit">Ko'rsatish</button>
           </form>
         </div>
 
@@ -446,12 +446,12 @@
 
                   <div class="sum-group">
                     <div class="gname">{{ item.group.nom }}</div>
-                    <div class="gmeta">{{ item.students_count }} ta o‘quvchi</div>
+                    <div class="gmeta">{{ item.students_count }} ta o'quvchi</div>
                   </div>
 
                   <div class="sum-right-pack">
                     <div class="sum-percent">{{ item.foiz }}%</div>
-                    <div class="sum-total">{{ item.daromad|intcomma }} so‘m</div>
+                    <div class="sum-total">{{ item.daromad|intcomma }} so'm</div>
                   </div>
 
                   <div class="sum-right">
@@ -463,16 +463,16 @@
 
               <div class="group-body">
                 {% if item.enrollments %}
-                  <div class="table-box" role="region" aria-label="Guruh o‘quvchilari jadvali" tabindex="0">
+                  <div class="table-box" role="region" aria-label="Guruh o'quvchilari jadvali" tabindex="0">
                     <table class="table table-sm table-hover">
                       <thead>
                         <tr>
                           <th>#</th>
-                          <th>O‘quvchi</th>
+                          <th>O'quvchi</th>
                           <th>Kurs narxi</th>
                           <th>Foiz</th>
                           <th>Kelgan darslar</th>
-                          <th>Daromad (so‘m)</th>
+                          <th>Daromad (so'm)</th>
                         </tr>
                       </thead>
 
@@ -492,14 +492,14 @@
                     </table>
                   </div>
                 {% else %}
-                  <div class="empty-text">Bu guruhda hozircha o‘quvchilar yo‘q.</div>
+                  <div class="empty-text">Bu guruhda hozircha o'quvchilar yo'q.</div>
                 {% endif %}
               </div>
 
             </details>
           {% endfor %}
         {% else %}
-          <div class="empty-text">Bu o‘qituvchining hozircha guruhlari yo‘q.</div>
+          <div class="empty-text">Bu o'qituvchining hozircha guruhlari yo'q.</div>
         {% endif %}
 
       </div>

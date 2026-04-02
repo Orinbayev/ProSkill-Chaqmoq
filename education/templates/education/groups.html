@@ -422,8 +422,8 @@
       </div>
 
       <div style="min-width:0;">
-        <h3 class="page-title">👥 Guruhlar ro‘yxati</h3>
-        <div class="subtitle">Boshqaruv paneli — guruhlar, o‘qituvchilar va o‘quvchilar</div>
+        <h3 class="page-title">👥 Guruhlar ro'yxati</h3>
+        <div class="subtitle">Boshqaruv paneli — guruhlar, o'qituvchilar va o'quvchilar</div>
       </div>
     </div>
 
@@ -443,8 +443,8 @@
           <tr>
             <th>#</th>
             <th>Guruh nomi</th>
-            <th>O‘qituvchi</th>
-            <th>O‘quvchilar</th>
+            <th>O'qituvchi</th>
+            <th>O'quvchilar</th>
             <th>Boshlangan sana</th>
             {% if can_manage %}
             <th class="text-center">Amallar</th>
@@ -495,11 +495,11 @@
 
       <div class="m-grid">
         <div class="m-row">
-          <span class="m-k">O‘qituvchi</span>
+          <span class="m-k">O'qituvchi</span>
           <span class="m-v">{{ g.oqituvchi|default:"—" }}</span>
         </div>
         <div class="m-row">
-          <span class="m-k">O‘quvchilar</span>
+          <span class="m-k">O'quvchilar</span>
           <span class="m-v">{{ g.students_count }}</span>
         </div>
       </div>
@@ -508,7 +508,7 @@
       <div class="m-actions">
         <a href="{% url 'education:group_edit' g.id %}" class="btn btn-action btn-edit">✏️ Tahrirlash</a>
         <a href="{% url 'education:group_delete' g.id %}" class="btn btn-action btn-delete"
-          onclick="return confirm('Haqiqatan ham ushbu guruhni o\'chirishni xohlaysizmi?')">🗑️ O‘chirish</a>
+          onclick="return confirm('Haqiqatan ham ushbu guruhni o\'chirishni xohlaysizmi?')">🗑️ O'chirish</a>
       </div>
       {% endif %}
     </div>
