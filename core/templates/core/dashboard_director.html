@@ -206,13 +206,13 @@
     <div class="col-6 col-md-3">
       <div class="mini glass-sm mini-clickable"
            title="Tark etgan o'quvchilar ro'yxatiga o'tish"
-           data-target-url="{% url 'core:stat_students' %}?status=archived"
            onclick="
-             var u=new URL(this.getAttribute('data-target-url'), window.location.origin);
-             var s=new URLSearchParams(window.location.search);
-             if(s.has('date_from')) u.searchParams.set('date_from',s.get('date_from'));
-             if(s.has('date_to')) u.searchParams.set('date_to',s.get('date_to'));
-             window.location.href=u.toString();
+             var u = new URL('{% url 'core:stat_students' %}', window.location.origin);
+             u.searchParams.set('status', 'archived');
+             var s = new URLSearchParams(window.location.search);
+             if(s.has('date_from')) u.searchParams.set('date_from', s.get('date_from'));
+             if(s.has('date_to')) u.searchParams.set('date_to', s.get('date_to'));
+             window.location.href = u.toString();
            ">
         <div class="mini-sk sk" id="sk8"></div>
         <div class="mini-ico text-danger"><i class="fa-solid fa-user-slash"></i></div>

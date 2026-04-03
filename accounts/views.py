@@ -302,7 +302,16 @@ def add_user(request):
     if not _can_add(request.user):
         return HttpResponseForbidden("Ruxsat yo'q.")
 
-    form = AddUserForm(request.POST or None, request=request)
+    # ✅ Role normalization (students -> student)
+    role_param = request.GET.get("role", "").strip()
+    if role_param.lower() == "students":
+        role_param = "student"
+    
+    initial = {}
+    if role_param:
+        initial["role"] = role_param
+
+    form = AddUserForm(request.POST or None, request=request, initial=initial)
     if request.method == "POST" and form.is_valid():
         user = form.save()
         messages.success(request, f"✅ Foydalanuvchi {user.email} muvaffaqiyatli qo‘shildi.")

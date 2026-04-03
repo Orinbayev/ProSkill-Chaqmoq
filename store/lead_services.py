@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from core.models import Notification
 from .models import Lead, LeadActivity, LeadStatus, Manba
+from education.models import Student as EdStudent
 
 User = get_user_model()
 
@@ -290,6 +291,13 @@ def convert_lead_to_student_safe(lead: Lead, converted_by=None, target_center=No
                 note="Lead status avtomatik 'registered' qilindi (existing student match).",
             )
 
+        if existing_student.is_archived:
+            existing_student.is_archived = False
+            existing_student.save(update_fields=["is_archived"])
+
+        # ✅ Ensure education Student profile exists
+        EdStudent.objects.get_or_create(user=existing_student, defaults={"center": target_center})
+
         lead.save(
             update_fields=[
                 "converted_user",
@@ -334,6 +342,9 @@ def convert_lead_to_student_safe(lead: Lead, converted_by=None, target_center=No
 
     student.set_password(password)
     student.save()
+
+    # ✅ Create education Student profile
+    EdStudent.objects.create(user=student, center=target_center)
 
     lead.converted_user = student
     lead.converted_by = converted_by

@@ -519,7 +519,7 @@
       const studentFields = document.getElementById("studentFieldsBlock");
 
       function handleRole() {
-        const isStudent = role.value === "student";
+        const isStudent = role.value === "student" || role.value === "students";
         const isTeacher = role.value === "teacher";
 
         if (groupBlock) groupBlock.style.display = isStudent ? "block" : "none";
@@ -601,7 +601,7 @@
           'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
           'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'x', 'ц': 'ts',
           'ч': 'ch', 'ш': 'sh', 'щ': 'sh', 'ъ': '', 'ы': 'i', 'ь': '', 'э': 'e', 'ю': 'yu',
-          'я': 'ya', 'o'': 'o', 'g'': 'g', 'sh': 'sh', 'ch': 'ch'
+          'я': 'ya', "o'": 'o', "g'": 'g', 'sh': 'sh', 'ch': 'ch'
         };
         return word.toLowerCase().split('').map(c => map[c] || c).join('').replace(/[^a-z0-9]/g, '');
       }
