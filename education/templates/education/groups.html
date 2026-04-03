@@ -1,447 +1,451 @@
 {% extends 'base.html' %}
+{% load custom_tags %}
 {% block content %}
 
 <style>
   :root {
-    --bg0: #050812;
-    --bg1: #0b1224;
-    --bg2: #0f172a;
-
-    --panel: rgba(17, 24, 39, .62);
-    --panel2: rgba(2, 6, 23, .55);
-    --card: rgba(255, 255, 255, .045);
-    --card2: rgba(255, 255, 255, .075);
-    --line: rgba(255, 255, 255, .10);
-
-    --text: #e5e7eb;
-    --muted: #94a3b8;
-
-    --yellow: #facc15;
-    --amber: #f59e0b;
-
-    --blue: #3b82f6;
-    --blue2: #60a5fa;
-
-    --green: #22c55e;
-    --red: #ef4444;
-
-    --shadow: 0 22px 70px rgba(0, 0, 0, .55);
-    --shadow2: 0 14px 45px rgba(0, 0, 0, .45);
-    --radius: 18px;
-  }
-
-  body {
-    background:
-      radial-gradient(900px 520px at 18% 0%, rgba(250, 204, 21, .12), transparent 56%),
-      radial-gradient(900px 520px at 86% 8%, rgba(96, 165, 250, .10), transparent 58%),
-      radial-gradient(900px 520px at 52% 100%, rgba(59, 130, 246, .08), transparent 60%),
-      linear-gradient(180deg, var(--bg1), var(--bg2), var(--bg1));
-    min-height: 100vh;
-    color: var(--text);
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Poppins", sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  :where(a, button, input, select):focus-visible {
-    outline: 2px solid color-mix(in oklab, var(--yellow) 70%, white 30%);
-    outline-offset: 3px;
+    --bg-surface: #0f172a;
+    --bg-card: rgba(30, 41, 59, 0.5);
+    --border-glass: rgba(255, 255, 255, 0.08);
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --accent-blue: #38bdf8;
+    --accent-yellow: #fbbf24;
+    --accent-green: #22c55e;
+    --accent-red: #ef4444;
+    --shadow-premium: 0 20px 50px rgba(0, 0, 0, 0.3);
+    --radius-lg: 24px;
+    --radius-md: 16px;
+    --radius-sm: 12px;
   }
 
   .wrap {
-    max-width: 1200px;
+    max-width: 1280px;
     margin: 0 auto;
-    padding: 22px 12px 70px;
+    padding: 2rem 1rem 5rem;
+    animation: fadeIn 0.6s ease-out;
   }
 
-  /* ===== Header ===== */
-  .topbar {
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ===== Header Section ===== */
+  .header-card {
     display: flex;
-    align-items: flex-start;
     justify-content: space-between;
-    gap: 14px;
+    align-items: center;
+    margin-bottom: 2rem;
+    gap: 1.5rem;
     flex-wrap: wrap;
-    margin-bottom: 14px;
   }
 
-  .titlebox {
+  .header-info {
     display: flex;
     align-items: center;
-    gap: 12px;
-    min-width: 0;
+    gap: 1.25rem;
   }
 
-  .title-ic {
-    width: 44px;
-    height: 44px;
-    border-radius: 14px;
-    display: grid;
-    place-items: center;
-    background: rgba(250, 204, 21, .12);
-    border: 1px solid rgba(250, 204, 21, .20);
-    box-shadow: 0 14px 34px rgba(0, 0, 0, .45);
-    position: relative;
-    overflow: hidden;
-    flex: 0 0 auto;
-  }
-
-  .title-ic::after {
-    content: "";
-    position: absolute;
-    inset: -50%;
-    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, .24), transparent 62%);
-    opacity: .75;
-    transform: rotate(18deg);
-    pointer-events: none;
-  }
-
-  .title-ic svg {
-    width: 22px;
-    height: 22px;
-    color: rgba(250, 204, 21, .95);
-    position: relative;
-    z-index: 1;
-  }
-
-  .page-title {
-    margin: 0;
-    font-weight: 950;
-    letter-spacing: .4px;
-    text-transform: uppercase;
-    color: var(--yellow);
-    text-shadow: 0 10px 28px rgba(250, 204, 21, .18);
-    font-size: clamp(18px, 2.2vw, 28px);
-    line-height: 1.12;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .subtitle {
-    margin: 6px 0 0;
-    color: rgba(148, 163, 184, .92);
-    font-weight: 800;
-    font-size: 13px;
-  }
-
-  .rightbox {
+  .header-icon {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(56, 189, 248, 0.05));
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: var(--radius-md);
     display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    margin-left: auto;
-  }
-
-  .btn-add {
-    display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    padding: 10px 16px;
-    border-radius: 14px;
+    font-size: 1.5rem;
+    color: var(--accent-blue);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .header-text h1 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin: 0;
+    color: var(--text-primary);
+    letter-spacing: -0.025em;
+  }
+
+  .header-text p {
+    margin: 0.25rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .btn-new-group {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
     text-decoration: none;
-    font-weight: 950;
-    border: 1px solid rgba(255, 255, 255, .12);
-    color: #fff !important;
-    background: linear-gradient(90deg, rgba(34, 197, 94, .95), rgba(22, 163, 74, .95));
-    box-shadow: 0 18px 40px rgba(34, 197, 94, .16);
-    transition: transform .16s ease, filter .16s ease;
-    white-space: nowrap;
   }
 
-  .btn-add:hover {
-    transform: translateY(-1px);
-    filter: brightness(1.05);
+  .btn-new-group:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(34, 197, 94, 0.3);
+    color: white;
   }
 
-  .pill {
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, .06);
-    border: 1px solid rgba(255, 255, 255, .10);
-    color: #cbd5e1;
-    font-weight: 900;
-    font-size: 13px;
-    white-space: nowrap;
+  .stats-pill {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glass);
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 600;
+    backdrop-filter: blur(10px);
   }
 
-  .pill b {
-    color: #fff;
+  .stats-pill b {
+    color: var(--accent-yellow);
+    margin-left: 4px;
+    font-size: 1rem;
   }
 
-  /* ===== Table card ===== */
-  .table-card {
-    border-radius: 18px;
+  /* ===== Table Container ===== */
+  .premium-table-wrapper {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-lg);
     overflow: hidden;
-    background: linear-gradient(180deg, var(--panel), var(--panel2));
-    border: 1px solid rgba(255, 255, 255, .10);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(12px);
+    box-shadow: var(--shadow-premium);
+    backdrop-filter: blur(20px);
   }
 
-  .table-scroll {
-    overflow-x: auto;
-    background: rgba(2, 6, 23, .20);
+  .table-responsive {
+    margin: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-blue) transparent;
   }
 
-  .table-scroll::-webkit-scrollbar {
-    height: 10px;
-  }
-
-  .table-scroll::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, .05);
-    border-radius: 999px;
-    margin: 0 12px;
-  }
-
-  .table-scroll::-webkit-scrollbar-thumb {
-    background: linear-gradient(90deg, rgba(250, 204, 21, .70), rgba(96, 165, 250, .60));
-    border-radius: 999px;
-  }
-
-  table {
+  table.premium-table {
     width: 100%;
-    min-width: 980px;
     border-collapse: separate;
     border-spacing: 0;
-    color: var(--text) !important;
+    margin: 0;
   }
 
-  thead th {
-    position: sticky;
-    top: 0;
-    z-index: 5;
-    background: linear-gradient(90deg, rgba(250, 204, 21, .18), rgba(59, 130, 246, .14));
-    border-bottom: 1px solid rgba(255, 255, 255, .10);
-    color: rgba(226, 232, 240, .95);
-    font-weight: 950;
-    letter-spacing: .08em;
+  .premium-table thead th {
+    background: rgba(15, 23, 42, 0.6);
+    padding: 18px 24px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
     text-transform: uppercase;
-    font-size: 12px;
-    padding: 14px 14px;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border-glass);
     white-space: nowrap;
   }
 
-  tbody td {
-    padding: 14px 14px;
-    border-bottom: 1px solid rgba(148, 163, 184, .16);
-    background: rgba(255, 255, 255, .02);
-    font-weight: 780;
+  .premium-table tbody td {
+    padding: 16px 24px;
+    color: var(--text-primary);
+    font-weight: 500;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     vertical-align: middle;
   }
 
-  tbody tr {
-    transition: background-color .16s ease, transform .16s ease;
+  .premium-table tbody tr {
+    transition: background 0.2s ease;
   }
 
-  tbody tr:hover {
-    background: rgba(59, 130, 246, .08);
+  .premium-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
   }
 
-  tbody tr:hover td {
+  .premium-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* ===== Table Components ===== */
+  .group-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .group-name {
+    font-weight: 800;
+    color: var(--accent-blue);
+    font-size: 1.05rem;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .group-name:hover {
+    color: #7dd3fc;
+  }
+
+  .teacher-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .teacher-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #4f46e5, #3b82f6);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .teacher-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    white-space: nowrap;
+  }
+
+  .students-badge {
+    background: rgba(56, 189, 248, 0.1);
+    color: var(--accent-blue);
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+  }
+
+  .date-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .date-main {
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .date-relative {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+  }
+
+  /* ===== Actions ===== */
+  .actions-flex {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .btn-table-action {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-glass);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    text-decoration: none;
+    font-size: 1rem;
+  }
+
+  .btn-table-edit:hover {
+    background: rgba(56, 189, 248, 0.1);
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+    transform: translateY(-2px);
+  }
+
+  .btn-table-delete:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: var(--accent-red);
+    color: var(--accent-red);
+    transform: translateY(-2px);
+  }
+
+  /* ===== Custom Scrollbar ===== */
+  .table-responsive::-webkit-scrollbar {
+    height: 8px;
+  }
+  .table-responsive::-webkit-scrollbar-track {
     background: transparent;
   }
-
-  .name {
-    color: rgba(191, 219, 254, .98);
-    font-weight: 950;
+  .table-responsive::-webkit-scrollbar-thumb {
+    background: var(--border-glass);
+    border-radius: 20px;
+  }
+  .table-responsive::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.15);
   }
 
-  /* action buttons (keep same elements) */
-  .btn-action {
-    font-size: 0.9rem;
-    font-weight: 950;
-    border-radius: 12px;
-    padding: 8px 10px;
-    border: 1px solid rgba(255, 255, 255, .12);
-    background: rgba(255, 255, 255, .06);
-    transition: transform .16s ease, background-color .16s ease, border-color .16s ease, color .16s ease;
-    line-height: 1;
-  }
-
-  .btn-edit {
-    border-color: rgba(59, 130, 246, .45);
-    color: rgba(147, 197, 253, .98);
-    background: rgba(59, 130, 246, .12);
-  }
-
-  .btn-edit:hover {
-    transform: translateY(-1px);
-    background: rgba(59, 130, 246, .18);
-    border-color: rgba(59, 130, 246, .62);
-    color: #fff;
-  }
-
-  .btn-delete {
-    border-color: rgba(239, 68, 68, .45);
-    color: rgba(252, 165, 165, .98);
-    background: rgba(239, 68, 68, .10);
-  }
-
-  .btn-delete:hover {
-    transform: translateY(-1px);
-    background: rgba(239, 68, 68, .18);
-    border-color: rgba(239, 68, 68, .62);
-    color: #fff;
-  }
-
-  .empty {
-    padding: 22px 14px !important;
-    text-align: center;
-    color: rgba(148, 163, 184, .92) !important;
-    font-weight: 900;
-  }
-
-  /* ===== Mobile: table -> cards ===== */
-  .m-list {
-    display: none;
-  }
-
-  @media (max-width: 768px) {
-    .wrap {
-      padding: 18px 10px 70px;
+  /* ===== Mobile Cards (Restyled) ===== */
+  @media (max-width: 991.98px) {
+    .premium-table-wrapper {
+      background: transparent;
+      border: none;
+      box-shadow: none;
     }
 
-    .rightbox {
-      width: 100%;
-      justify-content: stretch;
-    }
-
-    .btn-add {
-      width: 100%;
-      padding: 12px 16px;
-    }
-
-    .pill {
-      width: 100%;
-      text-align: center;
-    }
-
-    .table-card {
+    .premium-table-wrapper table {
       display: none;
     }
 
-    .m-list {
+    .mobile-cards-grid {
       display: grid;
-      gap: 12px;
+      gap: 1rem;
     }
 
-    .m-card {
-      border-radius: 16px;
-      background: linear-gradient(180deg, var(--panel), var(--panel2));
-      border: 1px solid rgba(255, 255, 255, .10);
-      box-shadow: var(--shadow2);
-      backdrop-filter: blur(12px);
-      padding: 14px;
+    .mobile-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
-    .m-top {
+    .mc-header {
       display: flex;
+      justify-content: space-between;
       align-items: flex-start;
-      justify-content: space-between;
-      gap: 10px;
+      margin-bottom: 1rem;
     }
 
-    .m-title {
-      margin: 0;
-      font-weight: 950;
-      font-size: 16px;
-      color: rgba(191, 219, 254, .98);
-      line-height: 1.2;
-    }
-
-    .m-meta {
-      margin-top: 6px;
-      color: rgba(148, 163, 184, .92);
+    .mc-title {
+      font-size: 1.1rem;
       font-weight: 800;
-      font-size: 12px;
+      color: var(--accent-blue);
+      margin: 0;
     }
 
-    .m-grid {
-      margin-top: 12px;
+    .mc-index {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 4px 10px;
+      border-radius: 8px;
+    }
+
+    .mc-body {
       display: grid;
-      gap: 10px;
-      border-top: 1px solid rgba(255, 255, 255, .08);
-      padding-top: 10px;
+      gap: 0.75rem;
     }
 
-    .m-row {
+    .mc-row {
       display: flex;
       justify-content: space-between;
-      gap: 10px;
       align-items: center;
+      font-size: 0.9rem;
     }
 
-    .m-k {
-      color: rgba(148, 163, 184, .92);
-      font-weight: 900;
+    .mc-label {
+      color: var(--text-secondary);
+      font-weight: 500;
     }
 
-    .m-v {
-      color: rgba(226, 232, 240, .95);
-      font-weight: 900;
+    .mc-value {
+      font-weight: 600;
     }
 
-    .m-actions {
-      margin-top: 12px;
-      display: flex;
+    .mc-actions {
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-glass);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 10px;
     }
 
-    .m-actions a {
-      flex: 1 1 auto;
-      text-align: center;
+    .btn-mobile-action {
+      display: flex;
+      align-items: center;
       justify-content: center;
+      gap: 8px;
+      padding: 10px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+
+    .btn-mobile-action:active {
+      opacity: 0.7;
+    }
+
+    .btn-mobile-edit {
+      background: rgba(56, 189, 248, 0.1);
+      color: var(--accent-blue);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+
+    .btn-mobile-delete {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--accent-red);
+      border: 1px solid rgba(239, 68, 68, 0.2);
     }
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    * {
-      transition: none !important;
-      scroll-behavior: auto !important;
+  @media (min-width: 992px) {
+    .mobile-cards-grid {
+      display: none;
     }
   }
 </style>
 
 <div class="wrap">
 
-  <div class="topbar">
-    <div class="titlebox">
-      <div class="title-ic" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none">
-          <path d="M16 11c1.66 0 3-1.57 3-3.5S17.66 4 16 4s-3 1.57-3 3.5S14.34 11 16 11Z" stroke="currentColor"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-          <path d="M8 11c1.66 0 3-1.57 3-3.5S9.66 4 8 4 5 5.57 5 7.5 6.34 11 8 11Z" stroke="currentColor"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-          <path d="M16 13c-2.2 0-4 1.34-4 3v2h8v-2c0-1.66-1.8-3-4-3Z" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round" />
-          <path d="M8 13c-2.2 0-4 1.34-4 3v2h8v-2c0-1.66-1.8-3-4-3Z" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
+  <header class="header-card">
+    <div class="header-info">
+      <div class="header-icon">
+        <i class="fa-solid fa-users-viewfinder"></i>
       </div>
-
-      <div style="min-width:0;">
-        <h3 class="page-title">👥 Guruhlar ro'yxati</h3>
-        <div class="subtitle">Boshqaruv paneli — guruhlar, o'qituvchilar va o'quvchilar</div>
+      <div class="header-text">
+        <h1>Guruhlar ro'yxati</h1>
+        <p>Boshqaruv paneli — guruhlar va o'qituvchilar nazorati</p>
       </div>
     </div>
 
-    <div class="rightbox">
+    <div class="header-actions">
+      <div class="stats-pill">Jami: <b>{{ page_obj.paginator.count }}</b></div>
       {% if can_manage %}
-      <a href="{% url 'education:group_add' %}" class="btn btn-add px-4 py-2">➕ Yangi guruh</a>
+      <a href="{% url 'education:group_add' %}" class="btn-new-group">
+        <i class="fa-solid fa-plus-circle"></i>
+        <span>Yangi guruh</span>
+      </a>
       {% endif %}
-      <div class="pill">Jami: <b>{{ page_obj.paginator.count }}</b></div>
     </div>
-  </div>
+  </header>
 
-  <!-- Desktop / tablet table -->
-  <div class="table-card">
-    <div class="table-scroll">
-      <table class="table table-hover align-middle shadow-lg table-custom">
+  <!-- Desktop Table -->
+  <div class="premium-table-wrapper">
+    <div class="table-responsive">
+      <table class="premium-table">
         <thead>
           <tr>
-            <th>#</th>
+            <th style="width: 60px;">#</th>
             <th>Guruh nomi</th>
             <th>O'qituvchi</th>
             <th>O'quvchilar</th>
@@ -451,27 +455,60 @@
             {% endif %}
           </tr>
         </thead>
-
         <tbody>
           {% for g in rows %}
           <tr>
-            <td>{{ forloop.counter }}</td>
-            <td class="fw-semibold text-info name">{{ g.nom }}</td>
-            <td>{{ g.oqituvchi|default:"—" }}</td>
-            <td>{{ g.students_count }}</td>
-            <td>{{ g.sana|date:"d.m.Y" }}</td>
-
+            <td class="text-secondary opacity-50 fw-bold">{{ forloop.counter }}</td>
+            <td>
+              <div class="group-name-cell">
+                <a href="{% url 'education:group_detail' g.id %}" class="group-name">{{ g.nom }}</a>
+              </div>
+            </td>
+            <td>
+              <div class="teacher-info">
+                <div class="teacher-avatar">
+                  {{ g.oqituvchi.get_full_name|slice:":1"|default:"?" }}
+                </div>
+                <div class="teacher-name">
+                  {{ g.oqituvchi.get_full_name|default:g.oqituvchi.email|default:"Belgilanmagan" }}
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="students-badge">
+                <i class="fa-solid fa-user-graduate"></i>
+                {{ g.student_count }}
+              </div>
+            </td>
+            <td>
+              <div class="date-info">
+                {% if g.sana %}
+                  <span class="date-main">{{ g.sana|date:"d.m.Y" }}</span>
+                  <span class="date-relative">{{ g.sana|timesince|to_uz }} oldin</span>
+                {% else %}
+                  <span class="text-secondary opacity-50">Belgilanmagan</span>
+                {% endif %}
+              </div>
+            </td>
             {% if can_manage %}
-            <td class="text-center">
-              <a href="{% url 'education:group_edit' g.id %}" class="btn btn-action btn-edit me-1">✏️</a>
-              <a href="{% url 'education:group_delete' g.id %}" class="btn btn-action btn-delete"
-                onclick="return confirm('Haqiqatan ham ushbu guruhni o\'chirishni xohlaysizmi?')">🗑️</a>
+            <td>
+              <div class="actions-flex">
+                <a href="{% url 'education:group_edit' g.id %}" class="btn-table-action btn-table-edit" title="Tahrirlash">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </a>
+                <a href="{% url 'education:group_delete' g.id %}" class="btn-table-action btn-table-delete" 
+                   title="O'chirish"
+                   onclick="return confirm('Haqiqatan ham ushbu guruhni o\'chirishni xohlaysizmi?')">
+                  <i class="fa-solid fa-trash-can"></i>
+                </a>
+              </div>
             </td>
             {% endif %}
           </tr>
           {% empty %}
           <tr>
-            <td colspan="6" class="empty">
+            <td colspan="6" class="text-center py-5 text-secondary fw-bold">
+              <i class="fa-solid fa-folder-open mb-3 d-block fs-1 opacity-20"></i>
               Hech qanday guruh topilmadi
             </td>
           </tr>
@@ -481,40 +518,43 @@
     </div>
   </div>
 
-  <!-- Mobile cards -->
-  <div class="m-list">
+  <!-- Mobile Cards -->
+  <div class="mobile-cards-grid">
     {% for g in rows %}
-    <div class="m-card">
-      <div class="m-top">
-        <div style="min-width:0;">
-          <p class="m-title">{{ g.nom }}</p>
-          <div class="m-meta">Boshlangan sana: {{ g.sana|date:"d.m.Y" }}</div>
-        </div>
-        <div class="pill" style="padding:6px 10px; font-size:12px;">#{{ forloop.counter }}</div>
+    <div class="mobile-card">
+      <div class="mc-header">
+        <h3 class="mc-title">{{ g.nom }}</h3>
+        <span class="mc-index">#{{ forloop.counter }}</span>
       </div>
-
-      <div class="m-grid">
-        <div class="m-row">
-          <span class="m-k">O'qituvchi</span>
-          <span class="m-v">{{ g.oqituvchi|default:"—" }}</span>
+      <div class="mc-body">
+        <div class="mc-row">
+          <span class="mc-label">O'qituvchi</span>
+          <span class="mc-value">{{ g.oqituvchi.get_full_name|default:"—" }}</span>
         </div>
-        <div class="m-row">
-          <span class="m-k">O'quvchilar</span>
-          <span class="m-v">{{ g.students_count }}</span>
+        <div class="mc-row">
+          <span class="mc-label">O'quvchilar</span>
+          <span class="mc-value">{{ g.student_count }}</span>
+        </div>
+        <div class="mc-row">
+          <span class="mc-label">Sana</span>
+          <span class="mc-value">{{ g.sana|date:"d.m.Y" }}</span>
         </div>
       </div>
-
       {% if can_manage %}
-      <div class="m-actions">
-        <a href="{% url 'education:group_edit' g.id %}" class="btn btn-action btn-edit">✏️ Tahrirlash</a>
-        <a href="{% url 'education:group_delete' g.id %}" class="btn btn-action btn-delete"
-          onclick="return confirm('Haqiqatan ham ushbu guruhni o\'chirishni xohlaysizmi?')">🗑️ O'chirish</a>
+      <div class="mc-actions">
+        <a href="{% url 'education:group_edit' g.id %}" class="btn-mobile-action btn-mobile-edit">
+          <i class="fa-solid fa-pen"></i> Tahrirlash
+        </a>
+        <a href="{% url 'education:group_delete' g.id %}" class="btn-mobile-action btn-mobile-delete"
+           onclick="return confirm('Haqiqatan ham ushbu guruhni o\'chirishni xohlaysizmi?')">
+          <i class="fa-solid fa-trash"></i> O'chirish
+        </a>
       </div>
       {% endif %}
     </div>
     {% empty %}
-    <div class="m-card">
-      <div class="empty">Hech qanday guruh topilmadi</div>
+    <div class="mobile-card text-center py-4">
+      <p class="m-0 text-secondary fw-bold">Hech qanday guruh topilmadi</p>
     </div>
     {% endfor %}
   </div>

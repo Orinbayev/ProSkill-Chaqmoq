@@ -18,7 +18,7 @@ from django.core.paginator import Paginator
 from django.db.models import (
     Count, F, Min, Max, Prefetch, Q, Sum, OuterRef, Subquery
 )
-from django.db.models.functions import Coalesce, TruncMonth
+from django.db.models.functions import Coalesce, TruncMonth, Cast
 from django.http import (
     FileResponse,
     Http404,
@@ -127,9 +127,11 @@ def _accumulate_daily_lightning(*, group, student, date_value, points_delta):
     if points_delta > 0:
         record.plus_points = int(record.plus_points or 0) + int(points_delta)
     elif points_delta < 0:
-        record.minus_points = int(record.minus_points or 0) + int(points_delta)
+        record.minus_points = int(record.minus_points or 0) + abs(int(points_delta))
+    
     if not record.center_id and getattr(group, "center_id", None):
         record.center = group.center
+        
     record.save(update_fields=["plus_points", "minus_points", "center", "updated_at"])
     return record
 
@@ -2368,7 +2370,10 @@ def groups_by_category(request, category):
     rows = (
         Group.objects.filter(category=category)
         .select_related("center", "oqituvchi")
-        .annotate(student_count=Count("enrollments", filter=Q(enrollments__is_active=True, enrollments__is_deleted=False)))
+        .annotate(
+            student_count=Count("enrollments", filter=Q(enrollments__is_active=True, enrollments__is_deleted=False)),
+            sana=Coalesce(F("course_start_date"), Cast(F("tuzilgan"), models.DateField()))
+        )
         .order_by("nom")
     )
     from core.tenant import get_request_center
@@ -2430,7 +2435,10 @@ def create_group_for_category(request, category_id):
 def guruhlar(request):
     rows = (
         Group.objects.select_related("center", "oqituvchi")
-        .annotate(student_count=Count("enrollments", filter=Q(enrollments__is_active=True, enrollments__is_deleted=False)))
+        .annotate(
+            student_count=Count("enrollments", filter=Q(enrollments__is_active=True, enrollments__is_deleted=False)),
+            sana=Coalesce(F("course_start_date"), Cast(F("tuzilgan"), models.DateField()))
+        )
         .order_by("nom")
     )
     from core.tenant import get_request_center
@@ -4498,7 +4506,10 @@ def group_list(request):
     rows = (
         Group.objects
         .select_related("center", "oqituvchi")
-        .annotate(students_count=Count("students", distinct=True))
+        .annotate(
+            student_count=Count("enrollments", filter=Q(enrollments__is_active=True, enrollments__is_deleted=False)),
+            sana=Coalesce(F("course_start_date"), Cast(F("tuzilgan"), models.DateField()))
+        )
         .order_by("-id")
     )
     from core.tenant import get_request_center

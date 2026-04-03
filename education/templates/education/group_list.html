@@ -1,455 +1,386 @@
 {% extends "base.html" %}
+{% load custom_tags %}
 {% block content %}
 <!-- :contentReference[oaicite:0]{index=0} -->
 
 <style>
-  :root{
-    --bg0:#070b14;
-    --bg1:#0a1224;
-    --bg2:#0b1733;
-
-    --panel: rgba(15, 23, 42, .62);
-    --panel2: rgba(2, 6, 23, .55);
-    --card: rgba(255,255,255,.06);
-    --card2: rgba(255,255,255,.085);
-    --line: rgba(255,255,255,.11);
-
-    --text:#e5e7eb;
-    --muted:#9ca3af;
-
-    --amber:#f59e0b;
-    --amber2:#facc15;
-    --cyan:#22d3ee;
-    --blue:#60a5fa;
-    --green:#22c55e;
-    --red:#ef4444;
-
-    --shadow: 0 22px 70px rgba(0,0,0,.55);
-    --shadow2: 0 10px 35px rgba(0,0,0,.45);
-    --radius: 18px;
+  :root {
+    --bg-surface: #0f172a;
+    --bg-card: rgba(30, 41, 59, 0.45);
+    --border-glass: rgba(255, 255, 255, 0.08);
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --accent-blue: #38bdf8;
+    --accent-yellow: #fbbf24;
+    --accent-green: #22c55e;
+    --accent-red: #ef4444;
+    --shadow-premium: 0 20px 50px rgba(0, 0, 0, 0.3);
+    --radius-lg: 24px;
+    --radius-md: 16px;
+    --radius-sm: 12px;
   }
 
-  body{
-    background:
-      radial-gradient(900px 420px at 8% 8%, rgba(245,158,11,.16), transparent 60%),
-      radial-gradient(900px 420px at 92% 12%, rgba(34,211,238,.10), transparent 60%),
-      radial-gradient(700px 420px at 50% 100%, rgba(96,165,250,.10), transparent 55%),
-      linear-gradient(180deg, var(--bg0), var(--bg1) 30%, var(--bg2) 70%, var(--bg0));
-    min-height: 100vh;
-    color: var(--text);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  :where(a, button, input, select, textarea):focus-visible{
-    outline: 2px solid color-mix(in oklab, var(--amber2) 75%, white 25%);
-    outline-offset: 3px;
-  }
-
-  .page-wrap{
-    width: min(1200px, 100%);
+  .page-wrap {
+    max-width: 1280px;
     margin: 0 auto;
-    padding: clamp(14px, 3vw, 28px);
+    padding: 2rem 1rem 5rem;
+    animation: fadeIn 0.6s ease-out;
   }
 
-  .page-head{
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ===== Header Section ===== */
+  .header-card {
     display: flex;
-    align-items: start;
     justify-content: space-between;
-    gap: 14px;
-    margin-bottom: 14px;
-  }
-
-  .title-stack{
-    display: grid;
-    gap: 6px;
-    min-width: 0;
-  }
-
-  .page-title{
-    margin: 0;
-    font-weight: 800;
-    letter-spacing: .2px;
-    font-size: clamp(18px, 2.4vw, 26px);
-    line-height: 1.15;
-  }
-
-  .page-sub{
-    margin: 0;
-    color: var(--muted);
-    font-size: 13px;
-    line-height: 1.25;
-  }
-
-  .header-actions{
-    display: flex;
-    gap: 10px;
     align-items: center;
+    margin-bottom: 2rem;
+    gap: 1.5rem;
     flex-wrap: wrap;
-    justify-content: flex-end;
   }
 
-  .btn{
-    border-radius: 14px !important;
-    padding: 10px 14px !important;
-    font-weight: 650;
-    letter-spacing: .1px;
-    transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease, border-color .18s ease, color .18s ease;
-    will-change: transform;
+  .header-info {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
   }
 
-  .btn:active{ transform: translateY(1px); }
-
-  .btn.btn-primary{
-    border-color: rgba(245,158,11,.45) !important;
-    background:
-      linear-gradient(180deg, rgba(245,158,11,.22), rgba(245,158,11,.12));
-    color: var(--text) !important;
-    box-shadow:
-      0 0 0 1px rgba(245,158,11,.18) inset,
-      0 14px 36px rgba(245,158,11,.14);
-  }
-  .btn.btn-primary:hover{
-    border-color: rgba(250,204,21,.65) !important;
-    background:
-      linear-gradient(180deg, rgba(250,204,21,.26), rgba(245,158,11,.14));
-    box-shadow:
-      0 0 0 1px rgba(250,204,21,.22) inset,
-      0 18px 44px rgba(245,158,11,.18);
-    transform: translateY(-1px);
+  .header-icon {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(251, 191, 36, 0.05));
+    border: 1px solid rgba(251, 191, 36, 0.2);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--accent-yellow);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   }
 
-  .btn.btn-outline-primary,
-  .btn.btn-outline-secondary,
-  .btn.btn-outline-danger{
-    background: rgba(255,255,255,.02) !important;
-    border-width: 1px !important;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-  }
-
-  .btn.btn-outline-primary{
-    border-color: rgba(96,165,250,.45) !important;
-    color: color-mix(in oklab, var(--blue) 86%, white 14%) !important;
-  }
-  .btn.btn-outline-primary:hover{
-    border-color: rgba(96,165,250,.70) !important;
-    box-shadow: 0 14px 40px rgba(96,165,250,.14);
-    transform: translateY(-1px);
-  }
-
-  .btn.btn-outline-secondary{
-    border-color: rgba(148,163,184,.38) !important;
-    color: color-mix(in oklab, var(--muted) 86%, white 14%) !important;
-  }
-  .btn.btn-outline-secondary:hover{
-    border-color: rgba(148,163,184,.60) !important;
-    box-shadow: 0 14px 40px rgba(148,163,184,.10);
-    transform: translateY(-1px);
-  }
-
-  .btn.btn-outline-danger{
-    border-color: rgba(239,68,68,.45) !important;
-    color: color-mix(in oklab, var(--red) 84%, white 16%) !important;
-  }
-  .btn.btn-outline-danger:hover{
-    border-color: rgba(239,68,68,.70) !important;
-    box-shadow: 0 14px 40px rgba(239,68,68,.14);
-    transform: translateY(-1px);
-  }
-
-  .surface{
-    background: linear-gradient(180deg, var(--panel), var(--panel2));
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    overflow: hidden;
-  }
-
-  .surface-inner{
-    padding: 14px;
-  }
-
-  .table-responsive.desktop-version{
-    border-radius: var(--radius);
-  }
-
-  table.table{
+  .header-text h1 {
+    font-size: 1.75rem;
+    font-weight: 800;
     margin: 0;
-    color: var(--text);
-    border-color: transparent !important;
+    color: var(--text-primary);
+    letter-spacing: -0.025em;
   }
 
-  .table > :not(caption) > * > *{
-    background: transparent !important;
-    border-bottom-color: rgba(255,255,255,.08) !important;
-    padding: 14px 14px;
+  .header-text p {
+    margin: 0.25rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .btn-new-group {
+    background: linear-gradient(135deg, #fbbf24, #d97706);
+    color: #000;
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.2);
+    text-decoration: none;
+  }
+
+  .btn-new-group:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(251, 191, 36, 0.3);
+    color: #000;
+  }
+
+  .stats-pill {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glass);
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 600;
+    backdrop-filter: blur(10px);
+  }
+
+  /* ===== Table Container ===== */
+  .premium-surface {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-premium);
+    backdrop-filter: blur(20px);
+  }
+
+  .table-responsive {
+    margin: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-yellow) transparent;
+  }
+
+  table.premium-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 0;
+  }
+
+  .premium-table thead th {
+    background: rgba(15, 23, 42, 0.6);
+    padding: 18px 24px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border-glass);
+    white-space: nowrap;
+  }
+
+  .premium-table tbody td {
+    padding: 16px 24px;
+    color: var(--text-primary);
+    font-weight: 500;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     vertical-align: middle;
   }
 
-  .table thead th{
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: .12em;
-    color: color-mix(in oklab, var(--muted) 85%, white 15%);
-    border-bottom-color: rgba(255,255,255,.12) !important;
-    background:
-      linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)) !important;
-    position: sticky;
-    top: 0;
-    z-index: 1;
+  .premium-table tbody tr {
+    transition: background 0.2s ease;
+    cursor: pointer;
   }
 
-  .table tbody tr{
-    transition: background-color .18s ease, transform .18s ease;
+  .premium-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
   }
 
-  .table-hover tbody tr:hover{
-    background: rgba(255,255,255,.04) !important;
-    transform: translateY(-1px);
-  }
-
-  .row-link a{
-    color: color-mix(in oklab, var(--amber2) 70%, white 30%);
-    text-decoration: none;
-    font-weight: 650;
-  }
-  .row-link a:hover{
-    text-decoration: underline;
-    text-underline-offset: 3px;
-  }
-
-  .table td:last-child{
-    white-space: nowrap;
-  }
-
-  .table .btn.btn-sm{
-    padding: 8px 10px !important;
-    border-radius: 12px !important;
-    font-weight: 650;
-  }
-
-  .badge-soft{
-    display: inline-flex;
-    gap: 8px;
-    align-items: center;
-    padding: 7px 10px;
-    border-radius: 999px;
-    border: 1px solid rgba(255,255,255,.10);
-    background: rgba(255,255,255,.04);
-    color: var(--muted);
-    font-size: 12px;
-  }
-
-  .mobile-version{
-    display: grid;
-    gap: 12px;
-  }
-
-  .mobile-card{
-    background: linear-gradient(180deg, var(--card), rgba(255,255,255,.03));
-    border: 1px solid rgba(255,255,255,.12);
-    padding: 14px;
-    border-radius: 16px;
-    box-shadow: var(--shadow2);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-  }
-
-  .mobile-card h5{
-    margin: 0 0 10px;
-    font-size: 1.05rem;
-    letter-spacing: .2px;
-    color: color-mix(in oklab, var(--amber2) 82%, white 18%);
+  /* Components */
+  .group-name {
     font-weight: 800;
+    color: var(--accent-yellow);
+    font-size: 1.05rem;
+    text-decoration: none;
+  }
+
+  .teacher-badge {
     display: flex;
     align-items: center;
-    gap: 10px;
-    min-width: 0;
-  }
-
-  .mobile-row{
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 8px;
-    border-bottom: 1px dashed rgba(255,255,255,.14);
-    padding-bottom: 6px;
-  }
-
-  .mobile-label{
-    font-weight: 700;
-    color: var(--muted);
-    flex: 0 0 auto;
-  }
-
-  .mobile-value{
-    font-weight: 650;
-    color: var(--text);
-    text-align: right;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .mobile-actions{
-    display: grid;
     gap: 8px;
-    margin-top: 10px;
   }
 
-  .mobile-actions .btn{
-    width: 100%;
-    padding: 12px 14px !important;
-    border-radius: 14px !important;
-    font-weight: 750;
+  .teacher-initial {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: rgba(56, 189, 248, 0.15);
+    color: var(--accent-blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 800;
   }
 
-  @media (max-width: 768px){
-    table.table{ display: none !important; }
+  .actions-flex {
+    display: flex;
+    gap: 6px;
   }
 
-  @media (min-width: 769px){
-    .mobile-version{ display: none !important; }
-    .surface-inner{ padding: 16px; }
+  .btn-icon-action {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-glass);
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    text-decoration: none;
   }
 
-  @media (min-width: 1024px){
-    .page-head{ margin-bottom: 18px; }
-    .surface-inner{ padding: 18px; }
+  .btn-icon-view:hover { color: var(--accent-blue); border-color: var(--accent-blue); background: rgba(56, 189, 248, 0.05); }
+  .btn-icon-edit:hover { color: var(--accent-green); border-color: var(--accent-green); background: rgba(34, 197, 94, 0.05); }
+  .btn-icon-delete:hover { color: var(--accent-red); border-color: var(--accent-red); background: rgba(239, 68, 68, 0.05); }
+
+  /* Mobile */
+  @media (max-width: 991.98px) {
+    .premium-surface table { display: none; }
+    .premium-surface { background: transparent; border: none; box-shadow: none; }
+    
+    .mobile-cards-grid {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .mobile-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      backdrop-filter: blur(10px);
+    }
   }
 
-  @media (prefers-reduced-motion: reduce){
-    *{ transition: none !important; scroll-behavior: auto !important; }
-    .table-hover tbody tr:hover{ transform: none !important; }
-    .btn:hover{ transform: none !important; }
+  @media (min-width: 992px) {
+    .mobile-cards-grid { display: none; }
   }
-
-  .modal-content{
-    background:
-      linear-gradient(180deg, rgba(15,23,42,.86), rgba(2,6,23,.78)) !important;
-    color: var(--text);
-    border: 1px solid rgba(255,255,255,.12) !important;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-  }
-
-  .modal-header{
-    border-bottom-color: rgba(255,255,255,.10) !important;
-  }
-
-  .modal-footer{
-    border-top-color: rgba(255,255,255,.10) !important;
-  }
-
-  .btn-close{
-    filter: invert(1);
-    opacity: .85;
-  }
-  .btn-close:hover{ opacity: 1; }
 </style>
 
 <div class="page-wrap">
 
-  <div class="page-head">
-    <div class="title-stack">
-      <h3 class="page-title">👥 {% if category == "lang" %}Tillar{% else %}IT{% endif %} bo'yicha guruhlar</h3>
-      <p class="page-sub">Guruhlar ro'yxati • mobil va kompyuterda premium ko'rinish • tezkor amallar</p>
+  <header class="header-card">
+    <div class="header-info">
+      <div class="header-icon">
+        <i class="fa-solid fa-layer-group"></i>
+      </div>
+      <div class="header-text">
+        <h1>{% if category == "lang" %}Tillar{% else %}IT{% endif %} bo'yicha guruhlar</h1>
+        <p>Guruhlar ro'yxati • kategoriyalangan ko'rinish • tezkor amallar</p>
+      </div>
     </div>
 
     <div class="header-actions">
-      <span class="badge-soft" aria-hidden="true">
-        <span style="width:8px;height:8px;border-radius:999px;background:rgba(250,204,21,.9);box-shadow:0 0 0 6px rgba(250,204,21,.12);display:inline-block"></span>
-        Dark Glass UI
-      </span>
-
+      <div class="stats-pill">Jami: <b>{{ rows|length }}</b></div>
       {% if can_manage %}
         {% if category == "lang" %}
-          <a class="btn btn-primary" href="{% url 'education:group_create_lang' %}">+ Yangi (Tillar)</a>
+          <a class="btn-new-group" href="{% url 'education:group_create_lang' %}">
+            <i class="fa-solid fa-plus-circle"></i> Yangi guruh
+          </a>
         {% else %}
-          <a class="btn btn-primary" href="{% url 'education:group_create_it' %}">+ Yangi (IT)</a>
+          <a class="btn-new-group" href="{% url 'education:group_create_it' %}">
+            <i class="fa-solid fa-plus-circle"></i> Yangi guruh
+          </a>
         {% endif %}
       {% endif %}
     </div>
-  </div>
+  </header>
 
-  <div class="surface">
-    <div class="surface-inner">
-
-      <!-- 💻 Desktop Table -->
-      <div class="table-responsive desktop-version">
-        <table class="table table-hover align-middle">
-          <thead>
-            <tr>
-              <th>#</th><th>Guruh</th><th>Center</th><th>O'qituvchi</th><th>Talabalar</th><th>Amallar</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for g in rows %}
-              <tr class="row-link" data-href="{% url 'education:group_detail' g.id %}" tabindex="0" role="link" aria-label="{{ g.nom }} guruhini ko'rish">
-                <td>{{ forloop.counter }}</td>
-                <td><a href="{% url 'education:group_detail' g.id %}">{{ g.nom }}</a></td>
-                <td>{{ g.center }}</td>
-                <td>{{ g.oqituvchi }}</td>
-                <td>{{ g.student_count }}</td>
-                <td>
-                  <a class="btn btn-sm btn-outline-primary" href="{% url 'education:group_detail' g.id %}">Ko'rish</a>
-                  {% if can_manage %}
-                    <a class="btn btn-sm btn-outline-secondary" href="{% url 'education:group_edit' g.id %}">Tahrirlash</a>
-                    <button class="btn btn-sm btn-outline-danger delete-btn" type="button" data-id="{{ g.id }}" data-name="{{ g.nom }}">O'chirish</button>
-                  {% endif %}
-                </td>
-              </tr>
-            {% empty %}
-              <tr><td colspan="6" class="text-muted text-center py-4">Hozircha guruh yo'q.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-
-      <!-- 📱 Mobile Card Version -->
-      <div class="mobile-version" aria-label="Guruhlar ro'yxati (mobil)">
-        {% for g in rows %}
-          <div class="mobile-card">
-
-            <h5>{{ g.nom }}</h5>
-
-            <div class="mobile-row">
-              <span class="mobile-label">Markaz:</span>
-              <span class="mobile-value">{{ g.center }}</span>
-            </div>
-
-            <div class="mobile-row">
-              <span class="mobile-label">O'qituvchi:</span>
-              <span class="mobile-value">{{ g.oqituvchi }}</span>
-            </div>
-
-            <div class="mobile-row">
-              <span class="mobile-label">Talabalar:</span>
-              <span class="mobile-value">{{ g.student_count }}</span>
-            </div>
-
-            <div class="mobile-actions mt-2">
-              <a class="btn btn-outline-primary btn-sm" href="{% url 'education:group_detail' g.id %}">Ko'rish</a>
-
-              {% if can_manage %}
-                <a class="btn btn-outline-secondary btn-sm" href="{% url 'education:group_edit' g.id %}">Tahrirlash</a>
-
-                <button class="btn btn-outline-danger btn-sm delete-btn"
-                  type="button"
-                  data-id="{{ g.id }}"
-                  data-name="{{ g.nom }}">O'chirish</button>
+  <div class="premium-surface">
+    <div class="table-responsive desktop-version">
+      <table class="premium-table">
+        <thead>
+          <tr>
+            <th style="width: 60px;">#</th>
+            <th>Guruh</th>
+            <th>Filial</th>
+            <th>O'qituvchi</th>
+            <th>O'quvchilar</th>
+            <th>Boshlangan sana</th>
+            <th class="text-center">Amallar</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for g in rows %}
+          <tr class="row-link" data-href="{% url 'education:group_detail' g.id %}">
+            <td class="text-secondary opacity-50 fw-bold">{{ forloop.counter }}</td>
+            <td><a href="{% url 'education:group_detail' g.id %}" class="group-name">{{ g.nom }}</a></td>
+            <td><span class="opacity-75">{{ g.center }}</span></td>
+            <td>
+              <div class="teacher-badge">
+                <div class="teacher-initial">{{ g.oqituvchi.get_full_name|slice:":1"|default:"?" }}</div>
+                <span>{{ g.oqituvchi.get_full_name|default:g.oqituvchi.email }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="students-badge">
+                <i class="fa-solid fa-users"></i> {{ g.student_count|default:"0" }}
+              </div>
+            </td>
+            <td>
+              {% if g.sana %}
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <span style="font-weight: 700; color: var(--text-primary);">{{ g.sana|date:"d.m.Y" }}</span>
+                  <span style="font-size: 0.75rem; color: var(--text-secondary);">{{ g.sana|timesince|to_uz }} oldin</span>
+                </div>
+              {% else %}
+                <span class="opacity-50">Belgilanmagan</span>
               {% endif %}
-            </div>
+            </td>
+            <td>
+              <div class="actions-flex justify-content-center">
+                <a class="btn-icon-action btn-icon-view" href="{% url 'education:group_detail' g.id %}" title="Ko'rish">
+                  <i class="fa-solid fa-eye"></i>
+                </a>
+                {% if can_manage %}
+                  <a class="btn-icon-action btn-icon-edit" href="{% url 'education:group_edit' g.id %}" title="Tahrirlash">
+                    <i class="fa-solid fa-pen"></i>
+                  </a>
+                  <button class="btn-icon-action btn-icon-delete delete-btn" type="button" data-id="{{ g.id }}" data-name="{{ g.nom }}" title="O'chirish">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center py-5 text-muted fw-bold italic">Hozircha guruh yo'q.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
 
+    <!-- Mobile Cards -->
+    <div class="mobile-cards-grid p-3">
+      {% for g in rows %}
+      <div class="mobile-card">
+        <div class="mc-header">
+          <h3 class="mc-title">{{ g.nom }}</h3>
+          <span class="mc-index">#{{ forloop.counter }}</span>
+        </div>
+        <div class="mc-body">
+          <div class="mc-row">
+            <span class="mc-label">Filial</span>
+            <span class="mc-value">{{ g.center }}</span>
           </div>
-        {% empty %}
-          <p class="text-center text-muted mt-4">Hozircha guruh yo'q.</p>
-        {% endfor %}
+          <div class="mc-row">
+            <span class="mc-label">O'qituvchi</span>
+            <span class="mc-value">{{ g.oqituvchi.get_full_name|default:g.oqituvchi.email }}</span>
+          </div>
+          <div class="mc-row">
+            <span class="mc-label">O'quvchilar</span>
+            <span class="mc-value">{{ g.student_count }}</span>
+          </div>
+          <div class="mc-row">
+            <span class="mc-label">Sana</span>
+            <span class="mc-value">{{ g.sana|date:"d.m.Y"|default:"—" }} {% if g.sana %}({{ g.sana|timesince|to_uz }} oldin){% endif %}</span>
+          </div>
+        </div>
+        <div class="mc-actions mt-3">
+          <a class="btn-mobile-action btn-mobile-edit" href="{% url 'education:group_detail' g.id %}">
+            <i class="fa-solid fa-eye"></i> Ko'rish
+          </a>
+          {% if can_manage %}
+            <a class="btn-mobile-action btn-mobile-edit" href="{% url 'education:group_edit' g.id %}">
+              <i class="fa-solid fa-pen"></i> Tahrir
+            </a>
+            <button class="btn-mobile-action btn-mobile-delete delete-btn" type="button" data-id="{{ g.id }}" data-name="{{ g.nom }}">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          {% endif %}
+        </div>
       </div>
+      {% empty %}
+      <p class="text-center opacity-50 py-4">Hozircha guruh yo'q.</p>
+      {% endfor %}
+    </div>
+  </div>
 
     </div>
   </div>
