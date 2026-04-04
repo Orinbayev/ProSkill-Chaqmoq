@@ -81,13 +81,70 @@ class UserSubscriptionServiceTests(TestCase):
         self.assertFalse(sub.is_active)
 
     def test_student_limit_policy_free_vs_paid(self):
-        # No subscription -> FREE limit
-        self.assertEqual(get_center_student_limit(self.center, actor=self.user), 50)
+        # Center-level default fields are the primary source of truth.
+        self.assertEqual(get_center_student_limit(self.center, actor=self.user), 100)
 
         activate_subscription(self.user, self.free_plan)
-        self.assertEqual(get_center_student_limit(self.center, actor=self.user), 50)
+        self.assertEqual(get_center_student_limit(self.center, actor=self.user), 100)
+
+        pro_center_plan = SubscriptionPlan.objects.create(
+            code="CENTER_PRO",
+            title="Center Pro",
+            name="CENTER_PRO",
+            monthly_price=250000,
+            price=250000,
+            duration_days=30,
+            max_students=150,
+        )
+        CenterSubscription.objects.create(
+            center=self.center,
+            plan=pro_center_plan,
+            status=CenterSubscription.Status.ACTIVE,
+            expires_at=timezone.now() + timezone.timedelta(days=30),
+        )
+        activate_subscription(self.user, self.pro_plan)
+        self.assertEqual(get_center_student_limit(self.center, actor=self.user), 150)
+
+    def test_center_level_limit_beats_legacy_owner_subscription_limit(self):
+        legacy_plan = SubscriptionPlan.objects.create(
+            code="LEGACY_200",
+            title="Legacy 200",
+            name="LEGACY_200",
+            monthly_price=120000,
+            price=120000,
+            duration_days=30,
+            max_students=200,
+        )
+        center_plan = SubscriptionPlan.objects.create(
+            code="CENTER_2000",
+            title="Center 2000",
+            name="CENTER_2000",
+            monthly_price=990000,
+            price=990000,
+            duration_days=30,
+            max_students=2000,
+        )
+
+        activate_subscription(self.user, legacy_plan)
+        CenterSubscription.objects.create(
+            center=self.center,
+            plan=center_plan,
+            status=CenterSubscription.Status.ACTIVE,
+            expires_at=timezone.now() + timezone.timedelta(days=30),
+        )
+        self.center.capacity_limit = 200
+        self.center.max_students = 2000
+        self.center.save(update_fields=["capacity_limit", "max_students"])
+
+        self.assertEqual(get_center_student_limit(self.center, actor=self.user), 2000)
+
+    def test_legacy_owner_subscription_used_only_when_center_has_no_limit(self):
+        self.center.capacity_limit = 0
+        self.center.max_students = 0
+        self.center.save(update_fields=["capacity_limit", "max_students"])
 
         activate_subscription(self.user, self.pro_plan)
+
         self.assertEqual(get_center_student_limit(self.center, actor=self.user), 150)
 
     def test_give_subscription_extends_existing_active(self):

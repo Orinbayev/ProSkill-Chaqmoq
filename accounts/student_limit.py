@@ -3,40 +3,42 @@
 Student Limit Enforcement Helper
 CRITICAL: Prevents centers from exceeding their subscription plan student limits
 """
+import logging
+
 from django.core.exceptions import ValidationError
 from django.db import transaction
+
+logger = logging.getLogger(__name__)
+
 
 def check_student_limit(center, raise_error=True, actor=None):
     """
     Check if center has reached student limit.
-    Free -> 50
-    PRO/paid -> active plan max_students
+    Uses the unified center limit resolver so add form, backend validation,
+    templates and superadmin all rely on the same number.
     """
-    from accounts.models import User
     from billing.services import (
-        check_subscription,
-        get_center_student_limit,
-        get_subscription_owner_for_center,
+        resolve_center_student_limit,
     )
-    
-    limit = get_center_student_limit(center=center, actor=actor, free_limit=50)
-    
-    # 2. Count active students
-    current_count = User.objects.filter(
-        center=center, 
-        role='student', 
-        is_archived=False
-    ).count()
-    
-    is_at_limit = current_count >= limit
-    remaining = max(0, limit - current_count)
 
-    owner = get_subscription_owner_for_center(center=center, actor=actor)
-    owner_sub = check_subscription(owner) if owner else None
-    plan_name = (
-        owner_sub.plan.name or owner_sub.plan.title or owner_sub.plan.code
-        if owner_sub and owner_sub.plan
-        else "FREE"
+    limit_state = resolve_center_student_limit(
+        center=center,
+        actor=actor,
+        include_usage=True,
+    )
+    current_count = limit_state["current_count"]
+    limit = limit_state["limit"]
+    is_at_limit = limit_state["is_at_limit"]
+    remaining = limit_state["remaining"]
+    plan_name = limit_state.get("plan_name") or "CUSTOM"
+
+    logger.info(
+        "Student limit check: center_id=%s center=%s current_students=%s resolved_limit=%s source=%s",
+        getattr(center, "id", None),
+        getattr(center, "slug", None) or getattr(center, "name", None),
+        current_count,
+        limit,
+        limit_state.get("source"),
     )
 
     if raise_error and is_at_limit:
@@ -53,6 +55,9 @@ def check_student_limit(center, raise_error=True, actor=None):
         'limit': limit,
         'remaining': remaining,
         'plan_name': plan_name,
+        'limit_source': limit_state.get("source"),
+        'limit_source_label': limit_state.get("source_label"),
+        'candidates': limit_state.get("candidates", []),
     }
 
 

@@ -19,6 +19,7 @@ from .services import (
     get_plan_list_payload,
     get_user_subscription_dashboard_data,
     get_billing_history,
+    resolve_center_student_limit,
 )
 
 
@@ -34,20 +35,14 @@ def blocked(request):
     if center:
         ui = get_subscription_ui_state(center)
         # Check student limit
-        from .models import CenterSubscription
-        from accounts.models import User
-        
         try:
-            sub = CenterSubscription.objects.get(center=center)
+            sub = get_active_subscription(center)
             is_over_limit = sub.is_over_student_limit()
-            current_students = User.objects.filter(
-                center=center,
-                role='student',
-                is_archived=False
-            ).count()
-            max_students = center.effective_student_limit
+            limit_state = resolve_center_student_limit(center, actor=request.user, include_usage=True)
+            current_students = limit_state["current_count"]
+            max_students = limit_state["limit"]
             exceeded_count = max(0, current_students - max_students)
-        except CenterSubscription.DoesNotExist:
+        except Exception:
             pass
     
     return render(request, "billing/blocked.html", {

@@ -133,9 +133,10 @@ def superadmin_dashboard(request):
     # ── 5. Global student count ─────────────────────────────────
     # Filter over-capacity centers if requested
     limit_filter = request.GET.get('limit', '')
+    centers = list(centers)
+
     if limit_filter == 'over':
-        from django.db.models import F
-        centers = centers.filter(student_count__gt=F('capacity_limit'))
+        centers = [c for c in centers if int(c.student_count or 0) > int(c.effective_student_limit or 0)]
 
     total_students_global = User.objects.filter(
         role='student', is_archived=False, center__is_demo=False
@@ -318,6 +319,8 @@ def center_edit(request, pk):
     
     if request.method == 'POST' and form.is_valid():
         center = form.save()
+        from billing.services import invalidate_center_limit_cache
+        invalidate_center_limit_cache(center)
 
         try:
             # form Center.plan yoki Center.expires_at o'zgargan bo'lsa
@@ -334,6 +337,7 @@ def center_edit(request, pk):
                     expires_at=center.expires_at,
                     actor=request.user,
                 )
+                invalidate_center_limit_cache(center)
         except Exception:
             pass  # sync xato bo'lsa asosiy save saqlanadi
 
@@ -392,16 +396,21 @@ def update_center_capacity(request, pk):
         # Update
         center.capacity_limit = new_limit
         center.save()
+
+        from billing.services import invalidate_center_limit_cache
+        invalidate_center_limit_cache(center)
         
         # Recalculate Logic
         counts = center.get_counts
         current_students = counts['students']
-        over_limit = current_students > new_limit
+        resolved_limit = center.effective_student_limit
+        over_limit = current_students > resolved_limit
         
         return JsonResponse({
             'success': True,
             'message': 'Limit muvaffaqiyatli yangilandi',
             'capacity_limit': new_limit,
+            'resolved_student_limit': resolved_limit,
             'current_students': current_students,
             'over_limit': over_limit
         })

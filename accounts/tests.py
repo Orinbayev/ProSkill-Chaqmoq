@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta, timezone as dt_timezone
 
+from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from accounts.models import Center, User
-from billing.models import SubscriptionOrder, SubscriptionPlan
+from accounts.student_limit import check_student_limit
+from billing.models import CenterSubscription, SubscriptionOrder, SubscriptionPlan
 
 
 @override_settings(TIME_ZONE="Asia/Tashkent", USE_TZ=True)
@@ -92,3 +94,68 @@ class SuperadminPaymentHistoryApiTests(TestCase):
 
         expected_local = timezone.localtime(paid_at_utc).strftime("%d.%m.%Y %H:%M")
         self.assertIn(expected_local, html)
+
+
+class StudentLimitResolutionTests(TestCase):
+    def setUp(self):
+        self.center = Center.objects.create(
+            name="Limit Center",
+            slug="limit-center",
+            capacity_limit=200,
+            max_students=2000,
+        )
+        self.director = User.objects.create_user(
+            email="director.limit@test.uz",
+            password="strong-pass-123",
+            role="director",
+            ism="Limit",
+            familya="Director",
+            center=self.center,
+        )
+        self.plan = SubscriptionPlan.objects.create(
+            code="LIMIT_2000",
+            title="Limit 2000",
+            name="LIMIT_2000",
+            monthly_price=500000,
+            price=500000,
+            duration_days=30,
+            max_students=2000,
+            active=True,
+        )
+        CenterSubscription.objects.create(
+            center=self.center,
+            plan=self.plan,
+            status=CenterSubscription.Status.ACTIVE,
+            expires_at=timezone.now() + timedelta(days=30),
+        )
+
+    def _bulk_students(self, count: int):
+        User.objects.bulk_create([
+            User(
+                email=f"student-limit-{idx}@test.uz",
+                role="student",
+                ism=f"Student{idx}",
+                familya="Limit",
+                center=self.center,
+            )
+            for idx in range(count)
+        ])
+
+    def test_check_student_limit_allows_261_of_2000(self):
+        self._bulk_students(261)
+
+        state = check_student_limit(self.center, raise_error=False, actor=self.director)
+
+        self.assertFalse(state["is_at_limit"])
+        self.assertEqual(state["current_count"], 261)
+        self.assertEqual(state["limit"], 2000)
+        self.assertIn(
+            state["limit_source"],
+            {"active_center_subscription.plan.max_students", "center.max_students"},
+        )
+
+    def test_check_student_limit_blocks_after_2000(self):
+        self._bulk_students(2000)
+
+        with self.assertRaises(ValidationError):
+            check_student_limit(self.center, raise_error=True, actor=self.director)

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.db import transaction
@@ -21,6 +22,29 @@ from .models import (
     Subscription,
     PaymentTransaction,
     SubscriptionRequest,
+)
+
+logger = logging.getLogger(__name__)
+DEFAULT_CENTER_STUDENT_FALLBACK_LIMIT = 50
+_DASHBOARD_CACHE_PERIODS = (
+    "this_month",
+    "last_month",
+    "3_months",
+    "this_year",
+    "last_year",
+    "all",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
 )
 
 
@@ -70,6 +94,7 @@ def apply_plan_to_center(center: Center, plan: SubscriptionPlan) -> None:
 
     center.features = new_features
     center.save(update_fields=["features"])
+    invalidate_center_limit_cache(center)
 
 
 def can_center_use_feature(center: Center, feature_code: str) -> bool:
@@ -114,6 +139,38 @@ def get_paused_subscription(center: Center) -> CenterSubscription | None:
         status=CenterSubscription.Status.PAUSED,
         remaining_seconds__gt=0
     ).select_related("plan").order_by("-plan__tier", "started_at").first()
+
+
+def invalidate_center_limit_cache(center: Center | None) -> None:
+    """
+    Clear short-lived caches that may continue showing stale limit/subscription data.
+    """
+    center_id = getattr(center, "id", None)
+    if not center_id:
+        return
+
+    cache_keys = [f"tenant_ctx:sub:v3:{center_id}"]
+    cache_keys.extend(
+        f"director_dashboard:v2:center:{center_id}:period:{period}"
+        for period in _DASHBOARD_CACHE_PERIODS
+    )
+    cache.delete_many(cache_keys)
+
+
+def _get_center_active_subscription_cached(center: Center) -> CenterSubscription | None:
+    prefetched_active = getattr(center, "active_subs_list", None)
+    if prefetched_active is not None:
+        return prefetched_active[0] if prefetched_active else None
+
+    prefetched_subs = getattr(center, "_prefetched_objects_cache", {}).get("subscriptions")
+    if prefetched_subs is not None:
+        active_subs = [s for s in prefetched_subs if s.status == CenterSubscription.Status.ACTIVE]
+        if not active_subs:
+            return None
+        active_subs.sort(key=lambda s: (s.plan.tier, s.expires_at), reverse=True)
+        return active_subs[0]
+
+    return get_active_subscription(center)
 
 
 
@@ -494,24 +551,125 @@ def get_student_limit_for_user(user, free_limit: int = 50) -> int:
     return sub.plan.max_students or free_limit
 
 
-def get_center_student_limit(center: Center, actor=None, free_limit: int = 50) -> int:
+def resolve_center_student_limit(
+    center: Center | None,
+    actor=None,
+    fallback_limit: int = DEFAULT_CENTER_STUDENT_FALLBACK_LIMIT,
+    include_usage: bool = False,
+) -> dict:
     """
-    Student limit policy:
-    - FREE  -> 50
-    - PRO/* -> plan.max_students
-    """
-    owner = get_subscription_owner_for_center(center=center, actor=actor)
-    if owner:
-        return get_student_limit_for_user(owner, free_limit=free_limit)
+    Resolve a single source of truth for center student limit.
 
-    # Backward compatibility fallback for older center-based subscriptions.
-    sub = get_active_subscription(center)
-    if sub and getattr(sub, "plan", None):
-        plan_code = (sub.plan.code or sub.plan.name or sub.plan.title or "").upper()
-        if plan_code == "FREE":
-            return free_limit
-        return sub.plan.max_students or free_limit
-    return free_limit
+    Priority:
+    1. Center-level sources (highest of capacity_limit, max_students,
+       active CenterSubscription.plan.max_students)
+    2. Legacy owner Subscription.plan.max_students (fallback only)
+    3. Final fallback limit
+    """
+    resolved_fallback = max(int(fallback_limit or DEFAULT_CENTER_STUDENT_FALLBACK_LIMIT), 1)
+    state = {
+        "limit": resolved_fallback,
+        "source": "fallback.default_limit",
+        "source_label": "Fallback default limit",
+        "plan_code": None,
+        "plan_name": None,
+        "candidates": [],
+    }
+
+    if not center:
+        if include_usage:
+            state.update({
+                "current_count": 0,
+                "remaining": resolved_fallback,
+                "is_at_limit": False,
+            })
+        return state
+
+    active_sub = _get_center_active_subscription_cached(center)
+    center_candidates: list[dict] = []
+
+    if active_sub and getattr(active_sub, "plan", None):
+        active_limit = int(getattr(active_sub.plan, "max_students", 0) or 0)
+        if active_limit > 0:
+            center_candidates.append({
+                "limit": active_limit,
+                "source": "active_center_subscription.plan.max_students",
+                "source_label": "Active center subscription plan",
+            })
+            state["plan_code"] = active_sub.plan.code
+            state["plan_name"] = active_sub.plan.name or active_sub.plan.title or active_sub.plan.code
+
+    center_max_students = int(getattr(center, "max_students", 0) or 0)
+    if center_max_students > 0:
+        center_candidates.append({
+            "limit": center_max_students,
+            "source": "center.max_students",
+            "source_label": "Center.max_students",
+        })
+
+    center_capacity_limit = int(getattr(center, "capacity_limit", 0) or 0)
+    if center_capacity_limit > 0:
+        center_candidates.append({
+            "limit": center_capacity_limit,
+            "source": "center.capacity_limit",
+            "source_label": "Center.capacity_limit",
+        })
+
+    if not state["plan_code"]:
+        state["plan_code"] = getattr(center, "plan", None) or None
+        state["plan_name"] = getattr(center, "plan", None) or None
+
+    if center_candidates:
+        selected = max(center_candidates, key=lambda item: int(item["limit"] or 0))
+        state.update(selected)
+        state["candidates"] = center_candidates
+    else:
+        owner = get_subscription_owner_for_center(center=center, actor=actor)
+        owner_sub = check_subscription(owner) if owner else None
+        if owner_sub and getattr(owner_sub, "plan", None):
+            owner_limit = int(getattr(owner_sub.plan, "max_students", 0) or 0)
+            if owner_limit > 0:
+                state.update({
+                    "limit": owner_limit,
+                    "source": "legacy_owner_subscription.plan.max_students",
+                    "source_label": "Legacy owner subscription plan",
+                    "plan_code": owner_sub.plan.code,
+                    "plan_name": owner_sub.plan.name or owner_sub.plan.title or owner_sub.plan.code,
+                })
+
+    if include_usage:
+        from accounts.models import User
+
+        current_count = User.objects.filter(
+            center=center,
+            role="student",
+            is_archived=False,
+        ).count()
+        state.update({
+            "current_count": current_count,
+            "remaining": max(0, int(state["limit"] or 0) - current_count),
+            "is_at_limit": current_count >= int(state["limit"] or 0),
+        })
+
+    return state
+
+
+def get_center_student_limit(
+    center: Center,
+    actor=None,
+    free_limit: int = DEFAULT_CENTER_STUDENT_FALLBACK_LIMIT,
+) -> int:
+    """
+    Backward-compatible integer-only accessor for center student limit.
+    """
+    return int(
+        resolve_center_student_limit(
+            center=center,
+            actor=actor,
+            fallback_limit=free_limit,
+            include_usage=False,
+        )["limit"]
+    )
 
 
 def get_user_subscription_dashboard_data(user) -> dict:
@@ -805,6 +963,7 @@ def activate_center_subscription_from_click(
     center.max_users = plan.max_users
     center.max_groups = plan.max_groups
     center.max_students = plan.max_students
+    center.capacity_limit = max(int(center.capacity_limit or 0), int(plan.max_students or 0))
     center.status = Center.STATUS_ACTIVE
     center.expires_at = new_end_date
     center.monthly_price = plan.monthly_price
@@ -814,6 +973,7 @@ def activate_center_subscription_from_click(
             "max_users",
             "max_groups",
             "max_students",
+            "capacity_limit",
             "status",
             "expires_at",
             "monthly_price",
@@ -1015,11 +1175,13 @@ def mark_order_paid(order: SubscriptionOrder) -> None:
             center.max_users = final_active.plan.max_users
             center.max_groups = final_active.plan.max_groups
             center.max_students = final_active.plan.max_students
+            center.capacity_limit = max(int(center.capacity_limit or 0), int(final_active.plan.max_students or 0))
             center.status = Center.STATUS_ACTIVE
             center.expires_at = final_active.expires_at
             center.monthly_price = final_active.plan.monthly_price
             center.save(update_fields=[
-                "plan", "max_users", "max_groups", "max_students", 
+                "plan", "max_users", "max_groups", "max_students",
+                "capacity_limit",
                 "status", "expires_at", "monthly_price"
             ])
             print("✅ Center fields updated")
@@ -1030,6 +1192,7 @@ def mark_order_paid(order: SubscriptionOrder) -> None:
             print(f"👉 Syncing Director: {owner.email}")
             give_subscription(owner, new_plan, duration_months=duration_months)
 
+        invalidate_center_limit_cache(center)
         print(f"✅ PAID DONE")
 
     except Exception as e:
@@ -1065,11 +1228,12 @@ def sync_center_from_active_subscription(center: Center) -> bool:
     center.expires_at    = active_sub.expires_at
     center.monthly_price = plan.monthly_price
     center.max_students  = plan.max_students
+    center.capacity_limit = max(int(center.capacity_limit or 0), int(plan.max_students or 0))
     center.max_groups    = plan.max_groups
     center.max_users     = plan.max_users
     center.save(update_fields=[
         "plan", "expires_at", "monthly_price",
-        "max_students", "max_groups", "max_users",
+        "max_students", "capacity_limit", "max_groups", "max_users",
     ])
     # Feature flaglarni ham sinxronlaymiz
     apply_plan_to_center(center, plan)
@@ -1137,12 +1301,13 @@ def superadmin_apply_subscription(
     center.expires_at    = expires_at
     center.monthly_price = new_plan.monthly_price
     center.max_students  = new_plan.max_students
+    center.capacity_limit = max(int(center.capacity_limit or 0), int(new_plan.max_students or 0))
     center.max_groups    = new_plan.max_groups
     center.max_users     = new_plan.max_users
     center.status        = Center.STATUS_ACTIVE
     center.save(update_fields=[
         "plan", "expires_at", "monthly_price",
-        "max_students", "max_groups", "max_users", "status",
+        "max_students", "capacity_limit", "max_groups", "max_users", "status",
     ])
 
     # 4. Feature sync
@@ -1180,8 +1345,11 @@ def check_subscription_expiry(center: Center):
             # Sync Center
             center.plan = paused.plan.code
             center.expires_at = paused.expires_at
+            center.max_students = paused.plan.max_students
             center.status = Center.STATUS_ACTIVE
-            center.save(update_fields=["plan", "expires_at", "status"])
+            center.capacity_limit = max(int(center.capacity_limit or 0), int(paused.plan.max_students or 0))
+            center.save(update_fields=["plan", "expires_at", "max_students", "status", "capacity_limit"])
+            invalidate_center_limit_cache(center)
 
 
 def get_subscription_ui_state(center: Center) -> dict | None:

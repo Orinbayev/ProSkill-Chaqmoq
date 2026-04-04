@@ -175,26 +175,30 @@ class Center(SoftDeleteMixin, models.Model):
     def __str__(self):
         return self.name
 
+    def get_student_limit_state(self, actor=None, refresh: bool = False):
+        cache_attr = "_student_limit_state_cache"
+        if actor is None and not refresh and hasattr(self, cache_attr):
+            return getattr(self, cache_attr)
+
+        from billing.services import resolve_center_student_limit
+
+        state = resolve_center_student_limit(center=self, actor=actor)
+        if actor is None:
+            setattr(self, cache_attr, state)
+        return state
+
     @property
     def effective_student_limit(self):
         """
-        Returns the effective student limit.
-        Takes the maximum of:
-        1. Manual capacity_limit
-        2. Manual max_students (redundant field check)
-        3. Active subscription plan limit
-        Default fallback is 50.
+        Canonical student limit for this center.
+        Delegates to the unified resolver so all UI/backend checks use
+        the same source of truth.
         """
-        # Take the higher of the manual limit fields
-        manual_limit = max(self.capacity_limit or 0, self.max_students or 0)
-        limit = manual_limit or 50
-        
-        sub = self.active_subscription
-        if sub:
-            plan_limit = sub.plan.max_students
-            if plan_limit > limit:
-                limit = plan_limit
-        return limit
+        return int(self.get_student_limit_state().get("limit") or 0)
+
+    @property
+    def student_limit_source(self):
+        return self.get_student_limit_state().get("source")
 
     @property
     def days_left(self):

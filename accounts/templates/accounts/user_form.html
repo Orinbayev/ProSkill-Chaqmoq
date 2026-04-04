@@ -212,6 +212,25 @@
     font-weight: 600;
   }
 
+  .limit-box {
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.18);
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin-bottom: 20px;
+    color: #fde68a;
+  }
+
+  .limit-box strong {
+    color: #fff;
+  }
+
+  .limit-box small {
+    color: var(--muted);
+    display: block;
+    margin-top: 6px;
+  }
+
   /* Autofill fix */
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
@@ -303,6 +322,18 @@
       <li>{{ error }}</li>
       {% endfor %}
     </ul>
+  </div>
+  {% endif %}
+
+  {% if student_limit_state %}
+  <div id="studentLimitCard" class="limit-box" style="display:none;">
+    <strong>Student limiti:</strong> {{ student_limit_state.current_count }}/{{ student_limit_state.limit }}
+    {% if student_limit_state.is_at_limit %}
+    <span style="color:#fca5a5;"> Limit to'lgan.</span>
+    {% else %}
+    <span> Yana {{ student_limit_state.remaining }} ta o'quvchi qo'shish mumkin.</span>
+    {% endif %}
+    <small>Manba: {{ student_limit_state.source_label }}</small>
   </div>
   {% endif %}
 
@@ -513,6 +544,7 @@
     const priceBlock = document.getElementById("priceBlock");
     const kursInput = document.getElementById("id_kurs_narhi");
     const foizField = document.getElementById("foizField");
+    const studentLimitCard = document.getElementById("studentLimitCard");
     const groupPriceUrlTemplate = "{% url 'education:group_price' 0 %}";
 
     if (role) {
@@ -523,6 +555,7 @@
         const isTeacher = role.value === "teacher";
 
         if (groupBlock) groupBlock.style.display = isStudent ? "block" : "none";
+        if (studentLimitCard) studentLimitCard.style.display = isStudent ? "block" : "none";
 
         // Toggle Student Fields
         if (studentFields) studentFields.style.display = isStudent ? "block" : "none";

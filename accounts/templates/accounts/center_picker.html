@@ -1032,12 +1032,12 @@
           <div class="d-flex align-items-center gap-2">
             <span class="text-white small fw-bold">
               <i class="bi bi-people me-1 text-secondary"></i>
-              {{ c.student_count|default:"0" }} / {{ c.capacity_limit }}
+              {{ c.student_count|default:"0" }} / {{ c.effective_student_limit }}
             </span>
 
-            {% if c.student_count > c.capacity_limit %}
+            {% if c.student_count > c.effective_student_limit %}
             <span class="badge bg-danger text-white rounded-pill" style="font-size: 0.65rem;">OSHIB KETDI</span>
-            {% elif c.student_count == c.capacity_limit %}
+            {% elif c.student_count == c.effective_student_limit %}
             <span class="badge bg-warning text-dark rounded-pill" style="font-size: 0.65rem;">LIMITDA</span>
             {% endif %}
           </div>
@@ -1959,6 +1959,13 @@
       const pCode = center.plan_code || center.plan;
       if (pCode) {
         selectPlan(pCode);
+        const resolvedLimit = center.resolved_student_limit || center.capacity_limit || center.max_students || '';
+        if (resolvedLimit !== '') {
+          const capInput = document.getElementById('capacity_limit');
+          const summaryStudents = document.getElementById('sum-students');
+          if (capInput) capInput.value = resolvedLimit;
+          if (summaryStudents) summaryStudents.innerText = resolvedLimit > 10000 ? 'Cheksiz' : resolvedLimit;
+        }
       } else {
         document.getElementById('selected_plan_code').value = '';
         document.getElementById('no-plan-view').style.display = 'block';

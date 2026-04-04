@@ -14,6 +14,8 @@ from education.models import Group, Payment, Attendance, TeacherIncome
 from billing.models import SubscriptionPlan, PromoCode, PlanFeature, SubscriptionOrder
 from billing.services import (
     apply_plan_to_center,
+    invalidate_center_limit_cache,
+    resolve_center_student_limit,
     superadmin_apply_subscription,
     sync_center_from_active_subscription,
 )
@@ -251,6 +253,7 @@ def center_detail_api(request, center_id):
     
     center = get_object_or_404(Center, pk=center_id)
     director = User.objects.filter(center=center, role='director').first()
+    student_limit_state = resolve_center_student_limit(center, actor=request.user, include_usage=True)
     
     # Fetch full plan data for plan selector (including feature_codes)
     from billing.models import PlanFeature
@@ -284,6 +287,7 @@ def center_detail_api(request, center_id):
 
     # Feature codes from the center's ACTIVE subscription plan (M2M)
     feature_codes = []
+    active_sub = None
     try:
         # CenterSubscription da is_active degan field yo'q — status='ACTIVE' ishlatamiz
         active_sub = CenterSubscription.objects.filter(
@@ -316,6 +320,10 @@ def center_detail_api(request, center_id):
         "monthly_price": sub_monthly,
         "payment_day": center.payment_day,
         "max_students": center.max_students,
+        "resolved_student_limit": student_limit_state["limit"],
+        "resolved_student_limit_source": student_limit_state["source"],
+        "resolved_student_limit_source_label": student_limit_state["source_label"],
+        "current_students": student_limit_state["current_count"],
         "features": center.features or {},
         "feature_codes": feature_codes,          # ← M2M codes
         "expires_at": sub_expires.strftime("%Y-%m-%d") if sub_expires else None,
@@ -400,7 +408,8 @@ def center_update_api(request, center_id):
         
         # Validate Capacity Limit
         try:
-            new_exec_limit = int(data.get('capacity_limit') or center.capacity_limit or 100)
+            current_limit_state = resolve_center_student_limit(center, actor=request.user)
+            new_exec_limit = int(data.get('capacity_limit') or current_limit_state['limit'])
             if new_exec_limit < 1:
                 return JsonResponse({"success": False, "error": "Limit kamida 1 bo'lishi kerak"}, status=400)
             center.capacity_limit = new_exec_limit
@@ -479,6 +488,8 @@ def center_update_api(request, center_id):
                         expires_at=active_sub.expires_at,
                         actor=request.user,
                     )
+
+        invalidate_center_limit_cache(center)
 
 
         # 2. Update Director
@@ -601,12 +612,14 @@ def center_create_api(request):
             return JsonResponse({"success": False, "error": f"Email {dir_email} allaqachon mavjud!"}, status=400)
 
         # 1. Create Center
+        submitted_limit = int(data.get('capacity_limit') or data.get('max_students') or 100)
         c = Center.objects.create(
             name=name,
             address=data.get('address', ''),
             phone=data.get('phone', ''),
             plan=data.get('plan', 'FREE'),
-            max_students=int(data.get('max_students') or 100),
+            max_students=submitted_limit,
+            capacity_limit=submitted_limit,
             monthly_price=int(data.get('monthly_price') or 0),
             payment_day=int(data.get('payment_day') or 5),
             features=features,
@@ -623,6 +636,19 @@ def center_create_api(request):
         if trial_days and int(trial_days) > 0:
             c.trial_ends = timezone.localdate() + timedelta(days=int(trial_days))
             c.save()
+
+        plan_code = (data.get('plan') or '').strip().upper()
+        selected_plan = SubscriptionPlan.objects.filter(code=plan_code, active=True).first()
+        if selected_plan:
+            expires_raw = (data.get('expires_at') or '').strip()
+            expires_at = expires_raw or (timezone.now() + timedelta(days=30))
+            superadmin_apply_subscription(
+                center=c,
+                new_plan=selected_plan,
+                expires_at=expires_at,
+                actor=request.user,
+            )
+            c.refresh_from_db()
 
         # 2. Create Director (if provided)
         if dir_email:
@@ -641,6 +667,7 @@ def center_create_api(request):
             )
 
         logger.info(f"AUDIT: User {request.user.id} created Center {c.id} ({c.name})")
+        invalidate_center_limit_cache(c)
         
         return JsonResponse({"success": True, "message": "Markaz yaratildi", "id": c.id})
     except Exception as e:

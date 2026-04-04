@@ -312,6 +312,22 @@ def add_user(request):
         initial["role"] = role_param
 
     form = AddUserForm(request.POST or None, request=request, initial=initial)
+    student_limit_state = None
+
+    active_center = getattr(request, "center", None) or getattr(request.user, "center", None)
+    selected_center_id = request.POST.get("center") or request.GET.get("center")
+    if not active_center and selected_center_id:
+        active_center = Center.objects.filter(id=selected_center_id).first()
+
+    if active_center:
+        from billing.services import resolve_center_student_limit
+
+        student_limit_state = resolve_center_student_limit(
+            center=active_center,
+            actor=request.user,
+            include_usage=True,
+        )
+
     if request.method == "POST" and form.is_valid():
         user = form.save()
         messages.success(request, f"✅ Foydalanuvchi {user.email} muvaffaqiyatli qo‘shildi.")
@@ -319,7 +335,8 @@ def add_user(request):
 
     return render(request, "accounts/user_form.html", {
         'form': form,
-        'title': "Yangi foydalanuvchi"
+        'title': "Yangi foydalanuvchi",
+        'student_limit_state': student_limit_state,
     })
 
 @login_required
