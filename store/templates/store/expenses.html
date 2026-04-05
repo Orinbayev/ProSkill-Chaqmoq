@@ -87,6 +87,112 @@
         line-height: 1.2;
     }
 
+    .overview-grid {
+        display: grid;
+        gap: 16px;
+        height: 100%;
+    }
+
+    .summary-card {
+        padding: 20px;
+        min-height: 152px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .summary-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .summary-copy {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .summary-label {
+        font-size: 12px;
+        color: #94a3b8;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .summary-value {
+        color: #fff;
+        font-size: clamp(24px, 2vw, 31px);
+        font-weight: 800;
+        line-height: 1.15;
+    }
+
+    .summary-note {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .summary-card .card-icon-box {
+        margin-bottom: 0;
+        flex-shrink: 0;
+    }
+
+    .chart-card {
+        padding: 22px 24px 18px;
+    }
+
+    .chart-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+    }
+
+    .chart-kicker {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        color: #c084fc;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+    }
+
+    .chart-title {
+        margin: 0;
+        color: #fff;
+        font-size: 22px;
+        font-weight: 800;
+    }
+
+    .chart-meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 14px;
+        background: rgba(15, 23, 42, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: #94a3b8;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.4;
+    }
+
+    .chart-meta strong {
+        color: #fff;
+        font-weight: 800;
+    }
+
+    .chart-container {
+        height: 220px;
+        min-height: 220px;
+    }
+
     /* ===== FILTER SECTION ===== */
     .filter-section {
         background: rgba(15, 23, 42, 0.3);
@@ -125,6 +231,36 @@
         border-color: var(--primary);
         background: rgba(0, 0, 0, 0.3);
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    .search-input-wrap {
+        position: relative;
+    }
+
+    .search-input-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #60a5fa;
+        font-size: 14px;
+        pointer-events: none;
+    }
+
+    .search-input-wrap .filter-input {
+        padding-left: 42px;
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 12px;
+        width: 100%;
+    }
+
+    .filter-actions .btn {
+        min-height: 46px;
+        border-radius: 14px;
+        font-weight: 700;
     }
 
     /* Clear Filter Button */
@@ -266,39 +402,69 @@
         border-top: 1px solid rgba(255, 255, 255, 0.05);
         padding: 20px 24px;
     }
+
+    @media (max-width: 991.98px) {
+        .chart-container {
+            height: 200px;
+            min-height: 200px;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .filter-actions {
+            flex-direction: column;
+        }
+    }
 </style>
 
 <div class="tl-container">
     {% include "partials/moliya_header.html" %}
 
-    <div class="row g-4 mb-5">
-        <div class="col-lg-3">
-            <div class="row g-4">
-                <div class="col-12">
-                    <div class="premium-card">
+    <div class="row g-4 mb-4 align-items-stretch">
+        <div class="col-xl-4 col-lg-5">
+            <div class="overview-grid">
+                <div class="premium-card summary-card">
+                    <div class="summary-head">
+                        <div class="summary-copy">
+                            <span class="summary-label">Jami xarajat</span>
+                            <div class="summary-value">{{ total_sum|default:0|intcomma }} so'm</div>
+                        </div>
                         <div class="card-icon-box">
                             <i class="fa-solid fa-receipt"></i>
                         </div>
-                        <div class="tl-card-lbl">Jami xarajat</div>
-                        <div class="tl-card-val">{{ total_sum|default:0|intcomma }} so'm</div>
                     </div>
+                    <div class="summary-note">Markaz bo'yicha umumiy chiqim</div>
                 </div>
-                <div class="col-12">
-                    <div class="premium-card">
+                <div class="premium-card summary-card">
+                    <div class="summary-head">
+                        <div class="summary-copy">
+                            <span class="summary-label">Filter bo'yicha</span>
+                            <div class="summary-value">{{ filtered_sum|default:0|intcomma }} so'm</div>
+                        </div>
                         <div class="card-icon-box"
                             style="background: rgba(59, 130, 246, 0.1); color: var(--primary-light); border-color: rgba(59, 130, 246, 0.2);">
                             <i class="fa-solid fa-filter"></i>
                         </div>
-                        <div class="tl-card-lbl">Filter bo'yicha</div>
-                        <div class="tl-card-val">{{ filtered_sum|default:0|intcomma }} so'm</div>
                     </div>
+                    <div class="summary-note">Tanlangan filterlar kesimidagi chiqim</div>
                 </div>
             </div>
         </div>
-        <div class="col-lg-9">
-            <div class="premium-card">
-                <div class="tl-card-lbl mb-3">Xarajatlar Grafigi</div>
-                <div id="expenseChart" style="height: 250px;"></div>
+        <div class="col-xl-8 col-lg-7">
+            <div class="premium-card chart-card h-100">
+                <div class="chart-head">
+                    <div>
+                        <div class="chart-kicker">So'nggi 12 oy</div>
+                        <h5 class="chart-title">Xarajatlar grafigi</h5>
+                    </div>
+                    <div class="chart-meta">
+                        <span><strong>{{ filtered_sum|default:0|intcomma }}</strong> filter</span>
+                        <span><strong>{{ total_sum|default:0|intcomma }}</strong> jami</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <div id="expenseChart"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -314,15 +480,15 @@
             </div>
             {% endif %}
             <div class="row g-3 align-items-end">
-                <div class="col-md-2">
+                <div class="col-xl-2 col-lg-3 col-md-4">
                     <label class="filter-label">📅 Sana dan</label>
                     <input type="date" name="sana_dan" value="{{ sana_dan|default:'' }}" class="filter-input">
                 </div>
-                <div class="col-md-2">
+                <div class="col-xl-2 col-lg-3 col-md-4">
                     <label class="filter-label">📅 Sana gacha</label>
                     <input type="date" name="sana_gacha" value="{{ sana_gacha|default:'' }}" class="filter-input">
                 </div>
-                <div class="col-md-2">
+                <div class="col-xl-2 col-lg-3 col-md-4">
                     <label class="filter-label">🏷️ Toifa</label>
                     <select name="category" class="filter-select">
                         <option value="">Barchasi</option>
@@ -332,7 +498,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-xl-2 col-lg-3 col-md-4">
                     <label class="filter-label">💳 To'lov usuli</label>
                     <select name="payment_method" class="filter-select">
                         <option value="">Barchasi</option>
@@ -341,20 +507,25 @@
                         <option value="otkazma" {% if selected_method == 'otkazma' %}selected{% endif %}>O'tkazma</option>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-xl-2 col-lg-4 col-md-6">
                     <label class="filter-label">🔍 Qidiruv</label>
-                    <input type="text" name="q" value="{{ q|default:'' }}" placeholder="Qidirish..."
-                        class="filter-input">
+                    <div class="search-input-wrap">
+                        <i class="fa-solid fa-magnifying-glass search-input-icon"></i>
+                        <input type="text" name="q" value="{{ q|default:'' }}" placeholder="Qidirish..."
+                            class="filter-input">
+                    </div>
                 </div>
-                <div class="col-md-2 d-flex gap-2">
-                    <button type="button" class="btn btn-primary fw-bold w-100 rounded-3" data-bs-toggle="modal"
-                        data-bs-target="#addExpenseModal">
-                        + Xarajat
-                    </button>
-                    <button type="button" class="btn btn-glass w-auto" data-bs-toggle="modal"
-                        data-bs-target="#addCategoryModal">
-                        <i class="fa-solid fa-plus"></i>
-                    </button>
+                <div class="col-xl-2 col-lg-8 col-md-6">
+                    <div class="filter-actions">
+                        <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal"
+                            data-bs-target="#addExpenseModal">
+                            + Xarajat
+                        </button>
+                        <button type="button" class="btn btn-glass" data-bs-toggle="modal"
+                            data-bs-target="#addCategoryModal">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
                 </div>
             </div> <!-- End row -->
         </form>
@@ -665,11 +836,34 @@
         if (dataJson && labelJson) {
             new ApexCharts(document.querySelector("#expenseChart"), {
                 series: [{ name: "Xarajat", data: JSON.parse(dataJson.textContent) }],
-                stroke: { curve: 'smooth', width: 3 }, colors: ['#a855f7'],
-                chart: { type: 'area', height: 250, toolbar: { show: false }, background: 'transparent' },
-                xaxis: { categories: JSON.parse(labelJson.textContent), labels: { style: { colors: '#94a3b8' } } },
-                yaxis: { labels: { style: { colors: '#94a3b8' }, formatter: v => Number(v).toLocaleString() } },
-                grid: { borderColor: 'rgba(255, 255, 255, 0.05)' }, theme: { mode: 'dark' }
+                stroke: { curve: 'smooth', width: 3, lineCap: 'round' }, colors: ['#a855f7'],
+                markers: { size: 0, hover: { size: 5 }, strokeWidth: 0 },
+                chart: {
+                    type: 'area',
+                    height: 220,
+                    offsetY: -8,
+                    toolbar: { show: false },
+                    background: 'transparent',
+                    parentHeightOffset: 0
+                },
+                fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.35, opacityTo: 0.04, stops: [0, 90, 100] } },
+                xaxis: {
+                    categories: JSON.parse(labelJson.textContent),
+                    labels: { style: { colors: '#94a3b8', fontSize: '11px' } },
+                    axisBorder: { show: false },
+                    axisTicks: { show: false }
+                },
+                yaxis: {
+                    tickAmount: 4,
+                    labels: { style: { colors: '#94a3b8', fontSize: '11px' }, formatter: v => Number(v).toLocaleString() }
+                },
+                grid: {
+                    borderColor: 'rgba(255, 255, 255, 0.05)',
+                    strokeDashArray: 4,
+                    padding: { left: 4, right: 8, top: 4, bottom: -8 }
+                },
+                legend: { show: false },
+                theme: { mode: 'dark' }
             }).render();
         }
 
@@ -709,9 +903,17 @@
 
         // Filters
         const filterForm = document.getElementById('expenseFilterForm');
-        filterForm.querySelectorAll('select, input[type="date"]').forEach(el => el.addEventListener('change', () => filterForm.submit()));
-        let t = null;
-        filterForm.querySelector('input[name="q"]').addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => filterForm.submit(), 800); });
+        if (filterForm) {
+            filterForm.querySelectorAll('select, input[type="date"]').forEach(el => el.addEventListener('change', () => filterForm.submit()));
+            let t = null;
+            const searchInput = filterForm.querySelector('input[name="q"]');
+            if (searchInput) {
+                searchInput.addEventListener('input', () => {
+                    clearTimeout(t);
+                    t = setTimeout(() => filterForm.submit(), 450);
+                });
+            }
+        }
     });
 </script>
 {% endblock %}

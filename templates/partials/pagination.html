@@ -4,7 +4,7 @@
         {% if page_obj.has_previous %}
         <li class="page-item">
             <a class="page-link bg-dark border-white border-opacity-10 text-white rounded-start-3"
-                href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}{% if per_page and not request.GET.per_page %}&per_page={{ per_page }}{% endif %}"
+                href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' and key != 'page_size' %}&{{ key }}={{ value }}{% endif %}{% endfor %}{% if per_page and not request.GET.per_page %}&per_page={{ per_page }}{% endif %}"
                 aria-label="Previous">
                 <span aria-hidden="true">&laquo;</span>
             </a>
@@ -18,7 +18,7 @@
         </li>
         {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %} <li class="page-item">
             <a class="page-link bg-dark border-white border-opacity-10 text-white"
-                href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}{% if per_page and not request.GET.per_page %}&per_page={{ per_page }}{% endif %}">{{ num }}</a>
+                href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' and key != 'page_size' %}&{{ key }}={{ value }}{% endif %}{% endfor %}{% if per_page and not request.GET.per_page %}&per_page={{ per_page }}{% endif %}">{{ num }}</a>
             </li>
             {% endif %}
             {% endfor %}
@@ -26,7 +26,7 @@
             {% if page_obj.has_next %}
             <li class="page-item">
                 <a class="page-link bg-dark border-white border-opacity-10 text-white rounded-end-3"
-                    href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}{% if per_page and not request.GET.per_page %}&per_page={{ per_page }}{% endif %}"
+                    href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' and key != 'page_size' %}&{{ key }}={{ value }}{% endif %}{% endfor %}{% if per_page and not request.GET.per_page %}&per_page={{ per_page }}{% endif %}"
                     aria-label="Next">
                     <span aria-hidden="true">&raquo;</span>
                 </a>

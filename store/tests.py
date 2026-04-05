@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
 
@@ -10,7 +11,7 @@ from store.lead_services import (
     get_status_by_code,
     send_follow_up_notification_if_due,
 )
-from store.models import Lead, TrialLesson
+from store.models import Expense, ExpenseCategory, Lead, TrialLesson
 from store.trial_services import handle_trial_created, handle_trial_updated
 
 
@@ -134,3 +135,38 @@ class LeadCrmServiceTests(TestCase):
         self.assertIsNotNone(lead.converted_user_id)
         self.assertEqual(lead.status_id, registered_status.id if registered_status else lead.status_id)
         self.assertTrue(trial.registered_after_trial)
+
+
+class ExpensePageSmokeTests(TestCase):
+    def setUp(self):
+        self.center = Center.objects.create(name="Expense Center", slug="expense-center")
+        self.manager = User.objects.create_user(
+            email="manager@expense.test",
+            password="Pass12345!",
+            role="manager",
+            center=self.center,
+            ism="Expense",
+            familya="Manager",
+        )
+        self.category = ExpenseCategory.objects.create(center=self.center, nom="Ofis")
+        Expense.objects.create(
+            center=self.center,
+            summa=320_000,
+            izoh="Printer uchun qog'oz",
+            category=self.category,
+            payment_method="naqd",
+            receiver="Hamkor",
+            worker=self.manager,
+        )
+        self.client.force_login(self.manager)
+        self.url = f"/{self.center.slug}{reverse('store:expenses')}"
+
+    def test_expenses_page_renders_summary_and_chart_context(self):
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["total_sum"], 320_000)
+        self.assertEqual(response.context["filtered_sum"], 320_000)
+        self.assertEqual(len(response.context["items"]), 1)
+        self.assertContains(response, "Jami xarajat")
+        self.assertContains(response, "Xarajatlar grafigi")

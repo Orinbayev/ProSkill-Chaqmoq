@@ -87,6 +87,117 @@
         line-height: 1.2;
     }
 
+    .overview-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        height: 100%;
+    }
+
+    .summary-card {
+        padding: 20px;
+        min-height: 152px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .summary-card-wide {
+        grid-column: 1 / -1;
+    }
+
+    .summary-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .summary-copy {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .summary-label {
+        font-size: 12px;
+        color: #94a3b8;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .summary-value {
+        color: #fff;
+        font-size: clamp(24px, 2vw, 31px);
+        font-weight: 800;
+        line-height: 1.15;
+    }
+
+    .summary-note {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .summary-card .card-icon-box {
+        margin-bottom: 0;
+        flex-shrink: 0;
+    }
+
+    .chart-card {
+        padding: 22px 24px 18px;
+    }
+
+    .chart-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+    }
+
+    .chart-kicker {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        color: #f87171;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+    }
+
+    .chart-title {
+        margin: 0;
+        color: #fff;
+        font-size: 22px;
+        font-weight: 800;
+    }
+
+    .chart-meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 14px;
+        background: rgba(15, 23, 42, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: #94a3b8;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.4;
+    }
+
+    .chart-meta strong {
+        color: #fff;
+        font-weight: 800;
+    }
+
+    .chart-container {
+        height: 220px;
+        min-height: 220px;
+    }
+
     /* ===== FILTER SECTION ===== */
     .filter-section {
         background: rgba(15, 23, 42, 0.3);
@@ -125,6 +236,24 @@
         border-color: var(--primary);
         background: rgba(0, 0, 0, 0.3);
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    .search-input-wrap {
+        position: relative;
+    }
+
+    .search-input-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #60a5fa;
+        font-size: 14px;
+        pointer-events: none;
+    }
+
+    .search-input-wrap .filter-input {
+        padding-left: 42px;
     }
 
     /* Clear Filter Button */
@@ -456,6 +585,19 @@
     }
 
     @media (max-width: 768px) {
+        .overview-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .summary-card-wide {
+            grid-column: auto;
+        }
+
+        .chart-container {
+            height: 200px;
+            min-height: 200px;
+        }
+
         .table-footer {
             flex-direction: column;
             align-items: stretch;
@@ -476,34 +618,64 @@
 <div class="tl-container">
     {% include "partials/moliya_header.html" %}
 
-    <div class="row g-4 mb-5">
-        <div class="col-lg-4">
-            <div class="row g-4">
-                <div class="col-12">
-                    <div class="premium-card">
+    <div class="row g-4 mb-4 align-items-stretch">
+        <div class="col-xl-5 col-lg-6">
+            <div class="overview-grid">
+                <div class="premium-card summary-card">
+                    <div class="summary-head">
+                        <div class="summary-copy">
+                            <span class="summary-label">Jami qarz</span>
+                            <div class="summary-value text-danger">{{ total_debt|intcomma }} so'm</div>
+                        </div>
                         <div class="card-icon-box">
                             <i class="fa-solid fa-hand-holding-dollar"></i>
                         </div>
-                        <div class="tl-card-lbl">Jami qarz</div>
-                        <div class="tl-card-val text-danger">{{ total_debt|intcomma }} so'm</div>
                     </div>
+                    <div class="summary-note">Markaz bo'yicha jami qarzdorlik</div>
                 </div>
-                <div class="col-12">
-                    <div class="premium-card">
+                <div class="premium-card summary-card">
+                    <div class="summary-head">
+                        <div class="summary-copy">
+                            <span class="summary-label">Filter bo'yicha</span>
+                            <div class="summary-value">{{ filtered_debt|intcomma }} so'm</div>
+                        </div>
                         <div class="card-icon-box"
                             style="background: rgba(59, 130, 246, 0.1); color: var(--primary-light); border-color: rgba(59, 130, 246, 0.2);">
                             <i class="fa-solid fa-filter"></i>
                         </div>
-                        <div class="tl-card-lbl">Filter bo'yicha jami</div>
-                        <div class="tl-card-val">{{ filtered_debt|intcomma }} so'm</div>
                     </div>
+                    <div class="summary-note">Tanlangan filterlar kesimidagi qarz</div>
+                </div>
+                <div class="premium-card summary-card summary-card-wide">
+                    <div class="summary-head">
+                        <div class="summary-copy">
+                            <span class="summary-label">Holat</span>
+                            <div class="summary-value">{{ stats_summary.debtors }} ta qarzdor</div>
+                        </div>
+                        <div class="card-icon-box"
+                            style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border-color: rgba(245, 158, 11, 0.2);">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                    </div>
+                    <div class="summary-note">{{ stats_summary.paid }} ta o'quvchi to'langan holatda</div>
                 </div>
             </div>
         </div>
-        <div class="col-lg-8">
-            <div class="premium-card">
-                <div class="tl-card-lbl mb-3">Qarzdorlik Grafigi</div>
-                <div id="debtChart" style="height: 250px;"></div>
+        <div class="col-xl-7 col-lg-6">
+            <div class="premium-card chart-card h-100">
+                <div class="chart-head">
+                    <div>
+                        <div class="chart-kicker">Tanlangan davr</div>
+                        <h5 class="chart-title">Qarzdorlik grafigi</h5>
+                    </div>
+                    <div class="chart-meta">
+                        <span><strong>{{ stats_summary.debtors }}</strong> qarzdor</span>
+                        <span><strong>{{ stats_summary.paid }}</strong> to'lagan</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <div id="debtChart"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -520,11 +692,14 @@
             </div>
             {% endif %}
             <div class="row g-4 align-items-end">
-                <div class="col-md-3">
+                <div class="col-lg-4 col-md-6">
                     <label class="filter-label">🔍 Qidiruv (Ism/Tel)</label>
-                    <input type="text" name="q" value="{{ q }}" placeholder="Ism yoki telefon..." class="filter-input">
+                    <div class="search-input-wrap">
+                        <i class="fa-solid fa-magnifying-glass search-input-icon"></i>
+                        <input type="text" name="q" value="{{ q }}" placeholder="Ism yoki telefon..." class="filter-input">
+                    </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-lg-2 col-md-6">
                     <label class="filter-label">👥 Guruh bo'yicha</label>
                     <select name="group" class="filter-select">
                         <option value="">Barchasi</option>
@@ -533,7 +708,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-lg-2 col-md-6">
                     <label class="filter-label">📅 Qaysi oy uchun?</label>
                     <select name="pay_month" class="filter-select">
                         <option value="">Joriy oy</option>
@@ -542,11 +717,11 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-lg-2 col-md-6">
                     <label class="filter-label">💰 Qarz miqdori (dan)</label>
                     <input type="number" name="min_debt" value="{{ min_debt }}" placeholder="0" class="filter-input">
                 </div>
-                <div class="col-md-3">
+                <div class="col-lg-2 col-md-6">
                     <label class="filter-label">📅 Sana gacha</label>
                     <input type="date" name="end_date" value="{{ end_date }}" class="filter-input">
                 </div>
@@ -803,13 +978,34 @@
                 const chartData = JSON.parse(chartEl.textContent) || [];
                 const options = {
                     series: [{ name: 'Qarz', data: chartData }],
-                    chart: { type: 'area', height: 250, toolbar: { show: false }, background: 'transparent' },
-                    stroke: { curve: 'smooth', width: 3 },
+                    chart: {
+                        type: 'area',
+                        height: 220,
+                        offsetY: -8,
+                        toolbar: { show: false },
+                        background: 'transparent',
+                        parentHeightOffset: 0
+                    },
+                    stroke: { curve: 'smooth', width: 3, lineCap: 'round' },
+                    markers: { size: 0, hover: { size: 5 }, strokeWidth: 0 },
                     colors: ['#ef4444'],
-                    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 90, 100] } },
-                    xaxis: { categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], labels: { style: { colors: '#94a3b8' } }, axisBorder: { show: false } },
-                    yaxis: { labels: { style: { colors: '#94a3b8' }, formatter: v => Number(v).toLocaleString() + " so'm" } },
-                    grid: { borderColor: 'rgba(255, 255, 255, 0.05)', strokeDashArray: 4 },
+                    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.38, opacityTo: 0.04, stops: [0, 90, 100] } },
+                    xaxis: {
+                        categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                        labels: { style: { colors: '#94a3b8', fontSize: '11px' } },
+                        axisBorder: { show: false },
+                        axisTicks: { show: false }
+                    },
+                    yaxis: {
+                        tickAmount: 4,
+                        labels: { style: { colors: '#94a3b8', fontSize: '11px' }, formatter: v => Number(v).toLocaleString() + " so'm" }
+                    },
+                    grid: {
+                        borderColor: 'rgba(255, 255, 255, 0.05)',
+                        strokeDashArray: 4,
+                        padding: { left: 4, right: 8, top: 4, bottom: -8 }
+                    },
+                    legend: { show: false },
                     theme: { mode: 'dark' }
                 };
                 new ApexCharts(document.querySelector("#debtChart"), options).render();

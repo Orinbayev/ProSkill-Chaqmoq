@@ -89,10 +89,116 @@
         line-height: 1.2;
     }
 
+    .overview-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        height: 100%;
+    }
+
+    .summary-card {
+        padding: 20px;
+        min-height: 152px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .summary-card-wide {
+        grid-column: 1 / -1;
+    }
+
+    .summary-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .summary-copy {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .summary-label {
+        font-size: 12px;
+        color: #94a3b8;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .summary-value {
+        color: #fff;
+        font-size: clamp(24px, 2vw, 31px);
+        font-weight: 800;
+        line-height: 1.15;
+    }
+
+    .summary-note {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .summary-card .card-icon-box {
+        margin-bottom: 0;
+        flex-shrink: 0;
+    }
+
+    .chart-card {
+        padding: 22px 24px 18px;
+    }
+
+    .chart-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+    }
+
+    .chart-kicker {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        color: #2dd4bf;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+    }
+
+    .chart-title {
+        margin: 0;
+        color: #fff;
+        font-size: 22px;
+        font-weight: 800;
+    }
+
+    .chart-meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 14px;
+        background: rgba(15, 23, 42, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: #94a3b8;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.4;
+    }
+
+    .chart-meta strong {
+        color: #fff;
+        font-weight: 800;
+    }
+
     /* ===== CHART BOX ===== */
     .chart-container {
-        height: 100%;
-        min-height: 250px;
+        height: 220px;
+        min-height: 220px;
     }
 
     /* ===== FILTER SECTION ===== */
@@ -138,6 +244,24 @@
     .filter-select option {
         background: #0f172a;
         color: #fff;
+    }
+
+    .search-input-wrap {
+        position: relative;
+    }
+
+    .search-input-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #60a5fa;
+        font-size: 14px;
+        pointer-events: none;
+    }
+
+    .search-input-wrap .filter-input {
+        padding-left: 42px;
     }
 
     /* ===== PREMIUM TABLE ===== */
@@ -195,9 +319,29 @@
         margin-bottom: 2px;
     }
 
+    .student-name-btn {
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: #fff;
+        font-weight: 800;
+        text-align: left;
+        transition: color 0.2s ease;
+    }
+
+    .student-name-btn:hover {
+        color: #93c5fd;
+    }
+
     .student-meta {
         font-size: 12px;
         color: #64748b;
+    }
+
+    .summary-subtext {
+        font-size: 12px;
+        color: #64748b;
+        margin-top: 4px;
     }
 
     .amount-badge {
@@ -256,6 +400,40 @@
         letter-spacing: 0.3px;
         display: inline-block;
         width: fit-content;
+    }
+
+    .tag-more {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px dashed rgba(255, 255, 255, 0.12);
+        color: #94a3b8;
+        font-size: 11px;
+        font-weight: 700;
+        width: fit-content;
+    }
+
+    .group-stack,
+    .month-stack,
+    .type-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .tag-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .group-caption {
+        font-size: 12px;
+        color: #64748b;
     }
 
     /* ===== ACTION BUTTONS ===== */
@@ -358,6 +536,427 @@
         display: block;
     }
 
+    .history-modal-dialog {
+        max-width: min(1080px, calc(100vw - 32px));
+    }
+
+    .history-modal-content {
+        overflow: hidden;
+    }
+
+    .history-modal-body {
+        padding: 20px 24px 22px !important;
+    }
+
+    .history-stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .history-stat {
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        min-height: 84px;
+    }
+
+    .history-stat-label {
+        display: block;
+        font-size: 11px;
+        color: #94a3b8;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 6px;
+    }
+
+    .history-stat-value {
+        color: #fff;
+        font-size: clamp(15px, 1.35vw, 18px);
+        font-weight: 800;
+        line-height: 1.35;
+    }
+
+    .history-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-height: 54vh;
+        overflow-y: auto;
+        padding-right: 2px;
+    }
+
+    .history-card {
+        padding: 14px 16px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .history-card-shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: start;
+    }
+
+    .history-card-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+    }
+
+    .history-date {
+        color: #fff;
+        font-weight: 800;
+        font-size: 14px;
+        line-height: 1.35;
+    }
+
+    .history-subline {
+        color: #64748b;
+        font-size: 11px;
+        margin-top: 3px;
+    }
+
+    .history-total {
+        color: #2dd4bf;
+        font-size: 16px;
+        font-weight: 800;
+        white-space: nowrap;
+        text-align: right;
+    }
+
+    .history-side {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 10px;
+        min-width: 168px;
+        position: relative;
+        z-index: 2;
+    }
+
+    .history-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+        color: #cbd5e1;
+        font-size: 11px;
+    }
+
+    .history-dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.7);
+    }
+
+    .history-allocations {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .history-allocation {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 8px;
+        border-radius: 999px;
+        background: rgba(59, 130, 246, 0.08);
+        border: 1px solid rgba(59, 130, 246, 0.15);
+        color: #bfdbfe;
+        font-size: 11px;
+        font-weight: 700;
+        max-width: 100%;
+    }
+
+    .history-allocation.is-more {
+        background: rgba(255, 255, 255, 0.03);
+        border-style: dashed;
+        color: #94a3b8;
+    }
+
+    .history-allocations-wrap {
+        margin-bottom: 8px;
+    }
+
+    .history-allocations-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #64748b;
+        margin-bottom: 6px;
+    }
+
+    .history-note {
+        margin-bottom: 0;
+        padding: 8px 10px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.03);
+        color: #cbd5e1;
+        font-size: 12px;
+        line-height: 1.45;
+    }
+
+    .history-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .history-actions .action-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 11px;
+        position: relative;
+        z-index: 3;
+        pointer-events: auto;
+    }
+
+    .history-empty {
+        padding: 22px 18px;
+        border-radius: 18px;
+        border: 1px dashed rgba(255, 255, 255, 0.12);
+        color: #94a3b8;
+        text-align: center;
+        font-weight: 700;
+    }
+
+    .delete-popover {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        z-index: 2000;
+        transition: opacity 0.22s ease, visibility 0.22s ease;
+    }
+
+    .delete-popover.is-visible {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    .delete-popover__backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.7);
+        backdrop-filter: blur(10px);
+    }
+
+    .delete-popover__card {
+        position: relative;
+        width: min(460px, calc(100vw - 32px));
+        padding: 24px;
+        border-radius: 26px;
+        background:
+            radial-gradient(circle at top right, rgba(239, 68, 68, 0.18), transparent 32%),
+            linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.96));
+        border: 1px solid rgba(248, 113, 113, 0.2);
+        box-shadow: 0 28px 80px rgba(2, 6, 23, 0.55);
+        transform: translateY(14px) scale(0.98);
+        transition: transform 0.24s ease;
+    }
+
+    .delete-popover.is-visible .delete-popover__card {
+        transform: translateY(0) scale(1);
+    }
+
+    .delete-popover__close {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        width: 38px;
+        height: 38px;
+        border: 0;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        color: #94a3b8;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+
+    .delete-popover__close:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+    }
+
+    .delete-popover__icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 18px;
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(248, 113, 113, 0.08));
+        border: 1px solid rgba(248, 113, 113, 0.24);
+        color: #fda4af;
+        font-size: 26px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .delete-popover__kicker {
+        color: #fca5a5;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+
+    .delete-popover__title {
+        margin: 0 0 10px;
+        color: #fff;
+        font-size: clamp(24px, 3vw, 30px);
+        font-weight: 900;
+        line-height: 1.15;
+        max-width: calc(100% - 48px);
+    }
+
+    .delete-popover__text {
+        margin: 0;
+        color: #cbd5e1;
+        font-size: 15px;
+        line-height: 1.65;
+    }
+
+    .delete-popover__amount {
+        color: #f87171;
+        font-weight: 900;
+    }
+
+    .delete-popover__meta {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 18px;
+    }
+
+    .delete-popover__meta-item {
+        padding: 12px 14px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .delete-popover__meta-item span {
+        display: block;
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 6px;
+    }
+
+    .delete-popover__meta-item strong {
+        display: block;
+        color: #fff;
+        font-size: 15px;
+        font-weight: 800;
+        line-height: 1.4;
+    }
+
+    .delete-popover__warning {
+        margin-top: 14px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: rgba(245, 158, 11, 0.08);
+        border: 1px solid rgba(245, 158, 11, 0.18);
+        color: #fcd34d;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+    .delete-popover__warning strong {
+        color: #fde68a;
+    }
+
+    .delete-popover__actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 18px;
+    }
+
+    .delete-popover__btn {
+        min-width: 132px;
+        height: 48px;
+        padding: 0 18px;
+        border-radius: 14px;
+        border: 1px solid transparent;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 800;
+        transition: all 0.2s ease;
+    }
+
+    .delete-popover__btn:hover {
+        transform: translateY(-1px);
+    }
+
+    .delete-popover__btn-cancel {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(255, 255, 255, 0.08);
+        color: #cbd5e1;
+    }
+
+    .delete-popover__btn-cancel:hover {
+        background: rgba(255, 255, 255, 0.07);
+        color: #fff;
+    }
+
+    .delete-popover__btn-confirm {
+        background: linear-gradient(135deg, #ef4444, #fb7185);
+        color: #fff;
+        box-shadow: 0 18px 36px rgba(239, 68, 68, 0.28);
+    }
+
+    .delete-popover__btn-confirm:hover {
+        box-shadow: 0 22px 40px rgba(239, 68, 68, 0.32);
+    }
+
+    .delete-popover__btn-confirm:disabled,
+    .delete-popover__btn-cancel:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    .delete-popover__error {
+        min-height: 20px;
+        margin-top: 12px;
+        color: #fca5a5;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
 
     /* ===== ANIMATIONS ===== */
     @keyframes fadeInSlide {
@@ -388,40 +987,134 @@
         animation-delay: 0.3s;
     }
 
-    /* Custom Pagination */
-    .paginator-wrap {
-        display: flex;
-        justify-content: center;
-        gap: 8px;
-        margin-top: 32px;
-    }
-
-    .pg-link {
-        width: 40px;
-        height: 40px;
-        border-radius: 12px;
+    .table-footer {
         display: flex;
         align-items: center;
-        justify-content: center;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-top: 20px;
+    }
+
+    .page-meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding: 12px 16px;
+        border-radius: 16px;
+        background: rgba(15, 23, 42, 0.45);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         color: #94a3b8;
-        text-decoration: none;
+        font-size: 13px;
         font-weight: 600;
-        transition: all 0.2s;
     }
 
-    .pg-link:hover:not(.disabled) {
-        background: rgba(255, 255, 255, 0.1);
+    .page-meta strong {
         color: #fff;
-        border-color: rgba(255, 255, 255, 0.2);
+        font-weight: 800;
     }
 
-    .pg-link.active {
-        background: var(--primary);
+    .page-size-form {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 10px 12px;
+        border-radius: 16px;
+        background: rgba(15, 23, 42, 0.45);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(12px);
+    }
+
+    .page-size-label {
+        margin: 0;
+        color: #94a3b8;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+    }
+
+    .page-select-wrap {
+        position: relative;
+    }
+
+    .page-select-wrap::after {
+        content: '\f078';
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #93c5fd;
+        pointer-events: none;
+        font-size: 11px;
+    }
+
+    .page-select {
+        min-width: 112px;
+        padding: 10px 38px 10px 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background:
+            linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(15, 23, 42, 0.96));
         color: #fff;
-        border-color: var(--primary);
-        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        font-size: 14px;
+        font-weight: 700;
+        outline: none;
+        appearance: none;
+        -webkit-appearance: none;
+        transition: all 0.2s ease;
+    }
+
+    .page-select:focus {
+        border-color: rgba(96, 165, 250, 0.85);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+    }
+
+    .payments-pagination {
+        margin-top: 18px;
+    }
+
+    .payments-pagination .pagination {
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .payments-pagination .page-item {
+        margin: 0;
+    }
+
+    .payments-pagination .page-link {
+        min-width: 44px;
+        height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 14px;
+        border-radius: 14px !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        background: rgba(15, 23, 42, 0.48) !important;
+        color: #cbd5e1 !important;
+        backdrop-filter: blur(12px);
+        box-shadow: none !important;
+        transition: all 0.2s ease;
+    }
+
+    .payments-pagination .page-link:hover {
+        color: #fff !important;
+        border-color: rgba(96, 165, 250, 0.28) !important;
+        background: rgba(30, 41, 59, 0.9) !important;
+        transform: translateY(-1px);
+    }
+
+    .payments-pagination .page-item.active .page-link,
+    .payments-pagination .page-link.bg-primary {
+        color: #fff !important;
+        border-color: transparent !important;
+        background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
+        box-shadow: 0 14px 32px rgba(37, 99, 235, 0.28) !important;
     }
 
     /* Clear Filter Button */
@@ -463,48 +1156,162 @@
     input[type="date"]::-webkit-calendar-picker-indicator:hover {
         opacity: 0.8;
     }
+
+    @media (max-width: 991.98px) {
+        .overview-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .summary-card-wide {
+            grid-column: auto;
+        }
+
+        .chart-container {
+            height: 200px;
+            min-height: 200px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .table-footer {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .page-meta,
+        .page-size-form {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .history-stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .history-modal-dialog {
+            max-width: calc(100vw - 16px);
+            margin: 8px auto;
+        }
+
+        .history-modal-body {
+            padding: 16px !important;
+        }
+
+        .history-card-shell {
+            grid-template-columns: 1fr;
+        }
+
+        .history-side {
+            min-width: 0;
+            width: 100%;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .history-total {
+            text-align: left;
+        }
+
+        .history-actions {
+            justify-content: flex-start;
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        .history-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .delete-popover__card {
+            width: calc(100vw - 20px);
+            padding: 20px 18px 18px;
+            border-radius: 22px;
+        }
+
+        .delete-popover__title {
+            max-width: calc(100% - 24px);
+            font-size: 22px;
+        }
+
+        .delete-popover__meta {
+            grid-template-columns: 1fr;
+        }
+
+        .delete-popover__actions {
+            flex-direction: column-reverse;
+            align-items: stretch;
+        }
+
+        .delete-popover__btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<style>
+    body.delete-popover-open {
+        overflow: hidden;
+    }
 </style>
 
 <div class="tl-container">
     {% include "partials/moliya_header.html" %}
 
-    <div class="row g-4 mb-5">
-        <div class="col-lg-4">
-            <div class="row g-4">
-                <div class="col-12 anim-fade-in delay-1">
-                    <div class="premium-card">
+    <div class="row g-4 mb-4 align-items-stretch">
+        <div class="col-xl-5 col-lg-6 anim-fade-in delay-1">
+            <div class="overview-grid">
+                <div class="premium-card summary-card">
+                    <div class="summary-head">
+                        <div class="summary-copy">
+                            <span class="summary-label">Umumiy daromad</span>
+                            <div class="summary-value">{{ total_income|intcomma }} so'm</div>
+                        </div>
                         <div class="card-icon-box">
                             <i class="fa-solid fa-money-bill-trend-up"></i>
                         </div>
-                        <div class="tl-card-lbl">Umumiy daromad</div>
-                        <div class="tl-card-val">{{ total_income|intcomma }} so'm</div>
                     </div>
+                    <div class="summary-note">Markaz bo'yicha jami tushum</div>
                 </div>
-                <div class="col-12 anim-fade-in delay-2">
-                    <div class="premium-card">
+                <div class="premium-card summary-card">
+                    <div class="summary-head">
+                        <div class="summary-copy">
+                            <span class="summary-label">Filter bo'yicha</span>
+                            <div class="summary-value">{{ filtered_income|intcomma }} so'm</div>
+                        </div>
                         <div class="card-icon-box"
                             style="background: rgba(59, 130, 246, 0.1); color: var(--primary-light); border-color: rgba(59, 130, 246, 0.2);">
                             <i class="fa-solid fa-filter"></i>
                         </div>
-                        <div class="tl-card-lbl">Filter bo'yicha daromad</div>
-                        <div class="tl-card-val">{{ filtered_income|intcomma }} so'm</div>
                     </div>
+                    <div class="summary-note">Tanlangan filterlar natijasi</div>
                 </div>
-                <div class="col-12 anim-fade-in delay-3">
-                    <div class="premium-card">
+                <div class="premium-card summary-card summary-card-wide">
+                    <div class="summary-head">
+                        <div class="summary-copy">
+                            <span class="summary-label">To'lagan o'quvchilar</span>
+                            <div class="summary-value">{{ unique_payers_count }} ta</div>
+                        </div>
                         <div class="card-icon-box"
                             style="background: rgba(139, 92, 246, 0.1); color: var(--purple); border-color: rgba(139, 92, 246, 0.2);">
                             <i class="fa-solid fa-user-graduate"></i>
                         </div>
-                        <div class="tl-card-lbl">To'lagan o'quvchilar soni</div>
-                        <div class="tl-card-val">{{ unique_payers_count }} ta</div>
                     </div>
+                    <div class="summary-note">Ro'yxatdagi noyob o'quvchilar soni</div>
                 </div>
             </div>
         </div>
-        <div class="col-lg-8 anim-fade-in delay-3">
-            <div class="premium-card">
-                <div class="tl-card-lbl mb-3">Daromad Grafigi</div>
+        <div class="col-xl-7 col-lg-6 anim-fade-in delay-3">
+            <div class="premium-card chart-card h-100">
+                <div class="chart-head">
+                    <div>
+                        <div class="chart-kicker">So'nggi 12 oy</div>
+                        <h5 class="chart-title">Daromad grafigi</h5>
+                    </div>
+                    <div class="chart-meta">
+                        <span><strong>{{ payment_record_count }}</strong> ta to'lov</span>
+                        <span><strong>{{ unique_payers_count }}</strong> o'quvchi</span>
+                    </div>
+                </div>
                 <div class="chart-container">
                     <div id="tl-income-chart"></div>
                 </div>
@@ -515,26 +1322,30 @@
     <!-- FILTERS -->
     <div class="filter-section anim-fade-in">
         <form method="get" id="tlFilterForm">
-            {% if request.GET.date_from or request.GET.date_to or request.GET.q or request.GET.payment_type or request.GET.group or request.GET.course or request.GET.teacher or request.GET.staff %}
+            <input type="hidden" name="per_page" value="{{ per_page }}">
+            {% if request.GET.date_from or request.GET.date_to or request.GET.q or request.GET.payment_type or request.GET.group or request.GET.course or request.GET.teacher or request.GET.staff or request.GET.pay_month %}
             <div class="clear-filter-wrap">
-                <a href="?" class="clear-filter-btn"> <i class="fa-solid fa-xmark"></i> Filtrlarni tozalash
+                <a href="?per_page={{ per_page }}" class="clear-filter-btn"> <i class="fa-solid fa-xmark"></i> Filtrlarni tozalash
                 </a>
             </div>
             {% endif %}
-            <div class="row g-4">
-                <div class="col-md-3">
+            <div class="row g-4 align-items-end">
+                <div class="col-lg-4 col-md-6">
+                    <label class="filter-label">🔍 O'quvchi qidirish</label>
+                    <div class="search-input-wrap">
+                        <i class="fa-solid fa-magnifying-glass search-input-icon"></i>
+                        <input type="text" name="q" value="{{ q }}" placeholder="Ism, telefon yoki email..." class="filter-input">
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-6">
                     <label class="filter-label">📅 Sanadan boshlab</label>
                     <input type="date" name="date_from" value="{{ date_from }}" class="filter-input">
                 </div>
-                <div class="col-md-3">
+                <div class="col-lg-2 col-md-6">
                     <label class="filter-label">📅 Sanagacha</label>
                     <input type="date" name="date_to" value="{{ date_to }}" class="filter-input">
                 </div>
-                <div class="col-md-3">
-                    <label class="filter-label">🔍 Qidiruv (Ism/Tel)</label>
-                    <input type="text" name="q" value="{{ q }}" placeholder="Ism yoki telefon..." class="filter-input">
-                </div>
-                <div class="col-md-3">
+                <div class="col-lg-2 col-md-6">
                     <label class="filter-label"> To'lov turi</label>
                     <select name="payment_type" class="filter-select">
                         <option value="">Barchasi</option>
@@ -543,7 +1354,7 @@
                         <option value="mixed" {% if sel_type == "mixed" %}selected{% endif %}>Aralash</option>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-lg-2 col-md-6">
                     <label class="filter-label">📅 Qaysi oy uchun?</label>
                     <select name="pay_month" class="filter-select">
                         <option value="">Barcha oylar</option>
@@ -552,7 +1363,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-lg-3 col-md-6">
                     <label class="filter-label">👥 Guruh</label>
                     <select name="group" class="filter-select">
                         <option value="">Barchasi</option>
@@ -561,7 +1372,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-lg-3 col-md-6">
                     <label class="filter-label">🎓 Kurs</label>
                     <select name="course" class="filter-select">
                         <option value="">Barchasi</option>
@@ -570,7 +1381,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-lg-3 col-md-6">
                     <label class="filter-label">👨‍🏫 O'qituvchi</label>
                     <select name="teacher" class="filter-select">
                         <option value="">Barchasi</option>
@@ -579,7 +1390,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-lg-3 col-md-6">
                     <label class="filter-label">🏢 Xodim</label>
                     <select name="staff" class="filter-select">
                         <option value="">Barchasi</option>
@@ -617,83 +1428,106 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for p in page_obj %}
+                    {% for row in page_obj %}
                     <tr>
                         <td>
-                            <div class="fw-bold text-white">{{ p.paid_date|date:"d.m.Y" }}</div>
-                            <div class="small text-secondary">{{ p.created_at|date:"H:i" }}</div>
+                            <div class="fw-bold text-white">{{ row.latest_paid_date|date:"d.m.Y" }}</div>
+                            <div class="small text-secondary">{{ row.latest_payment.paid_time|time:"H:i" }}</div>
                         </td>
                         <td>
                             <div class="student-info">
-                                <span class="student-name">{{ p.student.ism }} {{ p.student.familya }}</span>
-                                <span class="student-meta">{{ p.student.telefon1|default:p.student.telefon2|default:"—" }}</span>
-                            </div>
-                        </td>
-                        <td><span class="amount-badge">{{ p.summa|intcomma }} so'm</span></td>
-                        <td>
-                            <div class="d-flex flex-column gap-1">
-                                {% for alloc in p.prefetched_allocations %}
-                                {% if not alloc.tuition_month.enrollment.group.is_archived %}
-                                {% ifchanged alloc.tuition_month.month %}
-                                <span class="month-tag">{{ alloc.tuition_month.month.month|get_month_name }} {{ alloc.tuition_month.month.year }}</span>
-                                {% endifchanged %}
-                                {% endif %}
-                                {% empty %}
-                                <span class="text-secondary opacity-50 small">—</span>
-                                {% endfor %}
+                                <button
+                                    type="button"
+                                    class="student-name-btn"
+                                    onclick="openHistoryModal({{ row.student.id }}, '{{ row.student.get_full_name|escapejs }}')">
+                                    {{ row.student.ism }} {{ row.student.familya }}
+                                </button>
+                                <span class="student-meta">{{ row.student.telefon1|default:row.student.telefon2|default:"—" }}</span>
+                                <span class="summary-subtext">{{ row.payment_count }} ta to'lov yozuvi</span>
                             </div>
                         </td>
                         <td>
-                            <div class="d-flex flex-column gap-1">
-                                {% with groups_seen=p.prefetched_allocations %}
-                                {% if groups_seen %}
-                                {% for alloc in groups_seen %}
-                                {% if not alloc.tuition_month.enrollment.group.is_archived %}
-                                {% ifchanged alloc.tuition_month.enrollment.group.id %}
-                                <span class="group-tag">{{ alloc.tuition_month.enrollment.group.nom|default:"—"  }}</span>
-                                <small class="text-secondary opacity-50">{{ alloc.tuition_month.enrollment.group.category_obj.name|default:"—" }}</small>
-                                {% endifchanged %}
+                            <span class="amount-badge">{{ row.total_sum|intcomma }} so'm</span>
+                            <div class="summary-subtext">Jami to'langan summa</div>
+                        </td>
+                        <td>
+                            <div class="month-stack" title="{{ row.month_summary_title }}">
+                                <div class="tag-row">
+                                    {% for month in row.visible_month_entries %}
+                                    <span class="month-tag">{{ month.label }}</span>
+                                    {% empty %}
+                                    <span class="text-secondary opacity-50 small">—</span>
+                                    {% endfor %}
+                                    {% if row.remaining_month_count %}
+                                    <span class="tag-more">+{{ row.remaining_month_count }} ta</span>
+                                    {% endif %}
+                                </div>
+                                {% if row.month_entries %}
+                                <div class="group-caption">{{ row.month_entries|length }} ta oy yozuvi</div>
                                 {% endif %}
-                                {% endfor %}
-                                {% else %}
-                                <span class="group-tag">{{ p.group.nom|default:"—" }}</span>
-                                <small class="text-secondary opacity-50">{{ p.group.category_obj.name|default:"—"
-                                    }}</small>
-                                {% endif %}
-                                {% endwith %}
                             </div>
                         </td>
                         <td>
-                            {% if p.payment_type == "cash" %}
-                            <span class="type-badge bg-cash"><i class="fa-solid fa-money-bill"></i> Naqd</span>
-                            {% elif p.payment_type == "card" %}
-                            <span class="type-badge bg-card"><i class="fa-solid fa-credit-card"></i> Karta</span>
-                            {% elif p.payment_type == "mixed" %}
-                            <span class="type-badge bg-mixed"><i class="fa-solid fa-layer-group"></i> Aralash</span>
-                            {% else %}<span class="text-secondary">—</span>{% endif %}
+                            <div class="group-stack" title="{{ row.group_summary_title }}">
+                                <div class="tag-row">
+                                    {% for group in row.visible_group_entries %}
+                                    <span class="group-tag">{{ group.name }}</span>
+                                    {% empty %}
+                                    <span class="text-secondary opacity-50 small">—</span>
+                                    {% endfor %}
+                                    {% if row.remaining_group_count %}
+                                    <span class="tag-more">+{{ row.remaining_group_count }} ta</span>
+                                    {% endif %}
+                                </div>
+                                <small class="group-caption">{{ row.category_summary }}</small>
+                            </div>
                         </td>
                         <td>
-                            {% if p.note %}
-                            <span onclick="showNote('{{ p.note|escapejs }}')" title="Izohni ko'rish"
+                            <div class="type-stack">
+                                <div class="tag-row">
+                                    {% for payment_type in row.visible_type_entries %}
+                                        {% if payment_type.code == "cash" %}
+                                        <span class="type-badge bg-cash"><i class="fa-solid fa-money-bill"></i> {{ payment_type.label }}</span>
+                                        {% elif payment_type.code == "card" %}
+                                        <span class="type-badge bg-card"><i class="fa-solid fa-credit-card"></i> {{ payment_type.label }}</span>
+                                        {% elif payment_type.code == "mixed" %}
+                                        <span class="type-badge bg-mixed"><i class="fa-solid fa-layer-group"></i> {{ payment_type.label }}</span>
+                                        {% endif %}
+                                    {% empty %}
+                                    <span class="text-secondary">—</span>
+                                    {% endfor %}
+                                    {% if row.remaining_type_count %}
+                                    <span class="tag-more">+{{ row.remaining_type_count }} ta</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if row.latest_note %}
+                            <span onclick="showNote('{{ row.latest_note|escapejs }}')" title="Oxirgi izohni ko'rish"
                                 style="cursor:pointer;color:#60a5fa;font-size:13px;">
-                                💬 {{ p.note|truncatechars:22 }}
+                                💬 {{ row.latest_note|truncatechars:22 }}
                             </span>
                             {% else %}
                             <span class="text-secondary opacity-40">—</span>
                             {% endif %}
                         </td>
                         <td>
-                            <span class="text-secondary fw-medium">{{ p.created_by.ism|default:"—" }}</span>
+                            <span class="text-secondary fw-medium">{{ row.staff_summary }}</span>
 
                         </td>
                         <td class="text-end">
                             <div class="d-flex justify-content-end gap-1">
-                                <button class="action-btn edit" title="Tahrirlash"
-                                    onclick="openEditModal({{ p.id }}, {{ p.cash_amount }}, {{ p.card_amount }}, '{{ p.note|escapejs }}')">
+                                <button class="action-btn" title="Tarix"
+                                    onclick="openHistoryModal({{ row.student.id }}, '{{ row.student.get_full_name|escapejs }}')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="action-btn edit" title="So'nggi to'lovni tahrirlash"
+                                    onclick="openEditModal({{ row.latest_payment_id }}, {{ row.latest_cash_amount }}, {{ row.latest_card_amount }}, '{{ row.latest_note|escapejs }}')">
                                     <i class="fas fa-pen"></i>
                                 </button>
-                                <button class="action-btn delete" title="O'chirish"
-                                    onclick="openDeleteModal({{ p.id }}, '{{ p.student.ism|escapejs }} {{ p.student.familya|escapejs }}', '{{ p.summa|escapejs }}')">
+                                <button class="action-btn delete" title="So'nggi to'lovni o'chirish"
+                                    onclick="openDeleteModal({{ row.latest_payment_id }}, '{{ row.student.ism|escapejs }} {{ row.student.familya|escapejs }}', '{{ row.latest_payment.summa|escapejs }}')">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -701,7 +1535,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="text-center py-5">
+                        <td colspan="9" class="text-center py-5">
                             <div class="opacity-30 mb-3"><i class="fa-solid fa-folder-open fa-3x"></i></div>
                             <p class="text-secondary m-0">To'lovlar topilmadi</p>
                         </td>
@@ -712,28 +1546,30 @@
         </div>
     </div>
 
-    <!-- PAGINATION -->
-    {% if is_paginated %}
-    <div class="paginator-wrap">
-        {% if page_obj.has_previous %}
-        <a href="?{{ query_string }}&page={{ page_obj.previous_page_number }}" class="pg-link"><i
-                class="fa-solid fa-chevron-left"></i></a>
-        {% endif %}
-
-        {% for num in page_obj.paginator.page_range %}
-        {% if num == page_obj.number %}
-        <span class="pg-link active">{{ num }}</span>
-        {% elif num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %} <a
-            href="?{{ query_string }}&page={{ num }}" class="pg-link">{{ num }}</a>
-            {% endif %}
+    <div class="table-footer">
+        <div class="page-meta">
+            <span>Sahifa <strong>{{ page_obj.number }}</strong> / <strong>{{ page_obj.paginator.num_pages }}</strong></span>
+            <span>Jami <strong>{{ page_obj.paginator.count }}</strong> ta</span>
+        </div>
+        <form method="get" class="page-size-form">
+            {% for key, value in request.GET.items %}
+                {% if key != 'page' and key != 'per_page' and key != 'page_size' %}
+                <input type="hidden" name="{{ key }}" value="{{ value }}">
+                {% endif %}
             {% endfor %}
-
-            {% if page_obj.has_next %}
-            <a href="?{{ query_string }}&page={{ page_obj.next_page_number }}" class="pg-link"><i
-                    class="fa-solid fa-chevron-right"></i></a>
-            {% endif %}
+            <label class="page-size-label" for="paymentsPerPage">Har sahifada</label>
+            <div class="page-select-wrap">
+                <select id="paymentsPerPage" name="per_page" class="page-select" onchange="this.form.submit()">
+                    {% for size in page_size_options %}
+                    <option value="{{ size }}" {% if per_page == size %}selected{% endif %}>{{ size }} ta</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
     </div>
-    {% endif %}
+    <div class="payments-pagination">
+        {% include "partials/pagination.html" %}
+    </div>
 </div>
 
 {% endblock %}
@@ -749,6 +1585,43 @@
             </div>
             <div class="modal-body p-4">
                 <p class="text-white-50 m-0" id="noteModalText" style="font-size:15px;line-height:1.8;"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade glass-modal" id="paymentHistoryModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-xl history-modal-dialog">
+        <div class="modal-content history-modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title fw-bold text-white"><span class="me-2">🧾</span> To'lov tarixi</h5>
+                    <div class="text-secondary small" id="paymentHistorySubtitle">O'quvchi tarixi</div>
+                </div>
+                <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body history-modal-body">
+                <div class="history-stats">
+                    <div class="history-stat">
+                        <span class="history-stat-label">Tanlangan oy</span>
+                        <div class="history-stat-value" id="historyMonth">—</div>
+                    </div>
+                    <div class="history-stat">
+                        <span class="history-stat-label">Oylik narx</span>
+                        <div class="history-stat-value" id="historyFee">—</div>
+                    </div>
+                    <div class="history-stat">
+                        <span class="history-stat-label">Shu oy to'langan</span>
+                        <div class="history-stat-value" id="historyPaid">—</div>
+                    </div>
+                    <div class="history-stat">
+                        <span class="history-stat-label">Qoldiq</span>
+                        <div class="history-stat-value" id="historyBalance">—</div>
+                    </div>
+                </div>
+                <div id="paymentHistoryList" class="history-list">
+                    <div class="history-empty">Yuklanmoqda...</div>
+                </div>
             </div>
         </div>
     </div>
@@ -789,40 +1662,54 @@
     </div>
 </div>
 
-<!-- DELETE CONFIRM MODAL -->
-<div class="modal fade glass-modal" id="deletePayModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered" style="max-width:380px;">
-        <div class="modal-content" style="border:1px solid rgba(239,68,68,0.3);">
-            <div class="modal-header" style="border-bottom:1px solid rgba(239,68,68,0.15);">
-                <h5 class="modal-title fw-bold text-white"><span class="me-2">🗑️</span> To'lovni o'chirish</h5>
-                <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal"></button>
+<div class="delete-popover" id="deletePayModal" aria-hidden="true">
+    <div class="delete-popover__backdrop" data-delete-close></div>
+    <div class="delete-popover__card" role="dialog" aria-modal="true" aria-labelledby="deletePopoverTitle">
+        <button type="button" class="delete-popover__close" data-delete-close aria-label="Yopish">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="delete-popover__icon">
+            <i class="fa-solid fa-trash-can"></i>
+        </div>
+        <div class="delete-popover__kicker">Tasdiqlash kerak</div>
+        <h5 class="delete-popover__title" id="deletePopoverTitle">To'lovni o'chirish</h5>
+        <p class="delete-popover__text">
+            <span id="delStudentName">O'quvchi</span> uchun
+            <span class="delete-popover__amount" id="delAmount">0 so'm</span>
+            to'lov o'chiriladi.
+        </p>
+
+        <div class="delete-popover__meta">
+            <div class="delete-popover__meta-item">
+                <span>Holat</span>
+                <strong>Soft delete</strong>
             </div>
-            <div class="modal-body p-4 text-center">
-                <div
-                    style="width:56px;height:56px;border-radius:50%;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 16px;">
-                    🗑️</div>
-                <p class="text-white fw-bold mb-1" id="delStudentName" style="font-size:17px;"></p>
-                <p class="text-secondary small mb-3">uchun <span class="text-danger fw-bold" id="delAmount"></span>
-                    to'lov o'chiriladi.</p>
-                <div class="p-3 rounded-3"
-                    style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);">
-                    <p class="text-warning small m-0">⚠️ <strong>Diqqat:</strong> O'quvchi avtomatik
-                        <strong>Qarzdorlar</strong> ro'yxatiga qaytadi.
-                    </p>
-                </div>
-            </div>
-            <div class="modal-footer" style="border-top:1px solid rgba(239,68,68,0.15);">
-                <button type="button" class="btn btn-link text-secondary text-decoration-none"
-                    data-bs-dismiss="modal">Bekor qilish</button>
-                <form id="deletePayForm" method="post" action="" class="d-inline">
-                    {% csrf_token %}
-                    <input type="hidden" name="next" value="/talim/qarzdorlar/">
-                    <button type="submit" class="btn btn-danger px-4 rounded-3 fw-bold">Ha, o'chirish</button>
-                </form>
+            <div class="delete-popover__meta-item">
+                <span>Natija</span>
+                <strong>Qarzdorlik qayta hisoblanadi</strong>
             </div>
         </div>
+
+        <div class="delete-popover__warning">
+            <strong>Diqqat:</strong> bu amal to'lovni yashirin o'chiradi va o'quvchi holati avtomatik qayta hisoblanadi.
+        </div>
+
+        <div class="delete-popover__actions">
+            <button type="button" class="delete-popover__btn delete-popover__btn-cancel" data-delete-close>
+                Bekor qilish
+            </button>
+            <button type="button" class="delete-popover__btn delete-popover__btn-confirm" id="deleteConfirmSubmit">
+                <i class="fa-solid fa-trash-can"></i> Ha, o'chirish
+            </button>
+        </div>
+        <div class="delete-popover__error" id="deleteConfirmError"></div>
     </div>
 </div>
+
+<form id="quickDeletePayForm" method="post" action="" style="display:none;">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+</form>
 {% endblock %}
 
 {% block extra_js %}
@@ -832,6 +1719,168 @@
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
     (function () {
+        const historyMonthValue = "{{ history_month_value|escapejs }}";
+        const paymentHistoryUrlTemplate = "{% url 'education:payment_history' 0 %}";
+        const paymentUpdateUrlTemplate = "{% url 'education:payment_update' 0 %}";
+        const paymentDeleteUrlTemplate = "{% url 'education:payment_delete' 0 %}";
+        const historyModalEl = document.getElementById('paymentHistoryModal');
+        const editModalEl = document.getElementById('editPayModal');
+        const deleteModalEl = document.getElementById('deletePayModal');
+        const deleteConfirmSubmitBtn = document.getElementById('deleteConfirmSubmit');
+        const deleteConfirmErrorEl = document.getElementById('deleteConfirmError');
+        let pendingDeleteState = null;
+
+        function formatMoney(value) {
+            return Number(value || 0).toLocaleString("uz-UZ") + " so'm";
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function formatHistoryMonth(value) {
+            if (!value || !String(value).includes("-")) return value || "—";
+            const [year, month] = String(value).split("-");
+            const monthNames = [
+                "Yanvar",
+                "Fevral",
+                "Mart",
+                "Aprel",
+                "May",
+                "Iyun",
+                "Iyul",
+                "Avgust",
+                "Sentyabr",
+                "Oktyabr",
+                "Noyabr",
+                "Dekabr"
+            ];
+            const monthIndex = Number(month) - 1;
+            return `${monthNames[monthIndex] || month} ${year}`;
+        }
+
+        function summarizeAllocations(allocations) {
+            const monthTotals = new Map();
+            (allocations || []).forEach(allocation => {
+                const monthKey = String(allocation.month || "—");
+                monthTotals.set(monthKey, (monthTotals.get(monthKey) || 0) + Number(allocation.amount || 0));
+            });
+            return Array.from(monthTotals.entries()).map(([month, amount]) => ({
+                month,
+                label: formatHistoryMonth(month),
+                amount,
+            }));
+        }
+
+        function getTenantPrefix() {
+            const pathname = window.location.pathname || "";
+            const talimIndex = pathname.indexOf('/talim/');
+            if (talimIndex <= 0) return "";
+            return pathname.slice(0, talimIndex);
+        }
+
+        function normalizeTenantUrl(url) {
+            if (!url || /^https?:\/\//i.test(url)) return url;
+            const tenantPrefix = getTenantPrefix();
+            if (!tenantPrefix) return url;
+            if (url.startsWith(`${tenantPrefix}/`)) return url;
+            if (url.startsWith('/talim/')) return `${tenantPrefix}${url}`;
+            return url;
+        }
+
+        function buildUrlFromTemplate(template, objectId) {
+            return normalizeTenantUrl(template.replace('/0/', `/${objectId}/`));
+        }
+
+        function getCsrfToken() {
+            const formToken = document.querySelector('#quickDeletePayForm input[name="csrfmiddlewaretoken"]');
+            if (formToken && formToken.value) return formToken.value;
+
+            const cookieMatch = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+            return cookieMatch ? decodeURIComponent(cookieMatch[1]) : "";
+        }
+
+        function showModalWithHistorySwap(targetModalEl) {
+            const targetModal = new bootstrap.Modal(targetModalEl);
+            if (historyModalEl && historyModalEl.classList.contains('show') && targetModalEl !== historyModalEl) {
+                const historyModal = bootstrap.Modal.getInstance(historyModalEl);
+                const onHidden = function () {
+                    historyModalEl.removeEventListener('hidden.bs.modal', onHidden);
+                    targetModal.show();
+                };
+                historyModalEl.addEventListener('hidden.bs.modal', onHidden, { once: true });
+                if (historyModal) {
+                    historyModal.hide();
+                } else {
+                    targetModal.show();
+                }
+                return;
+            }
+            targetModal.show();
+        }
+
+        function resetDeletePopoverState() {
+            if (!deleteConfirmSubmitBtn) return;
+            deleteConfirmSubmitBtn.disabled = false;
+            deleteConfirmSubmitBtn.innerHTML = "<i class=\"fa-solid fa-trash-can\"></i> Ha, o'chirish";
+            if (deleteConfirmErrorEl) {
+                deleteConfirmErrorEl.textContent = '';
+            }
+        }
+
+        function hideDeletePopover() {
+            if (!deleteModalEl) return;
+            deleteModalEl.classList.remove('is-visible');
+            deleteModalEl.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('delete-popover-open');
+            pendingDeleteState = null;
+            resetDeletePopoverState();
+        }
+
+        function showDeletePopover(paymentId, studentName, amount) {
+            if (!deleteModalEl) return;
+            pendingDeleteState = {
+                paymentId,
+                studentName,
+                amount: Number(amount || 0),
+            };
+            document.getElementById('delStudentName').textContent = studentName;
+            document.getElementById('delAmount').textContent = `${Number(amount || 0).toLocaleString("uz-UZ")} so'm`;
+            deleteModalEl.classList.add('is-visible');
+            deleteModalEl.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('delete-popover-open');
+            resetDeletePopoverState();
+        }
+
+        function executeDeleteRequest(paymentId) {
+            return fetch(buildUrlFromTemplate(paymentDeleteUrlTemplate, paymentId), {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCsrfToken(),
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                },
+                body: new URLSearchParams({
+                    next: window.location.pathname + window.location.search,
+                }).toString(),
+            }).then(async response => {
+                let data = {};
+                try {
+                    data = await response.json();
+                } catch (_) {}
+
+                if (!response.ok || data.ok === false) {
+                    throw new Error(data.error || "To'lovni o'chirib bo'lmadi.");
+                }
+                return data;
+            });
+        }
+
         // Show note modal
         window.showNote = function (text) {
             document.getElementById('noteModalText').textContent = text;
@@ -845,7 +1894,130 @@
             document.getElementById('editNote').value = note || '';
             // Store payment ID in form dataset
             document.getElementById('editPayForm').dataset.paymentId = paymentId;
-            new bootstrap.Modal(document.getElementById('editPayModal')).show();
+            showModalWithHistorySwap(editModalEl);
+        };
+
+        window.openHistoryModal = function (studentId, studentName) {
+            const modalEl = historyModalEl;
+            const historyList = document.getElementById('paymentHistoryList');
+            const subtitle = document.getElementById('paymentHistorySubtitle');
+            const historyMonth = document.getElementById('historyMonth');
+            const historyFee = document.getElementById('historyFee');
+            const historyPaid = document.getElementById('historyPaid');
+            const historyBalance = document.getElementById('historyBalance');
+
+            subtitle.textContent = `${studentName} • barcha to'lovlar tarixi`;
+            historyMonth.textContent = "Yuklanmoqda...";
+            historyFee.textContent = "—";
+            historyPaid.textContent = "—";
+            historyBalance.textContent = "—";
+            historyBalance.style.color = "#fff";
+            historyList.innerHTML = '<div class="history-empty">Yuklanmoqda...</div>';
+
+            new bootstrap.Modal(modalEl).show();
+
+            fetch(`${buildUrlFromTemplate(paymentHistoryUrlTemplate, studentId)}?month=${encodeURIComponent(historyMonthValue)}`)
+                .then(response => response.json())
+                .then(data => {
+                    historyMonth.textContent = formatHistoryMonth(data.month);
+                    historyFee.textContent = formatMoney(data.fee);
+                    historyPaid.textContent = formatMoney(data.paid_this_month);
+                    historyBalance.textContent = formatMoney(data.qoldiq);
+                    historyBalance.style.color = Number(data.qoldiq || 0) > 0 ? "#f87171" : "#34d399";
+
+                    const payments = data.payments || [];
+                    if (!payments.length) {
+                        historyList.innerHTML = '<div class="history-empty">To\'lov tarixi topilmadi.</div>';
+                        return;
+                    }
+
+                    historyList.innerHTML = payments.map(payment => {
+                        const summarizedAllocations = summarizeAllocations(payment.allocations || []);
+                        const visibleAllocations = summarizedAllocations.slice(0, 3).map(allocation => `
+                            <span class="history-allocation">
+                                ${escapeHtml(allocation.label)} • ${formatMoney(allocation.amount)}
+                            </span>
+                        `).join("");
+                        const hiddenAllocations = summarizedAllocations.slice(3);
+                        const hiddenAllocationTitle = hiddenAllocations
+                            .map(allocation => `${allocation.label} • ${formatMoney(allocation.amount)}`)
+                            .join(", ");
+                        const moreAllocations = hiddenAllocations.length
+                            ? `<span class="history-allocation is-more" title="${escapeHtml(hiddenAllocationTitle)}">+${hiddenAllocations.length} ta</span>`
+                            : "";
+                        const allocationsBlock = summarizedAllocations.length
+                            ? `
+                                <div class="history-allocations-wrap">
+                                    <div class="history-allocations-label">Taqsimot</div>
+                                    <div class="history-allocations">${visibleAllocations}${moreAllocations}</div>
+                                </div>
+                            `
+                            : "";
+
+                        let methodClass = "bg-mixed";
+                        let methodIcon = "fa-layer-group";
+                        if (payment.method_code === "cash") {
+                            methodClass = "bg-cash";
+                            methodIcon = "fa-money-bill";
+                        } else if (payment.method_code === "card") {
+                            methodClass = "bg-card";
+                            methodIcon = "fa-credit-card";
+                        }
+
+                        const noteBlock = payment.note
+                            ? `<div class="history-note">${escapeHtml(payment.note)}</div>`
+                            : "";
+
+                        const receiptButton = payment.receipt_url
+                            ? `<a class="action-btn" title="Chek" href="${normalizeTenantUrl(payment.receipt_url)}" target="_blank" rel="noopener noreferrer">
+                                    <i class="fa-solid fa-download"></i>
+                               </a>`
+                            : "";
+
+                        return `
+                            <div class="history-card">
+                                <div class="history-card-shell">
+                                    <div>
+                                        <div class="history-card-head">
+                                            <div>
+                                                <div class="history-date">${escapeHtml(payment.paid_at || "-")}</div>
+                                                <div class="history-subline">${escapeHtml(payment.group_name || "—")}</div>
+                                            </div>
+                                        </div>
+                                        <div class="history-meta">
+                                            <span class="type-badge ${methodClass}">
+                                                <i class="fa-solid ${methodIcon}"></i> ${escapeHtml(payment.method || "—")}
+                                            </span>
+                                            <span class="history-dot"></span>
+                                            <span>${escapeHtml(payment.staff || "—")}</span>
+                                        </div>
+                                        ${allocationsBlock}
+                                        ${noteBlock}
+                                    </div>
+                                    <div class="history-side">
+                                        <div class="history-total">${formatMoney(payment.total)}</div>
+                                        <div class="history-actions">
+                                            ${receiptButton}
+                                            <button class="action-btn edit" type="button" title="Tahrirlash"
+                                                onclick="openEditModal(${payment.id}, ${payment.cash || 0}, ${payment.card || 0}, decodeURIComponent('${encodeURIComponent(payment.note || "")}'))">
+                                                <i class="fas fa-pen"></i>
+                                            </button>
+                                            <button class="action-btn delete js-history-delete" type="button" title="O'chirish"
+                                                data-payment-id="${payment.id}"
+                                                data-student-name="${encodeURIComponent(studentName)}"
+                                                data-amount="${payment.total || 0}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join("");
+                })
+                .catch(() => {
+                    historyList.innerHTML = '<div class="history-empty">Tarixni yuklashda xatolik yuz berdi.</div>';
+                });
         };
 
         // Edit form: AJAX submit (payment_update returns JSON)
@@ -860,7 +2032,7 @@
                     btn.disabled = true;
                     btn.textContent = 'Saqlanmoqda...';
 
-                    fetch('/talim/tolov/update/' + paymentId + '/', {
+                    fetch(buildUrlFromTemplate(paymentUpdateUrlTemplate, paymentId), {
                         method: 'POST',
                         body: formData,
                         headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -887,10 +2059,11 @@
 
         // Open delete confirm modal
         window.openDeleteModal = function (paymentId, studentName, amount) {
-            document.getElementById('delStudentName').textContent = studentName;
-            document.getElementById('delAmount').textContent = Number(amount).toLocaleString() + " so'm";
-            document.getElementById('deletePayForm').action = '/talim/tolovlar/payment/' + paymentId + '/delete/';
-            new bootstrap.Modal(document.getElementById('deletePayModal')).show();
+            showDeletePopover(paymentId, studentName, amount);
+        };
+
+        window.confirmHistoryDelete = function (paymentId, studentName, amount) {
+            showDeletePopover(paymentId, studentName, amount);
         };
 
         document.addEventListener("DOMContentLoaded", function () {
@@ -901,11 +2074,67 @@
                     el.addEventListener("change", () => form.submit());
                 });
                 let timeout = null;
-                form.querySelector("input[name='q']").addEventListener("input", function () {
-                    clearTimeout(timeout);
-                    timeout = setTimeout(() => form.submit(), 800);
+                const searchInput = form.querySelector("input[name='q']");
+                if (searchInput) {
+                    searchInput.addEventListener("input", function () {
+                        clearTimeout(timeout);
+                        timeout = setTimeout(() => form.submit(), 450);
+                    });
+                }
+            }
+
+            const historyList = document.getElementById('paymentHistoryList');
+            if (historyList) {
+                historyList.addEventListener('click', function (event) {
+                    const deleteBtn = event.target.closest('.js-history-delete');
+                    if (!deleteBtn) return;
+
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    const paymentId = deleteBtn.dataset.paymentId;
+                    const studentName = decodeURIComponent(deleteBtn.dataset.studentName || '');
+                    const amount = deleteBtn.dataset.amount || 0;
+
+                    window.confirmHistoryDelete(paymentId, studentName, amount);
                 });
             }
+
+            if (deleteModalEl) {
+                deleteModalEl.querySelectorAll('[data-delete-close]').forEach(btn => {
+                    btn.addEventListener('click', hideDeletePopover);
+                });
+            }
+
+            if (deleteConfirmSubmitBtn) {
+                deleteConfirmSubmitBtn.addEventListener('click', function () {
+                    if (!pendingDeleteState) return;
+
+                    this.disabled = true;
+                    this.innerHTML = "<i class=\"fa-solid fa-spinner fa-spin\"></i> O'chirilmoqda...";
+                    if (deleteConfirmErrorEl) {
+                        deleteConfirmErrorEl.textContent = '';
+                    }
+
+                    executeDeleteRequest(pendingDeleteState.paymentId)
+                        .then(() => {
+                            window.location.reload();
+                        })
+                        .catch(error => {
+                            this.disabled = false;
+                            this.innerHTML = "<i class=\"fa-solid fa-trash-can\"></i> Ha, o'chirish";
+                            if (deleteConfirmErrorEl) {
+                                deleteConfirmErrorEl.textContent = error.message || "To'lovni o'chirishda xatolik yuz berdi.";
+                            }
+                        });
+                });
+            }
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && deleteModalEl && deleteModalEl.classList.contains('is-visible')) {
+                    hideDeletePopover();
+                }
+            });
 
             // Chart
             const dataEl = document.getElementById("tl-chart-data");
@@ -918,29 +2147,45 @@
                 new ApexCharts(chartDiv, {
                     series: [{ name: "Daromad", data: data }],
                     chart: {
-                        type: "area", height: "100%", offsety: -10,
+                        type: "area",
+                        height: 220,
+                        offsetY: -8,
                         toolbar: { show: false }, background: "transparent",
-                        sparkline: { enabled: false }, zoom: { enabled: false }
+                        sparkline: { enabled: false },
+                        zoom: { enabled: false },
+                        parentHeightOffset: 0
                     },
                     colors: ["#14b8a6"],
-                    stroke: { curve: "smooth", width: 3 },
+                    stroke: { curve: "smooth", width: 3, lineCap: "round" },
+                    markers: {
+                        size: 0,
+                        hover: { size: 5 },
+                        strokeWidth: 0,
+                    },
                     fill: {
                         type: "gradient",
                         gradient: {
-                            shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05,
+                            shadeIntensity: 1,
+                            opacityFrom: 0.38,
+                            opacityTo: 0.04,
                             stops: [0, 90, 100], colorStops: [
                                 { offset: 0, color: "#14b8a6", opacity: 0.4 },
                                 { offset: 100, color: "#14b8a6", opacity: 0.02 }
                             ]
                         }
                     },
-                    grid: { borderColor: "rgba(255, 255, 255, 0.05)", strokeDashArray: 4 },
+                    grid: {
+                        borderColor: "rgba(255, 255, 255, 0.05)",
+                        strokeDashArray: 4,
+                        padding: { left: 4, right: 8, top: 4, bottom: -8 }
+                    },
                     xaxis: {
                         categories: labels,
                         labels: { style: { colors: "#64748b", fontSize: "11px" } },
                         axisBorder: { show: false }, axisTicks: { show: false }
                     },
                     yaxis: {
+                        tickAmount: 4,
                         labels: {
                             style: { colors: "#64748b", fontSize: "11px" },
                             formatter: v => {
@@ -951,6 +2196,7 @@
                         }
                     },
                     dataLabels: { enabled: false },
+                    legend: { show: false },
                     tooltip: {
                         theme: "dark",
                         y: { formatter: v => Number(v).toLocaleString() + " so'm" }

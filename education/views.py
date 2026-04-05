@@ -1526,6 +1526,7 @@ def qarzdorlar_home(request):
                 "total_fee":   0,
                 "total_paid":  0,
                 "debt":        0,
+                "created_at":  e.created_at,
                 "enrollment":  e,
                 "group":       e.group,
                 "staff":       getattr(e.group, "oqituvchi", None),
@@ -1535,6 +1536,8 @@ def qarzdorlar_home(request):
         row["total_fee"]  += f
         row["total_paid"] += p
         row["debt"]       += debt
+        if e.created_at and (not row.get("created_at") or e.created_at < row["created_at"]):
+            row["created_at"] = e.created_at
 
         if e.group:
             gnom = getattr(e.group, "nom", "")
@@ -1954,9 +1957,12 @@ def tolovlar_home(request):
 
     if q:
         pay_qs = pay_qs.filter(
-            Q(student__ism__icontains=q) |
-            Q(student__familya__icontains=q) |
-            Q(student__telefon1__icontains=q)
+            Q(student__ism__icontains=q)
+            | Q(student__familya__icontains=q)
+            | Q(student__telefon1__icontains=q)
+            | Q(student__telefon2__icontains=q)
+            | Q(student__email__icontains=q)
+            | Q(student__gmail__icontains=q)
         )
     if date_from:
         pay_qs = pay_qs.filter(paid_date__gte=date_from)
@@ -2013,15 +2019,157 @@ def tolovlar_home(request):
     # ── 6) PAGINATION ─────────────────────────────────────────────────────
     pay_qs = pay_qs.order_by("-paid_date", "-id")
 
-    allowed_page_sizes = [10, 20, 50, 100]
-    try:
-        page_size = int(request.GET.get("page_size", 10))
-    except (TypeError, ValueError):
-        page_size = 10
-    if page_size not in allowed_page_sizes:
-        page_size = 10
+    uz_month_map = {
+        1: "Yanvar",
+        2: "Fevral",
+        3: "Mart",
+        4: "Aprel",
+        5: "May",
+        6: "Iyun",
+        7: "Iyul",
+        8: "Avgust",
+        9: "Sentyabr",
+        10: "Oktyabr",
+        11: "Noyabr",
+        12: "Dekabr",
+    }
 
-    paginator = Paginator(pay_qs, page_size)
+    grouped_rows = {}
+    filtered_payments = list(pay_qs)
+
+    for payment in filtered_payments:
+        student_id = payment.student_id
+        row = grouped_rows.get(student_id)
+
+        if row is None:
+            row = {
+                "student": payment.student,
+                "latest_payment": payment,
+                "latest_paid_date": payment.paid_date,
+                "latest_created_at": payment.created_at,
+                "latest_payment_id": payment.id,
+                "latest_cash_amount": int(payment.cash_amount or 0),
+                "latest_card_amount": float(payment.card_amount or 0),
+                "latest_note": payment.note or "",
+                "total_sum": 0,
+                "payment_count": 0,
+                "group_entries": {},
+                "month_entries": {},
+                "staff_entries": {},
+                "type_entries": {},
+            }
+            grouped_rows[student_id] = row
+
+        row["total_sum"] += int(payment.summa or 0)
+        row["payment_count"] += 1
+
+        if payment.created_by:
+            staff_name = payment.created_by.get_full_name() or payment.created_by.email
+            row["staff_entries"].setdefault(payment.created_by_id or staff_name, staff_name)
+
+        if payment.payment_type:
+            row["type_entries"].setdefault(
+                payment.payment_type,
+                {
+                    "code": payment.payment_type,
+                    "label": payment.get_payment_type_display(),
+                },
+            )
+
+        allocations = getattr(payment, "prefetched_allocations", []) or []
+        if allocations:
+            for alloc in allocations:
+                tuition_month = getattr(alloc, "tuition_month", None)
+                enrollment = getattr(tuition_month, "enrollment", None)
+                group = getattr(enrollment, "group", None)
+                if group and not getattr(group, "is_archived", False):
+                    row["group_entries"].setdefault(
+                        group.id,
+                        {
+                            "id": group.id,
+                            "name": group.nom or "—",
+                            "category": getattr(getattr(group, "category_obj", None), "name", "") or "—",
+                        },
+                    )
+
+                month_value = getattr(tuition_month, "month", None)
+                if month_value:
+                    month_key = month_value.strftime("%Y-%m")
+                    row["month_entries"].setdefault(
+                        month_key,
+                        {
+                            "key": month_key,
+                            "label": f"{uz_month_map.get(month_value.month, month_value.strftime('%B'))} {month_value.year}",
+                        },
+                    )
+        else:
+            if payment.group and not getattr(payment.group, "is_archived", False):
+                row["group_entries"].setdefault(
+                    payment.group_id,
+                    {
+                        "id": payment.group_id,
+                        "name": payment.group.nom or "—",
+                        "category": getattr(getattr(payment.group, "category_obj", None), "name", "") or "—",
+                    },
+                )
+            if payment.paid_date:
+                fallback_month = payment.paid_date.replace(day=1)
+                month_key = fallback_month.strftime("%Y-%m")
+                row["month_entries"].setdefault(
+                    month_key,
+                    {
+                        "key": month_key,
+                        "label": f"{uz_month_map.get(fallback_month.month, fallback_month.strftime('%B'))} {fallback_month.year}",
+                    },
+                )
+
+    display_rows = []
+    for row in grouped_rows.values():
+        group_entries = list(row["group_entries"].values())
+        month_entries = list(row["month_entries"].values())
+        staff_entries = list(row["staff_entries"].values())
+        type_entries = list(row["type_entries"].values())
+
+        group_names = [g["name"] for g in group_entries if g.get("name")]
+        category_names = []
+        for entry in group_entries:
+            category_name = entry.get("category")
+            if category_name and category_name != "—" and category_name not in category_names:
+                category_names.append(category_name)
+
+        row["group_entries"] = group_entries
+        row["visible_group_entries"] = group_entries[:2]
+        row["remaining_group_count"] = max(0, len(group_entries) - 2)
+        row["group_summary_title"] = ", ".join(group_names) if group_names else "—"
+        row["category_summary"] = ", ".join(category_names[:2]) if category_names else "—"
+        if len(category_names) > 2:
+            row["category_summary"] += f" +{len(category_names) - 2}"
+
+        row["month_entries"] = month_entries
+        row["visible_month_entries"] = month_entries[:2]
+        row["remaining_month_count"] = max(0, len(month_entries) - 2)
+        row["month_summary_title"] = ", ".join(m["label"] for m in month_entries) if month_entries else "—"
+
+        row["staff_entries"] = staff_entries
+        row["staff_summary"] = ", ".join(staff_entries[:2]) if staff_entries else "—"
+        if len(staff_entries) > 2:
+            row["staff_summary"] += f" +{len(staff_entries) - 2}"
+
+        row["type_entries"] = type_entries
+        row["visible_type_entries"] = type_entries[:2]
+        row["remaining_type_count"] = max(0, len(type_entries) - 2)
+
+        display_rows.append(row)
+
+    allowed_page_sizes = (10, 20, 50, 100)
+    try:
+        per_page = int((request.GET.get("per_page") or request.GET.get("page_size") or 10))
+    except (TypeError, ValueError):
+        per_page = 10
+    if per_page not in allowed_page_sizes:
+        per_page = 10
+
+    paginator = Paginator(display_rows, per_page)
     page_obj = paginator.get_page(request.GET.get("page"))
 
     query_params = request.GET.copy()
@@ -2048,9 +2196,14 @@ def tolovlar_home(request):
         (9, "Sentyabr"), (10, "Oktyabr"), (11, "Noyabr"), (12, "Dekabr"),
     ]
 
+    history_month_value = cur_month_start.strftime("%Y-%m")
+    if sel_month and sel_month.isdigit():
+        history_month_value = f"{cur_year}-{int(sel_month):02d}"
+
     return render(request, "education/tolovlar_list.html", {
         "page_obj": page_obj,
         "total_count": paginator.count,
+        "payment_record_count": len(filtered_payments),
         "total_income": total_income,
         "filtered_income": filtered_income,
         "chart_data": chart_data,
@@ -2070,7 +2223,10 @@ def tolovlar_home(request):
         "sel_staff": sel_staff,
         "sel_type": sel_type,
         "sel_month": sel_month,
-        "page_size": page_size,
+        "history_month_value": history_month_value,
+        "per_page": per_page,
+        "page_size": per_page,
+        "page_size_options": allowed_page_sizes,
         "allowed_page_sizes": allowed_page_sizes,
         "query_string": query_params.urlencode(),
         "is_paginated": page_obj.has_other_pages(),
@@ -2191,8 +2347,12 @@ def student_payments_pdf(request):
 @require_POST
 @login_required
 def payment_delete(request, payment_id):
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     if not user_can_manage_payments(request.user):
-        messages.error(request, "Ruxsat yo'q.")
+        error_message = "Ruxsat yo'q."
+        messages.error(request, error_message)
+        if is_ajax:
+            return JsonResponse({"ok": False, "error": error_message}, status=403)
         return redirect("education:tolovlar_home")
 
     next_url = request.POST.get("next") or request.GET.get("next") or "education:tolovlar_home"
@@ -2213,7 +2373,11 @@ def payment_delete(request, payment_id):
         messages.success(request, "✅ To'lov o'chirildi. O'quvchi qarzdorlar ro'yxatiga qaytadi.")
     except Exception as e:
         messages.error(request, f"❌ Xatolik: {e}")
+        if is_ajax:
+            return JsonResponse({"ok": False, "error": str(e)}, status=500)
     
+    if is_ajax:
+        return JsonResponse({"ok": True, "redirect_url": next_url})
     return redirect(next_url)
 
 
@@ -2276,6 +2440,11 @@ def payment_history(request, student_id):
             "cash": int(p.cash_amount or 0),
             "card": int(getattr(p, 'card_amount_som', 0) or getattr(p, 'card_amount', 0) or 0),
             "total": int(p.summa or 0),
+            "method_code": p.payment_type,
+            "method": p.get_payment_type_display(),
+            "staff": p.created_by.get_full_name() if p.created_by else "—",
+            "note": p.note or "",
+            "group_name": p.group.nom if p.group else "—",
             "allocations": alloc_list,
             "receipt_url": reverse("education:payment_receipt_pdf", args=[p.id]) if p.id else None
         })
