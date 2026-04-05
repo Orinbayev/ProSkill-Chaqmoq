@@ -336,6 +336,62 @@
     text-decoration: none !important;
   }
 
+  .student-name-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+  }
+
+  .payment-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    flex: 0 0 10px;
+    display: inline-block;
+    position: relative;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
+  }
+
+  .payment-dot::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+    opacity: 0;
+  }
+
+  .payment-dot.is-paid {
+    background: #22c55e;
+    box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.3), 0 0 14px rgba(34, 197, 94, 0.35);
+  }
+
+  .payment-dot.is-unpaid {
+    background: #ef4444;
+    box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.3), 0 0 14px rgba(239, 68, 68, 0.32);
+  }
+
+  .payment-dot.is-partial {
+    background: #facc15;
+    box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.35), 0 0 16px rgba(250, 204, 21, 0.45);
+    animation: paymentDotPulse 1.4s ease-in-out infinite;
+  }
+
+  .payment-dot.is-partial::after {
+    background: rgba(250, 204, 21, 0.2);
+    animation: paymentDotRipple 1.4s ease-in-out infinite;
+  }
+
+  @keyframes paymentDotPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.18); opacity: 0.82; }
+  }
+
+  @keyframes paymentDotRipple {
+    0%, 100% { transform: scale(0.92); opacity: 0.15; }
+    50% { transform: scale(1.45); opacity: 0.4; }
+  }
+
   .student-email {
     display: block;
     font-size: 11px;
@@ -729,7 +785,13 @@
             </td>
             <td class="text-center opacity-40 font-bold text-xs">{{ forloop.counter }}</td>
             <td>
-              <a href="{% url 'education:student_detail' e.student.id %}" class="student-name">{{ e.student.ism }} {{ e.student.familya|default:"" }}</a>
+              <span class="student-name-wrap" title="{{ e.payment_status_title }}">
+                <span
+                  class="payment-dot {% if e.payment_status == 'paid' %}is-paid{% elif e.payment_status == 'partial' %}is-partial{% else %}is-unpaid{% endif %}"
+                  aria-hidden="true"
+                ></span>
+                <a href="{% url 'education:student_detail' e.student.id %}" class="student-name">{{ e.student.ism }} {{ e.student.familya|default:"" }}</a>
+              </span>
               <span class="student-email">{{ e.student.email|default:"email mavjud emas" }}</span>
             </td>
             <td class="hidden md:table-cell text-slate-300 font-semibold text-xs">{{ e.student.telefon1|default:"—" }}</td>

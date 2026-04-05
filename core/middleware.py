@@ -14,8 +14,12 @@ PERFORMANCE FIXES (v2):
 import re
 import time
 import logging
+from urllib.parse import urlparse
+
+from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.utils import timezone
+
 from accounts.models import Center
 from core.tenant_context import set_current_tenant, clear_current_tenant
 
@@ -89,6 +93,66 @@ NO_REDIRECT_PREFIXES = (
 )
 
 _SLUG_RE = re.compile(r'^/([a-z0-9][a-z0-9\-]{0,62})/')
+
+
+def _is_mobile_api_path(path: str) -> bool:
+    return '/api/mobile/' in path
+
+
+def _allowed_mobile_origin(origin: str | None) -> str | None:
+    if not origin:
+        return None
+    try:
+        parsed = urlparse(origin)
+    except ValueError:
+        return None
+    if parsed.scheme not in {'http', 'https'}:
+        return None
+    if parsed.hostname not in {'127.0.0.1', 'localhost'}:
+        return None
+    return origin
+
+
+def _append_vary_header(response, value: str) -> None:
+    current = response.get('Vary')
+    if not current:
+        response['Vary'] = value
+        return
+    parts = [item.strip() for item in current.split(',') if item.strip()]
+    if value not in parts:
+        parts.append(value)
+        response['Vary'] = ', '.join(parts)
+
+
+class MobileApiCorsMiddleware:
+    """
+    Flutter web preview uchun local dev CORS/preflight support.
+    Native mobile build uchun bu kerak emas, lekin browser preview
+    paytida /api/mobile/* endpointlari OPTIONS so'rovini o'tkazishi kerak.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        origin = _allowed_mobile_origin(request.headers.get('Origin'))
+        if _is_mobile_api_path(request.path) and origin and request.method == 'OPTIONS':
+            response = HttpResponse(status=200)
+            self._apply_headers(response, origin)
+            return response
+
+        response = self.get_response(request)
+
+        if _is_mobile_api_path(request.path) and origin:
+            self._apply_headers(response, origin)
+        return response
+
+    def _apply_headers(self, response, origin: str) -> None:
+        response['Access-Control-Allow-Origin'] = origin
+        response['Access-Control-Allow-Credentials'] = 'true'
+        response['Access-Control-Allow-Headers'] = 'Content-Type, X-CSRFToken, X-Requested-With'
+        response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
+        _append_vary_header(response, 'Origin')
 
 
 class TenantMiddleware:
@@ -246,4 +310,3 @@ class TenantContextMiddleware:
         finally:
             clear_current_tenant()
         return response
-

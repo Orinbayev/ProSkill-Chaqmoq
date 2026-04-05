@@ -6,6 +6,7 @@ app_name = 'core'
 
 urlpatterns = [
     path('', views.home, name='home'),
+    path('api/mobile/', include('core.mobile_urls')),
 
     path('teachers/', views.teacher_list, name='teacher_list'),
     path('teachers/<int:pk>/', views.teacher_detail, name='teacher_detail'),
@@ -66,4 +67,3 @@ urlpatterns = [
     path('permissions/teacher-remove-student/', views.toggle_teacher_can_remove_student, name='toggle_teacher_can_remove_student'),
     path('permissions/', views.group_permissions_settings, name='group_permissions_settings'),
 ]
-

@@ -1427,6 +1427,16 @@ def qarzdorlar_home(request):
     group_id   = _get_int(request.GET, "group", 0)
     min_debt   = _get_int(request.GET, "min_debt", 0)
     max_debt   = _get_int(request.GET, "max_debt", 0)
+    end_date   = (request.GET.get("end_date") or "").strip()
+
+    allowed_page_sizes = (10, 20, 50, 100)
+    per_page_raw = (request.GET.get("per_page") or "10").strip()
+    try:
+        per_page = int(per_page_raw)
+    except (TypeError, ValueError):
+        per_page = 10
+    if per_page not in allowed_page_sizes:
+        per_page = 10
 
     # ─── JORIY OY ANIQLASH ──────────────────────────────────────────────────
     today     = timezone.localdate()
@@ -1585,7 +1595,7 @@ def qarzdorlar_home(request):
 
     # ─── PAGINATOR ───────────────────────────────────────────────────────────
     from django.core.paginator import Paginator
-    paginator   = Paginator(display_rows, 20)
+    paginator   = Paginator(display_rows, per_page)
     page_obj    = paginator.get_page(request.GET.get("page"))
 
     # ─── GURUHLAR (filter uchun) ──────────────────────────────────────────────
@@ -1603,7 +1613,10 @@ def qarzdorlar_home(request):
         "q":              q,
         "min_debt":       min_debt if min_debt else "",
         "max_debt":       max_debt if max_debt else "",
+        "end_date":       end_date,
         "pay_month":      sel_month,
+        "per_page":       per_page,
+        "page_size_options": allowed_page_sizes,
         "uz_months": [
             (1, "Yanvar"),   (2, "Fevral"),   (3, "Mart"),    (4, "Aprel"),
             (5, "May"),      (6, "Iyun"),     (7, "Iyul"),    (8, "Avgust"),
@@ -2475,6 +2488,7 @@ def group_detail(request, pk: int):
     selected_date = parse_date(date_str) if date_str else localdate()
     if not selected_date:
         selected_date = localdate()
+    selected_month = month_first_day(selected_date)
 
     enrollments = (
         Enrollment.objects
@@ -2483,6 +2497,55 @@ def group_detail(request, pk: int):
         .order_by("student__ism", "student__familya")
     )
     student_user_ids = [e.student_id for e in enrollments]
+    student_enrollment_qs = Enrollment.objects.filter(
+        student_id__in=student_user_ids,
+        is_active=True,
+        student__is_archived=False,
+        group__is_archived=False,
+    )
+    if center:
+        student_enrollment_qs = student_enrollment_qs.filter(center=center)
+    student_enrollment_ids = list(student_enrollment_qs.values_list("id", flat=True))
+
+    # Studentning barcha aktiv guruhlari bo'yicha TANLANGAN OY
+    # to'lov holatini hisoblaymiz.
+    fee_field = tuition_month_fee_field()
+    student_enrollments = list(student_enrollment_qs.select_related("group"))
+    for enrollment in student_enrollments:
+        ensure_tuition_month(enrollment, selected_month)
+    eligible_enrollment_ids = [enrollment.id for enrollment in student_enrollments]
+
+    student_total_fee_map = {
+        sid: 0 for sid in student_user_ids
+    }
+    if eligible_enrollment_ids:
+        student_total_fee_map.update(
+            {
+                row["enrollment__student_id"]: int(row["fee"] or 0)
+                for row in (
+                    TuitionMonth.objects
+                    .filter(
+                        enrollment_id__in=eligible_enrollment_ids,
+                        month=selected_month,
+                    )
+                    .values("enrollment__student_id")
+                    .annotate(fee=Coalesce(Sum(fee_field), 0))
+                )
+            }
+        )
+
+    student_total_paid_map = {
+        row["tuition_month__enrollment__student_id"]: int(row["paid"] or 0)
+        for row in (
+            PaymentAllocation.objects
+            .filter(
+                tuition_month__enrollment_id__in=eligible_enrollment_ids or student_enrollment_ids,
+                tuition_month__month=selected_month,
+            )
+            .values("tuition_month__enrollment__student_id")
+            .annotate(paid=Coalesce(Sum("amount"), 0))
+        )
+    }
 
     # Balanslar: avval Ledger, agar studentda umuman Ledger bo'lmasa LightningHistory fallback.
     ledger_qs = Ledger.objects.filter(student_id__in=student_user_ids)
@@ -2544,6 +2607,41 @@ def group_detail(request, pk: int):
         s.present_today     = bool(pres_map.get(s.id, False))
         s.forced_today      = bool(forced_map.get(s.id, False))
         s.attendance_status = status_map.get(s.id, "none")  # 'present' | 'absent_excused' | 'absent_unexcused' | 'none'
+
+        total_fee = int(student_total_fee_map.get(s.id, 0))
+        total_paid = int(student_total_paid_map.get(s.id, 0))
+        total_remaining = max(0, total_fee - total_paid)
+
+        if total_fee <= 0 or total_paid >= total_fee:
+            payment_status = "paid"
+            payment_status_label = "To'liq to'langan"
+        elif total_paid > 0:
+            payment_status = "partial"
+            payment_status_label = "Chala to'langan"
+        else:
+            payment_status = "unpaid"
+            payment_status_label = "To'lov qilinmagan"
+
+        if total_fee <= 0:
+            payment_status_title = "Tanlangan oy uchun to'lov majburiyati yo'q"
+        elif payment_status == "paid":
+            payment_status_title = (
+                f"Tanlangan oy uchun to'liq to'langan: {total_paid:,} / {total_fee:,} so'm"
+            )
+        elif payment_status == "partial":
+            payment_status_title = (
+                f"Tanlangan oy uchun chala to'langan: {total_paid:,} / {total_fee:,} so'm"
+                f" • Qoldiq: {total_remaining:,} so'm"
+            )
+        else:
+            payment_status_title = f"Tanlangan oy uchun to'lov qilinmagan: 0 / {total_fee:,} so'm"
+
+        e.payment_status = payment_status
+        e.payment_status_label = payment_status_label
+        e.payment_status_title = payment_status_title
+        e.payment_month_fee = total_fee
+        e.payment_month_paid = total_paid
+        e.payment_month_remaining = total_remaining
 
 
     can_add_student = False

@@ -13,6 +13,7 @@ from accounts.models import User, Center
 from education.models import Group, Enrollment, Payment, Attendance, Category
 from store.models import Expense, Lead, Manba
 from chaqmoq.models import Ledger
+from .services.director_dashboard import build_director_dashboard_payload
 
 logger = logging.getLogger(__name__)
 
@@ -28,91 +29,7 @@ class DirectorDashboardAPIView(View):
             center = getattr(request, 'center', None) or request.user.center
             if not center:
                 return JsonResponse({'error': 'Center not found'}, status=404)
-
-            now = timezone.localtime(timezone.now())
-            today = now.date()
-
-            period = request.GET.get('period', 'this_month')
-            date_from_str = request.GET.get('date_from', '').strip()
-            date_to_str   = request.GET.get('date_to', '').strip()
-
-            # ── Date range mode ──
-            custom_range = False
-            if date_from_str and date_to_str:
-                try:
-                    from datetime import date as _date
-                    start_date = _date.fromisoformat(date_from_str)
-                    end_date   = _date.fromisoformat(date_to_str)
-                    if start_date <= end_date:
-                        custom_range = True
-                        period = f"custom:{date_from_str}:{date_to_str}"
-                    else:
-                        return JsonResponse({'error': 'date_from must be <= date_to'}, status=400)
-                except ValueError:
-                    return JsonResponse({'error': 'Invalid date format. Use YYYY-MM-DD'}, status=400)
-
-            if not custom_range:
-                if period == 'this_month':
-                    start_date = today.replace(day=1)
-                    end_date = today
-                elif period == 'last_month':
-                    first_this = today.replace(day=1)
-                    end_date = first_this - timedelta(days=1)
-                    start_date = end_date.replace(day=1)
-                elif period == '3_months':
-                    start_date = today - timedelta(days=90)
-                    end_date = today
-                elif period == 'this_year':
-                    start_date = today.replace(month=1, day=1)
-                    end_date = today  # cap at today to avoid showing future zero-months
-                elif period == 'last_year':
-                    start_date = today.replace(year=today.year-1, month=1, day=1)
-                    end_date = today.replace(year=today.year-1, month=12, day=31)
-                elif period.isdigit() and 1 <= int(period) <= 12:
-                    import calendar
-                    m = int(period)
-                    y = today.year
-                    start_date = date(y, m, 1)
-                    dr = calendar.monthrange(y, m)[1]
-                    end_date = date(y, m, dr)
-                elif period == 'all':
-                    first_pay = Payment.objects.filter(center=center).order_by('paid_date').first()
-                    if first_pay:
-                        st_date = first_pay.paid_date.date() if hasattr(first_pay.paid_date, 'date') else first_pay.paid_date
-                    else:
-                        st_date = today.replace(month=1, day=1)
-                    six_months_ago = today - timedelta(days=180)
-                    start_date = min(st_date, six_months_ago).replace(day=1)
-                    end_date = today
-                else:
-                    start_date = today.replace(day=1)
-                    end_date = today
-
-            cache_key = f"director_dashboard:v2:center:{center.id}:period:{period}"
-            cached_payload = cache.get(cache_key)
-            if cached_payload is not None:
-                return JsonResponse(cached_payload)
-
-            delta = (end_date - start_date).days + 1
-            p_end = start_date - timedelta(days=1)
-            p_start = p_end - timedelta(days=delta - 1)
-
-            data = {
-                'finance': self.get_finance_stats(center, start_date, end_date, p_start, p_end),
-                'students': self.get_student_stats(center, start_date, end_date, p_start, p_end, today),
-                'teachers': self.get_teacher_stats(center, start_date, end_date),
-                'groups': self.get_group_stats(center, start_date, end_date),
-                'charts': self.get_chart_data(center, period, start_date, end_date),
-                'system': {
-                    'last_updated': now.strftime('%H:%M:%S'),
-                    'start_date': start_date.strftime('%Y-%m-%d'),
-                    'end_date': end_date.strftime('%Y-%m-%d'),
-                }
-            }
-            data['marketing'] = data['charts']['marketing']
-            data['plans'] = self.get_plans_stats(center, start_date, end_date)
-            cache.set(cache_key, data, timeout=30)
-
+            data = build_director_dashboard_payload(center=center, params=request.GET)
             return JsonResponse(data)
         except Exception as e:
             import traceback
