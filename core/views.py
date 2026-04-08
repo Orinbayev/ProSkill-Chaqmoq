@@ -5,8 +5,9 @@ import re
 import secrets
 import string
 import datetime
+import json
 import logging
-from datetime import date
+from datetime import date, timedelta
 
 import openpyxl
 from openpyxl.styles import Font, Alignment
@@ -33,10 +34,33 @@ from education.models import Group, Enrollment, TuitionMonth, Category
 from store.models import Product, PurchaseRequest, Sale
 
 from .forms import ProfileForm
+from .models import DirectorAIChatMessage, DirectorAIChatSession
+from .services.ai_insights import (
+    answer_question_bundle,
+    calculate_churn_risk_bundle,
+    forecast_revenue_bundle,
+    generate_insights_bundle,
+)
+from .services.director_dashboard import build_director_dashboard_payload
 from billing.decorators import require_pro
 
 U = get_user_model()
 logger = logging.getLogger(__name__)
+
+AI_QUESTION_MONTHS = {
+    "yanvar": 1,
+    "fevral": 2,
+    "mart": 3,
+    "aprel": 4,
+    "may": 5,
+    "iyun": 6,
+    "iyul": 7,
+    "avgust": 8,
+    "sentyabr": 9,
+    "oktyabr": 10,
+    "noyabr": 11,
+    "dekabr": 12,
+}
 
 
 # =============================================================================
@@ -371,6 +395,370 @@ def dashboard_stats_premium(request):
     if not (request.user.is_superuser or getattr(request.user, 'role', None) in ('director', 'manager')):
         return redirect("core:home")
     return render(request, "core/dashboard_stats_premium.html")
+
+
+def _director_api_center_or_error(request):
+    if not (request.user.is_superuser or getattr(request.user, "role", None) in ("director", "manager")):
+        return None, JsonResponse({"error": "Permission denied"}, status=403)
+    center = _get_center(request)
+    if not center:
+        return None, JsonResponse({"error": "Center not found"}, status=404)
+    return center, None
+
+
+def _director_ai_payload(center, params):
+    return build_director_dashboard_payload(center=center, params=params)
+
+
+def _safe_parse_iso_date(raw):
+    raw = str(raw or "").strip()
+    if not raw:
+        return None
+    try:
+        return date.fromisoformat(raw)
+    except ValueError:
+        return None
+
+
+def _normalize_ai_question(text: str) -> str:
+    normalized = (
+        str(text or "")
+        .strip()
+        .lower()
+        .replace("’", "'")
+        .replace("`", "'")
+        .replace("yoʻ", "yo'")
+        .replace("oʻ", "o'")
+        .replace("gʻ", "g'")
+    )
+    replacements = (
+        (r"\bo['']?tkan\b", "o'tgan"),
+        (r"\botkan\b", "o'tgan"),
+        (r"\bfodya\b", "foyda"),
+        (r"\bfoida\b", "foyda"),
+        (r"\bfoda\b", "foyda"),
+        (r"\boquvchi\b", "o'quvchi"),
+        (r"\boqtuvchi\b", "o'qituvchi"),
+    )
+    for pattern, repl in replacements:
+        normalized = re.sub(pattern, repl, normalized)
+    return normalized
+
+
+def _extract_question_day(question: str) -> date | None:
+    q = _normalize_ai_question(question)
+    today = timezone.localdate()
+
+    iso_match = re.search(r"\b(20\d{2})-(\d{2})-(\d{2})\b", q)
+    if iso_match:
+        try:
+            return date(int(iso_match.group(1)), int(iso_match.group(2)), int(iso_match.group(3)))
+        except ValueError:
+            return None
+
+    dot_match = re.search(r"\b(\d{1,2})\.(\d{1,2})\.(20\d{2})\b", q)
+    if dot_match:
+        try:
+            return date(int(dot_match.group(3)), int(dot_match.group(2)), int(dot_match.group(1)))
+        except ValueError:
+            return None
+
+    uz_match = re.search(
+        r"\b(\d{1,2})\s+(yanvar|fevral|mart|aprel|may|iyun|iyul|avgust|sentyabr|oktyabr|noyabr|dekabr)(?:\s+(20\d{2}))?\b",
+        q,
+    )
+    if uz_match:
+        try:
+            year = int(uz_match.group(3) or today.year)
+            month = AI_QUESTION_MONTHS[uz_match.group(2)]
+            day = int(uz_match.group(1))
+            return date(year, month, day)
+        except ValueError:
+            return None
+
+    return None
+
+
+def _director_ai_request_params(question: str, params):
+    merged = {}
+    if hasattr(params, "keys"):
+        for key in params.keys():
+            merged[key] = params.get(key)
+    elif isinstance(params, dict):
+        merged.update(params)
+
+    q = _normalize_ai_question(question)
+    exact_day = _extract_question_day(q)
+    if exact_day:
+        merged["preset"] = "custom"
+        merged["date_from"] = exact_day.isoformat()
+        merged["date_to"] = exact_day.isoformat()
+        return merged
+
+    preset = None
+    if any(token in q for token in ["bugun", "bugungi"]):
+        preset = "today"
+    elif any(token in q for token in ["kecha", "kechagi"]):
+        preset = "yesterday"
+    elif any(token in q for token in ["shu hafta", "joriy hafta", "bu hafta"]):
+        preset = "this_week"
+    elif any(token in q for token in ["o'tgan oy", "otgan oy", "oldingi oy"]):
+        preset = "last_month"
+    elif any(token in q for token in ["shu oy", "joriy oy", "bu oy"]):
+        preset = "this_month"
+
+    if preset:
+        merged["preset"] = preset
+        merged.pop("date_from", None)
+        merged.pop("date_to", None)
+
+    return merged
+
+
+def _parse_json_body(request):
+    try:
+        return json.loads(request.body.decode("utf-8") or "{}")
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return {}
+
+
+def _director_ai_chat_session(center, user):
+    session, _ = DirectorAIChatSession.objects.get_or_create(
+        center=center,
+        user=user,
+        defaults={"title": "Direktor AI chat"},
+    )
+    return session
+
+
+def _serialize_director_ai_chat_message(message):
+    created_at = timezone.localtime(message.created_at)
+    return {
+        "id": message.id,
+        "role": message.role,
+        "content": message.content,
+        "source": message.source or "",
+        "created_at": created_at.isoformat(),
+        "created_label": created_at.strftime("%d.%m.%Y %H:%M"),
+    }
+
+
+def _serialize_director_ai_chat_session(session):
+    launcher_position = session.launcher_position if isinstance(session.launcher_position, dict) else {}
+    return {
+        "id": session.id,
+        "title": session.title or "Direktor AI chat",
+        "launcher_position": {
+            "x": int(launcher_position.get("x") or 0) if launcher_position.get("x") is not None else None,
+            "y": int(launcher_position.get("y") or 0) if launcher_position.get("y") is not None else None,
+        },
+        "updated_at": timezone.localtime(session.updated_at).isoformat(),
+    }
+
+
+def _sanitize_launcher_position(payload):
+    raw = payload or {}
+    position = raw.get("position") if isinstance(raw, dict) and isinstance(raw.get("position"), dict) else raw
+    if not isinstance(position, dict):
+        return {}
+
+    cleaned = {}
+    for key in ("x", "y"):
+        value = position.get(key)
+        if value in ("", None):
+            continue
+        try:
+            cleaned[key] = int(float(value))
+        except (TypeError, ValueError):
+            continue
+    return cleaned
+
+
+@login_required
+def director_ai_insights_api(request):
+    center, error = _director_api_center_or_error(request)
+    if error:
+        return error
+    payload = _director_ai_payload(center, request.GET)
+    insights, source = generate_insights_bundle(center, payload)
+    return JsonResponse(
+        {
+            "insights": insights,
+            "source": source,
+            "generated_at": timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M:%S"),
+        }
+    )
+
+
+@login_required
+def director_ai_churn_risk_api(request):
+    center, error = _director_api_center_or_error(request)
+    if error:
+        return error
+    payload = _director_ai_payload(center, request.GET)
+    as_of = _safe_parse_iso_date((payload.get("system") or {}).get("end_date")) or timezone.localdate()
+    student_ids = [row.get("student_id") for row in (payload.get("students") or {}).get("roster") or [] if row.get("student_id")]
+    items, summary = calculate_churn_risk_bundle(center, as_of=as_of, limit=5, student_ids=student_ids or None)
+    return JsonResponse(
+        {
+            "items": items,
+            "summary": summary,
+            "source": "formula",
+            "generated_at": timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M:%S"),
+        }
+    )
+
+
+@login_required
+def director_ai_forecast_api(request):
+    center, error = _director_api_center_or_error(request)
+    if error:
+        return error
+    payload = _director_ai_payload(center, request.GET)
+    anchor_date = _safe_parse_iso_date((payload.get("system") or {}).get("end_date")) or timezone.localdate()
+    items, summary = forecast_revenue_bundle(center, months_ahead=3, anchor_date=anchor_date)
+    return JsonResponse(
+        {
+            "items": items,
+            "summary": summary,
+            "generated_at": timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M:%S"),
+        }
+    )
+
+
+@login_required
+@require_POST
+def director_ai_ask_api(request):
+    center, error = _director_api_center_or_error(request)
+    if error:
+        return error
+
+    body = _parse_json_body(request)
+
+    question = str(body.get("question") or request.POST.get("question") or "").strip()
+    if not question:
+        return JsonResponse({"error": "Savol matni kiritilmadi."}, status=400)
+
+    payload = _director_ai_payload(center, _director_ai_request_params(question, request.GET))
+    answer, source = answer_question_bundle(center, question, payload)
+    return JsonResponse(
+        {
+            "answer": answer,
+            "source": source,
+            "question": question,
+            "generated_at": timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M:%S"),
+        }
+    )
+
+
+@login_required
+def director_ai_chat_api(request):
+    center, error = _director_api_center_or_error(request)
+    if error:
+        return error
+
+    session = _director_ai_chat_session(center, request.user)
+    messages = [
+        _serialize_director_ai_chat_message(message)
+        for message in session.messages.order_by("created_at", "id")
+    ]
+    return JsonResponse(
+        {
+            "session": _serialize_director_ai_chat_session(session),
+            "messages": messages,
+            "generated_at": timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M:%S"),
+        }
+    )
+
+
+@login_required
+@require_POST
+def director_ai_chat_reset_api(request):
+    center, error = _director_api_center_or_error(request)
+    if error:
+        return error
+
+    session = _director_ai_chat_session(center, request.user)
+    session.messages.all().delete()
+    session.title = "Direktor AI chat"
+    session.save(update_fields=["title", "updated_at"])
+    return JsonResponse(
+        {
+            "ok": True,
+            "session": _serialize_director_ai_chat_session(session),
+            "messages": [],
+            "generated_at": timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M:%S"),
+        }
+    )
+
+
+@login_required
+@require_POST
+def director_ai_chat_ask_api(request):
+    center, error = _director_api_center_or_error(request)
+    if error:
+        return error
+
+    body = _parse_json_body(request)
+    question = str(body.get("question") or request.POST.get("question") or "").strip()
+    if not question:
+        return JsonResponse({"error": "Savol matni kiritilmadi."}, status=400)
+
+    session = _director_ai_chat_session(center, request.user)
+    payload = _director_ai_payload(center, _director_ai_request_params(question, request.GET))
+
+    with transaction.atomic():
+        user_message = DirectorAIChatMessage.objects.create(
+            session=session,
+            role=DirectorAIChatMessage.Role.USER,
+            content=question,
+            source="user",
+        )
+        history = list(
+            session.messages.order_by("-created_at", "-id").values("role", "content")[:12]
+        )
+        history.reverse()
+        answer, source = answer_question_bundle(center, question, payload, history=history)
+        assistant_message = DirectorAIChatMessage.objects.create(
+            session=session,
+            role=DirectorAIChatMessage.Role.ASSISTANT,
+            content=answer,
+            source=source,
+        )
+        if not session.title or session.title == "Direktor AI chat":
+            session.title = question[:120]
+        session.save(update_fields=["title", "updated_at"])
+
+    return JsonResponse(
+        {
+            "session": _serialize_director_ai_chat_session(session),
+            "user_message": _serialize_director_ai_chat_message(user_message),
+            "assistant_message": _serialize_director_ai_chat_message(assistant_message),
+            "answer": answer,
+            "source": source,
+            "generated_at": timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M:%S"),
+        }
+    )
+
+
+@login_required
+@require_POST
+def director_ai_chat_position_api(request):
+    center, error = _director_api_center_or_error(request)
+    if error:
+        return error
+
+    body = _parse_json_body(request)
+    cleaned_position = _sanitize_launcher_position(body)
+    session = _director_ai_chat_session(center, request.user)
+    session.launcher_position = cleaned_position
+    session.save(update_fields=["launcher_position", "updated_at"])
+    return JsonResponse(
+        {
+            "ok": True,
+            "session": _serialize_director_ai_chat_session(session),
+        }
+    )
 
 
 # =============================================================================

@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, time, timedelta
 
 from django.test import TestCase
@@ -6,6 +7,8 @@ from django.utils import timezone
 from django.db.models import Sum
 
 from accounts.models import Center, User
+from core.models import DirectorAIChatMessage, DirectorAIChatSession
+from core.views import _director_ai_request_params
 from education.models import Attendance, Category, Enrollment, Group, Payment, TeacherIncome, TuitionMonth
 from store.models import Expense, Lead, LeadStatus, Manba, Product, PurchaseRequest, Yonalish
 
@@ -347,8 +350,162 @@ class DirectorDashboardAPITests(TestCase):
         self.assertContains(response, 'id="dateFromInput"')
         self.assertContains(response, 'id="dateToInput"')
         self.assertContains(response, 'id="branchSelect"')
+        self.assertContains(response, 'id="churn-risk-list"')
+        self.assertContains(response, 'id="forecast-chart"')
+        self.assertContains(response, 'id="directorAiChatLauncher"')
+        self.assertContains(response, 'id="directorAiChatHeaderBtn"')
+        self.assertContains(response, 'id="directorAiChatPanel"')
+        self.assertContains(response, 'id="directorAiChatForm"')
+        self.assertContains(response, 'id="directorAiChatMessages"')
+        self.assertContains(response, 'id="directorAiChatReset"')
         self.assertContains(response, 'id="tab-count-manager"')
         self.assertContains(response, 'id="tab-count-products"')
         self.assertContains(response, "Mahsulotlar")
         self.assertContains(response, 'Trend ustuni o‘tgan oyga nisbatan ko‘rsatiladi')
         self.assertNotContains(response, "Konversiya voronkasi")
+        self.assertNotContains(response, 'id="aiAskForm"')
+        self.assertNotContains(response, 'id="ai-answer-modal"')
+
+    def test_ai_question_period_keywords_override_dashboard_dates(self):
+        params = {
+            "preset": "custom",
+            "date_from": (self.today - timedelta(days=7)).isoformat(),
+            "date_to": self.today.isoformat(),
+        }
+
+        resolved_today = _director_ai_request_params("Bugungi foyda qancha bo'ldi?", params)
+        self.assertEqual(resolved_today["preset"], "today")
+        self.assertNotIn("date_from", resolved_today)
+        self.assertNotIn("date_to", resolved_today)
+
+        resolved_last_month = _director_ai_request_params("O'tgan oy daromad qancha edi?", params)
+        self.assertEqual(resolved_last_month["preset"], "last_month")
+
+        resolved_last_month_typo = _director_ai_request_params("O'tkan oydagi fodya qancha?", params)
+        self.assertEqual(resolved_last_month_typo["preset"], "last_month")
+
+        resolved_exact_day = _director_ai_request_params("8 aprel foyda qancha bo'ldi?", params)
+        self.assertEqual(resolved_exact_day["preset"], "custom")
+        self.assertEqual(resolved_exact_day["date_from"], f"{self.today.year}-04-08")
+        self.assertEqual(resolved_exact_day["date_to"], f"{self.today.year}-04-08")
+
+    def test_ai_endpoints_return_payload(self):
+        params = {
+            "date_from": (self.today - timedelta(days=29)).isoformat(),
+            "date_to": self.today.isoformat(),
+        }
+
+        insights_response = self.client.get(reverse("core:director_ai_insights_api"), params)
+        self.assertEqual(insights_response.status_code, 200)
+        insights_payload = insights_response.json()
+        self.assertIn("insights", insights_payload)
+        self.assertTrue(insights_payload["insights"])
+
+        churn_response = self.client.get(reverse("core:director_ai_churn_risk_api"), params)
+        self.assertEqual(churn_response.status_code, 200)
+        churn_payload = churn_response.json()
+        self.assertIn("items", churn_payload)
+        self.assertIn("summary", churn_payload)
+        self.assertIn("average_score", churn_payload["summary"])
+
+        forecast_response = self.client.get(reverse("core:director_ai_forecast_api"), params)
+        self.assertEqual(forecast_response.status_code, 200)
+        forecast_payload = forecast_response.json()
+        self.assertEqual(len(forecast_payload["items"]), 9)
+        self.assertTrue(any(item["is_forecast"] for item in forecast_payload["items"]))
+
+        ask_response = self.client.post(
+            reverse("core:director_ai_ask_api") + f"?date_from={params['date_from']}&date_to={params['date_to']}",
+            data=json.dumps({"question": "Eng kuchli ustoz kim?"}),
+            content_type="application/json",
+        )
+        self.assertEqual(ask_response.status_code, 200)
+        ask_payload = ask_response.json()
+        self.assertIn("answer", ask_payload)
+        self.assertTrue(ask_payload["answer"])
+
+        site_ask_response = self.client.post(
+            reverse("core:director_ai_ask_api") + f"?date_from={params['date_from']}&date_to={params['date_to']}",
+            data=json.dumps({"question": "Saytimda nima bor?"}),
+            content_type="application/json",
+        )
+        self.assertEqual(site_ask_response.status_code, 200)
+        self.assertIn("ChaqmoqApp direktor panelida", site_ask_response.json()["answer"])
+
+        active_student_response = self.client.post(
+            reverse("core:director_ai_ask_api") + f"?date_from={params['date_from']}&date_to={params['date_to']}",
+            data=json.dumps({"question": "Eng faol o'quvchi kim?"}),
+            content_type="application/json",
+        )
+        self.assertEqual(active_student_response.status_code, 200)
+        self.assertIn("eng faol o'quvchi", active_student_response.json()["answer"].lower())
+
+        typo_profit_response = self.client.post(
+            reverse("core:director_ai_ask_api") + f"?date_from={params['date_from']}&date_to={params['date_to']}",
+            data=json.dumps({"question": "O'tkan oydagi fodya qancha?"}),
+            content_type="application/json",
+        )
+        self.assertEqual(typo_profit_response.status_code, 200)
+        typo_answer = typo_profit_response.json()["answer"].lower()
+        self.assertIn("foyda", typo_answer)
+        self.assertNotIn("daromad rejasi", typo_answer)
+
+        today_profit_response = self.client.post(
+            reverse("core:director_ai_ask_api") + f"?date_from={params['date_from']}&date_to={params['date_to']}",
+            data=json.dumps({"question": "Bugungi foyda qancha bo'ldi?"}),
+            content_type="application/json",
+        )
+        self.assertEqual(today_profit_response.status_code, 200)
+        today_profit_answer = today_profit_response.json()["answer"].lower()
+        self.assertIn("foyda", today_profit_answer)
+        self.assertNotIn("chaqmoqapp direktor panelida", today_profit_answer)
+
+        chat_response = self.client.get(reverse("core:director_ai_chat_api"), params)
+        self.assertEqual(chat_response.status_code, 200)
+        chat_payload = chat_response.json()
+        self.assertIn("session", chat_payload)
+        self.assertEqual(chat_payload["messages"], [])
+
+        chat_ask_response = self.client.post(
+            reverse("core:director_ai_chat_ask_api") + f"?date_from={params['date_from']}&date_to={params['date_to']}",
+            data=json.dumps({"question": "Eng qarzdor guruh qaysi?"}),
+            content_type="application/json",
+        )
+        self.assertEqual(chat_ask_response.status_code, 200)
+        chat_ask_payload = chat_ask_response.json()
+        self.assertIn("assistant_message", chat_ask_payload)
+        self.assertTrue(chat_ask_payload["assistant_message"]["content"])
+        session = DirectorAIChatSession.objects.get(pk=chat_ask_payload["session"]["id"])
+        self.assertEqual(session.messages.count(), 2)
+        self.assertEqual(
+            list(session.messages.values_list("role", flat=True)),
+            [DirectorAIChatMessage.Role.USER, DirectorAIChatMessage.Role.ASSISTANT],
+        )
+
+        followup_greeting_response = self.client.post(
+            reverse("core:director_ai_chat_ask_api") + f"?date_from={params['date_from']}&date_to={params['date_to']}",
+            data=json.dumps({"question": "Salom"}),
+            content_type="application/json",
+        )
+        self.assertEqual(followup_greeting_response.status_code, 200)
+        greeting_answer = followup_greeting_response.json()["assistant_message"]["content"].lower()
+        self.assertIn("salom", greeting_answer)
+        self.assertNotIn("qarzdor guruh", greeting_answer)
+
+        position_response = self.client.post(
+            reverse("core:director_ai_chat_position_api"),
+            data=json.dumps({"position": {"x": 160, "y": 280}}),
+            content_type="application/json",
+        )
+        self.assertEqual(position_response.status_code, 200)
+        session.refresh_from_db()
+        self.assertEqual(session.launcher_position, {"x": 160, "y": 280})
+
+        reset_response = self.client.post(
+            reverse("core:director_ai_chat_reset_api"),
+            data=json.dumps({"reset": True}),
+            content_type="application/json",
+        )
+        self.assertEqual(reset_response.status_code, 200)
+        session.refresh_from_db()
+        self.assertEqual(session.messages.count(), 0)

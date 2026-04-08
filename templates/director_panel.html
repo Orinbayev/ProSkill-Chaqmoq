@@ -694,10 +694,426 @@
       color: rgba(255,255,255,.42);
       font-size: .82rem;
     }
+    .churn-risk-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .churn-card {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .churn-row {
+      display: grid;
+      grid-template-columns: minmax(0,1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.06);
+    }
+    .churn-row strong {
+      display: block;
+      font-size: .84rem;
+      color: #f8fafc;
+    }
+    .churn-row p {
+      margin-top: 4px;
+      font-size: .69rem;
+      line-height: 1.5;
+      color: rgba(255,255,255,.42);
+    }
+    .churn-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .call-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 38px;
+      padding: 0 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(34,197,94,.18);
+      background: rgba(34,197,94,.12);
+      color: var(--emerald);
+      font-size: .72rem;
+      font-weight: 800;
+      text-decoration: none;
+      transition: all .2s ease;
+    }
+    .call-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px rgba(2,6,23,.24);
+    }
+    .forecast-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(245,158,11,.1), rgba(59,130,246,.07));
+      border: 1px solid rgba(255,255,255,.07);
+    }
+    .forecast-note {
+      font-size: .73rem;
+      line-height: 1.6;
+      color: rgba(255,255,255,.46);
+    }
+    .director-ai-chat-launcher {
+      position: fixed;
+      right: 28px;
+      bottom: 30px;
+      display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      width: 68px;
+      height: 68px;
+      border: 1px solid rgba(59,130,246,.24);
+      border-radius: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: linear-gradient(135deg, rgba(59,130,246,.28), rgba(15,23,42,.98));
+      color: #eef4ff;
+      box-shadow: 0 18px 48px rgba(2,6,23,.5), 0 0 0 1px rgba(59,130,246,.08) inset;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      z-index: 140;
+      cursor: grab;
+      pointer-events: auto;
+      user-select: none;
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+    .header-ai-chat-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 56px;
+      padding: 0 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(99,102,241,.18);
+      background: linear-gradient(135deg, rgba(99,102,241,.16), rgba(59,130,246,.08));
+      color: #dbeafe;
+      font-size: .86rem;
+      font-weight: 800;
+      box-shadow: 0 12px 28px rgba(2,6,23,.24);
+      transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+      flex-shrink: 0;
+    }
+    .header-ai-chat-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(99,102,241,.34);
+      box-shadow: 0 18px 34px rgba(2,6,23,.3);
+    }
+    .director-ai-chat-launcher:hover {
+      transform: translateY(-2px);
+      border-color: rgba(59,130,246,.4);
+      box-shadow: 0 24px 54px rgba(2,6,23,.56), 0 0 24px rgba(59,130,246,.18);
+    }
+    .director-ai-chat-launcher.is-dragging,
+    .director-ai-chat-header.is-dragging {
+      cursor: grabbing;
+    }
+    .director-ai-chat-launcher i {
+      font-size: 1.22rem;
+      color: var(--cyan);
+      pointer-events: none;
+    }
+    .director-ai-chat-launcher-label {
+      position: absolute;
+      right: 78px;
+      top: 50%;
+      transform: translateY(-50%);
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(8,17,33,.92);
+      color: rgba(255,255,255,.82);
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .01em;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease;
+    }
+    .director-ai-chat-launcher:hover .director-ai-chat-launcher-label {
+      opacity: 1;
+    }
+    .director-ai-chat-panel {
+      position: fixed;
+      right: 28px;
+      bottom: 110px;
+      width: min(390px, calc(100vw - 24px));
+      height: min(640px, calc(100vh - 110px));
+      display: none;
+      flex-direction: column;
+      gap: 0;
+      border-radius: 28px;
+      overflow: hidden;
+      z-index: 141;
+      border: 1px solid rgba(255,255,255,.08);
+      background: linear-gradient(180deg, rgba(15,23,42,.98), rgba(10,15,30,.98));
+      box-shadow: 0 28px 80px rgba(2,6,23,.68);
+    }
+    .director-ai-chat-panel.open {
+      display: flex;
+    }
+    .director-ai-chat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px;
+      cursor: grab;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      background: linear-gradient(180deg, rgba(30,41,59,.92), rgba(15,23,42,.92));
+    }
+    .director-ai-chat-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .director-ai-chat-title-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, rgba(37,99,235,.24), rgba(59,130,246,.12));
+      border: 1px solid rgba(59,130,246,.26);
+      color: #60a5fa;
+      flex-shrink: 0;
+    }
+    .director-ai-chat-title-copy strong {
+      display: block;
+      font-size: 1.02rem;
+      color: #f8fafc;
+      font-weight: 800;
+    }
+    .director-ai-chat-title-copy span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 3px;
+      font-size: .69rem;
+      line-height: 1.35;
+      color: rgba(255,255,255,.5);
+    }
+    .director-ai-chat-online-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 0 4px rgba(34,197,94,.12);
+    }
+    .director-ai-chat-close {
+      width: 34px;
+      height: 34px;
+      border-radius: 11px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.04);
+      color: rgba(255,255,255,.44);
+      transition: all .2s ease;
+      flex-shrink: 0;
+    }
+    .director-ai-chat-close:hover {
+      color: #f8fafc;
+      border-color: rgba(255,255,255,.16);
+    }
+    .director-ai-chat-reset {
+      min-height: 34px;
+      padding: 0 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.1);
+      background: rgba(255,255,255,.04);
+      color: rgba(255,255,255,.78);
+      font-size: .66rem;
+      font-weight: 800;
+      letter-spacing: .01em;
+      transition: all .2s ease;
+    }
+    .director-ai-chat-reset:hover {
+      border-color: rgba(255,255,255,.18);
+      background: rgba(255,255,255,.07);
+    }
+    .director-ai-chat-banner {
+      display: none;
+    }
+    .director-ai-chat-messages {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 18px;
+      overflow-y: auto;
+      flex: 1 1 auto;
+      overscroll-behavior: contain;
+      background: linear-gradient(180deg, rgba(15,23,42,.62), rgba(10,15,30,.94));
+    }
+    .director-ai-chat-row {
+      width: 100%;
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+    }
+    .director-ai-chat-row.user {
+      justify-content: flex-end;
+    }
+    .director-ai-chat-row.assistant {
+      justify-content: flex-start;
+    }
+    .director-ai-chat-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: .68rem;
+      font-weight: 800;
+      letter-spacing: .01em;
+    }
+    .director-ai-chat-avatar.assistant {
+      background: rgba(255,255,255,.14);
+      color: #f8fafc;
+    }
+    .director-ai-chat-avatar.user {
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      color: white;
+      order: 2;
+    }
+    .director-ai-chat-empty {
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px dashed rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+      color: rgba(255,255,255,.52);
+      font-size: .74rem;
+      line-height: 1.7;
+      text-align: left;
+    }
+    .director-ai-chat-bubble {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: flex-start;
+      width: auto;
+      inline-size: fit-content;
+      min-width: 0;
+      max-width: min(78%, 290px);
+      padding: 11px 13px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.06);
+      background: rgba(255,255,255,.03);
+      color: rgba(255,255,255,.86);
+      font-size: .82rem;
+      line-height: 1.62;
+      text-align: left;
+      white-space: pre-wrap;
+      word-break: break-word;
+      box-shadow: 0 10px 24px rgba(2,6,23,.16);
+      transition: transform .18s ease, background .18s ease;
+    }
+    .director-ai-chat-bubble:hover {
+      transform: translateY(-1px);
+    }
+    .director-ai-chat-bubble.user {
+      order: 1;
+      max-width: min(72%, 250px);
+      background: linear-gradient(135deg, rgba(37,99,235,.92), rgba(59,130,246,.88));
+      border-color: rgba(96,165,250,.3);
+      color: #eff6ff;
+    }
+    .director-ai-chat-bubble.assistant {
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    }
+    .director-ai-chat-bubble.loading {
+      color: rgba(255,255,255,.56);
+    }
+    .director-ai-chat-meta {
+      margin-top: 6px;
+      font-size: .62rem;
+      color: rgba(255,255,255,.38);
+    }
+    .director-ai-chat-form {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 14px 18px 18px;
+      border-top: 1px solid rgba(255,255,255,.06);
+      background: linear-gradient(180deg, rgba(15,23,42,.88), rgba(8,17,33,.98));
+    }
+    .director-ai-chat-statusline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 18px;
+    }
+    .director-ai-chat-compose {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .director-ai-chat-input {
+      flex: 1 1 auto;
+      min-height: 46px;
+      max-height: 110px;
+      resize: none;
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.09);
+      background: rgba(255,255,255,.04);
+      color: #f8fafc;
+      outline: none;
+      font-size: .82rem;
+      line-height: 1.4;
+    }
+    .director-ai-chat-input::placeholder {
+      color: rgba(255,255,255,.28);
+    }
+    .director-ai-chat-actions {
+      display: contents;
+    }
+    .director-ai-chat-send {
+      width: 46px;
+      height: 46px;
+      border-radius: 999px;
+      border: 1px solid rgba(37,99,235,.22);
+      background: linear-gradient(135deg, rgba(37,99,235,.95), rgba(59,130,246,.92));
+      color: white;
+      font-size: .82rem;
+      font-weight: 800;
+      transition: all .2s ease;
+      flex-shrink: 0;
+    }
+    .director-ai-chat-send:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 24px rgba(2,6,23,.24);
+    }
+    .director-ai-chat-send:disabled {
+      opacity: .5;
+      pointer-events: none;
+    }
     @media (max-width: 1400px) {
       #kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
       .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .dash-tab-bar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .churn-card { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 1180px) {
       .panel-grid-2,
@@ -710,12 +1126,15 @@
     }
     @media (max-width: 980px) {
       #kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+      .churn-card { grid-template-columns: 1fr; }
     }
     @media (max-width: 768px) {
       #kpi-grid { grid-template-columns: 1fr !important; }
       .summary-grid { grid-template-columns: 1fr; }
       .dash-tab-bar { grid-template-columns: 1fr; }
       .payment-stats-grid { grid-template-columns: 1fr; }
+      .churn-row { grid-template-columns: 1fr; }
+      .churn-actions { justify-content: flex-start; }
       .dash-tab-btn {
         min-height: 88px;
         padding: 16px 20px;
@@ -737,6 +1156,24 @@
       }
       .profile-copy {
         display: none;
+      }
+      .director-ai-chat-launcher {
+        width: 62px;
+        height: 62px;
+        border-radius: 20px;
+      }
+      .director-ai-chat-launcher-label {
+        display: none;
+      }
+      .director-ai-chat-panel {
+        width: min(100vw - 12px, 390px);
+        height: min(86vh, 640px);
+      }
+      .director-ai-chat-bubble {
+        max-width: 84%;
+      }
+      .director-ai-chat-bubble.user {
+        max-width: 78%;
       }
     }
   </style>
@@ -770,6 +1207,11 @@
       </div>
 
       <div class="header-actions">
+        <button id="directorAiChatHeaderBtn" type="button" class="header-ai-chat-btn" title="AI chatni ochish">
+          <i class="fa-solid fa-comments" style="color:var(--violet);"></i>
+          AI Chat
+        </button>
+
         <a href="{% url 'core:notifications' %}" class="header-icon-btn" aria-label="Bildirishnomalar" title="Bildirishnomalar">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.17V11a6 6 0 1 0-12 0v3.17a2 2 0 0 1-.6 1.43L4 17h5"/><path d="M9 17a3 3 0 0 0 6 0"/></svg>
         </a>
@@ -924,6 +1366,42 @@
         <div id="kpi-grid" style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:11px;"></div>
       </div>
 
+      <div id="churn-section" class="glass" style="margin-bottom:18px;border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:14px;scroll-margin-top:92px;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <div>
+            <div class="slbl">XAVF NAZORATI</div>
+            <div style="font-size:.98rem;font-weight:800;color:#f8fafc;margin-top:3px;">Chiqib ketish xavfi yuqori o'quvchilar</div>
+            <div style="font-size:.72rem;color:rgba(255,255,255,.4);margin-top:6px;">Davomat, to'lov, chaqmoq va chiqish signallari asosida formula bilan hisoblanadi.</div>
+          </div>
+          <span id="churnSummaryChip" class="chip cn">Yuklanmoqda...</span>
+        </div>
+        <div class="churn-card">
+          <div class="summary-tile" style="border-color:rgba(239,68,68,.18);background:rgba(239,68,68,.08);">
+            <span class="label">Xavfli</span>
+            <div id="churnDangerCount" class="value" style="color:var(--rose);">0</div>
+            <div class="sub">60+ ball</div>
+          </div>
+          <div class="summary-tile" style="border-color:rgba(245,158,11,.18);background:rgba(245,158,11,.08);">
+            <span class="label">Kuzatuv</span>
+            <div id="churnWatchCount" class="value" style="color:var(--amber);">0</div>
+            <div class="sub">30-60 ball</div>
+          </div>
+          <div class="summary-tile" style="border-color:rgba(34,197,94,.18);background:rgba(34,197,94,.08);">
+            <span class="label">Yaxshi</span>
+            <div id="churnGoodCount" class="value" style="color:var(--emerald);">0</div>
+            <div class="sub">0-30 ball</div>
+          </div>
+          <div class="summary-tile" style="border-color:rgba(99,102,241,.18);background:rgba(99,102,241,.08);">
+            <span class="label">O'rtacha risk</span>
+            <div id="churnAverageScore" class="value" style="color:var(--violet);">0</div>
+            <div class="sub">100 ballik sistema</div>
+          </div>
+        </div>
+        <div id="churn-risk-list" class="churn-risk-list">
+          <div class="loading-shell" style="min-height:140px;">Xavfli o'quvchilar hisoblanmoqda...</div>
+        </div>
+      </div>
+
       <div class="panel-grid-2 panel-grid-finance">
         <div id="finance-section" class="glass" style="border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:13px;scroll-margin-top:92px;">
           <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -934,6 +1412,22 @@
             <div id="rev-legend" style="display:flex;gap:7px;flex-wrap:wrap;"></div>
           </div>
           <div style="height:268px;position:relative;"><canvas id="rev-chart"></canvas></div>
+          <div style="height:1px;background:rgba(255,255,255,.05);"></div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div>
+              <div class="slbl">DAROMAD PROGNOZI</div>
+              <div style="font-size:.9rem;font-weight:800;color:#f8fafc;margin-top:2px;">So'nggi 6 oy va keyingi 3 oy taxmini</div>
+            </div>
+            <span id="forecastMetaChip" class="chip cy">Yuklanmoqda...</span>
+          </div>
+          <div class="forecast-summary">
+            <div>
+              <div style="font-size:.72rem;color:rgba(255,255,255,.42);">Keyingi oy taxminan</div>
+              <div id="forecastNextAmount" style="font-size:1.06rem;font-weight:800;color:var(--amber);margin-top:4px;">0 UZS</div>
+            </div>
+            <div class="forecast-note" id="forecastSummaryNote">Weighted moving average asosida prognoz hisoblanmoqda...</div>
+          </div>
+          <div style="height:220px;position:relative;"><canvas id="forecast-chart"></canvas></div>
         </div>
 
         <div id="payments-section" class="glass payment-panel" style="border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:13px;scroll-margin-top:92px;">
@@ -1066,9 +1560,65 @@
   </div>
 </div>
 
+<button id="directorAiChatLauncher" type="button" class="director-ai-chat-launcher" style="right:28px;bottom:30px;" aria-controls="directorAiChatPanel" aria-expanded="false" title="AI chatni oching yoki boshqa joyga ko'chiring">
+  <i class="fa-solid fa-comments"></i>
+  <span class="director-ai-chat-launcher-label">AI chat</span>
+</button>
+
+<div id="directorAiChatPanel" class="director-ai-chat-panel glass" style="right:28px;bottom:110px;" aria-hidden="true">
+  <div id="directorAiChatHeader" class="director-ai-chat-header">
+    <div class="director-ai-chat-title">
+      <div class="director-ai-chat-title-icon">
+        <i class="fa-solid fa-robot"></i>
+      </div>
+      <div class="director-ai-chat-title-copy">
+        <strong>Chaqmoq AI</strong>
+        <span><i class="director-ai-chat-online-dot"></i>Online va javob berishga tayyor</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+      <button id="directorAiChatReset" type="button" class="director-ai-chat-reset">Tozalash</button>
+      <button id="directorAiChatClose" type="button" class="director-ai-chat-close" aria-label="Chatni yopish">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="director-ai-chat-banner">
+    Iconkani ko'chirish mumkin. Savollar shu sahifadagi sana va filterlar bo'yicha tahlil qilinadi.
+  </div>
+  <div id="directorAiChatMessages" class="director-ai-chat-messages">
+    <div id="directorAiChatEmpty" class="director-ai-chat-empty">
+      Masalan shunday yozishingiz mumkin: “Eng qarzdor guruh qaysi?”, “Qaysi lead manbasi yaxshi ishlayapti?”, “Eng kuchli ustoz kim?”.
+    </div>
+  </div>
+  <form id="directorAiChatForm" class="director-ai-chat-form">
+    <div class="director-ai-chat-statusline">
+      <span id="directorAiChatStatus" class="chip cn">Tarix saqlanadi</span>
+    </div>
+    <div class="director-ai-chat-compose">
+      <textarea id="directorAiChatInput" class="director-ai-chat-input" placeholder="Savolingizni yozing..." autocomplete="off"></textarea>
+      <div class="director-ai-chat-actions">
+        <button id="directorAiChatSend" type="submit" class="director-ai-chat-send" aria-label="Yuborish">
+          <i class="fa-solid fa-paper-plane"></i>
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
 <script>
 window.directorPanelConfig = {
   apiUrl: "{% url 'core:director_dashboard_api' %}",
+  aiInsightsUrl: "{% url 'core:director_ai_insights_api' %}",
+  aiChurnRiskUrl: "{% url 'core:director_ai_churn_risk_api' %}",
+  aiForecastUrl: "{% url 'core:director_ai_forecast_api' %}",
+  aiAskUrl: "{% url 'core:director_ai_ask_api' %}",
+  aiChatUrl: "{% url 'core:director_ai_chat_api' %}",
+  aiChatResetUrl: "{% url 'core:director_ai_chat_reset_api' %}",
+  aiChatAskUrl: "{% url 'core:director_ai_chat_ask_api' %}",
+  aiChatPositionUrl: "{% url 'core:director_ai_chat_position_api' %}",
+  currentUserName: "{{ request.user.get_full_name|default:request.user.email|escapejs }}",
+  currentUserInitial: "{{ request.user.get_full_name|default:request.user.email|slice:':1'|upper|escapejs }}",
   studentsUrl: "{% url 'core:stat_students' %}",
   paymentsUrl: "{% url 'education:tolovlar_home' %}",
   debtorsUrl: "{% url 'education:qarzdorlar_home' %}",
@@ -1077,6 +1627,6 @@ window.directorPanelConfig = {
   requestsUrl: "{% url 'store:requests' %}"
 };
 </script>
-<script src="{% static 'js/director-panel-live.js' %}?v=20260408-dashboard-filters-v5"></script>
+<script src="{% static 'js/director-panel-live.js' %}?v=20260408-dashboard-chat-v6"></script>
 </body>
 </html>

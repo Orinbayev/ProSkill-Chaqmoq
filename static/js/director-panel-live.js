@@ -1,6 +1,16 @@
 (function () {
   const config = window.directorPanelConfig || {};
   const API_URL = config.apiUrl || "";
+  const AI_INSIGHTS_URL = config.aiInsightsUrl || "";
+  const AI_CHURN_URL = config.aiChurnRiskUrl || "";
+  const AI_FORECAST_URL = config.aiForecastUrl || "";
+  const AI_ASK_URL = config.aiAskUrl || "";
+  const AI_CHAT_URL = config.aiChatUrl || "";
+  const AI_CHAT_RESET_URL = config.aiChatResetUrl || "";
+  const AI_CHAT_ASK_URL = config.aiChatAskUrl || AI_ASK_URL;
+  const AI_CHAT_POSITION_URL = config.aiChatPositionUrl || "";
+  const CURRENT_USER_NAME = config.currentUserName || "Siz";
+  const CURRENT_USER_INITIAL = (config.currentUserInitial || CURRENT_USER_NAME || "S").slice(0, 1).toUpperCase();
   const COLORS = {
     amber: "#f59e0b",
     amberSoft: "rgba(245,158,11,0.18)",
@@ -65,16 +75,42 @@
     modalDetailTarget: null,
     hydrating: false,
     kpiSeries: {},
+    aiRefreshTimer: null,
     seriesVisible: {
       income: true,
       expenses: true,
       cashflow: true,
       debt: true,
     },
+    ai: {
+      insights: [],
+      churn: { items: [], summary: {} },
+      forecast: { items: [], summary: {} },
+      requestToken: 0,
+    },
+    chat: {
+      initialized: false,
+      loading: false,
+      open: false,
+      messages: [],
+      session: null,
+      position: { x: null, y: null },
+      dragging: false,
+      dragOffsetX: 0,
+      dragOffsetY: 0,
+      activeDragTarget: null,
+      dragMoved: false,
+      suppressToggleUntil: 0,
+    },
   };
 
   function el(id) {
     return document.getElementById(id);
+  }
+
+  function getCsrfToken() {
+    const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : "";
   }
 
   function escapeHtml(value) {
@@ -118,6 +154,10 @@
   function percentOf(part, total) {
     if (!total) return 0;
     return Math.max(0, Math.min(100, (Number(part || 0) / Number(total || 0)) * 100));
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
   }
 
   function toneClassByValue(value) {
@@ -165,6 +205,19 @@
   function nowText() {
     const now = new Date();
     return `${now.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit", year: "numeric" })} - ${now.toLocaleTimeString("uz-UZ")}`;
+  }
+
+  function formatChatTime(value) {
+    if (!value) return nowText();
+    const dateValue = new Date(value);
+    if (Number.isNaN(dateValue.getTime())) return String(value);
+    return dateValue.toLocaleString("uz-UZ", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
 
   function monthName(monthNumber) {
@@ -355,6 +408,27 @@
     return params;
   }
 
+  function buildUrl(baseUrl) {
+    const query = buildQuery().toString();
+    return query ? `${baseUrl}?${query}` : baseUrl;
+  }
+
+  async function fetchJson(baseUrl, options = {}) {
+    const response = await fetch(buildUrl(baseUrl), {
+      credentials: "same-origin",
+      ...options,
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.json();
+  }
+
+  function setChipState(id, text, tone = "cn") {
+    const node = el(id);
+    if (!node) return;
+    node.className = `chip ${tone}`;
+    node.textContent = text;
+  }
+
   function setLoading(isLoading) {
     const button = el("refreshDashboardBtn");
     if (!button) return;
@@ -365,13 +439,14 @@
   async function loadDashboard() {
     if (!API_URL) return;
     setLoading(true);
+    if (state.aiRefreshTimer) window.clearTimeout(state.aiRefreshTimer);
+    renderAiLoading();
     try {
-      const response = await fetch(`${API_URL}?${buildQuery().toString()}`, { credentials: "same-origin" });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const payload = await response.json();
+      const payload = await fetchJson(API_URL);
       state.data = payload;
       hydrateFilters(payload.filters);
       renderAll();
+      loadAiWidgets();
     } catch (error) {
       console.error(error);
       renderErrorState();
@@ -385,6 +460,8 @@
       "directory-summary-grid",
       "directory-note",
       "lead-pulse-meta",
+      "ai-insights-list",
+      "churn-risk-list",
     ].forEach((id) => {
       const node = el(id);
       if (node) node.innerHTML = '<div class="loading-shell">Dashboardni yuklashda xatolik yuz berdi.</div>';
@@ -402,6 +479,9 @@
       const node = el(id);
       if (node) node.innerHTML = '<div class="loading-shell">Xatolik yuz berdi.</div>';
     });
+    setChipState("aiInsightsMeta", "Xatolik", "cr");
+    setChipState("churnSummaryChip", "Xatolik", "cr");
+    setChipState("forecastMetaChip", "Xatolik", "cr");
   }
 
   function metricTile(label, value, sub, accentClass) {
@@ -750,8 +830,9 @@
     const finance = state.data?.finance || {};
     const students = state.data?.students || {};
     const charts = state.data?.charts || {};
-
-    return [
+    const churnSummary = state.ai?.churn?.summary || {};
+    const churnItems = state.ai?.churn?.items || [];
+    const items = [
       {
         id: "income",
         key: "daromad",
@@ -808,6 +889,24 @@
         sub: `Yangi ${formatInteger(students.new_count || 0)} ta`,
       },
     ];
+
+    if (Object.keys(churnSummary).length) {
+      items.push({
+        id: "churn",
+        key: "risk",
+        label: "Chiqish xavfi",
+        value: `${formatInteger(churnSummary.danger || 0)} ta`,
+        delta: 0,
+        badgeText: `${formatInteger(churnSummary.watch || 0)} kuzatuv`,
+        deltaText: `O'rtacha risk ${formatInteger(churnSummary.average_score || 0)} ball`,
+        color: COLORS.rose,
+        spark: churnItems.map((item) => Number(item.score || 0)),
+        labels: churnItems.map((item) => item.student_name || ""),
+        sub: `${formatInteger(churnSummary.good || 0)} yaxshi holatda`,
+      });
+    }
+
+    return items;
   }
 
   function iconSvg(key) {
@@ -817,6 +916,7 @@
       xarajat: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>',
       qarz: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
       faol: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+      risk: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>',
       konv: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>',
     };
     return map[key] || map.konv;
@@ -861,6 +961,14 @@
         type: "url",
         url: config.studentsUrl,
         title: "O'quvchilar bo'limi",
+        buttonText: "O'quvchilarga o'tish",
+      };
+    }
+    if (item.key === "risk" && config.studentsUrl) {
+      return {
+        type: "url",
+        url: config.studentsUrl,
+        title: "Riskdagi o'quvchilar",
         buttonText: "O'quvchilarga o'tish",
       };
     }
@@ -909,7 +1017,7 @@
               <div style="width:31px;height:31px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:${item.color}1a;border:1px solid ${item.color}28;color:${item.color};flex-shrink:0;">${iconSvg(item.key)}</div>
               <span style="font-size:.66rem;font-weight:700;color:rgba(255,255,255,.44);text-transform:uppercase;letter-spacing:.04em;line-height:1.3;">${escapeHtml(item.label)}</span>
             </div>
-            <span class="chip ${toneClassByValue(item.delta)}" style="flex-shrink:0;">${escapeHtml(signedPct(item.delta))}</span>
+            <span class="chip ${item.badgeText ? "cn" : toneClassByValue(item.delta)}" style="flex-shrink:0;">${escapeHtml(item.badgeText || signedPct(item.delta))}</span>
           </div>
           <div>
             <div style="font-size:1.22rem;font-weight:800;color:#f1f5f9;letter-spacing:-.01em;line-height:1.1;">${escapeHtml(item.value)}</div>
@@ -1334,6 +1442,606 @@
     });
   }
 
+  function toneColor(tone) {
+    if (tone === "warning" || tone === "amber") return COLORS.amber;
+    if (tone === "success" || tone === "emerald") return COLORS.emerald;
+    if (tone === "rose" || tone === "danger") return COLORS.rose;
+    if (tone === "violet") return COLORS.violet;
+    return COLORS.cyan;
+  }
+
+  function renderAiLoading() {
+    state.ai.insights = [];
+    state.ai.churn = { items: [], summary: {} };
+    state.ai.forecast = { items: [], summary: {} };
+    const insightNode = el("ai-insights-list");
+    if (insightNode) {
+      insightNode.innerHTML = '<div class="loading-shell" style="min-height:180px;">AI tahlil yuklanmoqda...</div>';
+    }
+    const churnNode = el("churn-risk-list");
+    if (churnNode) {
+      churnNode.innerHTML = '<div class="loading-shell" style="min-height:140px;">Xavfli o\'quvchilar hisoblanmoqda...</div>';
+    }
+    if (el("forecastSummaryNote")) {
+      el("forecastSummaryNote").textContent = "Weighted moving average asosida prognoz hisoblanmoqda...";
+    }
+    if (el("forecastNextAmount")) el("forecastNextAmount").textContent = "0 UZS";
+    setChipState("aiInsightsMeta", "Yuklanmoqda...", "cn");
+    setChipState("churnSummaryChip", "Yuklanmoqda...", "cn");
+    setChipState("forecastMetaChip", "Yuklanmoqda...", "cn");
+  }
+
+  function renderAiInsightsPanel(payload) {
+    const items = payload?.insights || [];
+    state.ai.insights = items;
+    const node = el("ai-insights-list");
+    if (!node) return;
+    if (!items.length) {
+      node.innerHTML = '<div class="loading-shell" style="min-height:180px;">AI insight topilmadi. Fallback xulosalar kutilyapti.</div>';
+      setChipState("aiInsightsMeta", "AI ma'lumoti yo'q", "cy");
+      return;
+    }
+    node.innerHTML = items.map((item) => {
+      const color = toneColor(item.type);
+      const chipTone = item.type === "success" ? "cg" : item.type === "warning" ? "cy" : "cc";
+      return `
+        <div class="ai-insight-item">
+          <strong>
+            <span class="ai-dot" style="background:${color};box-shadow:0 0 8px ${color};"></span>
+            ${escapeHtml(item.title || "AI insight")}
+            <span class="chip ${chipTone}" style="margin-left:auto;">${escapeHtml(item.type === "success" ? "Ijobiy" : item.type === "warning" ? "Ogoh" : "Ma'lumot")}</span>
+          </strong>
+          <p>${escapeHtml(item.text || "")}</p>
+        </div>
+      `;
+    }).join("");
+    const sourceTone = payload?.source === "gemini" || payload?.source === "cache" ? "cc" : "cy";
+    const sourceLabel = payload?.source === "gemini" || payload?.source === "cache" ? "Gemini / cache" : "Fallback";
+    setChipState("aiInsightsMeta", `${sourceLabel} · ${payload?.generated_at || "tayyor"}`, sourceTone);
+  }
+
+  function renderChurnRiskWidget(payload) {
+    const items = payload?.items || [];
+    const summary = payload?.summary || {};
+    state.ai.churn = { items, summary };
+
+    if (el("churnDangerCount")) el("churnDangerCount").textContent = formatInteger(summary.danger || 0);
+    if (el("churnWatchCount")) el("churnWatchCount").textContent = formatInteger(summary.watch || 0);
+    if (el("churnGoodCount")) el("churnGoodCount").textContent = formatInteger(summary.good || 0);
+    if (el("churnAverageScore")) el("churnAverageScore").textContent = formatInteger(summary.average_score || 0);
+    setChipState(
+      "churnSummaryChip",
+      `${formatInteger(summary.danger || 0)} xavfli · ${formatInteger(summary.watch || 0)} kuzatuv`,
+      Number(summary.danger || 0) > 0 ? "cr" : Number(summary.watch || 0) > 0 ? "cy" : "cg"
+    );
+
+    const node = el("churn-risk-list");
+    if (!node) return;
+    if (!items.length) {
+      node.innerHTML = '<div class="loading-shell" style="min-height:120px;">Xavfli o\'quvchi topilmadi.</div>';
+      renderKpis();
+      return;
+    }
+    node.innerHTML = items.map((item) => {
+      const toneClass = item.tone === "rose" ? "cr" : item.tone === "amber" ? "cy" : "cg";
+      const color = toneColor(item.tone);
+      const groups = (item.groups || []).length ? item.groups.join(", ") : "Guruh birikmagan";
+      const reasonText = (item.reasons || []).join(" · ");
+      return `
+        <div class="churn-row" style="border-color:${color}22;background:linear-gradient(135deg, ${color}10, rgba(255,255,255,.02));">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <strong>${escapeHtml(item.student_name || "O'quvchi")}</strong>
+              <span class="chip ${toneClass}">${formatInteger(item.score || 0)} ball · ${escapeHtml(item.status || "Holat")}</span>
+            </div>
+            <p>${escapeHtml(groups)}</p>
+            <p>${escapeHtml(reasonText || "Holat barqaror")}</p>
+          </div>
+          <div class="churn-actions">
+            <span class="chip cn">${formatInteger(item.overdue_months || 0)} oy qarz</span>
+            ${item.call_url
+              ? `<a class="call-btn" href="${escapeHtml(item.call_url)}"><i class="fa-solid fa-phone-volume"></i>Qo'ng'iroq</a>`
+              : `<span class="chip cn">Telefon yo'q</span>`}
+          </div>
+        </div>
+      `;
+    }).join("");
+    renderKpis();
+  }
+
+  function renderForecastChart(payload) {
+    const items = payload?.items || [];
+    const summary = payload?.summary || {};
+    state.ai.forecast = { items, summary };
+    if (el("forecastNextAmount")) el("forecastNextAmount").textContent = compactMoney(summary.next_month_amount || 0);
+    if (el("forecastSummaryNote")) {
+      el("forecastSummaryNote").textContent = `${items.filter((item) => !item.is_forecast).length} oy real ma'lumot va ${items.filter((item) => item.is_forecast).length} oy prognoz oxirgi 3 oy og'irlikli o'rtachasiga tayangan.`;
+    }
+    setChipState("forecastMetaChip", `${summary.anchor_label || "Joriy oy"} bazasi`, "cy");
+
+    const chart = ensureChart("forecast", "forecast-chart", () => ({
+      type: "line",
+      data: { labels: [], datasets: [] },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { labels: { color: "rgba(255,255,255,.48)", usePointStyle: true, boxWidth: 10 } },
+          tooltip: {
+            backgroundColor: "#08101e",
+            titleColor: "#eef4ff",
+            bodyColor: "#cbd7ea",
+            borderColor: "rgba(255,255,255,0.08)",
+            borderWidth: 1,
+            padding: 12,
+            cornerRadius: 14,
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: "rgba(255,255,255,.38)" },
+            grid: { color: "rgba(255,255,255,.04)" },
+          },
+          y: {
+            ticks: {
+              color: "rgba(255,255,255,.38)",
+              callback(value) { return compactNumber(value); },
+            },
+            grid: { color: "rgba(255,255,255,.04)" },
+          },
+        },
+      },
+    }));
+    if (!chart) return;
+
+    const firstForecastIndex = items.findIndex((item) => item.is_forecast);
+    chart.data.labels = items.map((item) => item.label || item.month);
+    chart.data.datasets = [
+      {
+        label: "Haqiqiy daromad",
+        data: items.map((item) => item.is_forecast ? null : Number(item.amount || 0)),
+        borderColor: COLORS.cyan,
+        backgroundColor(context) {
+          const gradient = context.chart.ctx.createLinearGradient(0, 0, 0, context.chart.height);
+          gradient.addColorStop(0, `${COLORS.cyan}22`);
+          gradient.addColorStop(1, `${COLORS.cyan}00`);
+          return gradient;
+        },
+        fill: true,
+        tension: 0.35,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        borderWidth: 2.5,
+      },
+      {
+        label: "Prognoz",
+        data: items.map((item, index) => {
+          if (firstForecastIndex === -1) return null;
+          if (index < firstForecastIndex - 1) return null;
+          if (index === firstForecastIndex - 1) return Number(items[index]?.amount || 0);
+          return item.is_forecast ? Number(item.amount || 0) : null;
+        }),
+        borderColor: COLORS.amber,
+        borderDash: [7, 6],
+        tension: 0.35,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        borderWidth: 2.5,
+        fill: false,
+      },
+    ];
+    chart.update();
+  }
+
+  function scheduleAiRefresh() {
+    if (state.aiRefreshTimer) window.clearTimeout(state.aiRefreshTimer);
+    state.aiRefreshTimer = window.setTimeout(() => {
+      loadAiWidgets({ silent: true });
+    }, 30 * 60 * 1000);
+  }
+
+  async function loadAiWidgets({ silent = false } = {}) {
+    const wantsInsights = Boolean(AI_INSIGHTS_URL && el("ai-insights-list"));
+    if (!wantsInsights && !AI_CHURN_URL && !AI_FORECAST_URL) return;
+    const token = Date.now();
+    state.ai.requestToken = token;
+    if (!silent) renderAiLoading();
+
+    const requests = await Promise.allSettled([
+      wantsInsights ? fetchJson(AI_INSIGHTS_URL) : Promise.resolve(null),
+      AI_CHURN_URL ? fetchJson(AI_CHURN_URL) : Promise.resolve(null),
+      AI_FORECAST_URL ? fetchJson(AI_FORECAST_URL) : Promise.resolve(null),
+    ]);
+
+    if (state.ai.requestToken !== token) return;
+
+    const [insightsResult, churnResult, forecastResult] = requests;
+    if (insightsResult.status === "fulfilled" && insightsResult.value) {
+      renderAiInsightsPanel(insightsResult.value);
+    } else {
+      setChipState("aiInsightsMeta", "Fallback xulosa", "cy");
+      const fallbackInsights = (state.data?.insights || []).slice(0, 4).map((item) => ({
+        type: item.severity === "critical" || item.severity === "high" ? "warning" : item.severity === "low" ? "success" : "info",
+        title: item.title || "Dashboard insight",
+        text: item.text || "",
+      }));
+      renderAiInsightsPanel({ insights: fallbackInsights, source: "fallback", generated_at: nowText() });
+    }
+
+    if (churnResult.status === "fulfilled" && churnResult.value) {
+      renderChurnRiskWidget(churnResult.value);
+    } else {
+      renderChurnRiskWidget({ items: [], summary: {} });
+      setChipState("churnSummaryChip", "Formula ma'lumoti topilmadi", "cy");
+    }
+
+    if (forecastResult.status === "fulfilled" && forecastResult.value) {
+      renderForecastChart(forecastResult.value);
+    } else {
+      setChipState("forecastMetaChip", "Prognoz topilmadi", "cy");
+      if (el("forecastSummaryNote")) el("forecastSummaryNote").textContent = "Prognoz ma'lumotini olishda xatolik yuz berdi.";
+    }
+
+    scheduleAiRefresh();
+  }
+
+  function chatDefaultPosition() {
+    const launcher = el("directorAiChatLauncher");
+    const width = launcher?.offsetWidth || 68;
+    const height = launcher?.offsetHeight || 68;
+    return {
+      x: Math.max(12, window.innerWidth - width - 28),
+      y: Math.max(12, window.innerHeight - height - 30),
+    };
+  }
+
+  function normalizedChatPosition(rawPosition) {
+    const fallback = chatDefaultPosition();
+    const launcher = el("directorAiChatLauncher");
+    const width = launcher?.offsetWidth || 68;
+    const height = launcher?.offsetHeight || 68;
+    const x = Number(rawPosition?.x);
+    const y = Number(rawPosition?.y);
+    return {
+      x: clamp(Number.isFinite(x) ? x : fallback.x, 12, Math.max(12, window.innerWidth - width - 12)),
+      y: clamp(Number.isFinite(y) ? y : fallback.y, 12, Math.max(12, window.innerHeight - height - 12)),
+    };
+  }
+
+  function positionChatPanel() {
+    const panel = el("directorAiChatPanel");
+    const launcher = el("directorAiChatLauncher");
+    if (!panel || !launcher || !state.chat.open) return;
+
+    const launcherRect = launcher.getBoundingClientRect();
+    const panelWidth = panel.offsetWidth || 390;
+    const panelHeight = panel.offsetHeight || 560;
+    const gap = 14;
+
+    let left = launcherRect.right - panelWidth;
+    left = clamp(left, 12, Math.max(12, window.innerWidth - panelWidth - 12));
+
+    let top = launcherRect.top - panelHeight - gap;
+    if (top < 12) {
+      top = launcherRect.bottom + gap;
+    }
+    top = clamp(top, 12, Math.max(12, window.innerHeight - panelHeight - 12));
+
+    panel.style.left = `${left}px`;
+    panel.style.top = `${top}px`;
+  }
+
+  function applyChatLauncherPosition(rawPosition, { persist = false } = {}) {
+    const launcher = el("directorAiChatLauncher");
+    if (!launcher) return;
+    const next = normalizedChatPosition(rawPosition);
+    state.chat.position = next;
+    launcher.style.left = `${next.x}px`;
+    launcher.style.top = `${next.y}px`;
+    positionChatPanel();
+    if (persist) persistChatPosition();
+  }
+
+  function setChatStatus(text, tone = "cn") {
+    setChipState("directorAiChatStatus", text, tone);
+  }
+
+  function renderChatMessages() {
+    const container = el("directorAiChatMessages");
+    if (!container) return;
+    const messages = state.chat.messages || [];
+    if (!messages.length) {
+      container.innerHTML = `
+        <div id="directorAiChatEmpty" class="director-ai-chat-empty">
+          Masalan shunday yozishingiz mumkin: “Eng qarzdor guruh qaysi?”, “Qaysi lead manbasi yaxshi ishlayapti?”, “Eng kuchli ustoz kim?”.
+        </div>
+      `;
+      return;
+    }
+    container.innerHTML = messages.map((item) => {
+      const role = item.role === "user" ? "user" : "assistant";
+      const avatarLabel = role === "user" ? escapeHtml(CURRENT_USER_INITIAL) : "AI";
+      const metaLabel = role === "user"
+        ? `Siz · ${escapeHtml(item.created_label || formatChatTime(item.created_at))}`
+        : `${escapeHtml(item.source === "gemini" || item.source === "cache" ? "AI" : "Dashboard AI")} · ${escapeHtml(item.created_label || formatChatTime(item.created_at))}`;
+      return `
+        <div class="director-ai-chat-row ${role}">
+          ${role === "assistant" ? `<div class="director-ai-chat-avatar assistant">${avatarLabel}</div>` : ""}
+          <div class="director-ai-chat-bubble ${role} ${item.loading ? "loading" : ""}">
+            ${escapeHtml(item.content || "")}
+            <div class="director-ai-chat-meta">${metaLabel}</div>
+          </div>
+          ${role === "user" ? `<div class="director-ai-chat-avatar user">${avatarLabel}</div>` : ""}
+        </div>
+      `;
+    }).join("");
+    container.scrollTop = container.scrollHeight;
+    positionChatPanel();
+  }
+
+  async function loadChatSession() {
+    if (!AI_CHAT_URL) return;
+    state.chat.loading = true;
+    setChatStatus("Chat yuklanmoqda...", "cc");
+    try {
+      const payload = await fetchJson(AI_CHAT_URL);
+      state.chat.session = payload.session || null;
+      state.chat.messages = Array.isArray(payload.messages) ? payload.messages : [];
+      state.chat.initialized = true;
+      applyChatLauncherPosition(payload.session?.launcher_position);
+      renderChatMessages();
+      setChatStatus("Tarix saqlandi", "cg");
+    } catch (error) {
+      console.error(error);
+      state.chat.initialized = true;
+      state.chat.messages = [];
+      applyChatLauncherPosition(state.chat.position);
+      renderChatMessages();
+      setChatStatus("Chat vaqtincha yuklanmadi", "cy");
+    } finally {
+      state.chat.loading = false;
+      positionChatPanel();
+    }
+  }
+
+  async function resetChatSession() {
+    if (!AI_CHAT_RESET_URL || state.chat.loading) return;
+    state.chat.loading = true;
+    setChatStatus("Chat tozalanmoqda...", "cc");
+    try {
+      const response = await fetch(buildUrl(AI_CHAT_RESET_URL), {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCsrfToken(),
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify({ reset: true }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const payload = await response.json();
+      state.chat.session = payload.session || null;
+      state.chat.messages = [];
+      renderChatMessages();
+      setChatStatus("Chat tozalandi", "cg");
+    } catch (error) {
+      console.error(error);
+      setChatStatus("Chatni tozalab bo'lmadi", "cy");
+    } finally {
+      state.chat.loading = false;
+    }
+  }
+
+  function persistChatPosition() {
+    if (!AI_CHAT_POSITION_URL) return;
+    fetch(buildUrl(AI_CHAT_POSITION_URL), {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": getCsrfToken(),
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      body: JSON.stringify({ position: state.chat.position }),
+    }).catch((error) => console.error(error));
+  }
+
+  function setChatOpen(isOpen) {
+    const panel = el("directorAiChatPanel");
+    const launcher = el("directorAiChatLauncher");
+    if (!panel || !launcher) return;
+    state.chat.open = Boolean(isOpen);
+    panel.classList.toggle("open", state.chat.open);
+    panel.setAttribute("aria-hidden", state.chat.open ? "false" : "true");
+    launcher.setAttribute("aria-expanded", state.chat.open ? "true" : "false");
+    if (state.chat.open) {
+      positionChatPanel();
+      if (!state.chat.initialized) loadChatSession();
+      window.setTimeout(() => {
+        const input = el("directorAiChatInput");
+        if (input) input.focus();
+      }, 60);
+    }
+  }
+
+  function autosizeChatInput() {
+    const input = el("directorAiChatInput");
+    if (!input) return;
+    input.style.height = "auto";
+    const nextHeight = Math.min(input.scrollHeight, 108);
+    input.style.height = `${Math.max(nextHeight, 56)}px`;
+  }
+
+  function startChatDrag(event, source) {
+    const launcher = el("directorAiChatLauncher");
+    const header = el("directorAiChatHeader");
+    if (!launcher) return;
+    const rect = launcher.getBoundingClientRect();
+    state.chat.dragging = true;
+    state.chat.dragMoved = false;
+    state.chat.activeDragTarget = source;
+    state.chat.dragOffsetX = event.clientX - rect.left;
+    state.chat.dragOffsetY = event.clientY - rect.top;
+    launcher.classList.add("is-dragging");
+    if (header && source === "panel") header.classList.add("is-dragging");
+    event.preventDefault();
+  }
+
+  function handleChatDragMove(event) {
+    if (!state.chat.dragging) return;
+    state.chat.dragMoved = true;
+    applyChatLauncherPosition({
+      x: event.clientX - state.chat.dragOffsetX,
+      y: event.clientY - state.chat.dragOffsetY,
+    });
+  }
+
+  function stopChatDrag() {
+    const launcher = el("directorAiChatLauncher");
+    const header = el("directorAiChatHeader");
+    if (!state.chat.dragging) return;
+    state.chat.dragging = false;
+    state.chat.suppressToggleUntil = state.chat.dragMoved ? Date.now() + 220 : 0;
+    launcher?.classList.remove("is-dragging");
+    header?.classList.remove("is-dragging");
+    if (state.chat.dragMoved) persistChatPosition();
+  }
+
+  async function sendChatQuestion(rawQuestion) {
+    const question = String(rawQuestion || "").trim();
+    if (!AI_CHAT_ASK_URL || !question || state.chat.loading) return;
+
+    const input = el("directorAiChatInput");
+    const localUserId = `local-user-${Date.now()}`;
+    const localLoadingId = `local-assistant-${Date.now() + 1}`;
+    state.chat.loading = true;
+    setChatStatus("AI javob tayyorlamoqda...", "cc");
+
+    state.chat.messages = [
+      ...state.chat.messages,
+      {
+        id: localUserId,
+        role: "user",
+        content: question,
+        created_at: new Date().toISOString(),
+        created_label: formatChatTime(new Date().toISOString()),
+      },
+      {
+        id: localLoadingId,
+        role: "assistant",
+        content: "Savol tahlil qilinmoqda...",
+        created_at: new Date().toISOString(),
+        created_label: formatChatTime(new Date().toISOString()),
+        source: "loading",
+        loading: true,
+      },
+    ];
+    renderChatMessages();
+    setChatOpen(true);
+    if (input) input.value = "";
+    autosizeChatInput();
+
+    try {
+      const response = await fetch(buildUrl(AI_CHAT_ASK_URL), {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCsrfToken(),
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify({ question }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const payload = await response.json();
+      state.chat.session = payload.session || state.chat.session;
+      state.chat.messages = state.chat.messages.filter((item) => item.id !== localLoadingId && item.id !== localUserId);
+      if (payload.user_message) state.chat.messages.push(payload.user_message);
+      if (payload.assistant_message) {
+        state.chat.messages.push(payload.assistant_message);
+      } else {
+        state.chat.messages.push({
+          id: `assistant-${Date.now()}`,
+          role: "assistant",
+          content: payload.answer || "Javob topilmadi.",
+          source: payload.source || "fallback",
+          created_at: new Date().toISOString(),
+          created_label: formatChatTime(new Date().toISOString()),
+        });
+      }
+      renderChatMessages();
+      setChatStatus(payload.source === "gemini" || payload.source === "cache" ? "AI javobi tayyor" : "Dashboard javobi tayyor", payload.source === "fallback" ? "cy" : "cg");
+    } catch (error) {
+      console.error(error);
+      state.chat.messages = state.chat.messages.filter((item) => item.id !== localLoadingId);
+      state.chat.messages.push({
+        id: `assistant-error-${Date.now()}`,
+        role: "assistant",
+        content: "Javobni olishda xatolik bo'ldi. Iltimos qayta urinib ko'ring.",
+        source: "fallback",
+        created_at: new Date().toISOString(),
+        created_label: formatChatTime(new Date().toISOString()),
+      });
+      renderChatMessages();
+      setChatStatus("Chat vaqtincha band", "cy");
+    } finally {
+      state.chat.loading = false;
+    }
+  }
+
+  function openAiAnswerModal(question, answer, source) {
+    const modal = el("ai-answer-modal");
+    if (!modal) return;
+    modal.classList.add("open");
+    document.body.style.overflow = "hidden";
+    if (el("ai-answer-question")) el("ai-answer-question").textContent = question || "AI savoli";
+    if (el("ai-answer-body")) el("ai-answer-body").textContent = answer || "Javob topilmadi.";
+    setChipState("ai-answer-source", source || "AI", source === "fallback" ? "cy" : "cc");
+  }
+
+  function closeAiAnswerModal() {
+    const modal = el("ai-answer-modal");
+    if (!modal) return;
+    modal.classList.remove("open");
+    document.body.style.overflow = "";
+  }
+
+  async function askDirectorQuestion(rawQuestion) {
+    const question = String(rawQuestion || "").trim();
+    if (!AI_ASK_URL || !question) return;
+
+    setChipState("aiAskStatus", "AI o'ylayapti...", "cc");
+    openAiAnswerModal(question, "Savol tahlil qilinmoqda...", "AI");
+
+    try {
+      const response = await fetch(buildUrl(AI_ASK_URL), {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCsrfToken(),
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify({ question }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const payload = await response.json();
+      openAiAnswerModal(payload.question || question, payload.answer || "Javob topilmadi.", payload.source === "fallback" ? "Fallback" : "Gemini");
+      setChipState("aiAskStatus", "Javob tayyor", "cg");
+    } catch (error) {
+      console.error(error);
+      openAiAnswerModal(question, "AI javobini olishda xatolik bo'ldi. Iltimos birozdan keyin qayta urinib ko'ring.", "Fallback");
+      setChipState("aiAskStatus", "AI vaqtincha band", "cy");
+    }
+  }
+
+  function askPresetQuestion(question) {
+    if (el("aiQuestionInput")) el("aiQuestionInput").value = question;
+    askDirectorQuestion(question);
+  }
+
   function renderTeacherTable(targetId, rows, detailed) {
     const table = el(targetId);
     if (!table) return;
@@ -1743,8 +2451,8 @@
       el("modal-ico").innerHTML = iconSvg(item.key);
     }
     if (el("modal-delta")) {
-      el("modal-delta").className = `chip ${toneClassByValue(item.delta)}`;
-      el("modal-delta").textContent = `${signedPct(item.delta)} oldingi davrga nisbatan`;
+      el("modal-delta").className = `chip ${item.deltaText ? "cn" : toneClassByValue(item.delta)}`;
+      el("modal-delta").textContent = item.deltaText || `${signedPct(item.delta)} oldingi davrga nisbatan`;
     }
     if (el("modal-detail-btn")) {
       if (state.modalDetailTarget) {
@@ -2444,6 +3152,76 @@
     });
   }
 
+  function bindAiChat() {
+    const launcher = el("directorAiChatLauncher");
+    const panel = el("directorAiChatPanel");
+    const closeBtn = el("directorAiChatClose");
+    const resetBtn = el("directorAiChatReset");
+    const headerBtn = el("directorAiChatHeaderBtn");
+    const header = el("directorAiChatHeader");
+    const form = el("directorAiChatForm");
+    const input = el("directorAiChatInput");
+    if (!launcher || !panel) return;
+
+    applyChatLauncherPosition(state.chat.position);
+    loadChatSession();
+
+    launcher.addEventListener("click", (event) => {
+      if (Date.now() < state.chat.suppressToggleUntil) {
+        event.preventDefault();
+        return;
+      }
+      setChatOpen(!state.chat.open);
+    });
+
+    headerBtn?.addEventListener("click", () => {
+      setChatOpen(true);
+    });
+
+    launcher.addEventListener("pointerdown", (event) => {
+      startChatDrag(event, "launcher");
+    });
+
+    header?.addEventListener("pointerdown", (event) => {
+      if (event.target.closest("button")) return;
+      startChatDrag(event, "panel");
+    });
+
+    closeBtn?.addEventListener("click", () => {
+      setChatOpen(false);
+    });
+
+    resetBtn?.addEventListener("click", () => {
+      resetChatSession();
+    });
+
+    form?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      sendChatQuestion(input?.value || "");
+    });
+
+    input?.addEventListener("input", () => {
+      autosizeChatInput();
+    });
+
+    input?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendChatQuestion(input.value || "");
+      }
+    });
+
+    autosizeChatInput();
+
+    document.addEventListener("pointermove", handleChatDragMove);
+    document.addEventListener("pointerup", stopChatDrag);
+    document.addEventListener("pointercancel", stopChatDrag);
+    window.addEventListener("resize", () => {
+      applyChatLauncherPosition(state.chat.position);
+      positionChatPanel();
+    });
+  }
+
   function bindDocumentEvents() {
     document.addEventListener("click", (event) => {
       const dropdown = el("exp-dd");
@@ -2461,6 +3239,7 @@
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
         closeModal();
+        setChatOpen(false);
         const dropdown = el("exp-dd");
         if (dropdown) dropdown.style.display = "none";
         const profileMenu = el("profile-dd");
@@ -2488,6 +3267,7 @@
     setPeriodUi();
     bindTabs();
     bindFilters();
+    bindAiChat();
     bindDocumentEvents();
     tickClock();
     loadDashboard();
