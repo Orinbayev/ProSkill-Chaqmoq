@@ -28,7 +28,7 @@ def create_teacher_income(sender, instance, created, **kwargs):
     # 2. O'quvchining ushbu guruhdagi faol Enrollmentini topish
     try:
         from .models import Enrollment
-        enrollment = Enrollment.objects.filter(
+        enrollment = Enrollment.all_objects.filter(
             group=instance.group,
             student=instance.student,
         ).order_by('-is_active', '-created_at').first()
@@ -87,19 +87,17 @@ User = get_user_model()
 @receiver(post_save, sender=User)
 def handle_rate_change(sender, instance, **kwargs):
     """
-    Kurs narxi yoki foiz o'zgarganda ushbu oydagi daromadlarni qayta hisoblaydi.
+    Kurs narxi yoki foiz o'zgarganda tegishli barcha ochiq oylar daromadlarini qayta hisoblaydi.
     """
-    from django.utils import timezone
     from .models import Attendance
-    today = timezone.localdate()
     
     if isinstance(instance, Group):
-        atts = Attendance.objects.filter(group=instance, date__year=today.year, date__month=today.month)
+        atts = Attendance.objects.filter(group=instance)
     elif isinstance(instance, Enrollment):
-        atts = Attendance.objects.filter(group=instance.group, student=instance.student, date__year=today.year, date__month=today.month)
+        atts = Attendance.objects.filter(group=instance.group, student=instance.student)
     elif isinstance(instance, User) and instance.role == 'teacher':
-        # Agar o'qituvchi o'z foizini o'zgartirsa, hamma guruhlarini qayta hisoblaymiz
-        atts = Attendance.objects.filter(group__oqituvchi=instance, date__year=today.year, date__month=today.month)
+        # Agar o'qituvchi o'z foizini o'zgartirsa, barcha tegishli davomatlar qayta hisoblanadi.
+        atts = Attendance.objects.filter(group__oqituvchi=instance)
     else:
         return
         

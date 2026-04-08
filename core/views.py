@@ -341,7 +341,7 @@ def home(request):
         ctx["leads_today"]      = leads_today
         ctx["leads_this_month"] = leads_this_month
         ctx["today"]            = _today
-        return render(request, "core/dashboard_director.html", ctx)
+        return render(request, "director_panel.html", ctx)
 
     if role == "manager":
         # Add low activity students for manager

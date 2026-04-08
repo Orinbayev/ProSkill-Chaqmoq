@@ -11,7 +11,7 @@ from store.lead_services import (
     get_status_by_code,
     send_follow_up_notification_if_due,
 )
-from store.models import Expense, ExpenseCategory, Lead, TrialLesson
+from store.models import Expense, ExpenseCategory, Lead, Product, PurchaseRequest, TrialLesson
 from store.trial_services import handle_trial_created, handle_trial_updated
 
 
@@ -170,3 +170,62 @@ class ExpensePageSmokeTests(TestCase):
         self.assertEqual(len(response.context["items"]), 1)
         self.assertContains(response, "Jami xarajat")
         self.assertContains(response, "Xarajatlar grafigi")
+
+
+class ProductStorePageTests(TestCase):
+    def setUp(self):
+        self.center = Center.objects.create(name="Store Center", slug="store-center")
+        self.director = User.objects.create_user(
+            email="director@store.test",
+            password="Pass12345!",
+            role="director",
+            center=self.center,
+            ism="Store",
+            familya="Director",
+        )
+        self.student = User.objects.create_user(
+            email="student@store.test",
+            password="Pass12345!",
+            role="student",
+            center=self.center,
+            ism="Store",
+            familya="Student",
+        )
+        self.client.force_login(self.director)
+        self.shop_url = f"/{self.center.slug}{reverse('store:products')}"
+        self.legacy_products_url = f"/{self.center.slug}{reverse('store:product_list')}"
+
+    def test_legacy_products_url_redirects_to_store_home(self):
+        response = self.client.get(self.legacy_products_url)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.endswith("/do'kon/"))
+
+    def test_store_home_renders_premium_empty_state(self):
+        response = self.client.get(self.shop_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Do'kon bo'limida hali mahsulot joylanmagan")
+        self.assertContains(response, "Birinchi mahsulotni qo'shish")
+
+    def test_store_home_shows_product_card(self):
+        product = Product.objects.create(
+            center=self.center,
+            nom="Planner",
+            narx_chaqmoq=120,
+            narx_som=45_000,
+            sotilgan_soni=4,
+        )
+        PurchaseRequest.objects.create(
+            center=self.center,
+            student=self.student,
+            product=product,
+            qty=1,
+            status=PurchaseRequest.PENDING,
+        )
+
+        response = self.client.get(self.shop_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Planner")
+        self.assertContains(response, "Ko‘rish")

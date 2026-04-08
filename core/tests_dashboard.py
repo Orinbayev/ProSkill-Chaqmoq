@@ -3,10 +3,11 @@ from datetime import datetime, time, timedelta
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
+from django.db.models import Sum
 
 from accounts.models import Center, User
-from education.models import Attendance, Category, Enrollment, Group, Payment, TuitionMonth
-from store.models import Expense, Lead, LeadStatus, Manba
+from education.models import Attendance, Category, Enrollment, Group, Payment, TeacherIncome, TuitionMonth
+from store.models import Expense, Lead, LeadStatus, Manba, Product, PurchaseRequest, Yonalish
 
 
 class DirectorDashboardAPITests(TestCase):
@@ -46,6 +47,14 @@ class DirectorDashboardAPITests(TestCase):
             ism="Vali",
             familya="Weak",
         )
+        self.manager = User.objects.create_user(
+            email="manager@test.com",
+            password="testpass123",
+            role="manager",
+            center=self.center,
+            ism="Madina",
+            familya="Manager",
+        )
 
         self.student_source_a = self._student("student.a@test.com", "Aziza", "One")
         self.student_source_b = self._student("student.b@test.com", "Bekzod", "Two")
@@ -80,6 +89,7 @@ class DirectorDashboardAPITests(TestCase):
 
         self._payment(self.enrollment_a, 1_000_000)
         self._payment(self.enrollment_c, 500_000)
+        self._payment(self.enrollment_a, 500_000, paid_date=self.today - timedelta(days=35))
 
         for day_offset in range(10):
             lesson_date = self.today - timedelta(days=day_offset)
@@ -117,6 +127,8 @@ class DirectorDashboardAPITests(TestCase):
 
         self.source_telegram = Manba.objects.create(center=self.center, nom="Telegram")
         self.source_instagram = Manba.objects.create(center=self.center, nom="Instagram")
+        self.direction_maths = Yonalish.objects.create(center=self.center, nom="Matematika Pro")
+        self.direction_it = Yonalish.objects.create(center=self.center, nom="IT Foundation")
         self.lead_registered = LeadStatus.objects.create(center=self.center, nom="Registered", code=LeadStatus.Code.REGISTERED)
 
         Lead.objects.create(
@@ -126,7 +138,9 @@ class DirectorDashboardAPITests(TestCase):
             telefon1="+998901111111",
             yosh=18,
             manba=self.source_telegram,
+            yonalish=self.direction_maths,
             status=self.lead_registered,
+            assigned_manager=self.manager,
             converted_user=self.student_source_a,
             converted_to_student=True,
             converted_at=timezone.now(),
@@ -140,12 +154,22 @@ class DirectorDashboardAPITests(TestCase):
             telefon1="+998902222222",
             yosh=19,
             manba=self.source_instagram,
+            yonalish=self.direction_it,
             status=self.lead_registered,
+            assigned_manager=self.manager,
             converted_user=self.student_source_b,
             converted_to_student=True,
             converted_at=timezone.now(),
             converted_by=self.director,
             created_by=self.director,
+        )
+        self.product = Product.objects.create(center=self.center, nom="Notebook", narx_chaqmoq=120, narx_som=45_000)
+        PurchaseRequest.objects.create(
+            center=self.center,
+            student=self.student_source_a,
+            product=self.product,
+            qty=2,
+            manager=self.manager,
         )
 
         self.client.force_login(self.director)
@@ -171,7 +195,7 @@ class DirectorDashboardAPITests(TestCase):
             is_active=True,
         )
 
-    def _payment(self, enrollment, amount):
+    def _payment(self, enrollment, amount, paid_date=None):
         return Payment.objects.create(
             center=self.center,
             enrollment=enrollment,
@@ -179,7 +203,7 @@ class DirectorDashboardAPITests(TestCase):
             group=enrollment.group,
             payment_type="cash",
             cash_amount=amount,
-            paid_date=self.today,
+            paid_date=paid_date or self.today,
             created_by=self.director,
         )
 
@@ -205,8 +229,33 @@ class DirectorDashboardAPITests(TestCase):
         self.assertEqual(payload["groups"]["top_profitable"][0]["revenue"], 1_500_000)
         self.assertEqual(payload["teachers"]["ranking"][0]["teacher_name"], "Ali Strong")
         self.assertEqual(payload["teachers"]["ranking"][0]["revenue"], 1_500_000)
+        self.assertEqual(payload["teachers"]["ranking"][0]["revenue_previous"], 500_000)
+        self.assertEqual(payload["teachers"]["ranking"][0]["revenue_growth"], 200.0)
+        self.assertEqual(payload["marketing"]["conversion_rate"], 50.0)
+        self.assertEqual(payload["marketing"]["all_time_leads"], 2)
+        self.assertEqual(payload["marketing"]["all_time_converted_students"], 2)
+        self.assertEqual(payload["marketing"]["all_time_active_students"], 2)
+        self.assertEqual(payload["marketing"]["sources_overall"][0]["count"], 1)
+        self.assertEqual(payload["marketing"]["sources_overall"][0]["student_conversion"], 100.0)
+        self.assertEqual(payload["marketing"]["directions"][0]["name"], "Matematika Pro")
+        self.assertEqual(payload["marketing"]["directions"][0]["active_students"], 1)
+        self.assertEqual(payload["marketing"]["directions_overall"][0]["name"], "Matematika Pro")
+        self.assertEqual(payload["finance"]["payment_completion_rate"], 33.3)
         self.assertEqual(len(payload["executive"]["today_strip"]), 4)
         self.assertEqual(payload["executive"]["trend_signal"]["title"], "Qarzdorlik bosimi oshgan")
+        self.assertIn("managers", payload)
+        self.assertIn("requests", payload)
+        self.assertEqual(payload["managers"]["total_count"], 1)
+        self.assertEqual(payload["managers"]["ranking"][0]["manager_name"], "Madina Manager")
+        self.assertEqual(len(payload["students"]["roster"]), 3)
+        self.assertEqual(
+            sorted(item["name"] for item in payload["students"]["roster"]),
+            ["Aziza One", "Bekzod Two", "Sarvar Three"],
+        )
+        self.assertEqual(payload["requests"]["total_count"], 1)
+        self.assertEqual(payload["requests"]["all_requests_count"], 1)
+        self.assertEqual(payload["requests"]["products_count"], 1)
+        self.assertEqual(payload["requests"]["items"][0]["product_name"], "Notebook")
 
     def test_source_filter_scopes_finance_to_converted_students(self):
         response = self._get_dashboard(source=str(self.source_telegram.id))
@@ -226,12 +275,80 @@ class DirectorDashboardAPITests(TestCase):
         self.assertEqual(close_candidates[0]["group_name"], "Weak Group")
         self.assertEqual(close_candidates[0]["primary_action"], "Yopish tavsiya etiladi")
 
+    def test_request_payload_returns_all_filtered_items(self):
+        for idx in range(25):
+            PurchaseRequest.objects.create(
+                center=self.center,
+                student=self.student_source_a if idx % 2 == 0 else self.student_source_b,
+                product=self.product,
+                qty=1,
+                manager=self.manager,
+            )
+
+        response = self._get_dashboard()
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+
+        self.assertEqual(payload["requests"]["total_count"], 26)
+        self.assertEqual(payload["requests"]["all_requests_count"], 26)
+        self.assertEqual(payload["requests"]["products_count"], 1)
+        self.assertEqual(len(payload["requests"]["items"]), 26)
+
+    def test_dashboard_teacher_shares_follow_teacher_income_rows(self):
+        response = self._get_dashboard()
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+
+        expected_teacher_shares = (
+            TeacherIncome.objects.filter(
+                center=self.center,
+                attendance__date__range=(self.today - timedelta(days=29), self.today),
+            ).aggregate(total=Sum("amount"))["total"]
+            or 0
+        )
+
+        self.assertEqual(payload["finance"]["teacher_shares"], expected_teacher_shares)
+
+    def test_rate_change_recalculates_future_month_attendance(self):
+        future_date = self.today.replace(day=1) + timedelta(days=32)
+        future_date = future_date.replace(day=5)
+
+        future_attendance = Attendance.objects.create(
+            center=self.center,
+            group=self.group_strong,
+            student=self.student_source_a,
+            teacher=self.teacher_strong,
+            date=future_date,
+            present=True,
+            status="present",
+        )
+
+        future_income = TeacherIncome.objects.get(attendance=future_attendance)
+        self.assertEqual(future_income.amount, 20_000)
+
+        self.teacher_strong.oqituvchi_foizi = 50
+        self.teacher_strong.save()
+
+        future_income.refresh_from_db()
+        self.assertEqual(future_income.amount, 25_000)
+
     def test_director_home_uses_new_dashboard_template(self):
         response = self.client.get(f"/{self.center.slug}/")
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Direktor boshqaruv paneli")
-        self.assertContains(response, 'id="todayStrip"')
-        self.assertContains(response, 'id="trendSignal"')
-        self.assertContains(response, 'id="groupPreview"')
-        self.assertContains(response, 'id="teacherPerformanceChart"')
-        self.assertContains(response, 'id="detailDrawer"')
+        self.assertContains(response, "DIREKTOR PANELI")
+        self.assertContains(response, "Bildirishnomalar")
+        self.assertContains(response, 'id="profile-dd"')
+        self.assertContains(response, 'id="kpi-grid"')
+        self.assertContains(response, 'id="rev-chart"')
+        self.assertContains(response, 'id="donut-chart"')
+        self.assertContains(response, 'id="finance-section"')
+        self.assertContains(response, 'id="payments-section"')
+        self.assertContains(response, 'id="modal-detail-btn"')
+        self.assertContains(response, 'id="dateFromInput"')
+        self.assertContains(response, 'id="dateToInput"')
+        self.assertContains(response, 'id="branchSelect"')
+        self.assertContains(response, 'id="tab-count-manager"')
+        self.assertContains(response, 'id="tab-count-products"')
+        self.assertContains(response, "Mahsulotlar")
+        self.assertContains(response, 'Trend ustuni o‘tgan oyga nisbatan ko‘rsatiladi')
+        self.assertNotContains(response, "Konversiya voronkasi")

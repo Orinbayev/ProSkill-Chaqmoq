@@ -18,7 +18,7 @@ from django.core.paginator import Paginator
 from django.db.models import (
     Count, F, Min, Max, Prefetch, Q, Sum, OuterRef, Subquery
 )
-from django.db.models.functions import Coalesce, TruncMonth, Cast
+from django.db.models.functions import Coalesce, TruncDay, TruncMonth, Cast
 from django.http import (
     FileResponse,
     Http404,
@@ -1423,11 +1423,12 @@ def qarzdorlar_home(request):
     center = get_request_center(request)
 
     # ─── FILTERS ────────────────────────────────────────────────────────────
-    q          = (request.GET.get("q") or "").strip()
-    group_id   = _get_int(request.GET, "group", 0)
-    min_debt   = _get_int(request.GET, "min_debt", 0)
-    max_debt   = _get_int(request.GET, "max_debt", 0)
-    end_date   = (request.GET.get("end_date") or "").strip()
+    q = (request.GET.get("q") or "").strip()
+    group_id = _get_int(request.GET, "group", 0)
+    min_debt = _get_int(request.GET, "min_debt", 0)
+    max_debt = _get_int(request.GET, "max_debt", 0)
+    date_from_raw = (request.GET.get("date_from") or "").strip()
+    date_to_raw = (request.GET.get("date_to") or request.GET.get("end_date") or "").strip()
 
     allowed_page_sizes = (10, 20, 50, 100)
     per_page_raw = (request.GET.get("per_page") or "10").strip()
@@ -1439,8 +1440,22 @@ def qarzdorlar_home(request):
         per_page = 10
 
     # ─── JORIY OY ANIQLASH ──────────────────────────────────────────────────
-    today     = timezone.localdate()
-    cur_month = today.replace(day=1)
+    today = timezone.localdate()
+    selected_from = parse_date(date_from_raw) if date_from_raw else None
+    selected_to = parse_date(date_to_raw) if date_to_raw else None
+
+    if not selected_from and not selected_to:
+        selected_from = today.replace(day=1)
+        selected_to = today
+    else:
+        if selected_from and not selected_to:
+            selected_to = today if selected_from <= today else selected_from
+        elif selected_to and not selected_from:
+            selected_from = selected_to.replace(day=1)
+        if selected_from and selected_to and selected_from > selected_to:
+            selected_to = selected_from
+
+    cur_month = selected_to.replace(day=1)
 
     sel_month = request.GET.get("pay_month")
     if sel_month and sel_month.isdigit():
@@ -1460,12 +1475,21 @@ def qarzdorlar_home(request):
     if center:
         active_enrs_qs = active_enrs_qs.filter(center=center)
 
+    chart_months = []
+    chart_cursor = selected_from.replace(day=1)
+    chart_end_month = selected_to.replace(day=1)
+    while chart_cursor <= chart_end_month:
+        chart_months.append(chart_cursor)
+        chart_cursor = add_month(chart_cursor, 1)
+
     # ─── TUITIONMONTH AUTO-ENSURE (joriy oy) ────────────────────────────────
     # Har bir faol enrollment uchun JORIY OY TuitionMonth yozuvi bo'lishini
     # kafolatlaymiz. `ensure_tuition_month` soft-deleted ni tiklaydi, 0-fee ni
     # to'g'rilaydi — shuning uchun bulk_create dan ustunroq.
     for enr in active_enrs_qs:
         ensure_tuition_month(enr, cur_month)
+        for chart_month in chart_months:
+            ensure_tuition_month(enr, chart_month)
 
     # ─── SUBQUERY: fee va paid (faqat TANLANGAN OY) ──────────────────────────
     total_fee_sub = (
@@ -1510,8 +1534,26 @@ def qarzdorlar_home(request):
     )
 
     # ─── STUDENT MAP (student bo'yicha guruhlash) ────────────────────────────
-    graph_map   = {m: 0 for m in range(1, 13)}
+    graph_map = {chart_month: 0 for chart_month in chart_months}
     student_map = {}   # {student_id: row_dict}
+
+    chart_fee_rows = (
+        TuitionMonth.objects
+        .filter(enrollment__in=active_enrs_qs, month__in=chart_months)
+        .values("enrollment_id", "month")
+        .annotate(fee=Coalesce(Sum(fee_field), 0))
+    )
+    chart_fee_map = {(row["enrollment_id"], row["month"]): int(row["fee"] or 0) for row in chart_fee_rows}
+    chart_paid_rows = (
+        PaymentAllocation.objects
+        .filter(tuition_month__enrollment__in=active_enrs_qs, tuition_month__month__in=chart_months)
+        .values("tuition_month__enrollment_id", "tuition_month__month")
+        .annotate(paid=Coalesce(Sum("amount"), 0))
+    )
+    chart_paid_map = {
+        (row["tuition_month__enrollment_id"], row["tuition_month__month"]): int(row["paid"] or 0)
+        for row in chart_paid_rows
+    }
 
     for e in enrs_annotated:
         sid  = e.student_id
@@ -1544,13 +1586,12 @@ def qarzdorlar_home(request):
             if gnom and gnom not in row["group_names"]:
                 row["group_names"].append(gnom)
 
-        # Grafik: enrollment oy bo'yicha
-        try:
-            m_idx = e.created_at.month if e.created_at else today.month
-        except Exception:
-            m_idx = today.month
-        if m_idx in graph_map and debt > 0:
-            graph_map[m_idx] += debt
+        for chart_month in chart_months:
+            month_fee = chart_fee_map.get((e.id, chart_month), 0)
+            month_paid = chart_paid_map.get((e.id, chart_month), 0)
+            month_debt = max(0, month_fee - month_paid)
+            if month_debt > 0:
+                graph_map[chart_month] += month_debt
 
     # ─── GROUP LABEL ─────────────────────────────────────────────────────────
     for r in student_map.values():
@@ -1594,7 +1635,8 @@ def qarzdorlar_home(request):
     display_rows = debtor_rows
 
     filtered_debt   = sum(r["debt"] for r in display_rows)
-    chart_series    = [graph_map[m] for m in range(1, 13)]
+    chart_series = [graph_map[month] for month in chart_months]
+    chart_labels = [f"{UZ_MONTH_NAMES.get(month.month, month.strftime('%B'))} {month.year}" for month in chart_months]
 
     # ─── PAGINATOR ───────────────────────────────────────────────────────────
     from django.core.paginator import Paginator
@@ -1613,11 +1655,14 @@ def qarzdorlar_home(request):
         "total_debt":     total_center_debt,
         "filtered_debt":  filtered_debt,
         "chart_data":     chart_series,
+        "chart_labels":   chart_labels,
         "q":              q,
         "min_debt":       min_debt if min_debt else "",
         "max_debt":       max_debt if max_debt else "",
-        "end_date":       end_date,
+        "date_from":      selected_from.isoformat(),
+        "date_to":        selected_to.isoformat(),
         "pay_month":      sel_month,
+        "effective_pay_month": str(cur_month.month),
         "per_page":       per_page,
         "page_size_options": allowed_page_sizes,
         "uz_months": [
@@ -1903,6 +1948,79 @@ def _last_12_ending(anchor: date) -> list[date]:
     return [_add_months(anchor, -11 + i) for i in range(12)]
 
 
+UZ_MONTH_NAMES = {
+    1: "Yanvar",
+    2: "Fevral",
+    3: "Mart",
+    4: "Aprel",
+    5: "May",
+    6: "Iyun",
+    7: "Iyul",
+    8: "Avgust",
+    9: "Sentyabr",
+    10: "Oktyabr",
+    11: "Noyabr",
+    12: "Dekabr",
+}
+
+
+def _human_period_label(start_date: date, end_date: date) -> str:
+    if start_date == end_date:
+        return f"{start_date.day}-{UZ_MONTH_NAMES.get(start_date.month, start_date.strftime('%B'))} {start_date.year}"
+    return (
+        f"{start_date.day}-{UZ_MONTH_NAMES.get(start_date.month, start_date.strftime('%B'))} {start_date.year}"
+        f" dan {end_date.day}-{UZ_MONTH_NAMES.get(end_date.month, end_date.strftime('%B'))} {end_date.year} gacha"
+    )
+
+
+def _build_money_chart_series(qs, *, date_field: str, amount_field: str, start_date: date, end_date: date):
+    days_span = max((end_date - start_date).days + 1, 1)
+    use_daily = days_span <= 45
+
+    if use_daily:
+        buckets = [start_date + timedelta(days=offset) for offset in range(days_span)]
+        rows = (
+            qs.annotate(bucket=TruncDay(date_field))
+            .values("bucket")
+            .annotate(total=Sum(amount_field))
+            .order_by("bucket")
+        )
+        value_map = {}
+        for row in rows:
+            bucket = row["bucket"]
+            if hasattr(bucket, "date"):
+                bucket = bucket.date()
+            value_map[bucket] = int(row["total"] or 0)
+        labels = [f"{bucket.day}-{UZ_MONTH_NAMES.get(bucket.month, bucket.strftime('%B'))}" for bucket in buckets]
+        data = [value_map.get(bucket, 0) for bucket in buckets]
+        return labels, data, "Tanlangan kunlar"
+
+    start_month = start_date.replace(day=1)
+    end_month = end_date.replace(day=1)
+    buckets = []
+    cursor = start_month
+    while cursor <= end_month:
+        buckets.append(cursor)
+        cursor = _add_months(cursor, 1)
+
+    rows = (
+        qs.annotate(bucket=TruncMonth(date_field))
+        .values("bucket")
+        .annotate(total=Sum(amount_field))
+        .order_by("bucket")
+    )
+    value_map = {}
+    for row in rows:
+        bucket = row["bucket"]
+        if hasattr(bucket, "date"):
+            bucket = bucket.date()
+        bucket = bucket.replace(day=1)
+        value_map[bucket] = int(row["total"] or 0)
+    labels = [f"{UZ_MONTH_NAMES.get(bucket.month, bucket.strftime('%B'))} {bucket.year}" for bucket in buckets]
+    data = [value_map.get(bucket, 0) for bucket in buckets]
+    return labels, data, "Tanlangan oylar"
+
+
 
 @login_required
 def tolovlar_home(request):
@@ -1919,7 +2037,7 @@ def tolovlar_home(request):
     from django.db.models.functions import Coalesce as DjCoalesce
     from education.models import TuitionMonth, PaymentAllocation, Enrollment
 
-    today = date.today()
+    today = timezone.localdate()
     cur_month_start = today.replace(day=1)
 
     # ── 1) UMUMIY DAROMAD ─────────────────────────────────────────────────
@@ -1928,14 +2046,31 @@ def tolovlar_home(request):
 
     # ── 2) FILTER PARAMS ──────────────────────────────────────────────────
     q           = (request.GET.get("q") or "").strip()
-    date_from   = (request.GET.get("date_from") or "").strip()
-    date_to     = (request.GET.get("date_to") or "").strip()
+    date_from_raw = (request.GET.get("date_from") or "").strip()
+    date_to_raw = (request.GET.get("date_to") or "").strip()
     sel_group   = request.GET.get("group") or ""
     sel_teacher = request.GET.get("teacher") or ""
     sel_course  = request.GET.get("course") or ""
     sel_staff   = request.GET.get("staff") or ""
     sel_type    = request.GET.get("payment_type") or ""
     sel_month   = request.GET.get("pay_month") or ""
+
+    selected_from = parse_date(date_from_raw) if date_from_raw else None
+    selected_to = parse_date(date_to_raw) if date_to_raw else None
+
+    if not selected_from and not selected_to:
+        selected_from = cur_month_start
+        selected_to = today
+    else:
+        if selected_from and not selected_to:
+            selected_to = today if selected_from <= today else selected_from
+        elif selected_to and not selected_from:
+            selected_from = selected_to.replace(day=1)
+        if selected_from and selected_to and selected_from > selected_to:
+            selected_to = selected_from
+
+    date_from = selected_from.isoformat()
+    date_to = selected_to.isoformat()
 
 
     # ✅ [FIX] Barcha to'lovlarni ko'rsatamiz (qarzi bormi yo'qmi farq qilmaydi)
@@ -1964,10 +2099,7 @@ def tolovlar_home(request):
             | Q(student__email__icontains=q)
             | Q(student__gmail__icontains=q)
         )
-    if date_from:
-        pay_qs = pay_qs.filter(paid_date__gte=date_from)
-    if date_to:
-        pay_qs = pay_qs.filter(paid_date__lte=date_to)
+    pay_qs = pay_qs.filter(paid_date__gte=selected_from, paid_date__lte=selected_to)
     if sel_group:
         pay_qs = pay_qs.filter(group_id=sel_group)
     if sel_teacher:
@@ -1978,8 +2110,7 @@ def tolovlar_home(request):
         pay_qs = pay_qs.filter(created_by_id=sel_staff)
     if sel_type:
         pay_qs = pay_qs.filter(payment_type=sel_type)
-    from django.utils import timezone
-    cur_year = timezone.localdate().year
+    cur_year = selected_to.year
 
     if sel_month and sel_month.isdigit():
         # Match both month and current year to avoid historical overlaps
@@ -1993,46 +2124,19 @@ def tolovlar_home(request):
     filtered_income = Payment.objects.filter(id__in=payment_ids).aggregate(s=Sum("summa"))["s"] or 0
     unique_payers_count = Payment.objects.filter(id__in=payment_ids).values("student").distinct().count()
 
-    # ── 5) CHART (12 oy) ──────────────────────────────────────────────────
-    month_starts = _last_12_ending(cur_month_start)
-    m_min = month_starts[0]
-    m_max = _add_months(month_starts[-1], 1) - timedelta(days=1)
-
-    chart_qs = (
-        pay_qs.filter(paid_date__gte=m_min, paid_date__lte=m_max)
-        .annotate(m=TruncMonth("paid_date"))
-        .values("m")
-        .annotate(total=Sum("summa"))
-        .order_by("m")
+    # ── 5) CHART (tanlangan davr) ────────────────────────────────────────
+    chart_labels, chart_data, chart_kicker = _build_money_chart_series(
+        pay_qs,
+        date_field="paid_date",
+        amount_field="summa",
+        start_date=selected_from,
+        end_date=selected_to,
     )
-    db_map = {}
-    for row in chart_qs:
-        m = row["m"]
-        if not m:
-            continue
-        key = m.date().replace(day=1) if hasattr(m, "date") else m.replace(day=1)
-        db_map[key] = int(row["total"] or 0)
-
-    chart_labels = [m.strftime("%b") for m in month_starts]
-    chart_data = [db_map.get(m, 0) for m in month_starts]
 
     # ── 6) PAGINATION ─────────────────────────────────────────────────────
     pay_qs = pay_qs.order_by("-paid_date", "-id")
 
-    uz_month_map = {
-        1: "Yanvar",
-        2: "Fevral",
-        3: "Mart",
-        4: "Aprel",
-        5: "May",
-        6: "Iyun",
-        7: "Iyul",
-        8: "Avgust",
-        9: "Sentyabr",
-        10: "Oktyabr",
-        11: "Noyabr",
-        12: "Dekabr",
-    }
+    uz_month_map = UZ_MONTH_NAMES
 
     grouped_rows = {}
     filtered_payments = list(pay_qs)
@@ -2208,6 +2312,8 @@ def tolovlar_home(request):
         "filtered_income": filtered_income,
         "chart_data": chart_data,
         "chart_labels": chart_labels,
+        "chart_kicker": chart_kicker,
+        "chart_period_label": _human_period_label(selected_from, selected_to),
         "unique_payers_count": unique_payers_count,
         "groups": groups,
         "teachers": teachers_qs,

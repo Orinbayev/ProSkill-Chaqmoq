@@ -548,6 +548,10 @@
 <style>
   :root {
     --sb-text: #e5e7eb;
+    --sb-top: #334155;
+    --sb-top-soft: #263446;
+    --sb-mid: #0f172a;
+    --sb-bottom: #020617;
     --sb-ring: 0 0 0 4px rgba(250, 204, 21, .16), 0 0 18px rgba(250, 204, 21, .22);
   }
 
@@ -670,9 +674,15 @@
     flex-direction: column;
 
     background:
-      radial-gradient(900px 520px at 0% 0%, rgba(56, 189, 248, .10), transparent 60%),
-      radial-gradient(760px 460px at 100% 10%, rgba(250, 204, 21, .08), transparent 60%),
-      linear-gradient(180deg, rgba(15, 23, 42, .96), rgba(2, 6, 23, .92));
+      radial-gradient(880px 320px at 12% 0%, rgba(245, 158, 11, .12), transparent 62%),
+      radial-gradient(760px 340px at 88% 6%, rgba(59, 130, 246, .12), transparent 64%),
+      linear-gradient(
+        180deg,
+        rgba(51, 65, 85, .94) 0%,
+        rgba(38, 52, 70, .92) 18%,
+        rgba(15, 23, 42, .96) 42%,
+        rgba(2, 6, 23, .98) 100%
+      );
     border-right: 1px solid rgba(255, 255, 255, 0.06);
     box-shadow: 18px 0 70px rgba(0, 0, 0, .35);
 
@@ -688,12 +698,24 @@
   .sidebar-wrapper::before {
     content: "";
     position: absolute;
-    inset: -2px;
+    inset: 0;
     background:
-      radial-gradient(700px 300px at 14% 0%, rgba(250, 204, 21, .10), transparent 62%),
-      radial-gradient(700px 320px at 88% 10%, rgba(56, 189, 248, .10), transparent 62%);
+      linear-gradient(180deg, rgba(255,255,255,.035) 0%, rgba(255,255,255,.015) 14%, transparent 34%),
+      radial-gradient(640px 240px at 14% 0%, rgba(250, 204, 21, .10), transparent 62%),
+      radial-gradient(620px 260px at 88% 8%, rgba(59, 130, 246, .10), transparent 64%);
     pointer-events: none;
-    opacity: .9;
+    opacity: .92;
+  }
+
+  .sidebar-wrapper::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 225px;
+    bottom: 0;
+    background: linear-gradient(180deg, rgba(2, 6, 23, 0) 0%, rgba(2, 6, 23, .18) 22%, rgba(2, 6, 23, .34) 100%);
+    pointer-events: none;
   }
 
   .sidebar-logo,
@@ -1097,9 +1119,9 @@
   /* ===== MOBILE TOPBAR ===== */
   .mobile-topbar {
     background:
-      radial-gradient(900px 520px at 10% 0%, rgba(56, 189, 248, .12), transparent 60%),
-      radial-gradient(760px 460px at 90% 0%, rgba(250, 204, 21, .10), transparent 60%),
-      rgba(2, 6, 23, .88);
+      radial-gradient(840px 260px at 8% 0%, rgba(245, 158, 11, .10), transparent 60%),
+      radial-gradient(760px 260px at 92% 0%, rgba(59, 130, 246, .10), transparent 62%),
+      linear-gradient(180deg, rgba(38, 52, 70, .94), rgba(15, 23, 42, .92));
     padding: 14px 14px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     position: sticky;
@@ -1219,6 +1241,7 @@
     align-items: flex-start;
     justify-content: center;
     gap: 8px;
+    margin-bottom: 24px;
   }
 
   .sidebar-logo {
@@ -1270,6 +1293,14 @@
     padding: 0 12px;
     margin-top: 4px;
     opacity: 0.8;
+  }
+
+  .sidebar-scroll::before {
+    content: "";
+    display: block;
+    height: 1px;
+    margin: 0 6px 14px;
+    background: linear-gradient(90deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
   }
 
   .sidebar-header .sidebar-section-label {

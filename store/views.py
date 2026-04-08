@@ -14,6 +14,9 @@ from core.tenant import require_center, ensure_obj_center
 from .models import Lead
 from billing.decorators import require_feature
 from django.utils import timezone
+from django.db.models import Q
+from datetime import timedelta
+from django.utils.dateparse import parse_date
 
 
 def lead_detail(request, pk):
@@ -26,7 +29,6 @@ def lead_detail(request, pk):
 @login_required
 def products(request):
     """Mahsulotlar ro‘yxati va tanlab o‘chirish funksiyasi"""
-    from django.db.models import Q
     from core.tenant import get_request_center
     center = get_request_center(request)
     
@@ -46,7 +48,14 @@ def products(request):
         else:
             messages.warning(request, "Hech qanday mahsulot tanlanmadi ❗")
 
-    return render(request, 'store/product_list.html', {'items': items, 'can_add': can_add})
+    return render(
+        request,
+        'store/product_list.html',
+        {
+            'items': items,
+            'can_add': can_add,
+        },
+    )
 
 
 
@@ -235,19 +244,11 @@ def product_create(request):
     return render(request, 'store/product_form.html', {'form': form, 'title': "Mahsulot qo‘shish"})
 
 
+@login_required
 def product_list(request):
-    center = require_center(request)
-    products = Product.objects.filter(center=center)
-
-    # 🔹 Tanlanganlarni o‘chirish
     if request.method == "POST":
-        ids = request.POST.getlist('selected_products')
-        if ids:
-            Product.objects.filter(id__in=ids, center=center).delete()
-            messages.success(request, "Tanlangan mahsulotlar muvaffaqiyatli o‘chirildi ✅")
-            return redirect('store:products')
-
-    return render(request, 'store/product_list.html', {'products': products})
+        return products(request)
+    return redirect('store:products')
 
 
 # ✅ Mahsulotni tahrirlash
@@ -642,24 +643,37 @@ def expenses(request):
         return redirect('core:home')
     
     from .models import ExpenseCategory
-    from django.db.models.functions import TruncMonth
+    from django.db.models.functions import TruncDay, TruncMonth
     from django.db.models import Count
     
     # 1. Base QuerySet
     items = Expense.objects.filter(center=center).select_related('category', 'worker', 'product').order_by('-sana')
 
     # 2. Filters
-    sana_dan = request.GET.get('sana_dan')
-    sana_gacha = request.GET.get('sana_gacha')
+    sana_dan_raw = (request.GET.get('sana_dan') or '').strip()
+    sana_gacha_raw = (request.GET.get('sana_gacha') or '').strip()
     category_id = request.GET.get('category')
     payment_method = request.GET.get('payment_method')
     worker_id = request.GET.get('worker')
     q = request.GET.get('q')
 
-    if sana_dan:
-        items = items.filter(sana__date__gte=sana_dan)
-    if sana_gacha:
-        items = items.filter(sana__date__lte=sana_gacha)
+    today = timezone.localdate()
+    current_month_start = today.replace(day=1)
+    sana_dan = parse_date(sana_dan_raw) if sana_dan_raw else None
+    sana_gacha = parse_date(sana_gacha_raw) if sana_gacha_raw else None
+
+    if not sana_dan and not sana_gacha:
+        sana_dan = current_month_start
+        sana_gacha = today
+    else:
+        if sana_dan and not sana_gacha:
+            sana_gacha = today if sana_dan <= today else sana_dan
+        elif sana_gacha and not sana_dan:
+            sana_dan = sana_gacha.replace(day=1)
+        if sana_dan and sana_gacha and sana_dan > sana_gacha:
+            sana_gacha = sana_dan
+
+    items = items.filter(sana__date__gte=sana_dan, sana__date__lte=sana_gacha)
     if category_id and category_id.isdigit():
         items = items.filter(category_id=category_id)
     if payment_method:
@@ -673,25 +687,69 @@ def expenses(request):
     total_sum = Expense.objects.filter(center=center).aggregate(Sum('summa'))['summa__sum'] or 0
     filtered_sum = items.aggregate(Sum('summa'))['summa__sum'] or 0
 
-    # 4. Chart Data (Last 12 months)
-    import datetime
-    today = timezone.now().date()
-    start_date = today - datetime.timedelta(days=365)
-    
-    chart_qs = (
-        Expense.objects.filter(center=center, sana__date__gte=start_date)
-        .annotate(month=TruncMonth('sana'))
-        .values('month')
-        .annotate(total=Sum('summa'))
-        .order_by('month')
-    )
-    
+    # 4. Chart Data (Tanlangan davr)
+    month_names = {
+        1: "Yanvar",
+        2: "Fevral",
+        3: "Mart",
+        4: "Aprel",
+        5: "May",
+        6: "Iyun",
+        7: "Iyul",
+        8: "Avgust",
+        9: "Sentyabr",
+        10: "Oktyabr",
+        11: "Noyabr",
+        12: "Dekabr",
+    }
+    day_span = max((sana_gacha - sana_dan).days + 1, 1)
+    use_daily = day_span <= 45
     chart_labels = []
     chart_data = []
-    
-    for entry in chart_qs:
-        chart_labels.append(entry['month'].strftime('%b'))
-        chart_data.append(entry['total'])
+
+    if use_daily:
+        buckets = [sana_dan + timedelta(days=offset) for offset in range(day_span)]
+        chart_rows = (
+            items.annotate(bucket=TruncDay('sana'))
+            .values('bucket')
+            .annotate(total=Sum('summa'))
+            .order_by('bucket')
+        )
+        totals_by_bucket = {}
+        for entry in chart_rows:
+            bucket = entry['bucket']
+            if hasattr(bucket, 'date'):
+                bucket = bucket.date()
+            totals_by_bucket[bucket] = int(entry['total'] or 0)
+        chart_labels = [f"{bucket.day}-{month_names.get(bucket.month, bucket.strftime('%B'))}" for bucket in buckets]
+        chart_data = [totals_by_bucket.get(bucket, 0) for bucket in buckets]
+        chart_kicker = "Tanlangan kunlar"
+    else:
+        buckets = []
+        cursor = sana_dan.replace(day=1)
+        end_month = sana_gacha.replace(day=1)
+        while cursor <= end_month:
+            buckets.append(cursor)
+            if cursor.month == 12:
+                cursor = cursor.replace(year=cursor.year + 1, month=1, day=1)
+            else:
+                cursor = cursor.replace(month=cursor.month + 1, day=1)
+        chart_rows = (
+            items.annotate(bucket=TruncMonth('sana'))
+            .values('bucket')
+            .annotate(total=Sum('summa'))
+            .order_by('bucket')
+        )
+        totals_by_bucket = {}
+        for entry in chart_rows:
+            bucket = entry['bucket']
+            if hasattr(bucket, 'date'):
+                bucket = bucket.date()
+            bucket = bucket.replace(day=1)
+            totals_by_bucket[bucket] = int(entry['total'] or 0)
+        chart_labels = [f"{month_names.get(bucket.month, bucket.strftime('%B'))} {bucket.year}" for bucket in buckets]
+        chart_data = [totals_by_bucket.get(bucket, 0) for bucket in buckets]
+        chart_kicker = "Tanlangan oylar"
         
     # 5. Context
     # Ensure "Do'kon" category exists so it shows in the filter
@@ -707,9 +765,16 @@ def expenses(request):
         'workers': workers,
         'chart_labels': chart_labels,
         'chart_data': chart_data,
+        'chart_kicker': chart_kicker,
+        'chart_period_label': (
+            f"{sana_dan.day}-{month_names.get(sana_dan.month, sana_dan.strftime('%B'))} {sana_dan.year}"
+            if sana_dan == sana_gacha
+            else f"{sana_dan.day}-{month_names.get(sana_dan.month, sana_dan.strftime('%B'))} {sana_dan.year} dan "
+            f"{sana_gacha.day}-{month_names.get(sana_gacha.month, sana_gacha.strftime('%B'))} {sana_gacha.year} gacha"
+        ),
         # filters
-        'sana_dan': sana_dan,
-        'sana_gacha': sana_gacha,
+        'sana_dan': sana_dan.isoformat(),
+        'sana_gacha': sana_gacha.isoformat(),
         'selected_cat': int(category_id) if category_id and category_id.isdigit() else None,
         'selected_method': payment_method,
         'selected_worker': int(worker_id) if worker_id and worker_id.isdigit() else None,

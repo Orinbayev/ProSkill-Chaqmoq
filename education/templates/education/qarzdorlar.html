@@ -684,7 +684,7 @@
     <div class="filter-section">
         <form method="get" id="filterForm">
             <input type="hidden" name="per_page" value="{{ per_page }}">
-            {% if q or selected_group or min_debt or max_debt or pay_month or end_date %}
+            {% if q or selected_group or min_debt or max_debt or pay_month or request.GET.date_from or request.GET.date_to or request.GET.end_date %}
             <div class="clear-filter-wrap">
                 <a href="?per_page={{ per_page }}" class="clear-filter-btn">
                     <i class="fa-solid fa-xmark"></i> Filtrlarni tozalash
@@ -709,6 +709,10 @@
                     </select>
                 </div>
                 <div class="col-lg-2 col-md-6">
+                    <label class="filter-label">📅 Sanadan</label>
+                    <input type="date" name="date_from" value="{{ date_from }}" class="filter-input">
+                </div>
+                <div class="col-lg-2 col-md-6">
                     <label class="filter-label">📅 Qaysi oy uchun?</label>
                     <select name="pay_month" class="filter-select">
                         <option value="">Joriy oy</option>
@@ -722,8 +726,8 @@
                     <input type="number" name="min_debt" value="{{ min_debt }}" placeholder="0" class="filter-input">
                 </div>
                 <div class="col-lg-2 col-md-6">
-                    <label class="filter-label">📅 Sana gacha</label>
-                    <input type="date" name="end_date" value="{{ end_date }}" class="filter-input">
+                    <label class="filter-label">📅 Sanagacha</label>
+                    <input type="date" name="date_to" value="{{ date_to }}" class="filter-input">
                 </div>
             </div>
         </form>
@@ -896,7 +900,7 @@
                 <div class="modal-body p-4">
                     <input type="hidden" name="next" value="{{ request.get_full_path }}">
                     <input type="hidden" name="student_id" id="payStudentId">
-                    <input type="hidden" name="pay_month" value="{{ pay_month }}">
+                    <input type="hidden" name="pay_month" value="{{ effective_pay_month }}">
 
                     <div class="mb-4 text-center">
                         <h4 class="fw-bold mb-1 text-white" id="payStudentName">Ism Familya</h4>
@@ -958,6 +962,7 @@
 
 {% block extra_js %}
 {{ chart_data|json_script:"chart-data" }}
+{{ chart_labels|json_script:"chart-labels" }}
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
     (function () {
@@ -974,8 +979,10 @@
         document.addEventListener("DOMContentLoaded", function () {
             // Chart
             const chartEl = document.getElementById("chart-data");
-            if (chartEl) {
+            const chartLabelsEl = document.getElementById("chart-labels");
+            if (chartEl && chartLabelsEl) {
                 const chartData = JSON.parse(chartEl.textContent) || [];
+                const chartLabels = JSON.parse(chartLabelsEl.textContent) || [];
                 const options = {
                     series: [{ name: 'Qarz', data: chartData }],
                     chart: {
@@ -991,7 +998,7 @@
                     colors: ['#ef4444'],
                     fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.38, opacityTo: 0.04, stops: [0, 90, 100] } },
                     xaxis: {
-                        categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                        categories: chartLabels,
                         labels: { style: { colors: '#94a3b8', fontSize: '11px' } },
                         axisBorder: { show: false },
                         axisTicks: { show: false }

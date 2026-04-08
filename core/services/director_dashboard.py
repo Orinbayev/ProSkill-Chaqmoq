@@ -19,9 +19,10 @@ from education.models import (
     Payment,
     PaymentAllocation,
     StudentGroupHistory,
+    TeacherIncome,
     TuitionMonth,
 )
-from store.models import Expense, Lead, LeadStatus, Manba, TrialLesson
+from store.models import Expense, Lead, LeadStatus, Manba, Product, PurchaseRequest, Sale, TrialLesson
 
 
 PRESET_LABELS = {
@@ -60,6 +61,12 @@ def safe_div(numerator: float, denominator: float) -> float:
 
 def percent(numerator: float, denominator: float) -> float:
     return round(safe_div(numerator, denominator) * 100, 1)
+
+
+def debt_percent(open_debt: float, revenue: float) -> float:
+    if not revenue:
+        return 100.0 if open_debt > 0 else 0.0
+    return percent(open_debt, revenue)
 
 
 def growth_pct(current: float, previous: float) -> float:
@@ -264,6 +271,7 @@ class DirectorDashboardService:
                 created_at__date__lte=self.snapshot_date,
             ).values_list("student_id", flat=True)
         )
+        self.total_active_student_ids = active_student_ids
         non_archived_student_ids = set(self.non_archived_students_qs.values_list("id", flat=True))
         inactive_student_ids = non_archived_student_ids - active_student_ids
         dropped_student_ids = set(self.archived_students_qs.values_list("id", flat=True))
@@ -310,6 +318,7 @@ class DirectorDashboardService:
             or filters.debt_status != "all"
         )
         self.student_scope_ids = candidate_student_ids
+        self.filtered_active_student_ids = self.total_active_student_ids & self.student_scope_ids
         self.student_scope_qs = self.all_students_qs.filter(id__in=self.student_scope_ids)
 
         self.payments_period_qs = self._build_payment_scope(filters.date_from, filters.date_to)
@@ -715,26 +724,25 @@ class DirectorDashboardService:
 
         def attendance_cost(range_start: date, range_end: date, store):
             rows = (
-                self._scope_groups(
-                    Attendance.objects.filter(
-                        center=self.center,
-                        date__range=(range_start, range_end),
-                    )
+                self._scope_students(
+                    self._scope_groups(
+                        TeacherIncome.objects.filter(
+                            center=self.center,
+                            attendance__date__range=(range_start, range_end),
+                        )
+                    ),
+                    field_name="attendance__student_id",
                 )
-                .filter(Q(present=True) | Q(forced=True) | Q(status="present"))
-                .values("group_id", "student_id")
-                .annotate(count=Count("id"))
+                .values("group_id")
+                .annotate(total=Sum("amount"))
             )
             total_cost = 0
             for row in rows:
-                if self.student_scope_restricted and row["student_id"] not in self.student_scope_ids:
+                group_id = row["group_id"]
+                if group_id not in self.group_map:
                     continue
-                group = self.group_map.get(row["group_id"])
-                if not group:
-                    continue
-                lesson_cost = float(group.dars_boshiga_tolov())
-                amount = round(row["count"] * lesson_cost)
-                store[row["group_id"]] += amount
+                amount = int(row["total"] or 0)
+                store[group_id] += amount
                 total_cost += amount
             return total_cost
 
@@ -776,7 +784,9 @@ class DirectorDashboardService:
             [student_id for student_id in self.student_scope_ids if self._debt_snapshot["student_open_debt"].get(student_id, 0) > 0]
         )
         recurring_share = percent(returning_revenue, period_income)
-        debt_ratio = percent(open_debt, period_income or 1)
+        paid_students_count = max(len(self.filtered_active_student_ids - self.debtor_student_ids), 0)
+        payment_completion_rate = percent(paid_students_count, self.filtered_active_students) if self.filtered_active_students else 0
+        debt_ratio = debt_percent(open_debt, period_income)
         profit_margin = percent(profit, period_income) if period_income else 0
         income_quality_score = round(
             (
@@ -835,6 +845,9 @@ class DirectorDashboardService:
             "income_prev_diff": int(period_income - previous_income),
             "income_growth": growth_pct(period_income, previous_income),
             "expense": int(total_expense),
+            "expense_previous": int(total_expense_previous),
+            "expense_prev_diff": int(total_expense - total_expense_previous),
+            "expense_growth": growth_pct(total_expense, total_expense_previous),
             "operating_expense": int(allocated_operating_expense),
             "teacher_shares": int(teacher_cost_period),
             "profit": int(profit),
@@ -844,6 +857,9 @@ class DirectorDashboardService:
             "open_debt": int(open_debt),
             "debt_ratio": debt_ratio,
             "debtors_count": debtors_count,
+            "paid_students_count": int(paid_students_count),
+            "billed_students_count": int(self.filtered_active_students),
+            "payment_completion_rate": round(payment_completion_rate, 1),
             "recurring_share": recurring_share,
             "income_quality_score": income_quality_score,
             "expense_mode": "allocated" if has_slice_filters else "actual",
@@ -985,6 +1001,7 @@ class DirectorDashboardService:
                 "teacher_id": None,
                 "teacher_name": "Ustoz biriktirilmagan",
                 "revenue": 0,
+                "revenue_previous": 0,
                 "soft_profit": 0,
                 "teacher_cost": 0,
                 "allocated_overhead": 0,
@@ -1174,6 +1191,7 @@ class DirectorDashboardService:
             teacher_bucket["teacher_id"] = group.oqituvchi_id
             teacher_bucket["teacher_name"] = metric["teacher_name"]
             teacher_bucket["revenue"] += revenue
+            teacher_bucket["revenue_previous"] += revenue_prev
             teacher_bucket["soft_profit"] += soft_profit
             teacher_bucket["teacher_cost"] += teacher_cost
             teacher_bucket["allocated_overhead"] += allocated_overhead
@@ -1220,14 +1238,17 @@ class DirectorDashboardService:
                 round(teacher_bucket["revenue"] / teacher_bucket["students"]) if teacher_bucket["students"] else 0
             )
             avg_health = round(sum(teacher_bucket["health_scores"]) / len(teacher_bucket["health_scores"]), 1) if teacher_bucket["health_scores"] else 0
-            avg_growth = round(sum(teacher_bucket["growth_values"]) / len(teacher_bucket["growth_values"]), 1) if teacher_bucket["growth_values"] else 0
+            teacher_revenue_growth = round(
+                growth_pct(teacher_bucket["revenue"], teacher_bucket["revenue_previous"]),
+                1,
+            )
             health_score = round(
                 (
                     clamp(avg_health) * 0.40
                     + clamp(attendance_rate if attendance_rate is not None else 70) * 0.20
                     + clamp(100 - debt_ratio) * 0.15
                     + clamp(retention_rate) * 0.15
-                    + clamp(avg_growth + 50) * 0.10
+                    + clamp(teacher_revenue_growth + 50) * 0.10
                 ),
                 1,
             )
@@ -1236,6 +1257,7 @@ class DirectorDashboardService:
                     "teacher_id": teacher_bucket["teacher_id"],
                     "teacher_name": teacher_bucket["teacher_name"],
                     "revenue": int(teacher_bucket["revenue"]),
+                    "revenue_previous": int(teacher_bucket["revenue_previous"]),
                     "soft_profit": int(teacher_bucket["soft_profit"]),
                     "teacher_cost": int(teacher_bucket["teacher_cost"]),
                     "allocated_overhead": int(teacher_bucket["allocated_overhead"]),
@@ -1255,7 +1277,7 @@ class DirectorDashboardService:
                     ),
                     "avg_revenue_per_student": int(avg_revenue_per_student),
                     "health_score": health_score,
-                    "revenue_growth": avg_growth,
+                    "revenue_growth": teacher_revenue_growth,
                 }
             )
 
@@ -1283,7 +1305,7 @@ class DirectorDashboardService:
             "top_5_income": groups_compat[:5],
             "bottom_5_income": list(reversed(sorted(groups_compat, key=lambda item: item["revenue"])[:5])),
             "most_indebted": debt_sorted[0] if debt_sorted else None,
-            "plan_fulfillment": 0,
+            "plan_fulfillment": finance_summary.get("payment_completion_rate", 0),
             "profitability": relevant_groups,
             "top_profitable": profit_sorted[:5],
             "least_profitable": sorted(relevant_groups, key=lambda item: item["soft_profit"])[:5],
@@ -1346,6 +1368,7 @@ class DirectorDashboardService:
         debtors_count = len(debtor_ids)
 
         risk_rows = []
+        roster_rows = []
         attendance_recent_rows = self._attendance_tuple_map(
             self._scope_students(
                 Attendance.objects.filter(
@@ -1405,6 +1428,34 @@ class DirectorDashboardService:
                 ),
                 1,
             )
+            attendance_text = f"{round(recent_pct)}%" if recent_pct is not None else "Ma'lumot yo'q"
+            if risk_score >= 70:
+                status_label = "Riskda"
+            elif student.id in active_student_ids:
+                status_label = "Faol"
+            elif has_group:
+                status_label = "Noaktiv"
+            else:
+                status_label = "Guruhsiz"
+
+            roster_rows.append(
+                {
+                    "student_id": student.id,
+                    "name": student.get_full_name() or student.email,
+                    "course": ", ".join(current_group_names.get(student.id, [])) or "Guruhsiz",
+                    "status_label": status_label,
+                    "attendance_pct": attendance_text,
+                    "attendance_value": round(recent_pct, 1) if recent_pct is not None else None,
+                    "debt": debt_value,
+                    "risk_score": risk_score,
+                    "joined_at": (
+                        timezone.localtime(student.date_joined).strftime("%d.%m.%Y")
+                        if student.date_joined
+                        else "-"
+                    ),
+                }
+            )
+
             reasons = []
             if recent_pct is not None and recent_pct < 65:
                 reasons.append(f"Davomat {recent_pct}%")
@@ -1423,7 +1474,7 @@ class DirectorDashboardService:
                     "student_id": student.id,
                     "name": student.get_full_name() or student.email,
                     "course": ", ".join(current_group_names.get(student.id, [])) or "Guruhsiz",
-                    "attendance_pct": f"{round(recent_pct)}%" if recent_pct is not None else "Ma'lumot yo'q",
+                    "attendance_pct": attendance_text,
                     "attendance_value": round(recent_pct, 1) if recent_pct is not None else None,
                     "debt": debt_value,
                     "risk_score": risk_score,
@@ -1438,6 +1489,13 @@ class DirectorDashboardService:
                 -item["risk_score"],
                 -item["debt"],
                 item["attendance_value"] if item["attendance_value"] is not None else 101,
+            )
+        )
+        roster_rows.sort(
+            key=lambda item: (
+                {"Riskda": 0, "Faol": 1, "Noaktiv": 2, "Guruhsiz": 3}.get(item["status_label"], 4),
+                -item["risk_score"],
+                item["name"],
             )
         )
         low_activity = risk_rows[:20]
@@ -1455,6 +1513,7 @@ class DirectorDashboardService:
             "debtors_count": debtors_count,
             "low_activity": low_activity,
             "risk_students": risk_rows[:50],
+            "roster": roster_rows,
             "reengagement_candidates": reengagement,
             "dropouts": dropouts,
         }
@@ -1465,67 +1524,127 @@ class DirectorDashboardService:
         leads_previous = self.relevant_leads_qs.filter(
             qoshilgan_sana__date__range=(filters.previous_from, filters.previous_to)
         ).distinct()
+        all_time_leads = self.relevant_leads_qs.distinct()
 
-        sources = []
-        lead_source_rows = list(
-            leads_period.values("manba_id", "manba__nom").annotate(total=Count("id")).order_by("-total")
-        )
-        for row in lead_source_rows:
-            source_leads = leads_period.filter(manba_id=row["manba_id"])
-            converted_ids = list(
-                source_leads.filter(converted_to_student=True, converted_user_id__isnull=False).values_list(
-                    "converted_user_id", flat=True
-                )
-            )
-            trial_scheduled = source_leads.filter(
-                Q(trial_lessons__isnull=False) | Q(status__code=LeadStatus.Code.TRIAL_SCHEDULED)
-            ).distinct().count()
-            trial_attended = source_leads.filter(
-                Q(trial_lessons__result_status__in=[TrialLesson.ResultStatus.ATTENDED, TrialLesson.ResultStatus.CONVERTED])
-                | Q(status__code__in=[LeadStatus.Code.TRIAL_ATTENDED, LeadStatus.Code.REGISTERED])
-            ).distinct().count()
-            paid_revenue = int(
-                Payment.objects.filter(
-                    center=self.center,
-                    student_id__in=converted_ids,
-                    paid_date__range=(filters.date_from, filters.date_to),
-                ).aggregate(total=Sum("summa"))["total"]
-                or 0
-            )
-            active_students = (
-                Enrollment.objects.filter(
-                    center=self.center,
-                    is_active=True,
-                    student_id__in=converted_ids,
-                    student__is_archived=False,
-                    group__is_archived=False,
-                    created_at__date__lte=self.snapshot_date,
-                )
-                .values("student_id")
-                .distinct()
-                .count()
-            )
-            conversion = percent(len(set(converted_ids)), max(row["total"], 1))
-            source_efficiency = round(
-                clamp(conversion * 0.5 + percent(paid_revenue, max(sum(int(r["total"] or 0) for r in lead_source_rows), 1)) * 0.3 + percent(active_students, max(row["total"], 1)) * 0.2),
-                1,
-            )
-            sources.append(
-                {
-                    "source_id": row["manba_id"],
-                    "name": row["manba__nom"] or "Noma'lum",
-                    "count": int(row["total"] or 0),
-                    "value": int(row["total"] or 0),
-                    "conversion": round(conversion, 1),
-                    "revenue": paid_revenue,
-                    "trial_scheduled": int(trial_scheduled),
-                    "trial_attended": int(trial_attended),
-                    "active_students": int(active_students),
-                    "source_efficiency_score": source_efficiency,
+        def build_breakdown(qs, *, id_field: str, name_field: str, id_key: str, empty_name: str, payment_range=None):
+            rows = list(qs.values(id_field, name_field).annotate(total=Count("id")).order_by("-total"))
+            lead_weight_base = max(sum(int(row["total"] or 0) for row in rows), 1)
+            items = []
+            for row in rows:
+                item_qs = qs.filter(**{id_field: row[id_field]}).distinct()
+                converted_ids = {
+                    student_id
+                    for student_id in item_qs.filter(
+                        converted_to_student=True,
+                        converted_user_id__isnull=False,
+                    ).values_list("converted_user_id", flat=True)
+                    if student_id
                 }
-            )
+                trial_scheduled = item_qs.filter(
+                    Q(trial_lessons__isnull=False) | Q(status__code=LeadStatus.Code.TRIAL_SCHEDULED)
+                ).distinct().count()
+                trial_attended = item_qs.filter(
+                    Q(trial_lessons__result_status__in=[TrialLesson.ResultStatus.ATTENDED, TrialLesson.ResultStatus.CONVERTED])
+                    | Q(status__code__in=[LeadStatus.Code.TRIAL_ATTENDED, LeadStatus.Code.REGISTERED])
+                ).distinct().count()
+                active_students = (
+                    Enrollment.objects.filter(
+                        center=self.center,
+                        is_active=True,
+                        student_id__in=converted_ids,
+                        student__is_archived=False,
+                        group__is_archived=False,
+                        created_at__date__lte=self.snapshot_date,
+                    )
+                    .values("student_id")
+                    .distinct()
+                    .count()
+                )
+                paid_student_ids = set()
+                paid_revenue = 0
+                if payment_range:
+                    paid_student_ids = set(
+                        Payment.objects.filter(
+                            center=self.center,
+                            student_id__in=converted_ids,
+                            paid_date__range=payment_range,
+                        ).values_list("student_id", flat=True)
+                    )
+                    paid_revenue = int(
+                        Payment.objects.filter(
+                            center=self.center,
+                            student_id__in=converted_ids,
+                            paid_date__range=payment_range,
+                        ).aggregate(total=Sum("summa"))["total"]
+                        or 0
+                    )
+                student_conversion = round(percent(len(converted_ids), max(row["total"], 1)), 1)
+                payment_conversion = round(percent(len(paid_student_ids), max(row["total"], 1)), 1) if payment_range else student_conversion
+                items.append(
+                    {
+                        id_key: row[id_field],
+                        "name": row[name_field] or empty_name,
+                        "count": int(row["total"] or 0),
+                        "value": int(row["total"] or 0),
+                        "converted_students": len(converted_ids),
+                        "student_conversion": student_conversion,
+                        "paid_students": len(paid_student_ids),
+                        "conversion": payment_conversion,
+                        "revenue": paid_revenue,
+                        "trial_scheduled": int(trial_scheduled),
+                        "trial_attended": int(trial_attended),
+                        "active_students": int(active_students),
+                        "source_efficiency_score": round(
+                            clamp(
+                                payment_conversion * 0.5
+                                + percent(paid_revenue, lead_weight_base) * 0.3
+                                + percent(active_students, max(row["total"], 1)) * 0.2
+                            ),
+                            1,
+                        )
+                        if payment_range
+                        else round(
+                            clamp(student_conversion * 0.6 + percent(active_students, max(row["total"], 1)) * 0.4),
+                            1,
+                        ),
+                    }
+                )
+            return items
 
+        sources = build_breakdown(
+            leads_period,
+            id_field="manba_id",
+            name_field="manba__nom",
+            id_key="source_id",
+            empty_name="Noma'lum",
+            payment_range=(filters.date_from, filters.date_to),
+        )
         sources.sort(key=lambda item: (-item["source_efficiency_score"], -item["revenue"], -item["count"]))
+
+        directions = build_breakdown(
+            leads_period,
+            id_field="yonalish_id",
+            name_field="yonalish__nom",
+            id_key="direction_id",
+            empty_name="Yo'nalishsiz",
+            payment_range=(filters.date_from, filters.date_to),
+        )
+        directions.sort(key=lambda item: (-item["active_students"], -item["count"], -item["revenue"]))
+
+        sources_overall = build_breakdown(
+            all_time_leads,
+            id_field="manba_id",
+            name_field="manba__nom",
+            id_key="source_id",
+            empty_name="Noma'lum",
+        )
+        directions_overall = build_breakdown(
+            all_time_leads,
+            id_field="yonalish_id",
+            name_field="yonalish__nom",
+            id_key="direction_id",
+            empty_name="Yo'nalishsiz",
+        )
         total_leads = leads_period.count()
         total_leads_previous = leads_previous.count()
         contacted = leads_period.filter(
@@ -1539,14 +1658,60 @@ class DirectorDashboardService:
             Q(trial_lessons__result_status__in=[TrialLesson.ResultStatus.ATTENDED, TrialLesson.ResultStatus.CONVERTED])
             | Q(status__code__in=[LeadStatus.Code.TRIAL_ATTENDED, LeadStatus.Code.REGISTERED])
         ).distinct().count()
-        paid_students = leads_period.filter(converted_to_student=True, converted_user_id__isnull=False).distinct().count()
+        converted_student_ids = list(
+            leads_period.filter(converted_to_student=True, converted_user_id__isnull=False).values_list("converted_user_id", flat=True)
+        )
+        paid_students = len(
+            set(
+                Payment.objects.filter(
+                    center=self.center,
+                    student_id__in=converted_student_ids,
+                    paid_date__range=(filters.date_from, filters.date_to),
+                ).values_list("student_id", flat=True)
+            )
+        )
+        converted_student_ids_previous = list(
+            leads_previous.filter(converted_to_student=True, converted_user_id__isnull=False).values_list(
+                "converted_user_id", flat=True
+            )
+        )
+        paid_students_previous = len(
+            set(
+                Payment.objects.filter(
+                    center=self.center,
+                    student_id__in=converted_student_ids_previous,
+                    paid_date__range=(filters.previous_from, filters.previous_to),
+                ).values_list("student_id", flat=True)
+            )
+        )
         active_students = (
             Enrollment.objects.filter(
                 center=self.center,
                 is_active=True,
                 student__is_archived=False,
                 group__is_archived=False,
-                student_id__in=leads_period.filter(converted_user_id__isnull=False).values("converted_user_id"),
+                student_id__in=converted_student_ids,
+                created_at__date__lte=self.snapshot_date,
+            )
+            .values("student_id")
+            .distinct()
+            .count()
+        )
+        all_time_converted_student_ids = {
+            student_id
+            for student_id in all_time_leads.filter(
+                converted_to_student=True,
+                converted_user_id__isnull=False,
+            ).values_list("converted_user_id", flat=True)
+            if student_id
+        }
+        all_time_active_students = (
+            Enrollment.objects.filter(
+                center=self.center,
+                is_active=True,
+                student__is_archived=False,
+                group__is_archived=False,
+                student_id__in=all_time_converted_student_ids,
                 created_at__date__lte=self.snapshot_date,
             )
             .values("student_id")
@@ -1567,15 +1732,263 @@ class DirectorDashboardService:
         worst_source = sources[-1] if sources else None
         return {
             "sources": sources,
+            "directions": directions,
+            "sources_overall": sources_overall,
+            "directions_overall": directions_overall,
             "funnel": funnel,
             "total_leads": total_leads,
             "total_leads_previous": total_leads_previous,
+            "all_time_leads": all_time_leads.count(),
+            "all_time_converted_students": len(all_time_converted_student_ids),
+            "all_time_active_students": int(all_time_active_students),
             "paid_students": paid_students,
+            "paid_students_previous": paid_students_previous,
             "active_students": active_students,
-            "conversion_rate": round(percent(active_students, max(total_leads, 1)), 1),
+            "contact_rate": round(percent(contacted, total_leads), 1) if total_leads else 0.0,
+            "conversion_rate": round(percent(paid_students, total_leads), 1) if total_leads else 0.0,
+            "conversion_rate_previous": round(percent(paid_students_previous, total_leads_previous), 1)
+            if total_leads_previous
+            else 0.0,
+            "conversion_growth": growth_pct(
+                round(percent(paid_students, total_leads), 1) if total_leads else 0.0,
+                round(percent(paid_students_previous, total_leads_previous), 1) if total_leads_previous else 0.0,
+            ),
+            "active_conversion_rate": round(percent(active_students, total_leads), 1) if total_leads else 0.0,
             "best_source": best_source,
             "worst_source": worst_source,
             "cac": None,
+        }
+
+    def _build_manager_metrics(self):
+        managers = list(
+            User.objects.filter(center=self.center, role="manager", is_archived=False).order_by("ism", "familya")
+        )
+        manager_ids = [manager.id for manager in managers]
+        if not manager_ids:
+            return {
+                "total_count": 0,
+                "total_leads": 0,
+                "total_converted": 0,
+                "total_pending": 0,
+                "ranking": [],
+            }
+
+        filters = self.filters
+        leads_period = self.relevant_leads_qs.filter(
+            qoshilgan_sana__date__range=(filters.date_from, filters.date_to),
+            assigned_manager_id__in=manager_ids,
+        )
+        request_period = PurchaseRequest.objects.filter(
+            center=self.center,
+            sana__date__range=(filters.date_from, filters.date_to),
+            manager_id__in=manager_ids,
+        )
+        sale_period = Sale.objects.filter(
+            center=self.center,
+            sana__date__range=(filters.date_from, filters.date_to),
+            manager_id__in=manager_ids,
+        )
+
+        lead_stats = {
+            row["assigned_manager_id"]: row
+            for row in leads_period.values("assigned_manager_id").annotate(
+                total=Count("id"),
+                converted=Count("id", filter=Q(converted_to_student=True)),
+                trial=Count(
+                    "id",
+                    filter=Q(
+                        status__code__in=[
+                            LeadStatus.Code.TRIAL_SCHEDULED,
+                            LeadStatus.Code.TRIAL_ATTENDED,
+                            LeadStatus.Code.REGISTERED,
+                        ]
+                    ),
+                ),
+                pending=Count(
+                    "id",
+                    filter=Q(
+                        status__code__in=[
+                            LeadStatus.Code.NEW,
+                            LeadStatus.Code.CONTACTED,
+                            LeadStatus.Code.NO_ANSWER,
+                            LeadStatus.Code.TRIAL_SCHEDULED,
+                        ]
+                    ),
+                ),
+            )
+        }
+        request_stats = {
+            row["manager_id"]: row
+            for row in request_period.values("manager_id").annotate(
+                approved=Count("id", filter=Q(status=PurchaseRequest.APPROVED)),
+                rejected=Count("id", filter=Q(status=PurchaseRequest.REJECTED)),
+                handled=Count("id"),
+            )
+        }
+        sale_stats = {
+            row["manager_id"]: row
+            for row in sale_period.values("manager_id").annotate(
+                sales_count=Count("id"),
+                sold_qty=Sum("qty"),
+            )
+        }
+
+        ranking = []
+        total_leads = 0
+        total_converted = 0
+        total_pending = 0
+        for manager in managers:
+            lead_row = lead_stats.get(manager.id, {})
+            req_row = request_stats.get(manager.id, {})
+            sale_row = sale_stats.get(manager.id, {})
+            leads_count = int(lead_row.get("total") or 0)
+            converted = int(lead_row.get("converted") or 0)
+            pending = int(lead_row.get("pending") or 0)
+            trial = int(lead_row.get("trial") or 0)
+            approved = int(req_row.get("approved") or 0)
+            rejected = int(req_row.get("rejected") or 0)
+            handled = int(req_row.get("handled") or 0)
+            sales_count = int(sale_row.get("sales_count") or 0)
+            sold_qty = int(sale_row.get("sold_qty") or 0)
+
+            total_leads += leads_count
+            total_converted += converted
+            total_pending += pending
+
+            conversion_rate = round(percent(converted, leads_count), 1) if leads_count else 0.0
+            request_success_rate = round(percent(approved, handled), 1) if handled else 0.0
+            productivity_score = round(
+                (
+                    clamp(conversion_rate) * 0.45
+                    + clamp(percent(trial, max(leads_count, 1))) * 0.2
+                    + clamp(request_success_rate) * 0.2
+                    + clamp(100 - percent(pending, max(leads_count, 1))) * 0.15
+                ),
+                1,
+            )
+            focus_note = "Barqaror oqim"
+            if pending >= 6:
+                focus_note = "Takipga qolgan lidlar ko'p"
+            elif conversion_rate < 20 and leads_count >= 5:
+                focus_note = "Konversiyani oshirish kerak"
+            elif request_success_rate >= 70 and approved >= 3:
+                focus_note = "Do'kon so'rovlari yaxshi boshqarilmoqda"
+            elif leads_count == 0 and handled == 0:
+                focus_note = "Bu davrda faoliyat ko'rinmadi"
+
+            ranking.append(
+                {
+                    "manager_id": manager.id,
+                    "manager_name": manager.get_full_name() or manager.email,
+                    "leads": leads_count,
+                    "converted": converted,
+                    "trial_count": trial,
+                    "pending_followups": pending,
+                    "approved_requests": approved,
+                    "rejected_requests": rejected,
+                    "handled_requests": handled,
+                    "sales_count": sales_count,
+                    "sold_qty": sold_qty,
+                    "conversion_rate": conversion_rate,
+                    "request_success_rate": request_success_rate,
+                    "productivity_score": productivity_score,
+                    "focus_note": focus_note,
+                }
+            )
+
+        ranking.sort(key=lambda item: (-item["productivity_score"], -item["converted"], -item["leads"]))
+        return {
+            "total_count": len(ranking),
+            "total_leads": total_leads,
+            "total_converted": total_converted,
+            "total_pending": total_pending,
+            "ranking": ranking,
+        }
+
+    def _build_request_metrics(self):
+        filters = self.filters
+        requests_qs = PurchaseRequest.objects.filter(
+            center=self.center,
+            sana__date__range=(filters.date_from, filters.date_to),
+        ).select_related("student", "product", "manager")
+        previous_qs = PurchaseRequest.objects.filter(
+            center=self.center,
+            sana__date__range=(filters.previous_from, filters.previous_to),
+        )
+
+        if self.student_scope_restricted:
+            requests_qs = requests_qs.filter(student_id__in=self.student_scope_ids)
+            previous_qs = previous_qs.filter(student_id__in=self.student_scope_ids)
+
+        all_requests_qs = PurchaseRequest.objects.filter(center=self.center)
+        if self.student_scope_restricted:
+            all_requests_qs = all_requests_qs.filter(student_id__in=self.student_scope_ids)
+
+        products_qs = Product.objects.filter(center=self.center)
+
+        all_requests = list(requests_qs.order_by("-sana"))
+        total_count = requests_qs.count()
+        all_requests_count = all_requests_qs.count()
+        products_count = products_qs.count()
+        previous_count = previous_qs.count()
+        pending_count = requests_qs.filter(status=PurchaseRequest.PENDING).count()
+        approved_count = requests_qs.filter(status=PurchaseRequest.APPROVED).count()
+        rejected_count = requests_qs.filter(status=PurchaseRequest.REJECTED).count()
+
+        total_qty = 0
+        total_value_som = 0
+        total_value_chaqmoq = 0
+        rows = []
+        for request in all_requests:
+            qty = int(request.qty or 0)
+            price_som = int(getattr(request.product, "narx_som", 0) or 0)
+            price_chaqmoq = int(getattr(request.product, "narx_chaqmoq", 0) or 0)
+            total_qty += qty
+            total_value_som += price_som * qty
+            total_value_chaqmoq += price_chaqmoq * qty
+        for request in all_requests:
+            qty = int(request.qty or 0)
+            price_som = int(getattr(request.product, "narx_som", 0) or 0)
+            price_chaqmoq = int(getattr(request.product, "narx_chaqmoq", 0) or 0)
+            rows.append(
+                {
+                    "id": request.id,
+                    "student_name": request.student.get_full_name() or request.student.email,
+                    "product_name": getattr(request.product, "nom", "Mahsulot yo'q"),
+                    "qty": qty,
+                    "status": request.status,
+                    "status_label": request.get_status_display(),
+                    "manager_name": request.manager.get_full_name() if request.manager_id else "Biriktirilmagan",
+                    "value_som": price_som * qty,
+                    "value_chaqmoq": price_chaqmoq * qty,
+                    "created_at": timezone.localtime(request.sana).strftime("%d.%m.%Y %H:%M"),
+                }
+            )
+
+        top_products = []
+        for item in requests_qs.values("product__nom").annotate(total=Count("id"), qty=Sum("qty")).order_by("-total")[:5]:
+            top_products.append(
+                {
+                    "name": item["product__nom"] or "Mahsulot yo'q",
+                    "count": int(item["total"] or 0),
+                    "qty": int(item["qty"] or 0),
+                }
+            )
+
+        return {
+            "total_count": total_count,
+            "all_requests_count": all_requests_count,
+            "products_count": products_count,
+            "previous_count": previous_count,
+            "growth": growth_pct(total_count, previous_count),
+            "pending_count": pending_count,
+            "approved_count": approved_count,
+            "rejected_count": rejected_count,
+            "total_qty": total_qty,
+            "total_value_som": total_value_som,
+            "total_value_chaqmoq": total_value_chaqmoq,
+            "top_products": top_products,
+            "items": rows,
         }
 
     def _build_insights(self, finance_summary, group_payload, teacher_payload, marketing_payload, student_summary):
@@ -1865,6 +2278,8 @@ class DirectorDashboardService:
         )
         student_summary = self._build_student_metrics(finance_summary)
         marketing_payload = self._build_marketing_metrics()
+        manager_payload = self._build_manager_metrics()
+        request_payload = self._build_request_metrics()
         chart_payload["marketing"] = marketing_payload["sources"]
         use_daily, bucket_fn, labels = self._bucket_labels(self.filters.date_from, self.filters.date_to)
         new_student_rows = list(
@@ -1992,6 +2407,8 @@ class DirectorDashboardService:
             "students": student_summary,
             "teachers": teacher_payload,
             "groups": group_payload,
+            "managers": manager_payload,
+            "requests": request_payload,
             "charts": chart_payload,
             "marketing": marketing_payload,
             "plans": plans_payload,

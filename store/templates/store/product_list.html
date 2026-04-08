@@ -183,6 +183,19 @@
     border-color: rgba(34, 197, 94, .18);
   }
 
+  .btn-cyan {
+    background: linear-gradient(135deg, rgba(56, 189, 248, .18) 0%, rgba(14, 165, 233, .12) 100%);
+    color: #d9f3ff;
+    border-color: rgba(56, 189, 248, .18);
+    box-shadow: 0 14px 28px rgba(14, 165, 233, .10);
+  }
+
+  .btn-ghost-link {
+    background: rgba(255, 255, 255, .05);
+    color: rgba(226, 232, 240, .88);
+    border-color: rgba(255, 255, 255, .09);
+  }
+
   .btn-red {
     background: rgba(239, 68, 68, .10);
     color: #fecaca;
@@ -203,6 +216,81 @@
     /* Reduced minmax from 320px to 280px to allow 4 items on standard laptop screens */
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 14px;
+  }
+
+  .empty-state {
+    grid-column: 1 / -1;
+    min-height: 320px;
+    border-radius: 24px;
+    padding: clamp(22px, 3vw, 34px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background:
+      radial-gradient(520px 220px at 50% -10%, rgba(250, 204, 21, .10), transparent 72%),
+      radial-gradient(560px 260px at 100% 0%, rgba(56, 189, 248, .08), transparent 70%),
+      linear-gradient(180deg, rgba(255, 255, 255, .04), rgba(2, 6, 23, .26));
+    border: 1px solid rgba(255, 255, 255, .08);
+    box-shadow: var(--shadow2);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .empty-state::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(135deg, rgba(250, 204, 21, .05), transparent 42%),
+      linear-gradient(315deg, rgba(56, 189, 248, .05), transparent 40%);
+    pointer-events: none;
+  }
+
+  .empty-inner {
+    position: relative;
+    z-index: 1;
+    max-width: 620px;
+  }
+
+  .empty-icon {
+    width: 74px;
+    height: 74px;
+    margin: 0 auto 18px;
+    border-radius: 24px;
+    display: grid;
+    place-items: center;
+    font-size: 30px;
+    color: var(--accent);
+    background: rgba(250, 204, 21, .10);
+    border: 1px solid rgba(250, 204, 21, .22);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, .34);
+  }
+
+  .empty-title {
+    margin: 0;
+    font-size: clamp(1.1rem, .95rem + .85vw, 1.55rem);
+    font-weight: 950;
+    color: #f8fafc;
+    letter-spacing: .01em;
+  }
+
+  .empty-copy {
+    margin: 12px auto 0;
+    max-width: 520px;
+    color: rgba(203, 213, 225, .78);
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.7;
+  }
+
+  .empty-actions {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
   }
 
   .p-card {
@@ -522,8 +610,21 @@
 
         </div>
         {% empty %}
-        <div style="padding:18px; color:rgba(148,163,184,.92); font-weight:950;">
-          Mahsulot mavjud emas.
+        <div class="empty-state">
+          <div class="empty-inner">
+            <div class="empty-icon">🛍️</div>
+            <h3 class="empty-title">Do'kon bo'limida hali mahsulot joylanmagan</h3>
+            <div class="empty-copy">
+              Mahsulotlar shu sahifada chiqadi. Birinchi mahsulotni qo'shsangiz, bu joy avtomatik ravishda chiroyli katalog ko'rinishiga o'tadi va direktor paneldagi “Mahsulotlar” tugmasi ham to'g'ridan to'g'ri shu do'kon bo'limini ochadi.
+            </div>
+            <div class="empty-actions">
+              {% if can_add %}
+              <a href="{% url 'store:product_create' %}" class="btn-pill btn-green">➕ Birinchi mahsulotni qo'shish</a>
+              <a href="{% url 'store:requests' %}" class="btn-pill btn-cyan">🧾 So'rovlar bo'limi</a>
+              {% endif %}
+              <a href="/" class="btn-pill btn-ghost-link">⬅ Boshqaruvga qaytish</a>
+            </div>
+          </div>
         </div>
         {% endfor %}
       </div>

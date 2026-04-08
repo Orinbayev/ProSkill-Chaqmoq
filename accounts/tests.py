@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone as dt_timezone
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
+from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import Center, User
@@ -159,3 +160,49 @@ class StudentLimitResolutionTests(TestCase):
 
         with self.assertRaises(ValidationError):
             check_student_limit(self.center, raise_error=True, actor=self.director)
+
+
+class TenantRedirectRegressionTests(TestCase):
+    def setUp(self):
+        self.center = Center.objects.create(name="Redirect Center", slug="redirect-center")
+        self.director = User.objects.create_user(
+            email="director.redirect@test.uz",
+            password="strong-pass-123",
+            role="director",
+            ism="Redirect",
+            familya="Director",
+            center=self.center,
+        )
+        self.client.force_login(self.director)
+
+    def test_core_home_reverse_points_to_web_dashboard(self):
+        self.assertEqual(reverse("core:home"), "/")
+        self.assertEqual(reverse("core:notifications"), "/notifications/")
+
+    def test_add_user_redirects_back_to_web_home_after_save(self):
+        response = self.client.post(
+            reverse("accounts:add_user"),
+            {
+                "ism": "Ali",
+                "familya": "Teacher",
+                "otchestvo": "",
+                "telefon1": "",
+                "telefon2": "",
+                "center": str(self.center.id),
+                "role": "teacher",
+                "email": "ali.teacher@test.uz",
+                "password": "strong-pass-123",
+                "oqituvchi_foizi": "45",
+                "birth_date": "",
+                "gender": "",
+                "passport_id": "",
+                "jshr": "",
+                "address": "",
+            },
+            follow=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], reverse("core:home"))
+        self.assertFalse(response["Location"].startswith("/api/mobile/"))
+        self.assertTrue(User.objects.filter(email="ali.teacher@test.uz", role="teacher").exists())
