@@ -460,6 +460,29 @@ class DirectorDashboardAPITests(TestCase):
         self.assertIn("foyda", today_profit_answer)
         self.assertNotIn("chaqmoqapp direktor panelida", today_profit_answer)
 
+        student_total_response = self.client.post(
+            reverse("core:director_ai_ask_api") + f"?date_from={params['date_from']}&date_to={params['date_to']}",
+            data=json.dumps({"question": "O'quv markazda nechta o'quvchi bor?"}),
+            content_type="application/json",
+        )
+        self.assertEqual(student_total_response.status_code, 200)
+        student_total_answer = student_total_response.json()["answer"].lower()
+        self.assertIn("o'quvchi", student_total_answer)
+        self.assertIn(str(User.objects.filter(center=self.center, role="student", is_archived=False).count()), student_total_answer)
+        self.assertNotIn("eng kuchli ustoz", student_total_answer)
+
+        forecast_question_response = self.client.post(
+            reverse("core:director_ai_ask_api") + f"?date_from={params['date_from']}&date_to={params['date_to']}",
+            data=json.dumps({"question": "Kelasi oy qancha daromad ko'rishimiz mumkin?"}),
+            content_type="application/json",
+        )
+        self.assertEqual(forecast_question_response.status_code, 200)
+        forecast_answer = forecast_question_response.json()["answer"].lower()
+        self.assertTrue(
+            any(keyword in forecast_answer for keyword in ["prognoz", "taxminan", "weighted moving average"])
+        )
+        self.assertNotIn("eng kuchli ustoz", forecast_answer)
+
         chat_response = self.client.get(reverse("core:director_ai_chat_api"), params)
         self.assertEqual(chat_response.status_code, 200)
         chat_payload = chat_response.json()

@@ -17,6 +17,7 @@ from django.utils import timezone
 
 from accounts.models import Center, User
 from chaqmoq.models import Ledger
+from core.services.center_ai_context import build_center_ai_context, build_center_ai_prompt_context
 from education.models import Attendance, Enrollment, Payment, PaymentAllocation, StudentGroupHistory, TuitionMonth
 
 try:
@@ -32,7 +33,7 @@ INSIGHT_CACHE_TTL = 60 * 30
 ANSWER_CACHE_TTL = 60 * 5
 FORECAST_CACHE_TTL = 60 * 30
 CHURN_CACHE_TTL = 60 * 10
-ANSWER_ENGINE_VERSION = "2026-04-08-v2"
+ANSWER_ENGINE_VERSION = "2026-04-08-v3"
 
 MONTH_NAMES = [
     "yanvar",
@@ -637,6 +638,70 @@ def _period_phrase(question: str, period: dict) -> str:
     return "Tanlangan davrda"
 
 
+def _full_center_context(center: Center, stats: dict, question: str, *, limit: int = 12) -> tuple[dict, str]:
+    compact = _compact_context(stats)
+    period = compact.get("period") or {}
+    date_from = period.get("date_from") or None
+    date_to = period.get("date_to") or None
+    cache_key = (
+        f"director-ai-full-context:{center.id}:{date_from or 'na'}:{date_to or 'na'}:"
+        f"{md5((question or '').encode('utf-8')).hexdigest()}:{limit}"
+    )
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached.get("context") or {}, cached.get("prompt") or ""
+
+    try:
+        context = build_center_ai_context(
+            center,
+            question=question,
+            date_from=date_from,
+            date_to=date_to,
+            limit=limit,
+        )
+        prompt_context = build_center_ai_prompt_context(
+            center,
+            question=question,
+            date_from=date_from,
+            date_to=date_to,
+            limit=limit,
+        )
+    except Exception as exc:
+        logger.warning("Center AI context build failed: %s", exc)
+        context = {}
+        prompt_context = ""
+
+    cache.set(
+        cache_key,
+        {"context": context, "prompt": prompt_context},
+        ANSWER_CACHE_TTL,
+    )
+    return context, prompt_context
+
+
+def _pick_forecast_item(question: str, items: list[dict]) -> dict:
+    q = _normalize_question(question)
+    forecast_items = [item for item in items if item.get("is_forecast")]
+    if not forecast_items:
+        return {}
+
+    for item in forecast_items:
+        month_value = str(item.get("month") or "")
+        label_value = _normalize_question(item.get("label") or "")
+        if month_value and month_value in q:
+            return item
+        if label_value and label_value in q:
+            return item
+
+    for idx, month_name in enumerate(MONTH_NAMES, start=1):
+        if month_name in q:
+            for item in forecast_items:
+                if str(item.get("month") or "").endswith(f"-{idx:02d}"):
+                    return item
+
+    return forecast_items[0]
+
+
 def _fallback_insights(stats: dict) -> list[dict]:
     ctx = _compact_context(stats)
     finance = ctx["finance"]
@@ -1069,7 +1134,7 @@ def forecast_revenue_bundle(center, *, months_ahead=3, anchor_date: date | None 
     return _forecast_bundle(center, months_ahead=months_ahead, anchor_date=anchor_date)
 
 
-def _fallback_answer(question: str, stats: dict, history: list[dict] | None = None) -> str:
+def _fallback_answer(center: Center, question: str, stats: dict, history: list[dict] | None = None) -> str:
     q = _normalize_question(question)
     if _question_has(q, "salom", "assalomu alaykum", "hello"):
         return (
@@ -1100,6 +1165,13 @@ def _fallback_answer(question: str, stats: dict, history: list[dict] | None = No
     raw_requests = stats.get("requests") or {}
     raw_managers = stats.get("managers") or {}
     raw_roster = raw_students.get("roster") or []
+    full_ctx, _ = _full_center_context(center, stats, question)
+    full_finance = ((full_ctx.get("finance") or {}).get("summary") or {})
+    full_students = ((full_ctx.get("students") or {}).get("summary") or {})
+    full_teachers = ((full_ctx.get("teachers") or {}).get("summary") or {})
+    full_groups = ((full_ctx.get("groups") or {}).get("summary") or {})
+    full_leads = ((full_ctx.get("leads") or {}).get("summary") or {})
+    full_store = ((full_ctx.get("store") or {}).get("summary") or {})
     ctx = _compact_context(stats)
     finance = ctx["finance"]
     students = ctx["students"]
@@ -1133,6 +1205,18 @@ def _fallback_answer(question: str, stats: dict, history: list[dict] | None = No
     top_manager = (raw_managers.get("ranking") or [{}])[0]
     top_product = (raw_requests.get("top_products") or [{}])[0]
     top_active_student = _top_student_by_activity(raw_roster)
+    total_students = int(full_students.get("total_students") or raw_students.get("total") or 0)
+    active_students = int(full_students.get("active_students") or raw_students.get("active_students") or students["active_students"] or 0)
+    total_teachers = int(full_teachers.get("total_teachers") or raw_teachers.get("total_count") or 0)
+    total_groups = int(full_groups.get("total_groups") or raw_groups.get("total_count") or 0)
+    total_leads = int(full_leads.get("total_leads") or raw_marketing.get("all_time_leads") or 0)
+    period_leads = int(full_leads.get("period_leads") or raw_marketing.get("total_leads") or marketing["new_leads"] or 0)
+    total_products = int(full_store.get("products_count") or raw_requests.get("products_count") or 0)
+    total_requests = int(full_store.get("requests_count") or raw_requests.get("total_count") or 0)
+    finance_revenue = int(full_finance.get("revenue") or raw_finance.get("income") or finance["income"] or 0)
+    finance_expenses = int(full_finance.get("expenses") or raw_finance.get("expense") or raw_finance.get("operating_expense") or 0)
+    finance_profit = int(full_finance.get("profit") or raw_finance.get("profit") or 0)
+    finance_teacher_payout = int(full_finance.get("teacher_payout") or raw_finance.get("teacher_shares") or 0)
     site_scope_requested = any(
         phrase in q
         for phrase in [
@@ -1171,12 +1255,64 @@ def _fallback_answer(question: str, stats: dict, history: list[dict] | None = No
 
     if _question_has(q, "saytim haqida", "to'liq tahlil", "to'liq ma'lumot", "hammasini ayt", "umumiy holat"):
         return (
-            f"{period_label} oralig'ida ChaqmoqApp markazingizda daromad {_compact_money(raw_finance.get('income') or finance['income'])}, "
-            f"foyda {_compact_money(raw_finance.get('profit') or 0)}, ochiq qarz {_compact_money(raw_finance.get('open_debt') or finance['open_debt'])}. "
-            f"Faol o'quvchilar {int(raw_students.get('active_students') or students['active_students'])} ta, ustozlar {int(raw_teachers.get('total_count') or 0)} ta, "
-            f"guruhlar {int(raw_groups.get('total_count') or 0)} ta, leadlar {int(raw_marketing.get('all_time_leads') or 0)} ta va shu davr leadi {int(raw_marketing.get('total_leads') or marketing['new_leads'])} ta. "
+            f"{period_label} oralig'ida ChaqmoqApp markazingizda daromad {_compact_money(finance_revenue)}, "
+            f"foyda {_compact_money(finance_profit)}, ochiq qarz {_compact_money(raw_finance.get('open_debt') or finance['open_debt'])}. "
+            f"Jami o'quvchilar {total_students} ta, faol o'quvchilar {active_students} ta, ustozlar {total_teachers} ta, "
+            f"guruhlar {total_groups} ta, leadlar {total_leads} ta va shu davr leadi {period_leads} ta. "
             f"Eng kuchli ustoz {teachers['best_teacher']['name'] or 'aniqlanmadi'}, eng samarali lead manbasi {marketing['best_source']['name'] or 'aniqlanmadi'}, "
-            f"do'kon bo'limida esa {int(raw_requests.get('products_count') or 0)} ta mahsulot va {int(raw_requests.get('total_count') or 0)} ta so'rov bor."
+            f"do'kon bo'limida esa {total_products} ta mahsulot va {total_requests} ta so'rov bor."
+        )
+
+    if _question_has(q, "daromad", "tushum", "kirim") and _question_has(q, "prognoz", "taxmin", "bashorat", "kelasi oy", "keyingi oy", "kutilmoqda"):
+        forecast_items, forecast_summary = forecast_revenue_bundle(
+            center,
+            months_ahead=3,
+            anchor_date=_parse_period_day(period.get("date_to")) or timezone.localdate(),
+        )
+        selected_item = _pick_forecast_item(q, forecast_items)
+        if selected_item:
+            tail = [
+                f"{item['label']} {_compact_money(item['amount'])}"
+                for item in forecast_items
+                if item.get("is_forecast")
+            ]
+            return (
+                f"{selected_item.get('label') or 'Kelasi oy'} uchun daromad prognozi taxminan "
+                f"{_compact_money(selected_item.get('amount') or 0)}. "
+                f"Weighted moving average asosida keyingi oylar: {', '.join(tail)}."
+            )
+        return "Daromad prognozi uchun yetarli tarixiy ma'lumot topilmadi."
+
+    if _question_has(q, "o'quvchi", "oquvchi", "student") and _question_has(q, "nechta", "qancha", "jami", "soni", "bor"):
+        if _question_has(q, "faol", "aktiv"):
+            return (
+                f"{period_intro} faol o'quvchilar soni {active_students} ta. "
+                f"Markaz bazasidagi jami o'quvchilar esa {total_students} ta."
+            )
+        return (
+            f"Markazda jami {total_students} ta o'quvchi bor. "
+            f"{period_intro} faol o'quvchilar {active_students} ta."
+        )
+
+    if _question_has(q, "ustoz", "o'qituvchi", "oqituvchi", "teacher") and _question_has(q, "nechta", "qancha", "jami", "soni", "bor"):
+        return (
+            f"Markazda jami {total_teachers} ta ustoz bor. "
+            f"{period_intro} ishlayotgan guruhlar soni {total_groups} ta."
+        )
+
+    if _question_has(q, "guruh") and _question_has(q, "nechta", "qancha", "jami", "soni", "bor"):
+        return f"Markazda jami {total_groups} ta guruh bor."
+
+    if _question_has(q, "lead") and _question_has(q, "nechta", "qancha", "jami", "soni", "bor"):
+        return (
+            f"Markaz bazasida jami {total_leads} ta lead bor. "
+            f"{period_intro} qo'shilgan leadlar {period_leads} ta."
+        )
+
+    if _question_has(q, "mahsulot", "do'kon", "dokon") and _question_has(q, "nechta", "qancha", "jami", "soni", "bor"):
+        return (
+            f"Do'kon bo'limida jami {total_products} ta mahsulot bor. "
+            f"{period_intro} xarid so'rovlari {total_requests} ta."
         )
 
     if (_question_has(q, "eng faol") and _question_has(q, "o'quvchi")) or (_question_has(q, "eng faol") and _question_has(q, "student")):
@@ -1206,28 +1342,27 @@ def _fallback_answer(question: str, stats: dict, history: list[dict] | None = No
 
     if _question_has(q, "daromad", "tushum", "kirim") and not _question_has(q, "prognoz", "taxmin"):
         return (
-            f"{period_intro} daromad {_compact_money(raw_finance.get('income') or finance['income'])}. "
+            f"{period_intro} daromad {_compact_money(finance_revenue)}. "
             f"Oldingi davrga nisbatan {_signed_pct(raw_finance.get('income_growth') or finance['income_growth'])} "
             f"o'zgarish bor."
         )
 
     if _question_has(q, "foyda", "marja"):
         return (
-            f"{period_intro} sof foyda {_compact_money(raw_finance.get('profit') or 0)}. "
+            f"{period_intro} sof foyda {_compact_money(finance_profit)}. "
             f"Marja {_pct(raw_finance.get('profit_margin') or 0)} darajada."
         )
 
     if _question_has(q, "xarajat", "chiqim"):
-        expense_amount = raw_finance.get("expense") or raw_finance.get("operating_expense") or 0
         return (
-            f"{period_intro} xarajat {_compact_money(expense_amount)}. "
-            f"O'qituvchi ulushi {_compact_money(raw_finance.get('teacher_shares') or 0)} ni tashkil qilgan."
+            f"{period_intro} xarajat {_compact_money(finance_expenses)}. "
+            f"O'qituvchi ulushi {_compact_money(finance_teacher_payout)} ni tashkil qilgan."
         )
 
     if _question_has(q, "davomatdan pul", "ustoz puli", "o'qituvchi ulushi", "davomat puli", "davomatga yarasha"):
         return (
             "ChaqmoqAppda ustoz ulushi davomat yozilganda TeacherIncome orqali hisoblanadi. "
-            f"{period_intro} jami o'qituvchi ulushi {_compact_money(raw_finance.get('teacher_shares') or 0)} bo'lgan. "
+            f"{period_intro} jami o'qituvchi ulushi {_compact_money(finance_teacher_payout)} bo'lgan. "
             "Agar kelasi oy sanasiga davomat qo'yilsa, pul ham aynan o'sha oy sanasi bo'yicha yoziladi."
         )
 
@@ -1299,7 +1434,7 @@ def _fallback_answer(question: str, stats: dict, history: list[dict] | None = No
 
     if _question_has(q, "faol o'quvchi", "o'quvchi soni", "student"):
         return (
-            f"{period_intro} faol o'quvchilar soni {int(raw_students.get('active_students') or students['active_students'])} ta. "
+            f"{period_intro} faol o'quvchilar soni {active_students} ta. "
             f"Yangi qo'shilgan o'quvchilar {int(raw_students.get('new_count') or students['new_count'])} ta."
         )
 
@@ -1335,8 +1470,8 @@ def _fallback_answer(question: str, stats: dict, history: list[dict] | None = No
         return "Managerlar bo'yicha yetarli ma'lumot topilmadi."
 
     return (
-        f"{period_intro} daromad {_compact_money(finance['income'])}, faol o'quvchilar {students['active_students']} ta, "
-        f"yangi leadlar {marketing['new_leads']} ta va daromad rejasi {_pct(plans['finance_pct'])} bajarilgan."
+        f"{period_intro} daromad {_compact_money(finance_revenue)}, jami o'quvchilar {total_students} ta, faol o'quvchilar {active_students} ta, "
+        f"leadlar {period_leads} ta va daromad rejasi {_pct(plans['finance_pct'])} bajarilgan."
     )
 
 
@@ -1347,16 +1482,18 @@ def _answer_bundle(center: Center, question: str, stats: dict, history: list[dic
 
     compact = _compact_context(stats)
     site_ctx = _site_context(center, stats)
+    full_ctx, full_prompt_ctx = _full_center_context(center, stats, cleaned_question)
     history_tail = (history or [])[-8:]
     cache_key = (
         f"director-ai-answer:{ANSWER_ENGINE_VERSION}:{center.id}:{_stats_digest({'compact': compact, 'site': site_ctx})}:"
-        f"{_history_digest(history_tail)}:{md5(cleaned_question.encode('utf-8')).hexdigest()}"
+        f"{md5((full_prompt_ctx or '').encode('utf-8')).hexdigest()}:{_history_digest(history_tail)}:"
+        f"{md5(cleaned_question.encode('utf-8')).hexdigest()}"
     )
     cached = cache.get(cache_key)
     if cached is not None:
         return cached, "cache"
 
-    fallback = _fallback_answer(cleaned_question, stats, history=history_tail)
+    fallback = _fallback_answer(center, cleaned_question, stats, history=history_tail)
     history_text = _history_context(history_tail)
     prompt = f"""
 Sen o'quv markazi direktori yordamchisisan.
@@ -1380,6 +1517,9 @@ Platform knowledge:
 
 Current site snapshot:
 {json.dumps(compact, ensure_ascii=False, default=str)}
+
+Full center context:
+{full_prompt_ctx or json.dumps(full_ctx, ensure_ascii=False, default=str)}
 """
     answer, source = _prompt_text(prompt, default=fallback, cache_key=None)
     cache.set(cache_key, answer, ANSWER_CACHE_TTL)
