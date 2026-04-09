@@ -911,6 +911,24 @@
       line-height: 1.35;
       color: rgba(255,255,255,.5);
     }
+    .director-ai-chat-privacy-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 7px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(16,185,129,.18);
+      background: rgba(16,185,129,.08);
+      color: rgba(209,250,229,.88);
+      font-size: .62rem;
+      font-weight: 800;
+      letter-spacing: .02em;
+    }
+    .director-ai-chat-privacy-badge i {
+      color: #34d399;
+      font-size: .66rem;
+    }
     .director-ai-chat-online-dot {
       width: 7px;
       height: 7px;
@@ -1574,6 +1592,7 @@
       <div class="director-ai-chat-title-copy">
         <strong>Chaqmoq AI</strong>
         <span><i class="director-ai-chat-online-dot"></i>Online va javob berishga tayyor</span>
+        <span class="director-ai-chat-privacy-badge"><i class="fa-solid fa-shield-halved"></i>Faqat shu markaz ma'lumoti</span>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
@@ -1593,7 +1612,7 @@
   </div>
   <form id="directorAiChatForm" class="director-ai-chat-form">
     <div class="director-ai-chat-statusline">
-      <span id="directorAiChatStatus" class="chip cn">Tarix saqlanadi</span>
+      <span id="directorAiChatStatus" class="chip cn">Tarix saqlanadi · Maxfiy</span>
     </div>
     <div class="director-ai-chat-compose">
       <textarea id="directorAiChatInput" class="director-ai-chat-input" placeholder="Savolingizni yozing..." autocomplete="off"></textarea>
@@ -1627,6 +1646,6 @@ window.directorPanelConfig = {
   requestsUrl: "{% url 'store:requests' %}"
 };
 </script>
-<script src="{% static 'js/director-panel-live.js' %}?v=20260408-dashboard-chat-v6"></script>
+<script src="{% static 'js/director-panel-live.js' %}?v=20260409-dashboard-chat-v7"></script>
 </body>
 </html>

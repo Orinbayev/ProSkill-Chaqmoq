@@ -18,6 +18,7 @@ from django.utils import timezone
 from accounts.models import Center, User
 from chaqmoq.models import Ledger
 from core.services.center_ai_context import build_center_ai_context, build_center_ai_prompt_context
+from core.services.center_ai_security import can_view_private_details, guard_cross_center_question, privacy_mode_label
 from education.models import Attendance, Enrollment, Payment, PaymentAllocation, StudentGroupHistory, TuitionMonth
 
 try:
@@ -116,6 +117,17 @@ METRIC_GLOSSARY = [
     {"name": "Lead konversiya", "description": "Leadlarning o'quvchiga aylanish ulushi."},
     {"name": "Teacher health score", "description": "Ustoz daromadi, o'quvchi oqimi va risk ko'rsatkichlari asosidagi umumiy baho."},
 ]
+
+STRICT_SYSTEM_PROMPT = """
+SEN PROFESSIONAL AI YORDAMCHISAN.
+QOIDALAR:
+- Faqat berilgan CONTEXT asosida javob ber.
+- Hech qachon tashqaridan ma'lumot o'ylab topma.
+- Tizim multi-tenant: faqat joriy center ma'lumotidan foydalan.
+- Boshqa markaz ma'lumotlarini aralashtirma va aytma.
+- Ma'lumot yetarli bo'lmasa: "Ma'lumot yetarli emas" deb yoz.
+- Javobni 100% o'zbek tilida, aniq, qisqa va professional yoz.
+""".strip()
 
 
 def _month_start(day: date) -> date:
@@ -638,7 +650,7 @@ def _period_phrase(question: str, period: dict) -> str:
     return "Tanlangan davrda"
 
 
-def _full_center_context(center: Center, stats: dict, question: str, *, limit: int = 12) -> tuple[dict, str]:
+def _full_center_context(center: Center, stats: dict, question: str, *, viewer=None, limit: int = 12) -> tuple[dict, str]:
     compact = _compact_context(stats)
     period = compact.get("period") or {}
     date_from = period.get("date_from") or None
@@ -654,6 +666,7 @@ def _full_center_context(center: Center, stats: dict, question: str, *, limit: i
     try:
         context = build_center_ai_context(
             center,
+            viewer=viewer,
             question=question,
             date_from=date_from,
             date_to=date_to,
@@ -661,6 +674,7 @@ def _full_center_context(center: Center, stats: dict, question: str, *, limit: i
         )
         prompt_context = build_center_ai_prompt_context(
             center,
+            viewer=viewer,
             question=question,
             date_from=date_from,
             date_to=date_to,
@@ -1134,7 +1148,11 @@ def forecast_revenue_bundle(center, *, months_ahead=3, anchor_date: date | None 
     return _forecast_bundle(center, months_ahead=months_ahead, anchor_date=anchor_date)
 
 
-def _fallback_answer(center: Center, question: str, stats: dict, history: list[dict] | None = None) -> str:
+def _fallback_answer(center: Center, viewer, question: str, stats: dict, history: list[dict] | None = None) -> str:
+    privacy_block = guard_cross_center_question(center, question)
+    if privacy_block:
+        return privacy_block
+
     q = _normalize_question(question)
     if _question_has(q, "salom", "assalomu alaykum", "hello"):
         return (
@@ -1165,7 +1183,7 @@ def _fallback_answer(center: Center, question: str, stats: dict, history: list[d
     raw_requests = stats.get("requests") or {}
     raw_managers = stats.get("managers") or {}
     raw_roster = raw_students.get("roster") or []
-    full_ctx, _ = _full_center_context(center, stats, question)
+    full_ctx, _ = _full_center_context(center, stats, question, viewer=viewer)
     full_finance = ((full_ctx.get("finance") or {}).get("summary") or {})
     full_students = ((full_ctx.get("students") or {}).get("summary") or {})
     full_teachers = ((full_ctx.get("teachers") or {}).get("summary") or {})
@@ -1205,6 +1223,8 @@ def _fallback_answer(center: Center, question: str, stats: dict, history: list[d
     top_manager = (raw_managers.get("ranking") or [{}])[0]
     top_product = (raw_requests.get("top_products") or [{}])[0]
     top_active_student = _top_student_by_activity(raw_roster)
+    privacy_mode = privacy_mode_label(viewer)
+    private_access = can_view_private_details(viewer)
     total_students = int(full_students.get("total_students") or raw_students.get("total") or 0)
     active_students = int(full_students.get("active_students") or raw_students.get("active_students") or students["active_students"] or 0)
     total_teachers = int(full_teachers.get("total_teachers") or raw_teachers.get("total_count") or 0)
@@ -1261,6 +1281,17 @@ def _fallback_answer(center: Center, question: str, stats: dict, history: list[d
             f"guruhlar {total_groups} ta, leadlar {total_leads} ta va shu davr leadi {period_leads} ta. "
             f"Eng kuchli ustoz {teachers['best_teacher']['name'] or 'aniqlanmadi'}, eng samarali lead manbasi {marketing['best_source']['name'] or 'aniqlanmadi'}, "
             f"do'kon bo'limida esa {total_products} ta mahsulot va {total_requests} ta so'rov bor."
+        )
+
+    if _question_has(q, "telefon", "raqam", "contact", "aloqa"):
+        if not private_access:
+            return (
+                "Telefon va shaxsiy aloqa ma'lumotlari maxfiy. Bu akkaunt uchun detail cheklangan. "
+                "Direktor rolida kirsangiz to'liq ko'rish mumkin."
+            )
+        return (
+            "Telefon raqamlarini aytib bera olaman, lekin aniq odamni topish uchun ism yoki familyani ham yozing. "
+            f"Hozir chat {privacy_mode} rejimda ishlayapti va faqat {center.name} ichidagi ma'lumotlarni ko'radi."
         )
 
     if _question_has(q, "daromad", "tushum", "kirim") and _question_has(q, "prognoz", "taxmin", "bashorat", "kelasi oy", "keyingi oy", "kutilmoqda"):
@@ -1469,20 +1500,21 @@ def _fallback_answer(center: Center, question: str, stats: dict, history: list[d
             )
         return "Managerlar bo'yicha yetarli ma'lumot topilmadi."
 
-    return (
-        f"{period_intro} daromad {_compact_money(finance_revenue)}, jami o'quvchilar {total_students} ta, faol o'quvchilar {active_students} ta, "
-        f"leadlar {period_leads} ta va daromad rejasi {_pct(plans['finance_pct'])} bajarilgan."
-    )
+    return "Ma'lumot yetarli emas"
 
 
-def _answer_bundle(center: Center, question: str, stats: dict, history: list[dict] | None = None) -> tuple[str, str]:
+def _answer_bundle(center: Center, viewer, question: str, stats: dict, history: list[dict] | None = None) -> tuple[str, str]:
     cleaned_question = (question or "").strip()
     if not cleaned_question:
         return "Savol matni bo'sh bo'lmasligi kerak.", "fallback"
 
+    privacy_block = guard_cross_center_question(center, cleaned_question)
+    if privacy_block:
+        return privacy_block, "privacy"
+
     compact = _compact_context(stats)
     site_ctx = _site_context(center, stats)
-    full_ctx, full_prompt_ctx = _full_center_context(center, stats, cleaned_question)
+    full_ctx, full_prompt_ctx = _full_center_context(center, stats, cleaned_question, viewer=viewer)
     history_tail = (history or [])[-8:]
     cache_key = (
         f"director-ai-answer:{ANSWER_ENGINE_VERSION}:{center.id}:{_stats_digest({'compact': compact, 'site': site_ctx})}:"
@@ -1493,19 +1525,17 @@ def _answer_bundle(center: Center, question: str, stats: dict, history: list[dic
     if cached is not None:
         return cached, "cache"
 
-    fallback = _fallback_answer(center, cleaned_question, stats, history=history_tail)
+    fallback = _fallback_answer(center, viewer, cleaned_question, stats, history=history_tail)
     history_text = _history_context(history_tail)
     prompt = f"""
-Sen o'quv markazi direktori yordamchisisan.
-Sen ChaqmoqApp platformasini yaxshi biladigan direktor AI yordamchisisan.
-Faqat berilgan context asosida javob ber.
-Javob o'zbek tilida, sodda, aniq va amaliy bo'lsin.
-Javobni eng muhim natija yoki son bilan boshlashga harakat qil.
-Savol platforma yoki sayt modullari haqida bo'lsa, platform_knowledge bo'yicha tushuntir.
-Savol raqam yoki holat haqida bo'lsa, current_site_snapshot bo'yicha aniq son va nomlarni ayt.
-ChaqmoqApp ichidagi ish jarayonlari savol qilinsa workflows va metric_glossary bo'yicha tushuntir.
-Ma'lumot yetmasa buni ochiq ayt.
-Hech qanday markdown yoki ro'yxat yozma.
+{STRICT_SYSTEM_PROMPT}
+
+Qo'shimcha qoidalar:
+- Shaxsiy ma'lumotlarni faqat privacy_mode=full bo'lsa ochiq ayt.
+- Savol platforma yoki sayt modullari haqida bo'lsa, platform_knowledge bo'yicha tushuntir.
+- Savol raqam yoki holat haqida bo'lsa, current_site_snapshot bo'yicha aniq son va nomlarni ayt.
+- ChaqmoqApp ichidagi ish jarayonlari savol qilinsa workflows va metric_glossary bo'yicha tushuntir.
+- Hech qanday markdown yoki ro'yxat yozma.
 
 Savol: {cleaned_question}
 
@@ -1527,9 +1557,9 @@ Full center context:
 
 
 def answer_question(center, question: str, stats: dict, history: list[dict] | None = None) -> str:
-    answer, _ = _answer_bundle(center, question, stats, history=history)
+    answer, _ = _answer_bundle(center, None, question, stats, history=history)
     return answer
 
 
-def answer_question_bundle(center, question: str, stats: dict, history: list[dict] | None = None) -> tuple[str, str]:
-    return _answer_bundle(center, question, stats, history=history)
+def answer_question_bundle(center, question: str, stats: dict, history: list[dict] | None = None, viewer=None) -> tuple[str, str]:
+    return _answer_bundle(center, viewer, question, stats, history=history)

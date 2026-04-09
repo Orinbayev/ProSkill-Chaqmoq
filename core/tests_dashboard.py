@@ -8,6 +8,7 @@ from django.db.models import Sum
 
 from accounts.models import Center, User
 from core.models import DirectorAIChatMessage, DirectorAIChatSession
+from core.services.center_ai_context import build_center_ai_context
 from core.views import _director_ai_request_params
 from education.models import Attendance, Category, Enrollment, Group, Payment, TeacherIncome, TuitionMonth
 from store.models import Expense, Lead, LeadStatus, Manba, Product, PurchaseRequest, Yonalish
@@ -532,3 +533,37 @@ class DirectorDashboardAPITests(TestCase):
         self.assertEqual(reset_response.status_code, 200)
         session.refresh_from_db()
         self.assertEqual(session.messages.count(), 0)
+
+    def test_ai_blocks_other_center_data_requests(self):
+        other_center = Center.objects.create(name="Yulduz Center", slug="yulduz-center")
+        User.objects.create_user(
+            email="other-director@test.com",
+            password="testpass123",
+            role="director",
+            center=other_center,
+            ism="Boshqa",
+            familya="Direktor",
+        )
+
+        params = {
+            "date_from": (self.today - timedelta(days=7)).isoformat(),
+            "date_to": self.today.isoformat(),
+        }
+        response = self.client.post(
+            reverse("core:director_ai_ask_api") + f"?date_from={params['date_from']}&date_to={params['date_to']}",
+            data=json.dumps({"question": "Yulduz Center daromadini aytib ber"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        answer = response.json()["answer"].lower()
+        self.assertIn("maxfiy", answer)
+        self.assertIn("boshqa o'quv markaz", answer)
+
+    def test_manager_context_masks_phone_details(self):
+        self.student_source_a.telefon1 = "+998901234567"
+        self.student_source_a.save(update_fields=["telefon1"])
+        context = build_center_ai_context(self.center, viewer=self.manager, limit=5)
+        student_items = context["students"]["items"]
+        self.assertTrue(student_items)
+        self.assertEqual(context["students"]["summary"]["privacy_mode"], "limited")
+        self.assertIn("*", student_items[0]["phone"])

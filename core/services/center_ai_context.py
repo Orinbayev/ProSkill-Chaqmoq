@@ -8,6 +8,7 @@ from django.db.models.functions import TruncMonth
 from django.utils import timezone
 
 from accounts.models import Center, User
+from core.services.center_ai_security import privacy_mode_label, visible_phone
 from education.models import Attendance, Enrollment, Group, Payment, TeacherIncome
 from store.models import Expense, Lead, Product, PurchaseRequest, Sale, TrialLesson
 
@@ -52,12 +53,17 @@ def _safe_sum(qs, field: str) -> int:
     return int(qs.aggregate(total=Sum(field)).get("total") or 0)
 
 
-def _user_phone(user: User) -> str:
+def _user_phone(user: User, viewer=None) -> str:
     return (
-        user.telefon1
-        or user.phone_number
-        or user.telefon2
-        or ""
+        visible_phone(
+            (
+                user.telefon1
+                or user.phone_number
+                or user.telefon2
+                or ""
+            ).strip(),
+            viewer,
+        )
     ).strip()
 
 
@@ -129,7 +135,7 @@ def get_center_finance_context(center: Center, date_from=None, date_to=None) -> 
     }
 
 
-def get_center_students_context(center: Center, query: str | None = None, *, limit: int = 20, date_from=None, date_to=None) -> dict:
+def get_center_students_context(center: Center, query: str | None = None, *, viewer=None, limit: int = 20, date_from=None, date_to=None) -> dict:
     start, end = _period(date_from, date_to)
     students_qs = User.objects.filter(center=center, role="student", is_archived=False).order_by("ism", "familya")
 
@@ -185,7 +191,7 @@ def get_center_students_context(center: Center, query: str | None = None, *, lim
             {
                 "id": student.id,
                 "full_name": _full_name(student),
-                "phone": _user_phone(student),
+                "phone": _user_phone(student, viewer),
                 "chaqmoq": int(student.chaqmoq or 0),
                 "groups": group_map.get(student.id, []),
                 "groups_count": len(group_map.get(student.id, [])),
@@ -201,12 +207,13 @@ def get_center_students_context(center: Center, query: str | None = None, *, lim
             "total_students": User.objects.filter(center=center, role="student", is_archived=False).count(),
             "active_students": Enrollment.objects.filter(center=center, is_active=True).values("student_id").distinct().count(),
             "returned_count": len(items),
+            "privacy_mode": privacy_mode_label(viewer),
         },
         "items": items,
     }
 
 
-def get_center_teachers_context(center: Center, query: str | None = None, *, limit: int = 20, date_from=None, date_to=None) -> dict:
+def get_center_teachers_context(center: Center, query: str | None = None, *, viewer=None, limit: int = 20, date_from=None, date_to=None) -> dict:
     start, end = _period(date_from, date_to)
     teachers_qs = User.objects.filter(center=center, role="teacher", is_archived=False).order_by("ism", "familya")
 
@@ -254,7 +261,7 @@ def get_center_teachers_context(center: Center, query: str | None = None, *, lim
             {
                 "id": teacher.id,
                 "full_name": _full_name(teacher),
-                "phone": _user_phone(teacher),
+                "phone": _user_phone(teacher, viewer),
                 "group_count": group_counts.get(teacher.id, 0),
                 "student_count": student_counts.get(teacher.id, 0),
                 "income_in_period": income_map.get(teacher.id, 0),
@@ -267,6 +274,7 @@ def get_center_teachers_context(center: Center, query: str | None = None, *, lim
         "summary": {
             "total_teachers": User.objects.filter(center=center, role="teacher", is_archived=False).count(),
             "returned_count": len(items),
+            "privacy_mode": privacy_mode_label(viewer),
         },
         "items": items,
     }
@@ -334,7 +342,7 @@ def get_center_groups_context(center: Center, *, limit: int = 20, date_from=None
     }
 
 
-def get_center_leads_context(center: Center, *, limit: int = 20, date_from=None, date_to=None) -> dict:
+def get_center_leads_context(center: Center, *, viewer=None, limit: int = 20, date_from=None, date_to=None) -> dict:
     start, end = _period(date_from, date_to)
     leads_qs = Lead.objects.filter(center=center, is_archived=False)
     period_qs = leads_qs.filter(qoshilgan_sana__date__range=(start, end))
@@ -366,7 +374,7 @@ def get_center_leads_context(center: Center, *, limit: int = 20, date_from=None,
             {
                 "id": lead.id,
                 "full_name": lead.full_name,
-                "phone": lead.telefon1,
+                "phone": visible_phone(lead.telefon1, viewer),
                 "source": lead.manba.nom if lead.manba_id and lead.manba else "",
                 "direction": lead.yonalish.nom if lead.yonalish_id and lead.yonalish else "",
                 "status": lead.status.nom if lead.status_id and lead.status else "",
@@ -385,6 +393,7 @@ def get_center_leads_context(center: Center, *, limit: int = 20, date_from=None,
             "period_leads": period_qs.count(),
             "converted_in_period": period_qs.filter(converted_to_student=True).count(),
             "trial_lessons_in_period": trial_count,
+            "privacy_mode": privacy_mode_label(viewer),
         },
         "top_sources": top_sources,
         "top_directions": top_directions,
@@ -439,6 +448,7 @@ def get_center_store_context(center: Center, *, limit: int = 20, date_from=None,
 def build_center_ai_context(
     center: Center,
     *,
+    viewer=None,
     question: str = "",
     date_from=None,
     date_to=None,
@@ -465,12 +475,13 @@ def build_center_ai_context(
             "plan": center.plan,
         },
         "question": question.strip(),
+        "privacy_mode": privacy_mode_label(viewer),
         "period": {"date_from": start.isoformat(), "date_to": end.isoformat()},
         "finance": get_center_finance_context(center, start, end),
-        "students": get_center_students_context(center, query=query, limit=limit, date_from=start, date_to=end),
-        "teachers": get_center_teachers_context(center, query=query, limit=limit, date_from=start, date_to=end),
+        "students": get_center_students_context(center, query=query, viewer=viewer, limit=limit, date_from=start, date_to=end),
+        "teachers": get_center_teachers_context(center, query=query, viewer=viewer, limit=limit, date_from=start, date_to=end),
         "groups": get_center_groups_context(center, limit=limit, date_from=start, date_to=end),
-        "leads": get_center_leads_context(center, limit=limit, date_from=start, date_to=end),
+        "leads": get_center_leads_context(center, viewer=viewer, limit=limit, date_from=start, date_to=end),
         "store": get_center_store_context(center, limit=limit, date_from=start, date_to=end),
     }
 
@@ -478,6 +489,7 @@ def build_center_ai_context(
 def build_center_ai_prompt_context(
     center: Center,
     *,
+    viewer=None,
     question: str = "",
     date_from=None,
     date_to=None,
@@ -489,6 +501,7 @@ def build_center_ai_prompt_context(
     """
     ctx = build_center_ai_context(
         center,
+        viewer=viewer,
         question=question,
         date_from=date_from,
         date_to=date_to,
@@ -505,6 +518,7 @@ def build_center_ai_prompt_context(
     return "\n".join(
         [
             f"Markaz: {ctx['center']['name']} ({ctx['center']['slug']})",
+            f"Maxfiylik rejimi: {ctx['privacy_mode']}",
             f"Savol: {ctx['question'] or '—'}",
             f"Davr: {ctx['period']['date_from']} dan {ctx['period']['date_to']} gacha",
             f"Daromad: {finance['revenue']} so'm",

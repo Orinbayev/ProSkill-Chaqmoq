@@ -640,7 +640,7 @@ def director_ai_ask_api(request):
         return JsonResponse({"error": "Savol matni kiritilmadi."}, status=400)
 
     payload = _director_ai_payload(center, _director_ai_request_params(question, request.GET))
-    answer, source = answer_question_bundle(center, question, payload)
+    answer, source = answer_question_bundle(center, question, payload, viewer=request.user)
     return JsonResponse(
         {
             "answer": answer,
@@ -718,7 +718,7 @@ def director_ai_chat_ask_api(request):
             session.messages.order_by("-created_at", "-id").values("role", "content")[:12]
         )
         history.reverse()
-        answer, source = answer_question_bundle(center, question, payload, history=history)
+        answer, source = answer_question_bundle(center, question, payload, history=history, viewer=request.user)
         assistant_message = DirectorAIChatMessage.objects.create(
             session=session,
             role=DirectorAIChatMessage.Role.ASSISTANT,
