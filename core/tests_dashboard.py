@@ -7,8 +7,14 @@ from django.utils import timezone
 from django.db.models import Sum
 
 from accounts.models import Center, User
-from core.models import DirectorAIChatMessage, DirectorAIChatSession
-from core.services.center_ai_context import build_center_ai_context
+from core.models import CenterDailyMetric, DirectorAIChatMessage, DirectorAIChatSession, StudentDailyMetric, TeacherDailyMetric
+from core.services.center_ai_context import (
+    build_center_ai_context,
+    generate_center_alerts,
+    get_monthly_stats,
+    get_student_full_info,
+    get_teacher_full_info,
+)
 from core.views import _director_ai_request_params
 from education.models import Attendance, Category, Enrollment, Group, Payment, TeacherIncome, TuitionMonth
 from store.models import Expense, Lead, LeadStatus, Manba, Product, PurchaseRequest, Yonalish
@@ -567,3 +573,109 @@ class DirectorDashboardAPITests(TestCase):
         self.assertTrue(student_items)
         self.assertEqual(context["students"]["summary"]["privacy_mode"], "limited")
         self.assertIn("*", student_items[0]["phone"])
+
+    def test_student_full_info_returns_real_student_data(self):
+        self.student_source_a.telefon1 = "+998901234567"
+        self.student_source_a.save(update_fields=["telefon1"])
+
+        result = get_student_full_info(self.center.id, "Aziza", viewer=self.director)
+        self.assertEqual(result["count"], 1)
+        item = result["items"][0]
+        self.assertEqual(item["full_name"], "Aziza One")
+        self.assertEqual(item["teacher_name"], "Ali Strong")
+        self.assertIn("Strong Group", item["courses"])
+        self.assertEqual(item["status"], "active")
+        self.assertGreaterEqual(item["total_payment"], 1_500_000)
+        self.assertGreaterEqual(item["attendance"]["present"], 1)
+
+    def test_teacher_full_info_returns_real_teacher_data(self):
+        self.teacher_strong.telefon1 = "+998901112233"
+        self.teacher_strong.save(update_fields=["telefon1"])
+
+        result = get_teacher_full_info(self.center.id, "Ali Strong", viewer=self.director)
+        self.assertEqual(result["count"], 1)
+        item = result["items"][0]
+        self.assertEqual(item["teacher_name"], "Ali Strong")
+        self.assertEqual(item["groups_count"], 1)
+        self.assertEqual(item["active_groups"], 1)
+        self.assertEqual(item["students_count"], 2)
+        self.assertEqual(item["total_income"], 2_000_000)
+
+    def test_monthly_stats_returns_growth_percentage(self):
+        last_month = self.today.replace(day=1) - timedelta(days=1)
+        old_date = timezone.make_aware(datetime.combine(last_month.replace(day=10), time(10, 0)))
+        self.student_source_a.date_joined = old_date
+        self.student_source_a.save(update_fields=["date_joined"])
+        self.student_source_b.date_joined = old_date
+        self.student_source_b.save(update_fields=["date_joined"])
+
+        stats = get_monthly_stats(self.center.id, as_of=self.today)
+        self.assertEqual(stats["this_month_students"], 1)
+        self.assertEqual(stats["last_month_students"], 2)
+        self.assertEqual(stats["growth_percentage"], -50.0)
+
+    def test_generate_center_alerts_flags_group_risk(self):
+        alerts = generate_center_alerts(self.center.id, as_of=self.today)
+        self.assertTrue(alerts)
+        self.assertTrue(any(item["code"] == "group_at_risk" for item in alerts))
+
+    def test_structured_ai_endpoint_returns_student_payload(self):
+        response = self.client.post(
+            reverse("core:director_ai_structured_api"),
+            data=json.dumps({"message": "Aziza haqida ma'lumot ber"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("answer", payload)
+        self.assertIn("data", payload)
+        self.assertEqual(payload["data"]["type"], "student_search")
+        self.assertEqual(payload["data"]["count"], 1)
+        self.assertIn("Aziza", payload["answer"])
+
+    def test_structured_ai_endpoint_blocks_other_center_data(self):
+        other_center = Center.objects.create(name="Maxfiy Center", slug="maxfiy-center")
+        User.objects.create_user(
+            email="other.manager@test.com",
+            password="testpass123",
+            role="manager",
+            center=other_center,
+            ism="Boshqa",
+            familya="Manager",
+        )
+
+        response = self.client.post(
+            reverse("core:director_ai_structured_api"),
+            data=json.dumps({"message": "Maxfiy Center o'quvchilari kimlar?"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("maxfiy", payload["answer"].lower())
+        self.assertTrue(payload["data"]["blocked"])
+
+    def test_daily_metric_models_can_be_created(self):
+        center_metric = CenterDailyMetric.objects.create(
+            center=self.center,
+            date=self.today,
+            students_count=3,
+            teachers_count=2,
+            revenue=1_500_000,
+        )
+        teacher_metric = TeacherDailyMetric.objects.create(
+            center=self.center,
+            teacher=self.teacher_strong,
+            date=self.today,
+            students_count=2,
+            revenue=2_000_000,
+        )
+        student_metric = StudentDailyMetric.objects.create(
+            center=self.center,
+            student=self.student_source_a,
+            date=self.today,
+            attendance=True,
+            payment_status="paid",
+        )
+        self.assertEqual(center_metric.students_count, 3)
+        self.assertEqual(teacher_metric.revenue, 2_000_000)
+        self.assertTrue(student_metric.attendance)

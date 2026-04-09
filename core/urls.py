@@ -53,6 +53,7 @@ urlpatterns = [
     path('api/ai/churn-risk/', views.director_ai_churn_risk_api, name='director_ai_churn_risk_api'),
     path('api/ai/forecast/', views.director_ai_forecast_api, name='director_ai_forecast_api'),
     path('api/ai/ask/', views.director_ai_ask_api, name='director_ai_ask_api'),
+    path('api/director-ai/', views.director_ai_structured_api, name='director_ai_structured_api'),
     path('api/ai/chat/', views.director_ai_chat_api, name='director_ai_chat_api'),
     path('api/ai/chat/reset/', views.director_ai_chat_reset_api, name='director_ai_chat_reset_api'),
     path('api/ai/chat/ask/', views.director_ai_chat_ask_api, name='director_ai_chat_ask_api'),

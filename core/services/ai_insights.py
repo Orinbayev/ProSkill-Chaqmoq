@@ -17,7 +17,14 @@ from django.utils import timezone
 
 from accounts.models import Center, User
 from chaqmoq.models import Ledger
-from core.services.center_ai_context import build_center_ai_context, build_center_ai_prompt_context
+from core.services.center_ai_context import (
+    build_center_ai_context,
+    build_center_ai_prompt_context,
+    generate_center_alerts,
+    get_monthly_stats,
+    get_student_full_info,
+    get_teacher_full_info,
+)
 from core.services.center_ai_security import can_view_private_details, guard_cross_center_question, privacy_mode_label
 from education.models import Attendance, Enrollment, Payment, PaymentAllocation, StudentGroupHistory, TuitionMonth
 
@@ -34,7 +41,7 @@ INSIGHT_CACHE_TTL = 60 * 30
 ANSWER_CACHE_TTL = 60 * 5
 FORECAST_CACHE_TTL = 60 * 30
 CHURN_CACHE_TTL = 60 * 10
-ANSWER_ENGINE_VERSION = "2026-04-08-v3"
+ANSWER_ENGINE_VERSION = "2026-04-09-v4"
 
 MONTH_NAMES = [
     "yanvar",
@@ -356,6 +363,241 @@ def _question_has(text: str, *variants: str, threshold: float = 0.78) -> bool:
     return False
 
 
+SEARCH_STOPWORDS = {
+    "haqida",
+    "malumot",
+    "ma'lumot",
+    "ber",
+    "ayt",
+    "ko'rsat",
+    "kursi",
+    "kurs",
+    "telefon",
+    "telefoni",
+    "raqam",
+    "raqami",
+    "holati",
+    "holat",
+    "to'lov",
+    "tolov",
+    "qarz",
+    "qarzi",
+    "kim",
+    "qaysi",
+    "qanaqa",
+    "bor",
+    "top",
+    "topib",
+    "menga",
+    "shu",
+    "bu",
+    "o'quvchi",
+    "oquvchi",
+    "student",
+    "ustoz",
+    "o'qituvchi",
+    "oqituvchi",
+    "teacher",
+    "markaz",
+    "markazda",
+    "bizning",
+    "bizda",
+    "nechta",
+    "qancha",
+    "jami",
+    "soni",
+    "bor",
+    "ha",
+    "bormi",
+    "nima",
+    "saytim",
+    "saytimda",
+    "eng",
+    "faol",
+    "platforma",
+    "tizim",
+    "modul",
+    "modullar",
+    "bo'lim",
+    "bolim",
+}
+
+
+def _extract_search_query(question: str) -> str:
+    raw = str(question or "").strip()
+    if not raw:
+        return ""
+
+    phone_match = re.search(r"\+?\d[\d\s()\-]{6,}", raw)
+    if phone_match:
+        return phone_match.group(0).strip()
+
+    normalized = _normalize_question(raw)
+    tokens = [token for token in re.split(r"[^a-z0-9']+", normalized) if token]
+    filtered = [token for token in tokens if token not in SEARCH_STOPWORDS and len(token) >= 2]
+    return " ".join(filtered[:3]).strip()
+
+
+def _format_student_answer(item: dict) -> str:
+    attendance = item.get("attendance") or {}
+    course = item.get("course") or "biriktirilmagan"
+    teacher_name = item.get("teacher_name") or "biriktirilmagan"
+    phone = item.get("phone") or "yo'q"
+    student_name = item.get("full_name") or "O'quvchi"
+    status_label = item.get("status_label") or "Noma'lum"
+    return (
+        f"{student_name} haqida ma'lumot: telefon {phone}, kurs {course}, "
+        f"ustoz {teacher_name}, jami to'lov {_compact_money(item.get('total_payment') or 0)}, "
+        f"qarzi {_compact_money(item.get('debt') or 0)}, holati {status_label}. "
+        f"Davomat {attendance.get('rate') or 0}% ({attendance.get('present') or 0} ta kelgan, "
+        f"{attendance.get('absent') or 0} ta kelmagan)."
+    )
+
+
+def _format_teacher_answer(item: dict) -> str:
+    phone = item.get("phone") or "yo'q"
+    teacher_name = item.get("teacher_name") or "Ustoz"
+    status_label = item.get("status_label") or "Noma'lum"
+    return (
+        f"{teacher_name} haqida ma'lumot: telefon {phone}, guruhlari {item.get('groups_count') or 0} ta, "
+        f"faol guruhlari {item.get('active_groups') or 0} ta, o'quvchilari {item.get('students_count') or 0} ta, "
+        f"to'lovlardan tushgan jami daromad {_compact_money(item.get('total_income') or 0)}, holati {status_label}."
+    )
+
+
+def _advanced_rule_bundle(center: Center, viewer, question: str) -> dict | None:
+    q = _normalize_question(question)
+    search_query = _extract_search_query(question)
+
+    if _question_has(q, "o'sish", "osish", "growth"):
+        stats = get_monthly_stats(center.id)
+        answer = (
+            f"Bu oy {stats['this_month_students']} ta yangi o'quvchi qo'shilgan. "
+            f"O'tgan oy {stats['last_month_students']} ta edi. "
+            f"O'sish {stats['growth_percentage']}% ni tashkil qildi."
+        )
+        return {
+            "answer": answer,
+            "data": {"type": "monthly_stats", **stats},
+        }
+
+    if _question_has(q, "muammo", "problem", "ogohlantirish", "alert", "xavf", "risk", "yopilish xavfi"):
+        alerts = generate_center_alerts(center.id)
+        if not alerts:
+            return {
+                "answer": "Hozircha jiddiy ogohlantirish topilmadi.",
+                "data": {"type": "alerts", "items": []},
+            }
+
+        if _question_has(q, "guruh", "group", "yopilish"):
+            group_alerts = [item for item in alerts if item.get("code") == "group_at_risk"]
+            if group_alerts:
+                answer = "Yopilish xavfidagi guruhlar: " + "; ".join(item["message"] for item in group_alerts[:3])
+                return {
+                    "answer": answer,
+                    "data": {"type": "alerts", "items": group_alerts},
+                }
+
+        answer = "Asosiy ogohlantirishlar: " + "; ".join(item["message"] for item in alerts[:3])
+        return {
+            "answer": answer,
+            "data": {"type": "alerts", "items": alerts},
+        }
+
+    if _question_has(q, "qarzdor", "qarzi bor") and _question_has(q, "o'quvchi", "oquvchi", "student"):
+        ctx = build_center_ai_context(center, viewer=viewer, question=question, limit=5)
+        risky_students = ((ctx.get("students") or {}).get("risky_students") or [])[:5]
+        if not risky_students:
+            return {
+                "answer": "Hozircha qarzdor o'quvchilar ro'yxati topilmadi.",
+                "data": {"type": "risky_students", "items": []},
+            }
+        answer = "Qarzdor o'quvchilar: " + "; ".join(
+            f"{item['full_name']} — qarzi {_compact_money(item.get('debt') or 0)}"
+            for item in risky_students
+        )
+        return {
+            "answer": answer,
+            "data": {"type": "risky_students", "items": risky_students},
+        }
+
+    search_requested = bool(search_query) and (
+        _question_has(q, "haqida", "telefon", "raqam", "kurs", "holat", "to'lov", "tolov", "qarz", "qarzi", "kim")
+        or bool(re.search(r"\d{4,}", search_query))
+        or (
+            len(search_query.split()) <= 2
+            and not _question_has(
+                q,
+                "nechta",
+                "qancha",
+                "jami",
+                "soni",
+                "daromad",
+                "foyda",
+                "o'sish",
+                "growth",
+                "muammo",
+                "problem",
+                "alert",
+                "guruh",
+                "lead",
+                "mahsulot",
+                "do'kon",
+                "dokon",
+                "saytim",
+                "nima bor",
+                "platforma",
+                "tizim",
+                "modul",
+            )
+        )
+    )
+    if not search_requested:
+        return None
+
+    student_info = get_student_full_info(center.id, search_query, viewer=viewer)
+    teacher_info = get_teacher_full_info(center.id, search_query, viewer=viewer)
+    student_items = student_info.get("items") or []
+    teacher_items = teacher_info.get("items") or []
+
+    if _question_has(q, "ustoz", "o'qituvchi", "oqituvchi", "teacher") and teacher_items:
+        return {
+            "answer": _format_teacher_answer(teacher_items[0]),
+            "data": {"type": "teacher_search", **teacher_info},
+        }
+
+    if _question_has(q, "o'quvchi", "oquvchi", "student") and student_items:
+        return {
+            "answer": _format_student_answer(student_items[0]),
+            "data": {"type": "student_search", **student_info},
+        }
+
+    if student_items:
+        return {
+            "answer": _format_student_answer(student_items[0]),
+            "data": {"type": "student_search", **student_info},
+        }
+
+    if teacher_items:
+        return {
+            "answer": _format_teacher_answer(teacher_items[0]),
+            "data": {"type": "teacher_search", **teacher_info},
+        }
+
+    if search_query:
+        return {
+            "answer": "Ma'lumot yetarli emas",
+            "data": {
+                "type": "search",
+                "query": search_query,
+                "students": student_items,
+                "teachers": teacher_items,
+            },
+        }
+
+    return None
+
+
 def _is_social_prompt(text: str) -> bool:
     return _question_has(
         text,
@@ -655,9 +897,10 @@ def _full_center_context(center: Center, stats: dict, question: str, *, viewer=N
     period = compact.get("period") or {}
     date_from = period.get("date_from") or None
     date_to = period.get("date_to") or None
+    privacy_mode = privacy_mode_label(viewer)
     cache_key = (
         f"director-ai-full-context:{center.id}:{date_from or 'na'}:{date_to or 'na'}:"
-        f"{md5((question or '').encode('utf-8')).hexdigest()}:{limit}"
+        f"{privacy_mode}:{md5((question or '').encode('utf-8')).hexdigest()}:{limit}"
     )
     cached = cache.get(cache_key)
     if cached is not None:
@@ -1175,6 +1418,10 @@ def _fallback_answer(center: Center, viewer, question: str, stats: dict, history
         if previous_user:
             q = f"{previous_user} {q}".strip()
 
+    advanced_rule = _advanced_rule_bundle(center, viewer, q)
+    if advanced_rule:
+        return advanced_rule["answer"]
+
     raw_finance = stats.get("finance") or {}
     raw_students = stats.get("students") or {}
     raw_teachers = stats.get("teachers") or {}
@@ -1517,7 +1764,7 @@ def _answer_bundle(center: Center, viewer, question: str, stats: dict, history: 
     full_ctx, full_prompt_ctx = _full_center_context(center, stats, cleaned_question, viewer=viewer)
     history_tail = (history or [])[-8:]
     cache_key = (
-        f"director-ai-answer:{ANSWER_ENGINE_VERSION}:{center.id}:{_stats_digest({'compact': compact, 'site': site_ctx})}:"
+        f"director-ai-answer:{ANSWER_ENGINE_VERSION}:{center.id}:{privacy_mode_label(viewer)}:{_stats_digest({'compact': compact, 'site': site_ctx})}:"
         f"{md5((full_prompt_ctx or '').encode('utf-8')).hexdigest()}:{_history_digest(history_tail)}:"
         f"{md5(cleaned_question.encode('utf-8')).hexdigest()}"
     )
@@ -1563,3 +1810,29 @@ def answer_question(center, question: str, stats: dict, history: list[dict] | No
 
 def answer_question_bundle(center, question: str, stats: dict, history: list[dict] | None = None, viewer=None) -> tuple[str, str]:
     return _answer_bundle(center, viewer, question, stats, history=history)
+
+
+def answer_question_structured_bundle(
+    center,
+    question: str,
+    stats: dict,
+    history: list[dict] | None = None,
+    viewer=None,
+) -> tuple[str, str, dict | None]:
+    privacy_block = guard_cross_center_question(center, question)
+    if privacy_block:
+        return privacy_block, "privacy", {"type": "privacy", "blocked": True}
+
+    advanced_rule = _advanced_rule_bundle(center, viewer, question)
+    if advanced_rule:
+        return advanced_rule["answer"], "rule-based", advanced_rule.get("data")
+
+    answer, source = _answer_bundle(center, viewer, question, stats, history=history)
+    compact = _compact_context(stats)
+    return answer, source, {
+        "type": "snapshot",
+        "period": compact.get("period") or {},
+        "finance": compact.get("finance") or {},
+        "students": compact.get("students") or {},
+        "teachers": compact.get("teachers") or {},
+    }

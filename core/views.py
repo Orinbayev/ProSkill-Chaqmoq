@@ -36,6 +36,7 @@ from store.models import Product, PurchaseRequest, Sale
 from .forms import ProfileForm
 from .models import DirectorAIChatMessage, DirectorAIChatSession
 from .services.ai_insights import (
+    answer_question_structured_bundle,
     answer_question_bundle,
     calculate_churn_risk_bundle,
     forecast_revenue_bundle,
@@ -646,6 +647,31 @@ def director_ai_ask_api(request):
             "answer": answer,
             "source": source,
             "question": question,
+            "generated_at": timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M:%S"),
+        }
+    )
+
+
+@login_required
+@require_POST
+def director_ai_structured_api(request):
+    center, error = _director_api_center_or_error(request)
+    if error:
+        return error
+
+    body = _parse_json_body(request)
+    message = str(body.get("message") or body.get("question") or request.POST.get("message") or request.POST.get("question") or "").strip()
+    if not message:
+        return JsonResponse({"error": "Savol matni kiritilmadi."}, status=400)
+
+    payload = _director_ai_payload(center, _director_ai_request_params(message, request.GET))
+    answer, source, data = answer_question_structured_bundle(center, message, payload, viewer=request.user)
+    return JsonResponse(
+        {
+            "answer": answer,
+            "data": data,
+            "source": source,
+            "message": message,
             "generated_at": timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M:%S"),
         }
     )

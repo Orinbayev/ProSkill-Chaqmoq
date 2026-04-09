@@ -128,3 +128,116 @@ class DirectorAIChatMessage(models.Model):
 
     def __str__(self):
         return f"{self.session_id} / {self.role}"
+
+
+class CenterDailyMetric(models.Model):
+    center = models.ForeignKey(
+        Center,
+        on_delete=models.CASCADE,
+        related_name="daily_metrics",
+    )
+    date = models.DateField(db_index=True)
+    students_count = models.PositiveIntegerField(default=0)
+    teachers_count = models.PositiveIntegerField(default=0)
+    revenue = models.BigIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-date", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["center", "date"],
+                name="core_center_daily_metric_unique_center_date",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["center", "date"]),
+            models.Index(fields=["date", "center"]),
+        ]
+
+    def __str__(self):
+        return f"{self.center_id} / {self.date}"
+
+
+class TeacherDailyMetric(models.Model):
+    center = models.ForeignKey(
+        Center,
+        on_delete=models.CASCADE,
+        related_name="teacher_daily_metrics",
+    )
+    teacher = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="daily_teacher_metrics",
+        limit_choices_to={"role": "teacher"},
+    )
+    date = models.DateField(db_index=True)
+    students_count = models.PositiveIntegerField(default=0)
+    revenue = models.BigIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-date", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["center", "teacher", "date"],
+                name="core_teacher_daily_metric_unique_center_teacher_date",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["center", "teacher", "date"]),
+            models.Index(fields=["teacher", "date"]),
+            models.Index(fields=["date", "center"]),
+        ]
+
+    def __str__(self):
+        return f"{self.teacher_id} / {self.date}"
+
+
+class StudentDailyMetric(models.Model):
+    PAYMENT_STATUS_CHOICES = (
+        ("paid", "To'langan"),
+        ("partial", "Qisman"),
+        ("debt", "Qarzdor"),
+        ("unknown", "Noma'lum"),
+    )
+
+    center = models.ForeignKey(
+        Center,
+        on_delete=models.CASCADE,
+        related_name="student_daily_metrics",
+    )
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="daily_student_metrics",
+        limit_choices_to={"role": "student"},
+    )
+    date = models.DateField(db_index=True)
+    attendance = models.BooleanField(default=False)
+    payment_status = models.CharField(
+        max_length=16,
+        choices=PAYMENT_STATUS_CHOICES,
+        default="unknown",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-date", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["center", "student", "date"],
+                name="core_student_daily_metric_unique_center_student_date",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["center", "student", "date"]),
+            models.Index(fields=["student", "date"]),
+            models.Index(fields=["date", "center"]),
+        ]
+
+    def __str__(self):
+        return f"{self.student_id} / {self.date}"
