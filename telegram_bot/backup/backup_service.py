@@ -46,18 +46,18 @@ async def manual_backup_command(message: types.Message) -> None:
     try:
         summary = await run_backup_async()
         failed_text = (
-            f"\n❌ Xato bo’lgan markazlar: {‘, ‘.join(summary[‘failed_centers’])}"
+            f"\n❌ Xato bo'lgan markazlar: {', '.join(summary['failed_centers'])}"
             if summary.get("failed_centers")
             else ""
         )
         await message.answer(
             "✅ Backup yakunlandi!\n\n"
-            f"📊 Jami markazlar: {summary[‘total’]}\n"
-            f"📦 Yaratildi: {summary[‘backed_up’]}\n"
-            f"📤 Yuborildi: {summary[‘sent’]}\n"
-            f"🗄️ To’liq backup: {‘✅’ if summary.get(‘full_sent’) else ‘❌’}\n"
-            f"⚠️ O’tkazib yuborildi: {summary[‘skipped’]}\n"
-            f"❌ Xatolar: {summary[‘failed’]}"
+            f"📊 Jami markazlar: {summary['total']}\n"
+            f"📦 Yaratildi: {summary['backed_up']}\n"
+            f"📤 Yuborildi: {summary['sent']}\n"
+            f"🗄️ To'liq backup: {'✅' if summary.get('full_sent') else '❌'}\n"
+            f"⚠️ O'tkazib yuborildi: {summary['skipped']}\n"
+            f"❌ Xatolar: {summary['failed']}"
             + failed_text
         )
     except Exception as exc:

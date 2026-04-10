@@ -13,7 +13,13 @@ from app_config import BOT_TOKEN, API_SECRET
 from handlers import start, link_account, profile, activity, security, help
 from handlers import admin_panel, linked_users, broadcast, admins, parents, settings
 from services.scheduler import setup_scheduler
-from backup.backup_service import setup_backup_scheduler, router as backup_router
+
+try:
+    from backup.backup_service import setup_backup_scheduler, router as backup_router
+except Exception as backup_import_err:
+    setup_backup_scheduler = None
+    backup_router = None
+    logging.error("Backup bot module disabled: %s", backup_import_err)
 
 
 # Logging
@@ -37,7 +43,8 @@ dp.include_router(broadcast.router)
 dp.include_router(admins.router)
 dp.include_router(parents.router)
 dp.include_router(settings.router)
-dp.include_router(backup_router) # Register manual backup command
+if backup_router is not None:
+    dp.include_router(backup_router)  # Register manual backup command
 
 async def handle_send_message(request):
     """
@@ -97,11 +104,14 @@ async def main():
     # 2. Start Schedulers
     await setup_scheduler(bot)
     # BackgroundScheduler – sync, shuning uchun await KERAK EMAS
-    try:
-        setup_backup_scheduler()
-        print("✅ Backup scheduler (BackgroundScheduler) ishga tushdi.")
-    except Exception as _bs_err:
-        logging.error(f"❌ Backup scheduler xatosi: {_bs_err}")
+    if setup_backup_scheduler is not None:
+        try:
+            setup_backup_scheduler()
+            print("✅ Backup scheduler (BackgroundScheduler) ishga tushdi.")
+        except Exception as _bs_err:
+            logging.error(f"❌ Backup scheduler xatosi: {_bs_err}")
+    else:
+        logging.warning("⚠️ Backup scheduler skipped because backup module failed to load.")
     print("✅ All Schedulers started.")
 
 
