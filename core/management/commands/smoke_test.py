@@ -403,8 +403,6 @@ class SmokeTestRunner:
         ]
         if self.center_slug:
             api_paths += [
-                (f"/{self.center_slug}/api/director/stats/", "Director stats API", (200, 302, 403)),
-                (f"/{self.center_slug}/api/director/dashboard/", "Director dashboard API", (200, 302, 403)),
                 (f"/{self.center_slug}/notifications/api/read-all/", "Notifications read-all API", (200, 302, 403, 405)),
             ]
 

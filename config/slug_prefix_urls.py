@@ -6,11 +6,9 @@ No app_name defined to avoid W005 conflicts.
 Views resolve identically; request.center is set by TenantMiddleware.
 """
 from django.urls import path, include
-from django.views.generic import TemplateView
 from billing import click_views as billing_click_views
 
 urlpatterns = [
-    path('direktor/', TemplateView.as_view(template_name='director_panel.html'), name='direktor_panel'),
     path('', include('core.urls')),
     path('', include(('marketing.urls', 'marketing_slug'), namespace='marketing_slug')),
     path('hisob/', include('accounts.urls_tenant')),

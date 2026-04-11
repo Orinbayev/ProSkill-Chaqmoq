@@ -56,10 +56,19 @@ if backup_router is not None:
 async def handle_send_message(request):
     """
     Internal API to send messages from Django backend (Security Alerts, OTP, etc.)
+    Faqat localhost (127.0.0.1) dan kelgan so'rovlar qabul qilinadi.
     """
+    # 1. IP tekshiruvi — faqat localhost
+    peer_ip = request.remote
+    if peer_ip not in ("127.0.0.1", "::1"):
+        logging.warning("Bot API: remote IP rejected: %s", peer_ip)
+        return web.json_response({"error": "Forbidden"}, status=403)
+
+    # 2. Secret tekshiruvi
     if request.headers.get("X-API-SECRET") != API_SECRET:
+        logging.warning("Bot API: invalid secret from %s", peer_ip)
         return web.json_response({"error": "Unauthorized"}, status=401)
-    
+
     try:
         data = await request.json()
         chat_id = data.get("chat_id")
@@ -97,9 +106,10 @@ async def start_api():
     runner = web.AppRunner(app)
     await runner.setup()
     # Binding to 0.0.0.0 inside the container is more reliable on Render
-    site = web.TCPSite(runner, "0.0.0.0", api_port)
+    # 127.0.0.1 — faqat localhost dan kirish, tashqaridan kirish yo'q
+    site = web.TCPSite(runner, "127.0.0.1", api_port)
     await site.start()
-    logging.info(f"🚀 Bot Internal API strictly started on port {api_port} (via 0.0.0.0)")
+    logging.info(f"🚀 Bot Internal API started on 127.0.0.1:{api_port} (localhost only)")
 
 async def main():
     # 1. Start the Internal API FIRST

@@ -127,8 +127,8 @@ class DashboardService {
     return SuperadminHomeModel.fromJson(payload);
   }
 
-  Future<Map<String, dynamic>> fetchDirectorDashboard() =>
-      _apiClient.get('dashboard/director/');
+  Future<Map<String, dynamic>> fetchDirectorDashboard() async =>
+      const <String, dynamic>{};
 
   Future<Map<String, dynamic>> fetchTeacherHome() =>
       _apiClient.get('teacher/home/');

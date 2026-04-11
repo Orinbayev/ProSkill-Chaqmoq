@@ -139,12 +139,6 @@ def build_endpoints(center):
             "GET",
             f"/{slug}/hisob/billing/api/payment-status/?ids={req_id}",
         ),
-        ("director_dashboard_api", "GET", f"/{slug}/api/director/dashboard/?period=all"),
-        (
-            "student_chart_api",
-            "GET",
-            f"/{slug}/api/director/dashboard/students-chart/?year={year}",
-        ),
     ]
 
     super_endpoints = [

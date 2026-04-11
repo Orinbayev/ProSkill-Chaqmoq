@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+{% block title %}Ombor Dashboardi — ChaqmoqApp{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboards.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="db-shell">
+  <div class="db-topbar">
+    <div class="db-topbar-left">
+      <a href="{% url 'core:dashboard_hub' %}" class="db-back-btn"><i class="fa-solid fa-arrow-left"></i></a>
+      <div>
+        <div class="db-topbar-title"><i class="fa-solid fa-boxes-stacked" style="color:#f97316;margin-right:8px;"></i>Ombor Dashboardi</div>
+        <div class="db-topbar-sub">Mahsulot sotuvi · Miqdor · Eng ko'p sotilganlar</div>
+      </div>
+    </div>
+    <div class="db-filter-bar">
+      <input type="date" id="dateFrom" class="db-filter-input">
+      <input type="date" id="dateTo" class="db-filter-input">
+      <button class="db-filter-btn" onclick="loadData()"><i class="fa-solid fa-rotate"></i> Yangilash</button>
+      <button class="db-filter-btn db-filter-btn-ghost" onclick="resetFilter()">Tiklash</button>
+    </div>
+  </div>
+
+  <div class="db-kpi-grid">
+    <div class="db-kpi-card">
+      <div class="db-kpi-label">Jami sotuvlar</div>
+      <div class="db-kpi-value" id="kv-sales">—</div>
+      <div class="db-kpi-sub">Bitimlar soni</div>
+    </div>
+    <div class="db-kpi-card">
+      <div class="db-kpi-label">Jami daromad</div>
+      <div class="db-kpi-value" id="kv-revenue">—</div>
+      <div class="db-kpi-sub">Sotuvdan</div>
+    </div>
+    <div class="db-kpi-card">
+      <div class="db-kpi-label">Sotilgan miqdor</div>
+      <div class="db-kpi-value" id="kv-qty">—</div>
+      <div class="db-kpi-sub">Jami dona</div>
+    </div>
+    <div class="db-kpi-card">
+      <div class="db-kpi-label">Mahsulotlar turi</div>
+      <div class="db-kpi-value" id="kv-products">—</div>
+      <div class="db-kpi-sub">Noyob mahsulotlar</div>
+    </div>
+  </div>
+
+  <div class="db-chart-grid db-chart-grid-equal">
+    <div class="db-card" style="height:300px;padding:16px;">
+      <div class="db-chart-title">Mahsulot daromadi <span class="db-chip db-chip-cyan">Bar</span></div>
+      <div style="height:240px;position:relative;"><canvas id="productRevChart"></canvas></div>
+    </div>
+    <div class="db-card" style="height:300px;padding:16px;">
+      <div class="db-chart-title">Sotilgan miqdor <span class="db-chip">Bar</span></div>
+      <div style="height:240px;position:relative;"><canvas id="productQtyChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="db-card" style="margin-top:16px;">
+    <div class="db-chart-title">Mahsulotlar reytingi</div>
+    <table class="db-table">
+      <thead><tr><th>#</th><th>Mahsulot</th><th>Miqdor</th><th>Narx</th><th>Daromad</th></tr></thead>
+      <tbody id="productTable"><tr><td colspan="5" class="db-empty">Yuklanmoqda...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+const API_URL = "{% url 'core:inventory_api' %}";
+let prvChart, pqChart, controller;
+const el = id => document.getElementById(id);
+const FMT = v => new Intl.NumberFormat('uz-UZ').format(Math.round(v||0)) + ' so\'m';
+const SHORT = v => { const n=Math.round(v||0); return n>=1000000?(n/1000000).toFixed(1)+'M':n>=1000?(n/1000).toFixed(0)+'K':String(n); };
+
+async function loadData() {
+  if (controller) controller.abort();
+  controller = new AbortController();
+  const params = new URLSearchParams();
+  const df = el('dateFrom')?.value; const dt = el('dateTo')?.value;
+  if (df) params.set('date_from', df);
+  if (dt) params.set('date_to', dt);
+  try {
+    const res = await fetch(API_URL + '?' + params, { signal: controller.signal });
+    const d = await res.json();
+    el('kv-sales').textContent = d.total_sales ?? '—';
+    el('kv-revenue').textContent = SHORT(d.total_revenue);
+    el('kv-qty').textContent = d.total_qty ?? '—';
+    el('kv-products').textContent = d.unique_products ?? '—';
+    renderProductRevChart(d.top_products || []);
+    renderProductQtyChart(d.top_products || []);
+    renderProductTable(d.top_products || []);
+  } catch(e) { if (e.name !== 'AbortError') console.error(e); }
+}
+
+function renderProductRevChart(products) {
+  const top = products.slice(0,12);
+  const ctx = el('productRevChart').getContext('2d');
+  if (prvChart) prvChart.destroy();
+  prvChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: top.map(p=>(p.name||'—').slice(0,20)), datasets: [{ label: 'Daromad', data: top.map(p=>p.revenue||0), backgroundColor: 'rgba(249,115,22,.7)', borderRadius: 5, borderSkipped: false }] },
+    options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: { x: { ticks: { color: '#64748b', callback: v => SHORT(v) }, grid: { color: 'rgba(255,255,255,.04)' } }, y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } } }
+    }
+  });
+}
+
+function renderProductQtyChart(products) {
+  const top = products.slice(0,12);
+  const ctx = el('productQtyChart').getContext('2d');
+  if (pqChart) pqChart.destroy();
+  pqChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: top.map(p=>(p.name||'—').slice(0,20)), datasets: [{ label: 'Miqdor', data: top.map(p=>p.qty||0), backgroundColor: 'rgba(56,189,248,.7)', borderRadius: 5, borderSkipped: false }] },
+    options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: { x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,.04)' } }, y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } } }
+    }
+  });
+}
+
+function renderProductTable(products) {
+  el('productTable').innerHTML = products.map((p,i) =>
+    `<tr><td><span class="db-list-rank">${i+1}</span></td><td>${p.name||'—'}</td><td>${p.qty||0}</td><td>${FMT(p.price||p.narx_som||0)}</td><td>${FMT(p.revenue||0)}</td></tr>`
+  ).join('') || '<tr><td colspan="5" class="db-empty">Ma\'lumot yo\'q</td></tr>';
+}
+
+function resetFilter() { el('dateFrom').value=''; el('dateTo').value=''; loadData(); }
+loadData();
+</script>
+{% endblock %}

@@ -31,6 +31,51 @@ class Notification(models.Model):
         return f"{self.recipient} -> {self.title}"
 
 
+class NotificationPreference(models.Model):
+    """
+    Foydalanuvchining bildirishnoma afzalliklari.
+    Har bir tur uchun alohida opt-out imkoniyati.
+    """
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="notification_preference",
+    )
+    # Har bir tur uchun: True = qabul qilish, False = rad etish
+    receive_coin = models.BooleanField(default=True, verbose_name="Chaqmoq o'zgarishi")
+    receive_broadcast = models.BooleanField(default=True, verbose_name="Umumiy xabarlar")
+    receive_purchase = models.BooleanField(default=True, verbose_name="Xarid holati")
+    receive_system = models.BooleanField(default=True, verbose_name="Tizim xabarlari")
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Bildirishnoma sozlamasi"
+        verbose_name_plural = "Bildirishnoma sozlamalari"
+
+    def __str__(self):
+        return f"{self.user} bildirishnoma sozlamalari"
+
+    @classmethod
+    def wants_notification(cls, user, notification_type: str) -> bool:
+        """
+        Foydalanuvchi ushbu turdagi bildirishnomani olishni xohlaydi?
+        Sozlama yo'q bo'lsa — standart True qaytaradi.
+        """
+        field_map = {
+            "coin": "receive_coin",
+            "broadcast": "receive_broadcast",
+            "purchase": "receive_purchase",
+            "system": "receive_system",
+        }
+        field = field_map.get(notification_type, "receive_system")
+        try:
+            pref = cls.objects.get(user=user)
+            return getattr(pref, field, True)
+        except cls.DoesNotExist:
+            return True  # Standart: barcha bildirishnomalar yoqilgan
+
+
 class MobileAccessToken(models.Model):
     center = models.ForeignKey(
         Center,
@@ -68,66 +113,6 @@ class MobileAccessToken(models.Model):
 
     def __str__(self):
         return f"{self.user} / {self.device_name or 'mobil token'}"
-
-
-class DirectorAIChatSession(models.Model):
-    center = models.ForeignKey(
-        Center,
-        on_delete=models.CASCADE,
-        related_name="director_ai_chat_sessions",
-    )
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="director_ai_chat_sessions",
-    )
-    title = models.CharField(max_length=255, blank=True, default="Direktor AI chat")
-    launcher_position = models.JSONField(default=dict, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ["-updated_at", "-id"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["center", "user"],
-                name="core_director_ai_chat_unique_center_user",
-            ),
-        ]
-        indexes = [
-            models.Index(fields=["center", "updated_at"]),
-            models.Index(fields=["user", "updated_at"]),
-        ]
-
-    def __str__(self):
-        return f"{self.center} / {self.user} / {self.title or 'AI chat'}"
-
-
-class DirectorAIChatMessage(models.Model):
-    class Role(models.TextChoices):
-        USER = "user", "Foydalanuvchi"
-        ASSISTANT = "assistant", "AI"
-
-    session = models.ForeignKey(
-        DirectorAIChatSession,
-        on_delete=models.CASCADE,
-        related_name="messages",
-    )
-    role = models.CharField(max_length=16, choices=Role.choices)
-    content = models.TextField()
-    source = models.CharField(max_length=24, blank=True, default="")
-    metadata = models.JSONField(default=dict, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ["created_at", "id"]
-        indexes = [
-            models.Index(fields=["session", "created_at"]),
-            models.Index(fields=["role", "created_at"]),
-        ]
-
-    def __str__(self):
-        return f"{self.session_id} / {self.role}"
 
 
 class CenterDailyMetric(models.Model):

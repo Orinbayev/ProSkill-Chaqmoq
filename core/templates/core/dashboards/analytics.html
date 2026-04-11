@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+{% block title %}Analitika Dashboardi — ChaqmoqApp{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboards.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="db-shell">
+  <div class="db-topbar">
+    <div class="db-topbar-left">
+      <a href="{% url 'core:dashboard_hub' %}" class="db-back-btn"><i class="fa-solid fa-arrow-left"></i></a>
+      <div>
+        <div class="db-topbar-title"><i class="fa-solid fa-chart-bar" style="color:#6366f1;margin-right:8px;"></i>Analitika Dashboardi</div>
+        <div class="db-topbar-sub">Foydalanuvchi aktivligi · Rol taqsimoti · Tizim</div>
+      </div>
+    </div>
+    <div class="db-filter-bar">
+      <input type="date" id="dateFrom" class="db-filter-input">
+      <input type="date" id="dateTo" class="db-filter-input">
+      <button class="db-filter-btn" onclick="loadData()"><i class="fa-solid fa-rotate"></i> Yangilash</button>
+      <button class="db-filter-btn db-filter-btn-ghost" onclick="resetFilter()">Tiklash</button>
+    </div>
+  </div>
+
+  <div class="db-kpi-grid">
+    <div class="db-kpi-card">
+      <div class="db-kpi-label">Jami foydalanuvchilar</div>
+      <div class="db-kpi-value" id="kv-total">—</div>
+      <div class="db-kpi-sub">Ro'yxatdan o'tganlar</div>
+    </div>
+    <div class="db-kpi-card">
+      <div class="db-kpi-label">Bugun faol</div>
+      <div class="db-kpi-value" id="kv-today">—</div>
+      <div class="db-kpi-sub">Bugun kirganlar</div>
+    </div>
+    <div class="db-kpi-card">
+      <div class="db-kpi-label">Hafta faollari</div>
+      <div class="db-kpi-value" id="kv-week">—</div>
+      <div class="db-kpi-sub">So'nggi 7 kun</div>
+    </div>
+    <div class="db-kpi-card">
+      <div class="db-kpi-label">Yangi foydalanuvchilar</div>
+      <div class="db-kpi-value" id="kv-new">—</div>
+      <div class="db-kpi-sub">Davr ichida</div>
+    </div>
+  </div>
+
+  <div class="db-chart-grid">
+    <div class="db-card" style="height:280px;padding:16px;">
+      <div class="db-chart-title">6 oylik o'sish trendi <span class="db-chip db-chip-cyan">Chiziqli</span></div>
+      <div style="height:220px;position:relative;"><canvas id="growthChart"></canvas></div>
+    </div>
+    <div class="db-card" style="height:280px;padding:16px;">
+      <div class="db-chart-title">Rollar taqsimoti <span class="db-chip">Donut</span></div>
+      <div style="height:220px;position:relative;"><canvas id="roleChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="db-card" style="margin-top:16px;">
+    <div class="db-chart-title">Rollar statistikasi</div>
+    <table class="db-table">
+      <thead><tr><th>#</th><th>Rol</th><th>Soni</th><th>Faollari</th><th>Ulush</th></tr></thead>
+      <tbody id="roleTable"><tr><td colspan="5" class="db-empty">Yuklanmoqda...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+const API_URL = "{% url 'core:analytics_api' %}";
+let gwChart, rlChart, controller;
+const el = id => document.getElementById(id);
+const ROLE_LABELS = { director: 'Direktor', manager: "Menejer", teacher: "O'qituvchi", student: "O'quvchi", parent: "Ota-ona" };
+const COLORS = ['#6366f1','#38bdf8','#a855f7','#22c55e','#f59e0b'];
+
+async function loadData() {
+  if (controller) controller.abort();
+  controller = new AbortController();
+  const params = new URLSearchParams();
+  const df = el('dateFrom')?.value; const dt = el('dateTo')?.value;
+  if (df) params.set('date_from', df);
+  if (dt) params.set('date_to', dt);
+  try {
+    const res = await fetch(API_URL + '?' + params, { signal: controller.signal });
+    const d = await res.json();
+    el('kv-total').textContent = d.total_users ?? '—';
+    el('kv-today').textContent = d.active_today ?? '—';
+    el('kv-week').textContent = d.active_week ?? '—';
+    el('kv-new').textContent = d.new_users ?? '—';
+    renderGrowthChart(d.monthly_trend || {});
+    renderRoleChart(d.role_distribution || []);
+    renderRoleTable(d.role_distribution || [], d.total_users || 0);
+  } catch(e) { if (e.name !== 'AbortError') console.error(e); }
+}
+
+function renderGrowthChart(t) {
+  const ctx = el('growthChart').getContext('2d');
+  if (gwChart) gwChart.destroy();
+  gwChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: t.labels||[], datasets: [
+      { label: "Yangi foydalanuvchilar", data: t.new_users||[], borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,.12)', fill: true, tension: .4, pointRadius: 3 },
+      { label: 'Faol foydalanuvchilar', data: t.active_users||[], borderColor: '#38bdf8', borderDash: [4,3], fill: false, tension: .4, pointRadius: 3 }
+    ]},
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
+      scales: { x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,.04)' } }, y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,.04)' } } }
+    }
+  });
+}
+
+function renderRoleChart(roles) {
+  const ctx = el('roleChart').getContext('2d');
+  if (rlChart) rlChart.destroy();
+  rlChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels: roles.map(r=>ROLE_LABELS[r.role]||r.role||'—'), datasets: [{ data: roles.map(r=>r.count||0), backgroundColor: COLORS, borderWidth: 0, hoverOffset: 6 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 }, padding: 10 } } } }
+  });
+}
+
+function renderRoleTable(roles, total) {
+  el('roleTable').innerHTML = roles.map((r,i) => {
+    const pct = total ? (r.count/total*100).toFixed(1) : 0;
+    return `<tr><td><span class="db-list-rank">${i+1}</span></td><td><span style="color:${COLORS[i%5]}">●</span> ${ROLE_LABELS[r.role]||r.role||'—'}</td><td>${r.count||0}</td><td>${r.active||'—'}</td><td>${pct}%</td></tr>`;
+  }).join('') || '<tr><td colspan="5" class="db-empty">Ma\'lumot yo\'q</td></tr>';
+}
+
+function resetFilter() { el('dateFrom').value=''; el('dateTo').value=''; loadData(); }
+loadData();
+</script>
+{% endblock %}

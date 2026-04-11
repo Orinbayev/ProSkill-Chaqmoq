@@ -175,27 +175,11 @@ class MobileAPITests(TestCase):
         self.assertTrue(payload["authenticated"])
         self.assertEqual(payload["user"]["role"], "director")
         self.assertEqual(payload["user"]["center"]["slug"], self.center.slug)
+        self.assertFalse(payload["user"]["permissions"]["can_view_director_dashboard"])
 
         status_response = self.client.get(self._path("auth/status/"))
         self.assertEqual(status_response.status_code, 200)
         self.assertTrue(status_response.json()["authenticated"])
-
-    def test_mobile_director_dashboard_returns_full_contract(self):
-        self.client.force_login(self.director)
-        response = self.client.get(
-            self._path("dashboard/director/"),
-            {
-                "date_from": (self.today - timezone.timedelta(days=7)).isoformat(),
-                "date_to": self.today.isoformat(),
-            },
-        )
-        self.assertEqual(response.status_code, 200)
-        payload = response.json()
-        self.assertIn("overview", payload)
-        self.assertIn("executive", payload)
-        self.assertIn("groups", payload)
-        self.assertIn("marketing", payload)
-        self.assertEqual(payload["filters"]["applied"]["branch_ids"], [self.center.id])
 
     def test_student_home_contains_debt_balance_groups_and_payments(self):
         self.client.force_login(self.student)

@@ -131,7 +131,11 @@ class CenterSubscription(models.Model):
     manual_block = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
 
-    GRACE_PERIOD_HOURS = 72
+    # Settings orqali sozlanadi: BILLING_GRACE_PERIOD_HOURS, standart 72 soat
+    @property
+    def GRACE_PERIOD_HOURS(self):
+        from django.conf import settings
+        return getattr(settings, "BILLING_GRACE_PERIOD_HOURS", 72)
 
     class Meta:
         ordering = ("-plan__tier", "-expires_at") # Highest tier first, then latest expiry

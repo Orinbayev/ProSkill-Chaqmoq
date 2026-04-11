@@ -57,7 +57,7 @@ class DashboardProvider extends ChangeNotifier {
           break;
         case 'director':
         case 'manager':
-          directorDashboard = await _dashboardService.fetchDirectorDashboard();
+          directorDashboard = const <String, dynamic>{};
           break;
         case 'teacher':
           teacherHome = await _dashboardService.fetchTeacherHome();

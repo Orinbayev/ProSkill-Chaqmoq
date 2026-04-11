@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+{% block title %}Marketing Dashboardi — ChaqmoqApp{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboards.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="db-shell">
+  <div class="db-topbar">
+    <div class="db-topbar-left">
+      <a href="{% url 'core:dashboard_hub' %}" class="db-back-btn"><i class="fa-solid fa-arrow-left"></i></a>
+      <div>
+        <div class="db-topbar-title"><i class="fa-solid fa-bullhorn" style="color:#14b8a6;margin-right:8px;"></i>Marketing Dashboardi</div>
+        <div class="db-topbar-sub">Lead oqimi · Konversiya · Manbalar</div>
+      </div>
+    </div>
+    <div class="db-filter-bar">
+      <input type="date" id="dateFrom" class="db-filter-input">
+      <input type="date" id="dateTo" class="db-filter-input">
+      <button class="db-filter-btn" onclick="loadData()"><i class="fa-solid fa-rotate"></i> Yangilash</button>
+      <button class="db-filter-btn db-filter-btn-ghost" onclick="resetFilter()">Tiklash</button>
+    </div>
+  </div>
+
+  <div class="db-kpi-grid">
+    <div class="db-kpi-card">
+      <div class="db-kpi-label">Jami leadlar</div>
+      <div class="db-kpi-value" id="kv-total">—</div>
+      <div class="db-kpi-sub" id="ks-total">yuklanmoqda...</div>
+    </div>
+    <div class="db-kpi-card">
+      <div class="db-kpi-label">Konvertatsiya</div>
+      <div class="db-kpi-value" id="kv-conv">—</div>
+      <div class="db-kpi-sub">O'quvchiga aylangan</div>
+    </div>
+    <div class="db-kpi-card">
+      <div class="db-kpi-label">Konversiya foizi</div>
+      <div class="db-kpi-value" id="kv-rate">—</div>
+      <div class="db-kpi-sub">Lead → O'quvchi</div>
+    </div>
+    <div class="db-kpi-card">
+      <div class="db-kpi-label">Yangi leadlar</div>
+      <div class="db-kpi-value" id="kv-new">—</div>
+      <div class="db-kpi-sub">Davr ichida</div>
+    </div>
+  </div>
+
+  <div class="db-chart-grid db-chart-grid-equal">
+    <div class="db-card" style="height:280px;padding:16px;">
+      <div class="db-chart-title">6 oylik lead trendi <span class="db-chip db-chip-cyan">Chiziqli</span></div>
+      <div style="height:220px;position:relative;"><canvas id="leadTrendChart"></canvas></div>
+    </div>
+    <div class="db-card" style="height:280px;padding:16px;">
+      <div class="db-chart-title">Manbalar bo'yicha leadlar <span class="db-chip">Bar</span></div>
+      <div style="height:220px;position:relative;"><canvas id="sourceChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="db-card" style="margin-top:16px;">
+    <div class="db-chart-title">Manba taqsimoti</div>
+    <table class="db-table">
+      <thead><tr><th>#</th><th>Manba</th><th>Leadlar</th><th>Konvertatsiya</th><th>Foiz</th></tr></thead>
+      <tbody id="sourceTable"><tr><td colspan="5" class="db-empty">Yuklanmoqda...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+const API_URL = "{% url 'core:marketing_api' %}";
+let ltChart, srcChart, controller;
+const el = id => document.getElementById(id);
+const PCT = v => (parseFloat(v)||0).toFixed(1) + '%';
+
+async function loadData() {
+  if (controller) controller.abort();
+  controller = new AbortController();
+  const params = new URLSearchParams();
+  const df = el('dateFrom')?.value; const dt = el('dateTo')?.value;
+  if (df) params.set('date_from', df);
+  if (dt) params.set('date_to', dt);
+  try {
+    const res = await fetch(API_URL + '?' + params, { signal: controller.signal });
+    const d = await res.json();
+    el('kv-total').textContent = d.total_leads ?? '—';
+    el('ks-total').textContent = `Aktiv: ${d.active_leads ?? 0}`;
+    el('kv-conv').textContent = d.converted ?? '—';
+    el('kv-rate').textContent = PCT(d.conversion_rate);
+    el('kv-new').textContent = d.new_leads ?? '—';
+    renderLeadTrend(d.trend || {});
+    renderSourceChart(d.by_source || []);
+    renderSourceTable(d.by_source || []);
+  } catch(e) { if (e.name !== 'AbortError') console.error(e); }
+}
+
+function renderLeadTrend(t) {
+  const ctx = el('leadTrendChart').getContext('2d');
+  if (ltChart) ltChart.destroy();
+  ltChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: t.labels||[], datasets: [
+      { label: 'Yangi leadlar', data: t.new_leads||[], borderColor: '#14b8a6', backgroundColor: 'rgba(20,184,166,.12)', fill: true, tension: .4, pointRadius: 3 },
+      { label: 'Konvertatsiya', data: t.converted||[], borderColor: '#22c55e', borderDash: [4,3], fill: false, tension: .4, pointRadius: 3 }
+    ]},
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
+      scales: { x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,.04)' } }, y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,.04)' } } }
+    }
+  });
+}
+
+function renderSourceChart(sources) {
+  const ctx = el('sourceChart').getContext('2d');
+  if (srcChart) srcChart.destroy();
+  srcChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: sources.map(s=>s.source||s.label||'—'), datasets: [{ label: 'Leadlar', data: sources.map(s=>s.count||0), backgroundColor: sources.map((_,i)=>`hsl(${160+i*30},70%,55%)`), borderRadius: 5, borderSkipped: false }] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,.04)' } }, y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,.04)' } } }
+    }
+  });
+}
+
+function renderSourceTable(sources) {
+  el('sourceTable').innerHTML = sources.map((s,i) => {
+    const total=s.count||0, conv=s.converted||0;
+    return `<tr><td><span class="db-list-rank">${i+1}</span></td><td>${s.source||s.label||'—'}</td><td>${total}</td><td>${conv}</td><td>${total?(conv/total*100).toFixed(1):0}%</td></tr>`;
+  }).join('') || '<tr><td colspan="5" class="db-empty">Ma\'lumot yo\'q</td></tr>';
+}
+
+function resetFilter() { el('dateFrom').value=''; el('dateTo').value=''; loadData(); }
+loadData();
+</script>
+{% endblock %}

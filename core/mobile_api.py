@@ -23,7 +23,6 @@ from billing.services import (
 )
 from chaqmoq.models import Ledger
 from core.models import Notification
-from core.services.director_dashboard import build_director_dashboard_payload
 from education.models import (
     Attendance,
     CertificateRecord,
@@ -129,7 +128,7 @@ def _serialize_user(request, user: User) -> dict:
                 or (center and center.manager_can_remove_student and user.role == "manager")
                 or (center and center.teacher_can_remove_student and user.role == "teacher")
             ),
-            "can_view_director_dashboard": bool(user.is_superuser or user.role in ("director", "manager")),
+            "can_view_director_dashboard": False,
             "can_manage_leads": bool(user.is_superuser or user.role in ("director", "manager")),
             "can_take_attendance": bool(user.is_superuser or user.role in ("director", "manager", "teacher")),
         },
@@ -404,19 +403,6 @@ def mobile_role_home(request):
         }
         return JsonResponse(payload)
 
-    return JsonResponse(payload)
-
-
-@require_GET
-@login_required
-def mobile_director_dashboard(request):
-    permission_error = _role_required(request, ("director", "manager"))
-    if permission_error:
-        return permission_error
-    center = _request_center(request)
-    if not center:
-        return _json_error("Center topilmadi", status=404, code="center_not_found")
-    payload = build_director_dashboard_payload(center=center, params=request.GET)
     return JsonResponse(payload)
 
 

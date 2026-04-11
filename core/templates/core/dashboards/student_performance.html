@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+{% block title %}O'quvchilar Dashboardi — ChaqmoqApp{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboards.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="db-shell">
+  <div class="db-topbar">
+    <div class="db-topbar-left">
+      <a href="{% url 'core:dashboard_hub' %}" class="db-back-btn"><i class="fa-solid fa-arrow-left"></i></a>
+      <div>
+        <div class="db-topbar-title"><i class="fa-solid fa-user-graduate" style="color:#38bdf8;margin-right:8px;"></i>O'quvchilar Dashboardi</div>
+        <div class="db-topbar-sub">Faollik · Davomat · Rivojlanish</div>
+      </div>
+    </div>
+    <div class="db-filter-bar">
+      <input type="date" id="dateFrom" class="db-filter-input">
+      <input type="date" id="dateTo" class="db-filter-input">
+      <button class="db-filter-btn" onclick="loadData()"><i class="fa-solid fa-rotate"></i> Yangilash</button>
+      <button class="db-filter-btn db-filter-btn-ghost" onclick="resetFilter()">Tiklash</button>
+    </div>
+  </div>
+
+  <div class="db-kpi-grid">
+    <div class="db-kpi-card">
+      <div class="db-kpi-label">Jami o'quvchilar</div>
+      <div class="db-kpi-value" id="kv-total">—</div>
+      <div class="db-kpi-sub" id="ks-total">yuklanmoqda...</div>
+    </div>
+    <div class="db-kpi-card">
+      <div class="db-kpi-label">Faol o'quvchilar</div>
+      <div class="db-kpi-value" id="kv-active">—</div>
+      <div class="db-kpi-sub" id="ks-active">yuklanmoqda...</div>
+    </div>
+    <div class="db-kpi-card">
+      <div class="db-kpi-label">Davomat foizi</div>
+      <div class="db-kpi-value" id="kv-att">—</div>
+      <div class="db-kpi-sub">O'rtacha davomat</div>
+    </div>
+    <div class="db-kpi-card">
+      <div class="db-kpi-label">Churn riski</div>
+      <div class="db-kpi-value" id="kv-churn">—</div>
+      <div class="db-kpi-sub">Davomat &lt; 30%</div>
+    </div>
+  </div>
+
+  <div class="db-chart-grid">
+    <div class="db-card" style="height:280px;padding:16px;">
+      <div class="db-chart-title">6 oylik yangi o'quvchilar <span class="db-chip db-chip-cyan">Trend</span></div>
+      <div style="height:220px;position:relative;"><canvas id="newStudentsChart"></canvas></div>
+    </div>
+    <div class="db-card" style="height:280px;padding:16px;">
+      <div class="db-chart-title">Guruh taqsimoti <span class="db-chip">Donut</span></div>
+      <div style="height:220px;position:relative;"><canvas id="groupDistChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="db-card" style="margin-top:16px;">
+    <div class="db-chart-title">Eng faol o'quvchilar</div>
+    <table class="db-table">
+      <thead><tr><th>#</th><th>O'quvchi</th><th>Guruhlar</th><th>Davomat</th></tr></thead>
+      <tbody id="topStudentsTable"><tr><td colspan="4" class="db-empty">Yuklanmoqda...</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="db-card" style="margin-top:16px;">
+    <div class="db-chart-title">Past faollikdagi o'quvchilar <span class="db-chip db-chip-rose">&lt;70% davomat</span></div>
+    <table class="db-table">
+      <thead><tr><th>#</th><th>O'quvchi</th><th>Guruh</th><th>Davomat %</th></tr></thead>
+      <tbody id="lowActivityTable"><tr><td colspan="4" class="db-empty">Yuklanmoqda...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+const API_URL = "{% url 'core:student_performance_api' %}";
+let nsChart, gdChart, controller;
+const el = id => document.getElementById(id);
+const PCT = v => (parseFloat(v)||0).toFixed(1) + '%';
+const COLORS = ['#38bdf8','#22c55e','#f59e0b','#a855f7','#ef4444','#14b8a6'];
+
+async function loadData() {
+  if (controller) controller.abort();
+  controller = new AbortController();
+  const params = new URLSearchParams();
+  const df = el('dateFrom')?.value; const dt = el('dateTo')?.value;
+  if (df) params.set('date_from', df);
+  if (dt) params.set('date_to', dt);
+  try {
+    const res = await fetch(API_URL + '?' + params, { signal: controller.signal });
+    const d = await res.json();
+    el('kv-total').textContent = d.total_students ?? '—';
+    el('ks-total').textContent = `Faol: ${d.active_students ?? 0}`;
+    el('kv-active').textContent = d.active_students ?? '—';
+    el('ks-active').textContent = `Yangi (davr): ${d.new_students ?? 0}`;
+    el('kv-att').textContent = PCT(d.attendance_rate);
+    el('kv-churn').textContent = d.churn_risk_count ?? '—';
+    renderNewStudents(d.trend || {});
+    renderGroupDist(d.group_distribution || []);
+    renderTopStudents(d.top_students || []);
+    renderLowActivity(d.low_activity || []);
+  } catch(e) { if (e.name !== 'AbortError') console.error(e); }
+}
+
+function renderNewStudents(t) {
+  const ctx = el('newStudentsChart').getContext('2d');
+  if (nsChart) nsChart.destroy();
+  nsChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: t.labels || [],
+      datasets: [
+        { label: "Yangi o'quvchilar", data: t.new_students || [], borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,.12)', fill: true, tension: .4, pointRadius: 3 },
+        { label: 'Davomat %', data: t.attendance || [], borderColor: '#22c55e', borderDash: [4,3], fill: false, tension: .4, pointRadius: 3, yAxisID: 'y1' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
+      scales: {
+        x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,.04)' } },
+        y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,.04)' } },
+        y1: { position: 'right', ticks: { color: '#64748b', callback: v => v+'%' }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+function renderGroupDist(rows) {
+  const ctx = el('groupDistChart').getContext('2d');
+  if (gdChart) gdChart.destroy();
+  gdChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels: rows.map(r => r.name||r.group||'—'), datasets: [{ data: rows.map(r => r.count||r.students||0), backgroundColor: COLORS, borderWidth: 0, hoverOffset: 6 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 }, padding: 10 } } } }
+  });
+}
+
+function renderTopStudents(rows) {
+  el('topStudentsTable').innerHTML = rows.slice(0,10).map((r,i) =>
+    `<tr><td><span class="db-list-rank">${i+1}</span></td><td>${r.name||r.full_name||'—'}</td><td>${r.groups_count||r.groups||0}</td><td>${PCT(r.attendance_rate||r.attendance||0)}</td></tr>`
+  ).join('') || '<tr><td colspan="4" class="db-empty">Ma\'lumot yo\'q</td></tr>';
+}
+
+function renderLowActivity(rows) {
+  el('lowActivityTable').innerHTML = rows.slice(0,10).map((r,i) => {
+    const att = parseFloat(r.attendance_rate||r.attendance||0);
+    const color = att<30?'#ef4444':att<50?'#f59e0b':'#94a3b8';
+    return `<tr><td><span class="db-list-rank">${i+1}</span></td><td>${r.name||r.full_name||'—'}</td><td>${r.group||'—'}</td><td><span style="color:${color};font-weight:700;">${att.toFixed(1)}%</span></td></tr>`;
+  }).join('') || '<tr><td colspan="4" class="db-empty">Ma\'lumot yo\'q</td></tr>';
+}
+
+function resetFilter() { el('dateFrom').value=''; el('dateTo').value=''; loadData(); }
+loadData();
+</script>
+{% endblock %}

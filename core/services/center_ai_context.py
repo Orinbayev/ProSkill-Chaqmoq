@@ -4,13 +4,13 @@ from collections import defaultdict
 from datetime import date, timedelta
 import re
 
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, F, Q, Sum
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
 
 from accounts.models import Center, User
 from core.services.center_ai_security import privacy_mode_label, visible_phone
-from education.models import Attendance, Enrollment, Group, Payment, PaymentAllocation, TeacherIncome, TuitionMonth
+from education.models import Attendance, Category, Enrollment, Group, Payment, PaymentAllocation, TeacherIncome, TuitionMonth
 from store.models import Expense, Lead, Product, PurchaseRequest, Sale, TrialLesson
 
 RISK_DEBT_THRESHOLD = 200_000
@@ -952,6 +952,264 @@ def get_center_store_context(center: Center, *, limit: int = 20, date_from=None,
     }
 
 
+def get_category_revenue_context(center: Center, date_from=None, date_to=None) -> dict:
+    """
+    Bo'lim (category) va guruh bo'yicha daromad taqsimotini qaytaradi.
+    'Qaysi kurs eng kam/ko'p daromad keltirmoqda?' savolini javoblash uchun.
+    """
+    start, end = _period(date_from, date_to)
+
+    # Guruh bo'yicha daromad
+    group_revenue = list(
+        Payment.objects.filter(center=center, paid_date__range=(start, end))
+        .values("group_id", "group__nom", "group__kategoriya__nom")
+        .annotate(revenue=Sum("summa"), payments_count=Count("id"))
+        .order_by("-revenue")
+    )
+
+    # Guruh talabalari soni
+    student_counts = {
+        row["group_id"]: int(row["cnt"] or 0)
+        for row in (
+            Enrollment.objects.filter(center=center, is_active=True)
+            .values("group_id")
+            .annotate(cnt=Count("student_id", distinct=True))
+        )
+    }
+
+    # Category bo'yicha yig'ish
+    category_map: dict[str, dict] = defaultdict(lambda: {"revenue": 0, "groups": [], "students": 0, "payments_count": 0})
+    for row in group_revenue:
+        cat_name = row.get("group__kategoriya__nom") or "Bo'limsiz"
+        grp_name = row.get("group__nom") or "Noma'lum guruh"
+        grp_id = row.get("group_id")
+        rev = int(row.get("revenue") or 0)
+        cnt = int(row.get("payments_count") or 0)
+        students = student_counts.get(grp_id, 0)
+
+        category_map[cat_name]["revenue"] += rev
+        category_map[cat_name]["payments_count"] += cnt
+        category_map[cat_name]["students"] += students
+        category_map[cat_name]["groups"].append({
+            "name": grp_name,
+            "revenue": rev,
+            "students": students,
+        })
+
+    # Saralash: eng ko'p daromaddan
+    categories = sorted(
+        [
+            {
+                "category": cat_name,
+                "revenue": data["revenue"],
+                "payments_count": data["payments_count"],
+                "students": data["students"],
+                "groups": sorted(data["groups"], key=lambda g: -g["revenue"]),
+            }
+            for cat_name, data in category_map.items()
+        ],
+        key=lambda c: -c["revenue"],
+    )
+
+    # Eng past daromadli kurslari (guruh)
+    lowest_groups = sorted(
+        [
+            {
+                "name": row.get("group__nom") or "Noma'lum",
+                "category": row.get("group__kategoriya__nom") or "Bo'limsiz",
+                "revenue": int(row.get("revenue") or 0),
+                "students": student_counts.get(row.get("group_id"), 0),
+            }
+            for row in group_revenue
+        ],
+        key=lambda g: g["revenue"],
+    )
+
+    return {
+        "period": {"date_from": start.isoformat(), "date_to": end.isoformat()},
+        "by_category": categories,
+        "lowest_groups": lowest_groups[:10],
+        "highest_groups": list(reversed(lowest_groups[-10:])) if lowest_groups else [],
+        "total_revenue": sum(c["revenue"] for c in categories),
+    }
+
+
+def get_debt_aging_context(center: Center, *, as_of: date | None = None) -> dict:
+    """
+    Qarzdorlarni qarz yoshiga ko'ra guruhlaydi (aging analysis).
+    0-30 kun, 31-60 kun, 61-90 kun, 90+ kun qarzlari.
+    'Qarzdor talabalar diagrammasi' uchun.
+    """
+    as_of = as_of or timezone.localdate()
+
+    # Barcha faol talabalar va ularning TuitionMonth qarzlari
+    active_enrollments = list(
+        Enrollment.objects.filter(center=center, is_active=True)
+        .values("id", "student_id")
+    )
+    if not active_enrollments:
+        return {"buckets": [], "total_debtors": 0, "total_debt": 0, "as_of": as_of.isoformat()}
+
+    enrollment_ids = [e["id"] for e in active_enrollments]
+    enrollment_student = {e["id"]: e["student_id"] for e in active_enrollments}
+
+    # Har bir TuitionMonth uchun qarz hisoblash
+    tuition_rows = list(
+        TuitionMonth.objects.filter(
+            center=center,
+            enrollment_id__in=enrollment_ids,
+            month__lte=as_of,
+        ).values("id", "enrollment_id", "month", "fee_amount")
+    )
+    if not tuition_rows:
+        return {"buckets": [], "total_debtors": 0, "total_debt": 0, "as_of": as_of.isoformat()}
+
+    tuition_ids = [row["id"] for row in tuition_rows]
+    paid_map = {
+        row["tuition_month_id"]: int(row["total"] or 0)
+        for row in (
+            PaymentAllocation.objects.filter(
+                center=center,
+                tuition_month_id__in=tuition_ids,
+                payment__paid_date__lte=as_of,
+            )
+            .values("tuition_month_id")
+            .annotate(total=Sum("amount"))
+        )
+    }
+
+    # Qarz yoshini hisoblash
+    student_buckets: dict[int, dict] = {}  # student_id → {bucket_label: amount}
+    for row in tuition_rows:
+        fee = int(row["fee_amount"] or 0)
+        paid = int(paid_map.get(row["id"]) or 0)
+        debt = max(fee - paid, 0)
+        if debt <= 0:
+            continue
+
+        student_id = enrollment_student.get(row["enrollment_id"])
+        if not student_id:
+            continue
+
+        month_date = row["month"]
+        if isinstance(month_date, str):
+            month_date = date.fromisoformat(month_date)
+        age_days = (as_of - month_date).days
+
+        if age_days <= 30:
+            bucket = "0-30 kun"
+        elif age_days <= 60:
+            bucket = "31-60 kun"
+        elif age_days <= 90:
+            bucket = "61-90 kun"
+        else:
+            bucket = "90+ kun"
+
+        if student_id not in student_buckets:
+            student_buckets[student_id] = {}
+        student_buckets[student_id][bucket] = student_buckets[student_id].get(bucket, 0) + debt
+
+    # Aggregatsiya
+    bucket_labels = ["0-30 kun", "31-60 kun", "61-90 kun", "90+ kun"]
+    bucket_totals = {label: {"amount": 0, "debtor_count": 0} for label in bucket_labels}
+    total_debt = 0
+    for student_id, buckets in student_buckets.items():
+        for label, amount in buckets.items():
+            bucket_totals[label]["amount"] += amount
+            bucket_totals[label]["debtor_count"] += 1
+            total_debt += amount
+
+    buckets_list = [
+        {
+            "label": label,
+            "amount": bucket_totals[label]["amount"],
+            "debtor_count": bucket_totals[label]["debtor_count"],
+        }
+        for label in bucket_labels
+        if bucket_totals[label]["amount"] > 0
+    ]
+
+    # Top 10 qarzdor
+    all_student_ids = list(student_buckets.keys())
+    student_total_debt = {
+        sid: sum(student_buckets[sid].values())
+        for sid in all_student_ids
+    }
+    top_debtors_ids = sorted(all_student_ids, key=lambda sid: -student_total_debt[sid])[:10]
+
+    top_debtors_users = {
+        u.id: u
+        for u in User.objects.filter(id__in=top_debtors_ids).only("id", "ism", "familya", "otchestvo")
+    }
+    top_debtors = [
+        {
+            "id": sid,
+            "full_name": _full_name(top_debtors_users[sid]) if sid in top_debtors_users else f"ID:{sid}",
+            "total_debt": student_total_debt[sid],
+        }
+        for sid in top_debtors_ids
+        if sid in top_debtors_users
+    ]
+
+    return {
+        "as_of": as_of.isoformat(),
+        "buckets": buckets_list,
+        "top_debtors": top_debtors,
+        "total_debtors": len(student_buckets),
+        "total_debt": total_debt,
+    }
+
+
+def get_daily_revenue_for_date(center: Center, target_date: date) -> dict:
+    """
+    Muayyan bir kunga (masalan, 25-mart) to'lovlarni qaytaradi.
+    'X sanada qancha daromad?' savolini javoblash uchun.
+    """
+    payments = list(
+        Payment.objects.filter(center=center, paid_date=target_date)
+        .select_related("student", "group")
+        .order_by("-summa")
+    )
+
+    total = sum(int(p.summa or 0) for p in payments)
+    cash = sum(int(p.cash_amount or 0) for p in payments)
+    card = sum(int(p.card_amount or 0) for p in payments)
+
+    items = []
+    for p in payments[:20]:
+        student_name = _full_name(p.student) if p.student_id and p.student else "Noma'lum"
+        group_name = p.group.nom if p.group_id and p.group else ""
+        items.append({
+            "student": student_name,
+            "group": group_name,
+            "amount": int(p.summa or 0),
+            "cash": int(p.cash_amount or 0),
+            "card": int(p.card_amount or 0),
+            "type": p.payment_type if hasattr(p, "payment_type") else "mixed",
+        })
+
+    # Solishtirish uchun oldingi kun
+    prev_date = target_date - timedelta(days=1)
+    prev_total = int(
+        Payment.objects.filter(center=center, paid_date=prev_date)
+        .aggregate(total=Sum("summa"))
+        .get("total") or 0
+    )
+
+    change_pct = round(((total - prev_total) / prev_total) * 100, 1) if prev_total else None
+
+    return {
+        "date": target_date.isoformat(),
+        "total": total,
+        "cash": cash,
+        "card": card,
+        "payments_count": len(payments),
+        "items": items,
+        "prev_day_total": prev_total,
+        "change_vs_prev_day_pct": change_pct,
+    }
+
+
 def build_center_ai_context(
     center: Center,
     *,
@@ -972,6 +1230,8 @@ def build_center_ai_context(
     teachers = get_center_teachers_context(center, query=query, viewer=viewer, limit=limit, date_from=start, date_to=end)
     monthly_stats = get_monthly_stats(center.id, as_of=end)
     alerts = generate_center_alerts(center.id, as_of=end)
+    category_revenue = get_category_revenue_context(center, start, end)
+    debt_aging = get_debt_aging_context(center, as_of=end)
 
     return {
         "center": {
@@ -994,6 +1254,8 @@ def build_center_ai_context(
             "teacher_performance": teachers.get("performance", []),
             "top_students": students.get("top_students", []),
             "risky_students": students.get("risky_students", []),
+            "category_revenue": category_revenue,
+            "debt_aging": debt_aging,
         },
         "alerts": alerts,
     }

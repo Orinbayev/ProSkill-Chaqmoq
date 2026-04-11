@@ -55,15 +55,15 @@ class TenantIsolationTest(TestCase):
     def test_group_detail_idor_protection(self):
         """User A boshqa centerdagi guruhga kirsa 404 qaytishi kerak"""
         self.client.force_login(self.user_a)
-        
-        # O‘z guruhi -> 200 OK
+
+        # TenantMiddleware /{slug}/... ga redirect qiladi, shuning uchun follow=True
         url_a = reverse("education:group_detail", args=[self.group_a.id])
-        resp_a = self.client.get(url_a)
+        resp_a = self.client.get(url_a, follow=True)
         self.assertEqual(resp_a.status_code, 200)
-        
+
         # Boshqa center guruhi -> 404 Not Found
         url_b = reverse("education:group_detail", args=[self.group_b.id])
-        resp_b = self.client.get(url_b)
+        resp_b = self.client.get(url_b, follow=True)
         self.assertEqual(resp_b.status_code, 404)
 
     def test_create_group_center_assignment(self):

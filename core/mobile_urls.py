@@ -10,7 +10,6 @@ urlpatterns = [
     path("auth/status/", mobile_api.mobile_auth_status, name="mobile_auth_status"),
     path("me/", mobile_api.mobile_me, name="mobile_me"),
     path("home/", mobile_api.mobile_role_home, name="mobile_home"),
-    path("dashboard/director/", mobile_api.mobile_director_dashboard, name="mobile_director_dashboard"),
     path("teacher/home/", mobile_api.mobile_teacher_home, name="mobile_teacher_home"),
     path("student/home/", mobile_api.mobile_student_home, name="mobile_student_home"),
     path("parent/home/", mobile_api.mobile_parent_home, name="mobile_parent_home"),

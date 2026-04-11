@@ -9,12 +9,18 @@ from django.http import HttpResponse
 from accounts import api_auth
 from accounts.views import test_db, test_center
 from billing import click_views as billing_click_views
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 
 urlpatterns = [
     # ✅ TEST URLS (MUST BE FIRST)
     path('test-db/', test_db),
     path('test-center/', test_center),
+
+    # 📄 API Dokumentatsiya (faqat staff/admin uchun)
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 
     # 🔹 Admin panel
     path('admin/', admin.site.urls),

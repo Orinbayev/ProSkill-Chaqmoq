@@ -26,26 +26,6 @@ from .models import (
 
 logger = logging.getLogger(__name__)
 DEFAULT_CENTER_STUDENT_FALLBACK_LIMIT = 50
-_DASHBOARD_CACHE_PERIODS = (
-    "this_month",
-    "last_month",
-    "3_months",
-    "this_year",
-    "last_year",
-    "all",
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "10",
-    "11",
-    "12",
-)
 
 
 # ============================================================
@@ -149,12 +129,7 @@ def invalidate_center_limit_cache(center: Center | None) -> None:
     if not center_id:
         return
 
-    cache_keys = [f"tenant_ctx:sub:v3:{center_id}"]
-    cache_keys.extend(
-        f"director_dashboard:v2:center:{center_id}:period:{period}"
-        for period in _DASHBOARD_CACHE_PERIODS
-    )
-    cache.delete_many(cache_keys)
+    cache.delete_many([f"tenant_ctx:sub:v3:{center_id}"])
 
 
 def _get_center_active_subscription_cached(center: Center) -> CenterSubscription | None:

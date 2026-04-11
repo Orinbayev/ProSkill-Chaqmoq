@@ -16,20 +16,3 @@ def notifications_mark_read_api(request):
     except Exception:
         logger.exception("notifications_mark_read_api failed")
         return JsonResponse({'success': False, 'error': 'Internal server error'}, status=500)
-
-@login_required
-def director_stats_api(request):
-    """
-    Returns director dashboard analytics as JSON.
-    """
-    if not (request.user.is_superuser or getattr(request.user, 'role', None) in ('director', 'manager')):
-        return JsonResponse({'error': 'Permission denied'}, status=403)
-    
-    from .director_stats import _build_director_stats
-    center = getattr(request, 'center', None) or request.user.center
-    
-    if not center:
-        return JsonResponse({'error': 'Center not found'}, status=404)
-        
-    stats = _build_director_stats(center)
-    return JsonResponse(stats)

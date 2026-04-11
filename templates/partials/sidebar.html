@@ -298,6 +298,17 @@
       <span class="si-text">Boshqaruv</span>
     </a>
 
+    {% if request.user.role == 'director' or request.user.is_superuser %}
+    <a href="{% url 'core:director_overview' %}" class="sidebar-item {% if vn == 'core:director_overview' %}active{% endif %}" data-title="Direktor Paneli">
+      <span class="si-ico"><i class="fa-solid fa-bolt-lightning"></i></span>
+      <span class="si-text">Direktor Paneli</span>
+    </a>
+    <a href="{% url 'core:dashboard_hub' %}" class="sidebar-item {% if '/dashboards' in p and vn != 'core:director_overview' %}active{% endif %}" data-title="Dashboardlar">
+      <span class="si-ico"><i class="fa-solid fa-chart-pie"></i></span>
+      <span class="si-text">Dashboardlar</span>
+    </a>
+    {% endif %}
+
     <a href="{% url 'core:stat_students' %}" class="sidebar-item {% if vn == 'core:stat_students' %}active{% endif %}"
       data-title="O'quvchilar">
       <span class="si-ico"><i class="fa-solid fa-user-graduate"></i></span>

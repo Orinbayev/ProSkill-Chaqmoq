@@ -1,0 +1,1132 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+{% block title %}Direktor Paneli — {{ center.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ══ Shell ═══════════════════════════════════════════════════════ */
+.ov {
+  margin-left: var(--sb-w, 286px);
+  transition: margin-left .3s;
+  padding-bottom: 80px;
+  min-height: 100vh;
+}
+body.sidebar-collapsed .ov { margin-left: 60px; }
+@media(max-width:768px){ .ov { margin-left:0; } }
+
+/* ══ Sticky nav ══════════════════════════════════════════════════ */
+.ov-nav {
+  position: sticky; top: 0; z-index: 300;
+  background: rgba(7,10,18,.95);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 24px; height: 52px; overflow-x: auto;
+  scrollbar-width: none;
+}
+.ov-nav::-webkit-scrollbar { display: none; }
+.ov-brand {
+  display: flex; align-items: center; gap: 8px;
+  font-weight:800; font-size:14px; color:#e2e8f0;
+  white-space:nowrap; flex-shrink:0; margin-right:8px;
+}
+.ov-brand i { color:#22d3ee; }
+.ov-sep { width:1px; height:20px; background:rgba(255,255,255,.08); flex-shrink:0; }
+.ov-links { display:flex; align-items:center; gap:2px; flex-shrink:0; }
+.ov-a {
+  display:flex; align-items:center; gap:5px;
+  padding:4px 11px; border-radius:7px;
+  font-size:11.5px; font-weight:600; color:#64748b;
+  text-decoration:none; white-space:nowrap;
+  transition:color .2s, background .2s;
+}
+.ov-a:hover, .ov-a.on { color:#e2e8f0; background:rgba(255,255,255,.07); }
+.ov-a i { font-size:10px; }
+.ov-right { margin-left:auto; display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.ov-ts { font-size:11px; color:#334155; white-space:nowrap; }
+.ov-btn {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:5px 13px; border-radius:7px;
+  font-size:11.5px; font-weight:700;
+  background:linear-gradient(135deg,rgba(34,211,238,.15),rgba(129,140,248,.15));
+  border:1px solid rgba(34,211,238,.28); color:#22d3ee;
+  cursor:pointer; transition:all .2s; white-space:nowrap;
+}
+.ov-btn:hover { background:linear-gradient(135deg,rgba(34,211,238,.25),rgba(129,140,248,.25)); }
+.ov-btn.loading i { animation: spin .7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ══ Content ════════════════════════════════════════════════════ */
+.ov-body { padding: 0 24px; }
+
+/* ══ Section ════════════════════════════════════════════════════ */
+.ov-sec {
+  padding-top: 32px;
+  scroll-margin-top: 60px;
+}
+.ov-sec-hd {
+  display:flex; align-items:center; gap:12px;
+  margin-bottom:16px; padding-bottom:14px;
+  border-bottom:1px solid rgba(255,255,255,.05);
+}
+.ov-sec-ico {
+  width:36px; height:36px; border-radius:10px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:15px;
+}
+.ov-sec-title { font-size:16px; font-weight:800; color:#e2e8f0; letter-spacing:-.02em; }
+.ov-sec-sub   { font-size:11.5px; color:#475569; margin-top:2px; }
+.ov-sec-hr    { border:none; border-top:1px solid rgba(255,255,255,.04); margin:32px 0 0; }
+
+/* ══ KPI grid ═══════════════════════════════════════════════════ */
+.ov-kpis {
+  display:grid;
+  grid-template-columns: repeat(4,1fr);
+  gap:10px; margin-bottom:14px;
+}
+@media(max-width:1100px){ .ov-kpis { grid-template-columns:repeat(2,1fr); } }
+@media(max-width:520px)  { .ov-kpis { grid-template-columns:1fr 1fr; gap:8px; } }
+
+.ov-k {
+  background:rgba(15,23,42,.6);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:12px; backdrop-filter:blur(14px);
+  padding:13px 15px; display:flex; flex-direction:column; gap:7px;
+  transition:border-color .2s, transform .18s;
+  animation: kvFadeUp .4s ease both;
+}
+.ov-k:hover { border-color:rgba(255,255,255,.13); transform:translateY(-2px); }
+@keyframes kvFadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.ov-k:nth-child(2){animation-delay:.05s}
+.ov-k:nth-child(3){animation-delay:.1s}
+.ov-k:nth-child(4){animation-delay:.15s}
+
+.ov-klbl { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#475569; }
+.ov-kval { font-size:clamp(1.1rem,2vw,1.55rem); font-weight:800; color:#f1f5f9; letter-spacing:-.04em; line-height:1.1; }
+.ov-ksub { font-size:11px; color:#64748b; }
+
+/* ══ Chart grid ═════════════════════════════════════════════════ */
+.ov-charts {
+  display:grid; gap:12px; margin-bottom:12px;
+}
+.ov-charts.c2 { grid-template-columns: 1.55fr 1fr; }
+.ov-charts.eq { grid-template-columns: 1fr 1fr; }
+.ov-charts.c3 { grid-template-columns: 1fr 1fr 1fr; }
+@media(max-width:1100px){
+  .ov-charts.c2, .ov-charts.eq, .ov-charts.c3 { grid-template-columns:1fr; }
+}
+
+/* ══ Card ═══════════════════════════════════════════════════════ */
+.ov-card {
+  background:rgba(15,23,42,.6);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:12px; backdrop-filter:blur(14px);
+  padding:15px; overflow:hidden;
+}
+.ov-ctitle {
+  font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+  color:#64748b; margin-bottom:10px;
+  display:flex; align-items:center; gap:7px;
+}
+.ov-cw { position:relative; width:100%; }
+
+/* ══ Badge chip ═════════════════════════════════════════════════ */
+.ov-chip {
+  display:inline-flex; align-items:center;
+  padding:2px 7px; border-radius:20px;
+  font-size:10px; font-weight:700; border:1px solid transparent;
+}
+.cc  { color:#22d3ee; background:rgba(34,211,238,.1); border-color:rgba(34,211,238,.2); }
+.cg  { color:#34d399; background:rgba(52,211,153,.1); border-color:rgba(52,211,153,.2); }
+.cr  { color:#f43f5e; background:rgba(244,63,94,.1); border-color:rgba(244,63,94,.2); }
+.ca  { color:#fbbf24; background:rgba(251,191,36,.1); border-color:rgba(251,191,36,.2); }
+.ci  { color:#818cf8; background:rgba(129,140,248,.1); border-color:rgba(129,140,248,.2); }
+
+/* ══ Table ══════════════════════════════════════════════════════ */
+.ov-tbl { width:100%; border-collapse:collapse; font-size:12px; }
+.ov-tbl th {
+  text-align:left; padding:5px 10px;
+  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+  color:#334155; border-bottom:1px solid rgba(255,255,255,.05);
+}
+.ov-tbl td {
+  padding:8px 10px; color:#94a3b8;
+  border-bottom:1px solid rgba(255,255,255,.03);
+  vertical-align:middle;
+}
+.ov-tbl tbody tr:last-child td { border-bottom:none; }
+.ov-tbl tbody tr:hover { background:rgba(255,255,255,.02); }
+.ov-rk {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:19px; height:19px; border-radius:5px;
+  background:rgba(255,255,255,.05); font-size:10px; font-weight:700; color:#64748b;
+}
+.ov-mt { color:#e2e8f0; }
+.ov-empty { text-align:center; padding:18px; color:#334155; font-size:12px; }
+
+/* Dot */
+.dot { display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:4px; vertical-align:middle; }
+.dc{background:#22d3ee;} .dg{background:#34d399;} .dr{background:#f43f5e;}
+.da{background:#fbbf24;} .di{background:#818cf8;} .dv{background:#a78bfa;}
+.do{background:#fb923c;}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ov">
+
+  <!-- ── Sticky nav ─────────────────────────────────────────── -->
+  <nav class="ov-nav" id="ovNav">
+    <div class="ov-brand"><i class="fa-solid fa-bolt-lightning"></i>{{ center.name }}</div>
+    <div class="ov-sep"></div>
+    <div class="ov-links">
+      <a href="#s-fin" class="ov-a on" data-sec="s-fin"><i class="fa-solid fa-chart-line"></i> Moliya</a>
+      <a href="#s-st"  class="ov-a" data-sec="s-st"><i class="fa-solid fa-user-graduate"></i> O'quvchilar</a>
+      <a href="#s-te"  class="ov-a" data-sec="s-te"><i class="fa-solid fa-chalkboard-teacher"></i> Ustozlar</a>
+      <a href="#s-gr"  class="ov-a" data-sec="s-gr"><i class="fa-solid fa-layer-group"></i> Guruhlar</a>
+      <a href="#s-bi"  class="ov-a" data-sec="s-bi"><i class="fa-solid fa-credit-card"></i> To'lovlar</a>
+      <a href="#s-mk"  class="ov-a" data-sec="s-mk"><i class="fa-solid fa-bullhorn"></i> Marketing</a>
+      <a href="#s-om"  class="ov-a" data-sec="s-om"><i class="fa-solid fa-boxes-stacked"></i> Ombor</a>
+      <a href="#s-an"  class="ov-a" data-sec="s-an"><i class="fa-solid fa-chart-bar"></i> Analitika</a>
+    </div>
+    <div class="ov-right">
+      <span class="ov-ts" id="ovTs">—</span>
+      <button class="ov-btn" id="ovRefBtn" onclick="loadAll()">
+        <i class="fa-solid fa-rotate"></i> Yangilash
+      </button>
+    </div>
+  </nav>
+
+  <!-- ── Body ──────────────────────────────────────────────── -->
+  <div class="ov-body">
+
+    <!-- ═══════════════ 1. MOLIYA ═══════════════ -->
+    <section class="ov-sec" id="s-fin">
+      <div class="ov-sec-hd">
+        <div class="ov-sec-ico" style="background:rgba(34,197,94,.12);color:#22c55e;">
+          <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <div>
+          <div class="ov-sec-title">Moliyaviy Ko'rsatkichlar</div>
+          <div class="ov-sec-sub">Daromad · Xarajat · Sof foyda · To'lov turlari</div>
+        </div>
+      </div>
+
+      <div class="ov-kpis">
+        <div class="ov-k">
+          <div class="ov-klbl">Daromad</div>
+          <div class="ov-kval" id="fK1" style="color:#34d399">—</div>
+          <div class="ov-ksub" id="fK1s">joriy oy</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">Xarajat</div>
+          <div class="ov-kval" id="fK2" style="color:#f43f5e">—</div>
+          <div class="ov-ksub" id="fK2s">joriy oy</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">Sof foyda</div>
+          <div class="ov-kval" id="fK3">—</div>
+          <div class="ov-ksub" id="fK3s">foyda</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">Foyda marjasi</div>
+          <div class="ov-kval" id="fK4">—</div>
+          <div class="ov-ksub">Foyda / Daromad</div>
+        </div>
+      </div>
+
+      <div class="ov-charts c2">
+        <div class="ov-card">
+          <div class="ov-ctitle"><span class="dot dg"></span>6 Oylik Trend <span class="ov-chip cg">Chiziqli</span></div>
+          <div class="ov-cw" style="height:200px"><canvas id="fCh1"></canvas></div>
+        </div>
+        <div class="ov-card">
+          <div class="ov-ctitle"><span class="dot dc"></span>To'lov Turlari <span class="ov-chip cc">Donut</span></div>
+          <div class="ov-cw" style="height:200px"><canvas id="fCh2"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="ov-sec-hr">
+
+    <!-- ═══════════════ 2. O'QUVCHILAR ═══════════════ -->
+    <section class="ov-sec" id="s-st">
+      <div class="ov-sec-hd">
+        <div class="ov-sec-ico" style="background:rgba(56,189,248,.12);color:#38bdf8;">
+          <i class="fa-solid fa-user-graduate"></i>
+        </div>
+        <div>
+          <div class="ov-sec-title">O'quvchilar Statistikasi</div>
+          <div class="ov-sec-sub">Faollik · Davomat · Churn risk · Guruh taqsimoti</div>
+        </div>
+      </div>
+
+      <div class="ov-kpis">
+        <div class="ov-k">
+          <div class="ov-klbl">Jami o'quvchilar</div>
+          <div class="ov-kval" id="sK1">—</div>
+          <div class="ov-ksub" id="sK1s">—</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">Faol o'quvchilar</div>
+          <div class="ov-kval" id="sK2" style="color:#22d3ee">—</div>
+          <div class="ov-ksub" id="sK2s">—</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">O'rtacha davomat</div>
+          <div class="ov-kval" id="sK3">—</div>
+          <div class="ov-ksub">Barcha guruhlar</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">Churn riski</div>
+          <div class="ov-kval" id="sK4" style="color:#f43f5e">—</div>
+          <div class="ov-ksub">Davomat &lt; 30%</div>
+        </div>
+      </div>
+
+      <div class="ov-charts c2">
+        <div class="ov-card">
+          <div class="ov-ctitle"><span class="dot dc"></span>Yangi O'quvchilar Trendi <span class="ov-chip cc">6 oy</span></div>
+          <div class="ov-cw" style="height:190px"><canvas id="sCh1"></canvas></div>
+        </div>
+        <div class="ov-card">
+          <div class="ov-ctitle"><span class="dot di"></span>Guruh Taqsimoti <span class="ov-chip ci">Donut</span></div>
+          <div class="ov-cw" style="height:190px"><canvas id="sCh2"></canvas></div>
+        </div>
+      </div>
+
+      <div class="ov-card">
+        <div class="ov-ctitle"><span class="dot dc"></span>Top O'quvchilar (davomati bo'yicha)</div>
+        <table class="ov-tbl">
+          <thead><tr><th>#</th><th>O'quvchi</th><th>Davomat %</th><th>Dars soni</th></tr></thead>
+          <tbody id="sTbl"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <hr class="ov-sec-hr">
+
+    <!-- ═══════════════ 3. USTOZLAR ═══════════════ -->
+    <section class="ov-sec" id="s-te">
+      <div class="ov-sec-hd">
+        <div class="ov-sec-ico" style="background:rgba(168,85,247,.12);color:#a855f7;">
+          <i class="fa-solid fa-chalkboard-teacher"></i>
+        </div>
+        <div>
+          <div class="ov-sec-title">Ustozlar Ko'rsatkichlari</div>
+          <div class="ov-sec-sub">Daromad · Dars soatlari · O'quvchi/Ustoz nisbati</div>
+        </div>
+      </div>
+
+      <div class="ov-kpis">
+        <div class="ov-k">
+          <div class="ov-klbl">Jami ustozlar</div>
+          <div class="ov-kval" id="tK1">—</div>
+          <div class="ov-ksub">Faol</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">Jami daromad</div>
+          <div class="ov-kval" id="tK2" style="color:#a78bfa">—</div>
+          <div class="ov-ksub">Ustozlardan</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">O'rtacha daromad</div>
+          <div class="ov-kval" id="tK3">—</div>
+          <div class="ov-ksub">Bir ustoz uchun</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">O'quvchi/Ustoz</div>
+          <div class="ov-kval" id="tK4">—</div>
+          <div class="ov-ksub">Nisbat</div>
+        </div>
+      </div>
+
+      <div class="ov-charts c2">
+        <div class="ov-card">
+          <div class="ov-ctitle"><span class="dot di"></span>Ustozlar Daromadi <span class="ov-chip ci">Bar</span></div>
+          <div class="ov-cw" style="height:220px"><canvas id="tCh1"></canvas></div>
+        </div>
+        <div class="ov-card">
+          <div class="ov-ctitle"><span class="dot dv"></span>Top Ustozlar</div>
+          <table class="ov-tbl">
+            <thead><tr><th>#</th><th>Ustoz</th><th>O'quvchilar</th><th>Soat</th><th>Daromad</th></tr></thead>
+            <tbody id="tTbl"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <hr class="ov-sec-hr">
+
+    <!-- ═══════════════ 4. GURUHLAR ═══════════════ -->
+    <section class="ov-sec" id="s-gr">
+      <div class="ov-sec-hd">
+        <div class="ov-sec-ico" style="background:rgba(245,158,11,.12);color:#f59e0b;">
+          <i class="fa-solid fa-layer-group"></i>
+        </div>
+        <div>
+          <div class="ov-sec-title">Guruhlar Tahlili</div>
+          <div class="ov-sec-sub">Rentabellik · Aylanma · To'ldirilish · Kategoriyalar</div>
+        </div>
+      </div>
+
+      <div class="ov-kpis">
+        <div class="ov-k">
+          <div class="ov-klbl">Jami guruhlar</div>
+          <div class="ov-kval" id="gK1">—</div>
+          <div class="ov-ksub" id="gK1s">—</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">Yozilgan o'quvchilar</div>
+          <div class="ov-kval" id="gK2" style="color:#fbbf24">—</div>
+          <div class="ov-ksub">Jami</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">O'rt. guruh hajmi</div>
+          <div class="ov-kval" id="gK3">—</div>
+          <div class="ov-ksub">O'quvchi/guruh</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">Jami daromad</div>
+          <div class="ov-kval" id="gK4">—</div>
+          <div class="ov-ksub">Guruhlardan</div>
+        </div>
+      </div>
+
+      <div class="ov-charts c2">
+        <div class="ov-card">
+          <div class="ov-ctitle"><span class="dot da"></span>6 Oylik Yozilish Trendi <span class="ov-chip ca">Chiziqli</span></div>
+          <div class="ov-cw" style="height:190px"><canvas id="gCh1"></canvas></div>
+        </div>
+        <div class="ov-card">
+          <div class="ov-ctitle"><span class="dot da"></span>Kategoriyalar <span class="ov-chip ca">Donut</span></div>
+          <div class="ov-cw" style="height:190px"><canvas id="gCh2"></canvas></div>
+        </div>
+      </div>
+
+      <div class="ov-card">
+        <div class="ov-ctitle"><span class="dot da"></span>Guruhlar Ro'yxati</div>
+        <table class="ov-tbl">
+          <thead><tr><th>#</th><th>Guruh</th><th>Ustoz</th><th>O'quvchilar</th><th>Davomat</th><th>Daromad</th></tr></thead>
+          <tbody id="gTbl"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <hr class="ov-sec-hr">
+
+    <!-- ═══════════════ 5. TO'LOVLAR ═══════════════ -->
+    <section class="ov-sec" id="s-bi">
+      <div class="ov-sec-hd">
+        <div class="ov-sec-ico" style="background:rgba(239,68,68,.12);color:#ef4444;">
+          <i class="fa-solid fa-credit-card"></i>
+        </div>
+        <div>
+          <div class="ov-sec-title">To'lovlar & Billing</div>
+          <div class="ov-sec-sub">Kunlik daromad · Qarzdorlik · Subscription holati</div>
+        </div>
+      </div>
+
+      <div class="ov-kpis">
+        <div class="ov-k">
+          <div class="ov-klbl">Jami to'lovlar</div>
+          <div class="ov-kval" id="bK1">—</div>
+          <div class="ov-ksub" id="bK1s">—</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">Jami summa</div>
+          <div class="ov-kval" id="bK2" style="color:#34d399">—</div>
+          <div class="ov-ksub">To'langan</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">Jami qarz</div>
+          <div class="ov-kval" id="bK3" style="color:#f43f5e">—</div>
+          <div class="ov-ksub" id="bK3s">—</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">O'rtacha to'lov</div>
+          <div class="ov-kval" id="bK4">—</div>
+          <div class="ov-ksub">Bir to'lovda</div>
+        </div>
+      </div>
+
+      <div class="ov-charts c2">
+        <div class="ov-card">
+          <div class="ov-ctitle"><span class="dot dr"></span>Kunlik Daromad <span class="ov-chip cr">Area</span></div>
+          <div class="ov-cw" style="height:200px"><canvas id="bCh1"></canvas></div>
+        </div>
+        <div class="ov-card">
+          <div class="ov-ctitle"><span class="dot dc"></span>To'lov Usullari <span class="ov-chip cc">Donut</span></div>
+          <div class="ov-cw" style="height:200px"><canvas id="bCh2"></canvas></div>
+        </div>
+      </div>
+
+      <div class="ov-card" id="bSubCard" style="display:none;margin-top:12px;">
+        <div class="ov-ctitle"><span class="dot di"></span>Obuna Holati</div>
+        <div id="bSubBody"></div>
+      </div>
+    </section>
+
+    <hr class="ov-sec-hr">
+
+    <!-- ═══════════════ 6. MARKETING ═══════════════ -->
+    <section class="ov-sec" id="s-mk">
+      <div class="ov-sec-hd">
+        <div class="ov-sec-ico" style="background:rgba(20,184,166,.12);color:#14b8a6;">
+          <i class="fa-solid fa-bullhorn"></i>
+        </div>
+        <div>
+          <div class="ov-sec-title">Marketing & Leadlar</div>
+          <div class="ov-sec-sub">Lead oqimi · Konversiya · Manba taqsimoti</div>
+        </div>
+      </div>
+
+      <div class="ov-kpis">
+        <div class="ov-k">
+          <div class="ov-klbl">Jami leadlar</div>
+          <div class="ov-kval" id="mK1">—</div>
+          <div class="ov-ksub" id="mK1s">—</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">Konvertatsiya</div>
+          <div class="ov-kval" id="mK2" style="color:#34d399">—</div>
+          <div class="ov-ksub">O'quvchiga aylangan</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">Konversiya foizi</div>
+          <div class="ov-kval" id="mK3" style="color:#22d3ee">—</div>
+          <div class="ov-ksub">Lead → O'quvchi</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">O'sish</div>
+          <div class="ov-kval" id="mK4">—</div>
+          <div class="ov-ksub">Oldingi davrga</div>
+        </div>
+      </div>
+
+      <div class="ov-charts eq">
+        <div class="ov-card">
+          <div class="ov-ctitle"><span class="dot dc"></span>Lead Oqimi Trendi <span class="ov-chip cc">6 oy</span></div>
+          <div class="ov-cw" style="height:190px"><canvas id="mCh1"></canvas></div>
+        </div>
+        <div class="ov-card">
+          <div class="ov-ctitle"><span class="dot dc"></span>Manbalar Bo'yicha <span class="ov-chip cc">Bar</span></div>
+          <div class="ov-cw" style="height:190px"><canvas id="mCh2"></canvas></div>
+        </div>
+      </div>
+
+      <div class="ov-card">
+        <div class="ov-ctitle"><span class="dot dc"></span>Manba Taqsimoti</div>
+        <table class="ov-tbl">
+          <thead><tr><th>#</th><th>Manba</th><th>Jami</th><th>Konvertatsiya</th><th>Foiz</th></tr></thead>
+          <tbody id="mTbl"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <hr class="ov-sec-hr">
+
+    <!-- ═══════════════ 7. OMBOR ═══════════════ -->
+    <section class="ov-sec" id="s-om">
+      <div class="ov-sec-hd">
+        <div class="ov-sec-ico" style="background:rgba(249,115,22,.12);color:#f97316;">
+          <i class="fa-solid fa-boxes-stacked"></i>
+        </div>
+        <div>
+          <div class="ov-sec-title">Ombor & Sotuv</div>
+          <div class="ov-sec-sub">Top mahsulotlar · Sotuv hajmi · Daromad</div>
+        </div>
+      </div>
+
+      <div class="ov-kpis">
+        <div class="ov-k">
+          <div class="ov-klbl">Mahsulotlar</div>
+          <div class="ov-kval" id="oK1">—</div>
+          <div class="ov-ksub">Noyob turlar</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">Jami sotuvlar</div>
+          <div class="ov-kval" id="oK2">—</div>
+          <div class="ov-ksub">Bitimlar soni</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">Jami daromad</div>
+          <div class="ov-kval" id="oK3" style="color:#fb923c">—</div>
+          <div class="ov-ksub">Sotuvdan</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">Umumiy miqdor</div>
+          <div class="ov-kval" id="oK4">—</div>
+          <div class="ov-ksub">Jami dona</div>
+        </div>
+      </div>
+
+      <div class="ov-charts eq">
+        <div class="ov-card">
+          <div class="ov-ctitle"><span class="dot do"></span>Top Mahsulotlar (Daromad) <span class="ov-chip ca">Bar</span></div>
+          <div class="ov-cw" style="height:220px"><canvas id="oCh1"></canvas></div>
+        </div>
+        <div class="ov-card">
+          <div class="ov-ctitle"><span class="dot dc"></span>Top Mahsulotlar (Miqdor) <span class="ov-chip cc">Bar</span></div>
+          <div class="ov-cw" style="height:220px"><canvas id="oCh2"></canvas></div>
+        </div>
+      </div>
+
+      <div class="ov-card">
+        <div class="ov-ctitle"><span class="dot do"></span>Mahsulotlar Reytingi</div>
+        <table class="ov-tbl">
+          <thead><tr><th>#</th><th>Mahsulot</th><th>Sotildi</th><th>Narx</th><th>Daromad</th></tr></thead>
+          <tbody id="oTbl"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <hr class="ov-sec-hr">
+
+    <!-- ═══════════════ 8. ANALITIKA ═══════════════ -->
+    <section class="ov-sec" id="s-an">
+      <div class="ov-sec-hd">
+        <div class="ov-sec-ico" style="background:rgba(99,102,241,.12);color:#6366f1;">
+          <i class="fa-solid fa-chart-bar"></i>
+        </div>
+        <div>
+          <div class="ov-sec-title">Tizim Analitikasi</div>
+          <div class="ov-sec-sub">Foydalanuvchi aktivligi · Rol taqsimoti · O'sish</div>
+        </div>
+      </div>
+
+      <div class="ov-kpis">
+        <div class="ov-k">
+          <div class="ov-klbl">Jami foydalanuvchilar</div>
+          <div class="ov-kval" id="aK1">—</div>
+          <div class="ov-ksub">Ro'yxatdan o'tganlar</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">Bugun faol</div>
+          <div class="ov-kval" id="aK2" style="color:#22d3ee">—</div>
+          <div class="ov-ksub">Bugun tizimga kirdi</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">Hafta faollari</div>
+          <div class="ov-kval" id="aK3">—</div>
+          <div class="ov-ksub">So'nggi 7 kun</div>
+        </div>
+        <div class="ov-k">
+          <div class="ov-klbl">Oy faollari</div>
+          <div class="ov-kval" id="aK4">—</div>
+          <div class="ov-ksub">So'nggi 30 kun</div>
+        </div>
+      </div>
+
+      <div class="ov-charts c2">
+        <div class="ov-card">
+          <div class="ov-ctitle"><span class="dot di"></span>6 Oylik O'sish Trendi <span class="ov-chip ci">Chiziqli</span></div>
+          <div class="ov-cw" style="height:190px"><canvas id="aCh1"></canvas></div>
+        </div>
+        <div class="ov-card">
+          <div class="ov-ctitle"><span class="dot di"></span>Rollar Taqsimoti <span class="ov-chip ci">Donut</span></div>
+          <div class="ov-cw" style="height:190px"><canvas id="aCh2"></canvas></div>
+        </div>
+      </div>
+
+      <div class="ov-card">
+        <div class="ov-ctitle"><span class="dot di"></span>Rollar Statistikasi</div>
+        <table class="ov-tbl">
+          <thead><tr><th>#</th><th>Rol</th><th>Soni</th><th>Ulush</th></tr></thead>
+          <tbody id="aTbl"></tbody>
+        </table>
+      </div>
+
+    </section>
+
+  </div><!-- /ov-body -->
+</div><!-- /ov -->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+"use strict";
+// ─── API URLs ────────────────────────────────────────────────────
+const APIS = {
+  fin: "{% url 'core:financial_api' %}",
+  st:  "{% url 'core:student_performance_api' %}",
+  te:  "{% url 'core:teacher_performance_api' %}",
+  gr:  "{% url 'core:groups_api' %}",
+  bi:  "{% url 'core:billing_api' %}",
+  mk:  "{% url 'core:marketing_api' %}",
+  om:  "{% url 'core:inventory_api' %}",
+  an:  "{% url 'core:analytics_api' %}",
+};
+
+// ─── Helpers ─────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const set = (id, v) => { const e=$(id); if(e) e.textContent=v; };
+const FMT = v => new Intl.NumberFormat('uz-UZ').format(Math.round(v||0)) + " so'm";
+const S = v => {
+  const n=Math.round(v||0);
+  return n>=1e9?(n/1e9).toFixed(1)+'B':n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(0)+'K':String(n);
+};
+const P = v => (parseFloat(v)||0).toFixed(1)+'%';
+const EMPTY = '<tr><td colspan="20" class="ov-empty">Ma\'lumot yo\'q</td></tr>';
+
+// ─── Chart defaults ──────────────────────────────────────────────
+Chart.defaults.font.family = "'Plus Jakarta Sans', system-ui, sans-serif";
+Chart.defaults.font.size   = 11;
+Chart.defaults.color       = '#475569';
+
+const GRID_CLR  = 'rgba(255,255,255,.04)';
+const TIP_CFG   = {
+  backgroundColor:'rgba(7,10,18,.92)', borderColor:'rgba(255,255,255,.08)',
+  borderWidth:1, titleColor:'#e2e8f0', bodyColor:'#94a3b8', padding:10,
+};
+const LEG_CFG   = { labels:{ color:'#64748b', font:{size:10}, padding:10, boxWidth:10 } };
+
+const PAL = ['#22d3ee','#34d399','#f43f5e','#fbbf24','#818cf8','#a78bfa','#fb923c','#2dd4bf'];
+
+const charts = {};
+function ch(id, cfg) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = $(id);
+  if (!ctx) return;
+  charts[id] = new Chart(ctx.getContext('2d'), cfg);
+}
+
+function lineOpts(extra={}) {
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:LEG_CFG, tooltip:TIP_CFG },
+    scales:{
+      x:{ ticks:{color:'#475569'}, grid:{color:GRID_CLR} },
+      y:{ ticks:{color:'#475569'}, grid:{color:GRID_CLR} },
+      ...extra
+    }
+  };
+}
+function barOpts(horizontal=false) {
+  return {
+    responsive:true, maintainAspectRatio:false, indexAxis: horizontal?'y':'x',
+    plugins:{ legend:{display:false}, tooltip:TIP_CFG },
+    scales:{
+      x:{ ticks:{color:'#475569', callback: horizontal? v=>S(v):undefined}, grid:{color:horizontal?GRID_CLR:'rgba(0,0,0,0)'} },
+      y:{ ticks:{color:'#64748b', font:{size:10}}, grid:{color:horizontal?'rgba(0,0,0,0)':GRID_CLR} }
+    }
+  };
+}
+function donutOpts() {
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ position:'bottom', labels:{color:'#64748b', font:{size:10}, padding:10, boxWidth:10} }, tooltip:TIP_CFG }
+  };
+}
+
+// ─── Render: MOLIYA ──────────────────────────────────────────────
+function renderFin(d) {
+  const k = d.kpis || {};
+  const c = d.charts || {};
+
+  // KPIs
+  set('fK1', S(k.revenue));
+  set('fK1s', `To'lovlar: ${k.pay_count||0} ta`);
+  set('fK2', S(k.expenses));
+  set('fK2s', `O'qituvchi: ${S(k.teacher_comp||0)}`);
+  const profit = k.net_profit || 0;
+  $('fK3').textContent = S(profit);
+  $('fK3').style.color = profit >= 0 ? '#34d399' : '#f43f5e';
+  set('fK3s', profit >= 0 ? 'Ijobiy natija' : 'Zarar');
+  set('fK4', P(k.profit_margin));
+
+  // Trend chart
+  ch('fCh1', {
+    type:'line',
+    data:{
+      labels: c.m_labels||[],
+      datasets:[
+        {label:'Daromad', data:c.m_inc||[], borderColor:'#34d399', backgroundColor:'rgba(52,211,153,.1)', fill:true, tension:.4, pointRadius:3},
+        {label:'Xarajat', data:c.m_exp||[], borderColor:'#f43f5e', backgroundColor:'rgba(244,63,94,.06)', fill:true, tension:.4, pointRadius:3},
+      ]
+    },
+    options:{...lineOpts(), plugins:{legend:LEG_CFG, tooltip:TIP_CFG},
+      scales:{
+        x:{ticks:{color:'#475569'}, grid:{color:GRID_CLR}},
+        y:{ticks:{color:'#475569', callback:v=>S(v)}, grid:{color:GRID_CLR}}
+      }
+    }
+  });
+
+  // Pay type donut
+  const pt = c.pay_types || [];
+  ch('fCh2', {
+    type:'doughnut',
+    data:{
+      labels: pt.map(r=>r.label||'—'),
+      datasets:[{ data:pt.map(r=>r.value||0), backgroundColor:PAL, borderWidth:0, hoverOffset:6 }]
+    },
+    options:donutOpts()
+  });
+}
+
+// ─── Render: O'QUVCHILAR ─────────────────────────────────────────
+function renderSt(d) {
+  const k = d.kpis || {};
+  const c = d.charts || {};
+
+  set('sK1', k.total_students??'—');
+  set('sK1s', `Yangi: ${k.new_students??0}`);
+  set('sK2', k.active_count??'—');
+  set('sK2s', `Past faollik: ${k.low_activity??0} ta`);
+  set('sK3', P(k.avg_att_rate));
+  set('sK4', k.churn_actual??'—');
+
+  // New students + attendance trend
+  ch('sCh1', {
+    type:'line',
+    data:{
+      labels:c.m_labels||[],
+      datasets:[
+        {label:"Yangi o'quvchilar", data:c.m_new||[], borderColor:'#22d3ee', backgroundColor:'rgba(34,211,238,.1)', fill:true, tension:.4, pointRadius:3},
+        {label:'Davomat %',         data:c.m_att||[], borderColor:'#34d399', borderDash:[4,3], fill:false, tension:.4, pointRadius:3, yAxisID:'y1'},
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:LEG_CFG, tooltip:TIP_CFG},
+      scales:{
+        x:{ticks:{color:'#475569'}, grid:{color:GRID_CLR}},
+        y:{ticks:{color:'#475569'}, grid:{color:GRID_CLR}},
+        y1:{position:'right', ticks:{color:'#475569', callback:v=>v+'%'}, grid:{display:false}}
+      }
+    }
+  });
+
+  // Group donut
+  ch('sCh2', {
+    type:'doughnut',
+    data:{
+      labels: c.group_labels||[],
+      datasets:[{ data:c.group_counts||[], backgroundColor:PAL, borderWidth:0, hoverOffset:6 }]
+    },
+    options:donutOpts()
+  });
+
+  // Top students table
+  const rows = d.top_students||[];
+  $('sTbl').innerHTML = rows.length ? rows.map((r,i)=>{
+    const col = r.rate<50?'#f43f5e':r.rate<75?'#fbbf24':'#34d399';
+    return `<tr><td><span class="ov-rk">${i+1}</span></td><td class="ov-mt">${r.name||'—'}</td><td><strong style="color:${col}">${P(r.rate)}</strong></td><td>${r.sessions||0}</td></tr>`;
+  }).join('') : EMPTY;
+}
+
+// ─── Render: USTOZLAR ────────────────────────────────────────────
+function renderTe(d) {
+  const k = d.kpis||{};
+  const c = d.charts||{};
+
+  set('tK1', k.total_teachers??'—');
+  set('tK2', S(k.total_rev));
+  set('tK3', S(k.avg_rev));
+  set('tK4', k.ratio??'—');
+
+  // Bar chart (horizontal) — top 8
+  const names = (c.names||[]).slice(0,8);
+  const revs  = (c.revenues||[]).slice(0,8);
+  ch('tCh1', {
+    type:'bar',
+    data:{
+      labels:names.map(n=>n.length>18?n.slice(0,17)+'…':n),
+      datasets:[{ label:'Daromad', data:revs, backgroundColor:'rgba(129,140,248,.75)', borderRadius:5, borderSkipped:false }]
+    },
+    options:{
+      ...barOpts(true),
+      scales:{
+        x:{ticks:{color:'#475569', callback:v=>S(v)}, grid:{color:GRID_CLR}},
+        y:{ticks:{color:'#64748b', font:{size:10}}, grid:{display:false}}
+      }
+    }
+  });
+
+  // Teacher table
+  const list = (d.teacher_list||[]).slice(0,8);
+  $('tTbl').innerHTML = list.length ? list.map((t,i)=>
+    `<tr><td><span class="ov-rk">${i+1}</span></td><td class="ov-mt">${t.name||'—'}</td><td>${t.students||0}</td><td>${t.hours||0}</td><td style="color:#a78bfa">${S(t.revenue||0)}</td></tr>`
+  ).join('') : EMPTY;
+}
+
+// ─── Render: GURUHLAR ────────────────────────────────────────────
+function renderGr(d) {
+  const k = d.kpis||{};
+  const c = d.charts||{};
+
+  set('gK1', k.total_groups??'—');
+  set('gK1s', `Faol: ${k.active_groups??0}`);
+  // enrolled = sum of grp_enroll
+  const totalEnrolled = (c.grp_enroll||[]).reduce((a,b)=>a+b,0);
+  set('gK2', totalEnrolled||k.active_groups*k.avg_size|0||'—');
+  set('gK3', k.avg_size??'—');
+  set('gK4', S(k.total_rev));
+
+  // Enrollment trend
+  ch('gCh1', {
+    type:'line',
+    data:{
+      labels:c.m_labels||[],
+      datasets:[{ label:"Yozilganlar", data:c.m_enroll||[], borderColor:'#fbbf24', backgroundColor:'rgba(251,191,36,.1)', fill:true, tension:.4, pointRadius:3 }]
+    },
+    options:{...lineOpts(), plugins:{legend:{display:false}, tooltip:TIP_CFG}}
+  });
+
+  // Category donut
+  ch('gCh2', {
+    type:'doughnut',
+    data:{
+      labels:c.cat_labels||[],
+      datasets:[{ data:c.cat_counts||[], backgroundColor:PAL, borderWidth:0, hoverOffset:6 }]
+    },
+    options:donutOpts()
+  });
+
+  // Group table
+  const list = (d.group_list||[]).slice(0,10);
+  $('gTbl').innerHTML = list.length ? list.map((g,i)=>
+    `<tr><td><span class="ov-rk">${i+1}</span></td><td class="ov-mt">${g.name||'—'}</td><td>${g.teacher||'—'}</td><td>${g.enrolled||0}</td><td>${P(g.att_rate||0)}</td><td style="color:#fbbf24">${S(g.revenue||0)}</td></tr>`
+  ).join('') : EMPTY;
+}
+
+// ─── Render: TO'LOVLAR ───────────────────────────────────────────
+function renderBi(d) {
+  const k = d.kpis||{};
+  const c = d.charts||{};
+
+  set('bK1', k.pay_count??'—');
+  set('bK1s', `O'rt. kunlik: ${Math.round((k.pay_count||0)/30)||0}`);
+  set('bK2', S(k.total_pay));
+  set('bK3', S(k.total_debt));
+  set('bK3s', `Qarzdorlar: ${k.total_debtors??0} ta`);
+  set('bK4', S(k.avg_pay));
+
+  // Daily area
+  ch('bCh1', {
+    type:'line',
+    data:{
+      labels:c.daily_labels||[],
+      datasets:[{ label:'Kunlik daromad', data:c.daily_amounts||[], borderColor:'#f43f5e', backgroundColor:'rgba(244,63,94,.1)', fill:true, tension:.4, pointRadius:2 }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:TIP_CFG},
+      scales:{
+        x:{ticks:{color:'#475569', maxTicksLimit:10}, grid:{color:GRID_CLR}},
+        y:{ticks:{color:'#475569', callback:v=>S(v)}, grid:{color:GRID_CLR}}
+      }
+    }
+  });
+
+  // Pay type donut
+  const pt = c.pay_types||[];
+  ch('bCh2', {
+    type:'doughnut',
+    data:{
+      labels:pt.map(r=>r.label||'—'),
+      datasets:[{ data:pt.map(r=>r.value||0), backgroundColor:PAL, borderWidth:0, hoverOffset:6 }]
+    },
+    options:donutOpts()
+  });
+
+  // Subscription card
+  const sub = d.subscription;
+  if (sub && sub.plan) {
+    $('bSubCard').style.display='';
+    $('bSubBody').innerHTML=`<div style="display:flex;gap:24px;flex-wrap:wrap;font-size:12px;padding-top:4px;">
+      <div><div style="font-size:10px;color:#475569;text-transform:uppercase;letter-spacing:.06em;">REJA</div><strong style="color:#e2e8f0;">${sub.plan}</strong></div>
+      <div><div style="font-size:10px;color:#475569;text-transform:uppercase;letter-spacing:.06em;">HOLAT</div><strong style="color:${sub.status==='ACTIVE'?'#34d399':'#f43f5e'}">${sub.status||'—'}</strong></div>
+      <div><div style="font-size:10px;color:#475569;text-transform:uppercase;letter-spacing:.06em;">TUGASH</div><strong style="color:#e2e8f0;">${sub.expires_at||'—'}</strong></div>
+      <div><div style="font-size:10px;color:#475569;text-transform:uppercase;letter-spacing:.06em;">QOLGAN</div><strong style="color:#22d3ee;font-size:22px;letter-spacing:-.04em;">${sub.days_left??'—'}</strong> <span style="color:#475569;">kun</span></div>
+    </div>`;
+  }
+}
+
+// ─── Render: MARKETING ───────────────────────────────────────────
+function renderMk(d) {
+  const k = d.kpis||{};
+  const c = d.charts||{};
+
+  set('mK1', k.total_leads??'—');
+  set('mK1s', `Jami davr ichida`);
+  set('mK2', k.converted??'—');
+  set('mK3', P(k.conv_rate));
+  const g = k.leads_growth||0;
+  $('mK4').textContent = (g>=0?'+':'')+g+'%';
+  $('mK4').style.color = g>=0?'#34d399':'#f43f5e';
+
+  // Trend
+  ch('mCh1', {
+    type:'line',
+    data:{
+      labels:c.m_labels||[],
+      datasets:[
+        {label:'Yangi leadlar',   data:c.m_leads||[], borderColor:'#2dd4bf', backgroundColor:'rgba(45,212,191,.1)', fill:true, tension:.4, pointRadius:3},
+        {label:'Konvertatsiya',   data:c.m_conv||[],  borderColor:'#34d399', borderDash:[4,3], fill:false, tension:.4, pointRadius:3},
+      ]
+    },
+    options:lineOpts()
+  });
+
+  // Source bar
+  ch('mCh2', {
+    type:'bar',
+    data:{
+      labels:c.src_labels||[],
+      datasets:[{ label:'Leadlar', data:c.src_counts||[], backgroundColor:(c.src_labels||[]).map((_,i)=>`hsl(${165+i*28},68%,54%)`), borderRadius:5, borderSkipped:false }]
+    },
+    options:barOpts()
+  });
+
+  // Source table
+  const src = c.src_labels||[];
+  $('mTbl').innerHTML = src.length ? src.map((lbl,i)=>{
+    const tot=(c.src_counts||[])[i]||0;
+    const con=(c.src_conv||[])[i]||0;
+    return `<tr><td><span class="ov-rk">${i+1}</span></td><td class="ov-mt">${lbl}</td><td>${tot}</td><td>${con}</td><td>${tot?(con/tot*100).toFixed(1):0}%</td></tr>`;
+  }).join('') : EMPTY;
+}
+
+// ─── Render: OMBOR ───────────────────────────────────────────────
+function renderOm(d) {
+  const k = d.kpis||{};
+  const c = d.charts||{};
+
+  set('oK1', k.total_products??'—');
+  set('oK2', k.total_sale_count??'—');
+  set('oK3', S(k.total_sale_rev));
+  const totQty = (c.p_qty||[]).reduce((a,b)=>a+b,0);
+  set('oK4', totQty||'—');
+
+  const names = (c.p_names||[]).slice(0,10);
+  const revs  = (c.p_revs||[]).slice(0,10);
+  const qtys  = (c.p_qty||[]).slice(0,10);
+
+  ch('oCh1', {
+    type:'bar',
+    data:{ labels:names.map(n=>n.length>18?n.slice(0,17)+'…':n), datasets:[{ label:'Daromad', data:revs, backgroundColor:'rgba(251,146,60,.75)', borderRadius:5, borderSkipped:false }] },
+    options:{
+      ...barOpts(true),
+      scales:{
+        x:{ticks:{color:'#475569', callback:v=>S(v)}, grid:{color:GRID_CLR}},
+        y:{ticks:{color:'#64748b', font:{size:10}}, grid:{display:false}}
+      }
+    }
+  });
+
+  ch('oCh2', {
+    type:'bar',
+    data:{ labels:names.map(n=>n.length>18?n.slice(0,17)+'…':n), datasets:[{ label:'Miqdor', data:qtys, backgroundColor:'rgba(34,211,238,.75)', borderRadius:5, borderSkipped:false }] },
+    options:{
+      ...barOpts(true),
+      scales:{
+        x:{ticks:{color:'#475569'}, grid:{color:GRID_CLR}},
+        y:{ticks:{color:'#64748b', font:{size:10}}, grid:{display:false}}
+      }
+    }
+  });
+
+  const list = (d.product_list||[]).slice(0,10);
+  $('oTbl').innerHTML = list.length ? list.map((p,i)=>
+    `<tr><td><span class="ov-rk">${i+1}</span></td><td class="ov-mt">${p.name||'—'}</td><td>${p.qty_sold||0}</td><td>${FMT(p.price_som||0)}</td><td style="color:#fb923c">${FMT(p.revenue||0)}</td></tr>`
+  ).join('') : EMPTY;
+}
+
+// ─── Render: ANALITIKA ───────────────────────────────────────────
+function renderAn(d) {
+  const k = d.kpis||{};
+  const c = d.charts||{};
+
+  set('aK1', k.total_users??'—');
+  set('aK2', k.active_today??'—');
+  set('aK3', k.active_week??'—');
+  set('aK4', k.active_month??'—');
+
+  ch('aCh1', {
+    type:'line',
+    data:{
+      labels:c.m_labels||[],
+      datasets:[
+        {label:"Yangi foydalanuvchilar", data:c.m_new||[], borderColor:'#818cf8', backgroundColor:'rgba(129,140,248,.1)', fill:true, tension:.4, pointRadius:3},
+        {label:'Faol foydalanuvchilar',  data:c.m_act||[], borderColor:'#22d3ee', borderDash:[4,3], fill:false, tension:.4, pointRadius:3},
+      ]
+    },
+    options:lineOpts()
+  });
+
+  ch('aCh2', {
+    type:'doughnut',
+    data:{
+      labels:c.role_labels||[],
+      datasets:[{ data:c.role_counts||[], backgroundColor:PAL, borderWidth:0, hoverOffset:6 }]
+    },
+    options:donutOpts()
+  });
+
+  const total = k.total_users||1;
+  const rl = c.role_labels||[];
+  $('aTbl').innerHTML = rl.length ? rl.map((lbl,i)=>{
+    const cnt=(c.role_counts||[])[i]||0;
+    return `<tr><td><span class="ov-rk">${i+1}</span></td><td class="ov-mt"><span style="color:${PAL[i%PAL.length]}">●</span> ${lbl}</td><td>${cnt}</td><td>${(cnt/total*100).toFixed(1)}%</td></tr>`;
+  }).join('') : EMPTY;
+}
+
+// ─── Main loader ─────────────────────────────────────────────────
+let abortCtrl;
+async function loadAll() {
+  const btn = $('ovRefBtn');
+  if (btn) btn.classList.add('loading');
+  set('ovTs', 'Yuklanmoqda...');
+
+  if (abortCtrl) abortCtrl.abort();
+  abortCtrl = new AbortController();
+  const sig = abortCtrl.signal;
+
+  const results = await Promise.allSettled(
+    Object.entries(APIS).map(([k,url]) =>
+      fetch(url, {signal:sig})
+        .then(r => { if(!r.ok) throw new Error(r.status); return r.json(); })
+        .then(data => [k, data])
+    )
+  );
+
+  const D = {};
+  for (const r of results) {
+    if (r.status==='fulfilled') {
+      const [k,v]=r.value; D[k]=v;
+    }
+  }
+
+  try { renderFin(D.fin||{}); } catch(e){ console.error('fin:', e); }
+  try { renderSt(D.st||{});  } catch(e){ console.error('st:',  e); }
+  try { renderTe(D.te||{});  } catch(e){ console.error('te:',  e); }
+  try { renderGr(D.gr||{});  } catch(e){ console.error('gr:',  e); }
+  try { renderBi(D.bi||{});  } catch(e){ console.error('bi:',  e); }
+  try { renderMk(D.mk||{});  } catch(e){ console.error('mk:',  e); }
+  try { renderOm(D.om||{});  } catch(e){ console.error('om:',  e); }
+  try { renderAn(D.an||{});  } catch(e){ console.error('an:',  e); }
+
+  const now = new Date();
+  set('ovTs', `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')} da yangilandi`);
+  if (btn) btn.classList.remove('loading');
+}
+
+// ─── Sticky nav active section ────────────────────────────────────
+const _secs = Array.from(document.querySelectorAll('.ov-sec'));
+const _links = Array.from(document.querySelectorAll('.ov-a[data-sec]'));
+function updateNav() {
+  let cur = '';
+  for (const s of _secs) {
+    if (window.scrollY + 70 >= s.offsetTop) cur = s.id;
+  }
+  for (const a of _links) {
+    a.classList.toggle('on', a.dataset.sec === cur);
+  }
+}
+window.addEventListener('scroll', updateNav, {passive:true});
+updateNav();
+
+// ─── Boot ────────────────────────────────────────────────────────
+loadAll();
+</script>
+{% endblock %}

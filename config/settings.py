@@ -10,7 +10,11 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ===== Core =====
-SECRET_KEY = os.getenv("SECRET_KEY", "unsafe-secret-key")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    if os.getenv("MODE") in ("production", "render"):
+        raise RuntimeError("SECRET_KEY environment variable must be set in production!")
+    SECRET_KEY = "local-dev-unsafe-secret-key-change-in-production"
 DEBUG = True # ✅ Force Debug for Local Dev to prevent redirect issues
 
 # ✅ HOSTS FIX: Allow all necessary local domains
@@ -58,6 +62,8 @@ INSTALLED_APPS = [
     "core",
     "billing",
     "marketing",
+    "rest_framework",
+    "drf_spectacular",
 ]
 
 JAZZMIN_SETTINGS = {
@@ -106,7 +112,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "core.middleware.TenantMiddleware", # ✅ Custom Tenant Middleware
+    "core.middleware.TenantMiddleware",          # ✅ Custom Tenant Middleware
+    "core.middleware_rbac.RoleBasedAccessMiddleware",  # ✅ RBAC kirish nazorati
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -197,6 +204,45 @@ if MODE == "render":
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# ==================== REST FRAMEWORK ====================
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer",
+    ],
+}
+
+# ==================== DRF SPECTACULAR (Swagger/OpenAPI) ====================
+SPECTACULAR_SETTINGS = {
+    "TITLE": "ChaqmoqApp API",
+    "DESCRIPTION": (
+        "ChaqmoqApp — o'quv markazlari boshqaruv platformasi uchun REST API. "
+        "Mobile (Flutter) va tashqi integratsiyalar uchun."
+    ),
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "CONTACT": {"name": "ChaqmoqApp Team", "url": "https://chaqmoqapp.uz"},
+    "SERVERS": [
+        {"url": "https://chaqmoqapp.uz", "description": "Production"},
+        {"url": "http://localhost:8000", "description": "Local Dev"},
+    ],
+    "TAGS": [
+        {"name": "auth", "description": "Autentifikatsiya va sessiya"},
+        {"name": "mobile", "description": "Flutter mobile ilovasi uchun endpointlar"},
+        {"name": "director", "description": "Direktor dashboard va statistika"},
+        {"name": "ai", "description": "AI insights va tahlil"},
+        {"name": "billing", "description": "To'lov va obuna tizimi"},
+    ],
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SORT_OPERATIONS": False,
+}
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -205,8 +251,8 @@ LOGGING = {
 }
 
 # ==================== CLICK PAYMENT ====================
-CLICK_SERVICE_ID = os.getenv("CLICK_SERVICE_ID", "36302")
-CLICK_MERCHANT_ID = os.getenv("CLICK_MERCHANT_ID", "36302")
+CLICK_SERVICE_ID = os.getenv("CLICK_SERVICE_ID", "")
+CLICK_MERCHANT_ID = os.getenv("CLICK_MERCHANT_ID", "")
 CLICK_SECRET_KEY = os.getenv("CLICK_SECRET_KEY", "")
 
 # Return URLs for browser redirect
@@ -229,6 +275,12 @@ CLICK_COMPLETE_URL = "/click/complete/"
 # Telegram bot for payment notifications (official Telegram API via aiogram)
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", os.getenv("BOT_TOKEN", ""))
 TELEGRAM_GROUP_ID = os.getenv("TELEGRAM_GROUP_ID", os.getenv("BACKUP_GROUP_ID", ""))
+
+# ==================== BILLING SOZLAMALARI ====================
+# Obuna tugaganidan keyin necha soat muhlat (grace period)
+BILLING_GRACE_PERIOD_HOURS = int(os.getenv("BILLING_GRACE_PERIOD_HOURS", "72"))
+# Obuna tugashiga necha kun qolganda ogohlantirish ko'rsatiladi
+BILLING_EXPIRY_WARN_DAYS = int(os.getenv("BILLING_EXPIRY_WARN_DAYS", "7"))
 
 # ==================== PRODUCTION OVERRIDE ====================
 # Auto-load production settings when deployed to Render

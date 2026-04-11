@@ -21,6 +21,9 @@ from core.services.center_ai_context import (
     build_center_ai_context,
     build_center_ai_prompt_context,
     generate_center_alerts,
+    get_category_revenue_context,
+    get_daily_revenue_for_date,
+    get_debt_aging_context,
     get_monthly_stats,
     get_student_full_info,
     get_teacher_full_info,
@@ -564,8 +567,42 @@ def _advanced_rule_bundle(center: Center, viewer, question: str) -> dict | None:
         }
 
     if _question_has(q, "qarzdor", "qarzi bor") and _question_has(q, "o'quvchi", "oquvchi", "student"):
+        # Agar "diagramma", "aging", "yoshiga" so'zlari bo'lsa — aging tahlil
+        if _question_has(q, "diagramma", "aging", "yoshiga", "qancha kun", "necha kun"):
+            aging = get_debt_aging_context(center)
+            buckets = aging.get("buckets") or []
+            total_debt = aging.get("total_debt") or 0
+            total_debtors = aging.get("total_debtors") or 0
+            top_debtors = aging.get("top_debtors") or []
+
+            if not buckets:
+                return {
+                    "answer": "Hozircha qarzdorlik ma'lumoti topilmadi.",
+                    "data": {"type": "debt_aging", **aging},
+                }
+
+            bucket_text = " | ".join(
+                f"{b['label']}: {_compact_money(b['amount'])} ({b['debtor_count']} o'quvchi)"
+                for b in buckets
+            )
+            top_text = ""
+            if top_debtors:
+                top_text = " Eng katta qarzdorlar: " + "; ".join(
+                    f"{d['full_name']} — {_compact_money(d['total_debt'])}"
+                    for d in top_debtors[:5]
+                )
+            answer = (
+                f"Qarzdorlik tahlili (jami {total_debtors} o'quvchi, "
+                f"{_compact_money(total_debt)} qarz): {bucket_text}.{top_text}"
+            )
+            return {
+                "answer": answer,
+                "data": {"type": "debt_aging", **aging},
+            }
+
+        # Oddiy qarzdor ro'yxat
         ctx = build_center_ai_context(center, viewer=viewer, question=question, limit=5)
-        risky_students = ((ctx.get("students") or {}).get("risky_students") or [])[:5]
+        risky_students = ((ctx.get("students") or {}).get("risky_students") or [])[:10]
         if not risky_students:
             return {
                 "answer": "Hozircha qarzdor o'quvchilar ro'yxati topilmadi.",
@@ -579,6 +616,116 @@ def _advanced_rule_bundle(center: Center, viewer, question: str) -> dict | None:
             "answer": answer,
             "data": {"type": "risky_students", "items": risky_students},
         }
+
+    # ── Muayyan sanaga to'lovlar ("25 martda qancha daromad?") ─────────────
+    specific_date = _extract_specific_date(question)
+    if specific_date and _question_has(q, "daromad", "tolov", "to'lov", "tushum", "pul", "qancha"):
+        daily = get_daily_revenue_for_date(center, specific_date)
+        total = daily.get("total") or 0
+        cnt = daily.get("payments_count") or 0
+        cash = daily.get("cash") or 0
+        card = daily.get("card") or 0
+        prev = daily.get("prev_day_total") or 0
+        change = daily.get("change_vs_prev_day_pct")
+
+        date_label = specific_date.strftime(f"{specific_date.day}-{MONTH_NAMES[specific_date.month - 1]} {specific_date.year}")
+        change_text = ""
+        if change is not None:
+            change_text = f" (oldingi kunga nisbatan {_signed_pct(change)})"
+
+        if total == 0:
+            answer = f"{date_label} kunda hech qanday to'lov qabul qilinmagan."
+        else:
+            answer = (
+                f"{date_label} kunda jami {_compact_money(total)} daromad tushdi "
+                f"({cnt} ta to'lov{change_text}). "
+            )
+            if cash and card:
+                answer += f"Naqd: {_compact_money(cash)}, Karta: {_compact_money(card)}."
+            elif cash:
+                answer += f"Barchasi naqd pul."
+            elif card:
+                answer += f"Barchasi karta orqali."
+
+        return {
+            "answer": answer,
+            "data": {"type": "daily_revenue", **daily},
+        }
+
+    # ── Kurs/bo'lim daromadi reytingi ────────────────────────────────────────
+    if _question_has(q, "kurs", "bo'lim", "bolim", "kategoriya", "yo'nalish") and _question_has(
+        q, "daromad", "eng kam", "eng ko'p", "ko'proq", "kamoq", "past", "yuqori", "reyting"
+    ):
+        cat_rev = get_category_revenue_context(center)
+        categories = cat_rev.get("by_category") or []
+
+        if not categories:
+            return {
+                "answer": "Kurs daromadi ma'lumoti topilmadi.",
+                "data": {"type": "category_revenue", **cat_rev},
+            }
+
+        is_lowest = _question_has(q, "eng kam", "eng past", "kamoq", "zaif", "past")
+
+        if is_lowest:
+            target = sorted(categories, key=lambda c: c["revenue"])
+            label = "Eng kam daromad keltiruvchi bo'limlar"
+        else:
+            target = sorted(categories, key=lambda c: -c["revenue"])
+            label = "Eng ko'p daromad keltiruvchi bo'limlar"
+
+        lines = []
+        for i, cat in enumerate(target[:5], 1):
+            lines.append(
+                f"{i}. {cat['category']}: {_compact_money(cat['revenue'])} "
+                f"({cat['students']} o'quvchi)"
+            )
+
+        answer = f"{label}:\n" + "\n".join(lines)
+
+        # Guruh darajasidagi tafsilot
+        if _question_has(q, "guruh", "group", "batafsil"):
+            worst_group = (cat_rev.get("lowest_groups") or [{}])[0]
+            if worst_group:
+                answer += f"\n\nEng kam daromadli guruh: {worst_group.get('name')} — {_compact_money(worst_group.get('revenue', 0))}"
+
+        return {
+            "answer": answer,
+            "data": {"type": "category_revenue", **cat_rev},
+        }
+
+    # ── Oy daromadi (O'tgan oy / Bu oy / Mart daromadi) ─────────────────────
+    if _question_has(q, "daromad", "tushum", "qancha pul") and not specific_date:
+        month_year = _extract_month_year(question)
+        if month_year:
+            month_num, year = month_year
+            from datetime import date as _date
+            import calendar
+            _, last_day = calendar.monthrange(year, month_num)
+            m_start = _date(year, month_num, 1)
+            m_end = _date(year, month_num, last_day)
+
+            from core.services.center_ai_context import get_center_finance_context
+            fin = get_center_finance_context(center, m_start, m_end)
+            rev = fin["summary"]["revenue"]
+            profit = fin["summary"]["profit"]
+            expenses = fin["summary"]["expenses"]
+            teacher_payout = fin["summary"]["teacher_payout"]
+            cnt = fin["summary"]["payments_count"]
+
+            month_label_text = f"{MONTH_NAMES[month_num - 1].capitalize()} {year}"
+            answer = (
+                f"{month_label_text} oyi moliyaviy natijasi: "
+                f"daromad {_compact_money(rev)}, "
+                f"xarajat {_compact_money(expenses)}, "
+                f"ustoz ulushi {_compact_money(teacher_payout)}, "
+                f"sof foyda {_compact_money(profit)}. "
+                f"Jami {cnt} ta to'lov qabul qilindi."
+            )
+            return {
+                "answer": answer,
+                "data": {"type": "month_revenue", "month": f"{year}-{month_num:02d}", **fin["summary"]},
+            }
 
     search_requested = bool(search_query) and (
         _question_has(q, "haqida", "telefon", "raqam", "kurs", "holat", "to'lov", "tolov", "qarz", "qarzi", "kim")
@@ -653,6 +800,86 @@ def _advanced_rule_bundle(center: Center, viewer, question: str) -> dict | None:
                 "teachers": teacher_items,
             },
         }
+
+    return None
+
+
+def _extract_specific_date(question: str) -> date | None:
+    """
+    Savoldan aniq sana ajratib oladi.
+    Qo'llab-quvvatlanadigan formatlar:
+      - "25 mart", "25 martda", "25-mart"
+      - "25.03", "25.03.2026", "2026-03-25"
+      - "25/03/2026"
+    """
+    q = question.lower()
+    today = timezone.localdate()
+
+    # ISO format: 2026-03-25
+    m = re.search(r"(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})", q)
+    if m:
+        try:
+            return date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        except ValueError:
+            pass
+
+    # dd.mm.yyyy yoki dd.mm
+    m = re.search(r"(\d{1,2})[.\-/](\d{1,2})(?:[.\-/](\d{4}))?", q)
+    if m:
+        day, month = int(m.group(1)), int(m.group(2))
+        year = int(m.group(3)) if m.group(3) else today.year
+        try:
+            return date(year, month, day)
+        except ValueError:
+            pass
+
+    # "25 mart", "25-mart", "25 martda"
+    month_map_uz = {
+        "yanvar": 1, "fevral": 2, "mart": 3, "aprel": 4,
+        "may": 5, "iyun": 6, "iyul": 7, "avgust": 8,
+        "sentyabr": 9, "oktyabr": 10, "noyabr": 11, "dekabr": 12,
+    }
+    for month_name, month_num in month_map_uz.items():
+        m = re.search(rf"(\d{{1,2}})\s*[.\-]?\s*{month_name}", q)
+        if m:
+            day = int(m.group(1))
+            year = today.year
+            # Agar oy o'tib ketgan bo'lsa, o'tgan yilni ishlatamiz
+            try:
+                candidate = date(year, month_num, day)
+                if candidate > today:
+                    candidate = date(year - 1, month_num, day)
+                return candidate
+            except ValueError:
+                pass
+
+    return None
+
+
+def _extract_month_year(question: str) -> tuple[int, int] | None:
+    """
+    Savoldan oy va yilni ajratib oladi.
+    Masalan: "mart 2026", "o'tgan oy", "bu oy", "fevral"
+    """
+    q = question.lower()
+    today = timezone.localdate()
+
+    if any(k in q for k in ("bu oy", "joriy oy", "hozirgi oy")):
+        return today.month, today.year
+    if any(k in q for k in ("o'tgan oy", "otgan oy", "oldingi oy")):
+        prev = today.replace(day=1) - timedelta(days=1)
+        return prev.month, prev.year
+
+    month_map_uz = {
+        "yanvar": 1, "fevral": 2, "mart": 3, "aprel": 4,
+        "may": 5, "iyun": 6, "iyul": 7, "avgust": 8,
+        "sentyabr": 9, "oktyabr": 10, "noyabr": 11, "dekabr": 12,
+    }
+    for month_name, month_num in month_map_uz.items():
+        if month_name in q:
+            year_m = re.search(r"\b(202\d|20[3-9]\d)\b", q)
+            year = int(year_m.group(1)) if year_m else today.year
+            return month_num, year
 
     return None
 

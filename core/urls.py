@@ -1,5 +1,5 @@
 from django.urls import path, include
-from . import views, api_views, api_dashboard, trash
+from . import views, api_views, api_dashboard, trash, dashboard_views
 from accounts import views as accounts_views
 
 app_name = 'core'
@@ -45,20 +45,8 @@ urlpatterns = [
     # Notifications
     path('notifications/', views.notifications_view, name="notifications"),
     path('notifications/read/', views.notifications_mark_read, name="notifications_mark_read"),
+    path('notifications/preferences/', views.notification_preferences_view, name="notification_preferences"),
     path('notifications/api/read-all/', api_views.notifications_mark_read_api, name='notifications_mark_read_api'),
-    path('api/director/stats/', api_views.director_stats_api, name='director_stats_api'),
-    path('api/director/dashboard/', api_dashboard.DirectorDashboardAPIView.as_view(), name='director_dashboard_api'),
-    path('api/director/dashboard/students-chart/', api_dashboard.StudentChartAPIView.as_view(), name='student_chart_api'),
-    path('api/ai/insights/', views.director_ai_insights_api, name='director_ai_insights_api'),
-    path('api/ai/churn-risk/', views.director_ai_churn_risk_api, name='director_ai_churn_risk_api'),
-    path('api/ai/forecast/', views.director_ai_forecast_api, name='director_ai_forecast_api'),
-    path('api/ai/ask/', views.director_ai_ask_api, name='director_ai_ask_api'),
-    path('api/director-ai/', views.director_ai_structured_api, name='director_ai_structured_api'),
-    path('api/ai/chat/', views.director_ai_chat_api, name='director_ai_chat_api'),
-    path('api/ai/chat/reset/', views.director_ai_chat_reset_api, name='director_ai_chat_reset_api'),
-    path('api/ai/chat/ask/', views.director_ai_chat_ask_api, name='director_ai_chat_ask_api'),
-    path('api/ai/chat/position/', views.director_ai_chat_position_api, name='director_ai_chat_position_api'),
-    path('dashboard/stats/', views.dashboard_stats_premium, name='dashboard_stats_premium'),
     path('dashboard/students/low-activity/', views.low_activity_students, name='low_activity_students'),
     path('notifications/broadcast/', views.notification_broadcast, name="notification_broadcast"),
 
@@ -69,6 +57,31 @@ urlpatterns = [
     path('trash/toggle-access/', views.toggle_manager_trash_access, name='toggle_manager_trash_access'),
     path('trash/manager-access/<int:user_id>/', trash.toggle_manager_user_trash_access, name='toggle_manager_user_trash_access'),
     
+    # ═══════════════════ Director Dashboards ═══════════════════
+    path('dashboards/',                   dashboard_views.dashboard_hub,                    name='dashboard_hub'),
+    path('dashboards/overview/',          dashboard_views.director_overview,                name='director_overview'),
+    path('dashboards/financial/',         dashboard_views.financial_dashboard,               name='financial_dashboard'),
+    path('dashboards/students/',          dashboard_views.student_performance_dashboard,     name='student_performance_dashboard'),
+    path('dashboards/teachers/',          dashboard_views.teacher_performance_dashboard,     name='teacher_performance_dashboard'),
+    path('dashboards/groups/',            dashboard_views.groups_dashboard,                  name='groups_dashboard'),
+    path('dashboards/billing/',           dashboard_views.billing_dashboard,                 name='billing_dashboard'),
+    path('dashboards/marketing/',         dashboard_views.marketing_dashboard,               name='marketing_dashboard'),
+    path('dashboards/inventory/',         dashboard_views.inventory_dashboard,               name='inventory_dashboard'),
+    path('dashboards/analytics/',         dashboard_views.analytics_dashboard,               name='analytics_dashboard'),
+    # Dashboard APIs
+    path('api/dashboards/financial/',     dashboard_views.financial_api,                     name='financial_api'),
+    path('api/dashboards/students/',      dashboard_views.student_performance_api,           name='student_performance_api'),
+    path('api/dashboards/teachers/',      dashboard_views.teacher_performance_api,           name='teacher_performance_api'),
+    path('api/dashboards/groups/',        dashboard_views.groups_api,                        name='groups_api'),
+    path('api/dashboards/billing/',       dashboard_views.billing_api,                       name='billing_api'),
+    path('api/dashboards/marketing/',     dashboard_views.marketing_api,                     name='marketing_api'),
+    path('api/dashboards/inventory/',     dashboard_views.inventory_api,                     name='inventory_api'),
+    path('api/dashboards/analytics/',     dashboard_views.analytics_api,                     name='analytics_api'),
+    # Director panel APIs
+    path('api/director/dashboard/',              api_dashboard.DirectorDashboardAPIView.as_view(),  name='director_dashboard_api'),
+    path('api/director/dashboard/debtor-diagram/', api_dashboard.DebtorDiagramAPIView.as_view(),   name='debtor_diagram_api'),
+    path('api/director/dashboard/category-revenue/', api_dashboard.CategoryRevenueAPIView.as_view(), name='category_revenue_api'),
+    path('api/director/dashboard/students-chart/', api_dashboard.StudentChartAPIView.as_view(),    name='student_chart_api'),
     # ✅ Group permissions
     path('permissions/manager-add-student/', views.toggle_manager_can_add_student, name='toggle_manager_can_add_student'),
     path('permissions/manager-remove-student/', views.toggle_manager_can_remove_student, name='toggle_manager_can_remove_student'),
