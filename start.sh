@@ -20,7 +20,7 @@ if [ "$BOT_ENV_ENABLED" != "0" ] && [ "$BOT_ENV_ENABLED" != "false" ] && [ -n "$
   # Pipe bot logs into the main Render log stream, but keep it optional so the
   # web app can stay alive on small 512MB instances.
   echo '🤖 Launching Telegram Bot...'
-  python3 -u telegram_bot/bot.py 2>&1 | sed 's/^/[BOT] /' &
+  python3 -u telegram_bot/bot.py &
   BOT_PID=$!
 else
   echo '🤖 Telegram Bot skipped (set TELEGRAM_BOT_ENABLED=true and BOT_TOKEN/TELEGRAM_BOT_TOKEN to enable).'
