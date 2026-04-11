@@ -21,7 +21,28 @@ services:
         value: production
       
       - key: BOT_API_PORT
-        value: 8080
+        value: "8080"
+
+      - key: TELEGRAM_BOT_ENABLED
+        value: "true"
+
+      - key: WEB_CONCURRENCY
+        value: "1"
+
+      - key: GUNICORN_THREADS
+        value: "2"
+
+      - key: GUNICORN_MAX_REQUESTS
+        value: "500"
+
+      - key: GUNICORN_MAX_REQUESTS_JITTER
+        value: "50"
+
+      - key: BACKUP_SCHEDULER_ENABLED
+        value: "false"
+
+      - key: BOT_BACKUP_SCHEDULER_ENABLED
+        value: "false"
       
       - key: BOT_INTERNAL_API_URL
         value: http://localhost:8080
@@ -31,6 +52,9 @@ services:
       
       - key: SECRET_KEY
         generateValue: true  # Auto-generate secure key
+
+      - key: API_SECRET
+        generateValue: true
       
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings

@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 from django.utils.translation import gettext_lazy as _
+from config.shared_secret import resolve_api_secret
 
 # ===== Load environment variables =====
 load_dotenv()
@@ -186,7 +187,7 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
 # Bot Configuration
 BOT_INTERNAL_API_URL = os.getenv("BOT_INTERNAL_API_URL", "http://127.0.0.1:8080")
-API_SECRET = os.getenv("API_SECRET", "")
+API_SECRET = resolve_api_secret(secret_key=SECRET_KEY)
 
 
 MEDIA_URL = "/media/"

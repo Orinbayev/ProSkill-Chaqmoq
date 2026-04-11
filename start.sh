@@ -1,17 +1,50 @@
 #!/bin/bash
-# ChaqmoqApp - ULTIMATE STARTUP SCRIPT
+set -e
+
+# ChaqmoqApp - Render-safe startup script
 echo '--- 🚀 Starting ChaqmoqApp System ---'
 
-# 1. Start the bot and pipe logs directly to the main console (stdout) 
-# so we can see errors in the Render log dashboard!
-echo '🤖 Launching Telegram Bot...'
-python3 -u telegram_bot/bot.py 2>&1 | sed 's/^/[BOT] /' &
+BOT_PID=""
+cleanup() {
+  if [ -n "$BOT_PID" ]; then
+    echo "🧹 Stopping Telegram Bot (pid=$BOT_PID)..."
+    kill "$BOT_PID" 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT INT TERM
 
-# 2. Start the Django application
+BOT_ENV_ENABLED="${TELEGRAM_BOT_ENABLED:-auto}"
+BOT_TOKEN_VALUE="${BOT_TOKEN:-${TELEGRAM_BOT_TOKEN:-}}"
+
+if [ "$BOT_ENV_ENABLED" != "0" ] && [ "$BOT_ENV_ENABLED" != "false" ] && [ -n "$BOT_TOKEN_VALUE" ]; then
+  # Pipe bot logs into the main Render log stream, but keep it optional so the
+  # web app can stay alive on small 512MB instances.
+  echo '🤖 Launching Telegram Bot...'
+  python3 -u telegram_bot/bot.py 2>&1 | sed 's/^/[BOT] /' &
+  BOT_PID=$!
+else
+  echo '🤖 Telegram Bot skipped (set TELEGRAM_BOT_ENABLED=true and BOT_TOKEN/TELEGRAM_BOT_TOKEN to enable).'
+fi
+
 if [ -z "$RENDER" ]; then
   echo '🏠 Local dev mode'
   python3 manage.py runserver 0.0.0.0:8000
 else
+  WEB_CONCURRENCY="${WEB_CONCURRENCY:-1}"
+  GUNICORN_THREADS="${GUNICORN_THREADS:-2}"
+  GUNICORN_TIMEOUT="${GUNICORN_TIMEOUT:-120}"
+  GUNICORN_MAX_REQUESTS="${GUNICORN_MAX_REQUESTS:-500}"
+  GUNICORN_MAX_REQUESTS_JITTER="${GUNICORN_MAX_REQUESTS_JITTER:-50}"
+
   echo "🌐 Production mode on Render (Port $PORT)"
-  python3 -m gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 --access-logfile - --error-logfile -
+  echo "🧠 Gunicorn: workers=$WEB_CONCURRENCY threads=$GUNICORN_THREADS timeout=$GUNICORN_TIMEOUT max_requests=$GUNICORN_MAX_REQUESTS"
+  python3 -m gunicorn config.wsgi:application \
+    --bind 0.0.0.0:$PORT \
+    --workers "$WEB_CONCURRENCY" \
+    --threads "$GUNICORN_THREADS" \
+    --timeout "$GUNICORN_TIMEOUT" \
+    --max-requests "$GUNICORN_MAX_REQUESTS" \
+    --max-requests-jitter "$GUNICORN_MAX_REQUESTS_JITTER" \
+    --access-logfile - \
+    --error-logfile -
 fi

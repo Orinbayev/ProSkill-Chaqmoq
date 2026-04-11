@@ -29,10 +29,18 @@ from core.services.center_ai_security import can_view_private_details, guard_cro
 from education.models import Attendance, Enrollment, Payment, PaymentAllocation, StudentGroupHistory, TuitionMonth
 
 try:
-    warnings.filterwarnings("ignore", category=FutureWarning, message=".*google\\.generativeai.*")
-    import google.generativeai as genai
+    from google import genai as google_genai
 except Exception:  # pragma: no cover - optional dependency at runtime
-    genai = None
+    google_genai = None
+
+try:
+    legacy_genai = None
+    if google_genai is None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            import google.generativeai as legacy_genai
+except Exception:  # pragma: no cover - optional dependency at runtime
+    legacy_genai = None
 
 
 logger = logging.getLogger(__name__)
@@ -194,44 +202,95 @@ def _extract_json_block(text: str, default):
     return default
 
 
+class _GoogleGenAIModel:
+    def __init__(self, *, client, candidates: list[str], cache_key: str):
+        self.client = client
+        self.candidates = candidates
+        self.cache_key = cache_key
+
+    def generate_content(self, prompt: str):
+        cached = cache.get(self.cache_key)
+        candidates = [cached] if cached else []
+        candidates.extend([name for name in self.candidates if name and name not in candidates])
+
+        last_exc: Exception | None = None
+        for model_name in candidates:
+            try:
+                response = self.client.models.generate_content(model=model_name, contents=prompt)
+                cache.set(self.cache_key, model_name, 60 * 60)
+                return response
+            except Exception as exc:
+                last_exc = exc
+                logger.warning("Gemini model failed: provider=google-genai model=%s error=%s", model_name, exc)
+        if last_exc:
+            raise last_exc
+        raise RuntimeError("No Gemini model candidates configured")
+
+
+class _LegacyGeminiModel:
+    def __init__(self, *, candidates: list[str], cache_key: str):
+        self.candidates = candidates
+        self.cache_key = cache_key
+
+    def generate_content(self, prompt: str):
+        cached = cache.get(self.cache_key)
+        candidates = [cached] if cached else []
+        candidates.extend([name for name in self.candidates if name and name not in candidates])
+
+        last_exc: Exception | None = None
+        for model_name in candidates:
+            try:
+                response = legacy_genai.GenerativeModel(model_name).generate_content(prompt)
+                cache.set(self.cache_key, model_name, 60 * 60)
+                return response
+            except Exception as exc:
+                last_exc = exc
+                logger.warning("Gemini model failed: provider=legacy model=%s error=%s", model_name, exc)
+        if last_exc:
+            raise last_exc
+        raise RuntimeError("No Gemini model candidates configured")
+
+
+def _gemini_candidates(*, legacy: bool) -> list[str]:
+    raw_candidates = [
+        os.environ.get("GEMINI_MODEL", "").strip(),
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-flash-latest",
+    ]
+    normalized = []
+    for candidate in raw_candidates:
+        if not candidate:
+            continue
+        name = candidate.strip()
+        if legacy and not name.startswith("models/"):
+            name = f"models/{name}"
+        if not legacy and name.startswith("models/"):
+            name = name.removeprefix("models/")
+        if name not in normalized:
+            normalized.append(name)
+    return normalized
+
+
 def _gemini_model():
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    if not api_key or genai is None:
+    if not api_key:
         return None
     try:
-        genai.configure(api_key=api_key)
-        cached_name = cache.get("director-ai-gemini-model")
-        if cached_name:
-            return genai.GenerativeModel(cached_name)
+        if google_genai is not None:
+            client = google_genai.Client(api_key=api_key)
+            return _GoogleGenAIModel(
+                client=client,
+                candidates=_gemini_candidates(legacy=False),
+                cache_key="director-ai-gemini-model-google-genai",
+            )
 
-        available_models = []
-        try:
-            available_models = [
-                model.name
-                for model in genai.list_models()
-                if "generateContent" in (getattr(model, "supported_generation_methods", []) or [])
-            ]
-        except Exception:
-            logger.warning("Gemini model list could not be loaded", exc_info=True)
-
-        candidates = [
-            os.environ.get("GEMINI_MODEL", "").strip(),
-            "models/gemini-2.0-flash",
-            "models/gemini-2.5-flash",
-            "models/gemini-flash-latest",
-        ]
-        for candidate in candidates:
-            if not candidate:
-                continue
-            normalized = candidate if candidate.startswith("models/") else f"models/{candidate}"
-            if available_models and normalized not in available_models:
-                continue
-            cache.set("director-ai-gemini-model", normalized, 60 * 60)
-            return genai.GenerativeModel(normalized)
-        if available_models:
-            selected = available_models[0]
-            cache.set("director-ai-gemini-model", selected, 60 * 60)
-            return genai.GenerativeModel(selected)
+        if legacy_genai is not None:
+            legacy_genai.configure(api_key=api_key)
+            return _LegacyGeminiModel(
+                candidates=_gemini_candidates(legacy=True),
+                cache_key="director-ai-gemini-model-legacy",
+            )
         return None
     except Exception:
         logger.warning("Gemini model configuration failed", exc_info=True)

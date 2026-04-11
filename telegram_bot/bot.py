@@ -25,6 +25,13 @@ except Exception as backup_import_err:
 # Logging
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
+def env_flag(name, default=False):
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
@@ -103,13 +110,17 @@ async def main():
 
     # 2. Start Schedulers
     await setup_scheduler(bot)
-    # BackgroundScheduler – sync, shuning uchun await KERAK EMAS
-    if setup_backup_scheduler is not None:
+    # BackgroundScheduler – sync, shuning uchun await KERAK EMAS.
+    # Render web servisida backup alohida cron job orqali yuradi; shu sabab bot
+    # ichida daily backup scheduler default o'chiq turadi.
+    if setup_backup_scheduler is not None and env_flag("BOT_BACKUP_SCHEDULER_ENABLED", False):
         try:
             setup_backup_scheduler()
             print("✅ Backup scheduler (BackgroundScheduler) ishga tushdi.")
         except Exception as _bs_err:
             logging.error(f"❌ Backup scheduler xatosi: {_bs_err}")
+    elif setup_backup_scheduler is not None:
+        logging.info("Backup scheduler skipped in bot process (BOT_BACKUP_SCHEDULER_ENABLED is not true).")
     else:
         logging.warning("⚠️ Backup scheduler skipped because backup module failed to load.")
     print("✅ All Schedulers started.")

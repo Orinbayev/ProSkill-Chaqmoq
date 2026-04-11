@@ -16,19 +16,18 @@ class CoreConfig(AppConfig):
         # ── Backup Scheduler ─────────────────────────────────────────────
         # Django dev serveri manage.py runserver ni IKKI MARTA ishlatadi.
         # RUN_MAIN=true faqat asosiy jarayonda bo'ladi – duplicate oldini olish.
-        # Gunicorn multi-worker uchun BACKUP_SCHEDULER_ENABLED=true o'rnating
-        # faqat bitta worker da (masalan, preload_app=True bilan).
+        # Productionda backup Render Cron orqali yuradi. Web worker ichida
+        # scheduler ochish 512MB servisda xotirani oshirib, 502 ga olib kelishi mumkin.
+        # Kerak bo'lsa BACKUP_SCHEDULER_ENABLED=true bilan qo'lda yoqing.
         run_main = os.environ.get("RUN_MAIN")          # dev server inner process
         scheduler_flag = os.environ.get("BACKUP_SCHEDULER_ENABLED", "").lower()
         is_render = os.environ.get("RENDER", "")       # Render.com env
 
         should_start = (
-            # 1. Render production: har doim ishlatsin
-            bool(is_render)
-            # 2. Lokal dev: faqat inner process da (ikki marta ishlamasi uchun)
-            or run_main == "true"
-            # 3. Manuel flag: BACKUP_SCHEDULER_ENABLED=true
-            or scheduler_flag == "true"
+            # 1. Lokal dev: faqat inner process da (ikki marta ishlamasi uchun)
+            (not is_render and run_main == "true")
+            # 2. Manuel flag: BACKUP_SCHEDULER_ENABLED=true
+            or scheduler_flag in {"1", "true", "yes", "on"}
         )
 
         if should_start:
