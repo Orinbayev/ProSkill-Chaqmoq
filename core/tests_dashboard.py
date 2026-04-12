@@ -379,6 +379,41 @@ class CenterAnalyticsServiceTests(TestCase):
         self.assertEqual(turnover[labels.index(current_label)], 1_500_000)
         self.assertGreaterEqual(turnover[labels.index(history_label)], 900_000)
 
+    def test_boshqaruv_api_returns_payment_breakdown_by_category(self):
+        language_category = Category.objects.create(center=self.center, name="Language")
+        language_group = Group.objects.create(
+            center=self.center,
+            nom="Language Group",
+            category_obj=language_category,
+            oqituvchi=self.teacher_weak,
+            kurs_narxi=400_000,
+            oqituvchi_foiz=40,
+            oy_dars_soni=12,
+        )
+        language_student = self._student("student.language@test.com", "Lola", "Lang")
+        language_enrollment = self._enroll(language_student, language_group, 400_000)
+        TuitionMonth.objects.create(
+            center=self.center,
+            enrollment=language_enrollment,
+            month=self.today.replace(day=1),
+            fee_amount=400_000,
+        )
+
+        response = self.client.get(reverse("core:director_boshqaruv_api"))
+        self.assertEqual(response.status_code, 200)
+
+        charts = response.json()["charts"]
+        self.assertEqual(charts["pay_status_labels"], ["To'lagan", "To'lamagan"])
+        self.assertEqual(sum(charts["pay_status_counts"]), 4)
+
+        breakdown = {row["name"]: row for row in charts["pay_category_breakdown"]}
+        self.assertEqual(breakdown["Matematika"]["total"], 3)
+        self.assertEqual(breakdown["Matematika"]["paid"], 1)
+        self.assertEqual(breakdown["Matematika"]["unpaid"], 2)
+        self.assertEqual(breakdown["Language"]["total"], 1)
+        self.assertEqual(breakdown["Language"]["paid"], 0)
+        self.assertEqual(breakdown["Language"]["unpaid"], 1)
+
     def test_daily_metric_models_can_be_created(self):
         center_metric = CenterDailyMetric.objects.create(
             center=self.center,

@@ -1364,10 +1364,12 @@ def _boshqaruv_payload(center, d_from, d_to):
         cat_labels = ["IT", "Til kurslari"]
         cat_counts = [active_students // 2, active_students - active_students // 2]
 
-    # ── Chart 7: To'lov holati (2-donut) ──────────────────────
-    pay_toliq = pay_qisman = pay_tolamagan = 0
+    # ── Chart 7: To'lov holati (2-donut + kategoriya breakdown) ─────────
+    # UI soddalashtirilgan ko'rinish uchun qisman to'lov ham "to'lamagan" safiga qo'shiladi.
+    pay_toliq = pay_tolamagan = 0
+    pay_category_map = {}
     enrollments_all = list(
-        active_enroll.select_related("group", "student")
+        active_enroll.select_related("group", "group__category_obj", "student")
     )
     student_group_pairs = [
         (e.student_id, e.group_id, e.kurs_narhi or e.group.kurs_narxi or 0)
@@ -1379,8 +1381,7 @@ def _boshqaruv_payload(center, d_from, d_to):
     pay_map = {}
     if student_group_pairs:
         pay_rows = list(
-            Payment.objects.filter(
-                group__center=center,
+            _payments_for_center(center).filter(
                 paid_date__range=(d_from, d_to),
             )
             .values("student_id", "group_id")
@@ -1389,16 +1390,46 @@ def _boshqaruv_payload(center, d_from, d_to):
         for row in pay_rows:
             pay_map[(row["student_id"], row["group_id"])] = int(row["total"] or 0)
 
-    for student_id, group_id, fee in student_group_pairs:
+    for enr in enrollments_all:
+        student_id = enr.student_id
+        group_id = enr.group_id
+        fee = enr.kurs_narhi or enr.group.kurs_narxi or 0
         if fee <= 0:
             continue
         paid = pay_map.get((student_id, group_id), 0)
+        category_name = (
+            getattr(getattr(enr.group, "category_obj", None), "name", None)
+            or enr.group.get_category_display()
+            or "Boshqa"
+        )
+        bucket = pay_category_map.setdefault(category_name, {
+            "name": category_name,
+            "total": 0,
+            "paid": 0,
+            "unpaid": 0,
+        })
+        bucket["total"] += 1
         if paid >= fee:
             pay_toliq += 1
-        elif paid > 0:
-            pay_qisman += 1
+            bucket["paid"] += 1
         else:
             pay_tolamagan += 1
+            bucket["unpaid"] += 1
+
+    pay_category_breakdown = []
+    for row in pay_category_map.values():
+        total = int(row["total"] or 0)
+        paid = int(row["paid"] or 0)
+        unpaid = int(row["unpaid"] or 0)
+        pay_category_breakdown.append({
+            "name": row["name"],
+            "total": total,
+            "paid": paid,
+            "unpaid": unpaid,
+            "paid_percent": round(paid / total * 100, 1) if total else 0,
+            "unpaid_percent": round(unpaid / total * 100, 1) if total else 0,
+        })
+    pay_category_breakdown.sort(key=lambda x: (-x["total"], x["name"]))
 
     # ── Top 5 guruh ────────────────────────────────────────────
     top_groups = []
@@ -1536,8 +1567,9 @@ def _boshqaruv_payload(center, d_from, d_to):
             "source_counts": source_counts,
             "cat_labels": cat_labels,
             "cat_counts": cat_counts,
-            "pay_status_labels": ["To'liq to'lagan", "Qisman to'lagan", "To'lamagan"],
-            "pay_status_counts": [pay_toliq, pay_qisman, pay_tolamagan],
+            "pay_status_labels": ["To'lagan", "To'lamagan"],
+            "pay_status_counts": [pay_toliq, pay_tolamagan],
+            "pay_category_breakdown": pay_category_breakdown,
         },
         "group_fill_all": group_fill,
         "top_groups": top_groups,

@@ -482,6 +482,131 @@ body.sidebar-collapsed .bq { margin-left: 60px; }
   color: var(--bq-soft);
   text-align: center;
 }
+.bq-pay {
+  display: grid;
+  grid-template-columns: 176px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  min-height: 206px;
+}
+.bq-pay__ring {
+  position: relative;
+  width: 170px;
+  height: 170px;
+  margin-left: 6px;
+}
+.bq-pay__ring canvas {
+  width: 170px !important;
+  height: 170px !important;
+}
+.bq-pay__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.bq-pay__center span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--bq-soft);
+}
+.bq-pay__center strong {
+  margin-top: 2px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -.04em;
+  color: var(--bq-txt);
+}
+.bq-pay__center small {
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--bq-muted);
+}
+.bq-pay__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 204px;
+  overflow: auto;
+  padding-right: 4px;
+}
+.bq-paycat {
+  padding: 10px 11px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.05);
+  background: rgba(255,255,255,.025);
+}
+.bq-paycat__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.bq-paycat__name {
+  min-width: 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--bq-txt);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bq-paycat__total {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.06);
+  background: rgba(255,255,255,.035);
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--bq-soft);
+}
+.bq-paycat__bar {
+  display: flex;
+  width: 100%;
+  height: 7px;
+  margin-top: 9px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255,255,255,.05);
+}
+.bq-paycat__seg {
+  height: 100%;
+  transition: width .35s ease;
+}
+.bq-paycat__seg--paid { background: var(--bq-green); }
+.bq-paycat__seg--unpaid { background: var(--bq-rose); }
+.bq-paycat__stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.bq-paycat__stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.bq-paycat__stat--paid { color: #86efac; }
+.bq-paycat__stat--unpaid { color: #fda4af; }
+.bq-paycat__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.bq-paycat__dot--paid { background: var(--bq-green); }
+.bq-paycat__dot--unpaid { background: var(--bq-rose); }
 @media(max-width:640px){
   .bq-source {
     grid-template-columns: 1fr;
@@ -489,6 +614,16 @@ body.sidebar-collapsed .bq { margin-left: 60px; }
   }
   .bq-source__list {
     width: 100%;
+  }
+  .bq-pay {
+    grid-template-columns: 1fr;
+  }
+  .bq-pay__ring {
+    margin: 0 auto;
+  }
+  .bq-pay__list {
+    width: 100%;
+    max-height: none;
   }
 }
 
@@ -1138,7 +1273,17 @@ body.sidebar-collapsed .bq { margin-left: 60px; }
               <span class="bq-card__lbl">To'lov Holati</span>
               <span class="bq-tag">Donut</span>
             </div>
-            <div class="bq-ch bq-ch--dn"><canvas id="chCat2" style="max-width:170px;max-height:170px"></canvas></div>
+            <div class="bq-pay">
+              <div class="bq-pay__ring">
+                <canvas id="chCat2" style="max-width:170px;max-height:170px"></canvas>
+                <div class="bq-pay__center">
+                  <span>Jami</span>
+                  <strong id="payTotalCount">0</strong>
+                  <small id="payPaidRate">0% to'lagan</small>
+                </div>
+              </div>
+              <div class="bq-pay__list" id="payCategoryList"></div>
+            </div>
             <div class="bq-legend" id="lgCat2"></div>
           </div>
         </div>
@@ -1521,6 +1666,59 @@ function renderGroupDetails(rows){
   }).join('');
 }
 
+function renderPaymentCategories(rows){
+  const listEl=document.getElementById('payCategoryList');
+  const totalEl=document.getElementById('payTotalCount');
+  const rateEl=document.getElementById('payPaidRate');
+  const allRows=rows||[];
+  const summary=allRows.reduce((acc,row)=>{
+    acc.total += Number(row.total||0);
+    acc.paid += Number(row.paid||0);
+    acc.unpaid += Number(row.unpaid||0);
+    return acc;
+  },{total:0,paid:0,unpaid:0});
+
+  if(totalEl) totalEl.textContent=fmtN(summary.total);
+  if(rateEl){
+    rateEl.textContent = summary.total
+      ? `${Math.round((summary.paid / summary.total) * 100)}% to'lagan`
+      : 'Ma\'lumot yo\'q';
+  }
+  if(!listEl) return;
+  if(!allRows.length){
+    listEl.innerHTML='<div class="bq-source__empty">Kategoriya bo\'yicha ma\'lumot yo\'q</div>';
+    return;
+  }
+
+  listEl.innerHTML=allRows.map((row)=>{
+    const total=Number(row.total||0);
+    const paid=Number(row.paid||0);
+    const unpaid=Number(row.unpaid||0);
+    const paidPct=Number(row.paid_percent||0);
+    const unpaidPct=Number(row.unpaid_percent||0);
+    return `<div class="bq-paycat">
+      <div class="bq-paycat__head">
+        <span class="bq-paycat__name">${row.name}</span>
+        <span class="bq-paycat__total">${fmtN(total)} ta</span>
+      </div>
+      <div class="bq-paycat__bar">
+        <span class="bq-paycat__seg bq-paycat__seg--paid" style="width:${paidPct}%"></span>
+        <span class="bq-paycat__seg bq-paycat__seg--unpaid" style="width:${unpaidPct}%"></span>
+      </div>
+      <div class="bq-paycat__stats">
+        <span class="bq-paycat__stat bq-paycat__stat--paid">
+          <span class="bq-paycat__dot bq-paycat__dot--paid"></span>
+          ${fmtN(paid)} ta · ${fmtP(paidPct)}
+        </span>
+        <span class="bq-paycat__stat bq-paycat__stat--unpaid">
+          <span class="bq-paycat__dot bq-paycat__dot--unpaid"></span>
+          ${fmtN(unpaid)} ta · ${fmtP(unpaidPct)}
+        </span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 /* ── Jadvallar ── */
 function renderGrpTbl(rows){
   const tb=document.getElementById('tblGrp');if(!tb)return;
@@ -1795,11 +1993,12 @@ function render(d){
   ]);
 
   // Chart 4: Donut — to'lov holati
-  const payColors=[C.green,C.amber,C.rose];
-  const payLabels=(ch.pay_status_labels&&ch.pay_status_labels.length)?ch.pay_status_labels:["To'liq to'lagan","Qisman to'lagan","To'lamagan"];
-  const payCounts=(ch.pay_status_counts&&ch.pay_status_counts.some(v=>v>0))?ch.pay_status_counts:[0,0,0];
-  donut('chCat2',payLabels,payCounts.some(v=>v>0)?payCounts:[1,1,1],payColors);
+  const payColors=[C.green,C.rose];
+  const payLabels=(ch.pay_status_labels&&ch.pay_status_labels.length)?ch.pay_status_labels:["To'lagan","To'lamagan"];
+  const payCounts=(ch.pay_status_counts&&ch.pay_status_counts.some(v=>v>0))?ch.pay_status_counts:[0,0];
+  donut('chCat2',payLabels,payCounts.some(v=>v>0)?payCounts:[1,1],payColors);
   legend('lgCat2',payLabels,payColors);
+  renderPaymentCategories(ch.pay_category_breakdown || []);
 
   // Chart 5: Horizontal Bar — guruhlar
   renderGroupChart(ch.group_names || [], ch.group_enrolled || []);
