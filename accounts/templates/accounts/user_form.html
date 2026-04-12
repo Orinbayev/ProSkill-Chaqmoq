@@ -339,6 +339,9 @@
 
   <form method="post" class="cq-card">
     {% csrf_token %}
+    {% if next_url %}
+    <input type="hidden" name="next" value="{{ next_url }}">
+    {% endif %}
     <div class="mb-5">
       <label class="block mb-2 font-bold text-[13px] text-[#e5e7eb]">Foydalanuvchi roli</label>
       {{ form.role }}
@@ -528,7 +531,7 @@
       <button type="submit" class="btn-save">
         <i class="fa-solid fa-check"></i> SAQLASH
       </button>
-      <a href="{% url 'core:home' %}" class="btn-cancel">
+      <a href="{{ cancel_url }}" class="btn-cancel">
         Bekor qilish
       </a>
     </div>

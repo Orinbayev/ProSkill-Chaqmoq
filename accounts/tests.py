@@ -206,3 +206,38 @@ class TenantRedirectRegressionTests(TestCase):
         self.assertEqual(response["Location"], reverse("core:home"))
         self.assertFalse(response["Location"].startswith("/api/mobile/"))
         self.assertTrue(User.objects.filter(email="ali.teacher@test.uz", role="teacher").exists())
+
+    def test_add_user_redirects_to_next_when_provided(self):
+        response = self.client.post(
+            reverse("accounts:add_user") + "?role=student&next=/redirect-center/stat/students/",
+            {
+                "next": "/redirect-center/stat/students/",
+                "ism": "Vali",
+                "familya": "Student",
+                "otchestvo": "",
+                "telefon1": "",
+                "telefon2": "",
+                "center": str(self.center.id),
+                "role": "student",
+                "email": "vali.student@test.uz",
+                "password": "strong-pass-123",
+                "oqituvchi_foizi": "",
+                "birth_date": "2010-01-01",
+                "gender": "male",
+                "passport_id": "",
+                "jshr": "",
+                "address": "",
+                "group": "",
+                "kurs_narhi": "",
+            },
+            follow=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/redirect-center/stat/students/")
+        self.assertTrue(User.objects.filter(email="vali.student@test.uz", role="student").exists())
+
+    def test_director_can_open_tenant_add_user_page(self):
+        response = self.client.get(reverse("accounts:add_user") + "?role=student")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Student Anketasi")

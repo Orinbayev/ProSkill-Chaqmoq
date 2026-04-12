@@ -539,11 +539,11 @@
       {% endif %}
 
       {% if user_kind == 'parents' %}
-      <a href="{% url 'core:parent_add' %}" class="btn-action btn-primary">
+      <a href="../../parents/add/?next={{ request.get_full_path|urlencode }}" class="btn-action btn-primary">
         <i class="fa-solid fa-plus"></i> Yangi
       </a>
       {% else %}
-      <a href="{% url 'accounts:add_user' %}?role={% if user_kind == 'students' %}student{% else %}{{ user_kind|default:'student' }}{% endif %}" class="btn-action btn-primary">
+      <a href="../../hisob/qoshish/?role={% if user_kind == 'students' %}student{% else %}{{ user_kind|default:'student' }}{% endif %}&next={{ request.get_full_path|urlencode }}" class="btn-action btn-primary">
         <i class="fa-solid fa-plus"></i> Yangi
       </a>
       {% endif %}

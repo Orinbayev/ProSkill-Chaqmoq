@@ -76,11 +76,11 @@ class RoleBasedAccessMiddleware:
             },
         },
         'manager': {
-            'namespaces': {'core', 'education', 'chaqmoq', 'store', 'billing'},
+            'namespaces': {'core', 'education', 'chaqmoq', 'store', 'billing', 'accounts'},
             'names': {'logout'},
         },
         'director': {
-            'namespaces': {'core', 'education', 'chaqmoq', 'store', 'billing', 'marketing'},
+            'namespaces': {'core', 'education', 'chaqmoq', 'store', 'billing', 'marketing', 'accounts'},
             'names': {'logout'},
         },
     }

@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth import get_user_model, logout
 from django.views.decorators.http import require_http_methods
+from django.urls import reverse
 from django import forms
 from django.db.models import Count, Sum
 from django.db.models.functions import Coalesce
@@ -24,6 +25,11 @@ def _can_add(u):
 
 def _is_staff_like(u):
     return u.is_superuser or getattr(u, "role", None) in ("director", "manager")
+
+
+def _safe_next_url(value: str | None) -> str | None:
+    value = (value or "").strip()
+    return value if value.startswith("/") else None
 
 
 def _superadmin_only(request):
@@ -302,6 +308,8 @@ def add_user(request):
     if not _can_add(request.user):
         return HttpResponseForbidden("Ruxsat yo'q.")
 
+    next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
+
     # ✅ Role normalization (students -> student)
     role_param = request.GET.get("role", "").strip()
     if role_param.lower() == "students":
@@ -331,12 +339,21 @@ def add_user(request):
     if request.method == "POST" and form.is_valid():
         user = form.save()
         messages.success(request, f"✅ Foydalanuvchi {user.email} muvaffaqiyatli qo‘shildi.")
-        return redirect("core:home")
+        return redirect(next_url or "core:home")
+
+    role_titles = {
+        "student": "Yangi o'quvchi",
+        "teacher": "Yangi o'qituvchi",
+        "manager": "Yangi manager",
+        "parent": "Yangi ota-ona",
+    }
 
     return render(request, "accounts/user_form.html", {
         'form': form,
-        'title': "Yangi foydalanuvchi",
+        'title': role_titles.get(role_param, "Yangi foydalanuvchi"),
         'student_limit_state': student_limit_state,
+        'next_url': next_url,
+        'cancel_url': next_url or reverse("core:home"),
     })
 
 @login_required
