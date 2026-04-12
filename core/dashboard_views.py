@@ -19,7 +19,7 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 
 from accounts.models import Center, User
-from education.models import Attendance, Category, Enrollment, Group, Payment
+from education.models import Attendance, Category, Enrollment, Group, Payment, PaymentAllocation
 from store.models import Expense, Lead, Product, PurchaseRequest, Sale
 
 
@@ -109,6 +109,43 @@ def _payments_for_center(center):
     )
 
 
+def _payment_allocations_for_center(center):
+    """
+    Productionda tarixiy daromad ko'pincha PaymentAllocation orqali saqlanadi.
+    center null bo'lgan legacy allocation/paymentlar uchun ham fallback qilamiz.
+    """
+    return PaymentAllocation.objects.filter(
+        payment__is_deleted=False,
+    ).filter(
+        Q(center=center)
+        | Q(center__isnull=True, payment__center=center)
+        | Q(center__isnull=True, payment__center__isnull=True, payment__group__center=center)
+        | Q(center__isnull=True, payment__center__isnull=True, payment__student__center=center)
+        | Q(center__isnull=True, payment__center__isnull=True, payment__enrollment__center=center)
+        | Q(center__isnull=True, payment__center__isnull=True, tuition_month__center=center)
+        | Q(center__isnull=True, payment__center__isnull=True, tuition_month__enrollment__center=center)
+    )
+
+
+def _monthly_turnover_for_center(center, m_start, m_end):
+    """
+    Oy kesimidagi aylanma:
+    1. Allocation mavjud bo'lsa, to'lovni aynan tegishli oyga yozamiz.
+    2. Allocation yo'q legacy paymentlar bo'lsa, paid_date bo'yicha fallback qilamiz.
+    """
+    allocated_total = int(
+        _payment_allocations_for_center(center)
+        .filter(tuition_month__month__range=(m_start, m_end))
+        .aggregate(s=Sum("amount"))["s"] or 0
+    )
+    unallocated_total = int(
+        _payments_for_center(center)
+        .filter(paid_date__range=(m_start, m_end), allocations__isnull=True)
+        .aggregate(s=Sum("summa"))["s"] or 0
+    )
+    return allocated_total + unallocated_total
+
+
 def _expenses_for_center(center):
     """
     Legacy xarajatlardagi center=null holati uchun worker/product orqali fallback.
@@ -191,7 +228,7 @@ def _financial_payload(center, d_from, d_to):
     m_labels, m_inc, m_exp = [], [], []
     for ms, me, lbl in _six_month_range(d_to):
         m_labels.append(lbl)
-        m_inc.append(int(_payments_for_center(center).filter(paid_date__range=(ms, me)).aggregate(s=Sum("summa"))["s"] or 0))
+        m_inc.append(_monthly_turnover_for_center(center, ms, me))
         m_exp.append(int(_expenses_for_center(center).filter(sana__date__range=(ms, me)).aggregate(s=Sum("summa"))["s"] or 0))
 
     cat_breakdown = [
@@ -1217,10 +1254,7 @@ def _boshqaruv_payload(center, d_from, d_to):
         monthly_labels.append(lbl)
 
         # Umumiy aylanma — o'sha oyda qabul qilingan barcha to'lovlar
-        m_turn = int(
-            _payments_for_center(center).filter(paid_date__range=(ms, me))
-            .aggregate(s=Sum("summa"))["s"] or 0
-        )
+        m_turn = _monthly_turnover_for_center(center, ms, me)
         monthly_turnover.append(m_turn)
 
         # Xarajatlar — o'qituvchi maoshi, ijara, boshqa chiqimlar

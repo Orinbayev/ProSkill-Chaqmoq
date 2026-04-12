@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from accounts.models import Center, User
 from core.models import CenterDailyMetric, StudentDailyMetric, TeacherDailyMetric
+from core.dashboard_views import UZ_MONTHS
 from core.services.center_ai_context import (
     build_center_ai_context,
     generate_center_alerts,
@@ -13,7 +14,7 @@ from core.services.center_ai_context import (
     get_student_full_info,
     get_teacher_full_info,
 )
-from education.models import Attendance, Category, Enrollment, Group, Payment, TeacherIncome, TuitionMonth
+from education.models import Attendance, Category, Enrollment, Group, Payment, PaymentAllocation, TeacherIncome, TuitionMonth
 from store.models import Expense, Lead, LeadStatus, Manba, Product, PurchaseRequest, Yonalish
 
 
@@ -340,6 +341,43 @@ class CenterAnalyticsServiceTests(TestCase):
         data = response.json()
         current_month_left = data["charts"]["monthly_left"][-1]
         self.assertGreaterEqual(current_month_left, 1)
+
+    def test_boshqaruv_api_monthly_turnover_uses_payment_allocations_for_history(self):
+        history_month = (self.today.replace(day=1) - timedelta(days=90)).replace(day=1)
+        history_tuition, _ = TuitionMonth.objects.get_or_create(
+            center=self.center,
+            enrollment=self.enrollment_b,
+            month=history_month,
+            defaults={"fee_amount": 500_000},
+        )
+        april_payment = Payment.objects.create(
+            center=self.center,
+            enrollment=self.enrollment_b,
+            student=self.enrollment_b.student,
+            group=self.enrollment_b.group,
+            payment_type="cash",
+            cash_amount=900_000,
+            paid_date=self.today,
+            created_by=self.director,
+        )
+        PaymentAllocation.objects.create(
+            center=self.center,
+            payment=april_payment,
+            tuition_month=history_tuition,
+            amount=900_000,
+        )
+
+        response = self.client.get(reverse("core:director_boshqaruv_api"))
+        self.assertEqual(response.status_code, 200)
+
+        data = response.json()
+        labels = data["charts"]["monthly_labels"]
+        turnover = data["charts"]["monthly_turnover"]
+        history_label = UZ_MONTHS[history_month.month]
+        current_label = UZ_MONTHS[self.today.month]
+
+        self.assertEqual(turnover[labels.index(current_label)], 1_500_000)
+        self.assertGreaterEqual(turnover[labels.index(history_label)], 900_000)
 
     def test_daily_metric_models_can_be_created(self):
         center_metric = CenterDailyMetric.objects.create(
