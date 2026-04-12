@@ -942,7 +942,8 @@ def archive_student(request, pk):
     with transaction.atomic():
         # 1. Archive User
         student.is_archived = True
-        student.save(update_fields=["is_archived"])
+        student.archived_at = timezone.now()
+        student.save(update_fields=["is_archived", "archived_at"])
         
         # 2. Deactivate Enrollments (Remove from active groups lists)
         # Enrollment has is_active field? Let's check model. 

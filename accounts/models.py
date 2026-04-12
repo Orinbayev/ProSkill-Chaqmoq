@@ -366,6 +366,7 @@ class User(SoftDeleteMixin, AbstractUser):
     )
 
     is_archived = models.BooleanField(default=False, verbose_name="Arxivlangan")
+    archived_at = models.DateTimeField(null=True, blank=True, verbose_name="Arxivlangan sana")
     is_demo_user = models.BooleanField(
         default=False,
         db_index=True,

@@ -657,6 +657,39 @@ body.sidebar-collapsed .bq { margin-left: 60px; }
   }
 }
 
+/* ══════════════════ GURUH DAVOMAT RANKING ══════════════════ */
+.bq-card--grpatt { display:flex; flex-direction:column; }
+.bq-grpatt-list {
+  flex:1; overflow-y:auto; display:flex; flex-direction:column;
+  gap:6px; max-height:210px; padding-right:2px;
+}
+.bq-grpatt-list::-webkit-scrollbar { width:4px; }
+.bq-grpatt-list::-webkit-scrollbar-track { background:transparent; }
+.bq-grpatt-list::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1); border-radius:4px; }
+.bq-grpatt-empty { display:flex; align-items:center; justify-content:center; height:60px; color:var(--bq-soft); font-size:12px; }
+.bq-gri { display:flex; align-items:center; gap:8px; }
+.bq-gri__rank {
+  width:20px; height:20px; border-radius:6px; display:flex;
+  align-items:center; justify-content:center;
+  font-size:9px; font-weight:800; flex-shrink:0;
+  background:rgba(255,255,255,.06); color:var(--bq-soft);
+}
+.bq-gri__rank--1 { background:rgba(251,191,36,.18); color:var(--bq-amber); }
+.bq-gri__rank--2 { background:rgba(148,163,184,.12); color:#cbd5e1; }
+.bq-gri__rank--3 { background:rgba(251,146,60,.15);  color:var(--bq-orange); }
+.bq-gri__name { flex:1; font-size:11px; font-weight:600; color:var(--bq-txt); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+.bq-gri__bar-wrap { flex:0 0 80px; }
+.bq-gri__bar-bg { height:5px; border-radius:99px; background:rgba(255,255,255,.07); overflow:hidden; }
+.bq-gri__bar-fg { height:100%; border-radius:99px; transition:width .6s ease; }
+.bq-gri__pct { font-size:10px; font-weight:700; text-align:right; margin-top:2px; }
+.bq-gri__badge {
+  flex-shrink:0; font-size:9px; font-weight:700; padding:2px 6px;
+  border-radius:20px; white-space:nowrap;
+}
+.bq-gri__badge--hi   { background:rgba(52,211,153,.12);  color:var(--bq-green); }
+.bq-gri__badge--mid  { background:rgba(251,191,36,.12);  color:var(--bq-amber); }
+.bq-gri__badge--lo   { background:rgba(244,63,94,.12);   color:var(--bq-rose); }
+
 /* ══════════════════ MOLIYAVIY KARTA ══════════════════ */
 .bq-card--finance { padding:0; overflow:hidden; }
 .bq-fin-stats {
@@ -1087,10 +1120,10 @@ body.sidebar-collapsed .bq { margin-left: 60px; }
           <div class="bq-sec__ico" style="background:rgba(96,165,250,.12);color:var(--bq-blue);border-color:rgba(96,165,250,.18)"><i class="fa-solid fa-user-graduate"></i></div>
           <div>
             <h3 class="bq-sec__title">O'quvchilar Statistikasi</h3>
-            <p class="bq-sec__sub">O'sish trendi, haftalik davomat va guruh taqsimoti</p>
+            <p class="bq-sec__sub">O'sish trendi va to'lov holati</p>
           </div>
         </div>
-        <div class="bq-g bq-g--3">
+        <div class="bq-g bq-g--13">
           <div class="bq-card">
             <div class="bq-card__ttl">
               <span class="bq-dot bq-dot--blue"></span>
@@ -1098,14 +1131,6 @@ body.sidebar-collapsed .bq { margin-left: 60px; }
               <span class="bq-tag">Area · 12 oy</span>
             </div>
             <div class="bq-ch bq-ch--md"><canvas id="chStudents"></canvas></div>
-          </div>
-          <div class="bq-card">
-            <div class="bq-card__ttl">
-              <span class="bq-dot bq-dot--violet"></span>
-              <span class="bq-card__lbl">Haftalik Davomat %</span>
-              <span class="bq-tag">Bar · 8 hafta</span>
-            </div>
-            <div class="bq-ch bq-ch--md"><canvas id="chAtt"></canvas></div>
           </div>
           <div class="bq-card">
             <div class="bq-card__ttl">
@@ -1517,6 +1542,33 @@ function renderStTbl(rows){
   }).join('');
 }
 
+/* ── Guruh davomat ranking ── */
+function renderGrpAttRanking(rows){
+  const el = document.getElementById('grpAttList');
+  if(!el) return;
+  if(!rows || !rows.length){
+    el.innerHTML = '<div class="bq-grpatt-empty">Ma\'lumot yo\'q</div>';
+    return;
+  }
+  el.innerHTML = rows.map((r, i) => {
+    const rankCls = i===0?'--1':i===1?'--2':i===2?'--3':'';
+    const color   = r.rate >= 80 ? C.green : r.rate >= 60 ? C.amber : C.rose;
+    const badgeCls= r.rate >= 80 ? 'hi'    : r.rate >= 60 ? 'mid'   : 'lo';
+    const badgeTxt= r.rate >= 80 ? 'Yaxshi': r.rate >= 60 ? 'O\'rtacha': 'Past';
+    return `<div class="bq-gri">
+      <span class="bq-gri__rank bq-gri__rank${rankCls}">${i+1}</span>
+      <span class="bq-gri__name" title="${r.name}">${r.name}</span>
+      <div class="bq-gri__bar-wrap">
+        <div class="bq-gri__bar-bg">
+          <div class="bq-gri__bar-fg" style="width:${r.rate}%;background:${color}"></div>
+        </div>
+        <div class="bq-gri__pct" style="color:${color}">${r.rate}%</div>
+      </div>
+      <span class="bq-gri__badge bq-gri__badge--${badgeCls}">${badgeTxt}</span>
+    </div>`;
+  }).join('');
+}
+
 /* ── Xavfli o'quvchilar ── */
 let _xavfliData = [];
 
@@ -1713,20 +1765,43 @@ function render(d){
     });
   }
 
-  // Chart 3: Area — o'quvchilar
-  area('chStudents',ch.monthly_labels,ch.monthly_students,C.blue);
+  // Chart 3: O'quvchilar kirimi / chiqimi
+  line('chStudents',ch.monthly_labels,[
+    {
+      label:"Kelganlar",
+      data:ch.monthly_students || [],
+      borderColor:C.blue,
+      backgroundColor:C.blue+'20',
+      fill:true,
+      tension:.4,
+      borderWidth:2,
+      pointRadius:3,
+      pointHoverRadius:6,
+      pointBackgroundColor:C.blue
+    },
+    {
+      label:"Tark etganlar",
+      data:ch.monthly_left || [],
+      borderColor:C.rose,
+      backgroundColor:'transparent',
+      fill:false,
+      tension:.4,
+      borderWidth:2,
+      borderDash:[6,4],
+      pointRadius:3,
+      pointHoverRadius:6,
+      pointBackgroundColor:C.rose
+    }
+  ]);
 
-  // Chart 4: Bar — davomat
-  bar('chAtt',ch.weekly_att_labels,ch.weekly_att_pct,C.violet);
-
-  // Chart 5: Donut — to'lov holati
+  // Chart 4: Donut — to'lov holati
   const payColors=[C.green,C.amber,C.rose];
   const payLabels=(ch.pay_status_labels&&ch.pay_status_labels.length)?ch.pay_status_labels:["To'liq to'lagan","Qisman to'lagan","To'lamagan"];
   const payCounts=(ch.pay_status_counts&&ch.pay_status_counts.some(v=>v>0))?ch.pay_status_counts:[0,0,0];
   donut('chCat2',payLabels,payCounts.some(v=>v>0)?payCounts:[1,1,1],payColors);
   legend('lgCat2',payLabels,payColors);
 
-  // Chart 6: Horizontal Bar — guruhlar
+  // Chart 5: Horizontal Bar — guruhlar
   renderGroupChart(ch.group_names || [], ch.group_enrolled || []);
 
   // Lead sources
@@ -1750,15 +1825,33 @@ function render(d){
 }
 
 /* ── API load ── */
-function load(df,dt){
+let _bqLoading = false;
+let _bqQueuedLoad = null;
+
+function load(df,dt,opts={}){
+  const { silent = false } = opts;
   const btn=document.getElementById('bqApply');
   const ico=document.getElementById('bqIco');
-  if(btn)btn.disabled=true;
-  if(ico){ico.classList.remove('fa-rotate');ico.classList.add('fa-spinner','spin');}
+  if(_bqLoading){
+    _bqQueuedLoad = { df, dt, silent };
+    return;
+  }
+  _bqLoading = true;
+  if(btn && !silent)btn.disabled=true;
+  if(ico && !silent){ico.classList.remove('fa-rotate');ico.classList.add('fa-spinner','spin');}
   fetch(`${API}?date_from=${df}&date_to=${dt}&_ts=${Date.now()}`, {cache:'no-store'})
     .then(r=>r.json()).then(d=>render(d))
     .catch(e=>console.error('API xato:',e))
-    .finally(()=>{if(btn)btn.disabled=false;if(ico){ico.classList.add('fa-rotate');ico.classList.remove('fa-spinner','spin');}});
+    .finally(()=>{
+      _bqLoading = false;
+      if(btn && !silent)btn.disabled=false;
+      if(ico && !silent){ico.classList.add('fa-rotate');ico.classList.remove('fa-spinner','spin');}
+      if(_bqQueuedLoad){
+        const next = _bqQueuedLoad;
+        _bqQueuedLoad = null;
+        load(next.df, next.dt, { silent: next.silent });
+      }
+    });
 }
 
 /* ── Sana helpers ── */

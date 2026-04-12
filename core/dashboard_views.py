@@ -1134,6 +1134,7 @@ def _boshqaruv_payload(center, d_from, d_to):
 
     # ── O'quvchilar ────────────────────────────────────────────
     students_qs = User.objects.filter(center=center, role="student", is_archived=False)
+    students_history_qs = User.all_objects.filter(center=center, role="student")
     total_students = students_qs.count()
     active_enroll = Enrollment.objects.filter(
         group__center=center, is_active=True, student__is_archived=False
@@ -1185,7 +1186,8 @@ def _boshqaruv_payload(center, d_from, d_to):
     monthly_turnover = []   # Umumiy aylanma  = barcha kirim to'lovlar
     monthly_expenses = []   # Qarzdorlik/chiqim = barcha xarajatlar
     monthly_profit   = []   # Sof foyda = aylanma - xarajat
-    monthly_students = []
+    monthly_students = []   # Yangi kelgan o'quvchilar
+    monthly_left     = []   # Markazni tark etgan o'quvchilar
 
     for ms, me, lbl in _month_range_list(today, 12):
         monthly_labels.append(lbl)
@@ -1207,9 +1209,17 @@ def _boshqaruv_payload(center, d_from, d_to):
         # Sof foyda — markazda qoladigan
         monthly_profit.append(m_turn - m_exp)
 
-        # Yangi o'quvchilar
+        # Yangi kelgan o'quvchilar
         monthly_students.append(
-            students_qs.filter(date_joined__date__range=(ms, me)).count()
+            students_history_qs.filter(date_joined__date__range=(ms, me)).count()
+        )
+
+        # Markazni tark etgan o'quvchilar — arxiv yoki soft delete qilingan studentlar
+        monthly_left.append(
+            students_history_qs.filter(
+                Q(archived_at__date__range=(ms, me)) | Q(deleted_at__date__range=(ms, me))
+            )
+            .count()
         )
 
     # ── Chart 3: Guruh to'ldirilganlik ─────────────────────────
@@ -1219,17 +1229,34 @@ def _boshqaruv_payload(center, d_from, d_to):
         group_fill.append({"name": g.nom, "enrolled": enrolled})
     group_fill.sort(key=lambda x: -x["enrolled"])
 
-    # ── Chart 4: Haftalik davomat ──────────────────────────────
-    weekly_att_labels = []
-    weekly_att_pct = []
-    for week_offset in range(7, -1, -1):
-        w_end = today - timedelta(days=today.weekday() + 7 * week_offset)
-        w_start = w_end - timedelta(days=6)
-        w_qs = Attendance.objects.filter(group__center=center, date__range=(w_start, w_end))
-        w_tot = w_qs.count()
-        w_pre = w_qs.filter(present_filter).count()
-        weekly_att_labels.append(f"{w_start.day}/{w_start.month}")
-        weekly_att_pct.append(round(w_pre / w_tot * 100, 1) if w_tot else 0)
+    # ── Chart 4: Guruhlar davomat ranking ────────────────────────
+    grp_att_rows = list(
+        Attendance.objects.filter(
+            group__center=center,
+            date__range=(d_from, d_to),
+            group__is_archived=False,
+        )
+        .values("group__nom")
+        .annotate(
+            tot=Count("id"),
+            pres=Count("id", filter=present_filter),
+        )
+        .order_by("-tot")
+    )
+    grp_att_ranking = []
+    for row in grp_att_rows:
+        if not row["tot"]:
+            continue
+        rate = round(row["pres"] / row["tot"] * 100, 1)
+        grp_att_ranking.append({
+            "name": row["group__nom"] or "Guruh",
+            "rate": rate,
+            "present": row["pres"],
+            "total": row["tot"],
+        })
+    # davomat foizi bo'yicha saralash (pasayish tartibida)
+    grp_att_ranking.sort(key=lambda x: -x["rate"])
+    grp_att_ranking = grp_att_ranking[:12]
 
     # ── Chart 5: Lid voronkasi ─────────────────────────────────
     # LeadStatus.code maydoni ishlatiladi (kod emas)
@@ -1441,10 +1468,10 @@ def _boshqaruv_payload(center, d_from, d_to):
             "monthly_expenses": monthly_expenses,
             "monthly_profit": monthly_profit,
             "monthly_students": monthly_students,
+            "monthly_left": monthly_left,
             "group_names": [g["name"] for g in group_fill[:8]],
             "group_enrolled": [g["enrolled"] for g in group_fill[:8]],
-            "weekly_att_labels": weekly_att_labels,
-            "weekly_att_pct": weekly_att_pct,
+            "grp_att_ranking": grp_att_ranking,
             "funnel": [funnel_new, funnel_contacted, funnel_trial, funnel_registered],
             "source_labels": source_labels,
             "source_counts": source_counts,
