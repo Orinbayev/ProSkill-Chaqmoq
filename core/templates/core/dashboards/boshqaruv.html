@@ -657,6 +657,31 @@ body.sidebar-collapsed .bq { margin-left: 60px; }
   }
 }
 
+/* ══════════════════ MOLIYAVIY KARTA ══════════════════ */
+.bq-card--finance { padding:0; overflow:hidden; }
+.bq-fin-stats {
+  display:grid; grid-template-columns:repeat(4,1fr);
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.bq-fin-stat {
+  display:flex; align-items:center; gap:10px;
+  padding:14px 18px;
+  border-right:1px solid rgba(255,255,255,.05);
+  transition:background .2s;
+}
+.bq-fin-stat:last-child { border-right:none; }
+.bq-fin-stat:hover { background:rgba(255,255,255,.03); }
+.bq-fin-dot { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+.bq-fin-lbl { display:block; font-size:10px; color:var(--bq-soft); text-transform:uppercase; letter-spacing:.06em; font-weight:700; margin-bottom:2px; }
+.bq-fin-val { display:block; font-size:13px; font-weight:800; color:var(--bq-txt); white-space:nowrap; }
+.bq-fin-hint { display:block; font-size:9.5px; color:var(--bq-soft); margin-top:1px; font-weight:500; }
+.bq-card--finance .bq-ch { padding:16px; }
+.bq-fin-stats { grid-template-columns:repeat(3,1fr); }
+@media(max-width:700px){
+  .bq-fin-stats { grid-template-columns:repeat(2,1fr); }
+  .bq-fin-stat:nth-child(2) { border-right:none; }
+}
+
 /* ══════════════════ XAVFLI O'QUVCHILAR ══════════════════ */
 .bq-xavfli-wrap { overflow-x:auto; }
 .bq-tbl--xavfli { min-width:680px; }
@@ -1021,27 +1046,38 @@ body.sidebar-collapsed .bq { margin-left: 60px; }
           <div class="bq-sec__ico" style="background:rgba(52,211,153,.12);color:var(--bq-green);border-color:rgba(52,211,153,.18)"><i class="fa-solid fa-chart-line"></i></div>
           <div>
             <h3 class="bq-sec__title">Moliyaviy Ko'rsatkichlar</h3>
-            <p class="bq-sec__sub">12 oylik daromad dinamikasi va kategoriya taqsimoti</p>
+            <p class="bq-sec__sub">So'nggi 12 oy — daromad, foyda, qarzdorlik va umumiy aylanma</p>
           </div>
+          <div class="bq-fin-legend" id="lgFinance" style="margin-left:auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap"></div>
         </div>
-        <div class="bq-g bq-g--13">
-          <div class="bq-card">
-            <div class="bq-card__ttl">
-              <span class="bq-dot bq-dot--green"></span>
-              <span class="bq-card__lbl">Oylik Daromad Dinamikasi</span>
-              <span class="bq-tag">Line · 12 oy</span>
+        <div class="bq-card bq-card--finance">
+          <div class="bq-fin-stats" id="finStats">
+            <div class="bq-fin-stat">
+              <span class="bq-fin-dot" style="background:var(--bq-amber)"></span>
+              <div>
+                <span class="bq-fin-lbl">Umumiy Aylanma</span>
+                <span class="bq-fin-val" id="fvAylanma">—</span>
+                <span class="bq-fin-hint">Barcha kirim to'lovlar</span>
+              </div>
             </div>
-            <div class="bq-ch bq-ch--lg"><canvas id="chRevenue"></canvas></div>
-          </div>
-          <div class="bq-card">
-            <div class="bq-card__ttl">
-              <span class="bq-dot bq-dot--violet"></span>
-              <span class="bq-card__lbl">Kategoriya Taqsimoti</span>
-              <span class="bq-tag">Donut</span>
+            <div class="bq-fin-stat">
+              <span class="bq-fin-dot" style="background:var(--bq-green)"></span>
+              <div>
+                <span class="bq-fin-lbl">Sof Foyda</span>
+                <span class="bq-fin-val" id="fvFoyda">—</span>
+                <span class="bq-fin-hint">Aylanma − Xarajatlar</span>
+              </div>
             </div>
-            <div class="bq-ch bq-ch--dn"><canvas id="chCat1" style="max-width:190px;max-height:190px"></canvas></div>
-            <div class="bq-legend" id="lgCat1"></div>
+            <div class="bq-fin-stat">
+              <span class="bq-fin-dot" style="background:var(--bq-rose)"></span>
+              <div>
+                <span class="bq-fin-lbl">Xarajatlar</span>
+                <span class="bq-fin-val" id="fvQarz">—</span>
+                <span class="bq-fin-hint">Ijara, maosh, boshqalar</span>
+              </div>
+            </div>
           </div>
+          <div class="bq-ch bq-ch--xl"><canvas id="chRevenue"></canvas></div>
         </div>
       </div>
 
@@ -1590,20 +1626,92 @@ function render(d){
   document.getElementById('k6v').textContent=fmtN(k.total_leads)+' ta';
   document.getElementById('k6s').textContent='Konversiya: '+fmtP(k.conv_rate);
 
-  // Chart 1: Line — daromad
-  line('chRevenue',ch.monthly_labels,[{
-    label:"Daromad (so'm)",data:ch.monthly_revenue,
-    borderColor:C.green,backgroundColor:C.green+'14',
-    fill:true,tension:.35,borderWidth:2,
-    pointRadius:3,pointHoverRadius:6,pointBackgroundColor:C.green
-  }]);
+  // Chart 1: Multi-line — Moliyaviy ko'rsatkichlar (3 chiziq)
+  const turn = ch.monthly_turnover || [];
+  const exp  = ch.monthly_expenses || [];
+  const prof = ch.monthly_profit   || [];
 
-  // Chart 2: Donut �� kategoriya
-  const pal1=[C.violet,C.cyan,C.amber,C.rose,C.green,C.orange];
-  const cl1=ch.cat_labels.length?ch.cat_labels:['Ma\'lumot yo\'q'];
-  const cd1=ch.cat_counts.length?ch.cat_counts:[1];
-  donut('chCat1',cl1,cd1,pal1);
-  legend('lgCat1',cl1,pal1);
+  // Mini-stat header larda yig'indi ko'rsatish
+  const _fv = (n)=>{
+    const abs=Math.abs(n);
+    const s=abs>=1e9?`${(abs/1e9).toFixed(1)} mlrd`:abs>=1e6?`${(abs/1e6).toFixed(1)} mln`:abs>=1e3?`${(abs/1e3).toFixed(0)} ming`:`${abs}`;
+    return (n<0?'−':'')+s+' so\'m';
+  };
+  const _el=(id)=>document.getElementById(id);
+  const totalTurn = turn.reduce((a,b)=>a+b,0);
+  const totalExp  = exp.reduce((a,b)=>a+b,0);
+  const totalProf = prof.reduce((a,b)=>a+b,0);
+  if(_el('fvAylanma')) _el('fvAylanma').textContent = _fv(totalTurn);
+  if(_el('fvFoyda'))   { _el('fvFoyda').textContent = _fv(totalProf); _el('fvFoyda').style.color = totalProf>=0?C.green:C.rose; }
+  if(_el('fvQarz'))    _el('fvQarz').textContent  = _fv(totalExp);
+
+  kill('chRevenue');
+  const rCtx = document.getElementById('chRevenue');
+  if(rCtx){
+    charts['chRevenue'] = new Chart(rCtx, {
+      type:'line',
+      data:{
+        labels: ch.monthly_labels,
+        datasets:[
+          {
+            label:"Umumiy Aylanma",
+            data: turn,
+            borderColor: C.amber,
+            backgroundColor: C.amber+'18',
+            fill: true, tension:.4, borderWidth:2.5,
+            pointRadius:3, pointHoverRadius:7,
+            pointBackgroundColor:C.amber, pointBorderColor:'#0f172a', pointBorderWidth:1.5
+          },
+          {
+            label:"Sof Foyda",
+            data: prof,
+            borderColor: C.green,
+            backgroundColor: C.green+'10',
+            fill: false, tension:.4, borderWidth:2,
+            pointRadius:3, pointHoverRadius:7,
+            pointBackgroundColor:C.green, pointBorderColor:'#0f172a', pointBorderWidth:1.5
+          },
+          {
+            label:"Xarajatlar (Chiqim)",
+            data: exp,
+            borderColor: C.rose,
+            backgroundColor: C.rose+'0d',
+            fill: false, tension:.4, borderWidth:2, borderDash:[5,3],
+            pointRadius:3, pointHoverRadius:7,
+            pointBackgroundColor:C.rose, pointBorderColor:'#0f172a', pointBorderWidth:1.5
+          }
+        ]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        interaction:{mode:'index', intersect:false},
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            ...TOOLTIP,
+            callbacks:{
+              label:(ctx)=>{
+                const v=ctx.parsed.y;
+                const abs=Math.abs(v);
+                const s=abs>=1e9?`${(abs/1e9).toFixed(2)} mlrd`:abs>=1e6?`${(abs/1e6).toFixed(1)} mln`:abs>=1e3?`${(abs/1e3).toFixed(0)} ming`:`${abs}`;
+                return ` ${ctx.dataset.label}: ${v<0?'−':''}${s} so'm`;
+              }
+            }
+          }
+        },
+        scales:{
+          x:{ grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#64748b',font:{size:10}} },
+          y:{
+            grid:{color:'rgba(255,255,255,.05)'},
+            ticks:{
+              color:'#64748b', font:{size:10},
+              callback:(v)=>{ const a=Math.abs(v); return a>=1e6?`${(a/1e6).toFixed(0)}m`:a>=1e3?`${(a/1e3).toFixed(0)}k`:a; }
+            }
+          }
+        }
+      }
+    });
+  }
 
   // Chart 3: Area — o'quvchilar
   area('chStudents',ch.monthly_labels,ch.monthly_students,C.blue);
@@ -1806,23 +1914,6 @@ document.querySelectorAll('.bq-chat__prompt').forEach(btn=>{
     sendMsg(this.dataset.q);
   });
 });
-
-/* ── Auto refresh: archive/unarchive o'zgarishlarini tez ushlash ── */
-let bqLastRefresh = 0;
-function refreshCurrentRange(force=false){
-  const now = Date.now();
-  if(!force && now - bqLastRefresh < 8000) return;
-  bqLastRefresh = now;
-  load(fromI.value,toI.value);
-}
-
-window.addEventListener('focus',()=>refreshCurrentRange(true));
-document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState === 'visible') refreshCurrentRange(true);
-});
-setInterval(()=>{
-  if(document.visibilityState === 'visible') refreshCurrentRange();
-}, 15000);
 
 /* ── Boshlang'ich yuklanish ── */
 load(fromI.value,toI.value);

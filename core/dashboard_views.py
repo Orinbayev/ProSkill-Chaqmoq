@@ -1179,16 +1179,35 @@ def _boshqaruv_payload(center, d_from, d_to):
     converted_leads = leads_qs.filter(converted_filter).count()
     conv_rate = round(converted_leads / total_leads * 100, 1) if total_leads else 0
 
-    # ── Chart 1 & 2: 12 oylik daromad + o'quvchilar ────────────
-    monthly_labels = []
-    monthly_revenue = []
+    # ── Chart 1 & 2: 12 oylik moliyaviy + o'quvchilar ──────────
+    # Doim today dan orqaga 12 oy — filter d_from/d_to faqat KPI ga ta'sir qiladi
+    monthly_labels   = []
+    monthly_turnover = []   # Umumiy aylanma  = barcha kirim to'lovlar
+    monthly_expenses = []   # Qarzdorlik/chiqim = barcha xarajatlar
+    monthly_profit   = []   # Sof foyda = aylanma - xarajat
     monthly_students = []
-    for ms, me, lbl in _month_range_list(d_to, 12):
+
+    for ms, me, lbl in _month_range_list(today, 12):
         monthly_labels.append(lbl)
-        monthly_revenue.append(int(
+
+        # Umumiy aylanma — o'sha oyda qabul qilingan barcha to'lovlar
+        m_turn = int(
             Payment.objects.filter(center=center, paid_date__range=(ms, me))
             .aggregate(s=Sum("summa"))["s"] or 0
-        ))
+        )
+        monthly_turnover.append(m_turn)
+
+        # Xarajatlar — o'qituvchi maoshi, ijara, boshqa chiqimlar
+        m_exp = int(
+            Expense.objects.filter(center=center, sana__date__range=(ms, me))
+            .aggregate(s=Sum("summa"))["s"] or 0
+        )
+        monthly_expenses.append(m_exp)
+
+        # Sof foyda — markazda qoladigan
+        monthly_profit.append(m_turn - m_exp)
+
+        # Yangi o'quvchilar
         monthly_students.append(
             students_qs.filter(date_joined__date__range=(ms, me)).count()
         )
@@ -1418,7 +1437,9 @@ def _boshqaruv_payload(center, d_from, d_to):
         },
         "charts": {
             "monthly_labels": monthly_labels,
-            "monthly_revenue": monthly_revenue,
+            "monthly_turnover": monthly_turnover,
+            "monthly_expenses": monthly_expenses,
+            "monthly_profit": monthly_profit,
             "monthly_students": monthly_students,
             "group_names": [g["name"] for g in group_fill[:8]],
             "group_enrolled": [g["enrolled"] for g in group_fill[:8]],
