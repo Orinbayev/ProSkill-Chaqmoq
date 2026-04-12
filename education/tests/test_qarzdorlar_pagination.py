@@ -72,3 +72,21 @@ class QarzdorlarPaginationTests(TestCase):
         self.assertEqual(len(response.context["page_obj"].object_list), 20)
         self.assertContains(response, 'value="20" selected')
         self.assertContains(response, "?page=2&per_page=20")
+
+    def test_qarzdorlar_chart_shows_last_12_months(self):
+        response = self.client.get(
+            self.url,
+            {
+                "date_from": "2026-04-01",
+                "date_to": "2026-04-12",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["chart_kicker"], "Oxirgi 12 oy")
+        self.assertEqual(response.context["chart_period_label"], "May dan Aprel gacha")
+        self.assertEqual(len(response.context["chart_labels"]), 12)
+        self.assertEqual(response.context["chart_labels"][0], "May")
+        self.assertEqual(response.context["chart_labels"][-1], "Aprel")
+        self.assertTrue(all(value == 0 for value in response.context["chart_data"][:-1]))
+        self.assertEqual(response.context["chart_data"][-1], 3_750_000)

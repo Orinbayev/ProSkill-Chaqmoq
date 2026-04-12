@@ -162,6 +162,20 @@ class TolovlarPaginationTests(TestCase):
         self.assertEqual(row["payment_count"], 3)
         self.assertEqual(row["total_sum"], 250_000)
 
+    def test_tolovlar_chart_shows_last_12_months(self):
+        response = self.client.get(self.url, self.full_range)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["chart_kicker"], "Oxirgi 12 oy")
+        self.assertEqual(response.context["chart_period_label"], "May dan Aprel gacha")
+        self.assertEqual(len(response.context["chart_labels"]), 12)
+        self.assertEqual(response.context["chart_labels"][0], "May")
+        self.assertEqual(response.context["chart_labels"][-1], "Aprel")
+        self.assertEqual(response.context["chart_data"][-1], 1_450_300)
+        self.assertTrue(all(value == 0 for value in response.context["chart_data"][:-1]))
+        self.assertEqual(response.context["chart_payment_record_count"], 27)
+        self.assertEqual(response.context["chart_unique_payers_count"], 25)
+
     def test_ajax_delete_soft_deletes_split_payment_and_allocations(self):
         delete_url = f"/{self.center.slug}{reverse('education:payment_delete', args=[self.split_payment.id])}"
 

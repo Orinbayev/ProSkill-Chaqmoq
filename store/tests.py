@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from accounts.models import Center, User
 from education.models import Group
@@ -157,17 +157,31 @@ class ExpensePageSmokeTests(TestCase):
             payment_method="naqd",
             receiver="Hamkor",
             worker=self.manager,
+            sana=timezone.make_aware(datetime(2026, 4, 6, 10, 0)),
         )
         self.client.force_login(self.manager)
         self.url = f"/{self.center.slug}{reverse('store:expenses')}"
 
     def test_expenses_page_renders_summary_and_chart_context(self):
-        response = self.client.get(self.url)
+        response = self.client.get(
+            self.url,
+            {
+                "sana_dan": "2026-04-01",
+                "sana_gacha": "2026-04-12",
+            },
+        )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["total_sum"], 320_000)
         self.assertEqual(response.context["filtered_sum"], 320_000)
         self.assertEqual(len(response.context["items"]), 1)
+        self.assertEqual(response.context["chart_kicker"], "Oxirgi 12 oy")
+        self.assertEqual(response.context["chart_period_label"], "May dan Aprel gacha")
+        self.assertEqual(len(response.context["chart_labels"]), 12)
+        self.assertEqual(response.context["chart_labels"][0], "May")
+        self.assertEqual(response.context["chart_labels"][-1], "Aprel")
+        self.assertTrue(all(value == 0 for value in response.context["chart_data"][:-1]))
+        self.assertEqual(response.context["chart_data"][-1], 320_000)
         self.assertContains(response, "Jami xarajat")
         self.assertContains(response, "Xarajatlar grafigi")
 

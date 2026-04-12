@@ -643,8 +643,7 @@ def expenses(request):
         return redirect('core:home')
     
     from .models import ExpenseCategory
-    from django.db.models.functions import TruncDay, TruncMonth
-    from django.db.models import Count
+    from django.db.models.functions import TruncMonth
     
     # 1. Base QuerySet
     items = Expense.objects.filter(center=center).select_related('category', 'worker', 'product').order_by('-sana')
@@ -673,21 +672,24 @@ def expenses(request):
         if sana_dan and sana_gacha and sana_dan > sana_gacha:
             sana_gacha = sana_dan
 
-    items = items.filter(sana__date__gte=sana_dan, sana__date__lte=sana_gacha)
-    if category_id and category_id.isdigit():
-        items = items.filter(category_id=category_id)
-    if payment_method:
-        items = items.filter(payment_method=payment_method)
-    if worker_id and worker_id.isdigit():
-        items = items.filter(worker_id=worker_id)
-    if q:
-        items = items.filter(Q(izoh__icontains=q) | Q(receiver__icontains=q))
+    def _apply_shared_filters(qs):
+        if category_id and category_id.isdigit():
+            qs = qs.filter(category_id=category_id)
+        if payment_method:
+            qs = qs.filter(payment_method=payment_method)
+        if worker_id and worker_id.isdigit():
+            qs = qs.filter(worker_id=worker_id)
+        if q:
+            qs = qs.filter(Q(izoh__icontains=q) | Q(receiver__icontains=q))
+        return qs
+
+    items = _apply_shared_filters(items).filter(sana__date__gte=sana_dan, sana__date__lte=sana_gacha)
 
     # 3. Aggregations
     total_sum = Expense.objects.filter(center=center).aggregate(Sum('summa'))['summa__sum'] or 0
     filtered_sum = items.aggregate(Sum('summa'))['summa__sum'] or 0
 
-    # 4. Chart Data (Tanlangan davr)
+    # 4. Chart Data (oxirgi 12 oy)
     month_names = {
         1: "Yanvar",
         2: "Fevral",
@@ -702,54 +704,36 @@ def expenses(request):
         11: "Noyabr",
         12: "Dekabr",
     }
-    day_span = max((sana_gacha - sana_dan).days + 1, 1)
-    use_daily = day_span <= 45
-    chart_labels = []
-    chart_data = []
 
-    if use_daily:
-        buckets = [sana_dan + timedelta(days=offset) for offset in range(day_span)]
-        chart_rows = (
-            items.annotate(bucket=TruncDay('sana'))
-            .values('bucket')
-            .annotate(total=Sum('summa'))
-            .order_by('bucket')
-        )
-        totals_by_bucket = {}
-        for entry in chart_rows:
-            bucket = entry['bucket']
-            if hasattr(bucket, 'date'):
-                bucket = bucket.date()
-            totals_by_bucket[bucket] = int(entry['total'] or 0)
-        chart_labels = [f"{bucket.day}-{month_names.get(bucket.month, bucket.strftime('%B'))}" for bucket in buckets]
-        chart_data = [totals_by_bucket.get(bucket, 0) for bucket in buckets]
-        chart_kicker = "Tanlangan kunlar"
-    else:
-        buckets = []
-        cursor = sana_dan.replace(day=1)
-        end_month = sana_gacha.replace(day=1)
-        while cursor <= end_month:
-            buckets.append(cursor)
-            if cursor.month == 12:
-                cursor = cursor.replace(year=cursor.year + 1, month=1, day=1)
-            else:
-                cursor = cursor.replace(month=cursor.month + 1, day=1)
-        chart_rows = (
-            items.annotate(bucket=TruncMonth('sana'))
-            .values('bucket')
-            .annotate(total=Sum('summa'))
-            .order_by('bucket')
-        )
-        totals_by_bucket = {}
-        for entry in chart_rows:
-            bucket = entry['bucket']
-            if hasattr(bucket, 'date'):
-                bucket = bucket.date()
-            bucket = bucket.replace(day=1)
-            totals_by_bucket[bucket] = int(entry['total'] or 0)
-        chart_labels = [f"{month_names.get(bucket.month, bucket.strftime('%B'))} {bucket.year}" for bucket in buckets]
-        chart_data = [totals_by_bucket.get(bucket, 0) for bucket in buckets]
-        chart_kicker = "Tanlangan oylar"
+    def _add_month(month_value, offset):
+        year = month_value.year + (month_value.month - 1 + offset) // 12
+        month = (month_value.month - 1 + offset) % 12 + 1
+        return month_value.replace(year=year, month=month, day=1)
+
+    chart_anchor_month = sana_gacha.replace(day=1)
+    buckets = [_add_month(chart_anchor_month, -11 + index) for index in range(12)]
+    chart_start = buckets[0]
+    chart_end = _add_month(buckets[-1], 1) - timedelta(days=1)
+    chart_items = _apply_shared_filters(
+        Expense.objects.filter(center=center).select_related('category', 'worker', 'product')
+    ).filter(sana__date__gte=chart_start, sana__date__lte=chart_end)
+    chart_rows = (
+        chart_items.annotate(bucket=TruncMonth('sana'))
+        .values('bucket')
+        .annotate(total=Sum('summa'))
+        .order_by('bucket')
+    )
+    totals_by_bucket = {}
+    for entry in chart_rows:
+        bucket = entry['bucket']
+        if hasattr(bucket, 'date'):
+            bucket = bucket.date()
+        bucket = bucket.replace(day=1)
+        totals_by_bucket[bucket] = int(entry['total'] or 0)
+    chart_labels = [month_names.get(bucket.month, bucket.strftime('%B')) for bucket in buckets]
+    chart_data = [totals_by_bucket.get(bucket, 0) for bucket in buckets]
+    chart_kicker = "Oxirgi 12 oy"
+    chart_period_label = f"{chart_labels[0]} dan {chart_labels[-1]} gacha"
         
     # 5. Context
     # Ensure "Do'kon" category exists so it shows in the filter
@@ -766,7 +750,8 @@ def expenses(request):
         'chart_labels': chart_labels,
         'chart_data': chart_data,
         'chart_kicker': chart_kicker,
-        'chart_period_label': (
+        'chart_period_label': chart_period_label,
+        'selected_period_label': (
             f"{sana_dan.day}-{month_names.get(sana_dan.month, sana_dan.strftime('%B'))} {sana_dan.year}"
             if sana_dan == sana_gacha
             else f"{sana_dan.day}-{month_names.get(sana_dan.month, sana_dan.strftime('%B'))} {sana_dan.year} dan "

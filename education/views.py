@@ -18,7 +18,7 @@ from django.core.paginator import Paginator
 from django.db.models import (
     Count, F, Min, Max, Prefetch, Q, Sum, OuterRef, Subquery
 )
-from django.db.models.functions import Coalesce, TruncDay, TruncMonth, Cast
+from django.db.models.functions import Coalesce, TruncMonth, Cast
 from django.http import (
     FileResponse,
     Http404,
@@ -1416,7 +1416,7 @@ def group_month_attendance(request, group_id):
 @login_required
 def qarzdorlar_home(request):
     from core.tenant import get_request_center
-    from education.services.tuition import ensure_tuition_month, month_first_day, add_month
+    from education.services.tuition import ensure_tuition_month
 
     if not user_can_manage_payments(request.user):
         messages.error(request, "Ruxsat yo'q.")
@@ -1477,12 +1477,7 @@ def qarzdorlar_home(request):
     if center:
         active_enrs_qs = active_enrs_qs.filter(center=center)
 
-    chart_months = []
-    chart_cursor = selected_from.replace(day=1)
-    chart_end_month = selected_to.replace(day=1)
-    while chart_cursor <= chart_end_month:
-        chart_months.append(chart_cursor)
-        chart_cursor = add_month(chart_cursor, 1)
+    chart_months = _last_12_ending(selected_to)
 
     # ─── TUITIONMONTH AUTO-ENSURE (joriy oy) ────────────────────────────────
     # Har bir faol enrollment uchun JORIY OY TuitionMonth yozuvi bo'lishini
@@ -1490,8 +1485,6 @@ def qarzdorlar_home(request):
     # to'g'rilaydi — shuning uchun bulk_create dan ustunroq.
     for enr in active_enrs_qs:
         ensure_tuition_month(enr, cur_month)
-        for chart_month in chart_months:
-            ensure_tuition_month(enr, chart_month)
 
     # ─── SUBQUERY: fee va paid (faqat TANLANGAN OY) ──────────────────────────
     total_fee_sub = (
@@ -1638,7 +1631,8 @@ def qarzdorlar_home(request):
 
     filtered_debt   = sum(r["debt"] for r in display_rows)
     chart_series = [graph_map[month] for month in chart_months]
-    chart_labels = [f"{UZ_MONTH_NAMES.get(month.month, month.strftime('%B'))} {month.year}" for month in chart_months]
+    chart_labels = [_human_month_label(month) for month in chart_months]
+    chart_period_label = _human_month_period_label(chart_months[0], chart_months[-1])
 
     # ─── PAGINATOR ───────────────────────────────────────────────────────────
     from django.core.paginator import Paginator
@@ -1658,6 +1652,8 @@ def qarzdorlar_home(request):
         "filtered_debt":  filtered_debt,
         "chart_data":     chart_series,
         "chart_labels":   chart_labels,
+        "chart_kicker":   "Oxirgi 12 oy",
+        "chart_period_label": chart_period_label,
         "q":              q,
         "min_debt":       min_debt if min_debt else "",
         "max_debt":       max_debt if max_debt else "",
@@ -1975,36 +1971,18 @@ def _human_period_label(start_date: date, end_date: date) -> str:
     )
 
 
-def _build_money_chart_series(qs, *, date_field: str, amount_field: str, start_date: date, end_date: date):
-    days_span = max((end_date - start_date).days + 1, 1)
-    use_daily = days_span <= 45
+def _human_month_label(month_value: date) -> str:
+    return UZ_MONTH_NAMES.get(month_value.month, month_value.strftime('%B'))
 
-    if use_daily:
-        buckets = [start_date + timedelta(days=offset) for offset in range(days_span)]
-        rows = (
-            qs.annotate(bucket=TruncDay(date_field))
-            .values("bucket")
-            .annotate(total=Sum(amount_field))
-            .order_by("bucket")
-        )
-        value_map = {}
-        for row in rows:
-            bucket = row["bucket"]
-            if hasattr(bucket, "date"):
-                bucket = bucket.date()
-            value_map[bucket] = int(row["total"] or 0)
-        labels = [f"{bucket.day}-{UZ_MONTH_NAMES.get(bucket.month, bucket.strftime('%B'))}" for bucket in buckets]
-        data = [value_map.get(bucket, 0) for bucket in buckets]
-        return labels, data, "Tanlangan kunlar"
 
-    start_month = start_date.replace(day=1)
-    end_month = end_date.replace(day=1)
-    buckets = []
-    cursor = start_month
-    while cursor <= end_month:
-        buckets.append(cursor)
-        cursor = _add_months(cursor, 1)
+def _human_month_period_label(start_month: date, end_month: date) -> str:
+    if start_month == end_month:
+        return _human_month_label(start_month)
+    return f"{_human_month_label(start_month)} dan {_human_month_label(end_month)} gacha"
 
+
+def _build_last_12_month_money_chart_series(qs, *, date_field: str, amount_field: str, anchor_date: date):
+    buckets = _last_12_ending(anchor_date)
     rows = (
         qs.annotate(bucket=TruncMonth(date_field))
         .values("bucket")
@@ -2018,9 +1996,9 @@ def _build_money_chart_series(qs, *, date_field: str, amount_field: str, start_d
             bucket = bucket.date()
         bucket = bucket.replace(day=1)
         value_map[bucket] = int(row["total"] or 0)
-    labels = [f"{UZ_MONTH_NAMES.get(bucket.month, bucket.strftime('%B'))} {bucket.year}" for bucket in buckets]
+    labels = [_human_month_label(bucket) for bucket in buckets]
     data = [value_map.get(bucket, 0) for bucket in buckets]
-    return labels, data, "Tanlangan oylar"
+    return labels, data, "Oxirgi 12 oy", _human_month_period_label(buckets[0], buckets[-1])
 
 
 
@@ -2076,46 +2054,64 @@ def _get_payment_dashboard_data(request):
     pay_qs = base_payment_qs.select_related(
         "student", "group", "group__oqituvchi", "group__category_obj", "created_by"
     ).prefetch_related(allocation_prefetch)
+    chart_qs = base_payment_qs.select_related(
+        "student", "group", "group__oqituvchi", "group__category_obj", "created_by"
+    )
+    cur_year = selected_to.year
 
-    if q:
-        pay_qs = pay_qs.filter(
-            Q(student__ism__icontains=q)
-            | Q(student__familya__icontains=q)
-            | Q(student__telefon1__icontains=q)
-            | Q(student__telefon2__icontains=q)
-            | Q(student__email__icontains=q)
-            | Q(student__gmail__icontains=q)
-        )
+    def _apply_shared_payment_filters(qs):
+        if q:
+            qs = qs.filter(
+                Q(student__ism__icontains=q)
+                | Q(student__familya__icontains=q)
+                | Q(student__telefon1__icontains=q)
+                | Q(student__telefon2__icontains=q)
+                | Q(student__email__icontains=q)
+                | Q(student__gmail__icontains=q)
+            )
+
+        if sel_group:
+            qs = qs.filter(group_id=sel_group)
+        if sel_teacher:
+            qs = qs.filter(group__oqituvchi_id=sel_teacher)
+        if sel_course:
+            qs = qs.filter(group__category_obj_id=sel_course)
+        if sel_staff:
+            qs = qs.filter(created_by_id=sel_staff)
+        if sel_type:
+            qs = qs.filter(payment_type=sel_type)
+
+        if sel_month and sel_month.isdigit():
+            qs = qs.filter(
+                allocations__tuition_month__month__month=int(sel_month),
+                allocations__tuition_month__month__year=cur_year,
+            ).distinct()
+        return qs
+
+    pay_qs = _apply_shared_payment_filters(pay_qs)
+    chart_qs = _apply_shared_payment_filters(chart_qs)
 
     pay_qs = pay_qs.filter(paid_date__gte=selected_from, paid_date__lte=selected_to)
-    if sel_group:
-        pay_qs = pay_qs.filter(group_id=sel_group)
-    if sel_teacher:
-        pay_qs = pay_qs.filter(group__oqituvchi_id=sel_teacher)
-    if sel_course:
-        pay_qs = pay_qs.filter(group__category_obj_id=sel_course)
-    if sel_staff:
-        pay_qs = pay_qs.filter(created_by_id=sel_staff)
-    if sel_type:
-        pay_qs = pay_qs.filter(payment_type=sel_type)
 
-    cur_year = selected_to.year
-    if sel_month and sel_month.isdigit():
-        pay_qs = pay_qs.filter(
-            allocations__tuition_month__month__month=int(sel_month),
-            allocations__tuition_month__month__year=cur_year,
-        ).distinct()
+    chart_anchor_date = selected_to or today
+    chart_months = _last_12_ending(chart_anchor_date)
+    chart_start = chart_months[0]
+    chart_end = _add_months(chart_months[-1], 1) - timedelta(days=1)
+    chart_qs = chart_qs.filter(paid_date__gte=chart_start, paid_date__lte=chart_end)
 
     payment_ids = pay_qs.values_list("id", flat=True)
     filtered_income = Payment.objects.filter(id__in=payment_ids).aggregate(s=Sum("summa"))["s"] or 0
     unique_payers_count = Payment.objects.filter(id__in=payment_ids).values("student").distinct().count()
 
-    chart_labels, chart_data, chart_kicker = _build_money_chart_series(
-        pay_qs,
+    chart_payment_ids = chart_qs.values_list("id", flat=True)
+    chart_payment_record_count = Payment.objects.filter(id__in=chart_payment_ids).count()
+    chart_unique_payers_count = Payment.objects.filter(id__in=chart_payment_ids).values("student").distinct().count()
+
+    chart_labels, chart_data, chart_kicker, chart_period_label = _build_last_12_month_money_chart_series(
+        chart_qs,
         date_field="paid_date",
         amount_field="summa",
-        start_date=selected_from,
-        end_date=selected_to,
+        anchor_date=chart_anchor_date,
     )
 
     pay_qs = pay_qs.order_by("-paid_date", "-id")
@@ -2284,7 +2280,10 @@ def _get_payment_dashboard_data(request):
         "chart_data": chart_data,
         "chart_labels": chart_labels,
         "chart_kicker": chart_kicker,
-        "chart_period_label": _human_period_label(selected_from, selected_to),
+        "chart_period_label": chart_period_label,
+        "selected_period_label": _human_period_label(selected_from, selected_to),
+        "chart_payment_record_count": chart_payment_record_count,
+        "chart_unique_payers_count": chart_unique_payers_count,
         "unique_payers_count": unique_payers_count,
         "groups": groups,
         "teachers": teachers_qs,
@@ -2393,13 +2392,13 @@ def payment_export_xlsx(request):
     ws.row_dimensions[1].height = 28
 
     ws.merge_cells("A2:K2")
-    ws["A2"] = f"Davr: {dashboard['chart_period_label']}"
+    ws["A2"] = f"Davr: {dashboard['selected_period_label']}"
     ws["A2"].fill = _fill("1E3A8A")
     ws["A2"].font = Font(color="DBEAFE", bold=True, size=11)
     ws["A2"].alignment = Alignment(horizontal="center", vertical="center")
 
     metrics = [
-        ("Eksport davri", dashboard["chart_period_label"]),
+        ("Eksport davri", dashboard["selected_period_label"]),
         ("Noyob o'quvchi", f"{dashboard['unique_payers_count']} ta"),
         ("To'lov yozuvlari", f"{dashboard['payment_record_count']} ta"),
         ("Filter daromad", dashboard["filtered_income"]),

@@ -359,10 +359,16 @@
     .btn-glass {
         background: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #c084fc !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
 
     .btn-glass:hover {
         background: rgba(255, 255, 255, 0.1);
+        color: #fff !important;
     }
 
     .action-icon-btn {
@@ -522,7 +528,7 @@
                             data-bs-target="#addExpenseModal">
                             + Xarajat
                         </button>
-                        <button type="button" class="btn btn-glass" data-bs-toggle="modal"
+                        <button type="button" class="btn btn-glass add-category-btn" data-bs-toggle="modal"
                             data-bs-target="#addCategoryModal">
                             <i class="fa-solid fa-plus"></i>
                         </button>
