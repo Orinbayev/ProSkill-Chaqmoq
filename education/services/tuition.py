@@ -1,7 +1,7 @@
 # education/services/tuition.py
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Optional, Union
 
 from django.db import transaction
@@ -215,6 +215,16 @@ def _get_payment_card_amount(p: Payment) -> int:
     return int(getattr(p, "card_amount", 0) or 0)
 
 
+def infer_payment_type(cash_amount: int, card_amount_som: int) -> str:
+    cash_amount = int(cash_amount or 0)
+    card_amount_som = int(card_amount_som or 0)
+    if cash_amount > 0 and card_amount_som > 0:
+        return "mixed"
+    if card_amount_som > 0:
+        return "card"
+    return "cash"
+
+
 def _set_payment_amounts(p: Payment, cash_amount: int, card_amount_som: int, total: int) -> None:
     update_fields = []
 
@@ -232,6 +242,10 @@ def _set_payment_amounts(p: Payment, cash_amount: int, card_amount_som: int, tot
     if _model_has_field(Payment, "summa"):
         p.summa = int(total or 0)
         update_fields.append("summa")
+
+    if _model_has_field(Payment, "payment_type"):
+        p.payment_type = infer_payment_type(cash_amount, card_amount_som)
+        update_fields.append("payment_type")
 
     if update_fields:
         p.save(update_fields=update_fields)
@@ -275,7 +289,8 @@ def create_payment_and_allocate(
     card_amount_som: int,
     start_month: Optional[date] = None,
     paid_at=None,
-    note: str = ""
+    note: str = "",
+    payment_type: Optional[str] = None,
 ) -> Payment:
     """
     Payment yaratadi va pullarni oylar bo‘yicha taqsimlaydi:
@@ -290,6 +305,13 @@ def create_payment_and_allocate(
 
     if paid_at is None:
         paid_at = timezone.now()
+    elif isinstance(paid_at, date) and not isinstance(paid_at, datetime):
+        paid_at = datetime.combine(paid_at, datetime.min.time())
+
+    if timezone.is_naive(paid_at):
+        paid_at = timezone.make_aware(paid_at, timezone.get_current_timezone())
+
+    local_paid_at = timezone.localtime(paid_at)
 
     if start_month is None:
         tm_earliest = find_earliest_unpaid_month(enrollment)
@@ -318,13 +340,20 @@ def create_payment_and_allocate(
     if _model_has_field(Payment, "summa"):
         kwargs["summa"] = total
 
+    if _model_has_field(Payment, "payment_type"):
+        kwargs["payment_type"] = payment_type or infer_payment_type(cash_amount, card_amount_som)
+
     if _model_has_field(Payment, "paid_at"):
-        kwargs["paid_at"] = paid_at
+        kwargs["paid_at"] = local_paid_at
     else:
+        if _model_has_field(Payment, "paid_date"):
+            kwargs["paid_date"] = local_paid_at.date()
+        if _model_has_field(Payment, "paid_time"):
+            kwargs["paid_time"] = local_paid_at.time().replace(microsecond=0)
         if _model_has_field(Payment, "sana"):
-            kwargs["sana"] = timezone.localdate()
+            kwargs["sana"] = local_paid_at.date()
         if _model_has_field(Payment, "vaqt"):
-            kwargs["vaqt"] = timezone.localtime().time()
+            kwargs["vaqt"] = local_paid_at.time().replace(microsecond=0)
 
     if created_by and _model_has_field(Payment, "created_by"):
         kwargs["created_by"] = created_by

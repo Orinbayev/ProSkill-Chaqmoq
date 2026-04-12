@@ -48,6 +48,7 @@ from education.services.tuition import (
     update_payment_and_reallocate,
     _allocate_amount_forward,
     sync_tuition_fee,
+    infer_payment_type,
 )
 
 
@@ -515,6 +516,7 @@ def create_payment(request):
                     created_by=request.user,
                     start_month=start_month,
                     note=note,
+                    payment_type=infer_payment_type(cash_amount, card_amount),
                 )
             messages.success(request, f"✅ {enrollment.student.get_full_name()} uchun to'lov saqlandi!")
         except Exception as e:
@@ -2022,38 +2024,26 @@ def _build_money_chart_series(qs, *, date_field: str, amount_field: str, start_d
 
 
 
-@login_required
-def tolovlar_home(request):
-    if not user_can_manage_payments(request.user):
-        messages.error(request, "Ruxsat yo'q.")
-        return redirect("core:home")
-
+def _get_payment_dashboard_data(request):
     center = get_active_center(request)
     if not center and not request.user.is_superuser:
-        return HttpResponseForbidden("Markaz biriktirilmagan")
-
-
-    from django.db.models import OuterRef, Subquery, IntegerField
-    from django.db.models.functions import Coalesce as DjCoalesce
-    from education.models import TuitionMonth, PaymentAllocation, Enrollment
+        raise PermissionDenied("Markaz biriktirilmagan")
 
     today = timezone.localdate()
     cur_month_start = today.replace(day=1)
 
-    # ── 1) UMUMIY DAROMAD ─────────────────────────────────────────────────
     base_payment_qs = Payment.objects.filter(center=center) if center else Payment.objects.none()
     total_income = base_payment_qs.aggregate(s=Sum("summa"))["s"] or 0
 
-    # ── 2) FILTER PARAMS ──────────────────────────────────────────────────
-    q           = (request.GET.get("q") or "").strip()
+    q = (request.GET.get("q") or "").strip()
     date_from_raw = (request.GET.get("date_from") or "").strip()
     date_to_raw = (request.GET.get("date_to") or "").strip()
-    sel_group   = request.GET.get("group") or ""
+    sel_group = request.GET.get("group") or ""
     sel_teacher = request.GET.get("teacher") or ""
-    sel_course  = request.GET.get("course") or ""
-    sel_staff   = request.GET.get("staff") or ""
-    sel_type    = request.GET.get("payment_type") or ""
-    sel_month   = request.GET.get("pay_month") or ""
+    sel_course = request.GET.get("course") or ""
+    sel_staff = request.GET.get("staff") or ""
+    sel_type = request.GET.get("payment_type") or ""
+    sel_month = request.GET.get("pay_month") or ""
 
     selected_from = parse_date(date_from_raw) if date_from_raw else None
     selected_to = parse_date(date_to_raw) if date_to_raw else None
@@ -2072,9 +2062,6 @@ def tolovlar_home(request):
     date_from = selected_from.isoformat()
     date_to = selected_to.isoformat()
 
-
-    # ✅ [FIX] Barcha to'lovlarni ko'rsatamiz (qarzi bormi yo'qmi farq qilmaydi)
-    # Oldin: faqat qarzsiz o'quvchilar to'lovlari ko'rinardi — bu noto'g'ri edi!
     allocation_prefetch = Prefetch(
         "allocations",
         queryset=PaymentAllocation.objects.select_related(
@@ -2099,6 +2086,7 @@ def tolovlar_home(request):
             | Q(student__email__icontains=q)
             | Q(student__gmail__icontains=q)
         )
+
     pay_qs = pay_qs.filter(paid_date__gte=selected_from, paid_date__lte=selected_to)
     if sel_group:
         pay_qs = pay_qs.filter(group_id=sel_group)
@@ -2110,21 +2098,18 @@ def tolovlar_home(request):
         pay_qs = pay_qs.filter(created_by_id=sel_staff)
     if sel_type:
         pay_qs = pay_qs.filter(payment_type=sel_type)
-    cur_year = selected_to.year
 
+    cur_year = selected_to.year
     if sel_month and sel_month.isdigit():
-        # Match both month and current year to avoid historical overlaps
         pay_qs = pay_qs.filter(
             allocations__tuition_month__month__month=int(sel_month),
-            allocations__tuition_month__month__year=cur_year
+            allocations__tuition_month__month__year=cur_year,
         ).distinct()
 
-    # ✅ Fix: Summing on a filtered queryset with joins can double counts.
     payment_ids = pay_qs.values_list("id", flat=True)
     filtered_income = Payment.objects.filter(id__in=payment_ids).aggregate(s=Sum("summa"))["s"] or 0
     unique_payers_count = Payment.objects.filter(id__in=payment_ids).values("student").distinct().count()
 
-    # ── 5) CHART (tanlangan davr) ────────────────────────────────────────
     chart_labels, chart_data, chart_kicker = _build_money_chart_series(
         pay_qs,
         date_field="paid_date",
@@ -2133,13 +2118,10 @@ def tolovlar_home(request):
         end_date=selected_to,
     )
 
-    # ── 6) PAGINATION ─────────────────────────────────────────────────────
     pay_qs = pay_qs.order_by("-paid_date", "-id")
-
-    uz_month_map = UZ_MONTH_NAMES
-
-    grouped_rows = {}
     filtered_payments = list(pay_qs)
+    uz_month_map = UZ_MONTH_NAMES
+    grouped_rows = {}
 
     for payment in filtered_payments:
         student_id = payment.student_id
@@ -2265,21 +2247,6 @@ def tolovlar_home(request):
 
         display_rows.append(row)
 
-    allowed_page_sizes = (10, 20, 50, 100)
-    try:
-        per_page = int((request.GET.get("per_page") or request.GET.get("page_size") or 10))
-    except (TypeError, ValueError):
-        per_page = 10
-    if per_page not in allowed_page_sizes:
-        per_page = 10
-
-    paginator = Paginator(display_rows, per_page)
-    page_obj = paginator.get_page(request.GET.get("page"))
-
-    query_params = request.GET.copy()
-    query_params.pop("page", None)
-
-    # ── 7) FILTER DROPDOWNS ───────────────────────────────────────────────
     groups = Group.objects.filter(is_archived=False)
     if center:
         groups = groups.filter(center=center)
@@ -2304,9 +2271,13 @@ def tolovlar_home(request):
     if sel_month and sel_month.isdigit():
         history_month_value = f"{cur_year}-{int(sel_month):02d}"
 
-    return render(request, "education/tolovlar_list.html", {
-        "page_obj": page_obj,
-        "total_count": paginator.count,
+    query_params = request.GET.copy()
+    query_params.pop("page", None)
+
+    return {
+        "center": center,
+        "page_rows": display_rows,
+        "filtered_payments": filtered_payments,
         "payment_record_count": len(filtered_payments),
         "total_income": total_income,
         "filtered_income": filtered_income,
@@ -2330,13 +2301,329 @@ def tolovlar_home(request):
         "sel_type": sel_type,
         "sel_month": sel_month,
         "history_month_value": history_month_value,
-        "per_page": per_page,
-        "page_size": per_page,
-        "page_size_options": allowed_page_sizes,
-        "allowed_page_sizes": allowed_page_sizes,
         "query_string": query_params.urlencode(),
-        "is_paginated": page_obj.has_other_pages(),
-    })
+        "selected_from": selected_from,
+        "selected_to": selected_to,
+    }
+
+
+@login_required
+@require_http_methods(["GET"])
+def payment_export_xlsx(request):
+    if not user_can_manage_payments(request.user):
+        return HttpResponseForbidden("Ruxsat yo'q.")
+
+    try:
+        dashboard = _get_payment_dashboard_data(request)
+    except PermissionDenied:
+        return HttpResponseForbidden("Markaz biriktirilmagan")
+
+    import io
+    import openpyxl
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+    from openpyxl.utils import get_column_letter
+
+    grouped_rows = dashboard["page_rows"]
+    filtered_payments = dashboard["filtered_payments"]
+
+    def _fill(color: str):
+        return PatternFill("solid", fgColor=color)
+
+    def _border():
+        side = Side(style="thin", color="CBD5E1")
+        return Border(left=side, right=side, top=side, bottom=side)
+
+    def _money(cell):
+        cell.number_format = '#,##0'
+
+    def _auto_width(ws, *, min_width: int = 12, max_width: int = 34):
+        for column_cells in ws.columns:
+            max_length = 0
+            column_letter = get_column_letter(column_cells[0].column)
+            for cell in column_cells:
+                try:
+                    max_length = max(max_length, len(str(cell.value or "")))
+                except Exception:
+                    continue
+            ws.column_dimensions[column_letter].width = max(min_width, min(max_length + 2, max_width))
+
+    def _full_name(user):
+        if not user:
+            return "—"
+        return user.get_full_name() or user.email or f"{getattr(user, 'ism', '')} {getattr(user, 'familya', '')}".strip() or "—"
+
+    group_map = {str(group.id): group.nom for group in dashboard["groups"]}
+    teacher_map = {str(teacher.id): _full_name(teacher) for teacher in dashboard["teachers"]}
+    course_map = {str(course.id): course.name for course in dashboard["courses"]}
+    staff_map = {str(staff.id): _full_name(staff) for staff in dashboard["staffs"]}
+    month_map = {str(mid): mname for mid, mname in dashboard["uz_months"]}
+
+    filter_rows = [
+        ("Qidiruv", dashboard["q"] or "Barchasi"),
+        ("Sanadan", dashboard["date_from"] or "—"),
+        ("Sanagacha", dashboard["date_to"] or "—"),
+        ("Guruh", group_map.get(dashboard["sel_group"], "Barchasi")),
+        ("O'qituvchi", teacher_map.get(dashboard["sel_teacher"], "Barchasi")),
+        ("Yo'nalish", course_map.get(dashboard["sel_course"], "Barchasi")),
+        ("Xodim", staff_map.get(dashboard["sel_staff"], "Barchasi")),
+        ("To'lov turi", dict(Payment.PAYMENT_TYPES).get(dashboard["sel_type"], "Barchasi")),
+        ("Qaysi oy", month_map.get(dashboard["sel_month"], "Barcha oylar")),
+    ]
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Umumiy ro'yxat"
+    ws.sheet_view.showGridLines = False
+
+    title_fill = _fill("0F172A")
+    header_fill = _fill("2563EB")
+    accent_fill = _fill("E0F2FE")
+    soft_fill = _fill("F8FAFC")
+    money_fill = _fill("ECFDF5")
+    white_font = Font(color="FFFFFF", bold=True, size=12)
+    dark_font = Font(color="0F172A", size=11)
+    strong_font = Font(color="0F172A", bold=True, size=11)
+    money_font = Font(color="047857", bold=True, size=11)
+
+    ws.merge_cells("A1:K1")
+    ws["A1"] = "To'lovlar eksporti"
+    ws["A1"].fill = title_fill
+    ws["A1"].font = Font(color="FFFFFF", bold=True, size=16)
+    ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 28
+
+    ws.merge_cells("A2:K2")
+    ws["A2"] = f"Davr: {dashboard['chart_period_label']}"
+    ws["A2"].fill = _fill("1E3A8A")
+    ws["A2"].font = Font(color="DBEAFE", bold=True, size=11)
+    ws["A2"].alignment = Alignment(horizontal="center", vertical="center")
+
+    metrics = [
+        ("Eksport davri", dashboard["chart_period_label"]),
+        ("Noyob o'quvchi", f"{dashboard['unique_payers_count']} ta"),
+        ("To'lov yozuvlari", f"{dashboard['payment_record_count']} ta"),
+        ("Filter daromad", dashboard["filtered_income"]),
+        ("Umumiy daromad", dashboard["total_income"]),
+    ]
+    ws["A4"] = "Ko'rsatkich"
+    ws["B4"] = "Qiymat"
+    for cell in ("A4", "B4"):
+        ws[cell].fill = header_fill
+        ws[cell].font = white_font
+        ws[cell].border = _border()
+        ws[cell].alignment = Alignment(horizontal="center", vertical="center")
+
+    metric_start = 5
+    for idx, (label, value) in enumerate(metrics, start=metric_start):
+        ws.cell(row=idx, column=1, value=label)
+        value_cell = ws.cell(row=idx, column=2, value=value)
+        ws.cell(row=idx, column=1).fill = soft_fill
+        value_cell.fill = money_fill if isinstance(value, int) else accent_fill
+        ws.cell(row=idx, column=1).font = strong_font
+        value_cell.font = money_font if isinstance(value, int) else strong_font
+        ws.cell(row=idx, column=1).border = _border()
+        value_cell.border = _border()
+        if isinstance(value, int):
+            _money(value_cell)
+
+    ws["D4"] = "Aktiv filtr"
+    ws["E4"] = "Qiymat"
+    for cell in ("D4", "E4"):
+        ws[cell].fill = header_fill
+        ws[cell].font = white_font
+        ws[cell].border = _border()
+        ws[cell].alignment = Alignment(horizontal="center", vertical="center")
+
+    for idx, (label, value) in enumerate(filter_rows, start=5):
+        ws.cell(row=idx, column=4, value=label)
+        ws.cell(row=idx, column=5, value=value)
+        ws.cell(row=idx, column=4).fill = soft_fill
+        ws.cell(row=idx, column=5).fill = accent_fill
+        ws.cell(row=idx, column=4).font = strong_font
+        ws.cell(row=idx, column=5).font = dark_font
+        ws.cell(row=idx, column=4).border = _border()
+        ws.cell(row=idx, column=5).border = _border()
+
+    table_row = 16
+    summary_headers = [
+        "So'nggi sana",
+        "O'quvchi",
+        "Telefon",
+        "Guruhlar",
+        "Yo'nalish",
+        "Oylar",
+        "To'lovlar soni",
+        "Turlar",
+        "Xodimlar",
+        "Jami summa",
+        "Oxirgi izoh",
+    ]
+    for col_idx, header in enumerate(summary_headers, start=1):
+        cell = ws.cell(row=table_row, column=col_idx, value=header)
+        cell.fill = header_fill
+        cell.font = white_font
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = _border()
+
+    current_row = table_row + 1
+    for row in grouped_rows:
+        values = [
+            row["latest_paid_date"].strftime("%d.%m.%Y") if row.get("latest_paid_date") else "—",
+            _full_name(row.get("student")),
+            getattr(row.get("student"), "telefon1", "") or getattr(row.get("student"), "telefon2", "") or "—",
+            row.get("group_summary_title") or "—",
+            row.get("category_summary") or "—",
+            row.get("month_summary_title") or "—",
+            row.get("payment_count") or 0,
+            ", ".join(item["label"] for item in row.get("type_entries", [])) or "—",
+            row.get("staff_summary") or "—",
+            row.get("total_sum") or 0,
+            row.get("latest_note") or "—",
+        ]
+        for col_idx, value in enumerate(values, start=1):
+            cell = ws.cell(row=current_row, column=col_idx, value=value)
+            cell.fill = soft_fill if current_row % 2 == 0 else _fill("FFFFFF")
+            cell.border = _border()
+            cell.alignment = Alignment(vertical="top", wrap_text=True)
+            if col_idx == 10:
+                cell.font = money_font
+                _money(cell)
+            else:
+                cell.font = dark_font
+        current_row += 1
+
+    ws.freeze_panes = "A17"
+    _auto_width(ws, max_width=38)
+
+    detail_ws = wb.create_sheet("To'lov yozuvlari")
+    detail_ws.sheet_view.showGridLines = False
+    detail_ws.merge_cells("A1:M1")
+    detail_ws["A1"] = "To'lov yozuvlari"
+    detail_ws["A1"].fill = title_fill
+    detail_ws["A1"].font = Font(color="FFFFFF", bold=True, size=15)
+    detail_ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
+
+    detail_ws.merge_cells("A2:M2")
+    detail_ws["A2"] = f"Filterlangan yozuvlar soni: {dashboard['payment_record_count']} ta"
+    detail_ws["A2"].fill = _fill("1E293B")
+    detail_ws["A2"].font = Font(color="E2E8F0", bold=True, size=10)
+    detail_ws["A2"].alignment = Alignment(horizontal="center", vertical="center")
+
+    detail_headers = [
+        "Sana",
+        "Vaqt",
+        "O'quvchi",
+        "Telefon",
+        "Guruh",
+        "Yo'nalish",
+        "Oy / taqsimot",
+        "Naqd",
+        "Karta",
+        "Jami",
+        "Tur",
+        "Xodim",
+        "Izoh",
+    ]
+    for col_idx, header in enumerate(detail_headers, start=1):
+        cell = detail_ws.cell(row=4, column=col_idx, value=header)
+        cell.fill = header_fill
+        cell.font = white_font
+        cell.border = _border()
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    detail_row = 5
+    for payment in filtered_payments:
+        allocations = getattr(payment, "prefetched_allocations", []) or []
+        allocation_labels = []
+        for allocation in allocations:
+            tuition_month = getattr(allocation, "tuition_month", None)
+            month_value = getattr(tuition_month, "month", None)
+            if month_value:
+                month_label = f"{UZ_MONTH_NAMES.get(month_value.month, month_value.strftime('%B'))} {month_value.year}"
+            else:
+                month_label = "—"
+            allocation_labels.append(f"{month_label}: {int(allocation.amount or 0):,} so'm".replace(",", " "))
+        if not allocation_labels and payment.paid_date:
+            fallback = payment.paid_date.replace(day=1)
+            allocation_labels.append(f"{UZ_MONTH_NAMES.get(fallback.month, fallback.strftime('%B'))} {fallback.year}")
+
+        detail_values = [
+            payment.paid_date.strftime("%d.%m.%Y") if payment.paid_date else "—",
+            payment.paid_time.strftime("%H:%M") if payment.paid_time else "—",
+            _full_name(payment.student),
+            getattr(payment.student, "telefon1", "") or getattr(payment.student, "telefon2", "") or "—",
+            payment.group.nom if payment.group else "—",
+            getattr(getattr(payment.group, "category_obj", None), "name", "") or "—",
+            ", ".join(allocation_labels) or "—",
+            int(payment.cash_amount or 0),
+            int(payment.card_amount or 0),
+            int(payment.summa or 0),
+            payment.get_payment_type_display(),
+            _full_name(payment.created_by),
+            payment.note or "—",
+        ]
+        for col_idx, value in enumerate(detail_values, start=1):
+            cell = detail_ws.cell(row=detail_row, column=col_idx, value=value)
+            cell.fill = soft_fill if detail_row % 2 == 1 else _fill("FFFFFF")
+            cell.border = _border()
+            cell.alignment = Alignment(vertical="top", wrap_text=True)
+            if col_idx in (8, 9, 10):
+                cell.font = money_font
+                _money(cell)
+            else:
+                cell.font = dark_font
+        detail_row += 1
+
+    detail_ws.freeze_panes = "A5"
+    _auto_width(detail_ws, max_width=42)
+
+    filename = f"tolovlar_export_{dashboard['selected_from'].isoformat()}_{dashboard['selected_to'].isoformat()}.xlsx"
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    response = HttpResponse(
+        output.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+@login_required
+def tolovlar_home(request):
+    if not user_can_manage_payments(request.user):
+        messages.error(request, "Ruxsat yo'q.")
+        return redirect("core:home")
+
+    try:
+        dashboard = _get_payment_dashboard_data(request)
+    except PermissionDenied:
+        return HttpResponseForbidden("Markaz biriktirilmagan")
+
+    allowed_page_sizes = (10, 20, 50, 100)
+    try:
+        per_page = int((request.GET.get("per_page") or request.GET.get("page_size") or 10))
+    except (TypeError, ValueError):
+        per_page = 10
+    if per_page not in allowed_page_sizes:
+        per_page = 10
+
+    paginator = Paginator(dashboard["page_rows"], per_page)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    dashboard.update(
+        {
+            "page_obj": page_obj,
+            "total_count": paginator.count,
+            "per_page": per_page,
+            "page_size": per_page,
+            "page_size_options": allowed_page_sizes,
+            "allowed_page_sizes": allowed_page_sizes,
+            "is_paginated": page_obj.has_other_pages(),
+        }
+    )
+    return render(request, "education/tolovlar_list.html", dashboard)
 
 @login_required
 def get_payment_details(request):

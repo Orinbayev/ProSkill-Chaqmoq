@@ -1147,6 +1147,44 @@
         transform: translateY(-1px);
     }
 
+    .payments-table-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .export-action-btn {
+        height: 44px;
+        padding: 0 18px;
+        border-radius: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        text-decoration: none;
+        border: 1px solid transparent;
+        transition: all 0.24s ease;
+    }
+
+    .export-action-btn {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(14, 165, 233, 0.14));
+        border-color: rgba(251, 191, 36, 0.18);
+        color: #f8fafc;
+        box-shadow: 0 16px 32px rgba(14, 165, 233, 0.12);
+    }
+
+    .export-action-btn:hover {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(37, 99, 235, 0.18));
+        border-color: rgba(251, 191, 36, 0.28);
+        color: #fff;
+        transform: translateY(-1px);
+    }
+
     /* Date Input Visibility */
     input[type="date"]::-webkit-calendar-picker-indicator {
         filter: invert(1) opacity(0.5);
@@ -1201,6 +1239,20 @@
             grid-template-columns: 1fr;
         }
 
+        .payments-table-actions {
+            width: 100%;
+            justify-content: stretch;
+        }
+
+        .payments-table-actions .badge {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .export-action-btn {
+            flex: 1 1 calc(50% - 6px);
+        }
+
         .history-side {
             min-width: 0;
             width: 100%;
@@ -1242,6 +1294,11 @@
             align-items: stretch;
         }
 
+        .delete-popover__btn {
+            width: 100%;
+        }
+
+        .export-action-btn,
         .delete-popover__btn {
             width: 100%;
         }
@@ -1408,10 +1465,16 @@
     <div class="table-container anim-fade-in shadow-lg">
         <div class="p-4 d-flex justify-content-between align-items-center border-bottom border-white border-opacity-10">
             <h5 class="m-0 fw-bold text-white">To'lovlar Tarixi</h5>
-            <span
-                class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 px-3 py-2 rounded-3">
-                Jami: {{ total_count }} ta
-            </span>
+            <div class="payments-table-actions">
+                <a href="{% url 'education:payment_export_xlsx' %}{% if query_string %}?{{ query_string }}{% endif %}" class="export-action-btn">
+                    <i class="fa-solid fa-file-export"></i>
+                    Excel export
+                </a>
+                <span
+                    class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 px-3 py-2 rounded-3">
+                    Jami: {{ total_count }} ta
+                </span>
+            </div>
         </div>
         <div class="table-responsive">
             <table class="premium-table">

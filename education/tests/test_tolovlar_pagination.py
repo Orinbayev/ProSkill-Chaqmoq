@@ -115,9 +115,13 @@ class TolovlarPaginationTests(TestCase):
 
         self.client.force_login(self.manager)
         self.url = f"/{self.center.slug}{reverse('education:tolovlar_home')}"
+        self.full_range = {
+            "date_from": "2026-04-01",
+            "date_to": "2026-04-30",
+        }
 
     def test_tolovlar_page_uses_default_per_page(self):
-        response = self.client.get(self.url)
+        response = self.client.get(self.url, self.full_range)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["per_page"], 10)
@@ -126,10 +130,14 @@ class TolovlarPaginationTests(TestCase):
         self.assertEqual(response.context["page_obj"].paginator.count, 25)
         self.assertEqual(response.context["payment_record_count"], 27)
         self.assertContains(response, 'value="10" selected')
-        self.assertContains(response, "?page=2&per_page=10")
+        self.assertContains(response, "page=2")
+        self.assertContains(response, "per_page=10")
 
     def test_tolovlar_page_preserves_search_and_per_page_in_links(self):
-        response = self.client.get(self.url, {"q": "Alpha", "per_page": "10"})
+        response = self.client.get(
+            self.url,
+            {"q": "Alpha", "per_page": "10", **self.full_range},
+        )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["per_page"], 10)
@@ -139,10 +147,12 @@ class TolovlarPaginationTests(TestCase):
             all("Alpha" in row["student"].ism for row in response.context["page_obj"].object_list)
         )
         self.assertContains(response, 'name="q" value="Alpha"')
-        self.assertContains(response, "?page=2&q=Alpha&per_page=10")
+        self.assertContains(response, "page=2")
+        self.assertContains(response, "q=Alpha")
+        self.assertContains(response, "per_page=10")
 
     def test_tolovlar_page_groups_multiple_payments_by_student(self):
-        response = self.client.get(self.url, {"q": "Alpha 0"})
+        response = self.client.get(self.url, {"q": "Alpha 0", **self.full_range})
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["page_obj"].paginator.count, 1)

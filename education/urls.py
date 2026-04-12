@@ -8,6 +8,7 @@ urlpatterns = [
     # === 📚 HUB / RO‘YXATLAR ===
     path("guruhlar/ro‘yxat/", views.group_list, name="group_list"),
     path("tolovlar/", views.tolovlar_home, name="tolovlar_home"),
+    path("tolovlar/export/", views.payment_export_xlsx, name="payment_export_xlsx"),
     path("tolovlar/details/", views.get_payment_details, name="get_payment_details"),
     path("tolovlar/pdf-summary/", views.student_payments_pdf, name="student_payments_pdf"),
     path("tolovlar/oqituvchilar/", views.tolov_oqituvchilar, name="tolov_oqituvchilar"),
