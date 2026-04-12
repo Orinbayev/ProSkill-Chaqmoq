@@ -19,7 +19,7 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 
 from accounts.models import Center, User
-from education.models import Attendance, Category, Enrollment, Group, Payment, PaymentAllocation
+from education.models import Attendance, Category, Enrollment, Group, MonthlyFinanceSnapshot, Payment, PaymentAllocation
 from store.models import Expense, Lead, Product, PurchaseRequest, Sale
 
 
@@ -127,6 +127,39 @@ def _payment_allocations_for_center(center):
     )
 
 
+def _deleted_payment_allocations_for_center(center):
+    return PaymentAllocation.all_objects.filter(
+        is_deleted=True,
+    ).filter(
+        Q(center=center)
+        | Q(center__isnull=True, payment__center=center)
+        | Q(center__isnull=True, payment__center__isnull=True, payment__group__center=center)
+        | Q(center__isnull=True, payment__center__isnull=True, payment__student__center=center)
+        | Q(center__isnull=True, payment__center__isnull=True, payment__enrollment__center=center)
+        | Q(center__isnull=True, payment__center__isnull=True, tuition_month__center=center)
+        | Q(center__isnull=True, payment__center__isnull=True, tuition_month__enrollment__center=center)
+    )
+
+
+def _deleted_payments_for_center(center):
+    return Payment.all_objects.filter(
+        is_deleted=True,
+    ).filter(
+        Q(center=center)
+        | Q(center__isnull=True, group__center=center)
+        | Q(center__isnull=True, student__center=center)
+        | Q(center__isnull=True, enrollment__center=center)
+    )
+
+
+def _monthly_snapshot_for_center(center, m_start):
+    return MonthlyFinanceSnapshot.objects.filter(
+        financial_month__center=center,
+        financial_month__year=m_start.year,
+        financial_month__month=m_start.month,
+    ).first()
+
+
 def _monthly_turnover_for_center(center, m_start, m_end):
     """
     Oy kesimidagi aylanma:
@@ -143,7 +176,40 @@ def _monthly_turnover_for_center(center, m_start, m_end):
         .filter(paid_date__range=(m_start, m_end), allocations__isnull=True)
         .aggregate(s=Sum("summa"))["s"] or 0
     )
-    return allocated_total + unallocated_total
+    active_total = allocated_total + unallocated_total
+    if active_total:
+        return active_total
+
+    snapshot = _monthly_snapshot_for_center(center, m_start)
+    if snapshot and snapshot.total_income:
+        return int(snapshot.total_income or 0)
+
+    deleted_allocated_total = int(
+        _deleted_payment_allocations_for_center(center)
+        .filter(tuition_month__month__range=(m_start, m_end))
+        .aggregate(s=Sum("amount"))["s"] or 0
+    )
+    deleted_unallocated_total = int(
+        _deleted_payments_for_center(center)
+        .filter(paid_date__range=(m_start, m_end), allocations__isnull=True)
+        .aggregate(s=Sum("summa"))["s"] or 0
+    )
+    return deleted_allocated_total + deleted_unallocated_total
+
+
+def _monthly_expenses_for_center(center, m_start, m_end):
+    active_total = int(
+        _expenses_for_center(center)
+        .filter(sana__date__range=(m_start, m_end))
+        .aggregate(s=Sum("summa"))["s"] or 0
+    )
+    if active_total:
+        return active_total
+
+    snapshot = _monthly_snapshot_for_center(center, m_start)
+    if snapshot and snapshot.total_expense:
+        return int(snapshot.total_expense or 0)
+    return 0
 
 
 def _expenses_for_center(center):
@@ -229,7 +295,7 @@ def _financial_payload(center, d_from, d_to):
     for ms, me, lbl in _six_month_range(d_to):
         m_labels.append(lbl)
         m_inc.append(_monthly_turnover_for_center(center, ms, me))
-        m_exp.append(int(_expenses_for_center(center).filter(sana__date__range=(ms, me)).aggregate(s=Sum("summa"))["s"] or 0))
+        m_exp.append(_monthly_expenses_for_center(center, ms, me))
 
     cat_breakdown = [
         {
@@ -1258,10 +1324,7 @@ def _boshqaruv_payload(center, d_from, d_to):
         monthly_turnover.append(m_turn)
 
         # Xarajatlar — o'qituvchi maoshi, ijara, boshqa chiqimlar
-        m_exp = int(
-            _expenses_for_center(center).filter(sana__date__range=(ms, me))
-            .aggregate(s=Sum("summa"))["s"] or 0
-        )
+        m_exp = _monthly_expenses_for_center(center, ms, me)
         monthly_expenses.append(m_exp)
 
         # Sof foyda — markazda qoladigan

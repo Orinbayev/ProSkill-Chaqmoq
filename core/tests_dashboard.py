@@ -14,7 +14,7 @@ from core.services.center_ai_context import (
     get_student_full_info,
     get_teacher_full_info,
 )
-from education.models import Attendance, Category, Enrollment, Group, Payment, PaymentAllocation, TeacherIncome, TuitionMonth
+from education.models import Attendance, Category, Enrollment, FinancialMonth, Group, MonthlyFinanceSnapshot, Payment, PaymentAllocation, TeacherIncome, TuitionMonth
 from store.models import Expense, Lead, LeadStatus, Manba, Product, PurchaseRequest, Yonalish
 
 
@@ -413,6 +413,31 @@ class CenterAnalyticsServiceTests(TestCase):
         self.assertEqual(breakdown["Language"]["total"], 1)
         self.assertEqual(breakdown["Language"]["paid"], 0)
         self.assertEqual(breakdown["Language"]["unpaid"], 1)
+
+    def test_boshqaruv_api_uses_monthly_snapshot_when_live_month_is_empty(self):
+        history_month = (self.today.replace(day=1) - timedelta(days=150)).replace(day=1)
+        financial_month = FinancialMonth.objects.create(
+            center=self.center,
+            year=history_month.year,
+            month=history_month.month,
+            is_closed=True,
+        )
+        MonthlyFinanceSnapshot.objects.create(
+            financial_month=financial_month,
+            total_income=4_200_000,
+            total_expense=1_100_000,
+            center_profit=3_100_000,
+            student_count=12,
+            attendance_rate=87.5,
+        )
+
+        response = self.client.get(reverse("core:director_boshqaruv_api"))
+        self.assertEqual(response.status_code, 200)
+
+        charts = response.json()["charts"]
+        history_label = UZ_MONTHS[history_month.month]
+        self.assertGreaterEqual(charts["monthly_turnover"][charts["monthly_labels"].index(history_label)], 4_200_000)
+        self.assertGreaterEqual(charts["monthly_expenses"][charts["monthly_labels"].index(history_label)], 1_100_000)
 
     def test_daily_metric_models_can_be_created(self):
         center_metric = CenterDailyMetric.objects.create(
