@@ -1,6 +1,7 @@
 from datetime import datetime, time, timedelta
 
 from django.test import TestCase
+from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import Center, User
@@ -289,6 +290,56 @@ class CenterAnalyticsServiceTests(TestCase):
         alerts = generate_center_alerts(self.center.id, as_of=self.today)
         self.assertTrue(alerts)
         self.assertTrue(any(item["code"] == "group_at_risk" for item in alerts))
+
+    def test_boshqaruv_api_includes_legacy_finance_rows_without_center(self):
+        last_month_day = self.today.replace(day=1) - timedelta(days=1)
+        last_month_date = last_month_day.replace(day=min(12, last_month_day.day))
+
+        Payment.objects.create(
+            center=None,
+            enrollment=self.enrollment_b,
+            student=self.student_source_b,
+            group=self.group_weak,
+            payment_type="cash",
+            cash_amount=700_000,
+            paid_date=last_month_date,
+            created_by=self.director,
+        )
+        Expense.objects.create(
+            center=None,
+            worker=self.manager,
+            summa=200_000,
+            izoh="Legacy xarajat",
+            sana=timezone.make_aware(datetime.combine(last_month_date, time(11, 0))),
+        )
+
+        response = self.client.get(
+            reverse("core:director_boshqaruv_api"),
+            {
+                "date_from": last_month_date.replace(day=1).isoformat(),
+                "date_to": self.today.isoformat(),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertGreaterEqual(data["kpis"]["revenue"], 2_700_000)
+        self.assertGreaterEqual(data["kpis"]["expenses"], 500_000)
+        self.assertIn(1_200_000, data["charts"]["monthly_turnover"])
+        self.assertIn(200_000, data["charts"]["monthly_expenses"])
+
+    def test_boshqaruv_api_counts_legacy_archived_students_in_current_month(self):
+        legacy_archived = self._student("legacy.archived@test.com", "Legacy", "Archived")
+        legacy_archived.is_archived = True
+        legacy_archived.archived_at = None
+        legacy_archived.save(update_fields=["is_archived", "archived_at"])
+
+        response = self.client.get(reverse("core:director_boshqaruv_api"))
+        self.assertEqual(response.status_code, 200)
+
+        data = response.json()
+        current_month_left = data["charts"]["monthly_left"][-1]
+        self.assertGreaterEqual(current_month_left, 1)
 
     def test_daily_metric_models_can_be_created(self):
         center_metric = CenterDailyMetric.objects.create(

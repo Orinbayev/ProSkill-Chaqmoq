@@ -96,6 +96,30 @@ def _attendance_present_filter():
     return Q(status="present") | Q(present=True) | Q(forced=True)
 
 
+def _payments_for_center(center):
+    """
+    Productiondagi eski to'lovlarda center bo'sh qolgan bo'lishi mumkin.
+    Shunda group/student/enrollment orqali markazni aniqlab olamiz.
+    """
+    return Payment.objects.filter(
+        Q(center=center)
+        | Q(center__isnull=True, group__center=center)
+        | Q(center__isnull=True, student__center=center)
+        | Q(center__isnull=True, enrollment__center=center)
+    )
+
+
+def _expenses_for_center(center):
+    """
+    Legacy xarajatlardagi center=null holati uchun worker/product orqali fallback.
+    """
+    return Expense.objects.filter(
+        Q(center=center)
+        | Q(center__isnull=True, worker__center=center)
+        | Q(center__isnull=True, product__center=center)
+    )
+
+
 def _teacher_compensation(center, d_from, d_to):
     att_map = {
         (row["group_id"], row["student_id"]): row["cnt"]
@@ -141,12 +165,12 @@ def _payment_type_breakdown(pay_qs):
 
 def _financial_payload(center, d_from, d_to):
     period = _period_stats(d_from, d_to)
-    pay_qs = Payment.objects.filter(center=center, paid_date__range=(d_from, d_to))
+    pay_qs = _payments_for_center(center).filter(paid_date__range=(d_from, d_to))
     revenue = int(pay_qs.aggregate(s=Sum("summa"))["s"] or 0)
     pay_count = pay_qs.count()
     avg_pay = int(revenue / pay_count) if pay_count else 0
 
-    exp_qs = Expense.objects.filter(center=center, sana__date__range=(d_from, d_to))
+    exp_qs = _expenses_for_center(center).filter(sana__date__range=(d_from, d_to))
     expenses = int(exp_qs.aggregate(s=Sum("summa"))["s"] or 0)
     teacher_comp = _teacher_compensation(center, d_from, d_to)
     total_cost = expenses + teacher_comp
@@ -155,10 +179,10 @@ def _financial_payload(center, d_from, d_to):
 
     prev_from = period["prev_from"]
     prev_to = period["prev_to"]
-    prev_pay_qs = Payment.objects.filter(center=center, paid_date__range=(prev_from, prev_to))
+    prev_pay_qs = _payments_for_center(center).filter(paid_date__range=(prev_from, prev_to))
     prev_revenue = int(prev_pay_qs.aggregate(s=Sum("summa"))["s"] or 0)
     prev_expenses = int(
-        Expense.objects.filter(center=center, sana__date__range=(prev_from, prev_to)).aggregate(s=Sum("summa"))["s"] or 0
+        _expenses_for_center(center).filter(sana__date__range=(prev_from, prev_to)).aggregate(s=Sum("summa"))["s"] or 0
     )
     prev_teacher_comp = _teacher_compensation(center, prev_from, prev_to)
     prev_total_cost = prev_expenses + prev_teacher_comp
@@ -167,8 +191,8 @@ def _financial_payload(center, d_from, d_to):
     m_labels, m_inc, m_exp = [], [], []
     for ms, me, lbl in _six_month_range(d_to):
         m_labels.append(lbl)
-        m_inc.append(int(Payment.objects.filter(center=center, paid_date__range=(ms, me)).aggregate(s=Sum("summa"))["s"] or 0))
-        m_exp.append(int(Expense.objects.filter(center=center, sana__date__range=(ms, me)).aggregate(s=Sum("summa"))["s"] or 0))
+        m_inc.append(int(_payments_for_center(center).filter(paid_date__range=(ms, me)).aggregate(s=Sum("summa"))["s"] or 0))
+        m_exp.append(int(_expenses_for_center(center).filter(sana__date__range=(ms, me)).aggregate(s=Sum("summa"))["s"] or 0))
 
     cat_breakdown = [
         {
@@ -1143,19 +1167,19 @@ def _boshqaruv_payload(center, d_from, d_to):
     new_this_month = students_qs.filter(date_joined__date__range=(d_from, d_to)).count()
 
     # ── Daromad ────────────────────────────────────────────────
-    pay_qs = Payment.objects.filter(center=center, paid_date__range=(d_from, d_to))
+    pay_qs = _payments_for_center(center).filter(paid_date__range=(d_from, d_to))
     revenue = int(pay_qs.aggregate(s=Sum("summa"))["s"] or 0)
     pay_count = pay_qs.count()
 
-    exp_qs = Expense.objects.filter(center=center, sana__date__range=(d_from, d_to))
+    exp_qs = _expenses_for_center(center).filter(sana__date__range=(d_from, d_to))
     expenses = int(exp_qs.aggregate(s=Sum("summa"))["s"] or 0)
     net_profit = revenue - expenses
 
     # Oldingi davr
     period = _period_stats(d_from, d_to)
     prev_rev = int(
-        Payment.objects.filter(
-            center=center, paid_date__range=(period["prev_from"], period["prev_to"])
+        _payments_for_center(center).filter(
+            paid_date__range=(period["prev_from"], period["prev_to"])
         ).aggregate(s=Sum("summa"))["s"] or 0
     )
     prev_students = students_qs.filter(
@@ -1194,14 +1218,14 @@ def _boshqaruv_payload(center, d_from, d_to):
 
         # Umumiy aylanma — o'sha oyda qabul qilingan barcha to'lovlar
         m_turn = int(
-            Payment.objects.filter(center=center, paid_date__range=(ms, me))
+            _payments_for_center(center).filter(paid_date__range=(ms, me))
             .aggregate(s=Sum("summa"))["s"] or 0
         )
         monthly_turnover.append(m_turn)
 
         # Xarajatlar — o'qituvchi maoshi, ijara, boshqa chiqimlar
         m_exp = int(
-            Expense.objects.filter(center=center, sana__date__range=(ms, me))
+            _expenses_for_center(center).filter(sana__date__range=(ms, me))
             .aggregate(s=Sum("summa"))["s"] or 0
         )
         monthly_expenses.append(m_exp)
@@ -1214,12 +1238,13 @@ def _boshqaruv_payload(center, d_from, d_to):
             students_history_qs.filter(date_joined__date__range=(ms, me)).count()
         )
 
-        # Markazni tark etgan o'quvchilar — arxiv yoki soft delete qilingan studentlar
+        # Markazni tark etgan o'quvchilar — arxiv yoki soft delete qilingan studentlar.
+        # Legacy arxivlangan userlarda archived_at bo'sh bo'lishi mumkin; ularni joriy oyga qo'shamiz.
+        left_filter = Q(archived_at__date__range=(ms, me)) | Q(deleted_at__date__range=(ms, me))
+        if ms.year == today.year and ms.month == today.month:
+            left_filter |= Q(is_archived=True, archived_at__isnull=True)
         monthly_left.append(
-            students_history_qs.filter(
-                Q(archived_at__date__range=(ms, me)) | Q(deleted_at__date__range=(ms, me))
-            )
-            .count()
+            students_history_qs.filter(left_filter).count()
         )
 
     # ── Chart 3: Guruh to'ldirilganlik ─────────────────────────
