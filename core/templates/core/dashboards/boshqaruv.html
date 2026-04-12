@@ -1,0 +1,1832 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Boshqaruv — {{ center.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ══════════════════ VARIABLES ══════════════════ */
+:root {
+  --bq-bg:      #070d1a;
+  --bq-surf:    #0d1526;
+  --bq-card:    rgba(13,21,38,.88);
+  --bq-br:      rgba(255,255,255,.07);
+  --bq-br2:     rgba(255,255,255,.13);
+  --bq-txt:     #e2e8f0;
+  --bq-muted:   #94a3b8;
+  --bq-soft:    #475569;
+  --bq-cyan:    #22d3ee;
+  --bq-green:   #34d399;
+  --bq-amber:   #fbbf24;
+  --bq-rose:    #f43f5e;
+  --bq-violet:  #818cf8;
+  --bq-blue:    #60a5fa;
+  --bq-orange:  #fb923c;
+}
+
+/* ══════════════════ LAYOUT ══════════════════ */
+.bq {
+  margin-left: var(--sb-w, 286px);
+  min-height: 100vh;
+  padding: 0 20px 80px;
+  background:
+    radial-gradient(ellipse 60% 35% at 8% 0%,  rgba(34,211,238,.07) 0%, transparent 55%),
+    radial-gradient(ellipse 45% 30% at 92% 5%,  rgba(129,140,248,.08) 0%, transparent 50%),
+    linear-gradient(180deg, #070d1a 0%, #0d1526 100%);
+  transition: margin-left .28s ease;
+}
+body.sidebar-collapsed .bq { margin-left: 60px; }
+@media (max-width: 768px) { .bq { margin-left: 0; padding: 0 12px 64px; } }
+.bq-shell { max-width: 1400px; margin: 0 auto; }
+
+/* ══════════════════ TOOLBAR ══════════════════ */
+.bq-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 300;
+  padding: 10px 0 6px;
+}
+.bq-toolbar__inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--bq-br);
+  border-radius: 16px;
+  background: rgba(7,13,26,.94);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  box-shadow: 0 8px 28px rgba(0,0,0,.25);
+}
+
+/* brand */
+.bq-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.bq-brand__icon {
+  width: 38px; height: 38px;
+  border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, rgba(34,211,238,.18), rgba(129,140,248,.18));
+  border: 1px solid rgba(34,211,238,.22);
+  color: var(--bq-cyan);
+  font-size: 15px;
+}
+.bq-brand__kicker { font-size: 9px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; color: var(--bq-cyan); }
+.bq-brand__title  { font-size: 14px; font-weight: 800; color: var(--bq-txt); letter-spacing: -.02em; margin-top: 1px; }
+
+/* filter */
+.bq-filter {
+  display: flex;
+  align-items: flex-end;
+  gap: 7px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+.bq-field { display: flex; flex-direction: column; gap: 3px; }
+.bq-field__lbl { font-size: 9px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: var(--bq-soft); }
+.bq-field select,
+.bq-field input[type="date"] {
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(59,130,246,.16);
+  background: rgba(15,23,42,.8);
+  color: var(--bq-txt);
+  font-size: 12px;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.bq-field select:focus,
+.bq-field input:focus {
+  border-color: rgba(34,211,238,.38);
+  box-shadow: 0 0 0 3px rgba(34,211,238,.07);
+}
+.bq-btn {
+  height: 34px;
+  padding: 0 13px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 700;
+  cursor: pointer;
+  transition: transform .18s, opacity .18s;
+  text-decoration: none;
+}
+.bq-btn:hover { transform: translateY(-1px); opacity: .9; }
+.bq-btn--primary { background: linear-gradient(135deg,rgba(34,211,238,.2),rgba(129,140,248,.26)); border-color: rgba(34,211,238,.26); color: #cffafe; }
+.bq-btn--ghost   { background: rgba(255,255,255,.04); border-color: var(--bq-br); color: var(--bq-muted); }
+.bq-btn--ai      { background: linear-gradient(135deg,rgba(129,140,248,.22),rgba(244,63,94,.15)); border-color: rgba(129,140,248,.3); color: #c4b5fd; }
+.bq-btn i.spin   { animation: bqSpin .7s linear infinite; }
+@keyframes bqSpin { to { transform: rotate(360deg); } }
+
+/* right controls */
+.bq-toolbar__right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+/* ── AI TUGMA ── */
+.bq-ai-btn {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(129,140,248,.3);
+  background: linear-gradient(135deg,rgba(129,140,248,.16),rgba(244,63,94,.1));
+  color: #c4b5fd;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex; align-items: center; gap: 7px;
+  cursor: pointer;
+  transition: transform .18s, box-shadow .18s;
+  flex-shrink: 0;
+}
+.bq-ai-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(129,140,248,.18); }
+.bq-ai-btn__dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--bq-violet);
+  box-shadow: 0 0 0 0 rgba(129,140,248,.5);
+  animation: bqPulse 2s ease infinite;
+}
+@keyframes bqPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(129,140,248,.5); }
+  50%      { box-shadow: 0 0 0 5px rgba(129,140,248,.0); }
+}
+
+/* ── PROFIL DOCK ── */
+.bq-profile { position: relative; z-index: 320; }
+.bq-profile__btn {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.05);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: border-color .18s, background .18s, transform .18s;
+  padding: 0;
+  overflow: hidden;
+}
+.bq-profile__btn:hover { border-color: rgba(250,204,21,.4); transform: scale(1.05); }
+.bq-profile__btn img { width: 38px; height: 38px; object-fit: cover; border-radius: 50%; }
+.bq-profile__initials {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #facc15, #f59e0b);
+  color: #0b1220;
+  font-size: 14px; font-weight: 800;
+}
+
+.bq-profile__panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 210px;
+  background: #0f172a;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 14px;
+  box-shadow: 0 16px 36px rgba(0,0,0,.35);
+  padding: 8px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px) scale(.97);
+  transition: opacity .18s ease, transform .18s ease, visibility .18s ease;
+  pointer-events: none;
+}
+.bq-profile.open .bq-profile__panel {
+  opacity: 1; visibility: visible;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+.bq-profile__head {
+  display: flex; align-items: center; gap: 9px;
+  padding: 6px 6px 10px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  margin-bottom: 6px;
+}
+.bq-profile__ava {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg,#facc15,#f59e0b);
+  color: #0b1220; font-size: 13px; font-weight: 800;
+  overflow: hidden;
+}
+.bq-profile__ava img { width: 100%; height: 100%; object-fit: cover; }
+.bq-profile__name  { font-size: 12.5px; font-weight: 700; color: var(--bq-txt); line-height: 1.2; }
+.bq-profile__role  { font-size: 10.5px; color: var(--bq-muted); margin-top: 2px; }
+.bq-profile__item  {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  font-size: 12.5px; font-weight: 600;
+  color: var(--bq-txt);
+  text-decoration: none;
+  background: transparent; border: 0; width: 100%;
+  cursor: pointer;
+  transition: background .15s;
+}
+.bq-profile__item:hover { background: rgba(255,255,255,.05); }
+.bq-profile__item i { width: 14px; text-align: center; font-size: 12px; color: var(--bq-muted); }
+.bq-profile__item--logout { color: #fca5a5; }
+.bq-profile__item--logout i { color: #f87171; }
+.bq-profile__item--logout:hover { background: rgba(239,68,68,.07); }
+.bq-profile__sep { height: 1px; background: rgba(255,255,255,.07); margin: 4px 0; }
+
+/* ══════════════════ STATUSBAR ══════════════════ */
+.bq-statusbar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 5px 2px 0;
+}
+.bq-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 999px;
+  border: 1px solid var(--bq-br);
+  background: rgba(255,255,255,.03);
+  color: var(--bq-muted); font-size: 10.5px; font-weight: 600;
+}
+.bq-pill strong { color: var(--bq-txt); }
+
+/* ══════════════════ MAIN ══════════════════ */
+.bq-main { display: flex; flex-direction: column; gap: 14px; padding-top: 14px; }
+
+/* ══════════════════ KPI GRID ══════════════════ */
+.bq-kgrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0,1fr));
+  gap: 10px;
+}
+@media(max-width:1280px){ .bq-kgrid{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
+@media(max-width:720px) { .bq-kgrid{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:460px) { .bq-kgrid{ grid-template-columns:1fr; } }
+
+.bq-kpi {
+  position: relative; overflow: hidden;
+  padding: 14px; border-radius: 15px;
+  border: 1px solid var(--bq-br);
+  background: var(--bq-card);
+  backdrop-filter: blur(16px);
+  display: flex; flex-direction: column; gap: 10px;
+  transition: transform .2s, border-color .2s, box-shadow .2s;
+  text-decoration: none; color: inherit;
+  cursor: pointer;
+}
+.bq-kpi:hover { transform: translateY(-3px); border-color: var(--bq-br2); box-shadow: 0 12px 30px rgba(0,0,0,.22); }
+.bq-kpi::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  border-radius: 15px 15px 0 0; opacity:.75;
+}
+.bq-kpi--cyan::before   { background:linear-gradient(90deg,var(--bq-cyan),transparent); }
+.bq-kpi--green::before  { background:linear-gradient(90deg,var(--bq-green),transparent); }
+.bq-kpi--amber::before  { background:linear-gradient(90deg,var(--bq-amber),transparent); }
+.bq-kpi--rose::before   { background:linear-gradient(90deg,var(--bq-rose),transparent); }
+.bq-kpi--violet::before { background:linear-gradient(90deg,var(--bq-violet),transparent); }
+.bq-kpi--blue::before   { background:linear-gradient(90deg,var(--bq-blue),transparent); }
+
+.bq-kpi__head { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+.bq-kpi__icon { width:32px; height:32px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; border:1px solid rgba(255,255,255,.07); }
+.bq-kpi--cyan   .bq-kpi__icon { background:rgba(34,211,238,.12);  color:var(--bq-cyan); }
+.bq-kpi--green  .bq-kpi__icon { background:rgba(52,211,153,.12);  color:var(--bq-green); }
+.bq-kpi--amber  .bq-kpi__icon { background:rgba(251,191,36,.12);  color:var(--bq-amber); }
+.bq-kpi--rose   .bq-kpi__icon { background:rgba(244,63,94,.12);   color:var(--bq-rose); }
+.bq-kpi--violet .bq-kpi__icon { background:rgba(129,140,248,.12); color:var(--bq-violet); }
+.bq-kpi--blue   .bq-kpi__icon { background:rgba(96,165,250,.12);  color:var(--bq-blue); }
+
+.bq-badge {
+  display:inline-flex; align-items:center; gap:3px;
+  padding:2px 7px; border-radius:999px;
+  font-size:9.5px; font-weight:700; white-space:nowrap;
+}
+.bq-badge--up   { color:#86efac; background:rgba(34,197,94,.12);  border:1px solid rgba(34,197,94,.2); }
+.bq-badge--down { color:#fda4af; background:rgba(244,63,94,.12);  border:1px solid rgba(244,63,94,.2); }
+.bq-badge--flat { color:var(--bq-muted); background:rgba(148,163,184,.08); border:1px solid rgba(148,163,184,.14); }
+
+.bq-kpi__lbl  { font-size:9.5px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--bq-soft); }
+.bq-kpi__val  { font-size:clamp(1.15rem,1.8vw,1.6rem); font-weight:800; letter-spacing:-.05em; line-height:1; color:var(--bq-txt); margin-top:2px; }
+.bq-kpi__sub  { font-size:10.5px; color:var(--bq-muted); line-height:1.4; }
+
+/* ══════════════════ SECTION ══════════════════ */
+.bq-sec { display:flex; flex-direction:column; gap:10px; }
+.bq-sec__hd { display:flex; align-items:center; gap:10px; }
+.bq-sec__ico { width:32px; height:32px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; border:1px solid rgba(255,255,255,.07); }
+.bq-sec__title { margin:0; font-size:clamp(.92rem,1.35vw,1.1rem); font-weight:800; letter-spacing:-.03em; color:var(--bq-txt); }
+.bq-sec__sub   { margin:2px 0 0; font-size:11px; color:var(--bq-soft); }
+
+/* ══════════════════ CARD ══════════════════ */
+.bq-card {
+  padding:15px; border-radius:15px;
+  border:1px solid var(--bq-br);
+  background:var(--bq-card);
+  backdrop-filter:blur(16px);
+}
+.bq-card__ttl { display:flex; align-items:center; gap:7px; margin-bottom:13px; }
+.bq-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.bq-dot--cyan   { background:var(--bq-cyan); }
+.bq-dot--green  { background:var(--bq-green); }
+.bq-dot--amber  { background:var(--bq-amber); }
+.bq-dot--rose   { background:var(--bq-rose); }
+.bq-dot--violet { background:var(--bq-violet); }
+.bq-dot--blue   { background:var(--bq-blue); }
+.bq-card__lbl { font-size:10.5px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--bq-soft); flex:1; }
+.bq-tag { display:inline-flex; align-items:center; height:19px; padding:0 7px; border-radius:999px; font-size:9px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; border:1px solid var(--bq-br); color:var(--bq-soft); background:rgba(255,255,255,.03); }
+.bq-mini-btn {
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.035);
+  color: var(--bq-txt);
+  font-size: 9.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, transform .15s;
+}
+.bq-mini-btn:hover {
+  background: rgba(255,255,255,.06);
+  border-color: rgba(255,255,255,.13);
+  transform: translateY(-1px);
+}
+.bq-mini-btn i {
+  font-size: 9px;
+  color: var(--bq-amber);
+}
+
+/* ══════════════════ CHART ══════════════════ */
+.bq-ch { position:relative; }
+.bq-ch--xl  { height:250px; }
+.bq-ch--lg  { height:220px; }
+.bq-ch--md  { height:195px; }
+.bq-ch--sm  { height:175px; }
+.bq-ch--dn  { height:195px; display:flex; align-items:center; justify-content:center; }
+
+/* ══════════════════ GRID ══════════════════ */
+.bq-g { display:grid; gap:12px; }
+.bq-g--2  { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.bq-g--3  { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.bq-g--13 { grid-template-columns:1.42fr 1fr; }
+@media(max-width:1100px){ .bq-g--2,.bq-g--13{ grid-template-columns:1fr; } .bq-g--3{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:640px) { .bq-g--3{ grid-template-columns:1fr; } }
+
+/* ══════════════════ TABLE ══════════════════ */
+.bq-tbl { width:100%; border-collapse:collapse; font-size:12px; }
+.bq-tbl th { padding:0 10px 10px; text-align:left; font-size:9.5px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--bq-soft); border-bottom:1px solid rgba(255,255,255,.06); }
+.bq-tbl td { padding:9px 10px; color:var(--bq-muted); border-bottom:1px solid rgba(255,255,255,.04); vertical-align:middle; }
+.bq-tbl tr:last-child td { border-bottom:none; }
+.bq-tbl tbody tr:hover { background:rgba(255,255,255,.02); }
+.bq-tbl__main { color:var(--bq-txt); font-weight:600; }
+.bq-rank { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:7px; background:rgba(255,255,255,.06); color:var(--bq-soft); font-size:10px; font-weight:800; }
+.bq-rank--1 { background:rgba(251,191,36,.15); color:var(--bq-amber); }
+.bq-rank--2 { background:rgba(148,163,184,.1);  color:#cbd5e1; }
+.bq-rank--3 { background:rgba(251,146,60,.1);   color:var(--bq-orange); }
+
+.bq-bar-m { display:flex; align-items:center; gap:7px; }
+.bq-bar-m__tr { flex:1; height:5px; border-radius:99px; background:rgba(255,255,255,.07); overflow:hidden; }
+.bq-bar-m__fl { height:100%; border-radius:99px; transition:width .6s ease; }
+.bq-bar-m__v  { font-size:11px; font-weight:700; color:var(--bq-txt); width:34px; text-align:right; }
+
+.bq-status { display:inline-flex; align-items:center; gap:4px; padding:2px 7px; border-radius:999px; font-size:10.5px; font-weight:700; }
+.bq-status--good { color:#86efac; background:rgba(34,197,94,.1);  border:1px solid rgba(34,197,94,.2); }
+.bq-status--warn { color:#fde68a; background:rgba(251,191,36,.1); border:1px solid rgba(251,191,36,.2); }
+.bq-status--bad  { color:#fda4af; background:rgba(244,63,94,.1);  border:1px solid rgba(244,63,94,.2); }
+
+/* ══════════════════ SOURCE DONUT ══════════════════ */
+.bq-source {
+  display: grid;
+  grid-template-columns: 154px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  min-height: 220px;
+}
+.bq-source__ring {
+  position: relative;
+  width: 154px;
+  height: 154px;
+  margin: 0 auto;
+}
+.bq-source__ring canvas {
+  width: 154px !important;
+  height: 154px !important;
+}
+.bq-source__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.bq-source__center span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--bq-soft);
+}
+.bq-source__center strong {
+  margin-top: 2px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -.04em;
+  color: var(--bq-txt);
+}
+.bq-source__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bq-source__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.05);
+  background: rgba(255,255,255,.025);
+}
+.bq-source__swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.bq-source__name {
+  min-width: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--bq-txt);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bq-source__pct {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--bq-soft);
+}
+.bq-source__count {
+  min-width: 28px;
+  text-align: right;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--bq-txt);
+}
+.bq-source__empty {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px dashed rgba(255,255,255,.08);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--bq-soft);
+  text-align: center;
+}
+@media(max-width:640px){
+  .bq-source {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+  .bq-source__list {
+    width: 100%;
+  }
+}
+
+/* ══════════════════ GROUP DETAILS ══════════════════ */
+.bq-gd-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 870;
+  background: rgba(2,6,23,.58);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .18s ease, visibility .18s ease;
+}
+.bq-gd-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+.bq-gd-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: min(760px, calc(100vw - 28px));
+  max-height: min(82vh, 820px);
+  z-index: 880;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(13,21,38,.97);
+  box-shadow: 0 24px 60px rgba(0,0,0,.38);
+  transform: translate(-50%,-50%) scale(.97);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .18s ease, transform .18s ease, visibility .18s ease;
+}
+.bq-gd-modal.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%,-50%) scale(1);
+}
+.bq-gd-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.bq-gd-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  color: var(--bq-txt);
+}
+.bq-gd-sub {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--bq-soft);
+}
+.bq-gd-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+  color: var(--bq-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.bq-gd-close:hover {
+  background: rgba(255,255,255,.06);
+  color: var(--bq-txt);
+}
+.bq-gd-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.bq-gd-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.07);
+  background: rgba(255,255,255,.03);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--bq-muted);
+}
+.bq-gd-pill__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+.bq-gd-body {
+  overflow: auto;
+  max-height: calc(82vh - 110px);
+  padding-right: 4px;
+}
+.bq-gd-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.bq-gd-item {
+  display: grid;
+  grid-template-columns: 28px minmax(120px, 210px) minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.05);
+  background: rgba(255,255,255,.025);
+}
+.bq-gd-rank {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--bq-soft);
+  background: rgba(255,255,255,.05);
+}
+.bq-gd-name {
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bq-txt);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bq-gd-bar {
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255,255,255,.05);
+}
+.bq-gd-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width .45s ease;
+}
+.bq-gd-count {
+  text-align: right;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--bq-txt);
+}
+@media(max-width:640px){
+  .bq-gd-item {
+    grid-template-columns: 24px minmax(0, 1fr) 38px;
+  }
+  .bq-gd-bar {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ══════════════════ XAVFLI O'QUVCHILAR ══════════════════ */
+.bq-xavfli-wrap { overflow-x:auto; }
+.bq-tbl--xavfli { min-width:680px; }
+.bq-tbl--xavfli td { vertical-align:middle; }
+.bq-xavfli-count {
+  display:inline-flex; align-items:center; gap:5px;
+  background:rgba(244,63,94,.12); color:var(--bq-rose);
+  font-size:11px; font-weight:700; padding:4px 10px;
+  border-radius:20px; border:1px solid rgba(244,63,94,.2);
+}
+.bq-search-wrap {
+  display:flex; align-items:center; gap:7px;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08);
+  border-radius:10px; padding:5px 12px;
+}
+.bq-search-wrap i { color:var(--bq-soft); font-size:11px; }
+.bq-search-wrap input {
+  background:none; border:none; outline:none;
+  color:var(--bq-txt); font-size:12px; width:130px;
+}
+.bq-search-wrap input::placeholder { color:var(--bq-soft); }
+.bq-xavfli-empty {
+  display:flex; flex-direction:column; align-items:center;
+  justify-content:center; padding:40px 20px;
+  color:var(--bq-muted); font-size:13px; text-align:center;
+  gap:4px;
+}
+.bq-tbl__empty { text-align:center; padding:24px !important; color:var(--bq-soft); }
+.bq-card--flat { padding:0; }
+.bq-card--flat .bq-xavfli-wrap { border-radius:16px; overflow:hidden; }
+.bq-card--flat table thead th:first-child { padding-left:16px; }
+.bq-card--flat table td:first-child { padding-left:16px; }
+/* missed count badge */
+.bq-missed { display:inline-flex; align-items:center; justify-content:center;
+  min-width:26px; height:22px; border-radius:8px; font-size:11px; font-weight:800;
+  padding:0 6px; }
+.bq-missed--hi  { background:rgba(244,63,94,.15);  color:var(--bq-rose); }
+.bq-missed--mid { background:rgba(251,146,60,.15);  color:var(--bq-orange); }
+.bq-missed--lo  { background:rgba(251,191,36,.15);  color:var(--bq-amber); }
+/* status badge */
+.bq-status-badge { display:inline-flex; align-items:center; gap:4px;
+  font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px; }
+.bq-status--critical { background:rgba(244,63,94,.12); color:var(--bq-rose); }
+.bq-status--warning  { background:rgba(251,146,60,.12); color:var(--bq-orange); }
+.bq-status--caution  { background:rgba(251,191,36,.12); color:var(--bq-amber); }
+
+/* ══════════════════ LEGEND ══════════════════ */
+.bq-legend { display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-top:10px; }
+.bq-legend__item { display:inline-flex; align-items:center; gap:5px; font-size:10.5px; color:var(--bq-muted); font-weight:600; }
+.bq-legend__dot { width:9px; height:9px; border-radius:3px; flex-shrink:0; }
+
+/* ══════════════════ AI CHAT PANEL ══════════════════ */
+.bq-chat-overlay {
+  position: fixed; inset: 0; z-index: 900;
+  background: rgba(0,0,0,.45);
+  backdrop-filter: blur(4px);
+  opacity: 0; visibility: hidden;
+  transition: opacity .25s, visibility .25s;
+}
+.bq-chat-overlay.open { opacity: 1; visibility: visible; }
+
+.bq-chat {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 400px;
+  max-width: 96vw;
+  z-index: 910;
+  display: flex;
+  flex-direction: column;
+  background: #0a1120;
+  border-left: 1px solid rgba(129,140,248,.2);
+  box-shadow: -16px 0 48px rgba(0,0,0,.4);
+  transform: translateX(100%);
+  transition: transform .28s cubic-bezier(.4,0,.2,1);
+}
+.bq-chat.open { transform: translateX(0); }
+
+.bq-chat__header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  flex-shrink: 0;
+}
+.bq-chat__hicon {
+  width: 34px; height: 34px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg,rgba(129,140,248,.2),rgba(244,63,94,.15));
+  border: 1px solid rgba(129,140,248,.25);
+  color: var(--bq-violet); font-size: 14px;
+}
+.bq-chat__htitle { font-size: 13.5px; font-weight: 800; color: var(--bq-txt); flex:1; }
+.bq-chat__hsub   { font-size: 10.5px; color: var(--bq-muted); }
+.bq-chat__close  {
+  width: 32px; height: 32px; border-radius: 8px;
+  border: 1px solid var(--bq-br); background: transparent;
+  color: var(--bq-muted); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background .15s, color .15s;
+}
+.bq-chat__close:hover { background: rgba(255,255,255,.06); color: var(--bq-txt); }
+
+.bq-chat__messages {
+  flex: 1; overflow-y: auto;
+  padding: 14px;
+  display: flex; flex-direction: column; gap: 12px;
+  scroll-behavior: smooth;
+}
+.bq-chat__messages::-webkit-scrollbar { width: 4px; }
+.bq-chat__messages::-webkit-scrollbar-track { background: transparent; }
+.bq-chat__messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 99px; }
+
+.bq-msg { display: flex; gap: 8px; }
+.bq-msg--user { flex-direction: row-reverse; }
+
+.bq-msg__ava {
+  width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; flex-shrink: 0;
+}
+.bq-msg--ai   .bq-msg__ava { background: linear-gradient(135deg,rgba(129,140,248,.2),rgba(244,63,94,.15)); color:var(--bq-violet); border:1px solid rgba(129,140,248,.2); }
+.bq-msg--user .bq-msg__ava { background: linear-gradient(135deg,#facc15,#f59e0b); color:#0b1220; font-weight:800; }
+
+.bq-msg__bubble {
+  max-width: 82%;
+  padding: 9px 12px;
+  border-radius: 12px;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.bq-msg--ai   .bq-msg__bubble { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.07); color: var(--bq-txt); border-bottom-left-radius: 3px; }
+.bq-msg--user .bq-msg__bubble { background: linear-gradient(135deg,rgba(34,211,238,.14),rgba(129,140,248,.18)); border:1px solid rgba(34,211,238,.18); color:var(--bq-txt); border-bottom-right-radius:3px; }
+
+.bq-msg__typing { display:flex; gap:4px; align-items:center; padding:6px 0; }
+.bq-msg__typing span { width:6px; height:6px; border-radius:50%; background:var(--bq-violet); opacity:.5; animation:bqBounce 1.2s ease infinite; }
+.bq-msg__typing span:nth-child(2) { animation-delay:.2s; }
+.bq-msg__typing span:nth-child(3) { animation-delay:.4s; }
+@keyframes bqBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px);opacity:1;} }
+
+.bq-chat__prompts {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 0 14px 8px;
+}
+.bq-chat__prompt {
+  padding: 5px 10px; border-radius: 999px;
+  border: 1px solid rgba(129,140,248,.22);
+  background: rgba(129,140,248,.07);
+  color: #c4b5fd; font-size: 11px; font-weight: 600;
+  cursor: pointer; transition: background .15s;
+}
+.bq-chat__prompt:hover { background: rgba(129,140,248,.14); }
+
+.bq-chat__footer {
+  padding: 10px 12px 14px;
+  border-top: 1px solid rgba(255,255,255,.07);
+  flex-shrink: 0;
+}
+.bq-chat__inputrow {
+  display: flex; gap: 8px; align-items: flex-end;
+}
+.bq-chat__input {
+  flex: 1; min-height: 40px; max-height: 120px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(129,140,248,.2);
+  background: rgba(255,255,255,.04);
+  color: var(--bq-txt); font-size: 13px;
+  outline: none; resize: none;
+  transition: border-color .2s, box-shadow .2s;
+  font-family: inherit;
+}
+.bq-chat__input::placeholder { color: var(--bq-soft); }
+.bq-chat__input:focus { border-color: rgba(129,140,248,.4); box-shadow: 0 0 0 3px rgba(129,140,248,.07); }
+.bq-chat__send {
+  width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+  background: linear-gradient(135deg,rgba(129,140,248,.3),rgba(244,63,94,.2));
+  border: 1px solid rgba(129,140,248,.3);
+  color: #c4b5fd; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: transform .18s, opacity .18s;
+}
+.bq-chat__send:hover { transform: scale(1.05); }
+.bq-chat__send:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bq">
+  <div class="bq-shell">
+
+    <!-- ══════════ TOOLBAR ══════════ -->
+    <div class="bq-toolbar">
+      <div class="bq-toolbar__inner">
+        <!-- Brand -->
+        <div class="bq-brand">
+          <div class="bq-brand__icon"><i class="fa-solid fa-bolt-lightning"></i></div>
+          <div>
+            <div class="bq-brand__kicker">Direktor Paneli</div>
+            <div class="bq-brand__title">{{ center.name }}</div>
+          </div>
+        </div>
+
+        <!-- Filter -->
+        <div class="bq-filter">
+          <div class="bq-field">
+            <span class="bq-field__lbl">Davr</span>
+            <select id="bqPreset">
+              <option value="month">Joriy oy</option>
+              <option value="7d">7 kun</option>
+              <option value="30d">30 kun</option>
+              <option value="quarter">Chorak</option>
+              <option value="year">Yil</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div class="bq-field">
+            <span class="bq-field__lbl">Sanadan</span>
+            <input type="date" id="bqFrom" value="{{ date_from|date:'Y-m-d' }}">
+          </div>
+          <div class="bq-field">
+            <span class="bq-field__lbl">Sanagacha</span>
+            <input type="date" id="bqTo" value="{{ date_to|date:'Y-m-d' }}">
+          </div>
+          <button class="bq-btn bq-btn--primary" id="bqApply" type="button">
+            <i class="fa-solid fa-rotate" id="bqIco"></i> Ko'rsat
+          </button>
+          <button class="bq-btn bq-btn--ghost" id="bqReset" type="button" title="Reset">
+            <i class="fa-solid fa-rotate-left"></i>
+          </button>
+        </div>
+
+        <!-- Right: AI btn + Profile -->
+        <div class="bq-toolbar__right">
+          <button class="bq-ai-btn" id="bqAiOpen" type="button">
+            <span class="bq-ai-btn__dot"></span>
+            <i class="fa-solid fa-robot"></i>
+            AI Chat
+          </button>
+
+          <div class="bq-profile" id="bqProfile">
+            <button class="bq-profile__btn" id="bqProfileBtn" type="button" aria-label="Profil">
+              {% if request.user.avatar %}
+                <img src="{{ request.user.avatar.url }}" alt="Profil">
+              {% else %}
+                <div class="bq-profile__initials">{{ request.user.ism|first|upper|default:request.user.email|first|upper }}</div>
+              {% endif %}
+            </button>
+
+            <div class="bq-profile__panel" id="bqProfilePanel">
+              <div class="bq-profile__head">
+                <div class="bq-profile__ava">
+                  {% if request.user.avatar %}
+                    <img src="{{ request.user.avatar.url }}" alt="">
+                  {% else %}
+                    {{ request.user.ism|first|upper|default:request.user.email|first|upper }}
+                  {% endif %}
+                </div>
+                <div>
+                  <div class="bq-profile__name">{{ request.user.get_full_name|default:request.user.email }}</div>
+                  <div class="bq-profile__role">
+                    {% if request.user.role == 'director' %}Direktor
+                    {% elif request.user.role == 'manager' %}Manager
+                    {% else %}{{ request.user.role|capfirst }}{% endif %}
+                  </div>
+                </div>
+              </div>
+              <a href="{% url 'accounts:profile' %}" class="bq-profile__item">
+                <i class="fa-regular fa-user"></i> Profilim
+              </a>
+              <a href="{% url 'core:director_boshqaruv' %}" class="bq-profile__item">
+                <i class="fa-solid fa-table-columns"></i> Boshqaruv
+              </a>
+              <div class="bq-profile__sep"></div>
+              <form method="post" action="{% url 'logout' %}" style="margin:0">
+                {% csrf_token %}
+                <button type="submit" class="bq-profile__item bq-profile__item--logout">
+                  <i class="fa-solid fa-arrow-right-from-bracket"></i> Chiqish
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status bar -->
+      <div class="bq-statusbar" id="bqStatus" style="display:none">
+        <span class="bq-pill"><i class="fa-regular fa-calendar"></i> <strong id="bqPeriod">—</strong></span>
+        <span class="bq-pill"><i class="fa-solid fa-clock-rotate-left"></i> <strong id="bqTime">—</strong></span>
+        <span class="bq-pill" id="bqAiPill" style="color:#c4b5fd;border-color:rgba(129,140,248,.2);display:none">
+          <i class="fa-solid fa-robot"></i> AI tayyor
+        </span>
+      </div>
+    </div>
+
+    <!-- ══════════ MAIN ══════════ -->
+    <div class="bq-main">
+
+      <!-- ── KPI 6 ta ── -->
+      <div class="bq-kgrid">
+        <a class="bq-kpi bq-kpi--green" href="{% url 'education:tolovlar_home' %}">
+          <div class="bq-kpi__head">
+            <div class="bq-kpi__icon"><i class="fa-solid fa-sack-dollar"></i></div>
+            <span class="bq-badge bq-badge--flat" id="k1d">—</span>
+          </div>
+          <div class="bq-kpi__lbl">Daromad</div>
+          <div class="bq-kpi__val" id="k1v" style="color:var(--bq-green)">—</div>
+          <div class="bq-kpi__sub" id="k1s">Yuklanmoqda...</div>
+        </a>
+
+        <div class="bq-kpi bq-kpi--cyan">
+          <div class="bq-kpi__head">
+            <div class="bq-kpi__icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+            <span class="bq-badge bq-badge--flat" id="k2d">—</span>
+          </div>
+          <div class="bq-kpi__lbl">Sof Foyda</div>
+          <div class="bq-kpi__val" id="k2v" style="color:var(--bq-cyan)">—</div>
+          <div class="bq-kpi__sub" id="k2s">—</div>
+        </div>
+
+        <a class="bq-kpi bq-kpi--blue" href="{% url 'core:stat_students' %}">
+          <div class="bq-kpi__head">
+            <div class="bq-kpi__icon"><i class="fa-solid fa-user-graduate"></i></div>
+            <span class="bq-badge bq-badge--flat" id="k3d">—</span>
+          </div>
+          <div class="bq-kpi__lbl">Faol O'quvchi</div>
+          <div class="bq-kpi__val" id="k3v" style="color:var(--bq-blue)">—</div>
+          <div class="bq-kpi__sub" id="k3s">—</div>
+        </a>
+
+        <a class="bq-kpi bq-kpi--amber" href="{% url 'education:groups_home' %}">
+          <div class="bq-kpi__head">
+            <div class="bq-kpi__icon"><i class="fa-solid fa-layer-group"></i></div>
+            <span class="bq-badge bq-badge--flat" id="k4d">—</span>
+          </div>
+          <div class="bq-kpi__lbl">Faol Guruhlar</div>
+          <div class="bq-kpi__val" id="k4v" style="color:var(--bq-amber)">—</div>
+          <div class="bq-kpi__sub" id="k4s">—</div>
+        </a>
+
+        <div class="bq-kpi bq-kpi--violet">
+          <div class="bq-kpi__head">
+            <div class="bq-kpi__icon"><i class="fa-solid fa-calendar-check"></i></div>
+            <span class="bq-badge bq-badge--flat" id="k5d">—</span>
+          </div>
+          <div class="bq-kpi__lbl">Davomat</div>
+          <div class="bq-kpi__val" id="k5v" style="color:var(--bq-violet)">—</div>
+          <div class="bq-kpi__sub" id="k5s">—</div>
+        </div>
+
+        <a class="bq-kpi bq-kpi--rose" href="{% url 'store:lead_list' %}">
+          <div class="bq-kpi__head">
+            <div class="bq-kpi__icon"><i class="fa-solid fa-phone-volume"></i></div>
+            <span class="bq-badge bq-badge--flat" id="k6d">—</span>
+          </div>
+          <div class="bq-kpi__lbl">Lidlar</div>
+          <div class="bq-kpi__val" id="k6v" style="color:var(--bq-rose)">—</div>
+          <div class="bq-kpi__sub" id="k6s">—</div>
+        </a>
+      </div>
+
+      <!-- ── MOLIYA bo'limi ── -->
+      <div class="bq-sec">
+        <div class="bq-sec__hd">
+          <div class="bq-sec__ico" style="background:rgba(52,211,153,.12);color:var(--bq-green);border-color:rgba(52,211,153,.18)"><i class="fa-solid fa-chart-line"></i></div>
+          <div>
+            <h3 class="bq-sec__title">Moliyaviy Ko'rsatkichlar</h3>
+            <p class="bq-sec__sub">12 oylik daromad dinamikasi va kategoriya taqsimoti</p>
+          </div>
+        </div>
+        <div class="bq-g bq-g--13">
+          <div class="bq-card">
+            <div class="bq-card__ttl">
+              <span class="bq-dot bq-dot--green"></span>
+              <span class="bq-card__lbl">Oylik Daromad Dinamikasi</span>
+              <span class="bq-tag">Line · 12 oy</span>
+            </div>
+            <div class="bq-ch bq-ch--lg"><canvas id="chRevenue"></canvas></div>
+          </div>
+          <div class="bq-card">
+            <div class="bq-card__ttl">
+              <span class="bq-dot bq-dot--violet"></span>
+              <span class="bq-card__lbl">Kategoriya Taqsimoti</span>
+              <span class="bq-tag">Donut</span>
+            </div>
+            <div class="bq-ch bq-ch--dn"><canvas id="chCat1" style="max-width:190px;max-height:190px"></canvas></div>
+            <div class="bq-legend" id="lgCat1"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── O'QUVCHILAR bo'limi ── -->
+      <div class="bq-sec">
+        <div class="bq-sec__hd">
+          <div class="bq-sec__ico" style="background:rgba(96,165,250,.12);color:var(--bq-blue);border-color:rgba(96,165,250,.18)"><i class="fa-solid fa-user-graduate"></i></div>
+          <div>
+            <h3 class="bq-sec__title">O'quvchilar Statistikasi</h3>
+            <p class="bq-sec__sub">O'sish trendi, haftalik davomat va guruh taqsimoti</p>
+          </div>
+        </div>
+        <div class="bq-g bq-g--3">
+          <div class="bq-card">
+            <div class="bq-card__ttl">
+              <span class="bq-dot bq-dot--blue"></span>
+              <span class="bq-card__lbl">O'quvchilar O'sishi</span>
+              <span class="bq-tag">Area · 12 oy</span>
+            </div>
+            <div class="bq-ch bq-ch--md"><canvas id="chStudents"></canvas></div>
+          </div>
+          <div class="bq-card">
+            <div class="bq-card__ttl">
+              <span class="bq-dot bq-dot--violet"></span>
+              <span class="bq-card__lbl">Haftalik Davomat %</span>
+              <span class="bq-tag">Bar · 8 hafta</span>
+            </div>
+            <div class="bq-ch bq-ch--md"><canvas id="chAtt"></canvas></div>
+          </div>
+          <div class="bq-card">
+            <div class="bq-card__ttl">
+              <span class="bq-dot bq-dot--green"></span>
+              <span class="bq-card__lbl">To'lov Holati</span>
+              <span class="bq-tag">Donut</span>
+            </div>
+            <div class="bq-ch bq-ch--dn"><canvas id="chCat2" style="max-width:170px;max-height:170px"></canvas></div>
+            <div class="bq-legend" id="lgCat2"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── GURUHLAR + VORONKA ── -->
+      <div class="bq-sec">
+        <div class="bq-sec__hd">
+          <div class="bq-sec__ico" style="background:rgba(251,191,36,.12);color:var(--bq-amber);border-color:rgba(251,191,36,.18)"><i class="fa-solid fa-layer-group"></i></div>
+          <div>
+            <h3 class="bq-sec__title">Guruhlar va Marketing</h3>
+            <p class="bq-sec__sub">Guruh to'ldirilganligi va o'quvchi kelish manbalari</p>
+          </div>
+        </div>
+        <div class="bq-g bq-g--2">
+          <div class="bq-card">
+            <div class="bq-card__ttl">
+              <span class="bq-dot bq-dot--amber"></span>
+              <span class="bq-card__lbl">Guruh To'ldirilganligi</span>
+              <button class="bq-mini-btn" id="bqGroupsDetailOpen" type="button">
+                <i class="fa-solid fa-up-right-and-down-left-from-center"></i>
+                Batafsil
+              </button>
+              <span class="bq-tag">Horizontal Bar</span>
+            </div>
+            <div class="bq-ch bq-ch--lg"><canvas id="chGroups"></canvas></div>
+          </div>
+          <div class="bq-card">
+            <div class="bq-card__ttl">
+              <span class="bq-dot bq-dot--rose"></span>
+              <span class="bq-card__lbl">O'quvchi Kelish Manbalari</span>
+              <span class="bq-tag">Donut</span>
+            </div>
+            <div class="bq-source" id="leadSources">
+              <div class="bq-source__ring">
+                <canvas id="chLeadSources"></canvas>
+                <div class="bq-source__center">
+                  <span>Jami</span>
+                  <strong id="leadSourcesTotal">0</strong>
+                </div>
+              </div>
+              <div class="bq-source__list" id="lgLeadSources">
+                <div class="bq-source__empty"><i class="fa-solid fa-spinner fa-spin"></i> Yuklanmoqda...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── JADVALLAR ── -->
+      <div class="bq-sec">
+        <div class="bq-sec__hd">
+          <div class="bq-sec__ico" style="background:rgba(129,140,248,.12);color:var(--bq-violet);border-color:rgba(129,140,248,.18)"><i class="fa-solid fa-table-list"></i></div>
+          <div>
+            <h3 class="bq-sec__title">Tezkor Ko'rinish</h3>
+            <p class="bq-sec__sub">Top guruhlar va eng faol o'quvchilar</p>
+          </div>
+        </div>
+        <div class="bq-g bq-g--2">
+          <div class="bq-card">
+            <div class="bq-card__ttl">
+              <span class="bq-dot bq-dot--amber"></span>
+              <span class="bq-card__lbl">Top 5 Guruh</span>
+            </div>
+            <table class="bq-tbl">
+              <thead><tr><th>#</th><th>Guruh</th><th>O'qituvchi</th><th>O'quvchi</th><th>Davomat</th></tr></thead>
+              <tbody id="tblGrp"><tr><td colspan="5" style="text-align:center;padding:18px;color:var(--bq-soft)"><i class="fa-solid fa-spinner fa-spin"></i></td></tr></tbody>
+            </table>
+          </div>
+          <div class="bq-card">
+            <div class="bq-card__ttl">
+              <span class="bq-dot bq-dot--blue"></span>
+              <span class="bq-card__lbl">Top 5 O'quvchi</span>
+            </div>
+            <table class="bq-tbl">
+              <thead><tr><th>#</th><th>O'quvchi</th><th style="width:48%">Davomat</th></tr></thead>
+              <tbody id="tblSt"><tr><td colspan="3" style="text-align:center;padding:18px;color:var(--bq-soft)"><i class="fa-solid fa-spinner fa-spin"></i></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── XAVFLI O'QUVCHILAR ── -->
+      <div class="bq-sec">
+        <div class="bq-sec__hd">
+          <div class="bq-sec__ico" style="background:rgba(244,63,94,.1);color:var(--bq-rose);border-color:rgba(244,63,94,.18)">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <div>
+            <h3 class="bq-sec__title">Xavfli O'quvchilar</h3>
+            <p class="bq-sec__sub">Oxirgi 30 kunda 3 va undan ko'p dars qoldirganlar</p>
+          </div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+            <span class="bq-xavfli-count" id="xavfliCount" style="display:none">
+              <i class="fa-solid fa-circle-exclamation"></i> <span id="xavfliNum">0</span> ta
+            </span>
+            <div class="bq-search-wrap">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="xavfliSearch" placeholder="Qidirish..." oninput="filterXavfli(this.value)">
+            </div>
+          </div>
+        </div>
+        <div class="bq-card bq-card--flat">
+          <div class="bq-xavfli-wrap">
+            <table class="bq-tbl bq-tbl--xavfli">
+              <thead>
+                <tr>
+                  <th style="width:36px">#</th>
+                  <th>O'quvchi</th>
+                  <th>Telefon</th>
+                  <th>Guruh(lar)</th>
+                  <th style="width:80px;text-align:center">Qoldirilgan</th>
+                  <th style="width:120px">Davomat %</th>
+                  <th style="width:80px;text-align:center">Holat</th>
+                </tr>
+              </thead>
+              <tbody id="tblXavfli">
+                <tr><td colspan="7" class="bq-tbl__empty"><i class="fa-solid fa-spinner fa-spin"></i></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="xavfliEmpty" class="bq-xavfli-empty" style="display:none">
+            <i class="fa-solid fa-circle-check" style="color:var(--bq-green);font-size:2rem;margin-bottom:8px"></i>
+            <p>Ajoyib! Oxirgi 30 kunda 3+ dars qoldirgan o'quvchi yo'q.</p>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /bq-main -->
+  </div>
+</div>
+
+<div class="bq-gd-overlay" id="bqGroupsDetailOverlay"></div>
+<div class="bq-gd-modal" id="bqGroupsDetailModal">
+  <div class="bq-gd-head">
+    <div>
+      <h3 class="bq-gd-title">Barcha Guruhlar</h3>
+      <p class="bq-gd-sub">Hamma guruhlar boshidan oxirigacha to'liq ro'yxat</p>
+    </div>
+    <button class="bq-gd-close" id="bqGroupsDetailClose" type="button" aria-label="Yopish">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+  <div class="bq-gd-legend">
+    <span class="bq-gd-pill"><span class="bq-gd-pill__dot" style="background:var(--bq-green)"></span> 10 ta va undan ko'p</span>
+    <span class="bq-gd-pill"><span class="bq-gd-pill__dot" style="background:var(--bq-amber)"></span> 5 dan 9 tagacha</span>
+    <span class="bq-gd-pill"><span class="bq-gd-pill__dot" style="background:var(--bq-rose)"></span> 5 tadan kam</span>
+  </div>
+  <div class="bq-gd-body">
+    <div class="bq-gd-list" id="bqGroupsDetailList">
+      <div class="bq-source__empty"><i class="fa-solid fa-spinner fa-spin"></i> Yuklanmoqda...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ AI CHAT ══════════════════ -->
+<div class="bq-chat-overlay" id="chatOverlay"></div>
+<div class="bq-chat" id="chatPanel">
+  <div class="bq-chat__header">
+    <div class="bq-chat__hicon"><i class="fa-solid fa-robot"></i></div>
+    <div>
+      <div class="bq-chat__htitle">AI Tahlilchi</div>
+      <div class="bq-chat__hsub">Gemini · {{ center.name }} markazi ma'lumotlari asosida</div>
+    </div>
+    <button class="bq-chat__close" id="chatClose" type="button"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+
+  <div class="bq-chat__messages" id="chatMessages">
+    <div class="bq-msg bq-msg--ai">
+      <div class="bq-msg__ava"><i class="fa-solid fa-robot"></i></div>
+      <div class="bq-msg__bubble">
+        Salom! Men <strong>{{ center.name }}</strong> markazi bo'yicha har qanday savolga javob bera olaman.<br><br>
+        Masalan: daromad, o'quvchilar holati, guruhlar, o'qituvchilar yoki lidlar haqida so'rang.
+      </div>
+    </div>
+  </div>
+
+  <div class="bq-chat__prompts">
+    <button class="bq-chat__prompt" data-q="Bu oyning daromadi qancha?">💰 Bu oyning daromadi</button>
+    <button class="bq-chat__prompt" data-q="Qaysi guruhlar yopilishi kerak?">⚠️ Yopilishi kerak guruhlar</button>
+    <button class="bq-chat__prompt" data-q="Davomat holati qanday?">📊 Davomat holati</button>
+    <button class="bq-chat__prompt" data-q="Eng yaxshi o'qituvchi kim?">🏆 Eng yaxshi o'qituvchi</button>
+  </div>
+
+  <div class="bq-chat__footer">
+    <div class="bq-chat__inputrow">
+      <textarea class="bq-chat__input" id="chatInput" placeholder="Savol yozing... (Enter yuboradi)" rows="1"></textarea>
+      <button class="bq-chat__send" id="chatSend" type="button"><i class="fa-solid fa-paper-plane"></i></button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* ── URLS ── */
+const API     = '{% url "core:director_boshqaruv_api" %}';
+const CHAT_API = '{% url "core:director_boshqaruv_chat" %}';
+const CSRF    = '{{ csrf_token }}';
+
+/* ── Chart.js defaults ── */
+Chart.defaults.color         = '#64748b';
+Chart.defaults.borderColor   = 'rgba(255,255,255,0.06)';
+Chart.defaults.font.family   = "'Inter','Segoe UI',system-ui,sans-serif";
+
+const C = { cyan:'#22d3ee', green:'#34d399', amber:'#fbbf24', rose:'#f43f5e', violet:'#818cf8', blue:'#60a5fa', orange:'#fb923c', teal:'#2dd4bf', pink:'#f472b6' };
+const PAL = Object.values(C);
+
+let charts = {};
+
+/* ── Format ── */
+function fmtM(n){
+  if(n==null)return'—';
+  n=Math.round(n);
+  if(n>=1e9)return(n/1e9).toFixed(1)+' mlrd';
+  if(n>=1e6)return(n/1e6).toFixed(1)+' mln';
+  if(n>=1e3)return(n/1e3).toFixed(0)+' ming';
+  return n.toLocaleString('uz-UZ');
+}
+function fmtN(n){ return n==null?'—':Number(n).toLocaleString('uz-UZ'); }
+function fmtP(n){ return n==null?'—':n+'%'; }
+function badge(el,v){
+  if(!el)return;
+  if(v==null){el.textContent='—';el.className='bq-badge bq-badge--flat';return;}
+  const f=parseFloat(v);
+  if(f>0){el.innerHTML=`<i class="fa-solid fa-arrow-up"></i> +${f}%`;el.className='bq-badge bq-badge--up';}
+  else if(f<0){el.innerHTML=`<i class="fa-solid fa-arrow-down"></i> ${f}%`;el.className='bq-badge bq-badge--down';}
+  else{el.textContent='0%';el.className='bq-badge bq-badge--flat';}
+}
+
+/* ── Chart helpers ── */
+function kill(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+const TOOLTIP = { backgroundColor:'rgba(7,13,26,.94)', borderColor:'rgba(255,255,255,.09)', borderWidth:1, titleFont:{size:11}, bodyFont:{size:11} };
+
+function line(id,labels,ds){
+  kill(id);
+  const ctx=document.getElementById(id);if(!ctx)return;
+  charts[id]=new Chart(ctx,{type:'line',data:{labels,datasets:ds},options:{
+    responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:ds.length>1,labels:{boxWidth:9,font:{size:11}}},tooltip:TOOLTIP},
+    scales:{
+      x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{size:11}}},
+      y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{size:11},callback:v=>v>=1e6?(v/1e6).toFixed(0)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':v}}
+    }
+  }});
+}
+
+function area(id,labels,data,color){
+  kill(id);
+  const ctx=document.getElementById(id);if(!ctx)return;
+  charts[id]=new Chart(ctx,{type:'line',data:{labels,datasets:[{data,borderColor:color,backgroundColor:color+'22',borderWidth:2,fill:true,tension:.4,pointRadius:3,pointHoverRadius:6,pointBackgroundColor:color}]},options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:TOOLTIP},
+    scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{size:11}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{size:11}}}}
+  }});
+}
+
+function bar(id,labels,data,color,horiz=false){
+  kill(id);
+  const ctx=document.getElementById(id);if(!ctx)return;
+  charts[id]=new Chart(ctx,{type:'bar',data:{labels,datasets:[{data,backgroundColor:color+'33',borderColor:color,borderWidth:1.5,borderRadius:horiz?3:5,borderSkipped:false}]},options:{
+    indexAxis:horiz?'y':'x',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:TOOLTIP},
+    scales:{
+      x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{size:10},callback:horiz?undefined:v=>v+'%'}},
+      y:{grid:{color:horiz?'rgba(255,255,255,.04)':'transparent'},ticks:{font:{size:10}}}
+    }
+  }});
+}
+
+function groupColor(v){
+  const n=Number(v||0);
+  if(n>=10) return C.green;
+  if(n>=5) return C.amber;
+  return C.rose;
+}
+
+function renderGroupChart(labels,data){
+  kill('chGroups');
+  const ctx=document.getElementById('chGroups');if(!ctx)return;
+  const colors=(data||[]).map(groupColor);
+  const max=Math.max(...(data||[0]),10);
+  charts.chGroups=new Chart(ctx,{type:'bar',data:{labels,datasets:[{
+    data,
+    backgroundColor:colors.map(c=>c+'2b'),
+    borderColor:colors,
+    borderWidth:1.6,
+    borderRadius:5,
+    borderSkipped:false,
+  }]},options:{
+    indexAxis:'y',
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:TOOLTIP},
+    scales:{
+      x:{
+        suggestedMax:max+1,
+        grid:{color:'rgba(255,255,255,.04)'},
+        ticks:{font:{size:10},precision:0}
+      },
+      y:{
+        grid:{color:'rgba(255,255,255,.04)'},
+        ticks:{font:{size:10}}
+      }
+    }
+  }});
+}
+
+function donut(id,labels,data,colors){
+  kill(id);
+  const ctx=document.getElementById(id);if(!ctx)return;
+  charts[id]=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors.map(c=>c+'99'),borderColor:colors,borderWidth:1.5,hoverOffset:8}]},options:{
+    responsive:true,maintainAspectRatio:false,cutout:'68%',
+    plugins:{legend:{display:false},tooltip:TOOLTIP}
+  }});
+}
+
+function legend(id,labels,colors){
+  const el=document.getElementById(id);if(!el)return;
+  el.innerHTML=labels.map((l,i)=>`<span class="bq-legend__item"><span class="bq-legend__dot" style="background:${colors[i%colors.length]}"></span>${l}</span>`).join('');
+}
+
+/* ── Lead source donut ── */
+function renderLeadSources(labels,counts){
+  const totalEl=document.getElementById('leadSourcesTotal');
+  const listEl=document.getElementById('lgLeadSources');
+  const palette=[C.cyan,C.blue,C.violet,C.green,C.amber,C.orange];
+  const total=(counts||[]).reduce((sum,n)=>sum+Number(n||0),0);
+
+  if(totalEl) totalEl.textContent=fmtN(total);
+
+  if(!labels || !labels.length || !total){
+    donut('chLeadSources',['Ma\'lumot yo\'q'],[1],['#334155']);
+    if(listEl){
+      listEl.innerHTML='<div class="bq-source__empty">Ro\'yxatdan o\'tgan o\'quvchilar manbasi topilmadi</div>';
+    }
+    return;
+  }
+
+  const colors=labels.map((_,i)=>palette[i%palette.length]);
+  donut('chLeadSources',labels,counts,colors);
+  if(listEl){
+    listEl.innerHTML=labels.map((label,i)=>{
+      const value=Number(counts[i]||0);
+      const pct=total?Math.round((value/total)*100):0;
+      return `<div class="bq-source__item">
+        <span class="bq-source__swatch" style="background:${colors[i]}"></span>
+        <span class="bq-source__name">${label}</span>
+        <span class="bq-source__pct">${pct}%</span>
+        <span class="bq-source__count">${value}</span>
+      </div>`;
+    }).join('');
+  }
+}
+
+function renderGroupDetails(rows){
+  const el=document.getElementById('bqGroupsDetailList');if(!el)return;
+  const allRows=rows||[];
+  if(!allRows.length){
+    el.innerHTML='<div class="bq-source__empty">Guruhlar topilmadi</div>';
+    return;
+  }
+  const max=Math.max(...allRows.map(r=>Number(r.enrolled||0)),1);
+  el.innerHTML=allRows.map((row,i)=>{
+    const value=Number(row.enrolled||0);
+    const color=groupColor(value);
+    const width=Math.max(8,Math.round((value/max)*100));
+    return `<div class="bq-gd-item">
+      <span class="bq-gd-rank">${i+1}</span>
+      <span class="bq-gd-name">${row.name}</span>
+      <div class="bq-gd-bar"><span style="width:${width}%;background:${color}"></span></div>
+      <span class="bq-gd-count" style="color:${color}">${value}</span>
+    </div>`;
+  }).join('');
+}
+
+/* ── Jadvallar ── */
+function renderGrpTbl(rows){
+  const tb=document.getElementById('tblGrp');if(!tb)return;
+  if(!rows||!rows.length){tb.innerHTML='<tr><td colspan="5" style="text-align:center;padding:18px;color:var(--bq-soft)">Ma\'lumot yo\'q</td></tr>';return;}
+  tb.innerHTML=rows.map((r,i)=>{
+    const rc=i<3?` bq-rank--${i+1}`:'';
+    const sc=r.att_rate>=80?'good':r.att_rate>=60?'warn':'bad';
+    return`<tr><td><span class="bq-rank${rc}">${i+1}</span></td><td><span class="bq-tbl__main">${r.name}</span></td><td style="font-size:11px">${r.teacher}</td><td style="color:var(--bq-blue);font-weight:700">${r.enrolled}</td><td><span class="bq-status bq-status--${sc}">${r.att_rate}%</span></td></tr>`;
+  }).join('');
+}
+
+function renderStTbl(rows){
+  const tb=document.getElementById('tblSt');if(!tb)return;
+  if(!rows||!rows.length){tb.innerHTML='<tr><td colspan="3" style="text-align:center;padding:18px;color:var(--bq-soft)">Ma\'lumot yo\'q</td></tr>';return;}
+  tb.innerHTML=rows.map((r,i)=>{
+    const rc=i<3?` bq-rank--${i+1}`:'';
+    const fc=r.rate>=85?C.green:r.rate>=65?C.cyan:C.rose;
+    return`<tr><td><span class="bq-rank${rc}">${i+1}</span></td><td><span class="bq-tbl__main">${r.name}</span></td><td><div class="bq-bar-m"><div class="bq-bar-m__tr"><div class="bq-bar-m__fl" style="width:${r.rate}%;background:${fc}"></div></div><span class="bq-bar-m__v" style="color:${fc}">${r.rate}%</span></div></td></tr>`;
+  }).join('');
+}
+
+/* ── Xavfli o'quvchilar ── */
+let _xavfliData = [];
+
+function renderXavfli(rows){
+  const tb = document.getElementById('tblXavfli');
+  const empty = document.getElementById('xavfliEmpty');
+  const countBadge = document.getElementById('xavfliCount');
+  const countNum = document.getElementById('xavfliNum');
+  if(!tb) return;
+
+  _xavfliData = rows || [];
+
+  if(!_xavfliData.length){
+    tb.closest('table').style.display = 'none';
+    if(empty) empty.style.display = 'flex';
+    if(countBadge) countBadge.style.display = 'none';
+    return;
+  }
+
+  tb.closest('table').style.display = '';
+  if(empty) empty.style.display = 'none';
+  if(countBadge){ countBadge.style.display = 'inline-flex'; countNum.textContent = _xavfliData.length; }
+  _renderXavfliRows(_xavfliData);
+}
+
+function _renderXavfliRows(rows){
+  const tb = document.getElementById('tblXavfli');
+  if(!tb) return;
+  if(!rows.length){
+    tb.innerHTML = '<tr><td colspan="7" class="bq-tbl__empty">Qidiruvga mos o\'quvchi topilmadi</td></tr>';
+    return;
+  }
+  tb.innerHTML = rows.map((r, i) => {
+    // missed badge class
+    const mc = r.missed >= 8 ? 'hi' : r.missed >= 5 ? 'mid' : 'lo';
+    // rate bar color
+    const rc = r.rate < 40 ? C.rose : r.rate < 65 ? C.orange : C.amber;
+    // status badge
+    let statusCls, statusTxt, statusIcon;
+    if(r.rate < 40){
+      statusCls = 'critical'; statusTxt = "Kritik"; statusIcon = "fa-circle-xmark";
+    } else if(r.rate < 65){
+      statusCls = 'warning'; statusTxt = "Ogohlantirish"; statusIcon = "fa-triangle-exclamation";
+    } else {
+      statusCls = 'caution'; statusTxt = "Diqqat"; statusIcon = "fa-circle-exclamation";
+    }
+    const phone = r.phone !== '—'
+      ? `<a href="tel:${r.phone}" style="color:var(--bq-cyan);text-decoration:none;font-size:11px">${r.phone}</a>`
+      : '<span style="color:var(--bq-soft)">—</span>';
+    return `<tr>
+      <td><span class="bq-rank">${i+1}</span></td>
+      <td><span class="bq-tbl__main">${r.name}</span></td>
+      <td>${phone}</td>
+      <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--bq-muted);font-size:11px" title="${r.groups}">${r.groups}</td>
+      <td style="text-align:center"><span class="bq-missed bq-missed--${mc}">${r.missed}</span></td>
+      <td>
+        <div class="bq-bar-m">
+          <div class="bq-bar-m__tr"><div class="bq-bar-m__fl" style="width:${r.rate}%;background:${rc}"></div></div>
+          <span class="bq-bar-m__v" style="color:${rc}">${r.rate}%</span>
+        </div>
+      </td>
+      <td style="text-align:center">
+        <span class="bq-status-badge bq-status--${statusCls}">
+          <i class="fa-solid ${statusIcon}"></i> ${statusTxt}
+        </span>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterXavfli(q){
+  if(!_xavfliData.length) return;
+  const s = q.toLowerCase().trim();
+  if(!s){ _renderXavfliRows(_xavfliData); return; }
+  const filtered = _xavfliData.filter(r =>
+    r.name.toLowerCase().includes(s) ||
+    r.groups.toLowerCase().includes(s) ||
+    (r.phone && r.phone.includes(s))
+  );
+  _renderXavfliRows(filtered);
+}
+
+/* ── Render all ── */
+function render(d){
+  const k=d.kpis, ch=d.charts;
+
+  // KPI
+  document.getElementById('k1v').textContent=fmtM(k.revenue)+' so\'m';
+  document.getElementById('k1s').textContent=fmtN(k.pay_count)+' ta to\'lov';
+  badge(document.getElementById('k1d'),k.changes.revenue);
+
+  document.getElementById('k2v').textContent=fmtM(k.net_profit)+' so\'m';
+  document.getElementById('k2s').textContent='Xarajat: '+fmtM(k.expenses);
+
+  document.getElementById('k3v').textContent=fmtN(k.active_students)+' ta';
+  document.getElementById('k3s').textContent='Jami: '+fmtN(k.total_students)+' | Yangi: '+fmtN(k.new_this_month);
+  badge(document.getElementById('k3d'),k.changes.students);
+
+  document.getElementById('k4v').textContent=fmtN(k.active_groups)+' ta';
+  document.getElementById('k4s').textContent='Jami: '+fmtN(k.total_groups)+' guruh';
+
+  document.getElementById('k5v').textContent=fmtP(k.avg_attendance);
+  document.getElementById('k5s').textContent='O\'rtacha davomat';
+  const ab=document.getElementById('k5d');
+  if(ab){const at=k.avg_attendance;ab.textContent=at>=80?'Yaxshi':at>=60?'O\'rtacha':'Past';ab.className='bq-badge '+(at>=80?'bq-badge--up':at>=60?'bq-badge--flat':'bq-badge--down');}
+
+  document.getElementById('k6v').textContent=fmtN(k.total_leads)+' ta';
+  document.getElementById('k6s').textContent='Konversiya: '+fmtP(k.conv_rate);
+
+  // Chart 1: Line — daromad
+  line('chRevenue',ch.monthly_labels,[{
+    label:"Daromad (so'm)",data:ch.monthly_revenue,
+    borderColor:C.green,backgroundColor:C.green+'14',
+    fill:true,tension:.35,borderWidth:2,
+    pointRadius:3,pointHoverRadius:6,pointBackgroundColor:C.green
+  }]);
+
+  // Chart 2: Donut �� kategoriya
+  const pal1=[C.violet,C.cyan,C.amber,C.rose,C.green,C.orange];
+  const cl1=ch.cat_labels.length?ch.cat_labels:['Ma\'lumot yo\'q'];
+  const cd1=ch.cat_counts.length?ch.cat_counts:[1];
+  donut('chCat1',cl1,cd1,pal1);
+  legend('lgCat1',cl1,pal1);
+
+  // Chart 3: Area — o'quvchilar
+  area('chStudents',ch.monthly_labels,ch.monthly_students,C.blue);
+
+  // Chart 4: Bar — davomat
+  bar('chAtt',ch.weekly_att_labels,ch.weekly_att_pct,C.violet);
+
+  // Chart 5: Donut — to'lov holati
+  const payColors=[C.green,C.amber,C.rose];
+  const payLabels=(ch.pay_status_labels&&ch.pay_status_labels.length)?ch.pay_status_labels:["To'liq to'lagan","Qisman to'lagan","To'lamagan"];
+  const payCounts=(ch.pay_status_counts&&ch.pay_status_counts.some(v=>v>0))?ch.pay_status_counts:[0,0,0];
+  donut('chCat2',payLabels,payCounts.some(v=>v>0)?payCounts:[1,1,1],payColors);
+  legend('lgCat2',payLabels,payColors);
+
+  // Chart 6: Horizontal Bar — guruhlar
+  renderGroupChart(ch.group_names || [], ch.group_enrolled || []);
+
+  // Lead sources
+  renderLeadSources(ch.source_labels || [], ch.source_counts || []);
+
+  // Group details
+  renderGroupDetails(d.group_fill_all || []);
+
+  // Jadvallar
+  renderGrpTbl(d.top_groups);
+  renderStTbl(d.top_students);
+  renderXavfli(d.xavfli_students || []);
+
+  // Status
+  const sb=document.getElementById('bqStatus');
+  if(sb)sb.style.display='flex';
+  const pl=document.getElementById('bqPeriod');
+  if(pl)pl.textContent=`${d.period.from} – ${d.period.to}`;
+  const tm=document.getElementById('bqTime');
+  if(tm)tm.textContent=new Date().toLocaleTimeString('uz-UZ',{hour:'2-digit',minute:'2-digit'});
+}
+
+/* ── API load ── */
+function load(df,dt){
+  const btn=document.getElementById('bqApply');
+  const ico=document.getElementById('bqIco');
+  if(btn)btn.disabled=true;
+  if(ico){ico.classList.remove('fa-rotate');ico.classList.add('fa-spinner','spin');}
+  fetch(`${API}?date_from=${df}&date_to=${dt}&_ts=${Date.now()}`, {cache:'no-store'})
+    .then(r=>r.json()).then(d=>render(d))
+    .catch(e=>console.error('API xato:',e))
+    .finally(()=>{if(btn)btn.disabled=false;if(ico){ico.classList.add('fa-rotate');ico.classList.remove('fa-spinner','spin');}});
+}
+
+/* ── Sana helpers ── */
+const today=()=>new Date().toISOString().slice(0,10);
+const mStart=()=>{const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`;};
+const ago=(n)=>{const d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10);};
+const qStart=()=>{const d=new Date();const q=Math.floor(d.getMonth()/3)*3;return`${d.getFullYear()}-${String(q+1).padStart(2,'0')}-01`;};
+const yStart=()=>`${new Date().getFullYear()}-01-01`;
+
+const preset=document.getElementById('bqPreset');
+const fromI=document.getElementById('bqFrom');
+const toI=document.getElementById('bqTo');
+
+preset.addEventListener('change',function(){
+  const t=today();
+  if(this.value==='month')  {fromI.value=mStart(); toI.value=t;}
+  if(this.value==='7d')     {fromI.value=ago(6);   toI.value=t;}
+  if(this.value==='30d')    {fromI.value=ago(29);  toI.value=t;}
+  if(this.value==='quarter'){fromI.value=qStart(); toI.value=t;}
+  if(this.value==='year')   {fromI.value=yStart(); toI.value=t;}
+});
+
+document.getElementById('bqApply').addEventListener('click',()=>load(fromI.value,toI.value));
+document.getElementById('bqReset').addEventListener('click',()=>{
+  preset.value='month';fromI.value=mStart();toI.value=today();
+  load(fromI.value,toI.value);
+});
+
+/* ══════════════════ PROFILE DROPDOWN ══════════════════ */
+const profileDock=document.getElementById('bqProfile');
+const profileBtn=document.getElementById('bqProfileBtn');
+profileBtn.addEventListener('click',e=>{e.stopPropagation();profileDock.classList.toggle('open');});
+document.addEventListener('click',e=>{if(!profileDock.contains(e.target))profileDock.classList.remove('open');});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')profileDock.classList.remove('open');});
+
+/* ══════════════════ GROUP DETAIL MODAL ══════════════════ */
+const groupsDetailOverlay=document.getElementById('bqGroupsDetailOverlay');
+const groupsDetailModal=document.getElementById('bqGroupsDetailModal');
+const groupsDetailOpen=document.getElementById('bqGroupsDetailOpen');
+const groupsDetailClose=document.getElementById('bqGroupsDetailClose');
+
+function openGroupsDetail(){
+  groupsDetailOverlay.classList.add('open');
+  groupsDetailModal.classList.add('open');
+}
+
+function closeGroupsDetail(){
+  groupsDetailOverlay.classList.remove('open');
+  groupsDetailModal.classList.remove('open');
+}
+
+groupsDetailOpen.addEventListener('click',openGroupsDetail);
+groupsDetailClose.addEventListener('click',closeGroupsDetail);
+groupsDetailOverlay.addEventListener('click',closeGroupsDetail);
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape' && groupsDetailModal.classList.contains('open')) closeGroupsDetail();
+});
+
+/* ══════════════════ AI CHAT ══════════════════ */
+const chatPanel   = document.getElementById('chatPanel');
+const chatOverlay = document.getElementById('chatOverlay');
+const chatMsgs    = document.getElementById('chatMessages');
+const chatInput   = document.getElementById('chatInput');
+const chatSend    = document.getElementById('chatSend');
+let chatHistory   = [];
+let chatLoading   = false;
+
+function openChat(){
+  chatPanel.classList.add('open');
+  chatOverlay.classList.add('open');
+  document.body.style.overflow='hidden';
+  setTimeout(()=>chatInput.focus(),300);
+}
+function closeChat(){
+  chatPanel.classList.remove('open');
+  chatOverlay.classList.remove('open');
+  document.body.style.overflow='';
+}
+
+document.getElementById('bqAiOpen').addEventListener('click',openChat);
+document.getElementById('chatClose').addEventListener('click',closeChat);
+chatOverlay.addEventListener('click',closeChat);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&chatPanel.classList.contains('open'))closeChat();});
+
+function addMsg(role,text){
+  const isUser=role==='user';
+  const avatarHTML=isUser
+    ?`<div class="bq-msg__ava">{{ request.user.ism|first|upper|default:request.user.email|first|upper }}</div>`
+    :`<div class="bq-msg__ava"><i class="fa-solid fa-robot"></i></div>`;
+  const div=document.createElement('div');
+  div.className=`bq-msg bq-msg--${isUser?'user':'ai'}`;
+  div.innerHTML=`${avatarHTML}<div class="bq-msg__bubble">${text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>`;
+  chatMsgs.appendChild(div);
+  chatMsgs.scrollTop=chatMsgs.scrollHeight;
+  return div;
+}
+
+function addTyping(){
+  const div=document.createElement('div');
+  div.className='bq-msg bq-msg--ai';
+  div.id='typingEl';
+  div.innerHTML=`<div class="bq-msg__ava"><i class="fa-solid fa-robot"></i></div><div class="bq-msg__bubble"><div class="bq-msg__typing"><span></span><span></span><span></span></div></div>`;
+  chatMsgs.appendChild(div);
+  chatMsgs.scrollTop=chatMsgs.scrollHeight;
+}
+function removeTyping(){const el=document.getElementById('typingEl');if(el)el.remove();}
+
+async function sendMsg(q){
+  if(!q||chatLoading)return;
+  chatLoading=true;
+  chatSend.disabled=true;
+  chatInput.value='';
+  addMsg('user',q);
+  addTyping();
+
+  try{
+    const res=await fetch(CHAT_API,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},
+      body:JSON.stringify({question:q,history:chatHistory.slice(-8)})
+    });
+    const data=await res.json();
+    removeTyping();
+    const answer=data.answer||'Javob olishda xatolik yuz berdi.';
+    addMsg('ai',answer);
+    chatHistory.push({role:'user',content:q},{role:'assistant',content:answer});
+    // AI tayyor pill
+    const ap=document.getElementById('bqAiPill');
+    if(ap)ap.style.display='inline-flex';
+  }catch(e){
+    removeTyping();
+    addMsg('ai','Tarmoq xatosi yuz berdi. Qayta urinib ko\'ring.');
+  }finally{
+    chatLoading=false;
+    chatSend.disabled=false;
+    chatInput.focus();
+  }
+}
+
+chatSend.addEventListener('click',()=>sendMsg(chatInput.value.trim()));
+chatInput.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg(chatInput.value.trim());}
+});
+chatInput.addEventListener('input',function(){
+  this.style.height='auto';
+  this.style.height=Math.min(this.scrollHeight,120)+'px';
+});
+
+// Quick prompts
+document.querySelectorAll('.bq-chat__prompt').forEach(btn=>{
+  btn.addEventListener('click',function(){
+    if(!chatPanel.classList.contains('open'))openChat();
+    sendMsg(this.dataset.q);
+  });
+});
+
+/* ── Auto refresh: archive/unarchive o'zgarishlarini tez ushlash ── */
+let bqLastRefresh = 0;
+function refreshCurrentRange(force=false){
+  const now = Date.now();
+  if(!force && now - bqLastRefresh < 8000) return;
+  bqLastRefresh = now;
+  load(fromI.value,toI.value);
+}
+
+window.addEventListener('focus',()=>refreshCurrentRange(true));
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState === 'visible') refreshCurrentRange(true);
+});
+setInterval(()=>{
+  if(document.visibilityState === 'visible') refreshCurrentRange();
+}, 15000);
+
+/* ── Boshlang'ich yuklanish ── */
+load(fromI.value,toI.value);
+
+})();
+</script>
+{% endblock %}

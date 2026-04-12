@@ -315,6 +315,10 @@ def home(request):
     if u.is_superuser:
         return redirect("platform_global:superadmin_dashboard")
 
+    if role == "director":
+        return render(request, "core/dashboard_director.html", {
+            "center": center,
+        })
 
     stats = _build_stats(center)
 
@@ -322,9 +326,6 @@ def home(request):
         "stats": stats,
         "center": center,
     }
-
-    if role == "director":
-        return redirect("core:stat_students")
 
     if role == "manager":
         # Add low activity students for manager

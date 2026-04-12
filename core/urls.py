@@ -58,6 +58,9 @@ urlpatterns = [
     path('trash/manager-access/<int:user_id>/', trash.toggle_manager_user_trash_access, name='toggle_manager_user_trash_access'),
     
     # ═══════════════════ Director Dashboards ═══════════════════
+    path('boshqaruv/',                    dashboard_views.director_boshqaruv,               name='director_boshqaruv'),
+    path('api/boshqaruv/',                dashboard_views.director_boshqaruv_api,           name='director_boshqaruv_api'),
+    path('api/boshqaruv/chat/',           dashboard_views.director_boshqaruv_chat,          name='director_boshqaruv_chat'),
     path('dashboards/',                   dashboard_views.dashboard_hub,                    name='dashboard_hub'),
     path('dashboards/overview/',          dashboard_views.director_overview,                name='director_overview'),
     path('dashboards/financial/',         dashboard_views.financial_dashboard,               name='financial_dashboard'),
@@ -70,6 +73,7 @@ urlpatterns = [
     path('dashboards/analytics/',         dashboard_views.analytics_dashboard,               name='analytics_dashboard'),
     # Dashboard APIs
     path('api/dashboards/financial/',     dashboard_views.financial_api,                     name='financial_api'),
+    path('api/dashboards/overview/',      dashboard_views.overview_api,                      name='overview_api'),
     path('api/dashboards/students/',      dashboard_views.student_performance_api,           name='student_performance_api'),
     path('api/dashboards/teachers/',      dashboard_views.teacher_performance_api,           name='teacher_performance_api'),
     path('api/dashboards/groups/',        dashboard_views.groups_api,                        name='groups_api'),
