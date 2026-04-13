@@ -116,3 +116,21 @@ services:
       #   sync: false
       # - key: DATABASE_URL
       #   sync: false
+
+  # ==================== CRON JOB - PAYMENT DISCIPLINE RULES ====================
+  # Har kuni 02:00 Asia/Tashkent = 21:00 UTC; deadline o'tmagan kunlarda no-op.
+  - type: cron
+    name: payment-discipline-rules
+    env: python
+    region: frankfurt
+    schedule: "0 21 * * *"   # 21:00 UTC = 02:00 Asia/Tashkent
+    buildCommand: pip install -r requirements.txt
+    startCommand: python manage.py process_lightning_rules
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings
+      - key: TIME_ZONE
+        value: Asia/Tashkent
+      # Quyidagilarni Render Dashboard da qo'shing (sync: false):
+      # - key: DATABASE_URL
+      #   sync: false

@@ -1,6 +1,5 @@
 from django.core.management.base import BaseCommand
-from django.utils import timezone
-from chaqmoq.services import apply_payment_discipline_penalties, apply_payment_discipline_penalties # Wait, I named it apply_payment_discipline_penalties in my previous multi_replace
+from chaqmoq.services import apply_payment_discipline_penalties
 
 class Command(BaseCommand):
     help = 'Processes automatic lightning rules (attendance and payment discipline)'

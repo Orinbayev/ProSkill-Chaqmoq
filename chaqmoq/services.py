@@ -382,16 +382,52 @@ def check_payment_discipline_bonus(*, enrollment, center, created_by=None) -> bo
     return bonused
 
 
-def apply_payment_discipline_penalties(*, center: Center) -> int:
+def _get_payment_discipline_rule_for_center(center):
+    return (
+        Rule.objects.filter(
+            center=center,
+            tur=Rule.PAYMENT_DISCIPLINE,
+            discipline_active=True,
+        ).first()
+        or Rule.objects.filter(
+            center__isnull=True,
+            tur=Rule.PAYMENT_DISCIPLINE,
+            discipline_active=True,
+        ).first()
+    )
+
+
+def apply_payment_discipline_penalties(*, center=None) -> int:
     """
     CRON yoki Management Command orqali har kuni ishga tushadi.
     Deadline o'tgan bo'lsa va hali ham to'liq to'lanmagan bo'lsa - jarima qo'llaydi.
+
+    center berilmasa barcha faol To'lov intizomi qoidalari bor markazlarni tekshiradi.
     """
-    rule = Rule.objects.filter(
-        center=center, 
-        tur=Rule.PAYMENT_DISCIPLINE, 
-        discipline_active=True
-    ).first()
+    if center is None:
+        from accounts.models import Center
+
+        center_ids = set(
+            Rule.objects.filter(
+                tur=Rule.PAYMENT_DISCIPLINE,
+                discipline_active=True,
+                center__isnull=False,
+            ).values_list("center_id", flat=True)
+        )
+
+        if Rule.objects.filter(
+            tur=Rule.PAYMENT_DISCIPLINE,
+            discipline_active=True,
+            center__isnull=True,
+        ).exists():
+            center_ids.update(Center.objects.values_list("id", flat=True))
+
+        total = 0
+        for current_center in Center.objects.filter(id__in=center_ids):
+            total += apply_payment_discipline_penalties(center=current_center)
+        return total
+
+    rule = _get_payment_discipline_rule_for_center(center)
 
     if not rule or not rule.discipline_penalty_score:
         return 0
@@ -409,10 +445,10 @@ def apply_payment_discipline_penalties(*, center: Center) -> int:
     cur_month = month_first_day(now)
     
     # Shu oyda allaqachon jarima qo'llanilgan student IDlar
-    already_served = Ledger.objects.filter(
+    already_served = set(Ledger.objects.filter(
         rule=rule,
         related_month=cur_month
-    ).values_list('student_id', flat=True)
+    ).values_list('student_id', flat=True))
 
     # Faol enrollmentlar (hali jarima olmaganlar)
     enrollments = Enrollment.objects.filter(
@@ -426,6 +462,9 @@ def apply_payment_discipline_penalties(*, center: Center) -> int:
     penalty = rule.discipline_penalty_score # Manfiy son bo'lishi kerak
 
     for enr in enrollments:
+        if enr.student_id in already_served:
+            continue
+
         paid = get_month_paid(enr, cur_month)
         fee = get_fee_amount(enr)
 
@@ -448,7 +487,7 @@ def apply_payment_discipline_penalties(*, center: Center) -> int:
                     notification_type='coin'
                 )
                 count += 1
+                already_served.add(enr.student_id)
                 logger.info(f"Penalty applied to {enr.student.email} for {cur_month}")
 
     return count
-
