@@ -229,33 +229,9 @@ async def teacher_income(message: types.Message, state: FSMContext):
         total_recv  = real.get("total_received", 0)
         teacher_sh  = real.get("teacher_share", 0)
 
-        # Guruhlar satrlari
-        if breakdown:
-            lines = []
-            for item in breakdown:
-                group_total  = int(item.get("group_total", 0))
-                teacher_part = int(item.get("teacher_part", 0))
-                students     = item.get("students", 0)
-                foiz         = item.get("foiz", 40)
-                if group_total > 0:
-                    lines.append(
-                        f"• <b>{item['group_name']}</b>\n"
-                        f"  👥 {students} o'quvchi  |  💰 {group_total:,} so'm\n"
-                        f"  📌 Sizning ulushingiz ({foiz}%): <b>{teacher_part:,} so'm</b>"
-                    )
-                else:
-                    lines.append(
-                        f"• <b>{item['group_name']}</b>\n"
-                        f"  👥 {students} o'quvchi  |  💸 Bu oyda to'lov yo'q"
-                    )
-            breakdown_text = "\n\n".join(lines)
-        else:
-            breakdown_text = "❌ Guruhlar topilmadi."
-
         # Sana formati: 1 aprel — 13 aprel
         def fmt_date(d: str) -> str:
             try:
-                from datetime import date as _date
                 parts = d.split("-")
                 months_uz = ["","yanvar","fevral","mart","aprel","may","iyun",
                              "iyul","avgust","sentabr","oktabr","noyabr","dekabr"]
@@ -263,14 +239,35 @@ async def teacher_income(message: types.Message, state: FSMContext):
             except Exception:
                 return d
 
+        # Guruhlar satrlari
+        if breakdown:
+            lines = []
+            for item in breakdown:
+                teacher_part = int(item.get("teacher_part", 0))
+                students     = item.get("students", 0)
+                foiz         = item.get("foiz", 40)
+                if teacher_part > 0:
+                    lines.append(
+                        f"• <b>{item['group_name']}</b>\n"
+                        f"  👥 {students} o'quvchi  |  📌 {foiz}%\n"
+                        f"  💰 Sizning ulushingiz: <b>{teacher_part:,} so'm</b>"
+                    )
+                else:
+                    lines.append(
+                        f"• <b>{item['group_name']}</b>\n"
+                        f"  👥 {students} o'quvchi  |  💸 Bu oyda davomat hisoblanmagan"
+                    )
+            breakdown_text = "\n\n".join(lines)
+        else:
+            breakdown_text = "❌ Guruhlar topilmadi."
+
         text = (
             f"💵 <b>Oylik daromad hisoboti</b>\n"
             f"📅 <i>{fmt_date(month_start)} — {fmt_date(today_str)}</i>\n\n"
             f"<b>Guruhlar kesimida:</b>\n\n"
             f"{breakdown_text}\n\n"
             f"{'─'*30}\n"
-            f"📥 Jami kelib tushgan to'lovlar: <b>{total_recv:,} so'm</b>\n"
-            f"✅ Sizning ulushingiz: <b>{teacher_sh:,} so'm</b>"
+            f"✅ Jami daromadingiz: <b>{teacher_sh:,} so'm</b>"
         )
         await message.answer(text, parse_mode="HTML")
     except Exception:
