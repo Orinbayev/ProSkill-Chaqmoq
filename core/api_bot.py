@@ -539,110 +539,81 @@ def _teacher_students_payload(group: Group) -> list[dict]:
 
 def _teacher_real_income(teacher: User, center) -> dict:
     """
-    Oyning 1-sanasidan BUGUNGA qadar o'qituvchining daromadini
-    SAYT bilan bir xil formula bo'yicha hisoblaydi:
-      daromad = round(kurs_narhi / oy_dars_soni * foiz / 100) * o'tilgan_darslar
+    Sayt (education:teacher_income_dashboard) bilan AYNAN bir xil raqamni qaytaradi.
+    HistoricalFinanceService.calculate_teacher_salary() ni to'g'ridan chaqiradi.
     """
+    from education.services.historical_finance_service import HistoricalFinanceService
+
     today = timezone.localdate()
     month_start = today.replace(day=1)
 
-    # O'qituvchining barcha faol guruhlari (kurs narxi va dars soni bilan)
-    teacher_groups = list(
+    # Sayt bilan bir xil hisob
+    salary_data = HistoricalFinanceService.calculate_teacher_salary(
+        teacher, today.year, today.month, center
+    )
+
+    # Saytdagi details → bot breakdown formatiga o'tkazish
+    details = salary_data.get("details", [])
+
+    # Har bir guruh uchun faol o'quvchilar soni
+    group_ids_from_details = [d["group_id"] for d in details if "group_id" in d]
+    enrollment_counts: dict[int, int] = {}
+    if group_ids_from_details:
+        enrollment_counts = dict(
+            Enrollment.objects
+            .filter(group_id__in=group_ids_from_details, is_active=True)
+            .values("group_id")
+            .annotate(cnt=Count("student_id", distinct=True))
+            .values_list("group_id", "cnt")
+        )
+
+    # details'da bo'lmagan guruhlarni (davomat yo'q) ham qo'shamiz
+    all_groups = (
         Group.objects
         .filter(oqituvchi=teacher, center=center, is_archived=False)
         .order_by("nom")
+        .values("id", "nom", "oqituvchi_foiz")
     )
-    group_ids = [g.id for g in teacher_groups]
+    detail_group_ids = {d["group_id"] for d in details if "group_id" in d}
 
-    if not group_ids:
-        return {
-            "month_start": str(month_start),
-            "today": str(today),
-            "breakdown": [],
-            "total_received": 0,
-            "teacher_share": 0,
-        }
-
-    # Faol o'quvchilar soni (har bir guruh uchun)
-    enrollment_counts = dict(
+    # Barcha faol guruhlar enrollment soni
+    all_group_ids = [g["id"] for g in all_groups]
+    all_enrollment_counts = dict(
         Enrollment.objects
-        .filter(group_id__in=group_ids, is_active=True)
+        .filter(group_id__in=all_group_ids, is_active=True)
         .values("group_id")
         .annotate(cnt=Count("student_id", distinct=True))
         .values_list("group_id", "cnt")
     )
 
-    # Enrollment: har bir (group_id, student_id) uchun kurs_narhi va foiz
-    # Barcha faol enrollmentlarni olamiz
-    enrollments_qs = (
-        Enrollment.objects
-        .filter(group_id__in=group_ids, is_active=True)
-        .values("group_id", "student_id", "kurs_narhi", "oqituvchi_foiz")
-    )
-    # enr_map[group_id][student_id] = (kurs_narhi, foiz)
-    enr_map: dict[int, dict[int, tuple[int, int]]] = {}
-    for e in enrollments_qs:
-        gid = e["group_id"]
-        sid = e["student_id"]
-        foiz_enr = getattr(teacher, "oqituvchi_foizi", 0) or e["oqituvchi_foiz"] or 0
-        enr_map.setdefault(gid, {})[sid] = (e["kurs_narhi"] or 0, foiz_enr)
-
-    # Bu oy davomati: (group_id, student_id) → o'tilgan darslar soni
-    att_qs = (
-        Attendance.objects
-        .filter(
-            group_id__in=group_ids,
-            date__gte=month_start,
-            date__lte=today,
-        )
-        .filter(PRESENT_FILTER)
-        .values("group_id", "student_id")
-        .annotate(cnt=Count("id"))
-    )
-    # att_map[group_id][student_id] = cnt
-    att_map: dict[int, dict[int, int]] = {}
-    for row in att_qs:
-        att_map.setdefault(row["group_id"], {})[row["student_id"]] = row["cnt"]
-
-    # Guruh meta-ma'lumotlari
-    group_meta = {g.id: g for g in teacher_groups}
-
+    # details'dagi guruhlarni breakdown'ga qo'shamiz
+    detail_map = {d["group_id"]: d for d in details if "group_id" in d}
     breakdown = []
-    teacher_share_total = 0
-
-    for g in teacher_groups:
-        oy_dars_soni = g.oy_dars_soni or 12
-        if oy_dars_soni <= 0:
-            oy_dars_soni = 12
-
-        group_teacher_total = 0
-        g_atts = att_map.get(g.id, {})
-
-        for sid, lessons in g_atts.items():
-            kurs_narhi, foiz = enr_map.get(g.id, {}).get(sid, (0, 0))
-            if kurs_narhi > 0 and foiz > 0:
-                per_lesson = round((kurs_narhi / oy_dars_soni) * (foiz / 100))
-                group_teacher_total += per_lesson * lessons
-
-        students = enrollment_counts.get(g.id, 0)
-        # Guruh foizi (display uchun)
-        foiz_display = getattr(teacher, "oqituvchi_foizi", None) or g.oqituvchi_foiz or 40
-
-        teacher_share_total += group_teacher_total
+    for g in all_groups:
+        gid = g["id"]
+        foiz_display = (
+            getattr(teacher, "oqituvchi_foizi", None) or g["oqituvchi_foiz"] or 40
+        )
+        students = all_enrollment_counts.get(gid, 0)
+        if gid in detail_map:
+            teacher_part = int(detail_map[gid].get("salary", 0))
+        else:
+            teacher_part = 0
         breakdown.append({
-            "group_name": g.nom,
+            "group_name": g["nom"],
             "students": students,
-            "group_total": group_teacher_total,   # bu yerda faqat o'qituvchi ulushi
-            "teacher_part": group_teacher_total,
+            "group_total": teacher_part,
+            "teacher_part": teacher_part,
             "foiz": foiz_display,
         })
 
+    total = int(salary_data.get("salary", 0))
     return {
         "month_start": str(month_start),
         "today": str(today),
         "breakdown": breakdown,
-        "total_received": teacher_share_total,
-        "teacher_share": teacher_share_total,
+        "total_received": total,
+        "teacher_share": total,
     }
 
 
