@@ -5,6 +5,22 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+@login_required
+def churn_api_summary(request):
+    """Boshqaruv sahifasi uchun churn statistikasi (JSON)."""
+    center = getattr(request, 'center', None) or getattr(request.user, 'center', None)
+    if not center:
+        return JsonResponse({'total': 0, 'high': 0, 'medium': 0, 'low': 0})
+    from .models import ChurnRisk
+    qs = ChurnRisk.objects.filter(center=center)
+    return JsonResponse({
+        'total':  qs.count(),
+        'high':   qs.filter(risk_level='high').count(),
+        'medium': qs.filter(risk_level='medium').count(),
+        'low':    qs.filter(risk_level='low').count(),
+    })
+
 @require_POST
 @login_required
 def notifications_mark_read_api(request):

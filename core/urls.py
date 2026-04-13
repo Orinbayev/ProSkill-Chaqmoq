@@ -1,5 +1,6 @@
 from django.urls import path, include
 from . import views, api_views, api_dashboard, trash, dashboard_views
+
 from accounts import views as accounts_views
 
 app_name = 'core'
@@ -47,6 +48,7 @@ urlpatterns = [
     path('notifications/read/', views.notifications_mark_read, name="notifications_mark_read"),
     path('notifications/preferences/', views.notification_preferences_view, name="notification_preferences"),
     path('notifications/api/read-all/', api_views.notifications_mark_read_api, name='notifications_mark_read_api'),
+    path('api/churn/summary/', api_views.churn_api_summary, name='churn_api_summary'),
     path('dashboard/students/low-activity/', views.low_activity_students, name='low_activity_students'),
     path('dashboard/students/churn-notify/<int:pk>/', views.churn_notify_student, name='churn_notify'),
     path('notifications/broadcast/', views.notification_broadcast, name="notification_broadcast"),

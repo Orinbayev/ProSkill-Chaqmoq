@@ -3,6 +3,7 @@ from .auth_views import SecureLoginView
 from . import password_reset_views
 from . import api_auth
 from . import telegram_views
+from core import api_bot
 
 urlpatterns = [
     path('', SecureLoginView.as_view(), name='login'),
@@ -33,5 +34,16 @@ urlpatterns = [
     path('bot-manage-admins/', api_auth.manage_bot_admins_api, name='bot_manage_admins'),
     path('bot-settings/', api_auth.bot_settings_api, name='bot_settings_api'),
     path('bot-parent-reports-data/', api_auth.get_parent_reports_data, name='bot_parent_reports_data'),
+    path('bot-dashboard/', api_bot.bot_dashboard, name='bot_dashboard'),
+    path('bot-notification-settings/', api_bot.bot_notification_settings, name='bot_notification_settings'),
+    path('bot-store-purchase-request/', api_bot.bot_store_purchase_request_create, name='bot_store_purchase_request'),
+    path('bot-group-attendance-sheet/', api_bot.bot_group_attendance_sheet, name='bot_group_attendance_sheet'),
+    path('bot-group-attendance-mark/', api_bot.bot_group_attendance_mark, name='bot_group_attendance_mark'),
+    path('bot-broadcast-audience/', api_bot.bot_broadcast_audience, name='bot_broadcast_audience'),
+    path('bot-inline-student-search/', api_bot.bot_inline_student_search, name='bot_inline_student_search'),
+    path('bot-deep-link/', api_bot.bot_deep_link, name='bot_deep_link'),
+    path('bot-scheduler-payment-reminders/', api_bot.bot_scheduler_payment_reminders, name='bot_scheduler_payment_reminders'),
+    path('bot-scheduler-parent-attendance/', api_bot.bot_scheduler_parent_attendance, name='bot_scheduler_parent_attendance'),
+    path('bot-scheduler-weekly-reports/', api_bot.bot_scheduler_weekly_reports, name='bot_scheduler_weekly_reports'),
+    path('bot-scheduler-month-end-reminders/', api_bot.bot_scheduler_month_end_reminders, name='bot_scheduler_month_end_reminders'),
 ]
-

@@ -316,9 +316,7 @@ def home(request):
         return redirect("platform_global:superadmin_dashboard")
 
     if role == "director":
-        return render(request, "core/dashboard_director.html", {
-            "center": center,
-        })
+        return redirect("core:director_boshqaruv")
 
     stats = _build_stats(center)
 

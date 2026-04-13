@@ -1,5 +1,8 @@
 import httpx
+import logging
 from app_config import BACKEND_URL, API_SECRET
+
+logger = logging.getLogger(__name__)
 
 async def link_account_api(phone: str, code: str, telegram_id: str, telegram_username: str = None):
     url = f"{BACKEND_URL}/hisob/login/bot-link-telegram/" # Changed to match typical URL pattern if needed, but let's check auth_urls.py
@@ -151,3 +154,102 @@ async def get_parent_reports_api():
             return response.status_code, response.json()
         except Exception as e:
             return 500, {"error": str(e)}
+
+
+async def _bot_json_request(method: str, path: str, *, params: dict | None = None, data: dict | None = None):
+    url = f"{BACKEND_URL}/hisob/login/{path.lstrip('/')}"
+    headers = {"X-API-SECRET": API_SECRET}
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.request(method.upper(), url, params=params, json=data, headers=headers)
+            return response.status_code, response.json()
+        except Exception as e:
+            logger.exception("Bot API request failed: %s %s", method, url)
+            return 500, {"error": str(e)}
+
+
+async def get_bot_dashboard_api(telegram_id: str, email: str, child_id: int | None = None, group_id: int | None = None):
+    params = {"telegram_id": telegram_id, "email": email}
+    if child_id:
+        params["child_id"] = child_id
+    if group_id:
+        params["group_id"] = group_id
+    return await _bot_json_request("GET", "bot-dashboard/", params=params)
+
+
+async def update_notification_settings_api(telegram_id: str, email: str, enabled: bool):
+    return await _bot_json_request(
+        "POST",
+        "bot-notification-settings/",
+        data={"telegram_id": telegram_id, "email": email, "enabled": enabled},
+    )
+
+
+async def create_purchase_request_api(telegram_id: str, email: str, product_id: int, qty: int = 1):
+    return await _bot_json_request(
+        "POST",
+        "bot-store-purchase-request/",
+        data={"telegram_id": telegram_id, "email": email, "product_id": product_id, "qty": qty},
+    )
+
+
+async def get_group_attendance_sheet_api(telegram_id: str, email: str, group_id: int):
+    return await _bot_json_request(
+        "GET",
+        "bot-group-attendance-sheet/",
+        params={"telegram_id": telegram_id, "email": email, "group_id": group_id},
+    )
+
+
+async def mark_group_attendance_api(telegram_id: str, email: str, group_id: int, student_id: int, status: str):
+    return await _bot_json_request(
+        "POST",
+        "bot-group-attendance-mark/",
+        data={
+            "telegram_id": telegram_id,
+            "email": email,
+            "group_id": group_id,
+            "student_id": student_id,
+            "status": status,
+        },
+    )
+
+
+async def get_broadcast_audience_api(telegram_id: str, email: str, audience: str):
+    return await _bot_json_request(
+        "GET",
+        "bot-broadcast-audience/",
+        params={"telegram_id": telegram_id, "email": email, "audience": audience},
+    )
+
+
+async def search_inline_students_api(telegram_id: str, q: str):
+    return await _bot_json_request(
+        "GET",
+        "bot-inline-student-search/",
+        params={"telegram_id": telegram_id, "q": q},
+    )
+
+
+async def resolve_deep_link_api(telegram_id: str, email: str, param: str):
+    return await _bot_json_request(
+        "GET",
+        "bot-deep-link/",
+        params={"telegram_id": telegram_id, "email": email, "param": param},
+    )
+
+
+async def get_scheduler_payment_reminders_api():
+    return await _bot_json_request("GET", "bot-scheduler-payment-reminders/")
+
+
+async def get_scheduler_parent_attendance_api():
+    return await _bot_json_request("GET", "bot-scheduler-parent-attendance/")
+
+
+async def get_scheduler_weekly_reports_api():
+    return await _bot_json_request("GET", "bot-scheduler-weekly-reports/")
+
+
+async def get_scheduler_month_end_reminders_api():
+    return await _bot_json_request("GET", "bot-scheduler-month-end-reminders/")

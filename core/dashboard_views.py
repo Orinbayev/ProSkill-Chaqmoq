@@ -1300,6 +1300,10 @@ def _boshqaruv_payload(center, d_from, d_to):
     att_present = att_qs.filter(present_filter).count()
     avg_attendance = round(att_present / att_total * 100, 1) if att_total else 0
 
+    # ── O'qituvchilar va Managerlar ────────────────────────────
+    teachers_count = User.objects.filter(center=center, role="teacher", is_archived=False).count()
+    managers_count = User.objects.filter(center=center, role="manager", is_archived=False).count()
+
     # ── Lidlar ─────────────────────────────────────────────────
     converted_filter = Q(converted_to_student=True) | Q(converted_user__isnull=False)
     leads_qs = Lead.objects.filter(center=center, qoshilgan_sana__date__range=(d_from, d_to))
@@ -1608,6 +1612,8 @@ def _boshqaruv_payload(center, d_from, d_to):
             "total_groups": total_groups,
             "active_groups": active_groups,
             "avg_attendance": avg_attendance,
+            "teachers_count": teachers_count,
+            "managers_count": managers_count,
             "total_leads": total_leads,
             "conv_rate": conv_rate,
             "changes": {

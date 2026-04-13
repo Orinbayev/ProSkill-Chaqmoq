@@ -1,17 +1,22 @@
 from aiogram import Router, types
 from aiogram.filters import CommandStart
+from aiogram.filters.command import CommandObject
 from aiogram.fsm.context import FSMContext
 from keyboards.profile_selector import get_profile_selection_keyboard
 from keyboards.contact_button import get_contact_keyboard
 from keyboards.menu import get_main_menu
 from states.link_state import LinkAccountState
 from services.api_client import get_user_status_api
+from services.deep_link_service import render_deep_link
 
 router = Router()
 
 @router.message(CommandStart())
-async def cmd_start(message: types.Message, state: FSMContext):
+async def cmd_start(message: types.Message, state: FSMContext, command: CommandObject):
     await state.clear()
+    start_param = (command.args or "").strip() if command else ""
+    if start_param:
+        await state.update_data(pending_start_param=start_param)
     
     # Check if user is already linked
     status_code, response = await get_user_status_api(str(message.from_user.id))
@@ -30,14 +35,25 @@ async def cmd_start(message: types.Message, state: FSMContext):
             # Only one profile
             user_info = users[0]
             # Save selected user in state permanently
-            await state.update_data(current_user_email=user_info.get("email"))
+            await state.update_data(
+                current_user_email=user_info.get("email"),
+                current_user_role=user_info.get("role"),
+                current_user_name=user_info.get("ism"),
+            )
             
             welcome_msg = (
                 f"👤 <b>Assalomu alaykum, {user_info.get('ism')}!</b>\n\n"
                 f"Telegram botimizga xush kelibsiz. Hisobingiz muvaffaqiyatli bog'langan.\n"
                 f"Quyidagi menyu orqali botdan foydalanishingiz mumkin."
             )
-            await message.answer(welcome_msg, reply_markup=get_main_menu(), parse_mode="HTML")
+            await message.answer(
+                welcome_msg,
+                reply_markup=get_main_menu(user_info.get("role")),
+                parse_mode="HTML",
+            )
+            if start_param:
+                await render_deep_link(message, str(message.from_user.id), user_info.get("email"), start_param)
+                await state.update_data(pending_start_param=None)
     else:
         # Not linked or error
         await message.answer(

@@ -5,6 +5,7 @@ from keyboards.profile_selector import get_profile_selection_keyboard, get_profi
 from keyboards.contact_button import get_contact_keyboard
 from keyboards.menu import get_main_menu
 from services.api_client import get_user_details_api, unlink_account_api, get_user_status_api
+from services.deep_link_service import render_deep_link
 
 router = Router()
 
@@ -83,17 +84,27 @@ async def switch_profile_menu(message: types.Message, state: FSMContext):
 @router.callback_query(F.data.startswith("select_profile:"))
 async def select_profile_callback(callback: types.CallbackQuery, state: FSMContext):
     email = callback.data.split(":")[1]
-    await state.update_data(current_user_email=email)
     
     status_code, response = await get_user_details_api(str(callback.from_user.id), email=email)
     if status_code == 200:
         profile = response.get("profile", {})
+        data = await state.get_data()
+        pending_start_param = data.get("pending_start_param")
+        await state.update_data(
+            current_user_email=email,
+            current_user_role=profile.get("role_key"),
+            current_user_name=profile.get("full_name"),
+            current_user_id=profile.get("id"),
+        )
         await callback.answer(f"✅ Profil o'zgartirildi: {profile.get('ism')}")
         await callback.message.answer(
             f"✅ Faol profil: <b>{profile.get('full_name')}</b> ({profile.get('role')})",
-            reply_markup=get_main_menu(),
+            reply_markup=get_main_menu(profile.get("role_key")),
             parse_mode="HTML"
         )
+        if pending_start_param:
+            await render_deep_link(callback.message, str(callback.from_user.id), email, pending_start_param)
+            await state.update_data(pending_start_param=None)
     else:
         await callback.answer("❌ Profil yuklanmadi.")
 
@@ -120,7 +131,11 @@ async def execute_unlink_single(callback: types.CallbackQuery, state: FSMContext
             data = await state.get_data()
             if data.get("current_user_email") == email:
                 new_user = status_response.get("users")[0]
-                await state.update_data(current_user_email=new_user.get("email"))
+                await state.update_data(
+                    current_user_email=new_user.get("email"),
+                    current_user_role=new_user.get("role"),
+                    current_user_name=new_user.get("ism"),
+                )
                 await callback.message.answer(f"🔄 Faol profil o'zgardi: <b>{new_user.get('ism')}</b>", parse_mode="HTML")
         else:
             await state.clear()

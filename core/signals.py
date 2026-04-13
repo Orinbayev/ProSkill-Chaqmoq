@@ -4,6 +4,8 @@ from .models import Notification, NotificationPreference
 from chaqmoq.models import Ledger
 from store.models import PurchaseRequest
 from accounts.models import Center
+from accounts.utils_bot import send_telegram_message
+from education.models import Attendance
 
 
 def _should_notify(user, notification_type: str) -> bool:
@@ -43,6 +45,38 @@ def notify_ledger_change(sender, instance, created, **kwargs):
             message=msg,
             type="coin",
         )
+
+        if user.is_telegram_linked and user.telegram_id:
+            total_balance = Ledger.student_balansi(user.id, center=instance.group.center if instance.group else user.center)
+            delta = f"+{instance.ball}" if instance.ball > 0 else str(instance.ball)
+            tg_text = f"⚡ {delta} Chaqmoq ball o'zgardi! Jami: {total_balance}"
+            send_telegram_message(user.telegram_id, tg_text)
+
+
+@receiver(post_save, sender=Attendance)
+def apply_attendance_lightning_rules(sender, instance, created, **kwargs):
+    center = instance.center or getattr(instance.group, "center", None)
+    if not instance.student or not center:
+        return
+
+    try:
+        from chaqmoq.services import check_attendance_bonus, check_attendance_penalty
+
+        actor = instance.created_by or instance.teacher
+        check_attendance_bonus(
+            student=instance.student,
+            center=center,
+            created_by=actor,
+            target_date=instance.date,
+        )
+        check_attendance_penalty(
+            student=instance.student,
+            center=center,
+            created_by=actor,
+            target_date=instance.date,
+        )
+    except Exception:
+        pass
 
 @receiver(post_save, sender=Center)
 def invalidate_center_middleware_cache(sender, instance, **kwargs):

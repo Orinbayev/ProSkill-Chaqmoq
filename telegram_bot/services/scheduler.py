@@ -2,7 +2,13 @@ import asyncio
 import logging
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from services.api_client import get_parent_reports_api, get_settings_api
+from services.api_client import (
+    get_parent_reports_api,
+    get_scheduler_month_end_reminders_api,
+    get_scheduler_parent_attendance_api,
+    get_scheduler_payment_reminders_api,
+    get_scheduler_weekly_reports_api,
+)
 from datetime import datetime
 import pytz
 from aiogram import html
@@ -62,20 +68,66 @@ async def send_daily_reports(bot):
 
     logger.info(f"Daily reports job finished. Sent: {sent}")
 
+
+async def _dispatch_scheduler_payload(bot, job_name: str, fetcher):
+    logger.info("Scheduler job started: %s", job_name)
+    try:
+        status, data = await fetcher()
+        if status != 200 or not data.get("ok"):
+            logger.warning("Scheduler job failed: %s status=%s", job_name, status)
+            return
+
+        items = data.get("items", [])
+        if not items:
+            logger.info("Scheduler job has no recipients: %s", job_name)
+            return
+
+        sent = 0
+        for item in items:
+            chat_id = item.get("chat_id")
+            text = item.get("text")
+            if not chat_id or not text:
+                continue
+            try:
+                await bot.send_message(chat_id, text, parse_mode="HTML")
+                sent += 1
+                await asyncio.sleep(0.05)
+            except Exception as exc:
+                logger.warning("%s: failed to send to %s: %s", job_name, chat_id, exc)
+
+        logger.info("Scheduler job finished: %s sent=%s", job_name, sent)
+    except Exception as exc:
+        logger.exception("Scheduler dispatch crashed: %s / %s", job_name, exc)
+
 async def setup_scheduler(bot):
     scheduler = AsyncIOScheduler(timezone='Asia/Tashkent')
     
-    async def scheduled_task():
+    async def configured_parent_reports_job():
         uz_tz = pytz.timezone('Asia/Tashkent')
         now = datetime.now(uz_tz).strftime("%H:%M")
         
-        # Default 20:00 (In a real app, fetch from settings)
+        # Legacy daily points report saqlanadi.
         target_time = "20:00" 
         
         if now == target_time:
             await send_daily_reports(bot)
 
-    # Check every minute
-    scheduler.add_job(scheduled_task, CronTrigger(second=0))
+    async def payment_reminders_job():
+        await _dispatch_scheduler_payload(bot, "payment_reminders", get_scheduler_payment_reminders_api)
+
+    async def parent_attendance_job():
+        await _dispatch_scheduler_payload(bot, "parent_attendance", get_scheduler_parent_attendance_api)
+
+    async def weekly_reports_job():
+        await _dispatch_scheduler_payload(bot, "weekly_reports", get_scheduler_weekly_reports_api)
+
+    async def month_end_job():
+        await _dispatch_scheduler_payload(bot, "month_end_reminders", get_scheduler_month_end_reminders_api)
+
+    scheduler.add_job(configured_parent_reports_job, CronTrigger(second=0), id="legacy_daily_parent_reports")
+    scheduler.add_job(payment_reminders_job, CronTrigger(day="*/2", hour=9, minute=0), id="payment_reminders")
+    scheduler.add_job(parent_attendance_job, CronTrigger(hour=19, minute=0), id="parent_attendance")
+    scheduler.add_job(weekly_reports_job, CronTrigger(day_of_week="sun", hour=20, minute=0), id="weekly_reports")
+    scheduler.add_job(month_end_job, CronTrigger(day=25, hour=9, minute=0), id="month_end_reminders")
     scheduler.start()
     logger.info("Scheduler started.")

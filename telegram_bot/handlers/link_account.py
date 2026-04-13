@@ -4,6 +4,7 @@ from states.link_state import LinkAccountState
 from services.phone_utils import normalize_phone
 from services.api_client import link_account_api
 from keyboards.menu import get_main_menu
+from services.deep_link_service import render_deep_link
 
 router = Router()
 
@@ -27,6 +28,7 @@ async def handle_code(message: types.Message, state: FSMContext):
     code = message.text.strip()
     user_data = await state.get_data()
     phone = user_data.get("phone")
+    pending_start_param = user_data.get("pending_start_param")
     
     status_code, response = await link_account_api(
         phone=phone,
@@ -38,10 +40,16 @@ async def handle_code(message: types.Message, state: FSMContext):
     if status_code == 200:
         updated_phone = response.get("updated_phone", phone)
         user_email = response.get("user", "")
+        user_role = response.get("role")
+        full_name = response.get("full_name")
         
         # Save current user email for multi-profile support
         await state.clear()
-        await state.update_data(current_user_email=user_email)
+        await state.update_data(
+            current_user_email=user_email,
+            current_user_role=user_role,
+            current_user_name=full_name,
+        )
         
         # Proper Telegram formatting (using HTML parse_mode correctly)
         msg = (
@@ -50,7 +58,10 @@ async def handle_code(message: types.Message, state: FSMContext):
             f"Ushbu raqam hisobingizga (<code>{user_email}</code>) biriktirildi.\n\n"
             f"Agar sizda bir nechta profil bo'lsa (masalan, ota-ona va o'quvchi), ularning barchasini bitta Telegramga ulashingiz mumkin."
         )
-        await message.answer(msg, reply_markup=get_main_menu(), parse_mode="HTML")
+        await message.answer(msg, reply_markup=get_main_menu(user_role), parse_mode="HTML")
+        if pending_start_param:
+            await render_deep_link(message, str(message.from_user.id), user_email, pending_start_param)
+            await state.update_data(pending_start_param=None)
     else:
         error_msg = response.get("error", "Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.")
         await message.answer(f"❌ {error_msg}")

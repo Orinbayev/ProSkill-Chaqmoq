@@ -170,7 +170,16 @@ def link_telegram_api(request):
         
         record_activity(user, "Telegram account linked", device_info=f"TG ID: {tg_id}")
         
-        return JsonResponse({"status": "ok", "user": user.email, "updated_phone": user.phone_number})
+        return JsonResponse(
+            {
+                "status": "ok",
+                "user": user.email,
+                "updated_phone": user.phone_number,
+                "role": user.role,
+                "role_display": user.get_role_display(),
+                "full_name": user.get_full_name(),
+            }
+        )
         
     except Exception:
         logger.exception("link_telegram_api failed")
@@ -686,5 +695,4 @@ def get_parent_reports_data(request):
 
     # Return data for bot
     return JsonResponse({"reports": parent_messages})
-
 

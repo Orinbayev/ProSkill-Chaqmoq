@@ -12,6 +12,7 @@ from aiohttp import web
 from app_config import BOT_TOKEN, API_SECRET
 from handlers import start, link_account, profile, activity, security, help
 from handlers import admin_panel, linked_users, broadcast, admins, parents, settings
+from handlers import student, teacher, parent, manager
 from services.scheduler import setup_scheduler
 
 try:
@@ -50,6 +51,10 @@ dp.include_router(broadcast.router)
 dp.include_router(admins.router)
 dp.include_router(parents.router)
 dp.include_router(settings.router)
+dp.include_router(student.router)
+dp.include_router(parent.router)
+dp.include_router(teacher.router)
+dp.include_router(manager.router)
 if backup_router is not None:
     dp.include_router(backup_router)  # Register manual backup command
 

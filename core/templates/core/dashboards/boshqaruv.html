@@ -1124,6 +1124,8 @@
 
       <!-- ── KPI kartalar ── -->
       <div class="bq-kgrid">
+
+        <!-- 1. Daromad -->
         <a class="bq-kpi bq-kpi--green" href="{% url 'education:tolovlar_home' %}">
           <div class="bq-kpi__head">
             <div class="bq-kpi__icon"><i class="fa-solid fa-sack-dollar"></i></div>
@@ -1134,6 +1136,7 @@
           <div class="bq-kpi__sub" id="k1s">Yuklanmoqda...</div>
         </a>
 
+        <!-- 2. Sof Foyda -->
         <div class="bq-kpi bq-kpi--cyan">
           <div class="bq-kpi__head">
             <div class="bq-kpi__icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
@@ -1144,6 +1147,7 @@
           <div class="bq-kpi__sub" id="k2s">—</div>
         </div>
 
+        <!-- 3. Faol O'quvchi -->
         <a class="bq-kpi bq-kpi--blue" href="{% url 'core:stat_students' %}">
           <div class="bq-kpi__head">
             <div class="bq-kpi__icon"><i class="fa-solid fa-user-graduate"></i></div>
@@ -1154,6 +1158,27 @@
           <div class="bq-kpi__sub" id="k3s">—</div>
         </a>
 
+        <!-- 4. O'qituvchilar -->
+        <a class="bq-kpi bq-kpi--violet" href="{% url 'core:teacher_list' %}">
+          <div class="bq-kpi__head">
+            <div class="bq-kpi__icon"><i class="fa-solid fa-chalkboard-user"></i></div>
+          </div>
+          <div class="bq-kpi__lbl">O'qituvchilar</div>
+          <div class="bq-kpi__val" id="k4v" style="color:var(--bq-violet)">—</div>
+          <div class="bq-kpi__sub" id="k4s">Faol o'qituvchilar</div>
+        </a>
+
+        <!-- 5. Managerlar -->
+        <a class="bq-kpi bq-kpi--amber" href="{% url 'core:stat_managers' %}">
+          <div class="bq-kpi__head">
+            <div class="bq-kpi__icon"><i class="fa-solid fa-user-tie"></i></div>
+          </div>
+          <div class="bq-kpi__lbl">Managerlar</div>
+          <div class="bq-kpi__val" id="k5v" style="color:var(--bq-amber)">—</div>
+          <div class="bq-kpi__sub" id="k5s">Faol managerlar</div>
+        </a>
+
+        <!-- 6. Lidlar -->
         <a class="bq-kpi bq-kpi--rose" href="{% url 'store:lead_list' %}">
           <div class="bq-kpi__head">
             <div class="bq-kpi__icon"><i class="fa-solid fa-phone-volume"></i></div>
@@ -1163,6 +1188,7 @@
           <div class="bq-kpi__val" id="k6v" style="color:var(--bq-rose)">—</div>
           <div class="bq-kpi__sub" id="k6s">—</div>
         </a>
+
       </div>
 
       <!-- ── MOLIYA bo'limi ── -->
@@ -1319,6 +1345,66 @@
               <thead><tr><th>#</th><th>O'quvchi</th><th style="width:48%">Davomat</th></tr></thead>
               <tbody id="tblSt"><tr><td colspan="3" style="text-align:center;padding:18px;color:var(--bq-soft)"><i class="fa-solid fa-spinner fa-spin"></i></td></tr></tbody>
             </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CHURN MONITORING ── -->
+      <div class="bq-sec">
+        <div class="bq-sec__hd">
+          <div class="bq-sec__ico" style="background:rgba(244,63,94,.1);color:var(--bq-rose);border-color:rgba(244,63,94,.18)">
+            <i class="fa-solid fa-radar" style="font-size:14px"></i>
+          </div>
+          <div>
+            <h3 class="bq-sec__title">Churn Monitoring</h3>
+            <p class="bq-sec__sub">O'quvchi ketish xavfi — davomat, to'lov, faollik tahlili</p>
+          </div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+            <a href="{% url 'core:low_activity_students' %}"
+               style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:10px;font-size:12px;font-weight:700;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.25);color:#fda4af;text-decoration:none;transition:.2s;"
+               onmouseover="this.style.background='rgba(244,63,94,.18)'"
+               onmouseout="this.style.background='rgba(244,63,94,.1)'">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> To'liq ko'rish
+            </a>
+          </div>
+        </div>
+        <!-- Churn summary cards -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;" id="churnSummaryGrid">
+          <div style="background:rgba(13,21,38,.88);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;">
+            <div style="width:38px;height:38px;border-radius:10px;background:rgba(99,102,241,.12);display:flex;align-items:center;justify-content:center;color:#818cf8;font-size:16px;flex-shrink:0;">
+              <i class="fa-solid fa-users"></i>
+            </div>
+            <div>
+              <div style="font-size:22px;font-weight:900;color:#e2e8f0;line-height:1;" id="churnTotal">—</div>
+              <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-top:2px;">Kuzatilmoqda</div>
+            </div>
+          </div>
+          <div style="background:rgba(13,21,38,.88);border:1px solid rgba(244,63,94,.15);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;">
+            <div style="width:38px;height:38px;border-radius:10px;background:rgba(244,63,94,.1);display:flex;align-items:center;justify-content:center;color:#fda4af;font-size:16px;flex-shrink:0;">
+              <i class="fa-solid fa-circle-exclamation"></i>
+            </div>
+            <div>
+              <div style="font-size:22px;font-weight:900;color:#fda4af;line-height:1;" id="churnHigh">—</div>
+              <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-top:2px;">Yuqori xavf</div>
+            </div>
+          </div>
+          <div style="background:rgba(13,21,38,.88);border:1px solid rgba(245,158,11,.15);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;">
+            <div style="width:38px;height:38px;border-radius:10px;background:rgba(245,158,11,.1);display:flex;align-items:center;justify-content:center;color:#fde68a;font-size:16px;flex-shrink:0;">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+              <div style="font-size:22px;font-weight:900;color:#fde68a;line-height:1;" id="churnMedium">—</div>
+              <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-top:2px;">O'rta xavf</div>
+            </div>
+          </div>
+          <div style="background:rgba(13,21,38,.88);border:1px solid rgba(20,184,166,.15);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;">
+            <div style="width:38px;height:38px;border-radius:10px;background:rgba(20,184,166,.1);display:flex;align-items:center;justify-content:center;color:#5eead4;font-size:16px;flex-shrink:0;">
+              <i class="fa-solid fa-check-circle"></i>
+            </div>
+            <div>
+              <div style="font-size:22px;font-weight:900;color:#5eead4;line-height:1;" id="churnLow">—</div>
+              <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-top:2px;">Past xavf</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1822,6 +1908,12 @@ function render(d){
   document.getElementById('k3s').textContent='Jami: '+fmtN(k.total_students)+' | Yangi: '+fmtN(k.new_this_month);
   badge(document.getElementById('k3d'),k.changes.students);
 
+  document.getElementById('k4v').textContent=fmtN(k.teachers_count)+' ta';
+  document.getElementById('k4s').textContent='Faol o\'qituvchilar';
+
+  document.getElementById('k5v').textContent=fmtN(k.managers_count)+' ta';
+  document.getElementById('k5s').textContent='Faol managerlar';
+
   document.getElementById('k6v').textContent=fmtN(k.total_leads)+' ta';
   document.getElementById('k6s').textContent='Konversiya: '+fmtP(k.conv_rate);
 
@@ -2148,6 +2240,20 @@ document.querySelectorAll('.bq-chat__prompt').forEach(btn=>{
 
 /* ── Boshlang'ich yuklanish ── */
 load(fromI.value,toI.value);
+
+/* ══════════ CHURN SUMMARY ══════════ */
+(function loadChurnSummary(){
+  fetch('{% url "core:churn_api_summary" %}', {cache:'no-store'})
+    .then(r=>r.json())
+    .then(d=>{
+      const set = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
+      set('churnTotal',  d.total  ?? '—');
+      set('churnHigh',   d.high   ?? '—');
+      set('churnMedium', d.medium ?? '—');
+      set('churnLow',    d.low    ?? '—');
+    })
+    .catch(()=>{});
+})();
 
 })();
 </script>
