@@ -2140,86 +2140,123 @@ def _get_low_activity_data(center, limit=10):
 
 @login_required
 def low_activity_students(request):
+    """Churn Prediction — O'quvchi ketish xavfi monitoringi."""
     if not (request.user.is_superuser or getattr(request.user, 'role', None) in ('director', 'manager')):
         from django.core.exceptions import PermissionDenied
         raise PermissionDenied
 
-    center = getattr(request, 'center', None) or request.user.center
+    center = getattr(request, 'center', None) or getattr(request.user, 'center', None)
     if not center:
-        return render(request, "core/low_activity_students.html", {"low_list": []})
-        
-    from django.utils import timezone
-    from datetime import timedelta
-    from django.db.models import Count, Q
-    from education.models import Enrollment
-    from accounts.models import User
-    
-    today = timezone.localtime(timezone.now()).date()
-    thirty_days_ago = today - timedelta(days=30)
-    
-    base_qs = User.objects.filter(center=center, role='student', is_archived=False)
-    low_activity_candidates = base_qs.annotate(
-        att_count=Count('attendance', filter=Q(attendance__date__gte=thirty_days_ago, attendance__present=True))
-    ).order_by('att_count')
-    
-    low_list = []
-    for s in low_activity_candidates:
-        if s.att_count >= 8: # Filter out active students
-            continue
-            
-        enr = s.enrollments.filter(is_active=True).first()
-        reasons = []
-        att_pct = round((s.att_count / 12) * 100) if s.att_count < 12 else 100
-        
-        if s.att_count < 5:
-            reasons.append(f"Davomat juda past ({att_pct}%)")
-        if enr and getattr(enr, 'jami_tolangan', 0) < getattr(enr, 'kurs_narhi', 0):
-            reasons.append("To'lov kechikkan")
-        if getattr(s, 'last_login', None) and (timezone.now() - s.last_login).days > 10:
-            reasons.append("10 kundan beri kirmagan")
+        return render(request, "core/low_activity_students.html", {"page_obj": [], "stats": {}})
 
-        if not reasons:
-            reasons.append("Kam faol")
+    from .models import ChurnRisk
+    from .churn_service import run_churn_assessment
 
-        low_list.append({
+    # POST: qo'lda yangilash tugmasi
+    if request.method == 'POST' and request.POST.get('action') == 'refresh':
+        run_churn_assessment(center, notify_managers=True)
+        messages.success(request, "Churn tahlili yangilandi va xavfli o'quvchilar uchun xabar yuborildi.")
+        return redirect(request.path)
+
+    # Agar hech qanday yozuv yo'q bo'lsa avtomatik hisoblash
+    if not ChurnRisk.objects.filter(center=center).exists():
+        run_churn_assessment(center, notify_managers=False)
+
+    # Statistika
+    all_risks   = ChurnRisk.objects.filter(center=center)
+    total       = all_risks.count()
+    high_count  = all_risks.filter(risk_level='high').count()
+    medium_count= all_risks.filter(risk_level='medium').count()
+    low_count   = all_risks.filter(risk_level='low').count()
+
+    stats = {
+        'total':  total,
+        'high':   high_count,
+        'medium': medium_count,
+        'low':    low_count,
+    }
+
+    # Filtrlar
+    q            = request.GET.get('q', '').strip()
+    filter_level = request.GET.get('level', '').strip()
+
+    qs = all_risks.select_related('student', 'student__center')
+
+    if filter_level in ('high', 'medium', 'low'):
+        qs = qs.filter(risk_level=filter_level)
+
+    if q:
+        qs = qs.filter(
+            Q(student__ism__icontains=q) | Q(student__familya__icontains=q)
+        )
+
+    # Sahifalar
+    paginator   = Paginator(qs, 15)
+    page_number = request.GET.get('page')
+    page_obj    = paginator.get_page(page_number)
+
+    # Template uchun qulay ko'rinishga o'tkazish
+    rows = []
+    for risk in page_obj:
+        s   = risk.student
+        enr = s.enrollments.filter(center=center, is_active=True).select_related('group').first()
+        avatar = (
+            s.avatar.url
+            if getattr(s, 'avatar', None) and s.avatar
+            else f"https://ui-avatars.com/api/?name={s.ism}+{s.familya}&background=1e293b&color=94a3b8&size=48"
+        )
+        rows.append({
+            'risk':       risk,
             'student_id': s.id,
-            'name': f"{s.ism} {s.familya}",
-            'avatar': s.avatar.url if getattr(s, 'avatar', None) else f"https://ui-avatars.com/api/?name={s.ism}+{s.familya}&background=random",
-            'course': enr.group.nom if enr else "Guruhsiz",
-            'phone': s.telefon1 or "Kiritilmagan",
-            'status': att_pct,
-            'reasons': reasons,
+            'name':       f"{s.ism} {s.familya}",
+            'avatar':     avatar,
+            'phone':      getattr(s, 'telefon1', '') or '',
+            'telegram_id':getattr(s, 'telegram_id', '') or '',
+            'course':     enr.group.nom if enr else "Guruhsiz",
         })
 
-    # Filters and Search
-    q = request.GET.get('q', '').strip()
-    filter_reason = request.GET.get('reason', '').strip()
-    
-    final_list = []
-    for item in low_list:
-        # Search check
-        if q and q.lower() not in item['name'].lower():
-            continue
-        
-        # Reason check
-        if filter_reason:
-            match = False
-            for r in item['reasons']:
-                if filter_reason.lower() in r.lower():
-                    match = True
-                    break
-            if not match:
-                continue
-                
-        final_list.append(item)
-
-    # Paginator implementation (10 items per page)
-    paginator = Paginator(final_list, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
     return render(request, 'core/low_activity_students.html', {
-        'page_obj': page_obj,
-        'q': q,
-        'selected_reason': filter_reason
+        'rows':         rows,
+        'page_obj':     page_obj,
+        'stats':        stats,
+        'q':            q,
+        'filter_level': filter_level,
     })
+
+
+@login_required
+def churn_notify_student(request, pk):
+    """Alohida o'quvchi uchun menejerga xabar yuborish."""
+    if request.method != 'POST':
+        return redirect('core:low_activity_students')
+
+    if not (request.user.is_superuser or getattr(request.user, 'role', None) in ('director', 'manager')):
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied
+
+    center = getattr(request, 'center', None) or getattr(request.user, 'center', None)
+    from .models import ChurnRisk, Notification
+    from accounts.models import User
+
+    try:
+        risk = ChurnRisk.objects.get(center=center, student_id=pk)
+    except ChurnRisk.DoesNotExist:
+        messages.error(request, "Yozuv topilmadi.")
+        return redirect('core:low_activity_students')
+
+    managers = User.objects.filter(center=center, role__in=('manager', 'director'))
+    reasons_str = " | ".join(risk.reasons) if risk.reasons else "Kam faollik"
+    title   = f"Eslatma: {risk.student.get_full_name()} bilan bog'laning"
+    message = f"Ball: {risk.risk_score}/100 · {reasons_str}"
+
+    for mgr in managers:
+        Notification.objects.create(
+            center=center, recipient=mgr,
+            title=title, message=message, type='system',
+        )
+
+    ChurnRisk.objects.filter(pk=risk.pk).update(
+        notified=True, notified_at=timezone.now()
+    )
+    messages.success(request, f"{risk.student.get_full_name()} uchun menejerga xabar yuborildi.")
+    return redirect('core:low_activity_students')

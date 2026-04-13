@@ -48,6 +48,7 @@ urlpatterns = [
     path('notifications/preferences/', views.notification_preferences_view, name="notification_preferences"),
     path('notifications/api/read-all/', api_views.notifications_mark_read_api, name='notifications_mark_read_api'),
     path('dashboard/students/low-activity/', views.low_activity_students, name='low_activity_students'),
+    path('dashboard/students/churn-notify/<int:pk>/', views.churn_notify_student, name='churn_notify'),
     path('notifications/broadcast/', views.notification_broadcast, name="notification_broadcast"),
 
     # ✅ Trash & Soft Delete

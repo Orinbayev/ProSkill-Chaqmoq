@@ -96,10 +96,14 @@ class Command(BaseCommand):
         # ── To'liq standart run ────────────────────────────────────────────
         summary = backup_and_send_all_centers()
         if summary["failed"] > 0:
+            error_detail = (
+                summary.get("fatal_error")
+                or ", ".join(summary.get("failed_centers", []))
+                or "noma'lum xato"
+            )
             self.stderr.write(
                 self.style.ERROR(
-                    f"❌ {summary['failed']} ta xato: "
-                    + ", ".join(summary.get("failed_centers", []))
+                    f"❌ {summary['failed']} ta xato: {error_detail}"
                 )
             )
             sys.exit(1)

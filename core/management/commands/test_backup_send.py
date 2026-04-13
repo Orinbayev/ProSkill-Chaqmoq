@@ -64,7 +64,7 @@ class Command(BaseCommand):
                 "   Render Dashboard → Environment Variables ga qo'shing."
             ))
             sys.exit(1)
-        self.stdout.write(self.style.SUCCESS(f"✅ Token mavjud: {token[:10]}***{token[-4:]}"))
+        self.stdout.write(self.style.SUCCESS("✅ Token mavjud."))
 
         # ── 2. Group ID tekshirish ─────────────────────────────────────────
         self.stdout.write("\n[2] Group ID tekshirish...")
@@ -117,12 +117,14 @@ class Command(BaseCommand):
                     f"(type={chat.get('type')})"
                 ))
             else:
-                self.stderr.write(self.style.WARNING(
-                    f"⚠️  getChat xatosi: {data.get('description')}\n"
+                self.stderr.write(self.style.ERROR(
+                    f"❌ getChat xatosi: {data.get('description')}\n"
                     "   Bot guruhda bo'lmasligi mumkin yoki group_id noto'g'ri."
                 ))
+                sys.exit(1)
         except Exception as exc:
-            self.stderr.write(self.style.WARNING(f"⚠️  getChat tarmoq xatosi: {exc}"))
+            self.stderr.write(self.style.ERROR(f"❌ getChat tarmoq xatosi: {exc}"))
+            sys.exit(1)
 
         if check_only:
             self.stdout.write(self.style.SUCCESS("\n✅ --check-only: token/group tekshiruvi tugadi."))

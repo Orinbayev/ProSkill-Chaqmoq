@@ -8,9 +8,9 @@ services:
     # ==================== BUILD COMMAND ====================
     # Install deps, collect static, run migrations
     buildCommand: |
-      pip install -r requirements.txt
-      python manage.py collectstatic --noinput
-      python manage.py migrate --noinput
+      python3 -m pip install -r requirements.txt
+      python3 manage.py collectstatic --noinput
+      python3 manage.py migrate --noinput
     
     startCommand: ./start.sh
     
@@ -55,6 +55,15 @@ services:
 
       - key: API_SECRET
         generateValue: true
+
+      - key: CLICK_SECRET_KEY
+        sync: false
+
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+
+      - key: TELEGRAM_GROUP_ID
+        sync: false
       
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings
@@ -63,6 +72,9 @@ services:
       # If using Render Postgres, DATABASE_URL is auto-provided
       - key: DB_ENGINE
         value: django.db.backends.postgresql
+
+      - key: DATABASE_URL
+        sync: false
       
       # Localization
       - key: LANGUAGE_CODE
@@ -102,20 +114,45 @@ services:
     env: python
     region: frankfurt
     schedule: "0 11 * * *"   # 11:00 UTC = 16:00 Asia/Tashkent
-    buildCommand: pip install -r requirements.txt
-    startCommand: python manage.py backup_and_send
+    buildCommand: python3 -m pip install -r requirements.txt
+    startCommand: python3 manage.py backup_and_send
     envVars:
+      - key: MODE
+        value: production
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings
       - key: TIME_ZONE
         value: Asia/Tashkent
-      # Quyidagilarni Render Dashboard da qo'shing (sync: false):
-      # - key: TELEGRAM_BOT_TOKEN
-      #   sync: false
-      # - key: TELEGRAM_GROUP_ID
-      #   sync: false
-      # - key: DATABASE_URL
-      #   sync: false
+      - key: SECRET_KEY
+        fromService:
+          name: ProSkill-Chaqmoq
+          type: web
+          envVarKey: SECRET_KEY
+      - key: API_SECRET
+        fromService:
+          name: ProSkill-Chaqmoq
+          type: web
+          envVarKey: API_SECRET
+      - key: CLICK_SECRET_KEY
+        fromService:
+          name: ProSkill-Chaqmoq
+          type: web
+          envVarKey: CLICK_SECRET_KEY
+      - key: DATABASE_URL
+        fromService:
+          name: ProSkill-Chaqmoq
+          type: web
+          envVarKey: DATABASE_URL
+      - key: TELEGRAM_BOT_TOKEN
+        fromService:
+          name: ProSkill-Chaqmoq
+          type: web
+          envVarKey: TELEGRAM_BOT_TOKEN
+      - key: TELEGRAM_GROUP_ID
+        fromService:
+          name: ProSkill-Chaqmoq
+          type: web
+          envVarKey: TELEGRAM_GROUP_ID
 
   # ==================== CRON JOB - PAYMENT DISCIPLINE RULES ====================
   # Har kuni 02:00 Asia/Tashkent = 21:00 UTC; deadline o'tmagan kunlarda no-op.
@@ -124,16 +161,35 @@ services:
     env: python
     region: frankfurt
     schedule: "0 21 * * *"   # 21:00 UTC = 02:00 Asia/Tashkent
-    buildCommand: pip install -r requirements.txt
-    startCommand: python manage.py process_lightning_rules
+    buildCommand: python3 -m pip install -r requirements.txt
+    startCommand: python3 manage.py process_lightning_rules
     envVars:
+      - key: MODE
+        value: production
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings
       - key: TIME_ZONE
         value: Asia/Tashkent
-      # Quyidagilarni Render Dashboard da qo'shing (sync: false):
-      # - key: DATABASE_URL
-      #   sync: false
+      - key: SECRET_KEY
+        fromService:
+          name: ProSkill-Chaqmoq
+          type: web
+          envVarKey: SECRET_KEY
+      - key: API_SECRET
+        fromService:
+          name: ProSkill-Chaqmoq
+          type: web
+          envVarKey: API_SECRET
+      - key: CLICK_SECRET_KEY
+        fromService:
+          name: ProSkill-Chaqmoq
+          type: web
+          envVarKey: CLICK_SECRET_KEY
+      - key: DATABASE_URL
+        fromService:
+          name: ProSkill-Chaqmoq
+          type: web
+          envVarKey: DATABASE_URL
 
   # ==================== CRON JOB - MONTHLY ATTENDANCE RULES ====================
   # Har kuni 21:15 UTC yuradi; Asia/Tashkent bo'yicha 1-sana bo'lmasa command no-op.
@@ -142,13 +198,32 @@ services:
     env: python
     region: frankfurt
     schedule: "15 21 * * *"   # 21:15 UTC = 02:15 Asia/Tashkent
-    buildCommand: pip install -r requirements.txt
-    startCommand: python manage.py apply_monthly_rules
+    buildCommand: python3 -m pip install -r requirements.txt
+    startCommand: python3 manage.py apply_monthly_rules
     envVars:
+      - key: MODE
+        value: production
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings
       - key: TIME_ZONE
         value: Asia/Tashkent
-      # Quyidagilarni Render Dashboard da qo'shing (sync: false):
-      # - key: DATABASE_URL
-      #   sync: false
+      - key: SECRET_KEY
+        fromService:
+          name: ProSkill-Chaqmoq
+          type: web
+          envVarKey: SECRET_KEY
+      - key: API_SECRET
+        fromService:
+          name: ProSkill-Chaqmoq
+          type: web
+          envVarKey: API_SECRET
+      - key: CLICK_SECRET_KEY
+        fromService:
+          name: ProSkill-Chaqmoq
+          type: web
+          envVarKey: CLICK_SECRET_KEY
+      - key: DATABASE_URL
+        fromService:
+          name: ProSkill-Chaqmoq
+          type: web
+          envVarKey: DATABASE_URL

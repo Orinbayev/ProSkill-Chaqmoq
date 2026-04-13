@@ -115,6 +115,69 @@ class MobileAccessToken(models.Model):
         return f"{self.user} / {self.device_name or 'mobil token'}"
 
 
+class DirectorAIChatSession(models.Model):
+    center = models.ForeignKey(
+        Center,
+        on_delete=models.CASCADE,
+        related_name="director_ai_chat_sessions",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="director_ai_chat_sessions",
+    )
+    title = models.CharField(max_length=255, blank=True, default="Direktor AI chat")
+    launcher_position = models.JSONField(blank=True, default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["center", "user"],
+                name="core_director_ai_chat_unique_center_user",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["center", "updated_at"]),
+            models.Index(fields=["user", "updated_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.center_id} / {self.user_id} / {self.title}"
+
+
+class DirectorAIChatMessage(models.Model):
+    ROLE_USER = "user"
+    ROLE_ASSISTANT = "assistant"
+    ROLE_CHOICES = (
+        (ROLE_USER, "Foydalanuvchi"),
+        (ROLE_ASSISTANT, "AI"),
+    )
+
+    session = models.ForeignKey(
+        DirectorAIChatSession,
+        on_delete=models.CASCADE,
+        related_name="messages",
+    )
+    role = models.CharField(max_length=16, choices=ROLE_CHOICES)
+    content = models.TextField()
+    source = models.CharField(max_length=24, blank=True, default="")
+    metadata = models.JSONField(blank=True, default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+        indexes = [
+            models.Index(fields=["session", "created_at"]),
+            models.Index(fields=["role", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.session_id} / {self.role}"
+
+
 class CenterDailyMetric(models.Model):
     center = models.ForeignKey(
         Center,
@@ -143,6 +206,56 @@ class CenterDailyMetric(models.Model):
 
     def __str__(self):
         return f"{self.center_id} / {self.date}"
+
+
+class ChurnRisk(models.Model):
+    """
+    O'quvchi ketish xavfi baholash.
+    Har kuni yoki qo'lda yangilanadi.
+    """
+    HIGH   = 'high'
+    MEDIUM = 'medium'
+    LOW    = 'low'
+    RISK_CHOICES = [
+        (HIGH,   'Yuqori xavf'),
+        (MEDIUM, "O'rta xavf"),
+        (LOW,    'Past xavf'),
+    ]
+
+    center      = models.ForeignKey(Center, on_delete=models.CASCADE, related_name='churn_risks')
+    student     = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='churn_risks',
+        limit_choices_to={'role': 'student'},
+    )
+    risk_level  = models.CharField(max_length=10, choices=RISK_CHOICES, default=LOW)
+    risk_score  = models.PositiveSmallIntegerField(default=0, help_text="0–100: yuqori = xavfli")
+    reasons     = models.JSONField(default=list, help_text="Xavf sabablari ro'yxati")
+    att_pct     = models.SmallIntegerField(default=100, help_text="So'nggi 30 kunlik davomat %")
+    debt_amount = models.BigIntegerField(default=0, help_text="Joriy qarz summasi (so'm)")
+    notified    = models.BooleanField(default=False, help_text="Menejerga xabar yuborilganmi?")
+    notified_at = models.DateTimeField(null=True, blank=True)
+    assessed_at = models.DateTimeField(auto_now=True)
+    created_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering            = ['-risk_score']
+        verbose_name        = "Churn Xavfi"
+        verbose_name_plural = "Churn Xavflari"
+        indexes = [
+            models.Index(fields=['center', 'risk_level']),
+            models.Index(fields=['student', 'assessed_at']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['center', 'student'],
+                name='core_churn_risk_unique_center_student',
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.student} | {self.get_risk_level_display()} | {self.risk_score}"
 
 
 class TeacherDailyMetric(models.Model):

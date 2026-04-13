@@ -50,6 +50,11 @@ async def manual_backup_command(message: types.Message) -> None:
             if summary.get("failed_centers")
             else ""
         )
+        fatal_text = (
+            f"\n🧭 Sabab: {summary['fatal_error']}"
+            if summary.get("fatal_error")
+            else ""
+        )
         await message.answer(
             "✅ Backup yakunlandi!\n\n"
             f"📊 Jami markazlar: {summary['total']}\n"
@@ -59,6 +64,7 @@ async def manual_backup_command(message: types.Message) -> None:
             f"⚠️ O'tkazib yuborildi: {summary['skipped']}\n"
             f"❌ Xatolar: {summary['failed']}"
             + failed_text
+            + fatal_text
         )
     except Exception as exc:
         logger.exception("manual_backup_command xatosi")

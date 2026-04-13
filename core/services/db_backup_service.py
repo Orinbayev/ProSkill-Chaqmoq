@@ -20,26 +20,29 @@ from __future__ import annotations
 import json
 import logging
 import os
+import gzip
 import shutil
 import subprocess
 import traceback
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import requests
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 from django.apps import apps
 from django.conf import settings
 from django.core import serializers
+from django.core.management import call_command
 from django.db import models
 from django.utils import timezone
 
 from accounts.models import Center
 
+if TYPE_CHECKING:
+    from apscheduler.schedulers.background import BackgroundScheduler
+
 logger = logging.getLogger(__name__)
 
-_backup_scheduler: BackgroundScheduler | None = None
+_backup_scheduler: "BackgroundScheduler | None" = None
 CENTER_EXPORT_APPS = {"accounts", "core", "billing", "education", "store", "chaqmoq"}
 
 
@@ -49,8 +52,20 @@ def _get_backup_root() -> Path:
     return backup_root
 
 
+def _load_backup_env_files() -> None:
+    try:
+        from dotenv import load_dotenv
+    except ImportError:
+        return
+
+    base_dir = Path(settings.BASE_DIR)
+    load_dotenv(base_dir / ".env", override=False)
+    load_dotenv(base_dir / "telegram_bot" / ".env", override=False)
+
+
 def _get_bot_token() -> str:
     """Token: settings.TELEGRAM_BOT_TOKEN → BOT_TOKEN env var."""
+    _load_backup_env_files()
     return (
         str(getattr(settings, "TELEGRAM_BOT_TOKEN", "") or "").strip()
         or str(os.environ.get("TELEGRAM_BOT_TOKEN", "") or "").strip()
@@ -60,6 +75,7 @@ def _get_bot_token() -> str:
 
 def _get_group_id() -> str:
     """Group ID: settings.TELEGRAM_GROUP_ID → BACKUP_GROUP_ID env var."""
+    _load_backup_env_files()
     return (
         str(getattr(settings, "TELEGRAM_GROUP_ID", "") or "").strip()
         or str(os.environ.get("TELEGRAM_GROUP_ID", "") or "").strip()
@@ -92,6 +108,11 @@ def _build_center_export_path(center: Center) -> Path:
 def _build_full_backup_path() -> Path:
     backup_date = timezone.localdate().isoformat()
     return _get_backup_root() / f"postgres_full_{backup_date}.sql"
+
+
+def _build_full_fixture_backup_path() -> Path:
+    backup_date = timezone.localdate().isoformat()
+    return _get_backup_root() / f"django_full_{backup_date}.json.gz"
 
 
 def _build_pg_dump_command(credentials: dict[str, str], backup_path: Path) -> list[str]:
@@ -182,12 +203,15 @@ def export_center_snapshot(center: Center) -> Path:
 
 
 def backup_full_database() -> Path:
+    try:
+        credentials = _get_default_db_credentials()
+    except ValueError as exc:
+        return backup_full_database_fixture(f"PostgreSQL sozlanmagan: {exc}")
+
     if shutil.which("pg_dump") is None:
-        raise RuntimeError("pg_dump is not available on this system")
+        return backup_full_database_fixture("pg_dump topilmadi")
 
     backup_path = _build_full_backup_path()
-    credentials = _get_default_db_credentials()
-
     env = os.environ.copy()
     env["PGCONNECT_TIMEOUT"] = env.get("PGCONNECT_TIMEOUT", "15")
     if credentials["password"]:
@@ -205,9 +229,42 @@ def backup_full_database() -> Path:
         if backup_path.exists():
             backup_path.unlink(missing_ok=True)
         error_text = (result.stderr or result.stdout or f"pg_dump exited with code {result.returncode}").strip()
-        raise RuntimeError(error_text)
+        return backup_full_database_fixture(f"pg_dump xatosi: {error_text}")
 
     logger.info("Full PostgreSQL backup created: file=%s", backup_path)
+    return backup_path
+
+
+def backup_full_database_fixture(reason: str) -> Path:
+    """
+    Full DB uchun portable fallback: Django dumpdata JSON yaratib gzip qiladi.
+
+    Render image ichida `pg_dump` bo'lmasa ham kunlik full backup Telegramga
+    borishi uchun kerak.
+    """
+    backup_path = _build_full_fixture_backup_path()
+    temp_path = backup_path.with_suffix("")
+    temp_path.unlink(missing_ok=True)
+    backup_path.unlink(missing_ok=True)
+
+    logger.warning("PostgreSQL dump fallback ishlatilmoqda: %s", reason)
+    call_command(
+        "dumpdata",
+        output=str(temp_path),
+        indent=2,
+        use_natural_foreign_keys=True,
+        use_natural_primary_keys=True,
+        verbosity=0,
+    )
+    with temp_path.open("rb") as source, gzip.open(backup_path, "wb") as target:
+        shutil.copyfileobj(source, target)
+    temp_path.unlink(missing_ok=True)
+
+    logger.info(
+        "Full Django fixture backup created: file=%s size=%d bytes",
+        backup_path,
+        backup_path.stat().st_size,
+    )
     return backup_path
 
 
@@ -272,11 +329,53 @@ def send_file_to_telegram(file_path: str | Path, caption: str | None = None) -> 
         err_desc = result.get("description", resp.text[:400])
         raise RuntimeError(
             f"Telegram API xatosi [{resp.status_code}]: {err_desc}\n"
-            f"  Token prefix: {token[:10]}***\n"
             f"  Chat ID: {group_id}"
         )
 
     logger.info("✅ Telegram muvaffaqiyatli yuborildi: file=%s", path.name)
+
+
+def validate_telegram_destination(
+    token: str | None = None,
+    group_id: str | None = None,
+) -> dict[str, Any]:
+    """
+    Token va backup chatni oldindan tekshiradi.
+
+    Guruh noto'g'ri bo'lsa yoki bot guruhga qo'shilmagan bo'lsa, backup fayllarni
+    yaratib vaqt ketkazmasdan aniq xato qaytaradi.
+    """
+    token = (token or _get_bot_token()).strip()
+    group_id = (group_id or _get_group_id()).strip()
+    if not token:
+        raise ValueError("TELEGRAM_BOT_TOKEN yoki BOT_TOKEN env var o'rnatilmagan")
+    if not group_id:
+        raise ValueError("TELEGRAM_GROUP_ID yoki BACKUP_GROUP_ID env var o'rnatilmagan")
+
+    def _call(method: str, **params: str) -> dict[str, Any]:
+        resp = requests.get(
+            f"https://api.telegram.org/bot{token}/{method}",
+            params=params,
+            timeout=15,
+        )
+        try:
+            data = resp.json()
+        except Exception:
+            data = {}
+        if not resp.ok or not data.get("ok"):
+            description = data.get("description", resp.text[:400])
+            raise RuntimeError(f"Telegram {method} xatosi: {description}")
+        return data["result"]
+
+    bot_info = _call("getMe")
+    chat_info = _call("getChat", chat_id=str(group_id))
+    logger.info(
+        "Telegram destination OK: bot=@%s chat=%s type=%s",
+        bot_info.get("username"),
+        chat_info.get("title") or chat_info.get("username") or group_id,
+        chat_info.get("type"),
+    )
+    return {"bot": bot_info, "chat": chat_info}
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -303,6 +402,8 @@ def backup_and_send_all_centers() -> dict[str, Any]:
         "files": [],
         "full_backup_file": None,
         "failed_centers": [],
+        "preflight_errors": [],
+        "fatal_error": "",
     }
 
     logger.info("=" * 60)
@@ -312,21 +413,34 @@ def backup_and_send_all_centers() -> dict[str, Any]:
     # ── Env var tekshiruvi ─────────────────────────────────────────────────
     token = _get_bot_token()
     group_id = _get_group_id()
+    preflight_errors: list[str] = []
     if not token:
-        logger.error(
-            "BACKUP JOB TO'XTATILDI: TELEGRAM_BOT_TOKEN (yoki BOT_TOKEN) "
-            "env var o'rnatilmagan! Render Dashboard da sozlang."
+        preflight_errors.append(
+            "TELEGRAM_BOT_TOKEN yoki BOT_TOKEN env var o'rnatilmagan"
         )
-        return summary
     if not group_id:
+        preflight_errors.append(
+            "TELEGRAM_GROUP_ID yoki BACKUP_GROUP_ID env var o'rnatilmagan"
+        )
+    if preflight_errors:
+        summary["failed"] = 1
+        summary["preflight_errors"] = preflight_errors
+        summary["fatal_error"] = "; ".join(preflight_errors)
         logger.error(
-            "BACKUP JOB TO'XTATILDI: TELEGRAM_GROUP_ID (yoki BACKUP_GROUP_ID) "
-            "env var o'rnatilmagan! Render Dashboard da sozlang."
+            "BACKUP JOB TO'XTATILDI: %s. Render cron envVars ni tekshiring.",
+            summary["fatal_error"],
         )
         return summary
 
-    logger.info("Token mavjud: %s***", token[:8])
+    logger.info("Token mavjud.")
     logger.info("Group ID: %s", group_id)
+    try:
+        validate_telegram_destination(token=token, group_id=group_id)
+    except Exception as exc:
+        summary["failed"] = 1
+        summary["fatal_error"] = str(exc)
+        logger.error("BACKUP JOB TO'XTATILDI: %s", exc)
+        return summary
 
     # ── Markazlarni olish ──────────────────────────────────────────────────
     centers = list(
@@ -383,18 +497,24 @@ def backup_and_send_all_centers() -> dict[str, Any]:
                 traceback.format_exc(),
             )
 
-    # ── To'liq PostgreSQL dump ─────────────────────────────────────────────
-    logger.info("── To'liq PostgreSQL dump ──")
+    # ── To'liq DB backup ──────────────────────────────────────────────────
+    logger.info("── To'liq DB backup ──")
     try:
         full_path = backup_full_database()
         summary["full_backup_file"] = str(full_path)
         summary["files"].append(str(full_path))
+        full_backup_type = (
+            "PostgreSQL SQL dump"
+            if full_path.suffix == ".sql"
+            else "Django JSON fixture (gzip)"
+        )
 
         caption = (
-            f"🗄️ To'liq PostgreSQL backup\n"
+            f"🗄️ To'liq DB backup\n"
             f"📅 Sana: {date_str}\n"
             f"🏢 Markazlar soni: {summary['total']}\n"
-            f"📁 Fayl: {full_path.name}"
+            f"📁 Fayl: {full_path.name}\n"
+            f"🔢 Tur: {full_backup_type}"
         )
         send_file_to_telegram(full_path, caption=caption)
         summary["sent"] += 1
@@ -428,7 +548,7 @@ def backup_and_send_all_centers() -> dict[str, Any]:
 # SCHEDULER – BackgroundScheduler (Django WSGI / Gunicorn bilan mos)
 # ────────────────────────────────────────────────────────────────────────────
 
-def setup_backup_scheduler() -> BackgroundScheduler:
+def setup_backup_scheduler() -> "BackgroundScheduler":
     """
     BackgroundScheduler (thread-based) yaratadi.
     Har kuni 16:00 Asia/Tashkent da backup_and_send_all_centers() ishlatadi.
@@ -438,6 +558,8 @@ def setup_backup_scheduler() -> BackgroundScheduler:
       BACKUP_SCHEDULER_ENABLED=true env var o'rnating.
     """
     global _backup_scheduler
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from apscheduler.triggers.cron import CronTrigger
 
     if _backup_scheduler and _backup_scheduler.running:
         logger.info("Backup scheduler allaqachon ishlamoqda.")

@@ -1122,7 +1122,7 @@
     <!-- ══════════ MAIN ══════════ -->
     <div class="bq-main">
 
-      <!-- ── KPI 6 ta ── -->
+      <!-- ── KPI kartalar ── -->
       <div class="bq-kgrid">
         <a class="bq-kpi bq-kpi--green" href="{% url 'education:tolovlar_home' %}">
           <div class="bq-kpi__head">
@@ -1153,26 +1153,6 @@
           <div class="bq-kpi__val" id="k3v" style="color:var(--bq-blue)">—</div>
           <div class="bq-kpi__sub" id="k3s">—</div>
         </a>
-
-        <a class="bq-kpi bq-kpi--amber" href="{% url 'education:groups_home' %}">
-          <div class="bq-kpi__head">
-            <div class="bq-kpi__icon"><i class="fa-solid fa-layer-group"></i></div>
-            <span class="bq-badge bq-badge--flat" id="k4d">—</span>
-          </div>
-          <div class="bq-kpi__lbl">Faol Guruhlar</div>
-          <div class="bq-kpi__val" id="k4v" style="color:var(--bq-amber)">—</div>
-          <div class="bq-kpi__sub" id="k4s">—</div>
-        </a>
-
-        <div class="bq-kpi bq-kpi--violet">
-          <div class="bq-kpi__head">
-            <div class="bq-kpi__icon"><i class="fa-solid fa-calendar-check"></i></div>
-            <span class="bq-badge bq-badge--flat" id="k5d">—</span>
-          </div>
-          <div class="bq-kpi__lbl">Davomat</div>
-          <div class="bq-kpi__val" id="k5v" style="color:var(--bq-violet)">—</div>
-          <div class="bq-kpi__sub" id="k5s">—</div>
-        </div>
 
         <a class="bq-kpi bq-kpi--rose" href="{% url 'store:lead_list' %}">
           <div class="bq-kpi__head">
@@ -1841,14 +1821,6 @@ function render(d){
   document.getElementById('k3v').textContent=fmtN(k.active_students)+' ta';
   document.getElementById('k3s').textContent='Jami: '+fmtN(k.total_students)+' | Yangi: '+fmtN(k.new_this_month);
   badge(document.getElementById('k3d'),k.changes.students);
-
-  document.getElementById('k4v').textContent=fmtN(k.active_groups)+' ta';
-  document.getElementById('k4s').textContent='Jami: '+fmtN(k.total_groups)+' guruh';
-
-  document.getElementById('k5v').textContent=fmtP(k.avg_attendance);
-  document.getElementById('k5s').textContent='O\'rtacha davomat';
-  const ab=document.getElementById('k5d');
-  if(ab){const at=k.avg_attendance;ab.textContent=at>=80?'Yaxshi':at>=60?'O\'rtacha':'Past';ab.className='bq-badge '+(at>=80?'bq-badge--up':at>=60?'bq-badge--flat':'bq-badge--down');}
 
   document.getElementById('k6v').textContent=fmtN(k.total_leads)+' ta';
   document.getElementById('k6s').textContent='Konversiya: '+fmtP(k.conv_rate);
