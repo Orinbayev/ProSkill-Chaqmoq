@@ -134,3 +134,21 @@ services:
       # Quyidagilarni Render Dashboard da qo'shing (sync: false):
       # - key: DATABASE_URL
       #   sync: false
+
+  # ==================== CRON JOB - MONTHLY ATTENDANCE RULES ====================
+  # Har kuni 21:15 UTC yuradi; Asia/Tashkent bo'yicha 1-sana bo'lmasa command no-op.
+  - type: cron
+    name: monthly-attendance-rules
+    env: python
+    region: frankfurt
+    schedule: "15 21 * * *"   # 21:15 UTC = 02:15 Asia/Tashkent
+    buildCommand: pip install -r requirements.txt
+    startCommand: python manage.py apply_monthly_rules
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings
+      - key: TIME_ZONE
+        value: Asia/Tashkent
+      # Quyidagilarni Render Dashboard da qo'shing (sync: false):
+      # - key: DATABASE_URL
+      #   sync: false

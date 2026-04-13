@@ -77,22 +77,17 @@ def check_attendance_penalty(*, student, center, created_by=None, target_date=No
         else:
             continue
 
-        # Joriy oy sababsiz yo'qliklar soni
-        unexcused_count = Attendance.objects.filter(
+        # Joriy oy sababsiz yo'qliklar soni. forced=True eski "kelmadi, lekin
+        # o'qituvchiga pul yozilsin" holati bo'lib, talaba uchun qoldirilgan dars.
+        attendance_filter = Q(
             student=student,
-            status='absent_unexcused',
             date__gte=period_start,
             date__lt=period_end,
-        ).count()
-
+        ) & (Q(status='absent_unexcused') | Q(forced=True))
         if center:
-            unexcused_count = Attendance.objects.filter(
-                student=student,
-                center=center,
-                status='absent_unexcused',
-                date__gte=period_start,
-                date__lt=period_end,
-            ).count()
+            attendance_filter &= (Q(center=center) | Q(group__center=center))
+
+        unexcused_count = Attendance.objects.filter(attendance_filter).count()
 
         if unexcused_count < rule.absence_limit:
             continue
@@ -101,8 +96,9 @@ def check_attendance_penalty(*, student, center, created_by=None, target_date=No
         already_penalized = Ledger.objects.filter(
             student=student,
             rule=rule,
-            sana__date__gte=period_start,
-            sana__date__lt=period_end,
+        ).filter(
+            Q(related_month=period_start) |
+            Q(sana__date__gte=period_start, sana__date__lt=period_end)
         ).exists()
 
         if already_penalized:
@@ -118,6 +114,7 @@ def check_attendance_penalty(*, student, center, created_by=None, target_date=No
                 ball=penalty,
                 sana=timezone.now(),
                 group=None,
+                related_month=period_start,
             )
 
             # Notification
@@ -174,12 +171,22 @@ def check_attendance_bonus(*, student, center, created_by=None, target_date=None
         else:
             continue
 
-        # Joriy oy davomida kelgan darslar soni (present=True)
-        q_filter = Q(student=student, present=True, date__gte=period_start, date__lt=period_end)
+        # Bonus: yetarli darsga kelgan va shu oy sababsiz qoldirmagan bo'lishi kerak.
+        q_filter = Q(student=student, date__gte=period_start, date__lt=period_end) & (
+            Q(status="present") | Q(present=True)
+        )
         if center:
-            q_filter &= Q(center=center)
+            q_filter &= (Q(center=center) | Q(group__center=center))
         
         presence_count = Attendance.objects.filter(q_filter).count()
+
+        missed_filter = Q(student=student, date__gte=period_start, date__lt=period_end) & (
+            Q(status='absent_unexcused') | Q(forced=True)
+        )
+        if center:
+            missed_filter &= (Q(center=center) | Q(group__center=center))
+        if Attendance.objects.filter(missed_filter).exists():
+            continue
 
         if presence_count < rule.presence_limit:
             continue
@@ -188,8 +195,9 @@ def check_attendance_bonus(*, student, center, created_by=None, target_date=None
         already = Ledger.objects.filter(
             student=student,
             rule=rule,
-            sana__date__gte=period_start,
-            sana__date__lt=period_end,
+        ).filter(
+            Q(related_month=period_start) |
+            Q(sana__date__gte=period_start, sana__date__lt=period_end)
         ).exists()
 
         if already:
@@ -204,6 +212,7 @@ def check_attendance_bonus(*, student, center, created_by=None, target_date=None
                 ball=bonus,
                 sana=timezone.now(),
                 group=None,
+                related_month=period_start,
             )
 
             send_notification(

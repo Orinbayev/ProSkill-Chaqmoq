@@ -392,7 +392,7 @@
                 <div>
                     <h4 style="margin-bottom:0;">Davomat Jarimasi</h4>
                     <p style="margin:2px 0 0; font-size:10px; color:var(--text-muted); font-weight:500;">
-                        O'quvchi belgilangan marta sababsiz kelmasa, avtomatik chaqmoq ayiriladi
+                        Har oyning 1-sanasi o'tgan oy sababsiz qoldirilgan darslar tekshiriladi
                     </p>
                 </div>
             </div>
@@ -456,8 +456,8 @@
                     border:1px solid rgba(245,158,11,0.15); border-radius:10px;">
             <p style="margin:0; font-size:11px; font-weight:600; color:#fbbf24; line-height:1.6;">
                 <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i>
-                <strong>Qanday ishlaydi?</strong> O'quvchi sababsiz yo'qlik (SABABSIZ) belgilanganda tizim
-                joriy oy ichidagi umumiy sababsiz yo'qliklarni hisoblaydi. Agar belgilangan limitga yetsa,
+                <strong>Qanday ishlaydi?</strong> Har oyning 1-sanasi tizim o'tgan oy ichidagi umumiy
+                sababsiz yo'qliklarni hisoblaydi. Agar belgilangan limitga yetsa,
                 jarima chaqmoqi avtomatik ayiriladi va o'quvchiga bildirishnoma yuboriladi.
                 <strong>Bir oy davomida bir marta jarima beriladi.</strong>
             </p>
@@ -473,7 +473,7 @@
                 <div>
                     <h4 style="margin-bottom:0; color:#34d399;">Davomat Bonusi</h4>
                     <p style="margin:2px 0 0; font-size:10px; color:var(--text-muted); font-weight:500;">
-                        O'quvchi belgilangan marta darsga kelsa, avtomatik chaqmoq qo'shiladi
+                        Har oyning 1-sanasi o'tgan oy yetarli kelgan va sababsiz qoldirmaganlarga bonus beriladi
                     </p>
                 </div>
             </div>
@@ -726,7 +726,7 @@ function updatePreview() {
         box.style.background = 'rgba(16,185,129,0.06)';
         box.style.borderColor = 'rgba(16,185,129,0.15)';
         txt.style.color = '#34d399';
-        txt.innerHTML = `<i class="fa-solid fa-circle-info" style="margin-right:6px;"></i> Oy davomida o'quvchi <strong style="color:#fff;">${l}</strong> marta yoki undan ko'p darsga kelsa, unga <strong style="color:#38bdf8;">${p}</strong> ta bonus chaqmoq beriladi.`;
+        txt.innerHTML = `<i class="fa-solid fa-circle-info" style="margin-right:6px;"></i> Oy davomida o'quvchi <strong style="color:#fff;">${l}</strong> marta yoki undan ko'p darsga kelib, sababsiz dars qoldirmasa, unga <strong style="color:#38bdf8;">${p}</strong> ta bonus chaqmoq beriladi.`;
     } else {
         box.style.background = 'rgba(239,68,68,0.06)';
         box.style.borderColor = 'rgba(239,68,68,0.15)';

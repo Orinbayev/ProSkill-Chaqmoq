@@ -8,7 +8,7 @@ from django.test import TestCase
 from accounts.models import Center, User
 from chaqmoq.models import Ledger, Rule
 from chaqmoq.services import apply_payment_discipline_penalties
-from education.models import Enrollment, Group, Payment, PaymentAllocation, TuitionMonth
+from education.models import Attendance, Enrollment, Group, Payment, PaymentAllocation, TuitionMonth
 
 
 class PaymentDisciplineRuleTests(TestCase):
@@ -159,3 +159,128 @@ class PaymentDisciplineRuleTests(TestCase):
 
         self.assertEqual(count, 1)
         self.assertEqual(Ledger.objects.filter(student=self.student, rule=self.rule).count(), 1)
+
+
+class AttendanceMonthlyRuleTests(TestCase):
+    def setUp(self):
+        self.center = Center.objects.create(name="Attendance Center", slug="attendance-center")
+        self.director = User.objects.create_user(
+            email="director@attendance.test",
+            password="testpass123",
+            role="director",
+            center=self.center,
+            ism="Attendance",
+            familya="Director",
+        )
+        self.teacher = User.objects.create_user(
+            email="teacher@attendance.test",
+            password="testpass123",
+            role="teacher",
+            center=self.center,
+            ism="Attendance",
+            familya="Teacher",
+        )
+        self.group = Group.objects.create(
+            center=self.center,
+            nom="Attendance Group",
+            oqituvchi=self.teacher,
+            kurs_narxi=100_000,
+            oqituvchi_foiz=40,
+            oy_dars_soni=12,
+        )
+        self.penalty_rule = Rule.objects.create(
+            center=self.center,
+            nom="Davomat jarimasi",
+            tur=Rule.ATTENDANCE_PENALTY,
+            absence_limit=3,
+            lightning_penalty=-7,
+            period="monthly",
+        )
+        self.bonus_rule = Rule.objects.create(
+            center=self.center,
+            nom="Davomat bonusi",
+            tur=Rule.ATTENDANCE_BONUS,
+            presence_limit=3,
+            lightning_bonus=11,
+            period="monthly",
+        )
+        self.month = date(2026, 4, 1)
+
+        self.penalty_student = self._create_student("penalty")
+        self.clean_student = self._create_student("clean")
+        self.partial_student = self._create_student("partial")
+
+    def _create_student(self, key):
+        student = User.objects.create_user(
+            email=f"{key}@attendance.test",
+            password="testpass123",
+            role="student",
+            center=self.center,
+            ism=key.capitalize(),
+            familya="Student",
+            telefon1=f"+99890222{len(key):04d}",
+        )
+        Enrollment.objects.create(
+            center=self.center,
+            group=self.group,
+            student=student,
+            kurs_narhi=100_000,
+            oqituvchi_foiz=40,
+            is_active=True,
+        )
+        return student
+
+    def _attendance(self, student, day, status):
+        Attendance.objects.create(
+            center=self.center,
+            group=self.group,
+            student=student,
+            teacher=self.teacher,
+            date=date(2026, 4, day),
+            status=status,
+            present=status == "present",
+            forced=False,
+            created_by=self.director,
+        )
+
+    def test_first_day_applies_previous_month_attendance_penalty_and_bonus_once(self):
+        for day in (1, 3, 5):
+            self._attendance(self.penalty_student, day, "absent_unexcused")
+        for day in (7, 9, 11):
+            self._attendance(self.penalty_student, day, "present")
+
+        for day in (1, 3, 5):
+            self._attendance(self.clean_student, day, "present")
+
+        for day in (1, 3):
+            self._attendance(self.partial_student, day, "absent_unexcused")
+        for day in (5, 7, 9):
+            self._attendance(self.partial_student, day, "present")
+
+        call_command("apply_monthly_rules", "--force-date", "2026-05-01")
+        call_command("apply_monthly_rules", "--force-date", "2026-05-01")
+
+        self.assertEqual(
+            list(
+                Ledger.objects.filter(
+                    student=self.penalty_student,
+                    rule=self.penalty_rule,
+                    related_month=self.month,
+                ).values_list("ball", flat=True)
+            ),
+            [-7],
+        )
+        self.assertFalse(
+            Ledger.objects.filter(student=self.penalty_student, rule=self.bonus_rule).exists()
+        )
+        self.assertEqual(
+            list(
+                Ledger.objects.filter(
+                    student=self.clean_student,
+                    rule=self.bonus_rule,
+                    related_month=self.month,
+                ).values_list("ball", flat=True)
+            ),
+            [11],
+        )
+        self.assertFalse(Ledger.objects.filter(student=self.partial_student).exists())
