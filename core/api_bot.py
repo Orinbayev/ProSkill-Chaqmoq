@@ -537,6 +537,91 @@ def _teacher_students_payload(group: Group) -> list[dict]:
     return rows
 
 
+def _teacher_real_income(teacher: User, center) -> dict:
+    """
+    Oyning 1-sanasidan BUGUNGA qadar o'qituvchining
+    haqiqiy to'lovlarini guruh kesimida hisoblaydi.
+    Faqat Payment modelidan — hech qanday taxmin yo'q.
+    """
+    today = timezone.localdate()
+    month_start = today.replace(day=1)
+
+    # O'qituvchining barcha faol guruhlari
+    teacher_groups = (
+        Group.objects
+        .filter(oqituvchi=teacher, center=center, is_archived=False)
+        .order_by("nom")
+    )
+    group_ids = list(teacher_groups.values_list("id", flat=True))
+
+    if not group_ids:
+        return {
+            "month_start": str(month_start),
+            "today": str(today),
+            "breakdown": [],
+            "total_received": 0,
+            "teacher_share": 0,
+        }
+
+    # Har bir guruh uchun o'quvchilar soni (bitta query)
+    enrollment_counts = dict(
+        Enrollment.objects
+        .filter(group_id__in=group_ids, is_active=True)
+        .values("group_id")
+        .annotate(cnt=Count("student_id", distinct=True))
+        .values_list("group_id", "cnt")
+    )
+
+    # Oyning boshidan bugunga qadar barcha to'lovlar (bitta query)
+    payments_qs = (
+        Payment.objects
+        .filter(
+            group_id__in=group_ids,
+            center=center,
+            paid_date__gte=month_start,
+            paid_date__lte=today,
+            is_deleted=False,
+        )
+        .values("group_id")
+        .annotate(total=Sum("summa"))
+    )
+    pay_map = {row["group_id"]: int(row["total"] or 0) for row in payments_qs}
+
+    # O'qituvchi foizlari (bitta query)
+    foiz_map = dict(
+        teacher_groups.values_list("id", "oqituvchi_foiz")
+    )
+
+    breakdown = []
+    total_received = 0
+    teacher_share_total = 0
+
+    for g in teacher_groups:
+        students = enrollment_counts.get(g.id, 0)
+        group_total = pay_map.get(g.id, 0)
+        foiz = foiz_map.get(g.id, 40)
+        teacher_part = int(group_total * foiz / 100)
+
+        total_received += group_total
+        teacher_share_total += teacher_part
+
+        breakdown.append({
+            "group_name": g.nom,
+            "students": students,
+            "group_total": group_total,
+            "teacher_part": teacher_part,
+            "foiz": foiz,
+        })
+
+    return {
+        "month_start": str(month_start),
+        "today": str(today),
+        "breakdown": breakdown,
+        "total_received": total_received,
+        "teacher_share": teacher_share_total,
+    }
+
+
 def _teacher_dashboard(teacher: User, center, group_id: str | None = None) -> dict:
     groups = _teacher_group_list(teacher, center)
     selected_group = None
@@ -556,24 +641,18 @@ def _teacher_dashboard(teacher: User, center, group_id: str | None = None) -> di
         .count()
     )
 
-    now = timezone.localdate()
-    expected_income = calculate_expected_income(
-        teacher=teacher,
-        year=now.year,
-        month=now.month,
-        center=center,
-    )
-
     monthly_payout = (
         SalaryPayout.objects.filter(
             teacher=teacher,
             center=center,
-            period_year=now.year,
-            period_month=now.month,
+            period_year=timezone.localdate().year,
+            period_month=timezone.localdate().month,
         )
         .order_by("-paid_at")
         .first()
     )
+
+    real_income = _teacher_real_income(teacher, center)
 
     return {
         "groups": groups,
@@ -581,10 +660,8 @@ def _teacher_dashboard(teacher: User, center, group_id: str | None = None) -> di
         "attendance_sheet": _teacher_attendance_sheet(selected_group) if selected_group else None,
         "students": _teacher_students_payload(selected_group) if selected_group else [],
         "monthly_income": {
-            "expected_income": _money(expected_income.get("expected_income")),
-            "active_students": _money(expected_income.get("active_students")),
             "paid_out": _money(getattr(monthly_payout, "amount", 0)),
-            "breakdown": expected_income.get("breakdown", []),
+            "real_income": real_income,
         },
         "statistics": {
             "groups_count": len(groups),
