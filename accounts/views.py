@@ -248,34 +248,35 @@ def director_my_centers(request):
 
     current_center = getattr(request, "center", None) or getattr(user, "center", None)
 
+    def _center_dict(center, is_primary):
+        parent = center.parent_center
+        return {
+            "id": center.id,
+            "name": center.name,
+            "slug": center.slug,
+            "address": center.address or "",
+            "phone": center.phone or "",
+            "is_current": bool(current_center and current_center.id == center.id),
+            "is_primary": is_primary,
+            "is_branch": parent is not None,
+            "parent_center_id": parent.id if parent else None,
+            "parent_center_name": parent.name if parent else None,
+        }
+
     centers: list[dict] = []
     if user.center:
-        centers.append({
-            "id": user.center.id,
-            "name": user.center.name,
-            "slug": user.center.slug,
-            "address": user.center.address or "",
-            "is_current": bool(current_center and current_center.id == user.center.id),
-            "is_primary": True,
-        })
+        centers.append(_center_dict(user.center, is_primary=True))
 
     extra_accesses = (
         DirectorCenterAccess.objects
         .filter(director=user, is_active=True, center__is_deleted=False)
-        .select_related("center")
+        .select_related("center", "center__parent_center")
     )
     for access in extra_accesses:
         center = access.center
         if any(item["id"] == center.id for item in centers):
             continue
-        centers.append({
-            "id": center.id,
-            "name": center.name,
-            "slug": center.slug,
-            "address": center.address or "",
-            "is_current": bool(current_center and current_center.id == center.id),
-            "is_primary": False,
-        })
+        centers.append(_center_dict(center, is_primary=False))
 
     pending_requests = list(
         BranchRequest.objects
@@ -409,6 +410,90 @@ def director_branch_request(request):
         "request_id": branch_request.id,
         "message": "So'rovingiz adminga yuborildi. Tasdiqlangandan keyin yangi markaz ochiladi.",
     })
+
+
+@login_required
+@require_http_methods(["POST"])
+def director_branch_edit(request, center_id: int):
+    """Director o'z filialini tahrirlaydi (faqat nom, manzil, telefon)."""
+    user = request.user
+    if not (user.is_superuser or getattr(user, "role", None) == "director"):
+        return JsonResponse({"ok": False, "error": "Faqat direktor"}, status=403)
+
+    try:
+        data = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "JSON xato"}, status=400)
+
+    # Faqat direktorning o'z filiallari (parent_center mavjud va direktor shu markazga ega)
+    try:
+        access = DirectorCenterAccess.objects.select_related("center", "center__parent_center").get(
+            director=user,
+            center_id=center_id,
+            is_active=True,
+            center__is_deleted=False,
+        )
+        center = access.center
+    except DirectorCenterAccess.DoesNotExist:
+        # user.center bo'lishi mumkin emas — asosiy markaz tahrirlash mumkin emas bu endpoint orqali
+        return JsonResponse({"ok": False, "error": "Markaz topilmadi yoki ruxsat yo'q"}, status=404)
+
+    if not center.parent_center_id:
+        return JsonResponse({"ok": False, "error": "Faqat filiallarni tahrirlash mumkin"}, status=400)
+
+    name = (data.get("name") or "").strip()
+    if not name or len(name) < 3:
+        return JsonResponse({"ok": False, "error": "Nom kamida 3 ta harf bo'lishi kerak"}, status=400)
+
+    center.name = name
+    center.address = (data.get("address") or "").strip()
+    center.phone = (data.get("phone") or "").strip()
+    center.save(update_fields=["name", "address", "phone"])
+
+    return JsonResponse({
+        "ok": True,
+        "center": {
+            "id": center.id,
+            "name": center.name,
+            "address": center.address,
+            "phone": center.phone,
+        },
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def director_branch_deactivate(request, center_id: int):
+    """Director o'z filialini deaktivatsiya qiladi (soft-block)."""
+    user = request.user
+    if not (user.is_superuser or getattr(user, "role", None) == "director"):
+        return JsonResponse({"ok": False, "error": "Faqat direktor"}, status=403)
+
+    try:
+        access = DirectorCenterAccess.objects.select_related("center").get(
+            director=user,
+            center_id=center_id,
+            is_active=True,
+            center__is_deleted=False,
+        )
+        center = access.center
+    except DirectorCenterAccess.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "Markaz topilmadi yoki ruxsat yo'q"}, status=404)
+
+    if not center.parent_center_id:
+        return JsonResponse({"ok": False, "error": "Asosiy markazni o'chirib bo'lmaydi"}, status=400)
+
+    # Soft-block: filialni bloklash (ma'lumotlar saqlanadi)
+    center.status = Center.STATUS_BLOCKED
+    center.save(update_fields=["status"])
+
+    # Director accessni ham o'chiramiz
+    access.is_active = False
+    access.save(update_fields=["is_active"])
+
+    reload_needed = str(request.session.get("current_center_id")) == str(center_id)
+    return JsonResponse({"ok": True, "message": f"'{center.name}' filiali bloklandi", "reload": reload_needed})
+
 
 @login_required
 @require_http_methods(["GET", "POST"])

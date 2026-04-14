@@ -42,8 +42,9 @@ def superadmin_dashboard(request):
         .only(
             'id', 'name', 'address', 'phone', 'plan', 'status',
             'monthly_price', 'expires_at', 'capacity_limit', 'created_at',
-            'slug',
+            'slug', 'parent_center',
         )
+        .select_related('parent_center')
         .prefetch_related(
             Prefetch(
                 'user_set',

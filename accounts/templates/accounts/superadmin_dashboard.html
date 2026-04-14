@@ -1990,10 +1990,25 @@
                         <!-- ── Markaz ── -->
                         <td>
                             <div class="sa-center-cell">
-                                <div class="sa-center-avatar"><i class="bi bi-building"></i></div>
+                                <div class="sa-center-avatar" style="{% if c.parent_center %}background:rgba(99,102,241,.2);color:#818cf8;{% endif %}">
+                                    {% if c.parent_center %}<i class="bi bi-diagram-2"></i>{% else %}<i class="bi bi-building"></i>{% endif %}
+                                </div>
                                 <div>
-                                    <div class="sa-center-name">{{ c.name }}</div>
+                                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                                        <div class="sa-center-name">{{ c.name }}</div>
+                                        {% if c.parent_center %}
+                                        <span style="font-size:0.65rem;padding:2px 7px;background:rgba(129,140,248,.15);color:#818cf8;border:1px solid rgba(129,140,248,.3);border-radius:20px;font-weight:700;white-space:nowrap;">
+                                            📌 Filial
+                                        </span>
+                                        {% endif %}
+                                    </div>
                                     <div style="font-size:0.72rem;color:#6366f1;font-weight:600;letter-spacing:0.3px;margin-top:1px;">@{{ c.slug }}</div>
+                                    {% if c.parent_center %}
+                                    <div style="font-size:0.7rem;color:#fbbf24;margin-top:2px;">
+                                        <i class="bi bi-building" style="margin-right:3px;"></i>
+                                        Asosiy: <strong>{{ c.parent_center.name }}</strong>
+                                    </div>
+                                    {% endif %}
                                     <div class="sa-center-addr"><i class="bi bi-geo-alt" style="font-size:0.7rem;"></i>
                                         {{ c.address|default:"Manzil yo'q" }}</div>
                                 </div>

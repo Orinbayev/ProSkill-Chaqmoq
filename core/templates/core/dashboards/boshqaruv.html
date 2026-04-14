@@ -1442,14 +1442,6 @@
           </button>
         </div>
 
-        <!-- Filial Switcher -->
-        <button class="bq-branch-btn" id="bqBranchBtn" type="button" onclick="openBranchModal()">
-          <span class="bq-branch-dot" id="bqBranchDot"></span>
-          <i class="fa-solid fa-code-branch" style="font-size:12px;"></i>
-          <span class="bq-branch-name" id="bqBranchBtnLabel">Filiallar</span>
-          <i class="fa-solid fa-chevron-down" style="font-size:10px; opacity:.6;"></i>
-        </button>
-
         {% if request.user.role == 'director' %}
         <button class="bq-center-btn" id="bqCenterBtn" type="button" onclick="openCenterModal()">
           <span class="bq-center-btn__dot"></span>
@@ -1925,7 +1917,44 @@
 </div>
 
 {% if request.user.role == 'director' %}
-<!-- ══ MARKAZ ALMASHISH MODAL ══ -->
+<!-- ══ MARKAZLARIM MODAL (Asosiy markaz + Filiallar boshqaruvi) ══ -->
+<style>
+.bq-branch-edit-form {
+  background: rgba(99,102,241,.06);
+  border: 1px solid rgba(99,102,241,.2);
+  border-radius: 14px;
+  padding: 14px;
+  margin-top: 6px;
+  display: none;
+}
+.bq-branch-edit-form.open { display: block; }
+.bq-ci__actions {
+  display: flex; gap: 6px; flex-shrink: 0; margin-left: auto;
+}
+.bq-ci__act {
+  width: 30px; height: 30px; border-radius: 8px; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; transition: all .2s;
+}
+.bq-ci__act.edit {
+  background: rgba(99,102,241,.15); color: #818cf8;
+}
+.bq-ci__act.edit:hover { background: rgba(99,102,241,.3); }
+.bq-ci__act.del {
+  background: rgba(239,68,68,.1); color: #f87171;
+}
+.bq-ci__act.del:hover { background: rgba(239,68,68,.25); }
+.bq-ci__act.switch-btn {
+  background: rgba(251,191,36,.1); color: #fbbf24;
+  width: auto; padding: 0 10px; font-size: 0.75rem; font-weight: 700;
+}
+.bq-ci__act.switch-btn:hover { background: rgba(251,191,36,.25); }
+.bq-ci.branch-item { border-left: 2px solid rgba(129,140,248,.3); margin-left: 12px; }
+.bq-ci.branch-item:hover { border-left-color: #818cf8; }
+.bq-ci__parent-lbl {
+  font-size: 0.68rem; color: #64748b; margin-top: 3px;
+}
+</style>
 <div class="bq-cm-overlay" id="bqCenterOverlay" onclick="if(event.target===this)closeCenterModal()">
   <div class="bq-cm-modal">
     <div class="bq-cm-head">
@@ -1939,8 +1968,9 @@
     </div>
 
     <div class="bq-cm-body">
+      <!-- Markazlar ro'yxati (asosiy + filiallar) -->
       <div class="bq-cm-sec">
-        <div class="bq-cm-sec-lbl">Faol markazlar</div>
+        <div class="bq-cm-sec-lbl">Barcha markazlar</div>
         <div id="bqCenterList">
           <div style="text-align:center;color:#475569;padding:16px;font-size:0.85rem;" id="bqCenterListLoading">
             <i class="fa-solid fa-spinner fa-spin"></i> Yuklanmoqda...
@@ -1948,6 +1978,7 @@
         </div>
       </div>
 
+      <!-- Kutilayotgan so'rovlar -->
       <div class="bq-cm-sec" id="bqPendingSection" style="display:none;">
         <div class="bq-cm-sec-lbl">
           <i class="fa-solid fa-clock" style="margin-right:4px;color:#fbbf24;"></i>
@@ -1956,10 +1987,11 @@
         <div id="bqPendingList"></div>
       </div>
 
+      <!-- Yangi filial ochish -->
       <div class="bq-cm-sec">
         <div class="bq-cm-sec-lbl">
-          <i class="fa-solid fa-plus" style="margin-right:4px;"></i>
-          Yangi Filial Ochish
+          <i class="fa-solid fa-plus" style="margin-right:4px;color:#34d399;"></i>
+          Yangi Filial Ochish (so'rov yuborish)
         </div>
         <div class="bq-add-form">
           <input class="bq-add-input" id="bqNewName"
@@ -1981,6 +2013,50 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filial tahrirlash mini-modal -->
+<div id="bqEditBranchOverlay" style="display:none;position:fixed;inset:0;z-index:9200;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);align-items:center;justify-content:center;" onclick="if(event.target===this)closeEditBranch()">
+  <div style="background:#0f1a30;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:24px;width:100%;max-width:420px;margin:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <div style="font-weight:800;color:#e2e8f0;font-size:1rem;">
+        <i class="fa-solid fa-pen" style="color:#818cf8;margin-right:8px;"></i>
+        Filial Tahrirlash
+      </div>
+      <button onclick="closeEditBranch()" style="background:rgba(255,255,255,.06);border:none;border-radius:8px;width:30px;height:30px;color:#94a3b8;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <input type="hidden" id="bqEditBranchId">
+    <input class="bq-add-input" id="bqEditBranchName" placeholder="Filial nomi" maxlength="120" style="margin-bottom:10px;">
+    <input class="bq-add-input" id="bqEditBranchAddress" placeholder="Manzil (ixtiyoriy)" maxlength="255" style="margin-bottom:10px;">
+    <input class="bq-add-input" id="bqEditBranchPhone" placeholder="Telefon (ixtiyoriy)" maxlength="20" style="margin-bottom:14px;">
+    <div style="display:flex;gap:8px;">
+      <button onclick="closeEditBranch()" style="flex:1;padding:10px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:transparent;color:#94a3b8;cursor:pointer;font-weight:700;">Bekor</button>
+      <button id="bqEditBranchSaveBtn" onclick="saveEditBranch()" style="flex:2;padding:10px;border:none;border-radius:12px;background:linear-gradient(135deg,#818cf8,#6366f1);color:#fff;font-weight:800;cursor:pointer;font-size:.9rem;">
+        <i class="fa-solid fa-check me-1"></i> Saqlash
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Filial o'chirish tasdiqlash mini-modal -->
+<div id="bqDeleteBranchOverlay" style="display:none;position:fixed;inset:0;z-index:9200;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);align-items:center;justify-content:center;" onclick="if(event.target===this)closeDeleteBranch()">
+  <div style="background:#0f1a30;border:1px solid rgba(239,68,68,.2);border-radius:20px;padding:24px;width:100%;max-width:380px;margin:16px;text-align:center;">
+    <div style="font-size:2rem;margin-bottom:12px;">⚠️</div>
+    <div style="font-weight:800;color:#e2e8f0;font-size:1rem;margin-bottom:8px;">Filialni bloklash</div>
+    <div id="bqDeleteBranchName" style="color:#f87171;font-weight:700;font-size:0.95rem;margin-bottom:8px;"></div>
+    <div style="color:#64748b;font-size:0.82rem;margin-bottom:18px;line-height:1.5;">
+      Filial bloklanadi. Ma'lumotlar saqlanib qoladi.<br>Superadmin qayta faollashtira oladi.
+    </div>
+    <input type="hidden" id="bqDeleteBranchId">
+    <div style="display:flex;gap:8px;">
+      <button onclick="closeDeleteBranch()" style="flex:1;padding:10px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:transparent;color:#94a3b8;cursor:pointer;font-weight:700;">Bekor</button>
+      <button id="bqDeleteBranchConfirmBtn" onclick="confirmDeleteBranch()" style="flex:1;padding:10px;border:none;border-radius:12px;background:rgba(239,68,68,.8);color:#fff;font-weight:800;cursor:pointer;">
+        <i class="fa-solid fa-lock me-1"></i> Bloklash
+      </button>
     </div>
   </div>
 </div>
@@ -2119,6 +2195,8 @@ const BRANCH_API = {
 const CENTERS_API = '{% url "accounts:my_centers" %}';
 const CENTER_SWITCH_API = '{% url "accounts:director_switch_center" %}';
 const BRANCH_REQUEST_API = '{% url "accounts:branch_request" %}';
+const BRANCH_EDIT_URL = (id) => `{% url "accounts:director_branch_edit" center_id=0 %}`.replace('/0/', `/${id}/`);
+const BRANCH_DEACTIVATE_URL = (id) => `{% url "accounts:director_branch_deactivate" center_id=0 %}`.replace('/0/', `/${id}/`);
 
 /* ── Chart.js defaults ── */
 Chart.defaults.color         = '#64748b';
@@ -2540,18 +2618,54 @@ async function loadMyCenters() {
     if (!centers.length) {
       listEl.innerHTML = '<p style="color:#475569;text-align:center;font-size:.85rem;">Hech qanday markaz topilmadi</p>';
     } else {
-      listEl.innerHTML = centers.map((center) => `
-        <div class="bq-ci ${center.is_current ? 'active' : ''}" data-center-id="${center.id}"
-             onclick="switchToCenter(${center.id}, decodeURIComponent('${encodeURIComponent(center.name)}'))">
-          <div class="bq-ci__ico">🏫</div>
-          <div class="bq-ci__info">
-            <div class="bq-ci__name">${escHtml(center.name)}</div>
-            <div class="bq-ci__slug">chaqmoqapp.uz/${escHtml(center.slug)}/</div>
+      const primaryCenters = centers.filter(c => !c.is_branch);
+      const branchCenters  = centers.filter(c => c.is_branch);
+
+      let html = '';
+
+      // ── Primary centers
+      if (primaryCenters.length) {
+        html += `<div style="font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#475569;padding:0 2px 6px;">Asosiy markazlar</div>`;
+        html += primaryCenters.map(center => `
+          <div class="bq-ci ${center.is_current ? 'active' : ''}" data-center-id="${center.id}"
+               onclick="switchToCenter(${center.id}, decodeURIComponent('${encodeURIComponent(center.name)}'))">
+            <div class="bq-ci__ico">🏢</div>
+            <div class="bq-ci__info">
+              <div class="bq-ci__name">${escHtml(center.name)}</div>
+              <div class="bq-ci__slug">chaqmoqapp.uz/${escHtml(center.slug)}/</div>
+            </div>
+            <span class="bq-ci__badge primary">Asosiy</span>
+            ${center.is_current ? '<i class="fa-solid fa-check bq-ci__check"></i>' : ''}
           </div>
-          ${center.is_primary ? '<span class="bq-ci__badge primary">Asosiy</span>' : ''}
-          ${center.is_current ? '<i class="fa-solid fa-check bq-ci__check"></i>' : ''}
-        </div>
-      `).join('');
+        `).join('');
+      }
+
+      // ── Branch centers
+      if (branchCenters.length) {
+        html += `<div style="font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#475569;padding:12px 2px 6px;">Filiallar</div>`;
+        html += branchCenters.map(center => `
+          <div class="bq-ci branch-item ${center.is_current ? 'active' : ''}" data-center-id="${center.id}">
+            <div class="bq-ci__ico" style="cursor:pointer;" onclick="switchToCenter(${center.id}, decodeURIComponent('${encodeURIComponent(center.name)}'))">📌</div>
+            <div class="bq-ci__info" style="cursor:pointer;" onclick="switchToCenter(${center.id}, decodeURIComponent('${encodeURIComponent(center.name)}'))">
+              <div class="bq-ci__name">${escHtml(center.name)}</div>
+              <div class="bq-ci__slug">${center.address ? escHtml(center.address) : ('chaqmoqapp.uz/' + escHtml(center.slug) + '/')}</div>
+            </div>
+            ${center.is_current ? '<i class="fa-solid fa-check bq-ci__check" style="margin-right:4px;"></i>' : ''}
+            <div class="bq-ci__actions" onclick="event.stopPropagation()">
+              <button class="bq-ci__act edit" title="Tahrirlash"
+                onclick="openEditBranch(${center.id}, decodeURIComponent('${encodeURIComponent(center.name)}'), decodeURIComponent('${encodeURIComponent(center.address||'')}'), decodeURIComponent('${encodeURIComponent(center.phone||'')}'))">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+              <button class="bq-ci__act del" title="Bloklash"
+                onclick="openDeleteBranch(${center.id}, decodeURIComponent('${encodeURIComponent(center.name)}'))">
+                <i class="fa-solid fa-lock"></i>
+              </button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      listEl.innerHTML = html;
     }
 
     const pending = data.pending_requests || [];
@@ -2649,6 +2763,92 @@ async function sendBranchRequest() {
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<i class="fa-solid fa-paper-plane me-2"></i> Adminga Yuborish';
+  }
+}
+
+// ══════════════════════════════════════════════
+// BRANCH EDIT / DELETE (Center branches)
+// ══════════════════════════════════════════════
+function openEditBranch(id, name, address, phone) {
+  document.getElementById('bqEditBranchId').value = id;
+  document.getElementById('bqEditBranchName').value = name || '';
+  document.getElementById('bqEditBranchAddress').value = address || '';
+  document.getElementById('bqEditBranchPhone').value = phone || '';
+  const overlay = document.getElementById('bqEditBranchOverlay');
+  if (overlay) { overlay.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+}
+
+function closeEditBranch() {
+  const overlay = document.getElementById('bqEditBranchOverlay');
+  if (overlay) { overlay.style.display = 'none'; document.body.style.overflow = ''; }
+}
+
+async function saveEditBranch() {
+  const id   = document.getElementById('bqEditBranchId').value;
+  const name = document.getElementById('bqEditBranchName').value.trim();
+  const addr = document.getElementById('bqEditBranchAddress').value.trim();
+  const ph   = document.getElementById('bqEditBranchPhone').value.trim();
+  const btn  = document.getElementById('bqEditBranchSaveBtn');
+
+  if (!name) { showToast('❌ Filial nomi kiritilmagan', 'error'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Saqlanmoqda...';
+  try {
+    const res = await fetch(BRANCH_EDIT_URL(id), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ name, address: addr, phone: ph }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) { showToast('❌ ' + (data.error || 'Xatolik'), 'error'); return; }
+    showToast('✅ Filial ma\'lumotlari yangilandi!', 'success');
+    closeEditBranch();
+    await loadMyCenters();
+  } catch (e) {
+    showToast('❌ Server bilan muammo', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Saqlash';
+  }
+}
+
+function openDeleteBranch(id, name) {
+  document.getElementById('bqDeleteBranchId').value = id;
+  document.getElementById('bqDeleteBranchName').textContent = name;
+  const overlay = document.getElementById('bqDeleteBranchOverlay');
+  if (overlay) { overlay.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+}
+
+function closeDeleteBranch() {
+  const overlay = document.getElementById('bqDeleteBranchOverlay');
+  if (overlay) { overlay.style.display = 'none'; document.body.style.overflow = ''; }
+}
+
+async function confirmDeleteBranch() {
+  const id  = document.getElementById('bqDeleteBranchId').value;
+  const btn = document.getElementById('bqDeleteBranchConfirmBtn');
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Bloklanmoqda...';
+  try {
+    const res = await fetch(BRANCH_DEACTIVATE_URL(id), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({}),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) { showToast('❌ ' + (data.error || 'Xatolik'), 'error'); return; }
+    showToast('🔒 Filial bloklandi', 'success');
+    closeDeleteBranch();
+    await loadMyCenters();
+    // If the blocked branch was active, reload page
+    if (data.reload) { setTimeout(() => window.location.reload(), 800); }
+  } catch (e) {
+    showToast('❌ Server bilan muammo', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-lock me-1"></i> Bloklash';
   }
 }
 
@@ -3161,8 +3361,14 @@ document.getElementById('bqReset').addEventListener('click',()=>{
 document.addEventListener('keydown',e=>{
   const centerOverlay = document.getElementById('bqCenterOverlay');
   const branchOverlay = document.getElementById('bqBranchOverlay');
-  if(e.key==='Escape' && centerOverlay && centerOverlay.classList.contains('open')) closeCenterModal();
-  if(e.key==='Escape' && branchOverlay && branchOverlay.classList.contains('open')) closeBranchModal();
+  const editOverlay   = document.getElementById('bqEditBranchOverlay');
+  const delOverlay    = document.getElementById('bqDeleteBranchOverlay');
+  if(e.key==='Escape'){
+    if(editOverlay && editOverlay.style.display==='flex') { closeEditBranch(); return; }
+    if(delOverlay  && delOverlay.style.display==='flex')  { closeDeleteBranch(); return; }
+    if(centerOverlay && centerOverlay.classList.contains('open')) closeCenterModal();
+    if(branchOverlay && branchOverlay.classList.contains('open')) closeBranchModal();
+  }
 });
 
 /* ══════════════════ PROFILE DROPDOWN ══════════════════ */

@@ -15,4 +15,6 @@ urlpatterns = [
     path("my-centers/", views.director_my_centers, name="my_centers"),
     path("switch-center/", views.director_switch_center, name="director_switch_center"),
     path("branch-request/", views.director_branch_request, name="branch_request"),
+    path("branch/<int:center_id>/edit/", views.director_branch_edit, name="director_branch_edit"),
+    path("branch/<int:center_id>/deactivate/", views.director_branch_deactivate, name="director_branch_deactivate"),
 ]
