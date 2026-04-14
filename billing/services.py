@@ -714,11 +714,16 @@ def get_plan_list_payload() -> list[dict]:
 def ensure_center_subscription(center: Center) -> CenterSubscription | None:
     """
     Ensure at least one subscription exists. IF no active/paused sub exists, create FREE one.
-    Filial (branch) bo'lsa — skip qilinadi, asosiy markaz subscriptionidan foydalanadi.
+    Filial (branch) bo'lsa — alohida subscription YARATMAYDI va mavjudini O'CHIRADI.
+    Filiallar faqat asosiy (root) markazning subscriptionidan foydalanadi.
     """
     try:
-        # Filial bo'lsa — alohida subscription yaratmaymiz
+        # Filial bo'lsa — o'z subscriptionlarini o'chirib, parent dan olamiz
         if getattr(center, 'parent_center_id', None):
+            # Agar filialda avval yaratilgan subscription bo'lsa — o'chiramiz
+            own = CenterSubscription.objects.filter(center=center)
+            if own.exists():
+                own.delete()
             return get_active_subscription(center)
 
         # Check active or paused

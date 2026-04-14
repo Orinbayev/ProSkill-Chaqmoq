@@ -31,7 +31,7 @@ from django.utils import timezone  # noqa: E402
 from django.utils.text import slugify  # noqa: E402
 
 from accounts.models import BotAdmin, BranchRequest, Center, DirectorCenterAccess  # noqa: E402
-from billing.services import ensure_center_subscription  # noqa: E402
+from billing.models import CenterSubscription  # noqa: E402
 
 router = Router()
 logger = logging.getLogger(__name__)
@@ -89,13 +89,9 @@ def _approve_branch_request(req_id: int):
             parent_center=root_center,        # ← ASOSIY: filial bog'lanishi
         )
 
-        # Filial uchun alohida subscription KERAK EMAS —
-        # get_active_subscription() parent_center orqali oladi.
-        # Lekin ensure qilamiz (fallback uchun)
-        try:
-            ensure_center_subscription(new_center)
-        except Exception:
-            logger.exception("ensure_center_subscription failed for center_id=%s", new_center.id)
+        # Filial uchun alohida subscription KERAK EMAS.
+        # Agar Django signallari yoki boshqa joy avtomatik subscription yaratgan bo'lsa — o'chiramiz.
+        CenterSubscription.objects.filter(center=new_center).delete()
 
         if getattr(branch_request.requester, "role", None) == "director":
             access, created = DirectorCenterAccess.objects.get_or_create(
