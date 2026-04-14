@@ -83,6 +83,28 @@ class CenterAdmin(admin.ModelAdmin):
         "extend_365_days",
         "block_centers",
         "unblock_centers",
+        "remove_own_subscriptions",
+    )
+    raw_id_fields = ("parent_center",)
+
+    def remove_own_subscriptions(self, request, queryset):
+        """
+        Tanlangan markazlarni filial qilib o'rnatish uchun:
+        O'z subscription-larini o'chiradi — ular endi parent_center orqali oladi.
+        """
+        from billing.models import CenterSubscription
+        count = 0
+        for c in queryset:
+            if c.parent_center_id:
+                deleted, _ = CenterSubscription.objects.filter(center=c).delete()
+                count += deleted
+        self.message_user(
+            request,
+            f"{count} ta subscription o'chirildi. "
+            "Endi bu filiallar asosiy markazining tarifidan foydalanadi.",
+        )
+    remove_own_subscriptions.short_description = (
+        "Filial: o'z subscriptionlarini o'chir (parent tarifga o'tish)"
     )
 
     def status_badge(self, obj: Center):
