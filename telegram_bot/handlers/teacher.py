@@ -298,8 +298,9 @@ async def teacher_schedule_bot(message: types.Message, state: FSMContext):
         for item in schedule_by_group:
             slots = item.get("slots", [])
             if slots:
+                _no_room = "Xona yo'q"
                 slots_text = "\n".join(
-                    f"  • {slot['day']} {slot['time']} — {slot['room'] or 'Xona yo'q'}"
+                    f"  • {slot['day']} {slot['time']} — {slot['room'] or _no_room}"
                     for slot in slots
                 )
             else:

@@ -39,7 +39,23 @@ logger = logging.getLogger(__name__)
 
 @sync_to_async
 def _is_bot_admin(telegram_id: int | str) -> bool:
-    return BotAdmin.objects.filter(telegram_id=str(telegram_id)).exists()
+    tid = str(telegram_id)
+    # 1. BotAdmin jadvalida bormi?
+    if BotAdmin.objects.filter(telegram_id=tid).exists():
+        return True
+    # 2. Django superuser bo'lib telegram_id to'g'ri kelsa ham ruxsat ber
+    from accounts.models import User as DjangoUser
+    if DjangoUser.objects.filter(is_superuser=True, telegram_id=tid).exists():
+        return True
+    # 3. Agar BotAdmin jadvali bo'sh bo'lsa (hali sozlanmagan) — har qanday admin o'ta olsin
+    if not BotAdmin.objects.exists():
+        logger.warning(
+            "BotAdmin jadvali bo'sh — telegram_id=%s ga vaqtincha ruxsat berildi. "
+            "Django admin panelida BotAdmin qo'shib qo'ying!",
+            tid,
+        )
+        return True
+    return False
 
 
 @sync_to_async
