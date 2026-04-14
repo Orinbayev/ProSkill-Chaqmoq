@@ -509,6 +509,10 @@
                                     {% if p.max_students >= 9999 %}Cheksiz{% else %}{{ p.max_students }}{% endif %}
                                     o'quvchi
                                 </span>
+                                <span style="font-size: 0.8rem; color:#94a3b8;">
+                                    <i class="bi bi-building me-1" style="color:#818cf8;"></i>
+                                    {% if p.max_branches == 0 %}Cheksiz filial{% elif p.max_branches == 1 %}Filial yo'q{% else %}{{ p.max_branches|add:"-1" }} filial{% endif %}
+                                </span>
                             </div>
                         </td>
                         <td>
@@ -635,6 +639,12 @@
                         <input type="number" id="p_students" class="fc-dark" value="100" min="0">
                         <div class="mt-1" style="font-size:0.65rem; color:#64748b;">Guruhlar va adminlar soni cheksiz
                             (limitlanmagan)</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="fc-label">🏢 Filiallar soni limiti</label>
+                        <input type="number" id="p_branches" class="fc-dark" value="0" min="0">
+                        <div class="mt-1" style="font-size:0.65rem; color:#64748b;">0 = cheksiz filiallar. 1 = faqat asosiy markaz (filial qo'shib bo'lmaydi). 3 = asosiy + 2 filial.</div>
                     </div>
 
                     <div class="mb-2">
@@ -892,6 +902,7 @@
         document.getElementById('p_code').disabled = false;
         document.getElementById('codeHint').textContent = 'Unikal kod (keyinchalik o\'zgartirib bo\'lmaydi)';
         document.getElementById('p_students').value = 100;
+        document.getElementById('p_branches').value = 0;
         document.getElementById('p_price').value = '';
         document.getElementById('p_price_3m').value = '';
         document.getElementById('p_price_6m').value = '';
@@ -937,6 +948,7 @@
             document.getElementById('p_price_9m').value = p.price_9m || '';
             document.getElementById('p_price_12m').value = p.price_12m || '';
             document.getElementById('p_students').value = p.max_students || 0;
+            document.getElementById('p_branches').value = p.max_branches ?? 0;
             document.getElementById('p_popular').checked = p.is_popular;
             document.getElementById('p_caption').value = p.caption || '';
             document.getElementById('planFormTitle').textContent = 'Tarifni Tahrirlash: ' + p.title;
@@ -961,14 +973,8 @@
         if (!code) { document.getElementById('p_code').focus(); return; }
         if (!title) { document.getElementById('p_title').focus(); return; }
 
-        // Collect M2M feature codes
+        // Collect M2M feature codes (ixtiyoriy)
         const featureCodes = currentCodes();
-        if (!featureCodes.length) {
-            const errEl = document.getElementById('featError');
-            errEl.style.display = 'block';
-            errEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            return;
-        }
         document.getElementById('featError').style.display = 'none';
 
         // Build legacy features map for backward compat
@@ -986,6 +992,7 @@
             price_9m: parseInt(document.getElementById('p_price_9m').value) || null,
             price_12m: parseInt(document.getElementById('p_price_12m').value) || null,
             max_students: parseInt(document.getElementById('p_students').value) || 0,
+            max_branches: parseInt(document.getElementById('p_branches').value) || 0,
             is_popular: document.getElementById('p_popular').checked,
             caption: document.getElementById('p_caption').value,
             feature_codes: featureCodes,    // M2M

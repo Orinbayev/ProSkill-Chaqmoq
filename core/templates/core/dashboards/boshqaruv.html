@@ -1446,7 +1446,7 @@
         <button class="bq-branch-btn" id="bqBranchBtn" type="button" onclick="openBranchModal()">
           <span class="bq-branch-dot" id="bqBranchDot"></span>
           <i class="fa-solid fa-code-branch" style="font-size:12px;"></i>
-          <span class="bq-branch-name" id="bqBranchBtnLabel">Barcha filiallar</span>
+          <span class="bq-branch-name" id="bqBranchBtnLabel">Filiallar</span>
           <i class="fa-solid fa-chevron-down" style="font-size:10px; opacity:.6;"></i>
         </button>
 
@@ -2000,17 +2000,19 @@
     </div>
 
     <div class="bq-bm-body">
-      <div class="bq-bm-section-title">Ko'rinish</div>
-      <button class="bq-branch-all-btn" id="bqSelectAll" type="button" onclick="selectBranch(null, 'Barcha filiallar')">
-        <i class="fa-solid fa-layer-group" style="color:#818cf8;font-size:1.1rem;"></i>
-        <div style="flex:1;">
-          <div>Barcha filiallar</div>
-          <div style="font-size:0.75rem;color:#64748b;font-weight:500;">Umumiy statistika ko'rish</div>
-        </div>
-        <i class="fa-solid fa-check" id="bqAllCheck" style="color:#34d399;display:none;"></i>
-      </button>
+      <!-- Filial tanlangan bo'lsa — "Barchasini ko'rish" tugmasi chiqadi -->
+      <div id="bqDeselectBar" style="display:none;margin-bottom:12px;">
+        <button type="button" onclick="selectBranch(null, null)"
+          style="display:flex;align-items:center;gap:8px;width:100%;padding:9px 14px;
+                 background:rgba(129,140,248,.1);border:1px solid rgba(129,140,248,.25);
+                 border-radius:12px;color:#a5b4fc;font-size:0.82rem;font-weight:700;cursor:pointer;">
+          <i class="fa-solid fa-layer-group"></i>
+          <span>Barchasini ko'rish (filial tanlovini bekor qilish)</span>
+          <i class="fa-solid fa-xmark" style="margin-left:auto;opacity:.7;"></i>
+        </button>
+      </div>
 
-      <div class="bq-bm-section-title" id="bqBranchListTitle" style="display:none;">Filiallar</div>
+      <div class="bq-bm-section-title" id="bqBranchListTitle">Filiallar</div>
       <div id="bqBranchList">
         <div style="text-align:center;color:#475569;padding:20px 0;font-size:0.85rem;" id="bqBranchEmpty">
           <i class="fa-solid fa-code-branch" style="font-size:2rem;margin-bottom:10px;display:block;opacity:.3;"></i>
@@ -2129,7 +2131,7 @@ const PAL = Object.values(C);
 let charts = {};
 let _branches = [];
 let _activeBranchId = null;
-let _activeBranchName = 'Barcha filiallar';
+let _activeBranchName = null;
 
 /* ── Format ── */
 function fmtM(n){
@@ -2656,7 +2658,7 @@ async function sendBranchRequest() {
 function updateBranchButton(){
   const labelEl = document.getElementById('bqBranchBtnLabel');
   const dotEl = document.getElementById('bqBranchDot');
-  const name = _activeBranchId ? (_activeBranchName || 'Filial') : 'Barcha filiallar';
+  const name = _activeBranchId ? (_activeBranchName || 'Filial') : 'Filiallar';
   if(labelEl){
     labelEl.textContent = name.length > 16 ? name.substring(0, 14) + '…' : name;
   }
@@ -2678,7 +2680,7 @@ async function fetchBranches() {
         _activeBranchName = active.name;
       } else {
         _activeBranchId = null;
-        _activeBranchName = 'Barcha filiallar';
+        _activeBranchName = null;
       }
       updateBranchButton();
     }
@@ -2691,12 +2693,13 @@ async function fetchBranches() {
 function renderBranchList() {
   const list = document.getElementById('bqBranchList');
   const title = document.getElementById('bqBranchListTitle');
-  const allCheck = document.getElementById('bqAllCheck');
-  const allBtn = document.getElementById('bqSelectAll');
-  if (!list || !title || !allCheck || !allBtn) return;
+  const deselectBar = document.getElementById('bqDeselectBar');
+  if (!list || !title) return;
 
-  allBtn.classList.toggle('selected', _activeBranchId === null);
-  allCheck.style.display = _activeBranchId === null ? 'block' : 'none';
+  // Filial tanlangan bo'lsa "bekor qilish" tugmasini ko'rsat
+  if (deselectBar) {
+    deselectBar.style.display = _activeBranchId !== null ? 'block' : 'none';
+  }
 
   if (!_branches.length) {
     title.style.display = 'none';
@@ -2762,11 +2765,11 @@ function closeBranchModal() {
 
 function selectBranch(id, name) {
   _activeBranchId = id;
-  _activeBranchName = name || 'Barcha filiallar';
+  _activeBranchName = id ? (name || 'Filial') : null;
   updateBranchButton();
   closeBranchModal();
   loadDashboardData();
-  showToast(id ? `📍 ${_activeBranchName} tanlandi` : '🌐 Barcha filiallar', 'info');
+  showToast(id ? `📍 ${_activeBranchName} tanlandi` : '🌐 Barcha filiallar ko\'rsatilmoqda', 'info');
 }
 
 async function saveBranch() {
@@ -2887,7 +2890,7 @@ async function deleteBranch(id, name) {
       showToast('🗑 Filial o\'chirildi', 'warning');
       if (_activeBranchId === id) {
         _activeBranchId = null;
-        _activeBranchName = 'Barcha filiallar';
+        _activeBranchName = null;
         updateBranchButton();
         loadDashboardData();
       }

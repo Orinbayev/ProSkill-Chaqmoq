@@ -11,7 +11,7 @@ from django.utils import timezone
 from datetime import timedelta
 from accounts.models import Center, User
 from education.models import Group, Payment, Attendance, TeacherIncome
-from billing.models import SubscriptionPlan, PromoCode, PlanFeature, SubscriptionOrder
+from billing.models import SubscriptionPlan, CenterSubscription, PromoCode, PlanFeature, SubscriptionOrder
 from billing.services import (
     apply_plan_to_center,
     invalidate_center_limit_cache,
@@ -619,6 +619,18 @@ def center_create_api(request):
 
         # 1. Create Center
         submitted_limit = int(data.get('capacity_limit') or data.get('max_students') or 100)
+
+        # Filial sifatida yaratish uchun parent_center_id qo'llab-quvvatlanadi
+        parent_center_id = data.get('parent_center_id')
+        parent_center_obj = None
+        if parent_center_id:
+            try:
+                parent_center_obj = Center.objects.get(pk=int(parent_center_id), is_deleted=False)
+                # Root markazni aniqlaymiz (filial zanjirlari bo'lishi mumkin)
+                parent_center_obj = parent_center_obj.get_root_center()
+            except (Center.DoesNotExist, ValueError):
+                parent_center_obj = None
+
         c = Center.objects.create(
             name=name,
             address=data.get('address', ''),
@@ -629,6 +641,7 @@ def center_create_api(request):
             monthly_price=int(data.get('monthly_price') or 0),
             payment_day=int(data.get('payment_day') or 5),
             features=features,
+            parent_center=parent_center_obj,  # filial bo'lsa root markazga bog'lanadi
             # Promo
             promo_code=data.get('promo_code'),
             discount_amount=int(data.get('discount_amount') or 0),
@@ -636,25 +649,29 @@ def center_create_api(request):
             promo_start=data.get('promo_start') or None,
             promo_end=data.get('promo_end') or None
         )
-        
-        # Handle Trial
-        trial_days = data.get('trial_days')
-        if trial_days and int(trial_days) > 0:
-            c.trial_ends = timezone.localdate() + timedelta(days=int(trial_days))
-            c.save()
 
-        plan_code = (data.get('plan') or '').strip().upper()
-        selected_plan = SubscriptionPlan.objects.filter(code=plan_code, active=True).first()
-        if selected_plan:
-            expires_raw = (data.get('expires_at') or '').strip()
-            expires_at = expires_raw or (timezone.now() + timedelta(days=30))
-            superadmin_apply_subscription(
-                center=c,
-                new_plan=selected_plan,
-                expires_at=expires_at,
-                actor=request.user,
-            )
-            c.refresh_from_db()
+        # Filial bo'lsa: alohida subscription yaratilmaydi, asosiy markaznikini meros oladi
+        if parent_center_obj:
+            CenterSubscription.objects.filter(center=c).delete()
+        else:
+            # Handle Trial
+            trial_days = data.get('trial_days')
+            if trial_days and int(trial_days) > 0:
+                c.trial_ends = timezone.localdate() + timedelta(days=int(trial_days))
+                c.save()
+
+            plan_code = (data.get('plan') or '').strip().upper()
+            selected_plan = SubscriptionPlan.objects.filter(code=plan_code, active=True).first()
+            if selected_plan:
+                expires_raw = (data.get('expires_at') or '').strip()
+                expires_at = expires_raw or (timezone.now() + timedelta(days=30))
+                superadmin_apply_subscription(
+                    center=c,
+                    new_plan=selected_plan,
+                    expires_at=expires_at,
+                    actor=request.user,
+                )
+                c.refresh_from_db()
 
         # 2. Create Director (if provided)
         if dir_email:
@@ -700,6 +717,7 @@ def plan_list_api(request):
             "price_6m": p.price_6m,
             "price_12m": p.price_12m,
             "max_students": p.max_students,
+            "max_branches": p.max_branches,   # 0=cheksiz filiallar
             "max_groups": getattr(p, 'max_groups', 30),
             "max_users": p.max_users,
             "is_popular": p.is_popular,
@@ -789,6 +807,7 @@ def plan_create_api(request):
             price_9m=int(data.get('price_9m') or 0) if data.get('price_9m') else None,
             price_12m=int(data.get('price_12m') or 0) if data.get('price_12m') else None,
             max_students=int(data.get('max_students') or 0),
+            max_branches=int(data.get('max_branches') or 0),  # 0=cheksiz
             max_groups=9999,
             max_users=9999,
             is_popular=data.get('is_popular') == 'true' or data.get('is_popular') is True,
@@ -834,6 +853,7 @@ def plan_update_api(request, plan_id):
         plan.price_9m = int(data.get('price_9m') or 0) if data.get('price_9m') else None
         plan.price_12m = int(data.get('price_12m') or 0) if data.get('price_12m') else None
         plan.max_students = int(data.get('max_students') or 0)
+        plan.max_branches = int(data.get('max_branches') or 0)  # 0=cheksiz
         plan.max_groups = 9999
         plan.max_users = 9999
         

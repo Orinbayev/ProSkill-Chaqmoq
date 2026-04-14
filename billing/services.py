@@ -808,6 +808,14 @@ def can_add_branch(center: Center) -> tuple[bool, str]:
     if max_b == 0:
         return True, "OK"  # Cheksiz
 
+    # max_branches=1 → faqat asosiy markaz, filial qo'shib bo'lmaydi
+    if max_b == 1:
+        return (
+            False,
+            f"Tarifingiz ({plan.title}) filial qo'shishga ruxsat bermaydi. "
+            f"Filial ochish uchun yuqori tarifga o'ting.",
+        )
+
     # Hozirgi faol filiallar soni
     current_branches = Center.objects.filter(
         parent_center=root,
@@ -817,19 +825,14 @@ def can_add_branch(center: Center) -> tuple[bool, str]:
 
     # max_branches: asosiy markaz + filiallar JAMI.
     # Masalan max_branches=3 → 1 asosiy + 2 filial
-    allowed_branches = max_b - 1  # filiallar soni (asosiy hisoblanmaydi)
+    allowed_branches = max_b - 1  # maksimal filiallar soni
 
     if current_branches >= allowed_branches:
-        if allowed_branches <= 0:
-            return (
-                False,
-                f"Tarifingiz ({plan.title}) filial qo'shishga ruxsat bermaydi. "
-                f"Yuqori tarifga o'ting.",
-            )
         return (
             False,
-            f"Tarifingizda {allowed_branches} ta filial limiti bor va u to'ldi. "
-            f"Yuqori tarifga o'ting yoki qo'shimcha filial add-on xarid qiling.",
+            f"Tarifingizda {allowed_branches} ta filial limiti bor "
+            f"({current_branches} ta ishlatilgan). "
+            f"Ko'proq filial uchun yuqori tarifga o'ting.",
         )
 
     return True, "OK"
