@@ -136,7 +136,29 @@ class Center(SoftDeleteMixin, models.Model):
         help_text="Demo markazmi (savdo/demo uchun test ma'lumotlar).",
     )
 
+    # Filial arxitekturasi: agar bu markaz biror markazning filialiosa,
+    # parent_center shu asosiy markazni ko'rsatadi.
+    # Filiallar asosiy markazning subscriptionidan foydalanadi.
+    parent_center = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='child_branches',
+        verbose_name="Asosiy markaz (filial bo'lsa)",
+    )
 
+    def get_root_center(self):
+        """Eng yuqori asosiy markazni qaytaradi (subscription shu yerdan olinadi)."""
+        if self.parent_center_id:
+            return self.parent_center.get_root_center()
+        return self
+
+    def is_branch(self) -> bool:
+        return self.parent_center_id is not None
+
+    def get_active_branches_count(self) -> int:
+        """Shu markazning faol filiallar soni."""
+        return self.child_branches.filter(is_deleted=False, status='ACTIVE').count()
 
     def save(self, *args, **kwargs):
         # Auto-fill tenant DB credentials from default DB config when not provided manually.

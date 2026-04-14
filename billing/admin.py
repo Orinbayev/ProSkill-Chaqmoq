@@ -31,6 +31,7 @@ class SubscriptionPlanAdmin(admin.ModelAdmin):
         "max_students",
         "max_users",
         "max_groups",
+        "max_branches",
         "is_popular",
         "active",
     )

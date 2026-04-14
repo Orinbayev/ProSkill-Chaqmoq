@@ -107,7 +107,17 @@ def can_center_use_feature(center: Center, feature_code: str) -> bool:
 def get_active_subscription(center: Center) -> CenterSubscription | None:
     """
     Returns the currently ACTIVE center subscription from DB.
+    Agar bu markaz filial bo'lsa (parent_center mavjud) — asosiy markazning
+    subscriptionini ishlatadi. Shunday qilib 1 ta tarif barcha filiallarni qoplaydi.
     """
+    # Filial bo'lsa — root (asosiy) markazning subscriptionini ishlatamiz
+    if getattr(center, 'parent_center_id', None):
+        root = center.get_root_center()
+        return CenterSubscription.objects.filter(
+            center=root,
+            status=CenterSubscription.Status.ACTIVE
+        ).select_related("plan").order_by("-expires_at", "-id").first()
+
     return CenterSubscription.objects.filter(
         center=center,
         status=CenterSubscription.Status.ACTIVE
@@ -746,19 +756,73 @@ def default_trial_expires():
 
 
 def get_feature_flags(center: Center) -> set[str]:
-    sub = get_active_subscription(center)
+    # Filial bo'lsa — asosiy markazning feature flaglarini ishlatamiz
+    root = center.get_root_center() if getattr(center, 'parent_center_id', None) else center
+
+    sub = get_active_subscription(root)
     # Fallback to center.plan if no active sub exists
-    code = sub.plan.code if (sub and sub.plan) else center.plan
-    
+    code = sub.plan.code if (sub and sub.plan) else root.plan
+
     features = FEATURES_BY_PLAN.get(code, set()).copy()
-    manual_features = getattr(center, 'features', {}) or {}
+    # Asosiy markaz override-larini qo'llamiz
+    manual_features = getattr(root, 'features', {}) or {}
     for feature_name, enabled in manual_features.items():
         if enabled:
             features.add(feature_name)
         elif feature_name in features:
             features.remove(feature_name)
-    
+
     return features
+
+
+def can_add_branch(center: Center) -> tuple[bool, str]:
+    """
+    Director yangi filial ocha oladimi yoki yo'qligini tekshiradi.
+    Qaytaradi: (True, "OK") yoki (False, "sabab")
+
+    Qoidalar:
+      - Faqat root (asosiy) markaz uchun chaqirilishi kerak
+      - max_branches=0 → cheksiz
+      - max_branches=1 → faqat asosiy (filial qo'shib bo'lmaydi)
+      - max_branches=N → N-1 ta filial qo'shish mumkin (asosiy + N-1 filial)
+    """
+    root = center.get_root_center() if getattr(center, 'parent_center_id', None) else center
+    sub = get_active_subscription(root)
+
+    if not sub:
+        return False, "Aktiv tarif topilmadi. Avval tarif sotib oling."
+
+    plan = sub.plan
+    max_b = plan.max_branches  # 0 = cheksiz, 1 = faqat asosiy, 2+ = filiallar
+
+    if max_b == 0:
+        return True, "OK"  # Cheksiz
+
+    # Hozirgi faol filiallar soni
+    current_branches = Center.objects.filter(
+        parent_center=root,
+        is_deleted=False,
+        status=Center.STATUS_ACTIVE,
+    ).count()
+
+    # max_branches: asosiy markaz + filiallar JAMI.
+    # Masalan max_branches=3 → 1 asosiy + 2 filial
+    allowed_branches = max_b - 1  # filiallar soni (asosiy hisoblanmaydi)
+
+    if current_branches >= allowed_branches:
+        if allowed_branches <= 0:
+            return (
+                False,
+                f"Tarifingiz ({plan.title}) filial qo'shishga ruxsat bermaydi. "
+                f"Yuqori tarifga o'ting.",
+            )
+        return (
+            False,
+            f"Tarifingizda {allowed_branches} ta filial limiti bor va u to'ldi. "
+            f"Yuqori tarifga o'ting yoki qo'shimcha filial add-on xarid qiling.",
+        )
+
+    return True, "OK"
 
 
 def validate_promocode(code: str, plan: SubscriptionPlan, center: Center | None = None) -> PromoCode | None:

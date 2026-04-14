@@ -61,6 +61,11 @@ class SubscriptionPlan(models.Model):
     max_users = models.PositiveIntegerField(default=50)
     max_groups = models.PositiveIntegerField(default=30)
     max_students = models.PositiveIntegerField(default=100)
+    max_branches = models.PositiveIntegerField(
+        default=1,
+        verbose_name="Maksimal filiallar soni",
+        help_text="1 = faqat asosiy markaz, 0 = cheksiz",
+    )
 
     is_popular = models.BooleanField(default=False)
     discount_percent = models.PositiveIntegerField(default=0, validators=[MaxValueValidator(100)])

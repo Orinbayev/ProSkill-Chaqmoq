@@ -62,6 +62,7 @@ class CenterAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "slug",
+        "parent_center",
         "is_demo",
         "plan",
         "status",
@@ -71,7 +72,7 @@ class CenterAdmin(admin.ModelAdmin):
         "switch_link",
         "created_at",
     )
-    list_filter = ("is_demo", "plan", "status")
+    list_filter = ("is_demo", "plan", "status", "parent_center")
     search_fields = ("name", "slug", "address")
     ordering = ("name",)
 

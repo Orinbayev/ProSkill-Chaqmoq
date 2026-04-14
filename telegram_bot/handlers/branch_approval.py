@@ -76,15 +76,22 @@ def _approve_branch_request(req_id: int):
             slug = f"{base_slug}-{index}"
             index += 1
 
+        # Root center — subscription shu yerdan olinadi
+        root_center = branch_request.parent_center.get_root_center()
+
         new_center = Center.objects.create(
             name=branch_request.name,
             address=branch_request.address,
             phone=branch_request.phone,
             slug=slug,
-            plan=Center.Plan.FREE,
+            plan=root_center.plan,           # Asosiy markaz tarifi
             status=Center.STATUS_ACTIVE,
+            parent_center=root_center,        # ← ASOSIY: filial bog'lanishi
         )
 
+        # Filial uchun alohida subscription KERAK EMAS —
+        # get_active_subscription() parent_center orqali oladi.
+        # Lekin ensure qilamiz (fallback uchun)
         try:
             ensure_center_subscription(new_center)
         except Exception:

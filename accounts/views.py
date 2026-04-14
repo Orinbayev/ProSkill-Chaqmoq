@@ -368,6 +368,18 @@ def director_branch_request(request):
     if not current_center:
         return JsonResponse({"ok": False, "error": "Asosiy markaz aniqlanmadi"}, status=400)
 
+    # Root (asosiy) markazni aniqlaymiz — limit tekshiruvi shu yerda
+    root_center = current_center.get_root_center()
+
+    # Tarif limiti tekshiruvi
+    try:
+        from billing.services import can_add_branch
+        ok, reason = can_add_branch(root_center)
+        if not ok:
+            return JsonResponse({"ok": False, "error": reason}, status=400)
+    except Exception:
+        pass  # Tekshiruv ishlamasa ham davom etamiz
+
     pending_count = BranchRequest.objects.filter(
         requester=user,
         status=BranchRequest.Status.PENDING,
@@ -380,7 +392,7 @@ def director_branch_request(request):
 
     branch_request = BranchRequest.objects.create(
         requester=user,
-        parent_center=current_center,
+        parent_center=root_center,  # Har doim root center ga bog'laymiz
         name=name,
         address=address,
         phone=phone,
