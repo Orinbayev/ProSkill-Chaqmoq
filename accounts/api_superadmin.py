@@ -9,7 +9,7 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from datetime import timedelta
-from accounts.models import Center, User
+from accounts.models import Center, User, DirectorCenterAccess
 from education.models import Group, Payment, Attendance, TeacherIncome
 from billing.models import SubscriptionPlan, CenterSubscription, PromoCode, PlanFeature, SubscriptionOrder
 from billing.services import (
@@ -653,6 +653,31 @@ def center_create_api(request):
         # Filial bo'lsa: alohida subscription yaratilmaydi, asosiy markaznikini meros oladi
         if parent_center_obj:
             CenterSubscription.objects.filter(center=c).delete()
+
+            # Root markazning barcha direktorlariga filialga kirish huquqi beriladi
+            # 1) user.center = root_center bo'lgan direktorlar
+            for director in User.objects.filter(
+                center=parent_center_obj, role='director', is_active=True
+            ):
+                access_obj, _ = DirectorCenterAccess.objects.get_or_create(
+                    director=director, center=c,
+                    defaults={"is_active": True, "granted_by": request.user}
+                )
+                if not access_obj.is_active:
+                    access_obj.is_active = True
+                    access_obj.save(update_fields=["is_active"])
+
+            # 2) DirectorCenterAccess orqali root markazga kirish huquqi bor direktorlar
+            for root_access in DirectorCenterAccess.objects.filter(
+                center=parent_center_obj, is_active=True
+            ).select_related("director"):
+                access_obj, _ = DirectorCenterAccess.objects.get_or_create(
+                    director=root_access.director, center=c,
+                    defaults={"is_active": True, "granted_by": request.user}
+                )
+                if not access_obj.is_active:
+                    access_obj.is_active = True
+                    access_obj.save(update_fields=["is_active"])
         else:
             # Handle Trial
             trial_days = data.get('trial_days')

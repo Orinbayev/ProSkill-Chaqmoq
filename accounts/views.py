@@ -264,8 +264,12 @@ def director_my_centers(request):
         }
 
     centers: list[dict] = []
-    if user.center:
-        centers.append(_center_dict(user.center, is_primary=True))
+    if user.center_id:
+        own_center = Center.objects.select_related("parent_center").filter(
+            pk=user.center_id, is_deleted=False
+        ).first()
+        if own_center:
+            centers.append(_center_dict(own_center, is_primary=True))
 
     extra_accesses = (
         DirectorCenterAccess.objects
@@ -425,18 +429,21 @@ def director_branch_edit(request, center_id: int):
     except json.JSONDecodeError:
         return JsonResponse({"ok": False, "error": "JSON xato"}, status=400)
 
-    # Faqat direktorning o'z filiallari (parent_center mavjud va direktor shu markazga ega)
+    # Markazni topamiz va direktorning ruxsatini tekshiramiz
     try:
-        access = DirectorCenterAccess.objects.select_related("center", "center__parent_center").get(
-            director=user,
-            center_id=center_id,
-            is_active=True,
-            center__is_deleted=False,
-        )
-        center = access.center
-    except DirectorCenterAccess.DoesNotExist:
-        # user.center bo'lishi mumkin emas — asosiy markaz tahrirlash mumkin emas bu endpoint orqali
-        return JsonResponse({"ok": False, "error": "Markaz topilmadi yoki ruxsat yo'q"}, status=404)
+        center = Center.objects.select_related("parent_center").get(pk=center_id, is_deleted=False)
+    except Center.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "Markaz topilmadi"}, status=404)
+
+    # Ruxsatni tekshirish:
+    # 1) DirectorCenterAccess orqali (bot orqali qo'shilgan filiallar)
+    # 2) user.center orqali (superadmin yaratib bergan filiallar)
+    has_access = (
+        DirectorCenterAccess.objects.filter(director=user, center=center, is_active=True).exists()
+        or (getattr(user, "center_id", None) == center_id)
+    )
+    if not has_access:
+        return JsonResponse({"ok": False, "error": "Ruxsat yo'q"}, status=403)
 
     if not center.parent_center_id:
         return JsonResponse({"ok": False, "error": "Faqat filiallarni tahrirlash mumkin"}, status=400)
@@ -470,15 +477,17 @@ def director_branch_deactivate(request, center_id: int):
         return JsonResponse({"ok": False, "error": "Faqat direktor"}, status=403)
 
     try:
-        access = DirectorCenterAccess.objects.select_related("center").get(
-            director=user,
-            center_id=center_id,
-            is_active=True,
-            center__is_deleted=False,
-        )
-        center = access.center
-    except DirectorCenterAccess.DoesNotExist:
-        return JsonResponse({"ok": False, "error": "Markaz topilmadi yoki ruxsat yo'q"}, status=404)
+        center = Center.objects.get(pk=center_id, is_deleted=False)
+    except Center.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "Markaz topilmadi"}, status=404)
+
+    # Ruxsatni tekshirish
+    has_access = (
+        DirectorCenterAccess.objects.filter(director=user, center=center, is_active=True).exists()
+        or (getattr(user, "center_id", None) == center_id)
+    )
+    if not has_access:
+        return JsonResponse({"ok": False, "error": "Ruxsat yo'q"}, status=403)
 
     if not center.parent_center_id:
         return JsonResponse({"ok": False, "error": "Asosiy markazni o'chirib bo'lmaydi"}, status=400)
@@ -487,9 +496,8 @@ def director_branch_deactivate(request, center_id: int):
     center.status = Center.STATUS_BLOCKED
     center.save(update_fields=["status"])
 
-    # Director accessni ham o'chiramiz
-    access.is_active = False
-    access.save(update_fields=["is_active"])
+    # Barcha aktiv DirectorCenterAccess larni o'chiramiz
+    DirectorCenterAccess.objects.filter(center=center, is_active=True).update(is_active=False)
 
     reload_needed = str(request.session.get("current_center_id")) == str(center_id)
     return JsonResponse({"ok": True, "message": f"'{center.name}' filiali bloklandi", "reload": reload_needed})
