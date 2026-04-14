@@ -30,7 +30,9 @@ class SubscriptionMiddleware(MiddlewareMixin):
         if not center:
             return None
 
-        sub = ensure_center_subscription(center)
+        # Filial bo'lsa — asosiy markazning subscription ni ishlatamiz
+        root_center = center.get_root_center() if getattr(center, 'parent_center_id', None) else center
+        sub = ensure_center_subscription(root_center)
 
         # allowed URL prefixlar:
         allowed_prefixes = [
@@ -45,7 +47,7 @@ class SubscriptionMiddleware(MiddlewareMixin):
 
         # ✅ Check both expiration AND student limit
         user_role = getattr(user, "role", None)
-        
+
         is_blocked = sub and sub.is_blocked()
         is_over_limit = sub and sub.is_over_student_limit()
         

@@ -59,35 +59,34 @@ def tenant_context(request):
                 FEATURES_BY_PLAN,
             )
 
-            # ensure_center_subscription: 10 daqiqada bir marta
-            if not is_super:
+            # Filial bo'lsa asosiy markazni aniqlaymiz — subscription shu yerdan
+            root_center = center.get_root_center() if getattr(center, 'parent_center_id', None) else center
+
+            # ensure_center_subscription: 10 daqiqada bir marta (faqat root center uchun)
+            if not is_super and not getattr(center, 'parent_center_id', None):
                 now_ts = int(timezone.now().timestamp())
                 last_ensure = int(request.session.get("_sub_ensure_ts", 0) or 0)
                 if now_ts - last_ensure > 600:
-                    ensure_center_subscription(center)
+                    ensure_center_subscription(root_center)
                     request.session["_sub_ensure_ts"] = now_ts
 
-            # ✅ PERF FIX: sub_ui va features bitta cache key da, bitta get_active_subscription() chaqiruvi
-            sub_cache_key = f"tenant_ctx:sub:v3:{center.id}"
+            # Cache key: root_center.id — filial va asosiy markaz bir xil cache ishlatadi
+            sub_cache_key = f"tenant_ctx:sub:v3:{root_center.id}"
             cached_sub_data = cache.get(sub_cache_key)
             if cached_sub_data is not None:
                 sub_ui = cached_sub_data.get("sub_ui")
                 features = set(cached_sub_data.get("features", []))
             else:
-                # ✅ PERF: get_active_subscription() BITTA marta chaqiriladi
-                # get_subscription_ui_state ham get_active_subscription chaqiradi — undan foydalanmaymiz
-                active_sub = get_active_subscription(center)
+                # root_center orqali subscription olamiz (filial bo'lsa ham to'g'ri ishlaydi)
+                active_sub = get_active_subscription(root_center)
 
-                # sub_ui: get_subscription_ui_state state ni qaytaradi lekin ichida yana get_active_subscription chaqiradi
-                # Shuni bypass qilish uchun to'g'ridan-to'g'ri chaqiramiz
                 try:
-                    sub_ui = get_subscription_ui_state(center)
+                    sub_ui = get_subscription_ui_state(root_center)
                 except Exception as e:
                     logger.warning("get_subscription_ui_state error: %s", e)
 
-                # features: plan kodiga qarab
                 try:
-                    features = get_feature_flags(center)
+                    features = get_feature_flags(root_center)
                 except Exception as e:
                     logger.warning("get_feature_flags error: %s", e)
 

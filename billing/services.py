@@ -714,8 +714,13 @@ def get_plan_list_payload() -> list[dict]:
 def ensure_center_subscription(center: Center) -> CenterSubscription | None:
     """
     Ensure at least one subscription exists. IF no active/paused sub exists, create FREE one.
+    Filial (branch) bo'lsa — skip qilinadi, asosiy markaz subscriptionidan foydalanadi.
     """
     try:
+        # Filial bo'lsa — alohida subscription yaratmaymiz
+        if getattr(center, 'parent_center_id', None):
+            return get_active_subscription(center)
+
         # Check active or paused
         sub = CenterSubscription.objects.filter(
             center=center,
@@ -730,7 +735,7 @@ def ensure_center_subscription(center: Center) -> CenterSubscription | None:
         # Fallback plan
         allowed_plans = ["FREE", "STANDARD", "PREMIUM", "PRO", "START", "ENTERPRISE"]
         plan_code = center.plan if center.plan in allowed_plans else "FREE"
-        
+
         plan = SubscriptionPlan.objects.filter(code=plan_code, active=True).first()
         if not plan:
             plan = SubscriptionPlan.objects.order_by("monthly_price").first()
@@ -740,7 +745,7 @@ def ensure_center_subscription(center: Center) -> CenterSubscription | None:
 
         # Create new ACTIVE subscription
         sub = CenterSubscription.objects.create(
-            center=center, 
+            center=center,
             plan=plan,
             status=CenterSubscription.Status.ACTIVE,
             started_at=timezone.now(),
@@ -1398,11 +1403,13 @@ def check_subscription_expiry(center: Center):
 
 def get_subscription_ui_state(center: Center) -> dict | None:
     try:
-        check_subscription_expiry(center)
-        sub = get_active_subscription(center)
+        # Filial bo'lsa — asosiy markazda ishlashimiz kerak
+        root = center.get_root_center() if getattr(center, 'parent_center_id', None) else center
+        check_subscription_expiry(root)
+        sub = get_active_subscription(root)
         if not sub:
             # Try to show any current/relevant sub for UI
-            sub = CenterSubscription.objects.filter(center=center).order_by("-id").first()
+            sub = CenterSubscription.objects.filter(center=root).order_by("-id").first()
             if not sub: return None
             
         days_left = sub.days_left()
