@@ -124,6 +124,384 @@
 /* right controls */
 .bq-toolbar__right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
 
+/* ══ MARKAZ SWITCHER ══ */
+.bq-center-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px;
+  background: rgba(251,191,36,.1);
+  border: 1px solid rgba(251,191,36,.22);
+  border-radius: 12px; cursor: pointer;
+  color: #fbbf24; font-size: 13px; font-weight: 700;
+  transition: all .2s; white-space: nowrap; max-width: 220px;
+}
+.bq-center-btn:hover {
+  background: rgba(251,191,36,.2); border-color: rgba(251,191,36,.4);
+  transform: translateY(-1px);
+}
+.bq-center-btn__dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: #34d399; box-shadow: 0 0 6px rgba(52,211,153,.7);
+}
+.bq-center-btn__name {
+  max-width: 130px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.bq-center-btn__count {
+  background: rgba(251,191,36,.2); border-radius: 20px;
+  padding: 2px 7px; font-size: 11px; color: #fbbf24; flex-shrink: 0;
+}
+
+/* ══ CENTER MODAL ══ */
+.bq-cm-overlay {
+  display: none; position: fixed; inset: 0; z-index: 9100;
+  background: rgba(0,0,0,.65); backdrop-filter: blur(8px);
+  align-items: flex-start; justify-content: center;
+  padding-top: 80px;
+}
+.bq-cm-overlay.open { display: flex; }
+.bq-cm-modal {
+  background: linear-gradient(145deg,#0d1526,#0b1220);
+  border: 1px solid rgba(255,255,255,.1); border-radius: 24px;
+  width: 100%; max-width: 520px;
+  max-height: 80vh; overflow-y: auto;
+  box-shadow: 0 32px 80px rgba(0,0,0,.55);
+}
+.bq-cm-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  position: sticky; top: 0;
+  background: linear-gradient(145deg,#0d1526,#0b1220);
+  z-index: 10;
+}
+.bq-cm-title { font-size: 1.05rem; font-weight: 800; color: #e2e8f0; }
+.bq-cm-close {
+  width: 34px; height: 34px; border: none; background: rgba(255,255,255,.06);
+  border-radius: 10px; color: #94a3b8; cursor: pointer; font-size: 1rem;
+  display: flex; align-items: center; justify-content: center; transition: all .2s;
+}
+.bq-cm-close:hover { background: rgba(239,68,68,.2); color: #f87171; }
+.bq-cm-body { padding: 20px 24px 24px; }
+.bq-cm-sec { margin-bottom: 20px; }
+.bq-cm-sec-lbl {
+  font-size: 0.7rem; font-weight: 800; letter-spacing: .12em;
+  text-transform: uppercase; color: #475569; margin-bottom: 10px;
+}
+
+.bq-ci {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; border-radius: 14px;
+  border: 1.5px solid rgba(255,255,255,.06);
+  background: rgba(255,255,255,.03);
+  margin-bottom: 8px; cursor: pointer; transition: all .2s;
+}
+.bq-ci:hover { background: rgba(251,191,36,.08); border-color: rgba(251,191,36,.2); }
+.bq-ci.active {
+  background: rgba(251,191,36,.13); border-color: #fbbf24;
+}
+.bq-ci__ico {
+  width: 42px; height: 42px; border-radius: 12px;
+  background: linear-gradient(135deg,rgba(251,191,36,.18),rgba(245,158,11,.12));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; flex-shrink: 0;
+}
+.bq-ci.active .bq-ci__ico { background: linear-gradient(135deg,rgba(251,191,36,.35),rgba(245,158,11,.22)); }
+.bq-ci__info { flex: 1; min-width: 0; }
+.bq-ci__name {
+  font-weight: 700; color: #e2e8f0; font-size: 0.92rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bq-ci__slug { font-size: 0.72rem; color: #475569; margin-top: 2px; }
+.bq-ci__badge {
+  font-size: 0.68rem; padding: 2px 8px; border-radius: 20px;
+  font-weight: 700; flex-shrink: 0;
+}
+.bq-ci__badge.primary { background: rgba(251,191,36,.15); color: #fbbf24; }
+.bq-ci__badge.active  { background: rgba(52,211,153,.15); color: #34d399; }
+.bq-ci__check { color: #34d399; font-size: 0.9rem; flex-shrink: 0; }
+
+.bq-pending-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: 12px;
+  background: rgba(251,191,36,.05);
+  border: 1px dashed rgba(251,191,36,.2);
+  margin-bottom: 8px;
+}
+.bq-pending-item__name { font-weight: 600; color: #e2e8f0; font-size: 0.88rem; }
+.bq-pending-item__info { font-size: 0.72rem; color: #64748b; margin-top: 2px; }
+
+.bq-add-form { margin-top: 4px; }
+.bq-add-title {
+  font-size: 0.72rem; font-weight: 800; letter-spacing: .1em;
+  text-transform: uppercase; color: #64748b; margin-bottom: 10px;
+}
+.bq-add-input {
+  width: 100%; background: rgba(15,23,42,.5);
+  border: 1px solid rgba(255,255,255,.1); border-radius: 12px;
+  padding: 10px 14px; color: #e2e8f0; font-size: 0.9rem;
+  font-weight: 600; margin-bottom: 10px; font-family: inherit;
+  transition: border-color .2s;
+}
+.bq-add-input:focus {
+  outline: none; border-color: #fbbf24;
+  box-shadow: 0 0 0 3px rgba(251,191,36,.12);
+}
+.bq-add-input::placeholder { color: #334155; }
+.bq-add-btn {
+  width: 100%; padding: 11px; border: none; border-radius: 12px;
+  background: linear-gradient(135deg,#fbbf24,#f59e0b);
+  color: #0d1526; font-weight: 800; font-size: 0.9rem;
+  cursor: pointer; transition: all .2s;
+}
+.bq-add-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.bq-add-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.bq-add-note {
+  font-size: 0.78rem; color: #475569; margin-top: 10px;
+  line-height: 1.5; text-align: center;
+}
+
+/* ── BRANCH SWITCHER ── */
+.bq-branch-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(129,140,248,.12);
+  border: 1px solid rgba(129,140,248,.25);
+  border-radius: 12px;
+  color: #a5b4fc;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.bq-branch-btn:hover {
+  background: rgba(129,140,248,.22);
+  border-color: rgba(129,140,248,.45);
+  color: #c7d2fe;
+  transform: translateY(-1px);
+}
+.bq-branch-btn .bq-branch-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bq-branch-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #818cf8;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(129,140,248,.6);
+}
+.bq-branch-dot.active {
+  background: #34d399;
+  box-shadow: 0 0 6px rgba(52,211,153,.6);
+}
+
+/* ── BRANCH MODAL ── */
+.bq-branch-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(0,0,0,.6);
+  backdrop-filter: blur(6px);
+  align-items: center;
+  justify-content: center;
+}
+.bq-branch-overlay.open { display: flex; }
+.bq-branch-modal {
+  background: linear-gradient(145deg, #0d1526, #0f1a30);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 24px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 30px 80px rgba(0,0,0,.5);
+  padding: 0;
+}
+.bq-bm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.bq-bm-title { font-size: 1.1rem; font-weight: 800; color: #e2e8f0; }
+.bq-bm-close {
+  background: rgba(255,255,255,.06);
+  border: none;
+  border-radius: 10px;
+  width: 34px;
+  height: 34px;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .2s;
+}
+.bq-bm-close:hover { background: rgba(239,68,68,.2); color: #f87171; }
+.bq-bm-body { padding: 20px 24px; }
+.bq-bm-section-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+
+.bq-branch-all-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 14px;
+  cursor: pointer;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  transition: all .2s;
+  text-align: left;
+}
+.bq-branch-all-btn:hover,
+.bq-branch-all-btn.selected {
+  background: rgba(129,140,248,.15);
+  border-color: rgba(129,140,248,.3);
+  color: #a5b4fc;
+}
+.bq-branch-all-btn.selected { border-color: #818cf8; }
+
+.bq-bi {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.06);
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all .2s;
+  position: relative;
+}
+.bq-bi:hover { background: rgba(129,140,248,.1); border-color: rgba(129,140,248,.25); }
+.bq-bi.selected { background: rgba(129,140,248,.18); border-color: #818cf8; }
+.bq-bi__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(129,140,248,.2), rgba(96,165,250,.15));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.bq-bi__info { flex: 1; min-width: 0; }
+.bq-bi__name { font-weight: 700; color: #e2e8f0; font-size: 0.92rem; }
+.bq-bi__addr {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bq-bi__stats { display: flex; gap: 10px; margin-top: 5px; }
+.bq-bi__stat { font-size: 0.72rem; color: #94a3b8; font-weight: 600; }
+.bq-bi__stat span { color: #a5b4fc; font-weight: 800; }
+.bq-bi__actions {
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity .2s;
+  flex-shrink: 0;
+}
+.bq-bi:hover .bq-bi__actions { opacity: 1; }
+.bq-bi__act-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  transition: all .2s;
+}
+.bq-bi__act-btn.edit { background: rgba(251,191,36,.12); color: #fbbf24; }
+.bq-bi__act-btn.edit:hover { background: rgba(251,191,36,.25); }
+.bq-bi__act-btn.del { background: rgba(239,68,68,.1); color: #f87171; }
+.bq-bi__act-btn.del:hover { background: rgba(239,68,68,.22); }
+.bq-bi__inactive {
+  font-size: 0.68rem;
+  background: rgba(239,68,68,.15);
+  color: #f87171;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-weight: 700;
+  margin-left: 8px;
+}
+
+.bq-bm-form { margin-top: 20px; }
+.bq-bm-form-title {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+.bq-bm-input {
+  width: 100%;
+  background: rgba(15,23,42,.5);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 12px;
+  padding: 10px 14px;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  transition: all .2s;
+  font-family: inherit;
+}
+.bq-bm-input:focus {
+  outline: none;
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(129,140,248,.15);
+}
+.bq-bm-input::placeholder { color: #475569; }
+.bq-bm-save-btn {
+  width: 100%;
+  padding: 11px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #818cf8, #6366f1);
+  color: white;
+  font-weight: 800;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all .2s;
+}
+.bq-bm-save-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.bq-bm-save-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+.bq-bi-edit-form { display: none; padding: 12px 0 4px; }
+.bq-bi-edit-form.open { display: block; }
+
 /* ── AI TUGMA ── */
 .bq-ai-btn {
   height: 42px;
@@ -1064,6 +1442,24 @@
           </button>
         </div>
 
+        <!-- Filial Switcher -->
+        <button class="bq-branch-btn" id="bqBranchBtn" type="button" onclick="openBranchModal()">
+          <span class="bq-branch-dot" id="bqBranchDot"></span>
+          <i class="fa-solid fa-code-branch" style="font-size:12px;"></i>
+          <span class="bq-branch-name" id="bqBranchBtnLabel">Barcha filiallar</span>
+          <i class="fa-solid fa-chevron-down" style="font-size:10px; opacity:.6;"></i>
+        </button>
+
+        {% if request.user.role == 'director' %}
+        <button class="bq-center-btn" id="bqCenterBtn" type="button" onclick="openCenterModal()">
+          <span class="bq-center-btn__dot"></span>
+          <i class="fa-solid fa-building-columns" style="font-size:12px;"></i>
+          <span class="bq-center-btn__name" id="bqCenterBtnName">{{ center.name }}</span>
+          <span class="bq-center-btn__count" id="bqCenterBtnCount" style="display:none;">1</span>
+          <i class="fa-solid fa-chevron-down" style="font-size:10px;opacity:.5;"></i>
+        </button>
+        {% endif %}
+
         <!-- Right: AI btn + Profile -->
         <div class="bq-toolbar__right">
           <button class="bq-ai-btn" id="bqAiOpen" type="button">
@@ -1409,6 +1805,52 @@
         </div>
       </div>
 
+      <div class="row g-3 mb-4">
+        <div class="col-12">
+          <h6 class="text-white-50 mb-3">📝 Imtihon holati</h6>
+        </div>
+        <div class="col-12">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;" id="examSummaryGrid">
+            <div style="background:rgba(13,21,38,.88);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;">
+              <div style="width:38px;height:38px;border-radius:10px;background:rgba(59,130,246,.12);display:flex;align-items:center;justify-content:center;color:#93c5fd;font-size:16px;flex-shrink:0;">
+                <i class="fa-solid fa-list-check"></i>
+              </div>
+              <div>
+                <div style="font-size:22px;font-weight:900;color:#e2e8f0;line-height:1;" id="examTotalSessions">—</div>
+                <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-top:2px;">Jami sessiyalar</div>
+              </div>
+            </div>
+            <div style="background:rgba(13,21,38,.88);border:1px solid rgba(20,184,166,.15);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;">
+              <div style="width:38px;height:38px;border-radius:10px;background:rgba(20,184,166,.1);display:flex;align-items:center;justify-content:center;color:#5eead4;font-size:16px;flex-shrink:0;">
+                <i class="fa-solid fa-calendar-check"></i>
+              </div>
+              <div>
+                <div style="font-size:22px;font-weight:900;color:#5eead4;line-height:1;" id="examMonthCompleted">—</div>
+                <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-top:2px;">Bu oy yakunlangan</div>
+              </div>
+            </div>
+            <div style="background:rgba(13,21,38,.88);border:1px solid rgba(250,204,21,.15);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;">
+              <div style="width:38px;height:38px;border-radius:10px;background:rgba(250,204,21,.1);display:flex;align-items:center;justify-content:center;color:#fde68a;font-size:16px;flex-shrink:0;">
+                <i class="fa-solid fa-percent"></i>
+              </div>
+              <div>
+                <div style="font-size:22px;font-weight:900;color:#fde68a;line-height:1;" id="examAvgPercent">—</div>
+                <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-top:2px;">O'rtacha ball</div>
+              </div>
+            </div>
+            <div style="background:rgba(13,21,38,.88);border:1px solid rgba(129,140,248,.18);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;">
+              <div style="width:38px;height:38px;border-radius:10px;background:rgba(129,140,248,.12);display:flex;align-items:center;justify-content:center;color:#c4b5fd;font-size:16px;flex-shrink:0;">
+                <i class="fa-solid fa-award"></i>
+              </div>
+              <div>
+                <div style="font-size:22px;font-weight:900;color:#c4b5fd;line-height:1;" id="examPendingCertificates">—</div>
+                <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-top:2px;">Sertifikat kutmoqda</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ── XAVFLI O'QUVCHILAR ── -->
       <div class="bq-sec">
         <div class="bq-sec__hd">
@@ -1475,9 +1917,144 @@
     <span class="bq-gd-pill"><span class="bq-gd-pill__dot" style="background:var(--bq-amber)"></span> 5 dan 9 tagacha</span>
     <span class="bq-gd-pill"><span class="bq-gd-pill__dot" style="background:var(--bq-rose)"></span> 5 tadan kam</span>
   </div>
-  <div class="bq-gd-body">
-    <div class="bq-gd-list" id="bqGroupsDetailList">
-      <div class="bq-source__empty"><i class="fa-solid fa-spinner fa-spin"></i> Yuklanmoqda...</div>
+<div class="bq-gd-body">
+  <div class="bq-gd-list" id="bqGroupsDetailList">
+    <div class="bq-source__empty"><i class="fa-solid fa-spinner fa-spin"></i> Yuklanmoqda...</div>
+  </div>
+</div>
+</div>
+
+{% if request.user.role == 'director' %}
+<!-- ══ MARKAZ ALMASHISH MODAL ══ -->
+<div class="bq-cm-overlay" id="bqCenterOverlay" onclick="if(event.target===this)closeCenterModal()">
+  <div class="bq-cm-modal">
+    <div class="bq-cm-head">
+      <div class="bq-cm-title">
+        <i class="fa-solid fa-building-columns" style="color:#fbbf24;margin-right:8px;"></i>
+        Markazlarim
+      </div>
+      <button class="bq-cm-close" type="button" onclick="closeCenterModal()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="bq-cm-body">
+      <div class="bq-cm-sec">
+        <div class="bq-cm-sec-lbl">Faol markazlar</div>
+        <div id="bqCenterList">
+          <div style="text-align:center;color:#475569;padding:16px;font-size:0.85rem;" id="bqCenterListLoading">
+            <i class="fa-solid fa-spinner fa-spin"></i> Yuklanmoqda...
+          </div>
+        </div>
+      </div>
+
+      <div class="bq-cm-sec" id="bqPendingSection" style="display:none;">
+        <div class="bq-cm-sec-lbl">
+          <i class="fa-solid fa-clock" style="margin-right:4px;color:#fbbf24;"></i>
+          Admin tasdiqlashini kutmoqda
+        </div>
+        <div id="bqPendingList"></div>
+      </div>
+
+      <div class="bq-cm-sec">
+        <div class="bq-cm-sec-lbl">
+          <i class="fa-solid fa-plus" style="margin-right:4px;"></i>
+          Yangi Filial Ochish
+        </div>
+        <div class="bq-add-form">
+          <input class="bq-add-input" id="bqNewName"
+                 placeholder="Markaz nomi (masalan: Yunusobod filiali)"
+                 maxlength="120">
+          <input class="bq-add-input" id="bqNewAddress"
+                 placeholder="Manzil (ixtiyoriy)"
+                 maxlength="255">
+          <input class="bq-add-input" id="bqNewPhone"
+                 placeholder="Telefon (ixtiyoriy)"
+                 maxlength="20">
+          <button class="bq-add-btn" id="bqNewSendBtn" type="button" onclick="sendBranchRequest()">
+            <i class="fa-solid fa-paper-plane me-2"></i>
+            Adminga Yuborish
+          </button>
+          <div class="bq-add-note">
+            So'rovingiz SuperAdminga Telegram orqali yuboriladi.<br>
+            Tasdiqlangandan so'ng yangi markaz avtomatik ochiladi.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── BRANCH MODAL ── -->
+<div class="bq-branch-overlay" id="bqBranchOverlay" onclick="if(event.target===this)closeBranchModal()">
+  <div class="bq-branch-modal">
+    <div class="bq-bm-header">
+      <div class="bq-bm-title">
+        <i class="fa-solid fa-code-branch" style="color:#818cf8;margin-right:8px;"></i>
+        Filiallar Boshqaruvi
+      </div>
+      <button class="bq-bm-close" type="button" onclick="closeBranchModal()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="bq-bm-body">
+      <div class="bq-bm-section-title">Ko'rinish</div>
+      <button class="bq-branch-all-btn" id="bqSelectAll" type="button" onclick="selectBranch(null, 'Barcha filiallar')">
+        <i class="fa-solid fa-layer-group" style="color:#818cf8;font-size:1.1rem;"></i>
+        <div style="flex:1;">
+          <div>Barcha filiallar</div>
+          <div style="font-size:0.75rem;color:#64748b;font-weight:500;">Umumiy statistika ko'rish</div>
+        </div>
+        <i class="fa-solid fa-check" id="bqAllCheck" style="color:#34d399;display:none;"></i>
+      </button>
+
+      <div class="bq-bm-section-title" id="bqBranchListTitle" style="display:none;">Filiallar</div>
+      <div id="bqBranchList">
+        <div style="text-align:center;color:#475569;padding:20px 0;font-size:0.85rem;" id="bqBranchEmpty">
+          <i class="fa-solid fa-code-branch" style="font-size:2rem;margin-bottom:10px;display:block;opacity:.3;"></i>
+          Hali filial yo'q. Quyida yarating.
+        </div>
+      </div>
+
+      <div class="bq-bm-form" id="bqBranchForm"{% if not request.user.is_superuser and request.user.role != 'director' %} style="display:none;"{% endif %}>
+        <div class="bq-bm-form-title" id="bqFormTitle">
+          <i class="fa-solid fa-plus" style="margin-right:4px;"></i> Yangi Filial Qo'shish
+        </div>
+        <input type="hidden" id="bqEditingId" value="">
+        <input
+          class="bq-bm-input"
+          id="bqBranchName"
+          placeholder="Filial nomi (masalan: Chilonzor filiali)"
+          maxlength="120"
+        >
+        <input
+          class="bq-bm-input"
+          id="bqBranchAddress"
+          placeholder="Manzil (ixtiyoriy)"
+          maxlength="255"
+        >
+        <input
+          class="bq-bm-input"
+          id="bqBranchPhone"
+          placeholder="Telefon (ixtiyoriy)"
+          maxlength="20"
+        >
+        <div style="display:flex;gap:8px;">
+          <button class="bq-bm-save-btn" id="bqBranchSaveBtn" type="button" onclick="saveBranch()">
+            <i class="fa-solid fa-check me-1"></i> Saqlash
+          </button>
+          <button
+            type="button"
+            id="bqBranchCancelEdit"
+            style="display:none;padding:11px 18px;border:1px solid rgba(255,255,255,.1);
+                   border-radius:12px;background:transparent;color:#94a3b8;
+                   cursor:pointer;font-weight:700;font-size:0.9rem;"
+            onclick="cancelEdit()"
+          >Bekor</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1529,7 +2106,17 @@
 /* ── URLS ── */
 const API     = '{% url "core:director_boshqaruv_api" %}';
 const CHAT_API = '{% url "core:director_boshqaruv_chat" %}';
-const CSRF    = '{{ csrf_token }}';
+const CSRF    = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
+const CAN_MANAGE_BRANCHES = {% if request.user.is_superuser or request.user.role == 'director' %}true{% else %}false{% endif %};
+const BRANCH_API = {
+  list: '{% url "core:branch_list_api" %}',
+  create: '{% url "core:branch_create" %}',
+  update: (id) => `{% url "core:branch_update" 0 %}`.replace('/0/update/', `/${id}/update/`),
+  delete: (id) => `{% url "core:branch_delete" 0 %}`.replace('/0/delete/', `/${id}/delete/`),
+};
+const CENTERS_API = '{% url "accounts:my_centers" %}';
+const CENTER_SWITCH_API = '{% url "accounts:director_switch_center" %}';
+const BRANCH_REQUEST_API = '{% url "accounts:branch_request" %}';
 
 /* ── Chart.js defaults ── */
 Chart.defaults.color         = '#64748b';
@@ -1540,6 +2127,9 @@ const C = { cyan:'#22d3ee', green:'#34d399', amber:'#fbbf24', rose:'#f43f5e', vi
 const PAL = Object.values(C);
 
 let charts = {};
+let _branches = [];
+let _activeBranchId = null;
+let _activeBranchName = 'Barcha filiallar';
 
 /* ── Format ── */
 function fmtM(n){
@@ -1892,6 +2482,437 @@ function filterXavfli(q){
   _renderXavfliRows(filtered);
 }
 
+// ══════════════════════════════════════════════
+// CENTER SWITCHER
+// ══════════════════════════════════════════════
+function openCenterModal() {
+  const overlay = document.getElementById('bqCenterOverlay');
+  if (!overlay) return;
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  loadMyCenters();
+}
+
+function closeCenterModal() {
+  const overlay = document.getElementById('bqCenterOverlay');
+  if (!overlay) return;
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+async function loadMyCenters() {
+  const listEl = document.getElementById('bqCenterList');
+  const loadingEl = document.getElementById('bqCenterListLoading');
+  const pendingSection = document.getElementById('bqPendingSection');
+  const pendingList = document.getElementById('bqPendingList');
+  const countEl = document.getElementById('bqCenterBtnCount');
+  const nameEl = document.getElementById('bqCenterBtnName');
+  if (!listEl || !loadingEl) return;
+
+  loadingEl.style.display = '';
+  listEl.innerHTML = '';
+  listEl.appendChild(loadingEl);
+
+  try {
+    const response = await fetch(CENTERS_API, { cache: 'no-store' });
+    const data = await response.json();
+    if (!response.ok || !data.ok) {
+      listEl.innerHTML = '<p style="color:#ef4444;text-align:center;">Xatolik yuz berdi</p>';
+      return;
+    }
+
+    const centers = data.centers || [];
+    const currentCenter = centers.find((item) => item.is_current);
+    if (nameEl && currentCenter) {
+      nameEl.textContent = currentCenter.name;
+    }
+    if (countEl) {
+      if (centers.length > 1) {
+        countEl.style.display = 'inline-flex';
+        countEl.textContent = String(centers.length);
+      } else {
+        countEl.style.display = 'none';
+      }
+    }
+
+    if (!centers.length) {
+      listEl.innerHTML = '<p style="color:#475569;text-align:center;font-size:.85rem;">Hech qanday markaz topilmadi</p>';
+    } else {
+      listEl.innerHTML = centers.map((center) => `
+        <div class="bq-ci ${center.is_current ? 'active' : ''}" data-center-id="${center.id}"
+             onclick="switchToCenter(${center.id}, decodeURIComponent('${encodeURIComponent(center.name)}'))">
+          <div class="bq-ci__ico">🏫</div>
+          <div class="bq-ci__info">
+            <div class="bq-ci__name">${escHtml(center.name)}</div>
+            <div class="bq-ci__slug">chaqmoqapp.uz/${escHtml(center.slug)}/</div>
+          </div>
+          ${center.is_primary ? '<span class="bq-ci__badge primary">Asosiy</span>' : ''}
+          ${center.is_current ? '<i class="fa-solid fa-check bq-ci__check"></i>' : ''}
+        </div>
+      `).join('');
+    }
+
+    const pending = data.pending_requests || [];
+    if (pendingSection && pendingList) {
+      if (pending.length) {
+        pendingSection.style.display = 'block';
+        pendingList.innerHTML = pending.map((item) => `
+          <div class="bq-pending-item">
+            <i class="fa-solid fa-clock" style="color:#fbbf24;font-size:.9rem;"></i>
+            <div>
+              <div class="bq-pending-item__name">${escHtml(item.name)}</div>
+              <div class="bq-pending-item__info">Admin tasdiqlashini kutmoqda</div>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        pendingSection.style.display = 'none';
+        pendingList.innerHTML = '';
+      }
+    }
+  } catch (e) {
+    listEl.innerHTML = '<p style="color:#ef4444;text-align:center;">Server bilan muammo</p>';
+  } finally {
+    loadingEl.style.display = 'none';
+  }
+}
+
+async function switchToCenter(centerId, centerName) {
+  const currentCard = document.querySelector(`.bq-ci.active[data-center-id="${centerId}"]`);
+  if (currentCard) {
+    closeCenterModal();
+    showToast(`ℹ️ ${centerName} allaqachon faol`, 'info');
+    return;
+  }
+
+  try {
+    const response = await fetch(CENTER_SWITCH_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ center_id: centerId }),
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) {
+      showToast('❌ ' + (data.error || 'Xatolik'), 'error');
+      return;
+    }
+
+    closeCenterModal();
+    const nameEl = document.getElementById('bqCenterBtnName');
+    if (nameEl) nameEl.textContent = centerName;
+    showToast(`🏫 ${centerName} ga o'tildi...`, 'success');
+    setTimeout(() => { window.location.href = data.redirect_url; }, 600);
+  } catch (e) {
+    showToast('❌ Server bilan muammo', 'error');
+  }
+}
+
+async function sendBranchRequest() {
+  const btn = document.getElementById('bqNewSendBtn');
+  const nameInput = document.getElementById('bqNewName');
+  const addressInput = document.getElementById('bqNewAddress');
+  const phoneInput = document.getElementById('bqNewPhone');
+  if (!btn || !nameInput || !addressInput || !phoneInput) return;
+
+  const name = nameInput.value.trim();
+  const address = addressInput.value.trim();
+  const phone = phoneInput.value.trim();
+  if (!name) {
+    showToast('❌ Markaz nomi kiritilmagan', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Yuborilmoqda...';
+
+  try {
+    const response = await fetch(BRANCH_REQUEST_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ name, address, phone }),
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) {
+      showToast('❌ ' + (data.error || 'Xatolik'), 'error');
+      return;
+    }
+
+    nameInput.value = '';
+    addressInput.value = '';
+    phoneInput.value = '';
+    showToast('✅ So\'rovingiz adminga yuborildi!', 'success');
+    await loadMyCenters();
+  } catch (e) {
+    showToast('❌ Server bilan muammo', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-paper-plane me-2"></i> Adminga Yuborish';
+  }
+}
+
+// ══════════════════════════════════════════════
+// BRANCH MANAGER
+// ══════════════════════════════════════════════
+function updateBranchButton(){
+  const labelEl = document.getElementById('bqBranchBtnLabel');
+  const dotEl = document.getElementById('bqBranchDot');
+  const name = _activeBranchId ? (_activeBranchName || 'Filial') : 'Barcha filiallar';
+  if(labelEl){
+    labelEl.textContent = name.length > 16 ? name.substring(0, 14) + '…' : name;
+  }
+  if(dotEl){
+    dotEl.classList.toggle('active', _activeBranchId !== null);
+  }
+}
+
+async function fetchBranches() {
+  try {
+    const res = await fetch(BRANCH_API.list, { cache: 'no-store' });
+    const data = await res.json();
+    if (!data.ok) return;
+
+    _branches = data.branches || [];
+    if (_activeBranchId !== null) {
+      const active = _branches.find((branch) => branch.id === _activeBranchId);
+      if (active) {
+        _activeBranchName = active.name;
+      } else {
+        _activeBranchId = null;
+        _activeBranchName = 'Barcha filiallar';
+      }
+      updateBranchButton();
+    }
+    renderBranchList();
+  } catch (e) {
+    console.warn('Branch fetch error:', e);
+  }
+}
+
+function renderBranchList() {
+  const list = document.getElementById('bqBranchList');
+  const title = document.getElementById('bqBranchListTitle');
+  const allCheck = document.getElementById('bqAllCheck');
+  const allBtn = document.getElementById('bqSelectAll');
+  if (!list || !title || !allCheck || !allBtn) return;
+
+  allBtn.classList.toggle('selected', _activeBranchId === null);
+  allCheck.style.display = _activeBranchId === null ? 'block' : 'none';
+
+  if (!_branches.length) {
+    title.style.display = 'none';
+    list.innerHTML = `
+      <div style="text-align:center;color:#475569;padding:20px 0;font-size:0.85rem;" id="bqBranchEmpty">
+        <i class="fa-solid fa-code-branch" style="font-size:2rem;margin-bottom:10px;display:block;opacity:.3;"></i>
+        Hali filial yo'q. Quyida yarating.
+      </div>
+    `;
+    return;
+  }
+
+  title.style.display = 'block';
+  list.innerHTML = _branches.map((branch) => {
+    const isSelected = _activeBranchId === branch.id;
+    const actions = CAN_MANAGE_BRANCHES ? `
+      <div class="bq-bi__actions" onclick="event.stopPropagation()">
+        <button class="bq-bi__act-btn edit" type="button" onclick='startEditBranch(${branch.id})' title="Tahrirlash">
+          <i class="fa-solid fa-pen"></i>
+        </button>
+        <button class="bq-bi__act-btn del" type="button" onclick='deleteBranch(${branch.id}, ${JSON.stringify(branch.name)})' title="O'chirish">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>
+    ` : '';
+
+    return `
+      <div class="bq-bi ${isSelected ? 'selected' : ''}" id="bq-bi-${branch.id}" onclick='selectBranch(${branch.id}, ${JSON.stringify(branch.name)})'>
+        <div class="bq-bi__icon">🏢</div>
+        <div class="bq-bi__info">
+          <div class="bq-bi__name">
+            ${escHtml(branch.name)}
+            ${!branch.is_active ? '<span class="bq-bi__inactive">Nofaol</span>' : ''}
+          </div>
+          ${branch.address ? `<div class="bq-bi__addr"><i class="fa-solid fa-location-dot" style="font-size:10px;margin-right:3px;"></i>${escHtml(branch.address)}</div>` : ''}
+          <div class="bq-bi__stats">
+            <div class="bq-bi__stat"><span>${Number(branch.groups_count || 0)}</span> guruh</div>
+            <div class="bq-bi__stat"><span>${Number(branch.students_count || 0)}</span> o'quvchi</div>
+          </div>
+        </div>
+        ${actions}
+        ${isSelected ? '<i class="fa-solid fa-check" style="color:#34d399;font-size:0.85rem;margin-left:4px;"></i>' : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function openBranchModal() {
+  const overlay = document.getElementById('bqBranchOverlay');
+  if (!overlay) return;
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  fetchBranches();
+}
+
+function closeBranchModal() {
+  const overlay = document.getElementById('bqBranchOverlay');
+  if (!overlay) return;
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+  cancelEdit();
+}
+
+function selectBranch(id, name) {
+  _activeBranchId = id;
+  _activeBranchName = name || 'Barcha filiallar';
+  updateBranchButton();
+  closeBranchModal();
+  loadDashboardData();
+  showToast(id ? `📍 ${_activeBranchName} tanlandi` : '🌐 Barcha filiallar', 'info');
+}
+
+async function saveBranch() {
+  if (!CAN_MANAGE_BRANCHES) {
+    showToast('❌ Faqat direktor filial boshqaradi', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('bqBranchSaveBtn');
+  const nameInput = document.getElementById('bqBranchName');
+  const addressInput = document.getElementById('bqBranchAddress');
+  const phoneInput = document.getElementById('bqBranchPhone');
+  const editingInput = document.getElementById('bqEditingId');
+  if (!btn || !nameInput || !addressInput || !phoneInput || !editingInput) return;
+
+  const name = nameInput.value.trim();
+  const address = addressInput.value.trim();
+  const phone = phoneInput.value.trim();
+  const editingId = editingInput.value;
+  const currentBranch = editingId ? _branches.find((item) => item.id === Number(editingId)) : null;
+
+  if (!name) {
+    showToast('❌ Filial nomi kiritilmagan', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Saqlanmoqda...';
+
+  try {
+    const url = editingId ? BRANCH_API.update(editingId) : BRANCH_API.create;
+    const payload = {
+      name,
+      address,
+      phone,
+      is_active: currentBranch ? currentBranch.is_active : true,
+    };
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      if (editingId && _activeBranchId === Number(editingId)) {
+        _activeBranchName = data.branch?.name || name;
+        updateBranchButton();
+      }
+      showToast(editingId ? '✅ Filial yangilandi' : '✅ Filial qo\'shildi', 'success');
+      cancelEdit();
+      await fetchBranches();
+    } else {
+      showToast('❌ ' + (data.error || 'Xatolik'), 'error');
+    }
+  } catch (e) {
+    showToast('❌ Server bilan muammo', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Saqlash';
+  }
+}
+
+function startEditBranch(id) {
+  if (!CAN_MANAGE_BRANCHES) return;
+  const branch = _branches.find((item) => item.id === id);
+  if (!branch) return;
+
+  const editingInput = document.getElementById('bqEditingId');
+  const nameInput = document.getElementById('bqBranchName');
+  const addressInput = document.getElementById('bqBranchAddress');
+  const phoneInput = document.getElementById('bqBranchPhone');
+  const formTitle = document.getElementById('bqFormTitle');
+  const cancelBtn = document.getElementById('bqBranchCancelEdit');
+  if (!editingInput || !nameInput || !addressInput || !phoneInput || !formTitle || !cancelBtn) return;
+
+  editingInput.value = id;
+  nameInput.value = branch.name;
+  addressInput.value = branch.address || '';
+  phoneInput.value = branch.phone || '';
+  formTitle.innerHTML = '<i class="fa-solid fa-pen" style="margin-right:4px;color:#fbbf24;"></i> Filialni Tahrirlash';
+  cancelBtn.style.display = 'block';
+  nameInput.focus();
+}
+
+function cancelEdit() {
+  const editingInput = document.getElementById('bqEditingId');
+  const nameInput = document.getElementById('bqBranchName');
+  const addressInput = document.getElementById('bqBranchAddress');
+  const phoneInput = document.getElementById('bqBranchPhone');
+  const formTitle = document.getElementById('bqFormTitle');
+  const cancelBtn = document.getElementById('bqBranchCancelEdit');
+
+  if (editingInput) editingInput.value = '';
+  if (nameInput) nameInput.value = '';
+  if (addressInput) addressInput.value = '';
+  if (phoneInput) phoneInput.value = '';
+  if (formTitle) {
+    formTitle.innerHTML = '<i class="fa-solid fa-plus" style="margin-right:4px;"></i> Yangi Filial Qo\'shish';
+  }
+  if (cancelBtn) cancelBtn.style.display = 'none';
+}
+
+async function deleteBranch(id, name) {
+  if (!CAN_MANAGE_BRANCHES) {
+    showToast('❌ Faqat direktor filial o\'chiradi', 'error');
+    return;
+  }
+  if (!confirm(`"${name}" filialini o'chirasizmi?\nGuruhlar filialsiz qoladi, o'chirilmaydi.`)) return;
+
+  try {
+    const res = await fetch(BRANCH_API.delete(id), {
+      method: 'POST',
+      headers: { 'X-CSRFToken': CSRF },
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast('🗑 Filial o\'chirildi', 'warning');
+      if (_activeBranchId === id) {
+        _activeBranchId = null;
+        _activeBranchName = 'Barcha filiallar';
+        updateBranchButton();
+        loadDashboardData();
+      }
+      await fetchBranches();
+    } else {
+      showToast('❌ ' + (data.error || 'Xatolik'), 'error');
+    }
+  } catch (e) {
+    showToast('❌ Server bilan muammo', 'error');
+  }
+}
+
+function escHtml(str) {
+  return (str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function loadDashboardData(opts = {}) {
+  load(fromI.value, toI.value, opts);
+}
+
 /* ── Render all ── */
 function render(d){
   const k=d.kpis, ch=d.charts;
@@ -2072,7 +3093,15 @@ function load(df,dt,opts={}){
   _bqLoading = true;
   if(btn && !silent)btn.disabled=true;
   if(ico && !silent){ico.classList.remove('fa-rotate');ico.classList.add('fa-spinner','spin');}
-  fetch(`${API}?date_from=${df}&date_to=${dt}&_ts=${Date.now()}`, {cache:'no-store'})
+  const params = new URLSearchParams({
+    date_from: df || '',
+    date_to: dt || '',
+    _ts: String(Date.now()),
+  });
+  if(_activeBranchId !== null){
+    params.set('branch_id', String(_activeBranchId));
+  }
+  fetch(`${API}?${params.toString()}`, {cache:'no-store'})
     .then(r=>r.json()).then(d=>render(d))
     .catch(e=>console.error('API xato:',e))
     .finally(()=>{
@@ -2098,6 +3127,20 @@ const preset=document.getElementById('bqPreset');
 const fromI=document.getElementById('bqFrom');
 const toI=document.getElementById('bqTo');
 
+updateBranchButton();
+window.openCenterModal = openCenterModal;
+window.closeCenterModal = closeCenterModal;
+window.switchToCenter = switchToCenter;
+window.sendBranchRequest = sendBranchRequest;
+window.openBranchModal = openBranchModal;
+window.closeBranchModal = closeBranchModal;
+window.selectBranch = selectBranch;
+window.saveBranch = saveBranch;
+window.cancelEdit = cancelEdit;
+window.startEditBranch = startEditBranch;
+window.deleteBranch = deleteBranch;
+window.filterXavfli = filterXavfli;
+
 preset.addEventListener('change',function(){
   const t=today();
   if(this.value==='month')  {fromI.value=mStart(); toI.value=t;}
@@ -2111,6 +3154,12 @@ document.getElementById('bqApply').addEventListener('click',()=>load(fromI.value
 document.getElementById('bqReset').addEventListener('click',()=>{
   preset.value='month';fromI.value=mStart();toI.value=today();
   load(fromI.value,toI.value);
+});
+document.addEventListener('keydown',e=>{
+  const centerOverlay = document.getElementById('bqCenterOverlay');
+  const branchOverlay = document.getElementById('bqBranchOverlay');
+  if(e.key==='Escape' && centerOverlay && centerOverlay.classList.contains('open')) closeCenterModal();
+  if(e.key==='Escape' && branchOverlay && branchOverlay.classList.contains('open')) closeBranchModal();
 });
 
 /* ══════════════════ PROFILE DROPDOWN ══════════════════ */
@@ -2251,6 +3300,19 @@ load(fromI.value,toI.value);
       set('churnHigh',   d.high   ?? '—');
       set('churnMedium', d.medium ?? '—');
       set('churnLow',    d.low    ?? '—');
+    })
+    .catch(()=>{});
+})();
+
+(function loadExamSummary(){
+  fetch('{% url "core:exam_api_summary" %}', {cache:'no-store'})
+    .then(r=>r.json())
+    .then(d=>{
+      const set = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
+      set('examTotalSessions', d.total_sessions ?? '—');
+      set('examMonthCompleted', d.this_month_completed ?? '—');
+      set('examAvgPercent', (d.avg_percent ?? 0) + '%');
+      set('examPendingCertificates', d.pending_certificates ?? '—');
     })
     .catch(()=>{});
 })();

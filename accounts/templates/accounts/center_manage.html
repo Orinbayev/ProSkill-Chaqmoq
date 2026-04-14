@@ -291,6 +291,102 @@
   .cm-close:hover {
     color: white;
   }
+
+  .feat-toggle-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    transition: all 0.2s;
+  }
+
+  .feat-toggle-card:hover {
+    border-color: rgba(59,130,246,0.3);
+  }
+
+  .feat-toggle-card.feat-disabled {
+    opacity: 0.5;
+  }
+
+  .feat-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .feat-icon {
+    font-size: 1.5rem;
+  }
+
+  .feat-name {
+    color: #f8fafc;
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+
+  .feat-desc {
+    color: #94a3b8;
+    font-size: 0.78rem;
+    margin-top: 2px;
+  }
+
+  .feat-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+    flex-shrink: 0;
+  }
+
+  .feat-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .feat-slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: rgba(255,255,255,0.1);
+    border-radius: 26px;
+    transition: .3s;
+  }
+
+  .feat-slider:before {
+    content: "";
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    left: 3px;
+    bottom: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: .3s;
+  }
+
+  input:checked + .feat-slider {
+    background: #10b981;
+  }
+
+  input:checked + .feat-slider:before {
+    transform: translateX(24px);
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 </style>
 
 <div class="manage-scope">
@@ -433,6 +529,107 @@
       </div>
     </div>
   </div>
+
+  <div class="row g-4 mt-2">
+    <div class="col-12">
+      <div class="m-glass">
+        <h3 class="card-title">
+          <i class="bi bi-toggles" style="color: #f59e0b;"></i>
+          UI Funksiyalarini Boshqarish
+        </h3>
+        <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1.5rem;">
+          Quyidagi tugmalar <strong>{{ center.name }}</strong> markazida ko'rinadigan menyu bo'limlarini
+          boshqaradi. O'chirilganda o'quvchilar va o'qituvchilar shu bo'limni <strong>umuman ko'rmaydi</strong>.
+        </p>
+
+        <div class="row g-3" id="featureTogglesContainer">
+          <div class="col-md-6">
+            <div class="feat-toggle-card{% if center.features.ui_weekly_schedule == False %} feat-disabled{% endif %}" id="feat-card-ui_weekly_schedule">
+              <div class="feat-info">
+                <div class="feat-icon">📅</div>
+                <div>
+                  <div class="feat-name">Haftalik Jadval / Dars Jadvali</div>
+                  <div class="feat-desc">Manager: "Haftalik Jadval" | O'qituvchi: "Dars Jadvali"</div>
+                </div>
+              </div>
+              <label class="feat-switch">
+                <input
+                  type="checkbox"
+                  id="toggle-ui_weekly_schedule"
+                  {% if center.features.ui_weekly_schedule != False %}checked{% endif %}
+                  onchange="toggleFeature('ui_weekly_schedule', this.checked)"
+                >
+                <span class="feat-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="feat-toggle-card{% if center.features.ui_exam_sessions == False %} feat-disabled{% endif %}" id="feat-card-ui_exam_sessions">
+              <div class="feat-info">
+                <div class="feat-icon">📝</div>
+                <div>
+                  <div class="feat-name">Imtihon (Sessiyalar)</div>
+                  <div class="feat-desc">Manager: "Barcha sessiyalar" | O'qituvchi: "Sessiya yaratish"</div>
+                </div>
+              </div>
+              <label class="feat-switch">
+                <input
+                  type="checkbox"
+                  id="toggle-ui_exam_sessions"
+                  {% if center.features.ui_exam_sessions != False %}checked{% endif %}
+                  onchange="toggleFeature('ui_exam_sessions', this.checked)"
+                >
+                <span class="feat-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="feat-toggle-card{% if center.features.ui_failed_students == False %} feat-disabled{% endif %}" id="feat-card-ui_failed_students">
+              <div class="feat-info">
+                <div class="feat-icon">⚠️</div>
+                <div>
+                  <div class="feat-name">Zaif O'quvchilar</div>
+                  <div class="feat-desc">Sidebar: "Zaif o'quvchilar" bo'limi</div>
+                </div>
+              </div>
+              <label class="feat-switch">
+                <input
+                  type="checkbox"
+                  id="toggle-ui_failed_students"
+                  {% if center.features.ui_failed_students != False %}checked{% endif %}
+                  onchange="toggleFeature('ui_failed_students', this.checked)"
+                >
+                <span class="feat-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="feat-toggle-card{% if center.features.ui_certificates == False %} feat-disabled{% endif %}" id="feat-card-ui_certificates">
+              <div class="feat-info">
+                <div class="feat-icon">🎓</div>
+                <div>
+                  <div class="feat-name">🎓 Sertifikatlar</div>
+                  <div class="feat-desc">Sidebar: "Sertifikatlar" bo'limi</div>
+                </div>
+              </div>
+              <label class="feat-switch">
+                <input
+                  type="checkbox"
+                  id="toggle-ui_certificates"
+                  {% if center.features.ui_certificates != False %}checked{% endif %}
+                  onchange="toggleFeature('ui_certificates', this.checked)"
+                >
+                <span class="feat-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Edit Employee Modal (Custom) -->
@@ -486,6 +683,13 @@
 </div>
 
 <script>
+  const FEATURE_LABELS = {
+    ui_weekly_schedule: "Haftalik Jadval / Dars Jadvali",
+    ui_exam_sessions: "Imtihon (Sessiyalar)",
+    ui_failed_students: "Zaif O'quvchilar",
+    ui_certificates: "Sertifikatlar",
+  };
+
   function openEditModal(id, ism, familya, email) {
     document.getElementById('edit_user_id').value = id;
     document.getElementById('edit_ism').value = ism;
@@ -500,6 +704,68 @@
   function closeEditModal() {
     document.getElementById('editEmployeeModal').classList.remove('show');
     document.body.style.overflow = '';
+  }
+
+  function toggleFeature(featureCode, enabled) {
+    const card = document.getElementById('feat-card-' + featureCode);
+    const checkbox = document.getElementById('toggle-' + featureCode);
+    const featureLabel = FEATURE_LABELS[featureCode] || featureCode;
+
+    checkbox.disabled = true;
+
+    fetch("{% url 'platform_global:toggle_center_ui_feature' center.id %}", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}',
+      },
+      body: JSON.stringify({ feature: featureCode, enabled: enabled })
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.ok) {
+          card.classList.toggle('feat-disabled', !enabled);
+          const msg = enabled
+            ? `✅ "${featureLabel}" yoqildi`
+            : `🔴 "${featureLabel}" o'chirildi`;
+          showToast(msg, enabled ? 'success' : 'warning');
+        } else {
+          checkbox.checked = !enabled;
+          card.classList.toggle('feat-disabled', checkbox.checked === false);
+          showToast('❌ Xatolik: ' + data.error, 'error');
+        }
+      })
+      .catch(() => {
+        checkbox.checked = !enabled;
+        card.classList.toggle('feat-disabled', checkbox.checked === false);
+        showToast('❌ Server bilan muammo', 'error');
+      })
+      .finally(() => {
+        checkbox.disabled = false;
+      });
+  }
+
+  function showToast(msg, type) {
+    const toast = document.createElement('div');
+    const colors = { success: '#10b981', warning: '#f59e0b', error: '#ef4444' };
+
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      background: ${colors[type] || '#3b82f6'};
+      color: white;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      animation: slideIn 0.3s ease;
+    `;
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
   }
 
   document.addEventListener('keydown', function(event) {

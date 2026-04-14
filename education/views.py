@@ -16,7 +16,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import (
-    Count, F, Min, Max, Prefetch, Q, Sum, OuterRef, Subquery
+    Avg, Count, F, Min, Max, Prefetch, Q, Sum, OuterRef, Subquery
 )
 from django.db.models.functions import Coalesce, TruncMonth, Cast
 from django.http import (
@@ -29,9 +29,9 @@ from django.http import (
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-from django.utils.dateparse import parse_date
+from django.utils.dateparse import parse_date, parse_time
 from django.utils.timezone import localdate, make_aware
-from django.views.decorators.http import require_POST, require_http_methods
+from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from io import BytesIO
@@ -91,7 +91,7 @@ from django.db import transaction
 from django.db.models.functions import ExtractYear, ExtractMonth, ExtractDay  # student_detail dagi underline ham yo'qoladi
 from urllib.parse import urlparse, parse_qs
 from django.db import transaction
-from urllib.parse import urlparse, parse_qs, unquote
+from urllib.parse import urlencode, urlparse, parse_qs, unquote
 from django.urls import reverse  # sizda reverse ishlatyapsiz, import yo'q
 from django.db import transaction
 from django.db.models import Sum, F, Value as DJValue
@@ -103,9 +103,28 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from decimal import Decimal
 
+from core.center_features import (
+    FEATURE_UI_CERTIFICATES,
+    FEATURE_UI_EXAM_SESSIONS,
+    FEATURE_UI_FAILED_STUDENTS,
+    FEATURE_UI_WEEKLY_SCHEDULE,
+    center_ui_feature_enabled,
+)
+
 U = get_user_model()
 
 DAILY_LIMIT = 50  # (hozircha ishlatilmayapti, lekin qoldirdim)
+
+
+def _redirect_disabled_module(request, *, message: str):
+    messages.warning(request, message)
+    return redirect("core:home")
+
+
+def _ensure_center_ui_feature(request, center, feature_code: str, *, message: str):
+    if center_ui_feature_enabled(center, feature_code):
+        return None
+    return _redirect_disabled_module(request, message=message)
 
 
 def _day_range(d):
@@ -197,7 +216,18 @@ def _get_int(querydict, key, default=0):
     except (TypeError, ValueError):
         return default
 
-    
+
+def _schedule_weekday_labels():
+    return [
+        (1, "Dushanba"),
+        (2, "Seshanba"),
+        (3, "Chorshanba"),
+        (4, "Payshanba"),
+        (5, "Juma"),
+        (6, "Shanba"),
+        (7, "Yakshanba"),
+    ]
+
 
 # ---------- Ruxsat helperlari ----------
 def _can_manage(u):
@@ -3309,6 +3339,420 @@ def group_detail(request, pk: int):
     return render(request, "education/group_detail.html", ctx)
 
 
+@login_required
+def group_schedule_manage(request, group_id: int):
+    """
+    Guruh jadvalini ko'rish va tahrirlash.
+    Teacher faqat o'z guruhlarini ko'ra oladi.
+    Manager/Director — hamma guruhlarni.
+    """
+    from core.tenant import get_request_center
+    from education.models import GroupSchedule
+
+    try:
+        center = get_request_center(request)
+        if not center:
+            raise Http404("Center not found")
+        disabled_response = _ensure_center_ui_feature(
+            request,
+            center,
+            FEATURE_UI_WEEKLY_SCHEDULE,
+            message="Jadval bo'limi bu markaz uchun o'chirilgan.",
+        )
+        if disabled_response:
+            return disabled_response
+
+        role = getattr(request.user, "role", "")
+        if role == "teacher" and not request.user.is_superuser:
+            group = get_object_or_404(
+                Group.objects.select_related("oqituvchi", "center"),
+                pk=group_id,
+                center=center,
+                oqituvchi=request.user,
+                is_archived=False,
+            )
+        else:
+            if role not in ("manager", "director") and not request.user.is_superuser:
+                return redirect("core:home")
+            group = get_object_or_404(
+                Group.objects.select_related("oqituvchi", "center"),
+                pk=group_id,
+                center=center,
+                is_archived=False,
+            )
+
+        schedules = (
+            GroupSchedule.objects.filter(group=group, center=center)
+            .select_related("group", "group__oqituvchi")
+            .order_by("weekday", "start_time")
+        )
+
+        if request.method == "POST":
+            action = (request.POST.get("action") or "").strip().lower()
+
+            if action == "add":
+                weekday = _get_int(request.POST, "weekday", 0)
+                start_time_value = (request.POST.get("start_time") or "").strip()
+                end_time_value = (request.POST.get("end_time") or "").strip()
+                room = (request.POST.get("room") or "").strip()
+
+                start_time_obj = parse_time(start_time_value) if start_time_value else None
+                end_time_obj = parse_time(end_time_value) if end_time_value else None
+
+                if not weekday or not start_time_obj:
+                    messages.error(request, "Kun va boshlanish vaqti majburiy.")
+                elif end_time_obj and end_time_obj <= start_time_obj:
+                    messages.warning(request, "Tugash vaqti boshlanish vaqtidan keyin bo'lishi kerak.")
+                else:
+                    exists = GroupSchedule.objects.filter(
+                        group=group,
+                        weekday=weekday,
+                        start_time=start_time_obj,
+                    ).exists()
+                    room_conflicts = []
+                    if room:
+                        room_conflicts = list(
+                            GroupSchedule.objects.filter(
+                                center=center,
+                                weekday=weekday,
+                                start_time=start_time_obj,
+                                room__iexact=room,
+                            )
+                            .exclude(group=group)
+                            .select_related("group")
+                            .values_list("group__nom", flat=True)
+                            .distinct()
+                        )
+
+                    if exists:
+                        messages.warning(request, "⚠️ Bu vaqtda jadval allaqachon mavjud.")
+                    elif room_conflicts:
+                        messages.warning(
+                            request,
+                            f"⚠️ Bu vaqtda {', '.join(room_conflicts)} ham shu xonada.",
+                        )
+                    else:
+                        GroupSchedule.objects.create(
+                            center=center,
+                            group=group,
+                            weekday=weekday,
+                            start_time=start_time_obj,
+                            end_time=end_time_obj,
+                            room=room,
+                        )
+                        messages.success(request, "✅ Jadval qo'shildi.")
+
+            elif action == "delete":
+                sched_id = _get_int(request.POST, "schedule_id", 0)
+                deleted_count, _ = GroupSchedule.objects.filter(
+                    pk=sched_id,
+                    group=group,
+                    center=center,
+                ).delete()
+                if deleted_count:
+                    messages.success(request, "🗑 Jadval o'chirildi.")
+                else:
+                    messages.warning(request, "Jadval topilmadi.")
+
+            return redirect("education:group_schedule_manage", group_id=group_id)
+
+        rooms_used = list(schedules.exclude(room="").values_list("room", flat=True).distinct())
+        conflict_map: dict[str, list[str]] = {}
+        if rooms_used:
+            conflicting = (
+                GroupSchedule.objects.filter(center=center, room__in=rooms_used)
+                .exclude(group=group)
+                .select_related("group", "group__oqituvchi")
+                .order_by("weekday", "start_time")
+            )
+            for conflict in conflicting:
+                key = f"{conflict.weekday}_{conflict.start_time.strftime('%H:%M:%S')}_{conflict.room.strip().lower()}"
+                conflict_map.setdefault(key, []).append(conflict.group.nom)
+
+        schedule_map = {weekday: [] for weekday, _ in _schedule_weekday_labels()}
+        for schedule in schedules:
+            key = f"{schedule.weekday}_{schedule.start_time.strftime('%H:%M:%S')}_{(schedule.room or '').strip().lower()}"
+            schedule.conflict_groups = conflict_map.get(key, [])
+            schedule_map.setdefault(schedule.weekday, []).append(schedule)
+
+        return render(
+            request,
+            "education/group_schedule_manage.html",
+            {
+                "group": group,
+                "schedules": schedules,
+                "schedule_map": schedule_map,
+                "weekday_choices": GroupSchedule.WEEKDAY_CHOICES,
+                "weekday_labels": _schedule_weekday_labels(),
+                "conflict_map": conflict_map,
+            },
+        )
+    except Http404:
+        raise
+    except Exception:
+        logger.exception("group_schedule_manage failed: group_id=%s", group_id)
+        messages.error(request, "Jadvalni yuklashda xatolik yuz berdi.")
+        return redirect("education:group_detail", pk=group_id)
+
+
+@login_required
+@require_GET
+def schedule_conflict_check(request):
+    """
+    AJAX: Bu xona, kuni, vaqtida boshqa guruh bormi?
+    Parametrlar: room, weekday, start_time, exclude_group_id
+    """
+    from core.tenant import get_request_center
+    from education.models import GroupSchedule
+
+    try:
+        center = get_request_center(request)
+        if not center:
+            return JsonResponse({"conflict": False, "groups": []})
+        if not center_ui_feature_enabled(center, FEATURE_UI_WEEKLY_SCHEDULE):
+            return JsonResponse({"detail": "disabled"}, status=403)
+
+        role = getattr(request.user, "role", "")
+        if role not in ("teacher", "manager", "director") and not request.user.is_superuser:
+            return JsonResponse({"detail": "forbidden"}, status=403)
+
+        room = (request.GET.get("room") or "").strip()
+        weekday = _get_int(request.GET, "weekday", 0)
+        start_time_value = (request.GET.get("start_time") or "").strip()
+        exclude_gid = _get_int(request.GET, "exclude_group_id", 0)
+        start_time_obj = parse_time(start_time_value) if start_time_value else None
+
+        if not room or not weekday or not start_time_obj:
+            return JsonResponse({"conflict": False, "groups": []})
+
+        qs = (
+            GroupSchedule.objects.filter(
+                center=center,
+                room__iexact=room,
+                weekday=weekday,
+                start_time=start_time_obj,
+            )
+            .select_related("group")
+            .order_by("group__nom")
+        )
+        if exclude_gid:
+            qs = qs.exclude(group_id=exclude_gid)
+
+        conflicts = [item.group.nom for item in qs]
+        return JsonResponse({"conflict": bool(conflicts), "groups": conflicts})
+    except Exception:
+        logger.exception("schedule_conflict_check failed")
+        return JsonResponse({"conflict": False, "groups": []}, status=500)
+
+
+@login_required
+def weekly_schedule_view(request):
+    """
+    Manager/Director uchun: haftaning 7 kuni bo'yicha
+    barcha guruhlarning jadvali.
+    """
+    from core.tenant import get_request_center
+    from education.models import GroupSchedule
+
+    try:
+        center = get_request_center(request)
+        if not center:
+            raise Http404("Center not found")
+        disabled_response = _ensure_center_ui_feature(
+            request,
+            center,
+            FEATURE_UI_WEEKLY_SCHEDULE,
+            message="Haftalik jadval bu markaz uchun o'chirilgan.",
+        )
+        if disabled_response:
+            return disabled_response
+
+        role = getattr(request.user, "role", "")
+        if role not in ("manager", "director") and not request.user.is_superuser:
+            return redirect("core:home")
+
+        teacher_id = _get_int(request.GET, "teacher", 0)
+        room_filter = (request.GET.get("room") or "").strip()
+
+        base_qs = (
+            GroupSchedule.objects.filter(center=center, group__is_archived=False)
+            .select_related("group", "group__oqituvchi", "group__category_obj")
+            .order_by("weekday", "start_time", "group__nom")
+        )
+        if teacher_id:
+            base_qs = base_qs.filter(group__oqituvchi_id=teacher_id)
+
+        qs = base_qs
+        if room_filter:
+            qs = qs.filter(room__icontains=room_filter)
+
+        total_slots_count = base_qs.count()
+        filtered_slots_count = qs.count()
+
+        week_map = {weekday: [] for weekday, _ in _schedule_weekday_labels()}
+        for schedule in qs:
+            week_map[schedule.weekday].append(schedule)
+
+        groups_qs = (
+            Group.objects.filter(center=center, is_archived=False)
+            .select_related("oqituvchi", "category_obj")
+            .order_by("nom")
+        )
+        if teacher_id:
+            groups_qs = groups_qs.filter(oqituvchi_id=teacher_id)
+
+        total_groups_count = groups_qs.count()
+        scheduled_group_ids = list(base_qs.values_list("group_id", flat=True).distinct())
+        groups_with_schedule_count = len(scheduled_group_ids)
+        unscheduled_groups = list(groups_qs.exclude(id__in=scheduled_group_ids)[:12])
+        unscheduled_groups_count = max(total_groups_count - groups_with_schedule_count, 0)
+
+        empty_state_message = ""
+        if not filtered_slots_count:
+            if room_filter:
+                empty_state_message = f'"{room_filter}" bo‘yicha mos jadval topilmadi.'
+            elif teacher_id:
+                empty_state_message = "Tanlangan o‘qituvchi uchun jadval hali kiritilmagan."
+            else:
+                empty_state_message = "Haftalik jadval hali kiritilmagan."
+
+        rooms = (
+            GroupSchedule.objects.filter(center=center)
+            .exclude(room="")
+            .values_list("room", flat=True)
+            .distinct()
+            .order_by("room")
+        )
+        teachers = User.objects.filter(
+            center=center,
+            role="teacher",
+            is_archived=False,
+        ).order_by("ism", "familya")
+
+        if request.GET.get("export") == "1":
+            import openpyxl
+
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "Haftalik jadval"
+            ws.append(["Kun", "Guruh", "O'qituvchi", "Vaqt", "Xona", "Bo'lim"])
+            for weekday, label in _schedule_weekday_labels():
+                day_rows = week_map.get(weekday) or []
+                if not day_rows:
+                    ws.append([label, "—", "—", "—", "—", "—"])
+                    continue
+                for item in day_rows:
+                    ws.append(
+                        [
+                            label,
+                            item.group.nom,
+                            item.group.oqituvchi.get_full_name() if item.group.oqituvchi else "Belgilanmagan",
+                            item.time_range,
+                            item.room or "Xona yo'q",
+                            item.group.get_category_display(),
+                        ]
+                    )
+
+            response = HttpResponse(
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+            response["Content-Disposition"] = 'attachment; filename="haftalik_jadval.xlsx"'
+            wb.save(response)
+            return response
+
+        return render(
+            request,
+            "education/weekly_schedule.html",
+            {
+                "week_map": week_map,
+                "weekday_labels": _schedule_weekday_labels(),
+                "rooms": rooms,
+                "teachers": teachers,
+                "selected_teacher": teacher_id,
+                "selected_room": room_filter,
+                "total_slots_count": total_slots_count,
+                "filtered_slots_count": filtered_slots_count,
+                "total_groups_count": total_groups_count,
+                "groups_with_schedule_count": groups_with_schedule_count,
+                "unscheduled_groups_count": unscheduled_groups_count,
+                "unscheduled_groups": unscheduled_groups,
+                "empty_state_message": empty_state_message,
+                "has_filters": bool(teacher_id or room_filter),
+            },
+        )
+    except Http404:
+        raise
+    except Exception:
+        logger.exception("weekly_schedule_view failed")
+        messages.error(request, "Haftalik jadvalni yuklashda xatolik yuz berdi.")
+        return redirect("core:home")
+
+
+@login_required
+def teacher_schedule_view(request):
+    """
+    O'qituvchi o'z haftalik jadvalini ko'radi.
+    """
+    from core.tenant import get_request_center
+    from education.models import GroupSchedule
+
+    try:
+        center = get_request_center(request)
+        if not center:
+            raise Http404("Center not found")
+        disabled_response = _ensure_center_ui_feature(
+            request,
+            center,
+            FEATURE_UI_WEEKLY_SCHEDULE,
+            message="Dars jadvali bu markaz uchun o'chirilgan.",
+        )
+        if disabled_response:
+            return disabled_response
+
+        if request.user.role != "teacher" and not request.user.is_superuser:
+            return redirect("core:home")
+
+        teacher = request.user
+        schedules = (
+            GroupSchedule.objects.filter(
+                center=center,
+                group__oqituvchi=teacher,
+                group__is_archived=False,
+            )
+            .select_related("group", "group__oqituvchi")
+            .order_by("weekday", "start_time")
+        )
+
+        week_map = {weekday: [] for weekday, _ in _schedule_weekday_labels()}
+        for schedule in schedules:
+            week_map[schedule.weekday].append(schedule)
+
+        groups_qs = (
+            Group.objects.filter(center=center, oqituvchi=teacher, is_archived=False)
+            .select_related("category_obj")
+            .order_by("nom")
+        )
+        scheduled_group_ids = list(schedules.values_list("group_id", flat=True).distinct())
+        unscheduled_groups = list(groups_qs.exclude(id__in=scheduled_group_ids))
+
+        return render(
+            request,
+            "education/teacher_schedule.html",
+            {
+                "week_map": week_map,
+                "weekday_labels": _schedule_weekday_labels(),
+                "total_lessons": schedules.count(),
+                "unscheduled_groups": unscheduled_groups,
+            },
+        )
+    except Http404:
+        raise
+    except Exception:
+        logger.exception("teacher_schedule_view failed")
+        messages.error(request, "Jadvalni yuklashda xatolik yuz berdi.")
+        return redirect("core:home")
+
+
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 from django.utils.dateparse import parse_date
@@ -3860,6 +4304,9 @@ def group_create_by_category(request, category_id):
             group = form.save(commit=False)
             group.category_obj = category
             group.center = center
+            if form.cleaned_data.get("schedule_mode") in {"odd", "even"}:
+                group.lessons_per_week = 3
+                group.oy_dars_soni = 12
 
             # O'qituvchi tanlanganda foiz teacher profilidan olinadi.
             if group.oqituvchi and getattr(group.oqituvchi, "oqituvchi_foizi", None) is not None:
@@ -3867,9 +4314,19 @@ def group_create_by_category(request, category_id):
             elif not group.oqituvchi_foiz:
                 group.oqituvchi_foiz = 40
 
-            from education.services.group_schedule_service import apply_group_duration_defaults
+            from education.services.group_schedule_service import (
+                apply_group_duration_defaults,
+                sync_simple_group_schedule,
+            )
             apply_group_duration_defaults(group)
             group.save()
+            sync_simple_group_schedule(
+                group=group,
+                schedule_mode=form.cleaned_data.get("schedule_mode"),
+                start_time=form.cleaned_data.get("schedule_start_time"),
+                end_time=form.cleaned_data.get("schedule_end_time"),
+                room=form.cleaned_data.get("schedule_room"),
+            )
             return redirect("education:category_detail", category_id=category.id)
     else:
         form = GroupForm(center=center)
@@ -5059,6 +5516,9 @@ def group_create(request, category=None):
 
     if request.method == "POST" and form.is_valid():
         g = form.save(commit=False)
+        if form.cleaned_data.get("schedule_mode") in {"odd", "even"}:
+            g.lessons_per_week = 3
+            g.oy_dars_soni = 12
 
         # 🔹 Kategoriya bo'sh bo'lsa, avtomatik to'ldir
         g.category = category or Group.LANG
@@ -5087,9 +5547,19 @@ def group_create(request, category=None):
         if not g.oy_dars_soni:
             g.oy_dars_soni = 12
 
-        from education.services.group_schedule_service import apply_group_duration_defaults
+        from education.services.group_schedule_service import (
+            apply_group_duration_defaults,
+            sync_simple_group_schedule,
+        )
         apply_group_duration_defaults(g)
         g.save()
+        sync_simple_group_schedule(
+            group=g,
+            schedule_mode=form.cleaned_data.get("schedule_mode"),
+            start_time=form.cleaned_data.get("schedule_start_time"),
+            end_time=form.cleaned_data.get("schedule_end_time"),
+            room=form.cleaned_data.get("schedule_room"),
+        )
         messages.success(request, f"✅ {g.nom} guruhi muvaffaqiyatli yaratildi.")
         return redirect("education:group_detail", pk=g.pk)
 
@@ -5121,6 +5591,9 @@ def group_edit(request, pk):
 
     if request.method == "POST" and form.is_valid():
         updated_group = form.save(commit=False)
+        if form.cleaned_data.get("schedule_mode") in {"odd", "even"}:
+            updated_group.lessons_per_week = 3
+            updated_group.oy_dars_soni = 12
         
         # Agar o'qituvchi o'zgargan bo'lsa, mos foizni avtomatik olamiz
         if updated_group.oqituvchi and updated_group.oqituvchi_id != old_oqituvchi_id:
@@ -5128,9 +5601,19 @@ def group_edit(request, pk):
             if teacher_foiz is not None:
                 updated_group.oqituvchi_foiz = teacher_foiz
 
-        from education.services.group_schedule_service import apply_group_duration_defaults
+        from education.services.group_schedule_service import (
+            apply_group_duration_defaults,
+            sync_simple_group_schedule,
+        )
         apply_group_duration_defaults(updated_group)
         updated_group.save()
+        sync_simple_group_schedule(
+            group=updated_group,
+            schedule_mode=form.cleaned_data.get("schedule_mode"),
+            start_time=form.cleaned_data.get("schedule_start_time"),
+            end_time=form.cleaned_data.get("schedule_end_time"),
+            room=form.cleaned_data.get("schedule_room"),
+        )
         
         # Agar guruhning foizi yoki narxi o'zgargan bo'lsa, joriy o'quvchilarga ham ta'sir qilsin
         if updated_group.oqituvchi_foiz != old_foiz or updated_group.kurs_narxi != old_narx:
@@ -5239,6 +5722,9 @@ def group_add(request):
         group = form.save(commit=False)
         if not group.center_id:
             group.center = center
+        if form.cleaned_data.get("schedule_mode") in {"odd", "even"}:
+            group.lessons_per_week = 3
+            group.oy_dars_soni = 12
 
         # O'qituvchi tanlanganda foiz teacher profilidan olinadi.
         if group.oqituvchi and getattr(group.oqituvchi, "oqituvchi_foizi", None) is not None:
@@ -5246,9 +5732,19 @@ def group_add(request):
         elif not group.oqituvchi_foiz:
             group.oqituvchi_foiz = 40
 
-        from education.services.group_schedule_service import apply_group_duration_defaults
+        from education.services.group_schedule_service import (
+            apply_group_duration_defaults,
+            sync_simple_group_schedule,
+        )
         apply_group_duration_defaults(group)
         group.save()
+        sync_simple_group_schedule(
+            group=group,
+            schedule_mode=form.cleaned_data.get("schedule_mode"),
+            start_time=form.cleaned_data.get("schedule_start_time"),
+            end_time=form.cleaned_data.get("schedule_end_time"),
+            room=form.cleaned_data.get("schedule_room"),
+        )
         messages.success(request, "✅ Guruh muvaffaqiyatli qo'shildi.")
         return redirect("education:groups")
 
@@ -5737,6 +6233,13 @@ def _encode_exam_session_note(task: str, comment: str) -> str:
     return json.dumps({"task": task, "comment": comment}, ensure_ascii=False)
 
 
+def _exam_entry_url(session_id: int, max_score) -> str:
+    url = reverse("education:exam_session_entry", kwargs={"session_id": session_id})
+    if str(max_score or "100") != "100":
+        return f"{url}?{urlencode({'max_score': str(max_score)})}"
+    return url
+
+
 @login_required
 def exam_settings_view(request):
     from core.tenant import get_request_center
@@ -5868,161 +6371,476 @@ def exam_reminder_action(request, group_id: int):
 
 
 @login_required
+def exam_list(request):
+    from core.tenant import get_request_center
+    from education.models import ExamResult, ExamSession
+
+    try:
+        center = get_request_center(request)
+        if not center:
+            raise Http404("Center not found")
+        disabled_response = _ensure_center_ui_feature(
+            request,
+            center,
+            FEATURE_UI_EXAM_SESSIONS,
+            message="Imtihon sessiyalari bo'limi bu markaz uchun o'chirilgan.",
+        )
+        if disabled_response:
+            return disabled_response
+
+        if not _director_or_manager(request.user):
+            return HttpResponseForbidden("Sizda ruxsat yo'q.")
+
+        group_id = _get_int(request.GET, "group", 0)
+        teacher_id = _get_int(request.GET, "teacher", 0)
+        status_filter = (request.GET.get("status") or "").strip()
+        month_filter = (request.GET.get("month") or "").strip()
+
+        sessions_qs = (
+            ExamSession.objects.filter(center=center)
+            .select_related("group", "teacher")
+            .prefetch_related("results")
+            .annotate(
+                students_count=Count("results", distinct=True),
+                passed_count=Count(
+                    "results",
+                    filter=Q(results__passed=True, results__absent_in_exam=False),
+                    distinct=True,
+                ),
+                failed_count=Count(
+                    "results",
+                    filter=(
+                        Q(results__passed=False)
+                        & (
+                            Q(results__score__isnull=False)
+                            | Q(results__percent__isnull=False)
+                            | Q(results__absent_in_exam=True)
+                        )
+                    ),
+                    distinct=True,
+                ),
+                avg_percent=Avg("results__percent", filter=Q(results__percent__isnull=False)),
+            )
+            .order_by("-exam_date", "-id")
+        )
+
+        if group_id:
+            sessions_qs = sessions_qs.filter(group_id=group_id)
+        if teacher_id:
+            sessions_qs = sessions_qs.filter(teacher_id=teacher_id)
+        if status_filter in {
+            ExamSession.STATUS_DRAFT,
+            ExamSession.STATUS_COMPLETED,
+            ExamSession.STATUS_CANCELLED,
+        }:
+            sessions_qs = sessions_qs.filter(status=status_filter)
+        if month_filter:
+            parsed_month = parse_month_str(month_filter)
+            if parsed_month:
+                sessions_qs = sessions_qs.filter(
+                    exam_date__year=parsed_month.year,
+                    exam_date__month=parsed_month.month,
+                )
+
+        examined_results = ExamResult.objects.filter(session__in=sessions_qs).filter(
+            Q(absent_in_exam=True) | Q(score__isnull=False) | Q(percent__isnull=False)
+        )
+        total_examined = examined_results.count()
+        passed_examined = examined_results.filter(passed=True, absent_in_exam=False).count()
+        avg_pass_rate = round((passed_examined / total_examined * 100), 1) if total_examined else 0
+
+        paginator = Paginator(sessions_qs, 20)
+        sessions = paginator.get_page(request.GET.get("page"))
+
+        groups_list = Group.objects.filter(center=center).order_by("nom")
+        teachers_list = User.objects.filter(
+            center=center,
+            role="teacher",
+            is_archived=False,
+        ).order_by("ism", "familya")
+
+        return render(
+            request,
+            "education/exam_list.html",
+            {
+                "sessions": sessions,
+                "groups_list": groups_list,
+                "teachers_list": teachers_list,
+                "filters": {
+                    "group": group_id,
+                    "teacher": teacher_id,
+                    "status": status_filter,
+                    "month": month_filter,
+                },
+                "total_stats": {
+                    "total_sessions": sessions_qs.count(),
+                    "completed": sessions_qs.filter(status=ExamSession.STATUS_COMPLETED).count(),
+                    "avg_pass_rate": avg_pass_rate,
+                    "total_students_examined": total_examined,
+                },
+            },
+        )
+    except Http404:
+        raise
+    except Exception:
+        logger.exception("exam_list failed")
+        messages.error(request, "Imtihon sessiyalari ro'yxatini yuklashda xatolik yuz berdi.")
+        return redirect("core:director_boshqaruv")
+
+
+@login_required
+def exam_create(request, group_id=None):
+    from core.tenant import get_request_center
+    from education.models import ExamResult, ExamSession
+    from education.services.exam_service import (
+        get_group_exam_sequence_number,
+        get_group_lesson_number,
+    )
+
+    try:
+        center = get_request_center(request)
+        if not center:
+            raise Http404("Center not found")
+        disabled_response = _ensure_center_ui_feature(
+            request,
+            center,
+            FEATURE_UI_EXAM_SESSIONS,
+            message="Imtihon sessiyalari bo'limi bu markaz uchun o'chirilgan.",
+        )
+        if disabled_response:
+            return disabled_response
+
+        role = getattr(request.user, "role", None)
+        if not request.user.is_superuser and role not in ("teacher", "manager", "director"):
+            return HttpResponseForbidden("Sizda ruxsat yo'q.")
+
+        groups_qs = Group.objects.filter(center=center).select_related("oqituvchi").order_by("nom")
+        if role == "teacher" and not request.user.is_superuser:
+            groups_qs = groups_qs.filter(oqituvchi=request.user)
+
+        selected_group = None
+        if group_id is not None:
+            selected_group = get_object_or_404(groups_qs, pk=group_id)
+
+        selected_exam_date = request.POST.get("exam_date") or timezone.localdate().isoformat()
+        assignment_description = (request.POST.get("assignment_description") or "").strip()
+
+        if request.method == "POST":
+            target_group = selected_group
+            if target_group is None:
+                selected_group_id = _get_int(request.POST, "group", 0)
+                if not selected_group_id:
+                    messages.error(request, "Guruhni tanlang.")
+                    return render(
+                        request,
+                        "education/exam_create.html",
+                        {
+                            "groups_list": groups_qs,
+                            "selected_group": selected_group,
+                            "selected_exam_date": selected_exam_date,
+                            "assignment_description": assignment_description,
+                        },
+                    )
+                target_group = get_object_or_404(groups_qs, pk=selected_group_id)
+
+            exam_date = parse_date(selected_exam_date) or timezone.localdate()
+            teacher_user = request.user if role == "teacher" else target_group.oqituvchi
+            lesson_number_reference = get_group_lesson_number(group=target_group, on_date=exam_date)
+
+            with transaction.atomic():
+                session = ExamSession.objects.create(
+                    center=center,
+                    group=target_group,
+                    teacher=teacher_user,
+                    attendance_date=exam_date,
+                    exam_date=exam_date,
+                    lesson_number_reference=lesson_number_reference,
+                    exam_sequence_number=get_group_exam_sequence_number(target_group),
+                    teacher_decision=ExamSession.DECISION_LATER,
+                    decision_note=_encode_exam_session_note(assignment_description, ""),
+                    status=ExamSession.STATUS_DRAFT,
+                    created_by=request.user,
+                    updated_by=request.user,
+                )
+
+                students = Enrollment.objects.filter(
+                    group=target_group,
+                    center=center,
+                    is_active=True,
+                ).select_related("student")
+                ExamResult.objects.bulk_create(
+                    [
+                        ExamResult(
+                            center=center,
+                            session=session,
+                            group=target_group,
+                            student=enrollment.student,
+                            teacher=teacher_user,
+                            exam_date=session.exam_date,
+                            lesson_number_reference=session.lesson_number_reference,
+                            assignment_description=assignment_description,
+                            created_by=request.user,
+                            updated_by=request.user,
+                        )
+                        for enrollment in students
+                    ],
+                    ignore_conflicts=True,
+                )
+
+            messages.success(request, "Yangi imtihon sessiyasi yaratildi.")
+            return redirect("education:exam_session_entry", session_id=session.id)
+
+        return render(
+            request,
+            "education/exam_create.html",
+            {
+                "groups_list": groups_qs,
+                "selected_group": selected_group,
+                "selected_exam_date": selected_exam_date,
+                "assignment_description": assignment_description,
+            },
+        )
+    except Http404:
+        raise
+    except Exception:
+        logger.exception("exam_create failed: group_id=%s", group_id)
+        messages.error(request, "Imtihon sessiyasini yaratishda xatolik yuz berdi.")
+        return redirect("education:teacher_exam_history")
+
+
+@login_required
 def exam_session_entry(request, session_id: int):
     from core.tenant import get_request_center
-    center = get_request_center(request)
     from .forms import ExamResultRowForm
     from education.models import ExamSession, ExamResult
+    from education.services.certificate_service import auto_check_certificate_eligibility
     from education.services.exam_service import (
         get_exam_session_progress,
         get_or_create_center_exam_settings,
+        notify_exam_results,
         save_exam_session_task_files,
         save_exam_results_batch,
     )
 
-    qs = ExamSession.objects.select_related("group", "teacher", "center").prefetch_related("task_files")
-    if center:
-        qs = qs.filter(center=center)
-    session = get_object_or_404(qs, pk=session_id)
+    try:
+        center = get_request_center(request)
+        disabled_response = _ensure_center_ui_feature(
+            request,
+            center,
+            FEATURE_UI_EXAM_SESSIONS,
+            message="Imtihon sessiyalari bo'limi bu markaz uchun o'chirilgan.",
+        )
+        if disabled_response:
+            return disabled_response
+        qs = ExamSession.objects.select_related("group", "teacher", "center").prefetch_related("task_files")
+        if center:
+            qs = qs.filter(center=center)
+        session = get_object_or_404(qs, pk=session_id)
 
-    if not _teacher_or_management_can_access_group(request.user, session.group):
-        return HttpResponseForbidden("Sizda ruxsat yo'q.")
+        if not _teacher_or_management_can_access_group(request.user, session.group):
+            return HttpResponseForbidden("Sizda ruxsat yo'q.")
 
-    settings_obj = get_or_create_center_exam_settings(session.center)
-    enrollments = (
-        Enrollment.objects.filter(group=session.group, is_active=True)
-        .select_related("student")
-        .order_by("student__ism", "student__familya")
-    )
-    existing_results = {
-        r.student_id: r
-        for r in ExamResult.objects.filter(session=session).select_related("student")
-    }
-    for enr in enrollments:
-        enr.existing_result = existing_results.get(enr.student_id)
+        settings_obj = get_or_create_center_exam_settings(session.center)
+        try:
+            max_score = Decimal(str(request.GET.get("max_score") or request.POST.get("max_score") or "100"))
+            if max_score <= 0:
+                raise ValueError
+        except Exception:
+            max_score = Decimal("100")
+        passing_percent = Decimal(str(settings_obj.passing_score_percent or 60))
 
-    parsed_note = _decode_exam_session_note(session.decision_note)
-    session_task_default = parsed_note["task"]
-    session_comment_default = parsed_note["comment"]
+        enrollments = (
+            Enrollment.objects.filter(group=session.group, is_active=True)
+            .select_related("student")
+            .order_by("student__ism", "student__familya")
+        )
+        existing_results = {
+            result.student_id: result
+            for result in ExamResult.objects.filter(session=session).select_related("student")
+        }
+        for enrollment in enrollments:
+            enrollment.existing_result = existing_results.get(enrollment.student_id)
 
-    if request.method == "POST":
-        session_task = (request.POST.get("session_task") or "").strip()
-        session_comment = (request.POST.get("session_comment") or "").strip()
-        session_note = _encode_exam_session_note(session_task, session_comment)
-        if session.decision_note != session_note:
-            session.decision_note = session_note
-            session.updated_by = request.user
-            session.save(update_fields=["decision_note", "updated_by", "updated_at"])
+        parsed_note = _decode_exam_session_note(session.decision_note)
+        session_task_default = parsed_note["task"]
+        session_comment_default = parsed_note["comment"]
 
-        session_task_default = session_task
-        session_comment_default = session_comment
+        if request.method == "POST":
+            action = (request.POST.get("action") or "save").strip().lower()
+            is_finalize = action == "finalize"
+            was_completed = session.status == ExamSession.STATUS_COMPLETED
 
-        uploaded_task_file_count = 0
-        session_task_files = request.FILES.getlist("session_task_files") or []
-        if session_task_files and settings_obj.exam_file_upload_enabled:
-            try:
-                uploaded_task_file_count = save_exam_session_task_files(
-                    session=session,
-                    actor=request.user,
-                    files=session_task_files,
+            session_task = (request.POST.get("session_task") or "").strip()
+            session_comment = (request.POST.get("session_comment") or "").strip()
+            session_note = _encode_exam_session_note(session_task, session_comment)
+            note_updated = False
+            if session.decision_note != session_note:
+                session.decision_note = session_note
+                session.updated_by = request.user
+                session.save(update_fields=["decision_note", "updated_by", "updated_at"])
+                note_updated = True
+
+            session_task_default = session_task
+            session_comment_default = session_comment
+
+            uploaded_task_file_count = 0
+            session_task_files = request.FILES.getlist("session_task_files") or []
+            if session_task_files and settings_obj.exam_file_upload_enabled:
+                try:
+                    uploaded_task_file_count = save_exam_session_task_files(
+                        session=session,
+                        actor=request.user,
+                        files=session_task_files,
+                    )
+                    if uploaded_task_file_count:
+                        messages.success(request, f"{uploaded_task_file_count} ta umumiy task fayli yuklandi.")
+                except ValueError as exc:
+                    messages.error(request, str(exc))
+            elif session_task_files and not settings_obj.exam_file_upload_enabled:
+                messages.warning(request, "Task fayl yuklash markaz sozlamasida o'chiq.")
+
+            rows = []
+            row_errors = []
+            for enrollment in enrollments:
+                sid = enrollment.student_id
+                work_files = request.FILES.getlist(f"work_files_{sid}") or []
+                task_files = request.FILES.getlist(f"task_files_{sid}") or []
+                raw_score = (request.POST.get(f"score_{sid}") or "").strip()
+                raw_percent = (request.POST.get(f"percent_{sid}") or "").strip()
+                raw_comment = (request.POST.get(f"teacher_comment_{sid}") or "").strip()
+                absent_in_exam = bool(request.POST.get(f"absent_{sid}"))
+                retake_recommended = bool(request.POST.get(f"retake_{sid}"))
+
+                if absent_in_exam:
+                    raw_score = ""
+                    raw_percent = ""
+                elif raw_score and not raw_percent:
+                    try:
+                        computed_percent = (Decimal(raw_score) / max_score) * Decimal("100")
+                        raw_percent = str(max(Decimal("0"), min(computed_percent, Decimal("100"))).quantize(Decimal("0.1")))
+                    except Exception:
+                        raw_percent = ""
+
+                has_any_input = bool(
+                    raw_score
+                    or raw_percent
+                    or raw_comment
+                    or absent_in_exam
+                    or retake_recommended
+                    or work_files
+                    or task_files
                 )
-                if uploaded_task_file_count:
-                    messages.success(request, f"{uploaded_task_file_count} ta umumiy task fayli yuklandi.")
-            except ValueError as exc:
-                messages.error(request, str(exc))
-        elif session_task_files and not settings_obj.exam_file_upload_enabled:
-            messages.warning(request, "Task fayl yuklash markaz sozlamasida o'chiq.")
+                if not has_any_input:
+                    continue
 
-        rows = []
-        row_errors = []
-        for enr in enrollments:
-            sid = enr.student_id
-            existing_result = existing_results.get(sid)
-            work_files = request.FILES.getlist(f"work_files_{sid}") or []
-            task_files = request.FILES.getlist(f"task_files_{sid}") or []
-            result_value = (request.POST.get(f"result_{sid}", "") or "").strip()
-            legacy_percent = (request.POST.get(f"percent_{sid}", "") or "").strip()
-            legacy_score = (request.POST.get(f"score_{sid}", "") or "").strip()
-            if not result_value:
-                result_value = legacy_percent or legacy_score
-            row_teacher_comment = (request.POST.get(f"teacher_comment_{sid}") or "").strip() or session_comment
-            row_assignment = (request.POST.get(f"assignment_description_{sid}") or "").strip() or session_task
-
-            has_any_input = bool(result_value or work_files or task_files)
-            if not has_any_input:
-                continue
-            if existing_result is None and not result_value:
-                continue
-
-            # Ball yozilmasa, mavjud qiymatni o'chirib yubormaslik uchun oldingi qiymatni saqlaymiz.
-            effective_value = result_value
-            if not effective_value and existing_result:
-                if existing_result.percent is not None:
-                    effective_value = str(existing_result.percent)
-                elif existing_result.score is not None:
-                    effective_value = str(existing_result.score)
-
-            row_form = ExamResultRowForm(
-                {
-                    "score": effective_value,
-                    "percent": effective_value,
-                    "teacher_comment": row_teacher_comment,
-                    "assignment_description": row_assignment,
-                    "absent_in_exam": False,
-                    "retake_recommended": bool(request.POST.get(f"retake_{sid}")),
-                },
-                require_result=settings_obj.exam_result_required,
-            )
-            if not row_form.is_valid():
-                row_errors.append((enr.student.get_full_name(), row_form.errors.as_text()))
-                continue
-            rows.append(
-                {
-                    "student": enr.student,
-                    "score": row_form.cleaned_data.get("score"),
-                    "percent": row_form.cleaned_data.get("percent"),
-                    "teacher_comment": row_form.cleaned_data.get("teacher_comment"),
-                    "assignment_description": row_form.cleaned_data.get("assignment_description"),
-                    "absent_in_exam": row_form.cleaned_data.get("absent_in_exam"),
-                    "retake_recommended": row_form.cleaned_data.get("retake_recommended"),
-                    "work_files": work_files,
-                    "task_files": task_files,
-                }
-            )
-
-        if row_errors:
-            for student_name, err in row_errors:
-                messages.error(request, f"{student_name}: {err}")
-        elif not rows and not uploaded_task_file_count:
-            messages.info(request, "Hozircha saqlash uchun yangi natija yo'q.")
-        else:
-            try:
-                saved_count = save_exam_results_batch(
-                    session=session,
-                    actor=request.user,
-                    rows=rows,
+                row_form = ExamResultRowForm(
+                    {
+                        "score": raw_score,
+                        "percent": raw_percent,
+                        "teacher_comment": raw_comment or session_comment,
+                        "assignment_description": session_task,
+                        "absent_in_exam": absent_in_exam,
+                        "retake_recommended": retake_recommended,
+                    },
+                    require_result=bool(settings_obj.exam_result_required or is_finalize),
                 )
-                messages.success(request, f"{saved_count} ta o'quvchi bo'yicha imtihon natijalari saqlandi.")
-                return redirect("education:exam_session_entry", session_id=session.id)
-            except ValueError as exc:
-                messages.error(request, str(exc))
+                if not row_form.is_valid():
+                    row_errors.append((enrollment.student.get_full_name(), row_form.errors.as_text()))
+                    continue
 
-    session_progress = get_exam_session_progress(session=session)
+                rows.append(
+                    {
+                        "student": enrollment.student,
+                        "score": row_form.cleaned_data.get("score"),
+                        "percent": row_form.cleaned_data.get("percent"),
+                        "teacher_comment": row_form.cleaned_data.get("teacher_comment"),
+                        "assignment_description": row_form.cleaned_data.get("assignment_description"),
+                        "absent_in_exam": row_form.cleaned_data.get("absent_in_exam"),
+                        "retake_recommended": row_form.cleaned_data.get("retake_recommended"),
+                        "work_files": work_files,
+                        "task_files": task_files,
+                    }
+                )
 
-    return render(
-        request,
-        "education/exam_session_entry.html",
-        {
-            "session": session,
-            "group": session.group,
-            "enrollments": enrollments,
-            "existing_results": existing_results,
-            "exam_settings": settings_obj,
-            "session_task_default": session_task_default,
-            "session_comment_default": session_comment_default,
-            "session_progress": session_progress,
-        },
-    )
+            if row_errors:
+                for student_name, err in row_errors:
+                    messages.error(request, f"{student_name}: {err}")
+            else:
+                saved_count = 0
+                if rows:
+                    try:
+                        saved_count = save_exam_results_batch(
+                            session=session,
+                            actor=request.user,
+                            rows=rows,
+                            finalize=is_finalize,
+                        )
+                    except ValueError as exc:
+                        messages.error(request, str(exc))
+                        saved_count = -1
+                elif is_finalize:
+                    session_progress = get_exam_session_progress(session=session)
+                    session.status = (
+                        ExamSession.STATUS_COMPLETED
+                        if session_progress["is_completed"]
+                        else ExamSession.STATUS_DRAFT
+                    )
+                    if session.teacher_decision != ExamSession.DECISION_YES:
+                        session.teacher_decision = ExamSession.DECISION_YES
+                    session.updated_by = request.user
+                    session.save(update_fields=["status", "teacher_decision", "updated_by", "updated_at"])
+
+                if saved_count >= 0:
+                    session.refresh_from_db()
+                    session_progress = get_exam_session_progress(session=session)
+
+                    if is_finalize:
+                        if not session_progress["is_completed"]:
+                            messages.error(
+                                request,
+                                "Sessiyani yakunlash uchun barcha o'quvchilar bo'yicha ball yoki qatnashmagan holati kiritilishi kerak.",
+                            )
+                        else:
+                            if not was_completed and session.status == ExamSession.STATUS_COMPLETED:
+                                notify_exam_results(session)
+                                auto_check_certificate_eligibility(session)
+                                messages.success(request, "Sessiya yakunlandi. Bildirishnomalar va sertifikat tekshiruvi ishga tushdi.")
+                            else:
+                                messages.info(request, "Sessiya allaqachon yakunlangan.")
+                        return redirect(_exam_entry_url(session.id, max_score))
+
+                    if saved_count > 0:
+                        messages.success(request, f"{saved_count} ta o'quvchi bo'yicha imtihon natijalari saqlandi.")
+                        return redirect(_exam_entry_url(session.id, max_score))
+                    if uploaded_task_file_count or note_updated:
+                        messages.success(request, "Sessiya ma'lumotlari yangilandi.")
+                        return redirect(_exam_entry_url(session.id, max_score))
+                    messages.info(request, "Hozircha saqlash uchun yangi natija yo'q.")
+
+        session_progress = get_exam_session_progress(session=session)
+
+        return render(
+            request,
+            "education/exam_session_entry.html",
+            {
+                "session": session,
+                "group": session.group,
+                "enrollments": enrollments,
+                "existing_results": existing_results,
+                "exam_settings": settings_obj,
+                "session_task_default": session_task_default,
+                "session_comment_default": session_comment_default,
+                "session_progress": session_progress,
+                "max_score": max_score,
+                "passing_percent": passing_percent,
+            },
+        )
+    except Http404:
+        raise
+    except Exception:
+        logger.exception("exam_session_entry failed: session_id=%s", session_id)
+        messages.error(request, "Imtihon sessiyasi bilan ishlashda xatolik yuz berdi.")
+        return redirect("education:teacher_exam_history")
 
 
 @login_required
@@ -6031,6 +6849,14 @@ def group_exam_history(request, group_id: int):
     from education.models import ExamSession
 
     center = get_request_center(request)
+    disabled_response = _ensure_center_ui_feature(
+        request,
+        center,
+        FEATURE_UI_EXAM_SESSIONS,
+        message="Imtihon sessiyalari bo'limi bu markaz uchun o'chirilgan.",
+    )
+    if disabled_response:
+        return disabled_response
     group_qs = Group.objects.all()
     if center:
         group_qs = group_qs.filter(center=center)
@@ -6061,6 +6887,14 @@ def teacher_exam_history(request):
     from education.models import ExamSession
 
     center = get_request_center(request)
+    disabled_response = _ensure_center_ui_feature(
+        request,
+        center,
+        FEATURE_UI_EXAM_SESSIONS,
+        message="Imtihon sessiyalari bo'limi bu markaz uchun o'chirilgan.",
+    )
+    if disabled_response:
+        return disabled_response
     role = getattr(request.user, "role", None)
     if not request.user.is_superuser and role not in ("director", "manager", "teacher"):
         return HttpResponseForbidden("Sizda ruxsat yo'q.")
@@ -6118,6 +6952,14 @@ def exam_session_detail(request, session_id: int):
     from education.models import ExamResult, ExamSession
 
     center = get_request_center(request)
+    disabled_response = _ensure_center_ui_feature(
+        request,
+        center,
+        FEATURE_UI_EXAM_SESSIONS,
+        message="Imtihon sessiyalari bo'limi bu markaz uchun o'chirilgan.",
+    )
+    if disabled_response:
+        return disabled_response
     qs = ExamSession.objects.select_related("group", "teacher", "center")
     if center:
         qs = qs.filter(center=center)
@@ -6148,98 +6990,144 @@ def exam_session_detail(request, session_id: int):
 def failed_students_list(request):
     from core.tenant import get_request_center
     from .forms import ExamResultFollowUpForm
-    from education.models import CertificateRecord, ExamResult
+    from education.models import ExamResult
     from education.services.audit_service import log_education_event
 
-    if not _director_or_manager(request.user):
-        return HttpResponseForbidden("Sizda ruxsat yo'q.")
+    try:
+        role = getattr(request.user, "role", None)
+        if not request.user.is_superuser and role not in ("director", "manager", "teacher"):
+            return HttpResponseForbidden("Sizda ruxsat yo'q.")
 
-    center = get_request_center(request)
-    qs = ExamResult.objects.select_related("student", "group", "teacher", "session")
-    if center:
-        qs = qs.filter(center=center)
-    qs = qs.filter(passed=False)
+        center = get_request_center(request)
+        disabled_response = _ensure_center_ui_feature(
+            request,
+            center,
+            FEATURE_UI_FAILED_STUDENTS,
+            message="Zaif o'quvchilar bo'limi bu markaz uchun o'chirilgan.",
+        )
+        if disabled_response:
+            return disabled_response
+        qs = ExamResult.objects.select_related("student", "group", "teacher", "session")
+        if center:
+            qs = qs.filter(center=center)
+        qs = qs.filter(passed=False).filter(
+            Q(absent_in_exam=True) | Q(score__isnull=False) | Q(percent__isnull=False)
+        )
 
-    group_id = _get_int(request.GET, "group", 0)
-    teacher_id = _get_int(request.GET, "teacher", 0)
-    date_from = parse_date(request.GET.get("date_from") or "")
-    date_to = parse_date(request.GET.get("date_to") or "")
-    percent_min = request.GET.get("percent_min")
-    percent_max = request.GET.get("percent_max")
-    follow_up_status = (request.GET.get("follow_up_status") or "").strip()
-    follow_up_pending = (request.GET.get("follow_up_pending") or "").strip().lower() in {"1", "true", "yes", "on"}
+        if role == "teacher" and not request.user.is_superuser:
+            qs = qs.filter(teacher=request.user)
 
-    if group_id:
-        qs = qs.filter(group_id=group_id)
-    if teacher_id:
-        qs = qs.filter(teacher_id=teacher_id)
-    if date_from:
-        qs = qs.filter(exam_date__gte=date_from)
-    if date_to:
-        qs = qs.filter(exam_date__lte=date_to)
-    if percent_min not in (None, ""):
-        try:
-            qs = qs.filter(percent__gte=Decimal(str(percent_min)))
-        except Exception:
-            pass
-    if percent_max not in (None, ""):
-        try:
-            qs = qs.filter(percent__lte=Decimal(str(percent_max)))
-        except Exception:
-            pass
-    valid_follow_statuses = {choice[0] for choice in ExamResult.FOLLOW_UP_CHOICES}
-    if follow_up_status in valid_follow_statuses:
-        qs = qs.filter(follow_up_status=follow_up_status)
-    if follow_up_pending:
-        qs = qs.filter(follow_up_status=ExamResult.FOLLOW_UP_PENDING)
+        group_id = _get_int(request.GET, "group", 0)
+        teacher_id = _get_int(request.GET, "teacher", 0)
+        date_from = parse_date(request.GET.get("date_from") or "")
+        date_to = parse_date(request.GET.get("date_to") or "")
+        percent_min = request.GET.get("percent_min")
+        percent_max = request.GET.get("percent_max")
+        follow_up_status = (request.GET.get("follow_up_status") or "").strip()
+        follow_up_pending = (request.GET.get("follow_up_pending") or "").strip().lower() in {"1", "true", "yes", "on"}
 
-    if request.method == "POST":
-        result_id = _get_int(request.POST, "result_id", 0)
-        result = get_object_or_404(qs, pk=result_id)
-        follow_form = ExamResultFollowUpForm(request.POST, instance=result)
-        if follow_form.is_valid():
-            updated = follow_form.save(commit=False)
-            updated.follow_up_updated_by = request.user
-            updated.follow_up_updated_at = timezone.now()
-            updated.save(update_fields=["follow_up_status", "follow_up_note", "follow_up_updated_by", "follow_up_updated_at", "updated_at"])
-            log_education_event(
-                center=updated.center,
-                actor=request.user,
-                action_type="exam_followup_updated",
-                entity=updated,
-                payload={"follow_up_status": updated.follow_up_status},
-            )
-            messages.success(request, "Nazorat holati yangilandi.")
+        if group_id:
+            qs = qs.filter(group_id=group_id)
+        if teacher_id and role != "teacher":
+            qs = qs.filter(teacher_id=teacher_id)
+        if date_from:
+            qs = qs.filter(exam_date__gte=date_from)
+        if date_to:
+            qs = qs.filter(exam_date__lte=date_to)
+        if percent_min not in (None, ""):
+            try:
+                qs = qs.filter(percent__gte=Decimal(str(percent_min)))
+            except Exception:
+                pass
+        if percent_max not in (None, ""):
+            try:
+                qs = qs.filter(percent__lte=Decimal(str(percent_max)))
+            except Exception:
+                pass
+        valid_follow_statuses = {choice[0] for choice in ExamResult.FOLLOW_UP_CHOICES}
+        if follow_up_status in valid_follow_statuses:
+            qs = qs.filter(follow_up_status=follow_up_status)
+        if follow_up_pending:
+            qs = qs.filter(follow_up_status=ExamResult.FOLLOW_UP_PENDING)
+
+        if request.method == "POST":
+            result_id = _get_int(request.POST, "result_id", 0)
+            result = get_object_or_404(qs, pk=result_id)
+            follow_form = ExamResultFollowUpForm(request.POST, instance=result)
+            if follow_form.is_valid():
+                updated = follow_form.save(commit=False)
+                updated.follow_up_updated_by = request.user
+                updated.follow_up_updated_at = timezone.now()
+                updated.save(
+                    update_fields=[
+                        "follow_up_status",
+                        "follow_up_note",
+                        "follow_up_updated_by",
+                        "follow_up_updated_at",
+                        "updated_at",
+                    ]
+                )
+                log_education_event(
+                    center=updated.center,
+                    actor=request.user,
+                    action_type="exam_followup_updated",
+                    entity=updated,
+                    payload={"follow_up_status": updated.follow_up_status},
+                )
+                messages.success(request, "Nazorat holati yangilandi.")
+            else:
+                messages.error(request, "Nazorat formasi xato.")
+            q = request.META.get("QUERY_STRING")
+            return redirect(f"{request.path}?{q}" if q else request.path)
+
+        rows = qs.order_by("-exam_date", "-id")
+        summary_counts = {
+            "total": rows.count(),
+            "pending": rows.filter(follow_up_status=ExamResult.FOLLOW_UP_PENDING).count(),
+            "absent": rows.filter(absent_in_exam=True).count(),
+        }
+        groups = Group.objects.filter(center=center).order_by("nom") if center else Group.objects.none()
+        if role == "teacher" and not request.user.is_superuser:
+            groups = groups.filter(oqituvchi=request.user)
+        if role == "teacher" and not request.user.is_superuser:
+            teachers = User.objects.filter(pk=request.user.pk)
+            teacher_id = request.user.id
         else:
-            messages.error(request, "Nazorat formasi xato.")
-        q = request.META.get("QUERY_STRING")
-        return redirect(f"{request.path}?{q}" if q else request.path)
+            teachers = (
+                User.objects.filter(role="teacher", center=center, is_archived=False).order_by("ism", "familya")
+                if center
+                else User.objects.none()
+            )
+        follow_up_choices = ExamResult.FOLLOW_UP_CHOICES
 
-    rows = qs.order_by("-exam_date", "-id")
-    groups = Group.objects.filter(center=center).order_by("nom") if center else Group.objects.none()
-    teachers = User.objects.filter(role="teacher", center=center).order_by("ism", "familya") if center else User.objects.none()
-    follow_up_choices = ExamResult.FOLLOW_UP_CHOICES
-
-    return render(
-        request,
-        "education/failed_students_list.html",
-        {
-            "rows": rows,
-            "groups": groups,
-            "teachers": teachers,
-            "follow_up_choices": follow_up_choices,
-            "filters": {
-                "group": group_id,
-                "teacher": teacher_id,
-                "date_from": date_from.isoformat() if date_from else "",
-                "date_to": date_to.isoformat() if date_to else "",
-                "percent_min": percent_min or "",
-                "percent_max": percent_max or "",
-                "follow_up_status": follow_up_status,
-                "follow_up_pending": follow_up_pending,
+        return render(
+            request,
+            "education/failed_students_list.html",
+            {
+                "rows": rows,
+                "summary_counts": summary_counts,
+                "groups": groups,
+                "teachers": teachers,
+                "follow_up_choices": follow_up_choices,
+                "filters": {
+                    "group": group_id,
+                    "teacher": teacher_id,
+                    "date_from": date_from.isoformat() if date_from else "",
+                    "date_to": date_to.isoformat() if date_to else "",
+                    "percent_min": percent_min or "",
+                    "percent_max": percent_max or "",
+                    "follow_up_status": follow_up_status,
+                    "follow_up_pending": follow_up_pending,
+                },
+                "can_edit_follow_up": _director_or_manager(request.user),
             },
-        },
-    )
+        )
+    except Http404:
+        raise
+    except Exception:
+        logger.exception("failed_students_list failed")
+        messages.error(request, "Zaif o'quvchilar ro'yxatini yuklashda xatolik yuz berdi.")
+        return redirect("education:teacher_exam_history")
 
 
 @login_required
@@ -6377,6 +7265,14 @@ def certificate_templates_view(request):
     center = get_request_center(request)
     if not center:
         raise Http404("Center not found")
+    disabled_response = _ensure_center_ui_feature(
+        request,
+        center,
+        FEATURE_UI_CERTIFICATES,
+        message="Sertifikatlar bo'limi bu markaz uchun o'chirilgan.",
+    )
+    if disabled_response:
+        return disabled_response
 
     if not _director_or_manager(request.user):
         return HttpResponseForbidden("Sizda ruxsat yo'q.")
@@ -6402,12 +7298,31 @@ def certificate_templates_view(request):
         return redirect("education:certificate_templates")
 
     templates = CertificateTemplate.objects.filter(center=center).order_by("-updated_at")
+    groups_overview = (
+        Group.objects.filter(center=center, is_archived=False)
+        .select_related("oqituvchi")
+        .annotate(
+            active_students_count=Count(
+                "enrollments",
+                filter=Q(enrollments__is_active=True, enrollments__is_deleted=False),
+                distinct=True,
+            ),
+            issued_certificates_count=Count(
+                "certificates",
+                filter=Q(certificates__status="issued"),
+                distinct=True,
+            ),
+        )
+        .order_by("nom")
+    )
     return render(
         request,
         "education/certificate_templates.html",
         {
             "form": form,
             "templates": templates,
+            "groups_overview": groups_overview,
+            "active_templates_count": templates.filter(is_active=True).count(),
         },
     )
 
@@ -6423,6 +7338,14 @@ def certificate_template_activate(request, template_id: int):
         return HttpResponseForbidden("Sizda ruxsat yo'q.")
 
     center = get_request_center(request)
+    disabled_response = _ensure_center_ui_feature(
+        request,
+        center,
+        FEATURE_UI_CERTIFICATES,
+        message="Sertifikatlar bo'limi bu markaz uchun o'chirilgan.",
+    )
+    if disabled_response:
+        return disabled_response
     qs = CertificateTemplate.objects.all()
     if center:
         qs = qs.filter(center=center)
@@ -6449,43 +7372,65 @@ def group_certificate_candidates(request, group_id: int):
     from education.models import CertificateRecord
     from education.services.ranking_service import build_group_completion_recommendations
 
-    center = get_request_center(request)
-    group_qs = Group.objects.all()
-    if center:
-        group_qs = group_qs.filter(center=center)
-    group = get_object_or_404(group_qs, pk=group_id)
-
-    if not _teacher_or_management_can_access_group(request.user, group):
-        return HttpResponseForbidden("Sizda ruxsat yo'q.")
-
-    selected_date = parse_date(request.GET.get("date") or "") or localdate()
-    recommendation_payload = build_group_completion_recommendations(
-        group=group,
-        on_date=selected_date,
-        actor=request.user,
-        persist=True,
-    )
-    rows = recommendation_payload["rows"]
-    existing_certs = {
-        cert.student_id: cert
-        for cert in CertificateRecord.objects.filter(group=group, status=CertificateRecord.STATUS_ISSUED).select_related(
-            "student"
+    try:
+        center = get_request_center(request)
+        disabled_response = _ensure_center_ui_feature(
+            request,
+            center,
+            FEATURE_UI_CERTIFICATES,
+            message="Sertifikatlar bo'limi bu markaz uchun o'chirilgan.",
         )
-    }
-    for row in rows:
-        row["certificate"] = existing_certs.get(row["student"].id)
+        if disabled_response:
+            return disabled_response
+        group_qs = Group.objects.all()
+        if center:
+            group_qs = group_qs.filter(center=center)
+        group = get_object_or_404(group_qs, pk=group_id)
 
-    return render(
-        request,
-        "education/group_certificate_candidates.html",
-        {
-            "group": group,
-            "selected_date": selected_date,
-            "rows": rows,
-            "thresholds": recommendation_payload["thresholds"],
-            "can_issue": _director_or_manager(request.user),
-        },
-    )
+        if not _teacher_or_management_can_access_group(request.user, group):
+            return HttpResponseForbidden("Sizda ruxsat yo'q.")
+
+        selected_date = parse_date(request.GET.get("date") or "") or localdate()
+        recommendation_payload = build_group_completion_recommendations(
+            group=group,
+            on_date=selected_date,
+            actor=request.user,
+            persist=True,
+        )
+        rows = recommendation_payload["rows"]
+        existing_certs = {}
+        for cert in (
+            CertificateRecord.objects.filter(
+                group=group,
+                status__in=[CertificateRecord.STATUS_DRAFT, CertificateRecord.STATUS_ISSUED],
+            )
+            .select_related("student")
+            .order_by("student_id", "-created_at", "-id")
+        ):
+            current = existing_certs.get(cert.student_id)
+            if current is None or (current.status != CertificateRecord.STATUS_ISSUED and cert.status == CertificateRecord.STATUS_ISSUED):
+                existing_certs[cert.student_id] = cert
+
+        for row in rows:
+            row["certificate"] = existing_certs.get(row["student"].id)
+
+        return render(
+            request,
+            "education/group_certificate_candidates.html",
+            {
+                "group": group,
+                "selected_date": selected_date,
+                "rows": rows,
+                "thresholds": recommendation_payload["thresholds"],
+                "can_issue": _director_or_manager(request.user),
+            },
+        )
+    except Http404:
+        raise
+    except Exception:
+        logger.exception("group_certificate_candidates failed: group_id=%s", group_id)
+        messages.error(request, "Sertifikat nomzodlarini yuklashda xatolik yuz berdi.")
+        return redirect("education:group_detail", pk=group_id)
 
 
 @login_required
@@ -6495,34 +7440,53 @@ def issue_certificate_action(request, group_id: int, student_id: int):
     from .forms import CertificateIssueForm
     from education.services.certificate_service import issue_certificate_for_student
 
-    if not _director_or_manager(request.user):
-        return HttpResponseForbidden("Sizda ruxsat yo'q.")
+    try:
+        if not _director_or_manager(request.user):
+            return HttpResponseForbidden("Sizda ruxsat yo'q.")
 
-    center = get_request_center(request)
-    group_qs = Group.objects.all()
-    if center:
-        group_qs = group_qs.filter(center=center)
-    group = get_object_or_404(group_qs, pk=group_id)
-    student = get_object_or_404(User.objects.filter(role="student"), pk=student_id)
+        center = get_request_center(request)
+        disabled_response = _ensure_center_ui_feature(
+            request,
+            center,
+            FEATURE_UI_CERTIFICATES,
+            message="Sertifikatlar bo'limi bu markaz uchun o'chirilgan.",
+        )
+        if disabled_response:
+            return disabled_response
+        group_qs = Group.objects.all()
+        if center:
+            group_qs = group_qs.filter(center=center)
+        group = get_object_or_404(group_qs, pk=group_id)
+        student = get_object_or_404(User.objects.filter(role="student"), pk=student_id)
 
-    if not Enrollment.objects.filter(group=group, student=student, is_active=True).exists():
-        return HttpResponseForbidden("Student bu guruhda faol emas.")
+        if not Enrollment.objects.filter(group=group, student=student).exists():
+            return HttpResponseForbidden("Student bu guruhga biriktirilmagan.")
 
-    form = CertificateIssueForm(request.POST)
-    if not form.is_valid():
-        messages.error(request, "Sertifikat berish formasi xato.")
-        return redirect("education:group_certificate_candidates", group_id=group.id)
+        form = CertificateIssueForm(request.POST)
+        if not form.is_valid():
+            messages.error(request, "Sertifikat berish formasi xato.")
+            return redirect("education:group_certificate_candidates", group_id=group.id)
 
-    cert = issue_certificate_for_student(
-        group=group,
-        student=student,
-        actor=request.user,
-        certificate_type=form.cleaned_data["certificate_type"],
-        note=form.cleaned_data.get("note", ""),
-        request=request,
-    )
-    messages.success(request, f"Sertifikat yaratildi: {cert.certificate_number}")
-    return redirect("education:certificate_detail", certificate_id=cert.id)
+        cert = issue_certificate_for_student(
+            group=group,
+            student=student,
+            actor=request.user,
+            certificate_type=form.cleaned_data["certificate_type"],
+            note=form.cleaned_data.get("note", ""),
+            request=request,
+        )
+        messages.success(request, f"Sertifikat tasdiqlandi: {cert.certificate_number}")
+        return redirect("education:certificate_detail", certificate_id=cert.id)
+    except Http404:
+        raise
+    except Exception:
+        logger.exception(
+            "issue_certificate_action failed: group_id=%s student_id=%s",
+            group_id,
+            student_id,
+        )
+        messages.error(request, "Sertifikatni tasdiqlashda xatolik yuz berdi.")
+        return redirect("education:group_certificate_candidates", group_id=group_id)
 
 
 @login_required
@@ -6532,6 +7496,14 @@ def certificate_detail(request, certificate_id: int):
     from education.services.certificate_service import user_can_view_certificate
 
     center = get_request_center(request)
+    disabled_response = _ensure_center_ui_feature(
+        request,
+        center,
+        FEATURE_UI_CERTIFICATES,
+        message="Sertifikatlar bo'limi bu markaz uchun o'chirilgan.",
+    )
+    if disabled_response:
+        return disabled_response
     qs = CertificateRecord.objects.select_related("group", "student", "center", "template", "summary")
     if center:
         qs = qs.filter(center=center)
@@ -6560,6 +7532,14 @@ def certificate_download_pdf(request, certificate_id: int):
     )
 
     center = get_request_center(request)
+    disabled_response = _ensure_center_ui_feature(
+        request,
+        center,
+        FEATURE_UI_CERTIFICATES,
+        message="Sertifikatlar bo'limi bu markaz uchun o'chirilgan.",
+    )
+    if disabled_response:
+        return disabled_response
     qs = CertificateRecord.objects.select_related("group", "student", "center", "summary")
     if center:
         qs = qs.filter(center=center)

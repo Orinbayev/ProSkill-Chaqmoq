@@ -2,212 +2,279 @@
 {% block content %}
 {% include "education/partials/phase_theme.html" %}
 <style>
-  .exam-card {
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    border-radius: 16px;
-    background: linear-gradient(135deg, rgba(15, 23, 42, 0.78), rgba(30, 41, 59, 0.52));
-    padding: 16px;
+  .exam-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
   }
-  .exam-badges {
+  .exam-meta {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     margin-top: 10px;
   }
-  .exam-badge {
+  .exam-chip {
     border-radius: 999px;
-    padding: 6px 10px;
+    padding: 6px 12px;
     font-size: 12px;
     font-weight: 700;
+    background: rgba(15, 23, 42, 0.65);
     border: 1px solid rgba(148, 163, 184, 0.22);
     color: #cbd5e1;
-    background: rgba(15, 23, 42, 0.55);
   }
-  .exam-badge.ok {
-    color: #86efac;
-    border-color: rgba(34, 197, 94, 0.4);
-    background: rgba(20, 83, 45, 0.28);
+  .exam-chip.ok { color: #86efac; border-color: rgba(34, 197, 94, 0.35); }
+  .exam-chip.warn { color: #fcd34d; border-color: rgba(245, 158, 11, 0.35); }
+  .exam-chip.danger { color: #fca5a5; border-color: rgba(239, 68, 68, 0.35); }
+  .exam-inline-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
   }
-  .exam-badge.warn {
-    color: #fcd34d;
-    border-color: rgba(245, 158, 11, 0.4);
-    background: rgba(120, 53, 15, 0.28);
+  .exam-note {
+    font-size: 12px;
+    color: #94a3b8;
   }
-  .exam-grid-2 {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-  }
-  @media (max-width: 980px) {
-    .exam-grid-2 {
-      grid-template-columns: 1fr;
-    }
-  }
-  .exam-table input[type="number"],
-  .exam-table input[type="file"],
-  .exam-table textarea {
-    width: 100%;
-  }
-  .exam-table .student-name {
+  .exam-student {
     font-weight: 700;
     color: #e2e8f0;
   }
-  .exam-table .student-sub {
+  .exam-student-sub {
     font-size: 12px;
     color: #94a3b8;
-    margin-top: 2px;
+    margin-top: 3px;
+  }
+  .exam-score-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(80px, 1fr));
+    gap: 8px;
+  }
+  .exam-mini-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    margin-bottom: 4px;
+  }
+  .exam-row-options {
+    display: grid;
+    gap: 8px;
+  }
+  .exam-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #cbd5e1;
+  }
+  .exam-check input {
+    width: 16px;
+    height: 16px;
   }
   .exam-status {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
     border-radius: 999px;
-    padding: 4px 10px;
+    padding: 5px 10px;
     font-size: 12px;
     font-weight: 700;
-    border: 1px solid rgba(148, 163, 184, 0.24);
+    border: 1px solid rgba(148, 163, 184, 0.22);
     color: #cbd5e1;
-    background: rgba(15, 23, 42, 0.55);
+    background: rgba(15, 23, 42, 0.6);
   }
   .exam-status.passed {
     color: #86efac;
-    border-color: rgba(34, 197, 94, 0.4);
-    background: rgba(20, 83, 45, 0.28);
+    border-color: rgba(34, 197, 94, 0.35);
+    background: rgba(20, 83, 45, 0.24);
   }
   .exam-status.failed {
     color: #fca5a5;
-    border-color: rgba(239, 68, 68, 0.4);
-    background: rgba(127, 29, 29, 0.25);
+    border-color: rgba(239, 68, 68, 0.35);
+    background: rgba(127, 29, 29, 0.22);
+  }
+  .exam-status.absent {
+    color: #fcd34d;
+    border-color: rgba(245, 158, 11, 0.35);
+    background: rgba(120, 53, 15, 0.22);
   }
   .exam-status.pending {
-    color: #fcd34d;
-    border-color: rgba(245, 158, 11, 0.38);
-    background: rgba(120, 53, 15, 0.25);
+    color: #cbd5e1;
   }
-  .task-file-list {
-    margin-top: 8px;
+  .exam-comment {
+    min-width: 220px;
+  }
+  .exam-footer {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 10px;
+    justify-content: flex-end;
   }
-  .task-file-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    border-radius: 999px;
-    padding: 5px 10px;
-    border: 1px solid rgba(59, 130, 246, 0.36);
-    color: #bfdbfe;
-    font-size: 12px;
-    font-weight: 700;
-    text-decoration: none;
-    background: rgba(30, 64, 175, 0.2);
-  }
-  .task-file-link:hover {
-    color: #ffffff;
-    text-decoration: none;
-    background: rgba(37, 99, 235, 0.32);
+  @media (max-width: 920px) {
+    .exam-score-grid {
+      grid-template-columns: 1fr;
+    }
+    .exam-comment {
+      min-width: 160px;
+    }
   }
 </style>
 
 <div class="ui-shell">
-  <div class="ui-panel ui-header">
+  <div class="ui-panel ui-header glass">
     <div>
-      <h3 class="ui-title">Imtihon natijalarini kiritish</h3>
+      <h3 class="ui-title">📝 Imtihon natijalarini kiritish</h3>
       <div class="ui-sub">
         Guruh: <strong>{{ group.nom }}</strong> |
-        Nazorat darsi: <strong>{{ session.lesson_number_reference }}-dars</strong> |
-        Sana: <strong>{{ session.exam_date }}</strong>
+        Sana: <strong>{{ session.exam_date }}</strong> |
+        Dars: <strong>{{ session.lesson_number_reference }}</strong> |
+        Maksimal ball: <strong>{{ max_score }}</strong>
       </div>
-      <div class="exam-badges">
-        <span class="exam-badge">Jami: {{ session_progress.total_students }}</span>
-        <span class="exam-badge ok">Yakunlangan: {{ session_progress.completed_students }}</span>
-        <span class="exam-badge warn">Qolgan: {{ session_progress.pending_students }}</span>
+      <div class="exam-meta">
+        <span class="exam-chip">Jami: {{ session_progress.total_students }}</span>
+        <span class="exam-chip ok">Kiritilgan: {{ session_progress.completed_students }}</span>
+        <span class="exam-chip warn">Qolgan: {{ session_progress.pending_students }}</span>
+        {% if session.status == "completed" %}
+          <span class="exam-chip ok">Holat: yakunlangan</span>
+        {% elif session.status == "cancelled" %}
+          <span class="exam-chip danger">Holat: bekor qilingan</span>
+        {% else %}
+          <span class="exam-chip warn">Holat: qoralama</span>
+        {% endif %}
       </div>
     </div>
     <div class="ui-actions">
+      <a href="{% url 'education:exam_session_detail' session.id %}" class="ui-btn ui-btn-secondary">Batafsil</a>
       <a href="{% url 'education:group_detail' group.id %}" class="ui-btn ui-btn-secondary">Guruhga qaytish</a>
     </div>
   </div>
 
-  <form method="post" enctype="multipart/form-data">
+  <form method="post" enctype="multipart/form-data" id="examEntryForm">
     {% csrf_token %}
+    <input type="hidden" name="max_score" value="{{ max_score }}">
 
-    <div class="ui-panel ui-section exam-card">
-      <div class="exam-grid-2">
+    <div class="ui-panel ui-section glass">
+      <div class="exam-toolbar">
         <div>
-          <label class="ui-sub" style="display:block; margin-bottom:6px;">Umumiy task / savollar (ixtiyoriy)</label>
-          <textarea name="session_task" rows="3" placeholder="Masalan: 1-savol..., 2-savol..., yoki umumiy topshiriq">{{ session_task_default }}</textarea>
-          {% if exam_settings.exam_file_upload_enabled %}
-          <label class="ui-sub" style="display:block; margin-top:10px; margin-bottom:6px;">Task fayli (PDF/WORD, ixtiyoriy)</label>
-          <input type="file" name="session_task_files" multiple accept=".pdf,.doc,.docx,.txt">
-          {% if session.task_files.all %}
-          <div class="task-file-list">
-            {% for tf in session.task_files.all %}
-              <a href="{{ tf.file.url }}" target="_blank" class="task-file-link">
-                <i class="fa-solid fa-file-arrow-down"></i> Task fayli {{ forloop.counter }}
-              </a>
-            {% endfor %}
+          <h4 class="ui-section-title mb-2">Sessiya sozlamalari</h4>
+          <div class="exam-note">Ball kiritilganda foiz avtomatik hisoblanadi. O'tish chegarasi: {{ passing_percent }}%</div>
+        </div>
+        <div class="exam-inline-actions">
+          <button type="button" class="ui-btn ui-btn-secondary" id="markAllPresent">Hammasi qatnashdi</button>
+          <button type="button" class="ui-btn ui-btn-secondary" id="markAllPassed">Hammasi o'tdi</button>
+        </div>
+      </div>
+
+      <div class="ui-grid mt-3">
+        <div class="ui-col-3">
+          <label class="ui-label">Maksimal ball</label>
+          <input type="number" step="0.01" min="1" name="max_score_edit" id="maxScoreEdit" value="{{ max_score }}">
+          <div class="exam-note mt-1">Qiymat form bilan birga saqlanadi va foiz hisobida ishlatiladi.</div>
+        </div>
+        <div class="ui-col-5">
+          <label class="ui-label">Topshiriq matni</label>
+          <textarea name="session_task" rows="3" placeholder="Imtihon topshirig'i yoki savollar">{{ session_task_default }}</textarea>
+        </div>
+        <div class="ui-col-4">
+          <label class="ui-label">Umumiy izoh</label>
+          <textarea name="session_comment" rows="3" placeholder="Umumiy eslatma">{{ session_comment_default }}</textarea>
+        </div>
+        {% if exam_settings.exam_file_upload_enabled %}
+          <div class="ui-col-12">
+            <label class="ui-label">Sessiya fayllari</label>
+            <input type="file" name="session_task_files" multiple accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.webp">
+            {% if session.task_files.all %}
+              <div class="exam-note mt-2">{{ session.task_files.all|length }} ta fayl avval yuklangan.</div>
+            {% endif %}
           </div>
-          {% endif %}
-          {% endif %}
-        </div>
-        <div>
-          <label class="ui-sub" style="display:block; margin-bottom:6px;">Umumiy izoh (ixtiyoriy)</label>
-          <textarea name="session_comment" rows="3" placeholder="Masalan: baholash mezoni yoki umumiy eslatma">{{ session_comment_default }}</textarea>
-        </div>
+        {% endif %}
       </div>
     </div>
 
-    <div class="ui-panel ui-section">
-      <div class="ui-table-wrap exam-table">
+    <div class="ui-panel ui-section glass">
+      <div class="ui-table-wrap">
         <table class="ui-table">
           <thead>
             <tr>
-              <th style="width:52px;">#</th>
+              <th>#</th>
               <th>O'quvchi</th>
-              <th style="width:180px;">Natija (0-100)</th>
-              <th style="width:180px;">Holat</th>
+              <th style="min-width:200px;">Ball / foiz</th>
+              <th style="min-width:260px;">Izoh</th>
+              <th style="min-width:180px;">Holat</th>
               {% if exam_settings.exam_file_upload_enabled %}
-                <th style="width:260px;">Ish fayli (ixtiyoriy)</th>
+                <th style="min-width:180px;">Fayl</th>
               {% endif %}
             </tr>
           </thead>
           <tbody>
             {% for enr in enrollments %}
               {% with r=enr.existing_result %}
-              <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>
-                  <div class="student-name">{{ enr.student.get_full_name }}</div>
-                  <div class="student-sub">{{ enr.student.email }}</div>
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    name="result_{{ enr.student_id }}"
-                    placeholder="0..100"
-                    value="{% if r %}{% if r.percent is not None %}{{ r.percent }}{% elif r.score is not None %}{{ r.score }}{% endif %}{% endif %}"
-                  >
-                </td>
-                <td>
-                  {% if r %}
-                    {% if r.passed %}
-                      <span class="exam-status passed">O'tdi</span>
-                    {% else %}
-                      <span class="exam-status failed">Yiqildi</span>
-                    {% endif %}
-                  {% else %}
-                    <span class="exam-status pending">Kiritilmagan</span>
+                <tr data-exam-row>
+                  <td>{{ forloop.counter }}</td>
+                  <td>
+                    <div class="exam-student">{{ enr.student.get_full_name }}</div>
+                    <div class="exam-student-sub">{{ enr.student.email }}</div>
+                  </td>
+                  <td>
+                    <div class="exam-score-grid">
+                      <div>
+                        <label class="exam-mini-label">Ball</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          name="score_{{ enr.student_id }}"
+                          data-score-input
+                          value="{% if r and r.score is not None %}{{ r.score }}{% endif %}"
+                        >
+                      </div>
+                      <div>
+                        <label class="exam-mini-label">Foiz</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          max="100"
+                          name="percent_{{ enr.student_id }}"
+                          data-percent-input
+                          value="{% if r and r.percent is not None %}{{ r.percent }}{% endif %}"
+                        >
+                      </div>
+                    </div>
+                  </td>
+                  <td class="exam-comment">
+                    <textarea name="teacher_comment_{{ enr.student_id }}" rows="2" placeholder="O'qituvchi izohi">{% if r %}{{ r.teacher_comment }}{% else %}{{ session_comment_default }}{% endif %}</textarea>
+                  </td>
+                  <td>
+                    <div class="exam-row-options">
+                      <span
+                        class="exam-status {% if r and r.absent_in_exam %}absent{% elif r and r.percent is not None or r and r.score is not None %}{% if r.passed %}passed{% else %}failed{% endif %}{% else %}pending{% endif %}"
+                        data-row-status
+                      >
+                        {% if r and r.absent_in_exam %}
+                          Qatnashmadi
+                        {% elif r and r.percent is not None or r and r.score is not None %}
+                          {% if r.passed %}O'tdi{% else %}Yiqildi{% endif %}
+                        {% else %}
+                          Kiritilmagan
+                        {% endif %}
+                      </span>
+                      <label class="exam-check">
+                        <input type="checkbox" name="absent_{{ enr.student_id }}" data-absent-input {% if r and r.absent_in_exam %}checked{% endif %}>
+                        Qatnashmadi
+                      </label>
+                      <label class="exam-check">
+                        <input type="checkbox" name="retake_{{ enr.student_id }}" {% if r and r.retake_recommended %}checked{% endif %}>
+                        Qayta topshirish
+                      </label>
+                    </div>
+                  </td>
+                  {% if exam_settings.exam_file_upload_enabled %}
+                    <td>
+                      <input type="file" multiple name="work_files_{{ enr.student_id }}" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.webp">
+                    </td>
                   {% endif %}
-                </td>
-                {% if exam_settings.exam_file_upload_enabled %}
-                  <td><input type="file" multiple name="work_files_{{ enr.student_id }}"></td>
-                {% endif %}
-              </tr>
+                </tr>
               {% endwith %}
             {% endfor %}
           </tbody>
@@ -215,9 +282,131 @@
       </div>
     </div>
 
-    <div class="ui-actions">
-      <button class="ui-btn ui-btn-primary" type="submit">Saqlash</button>
+    <div class="exam-footer">
+      <button type="submit" name="action" value="save" class="ui-btn ui-btn-secondary">Saqlash</button>
+      <button type="submit" name="action" value="finalize" class="ui-btn ui-btn-primary">Yakunlash</button>
     </div>
   </form>
 </div>
+
+<script>
+  (function () {
+    const hiddenMaxScore = document.querySelector('input[name="max_score"]');
+    const editMaxScore = document.getElementById('maxScoreEdit');
+    const passingPercent = parseFloat('{{ passing_percent|default:"60" }}') || 60;
+
+    function currentMaxScore() {
+      const value = parseFloat(editMaxScore?.value || hiddenMaxScore?.value || '100');
+      return value > 0 ? value : 100;
+    }
+
+    function formatNumber(value, decimals) {
+      const rounded = Number(value).toFixed(decimals);
+      return rounded.replace(/\.0+$/, '').replace(/(\.\d*[1-9])0+$/, '$1');
+    }
+
+    function updateStatus(row) {
+      const scoreInput = row.querySelector('[data-score-input]');
+      const percentInput = row.querySelector('[data-percent-input]');
+      const absentInput = row.querySelector('[data-absent-input]');
+      const status = row.querySelector('[data-row-status]');
+      if (!scoreInput || !percentInput || !absentInput || !status) return;
+
+      if (absentInput.checked) {
+        scoreInput.value = '';
+        percentInput.value = '';
+        scoreInput.disabled = true;
+        percentInput.disabled = true;
+        status.textContent = "Qatnashmadi";
+        status.className = 'exam-status absent';
+        return;
+      }
+
+      scoreInput.disabled = false;
+      percentInput.disabled = false;
+
+      const percent = parseFloat(percentInput.value);
+      if (Number.isNaN(percent)) {
+        status.textContent = "Kiritilmagan";
+        status.className = 'exam-status pending';
+        return;
+      }
+
+      if (percent >= passingPercent) {
+        status.textContent = "O'tdi";
+        status.className = 'exam-status passed';
+      } else {
+        status.textContent = "Yiqildi";
+        status.className = 'exam-status failed';
+      }
+    }
+
+    function recalcPercent(row) {
+      const scoreInput = row.querySelector('[data-score-input]');
+      const percentInput = row.querySelector('[data-percent-input]');
+      const absentInput = row.querySelector('[data-absent-input]');
+      if (!scoreInput || !percentInput || !absentInput || absentInput.checked) {
+        updateStatus(row);
+        return;
+      }
+
+      const score = parseFloat(scoreInput.value);
+      if (!Number.isNaN(score)) {
+        const percent = Math.max(0, Math.min((score / currentMaxScore()) * 100, 100));
+        percentInput.value = formatNumber(percent, 1);
+      }
+      updateStatus(row);
+    }
+
+    document.querySelectorAll('[data-exam-row]').forEach((row) => {
+      row.querySelector('[data-score-input]')?.addEventListener('input', () => recalcPercent(row));
+      row.querySelector('[data-percent-input]')?.addEventListener('input', () => updateStatus(row));
+      row.querySelector('[data-absent-input]')?.addEventListener('change', () => updateStatus(row));
+      updateStatus(row);
+    });
+
+    editMaxScore?.addEventListener('input', () => {
+      hiddenMaxScore.value = editMaxScore.value || '100';
+      document.querySelectorAll('[data-exam-row]').forEach((row) => {
+        if (row.querySelector('[data-score-input]')?.value) {
+          recalcPercent(row);
+        } else {
+          updateStatus(row);
+        }
+      });
+    });
+
+    document.getElementById('markAllPresent')?.addEventListener('click', () => {
+      document.querySelectorAll('[data-exam-row]').forEach((row) => {
+        const absent = row.querySelector('[data-absent-input]');
+        if (absent) absent.checked = false;
+        updateStatus(row);
+      });
+    });
+
+    document.getElementById('markAllPassed')?.addEventListener('click', () => {
+      const targetScore = currentMaxScore() * (passingPercent / 100);
+      document.querySelectorAll('[data-exam-row]').forEach((row) => {
+        const absent = row.querySelector('[data-absent-input]');
+        const score = row.querySelector('[data-score-input]');
+        const percent = row.querySelector('[data-percent-input]');
+        if (absent) absent.checked = false;
+        if (score && percent) {
+          const current = parseFloat(percent.value);
+          if (Number.isNaN(current) || current < passingPercent) {
+            score.value = formatNumber(targetScore, 1);
+            percent.value = formatNumber(passingPercent, 1);
+          }
+        }
+        updateStatus(row);
+      });
+    });
+
+    document.getElementById('examEntryForm')?.addEventListener('submit', () => {
+      if (hiddenMaxScore && editMaxScore) {
+        hiddenMaxScore.value = editMaxScore.value || hiddenMaxScore.value || '100';
+      }
+    });
+  })();
+</script>
 {% endblock %}

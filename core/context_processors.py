@@ -14,6 +14,8 @@ import logging
 from django.core.cache import cache
 from django.utils import timezone
 
+from core.center_features import get_center_ui_feature_map
+
 logger = logging.getLogger(__name__)
 
 _SUPERADMIN_ALL_FEATURES = frozenset({"leads", "finance", "kpi", "store", "tasks", "sms"})
@@ -126,6 +128,8 @@ def tenant_context(request):
             "feature_tasks": "tasks" in features or "branches" in features,
             "feature_sms": "sms" in features,
         }
+
+    res.update(get_center_ui_feature_map(center))
 
     # ── Notifications ───────────────────────────────────────────
     # ✅ PERF FIX: 2 query (count + list) → 1 query (list dan count chiqaramiz)

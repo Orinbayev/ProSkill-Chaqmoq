@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import math
 from io import BytesIO
 from pathlib import Path
@@ -25,6 +26,7 @@ from education.models import (
     CertificateRecord,
     CertificateTemplate,
     CertificateVerificationLog,
+    ExamResult,
     StudentAcademicSummary,
 )
 from education.services.audit_service import log_education_event
@@ -36,6 +38,7 @@ CERT_PAGE_WIDTH = 297 * mm
 CERT_PAGE_HEIGHT = CERT_PAGE_WIDTH * 9 / 16
 CERT_PAGE_SIZE = (CERT_PAGE_WIDTH, CERT_PAGE_HEIGHT)
 CERT_LOGO_PATH = Path(settings.BASE_DIR) / "static" / "img" / "chaqmoq_blue_logo_v2.png"
+logger = logging.getLogger(__name__)
 
 
 def _abs_uri(request, path: str) -> str:
@@ -577,6 +580,92 @@ def _generate_pdf_bytes(*, record: CertificateRecord, verify_url: str) -> bytes:
     return buffer.getvalue()
 
 
+def _finalize_certificate_record(*, record: CertificateRecord, actor, note: str = "", request=None):
+    summary = record.summary or get_or_build_summary(group=record.group, student=record.student, actor=actor)
+    template = record.template or get_active_template(center=record.center, certificate_type=record.certificate_type)
+
+    recommendation_status = (
+        summary.completion_recommendation if summary else StudentAcademicSummary.RECOMMENDATION_NEEDS_REVIEW
+    )
+    recommendation_reason = summary.recommendation_reason if summary else "Yakuniy summary topilmadi"
+
+    record.summary = summary
+    record.template = template
+    record.issue_date = timezone.localdate()
+    record.status = CertificateRecord.STATUS_ISSUED
+    record.recommendation_status = recommendation_status
+    record.recommendation_reason = recommendation_reason
+    record.approved_by = actor
+    record.approved_at = timezone.now()
+    record.issued_by = actor
+    record.issued_at = timezone.now()
+    if note:
+        record.note = note
+    record.save(
+        update_fields=[
+            "summary",
+            "template",
+            "issue_date",
+            "status",
+            "recommendation_status",
+            "recommendation_reason",
+            "approved_by",
+            "approved_at",
+            "issued_by",
+            "issued_at",
+            "note",
+            "updated_at",
+        ]
+    )
+
+    if not record.certificate_number.startswith("CHQ-"):
+        record.certificate_number = _certificate_number_for_record(record)
+
+    verify_url = _abs_uri(request, _verification_path(record))
+    completion_date = _resolve_completion_date(record)
+    pdf_bytes = _generate_pdf_bytes(record=record, verify_url=verify_url)
+    filename = f"{record.certificate_number}.pdf"
+    record.pdf_file.save(filename, ContentFile(pdf_bytes), save=False)
+
+    record.metadata = {
+        "verify_url": verify_url,
+        "summary_id": summary.id if summary else None,
+        "completion_date": completion_date.isoformat() if completion_date else None,
+        "pdf_layout_version": PDF_LAYOUT_VERSION,
+    }
+    record.save(
+        update_fields=[
+            "certificate_number",
+            "pdf_file",
+            "metadata",
+            "updated_at",
+        ]
+    )
+
+    log_education_event(
+        center=record.group.center,
+        actor=actor,
+        action_type="certificate_approved",
+        entity=record,
+        payload={
+            "group_id": record.group.id,
+            "student_id": record.student.id,
+            "recommendation_status": recommendation_status,
+        },
+    )
+    log_education_event(
+        center=record.group.center,
+        actor=actor,
+        action_type="certificate_generated",
+        entity=record,
+        payload={
+            "certificate_number": record.certificate_number,
+            "certificate_type": record.certificate_type,
+        },
+    )
+    return record
+
+
 @transaction.atomic
 def issue_certificate_for_student(
     *,
@@ -602,80 +691,121 @@ def issue_certificate_for_student(
             regenerate_certificate_pdf(record=existing, request=request)
         return existing
 
-    summary = get_or_build_summary(group=group, student=student, actor=actor)
-
-    template = get_active_template(center=group.center, certificate_type=certificate_type)
-
-    recommendation_status = (
-        summary.completion_recommendation if summary else StudentAcademicSummary.RECOMMENDATION_NEEDS_REVIEW
+    draft = (
+        CertificateRecord.objects.filter(
+            group=group,
+            student=student,
+            certificate_type=certificate_type,
+            status=CertificateRecord.STATUS_DRAFT,
+        )
+        .order_by("-id")
+        .first()
     )
-    recommendation_reason = summary.recommendation_reason if summary else "Yakuniy summary topilmadi"
+    if draft:
+        return _finalize_certificate_record(record=draft, actor=actor, note=note, request=request)
 
     record = CertificateRecord.objects.create(
         center=group.center,
         group=group,
         student=student,
-        template=template,
-        summary=summary,
         certificate_type=certificate_type,
         certificate_number=f"TMP-{uuid4().hex[:10]}",
         issue_date=timezone.localdate(),
-        status=CertificateRecord.STATUS_ISSUED,
-        recommendation_status=recommendation_status,
-        recommendation_reason=recommendation_reason,
-        approved_by=actor,
-        approved_at=timezone.now(),
-        issued_by=actor,
-        issued_at=timezone.now(),
+        status=CertificateRecord.STATUS_DRAFT,
         note=note or "",
     )
+    return _finalize_certificate_record(record=record, actor=actor, note=note, request=request)
 
-    record.certificate_number = _certificate_number_for_record(record)
-    verify_url = _abs_uri(request, _verification_path(record))
-    completion_date = _resolve_completion_date(record)
 
-    pdf_bytes = _generate_pdf_bytes(record=record, verify_url=verify_url)
-    filename = f"{record.certificate_number}.pdf"
-    record.pdf_file.save(filename, ContentFile(pdf_bytes), save=False)
+def auto_check_certificate_eligibility(session):
+    """
+    Sessiya yakunlangach o'tgan o'quvchilar uchun qoralama sertifikat tayyorlaydi.
+    """
+    try:
+        from accounts.models import User
+        from core.models import Notification
 
-    record.metadata = {
-        "verify_url": verify_url,
-        "summary_id": summary.id if summary else None,
-        "completion_date": completion_date.isoformat() if completion_date else None,
-        "pdf_layout_version": PDF_LAYOUT_VERSION,
-    }
-    record.save(
-        update_fields=[
-            "certificate_number",
-            "pdf_file",
-            "metadata",
-            "updated_at",
-        ]
-    )
+        center = session.center
+        active_template = get_active_template(
+            center=center,
+            certificate_type=CertificateRecord.TYPE_CERTIFICATE,
+        ) or CertificateTemplate.objects.filter(center=center, is_active=True).order_by("-updated_at", "-id").first()
+        if not active_template:
+            return 0
 
-    log_education_event(
-        center=group.center,
-        actor=actor,
-        action_type="certificate_approved",
-        entity=record,
-        payload={
-            "group_id": group.id,
-            "student_id": student.id,
-            "recommendation_status": recommendation_status,
-        },
-    )
-    log_education_event(
-        center=group.center,
-        actor=actor,
-        action_type="certificate_generated",
-        entity=record,
-        payload={
-            "certificate_number": record.certificate_number,
-            "certificate_type": record.certificate_type,
-        },
-    )
+        passed_results = (
+            ExamResult.objects.filter(
+                session=session,
+                passed=True,
+                absent_in_exam=False,
+            )
+            .select_related("student")
+            .order_by("student_id")
+        )
 
-    return record
+        created_count = 0
+        for result in passed_results:
+            already_exists = CertificateRecord.objects.filter(
+                center=center,
+                student=result.student,
+                group=session.group,
+                status__in=[CertificateRecord.STATUS_DRAFT, CertificateRecord.STATUS_ISSUED],
+            ).exists()
+            if already_exists:
+                continue
+
+            summary = get_or_build_summary(group=session.group, student=result.student, actor=session.teacher)
+            recommendation_status = (
+                summary.completion_recommendation if summary else StudentAcademicSummary.RECOMMENDATION_NEEDS_REVIEW
+            )
+            recommendation_reason = summary.recommendation_reason if summary else "Yakuniy summary topilmadi"
+
+            CertificateRecord.objects.create(
+                center=center,
+                student=result.student,
+                group=session.group,
+                template=active_template,
+                summary=summary,
+                certificate_type=active_template.template_type,
+                certificate_number=f"CERT-{center.pk}-{uuid4().hex[:8].upper()}",
+                issue_date=timezone.localdate(),
+                status=CertificateRecord.STATUS_DRAFT,
+                recommendation_status=recommendation_status,
+                recommendation_reason=recommendation_reason,
+                issued_by=session.teacher,
+                note="Imtihon yakunlangach avtomatik qoralama yaratildi.",
+            )
+            created_count += 1
+
+        if created_count > 0:
+            candidates_url = reverse(
+                "education:group_certificate_candidates",
+                kwargs={"group_id": session.group.pk},
+            )
+            managers = User.objects.filter(
+                center=center,
+                role__in=["manager", "director"],
+                is_archived=False,
+            )
+            for manager in managers:
+                Notification.objects.create(
+                    center=center,
+                    recipient=manager,
+                    title="Sertifikatlar tayyor",
+                    message=(
+                        f"{session.group.nom}: {created_count} ta o'quvchi uchun qoralama sertifikat tayyorlandi. "
+                        f"Tasdiqlash sahifasi: {candidates_url}"
+                    ),
+                    type="system",
+                )
+
+        return created_count
+    except Exception:
+        logger.exception(
+            "auto_check_certificate_eligibility failed: session_id=%s",
+            getattr(session, "id", None),
+        )
+        return 0
 
 
 def regenerate_certificate_pdf(*, record: CertificateRecord, request=None):

@@ -1,103 +1,234 @@
 {% extends "base.html" %}
 {% block content %}
 {% include "education/partials/phase_theme.html" %}
-<div class="ui-shell">
-  <div class="ui-panel ui-header">
+<style>
+  .cert-shell {
+    display: grid;
+    gap: 14px;
+  }
+  .cert-top-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 14px;
+  }
+  .cert-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .cert-stat {
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(15, 23, 42, 0.66);
+  }
+  .cert-stat-label {
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .cert-stat-value {
+    margin-top: 6px;
+    color: #f8fafc;
+    font-size: 24px;
+    font-weight: 900;
+  }
+  .cert-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .cert-form-grid .full {
+    grid-column: 1 / -1;
+  }
+  .cert-groups {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .cert-group-card,
+  .cert-template-card {
+    padding: 16px;
+    border-radius: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(15, 23, 42, 0.68);
+  }
+  .cert-group-name,
+  .cert-template-name {
+    color: #f8fafc;
+    font-size: 17px;
+    font-weight: 900;
+    line-height: 1.2;
+  }
+  .cert-group-sub,
+  .cert-template-sub {
+    margin-top: 4px;
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .cert-group-meta,
+  .cert-template-meta {
+    margin-top: 12px;
+    display: grid;
+    gap: 6px;
+    color: #cbd5e1;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .cert-template-list {
+    display: grid;
+    gap: 12px;
+  }
+  .cert-template-actions {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .field-error {
+    margin-top: 6px;
+    color: #fca5a5;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  @media (max-width: 1100px) {
+    .cert-top-grid,
+    .cert-groups,
+    .cert-stats {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 700px) {
+    .cert-form-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="ui-shell cert-shell">
+  <div class="ui-panel ui-header glass">
     <div>
-      <h3 class="ui-title">Sertifikat / diplom shablonlari boshqaruvi</h3>
-      <div class="ui-sub">Shablon yuklash, ko'rish va faollashtirish</div>
-    </div>
-    <div class="ui-actions">
-      <a href="javascript:history.back()" class="ui-btn ui-btn-secondary">Orqaga</a>
+      <h3 class="ui-title">🎓 Sertifikatlar</h3>
+      <div class="ui-sub">Shablonni tanlang va guruh bo'yicha sertifikat berishni boshqaring</div>
     </div>
   </div>
 
-  <div class="ui-panel ui-section">
-    <h4 class="ui-section-title">Yangi template yuklash</h4>
-    <form method="post" enctype="multipart/form-data" class="ui-grid">
-      {% csrf_token %}
-      <div class="ui-col-4">
-        <label class="ui-label">{{ form.name.label }}</label>
-        {{ form.name }}
-        {% for e in form.name.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
-      </div>
-      <div class="ui-col-3">
-        <label class="ui-label">{{ form.template_type.label }}</label>
-        {{ form.template_type }}
-        {% for e in form.template_type.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
-      </div>
-      <div class="ui-col-3">
-        <label class="ui-label">{{ form.template_file.label }}</label>
-        {{ form.template_file }}
-        {% for e in form.template_file.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
-      </div>
-      <div class="ui-col-2">
-        <label class="ui-label">{{ form.is_active.label }}</label>
-        <div class="ui-note ui-note-muted mb-0">
-          {{ form.is_active }}
+  <div class="cert-top-grid">
+    <div class="ui-panel ui-section glass">
+      <h4 class="ui-section-title">Yangi shablon yuklash</h4>
+      <form method="post" enctype="multipart/form-data" class="cert-form-grid">
+        {% csrf_token %}
+        <div>
+          <label class="ui-label">{{ form.name.label }}</label>
+          {{ form.name }}
+          {% for e in form.name.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+        </div>
+        <div>
+          <label class="ui-label">{{ form.template_type.label }}</label>
+          {{ form.template_type }}
+          {% for e in form.template_type.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+        </div>
+        <div>
+          <label class="ui-label">{{ form.template_file.label }}</label>
+          {{ form.template_file }}
+          {% for e in form.template_file.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+        </div>
+        <div>
+          <label class="ui-label">{{ form.is_active.label }}</label>
+          <div class="ui-note ui-note-muted mb-0">{{ form.is_active }}</div>
+        </div>
+        <div class="full">
+          <label class="ui-label">{{ form.note.label }}</label>
+          {{ form.note }}
+          {% for e in form.note.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="full">
+          <button type="submit" class="ui-btn ui-btn-primary">Shablonni saqlash</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="ui-panel ui-section glass">
+      <h4 class="ui-section-title">Qisqa holat</h4>
+      <div class="cert-stats">
+        <div class="cert-stat">
+          <div class="cert-stat-label">Jami shablon</div>
+          <div class="cert-stat-value">{{ templates|length }}</div>
+        </div>
+        <div class="cert-stat">
+          <div class="cert-stat-label">Faol shablon</div>
+          <div class="cert-stat-value">{{ active_templates_count }}</div>
+        </div>
+        <div class="cert-stat">
+          <div class="cert-stat-label">Guruhlar</div>
+          <div class="cert-stat-value">{{ groups_overview|length }}</div>
         </div>
       </div>
-      <div class="ui-col-12">
-        <label class="ui-label">{{ form.note.label }}</label>
-        {{ form.note }}
-        {% for e in form.note.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
-      </div>
-      <div class="ui-col-12">
-        <button type="submit" class="ui-btn ui-btn-primary">Saqlash</button>
-      </div>
-    </form>
+      {% if not active_templates_count %}
+        <div class="ui-note mt-3 mb-0">Hali faol shablon yo'q. Sertifikat berishdan oldin kamida bitta faol shablon yuklang.</div>
+      {% endif %}
+    </div>
   </div>
 
-  <div class="ui-panel ui-section">
-    <h4 class="ui-section-title">Mavjud templatelar</h4>
-    <div class="ui-table-wrap">
-      <table class="ui-table">
-        <thead>
-          <tr>
-            <th>Nomi</th>
-            <th>Turi</th>
-            <th>Holat</th>
-            <th>Ko'rish</th>
-            <th>Yangilangan</th>
-            <th>Amal</th>
-          </tr>
-        </thead>
-        <tbody>
-        {% for t in templates %}
-          <tr>
-            <td>{{ t.name }}</td>
-            <td>{{ t.get_template_type_display }}</td>
-            <td>
+  <div class="ui-panel ui-section glass">
+    <h4 class="ui-section-title">Guruhlar bo'yicha sertifikat berish</h4>
+    <div class="cert-groups">
+      {% for group in groups_overview %}
+        <div class="cert-group-card glass">
+          <div class="cert-group-name">{{ group.nom }}</div>
+          <div class="cert-group-sub">
+            {% if group.oqituvchi %}{{ group.oqituvchi.get_full_name }}{% else %}O'qituvchi belgilanmagan{% endif %}
+          </div>
+          <div class="cert-group-meta">
+            <div>Faol o'quvchilar: {{ group.active_students_count }}</div>
+            <div>Berilgan sertifikatlar: {{ group.issued_certificates_count }}</div>
+          </div>
+          <div class="cert-template-actions">
+            <a href="{% url 'education:group_certificate_candidates' group.id %}" class="ui-btn ui-btn-secondary">Nomzodlarni ko'rish</a>
+          </div>
+        </div>
+      {% empty %}
+        <div class="ui-empty" style="grid-column:1 / -1;">Guruhlar topilmadi.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="ui-panel ui-section glass">
+    <h4 class="ui-section-title">Mavjud shablonlar</h4>
+    <div class="cert-template-list">
+      {% for t in templates %}
+        <div class="cert-template-card glass">
+          <div class="cert-template-name">{{ t.name }}</div>
+          <div class="cert-template-sub">{{ t.get_template_type_display }} • {{ t.updated_at|date:"d.m.Y H:i" }}</div>
+          <div class="cert-template-meta">
+            <div>Holat:
               {% if t.is_active %}
                 <span class="ui-badge ui-badge-success">Faol</span>
               {% else %}
                 <span class="ui-badge ui-badge-neutral">Nofaol</span>
               {% endif %}
-            </td>
-            <td>
-              {% if t.template_file %}
-                <a href="{{ t.template_file.url }}" target="_blank" class="ui-btn ui-btn-secondary">Ko'rish</a>
-              {% else %}
-                <span class="ui-muted">—</span>
-              {% endif %}
-            </td>
-            <td>{{ t.updated_at|date:"Y-m-d H:i" }}</td>
-            <td>
-              {% if not t.is_active %}
+            </div>
+            <div>Izoh: {{ t.note|default:"Izoh yo'q" }}</div>
+          </div>
+          <div class="cert-template-actions">
+            {% if t.template_file %}
+              <a href="{{ t.template_file.url }}" target="_blank" class="ui-btn ui-btn-secondary">Ko'rish</a>
+            {% endif %}
+            {% if not t.is_active %}
               <form method="post" action="{% url 'education:certificate_template_activate' t.id %}">
                 {% csrf_token %}
                 <button class="ui-btn ui-btn-primary" type="submit">Faollashtirish</button>
               </form>
-              {% else %}
-              <span class="ui-muted">—</span>
-              {% endif %}
-            </td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="6" class="ui-empty">Shablon mavjud emas</td></tr>
-        {% endfor %}
-        </tbody>
-      </table>
+            {% endif %}
+          </div>
+        </div>
+      {% empty %}
+        <div class="ui-empty">Shablon mavjud emas.</div>
+      {% endfor %}
     </div>
   </div>
 </div>

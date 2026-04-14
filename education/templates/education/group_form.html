@@ -1,860 +1,393 @@
 {% extends "base.html" %}
-{% load static %}
 {% block content %}
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-
+{% include "education/partials/phase_theme.html" %}
 <style>
-  :root {
-    --bg0: #050812;
-    --bg1: #0b1224;
-    --bg2: #0f172a;
-
-    --panelA: rgba(17, 24, 39, .62);
-    --panelB: rgba(2, 6, 23, .55);
-
-    --line: rgba(255, 255, 255, .10);
-    --line2: rgba(255, 255, 255, .06);
-
-    --text: #e5e7eb;
-    --muted: #94a3b8;
-
-    --amber: #facc15;
-    --amber2: #eab308;
-
-    --blue: #3b82f6;
-    --blue2: #60a5fa;
-
-    --green: #22c55e;
-    --green2: #16a34a;
-
-    --red: #ef4444;
-
-    --shadow: 0 22px 70px rgba(0, 0, 0, .55);
-    --r14: 14px;
-    --r16: 16px;
-    --r18: 18px;
-    --r22: 22px;
-
-    --ringAmber: 0 0 0 4px rgba(250, 204, 21, .16);
-    --ringBlue: 0 0 0 4px rgba(59, 130, 246, .14);
-
-    --padX: clamp(14px, 2.8vw, 26px);
-    --padY: clamp(14px, 2.6vw, 22px);
-  }
-
-  * {
-    box-sizing: border-box;
-  }
-
-  html,
-  body {
-    height: 100%;
-  }
-
-  body {
-    font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    color: var(--text);
-    background:
-      radial-gradient(900px 520px at 18% 0%, rgba(250, 204, 21, .12), transparent 56%),
-      radial-gradient(900px 520px at 86% 8%, rgba(96, 165, 250, .10), transparent 58%),
-      radial-gradient(900px 520px at 50% 100%, rgba(34, 197, 94, .08), transparent 60%),
-      linear-gradient(180deg, var(--bg1), var(--bg2), var(--bg1));
-    overflow-x: hidden;
-    min-height: 100vh;
-  }
-
-  :focus-visible {
-    outline: none;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    * {
-      transition: none !important;
-      animation: none !important;
-      scroll-behavior: auto !important;
-    }
-  }
-
-  .cq-page {
-    min-height: 100vh;
-    padding: clamp(14px, 2.6vw, 28px);
-  }
-
-  /* ✅ Wide page + wide card but no horizontal scroll */
-  .page {
-    width: min(1200px, 100%);
+  .group-form-shell {
+    max-width: 1120px;
     margin: 0 auto;
-    padding: 0 0 72px;
   }
-
-  .card {
-    width: min(980px, 100%);
-    margin: clamp(14px, 2.6vw, 34px) auto 0;
-    border-radius: var(--r22);
-    background: linear-gradient(180deg, var(--panelA), var(--panelB));
-    border: 1px solid rgba(255, 255, 255, .08);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    overflow: hidden;
-    position: relative;
-    animation: fadeIn .38s ease-in-out;
-  }
-
-  .card::before {
-    content: "";
-    position: absolute;
-    inset: -2px;
-    background:
-      radial-gradient(520px 190px at 12% 0%, rgba(250, 204, 21, .12), transparent 60%),
-      radial-gradient(520px 190px at 88% 10%, rgba(96, 165, 250, .10), transparent 60%);
-    opacity: .9;
-    pointer-events: none;
-  }
-
-  .card>* {
-    position: relative;
-    z-index: 1;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .card-head {
-    padding: calc(var(--padY) + 2px) var(--padX) calc(var(--padY) - 4px);
-    border-bottom: 1px solid rgba(255, 255, 255, .08);
-    background: linear-gradient(180deg, rgba(255, 255, 255, .06), transparent);
-  }
-
-  .head-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-  }
-
-  .head-ic {
-    width: 46px;
-    height: 46px;
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(59, 130, 246, .16);
-    border: 1px solid rgba(96, 165, 250, .26);
-    box-shadow: 0 12px 26px rgba(0, 0, 0, .35);
-    color: rgba(147, 197, 253, .95);
-    flex: 0 0 auto;
-  }
-
-  .head-ic svg {
-    width: 20px;
-    height: 20px;
-    display: block;
-  }
-
-  .head-title {
-    margin: 0;
-    font-weight: 950;
-    letter-spacing: -.02em;
-    color: #fff;
-    line-height: 1.1;
-    font-size: clamp(20px, 2.4vw, 30px);
-    text-shadow: 0 10px 30px rgba(0, 0, 0, .45);
-  }
-
-  .head-sub {
-    margin: 10px 0 0;
-    color: rgba(148, 163, 184, .92);
-    font-weight: 750;
-    font-size: 13px;
-    max-width: 720px;
-  }
-
-  .head-sub .pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2px 10px;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, .10);
-    background: rgba(255, 255, 255, .05);
-    color: rgba(226, 232, 240, .92);
-    font-weight: 900;
-    font-size: 11px;
-    letter-spacing: .04em;
-    margin-left: 8px;
-    white-space: nowrap;
-  }
-
-  .card-body {
-    padding: var(--padY) var(--padX) calc(var(--padY) + 4px);
-  }
-
-  /* ✅ grid mobile-first */
-  .fgrid {
+  .group-form-wrap {
     display: grid;
-    grid-template-columns: 1fr;
     gap: 14px;
   }
-
-  @media (min-width: 860px) {
-    .fgrid {
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      align-items: start;
-    }
+  .group-form-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 16px;
   }
-
-  .fitem {
-    min-width: 0;
+  .group-form-grid > div {
+    grid-column: span 6;
   }
-
-  .fitem.full {
+  .group-form-grid .full,
+  .group-form-grid .span-12 {
     grid-column: 1 / -1;
   }
-
-  .fitem label {
+  .group-form-card,
+  .group-form-header {
+    padding: 22px;
+  }
+  .group-form-header {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    color: rgba(226, 232, 240, .90);
-    font-weight: 900;
-    font-size: 12px;
-    letter-spacing: .05em;
-    text-transform: uppercase;
-    margin-bottom: 8px;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
   }
-
-  .field {
-    position: relative;
-  }
-
-  .field .ic {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    opacity: .95;
-    color: rgba(148, 163, 184, .92);
-    pointer-events: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .field .ic svg {
-    width: 16px;
-    height: 16px;
-    display: block;
-  }
-
-  .field input,
-  .field select,
-  .field textarea {
-    width: 100%;
-    border-radius: 14px;
-    border: 1px solid rgba(255, 255, 255, .12);
-    background: rgba(255, 255, 255, .05);
-    color: var(--text);
-    font-weight: 850;
-    padding: 12px 14px 12px 42px;
-    outline: none;
-    transition: box-shadow .14s ease, border-color .14s ease, background .14s ease, transform .14s ease;
-  }
-
-  .field textarea {
-    min-height: 86px;
-    max-height: 200px;
-    resize: vertical;
-    padding-top: 10px;
-    font-weight: 800;
-    line-height: 1.4;
-  }
-
-  .field input::placeholder,
-  .field textarea::placeholder {
-    color: rgba(148, 163, 184, .85);
-    font-weight: 800;
-  }
-
-  .field input:focus,
-  .field select:focus,
-  .field textarea:focus {
-    border-color: rgba(250, 204, 21, .45);
-    box-shadow: var(--ringAmber);
-    background: rgba(2, 6, 23, .45);
-  }
-
-  .field input:hover,
-  .field select:hover,
-  .field textarea:hover {
-    border-color: rgba(255, 255, 255, .18);
-  }
-
-  /* select dropdown */
-  select {
-    appearance: none;
-    -webkit-appearance: none;
-    background-image:
-      linear-gradient(45deg, transparent 50%, rgba(250, 204, 21, .95) 50%),
-      linear-gradient(135deg, rgba(250, 204, 21, .95) 50%, transparent 50%),
-      linear-gradient(to right, rgba(255, 255, 255, .12), rgba(255, 255, 255, .12));
-    background-position:
-      calc(100% - 18px) 50%,
-      calc(100% - 12px) 50%,
-      calc(100% - 42px) 50%;
-    background-size: 6px 6px, 6px 6px, 1px 22px;
-    background-repeat: no-repeat;
-    padding-right: 48px;
-  }
-
-  select {
-    background-color: rgba(255, 255, 255, .05) !important;
-    color: #e2e8f0 !important;
-  }
-
-  select option {
-    background-color: #0b1220;
+  .group-form-title {
+    margin: 0;
+    font-size: clamp(28px, 3vw, 40px);
+    line-height: 1.08;
     color: #f8fafc;
-  }
-
-  .err {
-    margin-top: 8px;
-    color: #f87171;
     font-weight: 900;
-    font-size: 12px;
+    letter-spacing: -0.03em;
   }
-
-  .actions {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-    margin-top: 18px;
+  .group-form-sub {
+    margin-top: 6px;
+    color: #94a3b8;
+    font-size: 15px;
+    font-weight: 600;
   }
-
-  @media (min-width: 520px) {
-    .actions {
-      grid-template-columns: 1fr 1fr;
-    }
-  }
-
-  .btn-save,
-  .btn-cancel {
-    width: 100%;
-    min-height: 48px;
+  .group-form-badge {
+    padding: 10px 12px;
     border-radius: 14px;
-    font-weight: 950;
-    letter-spacing: .2px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    cursor: pointer;
-    user-select: none;
-    white-space: nowrap;
-    transition: transform .14s ease, filter .14s ease, box-shadow .14s ease, background .14s ease, border-color .14s ease;
-  }
-
-  .btn-save {
-    border: 1px solid rgba(250, 204, 21, .22);
-    background: linear-gradient(90deg, rgba(250, 204, 21, .98), rgba(245, 158, 11, .98));
-    color: #111827 !important;
-    box-shadow: 0 18px 40px rgba(245, 158, 11, .16);
-  }
-
-  .btn-save:hover {
-    transform: translateY(-1px);
-    filter: brightness(1.02);
-  }
-
-  .btn-save:active {
-    transform: translateY(0) scale(.99);
-  }
-
-  .btn-save:focus-visible {
-    box-shadow: var(--ringAmber), 0 18px 40px rgba(245, 158, 11, .16);
-    border-color: rgba(250, 204, 21, .30);
-  }
-
-  .btn-cancel {
-    border: 1px solid rgba(255, 255, 255, .14);
-    background: rgba(255, 255, 255, .07);
-    color: rgba(226, 232, 240, .96) !important;
-    text-decoration: none !important;
-  }
-
-  .btn-cancel:hover {
-    transform: translateY(-1px);
-    background: rgba(255, 255, 255, .11);
-    border-color: rgba(251, 191, 36, .22);
-  }
-
-  .btn-cancel:active {
-    transform: translateY(0) scale(.99);
-  }
-
-  .btn-cancel:focus-visible {
-    box-shadow: var(--ringAmber);
-    border-color: rgba(251, 191, 36, .35);
-  }
-
-  /* ✅ responsive tweaks */
-  @media (max-width: 430px) {
-    .cq-page {
-      padding: 12px;
-    }
-
-    .card {
-      border-radius: 18px;
-    }
-
-    .head-row {
-      gap: 12px;
-    }
-
-    .head-ic {
-      width: 44px;
-      height: 44px;
-      border-radius: 16px;
-    }
-  }
-
-  /* Modal Styles */
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(5, 8, 18, 0.7);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-  }
-  .modal-overlay.active {
-    opacity: 1;
-    pointer-events: auto;
-  }
-  .custom-modal {
-    background: linear-gradient(180deg, var(--panelA), var(--panelB));
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    border-radius: var(--r22);
-    padding: 30px;
-    width: 90%;
-    max-width: 400px;
-    transform: translateY(20px) scale(0.95);
-    transition: transform 0.3s ease;
-    text-align: center;
-  }
-  .modal-overlay.active .custom-modal {
-    transform: translateY(0) scale(1);
-  }
-  .modal-icon {
-    width: 60px;
-    height: 60px;
-    background: rgba(250, 204, 21, 0.15);
-    border: 1px solid rgba(250, 204, 21, 0.3);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 20px;
-    color: var(--amber2);
-  }
-  .modal-icon svg {
-    width: 30px;
-    height: 30px;
-  }
-  .modal-title {
-    color: #fff;
-    font-size: 22px;
+    border: 1px solid rgba(59, 130, 246, 0.24);
+    background: rgba(30, 64, 175, 0.16);
+    color: #bfdbfe;
+    font-size: 12px;
     font-weight: 800;
-    margin: 0 0 10px;
+    white-space: nowrap;
   }
-  .modal-text {
-    color: var(--muted);
-    font-size: 14px;
-    line-height: 1.5;
-    margin: 0 0 24px;
+  .group-form-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
   }
-  .modal-actions {
-    display: flex;
-    gap: 12px;
+  .group-form-stat {
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    background: rgba(15, 23, 42, 0.6);
   }
-  .modal-btn {
-    flex: 1;
-    padding: 12px;
-    border-radius: 12px;
+  .group-form-stat-label {
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .group-form-stat-value {
+    margin-top: 6px;
+    color: #f8fafc;
+    font-size: 18px;
+    line-height: 1.1;
+    font-weight: 900;
+  }
+  .group-form-note {
+    padding: 13px 15px;
+    border-radius: 14px;
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.18);
+    color: #bfdbfe;
+    font-size: 13px;
     font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: none;
   }
-  .modal-btn-cancel {
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+  .schedule-block {
+    display: none;
   }
-  .modal-btn-cancel:hover {
-    background: rgba(255, 255, 255, 0.1);
+  .schedule-block.show {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 16px;
   }
-  .modal-btn-confirm {
-    background: linear-gradient(90deg, rgba(250, 204, 21, .98), rgba(245, 158, 11, .98));
-    color: #111827;
-    box-shadow: 0 10px 20px rgba(245, 158, 11, .2);
+  .group-form-actions {
+    margin-top: 18px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
   }
-  .modal-btn-confirm:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 15px 25px rgba(245, 158, 11, .3);
+  .group-form-actions .ui-btn {
+    min-width: 150px;
+    justify-content: center;
+  }
+  .field-error {
+    margin-top: 6px;
+    color: #fca5a5;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .field-help {
+    margin-top: 6px;
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .group-form-card .ui-label {
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+  .group-form-card input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  .group-form-card select,
+  .group-form-card textarea {
+    height: 46px;
+    border-radius: 14px;
+    padding: 0 14px;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .group-form-card input[readonly] {
+    background: rgba(15, 23, 42, 0.78);
+    color: #fde68a;
+    border-color: rgba(245, 158, 11, 0.34);
+  }
+  .group-form-row-wide {
+    grid-column: span 12;
+  }
+  .group-form-card .ui-btn {
+    height: 46px;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .schedule-block > div {
+    grid-column: span 4;
+  }
+  .schedule-block > .full {
+    grid-column: 1 / -1;
+  }
+  @media (max-width: 900px) {
+    .group-form-grid {
+      grid-template-columns: 1fr;
+    }
+    .group-form-grid > div,
+    .group-form-grid .full,
+    .schedule-block,
+    .schedule-block > div,
+    .schedule-block > .full {
+      grid-column: auto;
+    }
+    .group-form-summary {
+      grid-template-columns: 1fr;
+    }
+    .group-form-header {
+      flex-direction: column;
+    }
   }
 </style>
 
-<div class="cq-page">
-  <div class="page">
-
-    <div class="card">
-      <div class="card-head">
-        <div class="head-row">
-          <div class="head-ic" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-            </svg>
-          </div>
-          <div>
-            <h3 class="head-title">{{ title|default:"Yangi guruh yaratish" }}</h3>
-            <p class="head-sub">
-              {{ description|default:"Markaz uchun yangi o'quv guruhini barcha kerakli ma'lumotlar bilan shakllantiring." }}
-              <!-- <span class="pill">Dark • Glass • Neon</span> -->
-            </p>
-          </div>
+<div class="ui-shell group-form-shell">
+  <div class="group-form-wrap">
+    <div class="ui-panel ui-header glass group-form-header">
+      <div>
+        <h3 class="group-form-title">{{ title|default:"Yangi guruh yaratish" }}</h3>
+        <div class="group-form-sub">
+          Guruhni sodda tarzda yarating: boshlanish sanasi, davomiyligi va dars vaqtini kiriting.
         </div>
       </div>
-      <div class="card-body">
-        <form method="post">
-          {% csrf_token %}
+      <div class="group-form-badge">Bugungi sana avtomatik qo'yiladi</div>
+    </div>
 
-          <div class="fgrid">
+    <div class="ui-panel ui-section glass group-form-card">
+      <form method="post" id="group-form">
+        {% csrf_token %}
 
-            {# ✅ Markaz #}
-            {% if form.center %}
-            <div class="fitem">
-              <label for="{{ form.center.id_for_label }}">Markaz</label>
-              <div class="field">
-                <span class="ic" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5Z" stroke="currentColor"
-                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                </span>
-                {{ form.center }}
-              </div>
-              {% for e in form.center.errors %}<div class="err">{{ e }}</div>{% endfor %}
-            </div>
-            {% endif %}
+        {% for hidden in form.hidden_fields %}
+          {{ hidden }}
+        {% endfor %}
 
-            {# ✅ O'qituvchi #}
-            {% if form.oqituvchi %}
-            <div class="fitem">
-              <label for="{{ form.oqituvchi.id_for_label }}">O'qituvchi</label>
-              <div class="field">
-                <span class="ic" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path d="M20 21a8 8 0 1 0-16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    <path d="M12 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" stroke="currentColor" stroke-width="2"
-                      stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                </span>
-                {{ form.oqituvchi }}
-              </div>
-              {% for e in form.oqituvchi.errors %}<div class="err">{{ e }}</div>{% endfor %}
-            </div>
-            {% endif %}
-
-            {# ✅ Guruh nomi (FULL WIDTH) #}
-            {% if form.nom %}
-            <div class="fitem full">
-              <label for="{{ form.nom.id_for_label }}">Guruh nomi</label>
-              <div class="field">
-                <span class="ic" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                  </svg>
-                </span>
-                {{ form.nom }}
-              </div>
-              {% for e in form.nom.errors %}<div class="err">{{ e }}</div>{% endfor %}
-            </div>
-            {% endif %}
-
-            {# ✅ Kurs narxi #}
-            {% if form.kurs_narxi %}
-            <div class="fitem">
-              <label for="{{ form.kurs_narxi.id_for_label }}">Kurs narxi (so'm)</label>
-              <div class="field">
-                <span class="ic" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path d="M12 2v20M17 6H9a3 3 0 0 0 0 6h6a3 3 0 1 1 0 6H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                  </svg>
-                </span>
-                {{ form.kurs_narxi }}
-              </div>
-              {% for e in form.kurs_narxi.errors %}<div class="err">{{ e }}</div>{% endfor %}
-            </div>
-            {% endif %}
-
-            {# ✅ Oy dars soni #}
-            {% if form.oy_dars_soni %}
-            <div class="fitem">
-              <label for="{{ form.oy_dars_soni.id_for_label }}">Bir oyda darslar soni</label>
-              <div class="field">
-                <span class="ic" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path d="M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                  </svg>
-                </span>
-                {{ form.oy_dars_soni }}
-              </div>
-              {% for e in form.oy_dars_soni.errors %}<div class="err">{{ e }}</div>{% endfor %}
-            </div>
-            {% endif %}
-
-            {# ✅ Boshlanish sanasi #}
-            {% if form.course_start_date %}
-            <div class="fitem">
-              <label for="{{ form.course_start_date.id_for_label }}">Boshlanish sanasi</label>
-              <div class="field">
-                <span class="ic" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path d="M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" />
-                  </svg>
-                </span>
-                {{ form.course_start_date }}
-              </div>
-              {% for e in form.course_start_date.errors %}<div class="err">{{ e }}</div>{% endfor %}
-            </div>
-            {% endif %}
-
-            {# ✅ Davomiylik #}
-            {% if form.duration_months %}
-            <div class="fitem">
-              <label for="{{ form.duration_months.id_for_label }}">Davomiyligi (oy)</label>
-              <div class="field">
-                <span class="ic" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path d="M12 6v6l4 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke="currentColor" stroke-width="2" />
-                  </svg>
-                </span>
-                {{ form.duration_months }}
-              </div>
-              {% for e in form.duration_months.errors %}<div class="err">{{ e }}</div>{% endfor %}
-            </div>
-            {% endif %}
-
-            {# ✅ Haftalik darslar #}
-            {% if form.lessons_per_week %}
-            <div class="fitem">
-              <label for="{{ form.lessons_per_week.id_for_label }}">Haftasiga darslar soni</label>
-              <div class="field">
-                <span class="ic" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path d="M4 5h16M4 12h16M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                  </svg>
-                </span>
-                {{ form.lessons_per_week }}
-              </div>
-              {% for e in form.lessons_per_week.errors %}<div class="err">{{ e }}</div>{% endfor %}
-            </div>
-            {% endif %}
-
-            {# ✅ Taxminiy tugash sanasi #}
-            {% if form.estimated_end_date %}
-            <div class="fitem">
-              <label for="{{ form.estimated_end_date.id_for_label }}">Taxminiy tugash sanasi</label>
-              <div class="field">
-                <span class="ic" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path d="M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" />
-                  </svg>
-                </span>
-                {{ form.estimated_end_date }}
-              </div>
-              {% for e in form.estimated_end_date.errors %}<div class="err">{{ e }}</div>{% endfor %}
-            </div>
-            {% endif %}
-
-            {% for hidden in form.hidden_fields %}
-            {{ hidden }}
+        {% if form.non_field_errors %}
+          <div class="group-form-note">
+            {% for error in form.non_field_errors %}
+              <div>{{ error }}</div>
             {% endfor %}
+          </div>
+        {% endif %}
 
-            {% if form.non_field_errors %}
-            <div class="fitem full">
-              <div class="err">
-                {% for e in form.non_field_errors %}{{ e }}<br>{% endfor %}
-              </div>
+        <div class="group-form-summary">
+          <div class="group-form-stat">
+            <div class="group-form-stat-label">Boshlanish</div>
+            <div class="group-form-stat-value" id="summary-start">Bugun</div>
+          </div>
+          <div class="group-form-stat">
+            <div class="group-form-stat-label">Davomiyligi</div>
+            <div class="group-form-stat-value" id="summary-duration">Kiritilmagan</div>
+          </div>
+          <div class="group-form-stat">
+            <div class="group-form-stat-label">Tugash sanasi</div>
+            <div class="group-form-stat-value" id="summary-end">Hisoblanmoqda</div>
+          </div>
+        </div>
+
+        <div class="group-form-note" style="margin-top: 16px;">
+          Necha oy davom etishini kiritsangiz, tugash sanasi avtomatik hisoblanadi.
+          Masalan, <strong>2 oy</strong> kiritilsa sana darhol chiqadi.
+        </div>
+
+        <div class="group-form-grid" style="margin-top: 20px;">
+          <div class="full">
+            <label class="ui-label" for="{{ form.nom.id_for_label }}">Guruh nomi</label>
+            {{ form.nom }}
+            {% for error in form.nom.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+          </div>
+
+          <div>
+            <label class="ui-label" for="{{ form.oqituvchi.id_for_label }}">O'qituvchi</label>
+            {{ form.oqituvchi }}
+            {% for error in form.oqituvchi.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+          </div>
+
+          <div>
+            <label class="ui-label" for="{{ form.course_start_date.id_for_label }}">Boshlanish sanasi</label>
+            {{ form.course_start_date }}
+            <div class="field-help">Agar bo'sh bo'lsa, bugungi sana qo'yiladi.</div>
+            {% for error in form.course_start_date.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+          </div>
+
+          <div>
+            <label class="ui-label" for="{{ form.duration_months.id_for_label }}">Necha oy davom etadi</label>
+            {{ form.duration_months }}
+            <div class="field-help">Masalan: 2 oy, 4 oy, 6 oy.</div>
+            {% for error in form.duration_months.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+          </div>
+
+          <div>
+            <label class="ui-label" for="{{ form.estimated_end_date.id_for_label }}">Tugash sanasi</label>
+            {{ form.estimated_end_date }}
+            <div class="field-help">Bu sana avtomatik hisoblanadi.</div>
+            {% for error in form.estimated_end_date.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+          </div>
+
+          <div class="group-form-row-wide">
+            <label class="ui-label" for="{{ form.schedule_mode.id_for_label }}">Dars kunlari</label>
+            {{ form.schedule_mode }}
+            <div class="field-help">
+              Toq kunlar: Dushanba / Chorshanba / Juma. Juft kunlar: Seshanba / Payshanba / Shanba.
             </div>
-            {% endif %}
-
+            {% for error in form.schedule_mode.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
           </div>
 
-          <div class="actions">
-            <button type="submit" class="btn-save">
-              <span aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;">
-                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" stroke="currentColor"
-                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                  <path d="M17 21v-8H7v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                    stroke-linejoin="round" />
-                  <path d="M7 3v5h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                    stroke-linejoin="round" />
-                </svg>
-              </span>
-              Saqlash
-            </button>
+          <div class="schedule-block" id="schedule-block">
+            <div>
+              <label class="ui-label" for="{{ form.schedule_start_time.id_for_label }}">Boshlanish vaqti</label>
+              {{ form.schedule_start_time }}
+              {% for error in form.schedule_start_time.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+            </div>
 
-            {% if category %}
-            <a href="{% url 'education:category_detail' category.id %}" class="btn-cancel">
-              <span aria-hidden="true">×</span> Bekor qilish
-            </a>
-            {% else %}
-            <a href="{% url 'education:groups_home' %}" class="btn-cancel">
-              <span aria-hidden="true">×</span> Bekor qilish
-            </a>
-            {% endif %}
+            <div>
+              <label class="ui-label" for="{{ form.schedule_end_time.id_for_label }}">Tugash vaqti</label>
+              {{ form.schedule_end_time }}
+              {% for error in form.schedule_end_time.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+            </div>
+
+            <div>
+              <label class="ui-label" for="{{ form.schedule_room.id_for_label }}">Xona</label>
+              {{ form.schedule_room }}
+              {% for error in form.schedule_room.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+            </div>
           </div>
+        </div>
 
-        </form>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<!-- Modal HTML -->
-<div class="modal-overlay" id="confirmModal">
-  <div class="custom-modal">
-    <div class="modal-icon">
-      <svg viewBox="0 0 24 24" fill="none">
-        <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </div>
-    <h3 class="modal-title">Tasdiqlaysizmi?</h3>
-    <p class="modal-text">Yangi guruh ma'lumotlarini saqlashni xohlaysizmi? Barcha kiritilgan ma'lumotlar to'g'riligini tekshiring.</p>
-    <div class="modal-actions">
-      <button class="modal-btn modal-btn-cancel" id="cancelBtn">Bekor qilish</button>
-      <button class="modal-btn modal-btn-confirm" id="confirmBtn">Ha, saqlash</button>
+        <div class="group-form-actions">
+          <button type="submit" class="ui-btn ui-btn-primary">Saqlash</button>
+          {% if category %}
+            <a href="{% url 'education:category_detail' category.id %}" class="ui-btn ui-btn-secondary">Bekor qilish</a>
+          {% else %}
+            <a href="{% url 'education:groups_home' %}" class="ui-btn ui-btn-secondary">Bekor qilish</a>
+          {% endif %}
+        </div>
+      </form>
     </div>
   </div>
 </div>
 
 <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const nom = document.getElementById("id_nom");
-    if (nom) nom.placeholder = "Masalan: Frontend A1, IELTS 7+";
+  (function () {
+    const modeSelect = document.getElementById("{{ form.schedule_mode.id_for_label }}");
+    const scheduleBlock = document.getElementById("schedule-block");
+    const startDateInput = document.getElementById("{{ form.course_start_date.id_for_label }}");
+    const durationInput = document.getElementById("{{ form.duration_months.id_for_label }}");
+    const endDateInput = document.getElementById("{{ form.estimated_end_date.id_for_label }}");
+    const summaryStart = document.getElementById("summary-start");
+    const summaryDuration = document.getElementById("summary-duration");
+    const summaryEnd = document.getElementById("summary-end");
 
-    const startInput = document.getElementById("id_course_start_date");
-    const durationInput = document.getElementById("id_duration_months");
-    const lessonsInput = document.getElementById("id_lessons_per_week");
-    const estimatedEndInput = document.getElementById("id_estimated_end_date");
+    function pad(value) {
+      return String(value).padStart(2, "0");
+    }
 
-    const formatDate = (dateObj) => {
-      const y = dateObj.getFullYear();
-      const m = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const d = String(dateObj.getDate()).padStart(2, "0");
-      return `${y}-${m}-${d}`;
-    };
+    function getToday() {
+      const now = new Date();
+      return [now.getFullYear(), pad(now.getMonth() + 1), pad(now.getDate())].join("-");
+    }
 
-    const addMonths = (dateObj, months) => {
-      const monthIndex = dateObj.getMonth() + months;
-      const year = dateObj.getFullYear() + Math.floor(monthIndex / 12);
-      const month = ((monthIndex % 12) + 12) % 12;
-      const daysInTargetMonth = new Date(year, month + 1, 0).getDate();
-      const day = Math.min(dateObj.getDate(), daysInTargetMonth);
-      return new Date(year, month, day);
-    };
+    function formatDate(value) {
+      if (!value) return "Kiritilmagan";
+      const parts = value.split("-");
+      if (parts.length !== 3) return value;
+      return [parts[2], parts[1], parts[0]].join(".");
+    }
 
-    const recalcEstimatedEndDate = () => {
-      if (!startInput || !durationInput || !estimatedEndInput) return;
-      if (!startInput.value) return;
+    function addMonths(startValue, monthsValue) {
+      const months = parseInt(monthsValue || "0", 10);
+      if (!startValue || !months || months <= 0) return "";
 
-      const months = parseInt(durationInput.value || "0", 10);
-      if (!Number.isFinite(months) || months <= 0) return;
+      const parts = startValue.split("-").map(Number);
+      if (parts.length !== 3 || parts.some(Number.isNaN)) return "";
 
-      const [year, month, day] = startInput.value.split("-").map(Number);
-      if (!year || !month || !day) return;
+      const year = parts[0];
+      const month = parts[1];
+      const day = parts[2];
 
-      let endDate = addMonths(new Date(year, month - 1, day), months);
+      const monthIndex = (month - 1) + months;
+      const targetYear = year + Math.floor(monthIndex / 12);
+      const targetMonth = (monthIndex % 12) + 1;
+      const lastDay = new Date(targetYear, targetMonth, 0).getDate();
+      const targetDay = Math.min(day, lastDay);
 
-      // Backend formula bilan bir xil minimal buffer.
-      const lessonsPerWeek = parseInt((lessonsInput && lessonsInput.value) || "3", 10);
-      if (Number.isFinite(lessonsPerWeek)) {
-        if (lessonsPerWeek < 3) {
-          endDate.setDate(endDate.getDate() + (3 - lessonsPerWeek) * Math.max(1, months));
-        } else if (lessonsPerWeek > 3) {
-          endDate.setDate(endDate.getDate() - Math.min(months, Math.floor(((lessonsPerWeek - 3) * months) / 2)));
-        }
+      return [targetYear, pad(targetMonth), pad(targetDay)].join("-");
+    }
+
+    function syncScheduleBlock() {
+      if (!modeSelect || !scheduleBlock) return;
+      const show = modeSelect.value === "odd" || modeSelect.value === "even";
+      scheduleBlock.classList.toggle("show", show);
+    }
+
+    function syncEndDate() {
+      if (!startDateInput || !durationInput || !endDateInput) return;
+
+      if (!startDateInput.value) {
+        startDateInput.value = getToday();
       }
 
-      estimatedEndInput.value = formatDate(endDate);
-    };
+      const calculated = addMonths(startDateInput.value, durationInput.value);
+      endDateInput.value = calculated;
 
-    if (startInput && !startInput.value) {
-      const today = new Date();
-      startInput.value = formatDate(today);
+      if (summaryStart) {
+        summaryStart.textContent = formatDate(startDateInput.value);
+      }
+      if (summaryDuration) {
+        const months = parseInt(durationInput.value || "0", 10);
+        summaryDuration.textContent = months > 0 ? months + " oy" : "Kiritilmagan";
+      }
+      if (summaryEnd) {
+        summaryEnd.textContent = calculated ? formatDate(calculated) : "Hisoblanmagan";
+      }
     }
 
-    if (startInput) startInput.addEventListener("change", recalcEstimatedEndDate);
-    if (durationInput) durationInput.addEventListener("input", recalcEstimatedEndDate);
-    if (durationInput) durationInput.addEventListener("change", recalcEstimatedEndDate);
-    if (lessonsInput) lessonsInput.addEventListener("input", recalcEstimatedEndDate);
-    if (lessonsInput) lessonsInput.addEventListener("change", recalcEstimatedEndDate);
-    recalcEstimatedEndDate();
-
-    const form = document.querySelector("form");
-    const saveBtn = document.querySelector(".btn-save");
-    const modal = document.getElementById("confirmModal");
-    const cancelBtn = document.getElementById("cancelBtn");
-    const confirmBtn = document.getElementById("confirmBtn");
-    
-    if (saveBtn && modal && form) {
-      saveBtn.addEventListener("click", (e) => {
-        // Form field tekshiruvi (required va h.k.)
-        if (form.checkValidity()) {
-          e.preventDefault();
-          modal.classList.add("active");
-        } else {
-          // Agar validation xatosi bo'lsa, brauzer o'z xabarini chiqaradi,
-          // submit bo'lishda davom etaveradi va to'xtab qoladi.
-        }
-      });
-
-      cancelBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        modal.classList.remove("active");
-      });
-
-      confirmBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        form.submit();
-      });
+    if (modeSelect) {
+      modeSelect.addEventListener("change", syncScheduleBlock);
+      syncScheduleBlock();
     }
-  });
+
+    if (startDateInput) {
+      startDateInput.addEventListener("change", syncEndDate);
+    }
+    if (durationInput) {
+      durationInput.addEventListener("input", syncEndDate);
+      durationInput.addEventListener("change", syncEndDate);
+    }
+
+    syncEndDate();
+  })();
 </script>
-
 {% endblock %}

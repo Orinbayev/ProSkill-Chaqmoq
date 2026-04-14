@@ -18,7 +18,7 @@ from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
-from accounts.models import Center, User
+from accounts.models import Branch, Center, User
 from education.models import Attendance, Category, Enrollment, Group, MonthlyFinanceSnapshot, Payment, PaymentAllocation
 from store.models import Expense, Lead, Product, PurchaseRequest, Sale
 
@@ -1254,7 +1254,68 @@ def _month_range_list(anchor, n=12):
     return result
 
 
-def _boshqaruv_payload(center, d_from, d_to):
+def _payments_for_scope(center, branch=None):
+    qs = _payments_for_center(center)
+    if branch:
+        qs = qs.filter(group__branch=branch)
+    return qs
+
+
+def _payment_allocations_for_scope(center, branch=None):
+    qs = _payment_allocations_for_center(center)
+    if branch:
+        qs = qs.filter(payment__group__branch=branch)
+    return qs
+
+
+def _deleted_payments_for_scope(center, branch=None):
+    qs = _deleted_payments_for_center(center)
+    if branch:
+        qs = qs.filter(group__branch=branch)
+    return qs
+
+
+def _deleted_payment_allocations_for_scope(center, branch=None):
+    qs = _deleted_payment_allocations_for_center(center)
+    if branch:
+        qs = qs.filter(payment__group__branch=branch)
+    return qs
+
+
+def _monthly_turnover_for_scope(center, m_start, m_end, branch=None):
+    allocated_total = int(
+        _payment_allocations_for_scope(center, branch)
+        .filter(tuition_month__month__range=(m_start, m_end))
+        .aggregate(s=Sum("amount"))["s"] or 0
+    )
+    unallocated_total = int(
+        _payments_for_scope(center, branch)
+        .filter(paid_date__range=(m_start, m_end), allocations__isnull=True)
+        .aggregate(s=Sum("summa"))["s"] or 0
+    )
+    active_total = allocated_total + unallocated_total
+    if active_total:
+        return active_total
+
+    if branch is None:
+        snapshot = _monthly_snapshot_for_center(center, m_start)
+        if snapshot and snapshot.total_income:
+            return int(snapshot.total_income or 0)
+
+    deleted_allocated_total = int(
+        _deleted_payment_allocations_for_scope(center, branch)
+        .filter(tuition_month__month__range=(m_start, m_end))
+        .aggregate(s=Sum("amount"))["s"] or 0
+    )
+    deleted_unallocated_total = int(
+        _deleted_payments_for_scope(center, branch)
+        .filter(paid_date__range=(m_start, m_end), allocations__isnull=True)
+        .aggregate(s=Sum("summa"))["s"] or 0
+    )
+    return deleted_allocated_total + deleted_unallocated_total
+
+
+def _boshqaruv_payload(center, d_from, d_to, branch=None):
     """Boshqaruv dashboard uchun barcha ma'lumotlar."""
     today = timezone.localdate()
     present_filter = _attendance_present_filter()
@@ -1262,15 +1323,22 @@ def _boshqaruv_payload(center, d_from, d_to):
     # ── O'quvchilar ────────────────────────────────────────────
     students_qs = User.objects.filter(center=center, role="student", is_archived=False)
     students_history_qs = User.all_objects.filter(center=center, role="student")
-    total_students = students_qs.count()
     active_enroll = Enrollment.objects.filter(
-        group__center=center, is_active=True, student__is_archived=False
+        group__center=center,
+        is_active=True,
+        student__is_archived=False,
     )
+    if branch:
+        students_qs = students_qs.filter(enrollments__group__branch=branch).distinct()
+        students_history_qs = students_history_qs.filter(enrollments__group__branch=branch).distinct()
+        active_enroll = active_enroll.filter(group__branch=branch)
+
+    total_students = students_qs.count()
     active_students = active_enroll.values("student").distinct().count()
     new_this_month = students_qs.filter(date_joined__date__range=(d_from, d_to)).count()
 
     # ── Daromad ────────────────────────────────────────────────
-    pay_qs = _payments_for_center(center).filter(paid_date__range=(d_from, d_to))
+    pay_qs = _payments_for_scope(center, branch).filter(paid_date__range=(d_from, d_to))
     revenue = int(pay_qs.aggregate(s=Sum("summa"))["s"] or 0)
     pay_count = pay_qs.count()
 
@@ -1281,7 +1349,7 @@ def _boshqaruv_payload(center, d_from, d_to):
     # Oldingi davr
     period = _period_stats(d_from, d_to)
     prev_rev = int(
-        _payments_for_center(center).filter(
+        _payments_for_scope(center, branch).filter(
             paid_date__range=(period["prev_from"], period["prev_to"])
         ).aggregate(s=Sum("summa"))["s"] or 0
     )
@@ -1291,17 +1359,24 @@ def _boshqaruv_payload(center, d_from, d_to):
 
     # ── Guruhlar ───────────────────────────────────────────────
     groups_qs = Group.objects.filter(center=center, is_archived=False)
+    if branch:
+        groups_qs = groups_qs.filter(branch=branch)
     total_groups = groups_qs.count()
     active_groups = groups_qs.filter(is_closed=False).count()
 
     # ── Davomat ────────────────────────────────────────────────
     att_qs = Attendance.objects.filter(group__center=center, date__range=(d_from, d_to))
+    if branch:
+        att_qs = att_qs.filter(group__branch=branch)
     att_total = att_qs.count()
     att_present = att_qs.filter(present_filter).count()
     avg_attendance = round(att_present / att_total * 100, 1) if att_total else 0
 
     # ── O'qituvchilar va Managerlar ────────────────────────────
-    teachers_count = User.objects.filter(center=center, role="teacher", is_archived=False).count()
+    teachers_qs = User.objects.filter(center=center, role="teacher", is_archived=False)
+    if branch:
+        teachers_qs = teachers_qs.filter(group__branch=branch).distinct()
+    teachers_count = teachers_qs.count()
     managers_count = User.objects.filter(center=center, role="manager", is_archived=False).count()
 
     # ── Lidlar ─────────────────────────────────────────────────
@@ -1324,7 +1399,7 @@ def _boshqaruv_payload(center, d_from, d_to):
         monthly_labels.append(lbl)
 
         # Umumiy aylanma — o'sha oyda qabul qilingan barcha to'lovlar
-        m_turn = _monthly_turnover_for_center(center, ms, me)
+        m_turn = _monthly_turnover_for_scope(center, ms, me, branch)
         monthly_turnover.append(m_turn)
 
         # Xarajatlar — o'qituvchi maoshi, ijara, boshqa chiqimlar
@@ -1361,6 +1436,7 @@ def _boshqaruv_payload(center, d_from, d_to):
             group__center=center,
             date__range=(d_from, d_to),
             group__is_archived=False,
+            **({"group__branch": branch} if branch else {}),
         )
         .values("group__nom")
         .annotate(
@@ -1448,7 +1524,7 @@ def _boshqaruv_payload(center, d_from, d_to):
     pay_map = {}
     if student_group_pairs:
         pay_rows = list(
-            _payments_for_center(center).filter(
+            _payments_for_scope(center, branch).filter(
                 paid_date__range=(d_from, d_to),
             )
             .values("student_id", "group_id")
@@ -1538,6 +1614,7 @@ def _boshqaruv_payload(center, d_from, d_to):
             Attendance.objects.filter(
                 group__center=center,
                 date__range=(thirty_ago, today),
+                **({"group__branch": branch} if branch else {}),
             )
             .filter(absent_filter)
             .values(
@@ -1572,6 +1649,7 @@ def _boshqaruv_payload(center, d_from, d_to):
                     group__center=center,
                     date__range=(thirty_ago, today),
                     student_id__in=list(_st_map.keys()),
+                    **({"group__branch": branch} if branch else {}),
                 )
                 .values("student_id")
                 .annotate(
@@ -1671,7 +1749,14 @@ def director_boshqaruv_api(request):
     if not center:
         return _403()
     d_from, d_to = _parse_dates(request)
-    data = _boshqaruv_payload(center, d_from, d_to)
+    branch_id = request.GET.get("branch_id")
+    branch = None
+    if branch_id:
+        try:
+            branch = Branch.objects.get(pk=int(branch_id), center=center)
+        except (Branch.DoesNotExist, ValueError, TypeError):
+            branch = None
+    data = _boshqaruv_payload(center, d_from, d_to, branch=branch)
     return JsonResponse(data)
 
 

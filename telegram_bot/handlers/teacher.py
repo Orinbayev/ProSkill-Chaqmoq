@@ -275,6 +275,43 @@ async def teacher_income(message: types.Message, state: FSMContext):
         await message.answer("❌ Daromad ma'lumotini ko'rsatishda xatolik yuz berdi.")
 
 
+@router.message(F.text == "📅 Dars Jadvalim")
+async def teacher_schedule_bot(message: types.Message, state: FSMContext):
+    try:
+        payload = await _load_teacher_dashboard(message, state)
+        if not payload:
+            return
+        groups = payload.get("groups", [])
+        if not groups:
+            await message.answer("ℹ️ Sizda faol guruh yo'q.")
+            return
+
+        schedule_by_group = payload.get("schedule_by_group", [])
+        if not schedule_by_group:
+            await message.answer(
+                "📅 Jadval hali kiritilmagan.\n"
+                "Saytda Guruh → Jadval bo'limidan kiriting."
+            )
+            return
+
+        lines = ["📅 <b>Sizning haftalik jadvalingiz</b>\n"]
+        for item in schedule_by_group:
+            slots = item.get("slots", [])
+            if slots:
+                slots_text = "\n".join(
+                    f"  • {slot['day']} {slot['time']} — {slot['room'] or 'Xona yo'q'}"
+                    for slot in slots
+                )
+            else:
+                slots_text = "  — Jadval kiritilmagan"
+            lines.append(f"📚 <b>{item['group_name']}</b>\n{slots_text}")
+
+        await message.answer("\n\n".join(lines), parse_mode="HTML")
+    except Exception:
+        logger.exception("teacher_schedule_bot failed")
+        await message.answer("❌ Jadval ko'rsatishda xatolik yuz berdi.")
+
+
 @router.message(F.text == "📊 Statistika")
 async def teacher_statistics(message: types.Message, state: FSMContext):
     try:

@@ -242,6 +242,140 @@ class Center(SoftDeleteMixin, models.Model):
         }
 
 
+class DirectorCenterAccess(models.Model):
+    """
+    Director bir nechta markazni boshqarishi uchun.
+    Asosiy markaz: user.center (o'zgarmaydi).
+    Qo'shimcha markazlar: shu jadval orqali.
+    """
+
+    director = models.ForeignKey(
+        "User",
+        on_delete=models.CASCADE,
+        related_name="extra_center_access",
+        limit_choices_to={"role": "director"},
+        verbose_name="Direktor",
+    )
+    center = models.ForeignKey(
+        Center,
+        on_delete=models.CASCADE,
+        related_name="extra_directors",
+        verbose_name="Markaz",
+    )
+    granted_at = models.DateTimeField(auto_now_add=True)
+    granted_by = models.ForeignKey(
+        "User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="granted_accesses",
+        verbose_name="Kim berdi",
+    )
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = [("director", "center")]
+        verbose_name = "Direktor markaz ruxsati"
+        verbose_name_plural = "Direktor markaz ruxsatlari"
+
+    def __str__(self):
+        return f"{self.director} → {self.center.name}"
+
+
+class BranchRequest(models.Model):
+    """
+    Director yangi markaz (filial) ochish so'rovi.
+    SuperAdmin Telegram orqali tasdiqlaydi.
+    """
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Kutilmoqda"
+        APPROVED = "approved", "Tasdiqlandi"
+        REJECTED = "rejected", "Rad etildi"
+
+    requester = models.ForeignKey(
+        "User",
+        on_delete=models.CASCADE,
+        related_name="branch_requests",
+        verbose_name="So'rov beruvchi",
+    )
+    parent_center = models.ForeignKey(
+        Center,
+        on_delete=models.CASCADE,
+        related_name="branch_requests",
+        verbose_name="Asosiy markaz",
+    )
+    name = models.CharField(max_length=120, verbose_name="Yangi markaz nomi")
+    address = models.CharField(max_length=255, blank=True, default="")
+    phone = models.CharField(max_length=20, blank=True, default="")
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+    telegram_message_id = models.CharField(max_length=50, blank=True, default="")
+    created_center = models.ForeignKey(
+        Center,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_from_request",
+        verbose_name="Yaratilgan markaz",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reject_reason = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = "Filial so'rovi"
+        verbose_name_plural = "Filial so'rovlari"
+
+    def __str__(self):
+        return f"BranchRequest #{self.id}: {self.name} ({self.status})"
+
+
+class Branch(models.Model):
+    """Oquv markaz filiallari."""
+    center = models.ForeignKey(
+        Center,
+        on_delete=models.CASCADE,
+        related_name='branches',
+        verbose_name="Markaz",
+    )
+    name = models.CharField(max_length=120, verbose_name="Filial nomi")
+    address = models.CharField(max_length=255, blank=True, default="", verbose_name="Manzil")
+    phone = models.CharField(max_length=20, blank=True, default="", verbose_name="Telefon")
+    is_active = models.BooleanField(default=True, verbose_name="Faolmi?")
+    order = models.PositiveSmallIntegerField(default=0, verbose_name="Tartib")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('order', 'name')
+        verbose_name = "Filial"
+        verbose_name_plural = "Filiallar"
+        unique_together = [('center', 'name')]
+
+    def __str__(self):
+        return f"{self.name} ({self.center.name})"
+
+    def get_stats(self):
+        """Filial uchun asosiy statistika."""
+        from education.models import Enrollment, Group
+
+        groups = Group.objects.filter(branch=self, is_archived=False).count()
+        students = (
+            Enrollment.objects.filter(
+                group__branch=self,
+                is_active=True,
+                is_deleted=False,
+            )
+            .values('student')
+            .distinct()
+            .count()
+        )
+        return {'groups': groups, 'students': students}
+
+
 
 
 from core.soft_delete import SoftDeleteQuerySet

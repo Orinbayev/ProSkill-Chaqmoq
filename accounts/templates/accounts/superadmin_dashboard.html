@@ -831,6 +831,22 @@
         font-size: 0.87rem;
     }
 
+    /* Feature chips */
+    .sa-feat-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 7px;
+        font-size: 13px;
+        cursor: default;
+        transition: transform 0.15s;
+    }
+    .sa-feat-chip:hover { transform: scale(1.15); }
+    .chip-on  { background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3); }
+    .chip-off { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); opacity: 0.3; filter: grayscale(1); }
+
     /* Actions dropdown */
     .sa-actions-menu {
         position: relative;
@@ -1959,9 +1975,9 @@
                         <th>Status</th>
                         <th>Direktor</th>
                         <th>Tarif & Limit</th>
+                        <th>Premium xususiyatlar</th>
                         <th>Obuna Muddati</th>
                         <th>MRR</th>
-                        <th>Yaratilgan</th>
                         <th>Amallar</th>
                     </tr>
                 </thead>
@@ -2032,6 +2048,21 @@
                             {% endif %}
                         </td>
 
+                        <!-- ── Premium Xususiyatlar ── -->
+                        <td>
+                            {% with feats=c.features %}
+                            <div style="display:flex;flex-wrap:wrap;gap:4px;max-width:220px;">
+                                {% if feats.leads %}<span class="sa-feat-chip chip-on" title="CRM Huni">🎯</span>{% else %}<span class="sa-feat-chip chip-off" title="CRM Huni">🎯</span>{% endif %}
+                                {% if feats.analytics %}<span class="sa-feat-chip chip-on" title="Analitika">📊</span>{% else %}<span class="sa-feat-chip chip-off" title="Analitika">📊</span>{% endif %}
+                                {% if feats.chaqmoq_store %}<span class="sa-feat-chip chip-on" title="Chaqmoq & Do'kon">⚡</span>{% else %}<span class="sa-feat-chip chip-off" title="Chaqmoq & Do'kon">⚡</span>{% endif %}
+                                {% if feats.salaries %}<span class="sa-feat-chip chip-on" title="Ish haqi">💰</span>{% else %}<span class="sa-feat-chip chip-off" title="Ish haqi">💰</span>{% endif %}
+                                {% if feats.sms %}<span class="sa-feat-chip chip-on" title="SMS">📱</span>{% else %}<span class="sa-feat-chip chip-off" title="SMS">📱</span>{% endif %}
+                                {% if feats.branches %}<span class="sa-feat-chip chip-on" title="Filiallar">🏢</span>{% else %}<span class="sa-feat-chip chip-off" title="Filiallar">🏢</span>{% endif %}
+                                {% if feats.roles %}<span class="sa-feat-chip chip-on" title="Rollar">🛡</span>{% else %}<span class="sa-feat-chip chip-off" title="Rollar">🛡</span>{% endif %}
+                            </div>
+                            {% endwith %}
+                        </td>
+
                         <!-- ── Obuna Muddati ── -->
                         <td>
                             {% if sub %}
@@ -2053,9 +2084,6 @@
                             <span class="sa-mrr">{{ c.monthly_price|intcomma }}</span>
                             <span style="font-size:0.72rem;color:var(--sa-muted);"> so'm</span>
                         </td>
-
-                        <!-- ── Yaratilgan ── -->
-                        <td style="color:var(--sa-muted);font-size:0.78rem;">{{ c.created_at|date:"d.m.Y" }}</td>
 
                         <td style="text-align:right;">
                             <div class="sa-actions-menu">

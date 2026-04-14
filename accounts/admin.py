@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Center
+from .models import Branch, BranchRequest, Center, DirectorCenterAccess, User
 from django.contrib import admin, messages
 from django.utils import timezone
 from django.utils.html import format_html
@@ -142,3 +142,25 @@ class CenterAdmin(admin.ModelAdmin):
     def unblock_centers(self, request, queryset):
         queryset.update(status=Center.STATUS_ACTIVE)
         self.message_user(request, "✅ Centerlar ACTIVE qilindi.", level=messages.SUCCESS)
+
+
+@admin.register(Branch)
+class BranchAdmin(admin.ModelAdmin):
+    list_display = ("name", "center", "address", "phone", "is_active", "created_at")
+    list_filter = ("center", "is_active")
+    search_fields = ("name", "center__name", "address")
+
+
+@admin.register(DirectorCenterAccess)
+class DirectorCenterAccessAdmin(admin.ModelAdmin):
+    list_display = ("director", "center", "is_active", "granted_at")
+    list_filter = ("is_active",)
+    search_fields = ("director__email", "director__ism", "director__familya", "center__name")
+
+
+@admin.register(BranchRequest)
+class BranchRequestAdmin(admin.ModelAdmin):
+    list_display = ("name", "requester", "parent_center", "status", "created_at")
+    list_filter = ("status",)
+    search_fields = ("name", "requester__email", "parent_center__name")
+    readonly_fields = ("created_at", "reviewed_at")

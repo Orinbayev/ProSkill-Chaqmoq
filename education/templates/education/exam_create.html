@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+{% include "education/partials/phase_theme.html" %}
+
+<div class="ui-shell">
+  <div class="ui-panel ui-header glass">
+    <div>
+      <h3 class="ui-title">📝 Yangi imtihon sessiyasi</h3>
+      <div class="ui-sub">Guruhni tanlang va sessiyani boshlang</div>
+    </div>
+    <div class="ui-actions">
+      <a href="{% url 'education:teacher_exam_history' %}" class="ui-btn ui-btn-secondary">Tarixga qaytish</a>
+    </div>
+  </div>
+
+  <div class="ui-panel ui-section glass">
+    <form method="post" class="ui-grid">
+      {% csrf_token %}
+      <input type="hidden" name="teacher_decision" value="later">
+
+      {% if selected_group %}
+        <div class="ui-col-12">
+          <label class="ui-label">Guruh</label>
+          <div class="ui-note ui-note-muted mb-0">{{ selected_group.nom }}</div>
+        </div>
+      {% else %}
+        <div class="ui-col-12">
+          <label class="ui-label">Guruh</label>
+          <select name="group" required>
+            <option value="">Guruhni tanlang</option>
+            {% for group in groups_list %}
+              <option value="{{ group.id }}">{{ group.nom }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      {% endif %}
+
+      <div class="ui-col-4">
+        <label class="ui-label">Imtihon sanasi</label>
+        <input type="date" name="exam_date" value="{{ selected_exam_date }}" required>
+      </div>
+
+      <div class="ui-col-12">
+        <label class="ui-label">Topshiriq matni</label>
+        <textarea name="assignment_description" rows="4" placeholder="Ixtiyoriy topshiriq yoki umumiy izoh">{{ assignment_description }}</textarea>
+      </div>
+
+      <div class="ui-col-12">
+        <button type="submit" class="ui-btn ui-btn-primary">Yaratish</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

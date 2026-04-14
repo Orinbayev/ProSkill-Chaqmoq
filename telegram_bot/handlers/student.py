@@ -99,8 +99,8 @@ async def student_schedule(message: types.Message, state: FSMContext):
             lines.append(
                 f"• <b>{item['group_name']}</b>\n"
                 f"  O'qituvchi: {item['teacher_name']}\n"
-                f"  Jadval: {item['weekday_label']}\n"
-                f"  Vaqt: {item['time_label']}"
+                f"  📅 {item['weekday_label']}\n"
+                f"  🏫 {item['time_label']}"
             )
         await message.answer("\n\n".join(lines), parse_mode="HTML")
     except Exception:

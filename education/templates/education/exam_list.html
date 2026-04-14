@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% block content %}
+{% include "education/partials/phase_theme.html" %}
+<style>
+  .exam-simple-shell {
+    display: grid;
+    gap: 14px;
+  }
+  .exam-simple-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .exam-simple-stat {
+    padding: 16px 18px;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(15, 23, 42, 0.64);
+  }
+  .exam-simple-stat-label {
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .exam-simple-stat-value {
+    margin-top: 6px;
+    color: #f8fafc;
+    font-size: 26px;
+    font-weight: 900;
+  }
+  .exam-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 12px;
+    align-items: end;
+  }
+  .exam-card-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .exam-card {
+    padding: 18px;
+    border-radius: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(15, 23, 42, 0.68);
+  }
+  .exam-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .exam-card-name {
+    color: #f8fafc;
+    font-size: 18px;
+    font-weight: 900;
+    line-height: 1.2;
+  }
+  .exam-card-sub {
+    margin-top: 4px;
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .exam-card-metrics {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .exam-card-metric {
+    padding: 12px;
+    border-radius: 14px;
+    background: rgba(2, 6, 23, 0.38);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+  }
+  .exam-card-metric-label {
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .exam-card-metric-value {
+    margin-top: 6px;
+    color: #f8fafc;
+    font-size: 18px;
+    font-weight: 900;
+  }
+  .exam-card-actions {
+    margin-top: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .exam-card-date {
+    color: #cbd5e1;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .exam-pagination {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  @media (max-width: 1100px) {
+    .exam-card-list,
+    .exam-simple-stats {
+      grid-template-columns: 1fr;
+    }
+    .exam-filter-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 700px) {
+    .exam-filter-grid,
+    .exam-card-metrics {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="ui-shell exam-simple-shell">
+  <div class="ui-panel ui-header glass">
+    <div>
+      <h3 class="ui-title">Barcha sessiyalar</h3>
+      <div class="ui-sub">Imtihon sessiyalarini sodda ko'rinishda kuzatish</div>
+    </div>
+    <div class="ui-actions">
+      <a href="{% url 'education:exam_create' %}" class="ui-btn ui-btn-primary">Sessiya yaratish</a>
+    </div>
+  </div>
+
+  <div class="exam-simple-stats">
+    <div class="exam-simple-stat glass">
+      <div class="exam-simple-stat-label">Jami sessiya</div>
+      <div class="exam-simple-stat-value">{{ total_stats.total_sessions }}</div>
+    </div>
+    <div class="exam-simple-stat glass">
+      <div class="exam-simple-stat-label">Yakunlangan</div>
+      <div class="exam-simple-stat-value">{{ total_stats.completed }}</div>
+    </div>
+    <div class="exam-simple-stat glass">
+      <div class="exam-simple-stat-label">O'rtacha o'tish</div>
+      <div class="exam-simple-stat-value">{{ total_stats.avg_pass_rate }}%</div>
+    </div>
+  </div>
+
+  <div class="ui-panel ui-section glass">
+    <form method="get" class="exam-filter-grid">
+      <div>
+        <label class="ui-label">Guruh</label>
+        <select name="group">
+          <option value="">Barchasi</option>
+          {% for group in groups_list %}
+            <option value="{{ group.id }}" {% if filters.group == group.id %}selected{% endif %}>{{ group.nom }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="ui-label">O'qituvchi</label>
+        <select name="teacher">
+          <option value="">Barchasi</option>
+          {% for teacher in teachers_list %}
+            <option value="{{ teacher.id }}" {% if filters.teacher == teacher.id %}selected{% endif %}>{{ teacher.get_full_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="ui-label">Holat</label>
+        <select name="status">
+          <option value="">Barchasi</option>
+          <option value="draft" {% if filters.status == 'draft' %}selected{% endif %}>Qoralama</option>
+          <option value="completed" {% if filters.status == 'completed' %}selected{% endif %}>Yakunlangan</option>
+          <option value="cancelled" {% if filters.status == 'cancelled' %}selected{% endif %}>Bekor qilingan</option>
+        </select>
+      </div>
+      <div>
+        <label class="ui-label">Oy</label>
+        <input type="month" name="month" value="{{ filters.month }}">
+      </div>
+      <div>
+        <label class="ui-label">&nbsp;</label>
+        <button class="ui-btn ui-btn-primary w-100" type="submit">Saralash</button>
+      </div>
+      <div>
+        <label class="ui-label">&nbsp;</label>
+        <a href="{% url 'education:exam_list' %}" class="ui-btn ui-btn-secondary w-100">Tozalash</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="exam-card-list">
+    {% for session in sessions %}
+      <div class="exam-card glass">
+        <div class="exam-card-top">
+          <div>
+            <div class="exam-card-name">{{ session.group.nom }}</div>
+            <div class="exam-card-sub">
+              {% if session.teacher %}{{ session.teacher.get_full_name }}{% else %}O'qituvchi belgilanmagan{% endif %}
+            </div>
+          </div>
+          <div>
+            {% if session.status == "completed" %}
+              <span class="ui-badge ui-badge-success">Yakunlangan</span>
+            {% elif session.status == "cancelled" %}
+              <span class="ui-badge ui-badge-danger">Bekor qilingan</span>
+            {% else %}
+              <span class="ui-badge ui-badge-warning">Qoralama</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="exam-card-metrics">
+          <div class="exam-card-metric">
+            <div class="exam-card-metric-label">O'quvchilar</div>
+            <div class="exam-card-metric-value">{{ session.students_count }}</div>
+          </div>
+          <div class="exam-card-metric">
+            <div class="exam-card-metric-label">O'tdi / qoldi</div>
+            <div class="exam-card-metric-value">{{ session.passed_count }} / {{ session.failed_count }}</div>
+          </div>
+          <div class="exam-card-metric">
+            <div class="exam-card-metric-label">O'rtacha foiz</div>
+            <div class="exam-card-metric-value">{% if session.avg_percent is not None %}{{ session.avg_percent|floatformat:1 }}%{% else %}—{% endif %}</div>
+          </div>
+        </div>
+
+        <div class="exam-card-actions">
+          <div class="exam-card-date">Sana: {{ session.exam_date|date:"d.m.Y" }}</div>
+          <a href="{% url 'education:exam_session_detail' session.id %}" class="ui-btn ui-btn-secondary">Batafsil</a>
+        </div>
+      </div>
+    {% empty %}
+      <div class="ui-panel ui-section glass" style="grid-column: 1 / -1;">
+        <div class="ui-empty">Sessiyalar topilmadi.</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if sessions.has_other_pages %}
+    <div class="exam-pagination">
+      {% if sessions.has_previous %}
+        <a class="ui-btn ui-btn-secondary" href="?page={{ sessions.previous_page_number }}&group={{ filters.group }}&teacher={{ filters.teacher }}&status={{ filters.status }}&month={{ filters.month }}">Oldingi</a>
+      {% endif %}
+      <span class="ui-btn ui-btn-secondary">{{ sessions.number }} / {{ sessions.paginator.num_pages }}</span>
+      {% if sessions.has_next %}
+        <a class="ui-btn ui-btn-secondary" href="?page={{ sessions.next_page_number }}&group={{ filters.group }}&teacher={{ filters.teacher }}&status={{ filters.status }}&month={{ filters.month }}">Keyingi</a>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

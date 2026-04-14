@@ -263,6 +263,34 @@
       <span class="si-text">Mening guruhlarim</span>
     </a>
 
+    {% if feature_weekly_schedule_ui %}
+    <a href="{% url 'education:teacher_schedule' %}"
+      class="sidebar-item {% if 'schedule/my' in p %}active{% endif %}" data-title="Dars Jadvali">
+      <span class="si-ico"><i class="fa-solid fa-calendar-week"></i></span>
+      <span class="si-text">📅 Dars Jadvali</span>
+    </a>
+    {% endif %}
+
+    {% if feature_exam_sessions_ui or feature_failed_students_ui %}
+    <div class="sidebar-item-group">
+      <div class="sidebar-item exam-menu-trigger {% if vn == 'education:exam_create' or vn == 'education:exam_create_for_group' or vn == 'education:exam_session_entry' or vn == 'education:exam_session_detail' or vn == 'education:teacher_exam_history' or vn == 'education:group_exam_history' or vn == 'education:failed_students_list' %}open{% endif %}"
+        onclick="toggleSidebarSection(this, 'teacherExamMenu')" data-title="Imtihon">
+        <span class="si-ico"><i class="fa-solid fa-pen-to-square"></i></span>
+        <span class="si-text">Imtihon</span>
+        <i class="fa-solid fa-chevron-right ms-auto exam-arrow"></i>
+      </div>
+      <div id="teacherExamMenu" class="sidebar-submenu {% if vn == 'education:exam_create' or vn == 'education:exam_create_for_group' or vn == 'education:exam_session_entry' or vn == 'education:exam_session_detail' or vn == 'education:teacher_exam_history' or vn == 'education:group_exam_history' or vn == 'education:failed_students_list' %}show{% endif %}">
+        {% if feature_exam_sessions_ui %}
+        <a href="{% url 'education:exam_create' %}" class="sidebar-subitem {% if vn == 'education:exam_create' or vn == 'education:exam_create_for_group' %}active{% endif %}">Sessiya yaratish</a>
+        <a href="{% url 'education:teacher_exam_history' %}" class="sidebar-subitem {% if vn == 'education:teacher_exam_history' or vn == 'education:group_exam_history' or vn == 'education:exam_session_entry' or vn == 'education:exam_session_detail' %}active{% endif %}">Sessiyalar tarixi</a>
+        {% endif %}
+        {% if feature_failed_students_ui %}
+        <a href="{% url 'education:failed_students_list' %}" class="sidebar-subitem {% if vn == 'education:failed_students_list' %}active{% endif %}">Zaif o'quvchilar</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
     {% elif request.user.role == 'student' %}
     <a href="/"
       class="sidebar-item {% if p == '/' or vn == 'core:home' or vn == 'core:dashboard_student' %}active{% endif %}"
@@ -327,12 +355,42 @@
       <span class="si-text">Bo'limlar</span>
     </a>
 
+    {% if feature_weekly_schedule_ui %}
+    <a href="{% url 'education:weekly_schedule' %}"
+      class="sidebar-item {% if 'schedule/weekly' in p %}active{% endif %}" data-title="Haftalik Jadval">
+      <span class="si-ico"><i class="fa-solid fa-calendar-days"></i></span>
+      <span class="si-text">📅 Haftalik Jadval</span>
+    </a>
+    {% endif %}
+
     {% if feature_store or request.user.is_superuser %}
     <a href="{% url 'education:qarzdorlar_home' %}" class="sidebar-item {% if vn == 'education:qarzdorlar_home' %}active{% endif %}"
       data-title="Qarzdorlar">
       <span class="si-ico"><i class="fa-solid fa-user-minus"></i></span>
       <span class="si-text">Qarzdorlar</span>
     </a>
+    {% endif %}
+
+    {% if feature_exam_sessions_ui or feature_failed_students_ui or feature_certificates_ui %}
+    <div class="sidebar-item-group">
+      <div class="sidebar-item exam-menu-trigger {% if vn == 'education:exam_list' or vn == 'education:exam_session_entry' or vn == 'education:exam_session_detail' or vn == 'education:failed_students_list' or vn == 'education:certificate_templates' or vn == 'education:group_certificate_candidates' or vn == 'education:certificate_detail' %}open{% endif %}"
+        onclick="toggleSidebarSection(this, 'managerExamMenu')" data-title="Imtihonlar">
+        <span class="si-ico"><i class="fa-solid fa-pen-to-square"></i></span>
+        <span class="si-text">Imtihonlar</span>
+        <i class="fa-solid fa-chevron-right ms-auto exam-arrow"></i>
+      </div>
+      <div id="managerExamMenu" class="sidebar-submenu {% if vn == 'education:exam_list' or vn == 'education:exam_session_entry' or vn == 'education:exam_session_detail' or vn == 'education:failed_students_list' or vn == 'education:certificate_templates' or vn == 'education:group_certificate_candidates' or vn == 'education:certificate_detail' %}show{% endif %}">
+        {% if feature_exam_sessions_ui %}
+        <a href="{% url 'education:exam_list' %}" class="sidebar-subitem {% if vn == 'education:exam_list' or vn == 'education:exam_session_entry' or vn == 'education:exam_session_detail' %}active{% endif %}">Barcha sessiyalar</a>
+        {% endif %}
+        {% if feature_failed_students_ui %}
+        <a href="{% url 'education:failed_students_list' %}" class="sidebar-subitem {% if vn == 'education:failed_students_list' %}active{% endif %}">Zaif o'quvchilar</a>
+        {% endif %}
+        {% if feature_certificates_ui %}
+        <a href="{% url 'education:certificate_templates' %}" class="sidebar-subitem {% if vn == 'education:certificate_templates' or vn == 'education:group_certificate_candidates' or vn == 'education:certificate_detail' %}active{% endif %}">🎓 Sertifikatlar</a>
+        {% endif %}
+      </div>
+    </div>
     {% endif %}
 
     <div class="sidebar-item-group">
@@ -508,6 +566,13 @@
       if (arrow) arrow.style.transform = 'rotate(-90deg)';
       btn.classList.add('active-state');
     }
+  }
+
+  function toggleSidebarSection(btn, menuId) {
+    const menu = document.getElementById(menuId);
+    if (!menu) return;
+    menu.classList.toggle('show');
+    btn.classList.toggle('open');
   }
 
   // Close when clicking outside
@@ -926,6 +991,45 @@
     border-color: rgba(255, 255, 255, .25);
     box-shadow: 0 10px 25px rgba(250, 204, 21, .2);
     transform: translateY(-1px);
+  }
+
+  .sidebar-submenu {
+    display: none;
+    margin: 0 4px 10px 24px;
+    padding: 6px 0 4px 14px;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .sidebar-submenu.show {
+    display: block;
+  }
+
+  .sidebar-subitem {
+    display: block;
+    padding: 9px 12px;
+    margin: 3px 0;
+    border-radius: 12px;
+    color: rgba(203, 213, 225, 0.86);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+    transition: all .16s ease;
+  }
+
+  .sidebar-subitem:hover,
+  .sidebar-subitem.active {
+    background: rgba(255, 255, 255, .06);
+    color: #fff;
+  }
+
+  .exam-menu-trigger .exam-arrow {
+    font-size: 10px;
+    opacity: .55;
+    transition: transform .2s ease;
+  }
+
+  .exam-menu-trigger.open .exam-arrow {
+    transform: rotate(90deg);
   }
 
   .sidebar-item:focus,

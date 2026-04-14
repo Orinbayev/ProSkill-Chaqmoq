@@ -1,20 +1,155 @@
 {% extends "base.html" %}
 {% block content %}
 {% include "education/partials/phase_theme.html" %}
-<div class="ui-shell">
-  <div class="ui-panel ui-header">
+<style>
+  .failed-shell {
+    display: grid;
+    gap: 14px;
+  }
+  .failed-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .failed-stat {
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(15, 23, 42, 0.66);
+  }
+  .failed-stat-label {
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .failed-stat-value {
+    margin-top: 6px;
+    color: #f8fafc;
+    font-size: 24px;
+    font-weight: 900;
+  }
+  .failed-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 12px;
+    align-items: end;
+  }
+  .failed-list {
+    display: grid;
+    gap: 12px;
+  }
+  .failed-card {
+    padding: 18px;
+    border-radius: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(15, 23, 42, 0.68);
+  }
+  .failed-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .failed-card-name {
+    color: #f8fafc;
+    font-size: 18px;
+    font-weight: 900;
+  }
+  .failed-card-sub {
+    margin-top: 4px;
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .failed-card-grid {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .failed-card-box {
+    padding: 12px;
+    border-radius: 14px;
+    background: rgba(2, 6, 23, 0.34);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+  }
+  .failed-card-box-label {
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .failed-card-box-value {
+    margin-top: 6px;
+    color: #f8fafc;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.35;
+  }
+  .failed-followup {
+    margin-top: 14px;
+  }
+  .failed-followup .ui-inline-form {
+    gap: 8px;
+    align-items: stretch;
+  }
+  .failed-followup .ui-inline-form select,
+  .failed-followup .ui-inline-form input {
+    min-width: 180px;
+  }
+  @media (max-width: 1100px) {
+    .failed-stats,
+    .failed-card-grid {
+      grid-template-columns: 1fr;
+    }
+    .failed-filter-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 700px) {
+    .failed-filter-grid {
+      grid-template-columns: 1fr;
+    }
+    .failed-followup .ui-inline-form select,
+    .failed-followup .ui-inline-form input {
+      min-width: 100%;
+    }
+  }
+</style>
+
+<div class="ui-shell failed-shell">
+  <div class="ui-panel ui-header glass">
     <div>
-      <h3 class="ui-title">Imtihondan Past Olgan O'quvchilar</h3>
-      <div class="ui-sub">Direktor/manager nazorat bo'limi</div>
+      <h3 class="ui-title">Zaif o'quvchilar</h3>
+      <div class="ui-sub">Yiqilgan yoki imtihonda qatnashmagan o'quvchilar ro'yxati</div>
     </div>
     <div class="ui-actions">
       <a href="{% url 'education:teacher_exam_history' %}" class="ui-btn ui-btn-secondary">Sessiyalar tarixi</a>
     </div>
   </div>
 
-  <div class="ui-panel ui-section">
-    <form method="get" class="ui-grid">
-      <div class="ui-col-2">
+  <div class="failed-stats">
+    <div class="failed-stat glass">
+      <div class="failed-stat-label">Jami</div>
+      <div class="failed-stat-value">{{ summary_counts.total }}</div>
+    </div>
+    <div class="failed-stat glass">
+      <div class="failed-stat-label">Nazorat kutilmoqda</div>
+      <div class="failed-stat-value">{{ summary_counts.pending }}</div>
+    </div>
+    <div class="failed-stat glass">
+      <div class="failed-stat-label">Qatnashmagan</div>
+      <div class="failed-stat-value">{{ summary_counts.absent }}</div>
+    </div>
+  </div>
+
+  <div class="ui-panel ui-section glass">
+    <form method="get" class="failed-filter-grid">
+      <div>
         <label class="ui-label">Guruh</label>
         <select name="group">
           <option value="">Barchasi</option>
@@ -23,7 +158,7 @@
           {% endfor %}
         </select>
       </div>
-      <div class="ui-col-2">
+      <div>
         <label class="ui-label">O'qituvchi</label>
         <select name="teacher">
           <option value="">Barchasi</option>
@@ -32,23 +167,15 @@
           {% endfor %}
         </select>
       </div>
-      <div class="ui-col-2">
+      <div>
         <label class="ui-label">Dan</label>
         <input type="date" name="date_from" value="{{ filters.date_from }}">
       </div>
-      <div class="ui-col-2">
+      <div>
         <label class="ui-label">Gacha</label>
         <input type="date" name="date_to" value="{{ filters.date_to }}">
       </div>
-      <div class="ui-col-1">
-        <label class="ui-label">Foiz min</label>
-        <input type="number" step="0.01" name="percent_min" value="{{ filters.percent_min }}">
-      </div>
-      <div class="ui-col-1">
-        <label class="ui-label">Foiz max</label>
-        <input type="number" step="0.01" name="percent_max" value="{{ filters.percent_max }}">
-      </div>
-      <div class="ui-col-2">
+      <div>
         <label class="ui-label">Nazorat holati</label>
         <select name="follow_up_status">
           <option value="">Barchasi</option>
@@ -57,62 +184,69 @@
           {% endfor %}
         </select>
       </div>
-      <div class="ui-col-2">
-        <label class="ui-label d-flex align-items-center gap-2">
-          <input type="checkbox" class="form-check-input" name="follow_up_pending" value="1" {% if filters.follow_up_pending %}checked{% endif %}>
-          Faqat kutilmoqda
-        </label>
-      </div>
-      <div class="ui-col-2">
-        <label class="ui-label">&nbsp;</label>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
         <button class="ui-btn ui-btn-warning w-100" type="submit">Saralash</button>
+        <a href="{% url 'education:failed_students_list' %}" class="ui-btn ui-btn-secondary w-100">Tozalash</a>
       </div>
     </form>
   </div>
 
-  <div class="ui-panel ui-section">
-    <div class="ui-table-wrap">
-      <table class="ui-table">
-        <thead>
-          <tr>
-            <th>O'quvchi</th>
-            <th>Guruh</th>
-            <th>O'qituvchi</th>
-            <th>Sana</th>
-            <th>Ball/Foiz</th>
-            <th>Yiqilish sababi</th>
-            <th>Nazorat holati</th>
-          </tr>
-        </thead>
-        <tbody>
-        {% for row in rows %}
-          <tr>
-            <td>{{ row.student.get_full_name }}</td>
-            <td>{{ row.group.nom }}</td>
-            <td>{% if row.teacher %}{{ row.teacher.get_full_name }}{% else %}—{% endif %}</td>
-            <td>{{ row.exam_date }}</td>
-            <td>{{ row.score|default:"—" }} / {{ row.percent|default:"—" }}%</td>
-            <td>{{ row.fail_reason|default:"—" }}</td>
-            <td>
-              <form method="post" class="ui-inline-form">
-                {% csrf_token %}
-                <input type="hidden" name="result_id" value="{{ row.id }}">
-                <select name="follow_up_status" style="min-width:180px;">
-                  {% for value, label in follow_up_choices %}
-                    <option value="{{ value }}" {% if row.follow_up_status == value %}selected{% endif %}>{{ label }}</option>
-                  {% endfor %}
-                </select>
-                <input type="text" name="follow_up_note" style="min-width:190px;" value="{{ row.follow_up_note }}" placeholder="Izoh">
-                <button class="ui-btn ui-btn-warning" type="submit">Saqlash</button>
-              </form>
-            </td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="7" class="ui-empty">Ma'lumot topilmadi</td></tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
+  <div class="failed-list">
+    {% for row in rows %}
+      <div class="failed-card glass">
+        <div class="failed-card-top">
+          <div>
+            <div class="failed-card-name">{{ row.student.get_full_name }}</div>
+            <div class="failed-card-sub">{{ row.group.nom }}{% if row.teacher %} • {{ row.teacher.get_full_name }}{% endif %}</div>
+          </div>
+          <span class="ui-badge ui-badge-warning">{{ row.get_follow_up_status_display }}</span>
+        </div>
+
+        <div class="failed-card-grid">
+          <div class="failed-card-box">
+            <div class="failed-card-box-label">Sana</div>
+            <div class="failed-card-box-value">{{ row.exam_date|date:"d.m.Y" }}</div>
+          </div>
+          <div class="failed-card-box">
+            <div class="failed-card-box-label">Natija</div>
+            <div class="failed-card-box-value">
+              {% if row.absent_in_exam %}
+                Qatnashmagan
+              {% else %}
+                Ball: {{ row.score|default:"—" }}<br>
+                Foiz: {% if row.percent is not None %}{{ row.percent }}%{% else %}—{% endif %}
+              {% endif %}
+            </div>
+          </div>
+          <div class="failed-card-box">
+            <div class="failed-card-box-label">Sabab</div>
+            <div class="failed-card-box-value">{{ row.fail_reason|default:"Sabab ko'rsatilmagan" }}</div>
+          </div>
+        </div>
+
+        <div class="failed-followup">
+          {% if can_edit_follow_up %}
+            <form method="post" class="ui-inline-form">
+              {% csrf_token %}
+              <input type="hidden" name="result_id" value="{{ row.id }}">
+              <select name="follow_up_status">
+                {% for value, label in follow_up_choices %}
+                  <option value="{{ value }}" {% if row.follow_up_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+              <input type="text" name="follow_up_note" value="{{ row.follow_up_note }}" placeholder="Qisqa izoh yozing">
+              <button class="ui-btn ui-btn-warning" type="submit">Saqlash</button>
+            </form>
+          {% else %}
+            <div class="ui-note ui-note-muted mb-0">{{ row.follow_up_note|default:"Izoh kiritilmagan." }}</div>
+          {% endif %}
+        </div>
+      </div>
+    {% empty %}
+      <div class="ui-panel ui-section glass">
+        <div class="ui-empty">Zaif o'quvchilar topilmadi.</div>
+      </div>
+    {% endfor %}
   </div>
 </div>
 {% endblock %}

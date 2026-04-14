@@ -27,7 +27,7 @@ from django.utils import timezone
 from django.utils.timezone import localdate
 from django.views.decorators.http import require_POST
 
-from accounts.models import User
+from accounts.models import Branch, Center, User
 from accounts.forms import TeacherForm, ParentForm
 from chaqmoq.models import Ledger, Rule
 from education.models import Group, Enrollment, TuitionMonth, Category
@@ -119,6 +119,149 @@ def _staff_only(request) -> bool:
 
 
     return center
+
+
+@login_required
+def branch_list_api(request):
+    """GET: center uchun barcha filiallar JSON."""
+    center = getattr(request, "center", None) or getattr(request.user, "center", None)
+    if not center:
+        return JsonResponse({"ok": False, "error": "Markaz topilmadi"}, status=403)
+    if not (request.user.role in ("director", "manager") or request.user.is_superuser):
+        return JsonResponse({"ok": False, "error": "Ruxsat yo'q"}, status=403)
+
+    branches = list(
+        Branch.objects.filter(center=center)
+        .values("id", "name", "address", "phone", "is_active", "order")
+    )
+    for branch in branches:
+        branch["groups_count"] = Group.objects.filter(
+            branch_id=branch["id"],
+            is_archived=False,
+        ).count()
+        branch["students_count"] = (
+            Enrollment.objects.filter(
+                group__branch_id=branch["id"],
+                is_active=True,
+                is_deleted=False,
+            )
+            .values("student")
+            .distinct()
+            .count()
+        )
+
+    return JsonResponse({"ok": True, "branches": branches})
+
+
+@login_required
+def branch_create(request):
+    """POST: yangi filial yaratish."""
+    center = getattr(request, "center", None) or getattr(request.user, "center", None)
+    if not center:
+        return JsonResponse({"ok": False, "error": "Markaz topilmadi"}, status=403)
+    if not (request.user.role == "director" or request.user.is_superuser):
+        return JsonResponse({"ok": False, "error": "Faqat direktor"}, status=403)
+    if request.method != "POST":
+        return JsonResponse({"ok": False}, status=405)
+
+    try:
+        data = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "JSON xato"}, status=400)
+
+    name = (data.get("name") or "").strip()
+    if not name:
+        return JsonResponse({"ok": False, "error": "Nom kiritilmagan"}, status=400)
+
+    if Branch.objects.filter(center=center, name=name).exists():
+        return JsonResponse({"ok": False, "error": "Bu nomda filial allaqachon mavjud"}, status=400)
+
+    branch = Branch.objects.create(
+        center=center,
+        name=name,
+        address=(data.get("address") or "").strip(),
+        phone=(data.get("phone") or "").strip(),
+        is_active=True,
+    )
+    return JsonResponse({
+        "ok": True,
+        "branch": {
+            "id": branch.id,
+            "name": branch.name,
+            "address": branch.address,
+            "phone": branch.phone,
+            "is_active": branch.is_active,
+            "groups_count": 0,
+            "students_count": 0,
+        },
+    })
+
+
+@login_required
+def branch_update(request, pk):
+    """POST: filialni tahrirlash."""
+    center = getattr(request, "center", None) or getattr(request.user, "center", None)
+    if not center:
+        return JsonResponse({"ok": False, "error": "Markaz topilmadi"}, status=403)
+    if not (request.user.role == "director" or request.user.is_superuser):
+        return JsonResponse({"ok": False, "error": "Faqat direktor"}, status=403)
+    if request.method != "POST":
+        return JsonResponse({"ok": False}, status=405)
+
+    branch = get_object_or_404(Branch, pk=pk, center=center)
+
+    try:
+        data = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "JSON xato"}, status=400)
+
+    name = (data.get("name") or "").strip()
+    if not name:
+        return JsonResponse({"ok": False, "error": "Nom bo'sh bo'lmasin"}, status=400)
+
+    if Branch.objects.filter(center=center, name=name).exclude(pk=pk).exists():
+        return JsonResponse({"ok": False, "error": "Bu nomda filial allaqachon mavjud"}, status=400)
+
+    is_active = data.get("is_active", True)
+    if isinstance(is_active, str):
+        is_active = is_active.strip().lower() in {"1", "true", "yes", "on"}
+    else:
+        is_active = bool(is_active)
+
+    branch.name = name
+    branch.address = (data.get("address") or "").strip()
+    branch.phone = (data.get("phone") or "").strip()
+    branch.is_active = is_active
+    branch.save(update_fields=["name", "address", "phone", "is_active"])
+
+    return JsonResponse({
+        "ok": True,
+        "branch": {
+            "id": branch.id,
+            "name": branch.name,
+            "address": branch.address,
+            "phone": branch.phone,
+            "is_active": branch.is_active,
+        },
+    })
+
+
+@login_required
+def branch_delete(request, pk):
+    """POST: filialni o'chirish."""
+    center = getattr(request, "center", None) or getattr(request.user, "center", None)
+    if not center:
+        return JsonResponse({"ok": False}, status=403)
+    if not (request.user.role == "director" or request.user.is_superuser):
+        return JsonResponse({"ok": False, "error": "Faqat direktor"}, status=403)
+    if request.method != "POST":
+        return JsonResponse({"ok": False}, status=405)
+
+    branch = get_object_or_404(Branch, pk=pk, center=center)
+
+    Group.objects.filter(branch=branch).update(branch=None)
+    branch.delete()
+    return JsonResponse({"ok": True})
 
 
 @login_required

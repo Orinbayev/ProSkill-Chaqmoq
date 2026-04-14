@@ -40,6 +40,14 @@ class Group(SoftDeleteMixin, models.Model):
     )
 
     center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE)
+    branch = models.ForeignKey(
+        "accounts.Branch",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="groups",
+        verbose_name="Filial",
+    )
     nom = models.CharField(max_length=150)
     izoh = models.TextField(blank=True)
 
@@ -92,6 +100,53 @@ class Group(SoftDeleteMixin, models.Model):
         if self.kurs_narxi > 0 and self.oqituvchi_foiz > 0 and self.oy_dars_soni > 0:
             return round((self.kurs_narxi * self.oqituvchi_foiz / 100) / self.oy_dars_soni, 2)
         return 0.0
+
+
+class GroupSchedule(models.Model):
+    MON = 1
+    TUE = 2
+    WED = 3
+    THU = 4
+    FRI = 5
+    SAT = 6
+    SUN = 7
+
+    WEEKDAY_CHOICES = [
+        (1, "Dushanba"),
+        (2, "Seshanba"),
+        (3, "Chorshanba"),
+        (4, "Payshanba"),
+        (5, "Juma"),
+        (6, "Shanba"),
+        (7, "Yakshanba"),
+    ]
+
+    center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, related_name="schedules")
+    group = models.ForeignKey("education.Group", on_delete=models.CASCADE, related_name="schedules")
+    weekday = models.SmallIntegerField(choices=WEEKDAY_CHOICES)
+    start_time = models.TimeField()
+    end_time = models.TimeField(null=True, blank=True)
+    room = models.CharField(max_length=60, blank=True, default="")
+
+    class Meta:
+        unique_together = (("group", "weekday", "start_time"),)
+        ordering = ("weekday", "start_time")
+        verbose_name = "Dars jadvali"
+        verbose_name_plural = "Dars jadvallari"
+
+    def __str__(self):
+        return f"{self.group.nom} / {self.weekday_uz} / {self.time_range}"
+
+    @property
+    def weekday_uz(self):
+        return dict(self.WEEKDAY_CHOICES).get(self.weekday, "")
+
+    @property
+    def time_range(self):
+        start = self.start_time.strftime("%H:%M")
+        if self.end_time:
+            return f"{start}–{self.end_time.strftime('%H:%M')}"
+        return start
 
 
 class Oquvchi(models.Model):

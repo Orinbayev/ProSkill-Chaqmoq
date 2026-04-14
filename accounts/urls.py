@@ -1,6 +1,12 @@
 from django.urls import path, include
 from . import views
-from .views_superadmin import superadmin_dashboard, center_create, center_edit, update_center_capacity
+from .views_superadmin import (
+    superadmin_dashboard,
+    center_create,
+    center_edit,
+    toggle_center_ui_feature,
+    update_center_capacity,
+)
 from . import api_superadmin
 from . import views_platform # New HTML Views
 from .views import test_db, test_center
@@ -14,6 +20,7 @@ platform_patterns = [
     path("center-switch/", views.center_switch, name="center_switch"),
     path("center/create/", center_create, name="center_create"),
     path("center/<int:pk>/edit/", center_edit, name="center_edit"),
+    path("center/<int:center_pk>/toggle-feature/", toggle_center_ui_feature, name="toggle_center_ui_feature"),
     path("centers/<int:pk>/manage/", views.center_manage, name="center_manage"),
     path("centers/<int:pk>/stats/", views.center_stats_view, name="center_stats"),
     path("center/<int:pk>/update-capacity/", update_center_capacity, name="update_center_capacity"),
@@ -60,6 +67,9 @@ tenant_patterns = [
     path("oqtuvchi/<int:user_id>/", views.teacher_detail, name="teacher_detail"),
     path("talaba/<int:user_id>/", views.student_detail, name="student_detail"),
     path("logout/", views.logout_now, name="logout"),
+    path("my-centers/", views.director_my_centers, name="my_centers"),
+    path("switch-center/", views.director_switch_center, name="director_switch_center"),
+    path("branch-request/", views.director_branch_request, name="branch_request"),
 ]
 
 test_urlpatterns = [

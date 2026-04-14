@@ -1263,6 +1263,18 @@
             <div id="center-features-container" class="d-flex flex-column gap-3">
               <!-- JS will render features here -->
             </div>
+
+            <div class="mt-4">
+              <div class="section-title" style="font-size:1rem; margin-bottom:8px;">
+                <i class="bi bi-toggles2"></i> Ochib-yopiladigan bo'limlar
+              </div>
+              <p class="text-white-50 small mb-3">
+                Bu toggle'lar markaz ichidagi menyu va sahifalarni alohida boshqaradi.
+              </p>
+              <div id="center-ui-module-container" class="row g-3">
+                <!-- JS will render module toggles here -->
+              </div>
+            </div>
           </div>
 
 
@@ -1803,6 +1815,97 @@
     renderFeatureCheckboxes(codes);
   }
 
+  const CENTER_UI_MODULES = [
+    {
+      key: 'ui_exam_sessions',
+      label: "Barcha sessiyalar",
+      description: "Imtihon sessiyalari ro'yxati va sessiya sahifalari",
+      icon: 'bi-list-check'
+    },
+    {
+      key: 'ui_failed_students',
+      label: "Zaif o'quvchilar",
+      description: "Past natija olgan o'quvchilar bo'limi",
+      icon: 'bi-person-exclamation'
+    },
+    {
+      key: 'ui_certificates',
+      label: "Sertifikatlar",
+      description: "Sertifikatlar bo'limi va berish sahifalari",
+      icon: 'bi-patch-check'
+    },
+    {
+      key: 'ui_weekly_schedule',
+      label: "Haftalik Jadval",
+      description: "Jadval sahifalari va jadval boshqaruvi",
+      icon: 'bi-calendar-week'
+    }
+  ];
+  const CENTER_UI_MODULE_KEYS = new Set(CENTER_UI_MODULES.map(item => item.key));
+
+  function moduleToggleDefaultValue(features, key) {
+    if (features && Object.prototype.hasOwnProperty.call(features, key)) {
+      return !!features[key];
+    }
+    return true;
+  }
+
+  function renderCenterUiModules(features = {}) {
+    const container = document.getElementById('center-ui-module-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    CENTER_UI_MODULES.forEach(item => {
+      const checked = moduleToggleDefaultValue(features, item.key);
+      const col = document.createElement('div');
+      col.className = 'col-md-6';
+      col.innerHTML = `
+        <label class="toggle-row curs-pointer d-flex justify-content-between align-items-center p-3 rounded-3 border h-100"
+               style="border-color:${checked ? 'rgba(99,102,241,0.45)' : 'rgba(255,255,255,0.07)'}; background:${checked ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.02)'}">
+          <div class="d-flex align-items-start gap-3">
+            <div class="feature-cat-badge" style="min-width:42px; text-align:center;">
+              <i class="bi ${item.icon}"></i>
+            </div>
+            <div>
+              <div class="fw-semibold text-white small">${item.label}</div>
+              <div class="text-secondary" style="font-size:0.72rem;">${item.description}</div>
+            </div>
+          </div>
+          <div class="form-check form-switch m-0 ms-3">
+            <input class="form-check-input center-ui-module-chk"
+                   type="checkbox"
+                   data-key="${item.key}"
+                   ${checked ? 'checked' : ''}
+                   style="transform:scale(1.2); cursor:pointer;">
+          </div>
+        </label>
+      `;
+      container.appendChild(col);
+    });
+
+    container.querySelectorAll('.center-ui-module-chk').forEach(chk => {
+      chk.addEventListener('change', function () {
+        const row = this.closest('.toggle-row');
+        if (!row) return;
+        if (this.checked) {
+          row.style.borderColor = 'rgba(99,102,241,0.45)';
+          row.style.background = 'rgba(99,102,241,0.1)';
+        } else {
+          row.style.borderColor = 'rgba(255,255,255,0.07)';
+          row.style.background = 'rgba(255,255,255,0.02)';
+        }
+      });
+    });
+  }
+
+  function collectCenterUiModules() {
+    const result = {};
+    document.querySelectorAll('.center-ui-module-chk').forEach(chk => {
+      result[chk.getAttribute('data-key')] = chk.checked;
+    });
+    return result;
+  }
+
 
   // --- NEW CENTER ONBOARDING LOGIC ---
 
@@ -1927,6 +2030,7 @@
 
     // Load features from API, all disabled until plan selected
     initCenterFeaturesPanel([], true);
+    renderCenterUiModules({});
 
     scrollToSection('sec-basic');
   }
@@ -1979,10 +2083,11 @@
       } else if (center.features) {
         // Legacy fallback: features is a dict {code: true/false}
         enabledCodes = Object.entries(center.features)
-          .filter(([k, v]) => !!v)
+          .filter(([k, v]) => !!v && !CENTER_UI_MODULE_KEYS.has(k))
           .map(([k]) => k);
       }
       await initCenterFeaturesPanel(enabledCodes, !pCode);
+      renderCenterUiModules(center.features || {});
 
       document.getElementById('centerModal').style.display = 'flex';
     } catch (e) {
@@ -2011,6 +2116,7 @@
         const key = chk.getAttribute('data-key');
         features[key] = chk.checked;
       });
+      Object.assign(features, collectCenterUiModules());
       formData.append('features', JSON.stringify(features));
 
       const response = await fetch(url, {

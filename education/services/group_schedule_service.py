@@ -1,5 +1,7 @@
 from datetime import date, timedelta
 
+ODD_WEEKDAYS = (1, 3, 5)
+EVEN_WEEKDAYS = (2, 4, 6)
 
 DEFAULT_ESTIMATION_NOTE = (
     "Bu sana taxminiy hisob bo‘lib, bayramlar, tadbirlar yoki dars ko‘chirilishlari sabab o‘zgarishi mumkin"
@@ -81,3 +83,76 @@ def apply_group_duration_defaults(group, *, force_recalculate: bool = False):
         )
 
     return group
+
+
+def infer_simple_schedule(group) -> dict:
+    from education.models import GroupSchedule
+
+    if not getattr(group, "pk", None) or not getattr(group, "center_id", None):
+        return {"mode": "", "start_time": None, "end_time": None, "room": ""}
+
+    schedules = list(
+        GroupSchedule.objects.filter(group=group, center=group.center)
+        .order_by("weekday", "start_time")
+    )
+    if not schedules:
+        return {"mode": "", "start_time": None, "end_time": None, "room": ""}
+
+    first = schedules[0]
+    weekdays = tuple(item.weekday for item in schedules)
+    same_time = all(
+        item.start_time == first.start_time
+        and item.end_time == first.end_time
+        and (item.room or "").strip() == (first.room or "").strip()
+        for item in schedules
+    )
+
+    mode = "manual"
+    if same_time and weekdays == ODD_WEEKDAYS:
+        mode = "odd"
+    elif same_time and weekdays == EVEN_WEEKDAYS:
+        mode = "even"
+
+    return {
+        "mode": mode,
+        "start_time": first.start_time,
+        "end_time": first.end_time,
+        "room": first.room or "",
+    }
+
+
+def sync_simple_group_schedule(
+    *,
+    group,
+    schedule_mode: str,
+    start_time=None,
+    end_time=None,
+    room: str = "",
+):
+    from education.models import GroupSchedule
+
+    mode = (schedule_mode or "").strip().lower()
+    if mode not in {"odd", "even"}:
+        return []
+
+    if not getattr(group, "pk", None) or not getattr(group, "center_id", None) or not start_time:
+        return []
+
+    weekdays = ODD_WEEKDAYS if mode == "odd" else EVEN_WEEKDAYS
+    clean_room = (room or "").strip()
+
+    GroupSchedule.objects.filter(group=group, center=group.center).delete()
+    created = GroupSchedule.objects.bulk_create(
+        [
+            GroupSchedule(
+                center=group.center,
+                group=group,
+                weekday=weekday,
+                start_time=start_time,
+                end_time=end_time,
+                room=clean_room,
+            )
+            for weekday in weekdays
+        ]
+    )
+    return created

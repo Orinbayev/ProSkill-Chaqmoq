@@ -60,7 +60,18 @@
   </div>
 
   <div class="ui-actions">
-    <a class="ui-btn ui-btn-primary" href="{% url 'education:certificate_download_pdf' cert.id %}">PDF yuklab olish</a>
+    {% if cert.status == 'draft' %}
+    {% if request.user.is_superuser or request.user.role == 'manager' or request.user.role == 'director' %}
+      <form method="post" action="{% url 'education:issue_certificate_action' cert.group.id cert.student.id %}" class="ui-inline-form">
+        {% csrf_token %}
+        <input type="hidden" name="certificate_type" value="{{ cert.certificate_type }}">
+        <input type="hidden" name="note" value="Qoralama sertifikat tasdiqlandi">
+        <button class="ui-btn ui-btn-primary" type="submit">Tasdiqlash</button>
+      </form>
+    {% endif %}
+    {% else %}
+      <a class="ui-btn ui-btn-primary" href="{% url 'education:certificate_download_pdf' cert.id %}">PDF yuklab olish</a>
+    {% endif %}
     <a class="ui-btn ui-btn-secondary" href="{% url 'education:certificate_verify' cert.certificate_number %}" target="_blank">Tekshirish sahifasi</a>
   </div>
 </div>

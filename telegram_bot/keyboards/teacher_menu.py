@@ -13,7 +13,7 @@ def get_teacher_main_menu():
     keyboard = [
         [KeyboardButton(text="📚 Guruhlarim"), KeyboardButton(text="✅ Davomat Belgilash")],
         [KeyboardButton(text="👥 O'quvchilarim"), KeyboardButton(text="💵 Oylik Daromadim")],
-        [KeyboardButton(text="📊 Statistika")],
+        [KeyboardButton(text="📊 Statistika"), KeyboardButton(text="📅 Dars Jadvalim")],
     ]
     keyboard.extend(_common_rows())
     return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)

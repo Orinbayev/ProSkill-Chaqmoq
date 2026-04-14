@@ -1,10 +1,11 @@
 import json
+from datetime import time
 
 from django.test import Client, TestCase, override_settings
 from django.utils import timezone
 
 from accounts.models import Center, User
-from education.models import Attendance, Category, Enrollment, Group, Payment, PaymentAllocation, TuitionMonth
+from education.models import Attendance, Category, Enrollment, Group, GroupSchedule, Payment, PaymentAllocation, TuitionMonth
 from store.models import Lead, LeadStatus, Manba
 
 
@@ -84,6 +85,22 @@ class BotAPITests(TestCase):
             oqituvchi_foiz=40,
             is_active=True,
         )
+        GroupSchedule.objects.create(
+            center=self.center,
+            group=self.group,
+            weekday=1,
+            start_time=time(9, 0),
+            end_time=time(10, 30),
+            room="2-kabinet",
+        )
+        GroupSchedule.objects.create(
+            center=self.center,
+            group=self.group,
+            weekday=3,
+            start_time=time(9, 0),
+            end_time=time(10, 30),
+            room="2-kabinet",
+        )
         self.tuition_month = TuitionMonth.objects.create(
             center=self.center,
             enrollment=self.enrollment,
@@ -140,6 +157,27 @@ class BotAPITests(TestCase):
         self.assertEqual(payload["role"], "student")
         self.assertEqual(payload["student"]["payment"]["debt"], 300_000)
         self.assertEqual(payload["student"]["schedule"][0]["group_name"], "Python Group")
+        self.assertEqual(payload["student"]["schedule"][0]["weekday_label"], "Du 09:00–10:30 | Cho 09:00–10:30")
+        self.assertEqual(payload["student"]["schedule"][0]["time_label"], "2-kabinet")
+
+    def test_teacher_bot_dashboard_returns_schedule_by_group(self):
+        response = self.client.get(
+            "/hisob/login/bot-dashboard/",
+            {"telegram_id": "3003", "email": self.teacher.email},
+            **self.headers,
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["role"], "teacher")
+        schedule_by_group = payload["teacher"]["schedule_by_group"]
+        self.assertEqual(schedule_by_group[0]["group_name"], "Python Group")
+        self.assertEqual(
+            schedule_by_group[0]["slots"],
+            [
+                {"day": "Du", "time": "09:00–10:30", "room": "2-kabinet"},
+                {"day": "Cho", "time": "09:00–10:30", "room": "2-kabinet"},
+            ],
+        )
 
     def test_teacher_attendance_mark_updates_today_status(self):
         response = self.client.post(

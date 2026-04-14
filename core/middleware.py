@@ -79,6 +79,105 @@ def invalidate_center_cache(center_id: int):
     # Slug cache: topish qiyin, shuning uchun butun slug cache ni tozalaymiz
     _SLUG_CACHE.clear()
 
+
+def _bind_authenticated_center(request, center, path: str, *, clear_invalid_session: bool = False):
+    """
+    request.center/request.active_center ni o'rnatadi va subscription/block holatini tekshiradi.
+    Director session orqali tanlagan center yaroqsiz bo'lsa session tozalanib fallback qilinadi.
+    """
+    if center is None:
+        return None
+
+    fresh_center = _get_center_cached(center.pk)
+    if fresh_center is None:
+        if clear_invalid_session:
+            request.session.pop('active_center_id', None)
+            return None
+        from django.contrib.auth import logout
+        logout(request)
+        return redirect('/')
+
+    if fresh_center.is_deleted or fresh_center.status == 'ARCHIVED':
+        if clear_invalid_session:
+            request.session.pop('active_center_id', None)
+            return None
+        from django.contrib.auth import logout
+        logout(request)
+        return redirect('/')
+
+    request.active_center = fresh_center
+    request.center = fresh_center
+
+    # Subscription check – faqat 1 soatda bir marta
+    last_check = request.session.get('last_sub_check')
+    now_ts = timezone.now().timestamp()
+    if not last_check or (now_ts - last_check > 3600):
+        try:
+            from billing.services import check_subscription_expiry
+            check_subscription_expiry(fresh_center)
+            request.session['last_sub_check'] = now_ts
+        except Exception as e:
+            logger.error(f'Middleware sub-check error: {e}')
+
+    is_blocked = fresh_center.status == 'BLOCKED'
+    if not is_blocked:
+        try:
+            sub = fresh_center.subscriptions.filter(
+                status='ACTIVE'
+            ).only('status', 'expires_at', 'manual_block').first()
+            if sub and sub.is_blocked():
+                is_blocked = True
+        except Exception:
+            pass
+
+    if is_blocked:
+        allowed = (
+            path.startswith('/hisob/billing/') or
+            path.startswith('/c/')            or
+            path.startswith('/hisob/tolov/')  or
+            path.startswith('/logout/')       or
+            path.startswith('/admin/logout/') or
+            '/hisob/billing/' in path
+        )
+        if not allowed:
+            role = getattr(request.user, 'role', None)
+            if role not in ('student', 'parent', 'teacher'):
+                return redirect('billing:plans')
+
+    return None
+
+
+def _get_director_session_center(request):
+    active_center_id = request.session.get('active_center_id')
+    if not active_center_id:
+        return None
+
+    try:
+        center_id = int(active_center_id)
+    except (TypeError, ValueError):
+        request.session.pop('active_center_id', None)
+        return None
+
+    from accounts.models import DirectorCenterAccess
+
+    user_center = getattr(request.user, 'center', None)
+    is_own = bool(user_center and user_center.id == center_id)
+    has_access = is_own or DirectorCenterAccess.objects.filter(
+        director=request.user,
+        center_id=center_id,
+        is_active=True,
+    ).exists()
+    if not has_access:
+        request.session.pop('active_center_id', None)
+        return None
+
+    center = _get_center_cached(center_id)
+    if center and not center.is_deleted and center.status != 'ARCHIVED':
+        return center
+
+    request.session.pop('active_center_id', None)
+    return None
+
 # Paths that should NEVER be treated as center slugs
 EXCLUDED_PREFIXES = {
     'admin', 'platform', 'hisob', 'static', 'media', 'api',
@@ -178,70 +277,33 @@ class TenantMiddleware:
             if request.user.is_superuser:
                 active_center_id = request.session.get('active_center_id')
                 if active_center_id:
-                    # ✅ PERF: cache orqali, DB dan emas
-                    center = _get_center_cached(int(active_center_id))
+                    try:
+                        center = _get_center_cached(int(active_center_id))
+                    except (TypeError, ValueError):
+                        center = None
                     if center and not center.is_deleted:
                         request.active_center = center
                         request.center = center
+                    else:
+                        request.session.pop('active_center_id', None)
             elif hasattr(request.user, 'center') and request.user.center:
-                # ✅ PERF: request.user.center allaqachon Django auth orqali yuklangan.
-                # Har requestda Center.objects.get() chaqirish — KERAKSIZ query.
-                # Faqat is_deleted yoki ARCHIVED tekshirish kerak bo'lganda cache ishlatamiz.
-                user_center = request.user.center
-                center_pk = user_center.pk
+                role = getattr(request.user, 'role', None)
+                if role == 'director':
+                    switched_center = _get_director_session_center(request)
+                    if switched_center is not None:
+                        response = _bind_authenticated_center(
+                            request,
+                            switched_center,
+                            path,
+                            clear_invalid_session=True,
+                        )
+                        if response:
+                            return response
 
-                # Cache dan olish (30s TTL)
-                fresh_center = _get_center_cached(center_pk)
-                if fresh_center is None:
-                    from django.contrib.auth import logout
-                    logout(request)
-                    return redirect('/')
-
-                if fresh_center.is_deleted or fresh_center.status == 'ARCHIVED':
-                    from django.contrib.auth import logout
-                    logout(request)
-                    return redirect('/')
-
-                request.active_center = fresh_center
-                request.center = fresh_center
-
-                # ✅ PERF: Subscription check – faqat 1 soatda bir marta
-                last_check = request.session.get('last_sub_check')
-                now_ts = timezone.now().timestamp()
-                if not last_check or (now_ts - last_check > 3600):
-                    try:
-                        from billing.services import check_subscription_expiry
-                        check_subscription_expiry(fresh_center)
-                        request.session['last_sub_check'] = now_ts
-                    except Exception as e:
-                        logger.error(f'Middleware sub-check error: {e}')
-
-                # Blocked check
-                is_blocked = fresh_center.status == 'BLOCKED'
-                if not is_blocked:
-                    # ✅ PERF: subscription ni cache dan olish (Django cached_property yoki related cache)
-                    try:
-                        sub = fresh_center.subscriptions.filter(
-                            status__in=['ACTIVE', 'GRACE']
-                        ).only('status', 'expires_at', 'hard_expires_at').first()
-                        if sub and sub.is_blocked():
-                            is_blocked = True
-                    except Exception:
-                        pass  # Blocked check failed - not critical
-
-                if is_blocked:
-                    allowed = (
-                        path.startswith('/hisob/billing/') or
-                        path.startswith('/c/')            or
-                        path.startswith('/hisob/tolov/')  or
-                        path.startswith('/logout/')       or
-                        path.startswith('/admin/logout/') or
-                        '/hisob/billing/' in path
-                    )
-                    if not allowed:
-                        role = getattr(request.user, 'role', None)
-                        if role not in ('student', 'parent', 'teacher'):
-                            return redirect('billing:plans')
+                if request.center is None:
+                    response = _bind_authenticated_center(request, request.user.center, path)
+                    if response:
+                        return response
 
         # ── SECONDARY: slug from URL /<slug>/... ────────────────
         m = _SLUG_RE.match(path)

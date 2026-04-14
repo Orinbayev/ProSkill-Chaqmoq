@@ -8,131 +8,151 @@ from .models import CertificateTemplate, CenterExamSetting, Enrollment, ExamResu
 User = get_user_model()
 
 class GroupForm(forms.ModelForm):
+    SCHEDULE_MODE_CHOICES = (
+        ("", "Keyin kiritaman"),
+        ("odd", "Toq kunlar"),
+        ("even", "Juft kunlar"),
+    )
+
+    schedule_mode = forms.ChoiceField(
+        choices=SCHEDULE_MODE_CHOICES,
+        required=False,
+        label="Dars kunlari",
+    )
+    schedule_start_time = forms.TimeField(
+        required=False,
+        label="Boshlanish vaqti",
+        widget=forms.TimeInput(attrs={"type": "time"}),
+    )
+    schedule_end_time = forms.TimeField(
+        required=False,
+        label="Tugash vaqti",
+        widget=forms.TimeInput(attrs={"type": "time"}),
+    )
+    schedule_room = forms.CharField(
+        required=False,
+        label="Xona",
+        max_length=60,
+    )
+
     class Meta:
         model = Group
         fields = [
-            "category_obj", "center", "nom", "izoh", "oqituvchi",
-            "kurs_narxi", "oqituvchi_foiz", "oy_dars_soni",
-            "course_start_date", "duration_months", "lessons_per_week",
-            "estimated_end_date", "estimated_end_date_manual", "schedule_estimation_note",
+            "nom",
+            "oqituvchi",
+            "kurs_narxi",
+            "course_start_date",
+            "duration_months",
+            "estimated_end_date",
         ]
         labels = {
             "nom": "Guruh nomi",
             "oqituvchi": "O‘qituvchi",
             "kurs_narxi": "Kurs narxi (so‘m)",
-            "oqituvchi_foiz": "O‘qituvchi foizi (%)",
-            "oy_dars_soni": "Bir oyda darslar soni",
             "course_start_date": "Boshlanish sanasi",
             "duration_months": "Davomiyligi (oy)",
-            "lessons_per_week": "Haftasiga darslar soni",
-            "estimated_end_date": "Taxminiy tugash sanasi",
-            "estimated_end_date_manual": "Taxminiy sanani qo‘lda kiritish",
-            "schedule_estimation_note": "Tahmin izohi",
-            "izoh": "Izoh",
-            "center": "Markaz",
-            "category_obj": "Bo‘lim",
+            "estimated_end_date": "Tugash sanasi",
         }
         widgets = {
             "course_start_date": forms.DateInput(attrs={"type": "date"}),
-            "estimated_end_date": forms.DateInput(attrs={"type": "date"}),
-            "schedule_estimation_note": forms.Textarea(attrs={"rows": 2}),
+            "duration_months": forms.NumberInput(attrs={"min": "1", "step": "1"}),
+            "estimated_end_date": forms.DateInput(
+                attrs={
+                    "type": "date",
+                    "readonly": "readonly",
+                }
+            ),
         }
 
     def __init__(self, *args, **kwargs):
         center = kwargs.pop("center", None)
         super().__init__(*args, **kwargs)
 
-        # UX/flow safety: bu forma endi bo'lim ichidan ochiladi va
-        # o'qituvchi foizi teacher profilidan olinadi.
-        for field_name in [
-            "category_obj",
-            "oqituvchi_foiz",
-            "estimated_end_date_manual",
-            "schedule_estimation_note",
-            "izoh",
-        ]:
-            self.fields.pop(field_name, None)
-        
         # Filter teachers by center
         if "oqituvchi" in self.fields:
             teach_qs = User.objects.filter(role="teacher")
             if center:
                 teach_qs = teach_qs.filter(center=center)
             self.fields["oqituvchi"].queryset = teach_qs.order_by("ism", "familya")
+            self.fields["oqituvchi"].empty_label = "O'qituvchini tanlang"
             self.fields["oqituvchi"].label_from_instance = lambda obj: f"{obj.ism or ''} {obj.familya or ''}".strip() or obj.email
 
-        # Filter categories by center
-        if "category_obj" in self.fields:
-            from .models import Category
-            cat_qs = Category.objects.all()
-            if center:
-                from django.db.models import Q
-                cat_qs = cat_qs.filter(Q(center=center) | Q(center__isnull=True))
-            self.fields["category_obj"].queryset = cat_qs.order_by("name")
-
-        # Restrict center choice
-        if center and "center" in self.fields:
-            from accounts.models import Center
-            self.fields["center"].queryset = Center.objects.filter(id=center.id)
-            self.fields["center"].initial = center
-
-        # Bu maydonlar agar kiritilmasa ham xato bermaydi
         for f in [
-            "kurs_narxi", "oqituvchi_foiz", "oy_dars_soni",
-            "course_start_date", "duration_months", "lessons_per_week",
-            "estimated_end_date", "estimated_end_date_manual", "schedule_estimation_note",
-            "category_obj", "center",
+            "kurs_narxi",
+            "course_start_date",
+            "duration_months",
+            "estimated_end_date",
         ]:
             if f in self.fields:
                 self.fields[f].required = False
 
         # Default qiymatlar
         if "kurs_narxi" in self.fields: self.fields["kurs_narxi"].initial = 500000
-        if "oqituvchi_foiz" in self.fields: self.fields["oqituvchi_foiz"].initial = 40
-        if "oy_dars_soni" in self.fields: self.fields["oy_dars_soni"].initial = 12
-        if "lessons_per_week" in self.fields: self.fields["lessons_per_week"].initial = 3
-        if "duration_months" in self.fields: self.fields["duration_months"].initial = 0
-        if "schedule_estimation_note" in self.fields:
-            self.fields["schedule_estimation_note"].initial = (
-                "Bu sana taxminiy hisob bo‘lib, bayramlar, tadbirlar yoki dars ko‘chirilishlari sabab o‘zgarishi mumkin"
-            )
         if (
             "course_start_date" in self.fields
             and not self.is_bound
-            and not getattr(self.instance, "pk", None)
+            and not self.initial.get("course_start_date")
         ):
             self.fields["course_start_date"].initial = timezone.localdate()
+        if "kurs_narxi" in self.fields:
+            self.fields["kurs_narxi"].widget = forms.HiddenInput()
+        if "duration_months" in self.fields:
+            self.fields["duration_months"].widget.attrs.update(
+                {"placeholder": "Masalan: 2"}
+            )
         if "estimated_end_date" in self.fields:
-            self.fields["estimated_end_date"].widget.attrs["readonly"] = "readonly"
+            self.fields["estimated_end_date"].widget.attrs.update(
+                {
+                    "tabindex": "-1",
+                    "data-autocalculated": "true",
+                }
+            )
 
-    def clean_lessons_per_week(self):
-        value = self.cleaned_data.get("lessons_per_week")
-        if value in (None, "", 0):
-            return 3
-        if value < 1:
-            raise forms.ValidationError("Haftalik darslar soni kamida 1 bo‘lishi kerak.")
-        return value
+        self.fields["schedule_mode"].widget.attrs.update({"class": "schedule-mode-select"})
+        self.fields["schedule_start_time"].widget.attrs.update({"placeholder": "10:00"})
+        self.fields["schedule_end_time"].widget.attrs.update({"placeholder": "12:00"})
+        self.fields["schedule_room"].widget.attrs.update({"placeholder": "Masalan: 2-kabinet"})
+
+        if getattr(self.instance, "pk", None):
+            from education.services.group_schedule_service import infer_simple_schedule
+
+            schedule_info = infer_simple_schedule(self.instance)
+            self.fields["schedule_mode"].initial = schedule_info["mode"] if schedule_info["mode"] in {"odd", "even"} else ""
+            self.fields["schedule_start_time"].initial = schedule_info["start_time"]
+            self.fields["schedule_end_time"].initial = schedule_info["end_time"]
+            self.fields["schedule_room"].initial = schedule_info["room"]
 
     def clean(self):
         cleaned = super().clean()
+
+        schedule_mode = cleaned.get("schedule_mode")
+        schedule_start_time = cleaned.get("schedule_start_time")
+        schedule_end_time = cleaned.get("schedule_end_time")
+        course_start_date = cleaned.get("course_start_date")
+        duration_months = cleaned.get("duration_months")
+
         from education.services.group_schedule_service import calculate_estimated_end_date
 
-        start_date = cleaned.get("course_start_date")
-        duration_months = cleaned.get("duration_months") or 0
-        lessons_per_week = cleaned.get("lessons_per_week") or 3
+        if schedule_mode in {"odd", "even"} and not schedule_start_time:
+            self.add_error("schedule_start_time", "Boshlanish vaqti majburiy.")
+        if schedule_end_time and schedule_start_time and schedule_end_time <= schedule_start_time:
+            self.add_error("schedule_end_time", "Tugash vaqti boshlanishdan keyin bo'lishi kerak.")
 
-        # Safe auto-calc: faqat start + duration mavjud bo'lsa qayta hisoblaymiz.
-        if start_date and int(duration_months) > 0:
-            cleaned["estimated_end_date"] = calculate_estimated_end_date(
-                course_start_date=start_date,
-                duration_months=duration_months,
-                lessons_per_week=lessons_per_week,
-            )
-        elif getattr(self.instance, "pk", None):
-            # Eski datani tasodifan o'chirib yubormaslik uchun.
-            cleaned["estimated_end_date"] = self.instance.estimated_end_date
+        cleaned["estimated_end_date"] = calculate_estimated_end_date(
+            course_start_date=course_start_date,
+            duration_months=duration_months,
+            lessons_per_week=3,
+        )
 
         return cleaned
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        obj.estimated_end_date_manual = False
+        obj.kurs_narxi = obj.kurs_narxi or 500000
+        if commit:
+            obj.save()
+        return obj
 
 
 class LangGroupForm(GroupForm):

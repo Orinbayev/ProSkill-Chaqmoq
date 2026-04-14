@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% load form_tags %}
+{% block content %}
+{% include "education/partials/phase_theme.html" %}
+<style>
+  .weekly-layout {
+    display: grid;
+    gap: 14px;
+  }
+  .weekly-filter-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr auto auto;
+    gap: 12px;
+    align-items: end;
+  }
+  .weekly-board {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .weekly-day {
+    padding: 16px;
+    border-radius: 18px;
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    min-height: 280px;
+  }
+  .weekly-day-title {
+    margin-bottom: 12px;
+    color: #f8fafc;
+    font-size: 18px;
+    font-weight: 900;
+  }
+  .weekly-slot {
+    padding: 12px;
+    border-radius: 14px;
+    background: rgba(2, 6, 23, 0.42);
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    margin-bottom: 10px;
+  }
+  .weekly-slot:last-child {
+    margin-bottom: 0;
+  }
+  .weekly-slot-name {
+    color: #f8fafc;
+    font-size: 15px;
+    font-weight: 900;
+    margin-bottom: 8px;
+  }
+  .weekly-slot-meta {
+    display: grid;
+    gap: 4px;
+    color: #cbd5e1;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .weekly-empty {
+    height: 100%;
+    min-height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    background: rgba(2, 6, 23, 0.3);
+    color: #64748b;
+    font-size: 15px;
+    font-weight: 800;
+  }
+  .weekly-mobile {
+    display: none;
+  }
+  .weekly-mobile details {
+    border-radius: 16px;
+    overflow: hidden;
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    margin-bottom: 10px;
+  }
+  .weekly-mobile summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    color: #f8fafc;
+    font-size: 16px;
+    font-weight: 900;
+  }
+  .weekly-mobile summary::-webkit-details-marker {
+    display: none;
+  }
+  .weekly-mobile-body {
+    padding: 0 12px 12px;
+  }
+  @media (max-width: 1200px) {
+    .weekly-board {
+      display: none;
+    }
+    .weekly-mobile {
+      display: block;
+    }
+  }
+  @media (max-width: 900px) {
+    .weekly-filter-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="ui-shell">
+  <div class="ui-panel ui-header glass">
+    <div>
+      <h3 class="ui-title">📅 Haftalik Jadval</h3>
+      <div class="ui-sub">Guruhlarning haftalik dars kunlari va vaqtlari</div>
+    </div>
+    <div class="ui-actions">
+      <a href="?teacher={{ selected_teacher }}&room={{ selected_room|urlencode }}&export=1" class="ui-btn ui-btn-secondary">📥 Excel</a>
+    </div>
+  </div>
+
+  <div class="ui-panel ui-section glass weekly-layout">
+    <form method="get" class="weekly-filter-grid">
+      <div>
+        <label class="ui-label">O'qituvchi</label>
+        <select name="teacher">
+          <option value="">Barchasi</option>
+          {% for teacher in teachers %}
+            <option value="{{ teacher.id }}" {% if selected_teacher == teacher.id %}selected{% endif %}>{{ teacher.get_full_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="ui-label">Xona</label>
+        <input type="text" name="room" value="{{ selected_room }}" placeholder="Masalan: 2-xona">
+      </div>
+      <div>
+        <label class="ui-label">&nbsp;</label>
+        <button type="submit" class="ui-btn ui-btn-primary w-100">Qidirish</button>
+      </div>
+      <div>
+        <label class="ui-label">&nbsp;</label>
+        {% if has_filters %}
+          <a href="{% url 'education:weekly_schedule' %}" class="ui-btn ui-btn-secondary w-100">Tozalash</a>
+        {% else %}
+          <span class="ui-btn ui-btn-secondary w-100" style="opacity:.55; pointer-events:none;">Tozalash</span>
+        {% endif %}
+      </div>
+    </form>
+
+    {% if empty_state_message %}
+      <div class="ui-note ui-note-muted mb-0">{{ empty_state_message }}</div>
+    {% endif %}
+  </div>
+
+  <div class="weekly-board">
+    {% for weekday, label in weekday_labels %}
+      <div class="weekly-day glass">
+        <div class="weekly-day-title">{{ label }}</div>
+        {% with items=week_map|get_item:weekday %}
+          {% if items %}
+            {% for item in items %}
+              <div class="weekly-slot">
+                <div class="weekly-slot-name">{{ item.group.nom }}</div>
+                <div class="weekly-slot-meta">
+                  <div>O'qituvchi: {% if item.group.oqituvchi %}{{ item.group.oqituvchi.get_full_name }}{% else %}Belgilanmagan{% endif %}</div>
+                  <div>Vaqt: {{ item.time_range }}</div>
+                  <div>Xona: {{ item.room|default:"Belgilanmagan" }}</div>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="weekly-empty">Dars yo'q</div>
+          {% endif %}
+        {% endwith %}
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="weekly-mobile">
+    {% for weekday, label in weekday_labels %}
+      <details {% if forloop.first %}open{% endif %}>
+        <summary>{{ label }}</summary>
+        <div class="weekly-mobile-body">
+          {% with items=week_map|get_item:weekday %}
+            {% if items %}
+              {% for item in items %}
+                <div class="weekly-slot">
+                  <div class="weekly-slot-name">{{ item.group.nom }}</div>
+                  <div class="weekly-slot-meta">
+                    <div>O'qituvchi: {% if item.group.oqituvchi %}{{ item.group.oqituvchi.get_full_name }}{% else %}Belgilanmagan{% endif %}</div>
+                    <div>Vaqt: {{ item.time_range }}</div>
+                    <div>Xona: {{ item.room|default:"Belgilanmagan" }}</div>
+                  </div>
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="weekly-empty">Dars yo'q</div>
+            {% endif %}
+          {% endwith %}
+        </div>
+      </details>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

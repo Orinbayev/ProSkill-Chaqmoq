@@ -12,6 +12,7 @@ from .forms import CenterAdminForm, DirectorCreationForm
 from django.http import JsonResponse
 import json
 from django.core.serializers.json import DjangoJSONEncoder
+from core.center_features import CENTER_UI_FEATURE_DEFAULTS
 
 
 @login_required
@@ -242,30 +243,15 @@ def center_create(request):
                         # Auto-calculate expiry
                         now = timezone.now()
                         expires_at = now + timedelta(days=30 * duration)
-                        
-                        CenterSubscription.objects.create(
+
+                        # Use the canonical service — creates sub, syncs limits + features atomically
+                        from billing.services import superadmin_apply_subscription
+                        superadmin_apply_subscription(
                             center=center,
-                            plan=plan,
+                            new_plan=plan,
                             expires_at=expires_at,
-                            status='ACTIVE'
+                            actor=request.user,
                         )
-                        
-                        # Set center status and limits to match the plan
-                        center.status = 'ACTIVE'
-                        center.expires_at = expires_at
-                        center.monthly_price = plan.monthly_price  # Store current MRR
-                        
-                        # SaaS Sync: Core Limits & Features
-                        center.capacity_limit = plan.max_students
-                        center.max_students = plan.max_students
-                        center.max_groups = 9999
-                        center.max_users = 9999
-                        
-                        # Sync features from plan
-                        feature_codes = list(plan.plan_features.values_list('code', flat=True))
-                        center.features = {code: True for code in feature_codes}
-                        
-                        center.save()
                     
                     messages.success(
                         request, 
@@ -306,7 +292,8 @@ def center_create(request):
     return render(request, 'accounts/center_create.html', {
         'center_form': center_form,
         'director_form': director_form,
-        'plans_json': json.dumps(plans_data, cls=DjangoJSONEncoder)
+        'plans_json': json.dumps(plans_data, cls=DjangoJSONEncoder),
+        'center_ui_feature_defaults': CENTER_UI_FEATURE_DEFAULTS,
     })
 
 
@@ -365,7 +352,8 @@ def center_edit(request, pk):
     return render(request, 'accounts/center_edit.html', {
         'form': form,
         'center': center,
-        'plans_json': json.dumps(plans_data, cls=DjangoJSONEncoder)
+        'plans_json': json.dumps(plans_data, cls=DjangoJSONEncoder),
+        'center_ui_feature_defaults': CENTER_UI_FEATURE_DEFAULTS,
     })
 
 
@@ -417,3 +405,35 @@ def update_center_capacity(request, pk):
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def toggle_center_ui_feature(request, center_pk):
+    """SuperAdmin: markaz uchun UI feature yoqish/o'chirish."""
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({'ok': False, 'error': 'Invalid JSON'}, status=400)
+
+    feature_code = data.get('feature')
+    enabled = data.get('enabled')
+    if isinstance(enabled, str):
+        enabled = enabled.strip().lower() in {'1', 'true', 'yes', 'on'}
+    else:
+        enabled = bool(enabled)
+
+    allowed_features = list(CENTER_UI_FEATURE_DEFAULTS.keys())
+    if feature_code not in allowed_features:
+        return JsonResponse({'ok': False, 'error': 'Unknown feature'}, status=400)
+
+    center = get_object_or_404(Center, pk=center_pk)
+    features = center.features or {}
+    features[feature_code] = enabled
+    center.features = features
+    center.save(update_fields=['features'])
+
+    return JsonResponse({'ok': True, 'feature': feature_code, 'enabled': enabled})

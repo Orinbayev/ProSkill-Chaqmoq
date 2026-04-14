@@ -22,6 +22,7 @@ from education.models import (
     CertificateRecord,
     Enrollment,
     Group,
+    GroupSchedule,
     Payment,
     SalaryPayout,
     TuitionMonth,
@@ -34,6 +35,7 @@ from store.models import Expense, Lead, Product, PurchaseRequest
 logger = logging.getLogger(__name__)
 
 PRESENT_FILTER = Q(status="present") | Q(present=True) | Q(forced=True)
+SCHEDULE_DAYS_SHORT = {1: "Du", 2: "Se", 3: "Cho", 4: "Pay", 5: "Ju", 6: "Sha", 7: "Yak"}
 
 
 def _json_error(message: str, status: int = 400) -> JsonResponse:
@@ -236,10 +238,41 @@ def _student_active_enrollments(student: User, center):
 
 
 def _group_schedule_items(student: User, center) -> list[dict]:
+    enrollments = list(_student_active_enrollments(student, center))
+    if not enrollments:
+        return []
+
+    group_ids = [enrollment.group_id for enrollment in enrollments]
+    schedule_map: dict[int, list[GroupSchedule]] = defaultdict(list)
+    for schedule in (
+        GroupSchedule.objects.filter(group_id__in=group_ids, center=center)
+        .order_by("group_id", "weekday", "start_time")
+    ):
+        schedule_map[schedule.group_id].append(schedule)
+
     items: list[dict] = []
-    for enrollment in _student_active_enrollments(student, center):
+    for enrollment in enrollments:
         group = enrollment.group
         teacher = getattr(group, "oqituvchi", None)
+        schedules = schedule_map.get(group.id, [])
+
+        if schedules:
+            day_parts: list[str] = []
+            rooms: list[str] = []
+            for schedule in schedules:
+                part = f"{SCHEDULE_DAYS_SHORT.get(schedule.weekday, '?')} {schedule.start_time.strftime('%H:%M')}"
+                if schedule.end_time:
+                    part += f"–{schedule.end_time.strftime('%H:%M')}"
+                day_parts.append(part)
+                if schedule.room:
+                    rooms.append(schedule.room)
+            weekday_label = " | ".join(day_parts)
+            unique_rooms = list(dict.fromkeys(rooms))
+            time_label = ", ".join(unique_rooms) if unique_rooms else "Xona belgilanmagan"
+        else:
+            weekday_label = f"Haftasiga {group.lessons_per_week or 0} marta"
+            time_label = "Jadval kiritilmagan"
+
         items.append(
             {
                 "group_id": group.id,
@@ -247,8 +280,8 @@ def _group_schedule_items(student: User, center) -> list[dict]:
                 "teacher_name": teacher.get_full_name() if teacher else "Belgilanmagan",
                 "teacher_phone": teacher.telefon1 or teacher.phone_number if teacher else "",
                 "lessons_per_week": group.lessons_per_week or 0,
-                "weekday_label": f"Haftasiga {group.lessons_per_week or 0} marta",
-                "time_label": "Vaqt kiritilmagan",
+                "weekday_label": weekday_label,
+                "time_label": time_label,
                 "estimated_end_date": _fmt_date(group.estimated_end_date),
             }
         )
@@ -648,6 +681,27 @@ def _teacher_dashboard(teacher: User, center, group_id: str | None = None) -> di
     )
 
     real_income = _teacher_real_income(teacher, center)
+    schedule_slots_map: dict[int, list[dict]] = defaultdict(list)
+    if all_group_ids:
+        for slot in (
+            GroupSchedule.objects.filter(group_id__in=all_group_ids, center=center)
+            .order_by("group_id", "weekday", "start_time")
+        ):
+            schedule_slots_map[slot.group_id].append(
+                {
+                    "day": SCHEDULE_DAYS_SHORT.get(slot.weekday, "?"),
+                    "time": slot.time_range,
+                    "room": slot.room,
+                }
+            )
+
+    schedule_by_group = [
+        {
+            "group_name": item["name"],
+            "slots": schedule_slots_map.get(item["id"], []),
+        }
+        for item in groups
+    ]
 
     return {
         "groups": groups,
@@ -663,6 +717,7 @@ def _teacher_dashboard(teacher: User, center, group_id: str | None = None) -> di
             "students_count": total_students,
             "average_attendance_rate": round((all_present / all_total) * 100, 1) if all_total else 0,
         },
+        "schedule_by_group": schedule_by_group,
     }
 
 

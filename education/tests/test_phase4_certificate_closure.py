@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import Center, User
+from core.models import Notification
 from education.models import (
     Attendance,
     CertificateRecord,
@@ -152,6 +153,107 @@ class PhaseFourCertificateClosureTests(TestCase):
         self.assertTrue(
             CertificateVerificationLog.objects.filter(certificate=cert).exists()
         )
+
+    def test_finalize_session_creates_notifications_and_draft_certificate(self):
+        CertificateTemplate.objects.create(
+            center=self.center,
+            name="Auto cert",
+            template_type="certificate",
+            template_file=SimpleUploadedFile("tmpl.png", b"fake-image-bytes", content_type="image/png"),
+            is_active=True,
+            uploaded_by=self.director,
+        )
+
+        session = ExamSession.objects.create(
+            center=self.center,
+            group=self.group,
+            teacher=self.teacher,
+            attendance_date=timezone.localdate(),
+            exam_date=timezone.localdate(),
+            lesson_number_reference=24,
+            exam_sequence_number=2,
+            teacher_decision=ExamSession.DECISION_LATER,
+            status=ExamSession.STATUS_DRAFT,
+            created_by=self.teacher,
+        )
+        ExamResult.objects.create(
+            center=self.center,
+            session=session,
+            group=self.group,
+            student=self.student,
+            teacher=self.teacher,
+            assignment_description="Yakuniy nazorat",
+            exam_date=timezone.localdate(),
+            lesson_number_reference=24,
+            created_by=self.teacher,
+        )
+
+        self.client.force_login(self.teacher)
+        resp = self.client.post(
+            reverse("education:exam_session_entry", args=[session.id]),
+            {
+                "action": "finalize",
+                "max_score": "100",
+                f"score_{self.student.id}": "90",
+                f"percent_{self.student.id}": "90",
+                f"teacher_comment_{self.student.id}": "A'lo",
+            },
+            follow=True,
+        )
+        self.assertEqual(resp.status_code, 200)
+
+        session.refresh_from_db()
+        self.assertEqual(session.status, ExamSession.STATUS_COMPLETED)
+        self.assertTrue(Notification.objects.filter(recipient=self.student, title="Imtihon natijasi").exists())
+        self.assertTrue(Notification.objects.filter(recipient=self.director, title="Imtihon hisoboti").exists())
+        self.assertTrue(Notification.objects.filter(recipient=self.director, title="Sertifikatlar tayyor").exists())
+
+        draft_cert = CertificateRecord.objects.get(group=self.group, student=self.student, status=CertificateRecord.STATUS_DRAFT)
+        self.assertEqual(draft_cert.certificate_type, CertificateRecord.TYPE_CERTIFICATE)
+        self.assertFalse(bool(draft_cert.pdf_file))
+
+    def test_issue_certificate_action_promotes_existing_draft(self):
+        template = CertificateTemplate.objects.create(
+            center=self.center,
+            name="Draft cert",
+            template_type="certificate",
+            template_file=SimpleUploadedFile("tmpl2.png", b"fake-image-bytes", content_type="image/png"),
+            is_active=True,
+            uploaded_by=self.director,
+        )
+        draft = CertificateRecord.objects.create(
+            center=self.center,
+            group=self.group,
+            student=self.student,
+            template=template,
+            certificate_type=CertificateRecord.TYPE_CERTIFICATE,
+            certificate_number="CERT-1-ABCDEFGH",
+            status=CertificateRecord.STATUS_DRAFT,
+            note="Auto draft",
+        )
+
+        self.client.force_login(self.director)
+        resp = self.client.post(
+            reverse("education:issue_certificate_action", args=[self.group.id, self.student.id]),
+            {"certificate_type": "certificate", "note": "Tasdiqlandi"},
+            follow=True,
+        )
+        self.assertEqual(resp.status_code, 200)
+
+        draft.refresh_from_db()
+        self.assertEqual(draft.status, CertificateRecord.STATUS_ISSUED)
+        self.assertTrue(draft.certificate_number.startswith("CHQ-"))
+        self.assertTrue(bool(draft.pdf_file))
+
+    def test_exam_api_summary_returns_exam_metrics(self):
+        self.client.force_login(self.director)
+        resp = self.client.get(reverse("core:exam_api_summary"))
+        self.assertEqual(resp.status_code, 200)
+        payload = resp.json()
+        self.assertGreaterEqual(payload["total_sessions"], 1)
+        self.assertGreaterEqual(payload["this_month_completed"], 1)
+        self.assertGreaterEqual(payload["avg_percent"], 0)
+        self.assertEqual(payload["pending_certificates"], 0)
 
     def test_group_closure_no_then_yes_keeps_group_history_safe(self):
         self.client.force_login(self.teacher)

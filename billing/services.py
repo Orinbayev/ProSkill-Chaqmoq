@@ -63,8 +63,13 @@ def apply_plan_to_center(center: Center, plan: SubscriptionPlan) -> None:
     current_overrides = center.features or {}
 
     # Rebuild center.features: plan features = True, missing = False (unless manually overridden)
-    new_features = {}
-    all_features = PlanFeature.objects.all()
+    all_features = list(PlanFeature.objects.all())
+    known_feature_codes = {feature.code for feature in all_features}
+    new_features = {
+        key: value
+        for key, value in current_overrides.items()
+        if key not in known_feature_codes
+    }
     for f in all_features:
         if f.code in current_overrides:
             # Manual override preserved

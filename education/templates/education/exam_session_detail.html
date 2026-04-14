@@ -38,9 +38,13 @@
             <td>{{ forloop.counter }}</td>
             <td>{{ r.student.get_full_name }}</td>
             <td>{{ r.score|default:"—" }}</td>
-            <td>{{ r.percent|default:"—" }}%</td>
+            <td>{% if r.percent is not None %}{{ r.percent }}%{% else %}—{% endif %}</td>
             <td>
-              {% if r.passed %}
+              {% if r.absent_in_exam %}
+                <span class="ui-badge ui-badge-warning">Qatnashmadi</span>
+              {% elif r.score is None and r.percent is None %}
+                <span class="ui-badge ui-badge-warning">Kiritilmagan</span>
+              {% elif r.passed %}
                 <span class="ui-badge ui-badge-success">O'tdi</span>
               {% else %}
                 <span class="ui-badge ui-badge-danger">Yiqildi</span>

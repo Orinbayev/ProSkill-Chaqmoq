@@ -326,6 +326,48 @@
         color: var(--sa-text);
     }
 
+    .sa-ui-modules-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-top: 12px;
+    }
+
+    .sa-ui-toggle-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--sa-border);
+        border-radius: 12px;
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .sa-ui-toggle-card.active {
+        background: rgba(99, 102, 241, 0.15);
+        border-color: rgba(99, 102, 241, 0.4);
+    }
+
+    .sa-ui-toggle-main {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .sa-ui-toggle-meta {
+        display: grid;
+        gap: 4px;
+    }
+
+    .sa-ui-toggle-desc {
+        color: var(--sa-muted);
+        font-size: 0.76rem;
+        line-height: 1.4;
+    }
+
 
     /* ── Pricing Summary ────────────────────────── */
     .sa-pricing-card {
@@ -384,6 +426,10 @@
         }
 
         .sa-features-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .sa-ui-modules-grid {
             grid-template-columns: 1fr;
         }
 
@@ -514,6 +560,16 @@
                     <!-- JS renders here -->
                 </div>
             </div>
+
+            <div class="mt-4">
+                <label
+                    style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--sa-muted);margin-bottom:12px;">
+                    Ochib-yopiladigan bo'limlar
+                </label>
+                <div class="sa-ui-modules-grid" id="uiModulesContainer">
+                    <!-- JS renders here -->
+                </div>
+            </div>
         </div>
 
         <!-- 3. Direktor -->
@@ -544,45 +600,156 @@
 
 <!-- ── Scripts ──────────────────────────────── -->
 <script>
-    // Features Logic
-    const FEATURE_LIST = [
-        { key: 'dashboard', label: 'Asosiy Dashboard', icon: 'bi-speedometer2' },
-        { key: 'students', label: 'O\'quvchilar va Guruhlar', icon: 'bi-people' },
-        { key: 'attendance', label: 'Davomat va Jadval', icon: 'bi-calendar-check' },
-        { key: 'finance', label: 'Moliya va To\'lovlar', icon: 'bi-wallet2' },
-        { key: 'salaries', label: 'Xodimlar va Ish xaqi', icon: 'bi-cash-coin' },
-        { key: 'analytics', label: 'Biznes Analitika', icon: 'bi-graph-up-arrow' },
-        { key: 'sms', label: 'SMS va Bildirishnomalar', icon: 'bi-chat-dots' },
-        { key: 'leads', label: 'CRM Huni (Lidlar)', icon: 'bi-bullseye' },
-        { key: 'roles', label: 'Rollar va Huquqlar', icon: 'bi-shield-lock' },
-        { key: 'branches', label: 'Filiallar Boshqaruvi', icon: 'bi-diagram-3' },
-        { key: 'chaqmoq_store', label: 'Chaqmoq va Do\'kon', icon: 'bi-lightning-charge' }
+    // ── Asosiy (har doim yoniq, o'chirib bo'lmaydi) ──────────────────
+    const CORE_FEATURES = [
+        { key: 'dashboard',  label: 'Asosiy Dashboard',       icon: 'bi-speedometer2' },
+        { key: 'students',   label: "O'quvchilar va Guruhlar", icon: 'bi-people' },
+        { key: 'attendance', label: 'Davomat va Jadval',       icon: 'bi-calendar-check' },
+        { key: 'finance',    label: "Moliya va To'lovlar",     icon: 'bi-wallet2' },
     ];
+    // ── Premium (plan asosida ko'rsatiladi, qo'lda o'chirish mumkin) ──
+    const PREMIUM_FEATURES = [
+        { key: 'leads',         label: 'CRM Huni (Lidlar)',      icon: 'bi-bullseye' },
+        { key: 'analytics',     label: 'Biznes Analitika',       icon: 'bi-graph-up-arrow' },
+        { key: 'chaqmoq_store', label: "Chaqmoq va Do'kon",      icon: 'bi-lightning-charge' },
+        { key: 'salaries',      label: 'Xodimlar va Ish xaqi',   icon: 'bi-cash-coin' },
+        { key: 'sms',           label: 'SMS va Bildirishnomalar',icon: 'bi-chat-dots' },
+        { key: 'branches',      label: 'Filiallar Boshqaruvi',   icon: 'bi-diagram-3' },
+        { key: 'roles',         label: 'Rollar va Huquqlar',     icon: 'bi-shield-check' },
+    ];
+    const FEATURE_LIST = [...CORE_FEATURES, ...PREMIUM_FEATURES];
+    const UI_MODULE_LIST = [
+        { key: 'ui_exam_sessions', label: "Barcha sessiyalar", description: "Imtihon sessiyalari ro'yxati va detail sahifalari", icon: 'bi-list-check' },
+        { key: 'ui_failed_students', label: "Zaif o'quvchilar", description: "Past natija olgan o'quvchilar bo'limi", icon: 'bi-person-exclamation' },
+        { key: 'ui_certificates', label: "Sertifikatlar", description: "Sertifikat shablonlari va berish sahifalari", icon: 'bi-patch-check' },
+        { key: 'ui_weekly_schedule', label: "Haftalik Jadval", description: "Haftalik jadval va guruh jadvali sahifalari", icon: 'bi-calendar-week' }
+    ];
+
+    function parseFeatureState(input) {
+        try {
+            return JSON.parse(input.value || '{}');
+        } catch (e) {
+            return {};
+        }
+    }
 
     function renderFeatures(activeCodes = []) {
         const input = document.querySelector('input[name="features"]');
         const container = document.getElementById('featuresContainer');
         container.innerHTML = '';
 
-        let data = {};
-        activeCodes.forEach(code => data[code] = true);
+        // UI modul state'larini saqlash
+        const currentData = parseFeatureState(input);
+        const data = {};
+        UI_MODULE_LIST.forEach(item => {
+            data[item.key] = Object.prototype.hasOwnProperty.call(currentData, item.key)
+                ? !!currentData[item.key]
+                : true;
+        });
+        // Core featurelar har doim true
+        CORE_FEATURES.forEach(f => { data[f.key] = true; });
+        // Premium featurelar plan'dan keladi
+        PREMIUM_FEATURES.forEach(f => {
+            data[f.key] = activeCodes.includes(f.key);
+        });
         input.value = JSON.stringify(data);
 
-        FEATURE_LIST.forEach(item => {
-            const isActive = activeCodes.includes(item.key);
-            const card = document.createElement('div');
-            card.className = `sa-toggle-card ${isActive ? 'active' : ''}`;
-            card.style.pointerEvents = 'none'; // Avtomatlashtirilgan, qolda bosib bolmaydi
+        // ── Asosiy xususiyatlar sarlavhasi ──────────────────────────────
+        const coreHeader = document.createElement('div');
+        coreHeader.className = 'col-12 mb-1';
+        coreHeader.style.cssText = 'font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,0.35);margin-bottom:6px;padding:0 2px;';
+        coreHeader.innerHTML = `<i class="bi bi-lock-fill me-1" style="color:#22c55e;"></i> Asosiy xususiyatlar — har doim yoniq`;
+        container.appendChild(coreHeader);
 
+        // ── Core feature'larni locked ko'rsatish ──────────────────
+        CORE_FEATURES.forEach(feat => {
+            const card = document.createElement('div');
+            card.className = 'sa-toggle-card active';
+            card.style.cssText = 'cursor:default;border-color:rgba(34,197,94,0.25);background:rgba(34,197,94,0.06);opacity:.8;';
             card.innerHTML = `
-                <div class="sa-toggle-icon">
-                    <i class="bi ${item.icon}"></i>
+                <div class="sa-toggle-icon" style="background:rgba(34,197,94,0.15);color:#22c55e;">
+                    <i class="bi ${feat.icon}"></i>
                 </div>
                 <div class="sa-toggle-content">
-                    <div class="sa-toggle-label">${item.label}</div>
+                    <div class="sa-toggle-label">${feat.label}</div>
+                </div>
+                <i class="bi bi-lock-fill" style="color:#22c55e;font-size:13px;margin-left:auto;"></i>
+            `;
+            container.appendChild(card);
+        });
+
+        // ── Premium xususiyatlar sarlavhasi ─────────────────────────────
+        const premHeader = document.createElement('div');
+        premHeader.className = 'col-12 mt-3 mb-1';
+        premHeader.style.cssText = 'font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,0.35);margin:12px 0 6px;padding:0 2px;';
+        premHeader.innerHTML = `<i class="bi bi-star-fill me-1" style="color:#f59e0b;"></i> Premium xususiyatlar — tarif asosida`;
+        container.appendChild(premHeader);
+
+        // ── Premium feature'larni toggle ko'rsatish ──────────────────
+        PREMIUM_FEATURES.forEach(feat => {
+            const isActive = activeCodes.includes(feat.key);
+            const card = document.createElement('div');
+            card.className = `sa-toggle-card ${isActive ? 'active' : ''}`;
+            if (isActive) {
+                card.style.cssText = 'border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.06);';
+            }
+            card.innerHTML = `
+                <div class="sa-toggle-icon" style="${isActive ? 'background:rgba(245,158,11,0.15);color:#f59e0b;' : ''}">
+                    <i class="bi ${feat.icon}"></i>
+                </div>
+                <div class="sa-toggle-content">
+                    <div class="sa-toggle-label">${feat.label}</div>
                 </div>
                 <div class="sa-switch"></div>
             `;
+            // Premium featurelarni qo'lda toggle qilish mumkin
+            card.addEventListener('click', () => {
+                const nowActive = card.classList.toggle('active');
+                card.style.cssText = nowActive
+                    ? 'border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.06);'
+                    : '';
+                const iconEl = card.querySelector('.sa-toggle-icon');
+                if (iconEl) iconEl.style.cssText = nowActive ? 'background:rgba(245,158,11,0.15);color:#f59e0b;' : '';
+                const cd = parseFeatureState(input);
+                cd[feat.key] = nowActive;
+                input.value = JSON.stringify(cd);
+            });
+            container.appendChild(card);
+        });
+    }
+
+    function renderUiModules() {
+        const input = document.querySelector('input[name="features"]');
+        const container = document.getElementById('uiModulesContainer');
+        if (!container) return;
+
+        const data = parseFeatureState(input);
+        container.innerHTML = '';
+
+        UI_MODULE_LIST.forEach(item => {
+            const isActive = Object.prototype.hasOwnProperty.call(data, item.key) ? !!data[item.key] : true;
+            const card = document.createElement('div');
+            card.className = `sa-ui-toggle-card ${isActive ? 'active' : ''}`;
+            card.innerHTML = `
+                <div class="sa-ui-toggle-main">
+                    <div class="sa-toggle-icon">
+                        <i class="bi ${item.icon}"></i>
+                    </div>
+                    <div class="sa-ui-toggle-meta">
+                        <div class="sa-toggle-label">${item.label}</div>
+                        <div class="sa-ui-toggle-desc">${item.description}</div>
+                    </div>
+                </div>
+                <div class="sa-switch"></div>
+            `;
+
+            card.addEventListener('click', () => {
+                const nextState = !card.classList.contains('active');
+                card.classList.toggle('active', nextState);
+                const currentState = parseFeatureState(input);
+                currentState[item.key] = nextState;
+                input.value = JSON.stringify(currentState);
+            });
 
             container.appendChild(card);
         });
@@ -609,6 +776,7 @@
 
             // 2. Sync Features (Auto-sync only on plan/duration change)
             renderFeatures(plan.feature_codes || []);
+            renderUiModules();
 
             // 3. Calc Prices & Discounts
             let monthly = plan.monthly_price;
@@ -660,6 +828,8 @@
             durationSelect.addEventListener('change', updatePrice);
             updatePrice();
         }
+
+        renderUiModules();
     });
 </script>
 

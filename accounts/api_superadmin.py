@@ -19,6 +19,7 @@ from billing.services import (
     superadmin_apply_subscription,
     sync_center_from_active_subscription,
 )
+from core.center_features import CENTER_UI_FEATURE_DEFAULTS
 from billing.models import CenterSubscription
 
 logger = logging.getLogger(__name__)
@@ -299,7 +300,8 @@ def center_detail_api(request, center_id):
     except Exception:
         # Fallback to features JSONField keys that are True
         if center.features:
-            feature_codes = [k for k, v in center.features.items() if v]
+            ui_feature_keys = set(CENTER_UI_FEATURE_DEFAULTS.keys())
+            feature_codes = [k for k, v in center.features.items() if v and k not in ui_feature_keys]
 
     # Tarif va muddat ma'lumotini ACTIVE subscription dan olamiz — yagona source of truth.
     # Center.plan va Center.expires_at eski cache bo'lishi mumkin, lekin
@@ -396,14 +398,18 @@ def center_update_api(request, center_id):
         else: center.promo_end = None
         
         # Features (Handle both JSON string and dict)
+        # Core featurelar har doim True — o'chirib bo'lmaydi
+        CORE_FEATURE_CODES = {'dashboard', 'students', 'attendance', 'finance'}
         features = data.get('features')
         if features:
             if isinstance(features, str):
                 try:
-                    center.features = json.loads(features)
-                except:
-                    pass
-            else:
+                    features = json.loads(features)
+                except Exception:
+                    features = None
+            if isinstance(features, dict):
+                for core_key in CORE_FEATURE_CODES:
+                    features[core_key] = True
                 center.features = features
         
         # Validate Capacity Limit

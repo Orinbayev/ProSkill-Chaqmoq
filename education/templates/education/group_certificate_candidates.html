@@ -55,7 +55,22 @@
             <td>{{ row.attendance_score|floatformat:2 }}%</td>
             <td>
               {% if row.certificate %}
-                <a href="{% url 'education:certificate_detail' row.certificate.id %}" class="ui-btn ui-btn-primary">{{ row.certificate.certificate_number }}</a>
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                  <a href="{% url 'education:certificate_detail' row.certificate.id %}" class="ui-btn ui-btn-primary">{{ row.certificate.certificate_number }}</a>
+                  {% if row.certificate.status == 'draft' %}
+                    <span class="ui-badge ui-badge-warning">Qoralama</span>
+                    {% if can_issue %}
+                      <form method="post" action="{% url 'education:issue_certificate_action' group.id row.student.id %}" class="ui-inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="certificate_type" value="{{ row.certificate.certificate_type }}">
+                        <input type="hidden" name="note" value="Qoralama sertifikat tasdiqlandi">
+                        <button type="submit" class="ui-btn ui-btn-warning">Tasdiqlash</button>
+                      </form>
+                    {% endif %}
+                  {% else %}
+                    <span class="ui-badge ui-badge-success">Berilgan</span>
+                  {% endif %}
+                </div>
               {% elif can_issue %}
                 <form method="post" action="{% url 'education:issue_certificate_action' group.id row.student.id %}" class="ui-inline-form">
                   {% csrf_token %}

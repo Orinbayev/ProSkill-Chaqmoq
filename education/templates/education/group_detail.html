@@ -549,21 +549,30 @@
         </button>
         <div id="quick-menu-panel" class="quick-menu-panel" aria-hidden="true">
           <div class="quick-menu-title">Imtihon va monitoring</div>
+          {% if feature_weekly_schedule_ui %}
+          <a href="{% url 'education:group_schedule_manage' g.id %}" class="quick-menu-link">
+            <i class="fa-solid fa-calendar-week"></i> Jadval
+          </a>
+          {% endif %}
+          {% if feature_exam_sessions_ui %}
           <a href="{% url 'education:group_exam_history' g.id %}" class="quick-menu-link">
             <i class="fa-solid fa-list-check"></i> Imtihon tarixi
           </a>
           <a href="{% url 'education:teacher_exam_history' %}?group={{ g.id }}&back_group={{ g.id }}" class="quick-menu-link">
             <i class="fa-solid fa-clipboard-list"></i> Sessiyalar
           </a>
+          {% endif %}
           <a href="{% url 'education:group_internal_ranking' g.id %}?date={{ selected_date }}" class="quick-menu-link">
             <i class="fa-solid fa-ranking-star"></i> Ichki reyting
           </a>
           <a href="{% url 'education:group_completion_recommendations' g.id %}?date={{ selected_date }}" class="quick-menu-link">
             <i class="fa-solid fa-clipboard-check"></i> Yakuniy tavsiya
           </a>
+          {% if feature_certificates_ui %}
           <a href="{% url 'education:group_certificate_candidates' g.id %}?date={{ selected_date }}" class="quick-menu-link">
             <i class="fa-solid fa-certificate"></i> Sertifikat tavsiya
           </a>
+          {% endif %}
 
           {% if request.user.role == 'director' or request.user.role == 'manager' or request.user.is_superuser %}
           <div class="quick-menu-divider"></div>
@@ -571,9 +580,11 @@
           <a href="{% url 'education:exam_settings' %}" class="quick-menu-link">
             <i class="fa-solid fa-gear"></i> Imtihon sozlamalari
           </a>
+          {% if feature_failed_students_ui %}
           <a href="{% url 'education:failed_students_list' %}" class="quick-menu-link">
             <i class="fa-solid fa-triangle-exclamation"></i> Past natijalar
           </a>
+          {% endif %}
           {% endif %}
         </div>
       </div>
@@ -754,9 +765,11 @@
   <div class="glass-panel" style="font-weight:700; color:#86efac;">
     Guruh yopish jarayoni holati: YOPILGAN.
     Tarixiy davomat va to'lov yozuvlari saqlangan.
+    {% if feature_certificates_ui %}
     <a href="{% url 'education:group_certificate_candidates' g.id %}" class="btn-ui btn-primary" style="margin-left:8px;">
       Sertifikatlar bo'limiga o'tish
     </a>
+    {% endif %}
   </div>
   {% endif %}
 

@@ -400,7 +400,7 @@ def _derive_fail_reason(*, absent: bool, passed: bool, percent, passing_percent:
 
 
 @transaction.atomic
-def save_exam_results_batch(*, session, actor, rows: list[dict]):
+def save_exam_results_batch(*, session, actor, rows: list[dict], finalize: bool = False):
     """
     rows format:
       {
@@ -557,7 +557,11 @@ def save_exam_results_batch(*, session, actor, rows: list[dict]):
         saved_count += 1
 
     progress = get_exam_session_progress(session=session)
-    session.status = ExamSession.STATUS_COMPLETED if progress["is_completed"] else ExamSession.STATUS_DRAFT
+    session.status = (
+        ExamSession.STATUS_COMPLETED
+        if finalize and progress["is_completed"]
+        else ExamSession.STATUS_DRAFT
+    )
     if session.teacher_decision != ExamSession.DECISION_YES:
         session.teacher_decision = ExamSession.DECISION_YES
     session.updated_by = actor
@@ -574,9 +578,141 @@ def save_exam_results_batch(*, session, actor, rows: list[dict]):
             "saved_count": saved_count,
             "pending_students": progress["pending_students"],
             "completed_students": progress["completed_students"],
+            "finalize": bool(finalize),
+            "status": session.status,
         },
     )
     return saved_count
+
+
+def notify_exam_results(session: ExamSession):
+    """
+    Sessiya yakunlanganda o'quvchi, ota-ona va boshqaruvga natija yuboradi.
+    """
+    try:
+        from accounts.models import User
+        from accounts.utils_bot import send_telegram_message
+        from core.models import Notification
+
+        settings_obj = get_or_create_center_exam_settings(session.center)
+        passing_percent = Decimal(str(settings_obj.passing_score_percent or 60))
+
+        results = list(
+            ExamResult.objects.filter(session=session)
+            .select_related("student")
+            .prefetch_related("student__parents")
+        )
+
+        valid_results = [
+            result
+            for result in results
+            if result.absent_in_exam or result.score is not None or result.percent is not None
+        ]
+        if not valid_results:
+            return 0
+
+        created_count = 0
+        for result in valid_results:
+            percent_value = result.percent if result.percent is not None else Decimal("0")
+            percent_text = f"{percent_value:.1f}"
+            if result.absent_in_exam:
+                student_message = f"📝 {session.group.nom} guruhida imtihon bo'ldi. Siz qatnashmadingiz."
+                parent_message = (
+                    f"📝 {session.group.nom} guruhida imtihon bo'ldi. "
+                    f"Farzandingiz {result.student.get_full_name()} qatnashmadi."
+                )
+            elif result.passed:
+                student_message = (
+                    f"✅ {session.group.nom} imtihon natijangiz: {percent_text}%."
+                    " Siz imtihondan o'tdingiz."
+                )
+                parent_message = (
+                    f"✅ {result.student.get_full_name()} {session.group.nom} guruhidagi imtihondan "
+                    f"{percent_text}% bilan o'tdi."
+                )
+            else:
+                student_message = (
+                    f"❌ {session.group.nom} imtihon natijangiz: {percent_text}%."
+                    f" O'tish chegarasi {passing_percent:.0f}%."
+                    " Qayta topshirish tavsiya etiladi."
+                )
+                parent_message = (
+                    f"❌ {result.student.get_full_name()} {session.group.nom} guruhidagi imtihondan "
+                    f"{percent_text}% oldi. Qayta topshirish tavsiya etiladi."
+                )
+
+            Notification.objects.create(
+                center=session.center,
+                recipient=result.student,
+                title="Imtihon natijasi",
+                message=student_message,
+                type="system",
+            )
+            created_count += 1
+
+            if result.student.is_telegram_linked and result.student.telegram_id:
+                try:
+                    send_telegram_message(result.student.telegram_id, student_message)
+                except Exception:
+                    logger.exception("Student telegram notification failed: result_id=%s", result.id)
+
+            for parent in result.student.parents.all():
+                if parent.is_archived:
+                    continue
+                Notification.objects.create(
+                    center=session.center,
+                    recipient=parent,
+                    title="Farzandingizning imtihon natijasi",
+                    message=parent_message,
+                    type="system",
+                )
+                created_count += 1
+                if parent.is_telegram_linked and parent.telegram_id:
+                    try:
+                        send_telegram_message(parent.telegram_id, parent_message)
+                    except Exception:
+                        logger.exception(
+                            "Parent telegram notification failed: result_id=%s parent_id=%s",
+                            result.id,
+                            parent.id,
+                        )
+
+        passed_count = sum(1 for result in valid_results if result.passed and not result.absent_in_exam)
+        total = len(valid_results)
+        avg_percent = (
+            sum(float(result.percent or 0) for result in valid_results if result.percent is not None)
+            / max(sum(1 for result in valid_results if result.percent is not None), 1)
+        )
+        summary = (
+            f"📊 {session.group.nom} imtihoni yakunlandi.\n"
+            f"O'tdi: {passed_count}/{total}\n"
+            f"O'rtacha foiz: {avg_percent:.1f}%"
+        )
+
+        managers = User.objects.filter(
+            center=session.center,
+            role__in=["manager", "director"],
+            is_archived=False,
+        )
+        for manager in managers:
+            Notification.objects.create(
+                center=session.center,
+                recipient=manager,
+                title="Imtihon hisoboti",
+                message=summary,
+                type="system",
+            )
+            created_count += 1
+            if manager.is_telegram_linked and manager.telegram_id:
+                try:
+                    send_telegram_message(manager.telegram_id, summary)
+                except Exception:
+                    logger.exception("Manager telegram notification failed: session_id=%s", session.id)
+
+        return created_count
+    except Exception:
+        logger.exception("notify_exam_results failed: session_id=%s", getattr(session, "id", None))
+        return 0
 
 
 def get_student_exam_summary(*, student, group=None):

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load form_tags %}
+{% block content %}
+{% include "education/partials/phase_theme.html" %}
+<style>
+  .teacher-schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .teacher-day-card {
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(15, 23, 42, 0.72);
+  }
+  .teacher-day-title {
+    margin-bottom: 10px;
+    font-size: 15px;
+    font-weight: 900;
+    color: #f8fafc;
+  }
+  .teacher-slot {
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(2, 6, 23, 0.42);
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    color: #e2e8f0;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .teacher-slot:last-child {
+    margin-bottom: 0;
+  }
+  .teacher-empty {
+    padding: 12px;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.45);
+    color: #94a3b8;
+    font-weight: 700;
+    text-align: center;
+  }
+  @media (max-width: 900px) {
+    .teacher-schedule-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="ui-shell">
+  <div class="ui-panel ui-header glass">
+    <div>
+      <h3 class="ui-title">📅 Mening jadvalim</h3>
+      <div class="ui-sub">Faol guruhlaringiz bo'yicha haftalik dars ko'rinishi</div>
+    </div>
+  </div>
+
+  <div class="ui-panel ui-section glass">
+    <div class="ui-note mb-0">
+      Bu sahifa tayyor jadvalni ko'rsatadi. O'zgartirish uchun guruh kartasidan "Jadval" bo'limiga kiring.
+    </div>
+  </div>
+
+  <div class="teacher-schedule-grid">
+    {% for weekday, label in weekday_labels %}
+      <div class="teacher-day-card glass">
+        <div class="teacher-day-title">{{ label }}</div>
+        {% with items=week_map|get_item:weekday %}
+          {% if items %}
+            {% for item in items %}
+              <div class="teacher-slot">
+                {{ item.group.nom }} | {{ item.time_range }} | {{ item.room|default:"Xona yo'q" }}
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="teacher-empty">Dam olish kuni</div>
+          {% endif %}
+        {% endwith %}
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="ui-panel ui-section glass mt-3">
+    <div class="ui-note ui-note-muted mb-0">Jami haftada: {{ total_lessons }} dars</div>
+  </div>
+
+  {% if unscheduled_groups %}
+    <div class="ui-panel ui-section glass mt-3">
+      <h4 class="ui-section-title">Jadval kiritilmagan guruhlar</h4>
+      <div class="ui-grid">
+        {% for group in unscheduled_groups %}
+          <div class="ui-col-6">
+            <div class="teacher-slot" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+              <span>{{ group.nom }} | Jadval kiritilmagan</span>
+              <a href="{% url 'education:group_schedule_manage' group.id %}" class="ui-btn ui-btn-secondary">Jadval kiritish</a>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

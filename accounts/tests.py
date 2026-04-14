@@ -1,11 +1,13 @@
+import json
 from datetime import datetime, timedelta, timezone as dt_timezone
+from unittest.mock import patch
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from accounts.models import Center, User
+from accounts.models import BranchRequest, Center, DirectorCenterAccess, User
 from accounts.student_limit import check_student_limit
 from billing.models import CenterSubscription, SubscriptionOrder, SubscriptionPlan
 
@@ -95,6 +97,60 @@ class SuperadminPaymentHistoryApiTests(TestCase):
 
         expected_local = timezone.localtime(paid_at_utc).strftime("%d.%m.%Y %H:%M")
         self.assertIn(expected_local, html)
+
+
+class CenterUiFeatureToggleTests(TestCase):
+    def setUp(self):
+        self.superadmin = User.objects.create_superuser(
+            email="superadmin.features@test.uz",
+            password="strong-pass-123",
+        )
+        self.client.force_login(self.superadmin)
+        self.center = Center.objects.create(
+            name="Feature Center",
+            slug="feature-center",
+            features={},
+        )
+
+    def test_superadmin_can_toggle_center_ui_feature(self):
+        response = self.client.post(
+            reverse("platform_global:toggle_center_ui_feature", args=[self.center.id]),
+            data='{"feature":"ui_weekly_schedule","enabled":false}',
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {"ok": True, "feature": "ui_weekly_schedule", "enabled": False},
+        )
+
+        self.center.refresh_from_db()
+        self.assertEqual(self.center.features["ui_weekly_schedule"], False)
+
+    def test_unknown_feature_returns_400(self):
+        response = self.client.post(
+            reverse("platform_global:toggle_center_ui_feature", args=[self.center.id]),
+            data='{"feature":"ui_unknown","enabled":true}',
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["ok"], False)
+        self.assertEqual(response.json()["error"], "Unknown feature")
+
+    def test_center_manage_page_renders_feature_toggle_section(self):
+        self.center.features = {"ui_weekly_schedule": False}
+        self.center.save(update_fields=["features"])
+
+        response = self.client.get(
+            reverse("platform_global:center_manage", args=[self.center.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "UI Funksiyalarini Boshqarish")
+        self.assertContains(response, 'id="toggle-ui_weekly_schedule"')
+        self.assertContains(response, 'id="feat-card-ui_weekly_schedule"')
 
 
 class StudentLimitResolutionTests(TestCase):
@@ -241,3 +297,107 @@ class TenantRedirectRegressionTests(TestCase):
         response = self.client.get(reverse("accounts:add_user") + "?role=student")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Student Anketasi")
+
+
+class DirectorMultiCenterTests(TestCase):
+    def setUp(self):
+        self.primary_center = Center.objects.create(name="Asosiy Center", slug="asosiy-center")
+        self.extra_center = Center.objects.create(name="Qo'shimcha Center", slug="qoshimcha-center")
+        self.other_center = Center.objects.create(name="Begona Center", slug="begona-center")
+        self.director = User.objects.create_user(
+            email="director.multicenter@test.uz",
+            password="strong-pass-123",
+            role="director",
+            ism="Multi",
+            familya="Director",
+            center=self.primary_center,
+        )
+        DirectorCenterAccess.objects.create(
+            director=self.director,
+            center=self.extra_center,
+            is_active=True,
+        )
+        self.client.force_login(self.director)
+
+    def test_my_centers_returns_primary_extra_and_pending_requests(self):
+        pending_request = BranchRequest.objects.create(
+            requester=self.director,
+            parent_center=self.primary_center,
+            name="Yangi Sergeli",
+            status=BranchRequest.Status.PENDING,
+        )
+        BranchRequest.objects.create(
+            requester=self.director,
+            parent_center=self.primary_center,
+            name="Eski Yunusobod",
+            status=BranchRequest.Status.APPROVED,
+        )
+
+        response = self.client.get(reverse("accounts:my_centers"))
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(len(payload["centers"]), 2)
+        self.assertEqual(
+            {item["id"] for item in payload["centers"]},
+            {self.primary_center.id, self.extra_center.id},
+        )
+        primary_row = next(item for item in payload["centers"] if item["id"] == self.primary_center.id)
+        extra_row = next(item for item in payload["centers"] if item["id"] == self.extra_center.id)
+        self.assertTrue(primary_row["is_primary"])
+        self.assertTrue(primary_row["is_current"])
+        self.assertFalse(extra_row["is_primary"])
+        self.assertEqual(len(payload["pending_requests"]), 1)
+        self.assertEqual(payload["pending_requests"][0]["id"], pending_request.id)
+
+    def test_director_switch_center_sets_session_and_redirects_new_slug(self):
+        response = self.client.post(
+            reverse("accounts:director_switch_center"),
+            data=json.dumps({"center_id": self.extra_center.id}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(self.client.session["active_center_id"], self.extra_center.id)
+        self.assertEqual(payload["redirect_url"], f"/{self.extra_center.slug}/boshqaruv/")
+
+        dashboard_response = self.client.get(reverse("core:director_boshqaruv"), follow=False)
+        self.assertEqual(dashboard_response.status_code, 302)
+        self.assertEqual(
+            dashboard_response["Location"],
+            f"/{self.extra_center.slug}/boshqaruv/",
+        )
+
+    def test_director_cannot_switch_to_unassigned_center(self):
+        response = self.client.post(
+            reverse("accounts:director_switch_center"),
+            data=json.dumps({"center_id": self.other_center.id}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["error"], "Bu markazga ruxsat yo'q")
+
+    @patch("accounts.views._send_branch_request_to_telegram", return_value="777")
+    def test_branch_request_creates_record_and_saves_telegram_message_id(self, telegram_mock):
+        response = self.client.post(
+            reverse("accounts:branch_request"),
+            data=json.dumps({
+                "name": "Yangi Filial",
+                "address": "Chilonzor 10",
+                "phone": "+998901112233",
+            }),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        created = BranchRequest.objects.get(pk=payload["request_id"])
+        self.assertEqual(created.requester, self.director)
+        self.assertEqual(created.parent_center, self.primary_center)
+        self.assertEqual(created.telegram_message_id, "777")
+        telegram_mock.assert_called_once()

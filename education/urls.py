@@ -49,6 +49,7 @@ urlpatterns = [
 
     # === 👥 GURUHLAR ===
     path("guruh/<int:pk>/", views.group_detail, name="group_detail"),
+    path("groups/<int:group_id>/schedule/", views.group_schedule_manage, name="group_schedule_manage"),
     path("guruh/<int:pk>/add-student/", views.add_student_to_group, name="add_student_to_group"),
     path("guruh/<int:pk>/davomat/", views.group_rollcall, name="group_rollcall"),
     path('category/<int:id>/edit/', views.edit_category, name='edit_category'),
@@ -64,10 +65,16 @@ urlpatterns = [
     path("guruh/<int:pk>/attendance_today/", views.attendance_today, name="attendance_today"),
     path("guruh/<int:pk>/points/", views.group_points, name="group_points"),
     path("attendance/toggle/", views.toggle_attendance, name="toggle_attendance"),
+    path("schedule/conflict-check/", views.schedule_conflict_check, name="schedule_conflict_check"),
+    path("schedule/weekly/", views.weekly_schedule_view, name="weekly_schedule"),
+    path("schedule/my/", views.teacher_schedule_view, name="teacher_schedule"),
 
     # === 🧪 Imtihon moduli ===
     path("exam/settings/", views.exam_settings_view, name="exam_settings"),
     path("exam/reminder/<int:group_id>/action/", views.exam_reminder_action, name="exam_reminder_action"),
+    path("exam/list/", views.exam_list, name="exam_list"),
+    path("exam/create/", views.exam_create, name="exam_create"),
+    path("exam/create/<int:group_id>/", views.exam_create, name="exam_create_for_group"),
     path("exam/sessions/<int:session_id>/", views.exam_session_entry, name="exam_session_entry"),
     path("exam/sessions/<int:session_id>/detail/", views.exam_session_detail, name="exam_session_detail"),
     path("exam/groups/<int:group_id>/history/", views.group_exam_history, name="group_exam_history"),

@@ -1,4 +1,7 @@
 # accounts/views.py
+import json
+import logging
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import get_object_or_404, render, redirect
@@ -8,9 +11,10 @@ from django.urls import reverse
 from django import forms
 from django.db.models import Count, Sum
 from django.db.models.functions import Coalesce
+from django.http import HttpResponseForbidden, JsonResponse
 
 from .forms import AddUserForm, TeacherForm, ProfileEditForm, PasswordUpdateForm
-from accounts.models import User, Center
+from accounts.models import BranchRequest, Center, DirectorCenterAccess, User
 from education.models import Group, Enrollment, Attendance
 from core.tenant import get_request_center
 from django.db.models import Q
@@ -41,7 +45,6 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, redirect
 from accounts.models import Center
-from django.http import HttpResponseForbidden
 from billing.models import SubscriptionPlan
 from django.db.models import Count, Q, Prefetch
 from accounts.models import User
@@ -131,10 +134,8 @@ def center_picker(request):
 
 from django.shortcuts import redirect
 from django.contrib import messages
-from django.http import HttpResponseForbidden
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -178,6 +179,224 @@ def center_switch(request):
     logger.info(f"Center switch OK: {center.id}")
 
     return redirect(next_url)
+
+
+def _send_branch_request_to_telegram(branch_request: BranchRequest) -> str | None:
+    """BranchRequest ni Telegram admin guruhiga yuboradi. Message ID qaytaradi."""
+    from html import escape
+
+    import requests
+    from django.conf import settings
+    from django.utils import timezone
+
+    token = str(getattr(settings, "TELEGRAM_BOT_TOKEN", "") or "").strip()
+    chat_id = str(getattr(settings, "TELEGRAM_GROUP_ID", "") or "").strip()
+    if not token or not chat_id:
+        logger.warning("Telegram config yo'q, branch request yuborilmadi")
+        return None
+
+    created_at = timezone.localtime(branch_request.created_at).strftime("%d.%m.%Y %H:%M")
+    requester_name = escape(branch_request.requester.get_full_name() or branch_request.requester.email)
+    parent_center_name = escape(branch_request.parent_center.name)
+    center_name = escape(branch_request.name)
+    center_address = escape(branch_request.address or "—")
+    center_phone = escape(branch_request.phone or "—")
+
+    payload = {
+        "chat_id": chat_id,
+        "text": (
+            f"🏢 <b>YANGI FILIAL SO'ROVI</b> #{branch_request.id}\n\n"
+            f"👤 Direktor: {requester_name}\n"
+            f"🏫 Asosiy markaz: {parent_center_name}\n\n"
+            f"📋 <b>Yangi markaz ma'lumotlari:</b>\n"
+            f"• Nomi: <code>{center_name}</code>\n"
+            f"• Manzil: {center_address}\n"
+            f"• Telefon: {center_phone}\n\n"
+            f"⏰ Vaqt: {created_at}\n\n"
+            "Quyidagi tugmalardan birini bosing:"
+        ),
+        "parse_mode": "HTML",
+        "reply_markup": {
+            "inline_keyboard": [[
+                {"text": "✅ Tasdiqlash", "callback_data": f"branch_approve:{branch_request.id}"},
+                {"text": "❌ Rad etish", "callback_data": f"branch_reject:{branch_request.id}"},
+            ]]
+        },
+    }
+
+    try:
+        response = requests.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json=payload,
+            timeout=10,
+        )
+        data = response.json()
+        if data.get("ok"):
+            return str(data["result"]["message_id"])
+        logger.warning("Branch request Telegram yuborilmadi: %s", data)
+    except Exception:
+        logger.exception("Branch request Telegram send error")
+    return None
+
+
+@login_required
+def director_my_centers(request):
+    """Director uchun: o'z markazlari ro'yxati (JSON)."""
+    user = request.user
+    if not (user.is_superuser or getattr(user, "role", None) == "director"):
+        return JsonResponse({"ok": False, "error": "Ruxsat yo'q"}, status=403)
+
+    current_center = getattr(request, "center", None) or getattr(user, "center", None)
+
+    centers: list[dict] = []
+    if user.center:
+        centers.append({
+            "id": user.center.id,
+            "name": user.center.name,
+            "slug": user.center.slug,
+            "address": user.center.address or "",
+            "is_current": bool(current_center and current_center.id == user.center.id),
+            "is_primary": True,
+        })
+
+    extra_accesses = (
+        DirectorCenterAccess.objects
+        .filter(director=user, is_active=True, center__is_deleted=False)
+        .select_related("center")
+    )
+    for access in extra_accesses:
+        center = access.center
+        if any(item["id"] == center.id for item in centers):
+            continue
+        centers.append({
+            "id": center.id,
+            "name": center.name,
+            "slug": center.slug,
+            "address": center.address or "",
+            "is_current": bool(current_center and current_center.id == center.id),
+            "is_primary": False,
+        })
+
+    pending_requests = list(
+        BranchRequest.objects
+        .filter(requester=user, status=BranchRequest.Status.PENDING)
+        .values("id", "name", "address", "phone", "created_at")
+    )
+
+    return JsonResponse({
+        "ok": True,
+        "centers": centers,
+        "current_id": current_center.id if current_center else None,
+        "pending_requests": pending_requests,
+    })
+
+
+@login_required
+def director_switch_center(request):
+    """Director o'ziga tegishli boshqa markazga o'tadi."""
+    if request.method != "POST":
+        return JsonResponse({"ok": False}, status=405)
+
+    user = request.user
+    if not (user.is_superuser or getattr(user, "role", None) == "director"):
+        return JsonResponse({"ok": False, "error": "Ruxsat yo'q"}, status=403)
+
+    try:
+        data = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "Yaroqsiz JSON"}, status=400)
+
+    center_id = data.get("center_id")
+    if not center_id:
+        return JsonResponse({"ok": False, "error": "center_id kiritilmagan"}, status=400)
+
+    try:
+        center_id = int(center_id)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "error": "center_id noto'g'ri"}, status=400)
+
+    is_primary = bool(user.center and user.center.id == center_id)
+    has_access = user.is_superuser or is_primary or DirectorCenterAccess.objects.filter(
+        director=user,
+        center_id=center_id,
+        is_active=True,
+    ).exists()
+    if not has_access:
+        return JsonResponse({"ok": False, "error": "Bu markazga ruxsat yo'q"}, status=403)
+
+    center = Center.objects.filter(pk=center_id, is_deleted=False).first()
+    if not center:
+        return JsonResponse({"ok": False, "error": "Markaz topilmadi"}, status=404)
+
+    request.session["active_center_id"] = center_id
+    request.session.modified = True
+
+    return JsonResponse({
+        "ok": True,
+        "center_id": center_id,
+        "center_name": center.name,
+        "center_slug": center.slug,
+        "redirect_url": f"/{center.slug}{reverse('core:director_boshqaruv')}",
+    })
+
+
+@login_required
+def director_branch_request(request):
+    """Director yangi markaz ochish so'rovini yuboradi."""
+    if request.method != "POST":
+        return JsonResponse({"ok": False}, status=405)
+
+    user = request.user
+    if not (user.is_superuser or getattr(user, "role", None) == "director"):
+        return JsonResponse({"ok": False, "error": "Faqat direktor"}, status=403)
+
+    try:
+        data = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "Yaroqsiz JSON"}, status=400)
+
+    name = (data.get("name") or "").strip()
+    address = (data.get("address") or "").strip()
+    phone = (data.get("phone") or "").strip()
+
+    if not name:
+        return JsonResponse({"ok": False, "error": "Markaz nomi kiritilmagan"}, status=400)
+    if len(name) < 3:
+        return JsonResponse({"ok": False, "error": "Markaz nomi juda qisqa (min 3 harf)"}, status=400)
+
+    current_center = getattr(request, "center", None) or getattr(user, "center", None)
+    if not current_center:
+        return JsonResponse({"ok": False, "error": "Asosiy markaz aniqlanmadi"}, status=400)
+
+    pending_count = BranchRequest.objects.filter(
+        requester=user,
+        status=BranchRequest.Status.PENDING,
+    ).count()
+    if pending_count >= 3:
+        return JsonResponse({
+            "ok": False,
+            "error": "Maksimum 3 ta kutilayotgan so'rov bo'lishi mumkin",
+        }, status=400)
+
+    branch_request = BranchRequest.objects.create(
+        requester=user,
+        parent_center=current_center,
+        name=name,
+        address=address,
+        phone=phone,
+        status=BranchRequest.Status.PENDING,
+    )
+
+    message_id = _send_branch_request_to_telegram(branch_request)
+    if message_id:
+        branch_request.telegram_message_id = str(message_id)
+        branch_request.save(update_fields=["telegram_message_id"])
+
+    return JsonResponse({
+        "ok": True,
+        "request_id": branch_request.id,
+        "message": "So'rovingiz adminga yuborildi. Tasdiqlangandan keyin yangi markaz ochiladi.",
+    })
 
 @login_required
 @require_http_methods(["GET", "POST"])
