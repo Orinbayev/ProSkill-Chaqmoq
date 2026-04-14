@@ -239,6 +239,40 @@ def _send_branch_request_to_telegram(branch_request: BranchRequest) -> str | Non
     return None
 
 
+def _notify_branch_deactivated(center, actor) -> None:
+    """Filial bloklanganligi haqida Telegram admin guruhiga xabar yuboradi."""
+    from html import escape
+    import requests
+    from django.conf import settings
+    from django.utils import timezone
+
+    token   = str(getattr(settings, "TELEGRAM_BOT_TOKEN", "") or "").strip()
+    chat_id = str(getattr(settings, "TELEGRAM_GROUP_ID", "") or "").strip()
+    if not token or not chat_id:
+        return
+
+    parent_name  = escape(center.parent_center.name if center.parent_center else "—")
+    branch_name  = escape(center.name)
+    actor_name   = escape(actor.get_full_name() or actor.email)
+    now          = timezone.localtime(timezone.now()).strftime("%d.%m.%Y %H:%M")
+
+    text = (
+        "🔒 <b>FILIAL BLOKLANDI</b>\n\n"
+        f"📌 Filial: <b>{branch_name}</b>\n"
+        f"🏢 Asosiy markaz: {parent_name}\n"
+        f"👤 Kim blokladi: {actor_name}\n"
+        f"⏰ Vaqt: {now}"
+    )
+    try:
+        requests.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={"chat_id": chat_id, "text": text, "parse_mode": "HTML"},
+            timeout=8,
+        )
+    except Exception:
+        logger.exception("Branch deactivated Telegram notify failed")
+
+
 @login_required
 def director_my_centers(request):
     """Director uchun: o'z markazlari ro'yxati (JSON)."""
@@ -498,6 +532,12 @@ def director_branch_deactivate(request, center_id: int):
 
     # Barcha aktiv DirectorCenterAccess larni o'chiramiz
     DirectorCenterAccess.objects.filter(center=center, is_active=True).update(is_active=False)
+
+    # Telegram admin guruhiga xabar yuborish (background, xato bo'lsa e'tibor bermaslik)
+    try:
+        _notify_branch_deactivated(center, actor=user)
+    except Exception:
+        logger.exception("Branch deactivate telegram notify failed silently")
 
     reload_needed = str(request.session.get("current_center_id")) == str(center_id)
     return JsonResponse({"ok": True, "message": f"'{center.name}' filiali bloklandi", "reload": reload_needed})

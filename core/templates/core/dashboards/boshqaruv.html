@@ -2628,7 +2628,7 @@ async function loadMyCenters() {
         html += `<div style="font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#475569;padding:0 2px 6px;">Asosiy markazlar</div>`;
         html += primaryCenters.map(center => `
           <div class="bq-ci ${center.is_current ? 'active' : ''}" data-center-id="${center.id}"
-               onclick="switchToCenter(${center.id}, decodeURIComponent('${encodeURIComponent(center.name)}'))">
+               data-name="${escHtml(center.name)}" onclick="switchToCenter(${center.id})">
             <div class="bq-ci__ico">🏢</div>
             <div class="bq-ci__info">
               <div class="bq-ci__name">${escHtml(center.name)}</div>
@@ -2643,26 +2643,38 @@ async function loadMyCenters() {
       // ── Branch centers
       if (branchCenters.length) {
         html += `<div style="font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#475569;padding:12px 2px 6px;">Filiallar</div>`;
-        html += branchCenters.map(center => `
-          <div class="bq-ci branch-item ${center.is_current ? 'active' : ''}" data-center-id="${center.id}">
-            <div class="bq-ci__ico" style="cursor:pointer;" onclick="switchToCenter(${center.id}, decodeURIComponent('${encodeURIComponent(center.name)}'))">📌</div>
-            <div class="bq-ci__info" style="cursor:pointer;" onclick="switchToCenter(${center.id}, decodeURIComponent('${encodeURIComponent(center.name)}'))">
-              <div class="bq-ci__name">${escHtml(center.name)}</div>
-              <div class="bq-ci__slug">${center.address ? escHtml(center.address) : ('chaqmoqapp.uz/' + escHtml(center.slug) + '/')}</div>
+        html += branchCenters.map(center => {
+          const eName    = escHtml(center.name);
+          const eAddr    = escHtml(center.address || '');
+          const ePhone   = escHtml(center.phone   || '');
+          const eSlug    = escHtml(center.slug);
+          const isActive = center.is_current ? 'active' : '';
+          return `
+          <div class="bq-ci branch-item ${isActive}" data-center-id="${center.id}">
+            <div class="bq-ci__ico" style="cursor:pointer;" onclick="event.stopPropagation();switchToCenter(${center.id})">📌</div>
+            <div class="bq-ci__info" style="cursor:pointer;" onclick="event.stopPropagation();switchToCenter(${center.id})">
+              <div class="bq-ci__name">${eName}</div>
+              <div class="bq-ci__slug">${eAddr || ('chaqmoqapp.uz/' + eSlug + '/')}</div>
             </div>
             ${center.is_current ? '<i class="fa-solid fa-check bq-ci__check" style="margin-right:4px;"></i>' : ''}
-            <div class="bq-ci__actions" onclick="event.stopPropagation()">
+            <div class="bq-ci__actions">
               <button class="bq-ci__act edit" title="Tahrirlash"
-                onclick="openEditBranch(${center.id}, decodeURIComponent('${encodeURIComponent(center.name)}'), decodeURIComponent('${encodeURIComponent(center.address||'')}'), decodeURIComponent('${encodeURIComponent(center.phone||'')}'))">
+                data-id="${center.id}"
+                data-name="${eName}"
+                data-address="${eAddr}"
+                data-phone="${ePhone}"
+                onclick="event.stopPropagation(); openEditBranch(this)">
                 <i class="fa-solid fa-pen"></i>
               </button>
-              <button class="bq-ci__act del" title="Bloklash"
-                onclick="openDeleteBranch(${center.id}, decodeURIComponent('${encodeURIComponent(center.name)}'))">
+              <button class="bq-ci__act del" title="O'chirish / Bloklash"
+                data-id="${center.id}"
+                data-name="${eName}"
+                onclick="event.stopPropagation(); openDeleteBranch(this)">
                 <i class="fa-solid fa-lock"></i>
               </button>
             </div>
-          </div>
-        `).join('');
+          </div>`;
+        }).join('');
       }
 
       listEl.innerHTML = html;
@@ -2693,7 +2705,13 @@ async function loadMyCenters() {
   }
 }
 
-async function switchToCenter(centerId, centerName) {
+async function switchToCenter(centerId) {
+  // Name ni DOM dan o'qiymiz (xavfsiz, encoding muammosi yo'q)
+  const card = document.querySelector(`.bq-ci[data-center-id="${centerId}"]`);
+  const centerName = card
+    ? (card.dataset.name || card.querySelector('.bq-ci__name')?.textContent?.trim() || '')
+    : '';
+
   const currentCard = document.querySelector(`.bq-ci.active[data-center-id="${centerId}"]`);
   if (currentCard) {
     closeCenterModal();
@@ -2769,13 +2787,25 @@ async function sendBranchRequest() {
 // ══════════════════════════════════════════════
 // BRANCH EDIT / DELETE (Center branches)
 // ══════════════════════════════════════════════
-function openEditBranch(id, name, address, phone) {
-  document.getElementById('bqEditBranchId').value = id;
-  document.getElementById('bqEditBranchName').value = name || '';
-  document.getElementById('bqEditBranchAddress').value = address || '';
-  document.getElementById('bqEditBranchPhone').value = phone || '';
+
+// btn — <button data-id data-name data-address data-phone> elementi
+function openEditBranch(btn) {
+  const id      = btn.dataset.id;
+  // escHtml bilan saqlangan qiymat — innerHTML emas, value ga berish uchun textContent kabi ishlaydi
+  const name    = btn.dataset.name    || '';
+  const address = btn.dataset.address || '';
+  const phone   = btn.dataset.phone   || '';
+
+  document.getElementById('bqEditBranchId').value      = id;
+  document.getElementById('bqEditBranchName').value    = name;
+  document.getElementById('bqEditBranchAddress').value = address;
+  document.getElementById('bqEditBranchPhone').value   = phone;
+
   const overlay = document.getElementById('bqEditBranchOverlay');
-  if (overlay) { overlay.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+  if (!overlay) { showToast('❌ Modal topilmadi', 'error'); return; }
+  overlay.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  document.getElementById('bqEditBranchName').focus();
 }
 
 function closeEditBranch() {
@@ -2813,11 +2843,16 @@ async function saveEditBranch() {
   }
 }
 
-function openDeleteBranch(id, name) {
-  document.getElementById('bqDeleteBranchId').value = id;
+// btn — <button data-id data-name> elementi
+function openDeleteBranch(btn) {
+  const id   = btn.dataset.id;
+  const name = btn.dataset.name || 'Filial';
+  document.getElementById('bqDeleteBranchId').value        = id;
   document.getElementById('bqDeleteBranchName').textContent = name;
   const overlay = document.getElementById('bqDeleteBranchOverlay');
-  if (overlay) { overlay.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+  if (!overlay) { showToast('❌ Modal topilmadi', 'error'); return; }
+  overlay.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
 }
 
 function closeDeleteBranch() {
