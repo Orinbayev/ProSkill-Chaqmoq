@@ -51,8 +51,8 @@ def create_teacher_income(sender, instance, created, **kwargs):
     # Agar o'qituvchi profilida foiz bo'lmasa (0 bo'lsa), unda Enrollmentdagi foizga qaraymiz
     if foiz is None or foiz == 0:
         foiz = enrollment.oqituvchi_foiz
-        
-    kurs_narhi = enrollment.kurs_narhi or 0
+
+    kurs_narhi = enrollment.full_course_amount
     
     oy_dars_soni = instance.group.oy_dars_soni or 12
     if oy_dars_soni <= 0: oy_dars_soni = 12

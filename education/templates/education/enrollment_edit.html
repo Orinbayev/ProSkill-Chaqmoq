@@ -124,6 +124,244 @@
     background-size: 20px !important;
   }
 
+  .section-shell {
+    margin-top: 26px;
+    padding: 24px;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: linear-gradient(180deg, rgba(10, 18, 34, 0.78), rgba(10, 18, 34, 0.46));
+  }
+
+  .section-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 22px;
+  }
+
+  .section-title {
+    margin: 0;
+    color: #f8fafc;
+    font-size: 18px;
+    font-weight: 800;
+  }
+
+  .section-copy {
+    margin: 6px 0 0;
+    color: rgba(148, 163, 184, 0.92);
+    font-size: 13px;
+    line-height: 1.6;
+    max-width: 640px;
+  }
+
+  .section-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.18);
+    color: #7dd3fc;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+
+  .pricing-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 22px;
+    padding: 18px 18px 16px;
+    background: rgba(9, 14, 28, 0.86);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    min-height: 124px;
+  }
+
+  .pricing-card::after {
+    content: "";
+    position: absolute;
+    inset: auto -30px -40px auto;
+    width: 90px;
+    height: 90px;
+    border-radius: 999px;
+    opacity: 0.18;
+    pointer-events: none;
+  }
+
+  .pricing-card.price::after { background: #38bdf8; }
+  .pricing-card.teacher::after { background: #f59e0b; }
+  .pricing-card.payable::after { background: #22c55e; }
+  .pricing-card.subsidy::after { background: #a855f7; }
+
+  .pricing-label {
+    display: block;
+    margin-bottom: 10px;
+    color: rgba(148, 163, 184, 0.96);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .pricing-value {
+    color: #f8fafc;
+    font-size: 24px;
+    font-weight: 900;
+    line-height: 1.12;
+    word-break: break-word;
+  }
+
+  .pricing-note {
+    margin-top: 10px;
+    color: rgba(148, 163, 184, 0.92);
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  .pricing-card.teacher .pricing-value { color: #fbbf24; }
+  .pricing-card.payable .pricing-value { color: #4ade80; }
+  .pricing-card.subsidy .pricing-value { color: #c084fc; }
+
+  .mode-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    border-radius: 18px;
+    margin-bottom: 20px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .mode-banner-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .mode-banner-title {
+    color: #f8fafc;
+    font-size: 14px;
+    font-weight: 800;
+  }
+
+  .mode-banner-text {
+    color: rgba(148, 163, 184, 0.92);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .mode-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .mode-pill.full {
+    background: rgba(56, 189, 248, 0.14);
+    color: #7dd3fc;
+    border: 1px solid rgba(56, 189, 248, 0.22);
+  }
+
+  .mode-pill.teacher-only {
+    background: rgba(245, 158, 11, 0.14);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.24);
+  }
+
+  .mode-pill.custom {
+    background: rgba(34, 197, 94, 0.14);
+    color: #86efac;
+    border: 1px solid rgba(34, 197, 94, 0.22);
+  }
+
+  .finance-fields {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .field-stack {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .field-help {
+    margin-top: 10px;
+    color: rgba(148, 163, 184, 0.92);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .toggle-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px 18px 16px;
+    border-radius: 20px;
+    margin-top: 18px;
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.03));
+    border: 1px solid rgba(245, 158, 11, 0.14);
+  }
+
+  .toggle-card .form-check-input {
+    width: 22px;
+    height: 22px;
+    margin-top: 1px;
+    background-color: rgba(15, 23, 42, 0.82);
+    border-color: rgba(255, 255, 255, 0.18);
+    box-shadow: none;
+  }
+
+  .toggle-card .form-check-input:checked {
+    background-color: #2563eb;
+    border-color: #2563eb;
+  }
+
+  .toggle-card .form-check-label {
+    color: #f8fafc;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .toggle-copy {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .toggle-desc {
+    margin-top: 6px;
+    color: rgba(148, 163, 184, 0.92);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .teacher-share-hint {
+    margin-top: 10px;
+    color: #fbbf24;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
   .action-buttons {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -178,6 +416,23 @@
   }
 
   @media (max-width: 640px) {
+    .pricing-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .finance-fields {
+      grid-template-columns: 1fr;
+    }
+
+    .section-shell {
+      padding: 18px;
+    }
+
+    .mode-banner {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
     .action-buttons {
       grid-template-columns: 1fr;
     }
@@ -188,6 +443,16 @@
 
     .glass-card {
       padding: 25px;
+    }
+  }
+
+  @media (max-width: 980px) {
+    .pricing-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .finance-fields {
+      grid-template-columns: 1fr;
     }
   }
 </style>
@@ -211,7 +476,18 @@
       <input type="hidden" name="next" value="{{ next }}">
       <input type="hidden" name="month" value="{{ month }}">
 
-      <div class="row g-4">
+      <div class="section-shell">
+        <div class="section-head">
+          <div>
+            <h3 class="section-title">Asosiy ma'lumotlar</h3>
+            <p class="section-copy">
+              O‘quvchi profil ma'lumotlari va qaysi guruhga tegishli ekanini shu blokda boshqarasiz.
+            </p>
+          </div>
+          <div class="section-kicker">Profil</div>
+        </div>
+
+        <div class="row g-4">
         <!-- Ism -->
         <div class="col-md-6">
           <label class="form-label">Ism</label>
@@ -242,19 +518,87 @@
             {% endfor %}
           </select>
         </div>
+        </div>
+      </div>
 
-        <!-- Kurs Narxi -->
-        <div class="col-md-6">
+      <div class="section-shell">
+        <div class="section-head">
+          <div>
+            <h3 class="section-title">Moliyaviy sozlamalar</h3>
+            <p class="section-copy">
+              Bu yerda ichki to‘liq kurs narxi, o‘qituvchi ulushi va o‘quvchidan real olinadigan qarz summasi alohida boshqariladi.
+            </p>
+          </div>
+          <div class="section-kicker">Moliya</div>
+        </div>
+
+        <div class="pricing-grid">
+          <div class="pricing-card price">
+            <span class="pricing-label">To'liq kurs narxi</span>
+            <div class="pricing-value" id="fullCoursePreview">0 so'm</div>
+            <div class="pricing-note">Ichki baza. O‘qituvchi ulushi har doim shu summadan hisoblanadi.</div>
+          </div>
+          <div class="pricing-card teacher">
+            <span class="pricing-label">O'qituvchi ulushi</span>
+            <div class="pricing-value" id="teacherSharePreview">0 so'm</div>
+            <div class="pricing-note">Foizga ko‘ra o‘qituvchiga yoziladigan to‘lov.</div>
+          </div>
+          <div class="pricing-card payable">
+            <span class="pricing-label">O'quvchi qarzi</span>
+            <div class="pricing-value" id="payablePreview">0 so'm</div>
+            <div class="pricing-note">Qarzdorlar bo‘limida aynan shu summa ko‘rinadi.</div>
+          </div>
+          <div class="pricing-card subsidy">
+            <span class="pricing-label">Markaz subsidiyasi</span>
+            <div class="pricing-value" id="subsidyPreview">0 so'm</div>
+            <div class="pricing-note">Kurs narxining o'quvchiga qarz bo‘lib tushmaydigan qismi.</div>
+          </div>
+        </div>
+
+        <div class="mode-banner">
+          <div class="mode-banner-copy">
+            <div class="mode-banner-title">Amaldagi hisob rejimi</div>
+            <div class="mode-banner-text" id="modeDescription">To'liq kurs narxi o'quvchi qarzi sifatida ishlatiladi.</div>
+          </div>
+          <div class="mode-pill full" id="modePill">To'liq narx</div>
+        </div>
+
+        <div class="finance-fields">
+        <div class="field-stack">
           <label class="form-label">Kurs narxi (so'm)</label>
           <input type="number" name="kurs_narhi" min="0" value="{{ enr.kurs_narhi|default:'0' }}"
             class="form-control custom-input" placeholder="Summani kiriting">
+          <div class="field-help">Bu ichki to'liq kurs narxi. O'qituvchi ulushi shu summadan hisoblanadi.</div>
         </div>
 
-        <!-- O'qituvchi Foizi -->
-        <div class="col-md-6">
+        <div class="field-stack">
           <label class="form-label">O'qituvchi foizi (%)</label>
           <input type="number" name="oqituvchi_foiz" min="0" max="100" value="{{ enr.oqituvchi_foiz|default:'40' }}"
             class="form-control custom-input" placeholder="Foizni kiriting">
+          <div class="field-help">Faqat o'qituvchiga yoziladigan ulush. O'quvchi qarzi bu foizga bog'liq bo'lishi ham, bo'lmasligi ham mumkin.</div>
+        </div>
+
+        <div class="field-stack">
+          <label class="form-label">O'quvchidan olinadigan summa</label>
+          <input type="number" name="student_payable_amount" min="0" value="{{ enr.student_payable_amount|default_if_none:'' }}"
+            class="form-control custom-input" placeholder="Bo'sh qoldirilsa to'liq kurs narxi ishlatiladi">
+          <div class="field-help">Bo'sh qoldirilsa o'quvchi qarzi to'liq kurs narxidan hisoblanadi. Shu maydon to'ldirilsa faqat o'sha summa qarz bo'ladi.</div>
+        </div>
+        </div>
+
+        <div class="toggle-card">
+          <input class="form-check-input" type="checkbox" value="1" id="teacherShareOnly" name="teacher_share_only" {% if teacher_share_only_checked %}checked{% endif %}>
+          <div class="toggle-copy">
+            <label class="form-check-label" for="teacherShareOnly">
+              Faqat o'qituvchi haqi
+            </label>
+            <div class="toggle-desc">
+              Belgilansa, “O‘quvchidan olinadigan summa” avtomatik ravishda o‘qituvchi ulushi miqdoriga tenglashtiriladi.
+            </div>
+            <div class="teacher-share-hint" id="teacherShareHint">
+              Hozirgi o'qituvchi ulushi: 0 so'm
+            </div>
+          </div>
         </div>
       </div>
 
@@ -274,29 +618,125 @@
   document.addEventListener('DOMContentLoaded', () => {
     const groupSelect = document.querySelector('select[name="group_id"]');
     const priceInput = document.querySelector('input[name="kurs_narhi"]');
+    const payableInput = document.querySelector('input[name="student_payable_amount"]');
     const percentInput = document.querySelector('input[name="oqituvchi_foiz"]');
+    const teacherShareOnlyInput = document.getElementById('teacherShareOnly');
+    const teacherShareHint = document.getElementById('teacherShareHint');
+    const fullCoursePreview = document.getElementById('fullCoursePreview');
+    const teacherSharePreview = document.getElementById('teacherSharePreview');
+    const payablePreview = document.getElementById('payablePreview');
+    const subsidyPreview = document.getElementById('subsidyPreview');
+    const modePill = document.getElementById('modePill');
+    const modeDescription = document.getElementById('modeDescription');
+    const tenantPrefix = "{{ request_center.slug|default:''|escapejs }}";
+    let teacherShareAutoFilled = Boolean(teacherShareOnlyInput?.checked);
+
+    const buildTenantPath = (path) => tenantPrefix ? `/${tenantPrefix}${path}` : path;
+    const groupPriceUrlTemplate = "{% url 'education:group_price' 0 %}";
+    const formatMoney = (value) => `${Number(value || 0).toLocaleString('uz-UZ')} so'm`;
+
+    const getTeacherShare = () => {
+      const price = Number(priceInput?.value || 0);
+      const percent = Number(percentInput?.value || 0);
+      return Math.round(price * percent / 100);
+    };
+
+    const getEffectivePayable = () => {
+      const price = Number(priceInput?.value || 0);
+      const raw = Number(payableInput?.value || 0);
+      if (teacherShareOnlyInput?.checked) {
+        return getTeacherShare();
+      }
+      if (!payableInput || payableInput.value === '') {
+        return price;
+      }
+      return raw;
+    };
+
+    const updateTeacherShareHint = () => {
+      const fullCourse = Number(priceInput?.value || 0);
+      const teacherShare = getTeacherShare();
+      const effectivePayable = getEffectivePayable();
+      const subsidy = Math.max(fullCourse - effectivePayable, 0);
+
+      if (teacherShareHint) {
+        teacherShareHint.textContent = `Hozirgi o'qituvchi ulushi: ${formatMoney(teacherShare)}`;
+      }
+      if (teacherShareOnlyInput?.checked && payableInput) {
+        payableInput.value = teacherShare || '';
+      }
+
+      if (fullCoursePreview) fullCoursePreview.textContent = formatMoney(fullCourse);
+      if (teacherSharePreview) teacherSharePreview.textContent = formatMoney(teacherShare);
+      if (payablePreview) payablePreview.textContent = formatMoney(effectivePayable);
+      if (subsidyPreview) subsidyPreview.textContent = formatMoney(subsidy);
+
+      if (modePill && modeDescription) {
+        if (teacherShareOnlyInput?.checked) {
+          modePill.className = "mode-pill teacher-only";
+          modePill.textContent = "Faqat o'qituvchi haqi";
+          modeDescription.textContent = "O'quvchi qarzi avtomatik ravishda o'qituvchi ulushi miqdoriga tenglashtiriladi.";
+        } else if (!payableInput || payableInput.value === '') {
+          modePill.className = "mode-pill full";
+          modePill.textContent = "To'liq narx";
+          modeDescription.textContent = "O'quvchi qarzi to'liq kurs narxidan hisoblanadi.";
+        } else {
+          modePill.className = "mode-pill custom";
+          modePill.textContent = "Maxsus summa";
+          modeDescription.textContent = "O'quvchi qarzi qo'lda belgilangan maxsus summa bo'yicha yuradi.";
+        }
+      }
+    };
 
     if (groupSelect && priceInput && percentInput) {
       groupSelect.addEventListener('change', (e) => {
         const groupId = e.target.value;
         if (groupId) {
-          fetch(`/education/api/groups/${groupId}/price/`)
+          fetch(buildTenantPath(groupPriceUrlTemplate.replace('/0/', `/${groupId}/`)))
             .then(res => res.json())
             .then(data => {
               if (data.price !== undefined) {
-                // If the user wants to keep the old price, they can manually change,
-                // but by default we update for clarity if the group changed:
                 priceInput.value = data.price;
               }
               if (data.oqituvchi_foiz !== undefined) {
-                // Instantly update teacher percentage to match the new group!
                 percentInput.value = data.oqituvchi_foiz;
               }
+              updateTeacherShareHint();
             })
             .catch(err => console.error("Error fetching group data", err));
         }
       });
     }
+
+    if (teacherShareOnlyInput) {
+      teacherShareOnlyInput.addEventListener('change', () => {
+        if (teacherShareOnlyInput.checked) {
+          teacherShareAutoFilled = true;
+        } else if (payableInput && (teacherShareAutoFilled || Number(payableInput.value || 0) === getTeacherShare())) {
+          payableInput.value = '';
+          teacherShareAutoFilled = false;
+        }
+        updateTeacherShareHint();
+      });
+    }
+
+    [priceInput, percentInput].forEach((input) => {
+      if (input) {
+        input.addEventListener('input', updateTeacherShareHint);
+      }
+    });
+
+    if (payableInput) {
+      payableInput.addEventListener('input', () => {
+        if (teacherShareOnlyInput?.checked) {
+          teacherShareOnlyInput.checked = false;
+        }
+        teacherShareAutoFilled = false;
+        updateTeacherShareHint();
+      });
+    }
+
+    updateTeacherShareHint();
   });
 </script>
 

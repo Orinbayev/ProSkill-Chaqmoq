@@ -464,6 +464,23 @@
         font-size: 15px;
     }
 
+    .debt-meta-line {
+        margin-top: 4px;
+        font-size: 12px;
+        line-height: 1.45;
+    }
+
+    .debt-meta-line.teacher-share {
+        color: #fbbf24;
+        font-weight: 700;
+    }
+
+    .debt-meta-line.original-price {
+        color: #94a3b8;
+        text-decoration: line-through;
+        opacity: 0.82;
+    }
+
     .action-btn {
         width: 36px;
         height: 36px;
@@ -982,7 +999,7 @@
             <table class="premium-table">
                 <thead>
                     <tr>
-                        <th>Sana</th>
+                        <th>Yozilgan sana</th>
                         <th>O'quvchi</th>
                         <th>Balansi</th>
                         <th>Guruh</th>
@@ -992,19 +1009,34 @@
                 </thead>
                 <tbody>
                     {% for row in page_obj %}
-                    <tr>
+                    <tr {% if row.is_deferred %}style="background:rgba(245,158,11,0.07); border-left:3px solid rgba(245,158,11,0.5);"{% endif %}>
                         <td>
+                            {% if row.created_at %}
                             <div class="fw-bold text-white">{{ row.created_at|date:"d.m.Y" }}</div>
-                            <div class="small text-secondary">{{ row.created_at|date:"H:i" }}</div>
+                            <div class="small text-secondary" style="color:#64748b;">Guruhga kiritilgan</div>
+                            {% else %}
+                            <span class="text-secondary opacity-50">—</span>
+                            {% endif %}
                         </td>
                         <td>
                             <div class="student-info">
                                 <span class="student-name">{{ row.student.get_full_name }}</span>
-                                <span class="student-meta">{{ row.student.phone }}</span>
+                                {% if row.is_deferred %}
+                                <span style="font-size:11px; color:#f59e0b; font-weight:700;">⏳ Kechiktirilgan</span>
+                                {% endif %}
+                                {% if row.student.telefon1 %}
+                                <span class="student-meta">
+                                    {{ row.student.telefon1|default:"" }}{% if row.student.telefon2 %} / {{ row.student.telefon2 }}{% endif %}
+                                </span>
+                                {% endif %}
                             </div>
                         </td>
                         <td>
-                            <div class="debt-badge">{{ row.debt|intcomma }} so'm</div>
+                            <div class="debt-badge" {% if row.is_deferred %}style="color:#f59e0b;"{% endif %}>{{ row.debt|intcomma }} so'm</div>
+                            {% if row.has_teacher_share_only %}
+                            <div class="debt-meta-line teacher-share">O'qituvchi haqqi: {{ row.teacher_share_only_debt|intcomma }} so'm</div>
+                            <div class="debt-meta-line original-price">Umumiy narxi: {{ row.teacher_share_only_full_total|intcomma }} so'm</div>
+                            {% endif %}
                             <div class="small text-secondary opacity-50">To'langan: {{ row.total_paid|intcomma }}</div>
                         </td>
                         <td>
@@ -1025,15 +1057,28 @@
                             <div class="d-flex justify-content-end gap-2">
                                 <button class="action-btn" data-bs-toggle="modal" data-bs-target="#paymentModal"
                                     data-student-id="{{ row.student.id }}"
-                                    data-student-name="{{ row.student.get_full_name }}" data-debt="{{ row.debt }}">
+                                    data-enrollment-id="{{ row.teacher_share_only_payment_enrollment_id|default:'' }}"
+                                    data-payment-scope="{{ row.payment_scope }}"
+                                    data-payment-label="{% if row.has_teacher_share_only %}O'qituvchi haqqi{% else %}Joriy qarz summasi{% endif %}"
+                                    data-student-name="{{ row.student.get_full_name }}" data-debt="{{ row.payment_amount }}">
                                     <i class="fas fa-eye"></i>
                                 </button>
                                 {% if row.enrollment %}
-                                <a href="{% url 'education:enrollment_edit' row.enrollment.id %}?next={{ request.get_full_path|urlencode }}"
+                                {% with deferred_target=row.deferred_enrollment|default:row.enrollment %}
+                                <form action="{% if request_center.slug %}/{{ request_center.slug }}{% endif %}{% url 'education:enrollment_toggle_deferred' deferred_target.id %}" method="post" style="display:inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                    <button type="submit" class="action-btn"
+                                        title="{% if row.is_deferred %}Qaytarish{% else %}Kechiktirish{% endif %}"
+                                        style="{% if row.is_deferred %}border-color:rgba(245,158,11,0.4); color:#f59e0b;{% endif %}">
+                                        <i class="fas {% if row.is_deferred %}fa-check{% else %}fa-clock{% endif %}"></i>
+                                    </button>
+                                </form>
+                                <a href="{% if request_center.slug %}/{{ request_center.slug }}{% endif %}{% url 'education:enrollment_edit' row.enrollment.id %}?next={{ request.get_full_path|urlencode }}"
                                     class="action-btn" title="Tahrirlash">
                                     <i class="fas fa-pen"></i>
                                 </a>
-                                <form action="{% url 'education:enrollment_delete' row.enrollment.id %}" method="post"
+                                <form action="{% if request_center.slug %}/{{ request_center.slug }}{% endif %}{% url 'education:enrollment_delete' row.enrollment.id %}" method="post"
                                     id="deleteEnrollmentForm{{ row.enrollment.id }}"
                                     style="display:inline;">
                                     {% csrf_token %}
@@ -1050,6 +1095,7 @@
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </form>
+                                {% endwith %}
                                 {% else %}
                                 <span class="text-secondary small">Ma'lumot yo'q</span>
                                 {% endif %}
@@ -1108,18 +1154,20 @@
                 <h5 class="modal-title fw-bold text-white">To'lov qilish</h5>
                 <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal"></button>
             </div>
-            <form action="{% url 'education:create_payment' %}" method="post">
+            <form action="{% if request_center.slug %}/{{ request_center.slug }}{% endif %}{% url 'education:create_payment' %}" method="post">
                 {% csrf_token %}
                 <div class="modal-body p-4">
                     <input type="hidden" name="next" value="{{ request.get_full_path }}">
                     <input type="hidden" name="student_id" id="payStudentId">
+                    <input type="hidden" name="enrollment_id" id="payEnrollmentId">
+                    <input type="hidden" name="payment_scope" id="payPaymentScope">
                     <input type="hidden" name="pay_month" value="{{ effective_pay_month }}">
 
                     <div class="mb-4 text-center">
                         <h4 class="fw-bold mb-1 text-white" id="payStudentName">Ism Familya</h4>
                         <p class="text-secondary small mb-3" id="payGroupName">Guruh nomi</p>
                         <div class="bg-black bg-opacity-25 p-3 rounded-4 border border-white border-opacity-10">
-                            <div class="small text-secondary mb-1">Joriy qarz summasi:</div>
+                            <div class="small text-secondary mb-1" id="payDebtLabel">Joriy qarz summasi:</div>
                             <div class="h3 fw-bold text-white mb-0" id="payMonthlyFee">0 so'm</div>
                         </div>
                     </div>
@@ -1206,6 +1254,11 @@
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
     (function () {
+        const tenantPrefix = "{{ request_center.slug|default:''|escapejs }}";
+        const buildTenantPath = function (path) {
+            return tenantPrefix ? `/${tenantPrefix}${path}` : path;
+        };
+
         function togglePaymentInputs() {
             const checked = document.querySelector('input[name="payment_method"]:checked');
             if (!checked) return;
@@ -1268,16 +1321,23 @@
                 paymentModal.addEventListener('show.bs.modal', function (event) {
                     const button = event.relatedTarget;
                     const studentId = button.getAttribute('data-student-id');
+                    const enrollmentId = button.getAttribute('data-enrollment-id') || '';
+                    const paymentScope = button.getAttribute('data-payment-scope') || '';
+                    const paymentLabel = button.getAttribute('data-payment-label') || "Joriy qarz summasi";
                     const studentName = button.getAttribute('data-student-name');
                     const debt = button.getAttribute('data-debt');
 
                     document.getElementById('payStudentId').value = studentId;
+                    document.getElementById('payEnrollmentId').value = enrollmentId;
+                    document.getElementById('payPaymentScope').value = paymentScope;
                     document.getElementById('payStudentName').textContent = studentName;
+                    document.getElementById('payDebtLabel').textContent = `${paymentLabel}:`;
                     document.getElementById('payMonthlyFee').textContent = Number(debt).toLocaleString() + " so'm";
                     document.getElementById('inputCash').value = debt;
+                    document.getElementById('inputCard').value = '';
 
                     // Show all groups for this student
-                    fetch(`/talim/tolovlar/student/${studentId}/groups/`)
+                    fetch(buildTenantPath(`/talim/tolovlar/student/${studentId}/groups/`))
                         .then(res => res.json())
                         .then(data => {
                             document.getElementById('payGroupName').textContent = data.groups || '';

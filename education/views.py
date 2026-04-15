@@ -26,7 +26,7 @@ from django.http import (
     HttpResponseForbidden,
     JsonResponse,
 )
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_time
@@ -41,6 +41,8 @@ from education.services.tuition import (
     month_first_day,
     ensure_tuition_month,
     get_month_paid,
+    full_course_amount,
+    effective_student_payable_amount,
     tuition_month_fee_field,
     tuition_month_fee,
     ensure_all_tuition_months_since_start,
@@ -184,27 +186,33 @@ def first_day_of_current_month():
     return date(d.year, d.month, 1)
 
 
-def sync_tuition_fee(enrollment, new_fee: int):
+def sync_tuition_fee(enrollment, new_fee=None):
     """
-    Narx o'zgarganda: barcha TuitionMonth yozuvlarini o'chirib,
+    Qarzdorlik summasi o'zgarganda: barcha TuitionMonth yozuvlarini o'chirib,
     faqat joriy oy uchun bitta yangi yozuv yaratadi.
-    Narx 0 bo'lsa - TuitionMonth yaratilmaydi (qarzdorlarga tushmaydi).
+    Effective payable summa 0 bo'lsa - TuitionMonth yaratilmaydi.
     """
     from django.utils import timezone
     from education.services.tuition import tuition_month_fee_field
     fee_field = tuition_month_fee_field()
     cur_month = timezone.localdate().replace(day=1)
+    effective_fee = int(new_fee if new_fee is not None else effective_student_payable_amount(enrollment) or 0)
 
     # Barcha eski qarzlarni o'chiramiz
     TuitionMonth.objects.filter(enrollment=enrollment).delete()
 
-    # Yangi narx > 0 bo'lsagina qarz yaratamiz
-    if new_fee > 0:
-        TuitionMonth.objects.create(
+    # Effective summa > 0 bo'lsagina qarz yaratamiz
+    if effective_fee > 0:
+        tm, _ = TuitionMonth.all_objects.update_or_create(
             enrollment=enrollment,
             month=cur_month,
-            **{fee_field: new_fee}
+            defaults={
+                "center": getattr(enrollment, "center", None),
+                fee_field: effective_fee,
+            },
         )
+        if tm.is_deleted:
+            tm.restore()
 
 
 def _get_int(querydict, key, default=0):
@@ -517,6 +525,7 @@ def create_payment(request):
     
     enrollment_id = request.POST.get("enrollment_id")
     student_id = request.POST.get("student_id")
+    payment_scope = (request.POST.get("payment_scope") or "").strip()
     month_str = request.POST.get("month")
 
     fallback = first_day_of_current_month()
@@ -563,6 +572,30 @@ def create_payment(request):
         if not enrollments.exists():
             messages.error(request, "O'quvchida faol kurslar topilmadi.")
             return redirect(next_url)
+
+        if payment_scope == "teacher_share_only":
+            scoped_enrollment_ids = []
+            for e in enrollments:
+                full_amount = full_course_amount(e)
+                effective_amount = effective_student_payable_amount(e)
+                teacher_share_amount = int(getattr(e, "oqituvchi_daromadi", 0) or 0)
+                if (
+                    e.student_payable_amount not in (None, "")
+                    and full_amount > effective_amount
+                    and effective_amount == teacher_share_amount
+                ):
+                    tm = ensure_tuition_month(e, start_month)
+                    fee = int(getattr(tm, "fee_amount", 0) or 0)
+                    paid = int(get_month_paid(e, start_month) or 0)
+                    debt = max(0, fee - paid)
+                    if debt > 0:
+                        scoped_enrollment_ids.append(e.id)
+
+            if scoped_enrollment_ids:
+                enrollments = enrollments.filter(id__in=scoped_enrollment_ids).order_by("id")
+            else:
+                messages.error(request, "Faol o'qituvchi haqqi qarzi topilmadi.")
+                return redirect(next_url)
             
         try:
             with transaction.atomic():
@@ -729,6 +762,21 @@ def _safe_int(v, default=0):
         return default
 
 
+def _is_teacher_share_only_enrollment(enrollment) -> bool:
+    if not enrollment:
+        return False
+
+    full_amount = full_course_amount(enrollment)
+    effective_amount = effective_student_payable_amount(enrollment)
+    teacher_share_amount = int(getattr(enrollment, "oqituvchi_daromadi", 0) or 0)
+
+    return (
+        enrollment.student_payable_amount not in (None, "")
+        and full_amount > effective_amount
+        and effective_amount == teacher_share_amount
+    )
+
+
 def _parse_yyyy_mm(s: str):
     """
     '2026-01' -> date(2026,1,1)
@@ -771,13 +819,9 @@ def enrollment_edit(request, enrollment_id):
     start_month = parse_month_yyyy_mm(month_str) or first_day_of_current_month()
 
     if request.method == "POST":
-        old_price = int(enr.kurs_narhi or 0)
-
-        # --- student update ---
-        enr.student.ism = request.POST.get("ism", "").strip()
-        enr.student.familya = request.POST.get("familya", "").strip()
-        enr.student.email = request.POST.get("email", "").strip()
-        enr.student.save(update_fields=["ism", "familya", "email"])
+        student_ism = request.POST.get("ism", "").strip()
+        student_familya = request.POST.get("familya", "").strip()
+        student_email = request.POST.get("email", "").strip()
 
         # --- group update ---
         gid = request.POST.get("group_id")
@@ -804,11 +848,51 @@ def enrollment_edit(request, enrollment_id):
             if oqf is not None and str(oqf).strip() != "":
                 enr.oqituvchi_foiz = int(oqf)
 
+        payable_raw = (request.POST.get("student_payable_amount") or "").replace(" ", "").replace(",", "").strip()
+        teacher_share_only = (request.POST.get("teacher_share_only") or "").lower() in {"on", "1", "true", "yes"}
+        if teacher_share_only:
+            enr.student_payable_amount = round(full_course_amount(enr) * (enr.oqituvchi_foiz or 0) / 100)
+        elif payable_raw == "":
+            enr.student_payable_amount = None
+        else:
+            try:
+                enr.student_payable_amount = int(payable_raw)
+            except (TypeError, ValueError):
+                messages.error(request, "O'quvchidan olinadigan summa noto'g'ri kiritildi.")
+                return render(request, "education/enrollment_edit.html", {
+                    "enr": enr,
+                    "groups": groups,
+                    "next": next_url,
+                    "month": month_str,
+                    "teacher_share_only_checked": teacher_share_only,
+                })
+
+        try:
+            enr.full_clean()
+        except ValidationError as exc:
+            error_messages = []
+            for messages_list in exc.message_dict.values():
+                error_messages.extend(messages_list)
+            messages.error(request, " ".join(error_messages))
+            return render(request, "education/enrollment_edit.html", {
+                "enr": enr,
+                "groups": groups,
+                "next": next_url,
+                "month": month_str,
+                "teacher_share_only_checked": teacher_share_only,
+            })
+
+        # --- student update ---
+        enr.student.ism = student_ism
+        enr.student.familya = student_familya
+        enr.student.email = student_email
+        enr.student.save(update_fields=["ism", "familya", "email"])
+
         enr.save()
 
-        # ✅ MUHIM: Narx o'zgagan bo'lsa yoki o'zgarmasada TuitionMonth'ni yangilaymiz
+        # ✅ MUHIM: Qarz bazasi o'zgargan bo'lsa yoki o'zgarmasada TuitionMonth'ni yangilaymiz
         # Bu eski 50M kabi noto'g'ri qarzlarni ham to'g'irlaydi
-        sync_tuition_fee(enr, new_price)
+        sync_tuition_fee(enr, effective_student_payable_amount(enr))
 
         messages.success(request, "O'quvchi ma'lumotlari muvaffaqiyatli yangilandi!")
         return redirect(next_url)
@@ -818,6 +902,7 @@ def enrollment_edit(request, enrollment_id):
         "groups": groups,
         "next": next_url,
         "month": month_str,   # ✅ template uchun
+        "teacher_share_only_checked": _is_teacher_share_only_enrollment(enr),
     })
 
 @login_required
@@ -937,7 +1022,7 @@ def payment_history_enrollment(request, enrollment_id: int):
     return JsonResponse({
         "student": enrollment.student.get_full_name(),
         "group": enrollment.group.nom,
-        "monthly_fee": enrollment.kurs_narhi,
+        "monthly_fee": effective_student_payable_amount(enrollment),
         "total_fee_needed": total_fee_needed,
         "total_paid_so_far": total_paid_so_far,
         "overall_debt": overall_debt,
@@ -960,21 +1045,10 @@ def _model_has_field(model_cls, field_name: str) -> bool:
 def _get_fee_amount(enrollment) -> int:
     """
     fee manbasi:
-    - enrollment.kurs_narhi (eng ustun)
-    - group.kurs_narxi yoki group.kurs_narhi (fallback)
+    - enrollment.student_payable_amount (agar berilgan bo'lsa)
+    - aks holda to'liq kurs narxi
     """
-    if not enrollment:
-        return 0
-
-    enr_fee = getattr(enrollment, "kurs_narhi", None)
-    if enr_fee not in (None, ""):
-        return int(enr_fee or 0)
-
-    g = getattr(enrollment, "group", None)
-    if not g:
-        return 0
-
-    return int(getattr(g, "kurs_narxi", 0) or getattr(g, "kurs_narhi", 0) or 0)
+    return effective_student_payable_amount(enrollment)
 
 
 def _parse_month_str(s: str):
@@ -1593,23 +1667,49 @@ def qarzdorlar_home(request):
                 "total_fee":   0,
                 "total_paid":  0,
                 "debt":        0,
+                "enrollment_count": 0,
                 "created_at":  e.created_at,
                 "enrollment":  e,
+                "deferred_enrollment": None,
+                "is_deferred": False,
+                "teacher_share_only_debt": 0,
+                "teacher_share_only_full_total": 0,
+                "teacher_share_only_payment_enrollment_id": None,
+                "teacher_share_only_unpaid_count": 0,
                 "group":       e.group,
                 "staff":       getattr(e.group, "oqituvchi", None),
             }
 
         row = student_map[sid]
+        row["enrollment_count"] += 1
         row["total_fee"]  += f
         row["total_paid"] += p
         row["debt"]       += debt
         if e.created_at and (not row.get("created_at") or e.created_at < row["created_at"]):
             row["created_at"] = e.created_at
+        if getattr(e, "is_deferred", False):
+            row["is_deferred"] = True
+            row["deferred_enrollment"] = e
 
         if e.group:
             gnom = getattr(e.group, "nom", "")
             if gnom and gnom not in row["group_names"]:
                 row["group_names"].append(gnom)
+
+        full_amount = full_course_amount(e)
+        effective_amount = effective_student_payable_amount(e)
+        teacher_share_amount = int(getattr(e, "oqituvchi_daromadi", 0) or 0)
+        if (
+            e.student_payable_amount not in (None, "")
+            and full_amount > effective_amount
+            and effective_amount == teacher_share_amount
+        ):
+            row["teacher_share_only_debt"] += max(0, debt)
+            row["teacher_share_only_full_total"] += full_amount
+            if debt > 0:
+                row["teacher_share_only_unpaid_count"] += 1
+                if row["teacher_share_only_payment_enrollment_id"] is None:
+                    row["teacher_share_only_payment_enrollment_id"] = e.id
 
         for chart_month in chart_months:
             month_fee = chart_fee_map.get((e.id, chart_month), 0)
@@ -1621,6 +1721,14 @@ def qarzdorlar_home(request):
     # ─── GROUP LABEL ─────────────────────────────────────────────────────────
     for r in student_map.values():
         r["group_label"] = ", ".join(r["group_names"]) if r["group_names"] else "—"
+        r["has_teacher_share_only"] = (
+            r["teacher_share_only_debt"] > 0
+            and r["teacher_share_only_full_total"] > r["teacher_share_only_debt"]
+        )
+        if r["teacher_share_only_unpaid_count"] > 1:
+            r["teacher_share_only_payment_enrollment_id"] = None
+        r["payment_amount"] = r["teacher_share_only_debt"] if r["has_teacher_share_only"] else r["debt"]
+        r["payment_scope"] = "teacher_share_only" if r["has_teacher_share_only"] else "student_total"
 
     # ─── QIDIRUV: ism/familya/telefon bo'yicha ───────────────────────────────
     all_rows = list(student_map.values())
@@ -6003,7 +6111,6 @@ def enrollment_toggle_deferred(request, pk):
     if not _can_manage(request.user):
         messages.error(request, "Ruxsat yo'q.")
         return redirect("education:qarzdorlar_home")
-    from core.tenant import get_active_center
     center = get_active_center(request)
     qs = Enrollment.objects.all()
     if center:
@@ -6258,8 +6365,8 @@ def fix_all_incomes(request):
             foiz = getattr(teacher, 'oqituvchi_foizi', 0)
             if foiz is None or foiz == 0:
                 foiz = enrollment.oqituvchi_foiz
-                
-            kurs_narhi = enrollment.kurs_narhi or 0
+
+            kurs_narhi = full_course_amount(enrollment)
             
             oy_dars_soni = att.group.oy_dars_soni or 12
             if oy_dars_soni <= 0: oy_dars_soni = 12

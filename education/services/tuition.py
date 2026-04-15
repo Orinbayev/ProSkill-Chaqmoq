@@ -74,21 +74,25 @@ def parse_month_str(s: str) -> Optional[date]:
         return None
 
 
+def full_course_amount(enrollment: Enrollment) -> int:
+    if not enrollment:
+        return 0
+    return int(getattr(enrollment, "full_course_amount", 0) or 0)
+
+
+def effective_student_payable_amount(enrollment: Enrollment) -> int:
+    if not enrollment:
+        return 0
+    return int(getattr(enrollment, "effective_student_payable_amount", 0) or 0)
+
+
 def get_fee_amount(enrollment: Enrollment) -> int:
     """
     fee manbasi:
-    - enrollment.kurs_narhi (eng ustun)
-    - group.kurs_narxi yoki group.kurs_narhi (fallback)
+    - enrollment.student_payable_amount (agar berilgan bo'lsa)
+    - aks holda to'liq kurs narxi
     """
-    enr_fee = getattr(enrollment, "kurs_narhi", None)
-    if enr_fee not in (None, ""):
-        return int(enr_fee or 0)
-
-    g = getattr(enrollment, "group", None)
-    if not g:
-        return 0
-
-    return int(getattr(g, "kurs_narxi", 0) or getattr(g, "kurs_narhi", 0) or 0)
+    return effective_student_payable_amount(enrollment)
 
 
 # =========================
@@ -195,7 +199,7 @@ def sync_tuition_fee(enrollment: Enrollment, start_month: date, new_fee: int) ->
     """
     start_month = month_first_day(start_month)
     fee_field = tuition_month_fee_field()
-    new_fee = int(new_fee or 0)
+    new_fee = int(new_fee if new_fee is not None else effective_student_payable_amount(enrollment) or 0)
 
     TuitionMonth.objects.filter(enrollment=enrollment, month__gte=start_month).update(**{fee_field: new_fee})
     TuitionMonth.objects.update_or_create(

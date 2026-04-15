@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from accounts.models import Center
 from django.core.validators import MinValueValidator
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 User = settings.AUTH_USER_MODEL
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -233,6 +234,14 @@ class Enrollment(SoftDeleteMixin, models.Model):
     )
 
     is_active = models.BooleanField(default=True, verbose_name="Faolmi?")
+    is_deferred = models.BooleanField(default=False, verbose_name="Kechiktirilganmi?")
+    student_payable_amount = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name="O'quvchidan olinadigan summa (so'mda)",
+        help_text="O‘quvchidan real olinadigan summa. Bo‘sh bo‘lsa, to‘liq kurs narxi olinadi.",
+    )
 
     # umumiy to‘langan (avto update bo‘ladi)
     jami_tolangan = models.PositiveIntegerField(
@@ -253,12 +262,42 @@ class Enrollment(SoftDeleteMixin, models.Model):
         return f"{ism} {familya} → {self.group.nom}"
 
     @property
+    def full_course_amount(self) -> int:
+        enr_fee = getattr(self, "kurs_narhi", None)
+        if enr_fee not in (None, ""):
+            return int(enr_fee or 0)
+
+        group = getattr(self, "group", None)
+        if not group:
+            return 0
+
+        return int(getattr(group, "kurs_narxi", 0) or getattr(group, "kurs_narhi", 0) or 0)
+
+    @property
+    def effective_student_payable_amount(self) -> int:
+        if self.student_payable_amount not in (None, ""):
+            return int(self.student_payable_amount or 0)
+        return self.full_course_amount
+
+    def clean(self):
+        super().clean()
+
+        if self.student_payable_amount is None:
+            return
+
+        full_amount = self.full_course_amount
+        if self.student_payable_amount > full_amount:
+            raise ValidationError({
+                "student_payable_amount": "O'quvchidan olinadigan summa kurs narxidan katta bo'lishi mumkin emas."
+            })
+
+    @property
     def oqituvchi_daromadi(self) -> int:
         """
         Bu - 1 oy uchun o‘qituvchining full (100% dars) daromadi.
         Davomatga qarab kamayishi/ko‘payishi boshqa metodda hisoblanadi.
         """
-        return round((self.kurs_narhi or 0) * (self.oqituvchi_foiz or 0) / 100)
+        return round(self.full_course_amount * (self.oqituvchi_foiz or 0) / 100)
 
     def real_oqituvchi_daromadi(self, year=None, month=None) -> int:
         """

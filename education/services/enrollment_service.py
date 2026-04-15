@@ -7,7 +7,7 @@ from django.db import transaction
 class EnrollmentService:
     @staticmethod
     @transaction.atomic
-    def enroll_student(student, group, kurs_narxi=None, oqituvchi_foiz=None):
+    def enroll_student(student, group, kurs_narxi=None, oqituvchi_foiz=None, student_payable_amount=None):
         """Enrolls a student in a group and creates a history record."""
         # Use provided rates or fall back to group defaults
         narx = kurs_narxi if kurs_narxi is not None else group.kurs_narxi
@@ -27,15 +27,18 @@ class EnrollmentService:
                 group=group,
                 kurs_narhi=narx,
                 oqituvchi_foiz=foiz,
+                student_payable_amount=student_payable_amount,
                 center=group.center,
                 is_active=True
             )
             created = True
-        
+
         if not created and not enrollment.is_active:
             enrollment.is_active = True
             enrollment.kurs_narhi = narx
             enrollment.oqituvchi_foiz = foiz
+            if student_payable_amount is not None:
+                enrollment.student_payable_amount = student_payable_amount
             enrollment.save()
         
         # Create history record

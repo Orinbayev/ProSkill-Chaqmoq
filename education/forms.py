@@ -330,7 +330,7 @@ class GroupCreateForm(forms.ModelForm):
 class EnrollmentCreateForm(forms.ModelForm):
     class Meta:
         model = Enrollment
-        fields = ('group','student','kurs_narhi')
+        fields = ('group', 'student', 'kurs_narhi', 'student_payable_amount')
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -340,22 +340,40 @@ class EnrollmentCreateForm(forms.ModelForm):
         else:
             self.fields['group'].queryset = Group.objects.all().order_by('nom')
 
+    def clean(self):
+        cleaned_data = super().clean()
+        kurs_narhi = int(cleaned_data.get("kurs_narhi") or 0)
+        student_payable_amount = cleaned_data.get("student_payable_amount")
+        if student_payable_amount is not None and student_payable_amount > kurs_narhi:
+            self.add_error("student_payable_amount", "O'quvchidan olinadigan summa kurs narxidan katta bo'lishi mumkin emas.")
+        return cleaned_data
+
 
 
 class EnrollmentForm(forms.ModelForm):
     class Meta:
         model = Enrollment
-        fields = ['student', 'kurs_narhi', 'oqituvchi_foiz']
+        fields = ['student', 'kurs_narhi', 'student_payable_amount', 'oqituvchi_foiz']
         labels = {
             'student': "O‘quvchini tanlang",
             'kurs_narhi': "Kurs narxi (so‘mda)",
+            'student_payable_amount': "O‘quvchidan olinadigan summa",
             'oqituvchi_foiz': "O‘qituvchining ulushi (%)",
         }
         widgets = {
             'student': forms.Select(attrs={'class': 'form-select'}),
             'kurs_narhi': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Masalan: 600000'}),
+            'student_payable_amount': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Bo‘sh qoldirilsa to‘liq kurs narxi ishlatiladi'}),
             'oqituvchi_foiz': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Masalan: 40'}),
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        kurs_narhi = int(cleaned_data.get("kurs_narhi") or 0)
+        student_payable_amount = cleaned_data.get("student_payable_amount")
+        if student_payable_amount is not None and student_payable_amount > kurs_narhi:
+            self.add_error("student_payable_amount", "O'quvchidan olinadigan summa kurs narxidan katta bo'lishi mumkin emas.")
+        return cleaned_data
 
 
 class CenterExamSettingForm(forms.ModelForm):
