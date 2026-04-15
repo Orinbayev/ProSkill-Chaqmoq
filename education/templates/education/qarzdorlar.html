@@ -527,6 +527,103 @@
         padding: 20px 24px;
     }
 
+    .delete-confirm-dialog {
+        max-width: 430px;
+    }
+
+    .delete-confirm-body {
+        padding: 34px 28px 26px;
+        text-align: center;
+    }
+
+    .delete-confirm-icon {
+        width: 74px;
+        height: 74px;
+        margin: 0 auto 18px;
+        border-radius: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 30px;
+        color: #fca5a5;
+        background:
+            radial-gradient(circle at top, rgba(239, 68, 68, 0.34), rgba(239, 68, 68, 0.08)),
+            rgba(15, 23, 42, 0.9);
+        border: 1px solid rgba(239, 68, 68, 0.25);
+        box-shadow: 0 20px 45px rgba(239, 68, 68, 0.18);
+    }
+
+    .delete-confirm-title {
+        margin: 0 0 10px;
+        color: #fff;
+        font-size: 27px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+    }
+
+    .delete-confirm-text {
+        margin: 0;
+        color: #94a3b8;
+        font-size: 14px;
+        line-height: 1.65;
+    }
+
+    .delete-confirm-name {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 18px;
+        padding: 12px 16px;
+        border-radius: 16px;
+        background: rgba(239, 68, 68, 0.08);
+        border: 1px solid rgba(239, 68, 68, 0.16);
+        color: #fff;
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.5;
+    }
+
+    .delete-confirm-hint {
+        margin-top: 16px;
+        color: #fca5a5;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .delete-cancel-btn,
+    .delete-submit-btn {
+        min-width: 140px;
+        border-radius: 14px;
+        font-weight: 700;
+        padding: 12px 18px;
+    }
+
+    .delete-cancel-btn {
+        color: #cbd5e1;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+    }
+
+    .delete-cancel-btn:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .delete-submit-btn {
+        color: #fff;
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        border: 1px solid rgba(248, 113, 113, 0.35);
+        box-shadow: 0 16px 35px rgba(220, 38, 38, 0.28);
+    }
+
+    .delete-submit-btn:hover {
+        color: #fff;
+        background: linear-gradient(135deg, #f05252, #ef4444);
+        transform: translateY(-1px);
+        box-shadow: 0 18px 38px rgba(220, 38, 38, 0.34);
+    }
+
     .table-footer {
         display: flex;
         align-items: center;
@@ -937,10 +1034,19 @@
                                     <i class="fas fa-pen"></i>
                                 </a>
                                 <form action="{% url 'education:enrollment_delete' row.enrollment.id %}" method="post"
-                                    style="display:inline;"
-                                    onsubmit="return confirm('Haqiqatan ham o'chirmoqchimisiz?');">
+                                    id="deleteEnrollmentForm{{ row.enrollment.id }}"
+                                    style="display:inline;">
                                     {% csrf_token %}
-                                    <button type="submit" class="action-btn delete" title="O'chirish">
+                                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                    <button
+                                        type="button"
+                                        class="action-btn delete"
+                                        title="O'chirish"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#deleteConfirmModal"
+                                        data-form-id="deleteEnrollmentForm{{ row.enrollment.id }}"
+                                        data-student-name="{{ row.student.get_full_name }}"
+                                        data-group-name="{% if row.group_label %}{{ row.group_label }}{% else %}Guruhsiz{% endif %}">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </form>
@@ -1065,6 +1171,33 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade glass-modal" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered delete-confirm-dialog">
+        <div class="modal-content">
+            <div class="delete-confirm-body">
+                <div class="delete-confirm-icon">
+                    <i class="fas fa-trash"></i>
+                </div>
+                <h5 class="delete-confirm-title">Rostdan ham o'chirasizmi?</h5>
+                <p class="delete-confirm-text">
+                    Bu amal qayta tiklanmasligi mumkin. O'quvchi qarzdorlar ro'yxatidan olib tashlanadi va guruhga
+                    bog'langan yozuv o'chiriladi.
+                </p>
+                <div class="delete-confirm-name" id="deleteConfirmName">
+                    O'quvchi nomi
+                </div>
+                <div class="delete-confirm-hint" id="deleteConfirmHint">
+                    Guruh: —
+                </div>
+            </div>
+            <div class="modal-footer justify-content-center gap-2">
+                <button type="button" class="btn delete-cancel-btn" data-bs-dismiss="modal">Bekor qilish</button>
+                <button type="button" class="btn delete-submit-btn" id="confirmDeleteBtn">Ha, o'chirish</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -1127,6 +1260,10 @@
 
             // Modal
             const paymentModal = document.getElementById('paymentModal');
+            const deleteConfirmModal = document.getElementById('deleteConfirmModal');
+            const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+            let activeDeleteForm = null;
+
             if (paymentModal) {
                 paymentModal.addEventListener('show.bs.modal', function (event) {
                     const button = event.relatedTarget;
@@ -1151,6 +1288,39 @@
 
                     document.getElementById('methodCash').checked = true;
                     togglePaymentInputs();
+                });
+            }
+
+            if (deleteConfirmModal) {
+                deleteConfirmModal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    if (!button) return;
+
+                    const formId = button.getAttribute('data-form-id');
+                    const studentName = button.getAttribute('data-student-name') || "Tanlanmagan";
+                    const groupName = button.getAttribute('data-group-name') || "Guruh ko'rsatilmagan";
+
+                    activeDeleteForm = formId ? document.getElementById(formId) : null;
+
+                    document.getElementById('deleteConfirmName').textContent = studentName;
+                    document.getElementById('deleteConfirmHint').textContent = `Guruh: ${groupName}`;
+                    confirmDeleteBtn.disabled = false;
+                    confirmDeleteBtn.innerHTML = "Ha, o'chirish";
+                });
+
+                deleteConfirmModal.addEventListener('hidden.bs.modal', function () {
+                    activeDeleteForm = null;
+                    confirmDeleteBtn.disabled = false;
+                    confirmDeleteBtn.innerHTML = "Ha, o'chirish";
+                });
+            }
+
+            if (confirmDeleteBtn) {
+                confirmDeleteBtn.addEventListener('click', function () {
+                    if (!activeDeleteForm) return;
+                    confirmDeleteBtn.disabled = true;
+                    confirmDeleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> O\'chirilmoqda...';
+                    activeDeleteForm.submit();
                 });
             }
 

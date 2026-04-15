@@ -133,6 +133,8 @@ urlpatterns = [
     path("student/<int:student_id>/", views.student_detail, name="student_detail"),
     path("student/<int:student_id>/exam-report/", views.student_exam_report, name="student_exam_report"),
     path("kiritish/<int:pk>/olib-tashlash/", views.enrollment_remove, name="enrollment_remove"),
+    path("kiritish/<int:pk>/chiqish/", views.enrollment_leave, name="enrollment_leave"),
+    path("kiritish/<int:pk>/kechiktir/", views.enrollment_toggle_deferred, name="enrollment_toggle_deferred"),
     path('guruhlar/<int:category_id>/', views.category_detail, name='category_detail'),
     # Guruh yaratish bo‘lim asosida
     path("guruh/yaratish/<int:category_id>/", views.group_create_by_category, name="group_create_category"),

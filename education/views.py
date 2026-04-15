@@ -5997,6 +5997,116 @@ def enrollment_remove(request, pk):
     return redirect("education:group_detail", pk=enr.group_id)
 
 
+@require_POST
+@login_required
+def enrollment_toggle_deferred(request, pk):
+    if not _can_manage(request.user):
+        messages.error(request, "Ruxsat yo'q.")
+        return redirect("education:qarzdorlar_home")
+    from core.tenant import get_active_center
+    center = get_active_center(request)
+    qs = Enrollment.objects.all()
+    if center:
+        qs = qs.filter(center=center)
+    enr = get_object_or_404(qs, pk=pk)
+    enr.is_deferred = not enr.is_deferred
+    enr.save(update_fields=["is_deferred"])
+    next_url = request.POST.get("next") or reverse("education:qarzdorlar_home")
+    status = "kechiktirildi" if enr.is_deferred else "oddiy holatga qaytarildi"
+    messages.success(request, f"✅ {enr.student.get_full_name()} to'lovi {status}.")
+    return redirect(next_url)
+
+
+@login_required
+def enrollment_leave(request, pk):
+    """
+    O'quvchini oyning o'rtasida guruhdan chiqarish — prorata to'lov bilan.
+    """
+    from core.tenant import get_request_center
+    center = get_request_center(request)
+    qs = Enrollment.objects.select_related("group", "student", "group__oqituvchi")
+    if center:
+        qs = qs.filter(group__center=center)
+    enr = get_object_or_404(qs, pk=pk)
+
+    if not _can_manage(request.user):
+        messages.error(request, "Sizda ruxsat yo'q.")
+        return redirect("education:group_detail", pk=enr.group_id)
+
+    today = timezone.localdate()
+    cur_month = today.replace(day=1)
+
+    from education.services.tuition import (
+        ensure_tuition_month, get_month_paid, get_effective_month_fee, month_last_day
+    )
+    tm = ensure_tuition_month(enr, cur_month)
+    full_fee = enr.kurs_narhi or 0
+    paid_so_far = get_month_paid(enr, cur_month)
+
+    # Attendance-based prorata
+    from education.models import Attendance
+    group_sessions = Attendance.objects.filter(
+        enrollment__group=enr.group,
+        date__year=cur_month.year,
+        date__month=cur_month.month,
+    ).values_list("date", flat=True).distinct()
+    total_lessons = group_sessions.count()
+
+    student_attended = Attendance.objects.filter(
+        enrollment=enr,
+        date__year=cur_month.year,
+        date__month=cur_month.month,
+        is_present=True,
+    ).count()
+
+    if total_lessons > 0:
+        prorated_fee = round(full_fee * student_attended / total_lessons)
+    else:
+        prorated_fee = 0
+
+    remaining = max(0, prorated_fee - paid_so_far)
+    oqituvchi_foiz = enr.oqituvchi_foiz or 0
+
+    if request.method == "POST":
+        amount_raw = request.POST.get("amount", "0").replace(" ", "").replace(",", "")
+        try:
+            amount = int(amount_raw)
+        except (ValueError, TypeError):
+            amount = 0
+
+        if amount > 0:
+            tm.fee_amount = prorated_fee
+            tm.save(update_fields=["fee_amount"])
+            from education.services.tuition import create_payment_and_allocate
+            create_payment_and_allocate(
+                enrollment=enr,
+                amount=amount,
+                paid_date=today,
+                start_month=cur_month,
+                payment_type="cash",
+            )
+
+        from education.services.enrollment_service import EnrollmentService
+        EnrollmentService.remove_student(enr.student, enr.group)
+        messages.success(request, f"✅ {enr.student.get_full_name()} guruhdan chiqarildi.")
+        return redirect("education:group_detail", pk=enr.group_id)
+
+    context = {
+        "enr": enr,
+        "full_fee": full_fee,
+        "paid_so_far": paid_so_far,
+        "prorated_fee": prorated_fee,
+        "remaining": remaining,
+        "total_lessons": total_lessons,
+        "student_attended": student_attended,
+        "oqituvchi_foiz": oqituvchi_foiz,
+        "teacher_share": round(prorated_fee * oqituvchi_foiz / 100),
+        "center_share": round(prorated_fee * (100 - oqituvchi_foiz) / 100),
+        "cur_month": cur_month,
+    }
+    return render(request, "education/enrollment_leave.html", context)
+
+
 @login_required
 def my_groups(request):
     rows = (
