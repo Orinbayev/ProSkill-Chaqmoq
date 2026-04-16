@@ -477,6 +477,7 @@ def home(request):
         return render(request, "core/dashboard_teacher.html", ctx)
 
     if role == "student":
+        center = getattr(request.user, "center", None) or _get_center(request)
         balance = Ledger.student_balansi(u.id, center=center)
         last_actions = _student_last_actions(u.id, center=center)
         return render(request, "core/dashboard_student.html", {
@@ -813,7 +814,7 @@ def dashboard_parent(request):
     if getattr(request.user, "role", None) != "parent":
         return redirect("core:home")
     
-    center = _get_center(request)
+    center = getattr(request.user, "center", None) or _get_center(request)
     children = request.user.children.all()
 
     # Calculate stats for each child

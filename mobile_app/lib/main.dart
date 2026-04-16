@@ -1,4 +1,3 @@
-import 'package:chaqmoq_mobile/core/theme/app_foundation.dart';
 import 'package:chaqmoq_mobile/core/theme/app_theme.dart';
 import 'package:chaqmoq_mobile/providers/attendance_provider.dart';
 import 'package:chaqmoq_mobile/providers/auth_provider.dart';
@@ -6,11 +5,9 @@ import 'package:chaqmoq_mobile/providers/dashboard_provider.dart';
 import 'package:chaqmoq_mobile/providers/groups_provider.dart';
 import 'package:chaqmoq_mobile/providers/notifications_provider.dart';
 import 'package:chaqmoq_mobile/providers/payments_provider.dart';
-import 'package:chaqmoq_mobile/providers/profile_provider.dart';
 import 'package:chaqmoq_mobile/providers/students_provider.dart';
 import 'package:chaqmoq_mobile/providers/teachers_provider.dart';
-import `'package:chaqmoq_mobile/screens/auth/login_screen.dart';
-import 'package:chaqmoq_mobile/screens/shell/app_shell.dart';
+import 'package:chaqmoq_mobile/screens/splash/splash_screen.dart';
 import 'package:chaqmoq_mobile/services/api_client.dart';
 import 'package:chaqmoq_mobile/services/api_services.dart';
 import 'package:chaqmoq_mobile/services/storage_service.dart';
@@ -20,167 +17,94 @@ import 'package:provider/provider.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final storageService = SecureStorageService();
+  final storageService = StorageService();
   final apiClient = ApiClient(storageService: storageService);
 
   final authService = AuthService(
     apiClient: apiClient,
     storageService: storageService,
   );
-  final dashboardService = DashboardService(apiClient: apiClient);
-  final studentService = StudentService(apiClient: apiClient);
-  final teacherService = TeacherService(apiClient: apiClient);
-  final groupService = GroupService(apiClient: apiClient);
-  final attendanceService = AttendanceService(apiClient: apiClient);
-  final paymentService = PaymentService(apiClient: apiClient);
-  final notificationsService = NotificationsService(apiClient: apiClient);
-  final profileService = ProfileService(apiClient: apiClient);
+  final dashboardService = DashboardService(apiClient);
+  final studentsService = StudentsService(apiClient);
+  final teachersService = TeachersService(apiClient);
+  final groupsService = GroupsService(apiClient);
+  final attendanceService = AttendanceService(apiClient);
+  final paymentsService = PaymentsService(apiClient);
+  final notificationsService = NotificationsService(apiClient);
+
+  final authProvider = AuthProvider(authService: authService);
+  apiClient.setUnauthorizedHandler(authProvider.handleUnauthorized);
 
   runApp(
-    ChaqmoqMobileApp(
-      authService: authService,
+    ChaqmoqApp(
+      authProvider: authProvider,
       dashboardService: dashboardService,
-      studentService: studentService,
-      teacherService: teacherService,
-      groupService: groupService,
+      studentsService: studentsService,
+      teachersService: teachersService,
+      groupsService: groupsService,
       attendanceService: attendanceService,
-      paymentService: paymentService,
+      paymentsService: paymentsService,
       notificationsService: notificationsService,
-      profileService: profileService,
     ),
   );
 }
 
-class ChaqmoqMobileApp extends StatelessWidget {
-  const ChaqmoqMobileApp({
+class ChaqmoqApp extends StatelessWidget {
+  const ChaqmoqApp({
     super.key,
-    required this.authService,
+    required this.authProvider,
     required this.dashboardService,
-    required this.studentService,
-    required this.teacherService,
-    required this.groupService,
+    required this.studentsService,
+    required this.teachersService,
+    required this.groupsService,
     required this.attendanceService,
-    required this.paymentService,
+    required this.paymentsService,
     required this.notificationsService,
-    required this.profileService,
   });
 
-  final AuthService authService;
+  final AuthProvider authProvider;
   final DashboardService dashboardService;
-  final StudentService studentService;
-  final TeacherService teacherService;
-  final GroupService groupService;
+  final StudentsService studentsService;
+  final TeachersService teachersService;
+  final GroupsService groupsService;
   final AttendanceService attendanceService;
-  final PaymentService paymentService;
+  final PaymentsService paymentsService;
   final NotificationsService notificationsService;
-  final ProfileService profileService;
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) =>
-              AuthProvider(authService: authService)..restoreSession(),
-        ),
+        ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
         ChangeNotifierProvider(
           create: (_) => DashboardProvider(dashboardService: dashboardService),
         ),
         ChangeNotifierProvider(
-          create: (_) => StudentsProvider(studentService: studentService),
+          create: (_) => StudentsProvider(studentsService: studentsService),
         ),
         ChangeNotifierProvider(
-          create: (_) => TeachersProvider(teacherService: teacherService),
+          create: (_) => TeachersProvider(teachersService: teachersService),
         ),
         ChangeNotifierProvider(
-          create: (_) => GroupsProvider(groupService: groupService),
+          create: (_) => GroupsProvider(groupsService: groupsService),
         ),
         ChangeNotifierProvider(
-          create: (_) =>
-              AttendanceProvider(attendanceService: attendanceService),
+          create: (_) => AttendanceProvider(attendanceService: attendanceService),
         ),
         ChangeNotifierProvider(
-          create: (_) => PaymentsProvider(paymentService: paymentService),
+          create: (_) => PaymentsProvider(paymentsService: paymentsService),
         ),
         ChangeNotifierProvider(
-          create: (_) =>
-              NotificationsProvider(notificationsService: notificationsService),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => ProfileProvider(profileService: profileService),
+          create: (_) => NotificationsProvider(
+            notificationsService: notificationsService,
+          ),
         ),
       ],
       child: MaterialApp(
-        title: 'Chaqmoq Mobil',
-        theme: AppTheme.lightTheme,
-        themeAnimationCurve: Curves.easeInOutCubic,
-        themeAnimationDuration: const Duration(milliseconds: 250),
+        title: 'ChaqmoqApp Mobile',
         debugShowCheckedModeBanner: false,
-        home: Consumer<AuthProvider>(
-          builder: (context, auth, _) {
-            if (auth.isInitializing) {
-              return const _SplashGate();
-            }
-
-            if (auth.isAuthenticated) {
-              return const AppShell();
-            }
-
-            return const LoginScreen();
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class _SplashGate extends StatelessWidget {
-  const _SplashGate();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: AppGradients.darkHero),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 88,
-                height: 88,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                  border: Border.all(color: Colors.white24),
-                ),
-                alignment: Alignment.center,
-                child: const Icon(
-                  Icons.bolt_rounded,
-                  color: Colors.white,
-                  size: 46,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Chaqmoq Mobil',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Markazingiz ma\'lumotlari ulanmoqda...',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.white70),
-              ),
-              const SizedBox(height: 24),
-              const CircularProgressIndicator(color: Colors.white),
-            ],
-          ),
-        ),
+        theme: AppTheme.darkTheme,
+        home: const SplashScreen(),
       ),
     );
   }

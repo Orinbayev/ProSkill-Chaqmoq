@@ -9,63 +9,96 @@ class AttendanceProvider extends ChangeNotifier {
 
   final AttendanceService _attendanceService;
 
-  AttendanceSheetData? sheet;
-  bool isLoading = false;
-  bool isSaving = false;
-  String? errorMessage;
+  DateTime _selectedDate = DateTime.now();
+  GroupModel? _selectedGroup;
+  AttendanceSheetModel? _sheet;
+  ViewState _state = ViewState.idle;
+  ViewState _submitState = ViewState.idle;
+  String? _errorMessage;
 
-  void reset() {
-    sheet = null;
-    isLoading = false;
-    isSaving = false;
-    errorMessage = null;
+  DateTime get selectedDate => _selectedDate;
+  GroupModel? get selectedGroup => _selectedGroup;
+  AttendanceSheetModel? get sheet => _sheet;
+  ViewState get state => _state;
+  ViewState get submitState => _submitState;
+  String? get errorMessage => _errorMessage;
+
+  Future<void> loadSheet(GroupModel group, {DateTime? date}) async {
+    _selectedGroup = group;
+    _selectedDate = date ?? _selectedDate;
+    _state = ViewState.loading;
+    _errorMessage = null;
     notifyListeners();
-  }
-
-  Future<void> load({required int groupId, required DateTime date}) async {
-    isLoading = true;
-    errorMessage = null;
-    notifyListeners();
-
     try {
-      sheet = await _attendanceService.fetchAttendanceSheet(
-        groupId: groupId,
-        date: date,
+      _sheet = await _attendanceService.fetchAttendanceSheet(
+        groupId: group.id,
+        groupName: group.name,
+        date: _selectedDate,
       );
+      _state = ViewState.success;
     } catch (error) {
-      errorMessage = error is ApiException
-          ? error.message
-          : 'Davomat ma\'lumotlarini yuklab bo\'lmadi';
+      _state = ViewState.error;
+      _errorMessage = _mapError(error);
     } finally {
-      isLoading = false;
       notifyListeners();
     }
   }
 
-  Future<bool> submit({
-    required int groupId,
-    required DateTime date,
-    required List<Map<String, dynamic>> items,
-  }) async {
-    isSaving = true;
-    errorMessage = null;
+  Future<void> changeDate(DateTime date) async {
+    _selectedDate = date;
     notifyListeners();
+    if (_selectedGroup != null) {
+      await loadSheet(_selectedGroup!, date: date);
+    }
+  }
 
+  void updateStatus(int studentId, String status) {
+    final current = _sheet;
+    if (current == null) {
+      return;
+    }
+    _sheet = AttendanceSheetModel(
+      groupId: current.groupId,
+      groupName: current.groupName,
+      date: current.date,
+      readOnly: current.readOnly,
+      items: current.items
+          .map(
+            (item) => item.studentId == studentId
+                ? item.copyWith(status: status)
+                : item,
+          )
+          .toList(),
+    );
+    notifyListeners();
+  }
+
+  Future<void> submit() async {
+    if (_sheet == null || _selectedGroup == null) {
+      return;
+    }
+    _submitState = ViewState.loading;
+    _errorMessage = null;
+    notifyListeners();
     try {
-      sheet = await _attendanceService.submitAttendance(
-        groupId: groupId,
-        date: date,
-        items: items,
+      await _attendanceService.submitAttendance(
+        groupId: _selectedGroup!.id,
+        date: _selectedDate,
+        items: _sheet!.items,
       );
-      return true;
+      _submitState = ViewState.success;
     } catch (error) {
-      errorMessage = error is ApiException
-          ? error.message
-          : 'Davomatni saqlab bo\'lmadi';
-      return false;
+      _submitState = ViewState.error;
+      _errorMessage = _mapError(error);
     } finally {
-      isSaving = false;
       notifyListeners();
     }
+  }
+
+  String _mapError(Object error) {
+    if (error is ApiException) {
+      return error.message;
+    }
+    return 'Davomat saqlanmadi';
   }
 }

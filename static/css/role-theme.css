@@ -997,6 +997,24 @@ html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director
   color: var(--role-theme-text) !important;
 }
 
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page {
+  --bq-bg: #eff6ff;
+  --bq-surf: #ffffff;
+  --bq-card: rgba(255, 255, 255, 0.96);
+  --bq-br: rgba(148, 163, 184, 0.22);
+  --bq-br2: rgba(37, 99, 235, 0.18);
+  --bq-txt: #0f172a;
+  --bq-muted: #475569;
+  --bq-soft: #64748b;
+  --bq-cyan: #0891b2;
+  --bq-green: #10b981;
+  --bq-amber: #f59e0b;
+  --bq-rose: #e11d48;
+  --bq-violet: #7c3aed;
+  --bq-blue: #2563eb;
+  --bq-orange: #ea580c;
+}
+
 html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-btn--primary {
   background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(14, 165, 233, 0.18)) !important;
   border-color: rgba(37, 99, 235, 0.18) !important;
@@ -2410,4 +2428,77 @@ html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director
 html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-source__center span,
 html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .text-white-50 {
   color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-source__item,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-paycat {
+  background: rgba(248, 250, 252, 0.96) !important;
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-source__name,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-source__count,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-paycat__name,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-search-wrap input,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-xavfli-empty,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-xavfli-empty p,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-tbl__empty,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page h6.text-white-50 {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-source__pct,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-source__empty,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-paycat__stat,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-legend__item,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-fin-legend,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-search-wrap i,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-search-wrap input::placeholder,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-sec__sub,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-fin-hint {
+  color: #52637a !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-paycat__total {
+  background: rgba(37, 99, 235, 0.06) !important;
+  border-color: rgba(37, 99, 235, 0.14) !important;
+  color: #334155 !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-paycat__stat--paid {
+  color: #15803d !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-paycat__stat--unpaid {
+  color: #e11d48 !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-search-wrap {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  box-shadow: none !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-xavfli-count {
+  background: rgba(225, 29, 72, 0.08) !important;
+  border-color: rgba(225, 29, 72, 0.16) !important;
+  color: #be123c !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-sec-link--rose {
+  background: rgba(225, 29, 72, 0.06) !important;
+  border-color: rgba(225, 29, 72, 0.18) !important;
+  color: #be123c !important;
+  box-shadow: none !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-sec-link--rose:hover {
+  background: rgba(225, 29, 72, 0.12) !important;
+  color: #9f1239 !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page #churnSummaryGrid > div > div:last-child > div:last-child,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page #examSummaryGrid > div > div:last-child > div:last-child {
+  color: #52637a !important;
 }

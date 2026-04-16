@@ -9,68 +9,62 @@ class NotificationsProvider extends ChangeNotifier {
 
   final NotificationsService _notificationsService;
 
-  List<AppNotification> items = [];
-  int unreadCount = 0;
-  bool isLoading = false;
-  bool isSaving = false;
-  String? errorMessage;
+  List<NotificationModel> _items = <NotificationModel>[];
+  int _unreadCount = 0;
+  ViewState _state = ViewState.idle;
+  String? _errorMessage;
 
-  void reset() {
-    items = [];
-    unreadCount = 0;
-    isLoading = false;
-    isSaving = false;
-    errorMessage = null;
+  List<NotificationModel> get items => _items;
+  int get unreadCount => _unreadCount;
+  ViewState get state => _state;
+  String? get errorMessage => _errorMessage;
+
+  Future<void> load({bool force = false}) async {
+    if (_state == ViewState.loading) {
+      return;
+    }
+    if (!force && _items.isNotEmpty) {
+      return;
+    }
+    _state = ViewState.loading;
+    _errorMessage = null;
     notifyListeners();
-  }
-
-  Future<void> load() async {
-    isLoading = true;
-    errorMessage = null;
-    notifyListeners();
-
     try {
-      final result = await _notificationsService.fetchNotifications();
-      items = result.$1;
-      unreadCount = result.$2;
+      final payload = await _notificationsService.fetchNotifications();
+      _items = payload.$1;
+      _unreadCount = payload.$2;
+      _state = ViewState.success;
     } catch (error) {
-      errorMessage = error is ApiException
-          ? error.message
-          : 'Bildirishnomalarni yuklab bo\'lmadi';
+      _state = ViewState.error;
+      _errorMessage = _mapError(error);
     } finally {
-      isLoading = false;
       notifyListeners();
     }
   }
 
-  Future<bool> markAllRead() async {
-    isSaving = true;
-    errorMessage = null;
-    notifyListeners();
+  Future<void> refresh() => load(force: true);
 
-    try {
-      await _notificationsService.markAllRead();
-      items = [
-        for (final item in items)
-          AppNotification(
-            id: item.id,
-            title: item.title,
-            message: item.message,
-            type: item.type,
-            isRead: true,
-            createdAt: item.createdAt,
-          ),
-      ];
-      unreadCount = 0;
-      return true;
-    } catch (error) {
-      errorMessage = error is ApiException
-          ? error.message
-          : 'Bildirishnomalarni belgilab bo\'lmadi';
-      return false;
-    } finally {
-      isSaving = false;
-      notifyListeners();
+  void markRead(NotificationModel notification) {
+    _items = _items
+        .map(
+          (item) => item.id == notification.id ? item.copyWith(isRead: true) : item,
+        )
+        .toList();
+    _unreadCount = _items.where((item) => !item.isRead).length;
+    notifyListeners();
+  }
+
+  Future<void> markAllRead() async {
+    await _notificationsService.markAllRead();
+    _items = _items.map((item) => item.copyWith(isRead: true)).toList();
+    _unreadCount = 0;
+    notifyListeners();
+  }
+
+  String _mapError(Object error) {
+    if (error is ApiException) {
+      return error.message;
     }
+    return 'Bildirishnomalar yuklanmadi';
   }
 }

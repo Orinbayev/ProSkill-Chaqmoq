@@ -122,20 +122,35 @@
             </div>
           </div>
 
-          {% if form.non_field_errors or form.username.errors or form.password.errors %}
+          {% if form.non_field_errors %}
+          <div class="form-message is-error" role="alert">
+            <i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i>
+            <span id="txt-error-line">{{ form.non_field_errors.0 }}</span>
+          </div>
+          {% elif form.username.errors or form.password.errors %}
           <div class="form-message is-error" role="alert">
             <i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i>
             <span id="txt-error-line">Email yoki parol noto'g'ri.</span>
           </div>
           {% endif %}
 
+          <div class="remember-row" style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+            <input
+              type="checkbox"
+              name="remember"
+              id="rememberMe"
+              style="width:16px; height:16px; accent-color:#3b82f6; cursor:pointer;"
+            >
+            <label for="rememberMe" style="font-size:13px; color:#94a3b8; cursor:pointer; margin:0;">
+              Meni eslab qol (30 kun)
+            </label>
+          </div>
+
           <button type="submit" class="btn btn-submit" id="loginSubmitBtn">
             <span class="btn-text" id="txt-login-btn">Kirish</span>
             <span class="btn-arrow"><i class="bi bi-arrow-right" aria-hidden="true"></i></span>
             <span class="btn-spinner" aria-hidden="true"></span>
           </button>
-
-          <input type="checkbox" name="remember" class="sr-only" tabindex="-1" aria-hidden="true">
         </form>
 
         <section class="auth-insight" aria-label="Platforma natijalari">
@@ -159,7 +174,7 @@
         </section>
 
         <div class="auth-card-foot">
-          <a href="{% url 'phone_login_init' %}" class="btn btn-telegram" id="telegramBtn">
+          <a href="{% if request_center.slug %}/{{ request_center.slug }}/hisob/login/phone-kirish/{% else %}{% url 'phone_login_init' %}{% endif %}" class="btn btn-telegram" id="telegramBtn">
             <i class="bi bi-telegram" aria-hidden="true"></i>
             <span id="txt-telegram-btn">Telegram orqali kirish</span>
           </a>

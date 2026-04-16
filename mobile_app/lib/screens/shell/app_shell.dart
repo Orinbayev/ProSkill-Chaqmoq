@@ -1,14 +1,9 @@
-import 'package:chaqmoq_mobile/core/theme/app_foundation.dart';
+import 'package:chaqmoq_mobile/core/theme/app_colors.dart';
+import 'package:chaqmoq_mobile/core/theme/app_spacing.dart';
+import 'package:chaqmoq_mobile/core/theme/app_text_styles.dart';
 import 'package:chaqmoq_mobile/core/utils/role_utils.dart';
-import 'package:chaqmoq_mobile/providers/attendance_provider.dart';
 import 'package:chaqmoq_mobile/providers/auth_provider.dart';
-import 'package:chaqmoq_mobile/providers/dashboard_provider.dart';
-import 'package:chaqmoq_mobile/providers/groups_provider.dart';
 import 'package:chaqmoq_mobile/providers/notifications_provider.dart';
-import 'package:chaqmoq_mobile/providers/payments_provider.dart';
-import 'package:chaqmoq_mobile/providers/profile_provider.dart';
-import 'package:chaqmoq_mobile/providers/students_provider.dart';
-import 'package:chaqmoq_mobile/providers/teachers_provider.dart';
 import 'package:chaqmoq_mobile/screens/attendance/attendance_screen.dart';
 import 'package:chaqmoq_mobile/screens/dashboard/dashboard_screen.dart';
 import 'package:chaqmoq_mobile/screens/groups/groups_screen.dart';
@@ -17,13 +12,12 @@ import 'package:chaqmoq_mobile/screens/payments/payments_screen.dart';
 import 'package:chaqmoq_mobile/screens/profile/profile_screen.dart';
 import 'package:chaqmoq_mobile/screens/students/students_screen.dart';
 import 'package:chaqmoq_mobile/screens/teachers/teachers_screen.dart';
-import 'package:chaqmoq_mobile/widgets/app_button.dart';
-import 'package:chaqmoq_mobile/widgets/app_drawer.dart';
-import 'package:chaqmoq_mobile/widgets/app_input_field.dart';
-import 'package:chaqmoq_mobile/widgets/app_shell_title.dart';
-import 'package:chaqmoq_mobile/widgets/app_view.dart';
+import 'package:chaqmoq_mobile/widgets/role_badge.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+
+enum ShellTab { dashboard, students, teachers, groups, attendance, payments, notifications, profile }
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -33,108 +27,68 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  AppSection? _selectedSection;
-  int? _bootstrappedUserId;
+  ShellTab _currentTab = ShellTab.dashboard;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final user = context.read<AuthProvider>().user;
-    if (user == null || _bootstrappedUserId == user.id) {
-      return;
-    }
-
-    _bootstrappedUserId = user.id;
-    final primary = RoleUtils.primarySections(user.effectiveRole);
-    _selectedSection = primary.first.section;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) {
-        return;
-      }
-      context.read<DashboardProvider>().reset();
-      context.read<StudentsProvider>().reset();
-      context.read<TeachersProvider>().reset();
-      context.read<GroupsProvider>().reset();
-      context.read<AttendanceProvider>().reset();
-      context.read<PaymentsProvider>().reset();
-      context.read<NotificationsProvider>().reset();
-      context.read<ProfileProvider>().reset();
-      await context.read<DashboardProvider>().loadForUser(user, force: true);
-      if (!mounted) {
-        return;
-      }
-      await context.read<NotificationsProvider>().load();
-    });
-  }
-
-  Widget _buildBody(AppSection section) {
-    return switch (section) {
-      AppSection.home => const DashboardScreen(),
-      AppSection.students => const StudentsScreen(),
-      AppSection.teachers => const TeachersScreen(),
-      AppSection.groups => const GroupsScreen(),
-      AppSection.attendance => const AttendanceScreen(),
-      AppSection.payments => const PaymentsScreen(),
-      AppSection.notifications => const NotificationsScreen(),
-      AppSection.profile => const ProfileScreen(),
-    };
-  }
-
-  Future<void> _logout() async {
-    await context.read<AuthProvider>().logout();
-  }
-
-  Future<void> _switchWorkspace() async {
-    final auth = context.read<AuthProvider>();
-    final controller = TextEditingController(text: auth.lastUsedSlug);
-    final newSlug = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Markazni almashtirish'),
-          content: AppInputField(
-            controller: controller,
-            label: 'Markaz slugi',
-            hint: 'masalan: proskill',
-            prefixIcon: Icons.apartment_rounded,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Bekor qilish'),
-            ),
-            AppButton(
-              label: 'Saqlash',
-              expanded: false,
-              onPressed: () {
-                Navigator.of(dialogContext).pop(controller.text.trim());
-              },
-            ),
-          ],
-        );
-      },
-    );
-
-    if (!mounted || newSlug == null || newSlug.isEmpty) {
-      return;
-    }
-
-    await auth.switchTenant(newSlug);
-    if (!mounted) {
-      return;
-    }
-    final user = auth.user;
-    if (user != null) {
-      await context.read<DashboardProvider>().loadForUser(user, force: true);
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
       }
       context.read<NotificationsProvider>().load();
+    });
+  }
+
+  List<_ShellItem> _itemsForRole(String role) {
+    final normalized = RoleUtils.normalize(role);
+    if (normalized == 'superuser') {
+      return const [
+        _ShellItem(ShellTab.dashboard, 'Dashboard', Icons.home_rounded),
+        _ShellItem(ShellTab.students, 'O\'quvchi', Icons.groups_rounded),
+        _ShellItem(ShellTab.teachers, 'Ustoz', Icons.school_rounded),
+        _ShellItem(ShellTab.groups, 'Guruh', Icons.view_module_rounded),
+        _ShellItem(ShellTab.notifications, 'Xabar', Icons.notifications_rounded),
+        _ShellItem(ShellTab.profile, 'Profil', Icons.person_rounded),
+      ];
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Ish maydoni $newSlug ga almashtirildi')),
-    );
+    if (normalized == 'director' || normalized == 'manager') {
+      return const [
+        _ShellItem(ShellTab.dashboard, 'Dashboard', Icons.home_rounded),
+        _ShellItem(ShellTab.students, 'O\'quvchi', Icons.groups_rounded),
+        _ShellItem(ShellTab.groups, 'Guruh', Icons.view_module_rounded),
+        _ShellItem(ShellTab.notifications, 'Xabar', Icons.notifications_rounded),
+        _ShellItem(ShellTab.profile, 'Profil', Icons.person_rounded),
+      ];
+    }
+    if (normalized == 'teacher') {
+      return const [
+        _ShellItem(ShellTab.dashboard, 'Dashboard', Icons.home_rounded),
+        _ShellItem(ShellTab.groups, 'Guruh', Icons.view_module_rounded),
+        _ShellItem(ShellTab.attendance, 'Davomat', Icons.fact_check_rounded),
+        _ShellItem(ShellTab.notifications, 'Xabar', Icons.notifications_rounded),
+        _ShellItem(ShellTab.profile, 'Profil', Icons.person_rounded),
+      ];
+    }
+    return const [
+      _ShellItem(ShellTab.dashboard, 'Dashboard', Icons.home_rounded),
+      _ShellItem(ShellTab.payments, 'To\'lov', Icons.credit_card_rounded),
+      _ShellItem(ShellTab.notifications, 'Xabar', Icons.notifications_rounded),
+      _ShellItem(ShellTab.profile, 'Profil', Icons.person_rounded),
+    ];
+  }
+
+  Widget _screenForTab(ShellTab tab) {
+    return switch (tab) {
+      ShellTab.dashboard => const DashboardScreen(),
+      ShellTab.students => const StudentsScreen(),
+      ShellTab.teachers => const TeachersScreen(),
+      ShellTab.groups => const GroupsScreen(),
+      ShellTab.attendance => const AttendanceScreen(),
+      ShellTab.payments => const PaymentsScreen(),
+      ShellTab.notifications => const NotificationsScreen(),
+      ShellTab.profile => const ProfileScreen(),
+    };
   }
 
   @override
@@ -142,48 +96,41 @@ class _AppShellState extends State<AppShell> {
     final auth = context.watch<AuthProvider>();
     final notifications = context.watch<NotificationsProvider>();
     final user = auth.user;
-
     if (user == null) {
       return const SizedBox.shrink();
     }
 
-    final primary = RoleUtils.primarySections(user.effectiveRole);
-    final secondary = RoleUtils.secondarySections(user.effectiveRole);
-    final allowedSections = {
-      ...primary.map((item) => item.section),
-      ...secondary.map((item) => item.section),
-    };
-    final activeSection = allowedSections.contains(_selectedSection)
-        ? _selectedSection!
-        : primary.first.section;
-    _selectedSection = activeSection;
-
-    final primaryIndex = primary.indexWhere(
-      (item) => item.section == activeSection,
-    );
+    final items = _itemsForRole(user.role);
+    if (!items.any((item) => item.tab == _currentTab)) {
+      _currentTab = items.first.tab;
+    }
+    final selectedIndex = items.indexWhere((item) => item.tab == _currentTab);
 
     return Scaffold(
       extendBody: true,
       appBar: AppBar(
-        toolbarHeight: 74,
-        title: AppShellTitle(
-          title: RoleUtils.sectionTitle(activeSection),
-          subtitle: user.center?.name ?? 'ChaqmoqApp',
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('ChaqmoqApp ⚡', style: AppTextStyles.title),
+            Text(user.center?.name ?? 'CRM Platform', style: AppTextStyles.bodySmall),
+          ],
         ),
         actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.sm),
+            child: RoleBadge(role: user.role),
+          ),
           IconButton(
-            tooltip: 'Bildirishnomalar',
-            onPressed: () {
-              setState(() => _selectedSection = AppSection.notifications);
-            },
+            onPressed: () => setState(() => _currentTab = ShellTab.notifications),
             icon: Stack(
               clipBehavior: Clip.none,
               children: [
                 const Icon(Icons.notifications_none_rounded),
                 if (notifications.unreadCount > 0)
                   Positioned(
-                    right: -4,
-                    top: -4,
+                    top: -2,
+                    right: -2,
                     child: Container(
                       width: 18,
                       height: 18,
@@ -196,10 +143,9 @@ class _AppShellState extends State<AppShell> {
                         notifications.unreadCount > 9
                             ? '9+'
                             : '${notifications.unreadCount}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.white,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.white,
                           fontSize: 9,
-                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
@@ -210,39 +156,18 @@ class _AppShellState extends State<AppShell> {
           const SizedBox(width: AppSpacing.sm),
         ],
       ),
-      drawer: AppDrawer(
-        user: user,
-        selectedSection: activeSection,
-        primarySections: primary,
-        secondarySections: secondary,
-        unreadNotifications: notifications.unreadCount,
-        onSelectSection: (section) {
-          Navigator.of(context).pop();
-          setState(() => _selectedSection = section);
-        },
-        onLogout: () {
-          Navigator.of(context).pop();
-          _logout();
-        },
-        onSwitchWorkspace: user.isSuperuser ? _switchWorkspace : null,
-      ),
       body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFEFF6FF), AppColors.canvas, AppColors.canvas],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            stops: [0, 0.22, 1],
-          ),
-        ),
-        child: AppView(
+        decoration: const BoxDecoration(gradient: AppColors.appBackground),
+        child: SafeArea(
+          top: false,
           child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 280),
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
+            duration: 280.ms,
             child: KeyedSubtree(
-              key: ValueKey(activeSection),
-              child: _buildBody(activeSection),
+              key: ValueKey(_currentTab),
+              child: _screenForTab(_currentTab)
+                  .animate()
+                  .fadeIn(duration: 260.ms)
+                  .slideY(begin: 0.02, end: 0),
             ),
           ),
         ),
@@ -254,18 +179,30 @@ class _AppShellState extends State<AppShell> {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(AppRadius.xl),
             child: NavigationBar(
-              selectedIndex: primaryIndex < 0 ? 0 : primaryIndex,
+              selectedIndex: selectedIndex < 0 ? 0 : selectedIndex,
               onDestinationSelected: (index) {
-                setState(() => _selectedSection = primary[index].section);
+                setState(() => _currentTab = items[index].tab);
               },
-              destinations: [
-                for (final item in primary)
-                  NavigationDestination(icon: Icon(item.icon), label: item.label),
-              ],
+              destinations: items
+                  .map(
+                    (item) => NavigationDestination(
+                      icon: Icon(item.icon),
+                      label: item.label,
+                    ),
+                  )
+                  .toList(),
             ),
           ),
         ),
       ),
     );
   }
+}
+
+class _ShellItem {
+  const _ShellItem(this.tab, this.label, this.icon);
+
+  final ShellTab tab;
+  final String label;
+  final IconData icon;
 }

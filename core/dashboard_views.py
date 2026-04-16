@@ -289,6 +289,11 @@ def _payment_type_breakdown(pay_qs):
 
 
 def _financial_payload(center, d_from, d_to):
+    cache_key = f"financial_payload_{center.id}_{d_from}_{d_to}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     period = _period_stats(d_from, d_to)
     pay_qs = _payments_for_center(center).filter(paid_date__range=(d_from, d_to))
     revenue = int(pay_qs.aggregate(s=Sum("summa"))["s"] or 0)
@@ -365,7 +370,7 @@ def _financial_payload(center, d_from, d_to):
     last_year_ytd = sum(last_year[: today.month])
     growth_pct = round((this_year_ytd - last_year_ytd) / max(last_year_ytd, 1) * 100, 1)
 
-    return {
+    result = {
         "kpis": {
             "revenue": revenue,
             "net_profit": net_profit,
@@ -415,6 +420,8 @@ def _financial_payload(center, d_from, d_to):
         "profit": net_profit,
         "profit_margin": profit_margin,
     }
+    cache.set(cache_key, result, timeout=300)
+    return result
 
 
 def _student_payload(center, d_from, d_to):
@@ -511,59 +518,103 @@ def _student_payload(center, d_from, d_to):
 
 
 def _teacher_payload(center, d_from, d_to):
+    cache_key = f"teacher_payload_{center.id}_{d_from}_{d_to}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     period = _period_stats(d_from, d_to)
     teachers = list(User.objects.filter(center=center, role="teacher"))
     total_teachers = len(teachers)
+    teacher_ids = [teacher.id for teacher in teachers]
     active_enrollments = Enrollment.objects.filter(group__center=center, is_active=True, student__is_archived=False)
     distinct_students = active_enrollments.values("student").distinct().count()
 
+    rev_map = dict(
+        _payments_for_center(center)
+        .filter(
+            group__oqituvchi_id__in=teacher_ids,
+            paid_date__range=(d_from, d_to),
+        )
+        .values("group__oqituvchi_id")
+        .annotate(s=Sum("summa"))
+        .values_list("group__oqituvchi_id", "s")
+    )
+    stu_map = dict(
+        active_enrollments
+        .filter(group__oqituvchi_id__in=teacher_ids)
+        .values("group__oqituvchi_id")
+        .annotate(cnt=Count("student", distinct=True))
+        .values_list("group__oqituvchi_id", "cnt")
+    )
+    grp_map = dict(
+        Group.objects.filter(
+            center=center,
+            is_archived=False,
+            is_deleted=False,
+            oqituvchi_id__in=teacher_ids,
+        )
+        .values("oqituvchi_id")
+        .annotate(cnt=Count("id"))
+        .values_list("oqituvchi_id", "cnt")
+    )
+    att_base = Attendance.objects.filter(
+        group__center=center,
+        group__oqituvchi_id__in=teacher_ids,
+        date__range=(d_from, d_to),
+    )
+    att_total_map = dict(
+        att_base.values("group__oqituvchi_id")
+        .annotate(cnt=Count("id"))
+        .values_list("group__oqituvchi_id", "cnt")
+    )
+    att_present_map = dict(
+        att_base.filter(_attendance_present_filter())
+        .values("group__oqituvchi_id")
+        .annotate(cnt=Count("id"))
+        .values_list("group__oqituvchi_id", "cnt")
+    )
+    dropout_map = dict(
+        StudentGroupHistory.objects.filter(
+            center=center,
+            group__oqituvchi_id__in=teacher_ids,
+            end_date__range=(d_from, d_to),
+        )
+        .values("group__oqituvchi_id")
+        .annotate(cnt=Count("student", distinct=True))
+        .values_list("group__oqituvchi_id", "cnt")
+    )
+    exam_base = ExamResult.objects.filter(
+        center=center,
+        teacher_id__in=teacher_ids,
+        exam_date__range=(d_from, d_to),
+    )
+    pct_map = dict(
+        exam_base.exclude(percent__isnull=True)
+        .values("teacher_id")
+        .annotate(a=Avg("percent"))
+        .values_list("teacher_id", "a")
+    )
+    score_map = dict(
+        exam_base.exclude(score__isnull=True)
+        .values("teacher_id")
+        .annotate(a=Avg("score"))
+        .values_list("teacher_id", "a")
+    )
+
     stats = []
     for teacher in teachers:
-        revenue = int(
-            _payments_for_center(center).filter(
-                group__oqituvchi=teacher,
-                paid_date__range=(d_from, d_to),
-            ).aggregate(s=Sum("summa"))["s"] or 0
-        )
-        students = active_enrollments.filter(group__oqituvchi=teacher).values("student").distinct().count()
-        groups = Group.objects.filter(center=center, oqituvchi=teacher, is_archived=False, is_deleted=False).count()
-        teacher_att_qs = Attendance.objects.filter(
-            group__oqituvchi=teacher,
-            group__center=center,
-            date__range=(d_from, d_to),
-        )
-        total_att = teacher_att_qs.count()
-        present_att = teacher_att_qs.filter(_attendance_present_filter()).count()
+        teacher_id = teacher.id
+        revenue = int(rev_map.get(teacher_id) or 0)
+        students = int(stu_map.get(teacher_id) or 0)
+        groups = int(grp_map.get(teacher_id) or 0)
+        total_att = int(att_total_map.get(teacher_id) or 0)
+        present_att = int(att_present_map.get(teacher_id) or 0)
         avg_attendance_pct = round(present_att / total_att * 100, 1) if total_att else 0
         hours = present_att
-        dropout_count = (
-            StudentGroupHistory.objects.filter(
-                center=center,
-                group__oqituvchi=teacher,
-                end_date__range=(d_from, d_to),
-            )
-            .values("student")
-            .distinct()
-            .count()
-        )
-        percent_avg = (
-            ExamResult.objects.filter(
-                center=center,
-                teacher=teacher,
-                exam_date__range=(d_from, d_to),
-            )
-            .exclude(percent__isnull=True)
-            .aggregate(a=Avg("percent"))["a"]
-        )
-        score_avg = (
-            ExamResult.objects.filter(
-                center=center,
-                teacher=teacher,
-                exam_date__range=(d_from, d_to),
-            )
-            .exclude(score__isnull=True)
-            .aggregate(a=Avg("score"))["a"]
-        )
+        dropout_count = int(dropout_map.get(teacher_id) or 0)
+        percent_avg = pct_map.get(teacher_id)
+        score_avg = score_map.get(teacher_id)
         exam_avg_score = round(float(percent_avg if percent_avg is not None else score_avg or 0), 1)
         dropout_rate = dropout_count / max(students + dropout_count, 1)
         score = round(
@@ -602,7 +653,7 @@ def _teacher_payload(center, d_from, d_to):
     )
 
     top10 = stats[:10]
-    return {
+    result = {
         "kpis": {
             "total_teachers": total_teachers,
             "avg_rev": avg_rev,
@@ -635,9 +686,16 @@ def _teacher_payload(center, d_from, d_to):
         "student_teacher_ratio": ratio,
         "teachers": stats[:15],
     }
+    cache.set(cache_key, result, timeout=300)
+    return result
 
 
 def _groups_payload(center, d_from, d_to):
+    cache_key = f"groups_payload_{center.id}_{d_from}_{d_to}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     period = _period_stats(d_from, d_to)
     groups_qs = Group.objects.filter(center=center, is_archived=False, is_deleted=False)
     total_groups = groups_qs.count()
@@ -645,18 +703,55 @@ def _groups_payload(center, d_from, d_to):
     active_enroll_total = Enrollment.objects.filter(group__center=center, is_active=True).count()
     avg_size = round(active_enroll_total / active_groups, 1) if active_groups else 0
 
+    top_groups = list(groups_qs.select_related("oqituvchi", "category_obj")[:40])
+    top_group_ids = [group.id for group in top_groups]
+
+    enroll_map = dict(
+        Enrollment.objects.filter(
+            group_id__in=top_group_ids,
+            is_active=True,
+            is_deleted=False,
+        )
+        .values("group_id")
+        .annotate(cnt=Count("id"))
+        .values_list("group_id", "cnt")
+    )
+    rev_map = dict(
+        Payment.objects.filter(
+            group_id__in=top_group_ids,
+            paid_date__range=(d_from, d_to),
+        )
+        .values("group_id")
+        .annotate(s=Sum("summa"))
+        .values_list("group_id", "s")
+    )
+    att_base = Attendance.objects.filter(
+        group_id__in=top_group_ids,
+        date__range=(d_from, d_to),
+    )
+    att_total_map = dict(
+        att_base.values("group_id")
+        .annotate(cnt=Count("id"))
+        .values_list("group_id", "cnt")
+    )
+    att_present_map = dict(
+        att_base.filter(_attendance_present_filter())
+        .values("group_id")
+        .annotate(cnt=Count("id"))
+        .values_list("group_id", "cnt")
+    )
+
     group_stats = []
     total_capacity = 0
     total_active_students = 0
-    for group in groups_qs.select_related("oqituvchi", "category_obj")[:40]:
-        enrolled = Enrollment.objects.filter(group=group, is_active=True, is_deleted=False).count()
+    for group in top_groups:
+        group_id = group.id
+        enrolled = int(enroll_map.get(group_id) or 0)
         capacity = int(getattr(group, "max_students", 0) or 0)
         fill_pct = round(enrolled * 100 / capacity, 1) if capacity else 0
-        revenue = int(
-            Payment.objects.filter(group=group, paid_date__range=(d_from, d_to)).aggregate(s=Sum("summa"))["s"] or 0
-        )
-        att_tot = Attendance.objects.filter(group=group, date__range=(d_from, d_to)).count()
-        att_pre = Attendance.objects.filter(group=group, date__range=(d_from, d_to)).filter(_attendance_present_filter()).count()
+        revenue = int(rev_map.get(group_id) or 0)
+        att_tot = int(att_total_map.get(group_id) or 0)
+        att_pre = int(att_present_map.get(group_id) or 0)
         total_capacity += capacity
         total_active_students += enrolled
         group_stats.append({
@@ -692,7 +787,7 @@ def _groups_payload(center, d_from, d_to):
     prev_rev = int(Payment.objects.filter(center=center, paid_date__range=(prev_from, prev_to)).aggregate(s=Sum("summa"))["s"] or 0)
 
     top8 = group_stats[:8]
-    return {
+    result = {
         "kpis": {
             "total_groups": total_groups,
             "active_groups": active_groups,
@@ -738,6 +833,8 @@ def _groups_payload(center, d_from, d_to):
             for row in cat_dist
         ],
     }
+    cache.set(cache_key, result, timeout=300)
+    return result
 
 
 def _billing_payload(center, d_from, d_to):

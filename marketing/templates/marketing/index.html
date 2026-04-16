@@ -12,11 +12,41 @@
         <div class="home-hero-content reveal-up">
             <div class="hero-announcement">
                 <span class="dot"></span>
-                {{ ui.hero_benefit_3 }}
+                Avtomatik xabarnomalar
             </div>
 
-            <h1 id="hero-title">{{ site_content.hero_title }}</h1>
-            <p class="home-hero-subtitle">{{ site_content.hero_subtitle }}</p>
+            <div class="hero-title-row">
+                <div class="hero-title-copy">
+                    <h1 id="hero-title">{{ site_content.hero_title }}</h1>
+                    <p class="home-hero-subtitle">{{ site_content.hero_subtitle }}</p>
+                </div>
+
+                <div class="hero-mini-live" aria-hidden="true">
+                    <div class="hero-mini-card hero-mini-card-green">
+                        <span class="hero-mini-icon"><i class="bi bi-activity"></i></span>
+                        <div>
+                            <strong>Jonli davomat</strong>
+                            <small>87% faol ko'rsatkich</small>
+                        </div>
+                    </div>
+
+                    <div class="hero-mini-card hero-mini-card-blue">
+                        <span class="hero-mini-icon"><i class="bi bi-graph-up-arrow"></i></span>
+                        <div>
+                            <strong>18.4 mln</strong>
+                            <small>oylik tushum trendi</small>
+                        </div>
+                    </div>
+
+                    <div class="hero-mini-card hero-mini-card-amber">
+                        <span class="hero-mini-icon"><i class="bi bi-bell-fill"></i></span>
+                        <div>
+                            <strong>Telegram avtomatik</strong>
+                            <small>To'lov va davomat eslatmalari</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <div class="home-hero-actions">
                 <a class="btn btn-dark" href="{{ site_content.primary_cta_url }}">{{ site_content.primary_cta_text }}</a>
@@ -26,27 +56,198 @@
             <div class="home-hero-benefits">
                 <span><i class="bi bi-check-circle-fill"></i>{{ ui.hero_benefit_1 }}</span>
                 <span><i class="bi bi-check-circle-fill"></i>{{ ui.hero_benefit_2 }}</span>
-                <span><i class="bi bi-check-circle-fill"></i>{{ ui.hero_benefit_3 }}</span>
+                <span><i class="bi bi-check-circle-fill"></i>Avtomatik xabarnomalar</span>
             </div>
         </div>
 
         <div class="home-hero-visual reveal-up">
-            <div class="hero-image-wrap">
-                {% if site_setting.hero_image %}
-                <img src="{{ site_setting.hero_image.url }}" alt="{{ site_setting.site_name|default:'ChaqmoqApp' }}" class="hero-dashboard-image" loading="eager" decoding="async">
-                {% else %}
-                <img src="{% static 'img/chaqmoq_blue_logo_v2.png' %}" alt="{{ site_setting.site_name|default:'ChaqmoqApp' }}" class="hero-dashboard-image" loading="eager" decoding="async">
-                {% endif %}
+            <div class="lp-dashboard-preview" data-lp-dashboard-preview aria-label="ChaqmoqApp boshqaruv paneli preview">
+                <div class="lp-dashboard-sheen" aria-hidden="true"></div>
+
+                <div class="lp-browser-bar">
+                    <div class="lp-browser-left">
+                        <div class="lp-browser-dots" aria-hidden="true">
+                            <span class="lp-browser-dot lp-browser-dot-red"></span>
+                            <span class="lp-browser-dot lp-browser-dot-yellow"></span>
+                            <span class="lp-browser-dot lp-browser-dot-green"></span>
+                        </div>
+                        <div class="lp-browser-title">ChaqmoqApp — Boshqaruv paneli</div>
+                    </div>
+
+                    <div class="lp-live-chip">
+                        <span class="lp-live-ping"></span>
+                        <span>Jonli dashboard</span>
+                    </div>
+                </div>
+
+                <div class="lp-stat-grid">
+                    <article class="lp-stat-card lp-stat-card-green">
+                        <div class="lp-stat-top">
+                            <span class="lp-stat-icon"><i class="bi bi-people-fill"></i></span>
+                            <span class="lp-stat-label">O'quvchilar</span>
+                        </div>
+                        <strong class="lp-stat-number" data-lp-counter="124" data-lp-format="count">0 ta</strong>
+                        <p>Faol bazadagi o'quvchilar soni</p>
+                    </article>
+
+                    <article class="lp-stat-card lp-stat-card-blue">
+                        <div class="lp-stat-top">
+                            <span class="lp-stat-icon"><i class="bi bi-check2-square"></i></span>
+                            <span class="lp-stat-label">Davomat</span>
+                        </div>
+                        <strong class="lp-stat-number" data-lp-counter="87" data-lp-format="percent">0%</strong>
+                        <p>Oxirgi 30 kunlik o'rtacha ko'rsatkich</p>
+                    </article>
+
+                    <article class="lp-stat-card lp-stat-card-amber">
+                        <div class="lp-stat-top">
+                            <span class="lp-stat-icon"><i class="bi bi-cash-stack"></i></span>
+                            <span class="lp-stat-label">Oylik tushum</span>
+                        </div>
+                        <strong class="lp-stat-number" data-lp-counter="18400000" data-lp-format="money">0 so'm</strong>
+                        <p>Joriy oy bo'yicha umumiy tushum</p>
+                    </article>
+
+                    <article class="lp-stat-card lp-stat-card-navy">
+                        <div class="lp-stat-top">
+                            <span class="lp-stat-icon"><i class="bi bi-grid-1x2-fill"></i></span>
+                            <span class="lp-stat-label">Faol guruhlar</span>
+                        </div>
+                        <strong class="lp-stat-number" data-lp-counter="12" data-lp-format="count">0 ta</strong>
+                        <p>Hozir dars o'tayotgan guruhlar soni</p>
+                    </article>
+                </div>
+
+                <section class="lp-chart-shell" aria-labelledby="lp-chart-title">
+                    <div class="lp-section-head">
+                        <div>
+                            <h3 id="lp-chart-title">Moliyaviy ko'rsatkichlar</h3>
+                            <p>Oxirgi 6 oy bo'yicha tushum trendi</p>
+                        </div>
+                        <span class="lp-section-badge">AREA · 6 OY</span>
+                    </div>
+                    <div id="lp-revenue-chart" class="lp-chart-canvas" aria-label="Oxirgi 6 oy tushum grafigi"></div>
+                </section>
+
+                <div class="lp-list-grid">
+                    <section class="lp-list-panel" aria-labelledby="lp-payments-title">
+                        <div class="lp-section-head lp-section-head-compact">
+                            <div>
+                                <h3 id="lp-payments-title">So'nggi to'lovlar</h3>
+                                <p>Bugungi va kechagi to'lovlar</p>
+                            </div>
+                            <span class="lp-panel-badge lp-panel-badge-green">3 ta</span>
+                        </div>
+
+                        <div class="lp-list-row" data-lp-stagger-row>
+                            <span class="lp-row-mark lp-row-mark-success">✓</span>
+                            <div class="lp-row-main">
+                                <strong>Alibek Yusupov</strong>
+                                <span>To'lov qabul qilindi</span>
+                            </div>
+                            <div class="lp-row-amount">500 000 so'm</div>
+                            <div class="lp-row-meta">Bugun</div>
+                        </div>
+
+                        <div class="lp-list-row" data-lp-stagger-row>
+                            <span class="lp-row-mark lp-row-mark-success">✓</span>
+                            <div class="lp-row-main">
+                                <strong>Zulfiya Karimova</strong>
+                                <span>To'lov qabul qilindi</span>
+                            </div>
+                            <div class="lp-row-amount">450 000 so'm</div>
+                            <div class="lp-row-meta">Bugun</div>
+                        </div>
+
+                        <div class="lp-list-row" data-lp-stagger-row>
+                            <span class="lp-row-mark lp-row-mark-success">✓</span>
+                            <div class="lp-row-main">
+                                <strong>Jasur Toshmatov</strong>
+                                <span>To'lov qabul qilindi</span>
+                            </div>
+                            <div class="lp-row-amount">600 000 so'm</div>
+                            <div class="lp-row-meta">Kecha</div>
+                        </div>
+                    </section>
+
+                    <section class="lp-list-panel lp-list-panel-danger" aria-labelledby="lp-debtors-title">
+                        <div class="lp-section-head lp-section-head-compact">
+                            <div>
+                                <h3 id="lp-debtors-title">Qarzdorlar</h3>
+                                <p>Eslatma yuborilishi kerak bo'lganlar</p>
+                            </div>
+                            <span class="lp-panel-badge lp-panel-badge-danger">3 ta</span>
+                        </div>
+
+                        <div class="lp-list-row lp-list-row-debt" data-lp-stagger-row>
+                            <span class="lp-row-mark lp-row-mark-danger">!</span>
+                            <div class="lp-row-main">
+                                <strong>Valijon Rahimov</strong>
+                                <span>Qarzdor o'quvchi</span>
+                            </div>
+                            <div class="lp-row-amount lp-row-amount-danger">300 000 so'm</div>
+                        </div>
+
+                        <div class="lp-list-row lp-list-row-debt" data-lp-stagger-row>
+                            <span class="lp-row-mark lp-row-mark-danger">!</span>
+                            <div class="lp-row-main">
+                                <strong>Sarvinoz Umarova</strong>
+                                <span>Qarzdor o'quvchi</span>
+                            </div>
+                            <div class="lp-row-amount lp-row-amount-danger">250 000 so'm</div>
+                        </div>
+
+                        <div class="lp-list-row lp-list-row-debt" data-lp-stagger-row>
+                            <span class="lp-row-mark lp-row-mark-danger">!</span>
+                            <div class="lp-row-main">
+                                <strong>Bobur Nazarov</strong>
+                                <span>Qarzdor o'quvchi</span>
+                            </div>
+                            <div class="lp-row-amount lp-row-amount-danger">400 000 so'm</div>
+                        </div>
+                    </section>
+                </div>
             </div>
 
-            <div class="floating-stat floating-stat-right">
-                <strong>+24%</strong>
-                <span>{{ ui.hero_metric_1 }}</span>
+            <div class="lp-float-card lp-float-card-top" aria-hidden="true">
+                <div class="lp-float-card-head">
+                    <span>Telegram avtomatlashtirish</span>
+                    <span class="lp-float-card-badge">Faol</span>
+                </div>
+                <strong>To'lov eslatmalari faol</strong>
+                <small>Qarzdorlik va davomat uchun avtomatik xabarnoma</small>
             </div>
-            <div class="floating-stat floating-stat-left">
-                <strong>98%</strong>
-                <span>{{ ui.hero_metric_2 }}</span>
+
+            <div class="lp-float-card lp-float-card-bottom" aria-hidden="true">
+                <span>Davomat AI</span>
+                <strong>+12% o'sish</strong>
             </div>
+        </div>
+    </div>
+</section>
+
+<section class="quick-links-strip" aria-labelledby="quick-links-title">
+    <div class="container">
+        <div class="section-header quick-links-header">
+            <p class="eyebrow">{{ ui.quick_links_eyebrow|default:"Mashhur sahifalar" }}</p>
+            <h2 id="quick-links-title">{{ ui.quick_links_title|default:"ChaqmoqApp bo'limlarini tez oching" }}</h2>
+            <p>{{ ui.quick_links_desc|default:"Platformaning eng muhim sahifalari foydalanuvchi va qidiruv tizimi uchun aniq ko'rinadigan tarzda joylashtirildi." }}</p>
+        </div>
+
+        <div class="quick-links-grid">
+            {% for item in homepage_quick_links %}
+            <a class="support-card quick-link-card quick-link-card-{{ item.accent }}" href="{{ item.url }}">
+                <span class="support-card-icon quick-link-icon quick-link-icon-{{ item.accent }}">
+                    <i class="{{ item.icon }}"></i>
+                </span>
+                <h3>{{ item.title }}</h3>
+                <p>{{ item.description }}</p>
+                <span class="quick-link-cta">
+                    {{ ui.quick_links_cta|default:"Sahifani ochish" }}
+                    <i class="bi bi-arrow-right-short"></i>
+                </span>
+            </a>
+            {% endfor %}
         </div>
     </div>
 </section>
@@ -304,4 +505,8 @@
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'vendor/apexcharts/apexcharts.min.js' %}"></script>
 {% endblock %}

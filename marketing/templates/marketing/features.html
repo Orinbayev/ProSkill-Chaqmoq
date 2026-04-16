@@ -1,0 +1,82 @@
+{% extends 'marketing/base.html' %}
+
+{% block title %}{{ meta_title }}{% endblock %}
+
+{% block content %}
+<section class="page-hero page-hero-centered">
+    <div class="container">
+        <h1>{{ ui.features_page_title }}</h1>
+        <p>{{ ui.features_page_desc }}</p>
+    </div>
+</section>
+
+<section class="section section-slate" aria-labelledby="features-page-title">
+    <div class="container">
+        <div class="section-head">
+            <div>
+                <p class="eyebrow">{{ ui.features_eyebrow }}</p>
+                <h2 id="features-page-title">{{ ui.features_title }}</h2>
+            </div>
+        </div>
+
+        <div class="feature-grid">
+            {% for feature in feature_blocks %}
+            <article class="feature-card reveal-up">
+                <div class="feature-icon-box">
+                    {% if feature.icon %}<i class="{{ feature.icon }}"></i>{% else %}<i class="bi bi-lightning-charge-fill"></i>{% endif %}
+                </div>
+                <h3>{{ feature.title }}</h3>
+                <p>{{ feature.description }}</p>
+            </article>
+            {% empty %}
+            <div class="empty-note">{{ ui.feature_empty_text }}</div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container integration-layout">
+        <div class="integration-copy reveal-up">
+            <p class="eyebrow">{{ ui.before_after_eyebrow }}</p>
+            <h2>{{ ui.before_after_title }}</h2>
+            <p>{{ ui.hero_subtitle }}</p>
+            <ul class="integration-points">
+                {% for item in solution_blocks %}
+                <li>{{ item.title }}</li>
+                {% empty %}
+                <li>{{ ui.after_1 }}</li>
+                <li>{{ ui.after_2 }}</li>
+                <li>{{ ui.after_3 }}</li>
+                <li>{{ ui.after_4 }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="integration-grid">
+            {% for integration in integration_blocks %}
+            <article class="integration-card reveal-up">
+                <div class="integration-icon">
+                    {% if integration.icon %}<i class="{{ integration.icon }}"></i>{% else %}<i class="bi bi-diagram-3-fill"></i>{% endif %}
+                </div>
+                <h3>{{ integration.title }}</h3>
+                <p>{{ integration.description }}</p>
+            </article>
+            {% empty %}
+            <div class="empty-note">{{ ui.integrations_empty }}</div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container support-cta-block reveal-up">
+        <h2>{{ ui.final_title }}</h2>
+        <p>{{ ui.final_text }}</p>
+        <div class="support-cta-actions">
+            <a class="btn btn-primary" href="{{ routes.demo }}">{{ ui.final_demo }}</a>
+            <a class="btn btn-light on-dark" href="{{ routes.pricing }}">{{ ui.final_pricing }}</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

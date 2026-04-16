@@ -4,42 +4,64 @@ import 'package:chaqmoq_mobile/services/api_services.dart';
 import 'package:flutter/foundation.dart';
 
 class GroupsProvider extends ChangeNotifier {
-  GroupsProvider({required GroupService groupService})
-    : _groupService = groupService;
+  GroupsProvider({required GroupsService groupsService})
+    : _groupsService = groupsService;
 
-  final GroupService _groupService;
+  final GroupsService _groupsService;
 
-  List<GroupModel> items = [];
-  bool isLoading = false;
-  String? errorMessage;
+  List<GroupModel> _groups = <GroupModel>[];
+  List<StudentModel> _groupStudents = <StudentModel>[];
+  ViewState _state = ViewState.idle;
+  ViewState _detailState = ViewState.idle;
+  String? _errorMessage;
 
-  void reset() {
-    items = [];
-    isLoading = false;
-    errorMessage = null;
-    notifyListeners();
-  }
+  List<GroupModel> get groups => _groups;
+  List<StudentModel> get groupStudents => _groupStudents;
+  ViewState get state => _state;
+  ViewState get detailState => _detailState;
+  String? get errorMessage => _errorMessage;
 
-  Future<void> ensureLoaded() async {
-    if (items.isEmpty && !isLoading) {
-      await load();
+  Future<void> load(String role, {bool force = false}) async {
+    if (_state == ViewState.loading) {
+      return;
     }
-  }
-
-  Future<void> load() async {
-    isLoading = true;
-    errorMessage = null;
+    if (!force && _groups.isNotEmpty) {
+      return;
+    }
+    _state = ViewState.loading;
+    _errorMessage = null;
     notifyListeners();
-
     try {
-      items = await _groupService.fetchGroups();
+      _groups = await _groupsService.fetchGroups(role);
+      _state = ViewState.success;
     } catch (error) {
-      errorMessage = error is ApiException
-          ? error.message
-          : 'Guruhlarni yuklab bo\'lmadi';
+      _state = ViewState.error;
+      _errorMessage = _mapError(error);
     } finally {
-      isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> refresh(String role) => load(role, force: true);
+
+  Future<void> loadGroupStudents(int groupId) async {
+    _detailState = ViewState.loading;
+    notifyListeners();
+    try {
+      _groupStudents = await _groupsService.fetchGroupStudents(groupId);
+      _detailState = ViewState.success;
+    } catch (error) {
+      _detailState = ViewState.error;
+      _errorMessage = _mapError(error);
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  String _mapError(Object error) {
+    if (error is ApiException) {
+      return error.message;
+    }
+    return 'Guruhlar ma\'lumoti yuklanmadi';
   }
 }

@@ -7,19 +7,29 @@
     <title>{% block title %}{{ meta_title|default:"ChaqmoqApp" }}{% endblock %}</title>
     <meta name="description" content="{% block meta_description %}{{ meta_description|default:'' }}{% endblock %}">
     <meta name="robots" content="index, follow">
+    <meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="theme-color" content="#0f172a">
 
     <link rel="canonical" href="{{ canonical_url }}">
     {% for lang_item in lang_links %}
     <link rel="alternate" hreflang="{{ lang_item.code }}" href="{{ request.scheme }}://{{ request.get_host }}{{ lang_item.url }}">
     {% endfor %}
-    <link rel="alternate" hreflang="x-default" href="{{ request.scheme }}://{{ request.get_host }}{{ routes.index }}">
+    <link rel="alternate" hreflang="x-default" href="{{ x_default_url }}">
+    <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml">
 
     <meta property="og:type" content="website">
+    <meta property="og:site_name" content="{{ site_setting.site_name|default:'ChaqmoqApp' }}">
     <meta property="og:title" content="{{ meta_title|default:'ChaqmoqApp' }}">
     <meta property="og:description" content="{{ meta_description|default:'' }}">
     <meta property="og:url" content="{{ canonical_url }}">
     {% if site_setting.hero_image %}
     <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ site_setting.hero_image.url }}">
+    <meta property="og:image:alt" content="{{ site_setting.site_name|default:'ChaqmoqApp' }}">
+    {% endif %}
+    <meta name="twitter:title" content="{{ meta_title|default:'ChaqmoqApp' }}">
+    <meta name="twitter:description" content="{{ meta_description|default:'' }}">
+    {% if site_setting.hero_image %}
+    <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ site_setting.hero_image.url }}">
     {% endif %}
     <meta name="twitter:card" content="summary_large_image">
 
@@ -32,8 +42,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="{% static 'marketing/css/style.css' %}?v=20260324-ui-scale-1">
+    <link rel="stylesheet" href="{% static 'marketing/css/style.css' %}?v=20260416-hero-dashboard-6">
     {% block extra_css %}{% endblock %}
+    {% if seo_json_ld %}
+    <script type="application/ld+json">{{ seo_json_ld|safe }}</script>
+    {% endif %}
 </head>
 <body class="page-{{ active_menu|default:'home' }} lang-{{ current_lang|default:'uz' }}">
     {% include 'marketing/partials/navbar.html' %}
@@ -52,7 +65,7 @@
 
     {% include 'marketing/partials/footer.html' %}
 
-    <script src="{% static 'marketing/js/main.js' %}?v=20260324-partners-fix-3"></script>
+    <script src="{% static 'marketing/js/main.js' %}?v=20260416-hero-dashboard-2"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

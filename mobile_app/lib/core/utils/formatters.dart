@@ -1,129 +1,112 @@
+import 'dart:math';
+
+import 'package:chaqmoq_mobile/core/theme/app_colors.dart';
 import 'package:intl/intl.dart';
 
-class AppFormatters {
-  static final NumberFormat _number = NumberFormat.decimalPattern('en_US');
+class Formatters {
+  const Formatters._();
 
-  static String formatMoney(num value) {
-    return '${_number.format(value)} so\'m';
+  static final NumberFormat _moneyFormat = NumberFormat('#,###', 'uz');
+  static final DateFormat _dateFormat = DateFormat('dd.MM.yyyy');
+  static final DateFormat _monthFormat = DateFormat('MMMM yyyy', 'uz');
+  static final DateFormat _dayMonthFormat = DateFormat('d MMM', 'uz');
+
+  static String currency(num value, {bool compact = false}) {
+    if (compact) {
+      if (value.abs() >= 1000000) {
+        return '${(value / 1000000).toStringAsFixed(value % 1000000 == 0 ? 0 : 1)} mln';
+      }
+      if (value.abs() >= 1000) {
+        return '${(value / 1000).toStringAsFixed(value % 1000 == 0 ? 0 : 1)} ming';
+      }
+    }
+    return '${_moneyFormat.format(value)} so\'m';
   }
 
-  static String formatNumber(num value) {
-    return _number.format(value);
-  }
+  static String number(num value) => _moneyFormat.format(value);
 
-  static String formatCompact(num value) {
-    final abs = value.abs();
-    if (abs >= 1000000000) {
-      return '${(value / 1000000000).toStringAsFixed(1)} mlrd';
-    }
-    if (abs >= 1000000) {
-      return '${(value / 1000000).toStringAsFixed(1)} mln';
-    }
-    if (abs >= 1000) {
-      return '${(value / 1000).toStringAsFixed(1)} ming';
-    }
-    return formatNumber(value);
-  }
+  static String percent(num value) => '${value.toStringAsFixed(0)}%';
 
-  static String formatDate(DateTime? value, {String pattern = 'dd.MM.yyyy'}) {
+  static String date(DateTime? value) {
     if (value == null) {
-      return 'Sana yo\'q';
+      return '—';
     }
-    return DateFormat(pattern).format(value.toLocal());
+    return _dateFormat.format(value);
   }
 
-  static String formatDateTime(DateTime? value) {
-    return formatDate(value, pattern: 'dd.MM.yyyy HH:mm');
-  }
-
-  static String formatMonthYear(DateTime? value) {
-    return formatDate(value, pattern: 'MM.yyyy');
-  }
-
-  static String formatPercent(num? value, {bool signed = false}) {
+  static String month(DateTime? value) {
     if (value == null) {
-      return '0%';
+      return '—';
     }
-    final prefix = signed && value > 0 ? '+' : '';
-    return '$prefix${value.toStringAsFixed(value % 1 == 0 ? 0 : 1)}%';
+    return _monthFormat.format(value);
   }
 
-  static String roleLabel(String role) {
-    switch (role) {
-      case 'superadmin':
-        return 'Bosh admin';
-      case 'director':
-        return 'Direktor';
-      case 'manager':
-        return 'Menejer';
-      case 'teacher':
-        return 'O\'qituvchi';
-      case 'student':
-        return 'O\'quvchi';
-      case 'parent':
-        return 'Ota-ona';
-      default:
-        return role;
+  static String shortDayMonth(DateTime? value) {
+    if (value == null) {
+      return '—';
     }
+    return _dayMonthFormat.format(value);
   }
 
-  static String yesNo(bool value) {
-    return value ? 'Ha' : 'Yo\'q';
+  static String relative(DateTime? value, {DateTime? now}) {
+    if (value == null) {
+      return 'Hozir';
+    }
+
+    final reference = now ?? DateTime.now();
+    final difference = reference.difference(value);
+    if (difference.inSeconds < 60) {
+      return 'Hozirgina';
+    }
+    if (difference.inMinutes < 60) {
+      return '${difference.inMinutes} daqiqa oldin';
+    }
+    if (difference.inHours < 24) {
+      return '${difference.inHours} soat oldin';
+    }
+    if (difference.inDays < 7) {
+      return '${difference.inDays} kun oldin';
+    }
+    return date(value);
   }
 
-  static String healthLabel(String value) {
-    switch (value.toLowerCase()) {
-      case 'strong':
-        return 'Kuchli';
-      case 'stable':
-        return 'Barqaror';
-      case 'risky':
-        return 'Xavfli';
-      case 'weak':
-        return 'Zaif';
-      default:
-        return value;
+  static String initials(String fullName) {
+    final parts = fullName
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) {
+      return 'CH';
     }
+    if (parts.length == 1) {
+      return parts.first.substring(0, min(2, parts.first.length)).toUpperCase();
+    }
+    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
   }
 
-  static String paymentTypeLabel(String value) {
-    switch (value.toLowerCase()) {
-      case 'cash':
-        return 'Naqd';
-      case 'card':
-        return 'Karta';
-      case 'mixed':
-        return 'Aralash';
-      default:
-        return value;
-    }
+  static String firstName(String fullName) {
+    final parts = fullName.trim().split(RegExp(r'\s+'));
+    return parts.isEmpty ? fullName : parts.first;
   }
 
-  static String attendanceStatusLabel(String value) {
-    switch (value.toLowerCase()) {
-      case 'present':
-        return 'Qatnashdi';
-      case 'absent_excused':
-        return 'Sababli';
-      case 'absent_unexcused':
-        return 'Sababsiz';
-      default:
-        return value;
-    }
+  static int hashSeed(String value) {
+    return value.runes.fold<int>(0, (previous, element) => previous + element);
   }
 
-  static String notificationTypeLabel(String value) {
-    switch (value.toLowerCase()) {
-      case 'system':
-        return 'Tizim';
-      case 'payment':
-        return 'To\'lov';
-      case 'attendance':
-        return 'Davomat';
-      case 'lead':
-        return 'Lid';
-      default:
-        return value.isEmpty ? 'Ma\'lumot' : value;
-    }
+  static int avatarColor(String value) {
+    final colors = <int>[
+      AppColors.primary.toARGB32(),
+      AppColors.secondary.toARGB32(),
+      AppColors.success.toARGB32(),
+      AppColors.warning.toARGB32(),
+      AppColors.danger.toARGB32(),
+    ];
+    return colors[hashSeed(value) % colors.length];
+  }
+
+  static String weekdayShortUz(DateTime date) {
+    const days = ['Du', 'Se', 'Cho', 'Pa', 'Ju', 'Sha', 'Ya'];
+    return days[date.weekday - 1];
   }
 }

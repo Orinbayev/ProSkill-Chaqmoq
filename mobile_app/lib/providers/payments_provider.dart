@@ -4,75 +4,70 @@ import 'package:chaqmoq_mobile/services/api_services.dart';
 import 'package:flutter/foundation.dart';
 
 class PaymentsProvider extends ChangeNotifier {
-  PaymentsProvider({required PaymentService paymentService})
-    : _paymentService = paymentService;
+  PaymentsProvider({required PaymentsService paymentsService})
+    : _paymentsService = paymentsService;
 
-  final PaymentService _paymentService;
+  final PaymentsService _paymentsService;
 
-  List<PaymentModel> items = [];
-  int totalAmount = 0;
-  bool isLoading = false;
-  bool isSaving = false;
-  String? errorMessage;
+  PaymentSummaryModel _summary = const PaymentSummaryModel(
+    totalReceived: 0,
+    openDebt: 0,
+    thisMonth: 0,
+  );
+  List<PaymentModel> _items = <PaymentModel>[];
+  ViewState _state = ViewState.idle;
+  String _filter = 'all';
+  String? _errorMessage;
 
-  void reset() {
-    items = [];
-    totalAmount = 0;
-    isLoading = false;
-    isSaving = false;
-    errorMessage = null;
-    notifyListeners();
+  PaymentSummaryModel get summary => _summary;
+  ViewState get state => _state;
+  String? get errorMessage => _errorMessage;
+  String get filter => _filter;
+
+  List<PaymentModel> get filteredItems {
+    return _items.where((item) {
+      return switch (_filter) {
+        'received' => !item.isDebt,
+        'debt' => item.isDebt,
+        _ => true,
+      };
+    }).toList();
   }
 
-  Future<void> load({String? query}) async {
-    isLoading = true;
-    errorMessage = null;
+  Future<void> load(UserModel user, {bool force = false}) async {
+    if (_state == ViewState.loading) {
+      return;
+    }
+    if (!force && _items.isNotEmpty) {
+      return;
+    }
+    _state = ViewState.loading;
+    _errorMessage = null;
     notifyListeners();
-
     try {
-      final result = await _paymentService.fetchPayments(query: query);
-      items = result.$1;
-      totalAmount = result.$2;
+      final data = await _paymentsService.fetchPayments(user);
+      _summary = data.$1;
+      _items = data.$2;
+      _state = ViewState.success;
     } catch (error) {
-      errorMessage = error is ApiException
-          ? error.message
-          : 'To\'lovlarni yuklab bo\'lmadi';
+      _state = ViewState.error;
+      _errorMessage = _mapError(error);
     } finally {
-      isLoading = false;
       notifyListeners();
     }
   }
 
-  Future<PaymentModel?> create({
-    required int enrollmentId,
-    required int cashAmount,
-    required int cardAmount,
-    required DateTime month,
-    required String note,
-  }) async {
-    isSaving = true;
-    errorMessage = null;
-    notifyListeners();
+  Future<void> refresh(UserModel user) => load(user, force: true);
 
-    try {
-      final payment = await _paymentService.createPayment(
-        enrollmentId: enrollmentId,
-        cashAmount: cashAmount,
-        cardAmount: cardAmount,
-        month: month,
-        note: note,
-      );
-      items = [payment, ...items];
-      totalAmount += payment.amount;
-      return payment;
-    } catch (error) {
-      errorMessage = error is ApiException
-          ? error.message
-          : 'To\'lovni yaratib bo\'lmadi';
-      return null;
-    } finally {
-      isSaving = false;
-      notifyListeners();
+  void setFilter(String filter) {
+    _filter = filter;
+    notifyListeners();
+  }
+
+  String _mapError(Object error) {
+    if (error is ApiException) {
+      return error.message;
     }
+    return 'To\'lovlar yuklanmadi';
   }
 }

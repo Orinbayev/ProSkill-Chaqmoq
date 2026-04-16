@@ -1,72 +1,60 @@
-import 'package:chaqmoq_mobile/core/theme/app_foundation.dart';
+import 'package:chaqmoq_mobile/core/theme/app_colors.dart';
+import 'package:chaqmoq_mobile/core/theme/app_spacing.dart';
+import 'package:chaqmoq_mobile/core/theme/app_text_styles.dart';
 import 'package:chaqmoq_mobile/widgets/app_button.dart';
-import 'package:chaqmoq_mobile/widgets/chaqmoq_card.dart';
+import 'package:chaqmoq_mobile/widgets/glass_card.dart';
 import 'package:flutter/material.dart';
 
 class EmptyState extends StatelessWidget {
   const EmptyState({
     super.key,
-    required this.icon,
     required this.title,
     required this.message,
+    required this.icon,
     this.actionLabel,
     this.onAction,
   });
 
-  final IconData icon;
   final String title;
   final String message;
+  final IconData icon;
   final String? actionLabel;
   final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          child: ChaqmoqCard(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(AppRadius.lg),
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(
-                    icon,
-                    size: 36,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Text(title, style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.muted,
-                  ),
-                ),
-                if (actionLabel != null && onAction != null) ...[
-                  const SizedBox(height: AppSpacing.lg),
-                  AppButton(
-                    label: actionLabel!,
-                    onPressed: onAction,
-                    expanded: false,
-                  ),
-                ],
-              ],
+      child: GlassCard(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppColors.glassStrong,
+                borderRadius: BorderRadius.circular(AppRadius.xl),
+              ),
+              alignment: Alignment.center,
+              child: Icon(icon, color: AppColors.textMuted, size: 28),
             ),
-          ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(title, style: AppTextStyles.title, textAlign: TextAlign.center),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              message,
+              style: AppTextStyles.subtitle,
+              textAlign: TextAlign.center,
+            ),
+            if (actionLabel != null && onAction != null) ...[
+              const SizedBox(height: AppSpacing.xl),
+              AppButton(
+                label: actionLabel!,
+                onPressed: onAction,
+                expand: false,
+              ),
+            ],
+          ],
         ),
       ),
     );

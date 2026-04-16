@@ -1,9 +1,14 @@
+enum ViewState { idle, loading, success, error }
+
 int jsonInt(dynamic value) {
   if (value is int) {
     return value;
   }
   if (value is double) {
     return value.round();
+  }
+  if (value is num) {
+    return value.toInt();
   }
   return int.tryParse('$value') ?? 0;
 }
@@ -13,6 +18,9 @@ double jsonDouble(dynamic value) {
     return value;
   }
   if (value is int) {
+    return value.toDouble();
+  }
+  if (value is num) {
     return value.toDouble();
   }
   return double.tryParse('$value') ?? 0;
@@ -25,155 +33,160 @@ bool jsonBool(dynamic value) {
   if (value is num) {
     return value != 0;
   }
-  return '$value'.toLowerCase() == 'true';
+  final normalized = '$value'.trim().toLowerCase();
+  return normalized == 'true' ||
+      normalized == '1' ||
+      normalized == 'yes' ||
+      normalized == 'ha';
 }
 
 String jsonString(dynamic value) => value == null ? '' : '$value';
 
-Map<String, dynamic> jsonMap(dynamic value) =>
-    value is Map ? Map<String, dynamic>.from(value) : <String, dynamic>{};
+DateTime? jsonDate(dynamic value) {
+  if (value is DateTime) {
+    return value;
+  }
+  if (value == null || '$value'.trim().isEmpty) {
+    return null;
+  }
+  return DateTime.tryParse('$value');
+}
 
-List<Map<String, dynamic>> jsonMapList(dynamic value) => value is List
-    ? value.map((item) => jsonMap(item)).toList()
-    : <Map<String, dynamic>>[];
+Map<String, dynamic> jsonMap(dynamic value) {
+  if (value is Map<String, dynamic>) {
+    return value;
+  }
+  if (value is Map) {
+    return value.map(
+      (key, dynamic mapValue) => MapEntry(key.toString(), mapValue),
+    );
+  }
+  return <String, dynamic>{};
+}
+
+List<Map<String, dynamic>> jsonMapList(dynamic value) {
+  if (value is List) {
+    return value.map((item) => jsonMap(item)).toList();
+  }
+  return <Map<String, dynamic>>[];
+}
+
+List<String> jsonStringList(dynamic value) {
+  if (value is List) {
+    return value.map((item) => jsonString(item)).where((item) => item.isNotEmpty).toList();
+  }
+  return <String>[];
+}
 
 class CenterModel {
   const CenterModel({
     required this.id,
-    required this.name,
     required this.slug,
-    required this.status,
-    required this.plan,
-    required this.phone,
-    required this.address,
-    required this.maxUsers,
-    required this.maxGroups,
-    required this.maxStudents,
-    required this.effectiveStudentLimit,
-    required this.features,
+    required this.name,
+    this.phone = '',
+    this.address = '',
   });
 
   final int id;
-  final String name;
   final String slug;
-  final String status;
-  final String plan;
+  final String name;
   final String phone;
   final String address;
-  final int maxUsers;
-  final int maxGroups;
-  final int maxStudents;
-  final int effectiveStudentLimit;
-  final Map<String, dynamic> features;
 
   factory CenterModel.fromJson(Map<String, dynamic> json) {
     return CenterModel(
       id: jsonInt(json['id']),
-      name: jsonString(json['name']),
       slug: jsonString(json['slug']),
-      status: jsonString(json['status']),
-      plan: jsonString(json['plan']),
+      name: jsonString(json['name']),
       phone: jsonString(json['phone']),
       address: jsonString(json['address']),
-      maxUsers: jsonInt(json['max_users']),
-      maxGroups: jsonInt(json['max_groups']),
-      maxStudents: jsonInt(json['max_students']),
-      effectiveStudentLimit: jsonInt(json['effective_student_limit']),
-      features: jsonMap(json['features']),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'slug': slug,
+    'name': name,
+    'phone': phone,
+    'address': address,
+  };
 }
 
-class UserPermissions {
-  const UserPermissions({
-    required this.canAccessTrash,
-    required this.canAddStudent,
-    required this.canRemoveStudent,
-    required this.canViewDirectorDashboard,
-    required this.canManageLeads,
-    required this.canTakeAttendance,
-  });
-
-  final bool canAccessTrash;
-  final bool canAddStudent;
-  final bool canRemoveStudent;
-  final bool canViewDirectorDashboard;
-  final bool canManageLeads;
-  final bool canTakeAttendance;
-
-  factory UserPermissions.fromJson(Map<String, dynamic> json) {
-    return UserPermissions(
-      canAccessTrash: jsonBool(json['can_access_trash']),
-      canAddStudent: jsonBool(json['can_add_student']),
-      canRemoveStudent: jsonBool(json['can_remove_student']),
-      canViewDirectorDashboard: jsonBool(json['can_view_director_dashboard']),
-      canManageLeads: jsonBool(json['can_manage_leads']),
-      canTakeAttendance: jsonBool(json['can_take_attendance']),
-    );
-  }
-}
-
-class AppUser {
-  const AppUser({
+class UserModel {
+  const UserModel({
     required this.id,
-    required this.email,
-    required this.phoneNumber,
-    required this.telefon1,
-    required this.telefon2,
     required this.fullName,
-    required this.ism,
-    required this.familya,
-    required this.otchestvo,
     required this.role,
-    required this.avatarUrl,
-    required this.isTelegramLinked,
-    required this.telegramUsername,
-    required this.isSuperuser,
     required this.center,
-    required this.permissions,
+    this.phone = '',
+    this.email = '',
+    this.joinedDate,
+    this.avatarUrl = '',
   });
 
   final int id;
-  final String email;
-  final String phoneNumber;
-  final String telefon1;
-  final String telefon2;
   final String fullName;
-  final String ism;
-  final String familya;
-  final String otchestvo;
   final String role;
-  final String avatarUrl;
-  final bool isTelegramLinked;
-  final String telegramUsername;
-  final bool isSuperuser;
   final CenterModel? center;
-  final UserPermissions permissions;
+  final String phone;
+  final String email;
+  final DateTime? joinedDate;
+  final String avatarUrl;
 
-  String get effectiveRole => isSuperuser ? 'superadmin' : role;
-
-  factory AppUser.fromJson(Map<String, dynamic> json) {
-    return AppUser(
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    return UserModel(
       id: jsonInt(json['id']),
-      email: jsonString(json['email']),
-      phoneNumber: jsonString(json['phone_number']),
-      telefon1: jsonString(json['telefon1']),
-      telefon2: jsonString(json['telefon2']),
-      fullName: jsonString(json['full_name']),
-      ism: jsonString(json['ism']),
-      familya: jsonString(json['familya']),
-      otchestvo: jsonString(json['otchestvo']),
+      fullName: jsonString(json['full_name']).isNotEmpty
+          ? jsonString(json['full_name'])
+          : [
+              jsonString(json['ism']),
+              jsonString(json['familya']),
+            ].where((part) => part.isNotEmpty).join(' ').trim(),
       role: jsonString(json['role']),
+      center: json['center'] == null ? null : CenterModel.fromJson(jsonMap(json['center'])),
+      phone: jsonString(json['phone']).isNotEmpty
+          ? jsonString(json['phone'])
+          : jsonString(json['phone_number']).isNotEmpty
+              ? jsonString(json['phone_number'])
+              : jsonString(json['telefon1']),
+      email: jsonString(json['email']),
+      joinedDate: jsonDate(json['joined_date'] ?? json['date_joined']),
       avatarUrl: jsonString(json['avatar_url']),
-      isTelegramLinked: jsonBool(json['is_telegram_linked']),
-      telegramUsername: jsonString(json['telegram_username']),
-      isSuperuser: jsonBool(json['is_superuser']),
-      center: json['center'] == null
-          ? null
-          : CenterModel.fromJson(jsonMap(json['center'])),
-      permissions: UserPermissions.fromJson(jsonMap(json['permissions'])),
     );
   }
+
+  UserModel copyWith({
+    int? id,
+    String? fullName,
+    String? role,
+    CenterModel? center,
+    String? phone,
+    String? email,
+    DateTime? joinedDate,
+    String? avatarUrl,
+  }) {
+    return UserModel(
+      id: id ?? this.id,
+      fullName: fullName ?? this.fullName,
+      role: role ?? this.role,
+      center: center ?? this.center,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+      joinedDate: joinedDate ?? this.joinedDate,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'full_name': fullName,
+    'role': role,
+    'center': center?.toJson(),
+    'phone': phone,
+    'email': email,
+    'joined_date': joinedDate?.toIso8601String(),
+    'avatar_url': avatarUrl,
+  };
 }
 
 class AuthSession {
@@ -185,250 +198,180 @@ class AuthSession {
 
   final String accessToken;
   final String slug;
-  final AppUser user;
+  final UserModel user;
 
-  AuthSession copyWith({String? accessToken, String? slug, AppUser? user}) {
+  factory AuthSession.fromJson(Map<String, dynamic> json) {
+    return AuthSession(
+      accessToken: jsonString(json['access_token']),
+      slug: jsonString(json['slug']),
+      user: UserModel.fromJson(jsonMap(json['user'])),
+    );
+  }
+
+  AuthSession copyWith({String? accessToken, String? slug, UserModel? user}) {
     return AuthSession(
       accessToken: accessToken ?? this.accessToken,
       slug: slug ?? this.slug,
       user: user ?? this.user,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'access_token': accessToken,
+    'slug': slug,
+    'user': user.toJson(),
+  };
 }
 
-class RoleHomeModel {
-  const RoleHomeModel({
-    required this.role,
-    required this.center,
-    required this.unreadNotifications,
-    required this.summary,
+class DashboardMetric {
+  const DashboardMetric({
+    required this.id,
+    required this.title,
+    required this.value,
+    required this.subtitle,
+    required this.trend,
+    required this.colorKey,
   });
 
-  final String role;
-  final CenterModel? center;
-  final int unreadNotifications;
-  final Map<String, dynamic> summary;
+  final String id;
+  final String title;
+  final String value;
+  final String subtitle;
+  final double trend;
+  final String colorKey;
 
-  factory RoleHomeModel.fromJson(Map<String, dynamic> json) {
-    return RoleHomeModel(
-      role: jsonString(json['role']),
-      center: json['center'] == null
-          ? null
-          : CenterModel.fromJson(jsonMap(json['center'])),
-      unreadNotifications: jsonInt(json['unread_notifications']),
-      summary: jsonMap(json['summary']),
+  factory DashboardMetric.fromJson(Map<String, dynamic> json) {
+    return DashboardMetric(
+      id: jsonString(json['id']),
+      title: jsonString(json['title']),
+      value: jsonString(json['value']),
+      subtitle: jsonString(json['subtitle']),
+      trend: jsonDouble(json['trend']),
+      colorKey: jsonString(json['color_key']),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'value': value,
+    'subtitle': subtitle,
+    'trend': trend,
+    'color_key': colorKey,
+  };
 }
 
-class CenterOverview {
-  const CenterOverview({
+class ChartPointModel {
+  const ChartPointModel({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final double value;
+
+  factory ChartPointModel.fromJson(Map<String, dynamic> json) {
+    return ChartPointModel(
+      label: jsonString(json['label']),
+      value: jsonDouble(json['value']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'label': label,
+    'value': value,
+  };
+}
+
+class ChildSummaryModel {
+  const ChildSummaryModel({
     required this.id,
-    required this.name,
-    required this.slug,
-    required this.status,
-    required this.plan,
-    required this.studentsCount,
-    required this.teachersCount,
-    required this.groupsCount,
-    required this.todayPayments,
+    required this.fullName,
+    this.groupName = '',
+    this.balance = 0,
+    this.debt = 0,
+    this.attendanceRate = 0,
+    this.rank = 0,
   });
 
   final int id;
-  final String name;
-  final String slug;
-  final String status;
-  final String plan;
-  final int studentsCount;
-  final int teachersCount;
-  final int groupsCount;
-  final int todayPayments;
-
-  factory CenterOverview.fromJson(Map<String, dynamic> json) {
-    return CenterOverview(
-      id: jsonInt(json['id']),
-      name: jsonString(json['name']),
-      slug: jsonString(json['slug']),
-      status: jsonString(json['status']),
-      plan: jsonString(json['plan']),
-      studentsCount: jsonInt(json['students_count']),
-      teachersCount: jsonInt(json['teachers_count']),
-      groupsCount: jsonInt(json['groups_count']),
-      todayPayments: jsonInt(json['today_payments']),
-    );
-  }
-}
-
-class SuperadminHomeModel {
-  const SuperadminHomeModel({required this.summary, required this.centers});
-
-  final Map<String, dynamic> summary;
-  final List<CenterOverview> centers;
-
-  factory SuperadminHomeModel.fromJson(Map<String, dynamic> json) {
-    return SuperadminHomeModel(
-      summary: jsonMap(json['summary']),
-      centers: jsonMapList(
-        json['centers'],
-      ).map(CenterOverview.fromJson).toList(),
-    );
-  }
-}
-
-class AttendanceStats {
-  const AttendanceStats({
-    required this.totalLessons,
-    required this.presentLessons,
-    required this.attendanceRate,
-    required this.recentTotalLessons,
-    required this.recentPresentLessons,
-    required this.recentAttendanceRate,
-  });
-
-  final int totalLessons;
-  final int presentLessons;
-  final double attendanceRate;
-  final int recentTotalLessons;
-  final int recentPresentLessons;
-  final double recentAttendanceRate;
-
-  factory AttendanceStats.fromJson(Map<String, dynamic> json) {
-    return AttendanceStats(
-      totalLessons: jsonInt(json['total_lessons']),
-      presentLessons: jsonInt(json['present_lessons']),
-      attendanceRate: jsonDouble(json['attendance_rate']),
-      recentTotalLessons: jsonInt(json['recent_total_lessons']),
-      recentPresentLessons: jsonInt(json['recent_present_lessons']),
-      recentAttendanceRate: jsonDouble(json['recent_attendance_rate']),
-    );
-  }
-}
-
-class GroupModel {
-  const GroupModel({
-    required this.id,
-    required this.name,
-    required this.category,
-    required this.teacherId,
-    required this.teacherName,
-    required this.monthlyPrice,
-    required this.teacherSharePercent,
-    required this.monthlyLessons,
-    required this.isClosed,
-    required this.studentCount,
-    required this.todayAttendanceCount,
-  });
-
-  final int id;
-  final String name;
-  final String category;
-  final int? teacherId;
-  final String teacherName;
-  final int monthlyPrice;
-  final int teacherSharePercent;
-  final int monthlyLessons;
-  final bool isClosed;
-  final int? studentCount;
-  final int? todayAttendanceCount;
-
-  factory GroupModel.fromJson(Map<String, dynamic> json) {
-    final teacherIdValue = json['teacher_id'];
-    return GroupModel(
-      id: jsonInt(json['id']),
-      name: jsonString(json['name']),
-      category: jsonString(json['category']),
-      teacherId: teacherIdValue == null ? null : jsonInt(teacherIdValue),
-      teacherName: jsonString(json['teacher_name']),
-      monthlyPrice: jsonInt(json['monthly_price']),
-      teacherSharePercent: jsonInt(json['teacher_share_percent']),
-      monthlyLessons: jsonInt(json['monthly_lessons']),
-      isClosed: jsonBool(json['is_closed']),
-      studentCount: json['student_count'] == null
-          ? null
-          : jsonInt(json['student_count']),
-      todayAttendanceCount: json['today_attendance_count'] == null
-          ? null
-          : jsonInt(json['today_attendance_count']),
-    );
-  }
-}
-
-class GroupEnrollment {
-  const GroupEnrollment({
-    required this.group,
-    required this.enrollmentId,
-    required this.isActive,
-    required this.paidTotal,
-    required this.coursePrice,
-  });
-
-  final GroupModel group;
-  final int enrollmentId;
-  final bool isActive;
-  final int paidTotal;
-  final int coursePrice;
-
-  factory GroupEnrollment.fromJson(Map<String, dynamic> json) {
-    return GroupEnrollment(
-      group: GroupModel.fromJson(json),
-      enrollmentId: jsonInt(json['enrollment_id']),
-      isActive: jsonBool(json['is_active']),
-      paidTotal: jsonInt(json['paid_total']),
-      coursePrice: jsonInt(json['course_price']),
-    );
-  }
-}
-
-class PaymentModel {
-  const PaymentModel({
-    required this.id,
-    required this.studentId,
-    required this.studentName,
-    required this.groupId,
-    required this.groupName,
-    required this.amount,
-    required this.paymentType,
-    required this.cashAmount,
-    required this.cardAmount,
-    required this.paidDate,
-    required this.note,
-    required this.createdBy,
-  });
-
-  final int id;
-  final int? studentId;
-  final String studentName;
-  final int? groupId;
+  final String fullName;
   final String groupName;
-  final int amount;
-  final String paymentType;
-  final int cashAmount;
-  final int cardAmount;
-  final DateTime paidDate;
-  final String note;
-  final String createdBy;
+  final int balance;
+  final int debt;
+  final double attendanceRate;
+  final int rank;
 
-  factory PaymentModel.fromJson(Map<String, dynamic> json) {
-    final dateRaw = jsonString(json['paid_date']).isNotEmpty
-        ? jsonString(json['paid_date'])
-        : jsonString(json['date']);
-    return PaymentModel(
+  factory ChildSummaryModel.fromJson(Map<String, dynamic> json) {
+    final groups = jsonMapList(json['groups']);
+    return ChildSummaryModel(
       id: jsonInt(json['id']),
-      studentId: json['student_id'] == null
-          ? null
-          : jsonInt(json['student_id']),
-      studentName: jsonString(json['student_name']),
-      groupId: json['group_id'] == null ? null : jsonInt(json['group_id']),
-      groupName: jsonString(json['group_name']),
-      amount: jsonInt(json['amount']),
-      paymentType: jsonString(json['payment_type']).isEmpty
-          ? jsonString(json['method'])
-          : jsonString(json['payment_type']),
-      cashAmount: jsonInt(json['cash_amount']),
-      cardAmount: jsonInt(json['card_amount']),
-      paidDate: DateTime.tryParse(dateRaw) ?? DateTime.now(),
-      note: jsonString(json['note']),
-      createdBy: jsonString(json['created_by']),
+      fullName: jsonString(json['full_name']),
+      groupName: groups.isEmpty ? jsonString(json['group_name']) : jsonString(groups.first['name']),
+      balance: jsonInt(json['balance']),
+      debt: jsonInt(json['debt']),
+      attendanceRate: jsonDouble(jsonMap(json['attendance'])['attendance_rate']),
+      rank: jsonInt(json['rank']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'full_name': fullName,
+    'group_name': groupName,
+    'balance': balance,
+    'debt': debt,
+    'attendance_rate': attendanceRate,
+    'rank': rank,
+  };
+}
+
+class DashboardData {
+  const DashboardData({
+    required this.metrics,
+    required this.revenueTrend,
+    required this.children,
+    required this.unreadCount,
+    this.teacherAttendanceRate = 0,
+    this.studentScore = 0,
+    this.studentRank = 0,
+  });
+
+  final List<DashboardMetric> metrics;
+  final List<ChartPointModel> revenueTrend;
+  final List<ChildSummaryModel> children;
+  final int unreadCount;
+  final double teacherAttendanceRate;
+  final int studentScore;
+  final int studentRank;
+
+  factory DashboardData.empty() {
+    return const DashboardData(
+      metrics: <DashboardMetric>[],
+      revenueTrend: <ChartPointModel>[],
+      children: <ChildSummaryModel>[],
+      unreadCount: 0,
+    );
+  }
+
+  DashboardData copyWith({
+    List<DashboardMetric>? metrics,
+    List<ChartPointModel>? revenueTrend,
+    List<ChildSummaryModel>? children,
+    int? unreadCount,
+    double? teacherAttendanceRate,
+    int? studentScore,
+    int? studentRank,
+  }) {
+    return DashboardData(
+      metrics: metrics ?? this.metrics,
+      revenueTrend: revenueTrend ?? this.revenueTrend,
+      children: children ?? this.children,
+      unreadCount: unreadCount ?? this.unreadCount,
+      teacherAttendanceRate:
+          teacherAttendanceRate ?? this.teacherAttendanceRate,
+      studentScore: studentScore ?? this.studentScore,
+      studentRank: studentRank ?? this.studentRank,
     );
   }
 }
@@ -437,176 +380,545 @@ class StudentModel {
   const StudentModel({
     required this.id,
     required this.fullName,
-    required this.email,
-    required this.phone,
-    required this.balance,
-    required this.debt,
-    required this.attendance,
-    required this.groups,
-    required this.payments,
-    required this.lastPayment,
-    required this.certificates,
+    this.phone = '',
+    this.email = '',
+    this.groupName = '',
+    this.groupId = 0,
+    this.balance = 0,
+    this.status = 'active',
+    this.isActive = true,
+    this.registrationDate,
+    this.avatarUrl = '',
+    this.attendanceRate = 0,
+    this.chaqmoqScore = 0,
+    this.rank = 0,
   });
 
   final int id;
   final String fullName;
-  final String email;
   final String phone;
+  final String email;
+  final String groupName;
+  final int groupId;
   final int balance;
-  final int debt;
-  final AttendanceStats attendance;
-  final List<GroupEnrollment> groups;
-  final List<PaymentModel> payments;
-  final PaymentModel? lastPayment;
-  final List<Map<String, dynamic>> certificates;
+  final String status;
+  final bool isActive;
+  final DateTime? registrationDate;
+  final String avatarUrl;
+  final double attendanceRate;
+  final int chaqmoqScore;
+  final int rank;
 
   factory StudentModel.fromJson(Map<String, dynamic> json) {
-    final paymentList = jsonMapList(
-      json['payments'],
-    ).map(PaymentModel.fromJson).toList();
-    final lastPaymentMap = json['last_payment'];
+    final groups = jsonMapList(json['groups']);
+    final attendance = jsonMap(json['attendance']);
     return StudentModel(
       id: jsonInt(json['id']),
-      fullName: jsonString(json['full_name']),
+      fullName: jsonString(json['full_name']).isNotEmpty
+          ? jsonString(json['full_name'])
+          : jsonString(json['name']),
+      phone: jsonString(json['phone']).isNotEmpty
+          ? jsonString(json['phone'])
+          : jsonString(json['telefon1']),
       email: jsonString(json['email']),
-      phone: jsonString(json['phone']),
+      groupName: jsonString(json['group_name']).isNotEmpty
+          ? jsonString(json['group_name'])
+          : (groups.isNotEmpty ? jsonString(groups.first['name']) : ''),
+      groupId: jsonInt(json['group_id'] ?? (groups.isNotEmpty ? groups.first['id'] : null)),
       balance: jsonInt(json['balance']),
-      debt: jsonInt(json['debt']),
-      attendance: AttendanceStats.fromJson(jsonMap(json['attendance'])),
-      groups: jsonMapList(
-        json['groups'],
-      ).map(GroupEnrollment.fromJson).toList(),
-      payments: paymentList,
-      lastPayment: lastPaymentMap == null
-          ? null
-          : PaymentModel.fromJson(jsonMap(lastPaymentMap)),
-      certificates: jsonMapList(json['certificates']),
+      status: jsonString(json['status']).isNotEmpty
+          ? jsonString(json['status'])
+          : (jsonBool(json['is_active']) ? 'active' : 'inactive'),
+      isActive: jsonString(json['status']) == 'inactive'
+          ? false
+          : (json.containsKey('is_active') ? jsonBool(json['is_active']) : true),
+      registrationDate: jsonDate(
+        json['registration_date'] ?? json['created_at'] ?? json['date_joined'],
+      ),
+      avatarUrl: jsonString(json['avatar_url']),
+      attendanceRate: jsonDouble(
+        json['attendance_rate'] ?? attendance['attendance_rate'],
+      ),
+      chaqmoqScore: jsonInt(json['chaqmoq_score'] ?? json['balance']),
+      rank: jsonInt(json['rank']),
     );
   }
+
+  StudentModel copyWith({
+    int? id,
+    String? fullName,
+    String? phone,
+    String? email,
+    String? groupName,
+    int? groupId,
+    int? balance,
+    String? status,
+    bool? isActive,
+    DateTime? registrationDate,
+    String? avatarUrl,
+    double? attendanceRate,
+    int? chaqmoqScore,
+    int? rank,
+  }) {
+    return StudentModel(
+      id: id ?? this.id,
+      fullName: fullName ?? this.fullName,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+      groupName: groupName ?? this.groupName,
+      groupId: groupId ?? this.groupId,
+      balance: balance ?? this.balance,
+      status: status ?? this.status,
+      isActive: isActive ?? this.isActive,
+      registrationDate: registrationDate ?? this.registrationDate,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      attendanceRate: attendanceRate ?? this.attendanceRate,
+      chaqmoqScore: chaqmoqScore ?? this.chaqmoqScore,
+      rank: rank ?? this.rank,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'full_name': fullName,
+    'phone': phone,
+    'email': email,
+    'group_name': groupName,
+    'group_id': groupId,
+    'balance': balance,
+    'status': status,
+    'is_active': isActive,
+    'registration_date': registrationDate?.toIso8601String(),
+    'avatar_url': avatarUrl,
+    'attendance_rate': attendanceRate,
+    'chaqmoq_score': chaqmoqScore,
+    'rank': rank,
+  };
 }
 
 class TeacherModel {
   const TeacherModel({
     required this.id,
     required this.fullName,
-    required this.email,
-    required this.phone,
-    required this.groupsCount,
-    required this.studentsCount,
-    required this.todayAttendanceCount,
-    required this.expectedIncome,
-    required this.groups,
+    this.phone = '',
+    this.email = '',
+    this.groupsCount = 0,
+    this.studentsCount = 0,
+    this.expectedIncome = 0,
+    this.attendanceRate = 0,
+    this.groupNames = const <String>[],
+    this.avatarUrl = '',
   });
 
   final int id;
   final String fullName;
-  final String email;
   final String phone;
+  final String email;
   final int groupsCount;
   final int studentsCount;
-  final int todayAttendanceCount;
-  final Map<String, dynamic> expectedIncome;
-  final List<GroupModel> groups;
+  final int expectedIncome;
+  final double attendanceRate;
+  final List<String> groupNames;
+  final String avatarUrl;
 
   factory TeacherModel.fromJson(Map<String, dynamic> json) {
     return TeacherModel(
       id: jsonInt(json['id']),
-      fullName: jsonString(json['full_name']),
-      email: jsonString(json['email']),
+      fullName: jsonString(json['full_name']).isNotEmpty
+          ? jsonString(json['full_name'])
+          : jsonString(json['name']),
       phone: jsonString(json['phone']),
+      email: jsonString(json['email']),
       groupsCount: jsonInt(json['groups_count']),
       studentsCount: jsonInt(json['students_count']),
-      todayAttendanceCount: jsonInt(json['today_attendance_count']),
-      expectedIncome: jsonMap(json['expected_income']),
-      groups: jsonMapList(json['groups']).map(GroupModel.fromJson).toList(),
+      expectedIncome: jsonInt(json['expected_income']),
+      attendanceRate: jsonDouble(json['attendance_rate']),
+      groupNames: jsonStringList(json['group_names']),
+      avatarUrl: jsonString(json['avatar_url']),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'full_name': fullName,
+    'phone': phone,
+    'email': email,
+    'groups_count': groupsCount,
+    'students_count': studentsCount,
+    'expected_income': expectedIncome,
+    'attendance_rate': attendanceRate,
+    'group_names': groupNames,
+    'avatar_url': avatarUrl,
+  };
 }
 
-class AttendanceMember {
-  const AttendanceMember({
+class GroupModel {
+  const GroupModel({
     required this.id,
-    required this.fullName,
-    required this.phone,
-    required this.balance,
-    required this.debt,
-    required this.attendanceStatus,
-    required this.forced,
-    required this.groupId,
-    required this.groupName,
+    required this.name,
+    this.teacherId = 0,
+    this.teacherName = '',
+    this.studentCount = 0,
+    this.capacity = 0,
+    this.schedule = '',
+    this.category = '',
+    this.monthlyPrice = 0,
+    this.attendanceRate = 0,
   });
 
   final int id;
-  final String fullName;
-  final String phone;
-  final int balance;
-  final int debt;
-  final String attendanceStatus;
-  final bool forced;
-  final int groupId;
-  final String groupName;
+  final String name;
+  final int teacherId;
+  final String teacherName;
+  final int studentCount;
+  final int capacity;
+  final String schedule;
+  final String category;
+  final int monthlyPrice;
+  final double attendanceRate;
 
-  factory AttendanceMember.fromJson(Map<String, dynamic> json) {
-    return AttendanceMember(
+  double get fillRate {
+    if (capacity <= 0) {
+      return 0;
+    }
+    return studentCount / capacity;
+  }
+
+  factory GroupModel.fromJson(Map<String, dynamic> json) {
+    return GroupModel(
       id: jsonInt(json['id']),
-      fullName: jsonString(json['full_name']),
-      phone: jsonString(json['phone']),
-      balance: jsonInt(json['balance']),
-      debt: jsonInt(json['debt']),
-      attendanceStatus: jsonString(json['attendance_status']),
-      forced: jsonBool(json['forced']),
-      groupId: jsonInt(json['group_id']),
-      groupName: jsonString(json['group_name']),
+      name: jsonString(json['name']).isNotEmpty
+          ? jsonString(json['name'])
+          : jsonString(json['nom']),
+      teacherId: jsonInt(json['teacher_id']),
+      teacherName: jsonString(json['teacher_name']).isNotEmpty
+          ? jsonString(json['teacher_name'])
+          : jsonString(json['teacher']),
+      studentCount: jsonInt(json['student_count'] ?? json['enrolled']),
+      capacity: jsonInt(json['capacity'] ?? json['limit'] ?? 24),
+      schedule: jsonString(json['schedule']),
+      category: jsonString(json['category']),
+      monthlyPrice: jsonInt(json['monthly_price']),
+      attendanceRate: jsonDouble(json['attendance_rate'] ?? json['att_rate']),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'teacher_id': teacherId,
+    'teacher_name': teacherName,
+    'student_count': studentCount,
+    'capacity': capacity,
+    'schedule': schedule,
+    'category': category,
+    'monthly_price': monthlyPrice,
+    'attendance_rate': attendanceRate,
+  };
 }
 
-class AttendanceSheetData {
-  const AttendanceSheetData({
+class AttendanceStudentModel {
+  const AttendanceStudentModel({
+    required this.studentId,
+    required this.enrollmentId,
+    required this.fullName,
+    this.balance = 0,
+    this.status = 'none',
+  });
+
+  final int studentId;
+  final int enrollmentId;
+  final String fullName;
+  final int balance;
+  final String status;
+
+  AttendanceStudentModel copyWith({
+    int? studentId,
+    int? enrollmentId,
+    String? fullName,
+    int? balance,
+    String? status,
+  }) {
+    return AttendanceStudentModel(
+      studentId: studentId ?? this.studentId,
+      enrollmentId: enrollmentId ?? this.enrollmentId,
+      fullName: fullName ?? this.fullName,
+      balance: balance ?? this.balance,
+      status: status ?? this.status,
+    );
+  }
+
+  factory AttendanceStudentModel.fromJson(Map<String, dynamic> json) {
+    return AttendanceStudentModel(
+      studentId: jsonInt(json['student_id'] ?? json['id']),
+      enrollmentId: jsonInt(json['enrollment_id'] ?? json['enr_id']),
+      fullName: jsonString(json['full_name']).isNotEmpty
+          ? jsonString(json['full_name'])
+          : jsonString(json['student_name']).isNotEmpty
+              ? jsonString(json['student_name'])
+              : jsonString(json['name']),
+      balance: jsonInt(json['balance']),
+      status: jsonString(json['status']).isEmpty ? 'none' : jsonString(json['status']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'student_id': studentId,
+    'enrollment_id': enrollmentId,
+    'full_name': fullName,
+    'balance': balance,
+    'status': status,
+  };
+}
+
+class AttendanceSheetModel {
+  const AttendanceSheetModel({
+    required this.groupId,
+    required this.groupName,
     required this.date,
-    required this.group,
+    required this.readOnly,
     required this.items,
   });
 
+  final int groupId;
+  final String groupName;
   final DateTime date;
-  final GroupModel group;
-  final List<AttendanceMember> items;
+  final bool readOnly;
+  final List<AttendanceStudentModel> items;
 
-  factory AttendanceSheetData.fromJson(Map<String, dynamic> json) {
-    return AttendanceSheetData(
-      date: DateTime.tryParse(jsonString(json['date'])) ?? DateTime.now(),
-      group: GroupModel.fromJson(jsonMap(json['group'])),
-      items: jsonMapList(json['items']).map(AttendanceMember.fromJson).toList(),
+  factory AttendanceSheetModel.fromJson(Map<String, dynamic> json) {
+    return AttendanceSheetModel(
+      groupId: jsonInt(json['group_id']),
+      groupName: jsonString(json['group_name']),
+      date: jsonDate(json['date']) ?? DateTime.now(),
+      readOnly: jsonBool(json['read_only']),
+      items: jsonMapList(json['items'])
+          .map(AttendanceStudentModel.fromJson)
+          .toList(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'group_id': groupId,
+    'group_name': groupName,
+    'date': date.toIso8601String(),
+    'read_only': readOnly,
+    'items': items.map((item) => item.toJson()).toList(),
+  };
 }
 
-class AppNotification {
-  const AppNotification({
+class PaymentModel {
+  const PaymentModel({
+    required this.id,
+    required this.studentName,
+    required this.amount,
+    required this.date,
+    this.studentId = 0,
+    this.groupId = 0,
+    this.groupName = '',
+    this.method = '',
+    this.note = '',
+    this.isDebt = false,
+  });
+
+  final int id;
+  final int studentId;
+  final int groupId;
+  final String studentName;
+  final String groupName;
+  final int amount;
+  final DateTime date;
+  final String method;
+  final String note;
+  final bool isDebt;
+
+  factory PaymentModel.fromJson(Map<String, dynamic> json) {
+    return PaymentModel(
+      id: jsonInt(json['id']),
+      studentId: jsonInt(json['student_id']),
+      groupId: jsonInt(json['group_id']),
+      studentName: jsonString(json['student_name']).isNotEmpty
+          ? jsonString(json['student_name'])
+          : jsonString(json['full_name']),
+      groupName: jsonString(json['group_name']),
+      amount: jsonInt(json['amount'] ?? json['summa'] ?? json['debt']),
+      date: jsonDate(json['date'] ?? json['paid_date'] ?? json['raw_date']) ?? DateTime.now(),
+      method: jsonString(json['method'] ?? json['payment_type']),
+      note: jsonString(json['note']),
+      isDebt: jsonBool(json['is_debt']) ||
+          jsonString(json['status']).toLowerCase() == 'debt',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'student_id': studentId,
+    'group_id': groupId,
+    'student_name': studentName,
+    'group_name': groupName,
+    'amount': amount,
+    'date': date.toIso8601String(),
+    'method': method,
+    'note': note,
+    'is_debt': isDebt,
+  };
+}
+
+class PaymentSummaryModel {
+  const PaymentSummaryModel({
+    required this.totalReceived,
+    required this.openDebt,
+    required this.thisMonth,
+  });
+
+  final int totalReceived;
+  final int openDebt;
+  final int thisMonth;
+
+  factory PaymentSummaryModel.fromJson(Map<String, dynamic> json) {
+    return PaymentSummaryModel(
+      totalReceived: jsonInt(json['total_received']),
+      openDebt: jsonInt(json['open_debt']),
+      thisMonth: jsonInt(json['this_month']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'total_received': totalReceived,
+    'open_debt': openDebt,
+    'this_month': thisMonth,
+  };
+}
+
+class NotificationModel {
+  const NotificationModel({
     required this.id,
     required this.title,
-    required this.message,
-    required this.type,
-    required this.isRead,
+    required this.body,
     required this.createdAt,
+    this.type = '',
+    this.isRead = false,
+    this.target = '',
   });
 
   final int id;
   final String title;
-  final String message;
+  final String body;
+  final DateTime createdAt;
   final String type;
   final bool isRead;
-  final DateTime createdAt;
+  final String target;
 
-  factory AppNotification.fromJson(Map<String, dynamic> json) {
-    return AppNotification(
+  factory NotificationModel.fromJson(Map<String, dynamic> json) {
+    return NotificationModel(
       id: jsonInt(json['id']),
       title: jsonString(json['title']),
-      message: jsonString(json['message']),
+      body: jsonString(json['body']).isNotEmpty
+          ? jsonString(json['body'])
+          : jsonString(json['message']),
+      createdAt: jsonDate(json['created_at']) ?? DateTime.now(),
       type: jsonString(json['type']),
       isRead: jsonBool(json['is_read']),
-      createdAt:
-          DateTime.tryParse(jsonString(json['created_at'])) ?? DateTime.now(),
+      target: jsonString(json['target']),
     );
   }
+
+  NotificationModel copyWith({bool? isRead}) {
+    return NotificationModel(
+      id: id,
+      title: title,
+      body: body,
+      createdAt: createdAt,
+      type: type,
+      isRead: isRead ?? this.isRead,
+      target: target,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'body': body,
+    'created_at': createdAt.toIso8601String(),
+    'type': type,
+    'is_read': isRead,
+    'target': target,
+  };
+}
+
+class ChaqmoqEntryModel {
+  const ChaqmoqEntryModel({
+    required this.id,
+    required this.points,
+    required this.ruleName,
+    required this.createdAt,
+    this.groupName = '',
+    this.giverName = '',
+  });
+
+  final int id;
+  final int points;
+  final String ruleName;
+  final String groupName;
+  final String giverName;
+  final DateTime createdAt;
+
+  factory ChaqmoqEntryModel.fromJson(Map<String, dynamic> json) {
+    return ChaqmoqEntryModel(
+      id: jsonInt(json['id']),
+      points: jsonInt(json['points']),
+      ruleName: jsonString(json['rule_name']),
+      groupName: jsonString(json['group_name']),
+      giverName: jsonString(json['giver_name']),
+      createdAt: jsonDate(json['created_at']) ?? DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'points': points,
+    'rule_name': ruleName,
+    'group_name': groupName,
+    'giver_name': giverName,
+    'created_at': createdAt.toIso8601String(),
+  };
+}
+
+class StudentDetailModel {
+  const StudentDetailModel({
+    required this.student,
+    required this.payments,
+    required this.attendance,
+    required this.chaqmoqHistory,
+    required this.badges,
+  });
+
+  final StudentModel student;
+  final List<PaymentModel> payments;
+  final List<DateTime> attendance;
+  final List<ChaqmoqEntryModel> chaqmoqHistory;
+  final List<String> badges;
+
+  factory StudentDetailModel.fromJson(Map<String, dynamic> json) {
+    return StudentDetailModel(
+      student: StudentModel.fromJson(jsonMap(json['student'])),
+      payments: jsonMapList(json['payments']).map(PaymentModel.fromJson).toList(),
+      attendance: jsonMapList(json['attendance'])
+          .map((item) => jsonDate(item['date']))
+          .whereType<DateTime>()
+          .toList(),
+      chaqmoqHistory: jsonMapList(json['chaqmoq_history'])
+          .map(ChaqmoqEntryModel.fromJson)
+          .toList(),
+      badges: jsonStringList(json['badges']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'student': student.toJson(),
+    'payments': payments.map((item) => item.toJson()).toList(),
+    'attendance': attendance.map((item) => {'date': item.toIso8601String()}).toList(),
+    'chaqmoq_history': chaqmoqHistory.map((item) => item.toJson()).toList(),
+    'badges': badges,
+  };
 }

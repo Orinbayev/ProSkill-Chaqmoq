@@ -1585,11 +1585,42 @@ def qarzdorlar_home(request):
     chart_months = _last_12_ending(selected_to)
 
     # ─── TUITIONMONTH AUTO-ENSURE (joriy oy) ────────────────────────────────
-    # Har bir faol enrollment uchun JORIY OY TuitionMonth yozuvi bo'lishini
-    # kafolatlaymiz. `ensure_tuition_month` soft-deleted ni tiklaydi, 0-fee ni
-    # to'g'rilaydi — shuning uchun bulk_create dan ustunroq.
+    # Har bir faol enrollment uchun joriy oy yozuvi bo'lishini bulk tarzda
+    # kafolatlaymiz, shunda enrollment boshiga alohida query ketmaydi.
+    from django.utils import timezone as _tz
+
+    existing_tm_enr_ids = set(
+        TuitionMonth.all_objects.filter(
+            enrollment__in=active_enrs_qs,
+            month=cur_month,
+        ).values_list("enrollment_id", flat=True)
+    )
+
+    to_create = []
     for enr in active_enrs_qs:
-        ensure_tuition_month(enr, cur_month)
+        if enr.id not in existing_tm_enr_ids:
+            fee = (
+                enr.student_payable_amount
+                if enr.student_payable_amount not in (None, 0)
+                else enr.kurs_narhi
+                or int(getattr(enr.group, "kurs_narxi", 0) or 0)
+            )
+            to_create.append(
+                TuitionMonth(
+                    enrollment=enr,
+                    center_id=enr.center_id,
+                    month=cur_month,
+                    fee_amount=fee or 0,
+                )
+            )
+    if to_create:
+        TuitionMonth.objects.bulk_create(to_create, ignore_conflicts=True)
+
+    TuitionMonth.all_objects.filter(
+        enrollment__in=active_enrs_qs,
+        month=cur_month,
+        is_deleted=True,
+    ).update(is_deleted=False, restored_at=_tz.now())
 
     # ─── SUBQUERY: fee va paid (faqat TANLANGAN OY) ──────────────────────────
     total_fee_sub = (
@@ -3211,9 +3242,40 @@ def group_detail(request, pk: int):
     # to'lov holatini hisoblaymiz.
     fee_field = tuition_month_fee_field()
     student_enrollments = list(student_enrollment_qs.select_related("group"))
-    for enrollment in student_enrollments:
-        ensure_tuition_month(enrollment, selected_month)
     eligible_enrollment_ids = [enrollment.id for enrollment in student_enrollments]
+
+    from django.utils import timezone as _tz2
+
+    _existing_ids = set(
+        TuitionMonth.all_objects.filter(
+            enrollment_id__in=eligible_enrollment_ids,
+            month=selected_month,
+        ).values_list("enrollment_id", flat=True)
+    )
+    _to_create = []
+    for _enr in student_enrollments:
+        if _enr.id not in _existing_ids:
+            _fee = (
+                _enr.student_payable_amount
+                if _enr.student_payable_amount not in (None, 0)
+                else _enr.kurs_narhi
+                or int(getattr(_enr.group, "kurs_narxi", 0) or 0)
+            )
+            _to_create.append(
+                TuitionMonth(
+                    enrollment=_enr,
+                    center_id=_enr.center_id,
+                    month=selected_month,
+                    fee_amount=_fee or 0,
+                )
+            )
+    if _to_create:
+        TuitionMonth.objects.bulk_create(_to_create, ignore_conflicts=True)
+    TuitionMonth.all_objects.filter(
+        enrollment_id__in=eligible_enrollment_ids,
+        month=selected_month,
+        is_deleted=True,
+    ).update(is_deleted=False, restored_at=_tz2.now())
 
     student_total_fee_map = {
         sid: 0 for sid in student_user_ids

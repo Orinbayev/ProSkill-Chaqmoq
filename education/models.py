@@ -256,6 +256,11 @@ class Enrollment(SoftDeleteMixin, models.Model):
         verbose_name = "Guruhga qo‘shilish"
         verbose_name_plural = "Guruhga qo‘shilishlar"
         ordering = ["group", "student"]
+        indexes = [
+            models.Index(fields=["center", "is_active", "is_deleted"], name="enr_center_active_idx"),
+            models.Index(fields=["group", "is_active"], name="enr_group_active_idx"),
+            models.Index(fields=["student", "is_active"], name="enr_student_active_idx"),
+        ]
 
     def __str__(self):
         ism = getattr(self.student, "ism", "")
@@ -399,6 +404,8 @@ class Payment(SoftDeleteMixin, models.Model):
         indexes = [
             models.Index(fields=['paid_date', 'center']),
             models.Index(fields=['group']),
+            models.Index(fields=['center', 'is_deleted', 'paid_date'], name="pay_center_del_date_idx"),
+            models.Index(fields=['enrollment', 'is_deleted'], name="pay_enr_del_idx"),
         ]
 
     def __str__(self):
@@ -698,6 +705,10 @@ class TuitionMonth(SoftDeleteMixin, models.Model):
     class Meta:
         unique_together = (("enrollment", "month"), ("center", "enrollment", "month"))
         ordering = ("month",)
+        indexes = [
+            models.Index(fields=["enrollment", "month", "is_deleted"], name="tm_enr_month_idx"),
+            models.Index(fields=["center", "month", "is_deleted"], name="tm_center_month_idx"),
+        ]
 
     def __str__(self):
         return f"enr#{self.enrollment_id} - {self.month} - {self.fee_amount}"
@@ -739,6 +750,10 @@ class PaymentAllocation(SoftDeleteMixin, models.Model):
 
     class Meta:
         ordering = ("tuition_month__month", "id")
+        indexes = [
+            models.Index(fields=["tuition_month", "is_deleted"], name="pa_tm_deleted_idx"),
+            models.Index(fields=["payment", "is_deleted"], name="pa_payment_deleted_idx"),
+        ]
 
     def __str__(self):
         return f"pay#{self.payment_id} -> {self.tuition_month.month}: {self.amount}"

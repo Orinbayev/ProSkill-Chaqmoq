@@ -716,6 +716,31 @@
   color: var(--bq-amber);
 }
 
+.bq-sec-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background .2s, border-color .2s, color .2s, transform .2s;
+}
+.bq-sec-link:hover {
+  transform: translateY(-1px);
+}
+.bq-sec-link--rose {
+  background: rgba(244,63,94,.1);
+  border-color: rgba(244,63,94,.25);
+  color: #fda4af;
+}
+.bq-sec-link--rose:hover {
+  background: rgba(244,63,94,.18);
+  color: #fecdd3;
+}
+
 /* ══════════════════ CHART ══════════════════ */
 .bq-ch { position:relative; }
 .bq-ch--xl  { height:250px; }
@@ -1758,10 +1783,7 @@
             <p class="bq-sec__sub">O'quvchi ketish xavfi — davomat, to'lov, faollik tahlili</p>
           </div>
           <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
-            <a href="{% url 'core:low_activity_students' %}"
-               style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:10px;font-size:12px;font-weight:700;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.25);color:#fda4af;text-decoration:none;transition:.2s;"
-               onmouseover="this.style.background='rgba(244,63,94,.18)'"
-               onmouseout="this.style.background='rgba(244,63,94,.1)'">
+            <a href="{% url 'core:low_activity_students' %}" class="bq-sec-link bq-sec-link--rose">
               <i class="fa-solid fa-arrow-up-right-from-square"></i> To'liq ko'rish
             </a>
           </div>

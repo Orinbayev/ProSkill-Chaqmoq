@@ -10,6 +10,7 @@ from accounts import api_auth
 from accounts.views import test_db, test_center
 from billing import click_views as billing_click_views
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+from marketing import views as marketing_views
 
 
 urlpatterns = [
@@ -43,10 +44,24 @@ urlpatterns = [
     # Browser Redirects
     path('payment/success/', billing_click_views.payment_success, name='payment_success'),
     path('payment/cancel/', billing_click_views.payment_cancel, name='payment_cancel'),
+    path('robots.txt', marketing_views.robots_txt, name='robots_txt'),
+    path('sitemap.xml', marketing_views.sitemap_xml, name='sitemap_xml'),
 
     # 🔹 Global Platform (Fixed Prefix)
     path('platform/', include(('accounts.urls', 'accounts'), namespace='platform_global')),
     path("i18n/", include("django.conf.urls.i18n")),
+
+    # 🔹 Legacy slug-prefixed marketing URLs → canonical marketing pages
+    re_path(
+        r'^(?P<center_slug>[a-z0-9][a-z0-9\-]{0,62})/(?P<lang_code>uz|ru|en)/(?:(?P<page_slug>about|features|pricing|demo|resources|support|vacancies|privacy|terms)/)?$',
+        marketing_views.legacy_prefixed_marketing_redirect,
+        name='legacy_prefixed_marketing_lang_redirect',
+    ),
+    re_path(
+        r'^(?P<center_slug>[a-z0-9][a-z0-9\-]{0,62})/(?P<page_slug>about|features|pricing|demo|resources|support|vacancies|privacy|terms)/$',
+        marketing_views.legacy_prefixed_marketing_redirect,
+        name='legacy_prefixed_marketing_redirect',
+    ),
 
     # 🔹 Localized Marketing Website (/uz/, /ru/, /en/)
     re_path(

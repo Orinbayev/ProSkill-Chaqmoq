@@ -54,6 +54,8 @@ class SiteSetting(TimeStampedModel):
     hero_subtitle_ru = models.TextField(blank=True, verbose_name="Hero matn (RU)")
     hero_subtitle_en = models.TextField(blank=True, verbose_name="Hero matn (EN)")
     hero_image = models.ImageField(upload_to="marketing/hero/", blank=True, null=True, verbose_name="Hero rasmi")
+    stat_value_1 = models.CharField(max_length=20, default="+24%", blank=True, verbose_name="Floating stat 1")
+    stat_value_2 = models.CharField(max_length=20, default="98%", blank=True, verbose_name="Floating stat 2")
 
     primary_cta_text = models.CharField(max_length=60, default="Demo olish", verbose_name="Asosiy CTA matni")
     primary_cta_url = models.CharField(max_length=255, default="/demo/", verbose_name="Asosiy CTA URL")

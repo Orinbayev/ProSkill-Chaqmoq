@@ -17,9 +17,11 @@ if not SECRET_KEY:
     SECRET_KEY = "local-dev-unsafe-secret-key-change-in-production"
 DEBUG = True # ✅ Force Debug for Local Dev to prevent redirect issues
 
-# ✅ HOSTS FIX: Allow all necessary local domains
-# ✅ HOSTS FIX: Allow all necessary local domains
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".localhost", "*"]
+_ALLOWED = os.getenv("ALLOWED_HOSTS", "")
+if _ALLOWED:
+    ALLOWED_HOSTS = [host.strip() for host in _ALLOWED.split(",") if host.strip()]
+else:
+    ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".localhost"]
 
 # ✅ COOKIE FIX: Localhost requires strict handling to avoid loops
 # We use None so cookies are host-only. This prevents subdomain conflict on local.
@@ -173,7 +175,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 # ✅ FIX: Point directly to the URL path to avoid resolution ambiguity
 LOGIN_URL = "/hisob/login/" 
-LOGIN_REDIRECT_URL = "core:home"
+LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "login"
 
 LANGUAGE_CODE = os.getenv("LANGUAGE_CODE", "uz")

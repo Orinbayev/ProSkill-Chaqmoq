@@ -1,10 +1,13 @@
-import 'package:chaqmoq_mobile/core/utils/formatters.dart';
+import 'package:chaqmoq_mobile/core/theme/app_colors.dart';
+import 'package:chaqmoq_mobile/core/theme/app_spacing.dart';
+import 'package:chaqmoq_mobile/core/theme/app_text_styles.dart';
+import 'package:chaqmoq_mobile/models/app_models.dart';
+import 'package:chaqmoq_mobile/providers/auth_provider.dart';
 import 'package:chaqmoq_mobile/providers/groups_provider.dart';
-import 'package:chaqmoq_mobile/widgets/app_input_field.dart';
-import 'package:chaqmoq_mobile/widgets/app_list_item_card.dart';
-import 'package:chaqmoq_mobile/widgets/app_page_header.dart';
+import 'package:chaqmoq_mobile/screens/groups/group_detail_screen.dart';
 import 'package:chaqmoq_mobile/widgets/empty_state.dart';
-import 'package:chaqmoq_mobile/widgets/loading_state.dart';
+import 'package:chaqmoq_mobile/widgets/glass_card.dart';
+import 'package:chaqmoq_mobile/widgets/shimmer_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -16,162 +19,100 @@ class GroupsScreen extends StatefulWidget {
 }
 
 class _GroupsScreenState extends State<GroupsScreen> {
-  final _searchController = TextEditingController();
-  bool _queuedLoad = false;
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_queuedLoad) {
-      return;
+    final role = context.read<AuthProvider>().user?.role;
+    if (role != null) {
+      context.read<GroupsProvider>().load(role);
     }
-    _queuedLoad = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      context.read<GroupsProvider>().ensureLoaded();
-    });
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final role = context.watch<AuthProvider>().user?.role ?? '';
     final provider = context.watch<GroupsProvider>();
-    final query = _searchController.text.trim().toLowerCase();
-    final groups = provider.items.where((group) {
-      if (query.isEmpty) {
-        return true;
-      }
-      return group.name.toLowerCase().contains(query) ||
-          group.category.toLowerCase().contains(query) ||
-          group.teacherName.toLowerCase().contains(query);
-    }).toList();
-
-    if (provider.isLoading && provider.items.isEmpty) {
-      return const LoadingState(title: 'Guruhlar yuklanmoqda...');
-    }
-
-    if (provider.errorMessage != null && provider.items.isEmpty) {
-      return EmptyState(
-        icon: Icons.groups_rounded,
-        title: 'Guruhlar bo\'limi ochilmadi',
-        message: provider.errorMessage!,
-        actionLabel: 'Qayta urinish',
-        onAction: () => context.read<GroupsProvider>().load(),
-      );
-    }
-
     return RefreshIndicator(
-      onRefresh: () => context.read<GroupsProvider>().load(),
+      onRefresh: () => provider.refresh(role),
       child: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         children: [
-          const AppPageHeader(
-            title: 'Guruhlar ro\'yxati',
-            subtitle:
-                'Sig\'im, narx, dars yuklamasi va ustoz birikmasini kuzating.',
-          ),
-          const SizedBox(height: 14),
-          AppInputField(
-            controller: _searchController,
-            label: 'Qidiruv',
-            hint: 'Guruh, yo\'nalish yoki ustoz bo\'yicha qidiring',
-            prefixIcon: Icons.search_rounded,
-            onChanged: (_) => setState(() {}),
-            suffixIcon: query.isEmpty
-                ? null
-                : IconButton(
-                    onPressed: () {
-                      _searchController.clear();
-                      setState(() {});
-                    },
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-          ),
-          const SizedBox(height: 14),
-          if (groups.isEmpty)
+          if (provider.state == ViewState.loading)
+            const ShimmerLoader.list()
+          else if (provider.state == ViewState.error)
+            EmptyState(
+              title: 'Guruhlar yuklanmadi',
+              message: provider.errorMessage ?? 'Qayta urinib ko\'ring',
+              icon: Icons.view_module_rounded,
+              actionLabel: 'Qayta yuklash',
+              onAction: () => provider.refresh(role),
+            )
+          else if (provider.groups.isEmpty)
             const EmptyState(
-              icon: Icons.groups_2_rounded,
-              title: 'Guruhlar topilmadi',
-              message: 'Boshqa so\'rov kiriting yoki ma\'lumotlarni yangilang.',
+              title: 'Guruh mavjud emas',
+              message: 'Hozircha ro\'yxatda guruh topilmadi',
+              icon: Icons.grid_view_rounded,
             )
           else
-            for (final group in groups) ...[
-              AppListItemCard(
-                title: group.name,
-                subtitle: group.category,
-                trailing: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      AppFormatters.formatMoney(group.monthlyPrice),
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Text(
-                      '${group.monthlyLessons} ta dars/oy',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-                tags: [
-                  Chip(label: Text(group.isClosed ? 'Yopilgan' : 'Faol')),
-                  _MetaPill(
-                    icon: Icons.badge_rounded,
-                    label: group.teacherName.isEmpty
-                        ? 'Biriktirilmagan'
-                        : group.teacherName,
-                  ),
-                  _MetaPill(
-                    icon: Icons.people_alt_rounded,
-                    label: '${group.studentCount ?? 0} o\'quvchi',
-                  ),
-                  _MetaPill(
-                    icon: Icons.fact_check_rounded,
-                    label:
-                        '${group.todayAttendanceCount ?? 0} ta bugungi davomat',
-                  ),
-                  _MetaPill(
-                    icon: Icons.percent_rounded,
-                    label: '${group.teacherSharePercent}% ustoz ulushi',
-                  ),
-                ],
+            ...provider.groups.map(
+              (group) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                child: _GroupCard(group: group),
               ),
-              if (group != groups.last) const SizedBox(height: 14),
-            ],
+            ),
         ],
       ),
     );
   }
 }
 
-class _MetaPill extends StatelessWidget {
-  const _MetaPill({required this.icon, required this.label});
+class _GroupCard extends StatelessWidget {
+  const _GroupCard({required this.group});
 
-  final IconData icon;
-  final String label;
+  final GroupModel group;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+    final fill = (group.fillRate * 100).clamp(0, 100);
+    final color = fill < 70
+        ? AppColors.success
+        : fill < 90
+            ? AppColors.warning
+            : AppColors.danger;
+    return GlassCard(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => GroupDetailScreen(group: group),
+          ),
+        );
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18),
-          const SizedBox(width: 8),
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
+          Row(
+            children: [
+              Expanded(child: Text(group.name, style: AppTextStyles.title)),
+              Text('${fill.toStringAsFixed(0)}%', style: AppTextStyles.label.copyWith(color: color)),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text('Ustoz: ${group.teacherName.isEmpty ? 'Biriktirilmagan' : group.teacherName}', style: AppTextStyles.bodySmall),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            '${group.studentCount}/${group.capacity == 0 ? 24 : group.capacity} o\'quvchi • ${group.schedule.isEmpty ? 'Jadval kiritilmagan' : group.schedule}',
+            style: AppTextStyles.bodySmall,
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            child: LinearProgressIndicator(
+              value: group.capacity == 0 ? 0 : group.fillRate.clamp(0, 1),
+              minHeight: 8,
+              color: color,
+              backgroundColor: AppColors.surfaceAlt,
+            ),
+          ),
         ],
       ),
     );

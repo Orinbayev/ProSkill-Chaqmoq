@@ -9,32 +9,22 @@ class AuthProvider extends ChangeNotifier {
   final AuthService _authService;
 
   AuthSession? _session;
-  bool _isInitializing = true;
-  bool _isBusy = false;
+  ViewState _state = ViewState.idle;
   String? _errorMessage;
-  String _lastUsedSlug = '';
+  bool _isInitializing = true;
 
   AuthSession? get session => _session;
-  AppUser? get user => _session?.user;
-  bool get isInitializing => _isInitializing;
-  bool get isBusy => _isBusy;
+  UserModel? get user => _session?.user;
   bool get isAuthenticated => _session != null;
+  ViewState get state => _state;
+  bool get isInitializing => _isInitializing;
   String? get errorMessage => _errorMessage;
-  String get lastUsedSlug => _session?.slug ?? _lastUsedSlug;
-
-  String _messageFromError(Object error) {
-    if (error is ApiException) {
-      return error.message;
-    }
-    return 'Kutilmagan xatolik yuz berdi';
-  }
 
   Future<void> restoreSession() async {
     _isInitializing = true;
     _errorMessage = null;
     notifyListeners();
 
-    _lastUsedSlug = await _authService.readStoredSlug() ?? '';
     _session = await _authService.restoreSession();
 
     _isInitializing = false;
@@ -43,56 +33,58 @@ class AuthProvider extends ChangeNotifier {
 
   Future<bool> login({
     required String slug,
-    required String identifier,
+    required String username,
     required String password,
   }) async {
-    _isBusy = true;
+    _state = ViewState.loading;
     _errorMessage = null;
     notifyListeners();
 
     try {
       _session = await _authService.login(
         slug: slug,
-        identifier: identifier,
+        username: username,
         password: password,
       );
-      _lastUsedSlug = _session?.slug ?? '';
+      _state = ViewState.success;
       return true;
     } catch (error) {
-      _errorMessage = _messageFromError(error);
+      _state = ViewState.error;
+      _errorMessage = _mapError(error);
       return false;
     } finally {
-      _isBusy = false;
       notifyListeners();
     }
   }
 
   Future<void> logout() async {
-    _isBusy = true;
+    _state = ViewState.loading;
     notifyListeners();
-
     await _authService.logout();
     _session = null;
-
-    _isBusy = false;
+    _state = ViewState.idle;
     notifyListeners();
   }
 
-  Future<void> switchTenant(String slug) async {
-    if (_session == null) {
-      return;
-    }
-    await _authService.switchTenant(slug: slug, token: _session!.accessToken);
-    _session = _session!.copyWith(slug: slug);
-    _lastUsedSlug = slug;
+  Future<void> handleUnauthorized() async {
+    _session = null;
+    _state = ViewState.error;
+    _errorMessage = 'Sessiya yakunlandi. Qayta tizimga kiring.';
     notifyListeners();
   }
 
-  void replaceUser(AppUser user) {
+  void updateUser(UserModel user) {
     if (_session == null) {
       return;
     }
     _session = _session!.copyWith(user: user);
     notifyListeners();
+  }
+
+  String _mapError(Object error) {
+    if (error is ApiException) {
+      return error.message;
+    }
+    return 'Kirishda xatolik yuz berdi';
   }
 }

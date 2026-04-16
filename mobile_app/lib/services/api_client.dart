@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:chaqmoq_mobile/core/config/app_config.dart';
 import 'package:chaqmoq_mobile/services/storage_service.dart';
 import 'package:dio/dio.dart';
@@ -13,157 +15,188 @@ class ApiException implements Exception {
 }
 
 class ApiClient {
-  ApiClient({required SecureStorageService storageService})
+  ApiClient({required StorageService storageService})
     : _storageService = storageService,
       _dio = Dio(
         BaseOptions(
           baseUrl: AppConfig.baseUrl,
           connectTimeout: AppConfig.connectTimeout,
           receiveTimeout: AppConfig.receiveTimeout,
-          contentType: Headers.jsonContentType,
+          sendTimeout: AppConfig.sendTimeout,
           responseType: ResponseType.json,
+          contentType: Headers.jsonContentType,
+          headers: const {'Accept': 'application/json'},
         ),
-      );
-
-  final SecureStorageService _storageService;
-  final Dio _dio;
-
-  String? _slug;
-  String? _accessToken;
-
-  void configure({required String slug, String? accessToken}) {
-    _slug = slug.trim();
-    _accessToken = accessToken;
-  }
-
-  Future<void> persistSlug(String slug) => _storageService.saveSlug(slug);
-
-  void clearSession() {
-    _accessToken = null;
-  }
-
-  String get currentSlug => _slug ?? '';
-
-  String _tenantPath(String endpoint) {
-    if (_slug == null || _slug!.isEmpty) {
-      throw ApiException('Markaz slugi sozlanmagan');
-    }
-
-    final clean = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
-    return '/${_slug!}/api/mobile/$clean';
-  }
-
-  String _globalPath(String endpoint) {
-    final clean = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
-    return '/api/mobile/$clean';
-  }
-
-  Options _buildOptions() {
-    final headers = <String, dynamic>{};
-    if (_accessToken != null && _accessToken!.isNotEmpty) {
-      headers['Authorization'] = 'Bearer $_accessToken';
-    }
-    return Options(headers: headers);
-  }
-
-  Map<String, dynamic> _decode(Response<dynamic> response) {
-    final data = response.data;
-    if (data is Map) {
-      return Map<String, dynamic>.from(data);
-    }
-    return <String, dynamic>{'data': data};
-  }
-
-  Never _throwFromDio(DioException error) {
-    final responseData = error.response?.data;
-    if (responseData is Map) {
-      final payload = Map<String, dynamic>.from(responseData);
-      throw ApiException(
-        payload['error']?.toString() ??
-            payload['message']?.toString() ??
-            'So\'rov bajarilmadi',
-        statusCode: error.response?.statusCode,
-      );
-    }
-
-    throw ApiException(
-      error.message ?? 'Tarmoq so\'rovi bajarilmadi',
-      statusCode: error.response?.statusCode,
-    );
-  }
-
-  Map<String, dynamic> _cleanQuery(Map<String, dynamic>? values) {
-    if (values == null) {
-      return const {};
-    }
-    return Map<String, dynamic>.fromEntries(
-      values.entries.where(
-        (entry) => entry.value != null && '${entry.value}'.isNotEmpty,
+      ) {
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          if (_accessToken?.isNotEmpty == true) {
+            options.headers['Authorization'] = 'Bearer $_accessToken';
+          }
+          if (_slug?.isNotEmpty == true) {
+            options.headers['X-Center-Slug'] = _slug;
+          }
+          handler.next(options);
+        },
       ),
     );
   }
 
+  final Dio _dio;
+  final StorageService _storageService;
+
+  String? _accessToken;
+  String? _slug;
+  Future<void> Function()? _unauthorizedHandler;
+  bool _isHandlingUnauthorized = false;
+
+  void configure({
+    String? accessToken,
+    String? slug,
+  }) {
+    _accessToken = accessToken;
+    _slug = slug;
+  }
+
+  void clearSession() {
+    _accessToken = null;
+    _slug = null;
+  }
+
+  void setUnauthorizedHandler(Future<void> Function() handler) {
+    _unauthorizedHandler = handler;
+  }
+
+  Future<void> _handleUnauthorized() async {
+    if (_isHandlingUnauthorized) {
+      return;
+    }
+    _isHandlingUnauthorized = true;
+    try {
+      clearSession();
+      await _storageService.clearAuth();
+      await _unauthorizedHandler?.call();
+    } finally {
+      _isHandlingUnauthorized = false;
+    }
+  }
+
+  bool _shouldRetry(DioException error) {
+    if (error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.receiveTimeout ||
+        error.type == DioExceptionType.sendTimeout ||
+        error.type == DioExceptionType.connectionError) {
+      return true;
+    }
+
+    final statusCode = error.response?.statusCode ?? 0;
+    return statusCode == 429 || statusCode >= 500;
+  }
+
+  ApiException _mapError(DioException error) {
+    final data = error.response?.data;
+    if (data is Map) {
+      final payload = data.map(
+        (key, value) => MapEntry(key.toString(), value),
+      );
+      final message =
+          payload['message']?.toString() ??
+          payload['error']?.toString() ??
+          payload['detail']?.toString() ??
+          payload['non_field_errors']?.toString();
+      if (message != null && message.isNotEmpty) {
+        return ApiException(message, statusCode: error.response?.statusCode);
+      }
+    }
+
+    if (error.type == DioExceptionType.connectionError ||
+        error.type == DioExceptionType.connectionTimeout) {
+      return ApiException('Server bilan aloqa o\'rnatilmadi');
+    }
+
+    return ApiException(
+      error.message ?? 'So\'rov bajarilmadi',
+      statusCode: error.response?.statusCode,
+    );
+  }
+
+  Future<Response<dynamic>> _sendWithRetry(
+    Future<Response<dynamic>> Function() action,
+  ) async {
+    var attempt = 0;
+    while (true) {
+      try {
+        return await action();
+      } on DioException catch (error) {
+        if (error.response?.statusCode == 401) {
+          await _handleUnauthorized();
+          throw ApiException(
+            'Sessiya yakunlandi. Qayta tizimga kiring.',
+            statusCode: 401,
+          );
+        }
+
+        if (attempt >= 2 || !_shouldRetry(error)) {
+          throw _mapError(error);
+        }
+
+        final wait = Duration(milliseconds: 300 * (1 << attempt));
+        await Future<void>.delayed(wait);
+        attempt += 1;
+      }
+    }
+  }
+
+  Map<String, dynamic> _mapBody(Response<dynamic> response) {
+    final data = response.data;
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+    if (data is Map) {
+      return data.map((key, value) => MapEntry(key.toString(), value));
+    }
+    if (data is List) {
+      return <String, dynamic>{'items': data};
+    }
+    return <String, dynamic>{'data': data};
+  }
+
   Future<Map<String, dynamic>> get(
-    String endpoint, {
+    String path, {
     Map<String, dynamic>? queryParameters,
   }) async {
-    try {
-      final response = await _dio.get<dynamic>(
-        _tenantPath(endpoint),
-        queryParameters: _cleanQuery(queryParameters),
-        options: _buildOptions(),
-      );
-      return _decode(response);
-    } on DioException catch (error) {
-      _throwFromDio(error);
-    }
+    final response = await _sendWithRetry(
+      () => _dio.get<dynamic>(
+        path,
+        queryParameters: queryParameters,
+      ),
+    );
+    return _mapBody(response);
   }
 
   Future<Map<String, dynamic>> post(
-    String endpoint, {
-    Map<String, dynamic>? data,
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
   }) async {
-    try {
-      final response = await _dio.post<dynamic>(
-        _tenantPath(endpoint),
+    final response = await _sendWithRetry(
+      () => _dio.post<dynamic>(
+        path,
         data: data,
-        options: _buildOptions(),
-      );
-      return _decode(response);
-    } on DioException catch (error) {
-      _throwFromDio(error);
-    }
-  }
-
-  Future<Map<String, dynamic>> postGlobal(
-    String endpoint, {
-    Map<String, dynamic>? data,
-  }) async {
-    try {
-      final response = await _dio.post<dynamic>(
-        _globalPath(endpoint),
-        data: data,
-        options: _buildOptions(),
-      );
-      return _decode(response);
-    } on DioException catch (error) {
-      _throwFromDio(error);
-    }
+        queryParameters: queryParameters,
+      ),
+    );
+    return _mapBody(response);
   }
 
   Future<Map<String, dynamic>> patch(
-    String endpoint, {
-    Map<String, dynamic>? data,
+    String path, {
+    Object? data,
   }) async {
-    try {
-      final response = await _dio.patch<dynamic>(
-        _tenantPath(endpoint),
-        data: data,
-        options: _buildOptions(),
-      );
-      return _decode(response);
-    } on DioException catch (error) {
-      _throwFromDio(error);
-    }
+    final response = await _sendWithRetry(
+      () => _dio.patch<dynamic>(path, data: data),
+    );
+    return _mapBody(response);
   }
 }

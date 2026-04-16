@@ -85,6 +85,12 @@ class SecureLoginView(auth_views.LoginView):
         return response
 
     def form_valid(self, form):
+        remember = self.request.POST.get("remember")
+        if remember:
+            self.request.session.set_expiry(2592000)
+        else:
+            self.request.session.set_expiry(0)
+
         # ✅ PERF FIX: super().form_valid() → session write, redirect.
         # record_activity + Telegram xabari BLOCKING edi (5s timeout).
         # Endi fon threadida ishlaydi — response darhol qaytadi.

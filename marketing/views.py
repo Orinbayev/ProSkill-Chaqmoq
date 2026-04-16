@@ -1,8 +1,12 @@
 from collections import OrderedDict
+import json
 import re
+from xml.sax.saxutils import escape as xml_escape
 
 from django.contrib import messages
+from django.http import HttpResponse, HttpResponsePermanentRedirect
 from django.shortcuts import redirect, render
+from django.templatetags.static import static as static_url
 from django.urls import reverse
 from django.utils import timezone, translation
 
@@ -48,8 +52,8 @@ MARKETING_UI = {
         "month_label": "oy",
         "money_label": "so'm",
         "hero_eyebrow": "Ta'lim markazlari uchun bulutli SaaS",
-        "hero_title": "Markazingizni jadvaldan tizimga olib chiqing va daromad nazoratini kuchaytiring",
-        "hero_subtitle": "ChaqmoqApp o'quvchi boshqaruvi, davomat, moliya va filial monitoringini yagona boshqaruv paneliga birlashtiradi.",
+        "hero_title": "O'quv markazingizni yangi bosqichga olib chiqing",
+        "hero_subtitle": "ChaqmoqApp o'quvchilar, guruhlar, davomat, to'lovlar va filiallarni bitta professional boshqaruv tizimiga birlashtiradi.",
         "hero_benefit_1": "7 kun bepul sinov",
         "hero_benefit_2": "Tez joriy qilish",
         "hero_benefit_3": "Telegram integratsiyasi",
@@ -196,8 +200,8 @@ MARKETING_UI = {
         "month_label": "мес",
         "money_label": "сум",
         "hero_eyebrow": "Облачный SaaS для учебных центров",
-        "hero_title": "Переведите управление центром на систему и усилите контроль дохода",
-        "hero_subtitle": "ChaqmoqApp объединяет учеников, посещаемость, финансы и филиалы в одной управленческой панели.",
+        "hero_title": "Выведите учебный центр на новый уровень",
+        "hero_subtitle": "ChaqmoqApp объединяет учеников, группы, посещаемость, платежи и филиалы в одной профессиональной системе управления.",
         "hero_benefit_1": "7 дней бесплатного теста",
         "hero_benefit_2": "Быстрое внедрение",
         "hero_benefit_3": "Интеграция с Telegram",
@@ -344,8 +348,8 @@ MARKETING_UI = {
         "month_label": "mo",
         "money_label": "UZS",
         "hero_eyebrow": "Cloud SaaS for Learning Centers",
-        "hero_title": "Move your center from spreadsheets to real system control",
-        "hero_subtitle": "ChaqmoqApp unifies students, attendance, finance and branch analytics in one dashboard.",
+        "hero_title": "Take your learning center to the next level",
+        "hero_subtitle": "ChaqmoqApp brings students, groups, attendance, payments and branches into one professional management platform.",
         "hero_benefit_1": "7-day free trial",
         "hero_benefit_2": "Fast onboarding",
         "hero_benefit_3": "Telegram integration",
@@ -477,6 +481,82 @@ MARKETING_UI = {
     },
 }
 
+MARKETING_UI_EXTRA = {
+    "uz": {
+        "seo_default_title": "ChaqmoqApp - O'quv markazingizni yangi bosqichga olib chiqing",
+        "seo_default_description": "ChaqmoqApp o'quv markazlari uchun CRM tizimi: o'quvchilar, guruhlar, davomat, to'lovlar va filiallarni bir joyda boshqaring. Demo oling va 7 kun bepul sinab ko'ring.",
+        "menu_about": "Biz haqimizda",
+        "menu_resources": "Resurslar",
+        "quick_links_eyebrow": "Mashhur sahifalar",
+        "quick_links_title": "ChaqmoqApp bo'limlarini tez oching",
+        "quick_links_desc": "Narxlar, demo, resurslar va platforma haqida sahifalarni Google ham, foydalanuvchi ham aniq ko'ra oladigan tarzda joyladik.",
+        "quick_links_cta": "Sahifani ochish",
+        "about_page_title": "ChaqmoqApp haqida",
+        "about_page_desc": "ChaqmoqApp ta'lim markazlari uchun boshqaruvni soddalashtiradigan, davomat va moliyani aniq ko'rsatadigan zamonaviy platforma.",
+        "features_page_title": "ChaqmoqApp imkoniyatlari",
+        "features_page_desc": "O'quvchi boshqaruvi, davomat, to'lovlar, hisobotlar va Telegram avtomatlashtirishini bir sahifada ko'ring.",
+        "resources_page_title": "ChaqmoqApp resurslari",
+        "resources_page_desc": "Demo, narxlar, qo'llab-quvvatlash va huquqiy hujjatlar bo'yicha kerakli sahifalarni bir joyda toping.",
+    },
+    "ru": {
+        "seo_default_title": "ChaqmoqApp - Выведите учебный центр на новый уровень",
+        "seo_default_description": "ChaqmoqApp для учебных центров: ученики, группы, посещаемость, платежи и филиалы в одной CRM-платформе. Запросите демо и протестируйте бесплатно 7 дней.",
+        "menu_about": "О нас",
+        "menu_resources": "Ресурсы",
+        "quick_links_eyebrow": "Популярные страницы",
+        "quick_links_title": "Открывайте ключевые разделы ChaqmoqApp быстрее",
+        "quick_links_desc": "Тарифы, демо, ресурсы и информация о платформе теперь вынесены в более явную структуру для пользователей и Google.",
+        "quick_links_cta": "Открыть страницу",
+        "about_page_title": "О платформе ChaqmoqApp",
+        "about_page_desc": "ChaqmoqApp помогает учебным центрам держать под контролем учеников, посещаемость, платежи и ключевые управленческие показатели.",
+        "features_page_title": "Возможности ChaqmoqApp",
+        "features_page_desc": "Изучите ключевые модули платформы: CRM, посещаемость, платежи, отчеты и автоматизации через Telegram.",
+        "resources_page_title": "Ресурсы ChaqmoqApp",
+        "resources_page_desc": "Быстрый доступ к демо, тарифам, поддержке и юридическим документам платформы.",
+    },
+    "en": {
+        "seo_default_title": "ChaqmoqApp - Take your learning center to the next level",
+        "seo_default_description": "ChaqmoqApp is a CRM platform for learning centers: manage students, groups, attendance, payments and branches in one place. Request a demo and try it free for 7 days.",
+        "menu_about": "About",
+        "menu_resources": "Resources",
+        "quick_links_eyebrow": "Popular pages",
+        "quick_links_title": "Open the key ChaqmoqApp pages faster",
+        "quick_links_desc": "Pricing, demo, resources and company pages are now exposed more clearly for both users and Google.",
+        "quick_links_cta": "Open page",
+        "about_page_title": "About ChaqmoqApp",
+        "about_page_desc": "ChaqmoqApp is a modern management platform that gives learning centers one place for student control, attendance, finance and branch analytics.",
+        "features_page_title": "ChaqmoqApp features",
+        "features_page_desc": "Explore the platform modules for CRM, attendance, payments, analytics and Telegram automation.",
+        "resources_page_title": "ChaqmoqApp resources",
+        "resources_page_desc": "Find the most important pages for demo, pricing, support and legal information in one place.",
+    },
+}
+
+MARKETING_ROUTE_NAMES = (
+    "index",
+    "pricing",
+    "demo",
+    "about",
+    "resources",
+    "support",
+    "features",
+    "vacancies",
+    "privacy",
+    "terms",
+)
+
+MARKETING_PAGE_LABEL_KEYS = {
+    "pricing": "menu_pricing",
+    "demo": "menu_demo",
+    "support": "menu_support",
+    "vacancies": "menu_vacancies",
+    "privacy": "privacy_default_title",
+    "terms": "terms_default_title",
+    "about": "menu_about",
+    "features": "menu_features",
+    "resources": "menu_resources",
+}
+
 
 def _resolve_language(request, lang_code=None):
     requested = (lang_code or "").lower()[:2]
@@ -490,6 +570,12 @@ def _resolve_language(request, lang_code=None):
     translation.activate(lang)
     request.LANGUAGE_CODE = lang
     return lang, prefixed
+
+
+def _get_ui_for_language(lang: str):
+    ui = dict(MARKETING_UI.get(lang, MARKETING_UI["uz"]))
+    ui.update(MARKETING_UI_EXTRA.get(lang, {}))
+    return ui
 
 
 def _strip_lang_prefix(path: str):
@@ -529,6 +615,24 @@ def _route(name: str, lang: str, prefixed: bool):
     if prefixed:
         return reverse(f"marketing_i18n:{name}", kwargs={"lang_code": lang})
     return reverse(f"marketing:{name}")
+
+
+def _route_for_language(name: str, lang: str | None):
+    normalized_lang = (lang or "").lower()[:2]
+    if normalized_lang and normalized_lang != "uz":
+        return reverse(f"marketing_i18n:{name}", kwargs={"lang_code": normalized_lang})
+    return reverse(f"marketing:{name}")
+
+
+def _absolute_url(request, path: str):
+    return request.build_absolute_uri(path)
+
+
+def _page_label(ui: dict, page_slug: str):
+    key = MARKETING_PAGE_LABEL_KEYS.get(page_slug)
+    if key:
+        return ui.get(key, page_slug.replace("-", " ").title())
+    return page_slug.replace("-", " ").title()
 
 
 def _localize_internal_url(url: str, lang: str, prefixed: bool):
@@ -834,9 +938,24 @@ def _localize_vacancy(obj: Vacancy, lang: str):
 
 def _base_context(request, lang_code=None):
     lang, prefixed = _resolve_language(request, lang_code)
-    ui = MARKETING_UI.get(lang, MARKETING_UI["uz"])
+    ui = _get_ui_for_language(lang)
     site_setting = _get_site_setting()
     site_content = _localize_site(site_setting, lang, prefixed, ui)
+
+    content_defaults = {
+        "hero_title": "O'quv markazingizni yangi bosqichga olib chiqing",
+        "hero_subtitle": "ChaqmoqApp — o'quvchilar, guruhlar, davomat, to'lovlar va filiallar uchun yagona professional boshqaruv tizimi.",
+        "primary_cta_text": "Bepul boshlash",
+        "primary_cta_url": _localize_internal_url("/demo/", lang, prefixed),
+        "secondary_cta_text": "Narxlar",
+        "secondary_cta_url": _localize_internal_url("/pricing/", lang, prefixed),
+        "meta_title": "ChaqmoqApp - O'quv markazingizni yangi bosqichga olib chiqing",
+        "meta_description": "ChaqmoqApp orqali o'quvchilar, guruhlar, davomat, to'lovlar va filiallarni bir joyda boshqaring.",
+    }
+
+    for key, default_val in content_defaults.items():
+        if not site_content.get(key):
+            site_content[key] = default_val
 
     routes = {
         "index": _route("index", lang, prefixed),
@@ -846,21 +965,244 @@ def _base_context(request, lang_code=None):
         "vacancies": _route("vacancies", lang, prefixed),
         "privacy": _route("privacy", lang, prefixed),
         "terms": _route("terms", lang, prefixed),
+        "about": _route("about", lang, prefixed),
+        "features": _route("features", lang, prefixed),
+        "resources": _route("resources", lang, prefixed),
     }
 
-    return {
+    pure_path = _strip_lang_prefix(request.path)
+    if not pure_path.startswith("/"):
+        pure_path = f"/{pure_path}"
+
+    context = {
         "site_setting": site_setting,
         "site_content": site_content,
         "current_year": timezone.now().year,
         "meta_title": site_content["meta_title"],
         "meta_description": site_content["meta_description"],
         "canonical_url": request.build_absolute_uri(request.path),
+        "x_default_url": request.build_absolute_uri(pure_path),
         "ui": ui,
         "current_lang": lang,
         "lang_links": _build_switch_links(request, lang),
         "routes": routes,
+        "absolute_routes": {name: _absolute_url(request, url) for name, url in routes.items()},
         "prefixed_lang": prefixed,
+        "request_path": request.path,
     }
+    return context
+
+
+def _set_page_meta(context: dict, title: str, description: str, *, breadcrumb_label: str | None = None):
+    context["meta_title"] = title
+    context["meta_description"] = description
+    if breadcrumb_label:
+        context["breadcrumb_items"] = [
+            {"name": "ChaqmoqApp", "url": context["absolute_routes"]["index"]},
+            {"name": breadcrumb_label, "url": context["canonical_url"]},
+        ]
+
+
+def _build_marketing_schema(request, context: dict) -> str:
+    site_setting = context["site_setting"]
+    site_name = site_setting.site_name or "ChaqmoqApp"
+    root_url = request.build_absolute_uri("/")
+    canonical_url = context["canonical_url"]
+    lang = context["current_lang"]
+    ui = context["ui"]
+
+    logo_path = site_setting.logo.url if getattr(site_setting, "logo", None) else static_url("img/chaqmoq_logo_favicon_180.png")
+    logo_url = request.build_absolute_uri(logo_path)
+    same_as = [url for url in [site_setting.instagram, site_setting.telegram, site_setting.youtube] if url]
+
+    graph = [
+        {
+            "@type": "Organization",
+            "@id": f"{root_url}#organization",
+            "name": site_name,
+            "url": root_url,
+            "logo": {
+                "@type": "ImageObject",
+                "url": logo_url,
+            },
+        },
+        {
+            "@type": "WebSite",
+            "@id": f"{root_url}#website",
+            "url": root_url,
+            "name": site_name,
+            "inLanguage": ["uz", "ru", "en"],
+            "description": context["site_content"]["meta_description"],
+            "publisher": {"@id": f"{root_url}#organization"},
+        },
+        {
+            "@type": "WebPage",
+            "@id": f"{canonical_url}#webpage",
+            "url": canonical_url,
+            "name": context["meta_title"],
+            "description": context["meta_description"],
+            "inLanguage": lang,
+            "isPartOf": {"@id": f"{root_url}#website"},
+        },
+    ]
+
+    if same_as:
+        graph[0]["sameAs"] = same_as
+
+    if site_setting.phone:
+        graph[0]["contactPoint"] = [
+            {
+                "@type": "ContactPoint",
+                "telephone": site_setting.phone,
+                "contactType": "sales",
+                "availableLanguage": ["uz", "ru", "en"],
+            }
+        ]
+
+    graph.append(
+        {
+            "@type": "ItemList",
+            "@id": f"{root_url}#site-pages",
+            "name": f"{site_name} pages",
+            "itemListElement": [
+                {
+                    "@type": "SiteNavigationElement",
+                    "position": index,
+                    "name": _page_label(ui, page_slug),
+                    "url": context["absolute_routes"][page_slug],
+                }
+                for index, page_slug in enumerate(
+                    ["pricing", "demo", "about", "resources", "support", "features"],
+                    start=1,
+                )
+            ],
+        }
+    )
+
+    if context.get("active_menu") == "home":
+        graph.append(
+            {
+                "@type": "SoftwareApplication",
+                "@id": f"{root_url}#software",
+                "name": site_name,
+                "url": root_url,
+                "applicationCategory": "BusinessApplication",
+                "operatingSystem": "Web",
+                "description": context["meta_description"],
+                "offers": {
+                    "@type": "Offer",
+                    "price": "0",
+                    "priceCurrency": "UZS",
+                    "availability": "https://schema.org/InStock",
+                    "url": context["absolute_routes"]["demo"],
+                    "description": ui["hero_benefit_1"],
+                },
+            }
+        )
+
+    breadcrumb_items = context.get("breadcrumb_items")
+    if breadcrumb_items:
+        graph.append(
+            {
+                "@type": "BreadcrumbList",
+                "@id": f"{canonical_url}#breadcrumb",
+                "itemListElement": [
+                    {
+                        "@type": "ListItem",
+                        "position": position,
+                        "name": item["name"],
+                        "item": item["url"],
+                    }
+                    for position, item in enumerate(breadcrumb_items, start=1)
+                ],
+            }
+        )
+
+    return json.dumps({"@context": "https://schema.org", "@graph": graph}, ensure_ascii=False)
+
+
+def _render_marketing(request, template_name: str, context: dict):
+    context["seo_json_ld"] = _build_marketing_schema(request, context)
+    return render(request, template_name, context)
+
+
+def legacy_prefixed_marketing_redirect(request, center_slug, lang_code=None, page_slug=None):
+    # Old tenant-prefixed marketing URLs should collapse into the public site.
+    # For homepage-like URLs such as `/proskill/en/`, always send users to `/`
+    # so brand searches land on the main ChaqmoqApp homepage.
+    if not page_slug:
+        target = reverse("marketing:index")
+    else:
+        target = _route_for_language(page_slug, lang_code)
+    query_string = request.META.get("QUERY_STRING", "").strip()
+    if query_string:
+        target = f"{target}?{query_string}"
+    return HttpResponsePermanentRedirect(target)
+
+
+def robots_txt(request):
+    sitemap_url = request.build_absolute_uri("/sitemap.xml")
+    lines = [
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /admin/",
+        "Disallow: /platform/",
+        "Disallow: /hisob/",
+        "Disallow: /api/",
+        "Disallow: /click/",
+        "Disallow: /payment/",
+        "Disallow: /logout/",
+        "Disallow: /health/",
+        "Disallow: /c/",
+        "Disallow: /*/hisob/",
+        "Disallow: /*/talim/",
+        "Disallow: /*/chaqmoq/",
+        "Disallow: /*/do'kon/",
+        "Disallow: /*/stat/",
+        f"Sitemap: {sitemap_url}",
+    ]
+    return HttpResponse("\n".join(lines), content_type="text/plain; charset=utf-8")
+
+
+def sitemap_xml(request):
+    site_setting = _get_site_setting()
+    updated_at = site_setting.updated_at.date().isoformat() if getattr(site_setting, "updated_at", None) else timezone.now().date().isoformat()
+
+    url_entries = []
+    for lang in ("uz", "ru", "en"):
+        for route_name in MARKETING_ROUTE_NAMES:
+            path = _route_for_language(route_name, lang if lang != "uz" else None)
+            absolute = request.build_absolute_uri(path)
+            alternates = []
+            for alt_lang in ("uz", "ru", "en"):
+                alt_path = _route_for_language(route_name, alt_lang if alt_lang != "uz" else None)
+                alternates.append(
+                    f'<xhtml:link rel="alternate" hreflang="{alt_lang}" href="{xml_escape(request.build_absolute_uri(alt_path))}" />'
+                )
+            alternates.append(
+                f'<xhtml:link rel="alternate" hreflang="x-default" href="{xml_escape(request.build_absolute_uri(_route_for_language(route_name, None)))}" />'
+            )
+            url_entries.append(
+                "\n".join(
+                    [
+                        "  <url>",
+                        f"    <loc>{xml_escape(absolute)}</loc>",
+                        f"    <lastmod>{updated_at}</lastmod>",
+                        *[f"    {alternate}" for alternate in alternates],
+                        "  </url>",
+                    ]
+                )
+            )
+
+    xml = "\n".join(
+        [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
+            *url_entries,
+            "</urlset>",
+        ]
+    )
+    return HttpResponse(xml, content_type="application/xml; charset=utf-8")
 
 
 def index(request, lang_code=None):
@@ -886,6 +1228,43 @@ def index(request, lang_code=None):
             "partner_logos": partner_logos,
             "partner_logo_count": partner_logo_count,
             "partner_marquee_logos": partner_marquee_logos,
+            "homepage_quick_links": [
+                {
+                    "title": context["ui"]["menu_pricing"],
+                    "description": context["ui"]["pricing_page_desc"],
+                    "url": context["routes"]["pricing"],
+                    "icon": "bi bi-cash-stack",
+                    "accent": "amber",
+                },
+                {
+                    "title": context["ui"]["menu_demo"],
+                    "description": context["ui"]["demo_page_desc"],
+                    "url": context["routes"]["demo"],
+                    "icon": "bi bi-camera-video-fill",
+                    "accent": "blue",
+                },
+                {
+                    "title": context["ui"]["menu_about"],
+                    "description": context["ui"]["about_page_desc"],
+                    "url": context["routes"]["about"],
+                    "icon": "bi bi-building-check",
+                    "accent": "green",
+                },
+                {
+                    "title": context["ui"]["menu_resources"],
+                    "description": context["ui"]["resources_page_desc"],
+                    "url": context["routes"]["resources"],
+                    "icon": "bi bi-journal-richtext",
+                    "accent": "violet",
+                },
+                {
+                    "title": context["ui"]["menu_support"],
+                    "description": context["ui"]["support_page_desc"],
+                    "url": context["routes"]["support"],
+                    "icon": "bi bi-headset",
+                    "accent": "slate",
+                },
+            ],
             "feature_blocks": [_localize_feature(obj, lang) for obj in feature_qs],
             "integration_blocks": [_localize_feature(obj, lang) for obj in integration_qs],
             "solution_blocks": [_localize_feature(obj, lang) for obj in solution_qs],
@@ -901,7 +1280,7 @@ def index(request, lang_code=None):
             "pricing_preview": [_localize_plan(plan, lang) for plan in pricing_qs],
         }
     )
-    return render(request, "marketing/index.html", context)
+    return _render_marketing(request, "marketing/index.html", context)
 
 
 def pricing(request, lang_code=None):
@@ -920,7 +1299,13 @@ def pricing(request, lang_code=None):
             "duration_filters": list(duration_map.keys()),
         }
     )
-    return render(request, "marketing/pricing.html", context)
+    _set_page_meta(
+        context,
+        f"{context['ui']['menu_pricing']} | {context['site_setting'].site_name or 'ChaqmoqApp'}",
+        context["ui"]["pricing_page_desc"],
+        breadcrumb_label=context["ui"]["menu_pricing"],
+    )
+    return _render_marketing(request, "marketing/pricing.html", context)
 
 
 def demo(request, lang_code=None):
@@ -941,7 +1326,13 @@ def demo(request, lang_code=None):
         form = DemoLeadForm(lang_code=lang)
 
     context.update({"active_menu": "demo", "form": form})
-    return render(request, "marketing/demo.html", context)
+    _set_page_meta(
+        context,
+        f"{context['ui']['menu_demo']} | {context['site_setting'].site_name or 'ChaqmoqApp'}",
+        context["ui"]["demo_page_desc"],
+        breadcrumb_label=context["ui"]["menu_demo"],
+    )
+    return _render_marketing(request, "marketing/demo.html", context)
 
 
 def support(request, lang_code=None):
@@ -966,7 +1357,13 @@ def support(request, lang_code=None):
             ],
         }
     )
-    return render(request, "marketing/support.html", context)
+    _set_page_meta(
+        context,
+        f"{context['ui']['menu_support']} | {context['site_setting'].site_name or 'ChaqmoqApp'}",
+        context["ui"]["support_page_desc"],
+        breadcrumb_label=context["ui"]["menu_support"],
+    )
+    return _render_marketing(request, "marketing/support.html", context)
 
 
 def vacancies(request, lang_code=None):
@@ -981,7 +1378,13 @@ def vacancies(request, lang_code=None):
             ],
         }
     )
-    return render(request, "marketing/vacancies.html", context)
+    _set_page_meta(
+        context,
+        f"{context['ui']['menu_vacancies']} | {context['site_setting'].site_name or 'ChaqmoqApp'}",
+        context["ui"]["vacancy_page_desc"],
+        breadcrumb_label=context["ui"]["menu_vacancies"],
+    )
+    return _render_marketing(request, "marketing/vacancies.html", context)
 
 
 def privacy(request, lang_code=None):
@@ -1001,10 +1404,21 @@ def privacy(request, lang_code=None):
             "active_menu": "privacy",
             "page_title": page_title,
             "page_content": page_content,
-            "meta_title": f"{page_title} | {context['site_setting'].site_name}",
         }
     )
-    return render(request, "marketing/privacy.html", context)
+    _set_page_meta(
+        context,
+        f"{page_title} | {context['site_setting'].site_name or 'ChaqmoqApp'}",
+        f"{page_title} sahifasida ChaqmoqApp platformasining maxfiylik va ma'lumotlarni himoya qilish tartibi keltirilgan."
+        if lang == "uz"
+        else (
+            f"On this page you can read how ChaqmoqApp handles privacy and data protection."
+            if lang == "en"
+            else f"На этой странице описаны правила конфиденциальности и защиты данных в ChaqmoqApp."
+        ),
+        breadcrumb_label=page_title,
+    )
+    return _render_marketing(request, "marketing/privacy.html", context)
 
 
 def terms(request, lang_code=None):
@@ -1024,7 +1438,116 @@ def terms(request, lang_code=None):
             "active_menu": "terms",
             "page_title": page_title,
             "page_content": page_content,
-            "meta_title": f"{page_title} | {context['site_setting'].site_name}",
         }
     )
-    return render(request, "marketing/terms.html", context)
+    _set_page_meta(
+        context,
+        f"{page_title} | {context['site_setting'].site_name or 'ChaqmoqApp'}",
+        f"{page_title} sahifasida ChaqmoqApp platformasidan foydalanish qoidalari va xizmat shartlari berilgan."
+        if lang == "uz"
+        else (
+            f"This page describes the terms of use and service rules for the ChaqmoqApp platform."
+            if lang == "en"
+            else f"На этой странице опубликованы условия использования и правила сервиса ChaqmoqApp."
+        ),
+        breadcrumb_label=page_title,
+    )
+    return _render_marketing(request, "marketing/terms.html", context)
+
+
+def about(request, lang_code=None):
+    context = _base_context(request, lang_code)
+    lang = context["current_lang"]
+    feature_count = FeatureBlock.objects.filter(is_active=True, section=FeatureBlock.Section.FEATURE).count()
+    integration_count = FeatureBlock.objects.filter(is_active=True, section=FeatureBlock.Section.INTEGRATION).count()
+    testimonial_qs = Testimonial.objects.filter(is_active=True).order_by("order", "id")
+    partner_count = PartnerLogo.objects.filter(is_active=True).count()
+
+    context.update(
+        {
+            "active_menu": "about",
+            "about_metrics": [
+                {"label": context["ui"]["partners_title"], "value": partner_count or 0},
+                {"label": context["ui"]["features_title"], "value": feature_count or 0},
+                {"label": context["ui"]["integrations_title"], "value": integration_count or 0},
+                {"label": context["ui"]["testimonials_title"], "value": testimonial_qs.count()},
+            ],
+            "testimonials": [_localize_testimonial(obj, lang) for obj in testimonial_qs[:6]],
+        }
+    )
+    _set_page_meta(
+        context,
+        f"{context['ui']['about_page_title']} | {context['site_setting'].site_name or 'ChaqmoqApp'}",
+        context["ui"]["about_page_desc"],
+        breadcrumb_label=context["ui"]["menu_about"],
+    )
+    return _render_marketing(request, "marketing/about.html", context)
+
+
+def features(request, lang_code=None):
+    context = _base_context(request, lang_code)
+    lang = context["current_lang"]
+    context.update(
+        {
+            "active_menu": "features",
+            "feature_blocks": [
+                _localize_feature(obj, lang)
+                for obj in FeatureBlock.objects.filter(is_active=True, section=FeatureBlock.Section.FEATURE)
+            ],
+            "integration_blocks": [
+                _localize_feature(obj, lang)
+                for obj in FeatureBlock.objects.filter(is_active=True, section=FeatureBlock.Section.INTEGRATION)
+            ],
+            "solution_blocks": [
+                _localize_feature(obj, lang)
+                for obj in FeatureBlock.objects.filter(is_active=True, section=FeatureBlock.Section.SOLUTION)
+            ],
+        }
+    )
+    _set_page_meta(
+        context,
+        f"{context['ui']['features_page_title']} | {context['site_setting'].site_name or 'ChaqmoqApp'}",
+        context["ui"]["features_page_desc"],
+        breadcrumb_label=context["ui"]["menu_features"],
+    )
+    return _render_marketing(request, "marketing/features.html", context)
+
+
+def resources(request, lang_code=None):
+    context = _base_context(request, lang_code)
+    lang = context["current_lang"]
+    support_cards = [
+        _localize_support(obj, lang)
+        for obj in SupportCard.objects.filter(is_active=True).order_by("order", "id")
+    ]
+    resource_links = [
+        {"title": context["ui"]["menu_demo"], "description": context["ui"]["demo_page_desc"], "url": context["routes"]["demo"], "icon": "bi bi-camera-video-fill"},
+        {"title": context["ui"]["menu_pricing"], "description": context["ui"]["pricing_page_desc"], "url": context["routes"]["pricing"], "icon": "bi bi-cash-stack"},
+        {"title": context["ui"]["menu_support"], "description": context["ui"]["support_page_desc"], "url": context["routes"]["support"], "icon": "bi bi-headset"},
+        {"title": context["ui"]["privacy_default_title"], "description": context["ui"]["legal_eyebrow"], "url": context["routes"]["privacy"], "icon": "bi bi-shield-check"},
+        {"title": context["ui"]["terms_default_title"], "description": context["ui"]["footer_legal"], "url": context["routes"]["terms"], "icon": "bi bi-file-earmark-text"},
+        {"title": context["ui"]["menu_vacancies"], "description": context["ui"]["vacancy_page_desc"], "url": context["routes"]["vacancies"], "icon": "bi bi-briefcase-fill"},
+    ]
+    context.update(
+        {
+            "active_menu": "resources",
+            "support_cards": support_cards,
+            "resource_links": resource_links,
+            "support_faqs": [
+                _localize_faq(obj, lang)
+                for obj in FAQ.objects.filter(is_active=True).order_by("order", "id")[:4]
+            ],
+            "support_steps": [
+                {"title": context["ui"]["support_step_1_title"], "text": context["ui"]["support_step_1_text"]},
+                {"title": context["ui"]["support_step_2_title"], "text": context["ui"]["support_step_2_text"]},
+                {"title": context["ui"]["support_step_3_title"], "text": context["ui"]["support_step_3_text"]},
+            ],
+        }
+    )
+    _set_page_meta(
+        context,
+        f"{context['ui']['resources_page_title']} | {context['site_setting'].site_name or 'ChaqmoqApp'}",
+        context["ui"]["resources_page_desc"],
+        breadcrumb_label=context["ui"]["menu_resources"],
+    )
+    return _render_marketing(request, "marketing/resources.html", context)

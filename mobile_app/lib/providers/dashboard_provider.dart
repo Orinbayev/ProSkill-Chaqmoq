@@ -9,69 +9,42 @@ class DashboardProvider extends ChangeNotifier {
 
   final DashboardService _dashboardService;
 
-  bool _isLoading = false;
+  DashboardData _data = DashboardData.empty();
+  ViewState _state = ViewState.idle;
   String? _errorMessage;
-  String? _loadedRole;
 
-  RoleHomeModel? roleHome;
-  SuperadminHomeModel? superadminHome;
-  Map<String, dynamic>? directorDashboard;
-  Map<String, dynamic>? teacherHome;
-
-  bool get isLoading => _isLoading;
+  DashboardData get data => _data;
+  ViewState get state => _state;
   String? get errorMessage => _errorMessage;
 
-  void reset() {
-    _isLoading = false;
-    _errorMessage = null;
-    _loadedRole = null;
-    roleHome = null;
-    superadminHome = null;
-    directorDashboard = null;
-    teacherHome = null;
-    notifyListeners();
-  }
-
-  Future<void> loadForUser(AppUser user, {bool force = false}) async {
-    if (_isLoading) {
+  Future<void> load(UserModel user, {bool force = false}) async {
+    if (_state == ViewState.loading) {
       return;
     }
-
-    if (!force && _loadedRole == user.effectiveRole && roleHome != null) {
+    if (!force && _data.metrics.isNotEmpty) {
       return;
     }
-
-    _isLoading = true;
+    _state = ViewState.loading;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      roleHome = await _dashboardService.fetchRoleHome();
-      superadminHome = null;
-      directorDashboard = null;
-      teacherHome = null;
-
-      switch (user.effectiveRole) {
-        case 'superadmin':
-          superadminHome = await _dashboardService.fetchSuperadminHome();
-          break;
-        case 'director':
-        case 'manager':
-          directorDashboard = const <String, dynamic>{};
-          break;
-        case 'teacher':
-          teacherHome = await _dashboardService.fetchTeacherHome();
-          break;
-      }
-
-      _loadedRole = user.effectiveRole;
+      _data = await _dashboardService.fetchDashboard(user);
+      _state = ViewState.success;
     } catch (error) {
-      _errorMessage = error is ApiException
-          ? error.message
-          : 'Asosiy panel ma\'lumotlarini yuklab bo\'lmadi';
+      _state = ViewState.error;
+      _errorMessage = _mapError(error);
     } finally {
-      _isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> refresh(UserModel user) => load(user, force: true);
+
+  String _mapError(Object error) {
+    if (error is ApiException) {
+      return error.message;
+    }
+    return 'Dashboard ma\'lumotlari yuklanmadi';
   }
 }
