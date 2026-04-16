@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% block body_class %}director-dashboard-page{% endblock %}
 
 {% block title %}Director Dashboard — {{ center.name|default:"ChaqmoqApp" }}{% endblock %}
 
@@ -525,6 +526,15 @@
         </div>
       </div>
 
+      <button
+        type="button"
+        class="director-profile-toggle director-theme-toggle js-role-theme-toggle"
+        data-theme-role="{% if request.user.is_superuser %}superadmin{% else %}director{% endif %}"
+        aria-pressed="false"
+        title="Tema almashtirish">
+        <i class="fa-regular fa-lightbulb js-role-theme-icon"></i>
+      </button>
+
       <div class="director-profile-dock" data-director-profile>
         <button type="button" class="director-profile-toggle" aria-haspopup="true" aria-expanded="false"
           aria-label="Profil menyusi">
@@ -581,6 +591,48 @@
       </div>
     </div>
   </header>
+
+  {% for alert in director_alerts %}
+  <div style="
+    display:flex; align-items:center; gap:12px;
+    padding:12px 16px; border-radius:12px; margin:0 0 8px;
+    background:{% if alert.level == 'danger' %}rgba(239,68,68,0.1){% elif alert.level == 'warning' %}rgba(245,158,11,0.1){% else %}rgba(56,189,248,0.1){% endif %};
+    border:1px solid {% if alert.level == 'danger' %}rgba(239,68,68,0.3){% elif alert.level == 'warning' %}rgba(245,158,11,0.3){% else %}rgba(56,189,248,0.3){% endif %};">
+    <span style="font-size:18px;">{{ alert.icon }}</span>
+    <span style="font-size:13px; color:#e2e8f0; font-weight:600;">{{ alert.text }}</span>
+    {% if alert.url %}
+    <a href="{{ alert.url }}" style="margin-left:auto; font-size:12px; color:#94a3b8;">Ko'rish →</a>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; margin:0 0 20px;">
+
+    <div style="background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.2); border-radius:16px; padding:18px;">
+      <div style="font-size:11px; color:#94a3b8; font-weight:700; text-transform:uppercase; margin-bottom:8px;">Bugungi tushum</div>
+      <div style="font-size:26px; font-weight:900; color:#34d399;" id="stat-today-income">Yuklanmoqda...</div>
+      <div style="font-size:12px; color:#64748b; margin-top:4px;">Bugun qabul qilingan to'lovlar</div>
+    </div>
+
+    <div style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); border-radius:16px; padding:18px;">
+      <div style="font-size:11px; color:#94a3b8; font-weight:700; text-transform:uppercase; margin-bottom:8px;">Qarzdorlar</div>
+      <div style="font-size:26px; font-weight:900; color:#f87171;" id="stat-debtors">Yuklanmoqda...</div>
+      <div style="font-size:12px; color:#64748b; margin-top:4px;">Bu oyda to'lamagan o'quvchilar</div>
+    </div>
+
+    <div style="background:rgba(249,115,22,0.08); border:1px solid rgba(249,115,22,0.2); border-radius:16px; padding:18px;">
+      <div style="font-size:11px; color:#94a3b8; font-weight:700; text-transform:uppercase; margin-bottom:8px;">Faol guruhlar</div>
+      <div style="font-size:26px; font-weight:900; color:#fb923c;" id="stat-groups">Yuklanmoqda...</div>
+      <div style="font-size:12px; color:#64748b; margin-top:4px;">Arxivlanmagan guruhlar soni</div>
+    </div>
+
+    <div style="background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.2); border-radius:16px; padding:18px;">
+      <div style="font-size:11px; color:#94a3b8; font-weight:700; text-transform:uppercase; margin-bottom:8px;">Bugungi davomat</div>
+      <div style="font-size:26px; font-weight:900; color:#38bdf8;" id="stat-attendance">Yuklanmoqda...</div>
+      <div style="font-size:12px; color:#64748b; margin-top:4px;" id="stat-attendance-label">Bugun belgilangan davomat foizi</div>
+    </div>
+
+  </div>
 
   <!-- Quick navigation links -->
   <nav class="director-quicklinks" aria-label="Tezkor havolalar">
@@ -643,6 +695,7 @@
 {% block extra_js %}
 <script>
   (function () {
+    const statsUrl = "{% url 'core:dashboard_quick_stats' %}";
     const root = document.querySelector('[data-director-profile]');
     if (!root) return;
 
@@ -666,6 +719,36 @@
     document.addEventListener('keydown', function (event) {
       if (event.key === 'Escape') setOpen(false);
     });
+
+    const nf = new Intl.NumberFormat('uz-UZ');
+
+    function setText(id, value) {
+      const node = document.getElementById(id);
+      if (node) node.textContent = value;
+    }
+
+    fetch(statsUrl, { credentials: 'same-origin' })
+      .then(function (response) {
+        if (!response.ok) throw new Error('quick-stats failed');
+        return response.json();
+      })
+      .then(function (data) {
+        setText('stat-today-income', nf.format(data.today_income || 0) + " so'm");
+        setText('stat-debtors', nf.format(data.debtors || 0) + ' ta');
+        setText('stat-groups', nf.format(data.active_groups || 0) + ' ta');
+        setText('stat-attendance', String(data.attendance_pct || 0) + '%');
+        setText(
+          'stat-attendance-label',
+          'Bugun belgilangan davomat foizi (' + (data.attendance_label || '0/0') + ')'
+        );
+      })
+      .catch(function () {
+        setText('stat-today-income', "—");
+        setText('stat-debtors', "—");
+        setText('stat-groups', "—");
+        setText('stat-attendance', "—");
+        setText('stat-attendance-label', "Ma'lumotni yuklab bo'lmadi");
+      });
   })();
 </script>
 {% endblock %}

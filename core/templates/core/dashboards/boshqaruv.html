@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% block body_class %}director-boshqaruv-page{% endblock %}
 {% block title %}Boshqaruv — {{ center.name }}{% endblock %}
 
 {% block extra_css %}
@@ -1454,6 +1455,15 @@
 
         <!-- Right: AI btn + Profile -->
         <div class="bq-toolbar__right">
+          <button
+            class="bq-btn bq-btn--ghost bq-theme-toggle js-role-theme-toggle"
+            type="button"
+            data-theme-role="{% if request.user.is_superuser %}superadmin{% else %}director{% endif %}"
+            aria-pressed="false"
+            title="Tema almashtirish">
+            <i class="fa-regular fa-lightbulb js-role-theme-icon"></i>
+          </button>
+
           <button class="bq-ai-btn" id="bqAiOpen" type="button">
             <span class="bq-ai-btn__dot"></span>
             <i class="fa-solid fa-robot"></i>
@@ -2199,9 +2209,47 @@ const BRANCH_EDIT_URL = (id) => `{% url "accounts:director_branch_edit" center_i
 const BRANCH_DEACTIVATE_URL = (id) => `{% url "accounts:director_branch_deactivate" center_id=0 %}`.replace('/0/', `/${id}/`);
 
 /* ── Chart.js defaults ── */
-Chart.defaults.color         = '#64748b';
-Chart.defaults.borderColor   = 'rgba(255,255,255,0.06)';
-Chart.defaults.font.family   = "'Inter','Segoe UI',system-ui,sans-serif";
+function getThemeMode(){
+  return document.documentElement.getAttribute('data-role-theme') === 'light' ? 'light' : 'dark';
+}
+
+function getChartTheme(){
+  const isLight = getThemeMode() === 'light';
+  return {
+    text: isLight ? '#475569' : '#64748b',
+    textStrong: isLight ? '#334155' : '#cbd5e1',
+    grid: isLight ? 'rgba(148,163,184,.18)' : 'rgba(255,255,255,.04)',
+    gridStrong: isLight ? 'rgba(148,163,184,.22)' : 'rgba(255,255,255,.05)',
+    tooltipBg: isLight ? 'rgba(255,255,255,.97)' : 'rgba(7,13,26,.94)',
+    tooltipBorder: isLight ? 'rgba(148,163,184,.24)' : 'rgba(255,255,255,.09)',
+    tooltipTitle: isLight ? '#0f172a' : '#ffffff',
+    tooltipBody: isLight ? '#334155' : '#cbd5e1',
+    pointBorder: isLight ? '#ffffff' : '#0f172a',
+    emptyDonut: isLight ? '#cbd5e1' : '#334155',
+  };
+}
+
+function applyChartDefaults(){
+  const theme = getChartTheme();
+  Chart.defaults.color = theme.text;
+  Chart.defaults.borderColor = theme.gridStrong;
+  Chart.defaults.font.family = "'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif";
+}
+
+function tooltipConfig(extra){
+  const theme = getChartTheme();
+  return Object.assign({
+    backgroundColor: theme.tooltipBg,
+    borderColor: theme.tooltipBorder,
+    borderWidth: 1,
+    titleColor: theme.tooltipTitle,
+    bodyColor: theme.tooltipBody,
+    titleFont: { size: 11 },
+    bodyFont: { size: 11 },
+  }, extra || {});
+}
+
+applyChartDefaults();
 
 const C = { cyan:'#22d3ee', green:'#34d399', amber:'#fbbf24', rose:'#f43f5e', violet:'#818cf8', blue:'#60a5fa', orange:'#fb923c', teal:'#2dd4bf', pink:'#f472b6' };
 const PAL = Object.values(C);
@@ -2210,6 +2258,8 @@ let charts = {};
 let _branches = [];
 let _activeBranchId = null;
 let _activeBranchName = null;
+let _lastDashboardData = null;
+let _activeBqTheme = getThemeMode();
 
 /* ── Format ── */
 function fmtM(n){
@@ -2234,18 +2284,17 @@ function badge(el,v){
 /* ── Chart helpers ── */
 function kill(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 
-const TOOLTIP = { backgroundColor:'rgba(7,13,26,.94)', borderColor:'rgba(255,255,255,.09)', borderWidth:1, titleFont:{size:11}, bodyFont:{size:11} };
-
 function line(id,labels,ds){
   kill(id);
   const ctx=document.getElementById(id);if(!ctx)return;
+  const theme = getChartTheme();
   charts[id]=new Chart(ctx,{type:'line',data:{labels,datasets:ds},options:{
     responsive:true,maintainAspectRatio:false,
     interaction:{mode:'index',intersect:false},
-    plugins:{legend:{display:ds.length>1,labels:{boxWidth:9,font:{size:11}}},tooltip:TOOLTIP},
+    plugins:{legend:{display:ds.length>1,labels:{boxWidth:9,color:theme.textStrong,font:{size:11}}},tooltip:tooltipConfig()},
     scales:{
-      x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{size:11}}},
-      y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{size:11},callback:v=>v>=1e6?(v/1e6).toFixed(0)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':v}}
+      x:{grid:{color:theme.grid},ticks:{color:theme.text,font:{size:11}}},
+      y:{grid:{color:theme.grid},ticks:{color:theme.text,font:{size:11},callback:v=>v>=1e6?(v/1e6).toFixed(0)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':v}}
     }
   }});
 }
@@ -2253,22 +2302,24 @@ function line(id,labels,ds){
 function area(id,labels,data,color){
   kill(id);
   const ctx=document.getElementById(id);if(!ctx)return;
+  const theme = getChartTheme();
   charts[id]=new Chart(ctx,{type:'line',data:{labels,datasets:[{data,borderColor:color,backgroundColor:color+'22',borderWidth:2,fill:true,tension:.4,pointRadius:3,pointHoverRadius:6,pointBackgroundColor:color}]},options:{
     responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:false},tooltip:TOOLTIP},
-    scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{size:11}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{size:11}}}}
+    plugins:{legend:{display:false},tooltip:tooltipConfig()},
+    scales:{x:{grid:{color:theme.grid},ticks:{color:theme.text,font:{size:11}}},y:{grid:{color:theme.grid},ticks:{color:theme.text,font:{size:11}}}}
   }});
 }
 
 function bar(id,labels,data,color,horiz=false){
   kill(id);
   const ctx=document.getElementById(id);if(!ctx)return;
+  const theme = getChartTheme();
   charts[id]=new Chart(ctx,{type:'bar',data:{labels,datasets:[{data,backgroundColor:color+'33',borderColor:color,borderWidth:1.5,borderRadius:horiz?3:5,borderSkipped:false}]},options:{
     indexAxis:horiz?'y':'x',responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:false},tooltip:TOOLTIP},
+    plugins:{legend:{display:false},tooltip:tooltipConfig()},
     scales:{
-      x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{size:10},callback:horiz?undefined:v=>v+'%'}},
-      y:{grid:{color:horiz?'rgba(255,255,255,.04)':'transparent'},ticks:{font:{size:10}}}
+      x:{grid:{color:theme.grid},ticks:{color:theme.text,font:{size:10},callback:horiz?undefined:v=>v+'%'}},
+      y:{grid:{color:horiz?theme.grid:'transparent'},ticks:{color:theme.text,font:{size:10}}}
     }
   }});
 }
@@ -2283,6 +2334,7 @@ function groupColor(v){
 function renderGroupChart(labels,data){
   kill('chGroups');
   const ctx=document.getElementById('chGroups');if(!ctx)return;
+  const theme = getChartTheme();
   const colors=(data||[]).map(groupColor);
   const max=Math.max(...(data||[0]),10);
   charts.chGroups=new Chart(ctx,{type:'bar',data:{labels,datasets:[{
@@ -2296,16 +2348,16 @@ function renderGroupChart(labels,data){
     indexAxis:'y',
     responsive:true,
     maintainAspectRatio:false,
-    plugins:{legend:{display:false},tooltip:TOOLTIP},
+    plugins:{legend:{display:false},tooltip:tooltipConfig()},
     scales:{
       x:{
         suggestedMax:max+1,
-        grid:{color:'rgba(255,255,255,.04)'},
-        ticks:{font:{size:10},precision:0}
+        grid:{color:theme.grid},
+        ticks:{color:theme.text,font:{size:10},precision:0}
       },
       y:{
-        grid:{color:'rgba(255,255,255,.04)'},
-        ticks:{font:{size:10}}
+        grid:{color:theme.grid},
+        ticks:{color:theme.text,font:{size:10}}
       }
     }
   }});
@@ -2316,7 +2368,7 @@ function donut(id,labels,data,colors){
   const ctx=document.getElementById(id);if(!ctx)return;
   charts[id]=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors.map(c=>c+'99'),borderColor:colors,borderWidth:1.5,hoverOffset:8}]},options:{
     responsive:true,maintainAspectRatio:false,cutout:'68%',
-    plugins:{legend:{display:false},tooltip:TOOLTIP}
+    plugins:{legend:{display:false},tooltip:tooltipConfig()}
   }});
 }
 
@@ -2335,7 +2387,7 @@ function renderLeadSources(labels,counts){
   if(totalEl) totalEl.textContent=fmtN(total);
 
   if(!labels || !labels.length || !total){
-    donut('chLeadSources',['Ma\'lumot yo\'q'],[1],['#334155']);
+    donut('chLeadSources',['Ma\'lumot yo\'q'],[1],[getChartTheme().emptyDonut]);
     if(listEl){
       listEl.innerHTML='<div class="bq-source__empty">Ro\'yxatdan o\'tgan o\'quvchilar manbasi topilmadi</div>';
     }
@@ -3151,9 +3203,22 @@ function loadDashboardData(opts = {}) {
   load(fromI.value, toI.value, opts);
 }
 
+function rerenderChartsForTheme(){
+  const nextTheme = getThemeMode();
+  if(nextTheme === _activeBqTheme) return;
+  _activeBqTheme = nextTheme;
+  applyChartDefaults();
+  if(_lastDashboardData){
+    render(_lastDashboardData);
+  }
+}
+
 /* ── Render all ── */
 function render(d){
+  _lastDashboardData = d;
+  applyChartDefaults();
   const k=d.kpis, ch=d.charts;
+  const theme = getChartTheme();
 
   // KPI
   document.getElementById('k1v').textContent=fmtM(k.revenue)+' so\'m';
@@ -3210,7 +3275,7 @@ function render(d){
             backgroundColor: C.amber+'18',
             fill: true, tension:.4, borderWidth:2.5,
             pointRadius:3, pointHoverRadius:7,
-            pointBackgroundColor:C.amber, pointBorderColor:'#0f172a', pointBorderWidth:1.5
+            pointBackgroundColor:C.amber, pointBorderColor:theme.pointBorder, pointBorderWidth:1.5
           },
           {
             label:"Sof Foyda",
@@ -3219,7 +3284,7 @@ function render(d){
             backgroundColor: C.green+'10',
             fill: false, tension:.4, borderWidth:2,
             pointRadius:3, pointHoverRadius:7,
-            pointBackgroundColor:C.green, pointBorderColor:'#0f172a', pointBorderWidth:1.5
+            pointBackgroundColor:C.green, pointBorderColor:theme.pointBorder, pointBorderWidth:1.5
           },
           {
             label:"Xarajatlar (Chiqim)",
@@ -3228,7 +3293,7 @@ function render(d){
             backgroundColor: C.rose+'0d',
             fill: false, tension:.4, borderWidth:2, borderDash:[5,3],
             pointRadius:3, pointHoverRadius:7,
-            pointBackgroundColor:C.rose, pointBorderColor:'#0f172a', pointBorderWidth:1.5
+            pointBackgroundColor:C.rose, pointBorderColor:theme.pointBorder, pointBorderWidth:1.5
           }
         ]
       },
@@ -3237,8 +3302,7 @@ function render(d){
         interaction:{mode:'index', intersect:false},
         plugins:{
           legend:{display:false},
-          tooltip:{
-            ...TOOLTIP,
+          tooltip:tooltipConfig({
             callbacks:{
               label:(ctx)=>{
                 const v=ctx.parsed.y;
@@ -3247,14 +3311,14 @@ function render(d){
                 return ` ${ctx.dataset.label}: ${v<0?'−':''}${s} so'm`;
               }
             }
-          }
+          })
         },
         scales:{
-          x:{ grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#64748b',font:{size:10}} },
+          x:{ grid:{color:theme.grid}, ticks:{color:theme.text,font:{size:10}} },
           y:{
-            grid:{color:'rgba(255,255,255,.05)'},
+            grid:{color:theme.gridStrong},
             ticks:{
-              color:'#64748b', font:{size:10},
+              color:theme.text, font:{size:10},
               callback:(v)=>{ const a=Math.abs(v); return a>=1e6?`${(a/1e6).toFixed(0)}m`:a>=1e3?`${(a/1e3).toFixed(0)}k`:a; }
             }
           }
@@ -3529,6 +3593,12 @@ document.querySelectorAll('.bq-chat__prompt').forEach(btn=>{
     if(!chatPanel.classList.contains('open'))openChat();
     sendMsg(this.dataset.q);
   });
+});
+
+document.addEventListener('role-theme:change', rerenderChartsForTheme);
+new MutationObserver(rerenderChartsForTheme).observe(document.documentElement, {
+  attributes: true,
+  attributeFilter: ['data-role-theme']
 });
 
 /* ── Boshlang'ich yuklanish ── */

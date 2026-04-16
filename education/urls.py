@@ -12,6 +12,7 @@ urlpatterns = [
     path("tolovlar/details/", views.get_payment_details, name="get_payment_details"),
     path("tolovlar/pdf-summary/", views.student_payments_pdf, name="student_payments_pdf"),
     path("tolovlar/oqituvchilar/", views.tolov_oqituvchilar, name="tolov_oqituvchilar"),
+    path("xarajatlar/add/", views.expense_create, name="expense_create"),
     path("qarzdorlar/", views.qarzdorlar_home, name="qarzdorlar_home"),
     # path("payment/create/", views.create_payment, name="create_payment"),
     path("tolovlar/tarix/<int:student_id>/", views.payment_history, name="payment_history"),

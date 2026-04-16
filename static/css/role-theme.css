@@ -1,0 +1,2413 @@
+:root {
+  --role-theme-text: #0f172a;
+  --role-theme-muted: #64748b;
+  --role-theme-soft: #94a3b8;
+  --role-theme-blue: #2563eb;
+  --role-theme-blue-strong: #1d4ed8;
+  --role-theme-cyan: #0891b2;
+  --role-theme-amber: #f59e0b;
+  --role-theme-green: #16a34a;
+  --role-theme-red: #dc2626;
+  --role-theme-border: rgba(148, 163, 184, 0.22);
+  --role-theme-border-strong: rgba(37, 99, 235, 0.18);
+  --role-theme-surface: rgba(255, 255, 255, 0.94);
+  --role-theme-surface-soft: rgba(255, 255, 255, 0.82);
+  --role-theme-surface-tint: rgba(37, 99, 235, 0.04);
+  --role-theme-shadow: 0 20px 45px rgba(37, 99, 235, 0.08);
+}
+
+body.has-role-theme .role-theme-mobile-btn,
+body.has-role-theme .role-theme-sidebar-btn,
+body.has-role-theme .role-theme-profile-btn {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f8fafc;
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+
+body.has-role-theme .role-theme-mobile-btn:hover,
+body.has-role-theme .role-theme-sidebar-btn:hover,
+body.has-role-theme .role-theme-profile-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+body.has-role-theme .role-theme-mobile-btn .js-role-theme-icon,
+body.has-role-theme .role-theme-sidebar-btn .js-role-theme-icon,
+body.has-role-theme .role-theme-profile-btn .js-role-theme-icon {
+  color: #facc15;
+}
+
+body.has-role-theme .role-theme-mobile-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.has-role-theme .role-theme-sidebar-btn {
+  margin-top: 8px;
+}
+
+body.has-role-theme .role-theme-profile-btn {
+  box-shadow: none;
+}
+
+html[data-role-theme="light"] body.has-role-theme {
+  color: var(--role-theme-text);
+}
+
+html[data-role-theme="light"] body.has-role-theme .profile-dropdown,
+html[data-role-theme="light"] body.has-role-theme .dropdown-menu-dark,
+html[data-role-theme="light"] body.has-role-theme .glass-dropdown {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .profile-dropdown .name,
+html[data-role-theme="light"] body.has-role-theme .profile-dropdown .dropdown-item,
+html[data-role-theme="light"] body.has-role-theme .dropdown-menu-dark .dropdown-item,
+html[data-role-theme="light"] body.has-role-theme .glass-dropdown .dropdown-item {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .profile-dropdown .role,
+html[data-role-theme="light"] body.has-role-theme .text-white-50,
+html[data-role-theme="light"] body.has-role-theme .text-secondary,
+html[data-role-theme="light"] body.has-role-theme .text-gray-400 {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .profile-dropdown .dropdown-item:hover,
+html[data-role-theme="light"] body.has-role-theme .dropdown-menu-dark .dropdown-item:hover,
+html[data-role-theme="light"] body.has-role-theme .glass-dropdown .dropdown-item:hover {
+  background: rgba(37, 99, 235, 0.08) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .alert.alert-dismissible {
+  background: rgba(255, 255, 255, 0.98) !important;
+  color: var(--role-theme-text) !important;
+  border: 1px solid var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .alert.alert-dismissible .d-flex,
+html[data-role-theme="light"] body.has-role-theme .alert.alert-dismissible .d-flex > *:not(script) {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .alert.alert-dismissible .btn-close,
+html[data-role-theme="light"] body.has-role-theme .alert.alert-dismissible .btn-close-white {
+  filter: none !important;
+  opacity: 0.45 !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .pagination .page-link,
+html[data-role-theme="light"] body.has-role-theme .pagination .page-link.bg-dark,
+html[data-role-theme="light"] body.has-role-theme .pagination .page-link.text-white {
+  background: rgba(255, 255, 255, 0.98) !important;
+  color: var(--role-theme-text) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .pagination .page-link:hover,
+html[data-role-theme="light"] body.has-role-theme .pagination .page-link.bg-dark:hover {
+  background: rgba(37, 99, 235, 0.08) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .pagination .page-item.active .page-link,
+html[data-role-theme="light"] body.has-role-theme .pagination .page-link.bg-primary,
+html[data-role-theme="light"] body.has-role-theme .pagination .page-link.border-primary {
+  background: linear-gradient(135deg, var(--role-theme-blue), #60a5fa) !important;
+  border-color: rgba(37, 99, 235, 0.24) !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.16) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .avatar-trigger,
+html[data-role-theme="light"] body.has-role-theme .avatar-placeholder {
+  background: linear-gradient(135deg, var(--role-theme-blue), #60a5fa) !important;
+  color: #ffffff !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .sidebar-wrapper {
+  background:
+    radial-gradient(880px 320px at 12% 0%, rgba(250, 204, 21, 0.14), transparent 62%),
+    radial-gradient(760px 340px at 88% 6%, rgba(59, 130, 246, 0.16), transparent 64%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(241, 245, 249, 0.98) 28%, rgba(235, 243, 255, 0.99) 100%) !important;
+  border-right-color: rgba(148, 163, 184, 0.18) !important;
+  box-shadow: 18px 0 70px rgba(15, 23, 42, 0.08) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .sidebar-wrapper::after {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(226, 232, 240, 0.12) 22%, rgba(226, 232, 240, 0.24) 100%) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .mobile-topbar {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .logo-text,
+html[data-role-theme="light"] body.has-role-theme .sidebar-section-label,
+html[data-role-theme="light"] body.has-role-theme .sidebar-item,
+html[data-role-theme="light"] body.has-role-theme .floating-item {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .sidebar-item:hover:not(.active),
+html[data-role-theme="light"] body.has-role-theme .floating-item:hover {
+  background: rgba(37, 99, 235, 0.08) !important;
+  border-color: rgba(37, 99, 235, 0.12) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .sidebar-item.active,
+html[data-role-theme="light"] body.has-role-theme .sidebar-item.active-state,
+html[data-role-theme="light"] body.has-role-theme .sidebar-subitem.active {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(245, 158, 11, 0.12)) !important;
+  border-color: rgba(37, 99, 235, 0.16) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .si-ico,
+html[data-role-theme="light"] body.has-role-theme .fi-icon {
+  background: rgba(37, 99, 235, 0.08) !important;
+  border-color: rgba(37, 99, 235, 0.14) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .sb-toggle-btn,
+html[data-role-theme="light"] body.has-role-theme .mobile-menu-btn,
+html[data-role-theme="light"] body.has-role-theme .role-theme-mobile-btn,
+html[data-role-theme="light"] body.has-role-theme .role-theme-sidebar-btn,
+html[data-role-theme="light"] body.has-role-theme .role-theme-profile-btn {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: var(--role-theme-border) !important;
+  color: var(--role-theme-text) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .mobile-logo .logo-text {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .sidebar-overlay,
+html[data-role-theme="light"] body.has-role-theme .ns-overlay {
+  background: rgba(148, 163, 184, 0.18) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .notification-sidebar {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-left-color: var(--role-theme-border) !important;
+  box-shadow: -10px 0 40px rgba(37, 99, 235, 0.08) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .notification-sidebar .text-white,
+html[data-role-theme="light"] body.has-role-theme .notification-sidebar .ns-title,
+html[data-role-theme="light"] body.has-role-theme .notification-sidebar .ns-msg {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .notification-sidebar .ns-time,
+html[data-role-theme="light"] body.has-role-theme .notification-sidebar .text-secondary {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page {
+  background:
+    radial-gradient(1100px 540px at 10% 0%, rgba(37, 99, 235, 0.08), transparent 56%),
+    radial-gradient(900px 500px at 90% 10%, rgba(245, 158, 11, 0.08), transparent 58%),
+    linear-gradient(180deg, #f7fbff 0%, #eef4ff 100%) !important;
+}
+
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .parent-scope,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .child-card,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .search-section,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .stat-box,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .result-item {
+  background: var(--role-theme-surface) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .welcome-text,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .child-name,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page h2,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .result-item,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .dropdown-item {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .stat-label,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .center-name,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .search-icon,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .dropdown-menu-dark .dropdown-item.text-danger {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .search-input,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .dropdown-menu-dark,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .icon-btn-glass,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .avatar-btn {
+  background: var(--role-theme-surface-soft) !important;
+  border-color: var(--role-theme-border) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .search-input {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.role-student.student-dashboard-page {
+  background:
+    radial-gradient(900px 420px at 10% 0%, rgba(37, 99, 235, 0.08), transparent 55%),
+    radial-gradient(780px 400px at 90% 12%, rgba(34, 197, 94, 0.08), transparent 58%),
+    linear-gradient(180deg, #f7fbff, #eef4ff) !important;
+}
+
+html[data-role-theme="light"] body.role-student.student-dashboard-page .sdash-top,
+html[data-role-theme="light"] body.role-student.student-dashboard-page .scard,
+html[data-role-theme="light"] body.role-student.student-dashboard-page .aitem,
+html[data-role-theme="light"] body.role-student.student-dashboard-page .dropdown-menu {
+  background: var(--role-theme-surface) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.role-student.student-dashboard-page .sdash-title,
+html[data-role-theme="light"] body.role-student.student-dashboard-page .scard h4,
+html[data-role-theme="light"] body.role-student.student-dashboard-page .actions h5,
+html[data-role-theme="light"] body.role-student.student-dashboard-page .atitle,
+html[data-role-theme="light"] body.role-student.student-dashboard-page .dropdown-item {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.role-student.student-dashboard-page .sdash-sub,
+html[data-role-theme="light"] body.role-student.student-dashboard-page .muted,
+html[data-role-theme="light"] body.role-student.student-dashboard-page .atime {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.role-student.student-dashboard-page .icon-btn {
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-color: var(--role-theme-border) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.role-teacher.teacher-dashboard-page,
+html[data-role-theme="light"] body.role-teacher.teacher-income-page,
+html[data-role-theme="light"] body.role-teacher.products-page,
+html[data-role-theme="light"] body.role-teacher.product-detail-page,
+html[data-role-theme="light"] body.role-teacher.ranking-page,
+html[data-role-theme="light"] body.role-teacher.student-detail-page {
+  background:
+    radial-gradient(1100px 540px at 12% 0%, rgba(37, 99, 235, 0.08), transparent 56%),
+    radial-gradient(900px 500px at 88% 10%, rgba(245, 158, 11, 0.08), transparent 58%),
+    linear-gradient(180deg, #f7fbff, #eef4ff) !important;
+}
+
+html[data-role-theme="light"] body.role-teacher.teacher-dashboard-page .premium-header,
+html[data-role-theme="light"] body.role-teacher.teacher-dashboard-page .premium-card,
+html[data-role-theme="light"] body.role-teacher.teacher-income-page .glass,
+html[data-role-theme="light"] body.role-teacher.products-page .p-head,
+html[data-role-theme="light"] body.role-teacher.products-page .card,
+html[data-role-theme="light"] body.role-teacher.product-detail-page .card,
+html[data-role-theme="light"] body.role-teacher.ranking-page .rb-hero,
+html[data-role-theme="light"] body.role-teacher.ranking-page .rb-card,
+html[data-role-theme="light"] body.role-teacher.student-detail-page .cq-card,
+html[data-role-theme="light"] body.role-teacher.student-detail-page .card {
+  background: var(--role-theme-surface) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.role-student.products-page,
+html[data-role-theme="light"] body.role-parent.products-page,
+html[data-role-theme="light"] body.role-student.product-detail-page,
+html[data-role-theme="light"] body.role-parent.product-detail-page,
+html[data-role-theme="light"] body.role-student.ranking-page,
+html[data-role-theme="light"] body.role-parent.ranking-page,
+html[data-role-theme="light"] body.role-parent.student-detail-page,
+html[data-role-theme="light"] body.role-student.student-detail-page {
+  background:
+    radial-gradient(1100px 540px at 12% 0%, rgba(37, 99, 235, 0.08), transparent 56%),
+    radial-gradient(900px 500px at 88% 10%, rgba(245, 158, 11, 0.08), transparent 58%),
+    linear-gradient(180deg, #f7fbff, #eef4ff) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-student, .role-parent).products-page .p-head,
+html[data-role-theme="light"] body:is(.role-student, .role-parent).products-page .card,
+html[data-role-theme="light"] body:is(.role-student, .role-parent).product-detail-page .card,
+html[data-role-theme="light"] body:is(.role-student, .role-parent).ranking-page .rb-hero,
+html[data-role-theme="light"] body:is(.role-student, .role-parent).ranking-page .rb-card,
+html[data-role-theme="light"] body:is(.role-student, .role-parent).student-detail-page .cq-card,
+html[data-role-theme="light"] body:is(.role-student, .role-parent).student-detail-page .card,
+html[data-role-theme="light"] body.role-student.student-dashboard-page .sdash-top,
+html[data-role-theme="light"] body.role-student.student-dashboard-page .scard {
+  background: var(--role-theme-surface) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).products-page h3,
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).products-page .p-sub,
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).products-page .card,
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).products-page .btn-pill,
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).product-detail-page .pd-title,
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).product-detail-page .stat-label,
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).product-detail-page .stat-card,
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).ranking-page .rb-title,
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).ranking-page .rb-sub,
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).ranking-page .rb-table th,
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).ranking-page .rb-table td,
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).student-detail-page .sd-name,
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).student-detail-page .sd-sub,
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).student-detail-page .card,
+html[data-role-theme="light"] body.role-teacher.teacher-dashboard-page .premium-card h4,
+html[data-role-theme="light"] body.role-teacher.teacher-dashboard-page .premium-card p,
+html[data-role-theme="light"] body.role-teacher.teacher-dashboard-page .premium-header h2,
+html[data-role-theme="light"] body.role-teacher.teacher-dashboard-page .premium-header p,
+html[data-role-theme="light"] body.role-teacher.teacher-income-page .glass h2,
+html[data-role-theme="light"] body.role-teacher.teacher-income-page .glass h5,
+html[data-role-theme="light"] body.role-teacher.teacher-income-page .glass,
+html[data-role-theme="light"] body.role-teacher.teacher-income-page .glass .small,
+html[data-role-theme="light"] body.role-teacher.teacher-income-page .table-dark-glass th,
+html[data-role-theme="light"] body.role-teacher.teacher-income-page .table-dark-glass td {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.role-teacher.teacher-dashboard-page .premium-header p,
+html[data-role-theme="light"] body.role-teacher.teacher-dashboard-page .premium-card p,
+html[data-role-theme="light"] body.role-teacher.teacher-income-page .small,
+html[data-role-theme="light"] body.role-teacher.teacher-income-page .text-white-50,
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).products-page .p-sub,
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).ranking-page .rb-sub,
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).student-detail-page .sd-sub,
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).student-detail-page .sd-actions a {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.role-teacher.teacher-income-page .form-select-glass,
+html[data-role-theme="light"] body.role-teacher.teacher-income-page .glass-dropdown,
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).ranking-page .rb-input,
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).ranking-page .rb-dd-btn,
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).products-page .btn-pill,
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).products-page .filter,
+html[data-role-theme="light"] body:is(.role-student, .role-parent, .role-teacher).products-page .search-input {
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-color: var(--role-theme-border) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page {
+  background:
+    radial-gradient(1100px 540px at 12% 0%, rgba(37, 99, 235, 0.08), transparent 56%),
+    radial-gradient(900px 500px at 88% 10%, rgba(250, 204, 21, 0.08), transparent 58%),
+    linear-gradient(180deg, #f7fbff, #eef4ff) !important;
+}
+
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .dashboard-header,
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .kpi-card-premium,
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .card-premium-glass,
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .student-item-card,
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .quick-action-btn {
+  background: var(--role-theme-surface) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .header-text h1,
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .kpi-label,
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .kpi-value,
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .section-title,
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .student-info .name {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .header-text p,
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .student-info .course,
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .activity-status-box .label,
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .text-white-50 {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .search-input-group,
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .meta-btn,
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .activity-status-box {
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-color: var(--role-theme-border) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .search-input-group input {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-dashboard-page {
+  background:
+    radial-gradient(1100px 560px at 10% 0%, rgba(37, 99, 235, 0.08), transparent 56%),
+    radial-gradient(900px 500px at 90% 10%, rgba(250, 204, 21, 0.08), transparent 58%),
+    linear-gradient(180deg, #f7fbff, #eef4ff) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-toolbar__inner,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-kpi,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-card,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-profile__panel,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-dashboard-page .director-navbar,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-dashboard-page .director-profile-panel,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-dashboard-page .director-ql-card {
+  background: var(--role-theme-surface) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-brand__title,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-kpi__val,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-profile__name,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-dashboard-page .director-brand-title,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-dashboard-page .director-profile-name,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-dashboard-page .director-ql-card {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-brand__kicker,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-brand__sub,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-kpi__lbl,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-kpi__sub,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-profile__role,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-dashboard-page .director-brand-kicker,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-dashboard-page .director-brand-subtitle,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-dashboard-page .director-profile-role {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-field select,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-field input[type="date"],
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-btn--ghost,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-center-btn,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-dashboard-page .director-center-chip,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-dashboard-page .director-profile-toggle {
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-color: var(--role-theme-border) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).notifications-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-settings-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-detail-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-form-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-delete-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-followups-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).trial-list-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).requests-stats-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ledger-stats-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).monthly-report-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-action-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-rules-page {
+  background:
+    radial-gradient(1100px 560px at 10% 0%, rgba(37, 99, 235, 0.08), transparent 56%),
+    radial-gradient(900px 500px at 90% 10%, rgba(250, 204, 21, 0.08), transparent 58%),
+    linear-gradient(180deg, #f7fbff 0%, #eef4ff 100%) !important;
+  color: var(--role-theme-text);
+}
+
+html[data-role-theme="light"] body.has-role-theme .moliya-theme-toggle {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: var(--role-theme-border) !important;
+  color: var(--role-theme-text) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .moliya-theme-toggle .js-role-theme-icon {
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .users-scope,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .lead-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-settings-page .lead-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-followups-page .followups-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).trial-list-page .trial-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ledger-stats-page .ledger-shell,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).requests-stats-page .page-container,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .tl-container,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .tl-container,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .tl-container,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).monthly-report-page .page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-action-page .page-wrap,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-rules-page .sc {
+  background: transparent !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .filter-panel,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .table-container,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .tabs-container,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .menu-dropdown,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .modal-box,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).notifications-page .glass-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .lead-toolbar,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .lead-search,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .table-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-settings-page .lead-toolbar,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-settings-page .settings-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-settings-page .item-row,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-detail-page .lead-header,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-detail-page .detail-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-detail-page .comment-box,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-form-page .lead-header,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-form-page .lead-form-premium,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-form-page .form-section,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-form-page .input-wrapper,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-delete-page .delete-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-followups-page .followups-toolbar,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-followups-page .summary-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-followups-page .followups-table-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).trial-list-page .trial-toolbar,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).trial-list-page .stat-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).trial-list-page .trial-filter-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).trial-list-page .trial-table-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).requests-stats-page .toolbar,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).requests-stats-page .count-badge,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).requests-stats-page .table-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).requests-stats-page .m-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ledger-stats-page .ledger-top,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ledger-stats-page .sum-pill,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ledger-stats-page .table-wrapper,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .premium-header,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .premium-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .filter-section,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .stat-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .table-container,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .table-footer,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .chart-meta,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .modal-content,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .premium-header,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .premium-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .filter-section,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .stat-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .table-container,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .table-footer,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .chart-meta,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .modal-content,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .premium-header,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .premium-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .filter-section,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .stat-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .table-container,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .table-footer,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .chart-meta,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .modal-content,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).monthly-report-page .shell,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).monthly-report-page .shell-inner,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).monthly-report-page .table-wrap,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).monthly-report-page .mobile-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-action-page .glass-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-action-page .inp-wrap,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-action-page .autocomplete-results,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-rules-page .header-box,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-rules-page .section-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-rules-page .rule-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-rules-page .penalty-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-rules-page .bonus-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-rules-page .modal-box {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .page-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .custom-table tbody td,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .lead-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .tbl tbody td,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-settings-page .card-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-settings-page .item-name,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-detail-page .page-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-detail-page .value,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-form-page .page-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-delete-page .delete-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-followups-page .followups-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).trial-list-page .trial-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).requests-stats-page .page-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).requests-stats-page .tbl tbody td,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ledger-stats-page .page-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ledger-stats-page .table-modern td,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).notifications-page .fw-bold,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .chart-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .summary-value,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .stat-value,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .student-name,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .premium-table tbody td,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .chart-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .summary-value,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .stat-value,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .student-name,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .premium-table tbody td,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .chart-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .summary-value,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .stat-value,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .student-name,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .premium-table tbody td,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).monthly-report-page .report-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).monthly-report-page .table-custom td,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).monthly-report-page .mobile-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-action-page .hero-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-action-page .fg-label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-rules-page .header-box h2,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-rules-page .penalty-name,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-rules-page .rule-details h3 {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .page-title > span,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .custom-table thead th,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .lead-sub,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .tbl thead th,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-settings-page .lead-page .text-muted,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-detail-page .label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-delete-page .delete-text,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-followups-page .followups-sub,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).trial-list-page .trial-sub,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).requests-stats-page .page-sub,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).requests-stats-page .tbl thead th,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ledger-stats-page .page-sub,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ledger-stats-page .table-modern thead th,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ledger-stats-page .empty,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).notifications-page .text-secondary,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).notifications-page .text-gray-400,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .summary-label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .summary-note,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .filter-label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .page-meta,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .page-size-label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .premium-table thead th,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .summary-label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .summary-note,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .filter-label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .page-meta,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .page-size-label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .premium-table thead th,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .summary-label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .summary-note,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .filter-label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .page-meta,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .page-size-label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .premium-table thead th,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).monthly-report-page .report-subtitle,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).monthly-report-page .table-custom thead th,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).monthly-report-page .pill-soft,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-rules-page .field-label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-rules-page .field-note,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-rules-page .role-badge {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .filter-input,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .size-select,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).notifications-page .glass-input,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).notifications-page .glass-select,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .filter,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .search-input,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-settings-page .input-dark,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-form-page .lead-form-premium input,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-form-page .lead-form-premium select,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-form-page .lead-form-premium textarea,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).trial-list-page .trial-filter,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).requests-stats-page .filter-select,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .filter-input,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .filter-select,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .page-select,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .filter-input,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .filter-select,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .page-select,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .filter-input,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .filter-select,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .page-select,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-action-page .inp-wrap,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-action-page .inp-wrap input,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-action-page .inp-wrap select,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lightning-rules-page .field-input {
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-color: var(--role-theme-border) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .premium-header,
+html[data-role-theme="light"] body.has-role-theme .moliya-tab,
+html[data-role-theme="light"] body.has-role-theme .moliya-tabs,
+html[data-role-theme="light"] body.has-role-theme .icon-action-btn {
+  border-color: var(--role-theme-border) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .premium-header {
+  background: rgba(255, 255, 255, 0.95) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .header-icon-box {
+  background: rgba(37, 99, 235, 0.08) !important;
+  border-color: rgba(37, 99, 235, 0.14) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .moliya-tabs {
+  background: rgba(37, 99, 235, 0.04) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .moliya-tab {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .moliya-tab:hover {
+  background: rgba(37, 99, 235, 0.08) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .icon-action-btn {
+  background: rgba(37, 99, 235, 0.04) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page {
+  background:
+    radial-gradient(1100px 560px at 10% 0%, rgba(37, 99, 235, 0.08), transparent 56%),
+    radial-gradient(900px 500px at 90% 10%, rgba(250, 204, 21, 0.08), transparent 58%),
+    linear-gradient(180deg, #f7fbff 0%, #eef4ff 100%) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .dashboard-header,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .kpi-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .dashboard-panel,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .filters-bar,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .report-chip,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .table-summary,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .table-shell,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .premium-table td,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .rank-pill,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .back-btn,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .salary-theme-toggle,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .shell,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .month-summary,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .filter-bar,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .list-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .teacher-item,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .salary-theme-toggle,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page #lockModal > div {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .header-title-box h1,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .panel-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .kpi-value,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .teacher-name,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .teacher-avatar,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .report-strong,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .premium-table td,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .h-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .ms-left,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .ms-right,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .t-name,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .pill strong,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page #lockModal h3 {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .header-subtitle,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .filter-label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .panel-subtitle,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .panel-kicker,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .kpi-label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .kpi-meta,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .teacher-caption,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .money-caption,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .premium-table thead th,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .h-sub,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .pill,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .lbl,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .empty,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page #lockModal p {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .nav-select,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .fg,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .fg select,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .fg input {
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-color: var(--role-theme-border) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .nav-select,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .filter-bar select,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .filter-bar input {
+  color-scheme: light !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .nav-select option,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .filter-bar option {
+  background: #ffffff !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .salary-theme-toggle,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .salary-theme-toggle {
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-summary-page .salary-theme-toggle .js-role-theme-icon,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).salary-list-page .salary-theme-toggle .js-role-theme-icon {
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .header-icon,
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .kpi-icon-premium,
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .action-icon {
+  box-shadow: none !important;
+}
+
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .header-icon {
+  background: rgba(37, 99, 235, 0.08) !important;
+  border-color: rgba(37, 99, 235, 0.14) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .search-input-group i,
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .action-text .sub,
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .search-input-group input::placeholder {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .student-item-card:hover,
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .quick-action-btn:hover {
+  background: rgba(37, 99, 235, 0.07) !important;
+  border-color: rgba(37, 99, 235, 0.16) !important;
+}
+
+html[data-role-theme="light"] body.role-manager.manager-dashboard-page .action-text .title {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.role-student.student-dashboard-page .sdash-wrap,
+html[data-role-theme="light"] body.role-student.student-dashboard-page .balance small {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.role-student.student-dashboard-page .avatar-btn {
+  border-color: rgba(37, 99, 235, 0.16) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.role-student.student-dashboard-page .icon-btn:hover {
+  background: rgba(37, 99, 235, 0.1) !important;
+  border-color: rgba(37, 99, 235, 0.18) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.role-student.student-dashboard-page .atag {
+  background: rgba(37, 99, 235, 0.08) !important;
+  border-color: rgba(37, 99, 235, 0.14) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.role-student.student-dashboard-page .aplus {
+  background: rgba(22, 163, 74, 0.1) !important;
+  border-color: rgba(22, 163, 74, 0.18) !important;
+  color: var(--role-theme-green) !important;
+}
+
+html[data-role-theme="light"] body.role-student.student-dashboard-page .aplus.minus {
+  background: rgba(220, 38, 38, 0.08) !important;
+  border-color: rgba(220, 38, 38, 0.16) !important;
+  color: var(--role-theme-red) !important;
+}
+
+html[data-role-theme="light"] body.role-student.student-dashboard-page .aright.neg,
+html[data-role-theme="light"] body.role-student.student-dashboard-page .dropdown-divider {
+  color: var(--role-theme-red) !important;
+  border-color: var(--role-theme-border) !important;
+}
+
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .child-card:hover,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .result-item:hover {
+  background: rgba(37, 99, 235, 0.04) !important;
+}
+
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .btn-link.text-white-50,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .text-white-50 {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .search-results .result-item > div:first-child > div:first-child,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .search-results .result-item .view-btn + .view-btn {
+  background: rgba(37, 99, 235, 0.08) !important;
+  border-color: rgba(37, 99, 235, 0.14) !important;
+}
+
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page .search-results .result-item > div:first-child > div:first-child {
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page #confirmModal .modal-content,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page #parentDonationModal .modal-content,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page #parentDonationModal .card-details {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page #confirmModal .modal-title,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page #confirmModal .modal-body,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page #parentDonationModal .modal-title,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page #parentDonationModal h3,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page #parentDonationModal .font-monospace,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page #parentDonationModal .fw-600 {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page #parentDonationModal .text-white-50,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page #parentDonationModal .small,
+html[data-role-theme="light"] body.role-parent.parent-dashboard-page #parentDonationModal .card-details .text-white-50 {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq {
+  background: transparent !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-btn--primary {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(14, 165, 233, 0.18)) !important;
+  border-color: rgba(37, 99, 235, 0.18) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-btn--ai,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-ai-btn {
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.14), rgba(244, 63, 94, 0.08)) !important;
+  border-color: rgba(129, 140, 248, 0.18) !important;
+  color: #6d28d9 !important;
+  box-shadow: none !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-brand__icon,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-sec__ico,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-kpi__icon,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-profile__ava {
+  box-shadow: none !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-cm-modal,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-branch-modal,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-gd-modal,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-chat,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page #bqEditBranchOverlay > div,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page #bqDeleteBranchOverlay > div {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-cm-head,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-bm-header,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-gd-head,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-gd-legend,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-chat__header,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-chat__footer {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-color: var(--role-theme-border) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-ci,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-bi,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-pending-item,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-fin-stat,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-mini-btn,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-gd-item,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-msg--ai .bq-msg__bubble,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-chat__messages {
+  background: rgba(37, 99, 235, 0.03) !important;
+  border-color: var(--role-theme-border) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-ci:hover,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-bi:hover,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-fin-stat:hover,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-profile__item:hover,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-mini-btn:hover,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-tbl tbody tr:hover {
+  background: rgba(37, 99, 235, 0.06) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-add-input,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-bm-input,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-search-wrap,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-chat__prompt,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-chat__input,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page #bqDeselectBar button,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page #bqBranchCancelEdit {
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-color: var(--role-theme-border) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-theme-toggle,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-profile__btn,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-cm-close,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-bm-close,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-gd-close,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-chat__close {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: var(--role-theme-border) !important;
+  color: var(--role-theme-text) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-chat__prompt:hover {
+  background: rgba(37, 99, 235, 0.1) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-field select,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-field input[type="date"] {
+  background: rgba(255, 255, 255, 0.96) !important;
+  color: var(--role-theme-text) !important;
+  border-color: var(--role-theme-border) !important;
+  color-scheme: light !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-field select option {
+  background: #ffffff !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-brand__kicker,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-card__lbl,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-tag,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-sec__sub,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-fin-lbl,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-fin-hint,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-source__name,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-source__pct,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-source__count,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-tbl th,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-tbl td,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-ci__slug,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-pending-item__info,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-add-note,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-bm-form-title,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-bi__addr,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-bi__stat,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-gd-sub,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-chat__hsub,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-search-wrap i,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-search-wrap input::placeholder,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-source__empty,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-grpatt-empty,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-xavfli-empty p,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page #bqCenterListLoading,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page #bqBranchEmpty {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-cm-title,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-bm-title,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-ci__name,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-pending-item__name,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-bi__name,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-gd-title,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-gd-name,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-chat__htitle,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-msg__bubble,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page #bqDeleteBranchName,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page #xavfliCount {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-tbl th {
+  border-bottom-color: var(--role-theme-border) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-tbl td,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-tbl tbody td,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-tbl tbody tr:last-child td {
+  border-bottom-color: rgba(148, 163, 184, 0.14) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-tag,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-rank {
+  background: rgba(37, 99, 235, 0.06) !important;
+  border-color: rgba(37, 99, 235, 0.14) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-chat__input::placeholder,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-search-wrap input,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-add-input::placeholder,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-bm-input::placeholder {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .sidebar-floating-menu,
+html[data-role-theme="light"] body.has-role-theme .floating-nested {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+  scrollbar-color: rgba(37, 99, 235, 0.26) transparent !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .sidebar-floating-menu::-webkit-scrollbar-thumb,
+html[data-role-theme="light"] body.has-role-theme .floating-nested::-webkit-scrollbar-thumb {
+  background-color: rgba(37, 99, 235, 0.22) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .sidebar-floating-menu::-webkit-scrollbar-thumb:hover,
+html[data-role-theme="light"] body.has-role-theme .floating-nested::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(37, 99, 235, 0.34) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .floating-header,
+html[data-role-theme="light"] body.has-role-theme .floating-header-label,
+html[data-role-theme="light"] body.has-role-theme .boshqaruv-chevron {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .floating-section-toggle {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: var(--role-theme-border) !important;
+  color: var(--role-theme-text) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .floating-section-toggle:hover,
+html[data-role-theme="light"] body.has-role-theme .floating-section-toggle.boshqaruv-open {
+  background: rgba(37, 99, 235, 0.06) !important;
+  border-color: rgba(37, 99, 235, 0.16) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .floating-item {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .floating-item:hover,
+html[data-role-theme="light"] body.has-role-theme .floating-item.fi-active {
+  background: rgba(37, 99, 235, 0.08) !important;
+  border-color: rgba(37, 99, 235, 0.14) !important;
+  color: var(--role-theme-blue) !important;
+  box-shadow: none !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .fi-icon {
+  background: rgba(37, 99, 235, 0.08) !important;
+  border-color: rgba(37, 99, 235, 0.14) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .floating-item:hover .fi-icon,
+html[data-role-theme="light"] body.has-role-theme .floating-item.fi-active .fi-icon {
+  background: rgba(37, 99, 235, 0.14) !important;
+  color: var(--role-theme-blue-strong) !important;
+  box-shadow: none !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).products-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).group-permissions-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-groups-page,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page {
+  background:
+    radial-gradient(1100px 540px at 12% 0%, rgba(37, 99, 235, 0.08), transparent 56%),
+    radial-gradient(900px 500px at 88% 10%, rgba(250, 204, 21, 0.08), transparent 58%),
+    linear-gradient(180deg, #f7fbff 0%, #eef4ff 100%) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).products-page .products-bg {
+  background:
+    radial-gradient(1100px 540px at 12% 0%, rgba(37, 99, 235, 0.07), transparent 56%),
+    radial-gradient(900px 500px at 88% 10%, rgba(250, 204, 21, 0.07), transparent 58%),
+    linear-gradient(180deg, #f7fbff 0%, #eef4ff 100%) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).products-page .p-head,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).products-page .card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).products-page .delete-actions,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).products-page .dropdown-menu,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .rb-hero,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .rb-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .rb-dd-menu {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).products-page .p-head::before {
+  opacity: 0.45 !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).products-page h3,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).products-page .card-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).products-page .card-text,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .rb-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .rb-name-top,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .rb-table td,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .pg a,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .pg span,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .btn-home {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).products-page .p-sub,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).products-page .no-data,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .rb-sub,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .rb-pagination > div,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .rb-table th,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .rb-dd-item {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).products-page .p-ico,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .rb-avatar {
+  background: rgba(37, 99, 235, 0.08) !important;
+  border-color: rgba(37, 99, 235, 0.14) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).products-page .btn-pill,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).products-page .cancel-btn,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .rb-input,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .rb-dd-btn,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .btn-home,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .pg a,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .pg span {
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-color: var(--role-theme-border) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .rb-toolbar,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .rb-tr:hover {
+  background: rgba(37, 99, 235, 0.04) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .rb-table th,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .rb-table td {
+  border-color: rgba(148, 163, 184, 0.14) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .rb-btn,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).ranking-page .pg .active {
+  background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-groups-page .page-wrap,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .att-page {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-groups-page .hero,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-groups-page .filter-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-groups-page .group-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .topbar,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .leg,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .table-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .att-pop {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-groups-page .hero-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-groups-page .g-name,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .tb-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .att-table tbody td,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .pop-item {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-groups-page .hero-sub,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-groups-page .info-row,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-groups-page .last-att,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .tb-sub,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .empty,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .pop-header {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-groups-page .hero-ico,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-groups-page .g-avatar {
+  background: rgba(37, 99, 235, 0.08) !important;
+  border-color: rgba(37, 99, 235, 0.14) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-groups-page .stat-pill,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-groups-page .fg,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-groups-page .btn-reset,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .ctrl,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .btn-dl,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .backbtn {
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-color: var(--role-theme-border) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-groups-page .fg select,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-groups-page .fg input,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .ctrl select {
+  color: var(--role-theme-text) !important;
+  color-scheme: light !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-groups-page .fg select option,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .ctrl option {
+  background: #ffffff !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-groups-page .group-card:hover {
+  background: rgba(37, 99, 235, 0.05) !important;
+  border-color: rgba(37, 99, 235, 0.16) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-groups-page .btn-enter {
+  background: rgba(37, 99, 235, 0.08) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .att-table thead th {
+  background: linear-gradient(180deg, #eff6ff, #dbeafe) !important;
+  color: var(--role-theme-text) !important;
+  border-color: rgba(148, 163, 184, 0.18) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .att-table tbody td {
+  background: rgba(255, 255, 255, 0.86) !important;
+  border-color: rgba(148, 163, 184, 0.16) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .att-table tbody td.sticky,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .att-table tbody td.sticky2 {
+  background: rgba(255, 255, 255, 0.98) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .att-table tbody tr:hover td {
+  background: rgba(37, 99, 235, 0.05) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .att-table tbody tr:hover td.sticky,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .att-table tbody tr:hover td.sticky2 {
+  background: rgba(239, 246, 255, 0.98) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .cellbtn:hover,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .pop-item:hover,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .pop-item.is-current {
+  background: rgba(37, 99, 235, 0.08) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .pop-divider,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .table-scroll::-webkit-scrollbar-track {
+  background: rgba(148, 163, 184, 0.08) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin, .role-teacher).attendance-month-page .table-scroll::-webkit-scrollbar-thumb {
+  background: rgba(37, 99, 235, 0.24) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .trash-header,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .glass-panel,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .premium-modal .modal-content,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .manager-item,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .trash-master-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .trash-manager-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).group-permissions-page .perm-section,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).group-permissions-page .info-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).group-permissions-page .toast-item {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .search-input-group,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .type-tab,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .trash-settings-btn,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .action-btn,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .trash-actions-menu,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).group-permissions-page .back-btn {
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-color: var(--role-theme-border) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .header-info h1,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .trash-item-name,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .trash-user-name,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .trash-date,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .premium-modal .modal-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .trash-modal-heading,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).group-permissions-page .page-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).group-permissions-page .perm-label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).group-permissions-page .section-desc {
+  color: var(--role-theme-text) !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .header-info p,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .search-input-group input::placeholder,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .type-tab,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .premium-table th,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .trash-item-id,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .trash-time,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .trash-system-text,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .trash-modal-note,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).group-permissions-page .page-subtitle,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).group-permissions-page .perm-desc,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).group-permissions-page .info-card p {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .search-input-group input,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .premium-table td,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .trash-actions-menu .dropdown-item,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .premium-modal .modal-body,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).group-permissions-page .perm-wrap,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).group-permissions-page .page-header {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .premium-table th,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .premium-table td,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .premium-table tr:hover td {
+  border-color: rgba(148, 163, 184, 0.14) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .premium-table th {
+  background: rgba(37, 99, 235, 0.05) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .premium-table tr:hover td,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .type-tab:hover,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .action-btn:hover,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .trash-actions-menu .dropdown-item:hover,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).group-permissions-page .perm-row:hover {
+  background: rgba(37, 99, 235, 0.06) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .type-tab.active {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .item-icon,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .trash-user-chip,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).group-permissions-page .perm-icon,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).group-permissions-page .info-card i {
+  background: rgba(37, 99, 235, 0.08) !important;
+  border-color: rgba(37, 99, 235, 0.14) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .badge-type {
+  background: rgba(37, 99, 235, 0.06) !important;
+  border-color: rgba(37, 99, 235, 0.14) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .trash-actions-menu {
+  min-width: 180px !important;
+  border-radius: 14px !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .trash-actions-menu .dropdown-divider {
+  border-color: rgba(148, 163, 184, 0.16) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).deleted-items-page .btn-close-white {
+  filter: none !important;
+  opacity: 0.6 !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).group-permissions-page .slider {
+  background: rgba(148, 163, 184, 0.26) !important;
+  border-color: rgba(148, 163, 184, 0.26) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).group-permissions-page .slider:before {
+  background: #ffffff !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .role-theme-profile-btn .js-role-theme-icon {
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .table-responsive-wrapper,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .table-responsive-box {
+  background: transparent !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .btn-action.btn-outline,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .btn-reset,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .chip,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .menu-btn,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .page-link,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .users-total-chip {
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-color: var(--role-theme-border) !important;
+  color: var(--role-theme-text) !important;
+  box-shadow: none !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .btn-action.btn-outline:hover,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .btn-reset:hover,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .chip:hover,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .menu-btn:hover,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .page-link:hover:not(.disabled),
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .custom-table tbody tr:hover td {
+  background: rgba(37, 99, 235, 0.08) !important;
+  border-color: rgba(37, 99, 235, 0.14) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .btn-action.btn-primary,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .page-link.active {
+  background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .users-excel-btn {
+  background: rgba(34, 197, 94, 0.08) !important;
+  border-color: rgba(34, 197, 94, 0.18) !important;
+  color: var(--role-theme-green) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .custom-table thead th {
+  background: rgba(37, 99, 235, 0.05) !important;
+  border-color: rgba(148, 163, 184, 0.16) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .custom-table tbody tr {
+  background: transparent !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .custom-table tbody td,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .users-user-name,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .users-user-phone {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .users-user-meta,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .chip,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .menu-btn,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .page-link:not(.active),
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .badge-coin.zero {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .custom-table tbody td,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .custom-table thead th,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .custom-table tbody tr:hover td {
+  border-bottom-color: rgba(148, 163, 184, 0.14) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).users-stats-page .size-select option {
+  background: #ffffff !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .lead-bg {
+  display: none !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .tbl thead th {
+  background: rgba(37, 99, 235, 0.05) !important;
+  border-color: rgba(148, 163, 184, 0.16) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .main-row,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .details-row,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .detail-head {
+  background: rgba(255, 255, 255, 0.9) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .main-row:hover,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .detail-head,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .btn-details,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .filter,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .search-input {
+  border-color: var(--role-theme-border) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .main-row:hover,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .details-row {
+  background: rgba(37, 99, 235, 0.04) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .tbl tbody td,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .lead-name,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .btn-details,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .search-input,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .filter {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .sub,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .phone-cell,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .date-cell,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .search-input::placeholder {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .tbl tbody td,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .tbl thead th,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .details-cell,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .detail-head {
+  border-color: rgba(148, 163, 184, 0.14) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .badge.alt {
+  background: rgba(37, 99, 235, 0.06) !important;
+  border-color: rgba(37, 99, 235, 0.12) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page #tblGrp td,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page #tblSt td {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page #tblGrp td:nth-child(4) {
+  color: var(--role-theme-blue) !important;
+  font-weight: 700 !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page #tblGrp .bq-tbl__main,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page #tblSt .bq-tbl__main,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-pay__center strong,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-source__center strong {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-pay__center span,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-pay__center small,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-source__center span,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page h6.text-white-50 {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-bar-m__tr {
+  background: rgba(148, 163, 184, 0.18) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page #churnSummaryGrid > div,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page #examSummaryGrid > div {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page #churnSummaryGrid > div:first-child > div:last-child > div:first-child,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page #examSummaryGrid > div:first-child > div:last-child > div:first-child {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page #churnSummaryGrid > div > div:last-child > div:last-child,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page #examSummaryGrid > div > div:last-child > div:last-child {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page {
+  background:
+    radial-gradient(1100px 560px at 10% 0%, rgba(37, 99, 235, 0.08), transparent 56%),
+    radial-gradient(900px 500px at 90% 10%, rgba(250, 204, 21, 0.08), transparent 58%),
+    linear-gradient(180deg, #f7fbff 0%, #eef4ff 100%) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .wrap {
+  background: transparent !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .filter-section,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .category-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .empty-state {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .page-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .card-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .search-input,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .btn-outline,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .stats-pill,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .action-icon {
+  color: var(--role-theme-text) !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .page-title {
+  background: none !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .page-subtitle,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .card-desc,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .stats-pill,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .empty-state p {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .search-input,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .btn-icon,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .btn-outline,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .stats-pill,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .action-icon {
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-color: var(--role-theme-border) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .icon-square,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .card-icon {
+  background: rgba(245, 158, 11, 0.08) !important;
+  border-color: rgba(245, 158, 11, 0.16) !important;
+  color: var(--role-theme-amber) !important;
+  box-shadow: none !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .card-header,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .card-footer {
+  border-color: rgba(148, 163, 184, 0.14) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .category-card:hover,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .btn-icon:hover,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).groups-home-page .action-icon:hover {
+  background: rgba(37, 99, 235, 0.08) !important;
+  border-color: rgba(37, 99, 235, 0.16) !important;
+  color: var(--role-theme-blue) !important;
+  transform: translateY(-2px);
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .premium-header h2,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .premium-header p,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .fw-bold.text-white,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .modal-title.fw-bold.text-white,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .h3.fw-bold.text-white {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .card-icon-box {
+  box-shadow: none !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .chart-meta,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .chart-meta span,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .premium-table td .text-secondary,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .small.text-secondary,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .text-secondary.small {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .chart-meta strong {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .table-container .border-bottom,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .premium-table th,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .premium-table td {
+  border-color: rgba(148, 163, 184, 0.14) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .premium-table tr:hover td {
+  background: rgba(37, 99, 235, 0.05) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page {
+  background:
+    radial-gradient(1100px 560px at 10% 0%, rgba(37, 99, 235, 0.08), transparent 56%),
+    radial-gradient(900px 500px at 90% 10%, rgba(250, 204, 21, 0.08), transparent 58%),
+    linear-gradient(180deg, #f7fbff 0%, #eef4ff 100%) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .plans-page {
+  background: transparent !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .plans-hero,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .switcher-wrapper,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .plan-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .blocked-alert,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .pending-section,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .pending-item,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .modal-dark .modal-content {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .plan-card.popular {
+  background: linear-gradient(180deg, rgba(239, 246, 255, 0.98), rgba(230, 240, 255, 0.98)) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .plans-hero-left h1,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .plan-name,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .price-main,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .history-table tbody td,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .modal-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .fw-bold.text-white,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .promo-input {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .plans-hero-left p,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .plan-limit,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .price-old,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .pending-timer,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .history-table thead th,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .modal-body p,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .modal-body .form-label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .btn.btn-link.text-secondary {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .btn-history,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .btn-promo-action,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .dur-btn,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .btn-plan-secondary {
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-color: var(--role-theme-border) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .dur-btn.active,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .btn-plan-primary {
+  color: #ffffff !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .price-divider,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .history-table thead th,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .history-table tbody td,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .modal-dark .modal-header,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .modal-dark .modal-footer {
+  border-color: rgba(148, 163, 184, 0.14) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .pending-item:hover,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .history-table tbody tr:hover td {
+  background: rgba(37, 99, 235, 0.05) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .promo-input {
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-color: var(--role-theme-border) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .modal-dark .btn-close-white {
+  filter: none !important;
+  opacity: 0.6 !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .moliya-tab.active {
+  background: linear-gradient(135deg, var(--role-theme-blue), #60a5fa) !important;
+  border-color: rgba(37, 99, 235, 0.26) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.18) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme .moliya-tab.active:hover {
+  color: #ffffff !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .details-row {
+  background: rgba(239, 246, 255, 0.72) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .details-cell,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .detail-head,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .detail {
+  border-color: rgba(148, 163, 184, 0.16) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .detail-head,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .detail {
+  background: rgba(255, 255, 255, 0.96) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .lead-name,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .kv .v,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .btn-pill {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .sub,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .sub span,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .kv .k {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .btn-pill {
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-color: var(--role-theme-border) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .btn-pill.blue {
+  background: linear-gradient(135deg, var(--role-theme-blue), #60a5fa) !important;
+  border-color: rgba(37, 99, 235, 0.24) !important;
+  color: #ffffff !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .btn-pill.red {
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  border-color: rgba(220, 38, 38, 0.24) !important;
+  color: #ffffff !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-list-page .btn-pill.green {
+  background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+  border-color: rgba(22, 163, 74, 0.2) !important;
+  color: #ffffff !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-form-page .lead-bg {
+  display: none !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-form-page .page-icon-box {
+  background: rgba(37, 99, 235, 0.08) !important;
+  border-color: rgba(37, 99, 235, 0.16) !important;
+  color: var(--role-theme-blue) !important;
+  box-shadow: none !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-form-page .text-white-50,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-form-page .premium-input-group label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-form-page .form-section-header,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-form-page .input-wrapper .icon,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-form-page .lead-form-premium input::placeholder,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-form-page .lead-form-premium textarea::placeholder {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-form-page .btn-premium-outline {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: var(--role-theme-border) !important;
+  color: var(--role-theme-text) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-detail-page .card-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-detail-page .value.link a,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-detail-page .student-link {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-detail-page .small,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).lead-detail-page .text-white-50 {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .glass-modal .modal-content {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .glass-modal .modal-header,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .glass-modal .modal-footer {
+  border-color: rgba(148, 163, 184, 0.14) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .glass-modal .modal-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .glass-modal .fw-bold,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .glass-modal #view_izoh {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .glass-modal .text-secondary,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .glass-modal .small,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .glass-modal .filter-label {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .glass-modal .bg-black.bg-opacity-25,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .glass-modal .btn-glass {
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-color: var(--role-theme-border) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).expenses-page .glass-modal .btn-close-white {
+  filter: none !important;
+  opacity: 0.55 !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page {
+  background:
+    radial-gradient(1100px 560px at 10% 0%, rgba(37, 99, 235, 0.08), transparent 56%),
+    radial-gradient(900px 500px at 90% 10%, rgba(250, 204, 21, 0.08), transparent 58%),
+    linear-gradient(180deg, #f7fbff 0%, #eef4ff 100%) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .wrap {
+  background: transparent !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .filter-section,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .group-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .empty-state,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .tabs-container {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .page-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .group-name,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .search-input,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .num-input,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .btn-outline,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .back-btn,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .action-btn-v2 {
+  color: var(--role-theme-text) !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .page-title {
+  background: none !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .page-subtitle,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .card-no,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .info-tag,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .stats-pill,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .empty-state p,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .empty-state i {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .search-input,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .num-input,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .back-btn,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .btn-outline,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .stats-pill,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .action-btn-v2,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .tab-item:not(.active) {
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-color: var(--role-theme-border) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .card-header-v2,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .card-footer-v2 {
+  border-color: rgba(148, 163, 184, 0.14) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .card-icon-v2 {
+  background: rgba(37, 99, 235, 0.08) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-detail-page .group-card:hover {
+  background: rgba(255, 255, 255, 1) !important;
+  border-color: rgba(37, 99, 235, 0.18) !important;
+  box-shadow: 0 24px 40px rgba(37, 99, 235, 0.12) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-add-page {
+  background:
+    radial-gradient(1100px 560px at 10% 0%, rgba(37, 99, 235, 0.08), transparent 56%),
+    radial-gradient(900px 500px at 90% 10%, rgba(250, 204, 21, 0.08), transparent 58%),
+    linear-gradient(180deg, #f7fbff 0%, #eef4ff 100%) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-add-page .premium-card {
+  background: rgba(255, 255, 255, 0.97) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-add-page .header-text h1,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-add-page .form-control,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-add-page textarea,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-add-page input[type="text"],
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-add-page input[type="file"] {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-add-page .header-text p,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-add-page .label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-add-page .preview-label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-add-page .form-control::placeholder,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-add-page textarea::placeholder,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-add-page input[type="text"]::placeholder {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-add-page .form-control,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-add-page textarea,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-add-page input[type="text"],
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).category-add-page input[type="file"] {
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: none !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme.account-profile-page {
+  background:
+    radial-gradient(1100px 560px at 10% 0%, rgba(37, 99, 235, 0.08), transparent 56%),
+    radial-gradient(900px 500px at 90% 10%, rgba(250, 204, 21, 0.08), transparent 58%),
+    linear-gradient(180deg, #f7fbff 0%, #eef4ff 100%) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme.account-profile-page .profile-card,
+html[data-role-theme="light"] body.has-role-theme.account-profile-page .security-info-box {
+  background: rgba(255, 255, 255, 0.97) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme.account-profile-page .profile-card::before {
+  background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.12), transparent) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme.account-profile-page .card-title-text,
+html[data-role-theme="light"] body.has-role-theme.account-profile-page .tg-info-value,
+html[data-role-theme="light"] body.has-role-theme.account-profile-page .input-field-premium {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme.account-profile-page .avatar-change-btn,
+html[data-role-theme="light"] body.has-role-theme.account-profile-page .input-label-premium,
+html[data-role-theme="light"] body.has-role-theme.account-profile-page .security-info-box p,
+html[data-role-theme="light"] body.has-role-theme.account-profile-page .tg-info-label,
+html[data-role-theme="light"] body.has-role-theme.account-profile-page .card-footer-security,
+html[data-role-theme="light"] body.has-role-theme.account-profile-page .text-slate-700,
+html[data-role-theme="light"] body.has-role-theme.account-profile-page .text-slate-500 {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme.account-profile-page .input-field-premium {
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: none !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme.account-profile-page .input-field-premium::placeholder {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme.account-profile-page .avatar-outer {
+  background: rgba(37, 99, 235, 0.06) !important;
+  border-color: rgba(37, 99, 235, 0.22) !important;
+  box-shadow: none !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme.account-profile-page .avatar-inner {
+  background: rgba(37, 99, 235, 0.08) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme.account-profile-page .btn-white {
+  background: linear-gradient(135deg, var(--role-theme-blue), #60a5fa) !important;
+  color: #ffffff !important;
+  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.16) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme.account-profile-page .btn-dark {
+  background: rgba(37, 99, 235, 0.08) !important;
+  color: var(--role-theme-blue) !important;
+  border: 1px solid rgba(37, 99, 235, 0.12) !important;
+  box-shadow: none !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme.account-profile-page .tg-link-action {
+  background: rgba(37, 99, 235, 0.06) !important;
+  border-color: rgba(37, 99, 235, 0.16) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme.account-profile-page .card-footer-security {
+  border-top-color: rgba(148, 163, 184, 0.14) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .switcher-wrapper {
+  background: rgba(255, 255, 255, 0.98) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).billing-plans-page .dur-btn.active {
+  background: linear-gradient(135deg, var(--role-theme-blue), #60a5fa) !important;
+  border-color: rgba(37, 99, 235, 0.24) !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.16) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .page-meta,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .page-size-form,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .page-meta,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .page-size-form {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .page-meta,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .page-size-label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .page-select,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .page-meta,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .page-size-label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .page-select {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .page-meta span,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .page-meta span,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .page-size-label,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .page-size-label {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .page-meta strong,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .page-meta strong {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .page-select,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .page-select {
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-color: var(--role-theme-border) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .payments-pagination .page-link,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .debtors-pagination .page-link,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .pagination .page-link {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: var(--role-theme-border) !important;
+  color: var(--role-theme-text) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .payments-pagination .page-link:hover,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .debtors-pagination .page-link:hover,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .pagination .page-link:hover {
+  background: rgba(37, 99, 235, 0.08) !important;
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .payments-pagination .page-item.active .page-link,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).payments-page .payments-pagination .page-link.bg-primary,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .debtors-pagination .page-item.active .page-link,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).debtors-page .debtors-pagination .page-link.bg-primary,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .page-item.active .page-link,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .page-link.bg-primary {
+  background: linear-gradient(135deg, var(--role-theme-blue), #60a5fa) !important;
+  border-color: rgba(37, 99, 235, 0.24) !important;
+  color: #ffffff !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page {
+  background:
+    radial-gradient(1100px 560px at 10% 0%, rgba(37, 99, 235, 0.08), transparent 56%),
+    radial-gradient(900px 500px at 90% 10%, rgba(250, 204, 21, 0.08), transparent 58%),
+    linear-gradient(180deg, #f7fbff 0%, #eef4ff 100%) !important;
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .churn-header,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .stat-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .filter-bar,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .risk-card,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .empty-state {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: var(--role-theme-border) !important;
+  box-shadow: var(--role-theme-shadow) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .page-title,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .s-name,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .f-input,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .level-tab,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .action-btn {
+  color: var(--role-theme-text) !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .page-title {
+  background: none !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .page-sub,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .stat-lbl,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .s-course,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .score-lbl,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .search-wrap i,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .empty-state p {
+  color: var(--role-theme-muted) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .f-input,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .level-tab,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .refresh-btn,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .action-btn {
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-color: var(--role-theme-border) !important;
+}
+
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .level-tab.active,
+html[data-role-theme="light"] body.has-role-theme:is(.role-manager, .role-director, .role-superadmin).churn-monitor-page .refresh-btn {
+  color: var(--role-theme-blue) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-sec__title,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-card__lbl,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-fin-lbl,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-fin-val,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-tag,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-tbl thead th,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-tbl tbody td {
+  color: var(--role-theme-text) !important;
+}
+
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-sec__sub,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-fin-hint,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-pay__center span,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-pay__center small,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .bq-source__center span,
+html[data-role-theme="light"] body:is(.role-director, .role-superadmin).director-boshqaruv-page .text-white-50 {
+  color: var(--role-theme-muted) !important;
+}

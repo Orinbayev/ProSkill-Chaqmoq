@@ -8,6 +8,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _director_or_manager(user) -> bool:
+    return user.is_superuser or getattr(user, "role", None) in ("director", "manager")
+
+
 @login_required
 def churn_api_summary(request):
     """Boshqaruv sahifasi uchun churn statistikasi (JSON)."""
@@ -85,3 +89,36 @@ def exam_api_summary(request):
     except Exception:
         logger.exception("exam_api_summary failed")
         return JsonResponse({"detail": "error"}, status=500)
+
+
+@login_required
+def dashboard_quick_stats(request):
+    if not _director_or_manager(request.user):
+        return JsonResponse({"detail": "forbidden"}, status=403)
+
+    from core.tenant import get_request_center
+    from core.dashboard_metrics import (
+        get_center_active_groups_count,
+        get_center_attendance_snapshot,
+        get_center_debtors_count,
+        get_center_today_income,
+        month_start,
+    )
+
+    center = get_request_center(request)
+    if not center:
+        return JsonResponse({"detail": "center_not_found"}, status=403)
+
+    today = timezone.localdate()
+    current_month = month_start(today)
+    attendance = get_center_attendance_snapshot(center, today)
+
+    return JsonResponse(
+        {
+            "today_income": get_center_today_income(center, today),
+            "debtors": get_center_debtors_count(center, current_month),
+            "active_groups": get_center_active_groups_count(center),
+            "attendance_pct": attendance["pct"],
+            "attendance_label": attendance["label"],
+        }
+    )

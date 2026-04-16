@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load humanize %}
+{% block body_class %}debtors-page{% endblock %}
 
 {% block title %}
 📉 Qarzdorlar — ChaqmoqApp
@@ -1276,39 +1277,80 @@
             if (chartEl && chartLabelsEl) {
                 const chartData = JSON.parse(chartEl.textContent) || [];
                 const chartLabels = JSON.parse(chartLabelsEl.textContent) || [];
-                const options = {
-                    series: [{ name: 'Qarz', data: chartData }],
-                    chart: {
-                        type: 'area',
-                        height: 220,
-                        offsetY: -8,
-                        toolbar: { show: false },
-                        background: 'transparent',
-                        parentHeightOffset: 0
-                    },
-                    stroke: { curve: 'smooth', width: 3, lineCap: 'round' },
-                    markers: { size: 0, hover: { size: 5 }, strokeWidth: 0 },
-                    colors: ['#ef4444'],
-                    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.38, opacityTo: 0.04, stops: [0, 90, 100] } },
-                    xaxis: {
-                        categories: chartLabels,
-                        labels: { style: { colors: '#94a3b8', fontSize: '11px' } },
-                        axisBorder: { show: false },
-                        axisTicks: { show: false }
-                    },
-                    yaxis: {
-                        tickAmount: 4,
-                        labels: { style: { colors: '#94a3b8', fontSize: '11px' }, formatter: v => Number(v).toLocaleString() + " so'm" }
-                    },
-                    grid: {
-                        borderColor: 'rgba(255, 255, 255, 0.05)',
-                        strokeDashArray: 4,
-                        padding: { left: 4, right: 8, top: 4, bottom: -8 }
-                    },
-                    legend: { show: false },
-                    theme: { mode: 'dark' }
-                };
-                new ApexCharts(document.querySelector("#debtChart"), options).render();
+                let debtChart = null;
+                let activeTheme = getThemeMode();
+
+                function getThemeMode() {
+                    return document.documentElement.getAttribute('data-role-theme') === 'light' ? 'light' : 'dark';
+                }
+
+                function buildOptions() {
+                    const isLightTheme = getThemeMode() === 'light';
+                    const labelColor = isLightTheme ? '#475569' : '#94a3b8';
+                    const gridColor = isLightTheme ? 'rgba(37, 99, 235, 0.12)' : 'rgba(255, 255, 255, 0.05)';
+
+                    return {
+                        series: [{ name: 'Qarz', data: chartData }],
+                        chart: {
+                            type: 'area',
+                            height: 220,
+                            offsetY: -8,
+                            toolbar: { show: false },
+                            background: 'transparent',
+                            parentHeightOffset: 0
+                        },
+                        stroke: { curve: 'smooth', width: 3, lineCap: 'round' },
+                        markers: { size: 0, hover: { size: 5 }, strokeWidth: 0 },
+                        colors: ['#ef4444'],
+                        fill: {
+                            type: 'gradient',
+                            gradient: { shadeIntensity: 1, opacityFrom: 0.38, opacityTo: 0.04, stops: [0, 90, 100] }
+                        },
+                        xaxis: {
+                            categories: chartLabels,
+                            labels: { style: { colors: labelColor, fontSize: '11px' } },
+                            axisBorder: { show: false },
+                            axisTicks: { show: false }
+                        },
+                        yaxis: {
+                            tickAmount: 4,
+                            labels: {
+                                style: { colors: labelColor, fontSize: '11px' },
+                                formatter: v => Number(v).toLocaleString() + " so'm"
+                            }
+                        },
+                        grid: {
+                            borderColor: gridColor,
+                            strokeDashArray: 4,
+                            padding: { left: 4, right: 8, top: 4, bottom: -8 }
+                        },
+                        legend: { show: false },
+                        theme: { mode: isLightTheme ? 'light' : 'dark' }
+                    };
+                }
+
+                function renderDebtChart() {
+                    if (debtChart) {
+                        debtChart.destroy();
+                    }
+                    debtChart = new ApexCharts(document.querySelector("#debtChart"), buildOptions());
+                    debtChart.render();
+                }
+
+                renderDebtChart();
+
+                const themeObserver = new MutationObserver(function () {
+                    const nextTheme = getThemeMode();
+                    if (nextTheme !== activeTheme) {
+                        activeTheme = nextTheme;
+                        renderDebtChart();
+                    }
+                });
+
+                themeObserver.observe(document.documentElement, {
+                    attributes: true,
+                    attributeFilter: ['data-role-theme']
+                });
             }
 
             // Modal

@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load humanize %}
+{% block body_class %}salary-list-page{% endblock %}
 {% block content %}
 
 <style>
@@ -347,6 +348,9 @@ body{
             <div>
               <div class="h-title">O'qituvchilar ro'yxati</div>
               <div class="h-sub">O'qituvchini tanlang va guruhlardagi oylik hisobini ko'ring</div>
+            </div>
+            <div style="margin-left:auto; display:flex; align-items:center;">
+              {% include "components/profile_dropdown.html" %}
             </div>
           </div>
         </div>

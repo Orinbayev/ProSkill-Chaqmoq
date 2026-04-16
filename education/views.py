@@ -66,10 +66,11 @@ from reportlab.lib import colors
 
 from accounts.models import User
 from chaqmoq.models import Ledger, Rule
-from .forms import GroupForm, ITGroupForm, LangGroupForm
+from .forms import CenterExpenseForm, GroupForm, ITGroupForm, LangGroupForm
 from .models import (
     Attendance,
     Category,
+    CenterExpense,
     DailyLightningRecord,
     Dars,
     Enrollment,
@@ -6413,6 +6414,36 @@ def _director_or_manager(user):
 
 def _teacher_can_view_settings(user):
     return user.is_superuser or getattr(user, "role", None) in ("director", "manager", "teacher")
+
+
+@login_required
+def expense_create(request):
+    if not _director_or_manager(request.user):
+        return HttpResponseForbidden("Sizda ruxsat yo'q.")
+
+    from core.tenant import get_request_center
+
+    center = get_request_center(request) or getattr(request.user, "center", None)
+    if not center:
+        raise PermissionDenied("Markaz topilmadi.")
+
+    form = CenterExpenseForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        expense = form.save(commit=False)
+        expense.center = center
+        expense.created_by = request.user
+        expense.save()
+        messages.success(request, "Xarajat saqlandi.")
+        return redirect("core:financial_dashboard")
+
+    return render(
+        request,
+        "education/expense_form.html",
+        {
+            "form": form,
+            "center": center,
+        },
+    )
 
 
 def _teacher_or_management_can_access_group(user, group: Group):

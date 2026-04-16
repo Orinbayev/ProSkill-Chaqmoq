@@ -61,7 +61,7 @@
   <div class="db-card" style="margin-top:16px;">
     <div class="db-chart-title">Guruhlar ro'yxati</div>
     <table class="db-table">
-      <thead><tr><th>#</th><th>Guruh nomi</th><th>O'quvchilar</th><th>Sig'im</th><th>Davomat %</th><th>Daromad</th></tr></thead>
+      <thead><tr><th>#</th><th>Guruh nomi</th><th>O'quvchilar</th><th>Sig'im holati</th><th>Davomat %</th><th>Daromad</th></tr></thead>
       <tbody id="groupsTable"><tr><td colspan="6" class="db-empty">Yuklanmoqda...</td></tr></tbody>
     </table>
   </div>
@@ -122,9 +122,29 @@ function renderCategories(rows) {
 }
 
 function renderTable(groups) {
-  el('groupsTable').innerHTML = groups.map((g,i) =>
-    `<tr><td><span class="db-list-rank">${i+1}</span></td><td>${g.name||'—'}</td><td>${g.enrolled||0}</td><td>${g.capacity||'∞'}</td><td>${PCT(g.attendance_rate||0)}</td><td>${FMT(g.revenue||0)}</td></tr>`
-  ).join('') || '<tr><td colspan="6" class="db-empty">Ma\'lumot yo\'q</td></tr>';
+  el('groupsTable').innerHTML = groups.map((g,i) => {
+    const enrolled = g.student_count ?? g.enrolled ?? 0;
+    const capacity = g.capacity ?? 0;
+    const pct = Math.max(0, Math.min(100, parseFloat(g.fill_pct || 0)));
+    const color = pct >= 90 ? '#ef4444' : (pct >= 70 ? '#f59e0b' : '#22c55e');
+    const capacityLabel = capacity ? `${enrolled} / ${capacity}` : `${enrolled} / ∞`;
+    return `<tr>
+      <td><span class="db-list-rank">${i+1}</span></td>
+      <td>${g.name||'—'}</td>
+      <td>${enrolled}</td>
+      <td>
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:#94a3b8; margin-bottom:4px;">
+          <span>${capacityLabel} o'quvchi</span>
+          <span>${pct.toFixed(0)}%</span>
+        </div>
+        <div style="height:6px; background:rgba(255,255,255,0.08); border-radius:999px; overflow:hidden;">
+          <div style="height:100%; width:${pct}%; border-radius:999px; background:${color}; transition:width .4s ease;"></div>
+        </div>
+      </td>
+      <td>${PCT(g.att_rate ?? g.attendance_rate ?? 0)}</td>
+      <td>${FMT(g.revenue||0)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" class="db-empty">Ma\'lumot yo\'q</td></tr>';
 }
 
 function resetFilter() { el('dateFrom').value=''; el('dateTo').value=''; loadData(); }

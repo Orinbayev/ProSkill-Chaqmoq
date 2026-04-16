@@ -243,6 +243,13 @@
           </div>
 
           <div>
+            <label class="ui-label" for="{{ form.max_students.id_for_label }}">Maksimal o'quvchi soni</label>
+            {{ form.max_students }}
+            <div class="field-help">Sig'im va to'ldirilish foizi shu maydondan hisoblanadi.</div>
+            {% for error in form.max_students.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+          </div>
+
+          <div>
             <label class="ui-label" for="{{ form.duration_months.id_for_label }}">Necha oy davom etadi</label>
             {{ form.duration_months }}
             <div class="field-help">Masalan: 2 oy, 4 oy, 6 oy.</div>

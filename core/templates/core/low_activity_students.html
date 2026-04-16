@@ -2,6 +2,7 @@
 {% load static humanize %}
 
 {% block title %}Churn Monitoring | Ketish Xavfi{% endblock %}
+{% block body_class %}churn-monitor-page{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -181,6 +182,135 @@ body { background-color: var(--bg-deep) !important; color: #f1f5f9; font-family:
     .card-right       { width:100%; justify-content:space-between; }
     .churn-header     { flex-direction:column; align-items:flex-start; }
     .level-tabs       { flex-wrap:wrap; }
+}
+
+html[data-role-theme="light"] body.churn-monitor-page {
+    background:
+        radial-gradient(1100px 560px at 10% 0%, rgba(37, 99, 235, 0.08), transparent 56%),
+        radial-gradient(900px 500px at 90% 10%, rgba(250, 204, 21, 0.08), transparent 58%),
+        linear-gradient(180deg, #f7fbff 0%, #eef4ff 100%) !important;
+    color: #0f172a !important;
+}
+
+html[data-role-theme="light"] body.churn-monitor-page .churn-header,
+html[data-role-theme="light"] body.churn-monitor-page .stat-card,
+html[data-role-theme="light"] body.churn-monitor-page .filter-bar,
+html[data-role-theme="light"] body.churn-monitor-page .risk-card,
+html[data-role-theme="light"] body.churn-monitor-page .empty-state {
+    background: rgba(255, 255, 255, 0.96) !important;
+    border-color: rgba(148, 163, 184, 0.2) !important;
+    box-shadow: 0 20px 45px rgba(37, 99, 235, 0.08) !important;
+}
+
+html[data-role-theme="light"] body.churn-monitor-page .page-title,
+html[data-role-theme="light"] body.churn-monitor-page .s-name {
+    color: #0f172a !important;
+    background: none !important;
+    -webkit-text-fill-color: currentColor !important;
+}
+
+html[data-role-theme="light"] body.churn-monitor-page .page-sub,
+html[data-role-theme="light"] body.churn-monitor-page .stat-lbl,
+html[data-role-theme="light"] body.churn-monitor-page .s-course,
+html[data-role-theme="light"] body.churn-monitor-page .score-lbl,
+html[data-role-theme="light"] body.churn-monitor-page .empty-state p,
+html[data-role-theme="light"] body.churn-monitor-page .search-wrap i {
+    color: #5b6b82 !important;
+}
+
+html[data-role-theme="light"] body.churn-monitor-page .back-btn,
+html[data-role-theme="light"] body.churn-monitor-page .f-input,
+html[data-role-theme="light"] body.churn-monitor-page .level-tab,
+html[data-role-theme="light"] body.churn-monitor-page .refresh-btn,
+html[data-role-theme="light"] body.churn-monitor-page .action-btn {
+    background: rgba(37, 99, 235, 0.04) !important;
+    border-color: rgba(148, 163, 184, 0.22) !important;
+    color: #0f172a !important;
+}
+
+html[data-role-theme="light"] body.churn-monitor-page .f-input::placeholder {
+    color: #94a3b8 !important;
+}
+
+html[data-role-theme="light"] body.churn-monitor-page .stat-lbl,
+html[data-role-theme="light"] body.churn-monitor-page .score-lbl {
+    font-weight: 800 !important;
+}
+
+html[data-role-theme="light"] body.churn-monitor-page .reason-chip {
+    font-weight: 800 !important;
+    letter-spacing: 0.02em !important;
+}
+
+html[data-role-theme="light"] body.churn-monitor-page .lvl-high .reason-chip {
+    background: rgba(244, 63, 94, 0.08) !important;
+    border-color: rgba(244, 63, 94, 0.22) !important;
+    color: #e11d48 !important;
+}
+
+html[data-role-theme="light"] body.churn-monitor-page .lvl-medium .reason-chip {
+    background: rgba(245, 158, 11, 0.08) !important;
+    border-color: rgba(245, 158, 11, 0.24) !important;
+    color: #d97706 !important;
+}
+
+html[data-role-theme="light"] body.churn-monitor-page .lvl-low .reason-chip {
+    background: rgba(20, 184, 166, 0.08) !important;
+    border-color: rgba(20, 184, 166, 0.22) !important;
+    color: #0f766e !important;
+}
+
+html[data-role-theme="light"] body.churn-monitor-page .f-input:focus {
+    border-color: rgba(37, 99, 235, 0.32) !important;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08) !important;
+}
+
+html[data-role-theme="light"] body.churn-monitor-page .level-tab:hover,
+html[data-role-theme="light"] body.churn-monitor-page .back-btn:hover,
+html[data-role-theme="light"] body.churn-monitor-page .action-btn:hover {
+    background: rgba(37, 99, 235, 0.08) !important;
+    color: #2563eb !important;
+}
+
+html[data-role-theme="light"] body.churn-monitor-page .level-tab.active,
+html[data-role-theme="light"] body.churn-monitor-page .refresh-btn {
+    color: #2563eb !important;
+}
+
+html[data-role-theme="light"] body.churn-monitor-page .risk-card:hover {
+    background: rgba(255, 255, 255, 1) !important;
+}
+
+html[data-role-theme="light"] body.churn-monitor-page .avatar-img {
+    border-color: rgba(148, 163, 184, 0.18) !important;
+}
+
+html[data-role-theme="light"] body.churn-monitor-page .avatar-inner,
+html[data-role-theme="light"] body.churn-monitor-page .avatar-wrap {
+    color: #0f172a !important;
+}
+
+html[data-role-theme="light"] body.churn-monitor-page .score-ring {
+    background: rgba(255, 255, 255, 0.92) !important;
+}
+
+html[data-role-theme="light"] body.churn-monitor-page .lvl-high .score-ring {
+    color: #e11d48 !important;
+    border-color: rgba(244, 63, 94, 0.28) !important;
+}
+
+html[data-role-theme="light"] body.churn-monitor-page .lvl-medium .score-ring {
+    color: #d97706 !important;
+    border-color: rgba(245, 158, 11, 0.28) !important;
+}
+
+html[data-role-theme="light"] body.churn-monitor-page .lvl-low .score-ring {
+    color: #0f766e !important;
+    border-color: rgba(20, 184, 166, 0.28) !important;
+}
+
+html[data-role-theme="light"] body.churn-monitor-page .empty-state h4 {
+    color: #0f172a !important;
 }
 </style>
 {% endblock %}

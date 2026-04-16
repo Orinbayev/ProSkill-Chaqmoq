@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load humanize custom_tags %}
+{% block body_class %}payments-page{% endblock %}
 
 {% block title %}
 💰 To'lovlar — ChaqmoqApp
@@ -2207,65 +2208,100 @@
             if (dataEl && labelEl && chartDiv) {
                 const data = JSON.parse(dataEl.textContent) || [];
                 const labels = JSON.parse(labelEl.textContent) || [];
+                let incomeChart = null;
+                let activeTheme = getThemeMode();
 
-                new ApexCharts(chartDiv, {
-                    series: [{ name: "Daromad", data: data }],
-                    chart: {
-                        type: "area",
-                        height: 220,
-                        offsetY: -8,
-                        toolbar: { show: false }, background: "transparent",
-                        sparkline: { enabled: false },
-                        zoom: { enabled: false },
-                        parentHeightOffset: 0
-                    },
-                    colors: ["#14b8a6"],
-                    stroke: { curve: "smooth", width: 3, lineCap: "round" },
-                    markers: {
-                        size: 0,
-                        hover: { size: 5 },
-                        strokeWidth: 0,
-                    },
-                    fill: {
-                        type: "gradient",
-                        gradient: {
-                            shadeIntensity: 1,
-                            opacityFrom: 0.38,
-                            opacityTo: 0.04,
-                            stops: [0, 90, 100], colorStops: [
-                                { offset: 0, color: "#14b8a6", opacity: 0.4 },
-                                { offset: 100, color: "#14b8a6", opacity: 0.02 }
-                            ]
-                        }
-                    },
-                    grid: {
-                        borderColor: "rgba(255, 255, 255, 0.05)",
-                        strokeDashArray: 4,
-                        padding: { left: 4, right: 8, top: 4, bottom: -8 }
-                    },
-                    xaxis: {
-                        categories: labels,
-                        labels: { style: { colors: "#64748b", fontSize: "11px" } },
-                        axisBorder: { show: false }, axisTicks: { show: false }
-                    },
-                    yaxis: {
-                        tickAmount: 4,
-                        labels: {
-                            style: { colors: "#64748b", fontSize: "11px" },
-                            formatter: v => {
-                                if (v >= 1000000) return (v / 1000000).toFixed(1) + "M";
-                                if (v >= 1000) return (v / 1000).toFixed(0) + "k";
-                                return v;
+                function getThemeMode() {
+                    return document.documentElement.getAttribute('data-role-theme') === 'light' ? 'light' : 'dark';
+                }
+
+                function buildOptions() {
+                    const isLightTheme = getThemeMode() === 'light';
+                    const labelColor = isLightTheme ? '#475569' : '#64748b';
+                    const gridColor = isLightTheme ? 'rgba(37, 99, 235, 0.12)' : 'rgba(255, 255, 255, 0.05)';
+
+                    return {
+                        series: [{ name: "Daromad", data: data }],
+                        chart: {
+                            type: "area",
+                            height: 220,
+                            offsetY: -8,
+                            toolbar: { show: false }, background: "transparent",
+                            sparkline: { enabled: false },
+                            zoom: { enabled: false },
+                            parentHeightOffset: 0
+                        },
+                        colors: ["#14b8a6"],
+                        stroke: { curve: "smooth", width: 3, lineCap: "round" },
+                        markers: {
+                            size: 0,
+                            hover: { size: 5 },
+                            strokeWidth: 0,
+                        },
+                        fill: {
+                            type: "gradient",
+                            gradient: {
+                                shadeIntensity: 1,
+                                opacityFrom: 0.38,
+                                opacityTo: 0.04,
+                                stops: [0, 90, 100], colorStops: [
+                                    { offset: 0, color: "#14b8a6", opacity: 0.4 },
+                                    { offset: 100, color: "#14b8a6", opacity: 0.02 }
+                                ]
                             }
+                        },
+                        grid: {
+                            borderColor: gridColor,
+                            strokeDashArray: 4,
+                            padding: { left: 4, right: 8, top: 4, bottom: -8 }
+                        },
+                        xaxis: {
+                            categories: labels,
+                            labels: { style: { colors: labelColor, fontSize: "11px" } },
+                            axisBorder: { show: false }, axisTicks: { show: false }
+                        },
+                        yaxis: {
+                            tickAmount: 4,
+                            labels: {
+                                style: { colors: labelColor, fontSize: "11px" },
+                                formatter: v => {
+                                    if (v >= 1000000) return (v / 1000000).toFixed(1) + "M";
+                                    if (v >= 1000) return (v / 1000).toFixed(0) + "k";
+                                    return v;
+                                }
+                            }
+                        },
+                        dataLabels: { enabled: false },
+                        legend: { show: false },
+                        tooltip: {
+                            theme: isLightTheme ? "light" : "dark",
+                            y: { formatter: v => Number(v).toLocaleString() + " so'm" }
                         }
-                    },
-                    dataLabels: { enabled: false },
-                    legend: { show: false },
-                    tooltip: {
-                        theme: "dark",
-                        y: { formatter: v => Number(v).toLocaleString() + " so'm" }
+                    };
+                }
+
+                function renderIncomeChart() {
+                    if (incomeChart) {
+                        incomeChart.destroy();
                     }
-                }).render();
+                    incomeChart = new ApexCharts(chartDiv, buildOptions());
+                    incomeChart.render();
+                }
+
+                renderIncomeChart();
+
+                const themeObserver = new MutationObserver(function () {
+                    const nextTheme = getThemeMode();
+                    if (nextTheme !== activeTheme) {
+                        activeTheme = nextTheme;
+                        renderIncomeChart();
+                    }
+                });
+
+                themeObserver.observe(document.documentElement, {
+                    attributes: true,
+                    attributeFilter: ['data-role-theme']
+                });
             }
         });
     })();

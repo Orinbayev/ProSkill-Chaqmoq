@@ -19,6 +19,7 @@ class Center(SoftDeleteMixin, models.Model):
     name = models.CharField(max_length=120)
     address = models.CharField(max_length=255, blank=True, default="")
     phone = models.CharField(max_length=20, blank=True, default="") 
+    director_telegram_id = models.CharField(max_length=50, blank=True, default="")
     db_name = models.CharField(max_length=128, blank=True, null=True, help_text="Имя отдельной базы данных центра (PostgreSQL)")
     db_user = models.CharField(max_length=128, blank=True, null=True, help_text="Пользователь БД центра")
     db_password = models.CharField(max_length=128, blank=True, null=True, help_text="Пароль БД центра (TODO: хранить безопасно, использовать env или vault)")

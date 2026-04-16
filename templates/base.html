@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>ChaqmoqApp</title>
+  <title>{% block title %}ChaqmoqApp{% endblock %}</title>
   <link rel="icon" type="image/png" sizes="32x32"
     href="{% static 'img/chaqmoq_logo_favicon_32.png' %}?v=20260324-logo-fix-3">
   <link rel="icon" type="image/png" sizes="16x16"
@@ -28,6 +28,36 @@
     rel="stylesheet">
   <!-- ApexCharts (lokal) -->
   <script src="{% static 'vendor/apexcharts/apexcharts.min.js' %}"></script>
+  {% if request.user.is_authenticated %}
+  {% if request.user.is_superuser or request.user.role %}
+  <script>
+    (function () {
+      const role = "{% if request.user.is_superuser %}superadmin{% elif request.user.role %}{{ request.user.role }}{% endif %}";
+      if (!role) {
+        return;
+      }
+
+      try {
+        const storageKey = "chaqmoq_" + role + "_theme";
+        const theme = localStorage.getItem(storageKey) === "light" ? "light" : "dark";
+        document.documentElement.setAttribute("data-role-theme", theme);
+        document.documentElement.setAttribute("data-role-theme-role", role);
+        if (role === "student") {
+          document.documentElement.setAttribute("data-student-theme", theme);
+        }
+        if (role === "parent") {
+          document.documentElement.setAttribute("data-parent-theme", theme);
+        }
+        document.documentElement.style.colorScheme = theme;
+      } catch (error) {
+        document.documentElement.setAttribute("data-role-theme", "dark");
+        document.documentElement.setAttribute("data-role-theme-role", role);
+        document.documentElement.style.colorScheme = "dark";
+      }
+    })();
+  </script>
+  {% endif %}
+  {% endif %}
 
   <style>
     :root {
@@ -459,10 +489,15 @@
   </style>
 
   {% block extra_css %}{% endblock %}
+  {% if request.user.is_authenticated %}
+  {% if request.user.is_superuser or request.user.role %}
+  <link rel="stylesheet" href="{% static 'css/role-theme.css' %}?v=20260415-role-theme-rebuild-4">
+  {% endif %}
+  {% endif %}
 </head>
 
 <body
-  class="{% if request.user.is_authenticated %}layout-auth{% else %}layout-guest{% endif %} {% block body_class %}{% endblock %}">
+  class="{% if request.user.is_authenticated %}layout-auth{% else %}layout-guest{% endif %}{% if request.user.is_authenticated %}{% if request.user.is_superuser %} has-role-theme role-superadmin{% elif request.user.role %} has-role-theme role-{{ request.user.role }}{% endif %}{% endif %} {% block body_class %}{% endblock %}">
 
 
   <!-- Loader Script Disabled to Prevent Blocking -->
@@ -898,6 +933,11 @@
     })();
   </script>
 
+  {% if request.user.is_authenticated %}
+  {% if request.user.is_superuser or request.user.role %}
+  <script src="{% static 'js/role-theme.js' %}?v=20260415-role-theme-rebuild-2"></script>
+  {% endif %}
+  {% endif %}
   {% block extra_js %}{% endblock %}
 </body>
 

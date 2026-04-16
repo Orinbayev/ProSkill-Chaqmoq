@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static humanize %}
+{% load static %}
 {% block title %}O'qituvchilar Dashboardi — ChaqmoqApp{% endblock %}
 
 {% block extra_css %}
@@ -13,7 +13,7 @@
       <a href="{% url 'core:dashboard_hub' %}" class="db-back-btn"><i class="fa-solid fa-arrow-left"></i></a>
       <div>
         <div class="db-topbar-title"><i class="fa-solid fa-chalkboard-teacher" style="color:#a855f7;margin-right:8px;"></i>O'qituvchilar Dashboardi</div>
-        <div class="db-topbar-sub">Daromad · Dars soatlari · Ko'rsatkichlar</div>
+        <div class="db-topbar-sub">Reyting · Davomat · Chiqib ketish · Imtihon natijasi</div>
       </div>
     </div>
     <div class="db-filter-bar">
@@ -48,21 +48,21 @@
   </div>
 
   <div class="db-chart-grid db-chart-grid-equal">
-    <div class="db-card" style="height:300px;padding:16px;">
-      <div class="db-chart-title">O'qituvchilar daromadi <span class="db-chip db-chip-cyan">Bar</span></div>
-      <div style="height:240px;position:relative;"><canvas id="revenueChart"></canvas></div>
+    <div class="db-card" style="height:320px;padding:16px;">
+      <div class="db-chart-title">Umumiy ball bo'yicha TOP <span class="db-chip db-chip-cyan">Bar</span></div>
+      <div style="height:255px;position:relative;"><canvas id="scoreChart"></canvas></div>
     </div>
-    <div class="db-card" style="height:300px;padding:16px;">
-      <div class="db-chart-title">Dars soatlari <span class="db-chip">Bar</span></div>
-      <div style="height:240px;position:relative;"><canvas id="hoursChart"></canvas></div>
+    <div class="db-card" style="height:320px;padding:16px;">
+      <div class="db-chart-title">O'rtacha davomat % <span class="db-chip">Bar</span></div>
+      <div style="height:255px;position:relative;"><canvas id="attendanceChart"></canvas></div>
     </div>
   </div>
 
   <div class="db-card" style="margin-top:16px;">
     <div class="db-chart-title">O'qituvchilar reytingi</div>
     <table class="db-table">
-      <thead><tr><th>#</th><th>O'qituvchi</th><th>O'quvchilar</th><th>Guruhlar</th><th>Soatlar</th><th>Daromad</th></tr></thead>
-      <tbody id="teacherTable"><tr><td colspan="6" class="db-empty">Yuklanmoqda...</td></tr></tbody>
+      <thead><tr><th>#</th><th>O'qituvchi</th><th>Ball</th><th>Davomat</th><th>Dropout</th><th>Imtihon</th><th>Guruh</th><th>O'quvchi</th></tr></thead>
+      <tbody id="teacherTable"><tr><td colspan="8" class="db-empty">Yuklanmoqda...</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -70,76 +70,123 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script>
 const API_URL = "{% url 'core:teacher_performance_api' %}";
-let revChart, hrChart, controller;
-const el = id => document.getElementById(id);
-const FMT = v => new Intl.NumberFormat('uz-UZ').format(Math.round(v||0)) + ' so\'m';
-const SHORT = v => { const n=Math.round(v||0); return n>=1000000?(n/1000000).toFixed(1)+'M':n>=1000?(n/1000).toFixed(0)+'K':String(n); };
+let scoreChart, attendanceChart, controller;
+const el = (id) => document.getElementById(id);
+const shortMoney = (value) => {
+  const n = Math.round(value || 0);
+  if (Math.abs(n) >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (Math.abs(n) >= 1000) return (n / 1000).toFixed(0) + 'K';
+  return String(n);
+};
+const pct = (value) => (parseFloat(value) || 0).toFixed(1) + '%';
+
+function rankMeta(score, index) {
+  if (index < 3) return { icon: ['🥇', '🥈', '🥉'][index], color: '#22c55e', bg: 'rgba(34,197,94,.1)' };
+  if ((parseFloat(score) || 0) >= 70) return { icon: '●', color: '#f59e0b', bg: 'rgba(245,158,11,.1)' };
+  return { icon: '●', color: '#ef4444', bg: 'rgba(239,68,68,.1)' };
+}
 
 async function loadData() {
   if (controller) controller.abort();
   controller = new AbortController();
   const params = new URLSearchParams();
-  const df = el('dateFrom')?.value; const dt = el('dateTo')?.value;
+  const df = el('dateFrom')?.value;
+  const dt = el('dateTo')?.value;
   if (df) params.set('date_from', df);
   if (dt) params.set('date_to', dt);
   try {
-    const res = await fetch(API_URL + '?' + params, { signal: controller.signal });
-    const d = await res.json();
-    el('kv-total').textContent = d.total_teachers ?? '—';
-    el('kv-revenue').textContent = SHORT(d.total_revenue);
-    el('kv-avg').textContent = SHORT(d.avg_revenue_per_teacher);
-    el('kv-ratio').textContent = d.student_teacher_ratio ? d.student_teacher_ratio.toFixed(1) : '—';
-    renderRevenueChart(d.teachers || []);
-    renderHoursChart(d.teachers || []);
-    renderTable(d.teachers || []);
-  } catch(e) { if (e.name !== 'AbortError') console.error(e); }
+    const response = await fetch(API_URL + '?' + params.toString(), { signal: controller.signal });
+    if (!response.ok) throw new Error('teacher api failed');
+    const data = await response.json();
+    el('kv-total').textContent = data.total_teachers ?? '—';
+    el('kv-revenue').textContent = shortMoney(data.total_revenue);
+    el('kv-avg').textContent = shortMoney(data.avg_revenue_per_teacher);
+    el('kv-ratio').textContent = data.student_teacher_ratio ? data.student_teacher_ratio.toFixed(1) : '—';
+    renderCharts(data.teachers || []);
+    renderTable(data.teachers || []);
+  } catch (error) {
+    if (error.name !== 'AbortError') console.error(error);
+  }
 }
 
-function renderRevenueChart(teachers) {
-  const top = teachers.slice(0,10);
-  const ctx = el('revenueChart').getContext('2d');
-  if (revChart) revChart.destroy();
-  revChart = new Chart(ctx, {
-    type: 'bar', data: {
-      labels: top.map(t => (t.name||t.full_name||'—').slice(0,18)),
-      datasets: [{ label: 'Daromad', data: top.map(t => t.revenue||0), backgroundColor: 'rgba(168,85,247,.7)', borderRadius: 5, borderSkipped: false }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y',
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color: '#64748b', callback: v => SHORT(v) }, grid: { color: 'rgba(255,255,255,.04)' } },
-        y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } }
-      }
-    }
-  });
-}
+function renderCharts(teachers) {
+  const top = teachers.slice(0, 10);
+  const scoreCtx = el('scoreChart').getContext('2d');
+  const attendanceCtx = el('attendanceChart').getContext('2d');
 
-function renderHoursChart(teachers) {
-  const top = teachers.slice(0,10);
-  const ctx = el('hoursChart').getContext('2d');
-  if (hrChart) hrChart.destroy();
-  hrChart = new Chart(ctx, {
-    type: 'bar', data: {
-      labels: top.map(t => (t.name||t.full_name||'—').slice(0,18)),
-      datasets: [{ label: 'Soatlar', data: top.map(t => t.hours||0), backgroundColor: 'rgba(56,189,248,.7)', borderRadius: 5, borderSkipped: false }]
+  if (scoreChart) scoreChart.destroy();
+  scoreChart = new Chart(scoreCtx, {
+    type: 'bar',
+    data: {
+      labels: top.map((teacher) => (teacher.name || '—').slice(0, 18)),
+      datasets: [{
+        label: 'Ball',
+        data: top.map((teacher) => teacher.score || 0),
+        backgroundColor: top.map((teacher, index) => rankMeta(teacher.score, index).color),
+        borderRadius: 6,
+        borderSkipped: false,
+      }],
     },
-    options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: 'y',
       plugins: { legend: { display: false } },
       scales: {
         x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,.04)' } },
-        y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } }
-      }
-    }
+        y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } },
+      },
+    },
+  });
+
+  if (attendanceChart) attendanceChart.destroy();
+  attendanceChart = new Chart(attendanceCtx, {
+    type: 'bar',
+    data: {
+      labels: top.map((teacher) => (teacher.name || '—').slice(0, 18)),
+      datasets: [{
+        label: 'Davomat %',
+        data: top.map((teacher) => teacher.avg_attendance_pct || 0),
+        backgroundColor: 'rgba(56,189,248,.78)',
+        borderRadius: 6,
+        borderSkipped: false,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#64748b', callback: (value) => value + '%' }, grid: { color: 'rgba(255,255,255,.04)' } },
+        y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } },
+      },
+    },
   });
 }
 
 function renderTable(teachers) {
-  el('teacherTable').innerHTML = teachers.map((t,i) =>
-    `<tr><td><span class="db-list-rank">${i+1}</span></td><td>${t.name||t.full_name||'—'}</td><td>${t.students_count||0}</td><td>${t.groups_count||0}</td><td>${t.hours||0}</td><td>${FMT(t.revenue||0)}</td></tr>`
-  ).join('') || '<tr><td colspan="6" class="db-empty">Ma\'lumot yo\'q</td></tr>';
+  el('teacherTable').innerHTML = teachers.map((teacher, index) => {
+    const meta = rankMeta(teacher.score, index);
+    return `<tr>
+      <td><span class="db-list-rank" style="background:${meta.bg}; color:${meta.color};">${meta.icon}</span></td>
+      <td>${teacher.name || '—'}</td>
+      <td><span style="display:inline-flex; padding:6px 10px; border-radius:999px; background:${meta.bg}; color:${meta.color}; font-weight:800;">${(teacher.score || 0).toFixed(1)}</span></td>
+      <td>${pct(teacher.avg_attendance_pct || 0)}</td>
+      <td>${teacher.dropout_count || 0}</td>
+      <td>${(teacher.exam_avg_score || 0).toFixed(1)}</td>
+      <td>${teacher.groups_count || 0}</td>
+      <td>${teacher.students_count || 0}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" class="db-empty">Ma\'lumot yo\'q</td></tr>';
 }
 
-function resetFilter() { el('dateFrom').value=''; el('dateTo').value=''; loadData(); }
+function resetFilter() {
+  el('dateFrom').value = '';
+  el('dateTo').value = '';
+  loadData();
+}
+
 loadData();
 </script>
 {% endblock %}

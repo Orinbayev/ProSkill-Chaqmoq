@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static humanize %}
+{% block body_class %}salary-summary-page{% endblock %}
 
 {% block title %}Director Dashboard | Maoshlar va Foyda{% endblock %}
 
@@ -768,6 +769,9 @@
           </div>
         </div>
       </div>
+      <div style="margin-left:12px; display:flex; align-items:center;">
+        {% include "components/profile_dropdown.html" %}
+      </div>
     </div>
   </header>
 
@@ -956,6 +960,26 @@
     const kpiTopTeacherValue = document.getElementById("kpi-top-teacher-value");
 
     let chartInstance = null;
+    let chartPayload = null;
+    let activeTheme = getThemeMode();
+
+    function getThemeMode() {
+      return document.documentElement.getAttribute("data-role-theme") === "light" ? "light" : "dark";
+    }
+
+    function getChartTheme() {
+      const isLight = getThemeMode() === "light";
+      return {
+        text: isLight ? "#475569" : "#94a3b8",
+        textStrong: isLight ? "#334155" : "#cbd5e1",
+        grid: isLight ? "rgba(148, 163, 184, 0.18)" : "rgba(255, 255, 255, 0.05)",
+        tooltipBg: isLight ? "rgba(255, 255, 255, 0.98)" : "rgba(7, 10, 19, 0.92)",
+        tooltipBorder: isLight ? "rgba(148, 163, 184, 0.24)" : "rgba(255, 255, 255, 0.08)",
+        tooltipTitle: isLight ? "#0f172a" : "#ffffff",
+        tooltipBody: isLight ? "#334155" : "#cbd5e1",
+        pointBorder: isLight ? "#ffffff" : "#070a13"
+      };
+    }
 
     function formatNum(num) {
       return Number(num || 0).toLocaleString("uz-UZ") + " so'm";
@@ -1080,6 +1104,7 @@
       if (chartInstance) chartInstance.destroy();
 
       const context = ctx.getContext("2d");
+      const theme = getChartTheme();
 
       const gradTurnover = context.createLinearGradient(0, 0, 0, 360);
       gradTurnover.addColorStop(0, "rgba(250, 204, 21, 0.34)");
@@ -1101,7 +1126,7 @@
               pointRadius: 3,
               pointHoverRadius: 7,
               pointBackgroundColor: "#facc15",
-              pointBorderColor: "#070a13",
+              pointBorderColor: theme.pointBorder,
               pointBorderWidth: 2
             },
             {
@@ -1139,7 +1164,7 @@
             legend: {
               position: "bottom",
               labels: {
-                color: "#94a3b8",
+                color: theme.textStrong,
                 usePointStyle: true,
                 pointStyle: "circle",
                 padding: 24,
@@ -1153,11 +1178,11 @@
               }
             },
             tooltip: {
-              backgroundColor: "rgba(7, 10, 19, 0.92)",
-              titleColor: "#ffffff",
-              bodyColor: "#cbd5e1",
+              backgroundColor: theme.tooltipBg,
+              titleColor: theme.tooltipTitle,
+              bodyColor: theme.tooltipBody,
               padding: 12,
-              borderColor: "rgba(255, 255, 255, 0.08)",
+              borderColor: theme.tooltipBorder,
               borderWidth: 1,
               displayColors: true,
               callbacks: {
@@ -1173,11 +1198,11 @@
                 display: false
               },
               grid: {
-                color: "rgba(255, 255, 255, 0.05)",
+                color: theme.grid,
                 drawBorder: false
               },
               ticks: {
-                color: "#64748b",
+                color: theme.text,
                 maxTicksLimit: 6,
                 font: {
                   size: 11,
@@ -1199,7 +1224,7 @@
                 display: false
               },
               ticks: {
-                color: "#64748b",
+                color: theme.text,
                 font: {
                   size: 11,
                   weight: "700"
@@ -1221,6 +1246,20 @@
       teacherCountBadge.textContent = "N/A";
     }
 
+    function renderDashboard(data) {
+      if (!data || !data.teacher_data) {
+        renderEmptyState("Tanlangan davr uchun ma'lumot topilmadi.");
+        setErrorState();
+        return;
+      }
+
+      chartPayload = data;
+      updatePeriodContent(data.year || yearSelect.value);
+      renderTableRows(data.teacher_data);
+      updateKPIs(data.teacher_data);
+      createChart(data.chart_labels, data.chart_teacher_income, data.chart_center_income, data.chart_total_turnover);
+    }
+
     function loadData() {
       const year = yearSelect.value;
       const month = monthSelect.value;
@@ -1230,10 +1269,7 @@
       })
         .then(response => response.json())
         .then(data => {
-          updatePeriodContent(data.year);
-          renderTableRows(data.teacher_data);
-          updateKPIs(data.teacher_data);
-          createChart(data.chart_labels, data.chart_teacher_income, data.chart_center_income, data.chart_total_turnover);
+          renderDashboard(data);
         })
         .catch(error => {
           console.error("Teacher salary summary load error:", error);
@@ -1246,18 +1282,23 @@
     yearSelect.addEventListener("change", loadData);
     monthSelect.addEventListener("change", loadData);
 
-    function initDashboard(data) {
-      if (!data || !data.teacher_data) {
-        renderEmptyState("Tanlangan davr uchun ma'lumot topilmadi.");
-        setErrorState();
+    function rerenderChartForTheme() {
+      const nextTheme = getThemeMode();
+      if (nextTheme === activeTheme) {
         return;
       }
 
-      updatePeriodContent(yearSelect.value);
-      renderTableRows(data.teacher_data);
-      updateKPIs(data.teacher_data);
-      createChart(data.chart_labels, data.chart_teacher_income, data.chart_center_income, data.chart_total_turnover);
+      activeTheme = nextTheme;
+      if (chartPayload) {
+        createChart(chartPayload.chart_labels, chartPayload.chart_teacher_income, chartPayload.chart_center_income, chartPayload.chart_total_turnover);
+      }
     }
+
+    document.addEventListener("role-theme:change", rerenderChartForTheme);
+    new MutationObserver(rerenderChartForTheme).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-role-theme"]
+    });
 
     try {
       const jsonEl = document.getElementById("dashboard-data-json");
@@ -1265,7 +1306,7 @@
         throw new Error("dashboard-data-json topilmadi");
       }
 
-      initDashboard(JSON.parse(jsonEl.textContent));
+      renderDashboard(JSON.parse(jsonEl.textContent));
     } catch (error) {
       console.error("Teacher salary summary init error:", error);
       renderEmptyState("Sahifa ma'lumotlarini tayyorlashda xatolik yuz berdi.");

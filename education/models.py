@@ -64,6 +64,7 @@ class Group(SoftDeleteMixin, models.Model):
     kurs_narxi = models.PositiveIntegerField(default=500000, help_text="Bir oylik to‘lov (so‘mda)")
     oqituvchi_foiz = models.PositiveIntegerField(default=40, help_text="O‘qituvchi foizi (%)")
     oy_dars_soni = models.PositiveIntegerField(default=12, help_text="Bir oyda nechta dars bo‘ladi")
+    max_students = models.PositiveSmallIntegerField(default=15, verbose_name="Maksimal o'quvchi soni")
 
     # Course duration planning (backward-compatible)
     course_start_date = models.DateField(null=True, blank=True, verbose_name="Kurs boshlanish sanasi")
@@ -741,6 +742,40 @@ class PaymentAllocation(SoftDeleteMixin, models.Model):
 
     def __str__(self):
         return f"pay#{self.payment_id} -> {self.tuition_month.month}: {self.amount}"
+
+
+class CenterExpense(models.Model):
+    CATEGORY_RENT = "rent"
+    CATEGORY_SALARY = "salary"
+    CATEGORY_UTILITY = "utility"
+    CATEGORY_EQUIPMENT = "equipment"
+    CATEGORY_MARKETING = "marketing"
+    CATEGORY_OTHER = "other"
+
+    CATEGORY_CHOICES = [
+        (CATEGORY_RENT, "Ijara"),
+        (CATEGORY_SALARY, "Xodim maoshi"),
+        (CATEGORY_UTILITY, "Kommunal"),
+        (CATEGORY_EQUIPMENT, "Jihozlar"),
+        (CATEGORY_MARKETING, "Reklama"),
+        (CATEGORY_OTHER, "Boshqa"),
+    ]
+
+    center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, null=True, blank=True)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
+    amount = models.PositiveIntegerField()
+    description = models.CharField(max_length=255, blank=True)
+    date = models.DateField()
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-date", "-id"]
+
+    def __str__(self):
+        return f"{self.get_category_display()} — {self.amount}"
+
+
 class TeacherCompensationRule(models.Model):
     COMPENSATION_TYPES = (
         ("PERCENT", "Percent"),

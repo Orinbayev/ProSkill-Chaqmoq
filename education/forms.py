@@ -3,7 +3,7 @@ from pathlib import Path
 from django import forms
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from .models import CertificateTemplate, CenterExamSetting, Enrollment, ExamResult, Group
+from .models import CenterExpense, CertificateTemplate, CenterExamSetting, Enrollment, ExamResult, Group
 
 User = get_user_model()
 
@@ -41,6 +41,7 @@ class GroupForm(forms.ModelForm):
             "nom",
             "oqituvchi",
             "kurs_narxi",
+            "max_students",
             "course_start_date",
             "duration_months",
             "estimated_end_date",
@@ -49,11 +50,13 @@ class GroupForm(forms.ModelForm):
             "nom": "Guruh nomi",
             "oqituvchi": "O‘qituvchi",
             "kurs_narxi": "Kurs narxi (so‘m)",
+            "max_students": "Maksimal o'quvchi soni",
             "course_start_date": "Boshlanish sanasi",
             "duration_months": "Davomiyligi (oy)",
             "estimated_end_date": "Tugash sanasi",
         }
         widgets = {
+            "max_students": forms.NumberInput(attrs={"min": "1", "step": "1"}),
             "course_start_date": forms.DateInput(attrs={"type": "date"}),
             "duration_months": forms.NumberInput(attrs={"min": "1", "step": "1"}),
             "estimated_end_date": forms.DateInput(
@@ -79,6 +82,7 @@ class GroupForm(forms.ModelForm):
 
         for f in [
             "kurs_narxi",
+            "max_students",
             "course_start_date",
             "duration_months",
             "estimated_end_date",
@@ -88,6 +92,8 @@ class GroupForm(forms.ModelForm):
 
         # Default qiymatlar
         if "kurs_narxi" in self.fields: self.fields["kurs_narxi"].initial = 500000
+        if "max_students" in self.fields:
+            self.fields["max_students"].initial = self.initial.get("max_students") or getattr(self.instance, "max_students", None) or 15
         if (
             "course_start_date" in self.fields
             and not self.is_bound
@@ -99,6 +105,10 @@ class GroupForm(forms.ModelForm):
         if "duration_months" in self.fields:
             self.fields["duration_months"].widget.attrs.update(
                 {"placeholder": "Masalan: 2"}
+            )
+        if "max_students" in self.fields:
+            self.fields["max_students"].widget.attrs.update(
+                {"placeholder": "Masalan: 15"}
             )
         if "estimated_end_date" in self.fields:
             self.fields["estimated_end_date"].widget.attrs.update(
@@ -150,6 +160,7 @@ class GroupForm(forms.ModelForm):
         obj = super().save(commit=False)
         obj.estimated_end_date_manual = False
         obj.kurs_narxi = obj.kurs_narxi or 500000
+        obj.max_students = obj.max_students or 15
         if commit:
             obj.save()
         return obj
@@ -186,6 +197,29 @@ class ITGroupForm(GroupForm):
         if commit:
             obj.save()
         return obj
+
+
+class CenterExpenseForm(forms.ModelForm):
+    class Meta:
+        model = CenterExpense
+        fields = ["category", "amount", "description", "date"]
+        labels = {
+            "category": "Kategoriya",
+            "amount": "Summa (so'm)",
+            "description": "Izoh",
+            "date": "Sana",
+        }
+        widgets = {
+            "category": forms.Select(attrs={"class": "form-select"}),
+            "amount": forms.NumberInput(attrs={"class": "form-control", "min": "0", "step": "1000"}),
+            "description": forms.TextInput(attrs={"class": "form-control", "maxlength": "255"}),
+            "date": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.is_bound and "date" in self.fields:
+            self.fields["date"].initial = timezone.localdate()
 
 
 

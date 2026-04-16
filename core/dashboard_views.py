@@ -19,7 +19,19 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 
 from accounts.models import Branch, Center, User
-from education.models import Attendance, Category, Enrollment, Group, MonthlyFinanceSnapshot, Payment, PaymentAllocation
+from core.alerts import get_director_alerts
+from education.models import (
+    Attendance,
+    Category,
+    CenterExpense,
+    Enrollment,
+    ExamResult,
+    Group,
+    MonthlyFinanceSnapshot,
+    Payment,
+    PaymentAllocation,
+    StudentGroupHistory,
+)
 from store.models import Expense, Lead, Product, PurchaseRequest, Sale
 
 
@@ -198,11 +210,17 @@ def _monthly_turnover_for_center(center, m_start, m_end):
 
 
 def _monthly_expenses_for_center(center, m_start, m_end):
-    active_total = int(
+    legacy_total = int(
         _expenses_for_center(center)
         .filter(sana__date__range=(m_start, m_end))
         .aggregate(s=Sum("summa"))["s"] or 0
     )
+    center_total = int(
+        _center_expenses_for_center(center)
+        .filter(date__range=(m_start, m_end))
+        .aggregate(s=Sum("amount"))["s"] or 0
+    )
+    active_total = legacy_total + center_total
     if active_total:
         return active_total
 
@@ -221,6 +239,10 @@ def _expenses_for_center(center):
         | Q(center__isnull=True, worker__center=center)
         | Q(center__isnull=True, product__center=center)
     )
+
+
+def _center_expenses_for_center(center):
+    return CenterExpense.objects.filter(center=center)
 
 
 def _teacher_compensation(center, d_from, d_to):
@@ -273,8 +295,11 @@ def _financial_payload(center, d_from, d_to):
     pay_count = pay_qs.count()
     avg_pay = int(revenue / pay_count) if pay_count else 0
 
-    exp_qs = _expenses_for_center(center).filter(sana__date__range=(d_from, d_to))
-    expenses = int(exp_qs.aggregate(s=Sum("summa"))["s"] or 0)
+    legacy_exp_qs = _expenses_for_center(center).filter(sana__date__range=(d_from, d_to))
+    center_exp_qs = _center_expenses_for_center(center).filter(date__range=(d_from, d_to))
+    legacy_expenses = int(legacy_exp_qs.aggregate(s=Sum("summa"))["s"] or 0)
+    center_expenses = int(center_exp_qs.aggregate(s=Sum("amount"))["s"] or 0)
+    expenses = legacy_expenses + center_expenses
     teacher_comp = _teacher_compensation(center, d_from, d_to)
     total_cost = expenses + teacher_comp
     net_profit = revenue - total_cost
@@ -284,18 +309,21 @@ def _financial_payload(center, d_from, d_to):
     prev_to = period["prev_to"]
     prev_pay_qs = _payments_for_center(center).filter(paid_date__range=(prev_from, prev_to))
     prev_revenue = int(prev_pay_qs.aggregate(s=Sum("summa"))["s"] or 0)
-    prev_expenses = int(
-        _expenses_for_center(center).filter(sana__date__range=(prev_from, prev_to)).aggregate(s=Sum("summa"))["s"] or 0
-    )
+    prev_expenses = _monthly_expenses_for_center(center, prev_from, prev_to)
     prev_teacher_comp = _teacher_compensation(center, prev_from, prev_to)
     prev_total_cost = prev_expenses + prev_teacher_comp
     prev_net_profit = prev_revenue - prev_total_cost
 
-    m_labels, m_inc, m_exp = [], [], []
+    m_labels, m_inc, m_exp, m_teacher, m_cost = [], [], [], [], []
     for ms, me, lbl in _six_month_range(d_to):
         m_labels.append(lbl)
-        m_inc.append(_monthly_turnover_for_center(center, ms, me))
-        m_exp.append(_monthly_expenses_for_center(center, ms, me))
+        month_income = _monthly_turnover_for_center(center, ms, me)
+        month_expense = _monthly_expenses_for_center(center, ms, me)
+        month_teacher = _teacher_compensation(center, ms, me)
+        m_inc.append(month_income)
+        m_exp.append(month_expense)
+        m_teacher.append(month_teacher)
+        m_cost.append(month_expense + month_teacher)
 
     cat_breakdown = [
         {
@@ -304,6 +332,38 @@ def _financial_payload(center, d_from, d_to):
         }
         for row in pay_qs.values("group__category_obj__name").annotate(total=Sum("summa")).order_by("-total")[:6]
     ]
+
+    expense_category_map = dict(CenterExpense.CATEGORY_CHOICES)
+    expense_breakdown = [
+        {
+            "category": row["category"],
+            "label": expense_category_map.get(row["category"], row["category"]),
+            "value": int(row["total"] or 0),
+        }
+        for row in center_exp_qs.values("category").annotate(total=Sum("amount")).order_by("-total")
+    ]
+    if legacy_expenses:
+        expense_breakdown.append(
+            {
+                "category": "legacy",
+                "label": "Legacy / boshqa",
+                "value": legacy_expenses,
+            }
+        )
+
+    today = timezone.localdate()
+    this_year = []
+    last_year = []
+    for month in range(1, 13):
+        this_start = date(today.year, month, 1)
+        this_end = this_start.replace(day=calendar.monthrange(this_start.year, this_start.month)[1])
+        last_start = date(today.year - 1, month, 1)
+        last_end = last_start.replace(day=calendar.monthrange(last_start.year, last_start.month)[1])
+        this_year.append(_monthly_turnover_for_center(center, this_start, this_end))
+        last_year.append(_monthly_turnover_for_center(center, last_start, last_end))
+    this_year_ytd = sum(this_year[: today.month])
+    last_year_ytd = sum(last_year[: today.month])
+    growth_pct = round((this_year_ytd - last_year_ytd) / max(last_year_ytd, 1) * 100, 1)
 
     return {
         "kpis": {
@@ -317,6 +377,8 @@ def _financial_payload(center, d_from, d_to):
             "pay_count": pay_count,
             "changes": {
                 "revenue": _pct_change(revenue, prev_revenue),
+                "expenses": _pct_change(expenses, prev_expenses),
+                "teacher_comp": _pct_change(teacher_comp, prev_teacher_comp),
                 "total_cost": _pct_change(total_cost, prev_total_cost),
                 "net_profit": _pct_change(net_profit, prev_net_profit),
                 "pay_count": _pct_change(pay_count, prev_pay_qs.count()),
@@ -326,8 +388,19 @@ def _financial_payload(center, d_from, d_to):
             "m_labels": m_labels,
             "m_inc": m_inc,
             "m_exp": m_exp,
+            "m_teacher": m_teacher,
+            "m_cost": m_cost,
             "pay_types": _payment_type_breakdown(pay_qs),
             "cat_breakdown": cat_breakdown,
+        },
+        "breakdowns": {
+            "expenses": expense_breakdown,
+        },
+        "year_compare": {
+            "labels": [UZ_MONTHS[month] for month in range(1, 13)],
+            "this_year": this_year,
+            "last_year": last_year,
+            "growth_pct": growth_pct,
         },
         "period": {
             "from": str(d_from),
@@ -336,6 +409,11 @@ def _financial_payload(center, d_from, d_to):
             "prev_from": str(prev_from),
             "prev_to": str(prev_to),
         },
+        "revenue": revenue,
+        "expense": expenses,
+        "teacher_comp": teacher_comp,
+        "profit": net_profit,
+        "profit_margin": profit_margin,
     }
 
 
@@ -442,27 +520,73 @@ def _teacher_payload(center, d_from, d_to):
     stats = []
     for teacher in teachers:
         revenue = int(
-            Payment.objects.filter(
+            _payments_for_center(center).filter(
                 group__oqituvchi=teacher,
-                center=center,
                 paid_date__range=(d_from, d_to),
             ).aggregate(s=Sum("summa"))["s"] or 0
         )
         students = active_enrollments.filter(group__oqituvchi=teacher).values("student").distinct().count()
-        groups = Group.objects.filter(center=center, oqituvchi=teacher, is_archived=False).count()
-        hours = Attendance.objects.filter(
+        groups = Group.objects.filter(center=center, oqituvchi=teacher, is_archived=False, is_deleted=False).count()
+        teacher_att_qs = Attendance.objects.filter(
             group__oqituvchi=teacher,
             group__center=center,
             date__range=(d_from, d_to),
-        ).filter(_attendance_present_filter()).count()
+        )
+        total_att = teacher_att_qs.count()
+        present_att = teacher_att_qs.filter(_attendance_present_filter()).count()
+        avg_attendance_pct = round(present_att / total_att * 100, 1) if total_att else 0
+        hours = present_att
+        dropout_count = (
+            StudentGroupHistory.objects.filter(
+                center=center,
+                group__oqituvchi=teacher,
+                end_date__range=(d_from, d_to),
+            )
+            .values("student")
+            .distinct()
+            .count()
+        )
+        percent_avg = (
+            ExamResult.objects.filter(
+                center=center,
+                teacher=teacher,
+                exam_date__range=(d_from, d_to),
+            )
+            .exclude(percent__isnull=True)
+            .aggregate(a=Avg("percent"))["a"]
+        )
+        score_avg = (
+            ExamResult.objects.filter(
+                center=center,
+                teacher=teacher,
+                exam_date__range=(d_from, d_to),
+            )
+            .exclude(score__isnull=True)
+            .aggregate(a=Avg("score"))["a"]
+        )
+        exam_avg_score = round(float(percent_avg if percent_avg is not None else score_avg or 0), 1)
+        dropout_rate = dropout_count / max(students + dropout_count, 1)
+        score = round(
+            (avg_attendance_pct * 0.4)
+            + ((1 - dropout_rate) * 100 * 0.4)
+            + (exam_avg_score * 0.2),
+            1,
+        )
         stats.append({
-            "name": f"{teacher.ism} {teacher.familya}",
+            "name": teacher.get_full_name(),
             "revenue": revenue,
             "students": students,
+            "students_count": students,
             "groups": groups,
+            "groups_count": groups,
             "hours": hours,
+            "avg_attendance_pct": avg_attendance_pct,
+            "dropout_count": dropout_count,
+            "exam_avg_score": exam_avg_score,
+            "dropout_rate": round(dropout_rate * 100, 1),
+            "score": max(0, min(score, 100)),
         })
-    stats.sort(key=lambda row: (-row["revenue"], -row["students"], row["name"]))
+    stats.sort(key=lambda row: (-row["score"], -row["avg_attendance_pct"], -row["students"], row["name"]))
 
     total_rev = sum(row["revenue"] for row in stats)
     avg_rev = int(total_rev / total_teachers) if total_teachers else 0
@@ -471,8 +595,7 @@ def _teacher_payload(center, d_from, d_to):
     prev_from = period["prev_from"]
     prev_to = period["prev_to"]
     prev_total_rev = int(
-        Payment.objects.filter(
-            center=center,
+        _payments_for_center(center).filter(
             group__oqituvchi__role="teacher",
             paid_date__range=(prev_from, prev_to),
         ).aggregate(s=Sum("summa"))["s"] or 0
@@ -495,6 +618,8 @@ def _teacher_payload(center, d_from, d_to):
             "revenues": [row["revenue"] for row in top10],
             "students": [row["students"] for row in top10],
             "hours": [row["hours"] for row in top10],
+            "scores": [row["score"] for row in top10],
+            "attendance": [row["avg_attendance_pct"] for row in top10],
         },
         "teacher_list": stats[:15],
         "period": {
@@ -504,6 +629,11 @@ def _teacher_payload(center, d_from, d_to):
             "prev_from": str(prev_from),
             "prev_to": str(prev_to),
         },
+        "total_teachers": total_teachers,
+        "avg_revenue_per_teacher": avg_rev,
+        "total_revenue": total_rev,
+        "student_teacher_ratio": ratio,
+        "teachers": stats[:15],
     }
 
 
@@ -516,22 +646,33 @@ def _groups_payload(center, d_from, d_to):
     avg_size = round(active_enroll_total / active_groups, 1) if active_groups else 0
 
     group_stats = []
+    total_capacity = 0
+    total_active_students = 0
     for group in groups_qs.select_related("oqituvchi", "category_obj")[:40]:
-        enrolled = Enrollment.objects.filter(group=group, is_active=True).count()
+        enrolled = Enrollment.objects.filter(group=group, is_active=True, is_deleted=False).count()
+        capacity = int(getattr(group, "max_students", 0) or 0)
+        fill_pct = round(enrolled * 100 / capacity, 1) if capacity else 0
         revenue = int(
             Payment.objects.filter(group=group, paid_date__range=(d_from, d_to)).aggregate(s=Sum("summa"))["s"] or 0
         )
         att_tot = Attendance.objects.filter(group=group, date__range=(d_from, d_to)).count()
         att_pre = Attendance.objects.filter(group=group, date__range=(d_from, d_to)).filter(_attendance_present_filter()).count()
+        total_capacity += capacity
+        total_active_students += enrolled
         group_stats.append({
             "name": group.nom,
             "teacher": f"{group.oqituvchi.ism} {group.oqituvchi.familya}" if group.oqituvchi else "—",
             "category": group.category_obj.name if group.category_obj else group.category,
+            "student_count": enrolled,
             "enrolled": enrolled,
+            "capacity": capacity,
+            "fill_pct": fill_pct,
             "revenue": revenue,
             "att_rate": round(att_pre / att_tot * 100, 1) if att_tot else 0,
         })
-    group_stats.sort(key=lambda row: (-row["revenue"], -row["enrolled"], row["name"]))
+    group_stats.sort(key=lambda row: (-row["fill_pct"], -row["revenue"], row["name"]))
+
+    avg_fill_rate = round(total_active_students * 100 / total_capacity, 1) if total_capacity else 0
 
     cat_dist = list(
         Enrollment.objects.filter(group__center=center, is_active=True)
@@ -557,6 +698,8 @@ def _groups_payload(center, d_from, d_to):
             "active_groups": active_groups,
             "active_enroll_total": active_enroll_total,
             "avg_size": avg_size,
+            "total_capacity": total_capacity,
+            "avg_fill_rate": avg_fill_rate,
             "total_rev": sum(group["revenue"] for group in group_stats),
             "changes": {
                 "total_rev": _pct_change(sum(group["revenue"] for group in group_stats), prev_rev),
@@ -580,6 +723,20 @@ def _groups_payload(center, d_from, d_to):
             "prev_from": str(prev_from),
             "prev_to": str(prev_to),
         },
+        "total_groups": total_groups,
+        "active_groups": active_groups,
+        "total_enrolled": active_enroll_total,
+        "avg_fill_rate": avg_fill_rate,
+        "total_revenue": sum(group["revenue"] for group in group_stats),
+        "groups": group_stats[:12],
+        "enrollment_trend": {
+            "labels": m_labels,
+            "enrolled": m_enroll,
+        },
+        "category_distribution": [
+            {"name": row["group__category_obj__name"] or "Boshqa", "count": row["cnt"]}
+            for row in cat_dist
+        ],
     }
 
 
@@ -1195,10 +1352,11 @@ def dashboard_hub(request):
     center = _get_center(request)
     if not center:
         return redirect("core:home")
-    return render(request, "core/dashboards/hub.html", {
+    return render(request, "core/dashboard_director.html", {
         "center": center,
         "page_title": "Dashboard Markazi",
         "active_dash": "hub",
+        "director_alerts": get_director_alerts(center),
     })
 
 

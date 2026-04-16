@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load humanize %}
+{% block body_class %}expenses-page{% endblock %}
 
 {% block title %}
 📉 Xarajatlar — ChaqmoqApp
@@ -841,37 +842,77 @@
         // Chart
         const dataJson = document.getElementById('chart_data_json'), labelJson = document.getElementById('chart_labels_json');
         if (dataJson && labelJson) {
-            new ApexCharts(document.querySelector("#expenseChart"), {
-                series: [{ name: "Xarajat", data: JSON.parse(dataJson.textContent) }],
-                stroke: { curve: 'smooth', width: 3, lineCap: 'round' }, colors: ['#a855f7'],
-                markers: { size: 0, hover: { size: 5 }, strokeWidth: 0 },
-                chart: {
-                    type: 'area',
-                    height: 220,
-                    offsetY: -8,
-                    toolbar: { show: false },
-                    background: 'transparent',
-                    parentHeightOffset: 0
-                },
-                fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.35, opacityTo: 0.04, stops: [0, 90, 100] } },
-                xaxis: {
-                    categories: JSON.parse(labelJson.textContent),
-                    labels: { style: { colors: '#94a3b8', fontSize: '11px' } },
-                    axisBorder: { show: false },
-                    axisTicks: { show: false }
-                },
-                yaxis: {
-                    tickAmount: 4,
-                    labels: { style: { colors: '#94a3b8', fontSize: '11px' }, formatter: v => Number(v).toLocaleString() }
-                },
-                grid: {
-                    borderColor: 'rgba(255, 255, 255, 0.05)',
-                    strokeDashArray: 4,
-                    padding: { left: 4, right: 8, top: 4, bottom: -8 }
-                },
-                legend: { show: false },
-                theme: { mode: 'dark' }
-            }).render();
+            const chartLabels = JSON.parse(labelJson.textContent);
+            const chartData = JSON.parse(dataJson.textContent);
+            const chartEl = document.querySelector("#expenseChart");
+            let expenseChart = null;
+            let activeTheme = getThemeMode();
+
+            function getThemeMode() {
+                return document.documentElement.getAttribute('data-role-theme') === 'light' ? 'light' : 'dark';
+            }
+
+            function buildOptions() {
+                const isLightTheme = getThemeMode() === 'light';
+                const labelColor = isLightTheme ? '#475569' : '#94a3b8';
+                const gridColor = isLightTheme ? 'rgba(37, 99, 235, 0.12)' : 'rgba(255, 255, 255, 0.05)';
+
+                return {
+                    series: [{ name: "Xarajat", data: chartData }],
+                    stroke: { curve: 'smooth', width: 3, lineCap: 'round' },
+                    colors: ['#a855f7'],
+                    markers: { size: 0, hover: { size: 5 }, strokeWidth: 0 },
+                    chart: {
+                        type: 'area',
+                        height: 220,
+                        offsetY: -8,
+                        toolbar: { show: false },
+                        background: 'transparent',
+                        parentHeightOffset: 0
+                    },
+                    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.35, opacityTo: 0.04, stops: [0, 90, 100] } },
+                    xaxis: {
+                        categories: chartLabels,
+                        labels: { style: { colors: labelColor, fontSize: '11px' } },
+                        axisBorder: { show: false },
+                        axisTicks: { show: false }
+                    },
+                    yaxis: {
+                        tickAmount: 4,
+                        labels: { style: { colors: labelColor, fontSize: '11px' }, formatter: v => Number(v).toLocaleString() }
+                    },
+                    grid: {
+                        borderColor: gridColor,
+                        strokeDashArray: 4,
+                        padding: { left: 4, right: 8, top: 4, bottom: -8 }
+                    },
+                    legend: { show: false },
+                    theme: { mode: isLightTheme ? 'light' : 'dark' }
+                };
+            }
+
+            function renderExpenseChart() {
+                if (expenseChart) {
+                    expenseChart.destroy();
+                }
+                expenseChart = new ApexCharts(chartEl, buildOptions());
+                expenseChart.render();
+            }
+
+            renderExpenseChart();
+
+            const themeObserver = new MutationObserver(function () {
+                const nextTheme = getThemeMode();
+                if (nextTheme !== activeTheme) {
+                    activeTheme = nextTheme;
+                    renderExpenseChart();
+                }
+            });
+
+            themeObserver.observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ['data-role-theme']
+            });
         }
 
         // Modals

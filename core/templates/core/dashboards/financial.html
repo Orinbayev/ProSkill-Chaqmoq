@@ -1,9 +1,60 @@
 {% extends 'base.html' %}
-{% load static humanize %}
+{% load static %}
 {% block title %}Moliya Dashboardi — ChaqmoqApp{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/dashboards.css' %}">
+<style>
+  .fin-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .fin-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 14px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 800;
+    border: 1px solid rgba(34, 197, 94, 0.18);
+    background: rgba(34, 197, 94, 0.1);
+    color: #bbf7d0;
+  }
+  .fin-growth-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .fin-chart-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .fin-chart-grid-three {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .fin-card-body {
+    height: 320px;
+  }
+  @media (max-width: 980px) {
+    .fin-chart-grid,
+    .fin-chart-grid-three {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -13,27 +64,43 @@
       <a href="{% url 'core:dashboard_hub' %}" class="db-back-btn"><i class="fa-solid fa-arrow-left"></i></a>
       <div>
         <div class="db-topbar-title"><i class="fa-solid fa-chart-line" style="color:#22c55e;margin-right:8px;"></i>Moliya Dashboardi</div>
-        <div class="db-topbar-sub">Daromad · Xarajat · Foyda tahlili</div>
+        <div class="db-topbar-sub">Daromad · Xarajat · O'qituvchi maoshi · Sof foyda</div>
       </div>
     </div>
-    <div class="db-filter-bar">
-      <input type="date" id="dateFrom" class="db-filter-input">
-      <input type="date" id="dateTo" class="db-filter-input">
-      <button class="db-filter-btn" onclick="loadData()"><i class="fa-solid fa-rotate"></i> Yangilash</button>
-      <button class="db-filter-btn db-filter-btn-ghost" onclick="resetFilter()">Tiklash</button>
+    <div class="fin-actions">
+      <a href="{% url 'education:expense_create' %}" class="fin-link-btn">
+        <i class="fa-solid fa-plus"></i>
+        <span>Xarajat qo'shish</span>
+      </a>
+      <div class="db-filter-bar">
+        <input type="date" id="dateFrom" class="db-filter-input">
+        <input type="date" id="dateTo" class="db-filter-input">
+        <button class="db-filter-btn" onclick="loadData()"><i class="fa-solid fa-rotate"></i> Yangilash</button>
+        <button class="db-filter-btn db-filter-btn-ghost" onclick="resetFilter()">Tiklash</button>
+      </div>
     </div>
+  </div>
+
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin:14px 0 16px; flex-wrap:wrap;">
+    <div style="font-size:12px; color:#64748b; font-weight:700;">Joriy yil YTD taqqoslash</div>
+    <span class="fin-growth-badge" id="yearGrowthBadge">Yuklanmoqda...</span>
   </div>
 
   <div class="db-kpi-grid">
     <div class="db-kpi-card">
       <div class="db-kpi-label">Jami daromad</div>
       <div class="db-kpi-value" id="kv-revenue">—</div>
-      <div class="db-kpi-sub">Davr uchun</div>
+      <div class="db-kpi-sub">Tanlangan davr</div>
     </div>
     <div class="db-kpi-card">
-      <div class="db-kpi-label">Jami xarajat</div>
+      <div class="db-kpi-label">Operatsion xarajat</div>
       <div class="db-kpi-value" id="kv-expense">—</div>
-      <div class="db-kpi-sub">Davr uchun</div>
+      <div class="db-kpi-sub">Ijara, kommunal, boshqa</div>
+    </div>
+    <div class="db-kpi-card">
+      <div class="db-kpi-label">O'qituvchi maoshi</div>
+      <div class="db-kpi-value" id="kv-teacher-comp">—</div>
+      <div class="db-kpi-sub">Davomat asosida</div>
     </div>
     <div class="db-kpi-card">
       <div class="db-kpi-label">Sof foyda</div>
@@ -47,103 +114,194 @@
     </div>
   </div>
 
-  <div class="db-chart-grid">
-    <div class="db-card" style="height:280px;padding:16px;">
-      <div class="db-chart-title">6 oylik trend <span class="db-chip db-chip-cyan">Chiziqli</span></div>
-      <div style="height:220px;position:relative;"><canvas id="trendChart"></canvas></div>
+  <div class="fin-chart-grid">
+    <div class="db-card" style="padding:16px;">
+      <div class="db-chart-title">Kirim vs xarajat <span class="db-chip db-chip-cyan">Bar</span></div>
+      <div id="incomeExpenseChart" class="fin-card-body"></div>
     </div>
-    <div class="db-card" style="height:280px;padding:16px;">
-      <div class="db-chart-title">To'lov turlari <span class="db-chip">Donut</span></div>
-      <div style="height:220px;position:relative;"><canvas id="payTypeChart"></canvas></div>
+    <div class="db-card" style="padding:16px;">
+      <div class="db-chart-title">Bu yil vs o'tgan yil <span class="db-chip">Line</span></div>
+      <div id="yearCompareChart" class="fin-card-body"></div>
     </div>
   </div>
 
-  <div class="db-card" style="margin-top:16px;">
-    <div class="db-chart-title">To'lov usullari taqsimoti</div>
-    <table class="db-table">
-      <thead><tr><th>To'lov turi</th><th>Soni</th><th>Summa</th><th>Ulush</th></tr></thead>
-      <tbody id="payTypeTable"><tr><td colspan="4" class="db-empty">Yuklanmoqda...</td></tr></tbody>
-    </table>
+  <div class="fin-chart-grid-three">
+    <div class="db-card" style="padding:16px;">
+      <div class="db-chart-title">Oylik xarajatlar bo'linishi</div>
+      <table class="db-table">
+        <thead><tr><th>Kategoriya</th><th>Summa</th><th>Ulush</th></tr></thead>
+        <tbody id="expenseTable"><tr><td colspan="3" class="db-empty">Yuklanmoqda...</td></tr></tbody>
+      </table>
+    </div>
+    <div class="db-card" style="padding:16px;">
+      <div class="db-chart-title">To'lov turlari <span class="db-chip">Donut</span></div>
+      <div id="paymentTypeChart" style="height:250px;"></div>
+      <table class="db-table" style="margin-top:8px;">
+        <thead><tr><th>Tur</th><th>Soni</th><th>Summa</th></tr></thead>
+        <tbody id="paymentTypeTable"><tr><td colspan="3" class="db-empty">Yuklanmoqda...</td></tr></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="{% static 'vendor/apexcharts/apexcharts.min.js' %}"></script>
 <script>
 const API_URL = "{% url 'core:financial_api' %}";
-let trendChart, payTypeChart, controller;
+let incomeExpenseChart, yearCompareChart, paymentTypeChart, controller;
 
-const FMT = v => new Intl.NumberFormat('uz-UZ').format(Math.round(v||0)) + ' so\'m';
-const SHORT = v => { const n=Math.round(v||0); return n>=1000000?(n/1000000).toFixed(1)+'M':n>=1000?(n/1000).toFixed(0)+'K':String(n); };
-const PCT = v => (parseFloat(v)||0).toFixed(1) + '%';
-const el = id => document.getElementById(id);
-const COLORS = ['#22c55e','#38bdf8','#f59e0b','#a855f7','#ef4444','#14b8a6'];
+const el = (id) => document.getElementById(id);
+const nf = new Intl.NumberFormat('uz-UZ');
+const fmtMoney = (value) => nf.format(Math.round(value || 0)) + " so'm";
+const shortMoney = (value) => {
+  const n = Math.round(value || 0);
+  if (Math.abs(n) >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (Math.abs(n) >= 1000) return (n / 1000).toFixed(0) + 'K';
+  return String(n);
+};
+const pct = (value) => (parseFloat(value) || 0).toFixed(1) + '%';
+const colors = ['#22c55e', '#38bdf8', '#f59e0b', '#a855f7', '#ef4444', '#14b8a6', '#94a3b8'];
+
+function setGrowthBadge(value) {
+  const badge = el('yearGrowthBadge');
+  const numeric = parseFloat(value) || 0;
+  const positive = numeric >= 0;
+  badge.textContent = `${positive ? '▲' : '▼'} ${Math.abs(numeric).toFixed(1)}% o'tgan yilga nisbatan`;
+  badge.style.background = positive ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)';
+  badge.style.color = positive ? '#34d399' : '#f87171';
+}
+
+function renderIncomeExpenseChart(data) {
+  const options = {
+    chart: { type: 'bar', height: 320, toolbar: { show: false }, background: 'transparent' },
+    series: [
+      { name: 'Daromad', data: data.charts.m_inc || [] },
+      { name: 'Jami xarajat', data: data.charts.m_cost || [] },
+    ],
+    xaxis: {
+      categories: data.charts.m_labels || [],
+      labels: { style: { colors: '#94a3b8' } },
+      axisBorder: { color: 'rgba(255,255,255,.06)' },
+      axisTicks: { color: 'rgba(255,255,255,.06)' },
+    },
+    yaxis: {
+      labels: {
+        style: { colors: '#94a3b8' },
+        formatter: (value) => shortMoney(value),
+      },
+    },
+    colors: ['#22c55e', '#ef4444'],
+    plotOptions: { bar: { borderRadius: 6, columnWidth: '48%' } },
+    dataLabels: { enabled: false },
+    grid: { borderColor: 'rgba(255,255,255,.05)' },
+    legend: { labels: { colors: '#cbd5e1' } },
+    tooltip: { theme: 'dark', y: { formatter: (value) => fmtMoney(value) } },
+  };
+  if (incomeExpenseChart) incomeExpenseChart.destroy();
+  incomeExpenseChart = new ApexCharts(document.querySelector('#incomeExpenseChart'), options);
+  incomeExpenseChart.render();
+}
+
+function renderYearCompareChart(data) {
+  const options = {
+    chart: { type: 'line', height: 320, toolbar: { show: false }, background: 'transparent' },
+    series: [
+      { name: 'Bu yil', data: data.year_compare.this_year || [] },
+      { name: "O'tgan yil", data: data.year_compare.last_year || [], color: '#475569' },
+    ],
+    stroke: { curve: 'smooth', width: 3 },
+    xaxis: {
+      categories: data.year_compare.labels || [],
+      labels: { style: { colors: '#94a3b8' } },
+    },
+    yaxis: {
+      labels: {
+        style: { colors: '#94a3b8' },
+        formatter: (value) => shortMoney(value),
+      },
+    },
+    colors: ['#38bdf8', '#475569'],
+    dataLabels: { enabled: false },
+    grid: { borderColor: 'rgba(255,255,255,.05)' },
+    legend: { labels: { colors: '#cbd5e1' } },
+    tooltip: { theme: 'dark', y: { formatter: (value) => fmtMoney(value) } },
+  };
+  if (yearCompareChart) yearCompareChart.destroy();
+  yearCompareChart = new ApexCharts(document.querySelector('#yearCompareChart'), options);
+  yearCompareChart.render();
+}
+
+function renderPaymentTypeChart(rows) {
+  const labels = rows.map((row) => row.label || row.type || '—');
+  const values = rows.map((row) => row.value || row.amount || 0);
+  const options = {
+    chart: { type: 'donut', height: 250, toolbar: { show: false }, background: 'transparent' },
+    series: values,
+    labels,
+    colors,
+    legend: { position: 'bottom', labels: { colors: '#cbd5e1' } },
+    dataLabels: { enabled: false },
+    tooltip: { theme: 'dark', y: { formatter: (value) => fmtMoney(value) } },
+  };
+  if (paymentTypeChart) paymentTypeChart.destroy();
+  paymentTypeChart = new ApexCharts(document.querySelector('#paymentTypeChart'), options);
+  paymentTypeChart.render();
+
+  const tbody = el('paymentTypeTable');
+  tbody.innerHTML = rows.map((row, index) =>
+    `<tr>
+      <td><span style="color:${colors[index % colors.length]}">●</span> ${row.label || row.type || '—'}</td>
+      <td>${row.count || 0}</td>
+      <td>${fmtMoney(row.value || row.amount || 0)}</td>
+    </tr>`
+  ).join('') || '<tr><td colspan="3" class="db-empty">Ma\'lumot yo\'q</td></tr>';
+}
+
+function renderExpenseTable(rows) {
+  const tbody = el('expenseTable');
+  const total = rows.reduce((sum, row) => sum + (row.value || 0), 0);
+  tbody.innerHTML = rows.map((row) => {
+    const share = total ? (((row.value || 0) / total) * 100).toFixed(1) : '0.0';
+    return `<tr><td>${row.label || row.category || '—'}</td><td>${fmtMoney(row.value || 0)}</td><td>${share}%</td></tr>`;
+  }).join('') || '<tr><td colspan="3" class="db-empty">Ma\'lumot yo\'q</td></tr>';
+}
 
 async function loadData() {
   if (controller) controller.abort();
   controller = new AbortController();
   const params = new URLSearchParams();
-  const df = el('dateFrom')?.value; const dt = el('dateTo')?.value;
+  const df = el('dateFrom')?.value;
+  const dt = el('dateTo')?.value;
   if (df) params.set('date_from', df);
   if (dt) params.set('date_to', dt);
+
   try {
-    const res = await fetch(API_URL + '?' + params, { signal: controller.signal });
-    const d = await res.json();
-    el('kv-revenue').textContent = SHORT(d.revenue);
-    el('kv-expense').textContent = SHORT(d.expense);
-    el('kv-profit').textContent = SHORT(d.profit);
-    el('ks-profit').textContent = (d.profit||0) >= 0 ? 'Ijobiy natija' : 'Zarar';
-    el('kv-margin').textContent = PCT(d.profit_margin);
-    renderTrend(d.trend || {});
-    renderPayType(d.payment_types || []);
-  } catch(e) { if (e.name !== 'AbortError') console.error(e); }
+    const response = await fetch(API_URL + '?' + params.toString(), { signal: controller.signal });
+    if (!response.ok) throw new Error('financial_api failed');
+    const data = await response.json();
+
+    el('kv-revenue').textContent = shortMoney(data.kpis.revenue);
+    el('kv-expense').textContent = shortMoney(data.kpis.expenses);
+    el('kv-teacher-comp').textContent = shortMoney(data.kpis.teacher_comp);
+    el('kv-profit').textContent = shortMoney(data.kpis.net_profit);
+    el('ks-profit').textContent = data.kpis.net_profit >= 0 ? 'Ijobiy natija' : 'Zarar';
+    el('kv-margin').textContent = pct(data.kpis.profit_margin);
+    setGrowthBadge(data.year_compare.growth_pct);
+
+    renderIncomeExpenseChart(data);
+    renderYearCompareChart(data);
+    renderPaymentTypeChart(data.charts.pay_types || []);
+    renderExpenseTable(data.breakdowns.expenses || []);
+  } catch (error) {
+    if (error.name !== 'AbortError') console.error(error);
+  }
 }
 
-function renderTrend(t) {
-  const ctx = el('trendChart').getContext('2d');
-  if (trendChart) trendChart.destroy();
-  trendChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: t.labels || [],
-      datasets: [
-        { label: 'Daromad', data: t.revenue || [], borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,.12)', fill: true, tension: .4, pointRadius: 3 },
-        { label: 'Xarajat', data: t.expense || [], borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,.08)', fill: true, tension: .4, pointRadius: 3 },
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
-      scales: {
-        x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,.04)' } },
-        y: { ticks: { color: '#64748b', callback: v => SHORT(v) }, grid: { color: 'rgba(255,255,255,.04)' } }
-      }
-    }
-  });
+function resetFilter() {
+  el('dateFrom').value = '';
+  el('dateTo').value = '';
+  loadData();
 }
 
-function renderPayType(rows) {
-  const ctx = el('payTypeChart').getContext('2d');
-  if (payTypeChart) payTypeChart.destroy();
-  const labels = rows.map(r => r.label || r.type || '—');
-  const amounts = rows.map(r => r.amount || r.summa || 0);
-  payTypeChart = new Chart(ctx, {
-    type: 'doughnut',
-    data: { labels, datasets: [{ data: amounts, backgroundColor: COLORS, borderWidth: 0, hoverOffset: 6 }] },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 }, padding: 12 } } }
-    }
-  });
-  const tbody = el('payTypeTable');
-  const total = amounts.reduce((a,b)=>a+b,0);
-  tbody.innerHTML = rows.map((r,i) => {
-    const amt = r.amount || r.summa || 0;
-    const pct = total ? (amt/total*100).toFixed(1) : 0;
-    return `<tr><td><span style="color:${COLORS[i%COLORS.length]}">●</span> ${r.label||r.type||'—'}</td><td>${r.count||'—'}</td><td>${FMT(amt)}</td><td>${pct}%</td></tr>`;
-  }).join('') || '<tr><td colspan="4" class="db-empty">Ma\'lumot yo\'q</td></tr>';
-}
-
-function resetFilter() { el('dateFrom').value=''; el('dateTo').value=''; loadData(); }
 loadData();
 </script>
 {% endblock %}

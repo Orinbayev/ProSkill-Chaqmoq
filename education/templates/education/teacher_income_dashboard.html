@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% block body_class %}teacher-income-page{% endblock %}
 
 {% block title %}
 💰 Daromadim — ChaqmoqApp
@@ -357,36 +358,59 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const commonOptions = {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                    titleColor: '#facc15',
-                    bodyColor: '#fff',
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                    borderWidth: 1,
-                    padding: 12,
-                    displayColors: false,
-                    callbacks: {
-                        label: (ctx) => 'Daromad: ' + ctx.parsed.y.toLocaleString() + ' UZS'
-                    }
-                }
-            },
-            scales: {
-                y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: 'rgba(255, 255, 255, 0.4)', font: { size: 10 } } },
-                x: { grid: { display: false }, ticks: { color: 'rgba(255, 255, 255, 0.4)', font: { size: 10 } } }
-            },
-            animation: { duration: 2000, easing: 'easeOutElastic' }
-        };
-
-        // Initialize data from Django (using json_script for safety)
         let dailyLabels = [];
         let dailyIncome = [];
         let monthlyLabels = [];
         let monthlyIncome = [];
+        let dailyChart = null;
+        let monthlyChart = null;
+        let activeTheme = getThemeMode();
+
+        function getThemeMode() {
+            return document.documentElement.getAttribute('data-role-theme') === 'light' ? 'light' : 'dark';
+        }
+
+        function buildCommonOptions() {
+            const isLightTheme = getThemeMode() === 'light';
+            const axisColor = isLightTheme ? '#475569' : 'rgba(255, 255, 255, 0.4)';
+            const gridColor = isLightTheme ? 'rgba(37, 99, 235, 0.12)' : 'rgba(255, 255, 255, 0.05)';
+            const tooltipBackground = isLightTheme ? 'rgba(255, 255, 255, 0.98)' : 'rgba(15, 23, 42, 0.95)';
+            const tooltipTitle = isLightTheme ? '#0f172a' : '#facc15';
+            const tooltipBody = isLightTheme ? '#334155' : '#ffffff';
+            const tooltipBorder = isLightTheme ? 'rgba(37, 99, 235, 0.18)' : 'rgba(255, 255, 255, 0.1)';
+
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: tooltipBackground,
+                        titleColor: tooltipTitle,
+                        bodyColor: tooltipBody,
+                        borderColor: tooltipBorder,
+                        borderWidth: 1,
+                        padding: 12,
+                        displayColors: false,
+                        callbacks: {
+                            label: (ctx) => 'Daromad: ' + ctx.parsed.y.toLocaleString() + ' UZS'
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: gridColor },
+                        ticks: { color: axisColor, font: { size: 10 } }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: axisColor, font: { size: 10 } }
+                    }
+                },
+                animation: { duration: 1200, easing: 'easeOutQuart' }
+            };
+        }
         
         try {
             dailyLabels = JSON.parse(document.getElementById('daily-labels-data').textContent) || [];
@@ -399,39 +423,63 @@
         
         const selectedMonth = parseInt('{{ selected_month|escapejs }}') || 0;
 
-        // DAILY CHART
-        const ctxD = document.getElementById('dailyChart').getContext('2d');
-        const gradD = ctxD.createLinearGradient(0, 0, 0, 400);
-        gradD.addColorStop(0, '#facc15');
-        gradD.addColorStop(1, '#f59e0b');
+        function renderIncomeCharts() {
+            if (dailyChart) {
+                dailyChart.destroy();
+            }
+            if (monthlyChart) {
+                monthlyChart.destroy();
+            }
 
-        new Chart(ctxD, {
-            type: 'bar',
-            data: {
-                labels: dailyLabels,
-                datasets: [{
-                    data: dailyIncome,
-                    backgroundColor: gradD,
-                    borderRadius: 8,
-                    hoverBackgroundColor: '#fff'
-                }]
-            },
-            options: commonOptions
+            const ctxD = document.getElementById('dailyChart').getContext('2d');
+            const gradD = ctxD.createLinearGradient(0, 0, 0, 400);
+            gradD.addColorStop(0, '#facc15');
+            gradD.addColorStop(1, '#f59e0b');
+
+            dailyChart = new Chart(ctxD, {
+                type: 'bar',
+                data: {
+                    labels: dailyLabels,
+                    datasets: [{
+                        data: dailyIncome,
+                        backgroundColor: gradD,
+                        borderRadius: 8,
+                        hoverBackgroundColor: '#facc15'
+                    }]
+                },
+                options: buildCommonOptions()
+            });
+
+            const ctxM = document.getElementById('monthlyChart').getContext('2d');
+            monthlyChart = new Chart(ctxM, {
+                type: 'bar',
+                data: {
+                    labels: monthlyLabels,
+                    datasets: [{
+                        data: monthlyIncome,
+                        backgroundColor: function (ctx) {
+                            return ctx.dataIndex === (selectedMonth - 1) ? '#facc15' : 'rgba(56, 189, 248, 0.22)';
+                        },
+                        borderRadius: 8
+                    }]
+                },
+                options: buildCommonOptions()
+            });
+        }
+
+        renderIncomeCharts();
+
+        const themeObserver = new MutationObserver(function () {
+            const nextTheme = getThemeMode();
+            if (nextTheme !== activeTheme) {
+                activeTheme = nextTheme;
+                renderIncomeCharts();
+            }
         });
 
-        // MONTHLY CHART
-        const ctxM = document.getElementById('monthlyChart').getContext('2d');
-        new Chart(ctxM, {
-            type: 'bar',
-            data: {
-                labels: monthlyLabels,
-                datasets: [{
-                    data: monthlyIncome,
-                    backgroundColor: (ctx) => ctx.dataIndex === (selectedMonth - 1) ? '#facc15' : 'rgba(56, 189, 248, 0.2)',
-                    borderRadius: 8
-                }]
-            },
-            options: commonOptions
+        themeObserver.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['data-role-theme']
         });
     });
 </script>
