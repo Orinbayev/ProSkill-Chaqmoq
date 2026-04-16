@@ -341,3 +341,52 @@ class ResetCenterToAprilDebtCommandTests(TestCase):
         self.assertEqual(self.enrollment_one.jami_tolangan, 300_000)
         self.assertEqual(self.enrollment_two.jami_tolangan, 100_000)
         self.assertIn("DRY-RUN", stdout.getvalue())
+
+    def test_command_allows_zero_fee_enrollments_to_remain_free(self):
+        free_student = User.objects.create_user(
+            email="free@test.local",
+            password="testpass123",
+            role="student",
+            center=self.center,
+            ism="Free",
+            familya="Student",
+            telefon1="+998901110003",
+        )
+        free_enrollment = Enrollment.objects.create(
+            center=self.center,
+            group=self.group,
+            student=free_student,
+            kurs_narhi=0,
+            student_payable_amount=0,
+            oqituvchi_foiz=40,
+            is_active=True,
+        )
+
+        stdout = StringIO()
+        call_command(
+            "reset_center_to_april_debt",
+            center_slug=self.center.slug,
+            month="2026-04",
+            stdout=stdout,
+        )
+
+        verification = verify_center_single_month_debt(self.center, self.target_month)
+        self.assertEqual(verification.active_enrollment_count, 3)
+        self.assertEqual(verification.expected_debtor_count, 2)
+        self.assertEqual(verification.debtor_count, 2)
+        self.assertEqual(verification.total_debt, 550_000)
+
+        free_tm = TuitionMonth.objects.get(enrollment=free_enrollment, month=self.target_month)
+        self.assertEqual(free_tm.fee_amount, 0)
+
+        qarzdorlar_response = self.client.get(self.qarzdorlar_url, self.april_range)
+        self.assertEqual(qarzdorlar_response.status_code, 200)
+        self.assertEqual(qarzdorlar_response.context["stats_summary"]["debtors"], 2)
+        debtor_emails = {
+            row["student"].email
+            for row in qarzdorlar_response.context["page_obj"].object_list
+        }
+        self.assertNotIn(free_student.email, debtor_emails)
+
+        output = stdout.getvalue()
+        self.assertIn("Fee=0 enrollmentlar topildi", output)

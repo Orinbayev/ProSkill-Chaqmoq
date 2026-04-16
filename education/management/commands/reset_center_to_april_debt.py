@@ -85,6 +85,7 @@ class Command(BaseCommand):
         self.stdout.write("-" * 72)
         self.stdout.write("Boshlang'ich summary:")
         self.stdout.write(f"  Active enrollments : {summary.active_enrollment_count}")
+        self.stdout.write(f"  Payable enrollments: {summary.payable_enrollment_count}")
         self.stdout.write(f"  Active payments    : {summary.payment_count}")
         self.stdout.write(f"  Active allocations : {summary.allocation_count}")
         self.stdout.write(f"  Active tuition mons: {summary.tuition_month_count}")
@@ -93,14 +94,14 @@ class Command(BaseCommand):
         self.stdout.write(f"  Expected total debt: {summary.expected_total_debt:,} so'm")
 
         if summary.zero_fee_enrollments:
-            self.stdout.write(self.style.ERROR("Fee 0 bo'lib qolgan enrollmentlar topildi:"))
+            self.stdout.write(self.style.WARNING("Fee=0 enrollmentlar topildi, ular bepul bo'lib qoladi:"))
             for row in summary.zero_fee_enrollments[:20]:
                 self.stdout.write(
                     f"  - enrollment #{row['enrollment_id']}: "
                     f"{row['student']} [{row['group']}]"
                 )
-            raise CommandError(
-                "Fee 0 bo'lgan enrollmentlar bor. Avval ularning oylik summasini to'g'rilang."
+            self.stdout.write(
+                "  Ular uchun April TuitionMonth fee=0 saqlanadi va debtor ro'yxatiga kirmaydi."
             )
 
         if dry_run:
@@ -112,6 +113,10 @@ class Command(BaseCommand):
                 f"  Har bir active enrollment uchun {target_month.isoformat()} TuitionMonth qoldiriladi."
             )
             self.stdout.write("  Boshqa oylar debt/pay ta'siridan chiqariladi.")
+            if summary.zero_fee_enrollments:
+                self.stdout.write(
+                    f"  {len(summary.zero_fee_enrollments)} ta free enrollment qarzdor bo'lib chiqmaydi."
+                )
             self.stdout.write("=" * 72)
             return
 
@@ -144,9 +149,9 @@ class Command(BaseCommand):
                 f"(active enrollment: {verification.active_enrollment_count})"
             )
             self.stdout.write(
-                f"  {'OK' if verification.debtor_count == verification.active_enrollment_count else 'FAIL'} "
+                f"  {'OK' if verification.debtor_count == verification.expected_debtor_count else 'FAIL'} "
                 f"debtor count       : {verification.debtor_count} "
-                f"(active enrollment: {verification.active_enrollment_count})"
+                f"(expected payable: {verification.expected_debtor_count})"
             )
             self.stdout.write(
                 f"  {'OK' if verification.total_debt == verification.expected_total_debt else 'FAIL'} "
@@ -157,7 +162,7 @@ class Command(BaseCommand):
             if (
                 verification.remaining_payments != 0
                 or verification.remaining_allocations != 0
-                or verification.debtor_count != verification.active_enrollment_count
+                or verification.debtor_count != verification.expected_debtor_count
                 or verification.total_debt != verification.expected_total_debt
             ):
                 raise CommandError("Verification muvaffaqiyatsiz tugadi. Transaction rollback qilindi.")

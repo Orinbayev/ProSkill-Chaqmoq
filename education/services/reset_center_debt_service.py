@@ -15,6 +15,7 @@ from education.services.tuition import parse_month_str, tuition_month_fee_field
 @dataclass
 class CenterResetSummary:
     active_enrollment_count: int
+    payable_enrollment_count: int
     payment_count: int
     allocation_count: int
     tuition_month_count: int
@@ -30,6 +31,7 @@ class CenterResetVerification:
     remaining_allocations: int
     target_month_tuition_count: int
     debtor_count: int
+    expected_debtor_count: int
     total_debt: int
     active_enrollment_count: int
     expected_total_debt: int
@@ -89,7 +91,7 @@ def _tuition_months_for_center(center):
 
 
 def _resolve_fee_amount(enrollment) -> int:
-    if enrollment.student_payable_amount not in (None, "", 0):
+    if enrollment.student_payable_amount not in (None, ""):
         return int(enrollment.student_payable_amount)
     if getattr(enrollment, "kurs_narhi", None):
         return int(enrollment.kurs_narhi or 0)
@@ -107,6 +109,7 @@ def collect_center_reset_summary(center, target_month: date) -> CenterResetSumma
 
     zero_fee_enrollments = []
     expected_total_debt = 0
+    payable_enrollment_count = 0
     for enrollment in active_enrollments:
         fee = _resolve_fee_amount(enrollment)
         if fee <= 0:
@@ -117,10 +120,13 @@ def collect_center_reset_summary(center, target_month: date) -> CenterResetSumma
                     "group": enrollment.group.nom,
                 }
             )
+        else:
+            payable_enrollment_count += 1
         expected_total_debt += fee
 
     return CenterResetSummary(
         active_enrollment_count=len(active_enrollments),
+        payable_enrollment_count=payable_enrollment_count,
         payment_count=payments_qs.count(),
         allocation_count=allocations_qs.count(),
         tuition_month_count=tuition_qs.count(),
@@ -178,16 +184,6 @@ def reset_center_to_single_month_debt(center, target_month: date) -> dict:
             "target_month_restored": 0,
             "target_month_updated": 0,
         }
-
-    if summary.zero_fee_enrollments:
-        names = ", ".join(
-            f"#{row['enrollment_id']} {row['student']} [{row['group']}]"
-            for row in summary.zero_fee_enrollments[:10]
-        )
-        raise ValueError(
-            "Quyidagi enrollmentlarda fee 0 bo'lib qoldi; ularni debtor qilib bo'lmaydi: "
-            + names
-        )
 
     now = timezone.now()
 
@@ -268,12 +264,15 @@ def verify_center_single_month_debt(center, target_month: date) -> CenterResetVe
         .annotate(d=F("f") - F("p"))
         .filter(d__gt=0)
     )
-    expected_total_debt = sum(_resolve_fee_amount(enrollment) for enrollment in active_enrollments)
+    resolved_fees = [_resolve_fee_amount(enrollment) for enrollment in active_enrollments]
+    expected_total_debt = sum(resolved_fees)
+    expected_debtor_count = sum(1 for fee in resolved_fees if fee > 0)
     return CenterResetVerification(
         remaining_payments=_payments_for_center(center).count(),
         remaining_allocations=_allocations_for_center(center).count(),
         target_month_tuition_count=_tuition_months_for_center(center).filter(month=target_month).count(),
         debtor_count=debtor_qs.count(),
+        expected_debtor_count=expected_debtor_count,
         total_debt=int(debtor_qs.aggregate(s=Sum("d"))["s"] or 0),
         active_enrollment_count=active_enrollment_count,
         expected_total_debt=expected_total_debt,
