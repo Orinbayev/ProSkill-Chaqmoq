@@ -353,7 +353,7 @@ class StudentProfileAndRankingAccessTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "accounts/user_edit.html")
 
-    def test_student_ranking_only_links_to_own_detail(self):
+    def test_student_ranking_links_to_same_center_students(self):
         self.client.force_login(self.student)
 
         response = self.client.get(self._tenant_url(reverse("chaqmoq:reyting")))
@@ -363,12 +363,12 @@ class StudentProfileAndRankingAccessTests(TestCase):
             response,
             f'data-href="{reverse("chaqmoq:student_detail", args=[self.student.id])}"',
         )
-        self.assertNotContains(
+        self.assertContains(
             response,
             f'data-href="{reverse("chaqmoq:student_detail", args=[self.other_student.id])}"',
         )
 
-    def test_student_detail_for_other_student_redirects_back_to_ranking(self):
+    def test_student_can_open_other_student_detail_in_same_center(self):
         self.client.force_login(self.student)
 
         response = self.client.get(
@@ -377,10 +377,5 @@ class StudentProfileAndRankingAccessTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertRedirects(
-            response,
-            self._tenant_url(reverse("chaqmoq:reyting")),
-            status_code=302,
-            target_status_code=200,
-            fetch_redirect_response=False,
-        )
+        self.assertTemplateUsed(response, "chaqmoq/student_detail.html")
+        self.assertContains(response, self.other_student.ism)

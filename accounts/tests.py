@@ -205,6 +205,42 @@ class SuperadminCenterCreateTests(TestCase):
             ).exists()
         )
 
+    @patch("billing.services.superadmin_apply_subscription", side_effect=RuntimeError("sync failed"))
+    def test_center_create_still_succeeds_when_subscription_sync_fails(self, _subscription_mock):
+        response = self.client.post(
+            reverse("platform_global:center_create"),
+            {
+                "name": "Fallback Create Center",
+                "slug": "fallback-create-center",
+                "address": "Chilonzor",
+                "plan": self.plan.code,
+                "status": Center.STATUS_ACTIVE,
+                "ism": "Vali",
+                "familya": "Director",
+                "email": "vali.director.centercreate@test.uz",
+                "telefon1": "+998907654321",
+                "password": "strong-pass-123",
+                "duration": "3",
+            },
+            follow=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], reverse("platform_global:superadmin_dashboard"))
+
+        center = Center.objects.get(slug="fallback-create-center")
+        self.assertEqual(center.plan, self.plan.code)
+        self.assertEqual(center.monthly_price, self.plan.monthly_price)
+        self.assertEqual(center.max_students, self.plan.max_students)
+        self.assertTrue(center.expires_at is not None)
+        self.assertTrue(
+            User.objects.filter(
+                email="vali.director.centercreate@test.uz",
+                role="director",
+                center=center,
+            ).exists()
+        )
+
 
 class StudentLimitResolutionTests(TestCase):
     def setUp(self):

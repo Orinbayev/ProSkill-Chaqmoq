@@ -13,6 +13,10 @@ from django.http import JsonResponse
 import json
 from django.core.serializers.json import DjangoJSONEncoder
 from core.center_features import CENTER_UI_FEATURE_DEFAULTS
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 @login_required
@@ -217,6 +221,8 @@ def center_create(request):
     
     if request.method == 'POST':
         if center_form.is_valid() and director_form.is_valid():
+            center = None
+            director = None
             try:
                 with transaction.atomic():
                     # 1. Markaz yaratish
@@ -224,27 +230,28 @@ def center_create(request):
                     
                     # 2. Director yaratish
                     director = director_form.save(center=center)
-                    
-                    # 3. Subscription yaratish
-                    from django.utils import timezone
-                    from datetime import timedelta
-                    
-                    plan_code = center.plan
-                    plan = SubscriptionPlan.objects.filter(code=plan_code, active=True).first()
-                    if not plan:
-                        plan = SubscriptionPlan.objects.filter(active=True).first()
-                    
-                    # Get duration/months from POST (default 1)
-                    try:
-                        duration = int(request.POST.get('duration', 1))
-                    except (ValueError, TypeError):
-                        duration = 1
-                    
-                    if plan:
-                        # Auto-calculate expiry
-                        now = timezone.now()
-                        expires_at = now + timedelta(days=30 * duration)
 
+                # 3. Subscription yaratish
+                from django.utils import timezone
+                from datetime import timedelta
+
+                plan_code = center.plan
+                plan = SubscriptionPlan.objects.filter(code=plan_code, active=True).first()
+                if not plan:
+                    plan = SubscriptionPlan.objects.filter(active=True).first()
+
+                # Get duration/months from POST (default 1)
+                try:
+                    duration = int(request.POST.get('duration', 1))
+                except (ValueError, TypeError):
+                    duration = 1
+
+                subscription_warning = None
+                if plan:
+                    now = timezone.now()
+                    expires_at = now + timedelta(days=30 * duration)
+
+                    try:
                         # Use the canonical service — creates sub, syncs limits + features atomically
                         from billing.services import superadmin_apply_subscription
                         superadmin_apply_subscription(
@@ -253,14 +260,44 @@ def center_create(request):
                             expires_at=expires_at,
                             actor=request.user,
                         )
-                    
-                    messages.success(
-                        request, 
-                        f"✅ Markaz '{center.name}' va Director '{director.email}' muvaffaqiyatli yaratildi!"
-                    )
-                    return redirect('platform_global:superadmin_dashboard')
+                    except Exception:
+                        # Center/director yaratilgan bo'lsa, obuna sync xatosi ularni bekor qilmasin.
+                        logger.exception(
+                            "center_create: subscription sync failed for center=%s plan=%s",
+                            getattr(center, "id", None),
+                            getattr(plan, "code", None),
+                        )
+                        center.plan = plan.code
+                        center.expires_at = expires_at
+                        center.monthly_price = plan.monthly_price
+                        center.max_students = plan.max_students
+                        center.capacity_limit = max(int(center.capacity_limit or 0), int(plan.max_students or 0))
+                        center.max_groups = plan.max_groups
+                        center.max_users = plan.max_users
+                        center.status = Center.STATUS_ACTIVE
+                        center.save(update_fields=[
+                            "plan",
+                            "expires_at",
+                            "monthly_price",
+                            "max_students",
+                            "capacity_limit",
+                            "max_groups",
+                            "max_users",
+                            "status",
+                        ])
+                        subscription_warning = (
+                            " Obuna sinxronlashda kichik xatolik bo'ldi, lekin markaz yaratildi."
+                        )
+
+                messages.success(
+                    request,
+                    f"✅ Markaz '{center.name}' va Director '{director.email}' muvaffaqiyatli yaratildi!"
+                    f"{subscription_warning or ''}"
+                )
+                return redirect('platform_global:superadmin_dashboard')
             except Exception as e:
                 from django.db import IntegrityError
+                logger.exception("center_create failed unexpectedly")
                 if isinstance(e, IntegrityError) and 'slug' in str(e).lower():
                     center_form.add_error(
                         'slug',

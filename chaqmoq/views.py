@@ -73,23 +73,22 @@ def _can_view_student(request, student) -> bool:
         return True
 
     center = get_active_center(request)
-    if center and student.center_id and student.center_id != center.id:
+    if center:
+        return student.center_id == center.id
+
+    if student.center_id and student.center_id != getattr(request.user, "center_id", None):
         return False
 
     role = getattr(request.user, "role", None)
-    if role in {"director", "manager", "teacher"}:
-        if center is None:
-            return False
-        return True
-    if role == "student":
-        return request.user.id == student.id
-    if role == "parent":
-        return request.user.children.filter(pk=student.pk).exists()
-    return False
+    return role in {"director", "manager", "teacher", "student", "parent"}
 
 
 def _student_detail_access_ids(request):
     if request.user.is_superuser:
+        return None
+
+    center = get_active_center(request)
+    if center:
         return None
 
     role = getattr(request.user, "role", None)
