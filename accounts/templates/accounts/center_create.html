@@ -24,6 +24,8 @@
         --sa-amber: #f59e0b;
         --sa-amber-m: rgba(245, 158, 11, 0.12);
         --sa-red: #ef4444;
+        --input-bg: rgba(255, 255, 255, 0.03);
+        --input-border: rgba(255, 255, 255, 0.1);
     }
 
     .sa-page {
@@ -491,7 +493,7 @@
                 {% if field.name == 'features' %}
                 <!-- Skip here, rendered separately below -->
                 {% elif field.name == 'expires_at' or field.name == 'capacity_limit' %}
-                <div style="display: none;">{{ field }}</div>
+                {{ field.as_hidden }}
                 {% else %}
                 <div class="sa-field {% if field.name == 'address' %}sa-form-full{% endif %}">
                     <label>{{ field.label }}</label>

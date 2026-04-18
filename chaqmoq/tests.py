@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from django.core.management import call_command
 from django.test import TestCase
+from django.urls import reverse
 
 from accounts.models import Center, User
 from chaqmoq.models import Ledger, Rule
@@ -284,3 +285,102 @@ class AttendanceMonthlyRuleTests(TestCase):
             [11],
         )
         self.assertFalse(Ledger.objects.filter(student=self.partial_student).exists())
+
+
+class StudentProfileAndRankingAccessTests(TestCase):
+    def setUp(self):
+        self.center = Center.objects.create(name="Ranking Center", slug="ranking-center")
+        self.teacher = User.objects.create_user(
+            email="teacher@ranking.test",
+            password="testpass123",
+            role="teacher",
+            center=self.center,
+            ism="Teacher",
+            familya="Ranking",
+        )
+        self.student = User.objects.create_user(
+            email="student@ranking.test",
+            password="testpass123",
+            role="student",
+            center=self.center,
+            ism="Ali",
+            familya="Student",
+            telefon1="+998901111111",
+        )
+        self.other_student = User.objects.create_user(
+            email="other-student@ranking.test",
+            password="testpass123",
+            role="student",
+            center=self.center,
+            ism="Vali",
+            familya="Student",
+            telefon1="+998902222222",
+        )
+
+        self.group = Group.objects.create(
+            center=self.center,
+            nom="Ranking Group",
+            oqituvchi=self.teacher,
+            kurs_narxi=100_000,
+            oqituvchi_foiz=40,
+            oy_dars_soni=12,
+        )
+        Enrollment.objects.create(
+            center=self.center,
+            group=self.group,
+            student=self.student,
+            kurs_narhi=100_000,
+            oqituvchi_foiz=40,
+            is_active=True,
+        )
+        Enrollment.objects.create(
+            center=self.center,
+            group=self.group,
+            student=self.other_student,
+            kurs_narhi=100_000,
+            oqituvchi_foiz=40,
+            is_active=True,
+        )
+
+    def _tenant_url(self, path: str) -> str:
+        return f"/{self.center.slug}{path}"
+
+    def test_student_can_open_profile_page_from_tenant_route(self):
+        self.client.force_login(self.student)
+
+        response = self.client.get(self._tenant_url(reverse("accounts:profile")))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "accounts/user_edit.html")
+
+    def test_student_ranking_only_links_to_own_detail(self):
+        self.client.force_login(self.student)
+
+        response = self.client.get(self._tenant_url(reverse("chaqmoq:reyting")))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            f'data-href="{reverse("chaqmoq:student_detail", args=[self.student.id])}"',
+        )
+        self.assertNotContains(
+            response,
+            f'data-href="{reverse("chaqmoq:student_detail", args=[self.other_student.id])}"',
+        )
+
+    def test_student_detail_for_other_student_redirects_back_to_ranking(self):
+        self.client.force_login(self.student)
+
+        response = self.client.get(
+            self._tenant_url(reverse("chaqmoq:student_detail", args=[self.other_student.id])),
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertRedirects(
+            response,
+            self._tenant_url(reverse("chaqmoq:reyting")),
+            status_code=302,
+            target_status_code=200,
+            fetch_redirect_response=False,
+        )

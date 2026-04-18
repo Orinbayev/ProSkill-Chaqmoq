@@ -237,10 +237,13 @@
 
   .rb-tr {
     transition: all 0.2s;
+  }
+
+  .rb-tr-link {
     cursor: pointer;
   }
 
-  .rb-tr:hover {
+  .rb-tr-link:hover {
     background: rgba(255, 255, 255, 0.04);
   }
 
@@ -403,7 +406,7 @@
       </thead>
       <tbody>
         {% for row in page_obj %}
-        <tr class="rb-tr" data-href="{% url 'chaqmoq:student_detail' row.student__id %}">
+        <tr class="rb-tr{% if row.detail_url %} rb-tr-link{% endif %}" {% if row.detail_url %}data-href="{{ row.detail_url }}"{% endif %}>
           <td class="rb-rank-cell">
             {% if is_search %}
             {% if row.rank == 1 %}🥇

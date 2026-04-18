@@ -45,7 +45,9 @@ class RoleBasedAccessMiddleware:
             'names': {
                 'core:home',
                 'core:dashboard_student',
+                'core:profile',
                 'core:user_view',
+                'accounts:profile',
                 'core:notifications_list',
                 'core:mark_notification_read',
                 'logout',
@@ -56,7 +58,9 @@ class RoleBasedAccessMiddleware:
             'names': {
                 'core:home',
                 'core:dashboard_parent',
+                'core:profile',
                 'core:user_view',
+                'accounts:profile',
                 'core:toggle_child',
                 'core:notifications_list',
                 'core:mark_notification_read',

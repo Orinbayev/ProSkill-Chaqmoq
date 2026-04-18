@@ -273,6 +273,12 @@ class CenterAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # Create sahifasida bu qiymatlar JS orqali sync qilinadi.
+        # JS ishlamay qolsa ham brauzer submitni bloklamasligi uchun
+        # maydonni server tomonida optional qilib, clean() da to'ldiramiz.
+        self.fields["capacity_limit"].required = False
+        self.fields["features"].required = False
         
         # ✅ Fix: Ensure date input gets YYYY-MM-DD format
         if self.instance.pk and self.instance.expires_at:
@@ -298,6 +304,42 @@ class CenterAdminForm(forms.ModelForm):
             widget=forms.Select(attrs={"class": "form-select bg-dark text-white border-secondary", "id": "id_plan"}),
             label="Tarif Rejasi"
         )
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        from billing.models import SubscriptionPlan
+        from core.center_features import CENTER_UI_FEATURE_DEFAULTS
+
+        plan_code = cleaned_data.get("plan")
+        plan = SubscriptionPlan.objects.filter(code=plan_code).first() if plan_code else None
+
+        if not cleaned_data.get("capacity_limit"):
+            if plan and plan.max_students:
+                cleaned_data["capacity_limit"] = plan.max_students
+            elif self.instance.pk and self.instance.capacity_limit:
+                cleaned_data["capacity_limit"] = self.instance.capacity_limit
+            else:
+                self.add_error("capacity_limit", "O'quvchilar limiti aniqlanmadi.")
+
+        features = cleaned_data.get("features")
+        if not isinstance(features, dict) or not features:
+            feature_map = dict(getattr(self.instance, "features", {}) or {})
+            if not feature_map:
+                feature_map.update({
+                    "dashboard": True,
+                    "students": True,
+                    "attendance": True,
+                    "finance": True,
+                })
+                if plan:
+                    for code in plan.plan_features.values_list("code", flat=True):
+                        feature_map[code] = True
+                for key, enabled in CENTER_UI_FEATURE_DEFAULTS.items():
+                    feature_map.setdefault(key, bool(enabled))
+            cleaned_data["features"] = feature_map
+
+        return cleaned_data
 
 
 class DirectorCreationForm(forms.ModelForm):

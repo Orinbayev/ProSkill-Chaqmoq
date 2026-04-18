@@ -153,6 +153,59 @@ class CenterUiFeatureToggleTests(TestCase):
         self.assertContains(response, 'id="feat-card-ui_weekly_schedule"')
 
 
+class SuperadminCenterCreateTests(TestCase):
+    def setUp(self):
+        self.superadmin = User.objects.create_superuser(
+            email="superadmin.centercreate@test.uz",
+            password="strong-pass-123",
+        )
+        self.client.force_login(self.superadmin)
+        self.plan = SubscriptionPlan.objects.create(
+            code="CREATE_PRO",
+            title="Create PRO",
+            name="Create PRO",
+            monthly_price=250000,
+            price=250000,
+            duration_days=30,
+            max_students=180,
+            active=True,
+        )
+
+    def test_center_create_post_succeeds_without_js_synced_capacity_limit(self):
+        response = self.client.post(
+            reverse("platform_global:center_create"),
+            {
+                "name": "Render Create Center",
+                "slug": "render-create-center",
+                "address": "Yunusobod",
+                "plan": self.plan.code,
+                "status": Center.STATUS_ACTIVE,
+                "ism": "Ali",
+                "familya": "Director",
+                "email": "ali.director.centercreate@test.uz",
+                "telefon1": "+998901234567",
+                "password": "strong-pass-123",
+                "duration": "1",
+            },
+            follow=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], reverse("platform_global:superadmin_dashboard"))
+
+        center = Center.objects.get(slug="render-create-center")
+        self.assertEqual(center.capacity_limit, self.plan.max_students)
+        self.assertTrue(center.features.get("dashboard"))
+        self.assertTrue(center.features.get("ui_exam_sessions"))
+        self.assertTrue(
+            User.objects.filter(
+                email="ali.director.centercreate@test.uz",
+                role="director",
+                center=center,
+            ).exists()
+        )
+
+
 class StudentLimitResolutionTests(TestCase):
     def setUp(self):
         self.center = Center.objects.create(

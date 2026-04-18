@@ -3,7 +3,6 @@ from django.db.models import Sum
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
-from django.core.exceptions import PermissionDenied
 
 from django.contrib.auth import get_user_model
 from .models import Ledger, Rule
@@ -13,6 +12,7 @@ from datetime import datetime
 from django.core.paginator import Paginator
 from django.db.models import Sum, Case, When, IntegerField, Value, F, Q
 from django.db.models.functions import Coalesce, Abs
+from django.urls import reverse
 
 
 User = get_user_model()
@@ -86,6 +86,20 @@ def _can_view_student(request, student) -> bool:
     if role == "parent":
         return request.user.children.filter(pk=student.pk).exists()
     return False
+
+
+def _student_detail_access_ids(request):
+    if request.user.is_superuser:
+        return None
+
+    role = getattr(request.user, "role", None)
+    if role in {"director", "manager", "teacher"}:
+        return None
+    if role == "student":
+        return {request.user.id}
+    if role == "parent":
+        return set(request.user.children.values_list("id", flat=True))
+    return set()
 
 
 def _get_balances_with_legacy_fallback(student_ids, center=None):
@@ -181,6 +195,12 @@ def reyting(request):
         for row in page_obj.object_list:
             row["rank"] = rank_map.get(row["student__id"])
 
+    allowed_detail_ids = _student_detail_access_ids(request)
+    for row in page_obj.object_list:
+        student_id = row["student__id"]
+        can_open_detail = allowed_detail_ids is None or student_id in allowed_detail_ids
+        row["detail_url"] = reverse("chaqmoq:student_detail", args=[student_id]) if can_open_detail else ""
+
     # Pagination window
     cur = page_obj.number
     total = paginator.num_pages
@@ -206,7 +226,8 @@ def student_detail(request, pk):
         students_qs = students_qs.filter(center=center)
     student = get_object_or_404(students_qs, pk=pk)
     if not _can_view_student(request, student):
-        raise PermissionDenied("Sizda bu ma'lumotni ko'rish ruxsati yo'q.")
+        messages.error(request, "Siz faqat o'zingizga tegishli reyting tafsilotlarini ko'ra olasiz.")
+        return redirect("chaqmoq:reyting")
 
     # ✅ per_page (10/20/50/100/all) va page
     per_page_raw = request.GET.get("per_page", "10")
