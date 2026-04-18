@@ -41,6 +41,7 @@ urlpatterns = [
     
     # Expenses (Test)
     path('expenses/', views.expenses, name='expenses'),
+    path('expenses/export/xlsx/', views.expenses_export_xlsx, name='expenses_export_xlsx'),
     path('expenses/create/', views.expense_create, name='expense_create'),
     path('expenses/category/create/', views.expense_category_create, name='expense_category_create'),
     path('expenses/<int:pk>/edit/', views.expense_edit, name='expense_edit'),

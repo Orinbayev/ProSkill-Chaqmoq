@@ -323,10 +323,17 @@
     </a>
 
     {% else %}
+    {% if request.user.role == 'manager' %}
+    <a href="{% url 'core:home' %}" class="sidebar-item {% if p == '/' or vn == 'core:home' %}active{% endif %}" data-title="Boshqaruv">
+      <span class="si-ico"><i class="fa-solid fa-table-columns"></i></span>
+      <span class="si-text">Boshqaruv</span>
+    </a>
+    {% else %}
     <a href="{% url 'core:director_boshqaruv' %}" class="sidebar-item {% if vn == 'core:director_boshqaruv' %}active{% endif %}" data-title="Boshqaruv">
       <span class="si-ico"><i class="fa-solid fa-table-columns"></i></span>
       <span class="si-text">Boshqaruv</span>
     </a>
+    {% endif %}
 
     <a href="{% url 'core:stat_students' %}" class="sidebar-item {% if vn == 'core:stat_students' %}active{% endif %}"
       data-title="O'quvchilar">

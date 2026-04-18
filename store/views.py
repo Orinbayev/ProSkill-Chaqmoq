@@ -770,6 +770,172 @@ def expenses(request):
 
 
 @login_required
+def expenses_export_xlsx(request):
+    """Xarajatlarni filtrlar bo'yicha Excel (.xlsx) formatda yuklab berish."""
+    from django.http import HttpResponse
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+    from openpyxl.utils import get_column_letter
+
+    center = require_center(request)
+    if request.user.role not in ('manager', 'director') and not request.user.is_superuser:
+        messages.error(request, "Ruxsat yo'q")
+        return redirect('core:home')
+
+    sana_dan_raw = (request.GET.get('sana_dan') or '').strip()
+    sana_gacha_raw = (request.GET.get('sana_gacha') or '').strip()
+    category_id = request.GET.get('category')
+    payment_method = request.GET.get('payment_method')
+    worker_id = request.GET.get('worker')
+    q = request.GET.get('q')
+
+    today = timezone.localdate()
+    sana_dan = parse_date(sana_dan_raw) if sana_dan_raw else None
+    sana_gacha = parse_date(sana_gacha_raw) if sana_gacha_raw else None
+
+    if not sana_dan and not sana_gacha:
+        sana_dan = today.replace(day=1)
+        sana_gacha = today
+    else:
+        if sana_dan and not sana_gacha:
+            sana_gacha = today if sana_dan <= today else sana_dan
+        elif sana_gacha and not sana_dan:
+            sana_dan = sana_gacha.replace(day=1)
+        if sana_dan and sana_gacha and sana_dan > sana_gacha:
+            sana_gacha = sana_dan
+
+    items = (
+        Expense.objects.filter(center=center)
+        .select_related('category', 'worker', 'product')
+        .filter(sana__date__gte=sana_dan, sana__date__lte=sana_gacha)
+        .order_by('-sana')
+    )
+    if category_id and str(category_id).isdigit():
+        items = items.filter(category_id=category_id)
+    if payment_method:
+        items = items.filter(payment_method=payment_method)
+    if worker_id and str(worker_id).isdigit():
+        items = items.filter(worker_id=worker_id)
+    if q:
+        items = items.filter(Q(izoh__icontains=q) | Q(receiver__icontains=q))
+
+    payment_label = {'naqd': 'Naqd', 'plastik': 'Plastik', 'otkazma': "O'tkazma"}
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Xarajatlar"
+
+    header_fill = PatternFill("solid", fgColor="1F4E78")
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    row_font = Font(name="Calibri", size=11, color="1F2937")
+    total_fill = PatternFill("solid", fgColor="FFF3CD")
+    total_font = Font(name="Calibri", size=11, bold=True, color="92400E")
+    title_font = Font(name="Calibri", size=14, bold=True, color="111827")
+    thin = Side(border_style="thin", color="D1D5DB")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    center_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    left_align = Alignment(horizontal="left", vertical="center", wrap_text=True)
+    right_align = Alignment(horizontal="right", vertical="center")
+
+    ws.merge_cells('A1:I1')
+    title_cell = ws['A1']
+    center_name = getattr(center, 'name', '') or ''
+    title_cell.value = f"Xarajatlar hisoboti — {center_name}"
+    title_cell.font = title_font
+    title_cell.alignment = Alignment(horizontal="left", vertical="center")
+    ws.row_dimensions[1].height = 26
+
+    ws.merge_cells('A2:I2')
+    period_cell = ws['A2']
+    period_cell.value = (
+        f"Davr: {sana_dan.strftime('%d.%m.%Y')} — {sana_gacha.strftime('%d.%m.%Y')} | "
+        f"Jami yozuvlar: {items.count()} ta"
+    )
+    period_cell.font = Font(name="Calibri", size=10, italic=True, color="6B7280")
+    period_cell.alignment = Alignment(horizontal="left", vertical="center")
+    ws.row_dimensions[2].height = 18
+
+    headers = ["№", "Sana", "Vaqt", "Nomi (Izoh)", "Kategoriya",
+               "Qabul qiluvchi", "To'lov usuli", "Summa (so'm)", "Xodim (kim tomonidan yozilgan)"]
+    for col_idx, title in enumerate(headers, start=1):
+        cell = ws.cell(row=4, column=col_idx, value=title)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = center_align
+        cell.border = border
+    ws.row_dimensions[4].height = 28
+
+    total_summa = 0
+    start_data_row = 5
+    for idx, item in enumerate(items, start=1):
+        row = start_data_row + idx - 1
+        local_sana = timezone.localtime(item.sana) if item.sana else None
+        worker = item.worker
+        if worker:
+            worker_name = (worker.get_full_name() or '').strip() or worker.username
+        else:
+            worker_name = "—"
+
+        values = [
+            idx,
+            local_sana.strftime('%d.%m.%Y') if local_sana else "—",
+            local_sana.strftime('%H:%M') if local_sana else "—",
+            item.izoh or "—",
+            item.category.nom if item.category else "—",
+            item.receiver or "—",
+            payment_label.get(item.payment_method, item.payment_method or "—"),
+            int(item.summa or 0),
+            worker_name,
+        ]
+        for col_idx, val in enumerate(values, start=1):
+            cell = ws.cell(row=row, column=col_idx, value=val)
+            cell.font = row_font
+            cell.border = border
+            if col_idx in (1, 2, 3, 7):
+                cell.alignment = center_align
+            elif col_idx == 8:
+                cell.alignment = right_align
+                cell.number_format = '#,##0'
+            else:
+                cell.alignment = left_align
+        total_summa += int(item.summa or 0)
+
+    total_row = start_data_row + items.count()
+    ws.merge_cells(start_row=total_row, start_column=1, end_row=total_row, end_column=7)
+    label_cell = ws.cell(row=total_row, column=1, value="JAMI")
+    label_cell.font = total_font
+    label_cell.fill = total_fill
+    label_cell.alignment = Alignment(horizontal="right", vertical="center")
+    label_cell.border = border
+    for col in range(1, 8):
+        ws.cell(row=total_row, column=col).border = border
+        ws.cell(row=total_row, column=col).fill = total_fill
+    total_cell = ws.cell(row=total_row, column=8, value=total_summa)
+    total_cell.font = total_font
+    total_cell.fill = total_fill
+    total_cell.alignment = right_align
+    total_cell.number_format = '#,##0'
+    total_cell.border = border
+    empty_cell = ws.cell(row=total_row, column=9, value="")
+    empty_cell.fill = total_fill
+    empty_cell.border = border
+
+    widths = [6, 14, 10, 38, 20, 22, 14, 18, 28]
+    for col_idx, width in enumerate(widths, start=1):
+        ws.column_dimensions[get_column_letter(col_idx)].width = width
+
+    ws.freeze_panes = "A5"
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    filename = f"xarajatlar_{sana_dan.isoformat()}_{sana_gacha.isoformat()}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
+
+
+@login_required
 def expense_create(request):
     """
     Yangi xarajat qo'shish

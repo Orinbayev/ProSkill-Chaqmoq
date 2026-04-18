@@ -506,6 +506,105 @@
     }
   }
 
+  /* =========================
+     FIX DROPDOWN CONTRAST 
+     ========================= */
+  select option, select optgroup {
+    background-color: var(--bg-card) !important;
+    color: var(--text-main) !important;
+  }
+
+  /* =========================
+     LIGHT MODE OVERRIDES
+     ========================= */
+  html[data-role-theme="light"] {
+    --bg-dark: #f8fafc;
+    --bg-card: #ffffff;
+    --border: rgba(148, 163, 184, 0.22);
+    --border-hover: rgba(37, 99, 235, 0.18);
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --primary-glow: rgba(59, 130, 246, 0.15);
+  }
+
+  html[data-role-theme="light"] body {
+    background-image: none;
+    background: #f8fafc;
+  }
+
+  html[data-role-theme="light"] .glass-panel {
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 15px 40px rgba(37, 99, 235, 0.08);
+  }
+
+  html[data-role-theme="light"] .rule-select, 
+  html[data-role-theme="light"] .date-picker,
+  html[data-role-theme="light"] .compact-select {
+    color: var(--text-main) !important;
+  }
+
+  html[data-role-theme="light"] .input-label-box {
+    background: rgba(37, 99, 235, 0.04);
+  }
+
+  html[data-role-theme="light"] select option, 
+  html[data-role-theme="light"] select optgroup {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  html[data-role-theme="light"] .student-table th {
+    background: rgba(37, 99, 235, 0.04);
+    color: #1d4ed8;
+  }
+
+  html[data-role-theme="light"] .tr-student:hover {
+    background: rgba(37, 99, 235, 0.04);
+  }
+
+  html[data-role-theme="light"] .btn-muted {
+    background: rgba(37, 99, 235, 0.06);
+    color: #0f172a;
+    border-color: rgba(148, 163, 184, 0.22);
+  }
+
+  html[data-role-theme="light"] .btn-muted:hover {
+    background: rgba(37, 99, 235, 0.12);
+    color: #1d4ed8;
+  }
+
+  html[data-role-theme="light"] .back-link {
+    background: rgba(37, 99, 235, 0.06);
+    color: #0f172a;
+    border-color: rgba(148, 163, 184, 0.22);
+  }
+
+  html[data-role-theme="light"] .back-link:hover {
+    background: rgba(37, 99, 235, 0.12);
+    color: #1d4ed8;
+  }
+
+  html[data-role-theme="light"] .quick-menu-panel {
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 15px 40px rgba(37, 99, 235, 0.15);
+  }
+
+  html[data-role-theme="light"] .quick-menu-link {
+    color: #0f172a;
+  }
+
+  html[data-role-theme="light"] .quick-menu-link:hover {
+    background: rgba(37, 99, 235, 0.08);
+    color: #1d4ed8;
+  }
+
+  html[data-role-theme="light"] .quick-menu-divider {
+    background: rgba(148, 163, 184, 0.22);
+  }
+
+  html[data-role-theme="light"] .app-layout {
+    background: #f8fafc;
+  }
 </style>
 
 <div class="cq-wrap">
