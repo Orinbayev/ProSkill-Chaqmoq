@@ -239,6 +239,106 @@
   .shadow-3d {
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
   }
+
+  /* --- LIGHT MODE OVERRIDES --- */
+  html[data-role-theme="light"] {
+    --text-warning: #d97706;  /* darker amber/warning for light mode */
+  }
+
+  html[data-role-theme="light"] body {
+    background: #f8fafc !important;
+  }
+
+  html[data-role-theme="light"] .glass,
+  html[data-role-theme="light"] .glass-dark {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(148, 163, 184, 0.22);
+    box-shadow: 0 15px 40px rgba(37, 99, 235, 0.08);
+  }
+
+  html[data-role-theme="light"] .profile-hero-card {
+    background: linear-gradient(-45deg, rgba(245, 158, 11, 0.05), rgba(255, 255, 255, 0.95), rgba(59, 130, 246, 0.05), rgba(255, 255, 255, 0.95));
+    border-color: rgba(245, 158, 11, 0.2);
+  }
+
+  html[data-role-theme="light"] .text-white,
+  html[data-role-theme="light"] .fs-2.fw-bold.text-white,
+  html[data-role-theme="light"] .fw-bold.text-white,
+  html[data-role-theme="light"] .modal-content.text-white {
+    color: #0f172a !important;
+  }
+
+  html[data-role-theme="light"] .text-white-50 {
+    color: #64748b !important;
+  }
+
+  html[data-role-theme="light"] .table-dark-custom {
+    --bs-table-color: #0f172a;
+    --bs-table-border-color: rgba(148, 163, 184, 0.22);
+  }
+
+  html[data-role-theme="light"] .table-dark-custom thead th {
+    background: rgba(37, 99, 235, 0.04);
+    color: #1d4ed8;
+  }
+
+  html[data-role-theme="light"] .table-dark-custom tbody tr:hover {
+    background: rgba(37, 99, 235, 0.04);
+  }
+
+  html[data-role-theme="light"] .btn-glass {
+    background: rgba(37, 99, 235, 0.04);
+    color: #0f172a;
+    border-color: rgba(148, 163, 184, 0.22);
+  }
+
+  html[data-role-theme="light"] .btn-glass:hover {
+    background: rgba(37, 99, 235, 0.1);
+    color: #d97706;
+    border-color: rgba(245, 158, 11, 0.3);
+  }
+
+  html[data-role-theme="light"] .dropdown-menu-dark {
+    background: rgba(255, 255, 255, 0.98) !important;
+    border-color: rgba(148, 163, 184, 0.22) !important;
+    box-shadow: 0 15px 40px rgba(37, 99, 235, 0.15) !important;
+  }
+
+  html[data-role-theme="light"] .dropdown-item {
+    color: #0f172a !important;
+  }
+
+  html[data-role-theme="light"] .dropdown-item:hover {
+    background: rgba(37, 99, 235, 0.08) !important;
+    color: #1d4ed8 !important;
+  }
+
+  html[data-role-theme="light"] .bg-white-10 {
+    background: rgba(37, 99, 235, 0.08) !important;
+  }
+
+  html[data-role-theme="light"] .bg-white-5 {
+    background: rgba(37, 99, 235, 0.04) !important;
+  }
+
+  html[data-role-theme="light"] .modal-content {
+    background: rgba(255, 255, 255, 0.98) !important;
+  }
+
+  html[data-role-theme="light"] .border-white-10 {
+    border-color: rgba(148, 163, 184, 0.22) !important;
+  }
+
+  html[data-role-theme="light"] input.form-control,
+  html[data-role-theme="light"] .input-group-premium {
+    background: rgba(37, 99, 235, 0.04) !important;
+    border-color: rgba(148, 163, 184, 0.22) !important;
+  }
+  
+  html[data-role-theme="light"] input.form-control {
+    color: #0f172a !important;
+  }
+
 </style>
 {% endblock %}
 

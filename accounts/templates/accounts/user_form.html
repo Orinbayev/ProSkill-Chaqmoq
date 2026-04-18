@@ -301,6 +301,84 @@
   .gender-option label i {
     font-size: 16px;
   }
+
+  /* --- LIGHT MODE OVERRIDES --- */
+  html[data-role-theme="light"] {
+    --bg0: #eef4ff;
+    --bg1: #f7fbff;
+    --panelA: rgba(255, 255, 255, 0.94);
+    --panelB: rgba(255, 255, 255, 0.98);
+    --text: #0f172a;
+    --muted: #64748b;
+    --shadow: 0 15px 40px rgba(37, 99, 235, 0.08);
+  }
+
+  html[data-role-theme="light"] .cq-card {
+    border-color: rgba(148, 163, 184, 0.22);
+  }
+  
+  html[data-role-theme="light"] .cq-card::before {
+    opacity: 0.1;
+  }
+
+  html[data-role-theme="light"] .uhead h3,
+  html[data-role-theme="light"] .limit-box strong,
+  html[data-role-theme="light"] .gender-option label:hover {
+    color: var(--text);
+  }
+
+  html[data-role-theme="light"] input,
+  html[data-role-theme="light"] select,
+  html[data-role-theme="light"] textarea {
+    background: rgba(37, 99, 235, 0.04) !important;
+    border-color: rgba(148, 163, 184, 0.22) !important;
+    color: var(--text) !important;
+  }
+
+  html[data-role-theme="light"] input:focus,
+  html[data-role-theme="light"] select:focus {
+    background: #fff !important;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15) !important;
+  }
+
+  html[data-role-theme="light"] select option {
+    background-color: #fff;
+    color: var(--text);
+  }
+
+  html[data-role-theme="light"] .gender-option label {
+    background: rgba(37, 99, 235, 0.04);
+    border-color: rgba(148, 163, 184, 0.22);
+    color: var(--muted);
+  }
+
+  html[data-role-theme="light"] .gender-option input:checked + label {
+    background: rgba(37, 99, 235, 0.12);
+    color: var(--blue);
+  }
+
+  html[data-role-theme="light"] .btn-cancel {
+    background: rgba(37, 99, 235, 0.04);
+    border-color: rgba(148, 163, 184, 0.22);
+    color: var(--text);
+  }
+
+  html[data-role-theme="light"] .btn-cancel:hover {
+    background: rgba(37, 99, 235, 0.08);
+  }
+
+  html[data-role-theme="light"] .field-group-title::after {
+    background: rgba(37, 99, 235, 0.1);
+  }
+
+  html[data-role-theme="light"] input:-webkit-autofill,
+  html[data-role-theme="light"] input:-webkit-autofill:hover,
+  html[data-role-theme="light"] input:-webkit-autofill:focus,
+  html[data-role-theme="light"] input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px #f8fafc inset !important;
+    -webkit-text-fill-color: var(--text) !important;
+  }
+
 </style>
 
 <div class="uwrap">

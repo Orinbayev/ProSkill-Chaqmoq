@@ -468,7 +468,7 @@
         </div>
     </div>
 
-    <form method="post">
+    <form method="post" id="centerCreateForm" data-persist-key="chaqmoq:center-create:v1">
         {% csrf_token %}
 
         {% if center_form.errors or director_form.errors %}
@@ -591,9 +591,17 @@
         </div>
 
         <!-- Actions -->
-        <div style="display:flex; justify-content:flex-end; gap:16px; margin-bottom:40px;">
-            <button type="submit" class="sa-btn sa-btn-primary" style="padding:14px 32px; font-size:1rem;">
-                <i class="bi bi-check-lg"></i> Saqlash va Yaratish
+        <div style="display:flex; justify-content:flex-end; gap:16px; margin-bottom:40px; align-items:center;">
+            <span id="centerSaveHint" style="color:var(--sa-muted);font-size:0.85rem;display:none;">
+                <i class="bi bi-info-circle"></i>
+                Server javobi kutilmoqda — sahifani yopmang. Ma'lumotlaringiz brauzerda saqlanib turibdi.
+            </span>
+            <button type="submit" id="centerSaveBtn" class="sa-btn sa-btn-primary" style="padding:14px 32px; font-size:1rem;">
+                <span class="btn-label"><i class="bi bi-check-lg"></i> Saqlash va Yaratish</span>
+                <span class="btn-spinner" style="display:none;">
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    Saqlanmoqda...
+                </span>
             </button>
         </div>
 
@@ -833,6 +841,92 @@
 
         renderUiModules();
     });
+
+    // ── FORM PERSISTENCE + SUBMIT UX ───────────────────────────────
+    // Render qotib qolsa ham foydalanuvchining ma'lumotlari yo'qolmasligi uchun
+    // forma qiymatlari localStorage'ga saqlanadi. Saqlash muvaffaqiyatli
+    // bo'lgach sahifa redirect bo'ladi va keyingi sahifa bu kalitni tozalaydi.
+    (function () {
+        const form = document.getElementById('centerCreateForm');
+        if (!form) return;
+        const storageKey = form.dataset.persistKey || 'chaqmoq:center-create:v1';
+        const btn = document.getElementById('centerSaveBtn');
+        const hint = document.getElementById('centerSaveHint');
+
+        // Skip sensitive + structural fields from persistence
+        const SKIP_NAMES = new Set(['csrfmiddlewaretoken', 'password']);
+
+        function collectState() {
+            const state = {};
+            form.querySelectorAll('input, select, textarea').forEach(el => {
+                if (!el.name || SKIP_NAMES.has(el.name)) return;
+                if (el.type === 'checkbox' || el.type === 'radio') {
+                    state[el.name] = el.checked;
+                } else {
+                    state[el.name] = el.value;
+                }
+            });
+            return state;
+        }
+
+        function restoreState() {
+            try {
+                const raw = localStorage.getItem(storageKey);
+                if (!raw) return;
+                // Forma server tomondan xatolik bilan qayta render bo'lgan bo'lsa,
+                // field'lar allaqachon to'ldirilgan — ularning ustidan yozmaymiz.
+                const hasBoundData = Array.from(form.querySelectorAll('input, select, textarea'))
+                    .some(el => el.name && !SKIP_NAMES.has(el.name) && (el.value || '').length > 0);
+                if (hasBoundData) return;
+
+                const saved = JSON.parse(raw);
+                Object.entries(saved).forEach(([name, value]) => {
+                    const el = form.querySelector(`[name="${CSS.escape(name)}"]`);
+                    if (!el) return;
+                    if (el.type === 'checkbox' || el.type === 'radio') {
+                        el.checked = !!value;
+                    } else {
+                        el.value = value;
+                    }
+                });
+            } catch (e) {
+                console.warn('center-create restore failed', e);
+            }
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem(storageKey, JSON.stringify(collectState()));
+            } catch (e) { /* quota or disabled */ }
+        }
+
+        // Har o'zgartirilganda saqlab boramiz (debounced)
+        let saveTimer = null;
+        form.addEventListener('input', () => {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(saveState, 300);
+        });
+        form.addEventListener('change', () => {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(saveState, 300);
+        });
+
+        // Submit vaqtida double-submit oldini olish + spinner
+        form.addEventListener('submit', () => {
+            saveState();
+            if (btn) {
+                btn.disabled = true;
+                const label = btn.querySelector('.btn-label');
+                const spin  = btn.querySelector('.btn-spinner');
+                if (label) label.style.display = 'none';
+                if (spin)  spin.style.display  = 'inline-flex';
+            }
+            if (hint) hint.style.display = 'inline-flex';
+        });
+
+        // Sahifa yuklanishida qayta tiklaymiz
+        restoreState();
+    })();
 </script>
 
 {% endblock %}

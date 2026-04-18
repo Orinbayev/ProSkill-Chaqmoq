@@ -381,6 +381,68 @@
   .card-footer-security .flex {
     gap: 10px;
   }
+
+  /* --- LIGHT MODE OVERRIDES --- */
+  html[data-role-theme="light"] body {
+    background-color: #f8fafc !important;
+    color: #0f172a !important;
+  }
+
+  html[data-role-theme="light"] .profile-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(148, 163, 184, 0.22);
+    box-shadow: 0 15px 40px rgba(37, 99, 235, 0.08);
+  }
+
+  html[data-role-theme="light"] .profile-card::before {
+    background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.1), transparent);
+  }
+
+  html[data-role-theme="light"] .card-title-text,
+  html[data-role-theme="light"] .tg-info-value {
+    color: #0f172a !important;
+  }
+
+  html[data-role-theme="light"] .avatar-inner {
+    background: rgba(37, 99, 235, 0.04);
+  }
+
+  html[data-role-theme="light"] .input-field-premium {
+    background: rgba(37, 99, 235, 0.04) !important;
+    border-color: rgba(148, 163, 184, 0.22) !important;
+    color: #0f172a !important;
+  }
+
+  html[data-role-theme="light"] .input-field-premium:focus {
+    background: #fff !important;
+    border-color: rgba(59, 130, 246, 0.4) !important;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15) !important;
+  }
+
+  html[data-role-theme="light"] .btn-dark {
+    background: rgba(37, 99, 235, 0.08) !important;
+    color: #1d4ed8 !important;
+  }
+
+  html[data-role-theme="light"] .btn-dark:hover {
+    background: rgba(37, 99, 235, 0.15) !important;
+  }
+
+  html[data-role-theme="light"] .btn-white {
+    background: rgba(255, 255, 255, 0.98) !important;
+    color: #0f172a !important;
+    border: 1px solid rgba(148, 163, 184, 0.22) !important;
+  }
+
+  html[data-role-theme="light"] .btn-white:hover {
+    background: #f1f5f9 !important;
+    border-color: rgba(148, 163, 184, 0.4) !important;
+  }
+
+  html[data-role-theme="light"] .security-info-box {
+    background: rgba(37, 99, 235, 0.04);
+    border-color: rgba(148, 163, 184, 0.22);
+  }
 </style>
 
 <div class="profile-container">

@@ -29,8 +29,15 @@ services:
       - key: WEB_CONCURRENCY
         value: "1"
 
+      # Free tier: 2 thread yetarli emas edi — SuperAdmin markaz yaratish kabi
+      # uzunroq POST'lar healthcheck bilan to'qnashib qotib qolar edi.
       - key: GUNICORN_THREADS
-        value: "2"
+        value: "4"
+
+      # Markaz yaratish: parol xeshlash + subscription sync + feature sync
+      # free plan CPU'da 120s'dan oshib ketar edi. 180s ga ko'tarildi.
+      - key: GUNICORN_TIMEOUT
+        value: "180"
 
       - key: GUNICORN_MAX_REQUESTS
         value: "500"

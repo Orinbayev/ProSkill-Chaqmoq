@@ -938,6 +938,20 @@
   <script src="{% static 'js/role-theme.js' %}?v=20260415-role-theme-rebuild-2"></script>
   {% endif %}
   {% endif %}
+  <script>
+    (function () {
+      try {
+        const onCreatePage = /\/center\/create\/?$/.test(location.pathname);
+        if (onCreatePage) return;
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (k && k.indexOf('chaqmoq:center-create:') === 0) {
+            localStorage.removeItem(k);
+          }
+        }
+      } catch (e) {}
+    })();
+  </script>
   {% block extra_js %}{% endblock %}
 </body>
 

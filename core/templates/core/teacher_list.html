@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
+{% block body_class %}users-stats-page{% endblock %}
 {% block content %}
-
 <style>
   :root {
     --bg-dark: #020617;
@@ -22,6 +22,47 @@
 
     --glass: rgba(15, 23, 42, 0.7);
     --radius: 16px;
+  }
+
+  /* Light Mode Overrides */
+  html[data-role-theme="light"] {
+    --bg-dark: transparent;
+    --bg-card: rgba(255, 255, 255, 0.94);
+    --bg-hover: rgba(37, 99, 235, 0.04);
+    --border: rgba(148, 163, 184, 0.22);
+    --border-hover: rgba(37, 99, 235, 0.18);
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --glass: rgba(255, 255, 255, 0.8);
+  }
+
+  html[data-role-theme="light"] .btn-outline {
+    background: rgba(37, 99, 235, 0.04);
+  }
+  html[data-role-theme="light"] .btn-outline:hover {
+    background: rgba(37, 99, 235, 0.08);
+  }
+  html[data-role-theme="light"] .filter-input {
+    background: rgba(37, 99, 235, 0.04);
+  }
+  html[data-role-theme="light"] .btn-reset {
+    background: rgba(37, 99, 235, 0.04);
+  }
+  html[data-role-theme="light"] .custom-table thead th {
+    background: rgba(37, 99, 235, 0.02);
+  }
+  html[data-role-theme="light"] .menu-dropdown {
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 10px 25px rgba(37, 99, 235, 0.15);
+  }
+  html[data-role-theme="light"] .import-content {
+    background: rgba(255, 255, 255, 0.98) !important;
+  }
+  html[data-role-theme="light"] .menu-btn:hover {
+    background: rgba(37, 99, 235, 0.08);
+  }
+  html[data-role-theme="light"] .filter-input:focus {
+    background: #fff;
   }
 
   /* BUTTONS & ACTIONS */
@@ -61,7 +102,7 @@
   .btn-outline {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
+    color: var(--text-main);
   }
 
   .btn-outline:hover {
@@ -114,7 +155,7 @@
     border-radius: 10px;
     height: 42px;
     padding: 0 16px 0 38px;
-    color: white;
+    color: var(--text-main);
     font-size: 14px;
     outline: none;
     transition: 0.2s;
@@ -165,7 +206,7 @@
   .page-title {
     font-size: 24px;
     font-weight: 800;
-    color: #fff;
+    color: var(--text-main);
     display: flex;
     align-items: center;
     gap: 12px;
@@ -246,7 +287,7 @@
 
   .name {
     font-weight: 700;
-    color: white;
+    color: var(--text-main);
   }
 
   .sub {
@@ -307,7 +348,7 @@
 
   .menu-btn:hover {
     background: rgba(255, 255, 255, 0.1);
-    color: white;
+    color: var(--text-main);
   }
 
   .menu-dropdown {
@@ -466,7 +507,7 @@
               <span style="font-family: monospace; color: var(--text-muted);">{{ t.telefon1|default:"—" }}</span>
             </td>
             <td>
-              <span style="font-family: monospace; color: white;">{{ t.birth_date|date:"d.m.Y"|default:"—" }}</span>
+              <span style="font-family: monospace; color: var(--text-main);">{{ t.birth_date|date:"d.m.Y"|default:"—" }}</span>
             </td>
             <td>
               <span class="badge-percent">{{ t.oqituvchi_foizi }}%</span>
@@ -487,7 +528,7 @@
                     <i class="fa-solid fa-pen"></i> Tahrirlash
                   </a>
                   <form method="post" action="{% url 'core:teacher_delete' t.id %}"
-                    onsubmit="return confirm('O'qituvchini o'chirishni tasdiqlaysizmi?');" style="margin:0;">
+                    onsubmit="return confirm('O\'qituvchini o\'chirishni tasdiqlaysizmi?');" style="margin:0;">
                     {% csrf_token %}
                     <button type="submit" class="text-red">
                       <i class="fa-solid fa-trash"></i> O'chirish
@@ -716,7 +757,7 @@
 
     <!-- Modal Header -->
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
-      <div style="font-size: 20px; font-weight: 800; color: white;">Import qilish</div>
+      <div style="font-size: 20px; font-weight: 800; color: var(--text-main);">Import qilish</div>
       <button onclick="closeImportModal()"
         style="background:rgba(255,255,255,0.05); border:none; color:#94a3b8; width:32px; height:32px; border-radius:50%; display:grid; place-items:center; cursor:pointer; transition:0.2s;">
         <i class="fa-solid fa-xmark"></i>
@@ -737,7 +778,7 @@
           style="width:32px; height:32px; background:rgba(245,158,11,0.1); color:var(--primary); border-radius:50%; display:grid; place-items:center; flex-shrink:0; font-weight:800; font-size:14px;">
           1</div>
         <div>
-          <div style="color:white; font-weight:700; font-size:15px; margin-bottom:4px;">Shablonni yuklab oling</div>
+          <div style="color:var(--text-main); font-weight:700; font-size:15px; margin-bottom:4px;">Shablonni yuklab oling</div>
           <p style="color:var(--text-muted); font-size:13px; line-height:1.5; margin-bottom:10px;">
             Import to'g'ri ishlashi uchun maxsus Excel shablonidan foydalaning.
           </p>
@@ -753,7 +794,7 @@
           style="width:32px; height:32px; background:rgba(245,158,11,0.1); color:var(--primary); border-radius:50%; display:grid; place-items:center; flex-shrink:0; font-weight:800; font-size:14px;">
           2</div>
         <div>
-          <div style="color:white; font-weight:700; font-size:15px; margin-bottom:4px;">Ma'lumotlarni to'ldiring</div>
+          <div style="color:var(--text-main); font-weight:700; font-size:15px; margin-bottom:4px;">Ma'lumotlarni to'ldiring</div>
           <p style="color:var(--text-muted); font-size:13px; line-height:1.5;">
             Yuklab olingan Excel faylga o'qituvchilar ma'lumotlarini namunadagidek kiriting.
           </p>
@@ -776,7 +817,7 @@
           style="width:56px; height:56px; background:rgba(255,255,255,0.05); border-radius:50%; display:grid; place-items:center; margin-bottom:16px;">
           <i class="fa-solid fa-cloud-arrow-up" style="font-size:24px; color:var(--primary);"></i>
         </div>
-        <span id="uploadText" style="color:white; font-weight:700; font-size:16px;">Tayyor faylni yuklang</span>
+        <span id="uploadText" style="color:var(--text-main); font-weight:700; font-size:16px;">Tayyor faylni yuklang</span>
         <span id="uploadSubtext" style="color:var(--text-muted); font-size:12px; margin-top:6px;">Faqat .xlsx formatdagi
           fayllar</span>
       </label>
