@@ -18,6 +18,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from core.services.gdrive_backup import (
+    auth_method,
     is_gdrive_configured,
     upload_file_to_gdrive,
 )
@@ -38,10 +39,13 @@ class Command(BaseCommand):
         if not is_gdrive_configured():
             raise CommandError(
                 "GDrive sozlanmagan!\n"
-                "  GDRIVE_SERVICE_ACCOUNT_JSON va GDRIVE_FOLDER_ID env var'larini tekshiring.\n"
-                "  Render Dashboard → Environment Variables.\n"
+                "  OAuth (shaxsiy Gmail uchun tavsiya): GDRIVE_OAUTH_CLIENT_ID, "
+                "GDRIVE_OAUTH_CLIENT_SECRET, GDRIVE_OAUTH_REFRESH_TOKEN + GDRIVE_FOLDER_ID\n"
+                "  Refresh token'ni olish uchun: python manage.py gdrive_oauth_setup <client_secrets.json>\n"
                 "  Qo'llanma: RESTORE_GUIDE.md"
             )
+
+        self.stdout.write(self.style.WARNING(f"Auth rejimi: {auth_method()}"))
 
         subfolder = str(options["subfolder"]).strip() or "_test"
         stamp = timezone.now().strftime("%Y-%m-%d_%H-%M-%S")

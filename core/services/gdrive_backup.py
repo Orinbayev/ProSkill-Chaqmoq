@@ -4,16 +4,26 @@ ChaqmoqApp – Google Drive Backup Service
 Telegram'ga yuborilgan backup fayllarni Google Drive papkasiga ham yuklaydi.
 Telegram birinchi va asosiy kanal; Google Drive — ikkinchi mustaqil manzil.
 
-Ishga tushirish:
-  1. Google Cloud loyiha yarating, Google Drive API ni yoqing.
-  2. Service Account yarating, JSON key yuklab oling.
-  3. Drive'da papka yarating va service account emailiga "Editor" ruxsat bering.
-  4. Render env vars:
-       GDRIVE_SERVICE_ACCOUNT_JSON = JSON fayl butun ichi (bitta qatorga)
-       GDRIVE_FOLDER_ID            = papka ID (Drive URL'dagi /folders/<ID> qismi)
+Ikki xil autentifikatsiya qo'llab-quvvatlanadi:
 
-Funksiya sozlanmagan bo'lsa jimgina `False` qaytaradi — mavjud Telegram backup
-hech qachon shu sababli yiqilmaydi.
+1. OAUTH (shaxsiy Gmail uchun — TAVSIYA ETILADI)
+   Env vars:
+     GDRIVE_OAUTH_CLIENT_ID
+     GDRIVE_OAUTH_CLIENT_SECRET
+     GDRIVE_OAUTH_REFRESH_TOKEN
+     GDRIVE_FOLDER_ID
+   Fayl foydalanuvchining 15GB Drive quotasidan yuklanadi.
+   Refresh token'ni olish uchun bir martalik:
+       python manage.py gdrive_oauth_setup <client_secrets.json yo'li>
+
+2. SERVICE ACCOUNT (faqat Google Workspace + Shared Drive uchun)
+   Env vars:
+     GDRIVE_SERVICE_ACCOUNT_JSON
+     GDRIVE_FOLDER_ID
+   Shaxsiy Gmail'da ishlamaydi (service account quotasiga ega emas).
+
+Ikkalasidan biri sozlanmagan bo'lsa funksiya jimgina o'tkaziladi — Telegram
+backup hech qachon shu sababli yiqilmaydi.
 """
 
 from __future__ import annotations
@@ -31,36 +41,80 @@ logger = logging.getLogger(__name__)
 GDRIVE_SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 
 
-def _get_service_account_json() -> str:
+def _env_or_setting(name: str) -> str:
     return (
-        str(getattr(settings, "GDRIVE_SERVICE_ACCOUNT_JSON", "") or "").strip()
-        or str(os.environ.get("GDRIVE_SERVICE_ACCOUNT_JSON", "") or "").strip()
+        str(getattr(settings, name, "") or "").strip()
+        or str(os.environ.get(name, "") or "").strip()
     )
+
+
+def _get_service_account_json() -> str:
+    return _env_or_setting("GDRIVE_SERVICE_ACCOUNT_JSON")
+
+
+def _get_oauth_refresh_token() -> str:
+    return _env_or_setting("GDRIVE_OAUTH_REFRESH_TOKEN")
+
+
+def _get_oauth_client_id() -> str:
+    return _env_or_setting("GDRIVE_OAUTH_CLIENT_ID")
+
+
+def _get_oauth_client_secret() -> str:
+    return _env_or_setting("GDRIVE_OAUTH_CLIENT_SECRET")
 
 
 def _get_folder_id() -> str:
-    return (
-        str(getattr(settings, "GDRIVE_FOLDER_ID", "") or "").strip()
-        or str(os.environ.get("GDRIVE_FOLDER_ID", "") or "").strip()
+    return _env_or_setting("GDRIVE_FOLDER_ID")
+
+
+def _oauth_configured() -> bool:
+    return bool(
+        _get_oauth_refresh_token()
+        and _get_oauth_client_id()
+        and _get_oauth_client_secret()
     )
+
+
+def _service_account_configured() -> bool:
+    return bool(_get_service_account_json())
+
+
+def auth_method() -> str:
+    """Qaysi auth rejimi ishlatiladi? 'oauth', 'service_account', yoki 'none'."""
+    if _oauth_configured():
+        return "oauth"
+    if _service_account_configured():
+        return "service_account"
+    return "none"
 
 
 def is_gdrive_configured() -> bool:
     """Env vars to'ldirilganmi? Agar yo'q bo'lsa, yuklash bosqichi jimgina o'tkaziladi."""
-    return bool(_get_service_account_json() and _get_folder_id())
+    return bool(_get_folder_id()) and auth_method() != "none"
 
 
-def _build_drive_service():
+def _build_oauth_credentials():
+    from google.auth.transport.requests import Request
+    from google.oauth2.credentials import Credentials
+
+    creds = Credentials(
+        token=None,
+        refresh_token=_get_oauth_refresh_token(),
+        client_id=_get_oauth_client_id(),
+        client_secret=_get_oauth_client_secret(),
+        token_uri="https://oauth2.googleapis.com/token",
+        scopes=GDRIVE_SCOPES,
+    )
+    # Refresh token'ni access token'ga almashtirish (1 soatlik).
+    creds.refresh(Request())
+    return creds
+
+
+def _build_service_account_credentials():
     from google.oauth2 import service_account
-    from googleapiclient.discovery import build
 
     creds_raw = _get_service_account_json()
-    if not creds_raw:
-        raise ValueError(
-            "GDRIVE_SERVICE_ACCOUNT_JSON env var o'rnatilmagan. "
-            "Render Dashboard → Environment Variables ga qo'shing."
-        )
-
     try:
         creds_info = json.loads(creds_raw)
     except json.JSONDecodeError as exc:
@@ -69,9 +123,27 @@ def _build_drive_service():
             "Butun JSON fayl ichini bitta qatorga yopishtiring."
         ) from exc
 
-    credentials = service_account.Credentials.from_service_account_info(
+    return service_account.Credentials.from_service_account_info(
         creds_info, scopes=GDRIVE_SCOPES
     )
+
+
+def _build_drive_service():
+    from googleapiclient.discovery import build
+
+    method = auth_method()
+    if method == "oauth":
+        credentials = _build_oauth_credentials()
+    elif method == "service_account":
+        credentials = _build_service_account_credentials()
+    else:
+        raise ValueError(
+            "Google Drive uchun auth sozlanmagan. Ikki variantdan birini tanlang:\n"
+            "  OAuth (shaxsiy Gmail): GDRIVE_OAUTH_CLIENT_ID, "
+            "GDRIVE_OAUTH_CLIENT_SECRET, GDRIVE_OAUTH_REFRESH_TOKEN\n"
+            "  Service Account (Google Workspace + Shared Drive): "
+            "GDRIVE_SERVICE_ACCOUNT_JSON"
+        )
     return build("drive", "v3", credentials=credentials, cache_discovery=False)
 
 
