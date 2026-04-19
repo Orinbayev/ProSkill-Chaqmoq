@@ -1,6 +1,7 @@
 # accounts/views.py
 import json
 import logging
+import random
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -11,7 +12,9 @@ from django.urls import reverse
 from django import forms
 from django.db.models import Count, Sum
 from django.db.models.functions import Coalesce
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
+from django.template.loader import render_to_string
+from django.utils.text import slugify
 
 from .forms import AddUserForm, TeacherForm, ProfileEditForm, PasswordUpdateForm
 from accounts.models import BranchRequest, Center, DirectorCenterAccess, User
@@ -34,6 +37,39 @@ def _is_staff_like(u):
 def _safe_next_url(value: str | None) -> str | None:
     value = (value or "").strip()
     return value if value.startswith("/") else None
+
+
+def _is_student_drawer_request(request) -> bool:
+    role = (request.GET.get("role") or "").strip().lower()
+    return request.GET.get("drawer") == "1" and role in {"student", "students"}
+
+
+def _generate_student_email(ism: str, familya: str) -> str:
+    first = slugify(ism or "").replace("-", "") or "u"
+    last = slugify(familya or "").replace("-", "") or "student"
+    prefix = f"{first[:1]}.{last[:10]}"
+    for _ in range(40):
+        candidate = f"{prefix}{random.randint(100, 999)}@gmail.com"
+        if not User._base_manager.filter(email=candidate).exists():
+            return candidate
+    return f"{prefix}{random.randint(1000, 9999)}@gmail.com"
+
+
+def _generate_student_password() -> str:
+    return str(random.randint(10000000, 99999999))
+
+
+def _render_student_drawer_form(request, *, form, student_limit_state, next_url, drawer_center_value):
+    return render_to_string(
+        "accounts/partials/student_drawer_form.html",
+        {
+            "form": form,
+            "student_limit_state": student_limit_state,
+            "next_url": next_url,
+            "drawer_center_value": drawer_center_value,
+        },
+        request=request,
+    )
 
 
 def _superadmin_only(request):
@@ -673,6 +709,7 @@ def add_user(request):
         return HttpResponseForbidden("Ruxsat yo'q.")
 
     next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
+    is_student_drawer = _is_student_drawer_request(request)
 
     # ✅ Role normalization (students -> student)
     role_param = request.GET.get("role", "").strip()
@@ -683,13 +720,26 @@ def add_user(request):
     if role_param:
         initial["role"] = role_param
 
-    form = AddUserForm(request.POST or None, request=request, initial=initial)
-    student_limit_state = None
-
     active_center = getattr(request, "center", None) or getattr(request.user, "center", None)
     selected_center_id = request.POST.get("center") or request.GET.get("center")
     if not active_center and selected_center_id:
         active_center = Center.objects.filter(id=selected_center_id).first()
+
+    form_data = request.POST.copy() if request.method == "POST" else None
+    if is_student_drawer and form_data is not None:
+        form_data["role"] = "student"
+        if active_center and not form_data.get("center"):
+            form_data["center"] = str(active_center.id)
+        if not (form_data.get("email") or "").strip():
+            form_data["email"] = _generate_student_email(
+                form_data.get("ism", ""),
+                form_data.get("familya", ""),
+            )
+        if not (form_data.get("password") or "").strip():
+            form_data["password"] = _generate_student_password()
+
+    form = AddUserForm(form_data or None, request=request, initial=initial)
+    student_limit_state = None
 
     if active_center:
         from billing.services import resolve_center_student_limit
@@ -700,9 +750,24 @@ def add_user(request):
             include_usage=True,
         )
 
+    drawer_center_value = ""
+    if active_center and getattr(active_center, "id", None):
+        drawer_center_value = str(active_center.id)
+    elif selected_center_id:
+        drawer_center_value = str(selected_center_id)
+
     if request.method == "POST" and form.is_valid():
         user = form.save()
         messages.success(request, f"✅ Foydalanuvchi {user.email} muvaffaqiyatli qo‘shildi.")
+        if is_student_drawer:
+            return JsonResponse({
+                "ok": True,
+                "user": {
+                    "id": user.id,
+                    "full_name": user.get_full_name() or f"{user.ism} {user.familya}".strip(),
+                    "email": user.email,
+                },
+            })
         return redirect(next_url or "core:home")
 
     role_titles = {
@@ -711,6 +776,18 @@ def add_user(request):
         "manager": "Yangi manager",
         "parent": "Yangi ota-ona",
     }
+
+    if is_student_drawer:
+        html = _render_student_drawer_form(
+            request,
+            form=form,
+            student_limit_state=student_limit_state,
+            next_url=next_url,
+            drawer_center_value=drawer_center_value,
+        )
+        if request.method == "POST":
+            return JsonResponse({"ok": False, "html": html}, status=400)
+        return HttpResponse(html)
 
     return render(request, "accounts/user_form.html", {
         'form': form,

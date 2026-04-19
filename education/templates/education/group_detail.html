@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% block body_class %}group-detail-page{% endblock %}
 {% block content %}
 
 <script src="https://cdn.tailwindcss.com"></script>
@@ -243,6 +244,176 @@
     font-weight: 600;
   }
 
+  .header-panel,
+  .controls-panel,
+  .exam-reminder-panel,
+  .ranking-panel {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header-panel > *,
+  .controls-panel > *,
+  .exam-reminder-panel > *,
+  .ranking-panel > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .header-panel::before,
+  .controls-panel::before,
+  .exam-reminder-panel::before,
+  .ranking-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 32%),
+      linear-gradient(135deg, rgba(255, 255, 255, 0.03), transparent 55%);
+  }
+
+  .score-range-shell {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .score-range-label {
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #f59e0b;
+  }
+
+  .amount-stepper {
+    display: flex;
+    align-items: center;
+    height: 34px;
+    overflow: hidden;
+    border-radius: 11px;
+    border: 1px solid var(--border);
+    background: rgba(2, 6, 23, 0.38);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
+
+  .amount-stepper-btn {
+    width: 32px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 18px;
+    line-height: 1;
+    font-weight: 900;
+    text-shadow: 0 1px 0 rgba(15, 23, 42, 0.35);
+    transition: all 0.18s ease;
+  }
+
+  .amount-stepper-btn:first-child {
+    color: #fda4af;
+  }
+
+  .amount-stepper-btn:last-child {
+    color: #86efac;
+  }
+
+  .amount-stepper-btn:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: #f8fafc;
+  }
+
+  .amount-stepper-input {
+    width: 42px;
+    height: 100%;
+    border: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    background: transparent;
+    color: #f8fafc;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 800;
+    outline: none;
+  }
+
+  .exam-reminder-text {
+    font-weight: 800;
+    color: #facc15;
+  }
+
+  .exam-reminder-meta {
+    font-weight: 700;
+    color: #94a3b8;
+  }
+
+  .ranking-title {
+    font-weight: 800;
+  }
+
+  .ranking-subtitle {
+    font-size: 12px;
+    color: #94a3b8;
+  }
+
+  .ranking-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+  }
+
+  .ranking-preview-card {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
+
+  .ranking-preview-card.is-gold {
+    background: rgba(250, 204, 21, 0.12);
+    border-color: rgba(250, 204, 21, 0.35);
+  }
+
+  .ranking-preview-card.is-silver {
+    background: rgba(148, 163, 184, 0.18);
+    border-color: rgba(148, 163, 184, 0.45);
+  }
+
+  .ranking-preview-card.is-bronze {
+    background: rgba(251, 146, 60, 0.12);
+    border-color: rgba(251, 146, 60, 0.35);
+  }
+
+  .ranking-preview-title {
+    font-weight: 800;
+  }
+
+  .ranking-preview-score {
+    font-size: 12px;
+    color: #cbd5e1;
+    margin-top: 6px;
+  }
+
+  .ranking-preview-meta {
+    font-size: 11px;
+    color: #94a3b8;
+  }
+
+  .ranking-empty-state {
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
   /* =========================
      ATTENDANCE CONTROL
      ========================= */
@@ -458,9 +629,9 @@
   }
 
   .pill-btn {
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
     border: 1px solid var(--border);
     background: rgba(255,255,255,0.03);
     color: white;
@@ -469,12 +640,34 @@
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s;
-    font-size: 16px;
+    font-size: 18px;
+    font-weight: 900;
     line-height: 1;
     padding: 0;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+
+  .pill-symbol {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+    font-weight: 900;
+    line-height: 1;
+    transform: translateY(-1px);
   }
 
   .pill-btn:hover { background: rgba(255,255,255,0.08); transform: scale(1.05); }
+  .btn-plus-p {
+    background: linear-gradient(180deg, rgba(34, 197, 94, 0.18), rgba(21, 128, 61, 0.12));
+    color: #4ade80;
+    border-color: rgba(34, 197, 94, 0.28);
+  }
+  .btn-minus-p {
+    background: linear-gradient(180deg, rgba(239, 68, 68, 0.18), rgba(153, 27, 27, 0.12));
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.28);
+  }
   .btn-plus-p:hover { color: var(--green); border-color: rgba(34, 197, 94, 0.3); }
   .btn-minus-p:hover { color: var(--red); border-color: rgba(239, 68, 68, 0.3); }
 
@@ -533,18 +726,32 @@
   }
 
   html[data-role-theme="light"] .glass-panel {
-    background: rgba(255, 255, 255, 0.95);
-    box-shadow: 0 15px 40px rgba(37, 99, 235, 0.08);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
+    border-color: rgba(37, 99, 235, 0.14);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06), 0 4px 14px rgba(37, 99, 235, 0.06);
+  }
+
+  html[data-role-theme="light"] .main-title {
+    color: #0f172a;
+  }
+
+  html[data-role-theme="light"] .sub-title,
+  html[data-role-theme="light"] .ranking-subtitle,
+  html[data-role-theme="light"] .student-email {
+    color: #64748b;
   }
 
   html[data-role-theme="light"] .rule-select, 
   html[data-role-theme="light"] .date-picker,
   html[data-role-theme="light"] .compact-select {
     color: var(--text-main) !important;
+    color-scheme: light;
   }
 
   html[data-role-theme="light"] .input-label-box {
-    background: rgba(37, 99, 235, 0.04);
+    background: linear-gradient(180deg, rgba(37, 99, 235, 0.07), rgba(255, 255, 255, 0.95));
+    border-color: rgba(37, 99, 235, 0.12);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
   }
 
   html[data-role-theme="light"] select option, 
@@ -553,13 +760,52 @@
     color: #0f172a !important;
   }
 
+  html[data-role-theme="light"] .btn-primary {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    box-shadow: 0 12px 22px rgba(37, 99, 235, 0.18);
+  }
+
+  html[data-role-theme="light"] .btn-danger-outline {
+    background: rgba(254, 226, 226, 0.82);
+    border-color: rgba(248, 113, 113, 0.3);
+    color: #dc2626;
+  }
+
+  html[data-role-theme="light"] .btn-danger-outline:hover {
+    background: rgba(254, 202, 202, 0.92);
+    color: #b91c1c;
+  }
+
   html[data-role-theme="light"] .student-table th {
-    background: rgba(37, 99, 235, 0.04);
+    background: linear-gradient(180deg, rgba(37, 99, 235, 0.08), rgba(219, 234, 254, 0.7));
     color: #1d4ed8;
+    border-bottom-color: rgba(37, 99, 235, 0.12);
+  }
+
+  html[data-role-theme="light"] .student-table td {
+    color: #0f172a;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  }
+
+  html[data-role-theme="light"] .student-table tbody tr:nth-child(even):not(.row-excused):not(.row-unexcused):not(.forced-row) {
+    background: rgba(148, 163, 184, 0.035);
   }
 
   html[data-role-theme="light"] .tr-student:hover {
-    background: rgba(37, 99, 235, 0.04);
+    background: rgba(37, 99, 235, 0.055);
+  }
+
+  html[data-role-theme="light"] .tr-student.row-excused {
+    background: rgba(245, 158, 11, 0.1);
+  }
+
+  html[data-role-theme="light"] .tr-student.row-unexcused,
+  html[data-role-theme="light"] .tr-student.forced-row {
+    background: rgba(239, 68, 68, 0.08);
+  }
+
+  html[data-role-theme="light"] .student-table td.text-slate-300 {
+    color: #64748b !important;
   }
 
   html[data-role-theme="light"] .btn-muted {
@@ -598,6 +844,142 @@
     color: #1d4ed8;
   }
 
+  html[data-role-theme="light"] .table-container {
+    border-color: rgba(37, 99, 235, 0.14);
+    box-shadow: 0 18px 38px rgba(15, 23, 42, 0.05);
+  }
+
+  html[data-role-theme="light"] .att-layer1 {
+    background: linear-gradient(180deg, #e2e8f0, #cbd5e1);
+    border-color: rgba(148, 163, 184, 0.24);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  }
+
+  html[data-role-theme="light"] .att-btn {
+    color: #64748b;
+  }
+
+  html[data-role-theme="light"] .att-btn:hover {
+    color: #0f172a;
+  }
+
+  html[data-role-theme="light"] .att-wrap[data-status="present"] .btn-keldi {
+    box-shadow: 0 8px 18px rgba(34, 197, 94, 0.18);
+  }
+
+  html[data-role-theme="light"] .att-wrap[data-status="absent_excused"] .btn-kelmadi {
+    box-shadow: 0 8px 18px rgba(245, 158, 11, 0.18);
+  }
+
+  html[data-role-theme="light"] .att-wrap[data-status="absent_unexcused"] .btn-kelmadi {
+    box-shadow: 0 8px 18px rgba(239, 68, 68, 0.18);
+  }
+
+  html[data-role-theme="light"] .point-badge {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  }
+
+  html[data-role-theme="light"] .pill-btn {
+    background: rgba(255, 255, 255, 0.95);
+    color: #1e293b;
+    border-color: rgba(148, 163, 184, 0.24);
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.05);
+  }
+
+  html[data-role-theme="light"] .pill-btn:hover {
+    background: #ffffff;
+  }
+
+  html[data-role-theme="light"] .btn-plus-p {
+    background: linear-gradient(180deg, rgba(220, 252, 231, 0.98), rgba(187, 247, 208, 0.94));
+    color: #15803d;
+    border-color: rgba(34, 197, 94, 0.26);
+    box-shadow: 0 8px 16px rgba(34, 197, 94, 0.1);
+  }
+
+  html[data-role-theme="light"] .btn-minus-p {
+    background: linear-gradient(180deg, rgba(254, 242, 242, 0.98), rgba(254, 226, 226, 0.94));
+    color: #dc2626;
+    border-color: rgba(239, 68, 68, 0.24);
+    box-shadow: 0 8px 16px rgba(239, 68, 68, 0.08);
+  }
+
+  html[data-role-theme="light"] .score-range-label {
+    color: #ea580c;
+  }
+
+  html[data-role-theme="light"] .amount-stepper {
+    background: linear-gradient(180deg, rgba(241, 245, 249, 0.95), rgba(226, 232, 240, 0.96));
+    border-color: rgba(148, 163, 184, 0.24);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+
+  html[data-role-theme="light"] .amount-stepper-btn {
+    color: #64748b;
+    text-shadow: none;
+  }
+
+  html[data-role-theme="light"] .amount-stepper-btn:first-child {
+    color: #dc2626;
+  }
+
+  html[data-role-theme="light"] .amount-stepper-btn:last-child {
+    color: #16a34a;
+  }
+
+  html[data-role-theme="light"] .amount-stepper-btn:hover {
+    background: rgba(37, 99, 235, 0.08);
+  }
+
+  html[data-role-theme="light"] .amount-stepper-input {
+    color: #0f172a;
+    border-left-color: rgba(148, 163, 184, 0.18);
+    border-right-color: rgba(148, 163, 184, 0.18);
+  }
+
+  html[data-role-theme="light"] .exam-reminder-text {
+    color: #b45309;
+  }
+
+  html[data-role-theme="light"] .exam-reminder-meta {
+    color: #64748b;
+  }
+
+  html[data-role-theme="light"] .ranking-title,
+  html[data-role-theme="light"] .ranking-preview-title {
+    color: #0f172a;
+  }
+
+  html[data-role-theme="light"] .ranking-preview-card {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
+    border-color: rgba(148, 163, 184, 0.24);
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.04);
+  }
+
+  html[data-role-theme="light"] .ranking-preview-card.is-gold {
+    background: linear-gradient(180deg, rgba(255, 251, 235, 1), rgba(254, 243, 199, 0.88));
+    border-color: rgba(245, 158, 11, 0.25);
+  }
+
+  html[data-role-theme="light"] .ranking-preview-card.is-silver {
+    background: linear-gradient(180deg, rgba(248, 250, 252, 1), rgba(226, 232, 240, 0.92));
+    border-color: rgba(148, 163, 184, 0.28);
+  }
+
+  html[data-role-theme="light"] .ranking-preview-card.is-bronze {
+    background: linear-gradient(180deg, rgba(255, 247, 237, 1), rgba(254, 215, 170, 0.86));
+    border-color: rgba(249, 115, 22, 0.24);
+  }
+
+  html[data-role-theme="light"] .ranking-preview-score {
+    color: #334155;
+  }
+
+  html[data-role-theme="light"] .ranking-preview-meta,
+  html[data-role-theme="light"] .ranking-empty-state {
+    color: #64748b;
+  }
+
   html[data-role-theme="light"] .quick-menu-divider {
     background: rgba(148, 163, 184, 0.22);
   }
@@ -610,7 +992,7 @@
 <div class="cq-wrap">
 
   <!-- HEADER AREA -->
-  <div class="glass-panel header-mini header-top-layer">
+  <div class="glass-panel header-panel header-mini header-top-layer">
     <div class="title-area">
       <a href="javascript:history.back()" class="back-link" title="Orqaga">
         <i class="fa-solid fa-chevron-left"></i>
@@ -692,7 +1074,7 @@
   </div>
 
   <!-- ATTENDANCE & ACTIONS BAR -->
-  <div class="glass-panel attendance-bar">
+  <div class="glass-panel controls-panel attendance-bar">
     <div class="input-label-box">
       <i class="fa-solid fa-calendar-day text-blue-400 text-xs"></i>
       <input id="attendance-date" type="date" value="{{ selected_date|default:today }}" class="date-picker">
@@ -727,22 +1109,22 @@
       </button>
     </div>
 
-    <div class="ml-auto flex items-center gap-3">
-       <div class="text-[11px] font-black uppercase text-orange-500 tracking-tighter">
+    <div class="score-range-shell">
+       <div class="score-range-label">
           Ball: <span id="rule-range-hint" class="text-slate-400 font-bold lowercase"></span>
        </div>
-       <div class="flex items-center bg-black/30 rounded-lg border border-white/5 h-[34px] overflow-hidden">
-          <button id="glob-minus" class="w-8 h-full flex items-center justify-center hover:bg-white/5 text-slate-400 text-base leading-none translate-y-[-1px]">−</button>
-          <input id="amount-global" type="number" value="3" class="w-10 bg-transparent text-center text-sm font-bold border-x border-white/5 outline-none">
-          <button id="glob-plus" class="w-8 h-full flex items-center justify-center hover:bg-white/5 text-slate-400 text-base leading-none translate-y-[-1px]">+</button>
+       <div class="amount-stepper">
+          <button id="glob-minus" class="amount-stepper-btn">−</button>
+          <input id="amount-global" type="number" value="3" class="amount-stepper-input">
+          <button id="glob-plus" class="amount-stepper-btn">+</button>
        </div>
     </div>
   </div>
 
   {% if exam_reminder_state and exam_reminder_state.enabled %}
-  <div class="glass-panel" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px;">
+  <div class="glass-panel exam-reminder-panel" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px;">
     {% if exam_reminder_state.due %}
-      <div style="font-weight:800; color:#facc15;">
+      <div class="exam-reminder-text">
         {% if exam_reminder_state.reason == 'pending_results' and exam_reminder_state.existing_session %}
           {{ exam_reminder_state.target_lesson_number }}-dars imtihoni ochiq.
           {{ exam_reminder_state.progress.completed_students }}/{{ exam_reminder_state.progress.total_students }} yakunlangan,
@@ -786,11 +1168,11 @@
   {% endif %}
 
   {% if can_view_internal_ranking %}
-  <div class="glass-panel" id="internal-ranking-panel" data-storage-key="group-internal-ranking-{{ g.id }}">
+  <div class="glass-panel ranking-panel" id="internal-ranking-panel" data-storage-key="group-internal-ranking-{{ g.id }}">
     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap;">
       <div style="padding-right:8px;">
-        <div style="font-weight:800;">Guruh ichki aktivlik reytingi</div>
-        <div style="font-size:12px; color:#94a3b8;">Faqat guruh ichidagi real faoliyat asosida ko'rsatiladi.</div>
+        <div class="ranking-title">Guruh ichki aktivlik reytingi</div>
+        <div class="ranking-subtitle">Faqat guruh ichidagi real faoliyat asosida ko'rsatiladi.</div>
       </div>
       <button
         type="button"
@@ -812,29 +1194,24 @@
       </div>
 
       {% if internal_ranking_preview %}
-      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px;">
+      <div class="ranking-preview-grid">
         {% for row in internal_ranking_preview %}
-          <div style="
-            border:1px solid var(--border);
-            border-radius:12px;
-            padding:10px;
-            {% if row.rank_position == 1 %}background:rgba(250, 204, 21, 0.12); border-color:rgba(250, 204, 21, 0.35);{% elif row.rank_position == 2 %}background:rgba(148, 163, 184, 0.18); border-color:rgba(148, 163, 184, 0.45);{% elif row.rank_position == 3 %}background:rgba(251, 146, 60, 0.12); border-color:rgba(251, 146, 60, 0.35);{% endif %}
-          ">
-            <div style="font-weight:800;">
+          <div class="ranking-preview-card {% if row.rank_position == 1 %}is-gold{% elif row.rank_position == 2 %}is-silver{% elif row.rank_position == 3 %}is-bronze{% endif %}">
+            <div class="ranking-preview-title">
               {% if row.rank_position == 1 %}🥇{% elif row.rank_position == 2 %}🥈{% elif row.rank_position == 3 %}🥉{% endif %}
               #{{ row.rank_position }} — {{ row.student.get_full_name }}
             </div>
-            <div style="font-size:12px; color:#cbd5e1; margin-top:6px;">
+            <div class="ranking-preview-score">
               Jami score: <strong>{{ row.total_internal_score|floatformat:2 }}</strong>
             </div>
-            <div style="font-size:11px; color:#94a3b8;">
+            <div class="ranking-preview-meta">
               Davomat {{ row.attendance_score|floatformat:1 }}% · Imtihon {{ row.exam_score|floatformat:1 }}%
             </div>
           </div>
         {% endfor %}
       </div>
       {% else %}
-      <div style="border:1px dashed var(--border); border-radius:12px; padding:14px; color:#94a3b8; font-size:13px; font-weight:600;">
+      <div class="ranking-empty-state">
         Hozircha guruh ichida yetarli activity ma'lumoti yo'q. Davomat yoki imtihonlar kiritilgach eng faol o'quvchilar chiqadi.
       </div>
       {% endif %}
@@ -930,8 +1307,8 @@
             </td>
             <td class="text-center">
               <div class="action-pills student-actions justify-center">
-                <button type="button" class="pill-btn btn-plus-p btn-add" data-student="{{ e.student.id }}"><span class="translate-y-[-1px]">+</span></button>
-                <button type="button" class="pill-btn btn-minus-p btn-sub" data-student="{{ e.student.id }}"><span class="translate-y-[-1px]">−</span></button>
+                <button type="button" class="pill-btn btn-plus-p btn-add" data-student="{{ e.student.id }}"><span class="pill-symbol">+</span></button>
+                <button type="button" class="pill-btn btn-minus-p btn-sub" data-student="{{ e.student.id }}"><span class="pill-symbol">−</span></button>
               </div>
             </td>
           </tr>

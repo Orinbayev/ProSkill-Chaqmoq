@@ -19,5 +19,7 @@ pydantic>=2.0
 pytz
 apscheduler
 google-genai
+google-api-python-client>=2.120.0
+google-auth>=2.29.0
 djangorestframework
 drf-spectacular

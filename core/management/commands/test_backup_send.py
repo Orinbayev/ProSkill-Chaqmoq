@@ -26,6 +26,7 @@ from core.services.db_backup_service import (
     _get_bot_token,
     _get_group_id,
     export_center_snapshot,
+    get_backup_schedule_label,
     send_file_to_telegram,
 )
 
@@ -60,7 +61,7 @@ class Command(BaseCommand):
         token = _get_bot_token()
         if not token:
             self.stderr.write(self.style.ERROR(
-                "❌ TELEGRAM_BOT_TOKEN (yoki BOT_TOKEN) topilmadi!\n"
+                "❌ BACKUP_BOT_TOKEN (yoki TELEGRAM_BOT_TOKEN/BOT_TOKEN) topilmadi!\n"
                 "   Render Dashboard → Environment Variables ga qo'shing."
             ))
             sys.exit(1)
@@ -71,7 +72,7 @@ class Command(BaseCommand):
         group_id = _get_group_id()
         if not group_id:
             self.stderr.write(self.style.ERROR(
-                "❌ TELEGRAM_GROUP_ID (yoki BACKUP_GROUP_ID) topilmadi!\n"
+                "❌ BACKUP_GROUP_ID (yoki TELEGRAM_GROUP_ID) topilmadi!\n"
                 "   Render Dashboard → Environment Variables ga qo'shing."
             ))
             sys.exit(1)
@@ -79,6 +80,7 @@ class Command(BaseCommand):
 
         # ── 3. Telegram API – getMe ────────────────────────────────────────
         self.stdout.write("\n[3] Telegram Bot getMe tekshirish...")
+        bot_info = {}
         try:
             resp = requests.get(
                 f"https://api.telegram.org/bot{token}/getMe",
@@ -117,9 +119,11 @@ class Command(BaseCommand):
                     f"(type={chat.get('type')})"
                 ))
             else:
+                bot_username = bot_info.get("username") or "noma'lum"
                 self.stderr.write(self.style.ERROR(
                     f"❌ getChat xatosi: {data.get('description')}\n"
-                    "   Bot guruhda bo'lmasligi mumkin yoki group_id noto'g'ri."
+                    f"   Hozirgi bot: @{bot_username}\n"
+                    "   Bot guruhda bo'lmasligi mumkin yoki BACKUP_BOT_TOKEN/BACKUP_GROUP_ID noto'g'ri."
                 ))
                 sys.exit(1)
         except Exception as exc:
@@ -181,6 +185,6 @@ class Command(BaseCommand):
         self.stdout.write("\n" + "=" * 55)
         self.stdout.write(self.style.SUCCESS(
             "✅ BARCHA TESTLAR MUVAFFAQIYATLI O'TDI!\n"
-            "   Scheduler har kuni 16:00 (Asia/Tashkent) da ishlaydi."
+            f"   Scheduler har kuni {get_backup_schedule_label()} da ishlaydi."
         ))
         self.stdout.write("=" * 55 + "\n")

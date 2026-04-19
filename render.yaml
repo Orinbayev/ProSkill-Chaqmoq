@@ -69,7 +69,13 @@ services:
       - key: TELEGRAM_BOT_TOKEN
         sync: false
 
+      - key: BACKUP_BOT_TOKEN
+        sync: false
+
       - key: TELEGRAM_GROUP_ID
+        sync: false
+
+      - key: BACKUP_GROUP_ID
         sync: false
       
       - key: DJANGO_SETTINGS_MODULE
@@ -114,13 +120,13 @@ services:
 #     plan: free
 
   # ==================== CRON JOB – DAILY BACKUP ====================
-  # Render Cron Job: har kuni 16:00 Asia/Tashkent = 11:00 UTC
+  # Render Cron Job: har kuni 17:35 Asia/Tashkent = 12:35 UTC
   # Bu ENG ISHONCHLI usul – bot jarayoniga bog'liq emas!
   - type: cron
     name: daily-center-backup
     env: python
     region: frankfurt
-    schedule: "0 11 * * *"   # 11:00 UTC = 16:00 Asia/Tashkent
+    schedule: "35 12 * * *"   # 12:35 UTC = 17:35 Asia/Tashkent
     buildCommand: python3 -m pip install -r requirements.txt
     startCommand: python3 manage.py backup_and_send
     envVars:
@@ -155,11 +161,21 @@ services:
           name: ProSkill-Chaqmoq
           type: web
           envVarKey: TELEGRAM_BOT_TOKEN
+      - key: BACKUP_BOT_TOKEN
+        fromService:
+          name: ProSkill-Chaqmoq
+          type: web
+          envVarKey: BACKUP_BOT_TOKEN
       - key: TELEGRAM_GROUP_ID
         fromService:
           name: ProSkill-Chaqmoq
           type: web
           envVarKey: TELEGRAM_GROUP_ID
+      - key: BACKUP_GROUP_ID
+        fromService:
+          name: ProSkill-Chaqmoq
+          type: web
+          envVarKey: BACKUP_GROUP_ID
 
   # ==================== CRON JOB - PAYMENT DISCIPLINE RULES ====================
   # Har kuni 02:00 Asia/Tashkent = 21:00 UTC; deadline o'tmagan kunlarda no-op.

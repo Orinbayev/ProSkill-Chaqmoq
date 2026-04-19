@@ -338,6 +338,21 @@ def _get_month_from_next(next_url: str, fallback: date) -> date:
         return fallback
 
 
+def _resolve_paid_date(raw_value: str | None) -> date:
+    parsed = parse_date((raw_value or "").strip())
+    return parsed or localdate()
+
+
+def _build_paid_at_for_date(selected_date: date) -> datetime:
+    current_local = timezone.localtime()
+    return current_local.replace(
+        year=selected_date.year,
+        month=selected_date.month,
+        day=selected_date.day,
+        microsecond=0,
+    )
+
+
 from django.core.paginator import Paginator
 
 
@@ -527,10 +542,14 @@ def create_payment(request):
     enrollment_id = request.POST.get("enrollment_id")
     student_id = request.POST.get("student_id")
     payment_scope = (request.POST.get("payment_scope") or "").strip()
-    month_str = request.POST.get("month")
+    month_str = (request.POST.get("month") or "").strip()
+    selected_paid_date = _resolve_paid_date(request.POST.get("paid_date"))
+    selected_paid_at = _build_paid_at_for_date(selected_paid_date)
 
-    fallback = first_day_of_current_month()
-    start_month = parse_month_str(month_str) if month_str else _get_month_from_next(next_url, fallback)
+    fallback = selected_paid_date.replace(day=1)
+    start_month = parse_month_str(month_str)
+    if start_month is None:
+        start_month = _get_month_from_next(next_url, fallback)
     
     cash_amount = int(Decimal(request.POST.get("cash_amount") or "0"))
     card_amount = int(Decimal(request.POST.get("card_amount") or "0"))
@@ -555,6 +574,7 @@ def create_payment(request):
                     card_amount_som=card_amount,
                     created_by=request.user,
                     start_month=start_month,
+                    paid_at=selected_paid_at,
                     note=note,
                     payment_type=infer_payment_type(cash_amount, card_amount),
                 )
@@ -609,7 +629,8 @@ def create_payment(request):
                     card_amount=card_amount,
                     summa=cash_amount + card_amount,
                     created_by=request.user,
-                    paid_date=localdate(),
+                    paid_date=selected_paid_date,
+                    paid_time=selected_paid_at.time().replace(microsecond=0),
                     center=center,
                     note=note,
                     payment_type="mixed" if (cash_amount > 0 and card_amount > 0) else ("card" if card_amount > 0 else "cash")
@@ -1830,7 +1851,7 @@ def qarzdorlar_home(request):
         "date_from":      selected_from.isoformat(),
         "date_to":        selected_to.isoformat(),
         "pay_month":      sel_month,
-        "effective_pay_month": str(cur_month.month),
+        "effective_pay_month": cur_month.strftime("%Y-%m"),
         "per_page":       per_page,
         "page_size_options": allowed_page_sizes,
         "uz_months": [

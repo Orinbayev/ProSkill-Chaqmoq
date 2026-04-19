@@ -1,0 +1,145 @@
+{% if form.non_field_errors %}
+<div class="bq-sdrawer-alert">
+  {% for error in form.non_field_errors %}
+  <div>{{ error }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if student_limit_state %}
+<div class="bq-sdrawer-limit">
+  <strong>Student limiti:</strong>
+  <span>{{ student_limit_state.current_count }}/{{ student_limit_state.limit }}</span>
+  {% if student_limit_state.is_at_limit %}
+  <small>Yangi student qo'shish uchun limit to'lgan.</small>
+  {% else %}
+  <small>Yana {{ student_limit_state.remaining }} ta student qo'shish mumkin.</small>
+  {% endif %}
+</div>
+{% endif %}
+
+<form
+  method="post"
+  action="{% url 'accounts:add_user' %}?role=student&drawer=1{% if next_url %}&next={{ next_url|urlencode }}{% endif %}"
+  class="bq-sdrawer-form"
+  data-student-drawer-form
+  data-group-price-template="{% url 'education:group_price' 0 %}">
+  {% csrf_token %}
+  <input type="hidden" name="role" value="student">
+  {% if drawer_center_value %}
+  <input type="hidden" name="center" value="{{ drawer_center_value }}">
+  {% else %}
+  {{ form.center }}
+  {% endif %}
+  {% if next_url %}
+  <input type="hidden" name="next" value="{{ next_url }}">
+  {% endif %}
+
+  <div class="bq-sdrawer-grid bq-sdrawer-grid--2">
+    <div class="bq-sdrawer-field">
+      <label for="{{ form.telefon1.id_for_label }}">Telefon</label>
+      {{ form.telefon1 }}
+      {% if form.telefon1.errors %}<div class="bq-sdrawer-error">{{ form.telefon1.errors|join:", " }}</div>{% endif %}
+    </div>
+    <div class="bq-sdrawer-field">
+      <label for="{{ form.telefon2.id_for_label }}">Qo'shimcha telefon</label>
+      {{ form.telefon2 }}
+      {% if form.telefon2.errors %}<div class="bq-sdrawer-error">{{ form.telefon2.errors|join:", " }}</div>{% endif %}
+    </div>
+  </div>
+
+  <div class="bq-sdrawer-grid bq-sdrawer-grid--2">
+    <div class="bq-sdrawer-field">
+      <label for="{{ form.ism.id_for_label }}">Ism</label>
+      {{ form.ism }}
+      {% if form.ism.errors %}<div class="bq-sdrawer-error">{{ form.ism.errors|join:", " }}</div>{% endif %}
+    </div>
+    <div class="bq-sdrawer-field">
+      <label for="{{ form.familya.id_for_label }}">Familiya</label>
+      {{ form.familya }}
+      {% if form.familya.errors %}<div class="bq-sdrawer-error">{{ form.familya.errors|join:", " }}</div>{% endif %}
+    </div>
+  </div>
+
+  <div class="bq-sdrawer-field">
+    <label for="{{ form.otchestvo.id_for_label }}">Otasining ismi</label>
+    {{ form.otchestvo }}
+    {% if form.otchestvo.errors %}<div class="bq-sdrawer-error">{{ form.otchestvo.errors|join:", " }}</div>{% endif %}
+  </div>
+
+  <div class="bq-sdrawer-grid bq-sdrawer-grid--2">
+    <div class="bq-sdrawer-field">
+      <label for="{{ form.birth_date.id_for_label }}">Tug'ilgan sana</label>
+      {{ form.birth_date }}
+      {% if form.birth_date.errors %}<div class="bq-sdrawer-error">{{ form.birth_date.errors|join:", " }}</div>{% endif %}
+    </div>
+    <div class="bq-sdrawer-field">
+      <label>Jins</label>
+      <div class="bq-sdrawer-gender">
+        {% for radio in form.gender %}
+        {% if radio.data.value %}
+        <label class="bq-sdrawer-gender__item" for="{{ radio.id_for_label }}">
+          {{ radio.tag }}
+          <span>{{ radio.choice_label }}</span>
+        </label>
+        {% endif %}
+        {% endfor %}
+      </div>
+      {% if form.gender.errors %}<div class="bq-sdrawer-error">{{ form.gender.errors|join:", " }}</div>{% endif %}
+    </div>
+  </div>
+
+  <div class="bq-sdrawer-field">
+    <label for="{{ form.address.id_for_label }}">Izoh / manzil</label>
+    {{ form.address }}
+    {% if form.address.errors %}<div class="bq-sdrawer-error">{{ form.address.errors|join:", " }}</div>{% endif %}
+  </div>
+
+  <div class="bq-sdrawer-card">
+    <div class="bq-sdrawer-card__title">Guruhga qo'shish</div>
+    <div class="bq-sdrawer-grid bq-sdrawer-grid--2">
+      <div class="bq-sdrawer-field">
+        <label for="{{ form.group.id_for_label }}">Guruh</label>
+        {{ form.group }}
+        {% if form.group.errors %}<div class="bq-sdrawer-error">{{ form.group.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="bq-sdrawer-field" data-drawer-price-block style="display:none;">
+        <label for="{{ form.kurs_narhi.id_for_label }}">Kurs narxi</label>
+        {{ form.kurs_narhi }}
+        {% if form.kurs_narhi.errors %}<div class="bq-sdrawer-error">{{ form.kurs_narhi.errors|join:", " }}</div>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="bq-sdrawer-card">
+    <div class="bq-sdrawer-card__title">Kirish ma'lumotlari</div>
+    <p class="bq-sdrawer-card__note">Bo'sh qoldirsangiz login va parol avtomatik yaratiladi.</p>
+    <div class="bq-sdrawer-grid bq-sdrawer-grid--2">
+      <div class="bq-sdrawer-field">
+        <label for="{{ form.email.id_for_label }}">Login email</label>
+        {{ form.email }}
+        {% if form.email.errors %}<div class="bq-sdrawer-error">{{ form.email.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="bq-sdrawer-field">
+        <label for="{{ form.password.id_for_label }}">Parol</label>
+        <div class="bq-sdrawer-password">
+          {{ form.password }}
+          <button type="button" class="bq-sdrawer-eye" data-toggle-password aria-label="Parolni ko'rsatish">
+            <i class="fa-regular fa-eye"></i>
+          </button>
+        </div>
+        {% if form.password.errors %}<div class="bq-sdrawer-error">{{ form.password.errors|join:", " }}</div>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="bq-sdrawer-actions">
+    <button type="submit" class="bq-sdrawer-submit">
+      <i class="fa-solid fa-check"></i>
+      <span>Saqlash</span>
+    </button>
+    <button type="button" class="bq-sdrawer-cancel" data-student-drawer-close>
+      Bekor qilish
+    </button>
+  </div>
+</form>

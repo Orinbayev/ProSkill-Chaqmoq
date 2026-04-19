@@ -4,7 +4,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from accounts.models import Center, User
-from education.models import Attendance, Enrollment, Group, PaymentAllocation, TeacherIncome, TuitionMonth
+from education.models import Attendance, Enrollment, Group, Payment, PaymentAllocation, TeacherIncome, TuitionMonth
 from education.services.tuition import (
     effective_student_payable_amount,
     ensure_tuition_month,
@@ -138,6 +138,13 @@ class StudentPayableAmountTests(TestCase):
         self.assertIn("Umumiy narxi:", html)
         self.assertIn(f'data-enrollment-id="{self.teacher_share_enrollment.id}"', html)
 
+    def test_qarzdorlar_home_renders_payment_date_input_in_modal(self):
+        response = self.client.get(self.qarzdorlar_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="paid_date"')
+        self.assertContains(response, 'type="date"')
+
     def test_teacher_income_still_uses_full_course_amount(self):
         attendance = Attendance.objects.create(
             group=self.group,
@@ -253,3 +260,35 @@ class StudentPayableAmountTests(TestCase):
         paid_total = PaymentAllocation.objects.filter(tuition_month=tm).aggregate(total=Sum("amount"))["total"] or 0
         self.assertEqual(int(paid_total), 220_000)
         self.assertEqual(TuitionMonth.objects.filter(enrollment=self.teacher_share_enrollment, month=month).count(), 1)
+
+    def test_create_payment_uses_selected_paid_date_for_student_flow(self):
+        pay_url = f"/{self.center.slug}{reverse('education:create_payment')}"
+        selected_date = self.regular_enrollment.created_at.date().replace(day=5)
+
+        response = self.client.post(pay_url, data={
+            "student_id": self.regular_student.id,
+            "cash_amount": "100000",
+            "card_amount": "0",
+            "paid_date": selected_date.isoformat(),
+            "next": self.qarzdorlar_url,
+        })
+
+        self.assertEqual(response.status_code, 302)
+        payment = Payment.objects.filter(student=self.regular_student).latest("id")
+        self.assertEqual(payment.paid_date, selected_date)
+
+    def test_create_payment_uses_selected_paid_date_for_enrollment_flow(self):
+        pay_url = f"/{self.center.slug}{reverse('education:create_payment')}"
+        selected_date = self.teacher_share_enrollment.created_at.date().replace(day=7)
+
+        response = self.client.post(pay_url, data={
+            "enrollment_id": self.teacher_share_enrollment.id,
+            "cash_amount": "50000",
+            "card_amount": "0",
+            "paid_date": selected_date.isoformat(),
+            "next": self.qarzdorlar_url,
+        })
+
+        self.assertEqual(response.status_code, 302)
+        payment = Payment.objects.filter(enrollment=self.teacher_share_enrollment).latest("id")
+        self.assertEqual(payment.paid_date, selected_date)

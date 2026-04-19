@@ -1157,12 +1157,13 @@
             </div>
             <form action="{% if request_center.slug %}/{{ request_center.slug }}{% endif %}{% url 'education:create_payment' %}" method="post">
                 {% csrf_token %}
+                {% now "Y-m-d" as default_payment_date %}
                 <div class="modal-body p-4">
                     <input type="hidden" name="next" value="{{ request.get_full_path }}">
                     <input type="hidden" name="student_id" id="payStudentId">
                     <input type="hidden" name="enrollment_id" id="payEnrollmentId">
                     <input type="hidden" name="payment_scope" id="payPaymentScope">
-                    <input type="hidden" name="pay_month" value="{{ effective_pay_month }}">
+                    <input type="hidden" name="month" value="{{ effective_pay_month }}">
 
                     <div class="mb-4 text-center">
                         <h4 class="fw-bold mb-1 text-white" id="payStudentName">Ism Familya</h4>
@@ -1196,6 +1197,10 @@
                     </div>
 
                     <div class="row g-3">
+                        <div class="col-12">
+                            <label class="filter-label">To'lov sanasi</label>
+                            <input type="date" name="paid_date" class="filter-input" value="{{ default_payment_date }}">
+                        </div>
                         <div class="col-12" id="divCash">
                             <label class="filter-label">Naqd pul (so'm)</label>
                             <input type="number" name="cash_amount" id="inputCash" class="filter-input" placeholder="0">

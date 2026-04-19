@@ -127,8 +127,8 @@ async def main():
     # 2. Start Schedulers
     await setup_scheduler(bot)
     # BackgroundScheduler – sync, shuning uchun await KERAK EMAS.
-    # Render web servisida backup alohida cron job orqali yuradi; shu sabab bot
-    # ichida daily backup scheduler default o'chiq turadi.
+    # Render productionda backup alohida cron job orqali 17:35 Asia/Tashkent da yuradi;
+    # shu sabab bot ichida daily backup scheduler default o'chiq turadi.
     if setup_backup_scheduler is not None and env_flag("BOT_BACKUP_SCHEDULER_ENABLED", False):
         try:
             setup_backup_scheduler()
