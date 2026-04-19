@@ -23,6 +23,7 @@
   action="{% url 'accounts:add_user' %}?role=student&drawer=1{% if next_url %}&next={{ next_url|urlencode }}{% endif %}"
   class="bq-sdrawer-form"
   data-student-drawer-form
+  novalidate
   data-group-price-template="{% url 'education:group_price' 0 %}">
   {% csrf_token %}
   <input type="hidden" name="role" value="student">
@@ -35,17 +36,10 @@
   <input type="hidden" name="next" value="{{ next_url }}">
   {% endif %}
 
-  <div class="bq-sdrawer-grid bq-sdrawer-grid--2">
-    <div class="bq-sdrawer-field">
-      <label for="{{ form.telefon1.id_for_label }}">Telefon</label>
-      {{ form.telefon1 }}
-      {% if form.telefon1.errors %}<div class="bq-sdrawer-error">{{ form.telefon1.errors|join:", " }}</div>{% endif %}
-    </div>
-    <div class="bq-sdrawer-field">
-      <label for="{{ form.telefon2.id_for_label }}">Qo'shimcha telefon</label>
-      {{ form.telefon2 }}
-      {% if form.telefon2.errors %}<div class="bq-sdrawer-error">{{ form.telefon2.errors|join:", " }}</div>{% endif %}
-    </div>
+  <div class="bq-sdrawer-field">
+    <label for="{{ form.telefon1.id_for_label }}">Telefon</label>
+    {{ form.telefon1 }}
+    {% if form.telefon1.errors %}<div class="bq-sdrawer-error">{{ form.telefon1.errors|join:", " }}</div>{% endif %}
   </div>
 
   <div class="bq-sdrawer-grid bq-sdrawer-grid--2">
@@ -59,12 +53,6 @@
       {{ form.familya }}
       {% if form.familya.errors %}<div class="bq-sdrawer-error">{{ form.familya.errors|join:", " }}</div>{% endif %}
     </div>
-  </div>
-
-  <div class="bq-sdrawer-field">
-    <label for="{{ form.otchestvo.id_for_label }}">Otasining ismi</label>
-    {{ form.otchestvo }}
-    {% if form.otchestvo.errors %}<div class="bq-sdrawer-error">{{ form.otchestvo.errors|join:", " }}</div>{% endif %}
   </div>
 
   <div class="bq-sdrawer-grid bq-sdrawer-grid--2">
@@ -89,14 +77,143 @@
     </div>
   </div>
 
-  <div class="bq-sdrawer-field">
-    <label for="{{ form.address.id_for_label }}">Izoh / manzil</label>
-    {{ form.address }}
-    {% if form.address.errors %}<div class="bq-sdrawer-error">{{ form.address.errors|join:", " }}</div>{% endif %}
+  <div class="bq-sdrawer-card">
+    <div class="bq-sdrawer-card__title">Qo'shimcha ma'lumotlar</div>
+    <p class="bq-sdrawer-card__note">Kerakli maydonni icon orqali oching. Oxiridagi X bosilganda maydon yopiladi.</p>
+
+    <div class="bq-sdrawer-extra-list">
+      <div
+        class="bq-sdrawer-extra-item"
+        data-extra-field="telefon2"
+        {% if not form.telefon2.value and not form.telefon2.errors %}hidden{% endif %}>
+        <label class="bq-sdrawer-extra-label" for="{{ form.telefon2.id_for_label }}">Ota-ona telefoni</label>
+        <div class="bq-sdrawer-extra-control">
+          <span class="bq-sdrawer-extra-icon"><i class="fa-solid fa-phone"></i></span>
+          {{ form.telefon2 }}
+          <button type="button" class="bq-sdrawer-extra-remove" data-extra-remove="telefon2" aria-label="Ota-ona telefonini olib tashlash">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        {% if form.telefon2.errors %}<div class="bq-sdrawer-error">{{ form.telefon2.errors|join:", " }}</div>{% endif %}
+      </div>
+
+      <div
+        class="bq-sdrawer-extra-item"
+        data-extra-field="jshr"
+        {% if not form.jshr.value and not form.jshr.errors %}hidden{% endif %}>
+        <label class="bq-sdrawer-extra-label" for="{{ form.jshr.id_for_label }}">External ID / JSHR</label>
+        <div class="bq-sdrawer-extra-control">
+          <span class="bq-sdrawer-extra-icon"><i class="fa-solid fa-key"></i></span>
+          {{ form.jshr }}
+          <button type="button" class="bq-sdrawer-extra-remove" data-extra-remove="jshr" aria-label="JSHR maydonini olib tashlash">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        {% if form.jshr.errors %}<div class="bq-sdrawer-error">{{ form.jshr.errors|join:", " }}</div>{% endif %}
+      </div>
+
+      <div
+        class="bq-sdrawer-extra-item"
+        data-extra-field="otchestvo"
+        {% if not form.otchestvo.value and not form.otchestvo.errors %}hidden{% endif %}>
+        <label class="bq-sdrawer-extra-label" for="{{ form.otchestvo.id_for_label }}">Ota-onaning ismi</label>
+        <div class="bq-sdrawer-extra-control">
+          <span class="bq-sdrawer-extra-icon"><i class="fa-regular fa-user"></i></span>
+          {{ form.otchestvo }}
+          <button type="button" class="bq-sdrawer-extra-remove" data-extra-remove="otchestvo" aria-label="Ota-onaning ismini olib tashlash">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        {% if form.otchestvo.errors %}<div class="bq-sdrawer-error">{{ form.otchestvo.errors|join:", " }}</div>{% endif %}
+      </div>
+
+      <div
+        class="bq-sdrawer-extra-item"
+        data-extra-field="telegram_username"
+        {% if not form.telegram_username.value and not form.telegram_username.errors %}hidden{% endif %}>
+        <label class="bq-sdrawer-extra-label" for="{{ form.telegram_username.id_for_label }}">Telegram</label>
+        <div class="bq-sdrawer-extra-control">
+          <span class="bq-sdrawer-extra-icon"><i class="fa-regular fa-paper-plane"></i></span>
+          {{ form.telegram_username }}
+          <button type="button" class="bq-sdrawer-extra-remove" data-extra-remove="telegram_username" aria-label="Telegram maydonini olib tashlash">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        {% if form.telegram_username.errors %}<div class="bq-sdrawer-error">{{ form.telegram_username.errors|join:", " }}</div>{% endif %}
+      </div>
+
+      <div
+        class="bq-sdrawer-extra-item"
+        data-extra-field="address"
+        {% if not form.address.value and not form.address.errors %}hidden{% endif %}>
+        <label class="bq-sdrawer-extra-label" for="{{ form.address.id_for_label }}">Manzil</label>
+        <div class="bq-sdrawer-extra-control bq-sdrawer-extra-control--textarea">
+          <span class="bq-sdrawer-extra-icon"><i class="fa-solid fa-location-dot"></i></span>
+          {{ form.address }}
+          <button type="button" class="bq-sdrawer-extra-remove" data-extra-remove="address" aria-label="Manzil maydonini olib tashlash">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        {% if form.address.errors %}<div class="bq-sdrawer-error">{{ form.address.errors|join:", " }}</div>{% endif %}
+      </div>
+
+      <div
+        class="bq-sdrawer-extra-item"
+        data-extra-field="passport_id"
+        {% if not form.passport_id.value and not form.passport_id.errors %}hidden{% endif %}>
+        <label class="bq-sdrawer-extra-label" for="{{ form.passport_id.id_for_label }}">Passport seriya raqami</label>
+        <div class="bq-sdrawer-extra-control">
+          <span class="bq-sdrawer-extra-icon"><i class="fa-regular fa-address-card"></i></span>
+          {{ form.passport_id }}
+          <button type="button" class="bq-sdrawer-extra-remove" data-extra-remove="passport_id" aria-label="Passport maydonini olib tashlash">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        {% if form.passport_id.errors %}<div class="bq-sdrawer-error">{{ form.passport_id.errors|join:", " }}</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="bq-sdrawer-extra-icons">
+      <button type="button" class="bq-sdrawer-extra-toggle{% if form.telefon2.value or form.telefon2.errors %} is-active{% endif %}" data-extra-toggle="telefon2" data-tooltip="Ota-ona telefoni" title="Ota-ona telefoni" aria-label="Ota-ona telefoni" aria-pressed="{% if form.telefon2.value or form.telefon2.errors %}true{% else %}false{% endif %}">
+        <i class="fa-solid fa-phone"></i>
+      </button>
+      <button type="button" class="bq-sdrawer-extra-toggle{% if form.jshr.value or form.jshr.errors %} is-active{% endif %}" data-extra-toggle="jshr" data-tooltip="External ID / JSHR" title="External ID / JSHR" aria-label="External ID / JSHR" aria-pressed="{% if form.jshr.value or form.jshr.errors %}true{% else %}false{% endif %}">
+        <i class="fa-solid fa-key"></i>
+      </button>
+      <button type="button" class="bq-sdrawer-extra-toggle{% if form.otchestvo.value or form.otchestvo.errors %} is-active{% endif %}" data-extra-toggle="otchestvo" data-tooltip="Ota-onaning ismi" title="Ota-onaning ismi" aria-label="Ota-onaning ismi" aria-pressed="{% if form.otchestvo.value or form.otchestvo.errors %}true{% else %}false{% endif %}">
+        <i class="fa-regular fa-user"></i>
+      </button>
+      <button type="button" class="bq-sdrawer-extra-toggle{% if form.telegram_username.value or form.telegram_username.errors %} is-active{% endif %}" data-extra-toggle="telegram_username" data-tooltip="Telegram username" title="Telegram username" aria-label="Telegram username" aria-pressed="{% if form.telegram_username.value or form.telegram_username.errors %}true{% else %}false{% endif %}">
+        <i class="fa-regular fa-paper-plane"></i>
+      </button>
+      <button type="button" class="bq-sdrawer-extra-toggle{% if form.address.value or form.address.errors %} is-active{% endif %}" data-extra-toggle="address" data-tooltip="Manzil" title="Manzil" aria-label="Manzil" aria-pressed="{% if form.address.value or form.address.errors %}true{% else %}false{% endif %}">
+        <i class="fa-solid fa-location-dot"></i>
+      </button>
+      <button type="button" class="bq-sdrawer-extra-toggle{% if form.passport_id.value or form.passport_id.errors %} is-active{% endif %}" data-extra-toggle="passport_id" data-tooltip="Passport seriya raqami" title="Passport seriya raqami" aria-label="Passport seriya raqami" aria-pressed="{% if form.passport_id.value or form.passport_id.errors %}true{% else %}false{% endif %}">
+        <i class="fa-regular fa-address-card"></i>
+      </button>
+    </div>
   </div>
 
-  <div class="bq-sdrawer-card">
-    <div class="bq-sdrawer-card__title">Guruhga qo'shish</div>
+  <div class="bq-sdrawer-inline-actions">
+    <button
+      type="button"
+      class="bq-sdrawer-inline-toggle{% if form.group.value or form.group.errors or form.kurs_narhi.value or form.kurs_narhi.errors %} is-active{% endif %}"
+      data-section-toggle="group">
+      + Guruhga qo'shish
+    </button>
+  </div>
+
+  <div
+    class="bq-sdrawer-card"
+    data-optional-section="group"
+    {% if not form.group.value and not form.group.errors and not form.kurs_narhi.value and not form.kurs_narhi.errors %}hidden{% endif %}>
+    <div class="bq-sdrawer-card__head">
+      <div class="bq-sdrawer-card__title">Guruhga qo'shish</div>
+      <button type="button" class="bq-sdrawer-card__close" data-section-close="group" aria-label="Guruh bo'limini yopish">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
     <div class="bq-sdrawer-grid bq-sdrawer-grid--2">
       <div class="bq-sdrawer-field">
         <label for="{{ form.group.id_for_label }}">Guruh</label>
@@ -109,19 +226,42 @@
         {% if form.kurs_narhi.errors %}<div class="bq-sdrawer-error">{{ form.kurs_narhi.errors|join:", " }}</div>{% endif %}
       </div>
     </div>
+    <div class="bq-sdrawer-field bq-sdrawer-field--full">
+      <label for="{{ form.group_start_date.id_for_label }}">Qaysi sanadan o'qishni boshlaydi</label>
+      <div class="bq-sdrawer-date">
+        <span class="bq-sdrawer-date__icon"><i class="fa-regular fa-calendar-days"></i></span>
+        {{ form.group_start_date }}
+      </div>
+      <div class="bq-sdrawer-field__hint">Talaba bir hafta oldin boshlagan bo‘lsa ham, keyin boshlasa ham shu sanani tanlaysiz.</div>
+      {% if form.group_start_date.errors %}<div class="bq-sdrawer-error">{{ form.group_start_date.errors|join:", " }}</div>{% endif %}
+    </div>
   </div>
 
   <div class="bq-sdrawer-card">
-    <div class="bq-sdrawer-card__title">Kirish ma'lumotlari</div>
-    <p class="bq-sdrawer-card__note">Bo'sh qoldirsangiz login va parol avtomatik yaratiladi.</p>
+    <div>
+      <div class="bq-sdrawer-card__title">Kirish ma'lumotlari</div>
+      <p class="bq-sdrawer-card__note">Login va parol ism hamda familiyadan avtomatik yaratiladi. Yangilash bossangiz qayta generatsiya qilinadi.</p>
+    </div>
     <div class="bq-sdrawer-grid bq-sdrawer-grid--2">
       <div class="bq-sdrawer-field">
-        <label for="{{ form.email.id_for_label }}">Login email</label>
+        <div class="bq-sdrawer-field__top">
+          <label for="{{ form.email.id_for_label }}">Gmail</label>
+          <button type="button" class="bq-sdrawer-refresh" data-generate-email>
+            <i class="fa-solid fa-rotate-right"></i>
+            <span>Yangilash</span>
+          </button>
+        </div>
         {{ form.email }}
         {% if form.email.errors %}<div class="bq-sdrawer-error">{{ form.email.errors|join:", " }}</div>{% endif %}
       </div>
       <div class="bq-sdrawer-field">
-        <label for="{{ form.password.id_for_label }}">Parol</label>
+        <div class="bq-sdrawer-field__top">
+          <label for="{{ form.password.id_for_label }}">Parol</label>
+          <button type="button" class="bq-sdrawer-refresh" data-generate-password>
+            <i class="fa-solid fa-rotate-right"></i>
+            <span>Yangilash</span>
+          </button>
+        </div>
         <div class="bq-sdrawer-password">
           {{ form.password }}
           <button type="button" class="bq-sdrawer-eye" data-toggle-password aria-label="Parolni ko'rsatish">

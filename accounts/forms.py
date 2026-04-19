@@ -4,6 +4,9 @@ from django.contrib.auth import get_user_model
 from accounts.models import Center
 from django.apps import apps
 from django.core.exceptions import ValidationError
+from django.utils import timezone
+from accounts.utils import normalize_phone
+import re
 
 User = get_user_model()
 Group = apps.get_model('education', 'Group')
@@ -28,6 +31,17 @@ class AddUserForm(forms.ModelForm):
         label="Guruhni tanlang"
     )
     kurs_narhi = forms.IntegerField(required=False, label="Kurs narxi")
+    group_start_date = forms.DateField(
+        required=False,
+        label="Boshlash sanasi",
+        widget=forms.DateInput(
+            attrs={
+                "type": "date",
+                "class": "form-control uniform-input",
+                "id": "id_group_start_date",
+            }
+        ),
+    )
 
     class Meta:
         model = User
@@ -37,21 +51,22 @@ class AddUserForm(forms.ModelForm):
             "center", "role",
             "email", "password",
             "oqituvchi_foizi",
-            "birth_date", "gender", "passport_id", "jshr", "address",
+            "birth_date", "gender", "passport_id", "jshr", "telegram_username", "address",
         ]
         widgets = {
             "ism": forms.TextInput(attrs={"placeholder": "Ism", "class": "form-control uniform-input", "id": "id_ism"}),
             "familya": forms.TextInput(attrs={"placeholder": "Familya", "class": "form-control uniform-input", "id": "id_familya"}),
-            "otchestvo": forms.TextInput(attrs={"placeholder": "Otasining ismi (ixtiyoriy)", "class": "form-control uniform-input", "id": "id_otchestvo"}),
-            "telefon1": forms.TextInput(attrs={"placeholder": "+998XXXXXXXXX", "class": "form-control uniform-input"}),
-            "telefon2": forms.TextInput(attrs={"placeholder": "+998XXXXXXXXX", "class": "form-control uniform-input"}),
-            "email": forms.TextInput(attrs={"placeholder": "Login (email)", "class": "form-control uniform-input", "id": "id_email"}),
-            "password": forms.PasswordInput(attrs={"placeholder": "Parol", "class": "form-control uniform-input", "id": "id_password"}),
+            "otchestvo": forms.TextInput(attrs={"placeholder": "Ota-onaning ismi", "class": "form-control uniform-input", "id": "id_otchestvo"}),
+            "telefon1": forms.TextInput(attrs={"placeholder": "+998 99 384 58 54", "class": "form-control uniform-input", "id": "id_telefon1", "inputmode": "numeric", "autocomplete": "off"}),
+            "telefon2": forms.TextInput(attrs={"placeholder": "+998 99 384 58 54", "class": "form-control uniform-input", "id": "id_telefon2", "inputmode": "numeric", "autocomplete": "off"}),
+            "email": forms.TextInput(attrs={"placeholder": "Gmail avtomatik yaratiladi", "class": "form-control uniform-input", "id": "id_email"}),
+            "password": forms.PasswordInput(attrs={"placeholder": "Parol avtomatik yaratiladi", "class": "form-control uniform-input", "id": "id_password"}),
             "birth_date": forms.DateInput(attrs={"type": "date", "class": "form-control uniform-input"}),
             "gender": forms.RadioSelect(attrs={"class": "gender-radio"}), 
-            "passport_id": forms.TextInput(attrs={"placeholder": "AB1234567", "class": "form-control uniform-input"}),
-            "jshr": forms.TextInput(attrs={"placeholder": "14 ta raqam", "class": "form-control uniform-input", "maxlength": "14"}),
-            "address": forms.Textarea(attrs={"placeholder": "Manzil...", "class": "form-control uniform-input", "rows": 2}),
+            "passport_id": forms.TextInput(attrs={"placeholder": "AB1234567", "class": "form-control uniform-input", "id": "id_passport_id"}),
+            "jshr": forms.TextInput(attrs={"placeholder": "External ID / JSHR", "class": "form-control uniform-input", "maxlength": "14", "id": "id_jshr"}),
+            "telegram_username": forms.TextInput(attrs={"placeholder": "@username", "class": "form-control uniform-input", "id": "id_telegram_username"}),
+            "address": forms.Textarea(attrs={"placeholder": "Manzil", "class": "form-control uniform-input", "rows": 2, "id": "id_address"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -95,6 +110,16 @@ class AddUserForm(forms.ModelForm):
             else:
                 self.fields["group"].queryset = Group.objects.none()
 
+        if "group_start_date" in self.fields and not self.is_bound:
+            selected_group = None
+            group_id = self.initial.get("group")
+            if group_id:
+                selected_group = Group.objects.filter(id=group_id).only("course_start_date").first()
+            self.fields["group_start_date"].initial = (
+                self.initial.get("group_start_date")
+                or getattr(selected_group, "course_start_date", None)
+                or timezone.localdate()
+            )
 
 
     def clean(self):
@@ -102,6 +127,7 @@ class AddUserForm(forms.ModelForm):
         role = cleaned_data.get("role")
         group = cleaned_data.get("group")
         center = cleaned_data.get("center")
+        group_start_date = cleaned_data.get("group_start_date")
         
         if role == "student":
             if not cleaned_data.get("birth_date"):
@@ -112,6 +138,9 @@ class AddUserForm(forms.ModelForm):
             # Security: Verify group center matches user center
             if group and center and group.center_id != center.id:
                 raise forms.ValidationError("Tanlangan guruh ushbu markazga tegishli emas!")
+
+            if group and not group_start_date:
+                self.add_error("group_start_date", "Guruh uchun boshlash sanasini tanlang.")
             
             # ===== STUDENT LIMIT CHECK (Warning for Director/Manager ONLY) =====
             # This shows an error message when trying to add students beyond limit
@@ -133,6 +162,35 @@ class AddUserForm(forms.ModelForm):
         
         return cleaned_data
 
+    def _clean_phone_field(self, field_name):
+        raw_value = (self.cleaned_data.get(field_name) or "").strip()
+        if not raw_value:
+            return ""
+
+        raw_digits = re.sub(r"\D", "", raw_value)
+        if raw_digits in ("", "998"):
+            return ""
+
+        normalized = normalize_phone(raw_value)
+        if not re.fullmatch(r"\+998\d{9}", normalized or ""):
+            self.add_error(field_name, "Telefon raqam faqat raqamlardan iborat bo'lsin va +998 bilan to'liq formatda kiriting.")
+            return raw_value
+        return normalized
+
+    def clean_telefon1(self):
+        return self._clean_phone_field("telefon1")
+
+    def clean_telefon2(self):
+        return self._clean_phone_field("telefon2")
+
+    def clean_passport_id(self):
+        value = (self.cleaned_data.get("passport_id") or "").strip().upper()
+        if not value:
+            return ""
+        if not re.fullmatch(r"[A-Z]{2}\d{7}", value):
+            raise forms.ValidationError("Passport seriya raqami `AD1231212` ko'rinishida bo'lsin: 2 ta harf va 7 ta raqam.")
+        return value
+
     def save(self, commit=True):
         data = self.cleaned_data
         request = self.request
@@ -141,8 +199,8 @@ class AddUserForm(forms.ModelForm):
         center_to_set = None
         if req_user and req_user.is_superuser:
             center_to_set = getattr(request, "center", None) or data.get("center")
-        elif req_user and getattr(req_user, "role", None) in ("director", "manager"):
-            center_to_set = getattr(req_user, "center", None)
+        elif req_user and getattr(req_user, "role", None) in ("director", "manager", "teacher"):
+            center_to_set = getattr(request, "center", None) or getattr(req_user, "center", None)
 
         if not center_to_set and req_user and not req_user.is_superuser:
             raise forms.ValidationError("Active center topilmadi.")
@@ -166,24 +224,26 @@ class AddUserForm(forms.ModelForm):
             # Handle Enrollment
             group = data.get("group")
             if user.role == "student" and group:
-                from education.models import Enrollment
-                from education.services.tuition import ensure_tuition_month
-                from django.utils import timezone
-                
-                enr, created = Enrollment.objects.get_or_create(
-                    group=group,
+                from education.models import StudentGroupHistory
+                from education.services.enrollment_service import EnrollmentService
+                from education.services.tuition import ensure_all_tuition_months_since_start
+
+                start_date = data.get("group_start_date") or timezone.localdate()
+                enr = EnrollmentService.enroll_student(
                     student=user,
-                    defaults={
-                        'kurs_narhi': data.get("kurs_narhi") or group.kurs_narxi,
-                        'oqituvchi_foiz': group.oqituvchi_foiz,
-                        'center': group.center
-                    }
+                    group=group,
+                    kurs_narhi=data.get("kurs_narhi") or group.kurs_narxi,
+                    oqituvchi_foiz=group.oqituvchi_foiz,
+                    start_date=start_date,
                 )
-                
-                # Agar o'quvchi birinchi marta shu guruhga qo'shilayotgan bo'lsa,
-                # darhol joriy oy uchun TuitionMonth (qarz) yaratamiz
-                if created:
-                    ensure_tuition_month(enr, timezone.localdate())
+
+                StudentGroupHistory.objects.filter(
+                    student=user,
+                    group=group,
+                    end_date__isnull=True,
+                ).exclude(start_date=start_date).update(start_date=start_date)
+
+                ensure_all_tuition_months_since_start(enr, timezone.localdate())
 
         return user
 

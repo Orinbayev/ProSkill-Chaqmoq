@@ -1,9 +1,11 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block body_class %}group-detail-page{% endblock %}
 {% block content %}
 
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/student-drawer.css' %}">
 
 <style>
   :root {
@@ -1016,8 +1018,16 @@
         {% endif %}
 
         {% if can_add_student %}
-        <a href="{% url 'education:add_student_to_group' g.id %}" class="btn-ui btn-primary">
-          <i class="fa-solid fa-user-plus"></i> O'quvchi qo'shish
+        <button
+          type="button"
+          class="btn-ui btn-primary"
+          id="open-student-drawer-btn"
+          data-student-drawer-open
+          data-drawer-url="{% url 'accounts:add_user' %}?role=student&drawer=1&group={{ g.id }}&next={{ request.get_full_path|urlencode }}">
+          <i class="fa-solid fa-user-plus"></i> Talaba qo'shish
+        </button>
+        <a href="{% url 'education:add_student_to_group' g.id %}" class="btn-ui btn-muted">
+          <i class="fa-solid fa-magnifying-glass"></i> Mavjud o'quvchini tanlash
         </a>
         {% endif %}
       </div>
@@ -1419,6 +1429,23 @@
   </div>
 </div>
 
+<div id="student-drawer-overlay" class="student-drawer-overlay" aria-hidden="true"></div>
+<aside id="student-drawer-panel" class="student-drawer" aria-hidden="true">
+  <div class="student-drawer__header">
+    <div>
+      <h2 class="student-drawer__title">Yangi talaba qo'shish</h2>
+      <p class="student-drawer__sub">{{ g.nom }} guruhiga biriktirilgan holda shu yerning o'zida student yaratishingiz mumkin.</p>
+    </div>
+    <button type="button" class="student-drawer__close" id="student-drawer-close-btn" aria-label="Yopish">
+      &times;
+    </button>
+  </div>
+  <div id="student-drawer-body" class="student-drawer__body">
+    <div class="student-drawer__loading">Forma yuklanmoqda...</div>
+  </div>
+</aside>
+
+<script src="{% static 'js/student-drawer.js' %}"></script>
 <script>
   document.addEventListener("DOMContentLoaded", () => {
 
@@ -1448,6 +1475,16 @@
 
     const attendAllPresentBtn = document.getElementById('attend-all-present-btn');
     const attendAllForcedBtn = document.getElementById('attend-all-forced-btn');
+    window.initStudentDrawer && window.initStudentDrawer({
+      triggerSelector: "#open-student-drawer-btn",
+      overlaySelector: "#student-drawer-overlay",
+      panelSelector: "#student-drawer-panel",
+      bodySelector: "#student-drawer-body",
+      closeButtonSelector: "#student-drawer-close-btn",
+      onSuccess: () => {
+        window.location.reload();
+      }
+    });
 
     function closeQuickMenu() {
       if (!quickMenuToggle || !quickMenuPanel) return;

@@ -30,6 +30,27 @@ U = get_user_model()
 def _can_add(u):
     return u.is_superuser or getattr(u, "role", None) in ("director", "manager")
 
+
+def _can_add_student(request) -> bool:
+    user = getattr(request, "user", None)
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+
+    center = get_request_center(request) or getattr(user, "center", None)
+    role = getattr(user, "role", None)
+    if role == "director":
+        return True
+    if role == "manager":
+        return bool(center and center.manager_can_add_student)
+
+    if role == "teacher":
+        return bool(center and center.teacher_can_add_student)
+
+    return False
+
+
 def _is_staff_like(u):
     return u.is_superuser or getattr(u, "role", None) in ("director", "manager")
 
@@ -705,11 +726,14 @@ def center_remove_staff(request, pk: int):
 
 @login_required
 def add_user(request):
-    if not _can_add(request.user):
+    is_student_drawer = _is_student_drawer_request(request)
+    if is_student_drawer:
+        if not _can_add_student(request):
+            return HttpResponseForbidden("Ruxsat yo'q.")
+    elif not _can_add(request.user):
         return HttpResponseForbidden("Ruxsat yo'q.")
 
     next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
-    is_student_drawer = _is_student_drawer_request(request)
 
     # ✅ Role normalization (students -> student)
     role_param = request.GET.get("role", "").strip()
@@ -722,8 +746,21 @@ def add_user(request):
 
     active_center = getattr(request, "center", None) or getattr(request.user, "center", None)
     selected_center_id = request.POST.get("center") or request.GET.get("center")
+    selected_group_id = request.POST.get("group") or request.GET.get("group")
+    selected_group = None
+    if selected_group_id:
+        selected_group = Group.objects.filter(id=selected_group_id, is_archived=False).select_related("center").first()
+        if selected_group:
+            if active_center and selected_group.center_id != active_center.id:
+                selected_group = None
+            else:
+                initial["group"] = selected_group.id
+                if not active_center:
+                    active_center = selected_group.center
     if not active_center and selected_center_id:
         active_center = Center.objects.filter(id=selected_center_id).first()
+    if active_center and "center" not in initial:
+        initial["center"] = active_center.id
 
     form_data = request.POST.copy() if request.method == "POST" else None
     if is_student_drawer and form_data is not None:

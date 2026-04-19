@@ -7,15 +7,17 @@ from django.db import transaction
 class EnrollmentService:
     @staticmethod
     @transaction.atomic
-    def enroll_student(student, group, kurs_narxi=None, oqituvchi_foiz=None, student_payable_amount=None):
+    def enroll_student(student, group, kurs_narxi=None, oqituvchi_foiz=None, student_payable_amount=None, start_date=None):
         """Enrolls a student in a group and creates a history record."""
         # Use provided rates or fall back to group defaults
         narx = kurs_narxi if kurs_narxi is not None else group.kurs_narxi
         foiz = oqituvchi_foiz if oqituvchi_foiz is not None else group.oqituvchi_foiz
+        history_start_date = start_date or timezone.localdate()
         
         # Use all_objects to check if a soft-deleted enrollment exists (Fix for IntegrityError)
         enrollment = Enrollment.all_objects.filter(student=student, group=group).first()
         created = False
+        reactivated = False
         
         if enrollment:
             # Resurrect if it was deleted
@@ -40,16 +42,38 @@ class EnrollmentService:
             if student_payable_amount is not None:
                 enrollment.student_payable_amount = student_payable_amount
             enrollment.save()
+            reactivated = True
         
-        # Create history record
-        StudentGroupHistory.objects.create(
+        open_history = StudentGroupHistory.objects.filter(
             student=student,
             group=group,
-            center=group.center,
-            start_date=timezone.localdate(),
-            kurs_narxi=narx,
-            oqituvchi_foiz=foiz
-        )
+            end_date__isnull=True,
+        ).order_by("-start_date").first()
+
+        if created or reactivated:
+            if open_history:
+                open_history.start_date = history_start_date
+                open_history.kurs_narxi = narx
+                open_history.oqituvchi_foiz = foiz
+                open_history.save(update_fields=["start_date", "kurs_narxi", "oqituvchi_foiz"])
+            else:
+                StudentGroupHistory.objects.create(
+                    student=student,
+                    group=group,
+                    center=group.center,
+                    start_date=history_start_date,
+                    kurs_narxi=narx,
+                    oqituvchi_foiz=foiz
+                )
+        elif not open_history:
+            StudentGroupHistory.objects.create(
+                student=student,
+                group=group,
+                center=group.center,
+                start_date=history_start_date,
+                kurs_narxi=narx,
+                oqituvchi_foiz=foiz
+            )
         
         return enrollment
 

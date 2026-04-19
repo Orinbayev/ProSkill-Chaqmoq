@@ -55,8 +55,64 @@
   --bq-drawer-input-bg: rgba(255,255,255,.04);
   --bq-drawer-input-border: rgba(255,255,255,.1);
   --bq-drawer-soft: rgba(255,255,255,.05);
+  --bq-tooltip-bg: rgba(15,23,42,.96);
+  --bq-tooltip-color: #e2e8f0;
+  --bq-tooltip-border: rgba(255,255,255,.08);
+  --bq-tooltip-shadow: 0 20px 40px rgba(2,6,23,.36);
   --bq-drawer-submit-bg: linear-gradient(135deg, rgba(34,211,238,.95), rgba(59,130,246,.88));
   --bq-drawer-submit-shadow: 0 14px 28px rgba(14,165,233,.24);
+}
+
+html[data-role-theme="light"] body.director-boshqaruv-page {
+  --bq-txt: #0f172a;
+  --bq-muted: #64748b;
+  --bq-soft: #94a3b8;
+  --bq-cyan: #2563eb;
+  --bq-quick-panel-bg: linear-gradient(180deg, rgba(255,255,255,.99), rgba(248,250,252,.98));
+  --bq-quick-panel-border: rgba(148,163,184,.18);
+  --bq-quick-panel-shadow: 0 20px 44px rgba(37,99,235,.12);
+  --bq-quick-panel-arrow: rgba(255,255,255,.99);
+  --bq-quick-link-hover-bg: rgba(37,99,235,.08);
+  --bq-quick-link-hover-color: #1d4ed8;
+  --bq-quick-icon-bg: rgba(37,99,235,.08);
+  --bq-quick-icon-color: #2563eb;
+  --bq-drawer-bg: linear-gradient(180deg, rgba(255,255,255,.99), rgba(247,250,255,.99));
+  --bq-drawer-border: rgba(148,163,184,.22);
+  --bq-drawer-shadow: -24px 0 60px rgba(37,99,235,.12);
+  --bq-drawer-overlay: rgba(15,23,42,.18);
+  --bq-drawer-card-bg: rgba(255,255,255,.95);
+  --bq-drawer-card-border: rgba(148,163,184,.18);
+  --bq-drawer-input-bg: rgba(255,255,255,.98);
+  --bq-drawer-input-border: rgba(148,163,184,.28);
+  --bq-drawer-soft: rgba(37,99,235,.06);
+  --bq-tooltip-bg: #ffffff;
+  --bq-tooltip-color: #0f172a;
+  --bq-tooltip-border: rgba(148,163,184,.22);
+  --bq-tooltip-shadow: 0 18px 36px rgba(37,99,235,.12);
+  --bq-drawer-submit-bg: linear-gradient(135deg, #fb923c, #f97316);
+  --bq-drawer-submit-shadow: 0 14px 28px rgba(249,115,22,.18);
+}
+
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-gender__item input:checked + span {
+  color: #1d4ed8;
+  border-color: rgba(37,99,235,.24);
+  background: rgba(37,99,235,.08);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.08);
+}
+
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-card__close:hover,
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-remove:hover {
+  color: #dc2626;
+  background: rgba(239,68,68,.08);
+  border-color: rgba(239,68,68,.18);
+}
+
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-toggle:hover,
+html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-toggle.is-active {
+  background: rgba(37,99,235,.08);
+  border-color: rgba(37,99,235,.28);
+  color: #1d4ed8;
+  box-shadow: 0 12px 24px rgba(37,99,235,.12);
 }
 
 /* ══════════════════ LAYOUT ══════════════════ */
@@ -299,16 +355,16 @@
 .bq-sdrawer {
   position: fixed;
   top: 0;
-  left: 0;
+  right: 0;
   bottom: 0;
   width: min(560px, calc(100vw - 14px));
   z-index: 930;
   display: flex;
   flex-direction: column;
   background: var(--bq-drawer-bg);
-  border-right: 1px solid var(--bq-drawer-border);
-  box-shadow: var(--bq-drawer-shadow);
-  transform: translateX(-100%);
+  border-left: 1px solid var(--bq-drawer-border);
+  box-shadow: -24px 0 60px rgba(2,6,23,.4);
+  transform: translateX(100%);
   transition: transform .26s cubic-bezier(.4, 0, .2, 1);
 }
 .bq-sdrawer.open {
@@ -429,11 +485,20 @@
   flex-direction: column;
   gap: 7px;
 }
+.bq-sdrawer-field--full {
+  grid-column: 1 / -1;
+}
 .bq-sdrawer-field label {
   font-size: 12px;
   font-weight: 800;
   color: var(--bq-txt);
   letter-spacing: -.01em;
+}
+.bq-sdrawer-field__hint {
+  margin-top: -1px;
+  color: var(--bq-muted);
+  font-size: 11px;
+  font-weight: 700;
 }
 .bq-sdrawer-field input,
 .bq-sdrawer-field select,
@@ -444,7 +509,9 @@
   border-radius: 14px;
   border: 1px solid var(--bq-drawer-input-border);
   background: var(--bq-drawer-input-bg);
-  color: var(--bq-txt);
+  color: var(--bq-txt) !important;
+  -webkit-text-fill-color: var(--bq-txt);
+  caret-color: var(--bq-txt);
   outline: none;
   font-size: 14px;
   font-weight: 600;
@@ -465,6 +532,7 @@
 .bq-sdrawer-field input::placeholder,
 .bq-sdrawer-field textarea::placeholder {
   color: var(--bq-muted);
+  -webkit-text-fill-color: var(--bq-muted);
 }
 .bq-sdrawer-error {
   color: #fda4af;
@@ -519,6 +587,265 @@
   margin: 0 0 12px;
   color: var(--bq-muted);
   font-size: 11px;
+}
+.bq-sdrawer-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.bq-sdrawer-card__close {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid var(--bq-drawer-input-border);
+  background: var(--bq-drawer-soft);
+  color: var(--bq-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .16s ease, color .16s ease, border-color .16s ease, transform .16s ease;
+}
+.bq-sdrawer-card__close:hover {
+  transform: translateY(-1px);
+  color: #fff;
+  background: rgba(239,68,68,.14);
+  border-color: rgba(239,68,68,.26);
+}
+.bq-sdrawer-extra-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 2px;
+}
+.bq-sdrawer-extra-item[hidden] {
+  display: none !important;
+}
+.bq-sdrawer-extra-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bq-sdrawer-extra-label {
+  color: var(--bq-txt);
+  font-size: 12px;
+  font-weight: 800;
+}
+.bq-sdrawer-extra-control {
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid var(--bq-drawer-input-border);
+  background: var(--bq-drawer-input-bg);
+  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+.bq-sdrawer-extra-control:focus-within {
+  border-color: rgba(34,211,238,.34);
+  box-shadow: 0 0 0 4px rgba(34,211,238,.08);
+  background: rgba(255,255,255,.06);
+}
+.bq-sdrawer-extra-icon {
+  width: 112px;
+  min-width: 112px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--bq-drawer-input-border);
+  color: var(--bq-muted);
+}
+.bq-sdrawer-extra-control input,
+.bq-sdrawer-extra-control textarea {
+  flex: 1;
+  min-height: 46px;
+  padding: 0 46px;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--bq-txt) !important;
+  -webkit-text-fill-color: var(--bq-txt);
+  caret-color: var(--bq-txt);
+}
+.bq-sdrawer-extra-control input::placeholder,
+.bq-sdrawer-extra-control textarea::placeholder {
+  color: var(--bq-muted);
+  -webkit-text-fill-color: var(--bq-muted);
+}
+.bq-sdrawer-extra-control textarea {
+  min-height: 100px;
+  padding: 18px 30px 18px 34px;
+  resize: vertical;
+}
+.bq-sdrawer-extra-remove {
+  width: 48px;
+  min-width: 48px;
+  border: 0;
+  border-left: 1px solid var(--bq-drawer-input-border);
+  background: transparent;
+  color: var(--bq-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .16s ease, color .16s ease;
+}
+.bq-sdrawer-extra-remove:hover {
+  background: rgba(239,68,68,.1);
+  color: #fecaca;
+}
+.bq-sdrawer-extra-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 2px;
+}
+.bq-sdrawer-extra-toggle {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(34,211,238,.36);
+  background: rgba(255,255,255,.03);
+  color: var(--bq-cyan);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform .16s ease, background .16s ease, color .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+.bq-sdrawer-extra-toggle::before,
+.bq-sdrawer-extra-toggle::after {
+  position: absolute;
+  left: 50%;
+  z-index: 4;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .16s ease, transform .16s ease;
+}
+.bq-sdrawer-extra-toggle::before {
+  content: "";
+  bottom: calc(100% + 4px);
+  transform: translate(-50%, 6px);
+  border-width: 7px 7px 0 7px;
+  border-style: solid;
+  border-color: var(--bq-tooltip-bg) transparent transparent transparent;
+}
+.bq-sdrawer-extra-toggle::after {
+  content: attr(data-tooltip);
+  bottom: calc(100% + 11px);
+  transform: translate(-50%, 6px);
+  white-space: nowrap;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: var(--bq-tooltip-bg);
+  border: 1px solid var(--bq-tooltip-border);
+  box-shadow: var(--bq-tooltip-shadow);
+  color: var(--bq-tooltip-color);
+  font-size: 12px;
+  font-weight: 700;
+}
+.bq-sdrawer-extra-toggle:hover,
+.bq-sdrawer-extra-toggle.is-active {
+  transform: translateY(-1px);
+  background: rgba(34,211,238,.16);
+  border-color: rgba(34,211,238,.5);
+  color: #fff;
+  box-shadow: 0 12px 24px rgba(14,165,233,.18);
+}
+.bq-sdrawer-extra-toggle:hover::before,
+.bq-sdrawer-extra-toggle:hover::after,
+.bq-sdrawer-extra-toggle:focus-visible::before,
+.bq-sdrawer-extra-toggle:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.bq-sdrawer-inline-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+.bq-sdrawer-inline-toggle {
+  border: 0;
+  background: transparent;
+  color: var(--bq-txt);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color .16s ease, transform .16s ease;
+}
+.bq-sdrawer-inline-toggle:hover,
+.bq-sdrawer-inline-toggle.is-active {
+  color: var(--bq-cyan);
+  transform: translateX(-2px);
+}
+.bq-sdrawer-field__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.bq-sdrawer-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 0 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(34,211,238,.22);
+  background: var(--bq-drawer-soft);
+  color: var(--bq-cyan);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.bq-sdrawer-refresh:hover {
+  transform: translateY(-1px);
+  background: rgba(34,211,238,.12);
+  border-color: rgba(34,211,238,.34);
+  box-shadow: 0 10px 20px rgba(14,165,233,.12);
+}
+.bq-sdrawer-date {
+  position: relative;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--bq-drawer-input-border);
+  border-radius: 16px;
+  background: linear-gradient(180deg, var(--bq-drawer-input-bg), rgba(255,255,255,.06));
+  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+.bq-sdrawer-date:focus-within {
+  border-color: rgba(34,211,238,.34);
+  box-shadow: 0 0 0 4px rgba(34,211,238,.08);
+}
+.bq-sdrawer-date__icon {
+  width: 56px;
+  min-width: 56px;
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--bq-drawer-input-border);
+  color: var(--bq-cyan);
+  background: rgba(34,211,238,.08);
+}
+.bq-sdrawer-date input[type="date"] {
+  min-height: 46px;
+  padding: 0 16px;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--bq-txt);
+}
+.bq-sdrawer-date input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: .76;
+}
+.bq-sdrawer-date input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
 }
 .bq-sdrawer-password {
   position: relative;
@@ -639,6 +966,23 @@
   .bq-sdrawer-actions {
     grid-template-columns: 1fr;
     flex-direction: column;
+  }
+  .bq-sdrawer-inline-actions {
+    align-items: stretch;
+  }
+  .bq-sdrawer-inline-toggle {
+    text-align: left;
+  }
+  .bq-sdrawer-field__top {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .bq-sdrawer-extra-icons {
+    gap: 8px;
+  }
+  .bq-sdrawer-extra-toggle {
+    width: 40px;
+    height: 40px;
   }
   .bq-sdrawer-submit,
   .bq-sdrawer-cancel {
@@ -1956,10 +2300,15 @@
             <i class="fa-solid fa-plus"></i>
           </button>
           <div class="bq-quick__panel" role="menu" aria-label="Tezkor amallar">
-            <a href="{% url 'accounts:add_user' %}?role=student" class="bq-quick__link" role="menuitem">
+            <button
+              type="button"
+              class="bq-quick__link"
+              id="bqQuickStudentOpen"
+              data-drawer-url="{% url 'accounts:add_user' %}?role=student&drawer=1&next={{ request.get_full_path|urlencode }}"
+              role="menuitem">
               <span class="bq-quick__icon"><i class="fa-solid fa-user-plus"></i></span>
               <span>Yangi talaba</span>
-            </a>
+            </button>
             <a href="{% url 'education:tolovlar_home' %}" class="bq-quick__link" role="menuitem">
               <span class="bq-quick__icon"><i class="fa-solid fa-sack-dollar"></i></span>
               <span>To'lov</span>
@@ -2682,6 +3031,26 @@
     </div>
   </div>
 </div>
+
+<!-- ══════════════════ STUDENT DRAWER ══════════════════ -->
+<div class="bq-sdrawer-overlay" id="bqStudentDrawerOverlay"></div>
+<aside class="bq-sdrawer" id="bqStudentDrawer" aria-hidden="true">
+  <div class="bq-sdrawer__header">
+    <div>
+      <h3 class="bq-sdrawer__title">Yangi talaba qo'shish</h3>
+      <p class="bq-sdrawer__sub">Studentni shu dashboard ichidan yaratish va saqlash mumkin.</p>
+    </div>
+    <button class="bq-sdrawer__close" id="bqStudentDrawerClose" type="button" aria-label="Yopish">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+  <div class="bq-sdrawer__body" id="bqStudentDrawerBody">
+    <div class="bq-sdrawer-loading">
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      <span>Forma yuklanmoqda...</span>
+    </div>
+  </div>
+</aside>
 
 <!-- ══════════════════ AI CHAT ══════════════════ -->
 <div class="bq-chat-overlay" id="chatOverlay"></div>
@@ -4021,6 +4390,417 @@ if(quickMenu && quickToggle){
   });
   document.addEventListener('click',e=>{
     if(!quickMenu.contains(e.target)) setQuickMenu(false);
+  });
+}
+
+/* ══════════════════ STUDENT DRAWER ══════════════════ */
+const studentDrawerTrigger=document.getElementById('bqQuickStudentOpen');
+const studentDrawerOverlay=document.getElementById('bqStudentDrawerOverlay');
+const studentDrawerPanel=document.getElementById('bqStudentDrawer');
+const studentDrawerBody=document.getElementById('bqStudentDrawerBody');
+const studentDrawerClose=document.getElementById('bqStudentDrawerClose');
+let studentDrawerLoaded=false;
+
+function transliterateDrawerWord(word){
+  if(!word) return '';
+  word=word
+    .toLowerCase()
+    .replace(/o['`‘’ʼʻ]/g,'o')
+    .replace(/g['`‘’ʼʻ]/g,'g')
+    .replace(/['`‘’ʼʻ]/g,'');
+  const map={
+    'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'j',
+    'з':'z','и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o',
+    'п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'x','ц':'ts',
+    'ч':'ch','ш':'sh','щ':'sh','ъ':'','ы':'i','ь':'','э':'e','ю':'yu','я':'ya'
+  };
+  return word.split('').map(c=>map[c] || c).join('').replace(/[^a-z0-9]/g,'');
+}
+
+function formatDrawerPhoneValue(value){
+  const digits=String(value || '').replace(/\D/g,'').replace(/^998/,'').slice(0,9);
+  const parts=[];
+  if(digits.slice(0,2)) parts.push(digits.slice(0,2));
+  if(digits.slice(2,5)) parts.push(digits.slice(2,5));
+  if(digits.slice(5,7)) parts.push(digits.slice(5,7));
+  if(digits.slice(7,9)) parts.push(digits.slice(7,9));
+  return '+998' + (parts.length ? ` ${parts.join(' ')}` : ' ');
+}
+
+function formatDrawerPassportValue(value){
+  const clean=String(value || '').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const letters=clean.replace(/[^A-Z]/g,'').slice(0,2);
+  const numbers=clean.replace(/[^0-9]/g,'').slice(0,7);
+  return letters + numbers;
+}
+
+function initStudentDrawerInputFormatting(){
+  studentDrawerBody.querySelectorAll('#id_telefon1, #id_telefon2').forEach(input=>{
+    function applyPhoneMask(){
+      input.value=formatDrawerPhoneValue(input.value);
+    }
+
+    applyPhoneMask();
+    input.addEventListener('focus', applyPhoneMask);
+    input.addEventListener('input', applyPhoneMask);
+    input.addEventListener('blur', ()=>{
+      const digits=input.value.replace(/\D/g,'').replace(/^998/,'');
+      input.value = digits ? formatDrawerPhoneValue(input.value) : '';
+    });
+  });
+
+  studentDrawerBody.querySelectorAll('#id_passport_id').forEach(input=>{
+    function applyPassportMask(){
+      input.value=formatDrawerPassportValue(input.value);
+    }
+
+    applyPassportMask();
+    input.addEventListener('input', applyPassportMask);
+    input.addEventListener('blur', applyPassportMask);
+  });
+}
+
+function setBodyLock(locked){
+  if(locked){
+    document.body.style.overflow='hidden';
+    return;
+  }
+  const chatOpen=document.getElementById('chatPanel')?.classList.contains('open');
+  document.body.style.overflow=chatOpen ? 'hidden' : '';
+}
+
+function setStudentDrawer(open){
+  if(!studentDrawerOverlay || !studentDrawerPanel) return;
+  studentDrawerOverlay.classList.toggle('open', open);
+  studentDrawerPanel.classList.toggle('open', open);
+  studentDrawerPanel.setAttribute('aria-hidden', open ? 'false' : 'true');
+  setBodyLock(open);
+}
+
+function renderStudentDrawerLoading(message){
+  if(!studentDrawerBody) return;
+  studentDrawerBody.innerHTML = `
+    <div class="bq-sdrawer-loading">
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      <span>${message}</span>
+    </div>
+  `;
+}
+
+function renderStudentDrawerError(message){
+  if(!studentDrawerBody) return;
+  studentDrawerBody.innerHTML = `<div class="bq-sdrawer-alert">${message}</div>`;
+}
+
+function initStudentDrawerPasswordToggle(){
+  studentDrawerBody.querySelectorAll('[data-toggle-password]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const wrap=btn.closest('.bq-sdrawer-password');
+      const input=wrap?.querySelector('input');
+      const icon=btn.querySelector('i');
+      if(!input) return;
+      const isPassword=input.type==='password';
+      input.type=isPassword ? 'text' : 'password';
+      if(icon) icon.className=isPassword ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+    });
+  });
+}
+
+function initStudentDrawerCredentialGenerator(){
+  const ismInput=studentDrawerBody.querySelector('#id_ism');
+  const famInput=studentDrawerBody.querySelector('#id_familya');
+  const emailInput=studentDrawerBody.querySelector('#id_email');
+  const passInput=studentDrawerBody.querySelector('#id_password');
+  if(!ismInput || !famInput || !emailInput || !passInput) return;
+
+  function getIdentityParts(){
+    const ismPart=transliterateDrawerWord(ismInput.value.trim()).slice(0,10);
+    const famPart=transliterateDrawerWord(famInput.value.trim()).slice(0,12);
+    return {
+      ismPart: ismPart || 'student',
+      famPart: famPart || 'user'
+    };
+  }
+
+  function createEmailValue(){
+    const parts=getIdentityParts();
+    const rand=Math.floor(Math.random()*900)+100;
+    const localPart=`${parts.ismPart}.${parts.famPart}`.replace(/\.+/g,'.').replace(/^\.+|\.+$/g,'');
+    return `${localPart.slice(0,24)}${rand}@gmail.com`;
+  }
+
+  function createPasswordValue(){
+    const parts=getIdentityParts();
+    const firstChunk=parts.ismPart.slice(0,4);
+    const secondChunk=parts.famPart.slice(0,4);
+    const rand=String(Math.floor(1000 + Math.random()*9000));
+    const prefix=firstChunk ? firstChunk.charAt(0).toUpperCase()+firstChunk.slice(1) : 'Stud';
+    return `${prefix}${secondChunk}${rand}`;
+  }
+
+  function generate(){
+    const ism=ismInput.value.trim();
+    const fam=famInput.value.trim();
+    if(!ism || !fam) return;
+
+    if(!emailInput.value){
+      emailInput.value=createEmailValue();
+    }
+
+    if(!passInput.value){
+      passInput.value=createPasswordValue();
+    }
+  }
+
+  studentDrawerBody.querySelectorAll('[data-generate-email]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      emailInput.value=createEmailValue();
+      emailInput.focus();
+    });
+  });
+
+  studentDrawerBody.querySelectorAll('[data-generate-password]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      passInput.value=createPasswordValue();
+      passInput.focus();
+    });
+  });
+
+  ismInput.addEventListener('blur',generate);
+  famInput.addEventListener('blur',generate);
+  generate();
+}
+
+function initStudentDrawerGroupPrice(){
+  const form=studentDrawerBody.querySelector('[data-student-drawer-form]');
+  const groupSelect=studentDrawerBody.querySelector('#id_group');
+  const kursInput=studentDrawerBody.querySelector('#id_kurs_narhi');
+  const priceBlock=studentDrawerBody.querySelector('[data-drawer-price-block]');
+  const template=form?.dataset.groupPriceTemplate || '';
+  if(!form || !groupSelect || !kursInput || !priceBlock || !template) return;
+
+  function setPriceVisible(visible){
+    priceBlock.style.display = visible ? '' : 'none';
+  }
+
+  function groupPriceUrl(groupId){
+    return template.replace(/0\/?$/, `${groupId}/`);
+  }
+
+  function updatePrice(){
+    const gid=groupSelect.value;
+    if(!gid){
+      kursInput.value='';
+      setPriceVisible(false);
+      return;
+    }
+
+    fetch(groupPriceUrl(gid), {
+      headers:{'X-Requested-With':'XMLHttpRequest'}
+    })
+      .then(r=>r.ok ? r.json() : Promise.reject(new Error('price-error')))
+      .then(data=>{
+        kursInput.value=data.price || '';
+        setPriceVisible(true);
+      })
+      .catch(()=>{
+        setPriceVisible(true);
+      });
+  }
+
+  groupSelect.addEventListener('change', updatePrice);
+  if(groupSelect.value) updatePrice();
+  else setPriceVisible(false);
+}
+
+function initStudentDrawerExtraFields(){
+  function clearField(row){
+    row.querySelectorAll('input, textarea, select').forEach(input=>{
+      if(input.tagName === 'SELECT'){
+        input.selectedIndex = 0;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        return;
+      }
+      if(input.type === 'checkbox' || input.type === 'radio'){
+        input.checked = false;
+        return;
+      }
+      input.value = '';
+    });
+  }
+
+  function setFieldVisibility(fieldName, visible){
+    const row=studentDrawerBody.querySelector(`[data-extra-field="${fieldName}"]`);
+    const toggle=studentDrawerBody.querySelector(`[data-extra-toggle="${fieldName}"]`);
+    if(!row || !toggle) return;
+
+    row.hidden = !visible;
+    toggle.classList.toggle('is-active', visible);
+    toggle.setAttribute('aria-pressed', visible ? 'true' : 'false');
+
+    if(visible){
+      row.querySelector('input, textarea, select')?.focus();
+      return;
+    }
+
+    clearField(row);
+  }
+
+  studentDrawerBody.querySelectorAll('[data-extra-toggle]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const fieldName=btn.dataset.extraToggle;
+      const row=studentDrawerBody.querySelector(`[data-extra-field="${fieldName}"]`);
+      setFieldVisibility(fieldName, row ? row.hidden : false);
+    });
+  });
+
+  studentDrawerBody.querySelectorAll('[data-extra-remove]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      setFieldVisibility(btn.dataset.extraRemove, false);
+    });
+  });
+
+  studentDrawerBody.querySelectorAll('[data-extra-field]').forEach(row=>{
+    const fieldName=row.dataset.extraField;
+    const toggle=studentDrawerBody.querySelector(`[data-extra-toggle="${fieldName}"]`);
+    if(!toggle) return;
+    const visible=!row.hidden;
+    toggle.classList.toggle('is-active', visible);
+    toggle.setAttribute('aria-pressed', visible ? 'true' : 'false');
+  });
+}
+
+function initStudentDrawerOptionalSections(){
+  function clearSection(sectionName){
+    const section=studentDrawerBody.querySelector(`[data-optional-section="${sectionName}"]`);
+    if(!section) return;
+
+    section.querySelectorAll('input, textarea, select').forEach(input=>{
+      if(input.tagName === 'SELECT'){
+        input.selectedIndex = 0;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        return;
+      }
+      if(input.type === 'checkbox' || input.type === 'radio'){
+        input.checked = false;
+        return;
+      }
+      input.value = '';
+    });
+  }
+
+  function setSectionVisibility(sectionName, visible){
+    const section=studentDrawerBody.querySelector(`[data-optional-section="${sectionName}"]`);
+    const toggle=studentDrawerBody.querySelector(`[data-section-toggle="${sectionName}"]`);
+    if(!section || !toggle) return;
+
+    section.hidden = !visible;
+    toggle.classList.toggle('is-active', visible);
+
+    if(visible){
+      section.querySelector('input, textarea, select')?.focus();
+      return;
+    }
+
+    clearSection(sectionName);
+  }
+
+  studentDrawerBody.querySelectorAll('[data-section-toggle]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const sectionName=btn.dataset.sectionToggle;
+      const section=studentDrawerBody.querySelector(`[data-optional-section="${sectionName}"]`);
+      setSectionVisibility(sectionName, section ? section.hidden : false);
+    });
+  });
+
+  studentDrawerBody.querySelectorAll('[data-section-close]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      setSectionVisibility(btn.dataset.sectionClose, false);
+    });
+  });
+}
+
+function initStudentDrawerForm(){
+  const form=studentDrawerBody.querySelector('[data-student-drawer-form]');
+  studentDrawerBody.querySelectorAll('[data-student-drawer-close]').forEach(btn=>{
+    btn.addEventListener('click',()=>setStudentDrawer(false));
+  });
+  initStudentDrawerInputFormatting();
+  initStudentDrawerPasswordToggle();
+  initStudentDrawerCredentialGenerator();
+  initStudentDrawerGroupPrice();
+  initStudentDrawerExtraFields();
+  initStudentDrawerOptionalSections();
+  if(!form) return;
+
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const submitBtn=form.querySelector('.bq-sdrawer-submit');
+    if(submitBtn){
+      submitBtn.disabled=true;
+      submitBtn.classList.add('is-loading');
+    }
+
+    try{
+      const res=await fetch(form.action,{
+        method:'POST',
+        body:new FormData(form),
+        headers:{'X-Requested-With':'XMLHttpRequest'}
+      });
+      const data=await res.json();
+      if(data.ok){
+        setStudentDrawer(false);
+        window.location.reload();
+        return;
+      }
+      if(data.html){
+        studentDrawerBody.innerHTML=data.html;
+        initStudentDrawerForm();
+        return;
+      }
+      renderStudentDrawerError("Studentni saqlashda xatolik yuz berdi.");
+    }catch(err){
+      renderStudentDrawerError("Server bilan aloqa uzildi. Qayta urinib ko'ring.");
+    }finally{
+      if(submitBtn){
+        submitBtn.disabled=false;
+        submitBtn.classList.remove('is-loading');
+      }
+    }
+  });
+}
+
+async function openStudentDrawer(forceReload=false){
+  if(!studentDrawerTrigger || !studentDrawerOverlay || !studentDrawerPanel || !studentDrawerBody) return;
+  setQuickMenu(false);
+  setStudentDrawer(true);
+  if(studentDrawerLoaded && !forceReload) return;
+
+  renderStudentDrawerLoading("Forma yuklanmoqda...");
+  try{
+    const res=await fetch(studentDrawerTrigger.dataset.drawerUrl,{
+      headers:{'X-Requested-With':'XMLHttpRequest'}
+    });
+    if(!res.ok) throw new Error('drawer-load-error');
+    studentDrawerBody.innerHTML=await res.text();
+    studentDrawerLoaded=true;
+    initStudentDrawerForm();
+  }catch(err){
+    renderStudentDrawerError("Student qo'shish formasi yuklanmadi.");
+  }
+}
+
+if(studentDrawerTrigger && studentDrawerOverlay && studentDrawerPanel && studentDrawerBody){
+  studentDrawerTrigger.addEventListener('click',e=>{
+    e.preventDefault();
+    openStudentDrawer(true);
+  });
+  studentDrawerClose?.addEventListener('click',()=>setStudentDrawer(false));
+  studentDrawerOverlay.addEventListener('click',()=>setStudentDrawer(false));
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape' && studentDrawerPanel.classList.contains('open')){
+      setStudentDrawer(false);
+    }
   });
 }
 

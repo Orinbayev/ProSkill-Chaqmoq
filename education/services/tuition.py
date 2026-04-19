@@ -9,7 +9,7 @@ from django.db.models import Sum, F
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
-from education.models import TuitionMonth, PaymentAllocation, Payment, Enrollment
+from education.models import TuitionMonth, PaymentAllocation, Payment, Enrollment, StudentGroupHistory
 
 
 # =========================
@@ -80,6 +80,21 @@ def full_course_amount(enrollment: Enrollment) -> int:
     return int(getattr(enrollment, "full_course_amount", 0) or 0)
 
 
+def enrollment_start_date(enrollment: Enrollment) -> date:
+    if not enrollment:
+        return timezone.localdate()
+
+    history = StudentGroupHistory.objects.filter(
+        student=enrollment.student,
+        group=enrollment.group,
+    ).order_by("-start_date").first()
+    if history and history.start_date:
+        return history.start_date
+
+    start_dt = getattr(enrollment, "created_at", None) or timezone.now()
+    return start_dt.date()
+
+
 def effective_student_payable_amount(enrollment: Enrollment) -> int:
     if not enrollment:
         return 0
@@ -130,8 +145,7 @@ def ensure_all_tuition_months_since_start(enrollment: Enrollment, up_to_month: d
     Enrollment yaratilgan kundan boshlab berilgan oygacha (up_to_month)
     barcha TuitionMonth rekordlarini yaratilishini ta'minlaydi.
     """
-    start_dt = getattr(enrollment, "created_at", None) or timezone.now()
-    cur = month_first_day(start_dt.date())
+    cur = month_first_day(enrollment_start_date(enrollment))
     final = month_first_day(up_to_month)
 
     # Xavfsizlik uchun max 3 yil (36 oy)
@@ -170,8 +184,7 @@ def find_earliest_unpaid_month(enrollment: Enrollment, start_month: Optional[dat
     fee_field = tuition_month_fee_field()
 
     if start_month is None:
-        start_dt = getattr(enrollment, "created_at", None) or timezone.now()
-        start_month = month_first_day(start_dt.date())
+        start_month = month_first_day(enrollment_start_date(enrollment))
     else:
         start_month = month_first_day(start_month)
 
