@@ -18,7 +18,6 @@ from core.tenant import get_request_center, require_center
 from .forms import LeadForm, TrialLessonForm
 from .lead_services import (
     convert_lead_to_student_safe,
-    ensure_default_lead_catalog,
     follow_up_queryset,
     handle_lead_save_audit,
     log_lead_activity,
@@ -59,8 +58,6 @@ def lead_list(request):
     center = _get_center_or_redirect(request)
     if not center:
         return redirect("core:home")
-
-    ensure_default_lead_catalog(center)
 
     status_id = (request.GET.get("status") or "").strip()
     manager_id = (request.GET.get("manager") or "").strip()
@@ -188,8 +185,6 @@ def lead_create(request):
     center = _get_center_or_redirect(request)
     if not center:
         return redirect("core:home")
-
-    ensure_default_lead_catalog(center)
 
     if request.method == "POST":
         form = LeadForm(request.POST, center=center)
@@ -343,7 +338,6 @@ def lead_convert(request, pk):
     lead = get_object_or_404(Lead, pk=pk, center=center, is_archived=False)
 
     if not lead.status_id:
-        ensure_default_lead_catalog(center)
         registered = LeadStatus.objects.filter(center=center, code=LeadStatus.Code.REGISTERED).first()
         if registered:
             lead.status = registered
@@ -372,8 +366,6 @@ def lead_settings(request):
     center = _get_center_or_redirect(request)
     if not center:
         return redirect("core:home")
-
-    ensure_default_lead_catalog(center)
 
     manbalar = Manba.objects.filter(center=center).order_by("nom")
     statuses = LeadStatus.objects.filter(center=center).order_by("order", "nom")

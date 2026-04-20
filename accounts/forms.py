@@ -12,6 +12,7 @@ User = get_user_model()
 Group = apps.get_model('education', 'Group')
 
 ROLE_CHOICES = (
+    ("director", "Direktor"),
     ("student", "O‘quvchi"),
     ("teacher", "O‘qituvchi"),
     ("manager", "Manager"),
@@ -19,6 +20,18 @@ ROLE_CHOICES = (
 )
 
 class AddUserForm(forms.ModelForm):
+    children_ids = forms.ModelMultipleChoiceField(
+        queryset=User.objects.filter(role="student"),
+        required=False,
+        label="Farzandlarini tanlang",
+        widget=forms.SelectMultiple(
+            attrs={
+                "class": "form-control uniform-input",
+                "id": "id_children_ids",
+                "size": 6,
+            }
+        ),
+    )
     center = forms.ModelChoiceField(
         queryset=Center.objects.all(),
         empty_label="---------",
@@ -61,6 +74,8 @@ class AddUserForm(forms.ModelForm):
             "telefon2": forms.TextInput(attrs={"placeholder": "+998 99 384 58 54", "class": "form-control uniform-input", "id": "id_telefon2", "inputmode": "numeric", "autocomplete": "off"}),
             "email": forms.TextInput(attrs={"placeholder": "Gmail avtomatik yaratiladi", "class": "form-control uniform-input", "id": "id_email"}),
             "password": forms.PasswordInput(attrs={"placeholder": "Parol avtomatik yaratiladi", "class": "form-control uniform-input", "id": "id_password"}),
+            "role": forms.Select(attrs={"class": "form-control uniform-input", "id": "id_role"}),
+            "oqituvchi_foizi": forms.NumberInput(attrs={"placeholder": "40", "class": "form-control uniform-input", "id": "id_oqituvchi_foizi", "min": "0", "max": "100"}),
             "birth_date": forms.DateInput(attrs={"type": "date", "class": "form-control uniform-input"}),
             "gender": forms.RadioSelect(attrs={"class": "gender-radio"}), 
             "passport_id": forms.TextInput(attrs={"placeholder": "AB1234567", "class": "form-control uniform-input", "id": "id_passport_id"}),
@@ -71,9 +86,19 @@ class AddUserForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop("request", None)
+        self.allowed_roles = kwargs.pop("allowed_roles", None)
         super().__init__(*args, **kwargs)
 
         self.fields["oqituvchi_foizi"].required = False
+
+        role_labels = dict(User._meta.get_field("role").choices)
+        ordered_roles = ["director", "manager", "teacher", "student", "parent"]
+        allowed_roles = set(self.allowed_roles or ordered_roles)
+        self.fields["role"].choices = [
+            (value, role_labels.get(value, label))
+            for value, label in User._meta.get_field("role").choices
+            if value in allowed_roles and value in ordered_roles
+        ]
 
         u = getattr(self.request, "user", None) if self.request else None
 
@@ -120,6 +145,16 @@ class AddUserForm(forms.ModelForm):
                 or getattr(selected_group, "course_start_date", None)
                 or timezone.localdate()
             )
+
+        if "children_ids" in self.fields:
+            if active_center:
+                self.fields["children_ids"].queryset = User.objects.filter(
+                    role="student",
+                    center=active_center,
+                    is_archived=False,
+                ).order_by("ism", "familya")
+            else:
+                self.fields["children_ids"].queryset = User.objects.none()
 
 
     def clean(self):
@@ -244,6 +279,9 @@ class AddUserForm(forms.ModelForm):
                 ).exclude(start_date=start_date).update(start_date=start_date)
 
                 ensure_all_tuition_months_since_start(enr, timezone.localdate())
+
+            if user.role == "parent":
+                user.children.set(data.get("children_ids") or [])
 
         return user
 

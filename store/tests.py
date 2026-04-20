@@ -5,13 +5,14 @@ from datetime import datetime, timedelta
 
 from accounts.models import Center, User
 from education.models import Group
+from store.forms import LeadForm
 from store.lead_services import (
     convert_lead_to_student_safe,
     ensure_default_lead_catalog,
     get_status_by_code,
     send_follow_up_notification_if_due,
 )
-from store.models import Expense, ExpenseCategory, Lead, Product, PurchaseRequest, TrialLesson
+from store.models import Expense, ExpenseCategory, Lead, LeadStatus, Manba, Product, PurchaseRequest, TrialLesson, Yonalish
 from store.trial_services import handle_trial_created, handle_trial_updated
 
 
@@ -135,6 +136,111 @@ class LeadCrmServiceTests(TestCase):
         self.assertIsNotNone(lead.converted_user_id)
         self.assertEqual(lead.status_id, registered_status.id if registered_status else lead.status_id)
         self.assertTrue(trial.registered_after_trial)
+
+
+class LeadCatalogIsolationTests(TestCase):
+    def setUp(self):
+        self.center = Center.objects.create(
+            name="Lead Center A",
+            slug="lead-center-a",
+            features={"leads": True},
+        )
+        self.other_center = Center.objects.create(
+            name="Lead Center B",
+            slug="lead-center-b",
+            features={"leads": True},
+        )
+        self.director = User.objects.create_user(
+            email="director@lead-a.test",
+            password="Pass12345!",
+            role="director",
+            center=self.center,
+            ism="Lead",
+            familya="Director",
+        )
+        self.manager = User.objects.create_user(
+            email="manager@lead-a.test",
+            password="Pass12345!",
+            role="manager",
+            center=self.center,
+            ism="Lead",
+            familya="Manager",
+        )
+        self.other_manager = User.objects.create_user(
+            email="manager@lead-b.test",
+            password="Pass12345!",
+            role="manager",
+            center=self.other_center,
+            ism="Other",
+            familya="Manager",
+        )
+        self.center_manba = Manba.objects.create(center=self.center, nom="Instagram A")
+        self.other_manba = Manba.objects.create(center=self.other_center, nom="Instagram B")
+        self.center_yonalish = Yonalish.objects.create(center=self.center, nom="IELTS A")
+        self.other_yonalish = Yonalish.objects.create(center=self.other_center, nom="IELTS B")
+        self.center_status = LeadStatus.objects.create(center=self.center, nom="Yangi A", code="new", is_active=True)
+        self.other_status = LeadStatus.objects.create(center=self.other_center, nom="Yangi B", code="new", is_active=True)
+        self.client.force_login(self.director)
+
+    def test_form_uses_only_current_center_catalog(self):
+        form = LeadForm(center=self.center)
+
+        self.assertEqual(
+            list(form.fields["manba"].queryset.values_list("id", flat=True)),
+            [self.center_manba.id],
+        )
+        self.assertEqual(
+            list(form.fields["yonalish"].queryset.values_list("id", flat=True)),
+            [self.center_yonalish.id],
+        )
+        self.assertEqual(
+            list(form.fields["status"].queryset.values_list("id", flat=True)),
+            [self.center_status.id],
+        )
+        self.assertEqual(
+            list(form.fields["assigned_manager"].queryset.values_list("id", flat=True)),
+            [self.manager.id],
+        )
+        self.assertEqual(form.fields["manba"].empty_label, "")
+        self.assertEqual(form.fields["yonalish"].empty_label, "")
+        self.assertEqual(form.fields["status"].empty_label, "")
+        self.assertIsNone(form["manba"].value())
+        self.assertIsNone(form["yonalish"].value())
+        self.assertIsNone(form["status"].value())
+
+    def test_form_rejects_other_center_catalog_ids(self):
+        form = LeadForm(
+            data={
+                "ism": "Ali",
+                "telefon1": "+998901112233",
+                "manba": self.other_manba.id,
+                "yonalish": self.other_yonalish.id,
+                "status": self.other_status.id,
+                "assigned_manager": self.other_manager.id,
+            },
+            center=self.center,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("manba", form.errors)
+        self.assertIn("yonalish", form.errors)
+        self.assertIn("status", form.errors)
+        self.assertIn("assigned_manager", form.errors)
+
+    def test_lead_create_page_does_not_auto_seed_catalog(self):
+        Manba.objects.filter(center=self.center).delete()
+        Yonalish.objects.filter(center=self.center).delete()
+        LeadStatus.objects.filter(center=self.center).delete()
+
+        response = self.client.get(f"/{self.center.slug}{reverse('store:lead_create')}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Manba.objects.filter(center=self.center).count(), 0)
+        self.assertEqual(Yonalish.objects.filter(center=self.center).count(), 0)
+        self.assertEqual(LeadStatus.objects.filter(center=self.center).count(), 0)
+        self.assertEqual(response.context["form"].fields["manba"].queryset.count(), 0)
+        self.assertEqual(response.context["form"].fields["yonalish"].queryset.count(), 0)
+        self.assertEqual(response.context["form"].fields["status"].queryset.count(), 0)
 
 
 class ExpensePageSmokeTests(TestCase):

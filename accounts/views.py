@@ -60,12 +60,39 @@ def _safe_next_url(value: str | None) -> str | None:
     return value if value.startswith("/") else None
 
 
-def _is_student_drawer_request(request) -> bool:
-    role = (request.GET.get("role") or "").strip().lower()
-    return request.GET.get("drawer") == "1" and role in {"student", "students"}
+def _normalize_role_value(value: str | None) -> str:
+    value = (value or "").strip().lower()
+    return "student" if value == "students" else value
 
 
-def _generate_student_email(ism: str, familya: str) -> str:
+def _is_user_drawer_request(request) -> bool:
+    return request.GET.get("drawer") == "1"
+
+
+def _is_role_switch_drawer_request(request) -> bool:
+    return _is_user_drawer_request(request) and request.GET.get("role_switch") == "1"
+
+
+def _get_allowed_add_roles(request) -> list[str]:
+    ordered_roles = ["director", "manager", "teacher", "student", "parent"]
+    allowed = []
+
+    if _can_add(getattr(request, "user", None)):
+        allowed.extend(ordered_roles)
+    elif _can_add_student(request):
+        allowed.append("student")
+
+    result = []
+    seen = set()
+    for role in allowed:
+        if role in seen:
+            continue
+        seen.add(role)
+        result.append(role)
+    return result
+
+
+def _generate_user_email(ism: str, familya: str) -> str:
     first = slugify(ism or "").replace("-", "") or "u"
     last = slugify(familya or "").replace("-", "") or "student"
     prefix = f"{first[:1]}.{last[:10]}"
@@ -76,11 +103,18 @@ def _generate_student_email(ism: str, familya: str) -> str:
     return f"{prefix}{random.randint(1000, 9999)}@gmail.com"
 
 
-def _generate_student_password() -> str:
+def _generate_user_password() -> str:
     return str(random.randint(10000000, 99999999))
 
 
-def _render_student_drawer_form(request, *, form, student_limit_state, next_url, drawer_center_value):
+def _render_student_drawer_form(
+    request,
+    *,
+    form,
+    student_limit_state,
+    next_url,
+    drawer_center_value,
+):
     return render_to_string(
         "accounts/partials/student_drawer_form.html",
         {
@@ -88,6 +122,32 @@ def _render_student_drawer_form(request, *, form, student_limit_state, next_url,
             "student_limit_state": student_limit_state,
             "next_url": next_url,
             "drawer_center_value": drawer_center_value,
+        },
+        request=request,
+    )
+
+
+def _render_user_drawer_form(
+    request,
+    *,
+    form,
+    student_limit_state,
+    next_url,
+    drawer_center_value,
+    current_role,
+    allow_role_switch,
+    available_roles,
+):
+    return render_to_string(
+        "accounts/partials/user_drawer_form.html",
+        {
+            "form": form,
+            "student_limit_state": student_limit_state,
+            "next_url": next_url,
+            "drawer_center_value": drawer_center_value,
+            "current_role": current_role,
+            "allow_role_switch": allow_role_switch,
+            "available_roles": available_roles,
         },
         request=request,
     )
@@ -726,23 +786,36 @@ def center_remove_staff(request, pk: int):
 
 @login_required
 def add_user(request):
-    is_student_drawer = _is_student_drawer_request(request)
-    if is_student_drawer:
-        if not _can_add_student(request):
+    is_user_drawer = _is_user_drawer_request(request)
+    allow_role_switch = _is_role_switch_drawer_request(request)
+
+    if is_user_drawer:
+        allowed_roles = _get_allowed_add_roles(request)
+        if not allowed_roles:
             return HttpResponseForbidden("Ruxsat yo'q.")
     elif not _can_add(request.user):
         return HttpResponseForbidden("Ruxsat yo'q.")
+    else:
+        allowed_roles = []
 
     next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
 
-    # ✅ Role normalization (students -> student)
-    role_param = request.GET.get("role", "").strip()
-    if role_param.lower() == "students":
-        role_param = "student"
-    
+    role_param = _normalize_role_value(request.GET.get("role"))
+    posted_role = _normalize_role_value(request.POST.get("role"))
+    requested_role = posted_role or role_param
+
+    if is_user_drawer:
+        allow_role_switch = allow_role_switch and len(allowed_roles) > 1
+        if allow_role_switch:
+            current_role = requested_role if requested_role in allowed_roles else allowed_roles[0]
+        else:
+            current_role = role_param if role_param in allowed_roles else allowed_roles[0]
+    else:
+        current_role = requested_role
+
     initial = {}
-    if role_param:
-        initial["role"] = role_param
+    if current_role:
+        initial["role"] = current_role
 
     active_center = getattr(request, "center", None) or getattr(request.user, "center", None)
     selected_center_id = request.POST.get("center") or request.GET.get("center")
@@ -763,22 +836,31 @@ def add_user(request):
         initial["center"] = active_center.id
 
     form_data = request.POST.copy() if request.method == "POST" else None
-    if is_student_drawer and form_data is not None:
-        form_data["role"] = "student"
+    if is_user_drawer and form_data is not None:
+        form_data["role"] = current_role
         if active_center and not form_data.get("center"):
             form_data["center"] = str(active_center.id)
         if not (form_data.get("email") or "").strip():
-            form_data["email"] = _generate_student_email(
+            form_data["email"] = _generate_user_email(
                 form_data.get("ism", ""),
                 form_data.get("familya", ""),
             )
         if not (form_data.get("password") or "").strip():
-            form_data["password"] = _generate_student_password()
+            form_data["password"] = _generate_user_password()
 
-    form = AddUserForm(form_data or None, request=request, initial=initial)
+    form = AddUserForm(
+        form_data or None,
+        request=request,
+        initial=initial,
+        allowed_roles=(
+            allowed_roles
+            if is_user_drawer and allow_role_switch
+            else ([current_role] if is_user_drawer and current_role else None)
+        ),
+    )
     student_limit_state = None
 
-    if active_center:
+    if active_center and current_role == "student":
         from billing.services import resolve_center_student_limit
 
         student_limit_state = resolve_center_student_limit(
@@ -796,7 +878,7 @@ def add_user(request):
     if request.method == "POST" and form.is_valid():
         user = form.save()
         messages.success(request, f"✅ Foydalanuvchi {user.email} muvaffaqiyatli qo‘shildi.")
-        if is_student_drawer:
+        if is_user_drawer:
             return JsonResponse({
                 "ok": True,
                 "user": {
@@ -808,27 +890,40 @@ def add_user(request):
         return redirect(next_url or "core:home")
 
     role_titles = {
+        "director": "Yangi direktor",
         "student": "Yangi o'quvchi",
         "teacher": "Yangi o'qituvchi",
         "manager": "Yangi manager",
         "parent": "Yangi ota-ona",
     }
 
-    if is_student_drawer:
-        html = _render_student_drawer_form(
-            request,
-            form=form,
-            student_limit_state=student_limit_state,
-            next_url=next_url,
-            drawer_center_value=drawer_center_value,
-        )
+    if is_user_drawer:
+        if current_role == "student" and not allow_role_switch:
+            html = _render_student_drawer_form(
+                request,
+                form=form,
+                student_limit_state=student_limit_state,
+                next_url=next_url,
+                drawer_center_value=drawer_center_value,
+            )
+        else:
+            html = _render_user_drawer_form(
+                request,
+                form=form,
+                student_limit_state=student_limit_state,
+                next_url=next_url,
+                drawer_center_value=drawer_center_value,
+                current_role=current_role,
+                allow_role_switch=allow_role_switch,
+                available_roles=allowed_roles,
+            )
         if request.method == "POST":
             return JsonResponse({"ok": False, "html": html}, status=400)
         return HttpResponse(html)
 
     return render(request, "accounts/user_form.html", {
         'form': form,
-        'title': role_titles.get(role_param, "Yangi foydalanuvchi"),
+        'title': role_titles.get(current_role, "Yangi foydalanuvchi"),
         'student_limit_state': student_limit_state,
         'next_url': next_url,
         'cancel_url': next_url or reverse("core:home"),

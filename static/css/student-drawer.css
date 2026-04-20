@@ -214,6 +214,12 @@
   padding: 16px 18px;
 }
 
+.bq-sdrawer-field select[multiple] {
+  min-height: 164px;
+  height: auto;
+  padding: 10px 14px;
+}
+
 .bq-sdrawer-field input:focus,
 .bq-sdrawer-field select:focus,
 .bq-sdrawer-field textarea:focus {
@@ -404,8 +410,9 @@
 .bq-sdrawer-extra-icons {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 12px;
-  padding-top: 2px;
+  margin-top: 24px;
 }
 
 .bq-sdrawer-extra-toggle {

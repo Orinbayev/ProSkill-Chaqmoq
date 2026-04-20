@@ -68,15 +68,30 @@ class LeadForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         center = kwargs.pop('center', None)
         super().__init__(*args, **kwargs)
+        self.center = center
+
         if center:
-            from django.db.models import Q
             from .models import Manba, Yonalish, LeadStatus
-            self.fields['manba'].queryset = Manba.objects.filter(Q(center=center) | Q(center__isnull=True))
-            self.fields['yonalish'].queryset = Yonalish.objects.filter(Q(center=center) | Q(center__isnull=True))
-            self.fields['status'].queryset = LeadStatus.objects.filter(Q(center=center) | Q(center__isnull=True), is_active=True).order_by("order", "nom")
+            self.fields['manba'].queryset = Manba.objects.filter(center=center).order_by("nom")
+            self.fields['yonalish'].queryset = Yonalish.objects.filter(center=center).order_by("nom")
+            self.fields['status'].queryset = LeadStatus.objects.filter(center=center, is_active=True).order_by("order", "nom")
             self.fields['assigned_manager'].queryset = User.objects.filter(center=center, role="manager", is_archived=False).order_by("ism", "familya")
         else:
+            self.fields['manba'].queryset = self.fields['manba'].queryset.none()
+            self.fields['yonalish'].queryset = self.fields['yonalish'].queryset.none()
+            self.fields['status'].queryset = self.fields['status'].queryset.none()
             self.fields['assigned_manager'].queryset = User.objects.none()
+
+        for field_name in ("manba", "yonalish", "status"):
+            self.fields[field_name].empty_label = ""
+
+    def _validate_center_owned_choice(self, cleaned_data, field_name):
+        selected = cleaned_data.get(field_name)
+        center = getattr(self, "center", None)
+        if not selected or not center:
+            return
+        if getattr(selected, "center_id", None) != center.id:
+            self.add_error(field_name, "Tanlangan qiymat shu o'quv markaziga tegishli emas.")
 
     @staticmethod
     def _resolve_status_code(status) -> str:
@@ -102,6 +117,11 @@ class LeadForm(forms.ModelForm):
         status = cleaned.get("status")
         status_code = self._resolve_status_code(status)
         lost_reason = (cleaned.get("lost_reason") or "").strip()
+
+        self._validate_center_owned_choice(cleaned, "manba")
+        self._validate_center_owned_choice(cleaned, "yonalish")
+        self._validate_center_owned_choice(cleaned, "status")
+        self._validate_center_owned_choice(cleaned, "assigned_manager")
 
         if status_code == "lost" and not lost_reason:
             self.add_error("lost_reason", "Lost status uchun sabab kiritish majburiy.")

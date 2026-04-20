@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
 {% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/student-drawer.css' %}">
+{% endblock %}
 {% block body_class %}users-stats-page{% endblock %}
 {% block content %}
 
@@ -503,6 +506,273 @@
     background-color: var(--primary) !important;
     border-color: var(--primary) !important;
   }
+
+  .users-stats-page {
+    --student-drawer-bg: linear-gradient(180deg, rgba(7, 13, 26, 0.98), rgba(13, 21, 38, 0.96));
+    --student-drawer-border: rgba(255, 255, 255, 0.08);
+    --student-drawer-card-bg: rgba(255, 255, 255, 0.03);
+    --student-drawer-card-border: rgba(255, 255, 255, 0.07);
+    --student-drawer-input-bg: rgba(255, 255, 255, 0.04);
+    --student-drawer-input-border: rgba(255, 255, 255, 0.1);
+    --student-drawer-soft: rgba(255, 255, 255, 0.05);
+    --student-drawer-text: #f8fafc;
+    --student-drawer-muted: #94a3b8;
+    --student-drawer-accent: #60a5fa;
+    --student-drawer-overlay: rgba(2, 6, 23, 0.62);
+    --student-drawer-tooltip-bg: rgba(15, 23, 42, 0.96);
+    --student-drawer-tooltip-border: rgba(255, 255, 255, 0.08);
+    --student-drawer-submit-bg: linear-gradient(135deg, #3b82f6, #2563eb);
+    --student-drawer-submit-shadow: 0 14px 30px rgba(37, 99, 235, 0.28);
+  }
+
+  .users-stats-page .student-drawer-overlay {
+    background: var(--student-drawer-overlay);
+  }
+
+  .users-stats-page .student-drawer {
+    left: auto;
+    right: 0;
+    background: var(--student-drawer-bg);
+    border-right: 0;
+    border-left: 1px solid var(--student-drawer-border);
+    box-shadow: -24px 0 60px rgba(2, 6, 23, 0.45);
+    transform: translateX(100%);
+  }
+
+  .users-stats-page .student-drawer.open {
+    transform: translateX(0);
+  }
+
+  .users-stats-page .student-drawer__header {
+    padding: 22px 24px 18px;
+    border-bottom-color: var(--student-drawer-border);
+  }
+
+  .users-stats-page .student-drawer__title {
+    color: var(--student-drawer-text);
+    font-size: 1.72rem;
+    font-weight: 800;
+  }
+
+  .users-stats-page .student-drawer__sub {
+    margin-top: 8px;
+    color: var(--student-drawer-muted);
+    font-size: 0.92rem;
+  }
+
+  .users-stats-page .student-drawer__close {
+    background: var(--student-drawer-soft);
+    border-color: var(--student-drawer-border);
+    color: var(--student-drawer-text);
+  }
+
+  .users-stats-page .student-drawer__close:hover {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.24);
+    color: #ffffff;
+  }
+
+  .users-stats-page .student-drawer__body {
+    padding: 22px 24px 28px;
+  }
+
+  .users-stats-page .student-drawer__body::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.24);
+  }
+
+  .users-stats-page .student-drawer__loading,
+  .users-stats-page .student-drawer__error {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--student-drawer-muted);
+  }
+
+  .users-stats-page .student-drawer__error {
+    border-color: rgba(239, 68, 68, 0.24);
+    background: rgba(127, 29, 29, 0.24);
+    color: #fecaca;
+  }
+
+  .users-stats-page .bq-sdrawer-alert,
+  .users-stats-page .bq-sdrawer-limit,
+  .users-stats-page .bq-sdrawer-card {
+    border-color: var(--student-drawer-card-border);
+    background: var(--student-drawer-card-bg);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .users-stats-page .bq-sdrawer-alert {
+    border-color: rgba(239, 68, 68, 0.18);
+    background: rgba(239, 68, 68, 0.1);
+    color: #fecaca;
+  }
+
+  .users-stats-page .bq-sdrawer-limit strong,
+  .users-stats-page .bq-sdrawer-card__title,
+  .users-stats-page .bq-sdrawer-field label,
+  .users-stats-page .bq-sdrawer-extra-label {
+    color: var(--student-drawer-text);
+  }
+
+  .users-stats-page .bq-sdrawer-limit span {
+    color: var(--student-drawer-accent);
+  }
+
+  .users-stats-page .bq-sdrawer-limit small,
+  .users-stats-page .bq-sdrawer-card__note,
+  .users-stats-page .bq-sdrawer-field__hint,
+  .users-stats-page .bq-sdrawer-inline-toggle,
+  .users-stats-page .bq-sdrawer-extra-icon,
+  .users-stats-page .bq-sdrawer-card__close,
+  .users-stats-page .bq-sdrawer-extra-remove,
+  .users-stats-page .bq-sdrawer-eye {
+    color: var(--student-drawer-muted);
+  }
+
+  .users-stats-page .bq-sdrawer-field input,
+  .users-stats-page .bq-sdrawer-field select,
+  .users-stats-page .bq-sdrawer-field textarea,
+  .users-stats-page .bq-sdrawer-extra-control,
+  .users-stats-page .bq-sdrawer-date,
+  .users-stats-page .bq-sdrawer-gender__item span {
+    border-color: var(--student-drawer-input-border);
+    background: var(--student-drawer-input-bg);
+    color: var(--student-drawer-text) !important;
+    -webkit-text-fill-color: var(--student-drawer-text);
+    caret-color: var(--student-drawer-text);
+  }
+
+  .users-stats-page .bq-sdrawer-field input::placeholder,
+  .users-stats-page .bq-sdrawer-field textarea::placeholder,
+  .users-stats-page .bq-sdrawer-extra-control input::placeholder,
+  .users-stats-page .bq-sdrawer-extra-control textarea::placeholder {
+    color: var(--student-drawer-muted);
+    -webkit-text-fill-color: var(--student-drawer-muted);
+  }
+
+  .users-stats-page .bq-sdrawer-field input:focus,
+  .users-stats-page .bq-sdrawer-field select:focus,
+  .users-stats-page .bq-sdrawer-field textarea:focus,
+  .users-stats-page .bq-sdrawer-extra-control:focus-within,
+  .users-stats-page .bq-sdrawer-date:focus-within {
+    border-color: rgba(96, 165, 250, 0.38);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.14);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .users-stats-page .bq-sdrawer-gender__item span {
+    color: var(--student-drawer-muted);
+  }
+
+  .users-stats-page .bq-sdrawer-gender__item input:checked + span {
+    color: #ffffff;
+    border-color: rgba(96, 165, 250, 0.38);
+    background: rgba(59, 130, 246, 0.18);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14);
+  }
+
+  .users-stats-page .bq-sdrawer-card__close,
+  .users-stats-page .bq-sdrawer-refresh {
+    border-color: var(--student-drawer-input-border);
+    background: var(--student-drawer-soft);
+  }
+
+  .users-stats-page .bq-sdrawer-card__close:hover,
+  .users-stats-page .bq-sdrawer-extra-remove:hover {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.24);
+    color: #ffffff;
+  }
+
+  .users-stats-page .bq-sdrawer-extra-icon,
+  .users-stats-page .bq-sdrawer-extra-remove,
+  .users-stats-page .bq-sdrawer-date__icon {
+    border-color: var(--student-drawer-input-border);
+  }
+
+  .users-stats-page .bq-sdrawer-extra-control input,
+  .users-stats-page .bq-sdrawer-extra-control textarea,
+  .users-stats-page .bq-sdrawer-date input[type="date"] {
+    color: var(--student-drawer-text) !important;
+    -webkit-text-fill-color: var(--student-drawer-text);
+    caret-color: var(--student-drawer-text);
+  }
+
+  .users-stats-page .bq-sdrawer-date {
+    background: linear-gradient(180deg, var(--student-drawer-input-bg), rgba(255, 255, 255, 0.06));
+  }
+
+  .users-stats-page .bq-sdrawer-date__icon {
+    color: var(--student-drawer-accent);
+    background: rgba(59, 130, 246, 0.12);
+  }
+
+  .users-stats-page .bq-sdrawer-error {
+    color: #fda4af;
+  }
+
+  .users-stats-page .bq-sdrawer-inline-toggle:hover,
+  .users-stats-page .bq-sdrawer-inline-toggle.is-active,
+  .users-stats-page .bq-sdrawer-refresh {
+    color: var(--student-drawer-accent);
+  }
+
+  .users-stats-page .bq-sdrawer-refresh {
+    border-color: rgba(96, 165, 250, 0.28);
+  }
+
+  .users-stats-page .bq-sdrawer-refresh:hover {
+    background: rgba(59, 130, 246, 0.14);
+    border-color: rgba(96, 165, 250, 0.38);
+    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.14);
+  }
+
+  .users-stats-page .bq-sdrawer-extra-toggle {
+    border-color: rgba(96, 165, 250, 0.36);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--student-drawer-accent);
+  }
+
+  .users-stats-page .bq-sdrawer-extra-toggle::before {
+    border-color: var(--student-drawer-tooltip-bg) transparent transparent transparent;
+  }
+
+  .users-stats-page .bq-sdrawer-extra-toggle::after {
+    background: var(--student-drawer-tooltip-bg);
+    border-color: var(--student-drawer-tooltip-border);
+    color: var(--student-drawer-text);
+  }
+
+  .users-stats-page .bq-sdrawer-extra-toggle:hover,
+  .users-stats-page .bq-sdrawer-extra-toggle.is-active {
+    background: rgba(59, 130, 246, 0.16);
+    border-color: rgba(96, 165, 250, 0.5);
+    color: #ffffff;
+    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
+  }
+
+  .users-stats-page .bq-sdrawer-submit {
+    background: var(--student-drawer-submit-bg);
+    box-shadow: var(--student-drawer-submit-shadow);
+  }
+
+  .users-stats-page .bq-sdrawer-cancel {
+    background: var(--student-drawer-soft);
+    border-color: var(--student-drawer-border);
+    color: var(--student-drawer-text);
+  }
+
+  @media (max-width: 720px) {
+    .users-stats-page .student-drawer {
+      width: 100vw;
+    }
+
+    .users-stats-page .student-drawer__header,
+    .users-stats-page .student-drawer__body {
+      padding-left: 18px;
+      padding-right: 18px;
+    }
+  }
 </style>
 
 <div class="users-scope">
@@ -539,15 +809,13 @@
       </button>
       {% endif %}
 
-      {% if user_kind == 'parents' %}
-      <a href="../../parents/add/?next={{ request.get_full_path|urlencode }}" class="btn-action btn-primary">
+      <button
+        type="button"
+        id="open-user-drawer-btn"
+        class="btn-action btn-primary"
+        data-drawer-url="{% if user_kind == 'students' %}{% url 'accounts:add_user' %}?drawer=1&role=student&next={{ request.get_full_path|urlencode }}{% else %}{% url 'accounts:add_user' %}?drawer=1&role_switch=1&role={% if user_kind == 'teachers' %}teacher{% elif user_kind == 'managers' %}manager{% elif user_kind == 'parents' %}parent{% else %}student{% endif %}&next={{ request.get_full_path|urlencode }}{% endif %}">
         <i class="fa-solid fa-plus"></i> Yangi
-      </a>
-      {% else %}
-      <a href="../../hisob/qoshish/?role={% if user_kind == 'students' %}student{% else %}{{ user_kind|default:'student' }}{% endif %}&next={{ request.get_full_path|urlencode }}" class="btn-action btn-primary">
-        <i class="fa-solid fa-plus"></i> Yangi
-      </a>
-      {% endif %}
+      </button>
     </div>
   </div>
 
@@ -993,6 +1261,22 @@
 {% endblock %}
 
 {% block modals %}
+<div id="student-drawer-overlay" class="student-drawer-overlay" aria-hidden="true"></div>
+<aside id="student-drawer-panel" class="student-drawer" aria-hidden="true">
+  <div class="student-drawer__header">
+    <div>
+      <h2 class="student-drawer__title">{% if user_kind == 'students' %}Yangi talaba qo'shish{% else %}Yangi foydalanuvchi qo'shish{% endif %}</h2>
+      <p class="student-drawer__sub">{% if user_kind == 'students' %}Studentni shu dashboard ichidan yaratish va saqlash mumkin.{% else %}Rolni tanlab, shu sahifadan chiqmasdan kerakli foydalanuvchini o'ng panel ichida qo'shishingiz mumkin.{% endif %}</p>
+    </div>
+    <button type="button" class="student-drawer__close" id="student-drawer-close-btn" aria-label="Yopish">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+  <div id="student-drawer-body" class="student-drawer__body">
+    <div class="student-drawer__loading">Forma yuklanmoqda...</div>
+  </div>
+</aside>
+
 <!-- Import Modal (Compact & Premium) -->
 <div id="importModal" class="modal-overlay">
   <div class="modal-box glass-modal"
@@ -1167,4 +1451,24 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/student-drawer.js' %}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!window.initStudentDrawer) return;
+
+    window.initStudentDrawer({
+      triggerSelector: "#open-user-drawer-btn",
+      overlaySelector: "#student-drawer-overlay",
+      panelSelector: "#student-drawer-panel",
+      bodySelector: "#student-drawer-body",
+      closeButtonSelector: "#student-drawer-close-btn",
+      onSuccess: function () {
+        window.location.reload();
+      }
+    });
+  });
+</script>
 {% endblock %}

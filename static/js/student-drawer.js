@@ -380,6 +380,21 @@
     });
   }
 
+  function initRoleSwitcher(scope, onRoleChange) {
+    const form = scope.querySelector("[data-student-drawer-form]");
+    const roleSelect = scope.querySelector("#id_role");
+
+    if (!form || !roleSelect || form.dataset.roleSwitchEnabled !== "1" || typeof onRoleChange !== "function") {
+      return;
+    }
+
+    roleSelect.addEventListener("change", function () {
+      const nextRole = (roleSelect.value || "").trim();
+      if (!nextRole) return;
+      onRoleChange(nextRole);
+    });
+  }
+
   function initStudentDrawer(options) {
     const trigger = document.querySelector(options.triggerSelector);
     const overlay = document.querySelector(options.overlaySelector);
@@ -393,6 +408,14 @@
       isLoaded: false,
       endpoint: trigger.dataset.drawerUrl || options.endpoint || ""
     };
+
+    function buildEndpoint(role) {
+      const url = new URL(state.endpoint, window.location.origin);
+      if (role) {
+        url.searchParams.set("role", role);
+      }
+      return url.pathname + url.search + url.hash;
+    }
 
     function setBodyState(html) {
       body.innerHTML = html;
@@ -443,6 +466,7 @@
           }
 
           if (result.data && result.data.html) {
+            state.endpoint = form.action;
             setBodyState(result.data.html);
             initDynamicContent();
             return;
@@ -477,6 +501,11 @@
       initGroupPrice(body);
       initExtraFields(body);
       initOptionalSections(body);
+      initRoleSwitcher(body, function (nextRole) {
+        state.isLoaded = false;
+        state.endpoint = buildEndpoint(nextRole);
+        loadForm(true);
+      });
 
       const form = body.querySelector("[data-student-drawer-form]");
       if (form) {
@@ -508,7 +537,7 @@
         })
         .catch(function () {
           setBodyState(
-            '<div class="student-drawer__error">Student qo\'shish formasi yuklanmadi. Sahifani yangilab qayta urinib ko\'ring.</div>'
+            '<div class="student-drawer__error">Forma yuklanmadi. Sahifani yangilab qayta urinib ko\'ring.</div>'
           );
         });
     }
