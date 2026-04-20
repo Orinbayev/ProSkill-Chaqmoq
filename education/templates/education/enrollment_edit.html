@@ -233,65 +233,6 @@
   .pricing-card.payable .pricing-value { color: #4ade80; }
   .pricing-card.subsidy .pricing-value { color: #c084fc; }
 
-  .mode-banner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 14px 16px;
-    border-radius: 18px;
-    margin-bottom: 20px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-  }
-
-  .mode-banner-copy {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .mode-banner-title {
-    color: #f8fafc;
-    font-size: 14px;
-    font-weight: 800;
-  }
-
-  .mode-banner-text {
-    color: rgba(148, 163, 184, 0.92);
-    font-size: 12px;
-    line-height: 1.5;
-  }
-
-  .mode-pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 10px 14px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 800;
-    white-space: nowrap;
-  }
-
-  .mode-pill.full {
-    background: rgba(56, 189, 248, 0.14);
-    color: #7dd3fc;
-    border: 1px solid rgba(56, 189, 248, 0.22);
-  }
-
-  .mode-pill.teacher-only {
-    background: rgba(245, 158, 11, 0.14);
-    color: #fbbf24;
-    border: 1px solid rgba(245, 158, 11, 0.24);
-  }
-
-  .mode-pill.custom {
-    background: rgba(34, 197, 94, 0.14);
-    color: #86efac;
-    border: 1px solid rgba(34, 197, 94, 0.22);
-  }
-
   .finance-fields {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -362,6 +303,94 @@
     font-weight: 800;
   }
 
+  html[data-role-theme="light"] .glass-card {
+    background: rgba(255, 255, 255, 0.96);
+    border-color: rgba(148, 163, 184, 0.18);
+    box-shadow: 0 28px 52px -24px rgba(15, 23, 42, 0.18);
+  }
+
+  html[data-role-theme="light"] .icon-box {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.22);
+    box-shadow: 0 12px 24px rgba(245, 158, 11, 0.12);
+  }
+
+  html[data-role-theme="light"] .title-area h2,
+  html[data-role-theme="light"] .section-title,
+  html[data-role-theme="light"] .pricing-value,
+  html[data-role-theme="light"] .toggle-card .form-check-label {
+    color: #0f172a;
+  }
+
+  html[data-role-theme="light"] .subtitle,
+  html[data-role-theme="light"] .section-copy,
+  html[data-role-theme="light"] .pricing-label,
+  html[data-role-theme="light"] .pricing-note,
+  html[data-role-theme="light"] .field-help,
+  html[data-role-theme="light"] .toggle-desc {
+    color: #64748b;
+  }
+
+  html[data-role-theme="light"] .form-label {
+    color: #334155;
+  }
+
+  html[data-role-theme="light"] .section-shell {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.98));
+    border-color: rgba(148, 163, 184, 0.18);
+  }
+
+  html[data-role-theme="light"] .section-kicker {
+    background: rgba(59, 130, 246, 0.08);
+    border-color: rgba(59, 130, 246, 0.16);
+    color: #2563eb;
+  }
+
+  html[data-role-theme="light"] .custom-input,
+  html[data-role-theme="light"] .custom-select {
+    background: rgba(255, 255, 255, 0.98) !important;
+    border-color: rgba(148, 163, 184, 0.28) !important;
+    color: #0f172a !important;
+  }
+
+  html[data-role-theme="light"] .custom-input:focus,
+  html[data-role-theme="light"] .custom-select:focus {
+    background: #ffffff !important;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12) !important;
+  }
+
+  html[data-role-theme="light"] .pricing-card {
+    background: rgba(255, 255, 255, 0.98);
+    border-color: rgba(148, 163, 184, 0.18);
+    box-shadow: 0 14px 30px -24px rgba(15, 23, 42, 0.16);
+  }
+
+  html[data-role-theme="light"] .pricing-card::after {
+    opacity: 0.12;
+  }
+
+  html[data-role-theme="light"] .toggle-card {
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.1), rgba(255, 255, 255, 0.96));
+    border-color: rgba(245, 158, 11, 0.18);
+  }
+
+  html[data-role-theme="light"] .toggle-card .form-check-input {
+    background-color: #ffffff;
+    border-color: rgba(148, 163, 184, 0.5);
+  }
+
+  html[data-role-theme="light"] .btn-back {
+    background: rgba(255, 255, 255, 0.98);
+    border-color: rgba(148, 163, 184, 0.24);
+    color: #0f172a;
+  }
+
+  html[data-role-theme="light"] .btn-back:hover {
+    background: #ffffff;
+    border-color: rgba(59, 130, 246, 0.22);
+    color: #0f172a;
+  }
+
   .action-buttons {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -426,11 +455,6 @@
 
     .section-shell {
       padding: 18px;
-    }
-
-    .mode-banner {
-      flex-direction: column;
-      align-items: flex-start;
     }
 
     .action-buttons {
@@ -555,14 +579,6 @@
           </div>
         </div>
 
-        <div class="mode-banner">
-          <div class="mode-banner-copy">
-            <div class="mode-banner-title">Amaldagi hisob rejimi</div>
-            <div class="mode-banner-text" id="modeDescription">To'liq kurs narxi o'quvchi qarzi sifatida ishlatiladi.</div>
-          </div>
-          <div class="mode-pill full" id="modePill">To'liq narx</div>
-        </div>
-
         <div class="finance-fields">
         <div class="field-stack">
           <label class="form-label">Kurs narxi (so'm)</label>
@@ -626,8 +642,6 @@
     const teacherSharePreview = document.getElementById('teacherSharePreview');
     const payablePreview = document.getElementById('payablePreview');
     const subsidyPreview = document.getElementById('subsidyPreview');
-    const modePill = document.getElementById('modePill');
-    const modeDescription = document.getElementById('modeDescription');
     const tenantPrefix = "{{ request_center.slug|default:''|escapejs }}";
     let teacherShareAutoFilled = Boolean(teacherShareOnlyInput?.checked);
 
@@ -670,22 +684,6 @@
       if (teacherSharePreview) teacherSharePreview.textContent = formatMoney(teacherShare);
       if (payablePreview) payablePreview.textContent = formatMoney(effectivePayable);
       if (subsidyPreview) subsidyPreview.textContent = formatMoney(subsidy);
-
-      if (modePill && modeDescription) {
-        if (teacherShareOnlyInput?.checked) {
-          modePill.className = "mode-pill teacher-only";
-          modePill.textContent = "Faqat o'qituvchi haqi";
-          modeDescription.textContent = "O'quvchi qarzi avtomatik ravishda o'qituvchi ulushi miqdoriga tenglashtiriladi.";
-        } else if (!payableInput || payableInput.value === '') {
-          modePill.className = "mode-pill full";
-          modePill.textContent = "To'liq narx";
-          modeDescription.textContent = "O'quvchi qarzi to'liq kurs narxidan hisoblanadi.";
-        } else {
-          modePill.className = "mode-pill custom";
-          modePill.textContent = "Maxsus summa";
-          modeDescription.textContent = "O'quvchi qarzi qo'lda belgilangan maxsus summa bo'yicha yuradi.";
-        }
-      }
     };
 
     if (groupSelect && priceInput && percentInput) {

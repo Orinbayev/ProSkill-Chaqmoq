@@ -1,0 +1,647 @@
+/* =====================================================================
+   ☀️ LIGHT MODE FIXES — ChaqmoqApp
+   ---------------------------------------------------------------------
+   Bu fayl `role-theme.css` dan keyin yuklanadi.
+   Maqsadi: shablonlarda hardcoded dark ranglar bilan yozilgan elementlarni
+   light mode da to'g'ri ko'rinishi uchun override qilish.
+   Dark mode ga hech qanday ta'sir qilmaydi.
+   ===================================================================== */
+
+html[data-role-theme="light"] {
+  --lm-bg:            #F6F7FB;
+  --lm-surface:       #FFFFFF;
+  --lm-surface-2:     #F1F5F9;
+  --lm-surface-3:     #E2E8F0;
+  --lm-border:        #E2E8F0;
+  --lm-border-strong: #CBD5E1;
+  --lm-text:          #0F172A;
+  --lm-text-2:        #1E293B;
+  --lm-muted:         #64748B;
+  --lm-primary:       #2563EB;
+  --lm-shadow:        0 4px 12px rgba(15, 23, 42, 0.06);
+  --lm-shadow-lg:     0 20px 45px rgba(37, 99, 235, 0.08);
+}
+
+/* =====================================================================
+   1) PARENT DASHBOARD (dashboard_parent.html)
+   ===================================================================== */
+html[data-role-theme="light"] body.parent-dashboard-page {
+  --bg-dark:   var(--lm-bg) !important;
+  --bg-card:   var(--lm-surface) !important;
+  --border:    var(--lm-border) !important;
+  --text-main: var(--lm-text) !important;
+  --text-muted: var(--lm-muted) !important;
+}
+html[data-role-theme="light"] body.parent-dashboard-page .parent-scope { background: var(--lm-bg) !important; color: var(--lm-text) !important; }
+html[data-role-theme="light"] body.parent-dashboard-page .child-card,
+html[data-role-theme="light"] body.parent-dashboard-page .search-section {
+  background: var(--lm-surface) !important;
+  border-color: var(--lm-border) !important;
+  box-shadow: var(--lm-shadow) !important;
+  color: var(--lm-text) !important;
+}
+html[data-role-theme="light"] body.parent-dashboard-page .child-name,
+html[data-role-theme="light"] body.parent-dashboard-page .welcome-text,
+html[data-role-theme="light"] body.parent-dashboard-page h1,
+html[data-role-theme="light"] body.parent-dashboard-page h2 { color: var(--lm-text) !important; }
+html[data-role-theme="light"] body.parent-dashboard-page .stat-box {
+  background: var(--lm-surface-2) !important;
+  color: var(--lm-text) !important;
+}
+html[data-role-theme="light"] body.parent-dashboard-page .search-input {
+  background: var(--lm-surface) !important;
+  color: var(--lm-text) !important;
+  border-color: var(--lm-border) !important;
+}
+html[data-role-theme="light"] body.parent-dashboard-page .dropdown-menu-dark,
+html[data-role-theme="light"] body.parent-dashboard-page .dropdown-menu[style*="1e293b"] {
+  background: var(--lm-surface) !important;
+  border-color: var(--lm-border) !important;
+  color: var(--lm-text) !important;
+}
+html[data-role-theme="light"] body.parent-dashboard-page .dropdown-item { color: var(--lm-text-2) !important; }
+html[data-role-theme="light"] body.parent-dashboard-page .dropdown-item:hover { background: var(--lm-surface-2) !important; color: var(--lm-primary) !important; }
+html[data-role-theme="light"] body.parent-dashboard-page .modal-content[style*="1e293b"] {
+  background: var(--lm-surface) !important;
+  border-color: var(--lm-border) !important;
+  color: var(--lm-text) !important;
+}
+html[data-role-theme="light"] body.parent-dashboard-page .icon-btn-glass[style*="white"] {
+  background: var(--lm-surface-2) !important;
+  border-color: var(--lm-border) !important;
+  color: var(--lm-text) !important;
+}
+
+/* =====================================================================
+   2) STUDENT DASHBOARD (dashboard_student.html)
+   ===================================================================== */
+html[data-role-theme="light"] body.student-dashboard-page {
+  --panel:  var(--lm-surface) !important;
+  --panel2: var(--lm-surface-2) !important;
+  --line:   var(--lm-border) !important;
+  --text:   var(--lm-text) !important;
+  --muted:  var(--lm-muted) !important;
+}
+html[data-role-theme="light"] body.student-dashboard-page .sdash-wrap { color: var(--lm-text) !important; }
+html[data-role-theme="light"] body.student-dashboard-page .sdash-top,
+html[data-role-theme="light"] body.student-dashboard-page .scard {
+  background: var(--lm-surface) !important;
+  border-color: var(--lm-border) !important;
+  box-shadow: var(--lm-shadow) !important;
+  color: var(--lm-text) !important;
+}
+html[data-role-theme="light"] body.student-dashboard-page .sdash-title,
+html[data-role-theme="light"] body.student-dashboard-page .scard h4 { color: var(--lm-text) !important; }
+html[data-role-theme="light"] body.student-dashboard-page .icon-btn {
+  background: var(--lm-surface-2) !important;
+  border-color: var(--lm-border) !important;
+  color: var(--lm-muted) !important;
+}
+html[data-role-theme="light"] body.student-dashboard-page .dropdown-menu {
+  background: var(--lm-surface) !important;
+  border-color: var(--lm-border) !important;
+  box-shadow: var(--lm-shadow-lg) !important;
+}
+html[data-role-theme="light"] body.student-dashboard-page .dropdown-item { color: var(--lm-text-2) !important; }
+html[data-role-theme="light"] body.student-dashboard-page .dropdown-item:hover { background: var(--lm-surface-2) !important; color: var(--lm-primary) !important; }
+
+/* =====================================================================
+   3) TEACHER DASHBOARD (dashboard_teacher.html)
+   ===================================================================== */
+html[data-role-theme="light"] body.teacher-dashboard-page {
+  --card-bg: var(--lm-surface) !important;
+  --card-border: var(--lm-border) !important;
+}
+html[data-role-theme="light"] body.teacher-dashboard-page .premium-header {
+  background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%) !important;
+  border-color: var(--lm-border) !important;
+  color: var(--lm-text) !important;
+  box-shadow: var(--lm-shadow-lg) !important;
+}
+html[data-role-theme="light"] body.teacher-dashboard-page .premium-card {
+  background: var(--lm-surface) !important;
+  border-color: var(--lm-border) !important;
+  box-shadow: var(--lm-shadow) !important;
+}
+html[data-role-theme="light"] body.teacher-dashboard-page .premium-card h4,
+html[data-role-theme="light"] body.teacher-dashboard-page .premium-header h1,
+html[data-role-theme="light"] body.teacher-dashboard-page .premium-header h2,
+html[data-role-theme="light"] body.teacher-dashboard-page .header-icon-box { color: var(--lm-text) !important; }
+html[data-role-theme="light"] body.teacher-dashboard-page .premium-card p { color: var(--lm-muted) !important; }
+html[data-role-theme="light"] body.teacher-dashboard-page .header-icon-box {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(37, 99, 235, 0.02)) !important;
+  border-color: rgba(37, 99, 235, 0.2) !important;
+  color: var(--lm-primary) !important;
+}
+
+/* =====================================================================
+   4) DIRECTOR DASHBOARD (dashboard_director.html + boshqaruv)
+   ===================================================================== */
+html[data-role-theme="light"] body.director-dashboard-page,
+html[data-role-theme="light"] body.director-boshqaruv-page {
+  --panel:  var(--lm-surface) !important;
+  --panel2: var(--lm-surface-2) !important;
+  --line:   var(--lm-border) !important;
+  --text:   var(--lm-text) !important;
+  --muted:  var(--lm-muted) !important;
+  --bg-dark: var(--lm-bg) !important;
+  --bg-card: var(--lm-surface) !important;
+  --bg0: var(--lm-bg) !important;
+  --bg1: var(--lm-bg) !important;
+  --bg2: var(--lm-bg) !important;
+}
+html[data-role-theme="light"] body.director-dashboard-page .dashboard-card,
+html[data-role-theme="light"] body.director-dashboard-page .stat-card,
+html[data-role-theme="light"] body.director-dashboard-page .panel,
+html[data-role-theme="light"] body.director-dashboard-page .card,
+html[data-role-theme="light"] body.director-boshqaruv-page .card,
+html[data-role-theme="light"] body.director-boshqaruv-page .panel {
+  background: var(--lm-surface) !important;
+  border-color: var(--lm-border) !important;
+  color: var(--lm-text) !important;
+  box-shadow: var(--lm-shadow) !important;
+}
+html[data-role-theme="light"] body.director-dashboard-page h1,
+html[data-role-theme="light"] body.director-dashboard-page h2,
+html[data-role-theme="light"] body.director-dashboard-page h3,
+html[data-role-theme="light"] body.director-dashboard-page h4,
+html[data-role-theme="light"] body.director-boshqaruv-page h1,
+html[data-role-theme="light"] body.director-boshqaruv-page h2,
+html[data-role-theme="light"] body.director-boshqaruv-page h3,
+html[data-role-theme="light"] body.director-boshqaruv-page h4 { color: var(--lm-text) !important; }
+
+/* =====================================================================
+   5) MANAGER DASHBOARD (dashboard_manager.html)
+   ===================================================================== */
+html[data-role-theme="light"] body.manager-dashboard-page {
+  --panel:  var(--lm-surface) !important;
+  --panel2: var(--lm-surface-2) !important;
+  --line:   var(--lm-border) !important;
+  --text:   var(--lm-text) !important;
+  --muted:  var(--lm-muted) !important;
+  --bg-dark: var(--lm-bg) !important;
+  --bg-card: var(--lm-surface) !important;
+}
+html[data-role-theme="light"] body.manager-dashboard-page .card,
+html[data-role-theme="light"] body.manager-dashboard-page .panel,
+html[data-role-theme="light"] body.manager-dashboard-page .stat-card,
+html[data-role-theme="light"] body.manager-dashboard-page .dashboard-card {
+  background: var(--lm-surface) !important;
+  border-color: var(--lm-border) !important;
+  color: var(--lm-text) !important;
+  box-shadow: var(--lm-shadow) !important;
+}
+html[data-role-theme="light"] body.manager-dashboard-page h1,
+html[data-role-theme="light"] body.manager-dashboard-page h2,
+html[data-role-theme="light"] body.manager-dashboard-page h3,
+html[data-role-theme="light"] body.manager-dashboard-page h4 { color: var(--lm-text) !important; }
+
+/* =====================================================================
+   6) GUEST DASHBOARD
+   ===================================================================== */
+html[data-role-theme="light"] body.guest-dashboard-page .card,
+html[data-role-theme="light"] body.guest-dashboard-page .panel {
+  background: var(--lm-surface) !important;
+  border-color: var(--lm-border) !important;
+  color: var(--lm-text) !important;
+}
+
+/* =====================================================================
+   7) SUPERADMIN DASHBOARD + ACCOUNTS SA PAGES
+   (superadmin_dashboard, center_create/edit/picker/manage,
+    platform_plans, platform_promos, user_edit, connect_telegram,
+    forgot_password_*, phone_login_init)
+   ===================================================================== */
+html[data-role-theme="light"] body.has-role-theme.role-superadmin,
+html[data-role-theme="light"] body.account-profile-page {
+  --sa-bg:       var(--lm-bg) !important;
+  --sa-surface:  var(--lm-surface) !important;
+  --sa-surface2: var(--lm-surface-2) !important;
+  --bg-dark:     var(--lm-bg) !important;
+  --bg-card:     var(--lm-surface) !important;
+  --card-bg:     var(--lm-surface) !important;
+  --border-color: var(--lm-border) !important;
+  --text-primary: var(--lm-text) !important;
+  --input-bg:    var(--lm-surface) !important;
+}
+
+/* Common SA page containers */
+html[data-role-theme="light"] body.has-role-theme.role-superadmin .sa-card,
+html[data-role-theme="light"] body.has-role-theme.role-superadmin .card,
+html[data-role-theme="light"] body.has-role-theme.role-superadmin .panel,
+html[data-role-theme="light"] body.has-role-theme.role-superadmin .sa-table-card,
+html[data-role-theme="light"] body.has-role-theme.role-superadmin .table-card {
+  background: var(--lm-surface) !important;
+  border-color: var(--lm-border) !important;
+  color: var(--lm-text) !important;
+  box-shadow: var(--lm-shadow) !important;
+}
+
+/* Headings inside SA pages */
+html[data-role-theme="light"] body.has-role-theme.role-superadmin h1,
+html[data-role-theme="light"] body.has-role-theme.role-superadmin h2,
+html[data-role-theme="light"] body.has-role-theme.role-superadmin h3,
+html[data-role-theme="light"] body.has-role-theme.role-superadmin h4,
+html[data-role-theme="light"] body.has-role-theme.role-superadmin h5,
+html[data-role-theme="light"] body.has-role-theme.role-superadmin .sa-title,
+html[data-role-theme="light"] body.has-role-theme.role-superadmin .page-title { color: var(--lm-text) !important; }
+
+/* Form inputs, selects, textareas */
+html[data-role-theme="light"] body.has-role-theme.role-superadmin input:not([type="checkbox"]):not([type="radio"]),
+html[data-role-theme="light"] body.has-role-theme.role-superadmin select,
+html[data-role-theme="light"] body.has-role-theme.role-superadmin textarea,
+html[data-role-theme="light"] body.has-role-theme.role-superadmin .form-control,
+html[data-role-theme="light"] body.has-role-theme.role-superadmin .form-select,
+html[data-role-theme="light"] body.has-role-theme.role-superadmin .form-control-custom,
+html[data-role-theme="light"] body.account-profile-page input:not([type="checkbox"]):not([type="radio"]),
+html[data-role-theme="light"] body.account-profile-page select,
+html[data-role-theme="light"] body.account-profile-page textarea {
+  background: var(--lm-surface) !important;
+  color: var(--lm-text) !important;
+  border-color: var(--lm-border) !important;
+}
+html[data-role-theme="light"] body.has-role-theme.role-superadmin option,
+html[data-role-theme="light"] body.account-profile-page option {
+  background: var(--lm-surface) !important;
+  color: var(--lm-text) !important;
+}
+html[data-role-theme="light"] body.has-role-theme.role-superadmin input::placeholder,
+html[data-role-theme="light"] body.has-role-theme.role-superadmin textarea::placeholder { color: var(--lm-muted) !important; }
+
+/* =====================================================================
+   8) FORGOT PASSWORD + PHONE LOGIN + CONNECT TELEGRAM
+   ===================================================================== */
+html[data-role-theme="light"] body.forgot-password-page,
+html[data-role-theme="light"] body.phone-login-page,
+html[data-role-theme="light"] body.connect-telegram-page {
+  --bg0: var(--lm-bg) !important;
+  --bg1: var(--lm-bg) !important;
+  --bg2: var(--lm-bg) !important;
+  --panel:  var(--lm-surface) !important;
+  --panel2: var(--lm-surface-2) !important;
+  --line:   var(--lm-border) !important;
+  --text:   var(--lm-text) !important;
+  --muted:  var(--lm-muted) !important;
+  background: var(--lm-bg) !important;
+  color: var(--lm-text) !important;
+}
+html[data-role-theme="light"] body.forgot-password-page .card,
+html[data-role-theme="light"] body.phone-login-page .card,
+html[data-role-theme="light"] body.connect-telegram-page .card,
+html[data-role-theme="light"] body.forgot-password-page .auth-card,
+html[data-role-theme="light"] body.phone-login-page .auth-card,
+html[data-role-theme="light"] body.connect-telegram-page .auth-card {
+  background: var(--lm-surface) !important;
+  color: var(--lm-text) !important;
+  border-color: var(--lm-border) !important;
+  box-shadow: var(--lm-shadow-lg) !important;
+}
+
+/* =====================================================================
+   9) EDUCATION PAGES
+   ===================================================================== */
+html[data-role-theme="light"] body.payments-page,
+html[data-role-theme="light"] body.student-detail-page,
+html[data-role-theme="light"] body.groups-home-page,
+html[data-role-theme="light"] body.group-detail-page,
+html[data-role-theme="light"] body.attendance-groups-page,
+html[data-role-theme="light"] body.attendance-month-page,
+html[data-role-theme="light"] body.debtors-page,
+html[data-role-theme="light"] body.salary-list-page,
+html[data-role-theme="light"] body.salary-summary-page,
+html[data-role-theme="light"] body.monthly-report-page,
+html[data-role-theme="light"] body.teacher-income-page,
+html[data-role-theme="light"] body.category-add-page,
+html[data-role-theme="light"] body.category-detail-page {
+  --bg0: var(--lm-bg) !important;
+  --bg1: var(--lm-bg) !important;
+  --bg2: var(--lm-bg) !important;
+  --panel:  var(--lm-surface) !important;
+  --panel2: var(--lm-surface-2) !important;
+  --line:   var(--lm-border) !important;
+  --text:   var(--lm-text) !important;
+  --muted:  var(--lm-muted) !important;
+  --bg-dark: var(--lm-bg) !important;
+  --bg-card: var(--lm-surface) !important;
+}
+html[data-role-theme="light"] body.payments-page .card,
+html[data-role-theme="light"] body.student-detail-page .card,
+html[data-role-theme="light"] body.groups-home-page .card,
+html[data-role-theme="light"] body.group-detail-page .card,
+html[data-role-theme="light"] body.attendance-groups-page .card,
+html[data-role-theme="light"] body.attendance-month-page .card,
+html[data-role-theme="light"] body.debtors-page .card,
+html[data-role-theme="light"] body.salary-list-page .card,
+html[data-role-theme="light"] body.salary-summary-page .card,
+html[data-role-theme="light"] body.monthly-report-page .card,
+html[data-role-theme="light"] body.teacher-income-page .card,
+html[data-role-theme="light"] body.category-add-page .card,
+html[data-role-theme="light"] body.category-detail-page .card,
+html[data-role-theme="light"] body.payments-page .panel,
+html[data-role-theme="light"] body.student-detail-page .panel,
+html[data-role-theme="light"] body.groups-home-page .panel,
+html[data-role-theme="light"] body.group-detail-page .panel {
+  background: var(--lm-surface) !important;
+  border-color: var(--lm-border) !important;
+  color: var(--lm-text) !important;
+  box-shadow: var(--lm-shadow) !important;
+}
+
+/* Attendance month table sticky cells */
+html[data-role-theme="light"] body.attendance-month-page .att-table tbody td.sticky2 { background: var(--lm-surface) !important; color: var(--lm-text) !important; }
+html[data-role-theme="light"] body.attendance-month-page .att-table tbody tr:hover td.sticky2 { background: var(--lm-surface-2) !important; }
+
+/* Receipt page — printed document should always be white */
+html[data-role-theme="light"] body.payments-page .receipt,
+html[data-role-theme="light"] body.payments-page .receipt-paper { background: #FFFFFF !important; color: #000 !important; }
+
+/* =====================================================================
+   10) STORE PAGES (lead_list, trial_list, products, etc.)
+   ===================================================================== */
+html[data-role-theme="light"] body.lead-list-page,
+html[data-role-theme="light"] body.lead-detail-page,
+html[data-role-theme="light"] body.lead-form-page,
+html[data-role-theme="light"] body.lead-delete-page,
+html[data-role-theme="light"] body.lead-settings-page,
+html[data-role-theme="light"] body.lead-followups-page,
+html[data-role-theme="light"] body.trial-list-page,
+html[data-role-theme="light"] body.products-page,
+html[data-role-theme="light"] body.product-detail-page,
+html[data-role-theme="light"] body.expenses-page,
+html[data-role-theme="light"] body.requests-stats-page {
+  --bg0: var(--lm-bg) !important;
+  --bg1: var(--lm-bg) !important;
+  --bg2: var(--lm-bg) !important;
+  --panel:  var(--lm-surface) !important;
+  --panel2: var(--lm-surface-2) !important;
+  --line:   var(--lm-border) !important;
+  --text:   var(--lm-text) !important;
+  --muted:  var(--lm-muted) !important;
+}
+html[data-role-theme="light"] body.lead-list-page .card,
+html[data-role-theme="light"] body.lead-detail-page .card,
+html[data-role-theme="light"] body.lead-form-page .card,
+html[data-role-theme="light"] body.lead-delete-page .card,
+html[data-role-theme="light"] body.lead-settings-page .card,
+html[data-role-theme="light"] body.lead-followups-page .card,
+html[data-role-theme="light"] body.trial-list-page .card,
+html[data-role-theme="light"] body.products-page .card,
+html[data-role-theme="light"] body.product-detail-page .card,
+html[data-role-theme="light"] body.expenses-page .card,
+html[data-role-theme="light"] body.requests-stats-page .card,
+html[data-role-theme="light"] body.lead-list-page .panel,
+html[data-role-theme="light"] body.trial-list-page .panel,
+html[data-role-theme="light"] body.products-page .panel {
+  background: var(--lm-surface) !important;
+  border-color: var(--lm-border) !important;
+  color: var(--lm-text) !important;
+  box-shadow: var(--lm-shadow) !important;
+}
+
+/* =====================================================================
+   11) CHAQMOQ PAGES (reyting, berish, give, student_detail, rule_*)
+   ===================================================================== */
+html[data-role-theme="light"] body.ranking-page,
+html[data-role-theme="light"] body.student-detail-page,
+html[data-role-theme="light"] body.lightning-action-page,
+html[data-role-theme="light"] body.lightning-rules-page {
+  --bg0: var(--lm-bg) !important;
+  --bg1: var(--lm-bg) !important;
+  --bg2: var(--lm-bg) !important;
+  --panel:  var(--lm-surface) !important;
+  --panel2: var(--lm-surface-2) !important;
+  --line:   var(--lm-border) !important;
+  --text:   var(--lm-text) !important;
+  --muted:  var(--lm-muted) !important;
+  --bg-dark: var(--lm-bg) !important;
+  --bg-card: var(--lm-surface) !important;
+}
+html[data-role-theme="light"] body.ranking-page .card,
+html[data-role-theme="light"] body.ranking-page .panel,
+html[data-role-theme="light"] body.lightning-action-page .card,
+html[data-role-theme="light"] body.lightning-action-page .panel,
+html[data-role-theme="light"] body.lightning-rules-page .card {
+  background: var(--lm-surface) !important;
+  border-color: var(--lm-border) !important;
+  color: var(--lm-text) !important;
+  box-shadow: var(--lm-shadow) !important;
+}
+
+/* Options in chaqmoq select (hardcoded dark green) */
+html[data-role-theme="light"] body.lightning-action-page .form-select option.text-success {
+  background: #ECFDF5 !important;
+  color: #047857 !important;
+}
+
+/* =====================================================================
+   12) BILLING PAGES
+   ===================================================================== */
+html[data-role-theme="light"] body.billing-plans-page {
+  --bg0: var(--lm-bg) !important;
+  --bg1: var(--lm-bg) !important;
+  --bg2: var(--lm-bg) !important;
+  --panel:  var(--lm-surface) !important;
+  --panel2: var(--lm-surface-2) !important;
+  --line:   var(--lm-border) !important;
+  --text:   var(--lm-text) !important;
+  --muted:  var(--lm-muted) !important;
+}
+html[data-role-theme="light"] body.billing-plans-page .card,
+html[data-role-theme="light"] body.billing-plans-page .plan-card,
+html[data-role-theme="light"] body.billing-plans-page .panel {
+  background: var(--lm-surface) !important;
+  border-color: var(--lm-border) !important;
+  color: var(--lm-text) !important;
+  box-shadow: var(--lm-shadow) !important;
+}
+
+/* =====================================================================
+   13) CORE MISC PAGES (stats_users, teacher_list, deleted_items,
+   parent_form, notifications, low_activity_students,
+   group_permissions_settings, profile_manager)
+   ===================================================================== */
+html[data-role-theme="light"] body.users-stats-page,
+html[data-role-theme="light"] body.deleted-items-page,
+html[data-role-theme="light"] body.notifications-page,
+html[data-role-theme="light"] body.churn-monitor-page,
+html[data-role-theme="light"] body.group-permissions-page,
+html[data-role-theme="light"] body.ledger-stats-page {
+  --bg0: var(--lm-bg) !important;
+  --bg1: var(--lm-bg) !important;
+  --bg2: var(--lm-bg) !important;
+  --panel:  var(--lm-surface) !important;
+  --panel2: var(--lm-surface-2) !important;
+  --line:   var(--lm-border) !important;
+  --text:   var(--lm-text) !important;
+  --muted:  var(--lm-muted) !important;
+  --bg-dark: var(--lm-bg) !important;
+  --bg-card: var(--lm-surface) !important;
+}
+html[data-role-theme="light"] body.users-stats-page .card,
+html[data-role-theme="light"] body.users-stats-page .panel,
+html[data-role-theme="light"] body.deleted-items-page .card,
+html[data-role-theme="light"] body.notifications-page .card,
+html[data-role-theme="light"] body.churn-monitor-page .card,
+html[data-role-theme="light"] body.group-permissions-page .card,
+html[data-role-theme="light"] body.ledger-stats-page .card {
+  background: var(--lm-surface) !important;
+  border-color: var(--lm-border) !important;
+  color: var(--lm-text) !important;
+  box-shadow: var(--lm-shadow) !important;
+}
+
+/* =====================================================================
+   14) BASE.HTML NOTIFICATION SIDEBAR & PROFILE DROPDOWN (light mode)
+   ===================================================================== */
+html[data-role-theme="light"] .notification-sidebar {
+  background: var(--lm-surface) !important;
+  border-left-color: var(--lm-border) !important;
+  color: var(--lm-text) !important;
+  box-shadow: -10px 0 40px rgba(15, 23, 42, 0.08) !important;
+}
+html[data-role-theme="light"] .notification-sidebar .ns-header,
+html[data-role-theme="light"] .notification-sidebar .ns-footer {
+  border-color: var(--lm-border) !important;
+  background: var(--lm-surface-2) !important;
+}
+html[data-role-theme="light"] .notification-sidebar .ns-header h5 { color: var(--lm-text) !important; }
+html[data-role-theme="light"] .notification-sidebar .ns-item {
+  background: var(--lm-surface) !important;
+  border-color: var(--lm-border) !important;
+  color: var(--lm-text) !important;
+}
+html[data-role-theme="light"] .notification-sidebar .ns-item:hover { background: var(--lm-surface-2) !important; }
+html[data-role-theme="light"] .notification-sidebar .ns-item.unread {
+  background: rgba(37, 99, 235, 0.06) !important;
+  border-color: rgba(37, 99, 235, 0.18) !important;
+}
+html[data-role-theme="light"] .notification-sidebar .ns-title { color: var(--lm-text) !important; }
+html[data-role-theme="light"] .notification-sidebar .ns-msg { color: var(--lm-text-2) !important; }
+html[data-role-theme="light"] .notification-sidebar .ns-time { color: var(--lm-muted) !important; }
+html[data-role-theme="light"] .notification-sidebar .btn-close-white { filter: invert(1) !important; }
+
+/* Profile dropdown (in base.html) */
+html[data-role-theme="light"] .profile-dropdown {
+  background: var(--lm-surface) !important;
+  border-color: var(--lm-border) !important;
+  box-shadow: var(--lm-shadow-lg) !important;
+}
+html[data-role-theme="light"] .profile-dropdown .dropdown-item { color: var(--lm-text-2) !important; }
+html[data-role-theme="light"] .profile-dropdown .dropdown-item:hover { background: var(--lm-surface-2) !important; color: var(--lm-primary) !important; }
+
+/* Top user profile chip */
+html[data-role-theme="light"] .top-user-profile {
+  background: var(--lm-surface) !important;
+  border-color: var(--lm-border) !important;
+}
+html[data-role-theme="light"] .top-user-profile:hover { background: var(--lm-surface-2) !important; }
+html[data-role-theme="light"] .top-user-info .u-name { color: var(--lm-text) !important; }
+html[data-role-theme="light"] .top-user-info .u-role { color: var(--lm-muted) !important; }
+html[data-role-theme="light"] .top-user-avatar {
+  background: var(--lm-surface-2) !important;
+  border-color: var(--lm-border) !important;
+}
+
+/* Alert messages (inline style in base.html) */
+html[data-role-theme="light"] .alert.alert-dismissible {
+  background: var(--lm-surface) !important;
+  color: var(--lm-text) !important;
+  border: 1px solid var(--lm-border) !important;
+}
+html[data-role-theme="light"] .alert.alert-dismissible .btn-close-white { filter: invert(1) !important; }
+
+/* =====================================================================
+   15) GLOBAL CATCH-ALL FOR HARDCODED DARK INLINE STYLES
+   (rgba/hex dark backgrounds on any authenticated page)
+   ===================================================================== */
+html[data-role-theme="light"] body.has-role-theme [style*="background: #0f172a"],
+html[data-role-theme="light"] body.has-role-theme [style*="background:#0f172a"],
+html[data-role-theme="light"] body.has-role-theme [style*="background: #020617"],
+html[data-role-theme="light"] body.has-role-theme [style*="background:#020617"],
+html[data-role-theme="light"] body.has-role-theme [style*="background: #0b1220"],
+html[data-role-theme="light"] body.has-role-theme [style*="background:#0b1220"],
+html[data-role-theme="light"] body.has-role-theme [style*="background: #0b1226"],
+html[data-role-theme="light"] body.has-role-theme [style*="background:#0b1226"],
+html[data-role-theme="light"] body.has-role-theme [style*="background: #0a0f1d"],
+html[data-role-theme="light"] body.has-role-theme [style*="background:#0a0f1d"],
+html[data-role-theme="light"] body.has-role-theme [style*="background: #0d1526"],
+html[data-role-theme="light"] body.has-role-theme [style*="background:#0d1526"],
+html[data-role-theme="light"] body.has-role-theme [style*="background: #111d30"],
+html[data-role-theme="light"] body.has-role-theme [style*="background:#111d30"],
+html[data-role-theme="light"] body.has-role-theme [style*="background: #1e293b"],
+html[data-role-theme="light"] body.has-role-theme [style*="background:#1e293b"],
+html[data-role-theme="light"] body.has-role-theme [style*="background: #0f1a30"],
+html[data-role-theme="light"] body.has-role-theme [style*="background:#0f1a30"],
+html[data-role-theme="light"] body.has-role-theme [style*="background: #0c1220"],
+html[data-role-theme="light"] body.has-role-theme [style*="background:#0c1220"] {
+  background: var(--lm-surface) !important;
+  color: var(--lm-text) !important;
+  border-color: var(--lm-border) !important;
+}
+
+/* Hardcoded white text on light background — make dark */
+html[data-role-theme="light"] body.has-role-theme [style*="color: white"],
+html[data-role-theme="light"] body.has-role-theme [style*="color:#fff"],
+html[data-role-theme="light"] body.has-role-theme [style*="color: #fff"],
+html[data-role-theme="light"] body.has-role-theme [style*="color:#ffffff"],
+html[data-role-theme="light"] body.has-role-theme [style*="color: #ffffff"] {
+  color: var(--lm-text) !important;
+}
+
+/* Bootstrap .text-white inside authenticated pages */
+html[data-role-theme="light"] body.has-role-theme .text-white:not(.btn):not(.badge):not(.bg-primary *):not(.bg-success *):not(.bg-danger *):not(.bg-warning *):not(.bg-info *):not(.btn-primary *) {
+  color: var(--lm-text) !important;
+}
+html[data-role-theme="light"] body.has-role-theme .text-white-50 { color: var(--lm-muted) !important; }
+
+/* =====================================================================
+   16) TABLES — ensure all tables in authenticated pages are light
+   ===================================================================== */
+html[data-role-theme="light"] body.has-role-theme table,
+html[data-role-theme="light"] body.has-role-theme .table {
+  color: var(--lm-text) !important;
+  background: transparent !important;
+}
+html[data-role-theme="light"] body.has-role-theme table thead th,
+html[data-role-theme="light"] body.has-role-theme .table thead th {
+  background: var(--lm-surface-2) !important;
+  color: var(--lm-text) !important;
+  border-color: var(--lm-border) !important;
+}
+html[data-role-theme="light"] body.has-role-theme table tbody td,
+html[data-role-theme="light"] body.has-role-theme .table tbody td {
+  color: var(--lm-text) !important;
+  border-color: var(--lm-border) !important;
+}
+html[data-role-theme="light"] body.has-role-theme table tbody tr:hover td,
+html[data-role-theme="light"] body.has-role-theme .table tbody tr:hover td {
+  background: var(--lm-surface-2) !important;
+}
+
+/* =====================================================================
+   17) MODALS (Bootstrap)
+   ===================================================================== */
+html[data-role-theme="light"] body.has-role-theme .modal-content {
+  background: var(--lm-surface) !important;
+  color: var(--lm-text) !important;
+  border-color: var(--lm-border) !important;
+}
+html[data-role-theme="light"] body.has-role-theme .modal-header,
+html[data-role-theme="light"] body.has-role-theme .modal-footer { border-color: var(--lm-border) !important; }
+html[data-role-theme="light"] body.has-role-theme .modal-title { color: var(--lm-text) !important; }
+html[data-role-theme="light"] body.has-role-theme .modal .btn-close { filter: none !important; }
+
+/* =====================================================================
+   18) BUTTONS (ghost/outline variants on light)
+   ===================================================================== */
+html[data-role-theme="light"] body.has-role-theme .btn-outline-light,
+html[data-role-theme="light"] body.has-role-theme .btn-outline-secondary {
+  color: var(--lm-text-2) !important;
+  border-color: var(--lm-border-strong) !important;
+  background: var(--lm-surface) !important;
+}
+html[data-role-theme="light"] body.has-role-theme .btn-outline-light:hover,
+html[data-role-theme="light"] body.has-role-theme .btn-outline-secondary:hover {
+  background: var(--lm-surface-2) !important;
+  color: var(--lm-primary) !important;
+}

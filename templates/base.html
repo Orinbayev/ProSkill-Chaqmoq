@@ -492,6 +492,7 @@
   {% if request.user.is_authenticated %}
   {% if request.user.is_superuser or request.user.role %}
   <link rel="stylesheet" href="{% static 'css/role-theme.css' %}?v=20260415-role-theme-rebuild-4">
+  <link rel="stylesheet" href="{% static 'css/light-mode-fixes.css' %}?v=20260420-light-fixes-1">
   {% endif %}
   {% endif %}
 </head>
