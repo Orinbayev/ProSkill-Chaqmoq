@@ -3,8 +3,21 @@ from django.db.models import Sum
 from django.test import TestCase
 from django.urls import reverse
 
+from datetime import date, timedelta
+
 from accounts.models import Center, User
-from education.models import Attendance, Enrollment, Group, Payment, PaymentAllocation, TeacherIncome, TuitionMonth
+from education.models import (
+    Attendance,
+    Enrollment,
+    Group,
+    GroupSchedule,
+    Payment,
+    PaymentAllocation,
+    StudentGroupHistory,
+    TeacherIncome,
+    TuitionMonth,
+)
+from education.services.historical_finance_service import HistoricalFinanceService
 from education.services.tuition import (
     effective_student_payable_amount,
     ensure_tuition_month,
@@ -96,16 +109,46 @@ class StudentPayableAmountTests(TestCase):
             oqituvchi_foiz=40,
             is_active=True,
         )
+        history_start = self.regular_enrollment.created_at.date().replace(day=1) - timedelta(days=30)
+        for student in (
+            self.regular_student,
+            self.discounted_student,
+            self.teacher_share_student,
+        ):
+            StudentGroupHistory.objects.create(
+                student=student,
+                group=self.group,
+                center=self.center,
+                start_date=history_start,
+                kurs_narxi=550_000,
+                oqituvchi_foiz=40,
+            )
 
         self.client.force_login(self.director)
         self.qarzdorlar_url = f"/{self.center.slug}{reverse('education:qarzdorlar_home')}"
+        self.month_preview_url = f"/{self.center.slug}{reverse('education:month_preview')}"
 
     def test_effective_payable_amount_falls_back_to_full_course_amount_when_null(self):
         self.assertEqual(full_course_amount(self.regular_enrollment), 550_000)
         self.assertEqual(effective_student_payable_amount(self.regular_enrollment), 550_000)
 
     def test_ensure_tuition_month_uses_student_payable_amount_for_debt(self):
-        tm = ensure_tuition_month(self.discounted_enrollment, self.discounted_enrollment.created_at.date().replace(day=1))
+        # Prorated tuition yangilanishidan so'ng: ensure_tuition_month partial oylar uchun
+        # fee ni expected_lessons × per_lesson qilib qo'yadi. Bu test chegirma
+        # effective_student_payable_amount dan olinishini tekshiradi, shuning uchun
+        # o'quvchini "to'liq oy" holatiga keltirish uchun StudentGroupHistory'ni
+        # o'tmishdagi sanaga qo'yamiz.
+        month = self.discounted_enrollment.created_at.date().replace(day=1)
+        StudentGroupHistory.objects.create(
+            student=self.discounted_student,
+            group=self.group,
+            center=self.center,
+            start_date=month - timedelta(days=30),
+            kurs_narxi=550_000,
+            oqituvchi_foiz=40,
+        )
+
+        tm = ensure_tuition_month(self.discounted_enrollment, month)
 
         self.assertEqual(tm.fee_amount, 300_000)
         self.assertEqual(full_course_amount(self.discounted_enrollment), 550_000)
@@ -118,6 +161,88 @@ class StudentPayableAmountTests(TestCase):
         rows = {row["student"].email: row for row in response.context["page_obj"].object_list}
         self.assertEqual(rows[self.regular_student.email]["debt"], 550_000)
         self.assertEqual(rows[self.discounted_student.email]["debt"], 300_000)
+
+    def test_qarzdorlar_home_hides_free_student_from_debtors(self):
+        free_student = User.objects.create_user(
+            email="free@payable.test",
+            password="testpass123",
+            role="student",
+            center=self.center,
+            ism="Free",
+            familya="Student",
+            telefon1="+998901000099",
+        )
+        free_enrollment = Enrollment.objects.create(
+            center=self.center,
+            group=self.group,
+            student=free_student,
+            kurs_narhi=550_000,
+            student_payable_amount=0,
+            oqituvchi_foiz=40,
+            is_active=True,
+        )
+        ensure_tuition_month(
+            free_enrollment,
+            free_enrollment.created_at.date().replace(day=1),
+        )
+
+        response = self.client.get(self.qarzdorlar_url)
+
+        self.assertEqual(response.status_code, 200)
+        rows = {row["student"].email: row for row in response.context["page_obj"].object_list}
+        self.assertNotIn(free_student.email, rows)
+
+    def test_partial_payment_creates_only_real_remaining_debt(self):
+        month = self.regular_enrollment.created_at.date().replace(day=1)
+        tm = ensure_tuition_month(self.regular_enrollment, month)
+        payment = Payment.objects.create(
+            center=self.center,
+            enrollment=self.regular_enrollment,
+            student=self.regular_student,
+            group=self.group,
+            payment_type="cash",
+            cash_amount=200_000,
+            paid_date=month.replace(day=5),
+            created_by=self.director,
+        )
+        PaymentAllocation.objects.create(
+            center=self.center,
+            payment=payment,
+            tuition_month=tm,
+            amount=200_000,
+        )
+
+        response = self.client.get(self.qarzdorlar_url)
+
+        self.assertEqual(response.status_code, 200)
+        rows = {row["student"].email: row for row in response.context["page_obj"].object_list}
+        self.assertEqual(rows[self.regular_student.email]["debt"], 350_000)
+
+    def test_discount_fully_paid_student_is_not_listed_as_debtor(self):
+        month = self.discounted_enrollment.created_at.date().replace(day=1)
+        tm = ensure_tuition_month(self.discounted_enrollment, month)
+        payment = Payment.objects.create(
+            center=self.center,
+            enrollment=self.discounted_enrollment,
+            student=self.discounted_student,
+            group=self.group,
+            payment_type="cash",
+            cash_amount=300_000,
+            paid_date=month.replace(day=6),
+            created_by=self.director,
+        )
+        PaymentAllocation.objects.create(
+            center=self.center,
+            payment=payment,
+            tuition_month=tm,
+            amount=300_000,
+        )
+
+        response = self.client.get(self.qarzdorlar_url)
+
+        self.assertEqual(response.status_code, 200)
+        rows = {row["student"].email: row for row in response.context["page_obj"].object_list}
+        self.assertNotIn(self.discounted_student.email, rows)
 
     def test_qarzdorlar_home_shows_teacher_share_and_full_price_hint(self):
         response = self.client.get(self.qarzdorlar_url)
@@ -183,6 +308,14 @@ class StudentPayableAmountTests(TestCase):
 
     def test_sync_tuition_fee_reuses_soft_deleted_current_month_record(self):
         current_month = self.discounted_enrollment.created_at.date().replace(day=1)
+        StudentGroupHistory.objects.create(
+            student=self.discounted_student,
+            group=self.group,
+            center=self.center,
+            start_date=current_month - timedelta(days=30),
+            kurs_narxi=550_000,
+            oqituvchi_foiz=40,
+        )
         tm = ensure_tuition_month(self.discounted_enrollment, current_month)
         tm.delete()
 
@@ -242,6 +375,169 @@ class StudentPayableAmountTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="teacherShareOnly"')
         self.assertContains(response, 'id="teacherShareOnly" name="teacher_share_only" checked', html=False)
+
+    def test_month_preview_is_read_only_and_shows_reconciled_delta(self):
+        preview_month = date(2026, 4, 1)
+        for weekday in (1, 3, 5):
+            GroupSchedule.objects.get_or_create(
+                center=self.center,
+                group=self.group,
+                weekday=weekday,
+                start_time="10:00",
+            )
+
+        preview_student = User.objects.create_user(
+            email="preview@payable.test",
+            password="testpass123",
+            role="student",
+            center=self.center,
+            ism="Preview",
+            familya="Student",
+            telefon1="+998901000077",
+        )
+        preview_enrollment = Enrollment.objects.create(
+            center=self.center,
+            group=self.group,
+            student=preview_student,
+            kurs_narhi=550_000,
+            student_payable_amount=330_000,
+            oqituvchi_foiz=40,
+            is_active=True,
+        )
+        StudentGroupHistory.objects.create(
+            student=preview_student,
+            group=self.group,
+            center=self.center,
+            start_date=date(2026, 4, 18),
+            kurs_narxi=550_000,
+            oqituvchi_foiz=40,
+        )
+        tm = TuitionMonth.objects.create(
+            center=self.center,
+            enrollment=preview_enrollment,
+            month=preview_month,
+            fee_amount=330_000,
+        )
+        for day, status in ((20, "present"), (22, "present"), (24, "present"), (27, "present"), (29, "absent_unexcused")):
+            Attendance.objects.create(
+                center=self.center,
+                group=self.group,
+                student=preview_student,
+                teacher=self.teacher,
+                date=date(2026, 4, day),
+                status=status,
+            )
+
+        response = self.client.get(
+            self.month_preview_url,
+            {"month": "2026-04", "group": self.group.id},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(TuitionMonth.objects.filter(pk=tm.pk).count(), 1)
+        tm.refresh_from_db()
+        self.assertEqual(tm.fee_amount, 330_000)
+
+        preview_row = next(
+            row
+            for row in response.context["rows"]
+            if row["student"].email == preview_student.email
+        )
+        self.assertEqual(preview_row["expected_lessons"], 5)
+        self.assertEqual(preview_row["billable_lessons"], 5)
+        self.assertEqual(preview_row["prorated_fee"], round(5 * (330_000 / 12)))
+        self.assertEqual(preview_row["reconciled_fee"], round(5 * (330_000 / 12)))
+        self.assertEqual(preview_row["current_fee"], 330_000)
+        self.assertEqual(
+            preview_row["delta"],
+            round(5 * (330_000 / 12)) - 330_000,
+        )
+
+    def test_close_month_reconciles_mid_month_discounted_student_debt(self):
+        preview_month = date(2026, 4, 1)
+        for weekday in (1, 3, 5):
+            GroupSchedule.objects.get_or_create(
+                center=self.center,
+                group=self.group,
+                weekday=weekday,
+                start_time="10:00",
+            )
+
+        student = User.objects.create_user(
+            email="close-mid@payable.test",
+            password="testpass123",
+            role="student",
+            center=self.center,
+            ism="Close",
+            familya="Mid",
+            telefon1="+998901000078",
+        )
+        enrollment = Enrollment.objects.create(
+            center=self.center,
+            group=self.group,
+            student=student,
+            kurs_narhi=550_000,
+            student_payable_amount=330_000,
+            oqituvchi_foiz=40,
+            is_active=True,
+        )
+        StudentGroupHistory.objects.create(
+            student=student,
+            group=self.group,
+            center=self.center,
+            start_date=date(2026, 4, 18),
+            kurs_narxi=550_000,
+            oqituvchi_foiz=40,
+        )
+        tm = TuitionMonth.objects.create(
+            center=self.center,
+            enrollment=enrollment,
+            month=preview_month,
+            fee_amount=330_000,
+        )
+        for day, status in ((20, "present"), (22, "present"), (24, "present"), (27, "present"), (29, "absent_unexcused")):
+            Attendance.objects.create(
+                center=self.center,
+                group=self.group,
+                student=student,
+                teacher=self.teacher,
+                date=date(2026, 4, day),
+                status=status,
+            )
+        payment = Payment.objects.create(
+            center=self.center,
+            enrollment=enrollment,
+            student=student,
+            group=self.group,
+            payment_type="cash",
+            cash_amount=100_000,
+            paid_date=date(2026, 4, 25),
+            created_by=self.director,
+        )
+        PaymentAllocation.objects.create(
+            center=self.center,
+            payment=payment,
+            tuition_month=tm,
+            amount=100_000,
+        )
+
+        HistoricalFinanceService.close_month(
+            self.center,
+            preview_month.year,
+            preview_month.month,
+            self.director,
+        )
+
+        tm.refresh_from_db()
+        expected_fee = round(5 * (330_000 / 12))
+        self.assertEqual(tm.fee_amount, expected_fee)
+
+        response = self.client.get(
+            self.qarzdorlar_url,
+            {"date_from": "2026-04-01", "date_to": "2026-04-30"},
+        )
+        rows = {row["student"].email: row for row in response.context["page_obj"].object_list}
+        self.assertEqual(rows[student.email]["debt"], expected_fee - 100_000)
 
     def test_create_payment_uses_teacher_share_scope_amount_for_student_flow(self):
         pay_url = f"/{self.center.slug}{reverse('education:create_payment')}"

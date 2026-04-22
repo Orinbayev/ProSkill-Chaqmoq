@@ -39,6 +39,7 @@ from datetime import datetime
 from education.services.tuition import (
     parse_month_str,
     month_first_day,
+    month_last_day,
     ensure_tuition_month,
     get_month_paid,
     full_course_amount,
@@ -49,8 +50,13 @@ from education.services.tuition import (
     create_payment_and_allocate,
     update_payment_and_reallocate,
     _allocate_amount_forward,
-    sync_tuition_fee,
     infer_payment_type,
+    prorated_monthly_fee,
+    attendance_based_fee,
+    billable_attendance_count,
+    expected_lessons_in_period,
+    enrollment_start_date,
+    is_month_closed_for_center,
 )
 
 
@@ -187,33 +193,18 @@ def first_day_of_current_month():
     return date(d.year, d.month, 1)
 
 
-def sync_tuition_fee(enrollment, new_fee=None):
+def sync_tuition_fee(enrollment, new_fee=None, start_month=None):
     """
-    Qarzdorlik summasi o'zgarganda: barcha TuitionMonth yozuvlarini o'chirib,
-    faqat joriy oy uchun bitta yangi yozuv yaratadi.
-    Effective payable summa 0 bo'lsa - TuitionMonth yaratilmaydi.
+    Viewlar uchun backward-compatible wrapper.
+    Endi barcha logika service qatlamida bajariladi.
     """
-    from django.utils import timezone
-    from education.services.tuition import tuition_month_fee_field
-    fee_field = tuition_month_fee_field()
-    cur_month = timezone.localdate().replace(day=1)
-    effective_fee = int(new_fee if new_fee is not None else effective_student_payable_amount(enrollment) or 0)
+    from education.services.tuition import sync_tuition_fee as service_sync_tuition_fee
 
-    # Barcha eski qarzlarni o'chiramiz
-    TuitionMonth.objects.filter(enrollment=enrollment).delete()
-
-    # Effective summa > 0 bo'lsagina qarz yaratamiz
-    if effective_fee > 0:
-        tm, _ = TuitionMonth.all_objects.update_or_create(
-            enrollment=enrollment,
-            month=cur_month,
-            defaults={
-                "center": getattr(enrollment, "center", None),
-                fee_field: effective_fee,
-            },
-        )
-        if tm.is_deleted:
-            tm.restore()
+    service_sync_tuition_fee(
+        enrollment,
+        month_first_day(start_month or timezone.localdate()),
+        int(new_fee if new_fee is not None else effective_student_payable_amount(enrollment) or 0),
+    )
 
 
 def _get_int(querydict, key, default=0):
@@ -914,7 +905,11 @@ def enrollment_edit(request, enrollment_id):
 
         # ✅ MUHIM: Qarz bazasi o'zgargan bo'lsa yoki o'zgarmasada TuitionMonth'ni yangilaymiz
         # Bu eski 50M kabi noto'g'ri qarzlarni ham to'g'irlaydi
-        sync_tuition_fee(enr, effective_student_payable_amount(enr))
+        sync_tuition_fee(
+            enr,
+            effective_student_payable_amount(enr),
+            start_month=start_month,
+        )
 
         messages.success(request, "O'quvchi ma'lumotlari muvaffaqiyatli yangilandi!")
         return redirect(next_url)
@@ -1606,10 +1601,14 @@ def qarzdorlar_home(request):
     chart_months = _last_12_ending(selected_to)
 
     # ─── TUITIONMONTH AUTO-ENSURE (joriy oy) ────────────────────────────────
-    # Har bir faol enrollment uchun joriy oy yozuvi bo'lishini bulk tarzda
-    # kafolatlaymiz, shunda enrollment boshiga alohida query ketmaydi.
+    # Open month bo'lsa current fee har doim service formulasi bilan yuradi:
+    # full month -> effective payable
+    # first month -> prorated
+    # closed monthlarda esa qotirilgan reconcile natijasiga tegmaymiz.
     from django.utils import timezone as _tz
 
+    month_is_closed = is_month_closed_for_center(center, cur_month)
+    enrollment_list = list(active_enrs_qs)
     existing_tm_enr_ids = set(
         TuitionMonth.all_objects.filter(
             enrollment__in=active_enrs_qs,
@@ -1618,14 +1617,9 @@ def qarzdorlar_home(request):
     )
 
     to_create = []
-    for enr in active_enrs_qs:
+    for enr in enrollment_list:
         if enr.id not in existing_tm_enr_ids:
-            fee = (
-                enr.student_payable_amount
-                if enr.student_payable_amount not in (None, 0)
-                else enr.kurs_narhi
-                or int(getattr(enr.group, "kurs_narxi", 0) or 0)
-            )
+            fee = int(prorated_monthly_fee(enr, cur_month) or 0)
             to_create.append(
                 TuitionMonth(
                     enrollment=enr,
@@ -1642,6 +1636,26 @@ def qarzdorlar_home(request):
         month=cur_month,
         is_deleted=True,
     ).update(is_deleted=False, restored_at=_tz.now())
+
+    if not month_is_closed:
+        existing_tms = {
+            tm.enrollment_id: tm
+            for tm in TuitionMonth.objects.filter(
+                enrollment__in=active_enrs_qs,
+                month=cur_month,
+            )
+        }
+        tm_updates = []
+        for enr in enrollment_list:
+            tm = existing_tms.get(enr.id)
+            if not tm:
+                continue
+            expected_fee = int(prorated_monthly_fee(enr, cur_month) or 0)
+            if int(getattr(tm, fee_field, 0) or 0) != expected_fee:
+                setattr(tm, fee_field, expected_fee)
+                tm_updates.append(tm)
+        if tm_updates:
+            TuitionMonth.objects.bulk_update(tm_updates, [fee_field])
 
     # ─── SUBQUERY: fee va paid (faqat TANLANGAN OY) ──────────────────────────
     total_fee_sub = (
@@ -7956,5 +7970,109 @@ def student_exam_report(request, student_id: int):
             "summary": summary,
             "academic_summaries": academic_summaries,
             "certificates": certificate_qs.order_by("-created_at", "-id"),
+        },
+    )
+
+
+# ==========================================
+#  OY PREVIEW (READ-ONLY: close_month oldidan)
+# ==========================================
+
+@login_required
+@require_GET
+def month_preview(request):
+    from core.tenant import get_request_center
+
+    if not user_can_manage_payments(request.user):
+        return HttpResponseForbidden("Ruxsat yo'q.")
+
+    center = get_request_center(request)
+
+    month_raw = (request.GET.get("month") or "").strip()
+    month = parse_month_str(month_raw) if month_raw else timezone.localdate().replace(day=1)
+    if month is None:
+        month = timezone.localdate().replace(day=1)
+
+    group_id = _get_int(request.GET, "group", 0)
+
+    fee_field = tuition_month_fee_field()
+    m_start = month_first_day(month)
+    m_end = month_last_day(m_start)
+
+    enrollments_qs = (
+        Enrollment.objects
+        .select_related("student", "group")
+        .filter(is_active=True, student__is_archived=False, group__is_archived=False)
+    )
+    if center:
+        enrollments_qs = enrollments_qs.filter(center=center)
+    if group_id:
+        enrollments_qs = enrollments_qs.filter(group_id=group_id)
+
+    existing_tm = {
+        tm.enrollment_id: tm
+        for tm in TuitionMonth.all_objects.filter(
+            enrollment__in=enrollments_qs, month=m_start, is_deleted=False
+        )
+    }
+
+    rows = []
+    total_current = 0
+    total_prorated = 0
+    total_reconciled = 0
+
+    for enr in enrollments_qs:
+        tm = existing_tm.get(enr.id)
+        current_fee = int(getattr(tm, fee_field, 0) or 0) if tm else 0
+        prorated = int(prorated_monthly_fee(enr, m_start) or 0)
+        reconciled = int(attendance_based_fee(enr, m_start) or 0)
+        billable = billable_attendance_count(enr, m_start)
+
+        start_d = enrollment_start_date(enr)
+        period_start = max(start_d, m_start)
+        expected_lessons = expected_lessons_in_period(enr, period_start, m_end) if period_start <= m_end else 0
+
+        delta = reconciled - current_fee
+
+        rows.append({
+            "enrollment": enr,
+            "student": enr.student,
+            "group": enr.group,
+            "start_date": start_d,
+            "effective_price": effective_student_payable_amount(enr),
+            "full_price": full_course_amount(enr),
+            "current_fee": current_fee,
+            "prorated_fee": prorated,
+            "reconciled_fee": reconciled,
+            "billable_lessons": billable,
+            "expected_lessons": expected_lessons,
+            "delta": delta,
+            "has_tm": tm is not None,
+        })
+
+        total_current += current_fee
+        total_prorated += prorated
+        total_reconciled += reconciled
+
+    rows.sort(key=lambda r: abs(r["delta"]), reverse=True)
+
+    group_options = (
+        Group.objects.filter(is_archived=False)
+        .filter(center=center) if center else Group.objects.filter(is_archived=False)
+    )
+
+    return render(
+        request,
+        "education/month_preview.html",
+        {
+            "month": m_start,
+            "month_str": m_start.strftime("%Y-%m"),
+            "rows": rows,
+            "total_current": total_current,
+            "total_prorated": total_prorated,
+            "total_reconciled": total_reconciled,
+            "total_delta": total_reconciled - total_current,
+            "group_options": group_options.order_by("nom"),
+            "selected_group_id": group_id,
         },
     )

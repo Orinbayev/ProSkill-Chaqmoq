@@ -267,7 +267,7 @@ class AddUserForm(forms.ModelForm):
                 enr = EnrollmentService.enroll_student(
                     student=user,
                     group=group,
-                    kurs_narhi=data.get("kurs_narhi") or group.kurs_narxi,
+                    kurs_narxi=data.get("kurs_narhi") or group.kurs_narxi,
                     oqituvchi_foiz=group.oqituvchi_foiz,
                     start_date=start_date,
                 )

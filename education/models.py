@@ -205,6 +205,15 @@ class GroupStudent(models.Model):
 
 
 class Enrollment(SoftDeleteMixin, models.Model):
+    PRICING_FULL = "full"
+    PRICING_PRORATED = "prorated"
+    PRICING_CUSTOM = "custom"
+    PRICING_TYPE_CHOICES = (
+        (PRICING_FULL, "To'liq oy"),
+        (PRICING_PRORATED, "Dars bo'yicha"),
+        (PRICING_CUSTOM, "Admin qo'lda"),
+    )
+
     group = models.ForeignKey(
         "education.Group",
         on_delete=models.CASCADE,
@@ -232,6 +241,41 @@ class Enrollment(SoftDeleteMixin, models.Model):
         default=40,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
         verbose_name="O‘qituvchi ulushi (%)",
+    )
+
+    monthly_price = models.PositiveIntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+        verbose_name="Oylik narx (so'mda)",
+        help_text="Asosiy oylik narx. O'qituvchi va markaz ulushi shu qiymatdan hisoblanadi.",
+    )
+    monthly_lessons = models.PositiveIntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+        verbose_name="Oydagi darslar soni",
+    )
+    joined_at = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Qo'shilgan sana",
+    )
+    active_lessons_count = models.PositiveIntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+        verbose_name="Faol darslar soni",
+        help_text="Joriy oy uchun avtomatik hisoblangan darslar soni.",
+    )
+    paid_amount = models.PositiveIntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+        verbose_name="To'langan summa",
+        help_text="Joriy oy uchun avtomatik hisoblangan to'langan summa.",
+    )
+    pricing_type = models.CharField(
+        max_length=12,
+        choices=PRICING_TYPE_CHOICES,
+        default=PRICING_FULL,
+        verbose_name="Narxlash turi",
     )
 
     is_active = models.BooleanField(default=True, verbose_name="Faolmi?")
@@ -266,6 +310,24 @@ class Enrollment(SoftDeleteMixin, models.Model):
         ism = getattr(self.student, "ism", "")
         familya = getattr(self.student, "familya", "")
         return f"{ism} {familya} → {self.group.nom}"
+
+    @property
+    def resolved_monthly_price(self) -> int:
+        value = int(getattr(self, "monthly_price", 0) or 0)
+        if value > 0:
+            return value
+        return self.full_course_amount
+
+    @property
+    def resolved_monthly_lessons(self) -> int:
+        value = int(getattr(self, "monthly_lessons", 0) or 0)
+        if value > 0:
+            return value
+
+        group = getattr(self, "group", None)
+        if not group:
+            return 0
+        return int(getattr(group, "oy_dars_soni", 0) or 0)
 
     @property
     def full_course_amount(self) -> int:
@@ -336,6 +398,20 @@ class Enrollment(SoftDeleteMixin, models.Model):
 
         # 6) Oylik full daromad * ratio
         return round(self.oqituvchi_daromadi * ratio)
+
+    def _ensure_pricing_snapshot(self):
+        if self.monthly_price in (None, 0):
+            self.monthly_price = self.full_course_amount
+        if self.monthly_lessons in (None, 0):
+            self.monthly_lessons = self.resolved_monthly_lessons
+        if not self.joined_at:
+            created_at = getattr(self, "created_at", None)
+            self.joined_at = created_at.date() if created_at else timezone.localdate()
+
+    def save(self, *args, **kwargs):
+        if self._state.adding:
+            self._ensure_pricing_snapshot()
+        return super().save(*args, **kwargs)
     
 
     

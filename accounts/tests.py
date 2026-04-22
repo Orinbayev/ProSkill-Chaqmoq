@@ -10,6 +10,7 @@ from django.utils import timezone
 from accounts.models import BranchRequest, Center, DirectorCenterAccess, User
 from accounts.student_limit import check_student_limit
 from billing.models import CenterSubscription, SubscriptionOrder, SubscriptionPlan
+from education.models import Enrollment, Group, StudentGroupHistory
 
 
 @override_settings(TIME_ZONE="Asia/Tashkent", USE_TZ=True)
@@ -381,6 +382,74 @@ class TenantRedirectRegressionTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], "/redirect-center/stat/students/")
         self.assertTrue(User.objects.filter(email="vali.student@test.uz", role="student").exists())
+
+    def test_add_user_enrolls_student_into_selected_group(self):
+        group = Group.objects.create(
+            center=self.center,
+            nom="English N1",
+            kurs_narxi=650000,
+            oqituvchi_foiz=45,
+        )
+        start_date = timezone.localdate()
+
+        response = self.client.post(
+            reverse("accounts:add_user") + "?role=student&drawer=1&next=/redirect-center/stat/students/",
+            {
+                "next": "/redirect-center/stat/students/",
+                "ism": "Gulnoza",
+                "familya": "Student",
+                "otchestvo": "",
+                "telefon1": "",
+                "telefon2": "",
+                "center": str(self.center.id),
+                "role": "student",
+                "email": "gulnoza.student@test.uz",
+                "password": "strong-pass-123",
+                "oqituvchi_foizi": "",
+                "birth_date": "2010-01-01",
+                "gender": "female",
+                "passport_id": "",
+                "jshr": "",
+                "address": "",
+                "group": str(group.id),
+                "kurs_narhi": "",
+                "group_start_date": start_date.isoformat(),
+            },
+            follow=False,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {
+                "ok": True,
+                "user": {
+                    "id": User.objects.get(email="gulnoza.student@test.uz").id,
+                    "full_name": "Gulnoza Student",
+                    "email": "gulnoza.student@test.uz",
+                },
+            },
+        )
+
+        student = User.objects.get(email="gulnoza.student@test.uz")
+        self.assertTrue(
+            Enrollment.objects.filter(
+                student=student,
+                group=group,
+                kurs_narhi=group.kurs_narxi,
+                oqituvchi_foiz=group.oqituvchi_foiz,
+                is_active=True,
+            ).exists()
+        )
+        self.assertTrue(
+            StudentGroupHistory.objects.filter(
+                student=student,
+                group=group,
+                start_date=start_date,
+                kurs_narxi=group.kurs_narxi,
+                oqituvchi_foiz=group.oqituvchi_foiz,
+            ).exists()
+        )
 
     def test_director_can_open_tenant_add_user_page(self):
         response = self.client.get(reverse("accounts:add_user") + "?role=student")

@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Oy Preview — {{ month_str }}{% endblock %}
+
+{% block content %}
+<style>
+  .mp-container { max-width: 1400px; margin: 0 auto; padding: 20px 16px 60px; color: #e2e8f0; }
+  .mp-header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .mp-title { font-size: 22px; font-weight: 700; }
+  .mp-sub { color: #94a3b8; font-size: 13px; margin-top: 4px; }
+  .mp-filter-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .mp-filter-form input, .mp-filter-form select {
+    background: rgba(15, 23, 42, 0.6); color: #e2e8f0;
+    border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 8px 12px; font-size: 13px;
+  }
+  .mp-btn { background: #3b82f6; color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font-size: 13px; cursor: pointer; text-decoration: none; display: inline-block; }
+  .mp-btn.mp-btn-ghost { background: transparent; border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; }
+  .mp-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .mp-stat { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 14px 16px; }
+  .mp-stat .label { font-size: 12px; color: #94a3b8; margin-bottom: 6px; }
+  .mp-stat .value { font-size: 18px; font-weight: 700; }
+  .mp-stat.delta-plus .value { color: #10b981; }
+  .mp-stat.delta-minus .value { color: #ef4444; }
+  .mp-warn { background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.3); color: #fde68a; border-radius: 10px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; }
+  .mp-table-wrap { overflow-x: auto; border-radius: 14px; border: 1px solid rgba(255,255,255,0.08); background: rgba(15, 23, 42, 0.55); }
+  table.mp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.mp-table th, table.mp-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.04); white-space: nowrap; }
+  table.mp-table th { background: rgba(15, 23, 42, 0.85); font-weight: 600; color: #cbd5e1; position: sticky; top: 0; }
+  table.mp-table td.num, table.mp-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .delta-pos { color: #10b981; font-weight: 600; }
+  .delta-neg { color: #ef4444; font-weight: 600; }
+  .delta-zero { color: #64748b; }
+  .mp-muted { color: #64748b; }
+</style>
+
+<div class="mp-container">
+  <div class="mp-header">
+    <div>
+      <div class="mp-title">📊 Oy Preview — {{ month|date:"F Y" }}</div>
+      <div class="mp-sub">Bu sahifa hech narsani saqlamaydi. Faqat <code>close_month</code> ishga tushirilsa fee qanday o'zgarishini ko'rsatadi.</div>
+    </div>
+    <form method="get" class="mp-filter-form">
+      <input type="month" name="month" value="{{ month_str }}">
+      <select name="group">
+        <option value="0">— Barcha guruhlar —</option>
+        {% for g in group_options %}
+          <option value="{{ g.id }}" {% if g.id == selected_group_id %}selected{% endif %}>{{ g.nom }}</option>
+        {% endfor %}
+      </select>
+      <button class="mp-btn" type="submit">Ko'rish</button>
+    </form>
+  </div>
+
+  <div class="mp-warn">
+    ⚠️ Bu read-only preview. Fee ni haqiqatan o'zgartirish uchun:
+    <code>python manage.py close_month {{ month_str }}</code>
+    ni ishga tushiring.
+  </div>
+
+  <div class="mp-stats">
+    <div class="mp-stat">
+      <div class="label">Faol enrollment</div>
+      <div class="value">{{ rows|length }}</div>
+    </div>
+    <div class="mp-stat">
+      <div class="label">Joriy TuitionMonth summasi</div>
+      <div class="value">{{ total_current|intcomma }}</div>
+    </div>
+    <div class="mp-stat">
+      <div class="label">Prorated (yangi enrollment)</div>
+      <div class="value">{{ total_prorated|intcomma }}</div>
+    </div>
+    <div class="mp-stat">
+      <div class="label">Reconciled (close_month)</div>
+      <div class="value">{{ total_reconciled|intcomma }}</div>
+    </div>
+    <div class="mp-stat {% if total_delta > 0 %}delta-plus{% elif total_delta < 0 %}delta-minus{% endif %}">
+      <div class="label">Delta (reconcile − joriy)</div>
+      <div class="value">
+        {% if total_delta > 0 %}+{% endif %}{{ total_delta|intcomma }}
+      </div>
+    </div>
+  </div>
+
+  <div class="mp-table-wrap">
+    <table class="mp-table">
+      <thead>
+        <tr>
+          <th>O'quvchi</th>
+          <th>Guruh</th>
+          <th>Start</th>
+          <th class="num">To'lashi kerak</th>
+          <th class="num">Joriy fee</th>
+          <th class="num">Prorated</th>
+          <th class="num">Kutilayotgan darslar</th>
+          <th class="num">Kelgan (billable)</th>
+          <th class="num">Reconciled</th>
+          <th class="num">Δ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td>{{ r.student.get_full_name|default:r.student.email }}</td>
+          <td>{{ r.group.nom }}</td>
+          <td>{{ r.start_date|date:"Y-m-d" }}</td>
+          <td class="num">
+            {{ r.effective_price|intcomma }}
+            {% if r.effective_price != r.full_price %}
+              <span class="mp-muted">/ {{ r.full_price|intcomma }}</span>
+            {% endif %}
+          </td>
+          <td class="num">
+            {% if r.has_tm %}{{ r.current_fee|intcomma }}{% else %}<span class="mp-muted">—</span>{% endif %}
+          </td>
+          <td class="num">{{ r.prorated_fee|intcomma }}</td>
+          <td class="num">{{ r.expected_lessons }}</td>
+          <td class="num">{{ r.billable_lessons }}</td>
+          <td class="num">{{ r.reconciled_fee|intcomma }}</td>
+          <td class="num {% if r.delta > 0 %}delta-pos{% elif r.delta < 0 %}delta-neg{% else %}delta-zero{% endif %}">
+            {% if r.delta > 0 %}+{% endif %}{{ r.delta|intcomma }}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="10" style="text-align:center; padding: 30px; color: #64748b;">Ma'lumot yo'q.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

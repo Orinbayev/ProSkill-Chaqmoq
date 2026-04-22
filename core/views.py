@@ -1455,7 +1455,6 @@ def user_edit(request, pk):
                     # FAQAT joriy oy uchun bitta yangi yozuv yaratamiz.
                     # Bu 2x/3x narx stacking muammosini oldini oladi!
                     from education.services.tuition import tuition_month_fee_field as _fee_field
-                    from django.utils.timezone import localdate
                     _cur_month = localdate().replace(day=1)
                     TuitionMonth.objects.filter(enrollment=enroll).delete()
                     TuitionMonth.all_objects.update_or_create(
@@ -1482,10 +1481,24 @@ def user_edit(request, pk):
                 messages.error(request, "Bu guruh boshqa centerga tegishli.")
                 return redirect(next_url)
 
+            enrollment_price = int(getattr(group, "kurs_narxi", 0) or 0)
+            if yangi_group_price:
+                try:
+                    enrollment_price = int(yangi_group_price)
+                except ValueError:
+                    pass
+
             enroll, _created = Enrollment.all_objects.get_or_create(
                 student=user,
                 group=group,
-                defaults={"center": group.center, "oqituvchi_foiz": group.oqituvchi_foiz or 40}
+                defaults={
+                    "center": group.center,
+                    "kurs_narhi": enrollment_price,
+                    "oqituvchi_foiz": group.oqituvchi_foiz or 40,
+                    "monthly_price": enrollment_price,
+                    "monthly_lessons": int(getattr(group, "oy_dars_soni", 0) or 0),
+                    "joined_at": localdate(),
+                },
             )
             if not _created and enroll.is_deleted:
                 enroll.restore(restored_by=request.user)
@@ -1493,13 +1506,17 @@ def user_edit(request, pk):
             # Ensure it's active if we're re-adding
             enroll.is_active = True
             if yangi_group_price:
-                try:
-                    enroll.kurs_narhi = int(yangi_group_price)
-                except ValueError:
-                    pass
+                enroll.kurs_narhi = enrollment_price
+                enroll.monthly_price = enrollment_price
+            elif _created and not getattr(enroll, "kurs_narhi", None):
+                enroll.kurs_narhi = enrollment_price
+                enroll.monthly_price = enrollment_price
+            if not getattr(enroll, "monthly_lessons", None):
+                enroll.monthly_lessons = int(getattr(group, "oy_dars_soni", 0) or 0)
+            if not getattr(enroll, "joined_at", None):
+                enroll.joined_at = localdate()
             enroll.save()
             from education.services.tuition import ensure_tuition_month
-            from django.utils.timezone import localdate
             # ✅ Yangi guruhga qo'shilganda joriy oy uchn avtomatik qarzdorlikni yaratish
             ensure_tuition_month(enroll, localdate())
 

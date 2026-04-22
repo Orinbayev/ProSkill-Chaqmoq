@@ -226,3 +226,72 @@ class BranchApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="bqBranchBtn"')
         self.assertContains(response, "Filiallar Boshqaruvi")
+
+
+class UserEditEnrollmentCreationTests(TestCase):
+    def setUp(self):
+        self.center = Center.objects.create(
+            name="User Edit Center",
+            slug="user-edit-center",
+            max_students=100,
+            capacity_limit=100,
+        )
+        self.manager = User.objects.create_user(
+            email="manager.useredit@test.uz",
+            password="strong-pass-123",
+            role="manager",
+            center=self.center,
+            ism="Manager",
+            familya="UserEdit",
+        )
+        self.teacher = User.objects.create_user(
+            email="teacher.useredit@test.uz",
+            password="strong-pass-123",
+            role="teacher",
+            center=self.center,
+            ism="Teacher",
+            familya="UserEdit",
+        )
+        self.student = User.objects.create_user(
+            email="student.useredit@test.uz",
+            password="strong-pass-123",
+            role="student",
+            center=self.center,
+            ism="Student",
+            familya="UserEdit",
+        )
+        self.group = Group.objects.create(
+            center=self.center,
+            nom="Frontend N1",
+            oqituvchi=self.teacher,
+            kurs_narxi=650_000,
+            oqituvchi_foiz=45,
+            oy_dars_soni=14,
+        )
+
+    def test_user_edit_post_creates_enrollment_with_restored_pricing_fields(self):
+        self.client.force_login(self.manager)
+
+        response = self.client.post(
+            reverse("core:user_edit", args=[self.student.id]),
+            {
+                "ism": self.student.ism,
+                "familya": self.student.familya,
+                "email": self.student.email,
+                "telefon1": self.student.telefon1 or "",
+                "telefon2": self.student.telefon2 or "",
+                "yangi_group_id": str(self.group.id),
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        enrollment = Enrollment.objects.get(student=self.student, group=self.group)
+        self.assertTrue(enrollment.is_active)
+        self.assertEqual(enrollment.kurs_narhi, self.group.kurs_narxi)
+        self.assertEqual(enrollment.monthly_price, self.group.kurs_narxi)
+        self.assertEqual(enrollment.monthly_lessons, self.group.oy_dars_soni)
+        self.assertEqual(enrollment.active_lessons_count, 0)
+        self.assertEqual(enrollment.paid_amount, 0)
+        self.assertEqual(enrollment.pricing_type, Enrollment.PRICING_FULL)
+        self.assertIsNotNone(enrollment.joined_at)

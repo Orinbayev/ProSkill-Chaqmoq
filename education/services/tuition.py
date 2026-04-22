@@ -1,11 +1,13 @@
 # education/services/tuition.py
 from __future__ import annotations
 
-from datetime import date, datetime
+import calendar
+from collections import Counter
+from datetime import date, datetime, timedelta
 from typing import Optional, Union
 
 from django.db import transaction
-from django.db.models import Sum, F
+from django.db.models import Q, Sum, F
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
@@ -110,32 +112,340 @@ def get_fee_amount(enrollment: Enrollment) -> int:
     return effective_student_payable_amount(enrollment)
 
 
+def _billable_attendance_q() -> Q:
+    return (
+        Q(status="present")
+        | Q(status="absent_unexcused")
+        | Q(present=True)
+        | Q(forced=True)
+    )
+
+
+# =========================
+#  PRORATED FEE CALCULATIONS
+# =========================
+#
+# Muammo:
+#   O'quvchi oy o'rtasida (masalan 18-sanada) qo'shilsa ham, TuitionMonth.fee_amount
+#   to'liq oylik narxga qo'yilardi. Natijada "qarzdorlar" bo'limida yolg'on qarz paydo
+#   bo'lardi (masalan 550k − 4 dars × 45.8k = 367k sun'iy qarz).
+#
+# Yechim:
+#   1) prorated_monthly_fee()  — enrollment yaratilganda birinchi oy uchun
+#      expected_lessons (GroupSchedule dan) × per_lesson narxni hisoblaydi.
+#   2) reconcile_tuition_month() — oy oxirida haqiqiy davomatga qarab
+#      (present + absent_unexcused) fee_amount ni qayta yozadi.
+#   3) Har ikkalasi ham effective_student_payable_amount (chegirmali narx) dan
+#      hisoblaydi, shuning uchun chegirma va tekin holatlar ham qamrab olinadi.
+#   4) O'qituvchi maoshi bu yerda HECH qanday o'zgartirilmaydi — u alohida
+#      HistoricalFinanceService orqali ASL kurs_narhi dan hisoblanadi.
+
+
+def month_last_day(d: date) -> date:
+    last_day = calendar.monthrange(d.year, d.month)[1]
+    return date(d.year, d.month, last_day)
+
+
+def scheduled_lessons_between(group, start: date, end: date) -> int:
+    """
+    GroupSchedule ga qarab [start, end] oralig'ida nechta rejalashtirilgan dars
+    borligini sanaydi. Jadval bo'sh bo'lsa 0 qaytaradi (fallback yuqorida).
+    """
+    from education.models import GroupSchedule
+
+    if start > end:
+        return 0
+
+    weekday_counts = Counter(
+        GroupSchedule.objects.filter(group=group).values_list("weekday", flat=True)
+    )
+    if not weekday_counts:
+        return 0
+
+    count = 0
+    cur = start
+    # GroupSchedule.weekday: 1=Mon .. 7=Sun (Python isoweekday bilan mos)
+    while cur <= end:
+        count += int(weekday_counts.get(cur.isoweekday(), 0) or 0)
+        cur += timedelta(days=1)
+    return count
+
+
+def expected_lessons_in_period(enrollment: Enrollment, start: date, end: date) -> int:
+    """
+    Oralig'idagi "kutilayotgan" darslar sonini qaytaradi.
+    Avval GroupSchedule dan sanaydi, bo'sh bo'lsa — oy_dars_soni ni kunlar
+    nisbatiga asosan prorate qiladi (fallback).
+    """
+    if start > end:
+        return 0
+
+    group = enrollment.group
+    scheduled = scheduled_lessons_between(group, start, end)
+    if scheduled > 0:
+        return scheduled
+
+    oy_dars_soni = int(getattr(group, "oy_dars_soni", 12) or 12) or 12
+    month_total_days = calendar.monthrange(start.year, start.month)[1]
+    period_days = (end - start).days + 1
+    ratio = min(period_days / month_total_days, 1.0)
+    return max(0, round(oy_dars_soni * ratio))
+
+
+def billable_attendance_count(enrollment: Enrollment, month: date) -> int:
+    """
+    Shu oyda hisob-kitobga kiradigan davomatlar soni:
+      - status='present' yoki status='absent_unexcused' (sababsiz)
+      - eski maydonlar uchun: present=True yoki forced=True
+    Sababli (absent_excused) — hisoblanmaydi.
+    """
+    from education.models import Attendance
+
+    month_start = month_first_day(month)
+    month_end = month_last_day(month_start)
+
+    return (
+        Attendance.objects.filter(
+            group=enrollment.group,
+            student=enrollment.student,
+            date__gte=month_start,
+            date__lte=month_end,
+        )
+        .filter(_billable_attendance_q())
+        .count()
+    )
+
+
+def _monthly_lessons_count(enrollment: Enrollment) -> int:
+    group = enrollment.group
+    monthly_lessons = int(getattr(group, "oy_dars_soni", 0) or 0) or 12
+    return monthly_lessons if monthly_lessons > 0 else 12
+
+
+def _prorated_monthly_fee_from_amount(
+    enrollment: Enrollment,
+    month: date,
+    effective_price: int,
+) -> int:
+    month_start = month_first_day(month)
+    month_end = month_last_day(month_start)
+
+    effective_price = int(effective_price or 0)
+    if effective_price <= 0:
+        return 0
+
+    monthly_lessons = _monthly_lessons_count(enrollment)
+    per_lesson = effective_price / monthly_lessons
+    start_date = enrollment_start_date(enrollment)
+
+    if start_date > month_end:
+        return 0
+    if start_date <= month_start:
+        return effective_price
+
+    expected = expected_lessons_in_period(enrollment, start_date, month_end)
+    fee = round(expected * per_lesson)
+    return min(int(fee), effective_price)
+
+
+def prorated_monthly_fee(enrollment: Enrollment, month: date) -> int:
+    """
+    Oylik to'lov summasini kutilayotgan darslarga qarab hisoblaydi.
+
+    - To'liq oy (start_date <= oy boshi): effective_student_payable_amount
+    - Qisman oy (start_date oy ichida): expected_lessons × per_lesson
+    - Cap: hech qachon effective_student_payable_amount dan oshmaydi
+    - Oy enrollment boshlanishidan oldin: 0 (qarz yaratilmaydi)
+    """
+    return _prorated_monthly_fee_from_amount(
+        enrollment,
+        month,
+        effective_student_payable_amount(enrollment),
+    )
+
+
+def attendance_based_fee(enrollment: Enrollment, month: date) -> int:
+    """
+    Haqiqiy davomatga qarab to'lov summasini hisoblaydi (reconcile uchun).
+    fee = min(billable_lessons × per_lesson, effective_student_payable_amount)
+    """
+    effective_price = effective_student_payable_amount(enrollment)
+    if effective_price <= 0:
+        return 0
+
+    per_lesson = effective_price / _monthly_lessons_count(enrollment)
+
+    billable = billable_attendance_count(enrollment, month)
+    fee = round(billable * per_lesson)
+    return min(int(fee), effective_price)
+
+
+def teacher_monthly_financials(
+    enrollment: Enrollment,
+    billable_lessons: int,
+    *,
+    teacher_percent: Optional[int] = None,
+) -> dict:
+    """
+    O'qituvchi payoutini har doim asl kurs narxidan hisoblaydi va oylik
+    maksimumdan oshirmaydi.
+    """
+    group = getattr(enrollment, "group", None)
+    monthly_lessons = int(getattr(group, "oy_dars_soni", 0) or 0) or 12
+    if monthly_lessons <= 0:
+        monthly_lessons = 12
+
+    billable_lessons = max(0, int(billable_lessons or 0))
+    full_amount = full_course_amount(enrollment)
+    effective_percent = int(teacher_percent or 0)
+    if effective_percent <= 0:
+        effective_percent = int(getattr(enrollment, "oqituvchi_foiz", 0) or 0)
+
+    if full_amount <= 0:
+        return {
+            "billable_lessons": billable_lessons,
+            "teacher_salary": 0,
+            "center_profit": 0,
+            "turnover": 0,
+            "teacher_salary_cap": 0,
+            "turnover_cap": 0,
+        }
+
+    per_lesson_turnover = full_amount / monthly_lessons
+    teacher_salary_cap = round(full_amount * effective_percent / 100)
+    turnover_cap = int(full_amount)
+
+    turnover = min(round(per_lesson_turnover * billable_lessons), turnover_cap)
+    teacher_salary = min(
+        round(per_lesson_turnover * (effective_percent / 100) * billable_lessons),
+        teacher_salary_cap,
+    )
+    center_profit = turnover - teacher_salary
+
+    return {
+        "billable_lessons": billable_lessons,
+        "teacher_salary": int(teacher_salary),
+        "center_profit": int(center_profit),
+        "turnover": int(turnover),
+        "teacher_salary_cap": int(teacher_salary_cap),
+        "turnover_cap": int(turnover_cap),
+    }
+
+
 # =========================
 #  TUITION MONTH HELPERS
 # =========================
 
+
+def is_month_closed_for_center(center, month: date) -> bool:
+    from education.models import FinancialMonth
+
+    if not center:
+        return False
+
+    month = month_first_day(month)
+    return FinancialMonth.objects.filter(
+        center=center,
+        year=month.year,
+        month=month.month,
+        is_closed=True,
+    ).exists()
+
+
+def get_effective_month_fee(enrollment: Enrollment, month: date) -> int:
+    month = month_first_day(month)
+    tm = TuitionMonth.objects.filter(enrollment=enrollment, month=month).first()
+    if tm:
+        return tuition_month_fee(tm)
+    return int(prorated_monthly_fee(enrollment, month) or 0)
+
 def ensure_tuition_month(enrollment: Enrollment, month: date) -> TuitionMonth:
     """
     Agar shu oy uchun TuitionMonth bo‘lmasa yaratadi.
-    Fee 0 bo‘lib qolsa -> enrollment/groupdan qayta yozadi.
+    Fee = prorated_monthly_fee (qisman oyni hisobga oladi, cheat-proof).
+    Fee 0 bo‘lib qolsa va prorated > 0 bo‘lsa -> qayta yozadi.
     """
     month = month_first_day(month)
-    fee = int(get_fee_amount(enrollment) or 0)
+    fee = int(prorated_monthly_fee(enrollment, month) or 0)
     fee_field = tuition_month_fee_field()
 
     tm, created = TuitionMonth.all_objects.get_or_create(
         enrollment=enrollment,
         month=month,
-        defaults={fee_field: fee},
+        defaults={
+            "center": getattr(enrollment, "center", None),
+            fee_field: fee,
+        },
     )
     if not created and tm.is_deleted:
         tm.restore()
 
+    update_fields = []
+    if not getattr(tm, "center_id", None) and getattr(enrollment, "center_id", None):
+        tm.center = enrollment.center
+        update_fields.append("center")
 
     cur_fee = int(getattr(tm, fee_field, 0) or 0)
-    if cur_fee <= 0 and fee > 0:
+    if (
+        not is_month_closed_for_center(getattr(enrollment, "center", None), month)
+        and cur_fee != fee
+    ):
         setattr(tm, fee_field, fee)
-        tm.save(update_fields=[fee_field])
+        update_fields.append(fee_field)
+
+    if update_fields:
+        tm.save(update_fields=update_fields)
+
+    return tm
+
+
+@transaction.atomic
+def reconcile_tuition_month(enrollment: Enrollment, month: date) -> TuitionMonth:
+    """
+    Oy oxirida (yoki qo'lda) chaqiriladi.
+    TuitionMonth.fee_amount ni haqiqiy davomatga qarab qayta hisoblaydi:
+      fee = min(billable_lessons × per_lesson, effective_student_payable_amount)
+
+    - Davomat yo'q bo'lsa (fee=0) va TuitionMonth allaqachon to'langan bo'lsa,
+      fee ni pastga tushirmaymiz (ma'lumotlarni yo'qotmaslik uchun).
+    - Aks holda yangi fee ni yozadi.
+    """
+    month_start = month_first_day(month)
+    new_fee = int(attendance_based_fee(enrollment, month_start) or 0)
+    fee_field = tuition_month_fee_field()
+
+    tm, created = TuitionMonth.all_objects.get_or_create(
+        enrollment=enrollment,
+        month=month_start,
+        defaults={
+            "center": getattr(enrollment, "center", None),
+            fee_field: new_fee,
+        },
+    )
+    if not created and tm.is_deleted:
+        tm.restore()
+
+    paid = get_month_paid(tm)
+    current_fee = int(getattr(tm, fee_field, 0) or 0)
+    update_fields = []
+
+    if not getattr(tm, "center_id", None) and getattr(enrollment, "center_id", None):
+        tm.center = enrollment.center
+        update_fields.append("center")
+
+    # Xavfsizlik: agar hech qanday davomat yo'q va oyga to'lov qilingan bo'lsa,
+    # fee ni 0 ga tushirmaymiz. Admin qo'lda tekshirishi kerak.
+    if new_fee == 0 and paid > 0 and current_fee > 0:
+        if update_fields:
+            tm.save(update_fields=update_fields)
+        return tm
+
+    if current_fee != new_fee:
+        setattr(tm, fee_field, new_fee)
+        update_fields.append(fee_field)
+
+    if update_fields:
+        tm.save(update_fields=update_fields)
 
     return tm
 
@@ -212,13 +522,39 @@ def sync_tuition_fee(enrollment: Enrollment, start_month: date, new_fee: int) ->
     """
     start_month = month_first_day(start_month)
     fee_field = tuition_month_fee_field()
-    new_fee = int(new_fee if new_fee is not None else effective_student_payable_amount(enrollment) or 0)
+    effective_amount = int(
+        new_fee if new_fee is not None else effective_student_payable_amount(enrollment) or 0
+    )
 
-    TuitionMonth.objects.filter(enrollment=enrollment, month__gte=start_month).update(**{fee_field: new_fee})
-    TuitionMonth.objects.update_or_create(
+    existing_months = list(
+        TuitionMonth.all_objects.filter(enrollment=enrollment, month__gte=start_month).order_by("month")
+    )
+
+    for tm in existing_months:
+        if tm.is_deleted:
+            tm.restore()
+        target_fee = int(
+            _prorated_monthly_fee_from_amount(enrollment, tm.month, effective_amount) or 0
+        )
+        update_fields = []
+        if int(getattr(tm, fee_field, 0) or 0) != target_fee:
+            setattr(tm, fee_field, target_fee)
+            update_fields.append(fee_field)
+        if not getattr(tm, "center_id", None) and getattr(enrollment, "center_id", None):
+            tm.center = enrollment.center
+            update_fields.append("center")
+        if update_fields:
+            tm.save(update_fields=update_fields)
+
+    TuitionMonth.all_objects.update_or_create(
         enrollment=enrollment,
         month=start_month,
-        defaults={fee_field: new_fee},
+        defaults={
+            "center": getattr(enrollment, "center", None),
+            fee_field: int(
+                _prorated_monthly_fee_from_amount(enrollment, start_month, effective_amount) or 0
+            ),
+        },
     )
 
 
@@ -278,7 +614,6 @@ def _allocate_amount_forward(*, enrollment: Enrollment, payment: Payment, amount
     if amount <= 0:
         return
 
-    fee_field = tuition_month_fee_field()
     cur = month_first_day(start_month)
 
     # Faqat joriy oy uchun TuitionMonth olamiz (yaratmaymiz agar yo'q bo'lsa)
@@ -289,7 +624,12 @@ def _allocate_amount_forward(*, enrollment: Enrollment, payment: Payment, amount
 
     # Hammasini shu oyga yozamiz (ortiqcha bo'lsa ham)
     if amount > 0:
-        PaymentAllocation.objects.create(payment=payment, tuition_month=tm, amount=amount)
+        PaymentAllocation.objects.create(
+            center=getattr(payment, "center", None) or getattr(enrollment, "center", None),
+            payment=payment,
+            tuition_month=tm,
+            amount=amount,
+        )
 
 
 
