@@ -27,6 +27,7 @@ from education.services.tuition import (
     ensure_tuition_month,
     full_course_amount,
     pattern_lessons_between,
+    tuition_month_preview,
 )
 from education.views import sync_tuition_fee
 
@@ -391,6 +392,48 @@ class StudentPayableAmountTests(TestCase):
         self.assertContains(response, 'name="lesson_pattern"')
         self.assertContains(response, 'id="billingPreview"')
 
+    def test_enrollment_edit_preview_endpoint_uses_backend_pattern_and_keeps_group_selected(self):
+        current_month = timezone.localdate().replace(day=1)
+        start_date = current_month.replace(day=18)
+        self.regular_enrollment.joined_at = start_date
+        self.regular_enrollment.lesson_pattern = Enrollment.LESSON_PATTERN_GROUP
+        self.regular_enrollment.monthly_lessons = self.group.oy_dars_soni
+        self.regular_enrollment.save(update_fields=["joined_at", "lesson_pattern", "monthly_lessons"])
+
+        edit_url = f"/{self.center.slug}{reverse('education:enrollment_edit', args=[self.regular_enrollment.id])}"
+        page_response = self.client.get(edit_url)
+        self.assertEqual(page_response.status_code, 200)
+        self.assertEqual(page_response.context["selected_lesson_pattern"], Enrollment.LESSON_PATTERN_GROUP)
+        self.assertContains(page_response, 'value="group"', html=False)
+
+        preview_response = self.client.get(
+            edit_url,
+            {
+                "preview": "1",
+                "joined_at": start_date.isoformat(),
+                "lesson_pattern": "odd",
+                "group_id": self.group.id,
+                "monthly_lessons": self.group.oy_dars_soni,
+                "kurs_narhi": self.regular_enrollment.kurs_narhi,
+                "oqituvchi_foiz": self.regular_enrollment.oqituvchi_foiz,
+                "student_payable_amount": "",
+                "teacher_share_only": "0",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(preview_response.status_code, 200)
+        preview_payload = preview_response.json()["preview"]
+        month_end = current_month.replace(
+            day=calendar.monthrange(current_month.year, current_month.month)[1]
+        )
+        self.assertEqual(preview_payload["lesson_pattern"], "odd")
+        self.assertEqual(preview_payload["lesson_pattern_label"], "Toq kunlar")
+        self.assertEqual(
+            preview_payload["lesson_count"],
+            pattern_lessons_between(start_date, month_end, "odd"),
+        )
+
     def test_add_student_to_group_uses_start_date_pattern_and_creates_prorated_snapshot(self):
         add_url = f"/{self.center.slug}{reverse('education:add_student_to_group', args=[self.group.id])}"
         page_response = self.client.get(add_url)
@@ -416,6 +459,21 @@ class StudentPayableAmountTests(TestCase):
         expected_lessons = pattern_lessons_between(start_date, month_end, "even")
         expected_fee = round((self.group.kurs_narxi * expected_lessons) / self.group.oy_dars_soni)
 
+        preview_response = self.client.get(
+            add_url,
+            {
+                "preview": "1",
+                "start_date": start_date.isoformat(),
+                "lesson_pattern": "even",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        self.assertEqual(preview_response.status_code, 200)
+        preview_payload = preview_response.json()["preview"]
+        self.assertEqual(preview_payload["lesson_count"], expected_lessons)
+        self.assertEqual(preview_payload["fee_amount"], expected_fee)
+        self.assertEqual(preview_payload["lesson_pattern_label"], "Juft kunlar")
+
         response = self.client.post(
             add_url,
             data=json.dumps({
@@ -433,8 +491,27 @@ class StudentPayableAmountTests(TestCase):
         enrollment = Enrollment.objects.get(student=student, group=self.group)
         self.assertEqual(enrollment.joined_at, start_date)
         self.assertEqual(enrollment.lesson_pattern, "even")
+        self.assertEqual(payload["preview"]["lesson_count"], preview_payload["lesson_count"])
+        self.assertEqual(payload["preview"]["fee_amount"], preview_payload["fee_amount"])
+        self.assertEqual(payload["preview"]["lesson_pattern_label"], preview_payload["lesson_pattern_label"])
         tm = TuitionMonth.objects.get(enrollment=enrollment, month=current_month)
         self.assertEqual(tm.fee_amount, expected_fee)
+
+    def test_qarzdorlar_rows_reuse_same_preview_lesson_count_and_label(self):
+        current_month = self.regular_enrollment.created_at.date().replace(day=1)
+        self.regular_enrollment.joined_at = current_month
+        self.regular_enrollment.lesson_pattern = "odd"
+        self.regular_enrollment.monthly_lessons = self.group.oy_dars_soni
+        self.regular_enrollment.save(update_fields=["joined_at", "lesson_pattern", "monthly_lessons"])
+        ensure_tuition_month(self.regular_enrollment, current_month)
+
+        response = self.client.get(self.qarzdorlar_url)
+
+        self.assertEqual(response.status_code, 200)
+        rows = {row["student"].email: row for row in response.context["page_obj"].object_list}
+        preview = tuition_month_preview(self.regular_enrollment, current_month)
+        self.assertEqual(rows[self.regular_student.email]["lesson_count"], preview["lesson_count"])
+        self.assertEqual(rows[self.regular_student.email]["lesson_pattern_label"], preview["lesson_pattern_label"])
 
     def test_month_preview_is_read_only_and_shows_reconciled_delta(self):
         preview_month = date(2026, 4, 1)

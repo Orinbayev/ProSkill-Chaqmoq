@@ -257,7 +257,7 @@
 
 	  .pattern-toggle {
 	    display: grid;
-	    grid-template-columns: repeat(3, minmax(0, 1fr));
+	    grid-template-columns: repeat(4, minmax(0, 1fr));
 	    gap: 8px;
 	    padding: 5px;
 	    border-radius: 14px;
@@ -277,9 +277,12 @@
 	    justify-content: center;
 	    min-height: 36px;
 	    border-radius: 10px;
+	    padding: 0 10px;
 	    color: #94a3b8;
 	    font-weight: 800;
 	    font-size: 0.86rem;
+	    line-height: 1.15;
+	    text-align: center;
 	    cursor: pointer;
 	    transition: all 0.18s ease;
 	  }
@@ -590,23 +593,17 @@
 	        <label for="start-date">Boshlanish sanasi</label>
 	        <input type="date" id="start-date" class="setup-input" value="{{ today|date:'Y-m-d' }}">
 	      </div>
-	      <div class="setup-field">
-	        <span class="pattern-label">Dars patterni</span>
-	        <div class="pattern-toggle" role="radiogroup" aria-label="Dars patterni">
-	          <label>
-	            <input type="radio" name="lesson_pattern" value="even">
-	            <span>Juft</span>
-	          </label>
-	          <label>
-	            <input type="radio" name="lesson_pattern" value="odd" checked>
-	            <span>Toq</span>
-	          </label>
-	          <label>
-	            <input type="radio" name="lesson_pattern" value="daily">
-	            <span>Har kuni</span>
-	          </label>
+	        <div class="setup-field">
+	          <span class="pattern-label">Dars patterni</span>
+	          <div class="pattern-toggle" role="radiogroup" aria-label="Dars patterni">
+	            {% for value, label in lesson_pattern_options %}
+	            <label>
+	              <input type="radio" name="lesson_pattern" value="{{ value }}" {% if value == default_lesson_pattern %}checked{% endif %}>
+	              <span>{{ label }}</span>
+	            </label>
+	            {% endfor %}
+	          </div>
 	        </div>
-	      </div>
 	    </div>
 	    <div class="preview-panel" id="tuition-preview">
 	      <div class="preview-metric">
@@ -689,18 +686,13 @@
 	  const addedSection = document.getElementById('added-students-section');
 	  const addedList = document.getElementById('added-list');
 	  const startDateInput = document.getElementById('start-date');
-	  const setupEl = document.querySelector('.enrollment-setup');
-	  const setupConfig = {
-	    coursePrice: Number(setupEl?.dataset.coursePrice || 0),
-	    teacherPercent: Number(setupEl?.dataset.teacherPercent || 0),
-	    monthlyLessons: Number(setupEl?.dataset.monthlyLessons || 12) || 12
-	  };
 
   let searchTimeout = null;
 	  let selectedStudent = null;
 	  let focusedIndex = -1;
 	  let currentResults = [];
 	  let currentPreview = null;
+	  let previewController = null;
 
   // --- Search Logic ---
   // --- Search Logic ---
@@ -795,14 +787,15 @@
   }
 
   // --- Confirmation Logic ---
-	  function openConfirm(student) {
+	  async function openConfirm(student) {
 	    selectedStudent = student;
-	    currentPreview = calculatePreview();
+	    await refreshPreview({ studentId: student.id, silent: true });
+	    const preview = currentPreview || emptyPreview();
 	    document.getElementById('confirm-title').innerText = "Tasdiqlang";
 	    document.getElementById('confirm-text').innerHTML = `
 	      <strong>${escaped(student.full_name)}</strong> o'quvchisini <br>
-	      <strong>{{ group.nom }}</strong> guruhiga ${escaped(currentPreview.startDate)} sanadan qo'shishni tasdiqlaysizmi?<br>
-	      <span style="color:#94a3b8;">${currentPreview.lessons} ta dars • ${formatMoney(currentPreview.fee)} so'm</span>
+	      <strong>{{ group.nom }}</strong> guruhiga ${escaped(preview.start_date)} sanadan qo'shishni tasdiqlaysizmi?<br>
+	      <span style="color:#94a3b8;">${preview.lesson_count} ta dars • ${escaped(preview.lesson_pattern_label || '')} • ${formatMoney(preview.fee_amount)} so'm</span>
 	    `;
 	    confirmOverlay.classList.add('active');
 	  }
@@ -873,72 +866,71 @@
 	    addedList.prepend(item);
 	  }
 
-	  function parseLocalDate(value) {
-	    const parts = (value || '').split('-').map(Number);
-	    if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
-	    return new Date(parts[0], parts[1] - 1, parts[2]);
-	  }
-
 	  function getSelectedPattern() {
 	    const checked = document.querySelector('input[name="lesson_pattern"]:checked');
-	    return checked ? checked.value : 'odd';
+	    return checked ? checked.value : '{{ default_lesson_pattern }}';
 	  }
 
-	  function roundDiv(numerator, denominator) {
-	    if (!denominator || denominator <= 0) return 0;
-	    return Math.floor((Number(numerator || 0) + Math.floor(denominator / 2)) / denominator);
-	  }
-
-	  function countLessons(startDate, pattern) {
-	    if (!startDate) return 0;
-	    const end = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
-	    let count = 0;
-	    for (let d = new Date(startDate); d <= end; d.setDate(d.getDate() + 1)) {
-	      const day = d.getDate();
-	      if (pattern === 'daily') count += 1;
-	      else if (pattern === 'even' && day % 2 === 0) count += 1;
-	      else if (pattern === 'odd' && day % 2 === 1) count += 1;
-	    }
-	    return count;
-	  }
-
-	  function calculatePreview() {
-	    const startDate = parseLocalDate(startDateInput.value);
-	    const pattern = getSelectedPattern();
-	    const lessons = countLessons(startDate, pattern);
-	    const turnover = Math.min(
-	      roundDiv(setupConfig.coursePrice * lessons, setupConfig.monthlyLessons),
-	      setupConfig.coursePrice
-	    );
-	    const teacher = roundDiv(turnover * setupConfig.teacherPercent, 100);
-	    const center = turnover - teacher;
+	  function emptyPreview() {
 	    return {
-	      startDate: startDateInput.value,
-	      pattern,
-	      lessons,
-	      fee: turnover,
-	      teacher,
-	      center
+	      start_date: startDateInput.value || '',
+	      lesson_pattern: getSelectedPattern(),
+	      lesson_pattern_label: '',
+	      lesson_count: 0,
+	      fee_amount: 0,
+	      teacher_share: 0,
+	      center_share: 0
 	    };
 	  }
 
-	  function updatePreview() {
-	    currentPreview = calculatePreview();
-	    document.getElementById('preview-lessons').textContent = `${currentPreview.lessons} ta`;
-	    document.getElementById('preview-fee').textContent = formatMoney(currentPreview.fee);
-	    document.getElementById('preview-teacher').textContent = formatMoney(currentPreview.teacher);
-	    document.getElementById('preview-center').textContent = formatMoney(currentPreview.center);
+	  function applyPreview(preview) {
+	    currentPreview = preview || emptyPreview();
+	    document.getElementById('preview-lessons').textContent = `${currentPreview.lesson_count} ta`;
+	    document.getElementById('preview-fee').textContent = formatMoney(currentPreview.fee_amount);
+	    document.getElementById('preview-teacher').textContent = formatMoney(currentPreview.teacher_share);
+	    document.getElementById('preview-center').textContent = formatMoney(currentPreview.center_share);
+	  }
+
+	  async function refreshPreview({ studentId = null, silent = false } = {}) {
+	    if (previewController) {
+	      previewController.abort();
+	    }
+	    previewController = new AbortController();
+	    const params = new URLSearchParams({
+	      preview: '1',
+	      start_date: startDateInput.value,
+	      lesson_pattern: getSelectedPattern()
+	    });
+	    if (studentId) {
+	      params.set('student_id', String(studentId));
+	    }
+
+	    try {
+	      const resp = await fetch(`?${params.toString()}`, {
+	        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+	        signal: previewController.signal
+	      });
+	      if (!resp.ok) throw new Error('preview_failed');
+	      const data = await resp.json();
+	      applyPreview(data.preview || emptyPreview());
+	    } catch (err) {
+	      if (err.name === 'AbortError') return;
+	      applyPreview(emptyPreview());
+	      if (!silent) {
+	        showToast("Previewni yangilab bo'lmadi", 'warning');
+	      }
+	    }
 	  }
 
 	  function formatMoney(value) {
 	    return `${Number(value || 0).toLocaleString('uz-UZ')} so'm`;
 	  }
 
-	  startDateInput.addEventListener('change', updatePreview);
+	  startDateInput.addEventListener('change', () => refreshPreview());
 	  document.querySelectorAll('input[name="lesson_pattern"]').forEach((input) => {
-	    input.addEventListener('change', updatePreview);
+	    input.addEventListener('change', () => refreshPreview());
 	  });
-	  updatePreview();
+	  refreshPreview({ silent: true });
 
   // --- Keyboard Navigation ---
   searchInput.addEventListener('keydown', (e) => {

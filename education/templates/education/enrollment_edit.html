@@ -312,7 +312,7 @@
 
 	  .pattern-toggle {
 	    display: grid;
-	    grid-template-columns: repeat(3, minmax(0, 1fr));
+	    grid-template-columns: repeat(4, minmax(0, 1fr));
 	    gap: 8px;
 	    padding: 5px;
 	    border-radius: 16px;
@@ -332,9 +332,12 @@
 	    display: flex;
 	    align-items: center;
 	    justify-content: center;
+	    padding: 0 10px;
 	    color: #94a3b8;
 	    font-size: 13px;
 	    font-weight: 900;
+	    line-height: 1.15;
+	    text-align: center;
 	    cursor: pointer;
 	    transition: all 0.18s ease;
 	  }
@@ -634,7 +637,7 @@
         <!-- Guruh -->
         <div class="col-md-6">
           <label class="form-label">Guruh</label>
-          <select name="group_id" class="form-select custom-select">
+          <select name="group_id" id="groupSelect" class="form-select custom-select">
             {% for g in groups %}
             <option value="{{ g.id }}" {% if g.id == enr.group.id %}selected{% endif %}>{{ g.nom }}</option>
             {% endfor %}
@@ -664,7 +667,7 @@
 	            <input type="date" name="joined_at" id="joinedAtInput"
 	              value="{{ enr.joined_at|date:'Y-m-d' }}"
 	              class="form-control custom-input">
-	            <input type="hidden" name="monthly_lessons" value="{{ enr.monthly_lessons|default:'12' }}">
+	            <input type="hidden" name="monthly_lessons" id="monthlyLessonsInput" value="{{ enr.monthly_lessons|default:'12' }}">
 	          </div>
 	          <div class="field-stack">
 	            <label class="form-label">Dars patterni</label>
@@ -672,7 +675,7 @@
 	              {% for value, label in lesson_pattern_options %}
 	              <label>
 	                <input type="radio" name="lesson_pattern" value="{{ value }}"
-	                  {% if enr.lesson_pattern == value or enr.lesson_pattern == 'group' and value == 'odd' %}checked{% endif %}>
+	                  {% if selected_lesson_pattern == value %}checked{% endif %}>
 	                <span>{{ label }}</span>
 	              </label>
 	              {% endfor %}
@@ -702,9 +705,9 @@
 
 	      <!-- {# Qarzdorlar oynasidan qalam bosilganda moliyaviy blok ko'rsatilmaydi.
 	         Yashirin maydonlar mavjud qiymatlarni saqlab qoladi. #} -->
-	      <input type="hidden" name="kurs_narhi" value="{{ enr.kurs_narhi|default:'0' }}">
-      <input type="hidden" name="oqituvchi_foiz" value="{{ enr.oqituvchi_foiz|default:'40' }}">
-      <input type="hidden" name="student_payable_amount" value="{{ enr.student_payable_amount|default_if_none:'' }}">
+	      <input type="hidden" name="kurs_narhi" id="coursePriceInput" value="{{ enr.kurs_narhi|default:'0' }}">
+      <input type="hidden" name="oqituvchi_foiz" id="teacherPercentInput" value="{{ enr.oqituvchi_foiz|default:'40' }}">
+      <input type="hidden" name="student_payable_amount" id="studentPayableInput" value="{{ enr.student_payable_amount|default_if_none:'' }}">
       <input type="checkbox" id="teacherShareOnly" name="teacher_share_only" {% if teacher_share_only_checked %}checked{% endif %} value="1" class="d-none">
 
       <div class="action-buttons">
@@ -723,57 +726,72 @@
 	  (function () {
 	    const preview = document.getElementById('billingPreview');
 	    const joinedAtInput = document.getElementById('joinedAtInput');
+	    const groupSelect = document.getElementById('groupSelect');
+	    const monthlyLessonsInput = document.getElementById('monthlyLessonsInput');
+	    const coursePriceInput = document.getElementById('coursePriceInput');
+	    const teacherPercentInput = document.getElementById('teacherPercentInput');
+	    const studentPayableInput = document.getElementById('studentPayableInput');
+	    const teacherShareOnlyInput = document.getElementById('teacherShareOnly');
 	    if (!preview || !joinedAtInput) return;
 
-	    const coursePrice = Number(preview.dataset.coursePrice || 0);
-	    const teacherPercent = Number(preview.dataset.teacherPercent || 0);
-	    const monthlyLessons = Number(preview.dataset.monthlyLessons || 12) || 12;
-
-	    function parseLocalDate(value) {
-	      const parts = (value || '').split('-').map(Number);
-	      if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
-	      return new Date(parts[0], parts[1] - 1, parts[2]);
-	    }
+	    let previewController = null;
 
 	    function selectedPattern() {
 	      const checked = document.querySelector('input[name="lesson_pattern"]:checked');
-	      return checked ? checked.value : 'odd';
-	    }
-
-	    function roundDiv(numerator, denominator) {
-	      if (!denominator || denominator <= 0) return 0;
-	      return Math.floor((Number(numerator || 0) + Math.floor(denominator / 2)) / denominator);
-	    }
-
-	    function countLessons(startDate, pattern) {
-	      if (!startDate) return 0;
-	      const end = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
-	      let count = 0;
-	      for (let d = new Date(startDate); d <= end; d.setDate(d.getDate() + 1)) {
-	        const day = d.getDate();
-	        if (pattern === 'daily') count += 1;
-	        else if (pattern === 'even' && day % 2 === 0) count += 1;
-	        else if (pattern === 'odd' && day % 2 === 1) count += 1;
-	      }
-	      return count;
+	      return checked ? checked.value : '{{ selected_lesson_pattern }}';
 	    }
 
 	    function money(value) {
 	      return `${Number(value || 0).toLocaleString('uz-UZ')} so'm`;
 	    }
 
-	    function refreshPreview() {
-	      const lessons = countLessons(parseLocalDate(joinedAtInput.value), selectedPattern());
-	      const turnover = Math.min(roundDiv(coursePrice * lessons, monthlyLessons), coursePrice);
-	      const teacher = roundDiv(turnover * teacherPercent, 100);
-	      const center = turnover - teacher;
-	      document.getElementById('editPreviewLessons').textContent = `${lessons} ta`;
-	      document.getElementById('editPreviewFee').textContent = money(turnover);
-	      document.getElementById('editPreviewTeacher').textContent = money(teacher);
-	      document.getElementById('editPreviewCenter').textContent = money(center);
+	    function applyPreview(previewData) {
+	      const data = previewData || {
+	        lesson_count: 0,
+	        fee_amount: 0,
+	        teacher_share: 0,
+	        center_share: 0
+	      };
+	      document.getElementById('editPreviewLessons').textContent = `${data.lesson_count} ta`;
+	      document.getElementById('editPreviewFee').textContent = money(data.fee_amount);
+	      document.getElementById('editPreviewTeacher').textContent = money(data.teacher_share);
+	      document.getElementById('editPreviewCenter').textContent = money(data.center_share);
+	    }
+
+	    async function refreshPreview() {
+	      if (previewController) {
+	        previewController.abort();
+	      }
+	      previewController = new AbortController();
+	      const previewUrl = new URL(window.location.href);
+	      previewUrl.searchParams.set('preview', '1');
+	      previewUrl.searchParams.set('joined_at', joinedAtInput.value);
+	      previewUrl.searchParams.set('lesson_pattern', selectedPattern());
+	      previewUrl.searchParams.set('group_id', groupSelect ? groupSelect.value : '{{ enr.group.id }}');
+	      previewUrl.searchParams.set('monthly_lessons', monthlyLessonsInput ? monthlyLessonsInput.value : '');
+	      previewUrl.searchParams.set('kurs_narhi', coursePriceInput ? coursePriceInput.value : '');
+	      previewUrl.searchParams.set('oqituvchi_foiz', teacherPercentInput ? teacherPercentInput.value : '');
+	      previewUrl.searchParams.set('student_payable_amount', studentPayableInput ? studentPayableInput.value : '');
+	      previewUrl.searchParams.set('teacher_share_only', teacherShareOnlyInput && teacherShareOnlyInput.checked ? '1' : '0');
+
+	      try {
+	        const resp = await fetch(previewUrl.toString(), {
+	          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+	          signal: previewController.signal
+	        });
+	        if (!resp.ok) throw new Error('preview_failed');
+	        const data = await resp.json();
+	        applyPreview(data.preview);
+	      } catch (err) {
+	        if (err.name === 'AbortError') return;
+	        applyPreview(null);
+	      }
 	    }
 
 	    joinedAtInput.addEventListener('change', refreshPreview);
+	    if (groupSelect) {
+	      groupSelect.addEventListener('change', refreshPreview);
+	    }
 	    document.querySelectorAll('input[name="lesson_pattern"]').forEach((input) => {
 	      input.addEventListener('change', refreshPreview);
 	    });

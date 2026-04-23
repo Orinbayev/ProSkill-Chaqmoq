@@ -37,6 +37,7 @@ from education.services.tuition import (
     prorated_monthly_fee,
     reconcile_tuition_month,
     scheduled_lessons_between,
+    tuition_month_lesson_count,
     tuition_month_preview,
     tuition_month_fee_field,
 )
@@ -297,6 +298,22 @@ class ProratedTuitionTests(TestCase):
 
         self.assertEqual(expected_lessons_in_period(enr, date(2026, 4, 18), date(2026, 4, 30)), expected_lessons)
         self.assertEqual(prorated_monthly_fee(enr, self.MONTH), expected_fee)
+
+    def test_full_month_preview_uses_same_pattern_count_source(self):
+        s = self._make_student("pattern-full-odd@t")
+        enr = self._enroll(s, start_date=date(2026, 4, 1))
+        enr.lesson_pattern = "odd"
+        enr.joined_at = date(2026, 4, 1)
+        enr.monthly_lessons = LESSONS_PER_MONTH
+        enr.save(update_fields=["lesson_pattern", "joined_at", "monthly_lessons"])
+
+        expected_lessons = pattern_lessons_between(date(2026, 4, 1), date(2026, 4, 30), "odd")
+        preview = tuition_month_preview(enr, self.MONTH)
+
+        self.assertEqual(tuition_month_lesson_count(enr, self.MONTH), expected_lessons)
+        self.assertEqual(preview["lesson_count"], expected_lessons)
+        self.assertEqual(preview["lesson_pattern_label"], "Toq kunlar")
+        self.assertEqual(preview["fee_amount"], BASE_PRICE)
 
     def test_tuition_preview_keeps_teacher_and_center_shares_balanced(self):
         s = self._make_student("preview-pattern@t")

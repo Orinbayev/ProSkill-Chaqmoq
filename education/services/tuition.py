@@ -115,14 +115,25 @@ def enrollment_start_date(enrollment: Enrollment) -> date:
     if not enrollment:
         return timezone.localdate()
 
-    history = StudentGroupHistory.objects.filter(
-        student=enrollment.student,
-        group=enrollment.group,
-    ).order_by("-start_date").first()
-    if history and history.start_date:
-        return history.start_date
+    explicit_start_date = getattr(enrollment, "_tuition_start_date", None)
+    if explicit_start_date:
+        return explicit_start_date
 
     joined_at = getattr(enrollment, "joined_at", None)
+    student = getattr(enrollment, "student", None)
+    group = getattr(enrollment, "group", None)
+    if student and group:
+        history = StudentGroupHistory.objects.filter(
+            student=student,
+            group=group,
+        ).order_by("-start_date").first()
+        if history and history.start_date:
+            created_at = getattr(enrollment, "created_at", None)
+            created_date = created_at.date() if created_at else None
+            if joined_at and joined_at != created_date:
+                return joined_at
+            return history.start_date
+
     if joined_at:
         return joined_at
 
@@ -325,15 +336,11 @@ def _prorated_monthly_fee_from_amount(
         return 0
 
     monthly_lessons = _monthly_lessons_count(enrollment)
-    start_date = enrollment_start_date(enrollment)
-
-    if start_date > month_end:
+    lesson_count = tuition_month_lesson_count(enrollment, month_start)
+    if lesson_count <= 0:
         return 0
-    if start_date <= month_start:
-        return effective_price
 
-    expected = expected_lessons_in_period(enrollment, start_date, month_end)
-    fee = proportional_amount(effective_price, expected, monthly_lessons)
+    fee = proportional_amount(effective_price, lesson_count, monthly_lessons)
     return min(int(fee), effective_price)
 
 
@@ -419,13 +426,14 @@ def tuition_month_lesson_count(enrollment: Enrollment, month: date) -> int:
     start_date = enrollment_start_date(enrollment)
     if start_date > month_end:
         return 0
-    if start_date <= month_start:
-        return _monthly_lessons_count(enrollment)
-    return expected_lessons_in_period(enrollment, start_date, month_end)
+    period_start = max(start_date, month_start)
+    return expected_lessons_in_period(enrollment, period_start, month_end)
 
 
 def tuition_month_preview(enrollment: Enrollment, month: date) -> dict:
     month_start = month_first_day(month)
+    start_date = enrollment_start_date(enrollment)
+    lesson_pattern = enrollment_lesson_pattern(enrollment)
     monthly_lessons = _monthly_lessons_count(enrollment)
     full_amount = full_course_amount(enrollment)
     effective_amount = effective_student_payable_amount(enrollment)
@@ -443,9 +451,9 @@ def tuition_month_preview(enrollment: Enrollment, month: date) -> dict:
 
     return {
         "month": month_start,
-        "start_date": enrollment_start_date(enrollment),
-        "lesson_pattern": enrollment_lesson_pattern(enrollment),
-        "lesson_pattern_label": lesson_pattern_label(getattr(enrollment, "lesson_pattern", None)),
+        "start_date": start_date,
+        "lesson_pattern": lesson_pattern,
+        "lesson_pattern_label": lesson_pattern_label(lesson_pattern),
         "monthly_lessons": monthly_lessons,
         "lesson_count": lesson_count,
         "fee_amount": int(fee_amount or 0),
