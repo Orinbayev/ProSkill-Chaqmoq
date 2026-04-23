@@ -44,6 +44,8 @@ from education.services.tuition import (
     get_month_paid,
     full_course_amount,
     effective_student_payable_amount,
+    calculate_enrollment_debt_snapshots,
+    month_range_starts,
     tuition_month_fee_field,
     tuition_month_fee,
     ensure_all_tuition_months_since_start,
@@ -57,6 +59,9 @@ from education.services.tuition import (
     expected_lessons_in_period,
     enrollment_start_date,
     is_month_closed_for_center,
+    normalize_lesson_pattern,
+    tuition_month_preview,
+    lesson_pattern_label,
 )
 
 
@@ -201,9 +206,9 @@ def sync_tuition_fee(enrollment, new_fee=None, start_month=None):
     from education.services.tuition import sync_tuition_fee as service_sync_tuition_fee
 
     service_sync_tuition_fee(
-        enrollment,
-        month_first_day(start_month or timezone.localdate()),
-        int(new_fee if new_fee is not None else effective_student_payable_amount(enrollment) or 0),
+        enrollment=enrollment,
+        start_month=month_first_day(start_month or timezone.localdate()),
+        new_fee=int(new_fee if new_fee is not None else effective_student_payable_amount(enrollment) or 0),
     )
 
 
@@ -861,6 +866,28 @@ def enrollment_edit(request, enrollment_id):
             if oqf is not None and str(oqf).strip() != "":
                 enr.oqituvchi_foiz = int(oqf)
 
+        joined_at_raw = (request.POST.get("joined_at") or request.POST.get("start_date") or "").strip()
+        joined_at = parse_date(joined_at_raw) if joined_at_raw else None
+        enr.joined_at = joined_at or enr.joined_at or timezone.localdate()
+        enr.lesson_pattern = normalize_lesson_pattern(
+            request.POST.get("lesson_pattern") or getattr(enr, "lesson_pattern", None)
+        )
+        monthly_lessons_raw = (request.POST.get("monthly_lessons") or "").strip()
+        try:
+            enr.monthly_lessons = int(
+                monthly_lessons_raw
+                or getattr(enr, "monthly_lessons", 0)
+                or getattr(enr.group, "oy_dars_soni", 0)
+                or 12
+            )
+        except (TypeError, ValueError):
+            enr.monthly_lessons = getattr(enr.group, "oy_dars_soni", 0) or 12
+        enr.pricing_type = (
+            Enrollment.PRICING_PRORATED
+            if enr.joined_at and enr.joined_at.day > 1
+            else Enrollment.PRICING_FULL
+        )
+
         payable_raw = (request.POST.get("student_payable_amount") or "").replace(" ", "").replace(",", "").strip()
         teacher_share_only = (request.POST.get("teacher_share_only") or "").lower() in {"on", "1", "true", "yes"}
         if teacher_share_only:
@@ -878,6 +905,12 @@ def enrollment_edit(request, enrollment_id):
                     "next": next_url,
                     "month": month_str,
                     "teacher_share_only_checked": teacher_share_only,
+                    "pricing_preview": tuition_month_preview(enr, start_month),
+                    "lesson_pattern_options": [
+                        ("even", "Juft kunlar"),
+                        ("odd", "Toq kunlar"),
+                        ("daily", "Har kuni"),
+                    ],
                 })
 
         try:
@@ -893,6 +926,12 @@ def enrollment_edit(request, enrollment_id):
                 "next": next_url,
                 "month": month_str,
                 "teacher_share_only_checked": teacher_share_only,
+                "pricing_preview": tuition_month_preview(enr, start_month),
+                "lesson_pattern_options": [
+                    ("even", "Juft kunlar"),
+                    ("odd", "Toq kunlar"),
+                    ("daily", "Har kuni"),
+                ],
             })
 
         # --- student update ---
@@ -903,12 +942,32 @@ def enrollment_edit(request, enrollment_id):
 
         enr.save()
 
+        open_history = StudentGroupHistory.objects.filter(
+            student=enr.student,
+            group=enr.group,
+            end_date__isnull=True,
+        ).order_by("-start_date").first()
+        if open_history:
+            open_history.start_date = enr.joined_at
+            open_history.kurs_narxi = enr.kurs_narhi
+            open_history.oqituvchi_foiz = enr.oqituvchi_foiz
+            open_history.save(update_fields=["start_date", "kurs_narxi", "oqituvchi_foiz"])
+        else:
+            StudentGroupHistory.objects.create(
+                student=enr.student,
+                group=enr.group,
+                center=enr.center,
+                start_date=enr.joined_at,
+                kurs_narxi=enr.kurs_narhi,
+                oqituvchi_foiz=enr.oqituvchi_foiz,
+            )
+
         # ✅ MUHIM: Qarz bazasi o'zgargan bo'lsa yoki o'zgarmasada TuitionMonth'ni yangilaymiz
         # Bu eski 50M kabi noto'g'ri qarzlarni ham to'g'irlaydi
         sync_tuition_fee(
-            enr,
-            effective_student_payable_amount(enr),
-            start_month=start_month,
+            enrollment=enr,
+            new_fee=effective_student_payable_amount(enr),
+            start_month=month_first_day(enr.joined_at or start_month),
         )
 
         messages.success(request, "O'quvchi ma'lumotlari muvaffaqiyatli yangilandi!")
@@ -920,6 +979,12 @@ def enrollment_edit(request, enrollment_id):
         "next": next_url,
         "month": month_str,   # ✅ template uchun
         "teacher_share_only_checked": _is_teacher_share_only_enrollment(enr),
+        "pricing_preview": tuition_month_preview(enr, start_month),
+        "lesson_pattern_options": [
+            ("even", "Juft kunlar"),
+            ("odd", "Toq kunlar"),
+            ("daily", "Har kuni"),
+        ],
     })
 
 @login_required
@@ -1537,7 +1602,6 @@ def group_month_attendance(request, group_id):
 @login_required
 def qarzdorlar_home(request):
     from core.tenant import get_request_center
-    from education.services.tuition import ensure_tuition_month
 
     if not user_can_manage_payments(request.user):
         messages.error(request, "Ruxsat yo'q.")
@@ -1578,21 +1642,31 @@ def qarzdorlar_home(request):
         if selected_from and selected_to and selected_from > selected_to:
             selected_to = selected_from
 
-    cur_month = selected_to.replace(day=1)
-
-    sel_month = request.GET.get("pay_month")
+    sel_month = (request.GET.get("pay_month") or "").strip()
+    pay_month_int = None
     if sel_month and sel_month.isdigit():
-        m = int(sel_month)
-        if 1 <= m <= 12:
-            cur_month = cur_month.replace(month=m)
+        maybe_month = int(sel_month)
+        if 1 <= maybe_month <= 12:
+            pay_month_int = maybe_month
 
-    fee_field = tuition_month_fee_field()
+    if pay_month_int:
+        selected_year = selected_to.year if selected_to else today.year
+        period_start_month = date(selected_year, pay_month_int, 1)
+        period_end_month = period_start_month
+        selected_from = period_start_month
+        selected_to = month_last_day(period_start_month)
+    else:
+        period_start_month = month_first_day(selected_from)
+        period_end_month = month_first_day(selected_to)
+
+    period_months = month_range_starts(period_start_month, period_end_month)
+    effective_pay_month = period_months[0] if period_months else period_start_month
 
     # ─── FAOL ENROLLMENT'LAR ─────────────────────────────────────────────────
     # Faqat:  is_active=True  +  student NOT archived  +  group NOT archived
     active_enrs_qs = (
         Enrollment.objects
-        .select_related("student", "group")
+        .select_related("student", "group", "group__oqituvchi", "group__category_obj")
         .filter(is_active=True, student__is_archived=False, group__is_archived=False)
     )
     if center:
@@ -1600,143 +1674,56 @@ def qarzdorlar_home(request):
 
     chart_months = _last_12_ending(selected_to)
 
-    # ─── TUITIONMONTH AUTO-ENSURE (joriy oy) ────────────────────────────────
-    # Open month bo'lsa current fee har doim service formulasi bilan yuradi:
-    # full month -> effective payable
-    # first month -> prorated
-    # closed monthlarda esa qotirilgan reconcile natijasiga tegmaymiz.
-    from django.utils import timezone as _tz
-
-    month_is_closed = is_month_closed_for_center(center, cur_month)
-    enrollment_list = list(active_enrs_qs)
-    existing_tm_enr_ids = set(
-        TuitionMonth.all_objects.filter(
-            enrollment__in=active_enrs_qs,
-            month=cur_month,
-        ).values_list("enrollment_id", flat=True)
-    )
-
-    to_create = []
-    for enr in enrollment_list:
-        if enr.id not in existing_tm_enr_ids:
-            fee = int(prorated_monthly_fee(enr, cur_month) or 0)
-            to_create.append(
-                TuitionMonth(
-                    enrollment=enr,
-                    center_id=enr.center_id,
-                    month=cur_month,
-                    fee_amount=fee or 0,
-                )
-            )
-    if to_create:
-        TuitionMonth.objects.bulk_create(to_create, ignore_conflicts=True)
-
-    TuitionMonth.all_objects.filter(
-        enrollment__in=active_enrs_qs,
-        month=cur_month,
-        is_deleted=True,
-    ).update(is_deleted=False, restored_at=_tz.now())
-
-    if not month_is_closed:
-        existing_tms = {
-            tm.enrollment_id: tm
-            for tm in TuitionMonth.objects.filter(
-                enrollment__in=active_enrs_qs,
-                month=cur_month,
-            )
-        }
-        tm_updates = []
-        for enr in enrollment_list:
-            tm = existing_tms.get(enr.id)
-            if not tm:
-                continue
-            expected_fee = int(prorated_monthly_fee(enr, cur_month) or 0)
-            if int(getattr(tm, fee_field, 0) or 0) != expected_fee:
-                setattr(tm, fee_field, expected_fee)
-                tm_updates.append(tm)
-        if tm_updates:
-            TuitionMonth.objects.bulk_update(tm_updates, [fee_field])
-
-    # ─── SUBQUERY: fee va paid (faqat TANLANGAN OY) ──────────────────────────
-    total_fee_sub = (
-        TuitionMonth.objects
-        .filter(enrollment=OuterRef("pk"), month=cur_month)
-        .values("enrollment")
-        .annotate(s=Sum(fee_field))
-        .values("s")
-    )
-    total_paid_sub = (
-        PaymentAllocation.objects
-        .filter(
-            tuition_month__enrollment=OuterRef("pk"),
-            tuition_month__month=cur_month,
-        )
-        .values("tuition_month__enrollment")
-        .annotate(s=Sum("amount"))
-        .values("s")
-    )
-
     # ─── ENROLLMENTS (FILTER UCHUN BASE) ─────────────────────────────────────
     enrs_base = active_enrs_qs
     if group_id:
         enrs_base = enrs_base.filter(group_id=group_id)
 
-    # ─── JAMI MARKAZ QARZ SUMMASI ────────────────────────────────────────────
-    total_center_debt = (
-        enrs_base
-        .annotate(f=Coalesce(Subquery(total_fee_sub), 0),
-                  p=Coalesce(Subquery(total_paid_sub), 0))
-        .annotate(d=F("f") - F("p"))
-        .filter(d__gt=0)
-        .aggregate(total=Sum("d"))["total"] or 0
+    enrollment_list = list(
+        enrs_base.order_by(
+            "student__familya",
+            "student__ism",
+            "student_id",
+            "group__nom",
+            "id",
+        )
     )
+    debt_snapshots = calculate_enrollment_debt_snapshots(enrollment_list, period_months)
 
-    # ─── ANNOTATE QARZ ──────────────────────────────────────────────────────
-    enrs_annotated = (
-        enrs_base
-        .annotate(f=Coalesce(Subquery(total_fee_sub), 0),
-                  p=Coalesce(Subquery(total_paid_sub), 0))
-        .annotate(calculated_debt=F("f") - F("p"))
+    # ─── JAMI QARZ SUMMASI ───────────────────────────────────────────────────
+    total_center_debt = sum(
+        int(snapshot["debt"] or 0)
+        for snapshot in debt_snapshots.values()
     )
 
     # ─── STUDENT MAP (student bo'yicha guruhlash) ────────────────────────────
-    graph_map = {chart_month: 0 for chart_month in chart_months}
     student_map = {}   # {student_id: row_dict}
 
-    chart_fee_rows = (
-        TuitionMonth.objects
-        .filter(enrollment__in=active_enrs_qs, month__in=chart_months)
-        .values("enrollment_id", "month")
-        .annotate(fee=Coalesce(Sum(fee_field), 0))
-    )
-    chart_fee_map = {(row["enrollment_id"], row["month"]): int(row["fee"] or 0) for row in chart_fee_rows}
-    chart_paid_rows = (
-        PaymentAllocation.objects
-        .filter(tuition_month__enrollment__in=active_enrs_qs, tuition_month__month__in=chart_months)
-        .values("tuition_month__enrollment_id", "tuition_month__month")
-        .annotate(paid=Coalesce(Sum("amount"), 0))
-    )
-    chart_paid_map = {
-        (row["tuition_month__enrollment_id"], row["tuition_month__month"]): int(row["paid"] or 0)
-        for row in chart_paid_rows
-    }
-
-    for e in enrs_annotated:
+    for e in enrollment_list:
         sid  = e.student_id
-        debt = int(e.calculated_debt or 0)
-        f    = int(e.f or 0)
-        p    = int(e.p or 0)
+        snapshot = debt_snapshots.get(e.id, {})
+        debt = int(snapshot.get("debt", 0) or 0)
+        f    = int(snapshot.get("total_fee", 0) or 0)
+        p    = int(snapshot.get("total_paid", 0) or 0)
+        lesson_count = int(snapshot.get("lesson_count", 0) or 0)
+        start_date = enrollment_start_date(e)
+        pattern_label = lesson_pattern_label(getattr(e, "lesson_pattern", None))
 
         if sid not in student_map:
             student_map[sid] = {
                 "student":     e.student,
                 "group_names": [],
+                "lesson_pattern_names": [],
                 "total_fee":   0,
                 "total_paid":  0,
                 "debt":        0,
+                "lesson_count": 0,
+                "start_date":  start_date,
                 "enrollment_count": 0,
                 "created_at":  e.created_at,
                 "enrollment":  e,
+                "debt_enrollment_ids": [],
+                "primary_debt_enrollment": None,
                 "deferred_enrollment": None,
                 "is_deferred": False,
                 "teacher_share_only_debt": 0,
@@ -1752,6 +1739,13 @@ def qarzdorlar_home(request):
         row["total_fee"]  += f
         row["total_paid"] += p
         row["debt"]       += debt
+        row["lesson_count"] += lesson_count
+        if start_date and (not row.get("start_date") or start_date < row["start_date"]):
+            row["start_date"] = start_date
+        if debt > 0:
+            row["debt_enrollment_ids"].append(e.id)
+            if row["primary_debt_enrollment"] is None:
+                row["primary_debt_enrollment"] = e
         if e.created_at and (not row.get("created_at") or e.created_at < row["created_at"]):
             row["created_at"] = e.created_at
         if getattr(e, "is_deferred", False):
@@ -1762,6 +1756,8 @@ def qarzdorlar_home(request):
             gnom = getattr(e.group, "nom", "")
             if gnom and gnom not in row["group_names"]:
                 row["group_names"].append(gnom)
+        if pattern_label and pattern_label not in row["lesson_pattern_names"]:
+            row["lesson_pattern_names"].append(pattern_label)
 
         full_amount = full_course_amount(e)
         effective_amount = effective_student_payable_amount(e)
@@ -1778,16 +1774,15 @@ def qarzdorlar_home(request):
                 if row["teacher_share_only_payment_enrollment_id"] is None:
                     row["teacher_share_only_payment_enrollment_id"] = e.id
 
-        for chart_month in chart_months:
-            month_fee = chart_fee_map.get((e.id, chart_month), 0)
-            month_paid = chart_paid_map.get((e.id, chart_month), 0)
-            month_debt = max(0, month_fee - month_paid)
-            if month_debt > 0:
-                graph_map[chart_month] += month_debt
-
     # ─── GROUP LABEL ─────────────────────────────────────────────────────────
     for r in student_map.values():
+        if r["primary_debt_enrollment"] is not None:
+            r["enrollment"] = r["primary_debt_enrollment"]
+            r["group"] = r["primary_debt_enrollment"].group
+            r["staff"] = getattr(r["group"], "oqituvchi", None)
+            r["start_date"] = enrollment_start_date(r["primary_debt_enrollment"])
         r["group_label"] = ", ".join(r["group_names"]) if r["group_names"] else "—"
+        r["lesson_pattern_label"] = ", ".join(r["lesson_pattern_names"]) if r["lesson_pattern_names"] else "—"
         r["has_teacher_share_only"] = (
             r["teacher_share_only_debt"] > 0
             and r["teacher_share_only_full_total"] > r["teacher_share_only_debt"]
@@ -1796,6 +1791,8 @@ def qarzdorlar_home(request):
             r["teacher_share_only_payment_enrollment_id"] = None
         r["payment_amount"] = r["teacher_share_only_debt"] if r["has_teacher_share_only"] else r["debt"]
         r["payment_scope"] = "teacher_share_only" if r["has_teacher_share_only"] else "student_total"
+        debt_enrollment_ids = r.get("debt_enrollment_ids") or []
+        r["payment_enrollment_id"] = debt_enrollment_ids[0] if len(debt_enrollment_ids) == 1 else None
 
     # ─── QIDIRUV: ism/familya/telefon bo'yicha ───────────────────────────────
     all_rows = list(student_map.values())
@@ -1835,9 +1832,32 @@ def qarzdorlar_home(request):
     display_rows = debtor_rows
 
     filtered_debt   = sum(r["debt"] for r in display_rows)
+    chart_enrollment_ids = {
+        enrollment_id
+        for row in display_rows
+        for enrollment_id in row.get("debt_enrollment_ids", [])
+    }
+    chart_enrollments = [
+        enrollment
+        for enrollment in enrollment_list
+        if enrollment.id in chart_enrollment_ids
+    ]
+    chart_snapshots = calculate_enrollment_debt_snapshots(
+        chart_enrollments,
+        chart_months,
+        virtual_missing_months=period_months,
+    )
+    graph_map = {chart_month: 0 for chart_month in chart_months}
+    for snapshot in chart_snapshots.values():
+        month_details = snapshot.get("months", {})
+        for chart_month in chart_months:
+            graph_map[chart_month] += int(
+                month_details.get(chart_month, {}).get("debt", 0) or 0
+            )
     chart_series = [graph_map[month] for month in chart_months]
     chart_labels = [_human_month_label(month) for month in chart_months]
     chart_period_label = _human_month_period_label(chart_months[0], chart_months[-1])
+    selected_period_label = _human_period_label(selected_from, selected_to)
 
     # ─── PAGINATOR ───────────────────────────────────────────────────────────
     from django.core.paginator import Paginator
@@ -1859,13 +1879,14 @@ def qarzdorlar_home(request):
         "chart_labels":   chart_labels,
         "chart_kicker":   "Oxirgi 12 oy",
         "chart_period_label": chart_period_label,
+        "selected_period_label": selected_period_label,
         "q":              q,
         "min_debt":       min_debt if min_debt else "",
         "max_debt":       max_debt if max_debt else "",
         "date_from":      selected_from.isoformat(),
         "date_to":        selected_to.isoformat(),
-        "pay_month":      sel_month,
-        "effective_pay_month": cur_month.strftime("%Y-%m"),
+        "pay_month":      str(pay_month_int) if pay_month_int else "",
+        "effective_pay_month": effective_pay_month.strftime("%Y-%m"),
         "per_page":       per_page,
         "page_size_options": allowed_page_sizes,
         "uz_months": [
@@ -6058,11 +6079,18 @@ def add_student_to_group(request, pk: int):
         try:
             data = json.loads(request.body)
             student_id = data.get("student_id")
+            start_date_raw = data.get("start_date")
+            lesson_pattern_raw = data.get("lesson_pattern")
         except:
             student_id = request.POST.get("student_id")
+            start_date_raw = request.POST.get("start_date")
+            lesson_pattern_raw = request.POST.get("lesson_pattern")
 
         if not student_id:
             return JsonResponse({"error": "O'quvchi tanlanmagan"}, status=400)
+
+        start_date = parse_date(start_date_raw or "") or timezone.localdate()
+        lesson_pattern = normalize_lesson_pattern(lesson_pattern_raw)
 
         student = get_object_or_404(User, pk=student_id, role="student", center=target_center)
 
@@ -6083,17 +6111,29 @@ def add_student_to_group(request, pk: int):
             student=student,
             group=g,
             kurs_narxi=kurs_narhi,
-            oqituvchi_foiz=g.oqituvchi_foiz or 40
+            oqituvchi_foiz=g.oqituvchi_foiz or 40,
+            start_date=start_date,
+            lesson_pattern=lesson_pattern,
+            monthly_lessons=getattr(g, "oy_dars_soni", 0) or 12,
         )
 
         from education.services.tuition import ensure_tuition_month
-        from django.utils import timezone
-        # ✅ Yangi qo'shilgan o'quvchi avtomatik joriy oy uchn qarzdor bo'lishini ta'minlash
+        # ✅ Yangi qo'shilgan o'quvchi uchun joriy oy snapshoti to'g'ri prorata bilan yaratiladi.
         ensure_tuition_month(enr, timezone.localdate())
+        preview = tuition_month_preview(enr, timezone.localdate())
 
         return JsonResponse({
             "status": "success",
             "message": f"'{student.get_full_name()}' muvaffaqiyatli qo'shildi ✅",
+            "preview": {
+                "start_date": preview["start_date"].isoformat(),
+                "lesson_pattern": preview["lesson_pattern"],
+                "lesson_pattern_label": preview["lesson_pattern_label"],
+                "lesson_count": preview["lesson_count"],
+                "fee_amount": preview["fee_amount"],
+                "teacher_share": preview["teacher_share"],
+                "center_share": preview["center_share"],
+            },
             "student": {
                 "id": student.id,
                 "full_name": student.get_full_name(),
@@ -6104,6 +6144,11 @@ def add_student_to_group(request, pk: int):
     # Standart GET render
     return render(request, "education/add_student_to_group.html", {
         "group": g,
+        "today": timezone.localdate(),
+        "default_lesson_pattern": "odd",
+        "monthly_lessons": getattr(g, "oy_dars_soni", 0) or 12,
+        "kurs_narhi": getattr(g, "kurs_narxi", 0) or 0,
+        "oqituvchi_foiz": getattr(g, "oqituvchi_foiz", 0) or 0,
     })
 
 

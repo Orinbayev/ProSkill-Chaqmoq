@@ -482,6 +482,71 @@
         opacity: 0.82;
     }
 
+    .table-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 118px;
+    }
+
+    .table-meta strong {
+        color: #f8fafc;
+        font-size: 14px;
+        font-weight: 800;
+    }
+
+    .table-meta span {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .lesson-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        color: #bfdbfe;
+        background: rgba(37, 99, 235, 0.12);
+        border: 1px solid rgba(96, 165, 250, 0.18);
+        font-size: 12px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .empty-state {
+        padding: 42px 18px;
+        text-align: center;
+    }
+
+    .empty-state-icon {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 14px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #22c55e;
+        background: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.18);
+        font-size: 24px;
+    }
+
+    .empty-state-title {
+        color: #f8fafc;
+        font-size: 16px;
+        font-weight: 900;
+        margin-bottom: 6px;
+    }
+
+    .empty-state-copy {
+        color: #94a3b8;
+        font-size: 13px;
+        margin: 0;
+    }
+
     .action-btn {
         width: 36px;
         height: 36px;
@@ -852,7 +917,7 @@
                             <i class="fa-solid fa-hand-holding-dollar"></i>
                         </div>
                     </div>
-                    <div class="summary-note">Markaz bo'yicha jami qarzdorlik</div>
+	                    <div class="summary-note">{{ selected_period_label }}</div>
                 </div>
                 <div class="premium-card summary-card">
                     <div class="summary-head">
@@ -865,7 +930,7 @@
                             <i class="fa-solid fa-filter"></i>
                         </div>
                     </div>
-                    <div class="summary-note">Tanlangan filterlar kesimidagi qarz</div>
+	                    <div class="summary-note">Filter va davr kesimidagi qarz</div>
                 </div>
                 <div class="premium-card summary-card summary-card-wide">
                     <div class="summary-head">
@@ -998,70 +1063,77 @@
         </div>
         <div class="table-responsive">
             <table class="premium-table">
-                <thead>
-                    <tr>
-                        <th>Yozilgan sana</th>
-                        <th>O'quvchi</th>
-                        <th>Balansi</th>
-                        <th>Guruh</th>
-                        <th>Kurs</th>
-                        <th class="text-end">Amallar</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in page_obj %}
-                    <tr {% if row.is_deferred %}style="background:rgba(245,158,11,0.07); border-left:3px solid rgba(245,158,11,0.5);"{% endif %}>
-                        <td>
-                            {% if row.created_at %}
-                            <div class="fw-bold text-white">{{ row.created_at|date:"d.m.Y" }}</div>
-                            <div class="small text-secondary" style="color:#64748b;">Guruhga kiritilgan</div>
-                            {% else %}
-                            <span class="text-secondary opacity-50">—</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="student-info">
-                                <span class="student-name">{{ row.student.get_full_name }}</span>
-                                {% if row.is_deferred %}
-                                <span style="font-size:11px; color:#f59e0b; font-weight:700;">⏳ Kechiktirilgan</span>
+	                <thead>
+	                    <tr>
+	                        <th>O'quvchi</th>
+	                        <th>Guruh</th>
+	                        <th>Start date</th>
+	                        <th>Darslar</th>
+	                        <th>Qarz</th>
+	                        <th>To'langan</th>
+	                        <th class="text-end">Amallar</th>
+	                    </tr>
+	                </thead>
+	                <tbody>
+	                    {% for row in page_obj %}
+	                    <tr {% if row.is_deferred %}style="background:rgba(245,158,11,0.07); border-left:3px solid rgba(245,158,11,0.5);"{% endif %}>
+	                        <td>
+	                            <div class="student-info">
+	                                <span class="student-name">{{ row.student.get_full_name }}</span>
+	                                {% if row.is_deferred %}
+	                                <span style="font-size:11px; color:#f59e0b; font-weight:700;">⏳ Kechiktirilgan</span>
                                 {% endif %}
                                 {% if row.student.telefon1 %}
                                 <span class="student-meta">
                                     {{ row.student.telefon1|default:"" }}{% if row.student.telefon2 %} / {{ row.student.telefon2 }}{% endif %}
                                 </span>
-                                {% endif %}
-                            </div>
-                        </td>
-                        <td>
-                            <div class="debt-badge" {% if row.is_deferred %}style="color:#f59e0b;"{% endif %}>{{ row.debt|intcomma }} so'm</div>
-                            {% if row.has_teacher_share_only %}
-                            <div class="debt-meta-line teacher-share">O'qituvchi haqqi: {{ row.teacher_share_only_debt|intcomma }} so'm</div>
-                            <div class="debt-meta-line original-price">Umumiy narxi: {{ row.teacher_share_only_full_total|intcomma }} so'm</div>
-                            {% endif %}
-                            <div class="small text-secondary opacity-50">To'langan: {{ row.total_paid|intcomma }}</div>
-                        </td>
-                        <td>
-                            {% if row.group_label %}
-                                <span class="group-tag">{{ row.group_label }}</span>
-                            {% else %}
-                                <span class="text-secondary small italic">Guruhsiz</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if row.group %}
-                                <span class="text-secondary">{{ row.group.category_obj.name|default:"Kurs" }}</span>
-                            {% else %}
-                                <span class="text-secondary opacity-50">—</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-end">
-                            <div class="d-flex justify-content-end gap-2">
-                                <button class="action-btn" data-bs-toggle="modal" data-bs-target="#paymentModal"
-                                    data-student-id="{{ row.student.id }}"
-                                    data-enrollment-id="{{ row.teacher_share_only_payment_enrollment_id|default:'' }}"
-                                    data-payment-scope="{{ row.payment_scope }}"
-                                    data-payment-label="{% if row.has_teacher_share_only %}O'qituvchi haqqi{% else %}Joriy qarz summasi{% endif %}"
-                                    data-student-name="{{ row.student.get_full_name }}" data-debt="{{ row.payment_amount }}">
+	                                {% endif %}
+	                            </div>
+	                        </td>
+	                        <td>
+	                            {% if row.group_label %}
+	                                <span class="group-tag">{{ row.group_label }}</span>
+	                            {% else %}
+	                                <span class="text-secondary small italic">Guruhsiz</span>
+	                            {% endif %}
+	                        </td>
+	                        <td>
+	                            <div class="table-meta">
+	                                {% if row.start_date %}
+	                                <strong>{{ row.start_date|date:"d.m.Y" }}</strong>
+	                                {% else %}
+	                                <strong>—</strong>
+	                                {% endif %}
+	                                <span>Boshlanish sanasi</span>
+	                            </div>
+	                        </td>
+	                        <td>
+	                            <div class="table-meta">
+	                                <span class="lesson-pill"><i class="fa-solid fa-calendar-days"></i> {{ row.lesson_count }} ta</span>
+	                                <span>{{ row.lesson_pattern_label }}</span>
+	                            </div>
+	                        </td>
+	                        <td>
+	                            <div class="debt-badge" {% if row.is_deferred %}style="color:#f59e0b;"{% endif %}>{{ row.debt|intcomma }} so'm</div>
+	                            {% if row.has_teacher_share_only %}
+	                            <div class="debt-meta-line teacher-share">O'qituvchi haqqi: {{ row.teacher_share_only_debt|intcomma }} so'm</div>
+	                            <div class="debt-meta-line original-price">Umumiy narxi: {{ row.teacher_share_only_full_total|intcomma }} so'm</div>
+	                            {% endif %}
+	                        </td>
+	                        <td>
+	                            <div class="table-meta">
+	                                <strong>{{ row.total_paid|intcomma }} so'm</strong>
+	                                <span>Tanlangan davr</span>
+	                            </div>
+	                        </td>
+	                        <td class="text-end">
+	                            <div class="d-flex justify-content-end gap-2">
+	                                <button class="action-btn" data-bs-toggle="modal" data-bs-target="#paymentModal"
+	                                    data-student-id="{{ row.student.id }}"
+	                                    data-enrollment-id="{% if row.has_teacher_share_only %}{{ row.teacher_share_only_payment_enrollment_id|default:'' }}{% else %}{{ row.payment_enrollment_id|default:'' }}{% endif %}"
+	                                    data-payment-scope="{{ row.payment_scope }}"
+	                                    data-payment-label="{% if row.has_teacher_share_only %}O'qituvchi haqqi{% else %}Joriy qarz summasi{% endif %}"
+	                                    data-student-name="{{ row.student.get_full_name }}" data-debt="{{ row.payment_amount }}">
                                     <i class="fas fa-eye"></i>
                                 </button>
                                 {% if row.enrollment %}
@@ -1103,14 +1175,16 @@
                             </div>
                         </td>
                     </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6" class="text-center py-5">
-                            <div class="opacity-30 mb-3"><i class="fa-solid fa-check-circle fa-3x text-success"></i>
-                            </div>
-                            <p class="text-secondary m-0">Qarzdorlar yo'q!</p>
-                        </td>
-                    </tr>
+	                    {% empty %}
+	                    <tr>
+	                        <td colspan="7">
+	                            <div class="empty-state">
+	                                <div class="empty-state-icon"><i class="fa-solid fa-check"></i></div>
+	                                <div class="empty-state-title">Qarzdorlar yo'q</div>
+	                                <p class="empty-state-copy">Tanlangan davr va filterlar bo'yicha qarzdorlik topilmadi.</p>
+	                            </div>
+	                        </td>
+	                    </tr>
                     {% endfor %}
                 </tbody>
             </table>

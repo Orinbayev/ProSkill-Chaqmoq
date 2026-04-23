@@ -1,8 +1,11 @@
+from datetime import timedelta
+
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from accounts.models import Center, User
-from education.models import Enrollment, Group
+from education.models import Enrollment, Group, StudentGroupHistory
 
 
 class QarzdorlarPaginationTests(TestCase):
@@ -32,6 +35,7 @@ class QarzdorlarPaginationTests(TestCase):
             oqituvchi_foiz=40,
             oy_dars_soni=12,
         )
+        history_start = timezone.localdate().replace(day=1) - timedelta(days=30)
         for idx in range(25):
             student = User.objects.create_user(
                 email=f"student{idx}@debt.test",
@@ -49,6 +53,14 @@ class QarzdorlarPaginationTests(TestCase):
                 kurs_narhi=150_000,
                 oqituvchi_foiz=40,
                 is_active=True,
+            )
+            StudentGroupHistory.objects.create(
+                student=student,
+                group=self.group,
+                center=self.center,
+                start_date=history_start,
+                kurs_narxi=150_000,
+                oqituvchi_foiz=40,
             )
         self.client.force_login(self.manager)
         self.url = f"/{self.center.slug}{reverse('education:qarzdorlar_home')}"

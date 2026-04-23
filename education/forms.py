@@ -364,7 +364,11 @@ class GroupCreateForm(forms.ModelForm):
 class EnrollmentCreateForm(forms.ModelForm):
     class Meta:
         model = Enrollment
-        fields = ('group', 'student', 'kurs_narhi', 'student_payable_amount')
+        fields = ('group', 'student', 'kurs_narhi', 'student_payable_amount', 'joined_at', 'lesson_pattern')
+        widgets = {
+            "joined_at": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+            "lesson_pattern": forms.RadioSelect(),
+        }
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -387,18 +391,22 @@ class EnrollmentCreateForm(forms.ModelForm):
 class EnrollmentForm(forms.ModelForm):
     class Meta:
         model = Enrollment
-        fields = ['student', 'kurs_narhi', 'student_payable_amount', 'oqituvchi_foiz']
+        fields = ['student', 'kurs_narhi', 'student_payable_amount', 'oqituvchi_foiz', 'joined_at', 'lesson_pattern']
         labels = {
             'student': "O‘quvchini tanlang",
             'kurs_narhi': "Kurs narxi (so‘mda)",
             'student_payable_amount': "O‘quvchidan olinadigan summa",
             'oqituvchi_foiz': "O‘qituvchining ulushi (%)",
+            'joined_at': "Boshlanish sanasi",
+            'lesson_pattern': "Dars patterni",
         }
         widgets = {
             'student': forms.Select(attrs={'class': 'form-select'}),
             'kurs_narhi': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Masalan: 600000'}),
             'student_payable_amount': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Bo‘sh qoldirilsa to‘liq kurs narxi ishlatiladi'}),
             'oqituvchi_foiz': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Masalan: 40'}),
+            'joined_at': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'lesson_pattern': forms.RadioSelect(),
         }
 
     def clean(self):

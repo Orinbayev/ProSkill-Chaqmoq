@@ -1,7 +1,11 @@
+import calendar
+import json
+
 from django.core.exceptions import ValidationError
 from django.db.models import Sum
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from datetime import date, timedelta
 
@@ -22,6 +26,7 @@ from education.services.tuition import (
     effective_student_payable_amount,
     ensure_tuition_month,
     full_course_amount,
+    pattern_lessons_between,
 )
 from education.views import sync_tuition_fee
 
@@ -376,6 +381,61 @@ class StudentPayableAmountTests(TestCase):
         self.assertContains(response, 'id="teacherShareOnly"')
         self.assertContains(response, 'id="teacherShareOnly" name="teacher_share_only" checked', html=False)
 
+    def test_enrollment_edit_renders_start_date_pattern_and_preview_controls(self):
+        edit_url = f"/{self.center.slug}{reverse('education:enrollment_edit', args=[self.regular_enrollment.id])}"
+
+        response = self.client.get(edit_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'type="date"')
+        self.assertContains(response, 'name="lesson_pattern"')
+        self.assertContains(response, 'id="billingPreview"')
+
+    def test_add_student_to_group_uses_start_date_pattern_and_creates_prorated_snapshot(self):
+        add_url = f"/{self.center.slug}{reverse('education:add_student_to_group', args=[self.group.id])}"
+        page_response = self.client.get(add_url)
+        self.assertEqual(page_response.status_code, 200)
+        self.assertContains(page_response, 'id="start-date"')
+        self.assertContains(page_response, 'name="lesson_pattern"')
+        self.assertContains(page_response, 'id="tuition-preview"')
+
+        student = User.objects.create_user(
+            email="ajax-pattern@payable.test",
+            password="testpass123",
+            role="student",
+            center=self.center,
+            ism="Ajax",
+            familya="Pattern",
+            telefon1="+998901000088",
+        )
+        current_month = timezone.localdate().replace(day=1)
+        start_date = current_month.replace(day=18)
+        month_end = current_month.replace(
+            day=calendar.monthrange(current_month.year, current_month.month)[1]
+        )
+        expected_lessons = pattern_lessons_between(start_date, month_end, "even")
+        expected_fee = round((self.group.kurs_narxi * expected_lessons) / self.group.oy_dars_soni)
+
+        response = self.client.post(
+            add_url,
+            data=json.dumps({
+                "student_id": student.id,
+                "start_date": start_date.isoformat(),
+                "lesson_pattern": "even",
+            }),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["status"], "success")
+        enrollment = Enrollment.objects.get(student=student, group=self.group)
+        self.assertEqual(enrollment.joined_at, start_date)
+        self.assertEqual(enrollment.lesson_pattern, "even")
+        tm = TuitionMonth.objects.get(enrollment=enrollment, month=current_month)
+        self.assertEqual(tm.fee_amount, expected_fee)
+
     def test_month_preview_is_read_only_and_shows_reconciled_delta(self):
         preview_month = date(2026, 4, 1)
         for weekday in (1, 3, 5):
@@ -588,3 +648,206 @@ class StudentPayableAmountTests(TestCase):
         self.assertEqual(response.status_code, 302)
         payment = Payment.objects.filter(enrollment=self.teacher_share_enrollment).latest("id")
         self.assertEqual(payment.paid_date, selected_date)
+
+
+class QarzdorlarDebtConsistencyTests(TestCase):
+    def setUp(self):
+        self.center = Center.objects.create(name="Debt Logic Center", slug="debt-logic")
+        self.manager = User.objects.create_user(
+            email="manager@debt-logic.test",
+            password="testpass123",
+            role="manager",
+            center=self.center,
+            ism="Debt",
+            familya="Manager",
+        )
+        self.teacher = User.objects.create_user(
+            email="teacher@debt-logic.test",
+            password="testpass123",
+            role="teacher",
+            center=self.center,
+            ism="Debt",
+            familya="Teacher",
+            oqituvchi_foizi=40,
+        )
+        self.group_a = Group.objects.create(
+            center=self.center,
+            nom="Debt Group A",
+            oqituvchi=self.teacher,
+            kurs_narxi=100_000,
+            oqituvchi_foiz=40,
+            oy_dars_soni=12,
+        )
+        self.group_b = Group.objects.create(
+            center=self.center,
+            nom="Debt Group B",
+            oqituvchi=self.teacher,
+            kurs_narxi=200_000,
+            oqituvchi_foiz=40,
+            oy_dars_soni=12,
+        )
+        self.client.force_login(self.manager)
+        self.qarzdorlar_url = f"/{self.center.slug}{reverse('education:qarzdorlar_home')}"
+
+    def _student(self, email, ism):
+        return User.objects.create_user(
+            email=email,
+            password="testpass123",
+            role="student",
+            center=self.center,
+            ism=ism,
+            familya="Student",
+            telefon1="+998901009999",
+        )
+
+    def _enrollment(self, student, group, price):
+        enrollment = Enrollment.objects.create(
+            center=self.center,
+            group=group,
+            student=student,
+            kurs_narhi=price,
+            oqituvchi_foiz=40,
+            is_active=True,
+        )
+        StudentGroupHistory.objects.create(
+            student=student,
+            group=group,
+            center=self.center,
+            start_date=date(2026, 3, 1),
+            kurs_narxi=price,
+            oqituvchi_foiz=40,
+        )
+        return enrollment
+
+    def _allocate(self, enrollment, tuition_month, amount, paid_date):
+        payment = Payment.objects.create(
+            center=self.center,
+            enrollment=enrollment,
+            student=enrollment.student,
+            group=enrollment.group,
+            payment_type="cash",
+            cash_amount=amount,
+            paid_date=paid_date,
+            created_by=self.manager,
+        )
+        return PaymentAllocation.objects.create(
+            center=self.center,
+            payment=payment,
+            tuition_month=tuition_month,
+            amount=amount,
+        )
+
+    def _single_row(self, response):
+        rows = list(response.context["page_obj"].object_list)
+        self.assertEqual(len(rows), 1)
+        return rows[0]
+
+    def test_overpayment_on_one_enrollment_does_not_close_another_enrollment_debt(self):
+        month = date(2026, 4, 1)
+        student = self._student("multi-overpay@debt-logic.test", "MultiOverpay")
+        overpaid_enrollment = self._enrollment(student, self.group_a, 100_000)
+        debt_enrollment = self._enrollment(student, self.group_b, 200_000)
+        overpaid_tm = TuitionMonth.objects.create(
+            center=self.center,
+            enrollment=overpaid_enrollment,
+            month=month,
+            fee_amount=100_000,
+        )
+        debt_tm = TuitionMonth.objects.create(
+            center=self.center,
+            enrollment=debt_enrollment,
+            month=month,
+            fee_amount=200_000,
+        )
+        self._allocate(overpaid_enrollment, overpaid_tm, 150_000, month.replace(day=5))
+        self._allocate(debt_enrollment, debt_tm, 50_000, month.replace(day=6))
+
+        response = self.client.get(self.qarzdorlar_url, {
+            "date_from": "2026-04-01",
+            "date_to": "2026-04-30",
+            "q": "MultiOverpay",
+        })
+
+        self.assertEqual(response.status_code, 200)
+        row = self._single_row(response)
+        self.assertEqual(row["debt"], 150_000)
+        self.assertEqual(response.context["total_debt"], 150_000)
+        self.assertEqual(response.context["filtered_debt"], 150_000)
+        self.assertEqual(response.context["chart_data"][-1], 150_000)
+
+    def test_date_from_date_to_counts_the_whole_month_range(self):
+        student = self._student("range@debt-logic.test", "RangeFilter")
+        enrollment = self._enrollment(student, self.group_a, 120_000)
+        april = date(2026, 4, 1)
+        may = date(2026, 5, 1)
+        TuitionMonth.objects.create(
+            center=self.center,
+            enrollment=enrollment,
+            month=april,
+            fee_amount=100_000,
+        )
+        may_tm = TuitionMonth.objects.create(
+            center=self.center,
+            enrollment=enrollment,
+            month=may,
+            fee_amount=120_000,
+        )
+        self._allocate(enrollment, may_tm, 50_000, may.replace(day=7))
+
+        range_response = self.client.get(self.qarzdorlar_url, {
+            "date_from": "2026-04-01",
+            "date_to": "2026-05-31",
+            "q": "RangeFilter",
+        })
+        may_response = self.client.get(self.qarzdorlar_url, {
+            "date_from": "2026-05-01",
+            "date_to": "2026-05-31",
+            "q": "RangeFilter",
+        })
+
+        self.assertEqual(range_response.status_code, 200)
+        self.assertEqual(self._single_row(range_response)["debt"], 170_000)
+        self.assertEqual(range_response.context["filtered_debt"], 170_000)
+        self.assertEqual(range_response.context["effective_pay_month"], "2026-04")
+
+        self.assertEqual(may_response.status_code, 200)
+        self.assertEqual(self._single_row(may_response)["debt"], 70_000)
+        self.assertEqual(may_response.context["filtered_debt"], 70_000)
+        self.assertEqual(may_response.context["chart_data"][-1], 70_000)
+
+    def test_qarzdorlar_get_does_not_create_or_update_tuition_months(self):
+        month = date(2026, 4, 1)
+        virtual_student = self._student("virtual@debt-logic.test", "VirtualNoWrite")
+        virtual_enrollment = self._enrollment(virtual_student, self.group_a, 100_000)
+        frozen_student = self._student("frozen@debt-logic.test", "FrozenNoWrite")
+        frozen_enrollment = self._enrollment(frozen_student, self.group_b, 100_000)
+        frozen_tm = TuitionMonth.objects.create(
+            center=self.center,
+            enrollment=frozen_enrollment,
+            month=month,
+            fee_amount=300_000,
+        )
+        before_count = TuitionMonth.objects.count()
+
+        virtual_response = self.client.get(self.qarzdorlar_url, {
+            "date_from": "2026-04-01",
+            "date_to": "2026-04-30",
+            "q": "VirtualNoWrite",
+        })
+        frozen_response = self.client.get(self.qarzdorlar_url, {
+            "date_from": "2026-04-01",
+            "date_to": "2026-04-30",
+            "q": "FrozenNoWrite",
+        })
+
+        self.assertEqual(virtual_response.status_code, 200)
+        self.assertEqual(self._single_row(virtual_response)["debt"], 100_000)
+        self.assertFalse(
+            TuitionMonth.objects.filter(enrollment=virtual_enrollment, month=month).exists()
+        )
+        self.assertEqual(TuitionMonth.objects.count(), before_count)
+
+        self.assertEqual(frozen_response.status_code, 200)
+        self.assertEqual(self._single_row(frozen_response)["debt"], 300_000)
+        frozen_tm.refresh_from_db()
+        self.assertEqual(frozen_tm.fee_amount, 300_000)

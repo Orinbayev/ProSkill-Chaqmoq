@@ -4,7 +4,7 @@ from __future__ import annotations
 import calendar
 from collections import Counter
 from datetime import date, datetime, timedelta
-from typing import Optional, Union
+from typing import Iterable, Optional, Sequence, Union
 
 from django.db import transaction
 from django.db.models import Q, Sum, F
@@ -56,6 +56,35 @@ def add_month(d: date, n: int = 1) -> date:
     return date(y, m, 1)
 
 
+def round_div(numerator: int, denominator: int) -> int:
+    numerator = int(numerator or 0)
+    denominator = int(denominator or 0)
+    if denominator <= 0:
+        return 0
+    return (numerator + denominator // 2) // denominator
+
+
+def proportional_amount(amount: int, units: int, total_units: int) -> int:
+    return round_div(int(amount or 0) * int(units or 0), int(total_units or 0))
+
+
+def month_range_starts(start_date: date, end_date: date) -> list[date]:
+    """
+    [start_date, end_date] oralig'idagi oy boshlarini qaytaradi.
+    """
+    start_month = month_first_day(start_date)
+    end_month = month_first_day(end_date)
+    if start_month > end_month:
+        start_month, end_month = end_month, start_month
+
+    months = []
+    cur = start_month
+    while cur <= end_month:
+        months.append(cur)
+        cur = add_month(cur, 1)
+    return months
+
+
 def parse_month_str(s: str) -> Optional[date]:
     """
     'YYYY-MM' -> date(YYYY,MM,1)
@@ -92,6 +121,10 @@ def enrollment_start_date(enrollment: Enrollment) -> date:
     ).order_by("-start_date").first()
     if history and history.start_date:
         return history.start_date
+
+    joined_at = getattr(enrollment, "joined_at", None)
+    if joined_at:
+        return joined_at
 
     start_dt = getattr(enrollment, "created_at", None) or timezone.now()
     return start_dt.date()
@@ -171,6 +204,58 @@ def scheduled_lessons_between(group, start: date, end: date) -> int:
     return count
 
 
+LESSON_PATTERN_GROUP = "group"
+LESSON_PATTERN_EVEN = "even"
+LESSON_PATTERN_ODD = "odd"
+LESSON_PATTERN_DAILY = "daily"
+LESSON_PATTERN_LABELS = {
+    LESSON_PATTERN_GROUP: "Guruh jadvali",
+    LESSON_PATTERN_EVEN: "Juft kunlar",
+    LESSON_PATTERN_ODD: "Toq kunlar",
+    LESSON_PATTERN_DAILY: "Har kuni",
+}
+
+
+def normalize_lesson_pattern(pattern: Optional[str]) -> str:
+    pattern = (pattern or "").strip().lower()
+    if pattern in {LESSON_PATTERN_EVEN, LESSON_PATTERN_ODD, LESSON_PATTERN_DAILY}:
+        return pattern
+    return LESSON_PATTERN_GROUP
+
+
+def lesson_pattern_label(pattern: Optional[str]) -> str:
+    return LESSON_PATTERN_LABELS.get(normalize_lesson_pattern(pattern), "Guruh jadvali")
+
+
+def enrollment_lesson_pattern(enrollment: Enrollment) -> str:
+    return normalize_lesson_pattern(getattr(enrollment, "lesson_pattern", None))
+
+
+def pattern_lessons_between(start: date, end: date, pattern: Optional[str]) -> int:
+    """
+    Juft/toq/har kuni patterni bo'yicha [start, end] oralig'idagi darslarni sanaydi.
+    Juft/toq bu yerda kalendar sana raqamining juft/toqligiga qaraydi.
+    """
+    if start > end:
+        return 0
+
+    pattern = normalize_lesson_pattern(pattern)
+    if pattern == LESSON_PATTERN_GROUP:
+        return 0
+
+    count = 0
+    cur = start
+    while cur <= end:
+        if pattern == LESSON_PATTERN_DAILY:
+            count += 1
+        elif pattern == LESSON_PATTERN_EVEN and cur.day % 2 == 0:
+            count += 1
+        elif pattern == LESSON_PATTERN_ODD and cur.day % 2 == 1:
+            count += 1
+        cur += timedelta(days=1)
+    return count
+
+
 def expected_lessons_in_period(enrollment: Enrollment, start: date, end: date) -> int:
     """
     Oralig'idagi "kutilayotgan" darslar sonini qaytaradi.
@@ -180,16 +265,19 @@ def expected_lessons_in_period(enrollment: Enrollment, start: date, end: date) -
     if start > end:
         return 0
 
+    pattern = enrollment_lesson_pattern(enrollment)
+    if pattern != LESSON_PATTERN_GROUP:
+        return pattern_lessons_between(start, end, pattern)
+
     group = enrollment.group
     scheduled = scheduled_lessons_between(group, start, end)
     if scheduled > 0:
         return scheduled
 
-    oy_dars_soni = int(getattr(group, "oy_dars_soni", 12) or 12) or 12
+    oy_dars_soni = _monthly_lessons_count(enrollment)
     month_total_days = calendar.monthrange(start.year, start.month)[1]
     period_days = (end - start).days + 1
-    ratio = min(period_days / month_total_days, 1.0)
-    return max(0, round(oy_dars_soni * ratio))
+    return min(oy_dars_soni, proportional_amount(oy_dars_soni, period_days, month_total_days))
 
 
 def billable_attendance_count(enrollment: Enrollment, month: date) -> int:
@@ -217,8 +305,10 @@ def billable_attendance_count(enrollment: Enrollment, month: date) -> int:
 
 
 def _monthly_lessons_count(enrollment: Enrollment) -> int:
-    group = enrollment.group
-    monthly_lessons = int(getattr(group, "oy_dars_soni", 0) or 0) or 12
+    monthly_lessons = int(getattr(enrollment, "monthly_lessons", 0) or 0)
+    if monthly_lessons <= 0:
+        group = getattr(enrollment, "group", None)
+        monthly_lessons = int(getattr(group, "oy_dars_soni", 0) or 0) or 12
     return monthly_lessons if monthly_lessons > 0 else 12
 
 
@@ -235,7 +325,6 @@ def _prorated_monthly_fee_from_amount(
         return 0
 
     monthly_lessons = _monthly_lessons_count(enrollment)
-    per_lesson = effective_price / monthly_lessons
     start_date = enrollment_start_date(enrollment)
 
     if start_date > month_end:
@@ -244,7 +333,7 @@ def _prorated_monthly_fee_from_amount(
         return effective_price
 
     expected = expected_lessons_in_period(enrollment, start_date, month_end)
-    fee = round(expected * per_lesson)
+    fee = proportional_amount(effective_price, expected, monthly_lessons)
     return min(int(fee), effective_price)
 
 
@@ -273,10 +362,8 @@ def attendance_based_fee(enrollment: Enrollment, month: date) -> int:
     if effective_price <= 0:
         return 0
 
-    per_lesson = effective_price / _monthly_lessons_count(enrollment)
-
     billable = billable_attendance_count(enrollment, month)
-    fee = round(billable * per_lesson)
+    fee = proportional_amount(effective_price, billable, _monthly_lessons_count(enrollment))
     return min(int(fee), effective_price)
 
 
@@ -291,9 +378,7 @@ def teacher_monthly_financials(
     maksimumdan oshirmaydi.
     """
     group = getattr(enrollment, "group", None)
-    monthly_lessons = int(getattr(group, "oy_dars_soni", 0) or 0) or 12
-    if monthly_lessons <= 0:
-        monthly_lessons = 12
+    monthly_lessons = _monthly_lessons_count(enrollment)
 
     billable_lessons = max(0, int(billable_lessons or 0))
     full_amount = full_course_amount(enrollment)
@@ -311,15 +396,11 @@ def teacher_monthly_financials(
             "turnover_cap": 0,
         }
 
-    per_lesson_turnover = full_amount / monthly_lessons
-    teacher_salary_cap = round(full_amount * effective_percent / 100)
+    teacher_salary_cap = round_div(full_amount * effective_percent, 100)
     turnover_cap = int(full_amount)
 
-    turnover = min(round(per_lesson_turnover * billable_lessons), turnover_cap)
-    teacher_salary = min(
-        round(per_lesson_turnover * (effective_percent / 100) * billable_lessons),
-        teacher_salary_cap,
-    )
+    turnover = min(proportional_amount(full_amount, billable_lessons, monthly_lessons), turnover_cap)
+    teacher_salary = min(round_div(turnover * effective_percent, 100), teacher_salary_cap)
     center_profit = turnover - teacher_salary
 
     return {
@@ -329,6 +410,48 @@ def teacher_monthly_financials(
         "turnover": int(turnover),
         "teacher_salary_cap": int(teacher_salary_cap),
         "turnover_cap": int(turnover_cap),
+    }
+
+
+def tuition_month_lesson_count(enrollment: Enrollment, month: date) -> int:
+    month_start = month_first_day(month)
+    month_end = month_last_day(month_start)
+    start_date = enrollment_start_date(enrollment)
+    if start_date > month_end:
+        return 0
+    if start_date <= month_start:
+        return _monthly_lessons_count(enrollment)
+    return expected_lessons_in_period(enrollment, start_date, month_end)
+
+
+def tuition_month_preview(enrollment: Enrollment, month: date) -> dict:
+    month_start = month_first_day(month)
+    monthly_lessons = _monthly_lessons_count(enrollment)
+    full_amount = full_course_amount(enrollment)
+    effective_amount = effective_student_payable_amount(enrollment)
+    lesson_count = tuition_month_lesson_count(enrollment, month_start)
+    fee_amount = _prorated_monthly_fee_from_amount(enrollment, month_start, effective_amount)
+    full_turnover = min(
+        proportional_amount(full_amount, lesson_count, monthly_lessons),
+        full_amount,
+    )
+    teacher_share = min(
+        round_div(full_turnover * int(getattr(enrollment, "oqituvchi_foiz", 0) or 0), 100),
+        round_div(full_amount * int(getattr(enrollment, "oqituvchi_foiz", 0) or 0), 100),
+    )
+    center_share = full_turnover - teacher_share
+
+    return {
+        "month": month_start,
+        "start_date": enrollment_start_date(enrollment),
+        "lesson_pattern": enrollment_lesson_pattern(enrollment),
+        "lesson_pattern_label": lesson_pattern_label(getattr(enrollment, "lesson_pattern", None)),
+        "monthly_lessons": monthly_lessons,
+        "lesson_count": lesson_count,
+        "fee_amount": int(fee_amount or 0),
+        "full_turnover": int(full_turnover or 0),
+        "teacher_share": int(teacher_share or 0),
+        "center_share": int(center_share or 0),
     }
 
 
@@ -358,6 +481,102 @@ def get_effective_month_fee(enrollment: Enrollment, month: date) -> int:
     if tm:
         return tuition_month_fee(tm)
     return int(prorated_monthly_fee(enrollment, month) or 0)
+
+
+def calculate_enrollment_debt_snapshots(
+    enrollments: Iterable[Enrollment],
+    months: Sequence[date],
+    *,
+    virtual_missing_months: Optional[Iterable[date]] = None,
+) -> dict[int, dict]:
+    """
+    Read-only qarzdorlik snapshoti.
+
+    Qarz bitta qoida bilan hisoblanadi:
+      har bir enrollment + oy uchun max(0, fee - paid),
+      keyin shu qiymatlar yig'iladi.
+
+    Mavjud TuitionMonth bo'lsa, saqlangan fee ishlatiladi. Rekord bo'lmasa,
+    faqat xotirada prorated fee hisoblanadi; DBga yozilmaydi.
+    virtual_missing_months berilsa, virtual fee faqat shu oylar uchun ishlaydi.
+    """
+    enrollment_list = [enrollment for enrollment in enrollments if getattr(enrollment, "id", None)]
+    month_list = [month_first_day(month) for month in months]
+    month_list = list(dict.fromkeys(month_list))
+    virtual_month_set = (
+        None
+        if virtual_missing_months is None
+        else {month_first_day(month) for month in virtual_missing_months}
+    )
+
+    snapshots = {
+        enrollment.id: {
+            "total_fee": 0,
+            "total_paid": 0,
+            "debt": 0,
+            "lesson_count": 0,
+            "months": {},
+        }
+        for enrollment in enrollment_list
+    }
+    if not enrollment_list or not month_list:
+        return snapshots
+
+    enrollment_ids = [enrollment.id for enrollment in enrollment_list]
+    fee_field = tuition_month_fee_field()
+
+    fee_map: dict[tuple[int, date], int] = {}
+    tuition_month_ids: list[int] = []
+    for row in (
+        TuitionMonth.objects
+        .filter(enrollment_id__in=enrollment_ids, month__in=month_list)
+        .values("id", "enrollment_id", "month", fee_field)
+    ):
+        key = (row["enrollment_id"], row["month"])
+        fee_map[key] = int(row[fee_field] or 0)
+        tuition_month_ids.append(row["id"])
+
+    paid_map: dict[tuple[int, date], int] = {}
+    if tuition_month_ids:
+        for row in (
+            PaymentAllocation.objects
+            .filter(
+                tuition_month_id__in=tuition_month_ids,
+                tuition_month__is_deleted=False,
+                payment__is_deleted=False,
+            )
+            .values("tuition_month__enrollment_id", "tuition_month__month")
+            .annotate(paid=Coalesce(Sum("amount"), 0))
+        ):
+            key = (row["tuition_month__enrollment_id"], row["tuition_month__month"])
+            paid_map[key] = int(row["paid"] or 0)
+
+    for enrollment in enrollment_list:
+        enrollment_snapshot = snapshots[enrollment.id]
+        for month in month_list:
+            key = (enrollment.id, month)
+            fee = fee_map.get(key)
+            if fee is None:
+                if virtual_month_set is None or month in virtual_month_set:
+                    fee = int(prorated_monthly_fee(enrollment, month) or 0)
+                else:
+                    fee = 0
+            paid = int(paid_map.get(key, 0) or 0)
+            debt = max(0, fee - paid)
+            lesson_count = tuition_month_lesson_count(enrollment, month)
+
+            enrollment_snapshot["total_fee"] += fee
+            enrollment_snapshot["total_paid"] += paid
+            enrollment_snapshot["debt"] += debt
+            enrollment_snapshot["lesson_count"] += lesson_count
+            enrollment_snapshot["months"][month] = {
+                "fee": fee,
+                "paid": paid,
+                "debt": debt,
+                "lesson_count": lesson_count,
+            }
+
+    return snapshots
 
 def ensure_tuition_month(enrollment: Enrollment, month: date) -> TuitionMonth:
     """

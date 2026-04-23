@@ -213,6 +213,16 @@ class Enrollment(SoftDeleteMixin, models.Model):
         (PRICING_PRORATED, "Dars bo'yicha"),
         (PRICING_CUSTOM, "Admin qo'lda"),
     )
+    LESSON_PATTERN_GROUP = "group"
+    LESSON_PATTERN_EVEN = "even"
+    LESSON_PATTERN_ODD = "odd"
+    LESSON_PATTERN_DAILY = "daily"
+    LESSON_PATTERN_CHOICES = (
+        (LESSON_PATTERN_GROUP, "Guruh jadvali"),
+        (LESSON_PATTERN_EVEN, "Juft kunlar"),
+        (LESSON_PATTERN_ODD, "Toq kunlar"),
+        (LESSON_PATTERN_DAILY, "Har kuni"),
+    )
 
     group = models.ForeignKey(
         "education.Group",
@@ -258,6 +268,12 @@ class Enrollment(SoftDeleteMixin, models.Model):
         null=True,
         blank=True,
         verbose_name="Qo'shilgan sana",
+    )
+    lesson_pattern = models.CharField(
+        max_length=12,
+        choices=LESSON_PATTERN_CHOICES,
+        default=LESSON_PATTERN_GROUP,
+        verbose_name="Dars patterni",
     )
     active_lessons_count = models.PositiveIntegerField(
         default=0,

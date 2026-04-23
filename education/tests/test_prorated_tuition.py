@@ -33,9 +33,11 @@ from education.services.tuition import (
     billable_attendance_count,
     ensure_tuition_month,
     expected_lessons_in_period,
+    pattern_lessons_between,
     prorated_monthly_fee,
     reconcile_tuition_month,
     scheduled_lessons_between,
+    tuition_month_preview,
     tuition_month_fee_field,
 )
 
@@ -276,6 +278,39 @@ class ProratedTuitionTests(TestCase):
         )
         # Du (6,13,20,27), Chor (1,8,15,22,29), Jum (3,10,17,24) = 4+5+4 = 13
         self.assertEqual(count, 13)
+
+    def test_pattern_lessons_between_counts_even_odd_and_daily(self):
+        self.assertEqual(pattern_lessons_between(date(2026, 4, 18), date(2026, 4, 30), "even"), 7)
+        self.assertEqual(pattern_lessons_between(date(2026, 4, 18), date(2026, 4, 30), "odd"), 6)
+        self.assertEqual(pattern_lessons_between(date(2026, 4, 18), date(2026, 4, 30), "daily"), 13)
+
+    def test_partial_month_uses_enrollment_lesson_pattern(self):
+        s = self._make_student("pattern-even@t")
+        enr = self._enroll(s, start_date=date(2026, 4, 18))
+        enr.lesson_pattern = "even"
+        enr.joined_at = date(2026, 4, 18)
+        enr.monthly_lessons = LESSONS_PER_MONTH
+        enr.save(update_fields=["lesson_pattern", "joined_at", "monthly_lessons"])
+
+        expected_lessons = 7
+        expected_fee = round((BASE_PRICE * expected_lessons) / LESSONS_PER_MONTH)
+
+        self.assertEqual(expected_lessons_in_period(enr, date(2026, 4, 18), date(2026, 4, 30)), expected_lessons)
+        self.assertEqual(prorated_monthly_fee(enr, self.MONTH), expected_fee)
+
+    def test_tuition_preview_keeps_teacher_and_center_shares_balanced(self):
+        s = self._make_student("preview-pattern@t")
+        enr = self._enroll(s, start_date=date(2026, 4, 18))
+        enr.lesson_pattern = "odd"
+        enr.joined_at = date(2026, 4, 18)
+        enr.monthly_lessons = LESSONS_PER_MONTH
+        enr.save(update_fields=["lesson_pattern", "joined_at", "monthly_lessons"])
+
+        preview = tuition_month_preview(enr, self.MONTH)
+
+        self.assertEqual(preview["lesson_count"], 6)
+        self.assertEqual(preview["teacher_share"] + preview["center_share"], preview["full_turnover"])
+        self.assertEqual(preview["fee_amount"], round((BASE_PRICE * 6) / LESSONS_PER_MONTH))
 
     def test_teacher_salary_is_capped_at_full_month_share(self):
         """

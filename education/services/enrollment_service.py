@@ -2,17 +2,29 @@ from django.utils import timezone
 from education.models import (
     Enrollment, StudentGroupHistory, Group
 )
+from education.services.tuition import normalize_lesson_pattern
 from django.db import transaction
 
 class EnrollmentService:
     @staticmethod
     @transaction.atomic
-    def enroll_student(student, group, kurs_narxi=None, oqituvchi_foiz=None, student_payable_amount=None, start_date=None):
+    def enroll_student(
+        student,
+        group,
+        kurs_narxi=None,
+        oqituvchi_foiz=None,
+        student_payable_amount=None,
+        start_date=None,
+        lesson_pattern=None,
+        monthly_lessons=None,
+    ):
         """Enrolls a student in a group and creates a history record."""
         # Use provided rates or fall back to group defaults
         narx = kurs_narxi if kurs_narxi is not None else group.kurs_narxi
         foiz = oqituvchi_foiz if oqituvchi_foiz is not None else group.oqituvchi_foiz
         history_start_date = start_date or timezone.localdate()
+        resolved_monthly_lessons = int(monthly_lessons or getattr(group, "oy_dars_soni", 0) or 12)
+        pattern = normalize_lesson_pattern(lesson_pattern)
         
         # Use all_objects to check if a soft-deleted enrollment exists (Fix for IntegrityError)
         enrollment = Enrollment.all_objects.filter(student=student, group=group).first()
@@ -31,7 +43,10 @@ class EnrollmentService:
                 oqituvchi_foiz=foiz,
                 student_payable_amount=student_payable_amount,
                 center=group.center,
-                is_active=True
+                is_active=True,
+                joined_at=history_start_date,
+                monthly_lessons=resolved_monthly_lessons,
+                lesson_pattern=pattern,
             )
             created = True
 
@@ -39,6 +54,9 @@ class EnrollmentService:
             enrollment.is_active = True
             enrollment.kurs_narhi = narx
             enrollment.oqituvchi_foiz = foiz
+            enrollment.joined_at = history_start_date
+            enrollment.monthly_lessons = resolved_monthly_lessons
+            enrollment.lesson_pattern = pattern
             if student_payable_amount is not None:
                 enrollment.student_payable_amount = student_payable_amount
             enrollment.save()
