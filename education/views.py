@@ -1602,7 +1602,7 @@ def attendance_groups(request):
     if q:
         groups = groups.filter(
             Q(nom__icontains=q) |
-            Q(center__nom__icontains=q) |
+            Q(center__name__icontains=q) |
             Q(oqituvchi__ism__icontains=q) |
             Q(oqituvchi__familya__icontains=q)
         )
