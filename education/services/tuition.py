@@ -68,6 +68,24 @@ def proportional_amount(amount: int, units: int, total_units: int) -> int:
     return round_div(int(amount or 0) * int(units or 0), int(total_units or 0))
 
 
+def round_money_to_thousand(amount: int | float | None) -> int:
+    amount = int(round(amount or 0))
+    if amount == 0:
+        return 0
+    sign = 1 if amount >= 0 else -1
+    absolute_amount = abs(amount)
+    rounded = ((absolute_amount + 500) // 1000) * 1000
+    return rounded * sign
+
+
+def format_money(amount: int | float | None, *, compact: bool = False) -> str:
+    rounded = round_money_to_thousand(amount)
+    absolute_amount = abs(rounded)
+    if compact and absolute_amount >= 1000:
+        return f"{rounded // 1000:,}".replace(",", " ") + " ming so'm"
+    return f"{rounded:,}".replace(",", " ") + " so'm"
+
+
 def month_range_starts(start_date: date, end_date: date) -> list[date]:
     """
     [start_date, end_date] oralig'idagi oy boshlarini qaytaradi.
@@ -117,7 +135,7 @@ def enrollment_start_date(enrollment: Enrollment) -> date:
 
     explicit_start_date = getattr(enrollment, "_tuition_start_date", None)
     if explicit_start_date:
-        return explicit_start_date
+        return normalize_lesson_start_date(explicit_start_date) or timezone.localdate()
 
     joined_at = getattr(enrollment, "joined_at", None)
     student = getattr(enrollment, "student", None)
@@ -131,14 +149,14 @@ def enrollment_start_date(enrollment: Enrollment) -> date:
             created_at = getattr(enrollment, "created_at", None)
             created_date = created_at.date() if created_at else None
             if joined_at and joined_at != created_date:
-                return joined_at
-            return history.start_date
+                return normalize_lesson_start_date(joined_at) or timezone.localdate()
+            return normalize_lesson_start_date(history.start_date) or timezone.localdate()
 
     if joined_at:
-        return joined_at
+        return normalize_lesson_start_date(joined_at) or timezone.localdate()
 
     start_dt = getattr(enrollment, "created_at", None) or timezone.now()
-    return start_dt.date()
+    return normalize_lesson_start_date(start_dt.date()) or timezone.localdate()
 
 
 def effective_student_payable_amount(enrollment: Enrollment) -> int:
@@ -220,10 +238,47 @@ LESSON_PATTERN_EVEN = "even"
 LESSON_PATTERN_ODD = "odd"
 LESSON_PATTERN_DAILY = "daily"
 LESSON_PATTERN_LABELS = {
-    LESSON_PATTERN_GROUP: "Guruh jadvali",
-    LESSON_PATTERN_EVEN: "Juft kunlar",
-    LESSON_PATTERN_ODD: "Toq kunlar",
+    LESSON_PATTERN_GROUP: "Avtomatik",
+    LESSON_PATTERN_EVEN: "Juft kunlari",
+    LESSON_PATTERN_ODD: "Toq kunlari",
     LESSON_PATTERN_DAILY: "Har kuni",
+}
+LESSON_PATTERN_HINTS = {
+    LESSON_PATTERN_GROUP: "Boshlanish sanasiga qarab aniqlanadi",
+    LESSON_PATTERN_EVEN: "Seshanba • Payshanba • Shanba",
+    LESSON_PATTERN_ODD: "Dushanba • Chorshanba • Juma",
+    LESSON_PATTERN_DAILY: "Dushanba-Shanba",
+}
+LESSON_PATTERN_WEEKDAYS = {
+    LESSON_PATTERN_EVEN: (2, 4, 6),
+    LESSON_PATTERN_ODD: (1, 3, 5),
+    LESSON_PATTERN_DAILY: (1, 2, 3, 4, 5, 6),
+}
+WEEKDAY_LABELS = {
+    1: "Dushanba",
+    2: "Seshanba",
+    3: "Chorshanba",
+    4: "Payshanba",
+    5: "Juma",
+    6: "Shanba",
+    7: "Yakshanba",
+}
+WEEKDAY_SHORT_LABELS = {
+    1: "Dush",
+    2: "Sesh",
+    3: "Chor",
+    4: "Pay",
+    5: "Jum",
+    6: "Shan",
+    7: "Yak",
+}
+AUTO_LESSON_PATTERN_BY_WEEKDAY = {
+    1: LESSON_PATTERN_ODD,
+    2: LESSON_PATTERN_EVEN,
+    3: LESSON_PATTERN_ODD,
+    4: LESSON_PATTERN_EVEN,
+    5: LESSON_PATTERN_ODD,
+    6: LESSON_PATTERN_EVEN,
 }
 
 
@@ -234,18 +289,133 @@ def normalize_lesson_pattern(pattern: Optional[str]) -> str:
     return LESSON_PATTERN_GROUP
 
 
+def normalize_lesson_start_date(start_date: Optional[date]) -> Optional[date]:
+    if not start_date:
+        return start_date
+    if start_date.isoweekday() == 7:
+        return start_date + timedelta(days=1)
+    return start_date
+
+
+def auto_lesson_pattern_for_date(start_date: Optional[date]) -> str:
+    effective_start_date = normalize_lesson_start_date(start_date) or timezone.localdate()
+    return AUTO_LESSON_PATTERN_BY_WEEKDAY.get(
+        effective_start_date.isoweekday(),
+        LESSON_PATTERN_ODD,
+    )
+
+
+def resolve_lesson_schedule(start_date: Optional[date], pattern: Optional[str] = None) -> dict:
+    requested_start_date = start_date or timezone.localdate()
+    effective_start_date = normalize_lesson_start_date(requested_start_date) or timezone.localdate()
+    requested_pattern = normalize_lesson_pattern(pattern)
+    resolved_pattern = (
+        LESSON_PATTERN_DAILY
+        if requested_pattern == LESSON_PATTERN_DAILY
+        else auto_lesson_pattern_for_date(effective_start_date)
+    )
+
+    adjustment_note = ""
+    if requested_start_date and effective_start_date != requested_start_date:
+        adjustment_note = (
+            "Yakshanba tanlangani uchun hisob-kitob "
+            f"{effective_start_date.strftime('%d.%m.%Y')} dan boshlandi"
+        )
+
+    return {
+        "requested_start_date": requested_start_date,
+        "start_date": effective_start_date,
+        "requested_pattern": requested_pattern,
+        "lesson_pattern": resolved_pattern,
+        "adjustment_note": adjustment_note,
+    }
+
+
 def lesson_pattern_label(pattern: Optional[str]) -> str:
-    return LESSON_PATTERN_LABELS.get(normalize_lesson_pattern(pattern), "Guruh jadvali")
+    return LESSON_PATTERN_LABELS.get(
+        normalize_lesson_pattern(pattern),
+        LESSON_PATTERN_LABELS[LESSON_PATTERN_GROUP],
+    )
+
+
+def lesson_pattern_hint(pattern: Optional[str]) -> str:
+    normalized = normalize_lesson_pattern(pattern)
+    return LESSON_PATTERN_HINTS.get(normalized, LESSON_PATTERN_HINTS[LESSON_PATTERN_GROUP])
+
+
+def weekday_label(weekday: int, *, short: bool = False) -> str:
+    labels = WEEKDAY_SHORT_LABELS if short else WEEKDAY_LABELS
+    return labels.get(int(weekday or 0), "")
+
+
+def lesson_pattern_weekdays(
+    pattern: Optional[str],
+    *,
+    group=None,
+) -> tuple[int, ...]:
+    normalized = normalize_lesson_pattern(pattern)
+    if normalized == LESSON_PATTERN_GROUP:
+        from education.models import GroupSchedule
+
+        if not getattr(group, "id", None):
+            return ()
+        weekdays = (
+            GroupSchedule.objects.filter(group=group)
+            .order_by("weekday")
+            .values_list("weekday", flat=True)
+            .distinct()
+        )
+        return tuple(int(weekday) for weekday in weekdays)
+    return LESSON_PATTERN_WEEKDAYS.get(normalized, ())
+
+
+def lesson_pattern_preview_meta(enrollment: Enrollment) -> dict:
+    schedule_meta = resolve_lesson_schedule(
+        getattr(enrollment, "_tuition_requested_start_date", None) or enrollment_start_date(enrollment),
+        getattr(enrollment, "lesson_pattern", None),
+    )
+    pattern = enrollment_lesson_pattern(enrollment)
+    weekdays = lesson_pattern_weekdays(pattern, group=getattr(enrollment, "group", None))
+    weekday_labels = [weekday_label(weekday) for weekday in weekdays if weekday_label(weekday)]
+    weekday_short_labels = [
+        weekday_label(weekday, short=True)
+        for weekday in weekdays
+        if weekday_label(weekday, short=True)
+    ]
+
+    counted_days_summary_parts = []
+    if schedule_meta["adjustment_note"]:
+        counted_days_summary_parts.append(schedule_meta["adjustment_note"])
+    if weekday_short_labels:
+        counted_days_summary_parts.append(f"Hisoblangan kunlar: {', '.join(weekday_short_labels)}")
+
+    return {
+        "lesson_pattern_hint": lesson_pattern_hint(pattern),
+        "counted_weekdays": list(weekdays),
+        "counted_weekday_labels": weekday_labels,
+        "counted_weekday_short_labels": weekday_short_labels,
+        "counted_days_text": " • ".join(weekday_labels),
+        "counted_days_summary": " • ".join(counted_days_summary_parts),
+        "start_date_note": schedule_meta["adjustment_note"],
+    }
 
 
 def enrollment_lesson_pattern(enrollment: Enrollment) -> str:
-    return normalize_lesson_pattern(getattr(enrollment, "lesson_pattern", None))
+    schedule_meta = resolve_lesson_schedule(
+        enrollment_start_date(enrollment),
+        getattr(enrollment, "lesson_pattern", None),
+    )
+    return schedule_meta["lesson_pattern"]
 
 
 def pattern_lessons_between(start: date, end: date, pattern: Optional[str]) -> int:
     """
     Juft/toq/har kuni patterni bo'yicha [start, end] oralig'idagi darslarni sanaydi.
-    Juft/toq bu yerda kalendar sana raqamining juft/toqligiga qaraydi.
+    Juft/toq ish haftasi kunlarining paritysiga qaraydi:
+      - toq: Dushanba, Chorshanba, Juma
+      - juft: Seshanba, Payshanba, Shanba
+      - har kuni: Dushanba-Shanba
+    Yakshanba bu patternlarda hech qachon hisobga kirmaydi.
     """
     if start > end:
         return 0
@@ -254,17 +424,49 @@ def pattern_lessons_between(start: date, end: date, pattern: Optional[str]) -> i
     if pattern == LESSON_PATTERN_GROUP:
         return 0
 
+    allowed_weekdays = set(lesson_pattern_weekdays(pattern))
     count = 0
     cur = start
     while cur <= end:
-        if pattern == LESSON_PATTERN_DAILY:
-            count += 1
-        elif pattern == LESSON_PATTERN_EVEN and cur.day % 2 == 0:
-            count += 1
-        elif pattern == LESSON_PATTERN_ODD and cur.day % 2 == 1:
+        if cur.isoweekday() in allowed_weekdays:
             count += 1
         cur += timedelta(days=1)
     return count
+
+
+def lesson_dates_between(
+    start: date,
+    end: date,
+    pattern: Optional[str],
+    *,
+    group=None,
+) -> list[date]:
+    if start > end:
+        return []
+
+    allowed_weekdays = set(lesson_pattern_weekdays(pattern, group=group))
+    if not allowed_weekdays:
+        return []
+
+    dates: list[date] = []
+    cur = start
+    while cur <= end:
+        if cur.isoweekday() in allowed_weekdays:
+            dates.append(cur)
+        cur += timedelta(days=1)
+    return dates
+
+
+def expected_lesson_dates_in_period(enrollment: Enrollment, start: date, end: date) -> list[date]:
+    if start > end:
+        return []
+
+    pattern = enrollment_lesson_pattern(enrollment)
+    if pattern != LESSON_PATTERN_GROUP:
+        return lesson_dates_between(start, end, pattern)
+
+    group = getattr(enrollment, "group", None)
+    return lesson_dates_between(start, end, LESSON_PATTERN_GROUP, group=group)
 
 
 def expected_lessons_in_period(enrollment: Enrollment, start: date, end: date) -> int:
@@ -434,10 +636,14 @@ def tuition_month_preview(enrollment: Enrollment, month: date) -> dict:
     month_start = month_first_day(month)
     start_date = enrollment_start_date(enrollment)
     lesson_pattern = enrollment_lesson_pattern(enrollment)
+    preview_meta = lesson_pattern_preview_meta(enrollment)
     monthly_lessons = _monthly_lessons_count(enrollment)
     full_amount = full_course_amount(enrollment)
     effective_amount = effective_student_payable_amount(enrollment)
-    lesson_count = tuition_month_lesson_count(enrollment, month_start)
+    month_end = month_last_day(month_start)
+    period_start = max(start_date, month_start)
+    lesson_dates = expected_lesson_dates_in_period(enrollment, period_start, month_end)
+    lesson_count = len(lesson_dates)
     fee_amount = _prorated_monthly_fee_from_amount(enrollment, month_start, effective_amount)
     full_turnover = min(
         proportional_amount(full_amount, lesson_count, monthly_lessons),
@@ -456,10 +662,59 @@ def tuition_month_preview(enrollment: Enrollment, month: date) -> dict:
         "lesson_pattern_label": lesson_pattern_label(lesson_pattern),
         "monthly_lessons": monthly_lessons,
         "lesson_count": lesson_count,
+        "lesson_pattern_hint": preview_meta["lesson_pattern_hint"],
+        "counted_weekdays": preview_meta["counted_weekdays"],
+        "counted_weekday_labels": preview_meta["counted_weekday_labels"],
+        "counted_weekday_short_labels": preview_meta["counted_weekday_short_labels"],
+        "counted_days_text": preview_meta["counted_days_text"],
+        "counted_days_summary": preview_meta["counted_days_summary"],
+        "lesson_count_summary": f"Bu oy bo'yicha {lesson_count} ta mos dars kuni topildi",
+        "lesson_dates": lesson_dates,
+        "lesson_date_labels": [lesson_date.strftime("%d.%m.%Y") for lesson_date in lesson_dates],
         "fee_amount": int(fee_amount or 0),
+        "fee_amount_rounded": round_money_to_thousand(fee_amount),
+        "fee_amount_display": format_money(fee_amount),
         "full_turnover": int(full_turnover or 0),
         "teacher_share": int(teacher_share or 0),
+        "teacher_share_rounded": round_money_to_thousand(teacher_share),
+        "teacher_share_display": format_money(teacher_share),
         "center_share": int(center_share or 0),
+        "center_share_rounded": round_money_to_thousand(center_share),
+        "center_share_display": format_money(center_share),
+    }
+
+
+def enrollment_month_financial_snapshot(enrollment: Enrollment, month: date) -> dict:
+    preview = tuition_month_preview(enrollment, month)
+    start_date = enrollment_start_date(enrollment)
+    month_start = month_first_day(month)
+    month_end = month_last_day(month_start)
+    period_start = max(start_date, month_start)
+    lesson_dates = expected_lesson_dates_in_period(enrollment, period_start, month_end)
+    lesson_count = len(lesson_dates)
+    debt_amount = max(0, int(preview["fee_amount"] or 0) - int(get_month_paid(enrollment, month_start) or 0))
+
+    return {
+        "enrollment": enrollment,
+        "group": getattr(enrollment, "group", None),
+        "start_date": start_date,
+        "lesson_pattern": preview["lesson_pattern"],
+        "lesson_pattern_label": preview["lesson_pattern_label"],
+        "lesson_pattern_hint": preview.get("lesson_pattern_hint", ""),
+        "lesson_count": lesson_count,
+        "lesson_dates": lesson_dates,
+        "lesson_date_labels": [lesson_date.strftime("%d.%m.%Y") for lesson_date in lesson_dates],
+        "course_price": full_course_amount(enrollment),
+        "course_price_display": format_money(full_course_amount(enrollment)),
+        "fee_amount": int(preview["fee_amount"] or 0),
+        "fee_amount_display": format_money(preview["fee_amount"]),
+        "teacher_share": int(preview["teacher_share"] or 0),
+        "teacher_share_display": format_money(preview["teacher_share"]),
+        "center_share": int(preview["center_share"] or 0),
+        "center_share_display": format_money(preview["center_share"]),
+        "debt_amount": debt_amount,
+        "debt_amount_display": format_money(debt_amount),
+        "preview": preview,
     }
 
 

@@ -299,47 +299,7 @@
   </div>
 
   {% if current_role == 'student' %}
-  <div class="bq-sdrawer-inline-actions">
-    <button
-      type="button"
-      class="bq-sdrawer-inline-toggle{% if form.group.value or form.group.errors or form.kurs_narhi.value or form.kurs_narhi.errors %} is-active{% endif %}"
-      data-section-toggle="group">
-      + Guruhga qo'shish
-    </button>
-  </div>
-
-  <div
-    class="bq-sdrawer-card"
-    data-optional-section="group"
-    {% if not form.group.value and not form.group.errors and not form.kurs_narhi.value and not form.kurs_narhi.errors %}hidden{% endif %}>
-    <div class="bq-sdrawer-card__head">
-      <div class="bq-sdrawer-card__title">Guruhga qo'shish</div>
-      <button type="button" class="bq-sdrawer-card__close" data-section-close="group" aria-label="Guruh bo'limini yopish">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-    </div>
-    <div class="bq-sdrawer-grid bq-sdrawer-grid--2">
-      <div class="bq-sdrawer-field">
-        <label for="{{ form.group.id_for_label }}">Guruh</label>
-        {{ form.group }}
-        {% if form.group.errors %}<div class="bq-sdrawer-error">{{ form.group.errors|join:", " }}</div>{% endif %}
-      </div>
-      <div class="bq-sdrawer-field" data-drawer-price-block style="display:none;">
-        <label for="{{ form.kurs_narhi.id_for_label }}">Kurs narxi</label>
-        {{ form.kurs_narhi }}
-        {% if form.kurs_narhi.errors %}<div class="bq-sdrawer-error">{{ form.kurs_narhi.errors|join:", " }}</div>{% endif %}
-      </div>
-    </div>
-    <div class="bq-sdrawer-field bq-sdrawer-field--full">
-      <label for="{{ form.group_start_date.id_for_label }}">Qaysi sanadan o'qishni boshlaydi</label>
-      <div class="bq-sdrawer-date">
-        <span class="bq-sdrawer-date__icon"><i class="fa-regular fa-calendar-days"></i></span>
-        {{ form.group_start_date }}
-      </div>
-      <div class="bq-sdrawer-field__hint">Talaba bir hafta oldin boshlagan bo‘lsa ham, keyin boshlasa ham shu sanani tanlaysiz.</div>
-      {% if form.group_start_date.errors %}<div class="bq-sdrawer-error">{{ form.group_start_date.errors|join:", " }}</div>{% endif %}
-    </div>
-  </div>
+  {% include "accounts/partials/_student_group_assignments_block.html" %}
   {% endif %}
 
   <div class="bq-sdrawer-card">

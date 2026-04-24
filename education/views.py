@@ -58,10 +58,16 @@ from education.services.tuition import (
     billable_attendance_count,
     expected_lessons_in_period,
     enrollment_start_date,
+    enrollment_lesson_pattern,
+    enrollment_month_financial_snapshot,
+    format_money,
     is_month_closed_for_center,
     normalize_lesson_pattern,
+    round_money_to_thousand,
+    resolve_lesson_schedule,
     tuition_month_preview,
     lesson_pattern_label,
+    lesson_pattern_hint,
 )
 
 
@@ -219,11 +225,14 @@ def _preview_month_for_start_date(start_date: date | None, fallback: date | None
 
 def _lesson_pattern_options():
     return [
-        (pattern, lesson_pattern_label(pattern))
+        {
+            "value": pattern,
+            "label": lesson_pattern_label(pattern),
+            "hint": lesson_pattern_hint(pattern),
+        }
         for pattern in (
-            Enrollment.LESSON_PATTERN_GROUP,
-            Enrollment.LESSON_PATTERN_EVEN,
             Enrollment.LESSON_PATTERN_ODD,
+            Enrollment.LESSON_PATTERN_EVEN,
             Enrollment.LESSON_PATTERN_DAILY,
         )
     ]
@@ -235,8 +244,15 @@ def _serialize_tuition_preview(preview: dict) -> dict:
         "start_date": preview["start_date"].isoformat(),
         "lesson_pattern": preview["lesson_pattern"],
         "lesson_pattern_label": preview["lesson_pattern_label"],
+        "lesson_pattern_hint": preview.get("lesson_pattern_hint", ""),
         "monthly_lessons": int(preview["monthly_lessons"] or 0),
         "lesson_count": int(preview["lesson_count"] or 0),
+        "counted_weekdays": [int(weekday) for weekday in preview.get("counted_weekdays", [])],
+        "counted_weekday_labels": list(preview.get("counted_weekday_labels", [])),
+        "counted_weekday_short_labels": list(preview.get("counted_weekday_short_labels", [])),
+        "counted_days_text": preview.get("counted_days_text", ""),
+        "counted_days_summary": preview.get("counted_days_summary", ""),
+        "lesson_count_summary": preview.get("lesson_count_summary", ""),
         "fee_amount": int(preview["fee_amount"] or 0),
         "teacher_share": int(preview["teacher_share"] or 0),
         "center_share": int(preview["center_share"] or 0),
@@ -281,9 +297,12 @@ def _build_tuition_preview_enrollment(
         or getattr(resolved_group, "oqituvchi_foiz", 0)
         or 0
     )
-    resolved_pattern = normalize_lesson_pattern(
-        lesson_pattern if lesson_pattern is not None else getattr(base_enrollment, "lesson_pattern", None)
+    schedule_meta = resolve_lesson_schedule(
+        resolved_start_date,
+        lesson_pattern if lesson_pattern is not None else getattr(base_enrollment, "lesson_pattern", None),
     )
+    resolved_start_date = schedule_meta["start_date"]
+    resolved_pattern = schedule_meta["lesson_pattern"]
 
     preview_enrollment = Enrollment(
         group=resolved_group,
@@ -299,6 +318,7 @@ def _build_tuition_preview_enrollment(
     )
     preview_enrollment.created_at = getattr(base_enrollment, "created_at", None) or timezone.now()
     preview_enrollment._tuition_start_date = resolved_start_date
+    preview_enrollment._tuition_requested_start_date = start_date or resolved_start_date
     return preview_enrollment
 
 
@@ -336,6 +356,81 @@ def _schedule_weekday_labels():
         (6, "Shanba"),
         (7, "Yakshanba"),
     ]
+
+
+def _student_group_financial_cards(
+    student,
+    *,
+    center=None,
+    month: date | None = None,
+    include_dates: bool = True,
+):
+    target_month = month_first_day(month or timezone.localdate())
+    enrollments_qs = (
+        Enrollment.objects
+        .select_related("group")
+        .filter(
+            student=student,
+            is_active=True,
+            student__is_archived=False,
+            group__is_archived=False,
+        )
+        .order_by("group__nom", "id")
+    )
+    if center:
+        enrollments_qs = enrollments_qs.filter(center=center)
+
+    cards = []
+    totals = {
+        "fee_amount": 0,
+        "teacher_share": 0,
+        "center_share": 0,
+        "debt_amount": 0,
+    }
+
+    for enrollment in enrollments_qs:
+        snapshot = enrollment_month_financial_snapshot(enrollment, target_month)
+        default_course_price = int(getattr(enrollment.group, "kurs_narxi", 0) or 0)
+        card = {
+            "enrollment_id": enrollment.id,
+            "group_id": getattr(enrollment, "group_id", None),
+            "group_name": getattr(enrollment.group, "nom", "—"),
+            "start_date": snapshot["start_date"],
+            "lesson_pattern": snapshot["lesson_pattern"],
+            "lesson_pattern_label": snapshot["lesson_pattern_label"],
+            "lesson_count": snapshot["lesson_count"],
+            "lesson_dates": snapshot["lesson_dates"] if include_dates else [],
+            "lesson_date_labels": snapshot["lesson_date_labels"] if include_dates else [],
+            "course_price": snapshot["course_price"],
+            "course_price_display": snapshot["course_price_display"],
+            "default_course_price": default_course_price,
+            "default_course_price_display": format_money(default_course_price),
+            "is_individual_price": bool(default_course_price and snapshot["course_price"] != default_course_price),
+            "fee_amount": snapshot["fee_amount"],
+            "fee_amount_display": snapshot["fee_amount_display"],
+            "teacher_share": snapshot["teacher_share"],
+            "teacher_share_display": snapshot["teacher_share_display"],
+            "center_share": snapshot["center_share"],
+            "center_share_display": snapshot["center_share_display"],
+            "debt_amount": snapshot["debt_amount"],
+            "debt_amount_display": snapshot["debt_amount_display"],
+        }
+        cards.append(card)
+        totals["fee_amount"] += card["fee_amount"]
+        totals["teacher_share"] += card["teacher_share"]
+        totals["center_share"] += card["center_share"]
+        totals["debt_amount"] += card["debt_amount"]
+
+    return {
+        "cards": cards,
+        "totals": {
+            **totals,
+            "fee_amount_display": format_money(totals["fee_amount"]),
+            "teacher_share_display": format_money(totals["teacher_share"]),
+            "center_share_display": format_money(totals["center_share"]),
+            "debt_amount_display": format_money(totals["debt_amount"]),
+        },
+    }
 
 
 # ---------- Ruxsat helperlari ----------
@@ -943,15 +1038,16 @@ def enrollment_edit(request, enrollment_id):
 
     def _render_enrollment_edit_form(*, teacher_share_only_checked: bool):
         preview_month = _preview_month_for_start_date(enrollment_start_date(enr), start_month)
+        pricing_preview = tuition_month_preview(enr, preview_month)
         return render(request, "education/enrollment_edit.html", {
             "enr": enr,
             "groups": groups,
             "next": next_url,
             "month": month_str,
             "teacher_share_only_checked": teacher_share_only_checked,
-            "pricing_preview": tuition_month_preview(enr, preview_month),
+            "pricing_preview": pricing_preview,
             "lesson_pattern_options": lesson_pattern_options,
-            "selected_lesson_pattern": normalize_lesson_pattern(getattr(enr, "lesson_pattern", None)),
+            "selected_lesson_pattern": pricing_preview["lesson_pattern"],
         })
 
     if (
@@ -966,9 +1062,7 @@ def enrollment_edit(request, enrollment_id):
             or getattr(enr, "joined_at", None)
             or enrollment_start_date(enr)
         )
-        lesson_pattern = normalize_lesson_pattern(
-            request.GET.get("lesson_pattern") or getattr(enr, "lesson_pattern", None)
-        )
+        lesson_pattern = request.GET.get("lesson_pattern") or getattr(enr, "lesson_pattern", None)
         course_price = int(_parse_int_value(request.GET.get("kurs_narhi"), getattr(enr, "kurs_narhi", 0) or 0) or 0)
         teacher_percent = (
             int(getattr(selected_group, "oqituvchi_foiz", 0) or 0)
@@ -1041,11 +1135,15 @@ def enrollment_edit(request, enrollment_id):
 
         joined_at_raw = (request.POST.get("joined_at") or request.POST.get("start_date") or "").strip()
         joined_at = parse_date(joined_at_raw) if joined_at_raw else None
-        enr.joined_at = joined_at or enr.joined_at or timezone.localdate()
-        enr._tuition_start_date = enr.joined_at
-        enr.lesson_pattern = normalize_lesson_pattern(
-            request.POST.get("lesson_pattern") or getattr(enr, "lesson_pattern", None)
+        schedule_meta = resolve_lesson_schedule(
+            joined_at or enr.joined_at or timezone.localdate(),
+            request.POST.get("lesson_pattern") or getattr(enr, "lesson_pattern", None),
         )
+        enr.joined_at = schedule_meta["start_date"]
+        enr._tuition_start_date = enr.joined_at
+        enr.lesson_pattern = schedule_meta["lesson_pattern"]
+        if schedule_meta["adjustment_note"]:
+            messages.info(request, schedule_meta["adjustment_note"])
         monthly_lessons_raw = (request.POST.get("monthly_lessons") or "").strip()
         try:
             enr.monthly_lessons = int(
@@ -1752,6 +1850,13 @@ def qarzdorlar_home(request):
     # ─── FILTERS ────────────────────────────────────────────────────────────
     q = (request.GET.get("q") or "").strip()
     group_id = _get_int(request.GET, "group", 0)
+    lesson_pattern_filter = (request.GET.get("lesson_pattern_filter") or "").strip().lower()
+    if lesson_pattern_filter not in {
+        Enrollment.LESSON_PATTERN_ODD,
+        Enrollment.LESSON_PATTERN_EVEN,
+        Enrollment.LESSON_PATTERN_DAILY,
+    }:
+        lesson_pattern_filter = ""
     min_debt = _get_int(request.GET, "min_debt", 0)
     max_debt = _get_int(request.GET, "max_debt", 0)
     date_from_raw = (request.GET.get("date_from") or "").strip()
@@ -1847,13 +1952,16 @@ def qarzdorlar_home(request):
         p    = int(snapshot.get("total_paid", 0) or 0)
         lesson_count = int(snapshot.get("lesson_count", 0) or 0)
         start_date = enrollment_start_date(e)
-        pattern_label = lesson_pattern_label(getattr(e, "lesson_pattern", None))
+        pattern_value = enrollment_lesson_pattern(e)
+        pattern_label = lesson_pattern_label(pattern_value)
 
         if sid not in student_map:
             student_map[sid] = {
                 "student":     e.student,
                 "group_names": [],
                 "lesson_pattern_names": [],
+                "lesson_pattern_values": [],
+                "group_cards": [],
                 "total_fee":   0,
                 "total_paid":  0,
                 "debt":        0,
@@ -1896,6 +2004,21 @@ def qarzdorlar_home(request):
             gnom = getattr(e.group, "nom", "")
             if gnom and gnom not in row["group_names"]:
                 row["group_names"].append(gnom)
+            row["group_cards"].append({
+                "enrollment_id": e.id,
+                "group_id": e.group_id,
+                "group_name": gnom or "—",
+                "lesson_pattern": pattern_value,
+                "lesson_pattern_label": pattern_label,
+                "lesson_count": lesson_count,
+                "debt_amount": debt,
+                "debt_amount_display": format_money(debt),
+                "fee_amount": f,
+                "fee_amount_display": format_money(f),
+                "start_date": start_date,
+            })
+        if pattern_value and pattern_value not in row["lesson_pattern_values"]:
+            row["lesson_pattern_values"].append(pattern_value)
         if pattern_label and pattern_label not in row["lesson_pattern_names"]:
             row["lesson_pattern_names"].append(pattern_label)
 
@@ -1923,6 +2046,12 @@ def qarzdorlar_home(request):
             r["start_date"] = enrollment_start_date(r["primary_debt_enrollment"])
         r["group_label"] = ", ".join(r["group_names"]) if r["group_names"] else "—"
         r["lesson_pattern_label"] = ", ".join(r["lesson_pattern_names"]) if r["lesson_pattern_names"] else "—"
+        r["group_cards"] = sorted(
+            r.get("group_cards") or [],
+            key=lambda item: ((item.get("group_name") or "").lower(), item.get("enrollment_id") or 0),
+        )
+        r["visible_group_cards"] = r["group_cards"][:2]
+        r["remaining_group_card_count"] = max(0, len(r["group_cards"]) - 2)
         r["has_teacher_share_only"] = (
             r["teacher_share_only_debt"] > 0
             and r["teacher_share_only_full_total"] > r["teacher_share_only_debt"]
@@ -1946,6 +2075,36 @@ def qarzdorlar_home(request):
             or ql in (r["student"].telefon2 or "").lower()
         ]
 
+    def _matches_lesson_pattern_filter(row):
+        if not lesson_pattern_filter:
+            return True
+        return lesson_pattern_filter in (row.get("lesson_pattern_values") or [])
+
+    debt_filter_base_rows = []
+    for row in all_rows:
+        if not row["group_names"]:
+            continue
+        if row["debt"] <= 0:
+            continue
+        if min_debt and row["debt"] < min_debt:
+            continue
+        if max_debt and row["debt"] > max_debt:
+            continue
+        debt_filter_base_rows.append(row)
+
+    lesson_pattern_filter_counts = {
+        "all": len(debt_filter_base_rows),
+        Enrollment.LESSON_PATTERN_ODD: sum(
+            1 for row in debt_filter_base_rows if Enrollment.LESSON_PATTERN_ODD in (row.get("lesson_pattern_values") or [])
+        ),
+        Enrollment.LESSON_PATTERN_EVEN: sum(
+            1 for row in debt_filter_base_rows if Enrollment.LESSON_PATTERN_EVEN in (row.get("lesson_pattern_values") or [])
+        ),
+        Enrollment.LESSON_PATTERN_DAILY: sum(
+            1 for row in debt_filter_base_rows if Enrollment.LESSON_PATTERN_DAILY in (row.get("lesson_pattern_values") or [])
+        ),
+    }
+
     # ─── STATISTIKA ──────────────────────────────────────────────────────────
     debtors_count  = 0
     paid_count     = 0
@@ -1953,6 +2112,8 @@ def qarzdorlar_home(request):
     debtor_rows    = []
 
     for r in all_rows:
+        if not _matches_lesson_pattern_filter(r):
+            continue
         if not r["group_names"]:
             no_group_count += 1
             continue
@@ -2021,6 +2182,8 @@ def qarzdorlar_home(request):
         "chart_period_label": chart_period_label,
         "selected_period_label": selected_period_label,
         "q":              q,
+        "selected_lesson_pattern_filter": lesson_pattern_filter,
+        "lesson_pattern_filter_counts": lesson_pattern_filter_counts,
         "min_debt":       min_debt if min_debt else "",
         "max_debt":       max_debt if max_debt else "",
         "date_from":      selected_from.isoformat(),
@@ -2035,7 +2198,7 @@ def qarzdorlar_home(request):
             (9, "Sentyabr"), (10, "Oktyabr"), (11, "Noyabr"), (12, "Dekabr"),
         ],
         "stats_summary": {
-            "total":    len(all_rows),
+            "total":    sum(1 for row in all_rows if _matches_lesson_pattern_filter(row)),
             "debtors":  debtors_count,
             "paid":     paid_count,
             "no_group": no_group_count,
@@ -4800,6 +4963,8 @@ def add_category(request):
 @login_required
 def student_detail(request, student_id: int):
     student = get_object_or_404(User, pk=student_id, role="student")
+    center = get_active_center(request)
+    selected_month = parse_month_str((request.GET.get("month") or "").strip()) or month_first_day(timezone.localdate())
 
     MONTH_NAMES = {
         1: "Yanvar", 2: "Fevral", 3: "Mart", 4: "Aprel", 5: "May",
@@ -4925,6 +5090,13 @@ def student_detail(request, student_id: int):
     ctx = {
         "student": student,
         "month_summaries": month_summaries,
+        "selected_month": selected_month,
+        "student_group_financials": _student_group_financial_cards(
+            student,
+            center=center,
+            month=selected_month,
+            include_dates=True,
+        ),
     }
 
     return render(request, "education/student_detail.html", ctx)
@@ -6069,10 +6241,17 @@ def get_group_price(request, pk):
         group = qs.get(pk=pk)
         return JsonResponse({
             "price": group.kurs_narxi,
-            "oqituvchi_foiz": group.oqituvchi_foiz
+            "oqituvchi_foiz": group.oqituvchi_foiz,
+            "monthly_lessons": group.oy_dars_soni,
+            "group_name": group.nom,
         })
     except Group.DoesNotExist:
-        return JsonResponse({"price": 0})
+        return JsonResponse({
+            "price": 0,
+            "oqituvchi_foiz": 40,
+            "monthly_lessons": 12,
+            "group_name": "",
+        })
 
 
 
@@ -6184,7 +6363,7 @@ def add_student_to_group(request, pk: int):
     if request.method == "GET" and request.headers.get("x-requested-with") == "XMLHttpRequest":
         if request.GET.get("preview") == "1":
             start_date = parse_date((request.GET.get("start_date") or request.GET.get("joined_at") or "").strip()) or timezone.localdate()
-            lesson_pattern = normalize_lesson_pattern(request.GET.get("lesson_pattern"))
+            lesson_pattern = request.GET.get("lesson_pattern")
             student_id = _parse_int_value(request.GET.get("student_id"))
             existing_enr = None
             if student_id:
@@ -6260,8 +6439,12 @@ def add_student_to_group(request, pk: int):
         if not student_id:
             return JsonResponse({"error": "O'quvchi tanlanmagan"}, status=400)
 
-        start_date = parse_date(start_date_raw or "") or timezone.localdate()
-        lesson_pattern = normalize_lesson_pattern(lesson_pattern_raw)
+        schedule_meta = resolve_lesson_schedule(
+            parse_date(start_date_raw or "") or timezone.localdate(),
+            lesson_pattern_raw,
+        )
+        start_date = schedule_meta["start_date"]
+        lesson_pattern = schedule_meta["lesson_pattern"]
 
         student = get_object_or_404(User, pk=student_id, role="student", center=target_center)
 
@@ -6302,14 +6485,15 @@ def add_student_to_group(request, pk: int):
                 "id": student.id,
                 "full_name": student.get_full_name(),
                 "phone": student.telefon1 or student.telefon2
-            }
+            },
+            "info": schedule_meta["adjustment_note"],
         })
 
     # Standart GET render
     return render(request, "education/add_student_to_group.html", {
         "group": g,
         "today": timezone.localdate(),
-        "default_lesson_pattern": "odd",
+        "default_lesson_pattern": resolve_lesson_schedule(timezone.localdate())["lesson_pattern"],
         "lesson_pattern_options": lesson_pattern_options,
         "monthly_lessons": getattr(g, "oy_dars_soni", 0) or 12,
         "kurs_narhi": getattr(g, "kurs_narxi", 0) or 0,

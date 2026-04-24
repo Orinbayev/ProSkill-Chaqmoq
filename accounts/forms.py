@@ -1,12 +1,17 @@
+import re
+
 # accounts/forms.py
+import json
+
 from django import forms
-from django.contrib.auth import get_user_model
-from accounts.models import Center
 from django.apps import apps
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django.utils.dateparse import parse_date
+
+from accounts.models import Center
 from accounts.utils import normalize_phone
-import re
 
 User = get_user_model()
 Group = apps.get_model('education', 'Group')
@@ -55,6 +60,10 @@ class AddUserForm(forms.ModelForm):
             }
         ),
     )
+    group_assignments = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(attrs={"id": "id_group_assignments"}),
+    )
 
     class Meta:
         model = User
@@ -87,9 +96,20 @@ class AddUserForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop("request", None)
         self.allowed_roles = kwargs.pop("allowed_roles", None)
+        self.cleaned_group_assignments = []
         super().__init__(*args, **kwargs)
 
         self.fields["oqituvchi_foizi"].required = False
+        self.fields["group"].widget.attrs.update({
+            "class": "form-control uniform-input",
+            "id": "id_group",
+        })
+        self.fields["kurs_narhi"].widget.attrs.update({
+            "class": "form-control uniform-input",
+            "id": "id_kurs_narhi",
+            "inputmode": "numeric",
+            "min": "0",
+        })
 
         role_labels = dict(User._meta.get_field("role").choices)
         ordered_roles = ["director", "manager", "teacher", "student", "parent"]
@@ -163,19 +183,27 @@ class AddUserForm(forms.ModelForm):
         group = cleaned_data.get("group")
         center = cleaned_data.get("center")
         group_start_date = cleaned_data.get("group_start_date")
+        group_assignments_raw = (cleaned_data.get("group_assignments") or "").strip()
+        self.cleaned_group_assignments = []
         
         if role == "student":
             if not cleaned_data.get("birth_date"):
                 self.add_error("birth_date", "O‘quvchi uchun tug‘ilgan sana majburiy!")
             if not cleaned_data.get("gender"):
                 self.add_error("gender", "O‘quvchi uchun jins tanlanishi shart!")
-            
-            # Security: Verify group center matches user center
-            if group and center and group.center_id != center.id:
-                raise forms.ValidationError("Tanlangan guruh ushbu markazga tegishli emas!")
 
-            if group and not group_start_date:
-                self.add_error("group_start_date", "Guruh uchun boshlash sanasini tanlang.")
+            if group_assignments_raw:
+                self.cleaned_group_assignments = self._clean_group_assignments(
+                    raw_value=group_assignments_raw,
+                    center=center,
+                )
+            else:
+                # Security: Verify group center matches user center
+                if group and center and group.center_id != center.id:
+                    raise forms.ValidationError("Tanlangan guruh ushbu markazga tegishli emas!")
+
+                if group and not group_start_date:
+                    self.add_error("group_start_date", "Guruh uchun boshlash sanasini tanlang.")
             
             # ===== STUDENT LIMIT CHECK (Warning for Director/Manager ONLY) =====
             # This shows an error message when trying to add students beyond limit
@@ -196,6 +224,96 @@ class AddUserForm(forms.ModelForm):
                     raise forms.ValidationError(f"❌ Tizimda kutilmagan xatolik yuz berdi: {str(e)}")
         
         return cleaned_data
+
+    def _clean_group_assignments(self, *, raw_value, center):
+        from education.services.tuition import resolve_lesson_schedule
+
+        try:
+            payload = json.loads(raw_value)
+        except json.JSONDecodeError as exc:
+            raise forms.ValidationError("Guruhlar ro'yxati noto'g'ri yuborilgan.") from exc
+
+        if not isinstance(payload, list):
+            raise forms.ValidationError("Guruhlar ro'yxati noto'g'ri formatda.")
+
+        group_ids = []
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+            try:
+                group_ids.append(int(item.get("group_id") or 0))
+            except (TypeError, ValueError):
+                continue
+
+        groups_qs = Group.objects.filter(is_archived=False, id__in=group_ids).select_related("center")
+        if center:
+            groups_qs = groups_qs.filter(center=center)
+        group_map = {group.id: group for group in groups_qs}
+
+        normalized_assignments = []
+        seen_group_ids = set()
+        for index, item in enumerate(payload, start=1):
+            if not isinstance(item, dict):
+                raise forms.ValidationError(f"{index}-guruh ma'lumoti noto'g'ri.")
+
+            try:
+                group_id = int(item.get("group_id") or 0)
+            except (TypeError, ValueError) as exc:
+                raise forms.ValidationError(f"{index}-guruh tanlanmagan.") from exc
+
+            group = group_map.get(group_id)
+            if not group:
+                raise forms.ValidationError(f"{index}-guruh topilmadi yoki markazga tegishli emas.")
+            if group_id in seen_group_ids:
+                raise forms.ValidationError("Bir guruhni ikki marta biriktirib bo'lmaydi.")
+            seen_group_ids.add(group_id)
+
+            start_date_raw = (item.get("start_date") or item.get("requested_start_date") or "").strip()
+            start_date = parse_date(start_date_raw)
+            if not start_date:
+                raise forms.ValidationError(f"{group.nom} uchun boshlanish sanasini kiriting.")
+
+            schedule_meta = resolve_lesson_schedule(start_date, item.get("lesson_pattern"))
+
+            course_price_value = item.get("course_price")
+            if course_price_value in (None, ""):
+                course_price_value = group.kurs_narxi or 0
+            try:
+                course_price = int(course_price_value)
+            except (TypeError, ValueError) as exc:
+                raise forms.ValidationError(f"{group.nom} uchun narx noto'g'ri.") from exc
+
+            teacher_percent_value = item.get("teacher_percent")
+            if teacher_percent_value in (None, ""):
+                teacher_percent_value = group.oqituvchi_foiz or 0
+            try:
+                teacher_percent = int(teacher_percent_value)
+            except (TypeError, ValueError) as exc:
+                raise forms.ValidationError(f"{group.nom} uchun o'qituvchi ulushi noto'g'ri.") from exc
+
+            if teacher_percent < 0 or teacher_percent > 100:
+                raise forms.ValidationError(f"{group.nom} uchun o'qituvchi ulushi 0 dan 100 gacha bo'lishi kerak.")
+
+            monthly_lessons_value = item.get("monthly_lessons")
+            if monthly_lessons_value in (None, ""):
+                monthly_lessons_value = group.oy_dars_soni or 12
+            try:
+                monthly_lessons = int(monthly_lessons_value)
+            except (TypeError, ValueError) as exc:
+                raise forms.ValidationError(f"{group.nom} uchun oy dars soni noto'g'ri.") from exc
+
+            normalized_assignments.append({
+                "group": group,
+                "group_id": group.id,
+                "group_name": group.nom,
+                "start_date": schedule_meta["start_date"],
+                "lesson_pattern": schedule_meta["lesson_pattern"],
+                "course_price": max(0, course_price),
+                "teacher_percent": teacher_percent,
+                "monthly_lessons": max(0, monthly_lessons),
+            })
+
+        return normalized_assignments
 
     def _clean_phone_field(self, field_name):
         raw_value = (self.cleaned_data.get(field_name) or "").strip()
@@ -257,28 +375,34 @@ class AddUserForm(forms.ModelForm):
             user.save()
             
             # Handle Enrollment
-            group = data.get("group")
-            if user.role == "student" and group:
-                from education.models import StudentGroupHistory
+            if user.role == "student":
                 from education.services.enrollment_service import EnrollmentService
                 from education.services.tuition import ensure_all_tuition_months_since_start
 
-                start_date = data.get("group_start_date") or timezone.localdate()
-                enr = EnrollmentService.enroll_student(
-                    student=user,
-                    group=group,
-                    kurs_narxi=data.get("kurs_narhi") or group.kurs_narxi,
-                    oqituvchi_foiz=group.oqituvchi_foiz,
-                    start_date=start_date,
-                )
-
-                StudentGroupHistory.objects.filter(
-                    student=user,
-                    group=group,
-                    end_date__isnull=True,
-                ).exclude(start_date=start_date).update(start_date=start_date)
-
-                ensure_all_tuition_months_since_start(enr, timezone.localdate())
+                if self.cleaned_group_assignments:
+                    for assignment in self.cleaned_group_assignments:
+                        enrollment = EnrollmentService.enroll_student(
+                            student=user,
+                            group=assignment["group"],
+                            kurs_narxi=assignment["course_price"],
+                            oqituvchi_foiz=assignment["teacher_percent"],
+                            start_date=assignment["start_date"],
+                            lesson_pattern=assignment["lesson_pattern"],
+                            monthly_lessons=assignment["monthly_lessons"],
+                        )
+                        ensure_all_tuition_months_since_start(enrollment, timezone.localdate())
+                else:
+                    group = data.get("group")
+                    if group:
+                        start_date = data.get("group_start_date") or timezone.localdate()
+                        enrollment = EnrollmentService.enroll_student(
+                            student=user,
+                            group=group,
+                            kurs_narxi=data.get("kurs_narhi") or group.kurs_narxi,
+                            oqituvchi_foiz=group.oqituvchi_foiz,
+                            start_date=start_date,
+                        )
+                        ensure_all_tuition_months_since_start(enrollment, timezone.localdate())
 
             if user.role == "parent":
                 user.children.set(data.get("children_ids") or [])

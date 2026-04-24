@@ -451,6 +451,97 @@ class TenantRedirectRegressionTests(TestCase):
             ).exists()
         )
 
+    def test_add_user_enrolls_student_into_multiple_groups_from_group_assignments(self):
+        odd_group = Group.objects.create(
+            center=self.center,
+            nom="Matematika",
+            kurs_narxi=700000,
+            oqituvchi_foiz=45,
+            oy_dars_soni=12,
+        )
+        even_group = Group.objects.create(
+            center=self.center,
+            nom="Fizika",
+            kurs_narxi=500000,
+            oqituvchi_foiz=40,
+            oy_dars_soni=12,
+        )
+
+        response = self.client.post(
+            reverse("accounts:add_user") + "?role=student&drawer=1&next=/redirect-center/stat/students/",
+            {
+                "next": "/redirect-center/stat/students/",
+                "ism": "Mehribon",
+                "familya": "Student",
+                "otchestvo": "",
+                "telefon1": "",
+                "telefon2": "",
+                "center": str(self.center.id),
+                "role": "student",
+                "email": "mehribon.student@test.uz",
+                "password": "strong-pass-123",
+                "oqituvchi_foizi": "",
+                "birth_date": "2011-01-01",
+                "gender": "female",
+                "passport_id": "",
+                "jshr": "",
+                "address": "",
+                "group": "",
+                "kurs_narhi": "",
+                "group_start_date": "",
+                "group_assignments": json.dumps([
+                    {
+                        "group_id": odd_group.id,
+                        "start_date": "2026-04-24",
+                        "lesson_pattern": "odd",
+                        "course_price": 720000,
+                        "teacher_percent": 50,
+                        "monthly_lessons": 12,
+                    },
+                    {
+                        "group_id": even_group.id,
+                        "start_date": "2026-04-25",
+                        "lesson_pattern": "even",
+                        "course_price": 480000,
+                        "teacher_percent": 35,
+                        "monthly_lessons": 12,
+                    },
+                ]),
+            },
+            follow=False,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        student = User.objects.get(email="mehribon.student@test.uz")
+
+        odd_enrollment = Enrollment.objects.get(student=student, group=odd_group)
+        even_enrollment = Enrollment.objects.get(student=student, group=even_group)
+
+        self.assertEqual(odd_enrollment.joined_at.isoformat(), "2026-04-24")
+        self.assertEqual(odd_enrollment.lesson_pattern, Enrollment.LESSON_PATTERN_ODD)
+        self.assertEqual(odd_enrollment.kurs_narhi, 720000)
+        self.assertEqual(odd_enrollment.oqituvchi_foiz, 50)
+
+        self.assertEqual(even_enrollment.joined_at.isoformat(), "2026-04-25")
+        self.assertEqual(even_enrollment.lesson_pattern, Enrollment.LESSON_PATTERN_EVEN)
+        self.assertEqual(even_enrollment.kurs_narhi, 480000)
+        self.assertEqual(even_enrollment.oqituvchi_foiz, 35)
+
+        self.assertTrue(
+            StudentGroupHistory.objects.filter(
+                student=student,
+                group=odd_group,
+                start_date="2026-04-24",
+            ).exists()
+        )
+        self.assertTrue(
+            StudentGroupHistory.objects.filter(
+                student=student,
+                group=even_group,
+                start_date="2026-04-25",
+            ).exists()
+        )
+
     def test_director_can_open_tenant_add_user_page(self):
         response = self.client.get(reverse("accounts:add_user") + "?role=student")
         self.assertEqual(response.status_code, 200)

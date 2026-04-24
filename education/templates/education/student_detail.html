@@ -119,6 +119,230 @@
   ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.2);
   }
+
+  .cq-finance-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .cq-month-form {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .cq-month-form label {
+    color: #94a3b8;
+    font-size: 0.76rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0;
+  }
+
+  .cq-month-form input {
+    min-width: 180px;
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    color: #f8fafc;
+    padding: 10px 12px;
+    font-size: 0.92rem;
+    font-weight: 700;
+  }
+
+  .cq-month-form input:focus {
+    outline: none;
+    border-color: rgba(56, 189, 248, 0.55);
+    box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.12);
+  }
+
+  .cq-group-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .cq-group-card {
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .cq-group-card__top,
+  .cq-group-card__foot {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .cq-group-card__title {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .cq-group-card__title strong {
+    color: #f8fafc;
+    font-size: 1.05rem;
+    font-weight: 900;
+    line-height: 1.2;
+  }
+
+  .cq-group-card__title span,
+  .cq-group-card__foot span {
+    color: #94a3b8;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  .cq-chip-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .cq-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(59, 130, 246, 0.22);
+    color: #bfdbfe;
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+
+  .cq-chip--emerald {
+    background: rgba(34, 197, 94, 0.12);
+    border-color: rgba(34, 197, 94, 0.2);
+    color: #86efac;
+  }
+
+  .cq-chip--amber {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.2);
+    color: #fcd34d;
+  }
+
+  .cq-group-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .cq-group-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 0 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    color: #e2e8f0;
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-decoration: none;
+    transition: background 0.18s ease, transform 0.18s ease;
+  }
+
+  .cq-group-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    transform: translateY(-1px);
+  }
+
+  .cq-metric-grid,
+  .cq-total-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .cq-metric-box,
+  .cq-total-card {
+    border-radius: 18px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .cq-metric-box span,
+  .cq-total-card span {
+    display: block;
+    margin-bottom: 8px;
+    color: #94a3b8;
+    font-size: 0.73rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .cq-metric-box strong,
+  .cq-total-card strong {
+    color: #f8fafc;
+    font-size: 1rem;
+    font-weight: 900;
+    line-height: 1.2;
+    display: block;
+  }
+
+  .cq-total-card strong {
+    font-size: 1.12rem;
+  }
+
+  .cq-date-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .cq-date-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 11px;
+    border-radius: 999px;
+    background: rgba(59, 130, 246, 0.14);
+    border: 1px solid rgba(59, 130, 246, 0.22);
+    color: #bfdbfe;
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+
+  .cq-empty {
+    padding: 26px;
+    border-radius: 18px;
+    border: 1px dashed rgba(255, 255, 255, 0.14);
+    color: #94a3b8;
+    text-align: center;
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  @media (max-width: 1024px) {
+    .cq-group-grid,
+    .cq-metric-grid,
+    .cq-total-grid {
+      grid-template-columns: 1fr;
+    }
+  }
 </style>
 
 <div class="cq-page px-4 lg:px-6 py-6 font-['Inter']">
@@ -161,6 +385,143 @@
           class="flex-1 md:flex-none h-10 px-5 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 text-sm font-bold flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5">
           <i class="fa fa-pen"></i> Tahrirlash
         </a>
+      </div>
+    </div>
+
+    <div class="cq-finance-head">
+      <div class="flex items-center gap-3">
+        <div
+          class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+          <i class="fa fa-layer-group text-lg"></i>
+        </div>
+        <div>
+          <h2 class="text-xl font-black text-white">O'quvchi guruhlari</h2>
+          <p class="text-xs font-bold text-slate-500">Har bir guruh bo'yicha alohida hisob-kitob</p>
+        </div>
+      </div>
+      <form method="get" class="cq-month-form">
+        <label for="studentGroupMonth">Hisob oyi</label>
+        <input type="month" id="studentGroupMonth" name="month" value="{{ selected_month|date:'Y-m' }}">
+      </form>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1.3fr)_360px] gap-6">
+      <div class="cq-card p-5">
+        {% if student_group_financials.cards %}
+        <div class="cq-group-grid">
+          {% for card in student_group_financials.cards %}
+          <div class="cq-group-card">
+            <div class="cq-group-card__top">
+              <div class="cq-group-card__title">
+                <strong>{{ card.group_name }}</strong>
+                <span>{{ card.start_date|date:"d.m.Y" }} dan boshlangan</span>
+              </div>
+              <div class="cq-group-actions">
+                <button
+                  type="button"
+                  class="cq-group-btn"
+                  data-bs-toggle="modal"
+                  data-bs-target="#groupFinanceModal"
+                  data-group-title="{{ card.group_name|escapejs }}"
+                  data-group-pattern="{{ card.lesson_pattern_label|escapejs }}"
+                  data-group-start="{{ card.start_date|date:'d.m.Y' }}"
+                  data-group-lessons="{{ card.lesson_count }}"
+                  data-group-course-price="{{ card.course_price_display|escapejs }}"
+                  data-group-fee="{{ card.fee_amount_display|escapejs }}"
+                  data-group-teacher="{{ card.teacher_share_display|escapejs }}"
+                  data-group-center="{{ card.center_share_display|escapejs }}"
+                  data-group-debt="{{ card.debt_amount_display|escapejs }}"
+                  data-group-dates-target="group-finance-dates-{{ card.enrollment_id }}">
+                  <i class="fa fa-calendar-days"></i> Tafsilot
+                </button>
+                <a
+                  href="{% url 'education:enrollment_edit' card.enrollment_id %}?next={{ request.get_full_path|urlencode }}"
+                  class="cq-group-btn">
+                  <i class="fa fa-pen"></i> Tahrirlash
+                </a>
+              </div>
+            </div>
+
+            <div class="cq-chip-row">
+              <span class="cq-chip">{{ card.lesson_pattern_label }}</span>
+              <span class="cq-chip cq-chip--emerald">{{ card.lesson_count }} ta dars</span>
+              {% if card.is_individual_price %}
+              <span class="cq-chip cq-chip--amber">Individual narx</span>
+              {% endif %}
+            </div>
+
+            <div class="cq-metric-grid">
+              <div class="cq-metric-box">
+                <span>Narx</span>
+                <strong>{{ card.course_price_display }}</strong>
+              </div>
+              <div class="cq-metric-box">
+                <span>Shu oy qarzi</span>
+                <strong>{{ card.debt_amount_display }}</strong>
+              </div>
+              <div class="cq-metric-box">
+                <span>O'qituvchi</span>
+                <strong>{{ card.teacher_share_display }}</strong>
+              </div>
+              <div class="cq-metric-box">
+                <span>Markaz</span>
+                <strong>{{ card.center_share_display }}</strong>
+              </div>
+            </div>
+
+            <div class="cq-group-card__foot">
+              <span>
+                {% if card.is_individual_price %}
+                Standart: {{ card.default_course_price_display }}
+                {% else %}
+                Standart guruh narxi ishlatilmoqda
+                {% endif %}
+              </span>
+              <span>{{ selected_month|date:"F Y" }}</span>
+            </div>
+
+            <div id="group-finance-dates-{{ card.enrollment_id }}" hidden>
+              {% if card.lesson_date_labels %}
+              <div class="cq-date-chip-list">
+                {% for label in card.lesson_date_labels %}
+                <span class="cq-date-chip">{{ label }}</span>
+                {% endfor %}
+              </div>
+              {% else %}
+              <div class="cq-empty">Bu oy uchun hisoblangan dars sanalari topilmadi.</div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="cq-empty">Bu o'quvchi uchun faol guruh biriktirilmagan.</div>
+        {% endif %}
+      </div>
+
+      <div class="cq-card p-5">
+        <div class="mb-4">
+          <h3 class="text-lg font-black text-white mb-1">Jami hisob-kitob</h3>
+          <p class="text-sm font-semibold text-slate-500">{{ selected_month|date:"F Y" }} bo'yicha yig'indi</p>
+        </div>
+        <div class="cq-total-grid">
+          <div class="cq-total-card">
+            <span>Jami shu oy qarzi</span>
+            <strong>{{ student_group_financials.totals.debt_amount_display }}</strong>
+          </div>
+          <div class="cq-total-card">
+            <span>Jami oylik hisob</span>
+            <strong>{{ student_group_financials.totals.fee_amount_display }}</strong>
+          </div>
+          <div class="cq-total-card">
+            <span>Jami o'qituvchi</span>
+            <strong>{{ student_group_financials.totals.teacher_share_display }}</strong>
+          </div>
+          <div class="cq-total-card">
+            <span>Jami markaz</span>
+            <strong>{{ student_group_financials.totals.center_share_display }}</strong>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -312,6 +673,53 @@
 {% endblock %}
 
 {% block modals %}
+<div class="modal fade" id="groupFinanceModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content overflow-hidden">
+      <div class="modal-header border-b border-white/5 bg-white/5 p-4 flex items-center justify-between">
+        <h5 class="font-black text-white text-base flex items-center gap-2">
+          <i class="fa fa-layer-group text-emerald-400"></i>
+          <span id="groupFinanceTitle">Guruh tafsiloti</span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white opacity-50 hover:opacity-100 transition-opacity"
+          data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4 bg-[#0f172a] space-y-4">
+        <div class="cq-metric-grid">
+          <div class="cq-metric-box">
+            <span>Pattern</span>
+            <strong id="groupFinancePattern">-</strong>
+          </div>
+          <div class="cq-metric-box">
+            <span>Boshlanish sanasi</span>
+            <strong id="groupFinanceStart">-</strong>
+          </div>
+          <div class="cq-metric-box">
+            <span>Shu oy darslari</span>
+            <strong id="groupFinanceLessons">0 ta</strong>
+          </div>
+          <div class="cq-metric-box">
+            <span>Shu oy qarzi</span>
+            <strong id="groupFinanceDebt">0 so'm</strong>
+          </div>
+          <div class="cq-metric-box">
+            <span>Narx</span>
+            <strong id="groupFinanceCoursePrice">0 so'm</strong>
+          </div>
+          <div class="cq-metric-box">
+            <span>O'qituvchi / Markaz</span>
+            <strong id="groupFinanceShares">0 / 0</strong>
+          </div>
+        </div>
+        <div>
+          <div class="text-xs font-black uppercase tracking-[0.18em] text-slate-500 mb-3">Hisoblangan dars sanalari</div>
+          <div id="groupFinanceDates" class="cq-date-chip-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- POINTS DETAILS MODAL -->
 <div class="modal fade" id="pointsModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-md">
@@ -358,6 +766,34 @@
   }
 
   document.addEventListener("DOMContentLoaded", function () {
+    const monthInput = document.getElementById("studentGroupMonth");
+    if (monthInput && monthInput.form) {
+      monthInput.addEventListener("change", function () {
+        monthInput.form.submit();
+      });
+    }
+
+    const groupFinanceModal = document.getElementById("groupFinanceModal");
+    if (groupFinanceModal) {
+      groupFinanceModal.addEventListener("show.bs.modal", function (event) {
+        const button = event.relatedTarget;
+        if (!button) return;
+
+        document.getElementById("groupFinanceTitle").textContent = button.getAttribute("data-group-title") || "Guruh tafsiloti";
+        document.getElementById("groupFinancePattern").textContent = button.getAttribute("data-group-pattern") || "-";
+        document.getElementById("groupFinanceStart").textContent = button.getAttribute("data-group-start") || "-";
+        document.getElementById("groupFinanceLessons").textContent = (button.getAttribute("data-group-lessons") || "0") + " ta";
+        document.getElementById("groupFinanceDebt").textContent = button.getAttribute("data-group-debt") || "0 so'm";
+        document.getElementById("groupFinanceCoursePrice").textContent = button.getAttribute("data-group-course-price") || "0 so'm";
+        document.getElementById("groupFinanceShares").textContent = (button.getAttribute("data-group-teacher") || "0 so'm") + " / " + (button.getAttribute("data-group-center") || "0 so'm");
+
+        const targetId = button.getAttribute("data-group-dates-target");
+        const source = targetId ? document.getElementById(targetId) : null;
+        const datesContainer = document.getElementById("groupFinanceDates");
+        datesContainer.innerHTML = source ? source.innerHTML : '<div class="cq-empty">Dars sanalari topilmadi.</div>';
+      });
+    }
+
     const modalEl = document.getElementById("pointsModal");
     const modalBody = document.getElementById("modal-content-body");
     const modal = new bootstrap.Modal(modalEl);

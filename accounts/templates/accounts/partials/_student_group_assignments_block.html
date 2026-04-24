@@ -1,0 +1,108 @@
+<div class="bq-sdrawer-card bq-sdrawer-group-card">
+  <div class="bq-sdrawer-card__head">
+    <div>
+      <div class="bq-sdrawer-card__title">O'quvchi guruhlari</div>
+      <p class="bq-sdrawer-card__note">
+        O'quvchini bir nechta guruhga biriktiring. Boshlanish sanasidan pattern avtomatik aniqlanadi.
+      </p>
+    </div>
+  </div>
+
+  {{ form.group_assignments }}
+
+  <div class="bq-sdrawer-group-builder" data-group-assignments-builder>
+    <div class="bq-sdrawer-group-grid">
+      <div class="bq-sdrawer-field">
+        <label for="{{ form.group.id_for_label }}">Guruh</label>
+        {{ form.group }}
+        {% if form.group.errors %}<div class="bq-sdrawer-error">{{ form.group.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="bq-sdrawer-field">
+        <label for="{{ form.group_start_date.id_for_label }}">Boshlanish sanasi</label>
+        <div class="bq-sdrawer-date">
+          <span class="bq-sdrawer-date__icon"><i class="fa-regular fa-calendar-days"></i></span>
+          {{ form.group_start_date }}
+        </div>
+        {% if form.group_start_date.errors %}<div class="bq-sdrawer-error">{{ form.group_start_date.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="bq-sdrawer-field">
+        <label for="id_group_pattern_mode">Dars patterni</label>
+        <select id="id_group_pattern_mode" class="form-control uniform-input" data-group-assignment-pattern-mode>
+          <option value="auto">Avtomatik</option>
+          <option value="daily">Har kuni</option>
+        </select>
+      </div>
+      <div class="bq-sdrawer-field">
+        <label for="{{ form.kurs_narhi.id_for_label }}">Narx</label>
+        {{ form.kurs_narhi }}
+        {% if form.kurs_narhi.errors %}<div class="bq-sdrawer-error">{{ form.kurs_narhi.errors|join:", " }}</div>{% endif %}
+        <div class="bq-sdrawer-field__hint" data-group-price-note>
+          Standart guruh narxi avtomatik qo'yiladi, xohlasangiz individual narx kiriting.
+        </div>
+      </div>
+      <div class="bq-sdrawer-field">
+        <label for="id_group_teacher_percent">O'qituvchi ulushi (%)</label>
+        <input
+          type="number"
+          min="0"
+          max="100"
+          step="1"
+          value="40"
+          id="id_group_teacher_percent"
+          class="form-control uniform-input"
+          data-group-assignment-teacher-percent>
+      </div>
+      <div class="bq-sdrawer-field">
+        <label for="id_group_monthly_lessons">Oy dars soni</label>
+        <input
+          type="number"
+          min="0"
+          step="1"
+          value="12"
+          id="id_group_monthly_lessons"
+          class="form-control uniform-input"
+          data-group-assignment-monthly-lessons>
+      </div>
+    </div>
+
+    <div class="bq-sdrawer-group-preview" data-group-assignment-preview>
+      <div class="bq-sdrawer-group-preview__head">
+        <strong data-preview-pattern>Pattern tanlanmagan</strong>
+        <span data-preview-start-date>Sana tanlanmagan</span>
+      </div>
+      <div class="bq-sdrawer-group-preview__metrics">
+        <div>
+          <span>Shu oy darslari</span>
+          <strong data-preview-lessons>0 ta</strong>
+        </div>
+        <div>
+          <span>Shu oy qarzi</span>
+          <strong data-preview-fee>0 so'm</strong>
+        </div>
+        <div>
+          <span>O'qituvchi</span>
+          <strong data-preview-teacher>0 so'm</strong>
+        </div>
+        <div>
+          <span>Markaz</span>
+          <strong data-preview-center>0 so'm</strong>
+        </div>
+      </div>
+      <div class="bq-sdrawer-group-preview__note" data-preview-note>
+        Guruh va boshlanish sanasi tanlang.
+      </div>
+    </div>
+
+    <div class="bq-sdrawer-group-actions">
+      <button type="button" class="bq-sdrawer-refresh" data-add-group-assignment>
+        <i class="fa-solid fa-plus"></i>
+        <span>Guruhni qo'shish</span>
+      </button>
+      <div class="bq-sdrawer-group-error" data-group-assignment-error>
+        {% if form.group_assignments.errors %}{{ form.group_assignments.errors|join:", " }}{% endif %}
+      </div>
+    </div>
+
+    <div class="bq-sdrawer-group-list" data-group-assignment-list></div>
+  </div>
+</div>

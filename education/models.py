@@ -218,9 +218,9 @@ class Enrollment(SoftDeleteMixin, models.Model):
     LESSON_PATTERN_ODD = "odd"
     LESSON_PATTERN_DAILY = "daily"
     LESSON_PATTERN_CHOICES = (
-        (LESSON_PATTERN_GROUP, "Guruh jadvali"),
-        (LESSON_PATTERN_EVEN, "Juft kunlar"),
-        (LESSON_PATTERN_ODD, "Toq kunlar"),
+        (LESSON_PATTERN_GROUP, "Avtomatik"),
+        (LESSON_PATTERN_EVEN, "Juft kunlari"),
+        (LESSON_PATTERN_ODD, "Toq kunlari"),
         (LESSON_PATTERN_DAILY, "Har kuni"),
     )
 

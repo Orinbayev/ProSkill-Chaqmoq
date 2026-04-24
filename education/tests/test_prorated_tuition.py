@@ -30,11 +30,13 @@ from education.models import (
 from education.services.historical_finance_service import HistoricalFinanceService
 from education.services.tuition import (
     attendance_based_fee,
+    auto_lesson_pattern_for_date,
     billable_attendance_count,
     ensure_tuition_month,
     expected_lessons_in_period,
     pattern_lessons_between,
     prorated_monthly_fee,
+    resolve_lesson_schedule,
     reconcile_tuition_month,
     scheduled_lessons_between,
     tuition_month_lesson_count,
@@ -137,13 +139,10 @@ class ProratedTuitionTests(TestCase):
         """Scenariy C: 18-sanada qo'shildi, chegirma yo'q — expected × per_lesson"""
         s = self._make_student("c@t")
         enr = self._enroll(s, start_date=date(2026, 4, 18))
-        # 18-aprel = shanba (weekday 6) — jadvalda yo'q
-        # 18-apr to 30-apr oralig'idagi Du(20), Chor(22), Jum(24), Du(27), Chor(29) = 5 dars
+        # 18-aprel 2026 = shanba, demak avtomatik "Juft kunlari".
         fee = prorated_monthly_fee(enr, self.MONTH)
         per_lesson = BASE_PRICE / LESSONS_PER_MONTH  # 45,833.33
-        expected = scheduled_lessons_between(
-            self.group, date(2026, 4, 18), date(2026, 4, 30)
-        )
+        expected = pattern_lessons_between(date(2026, 4, 18), date(2026, 4, 30), "even")
         self.assertEqual(fee, round(expected * per_lesson))
         self.assertLess(fee, BASE_PRICE)  # to'liq narxdan kam
 
@@ -164,9 +163,7 @@ class ProratedTuitionTests(TestCase):
         s = self._make_student("f@t")
         enr = self._enroll(s, start_date=date(2026, 4, 18), payable=330_000)
         per_lesson = 330_000 / LESSONS_PER_MONTH  # 27,500
-        expected = scheduled_lessons_between(
-            self.group, date(2026, 4, 18), date(2026, 4, 30)
-        )
+        expected = pattern_lessons_between(date(2026, 4, 18), date(2026, 4, 30), "even")
         self.assertEqual(prorated_monthly_fee(enr, self.MONTH), round(expected * per_lesson))
 
     def test_G_free_plus_partial(self):
@@ -256,9 +253,7 @@ class ProratedTuitionTests(TestCase):
         enr = self._enroll(s, start_date=date(2026, 4, 18))
         tm = ensure_tuition_month(enr, self.MONTH)
         per_lesson = BASE_PRICE / LESSONS_PER_MONTH
-        expected = scheduled_lessons_between(
-            self.group, date(2026, 4, 18), date(2026, 4, 30)
-        )
+        expected = pattern_lessons_between(date(2026, 4, 18), date(2026, 4, 30), "even")
         self.assertEqual(_tm_fee(tm), round(expected * per_lesson))
         self.assertLess(_tm_fee(tm), BASE_PRICE)
 
@@ -280,10 +275,47 @@ class ProratedTuitionTests(TestCase):
         # Du (6,13,20,27), Chor (1,8,15,22,29), Jum (3,10,17,24) = 4+5+4 = 13
         self.assertEqual(count, 13)
 
-    def test_pattern_lessons_between_counts_even_odd_and_daily(self):
-        self.assertEqual(pattern_lessons_between(date(2026, 4, 18), date(2026, 4, 30), "even"), 7)
-        self.assertEqual(pattern_lessons_between(date(2026, 4, 18), date(2026, 4, 30), "odd"), 6)
-        self.assertEqual(pattern_lessons_between(date(2026, 4, 18), date(2026, 4, 30), "daily"), 13)
+    def test_pattern_lessons_between_uses_workweek_parity_and_ignores_sunday(self):
+        self.assertEqual(pattern_lessons_between(date(2026, 4, 18), date(2026, 4, 30), "even"), 6)
+        self.assertEqual(pattern_lessons_between(date(2026, 4, 18), date(2026, 4, 30), "odd"), 5)
+        self.assertEqual(pattern_lessons_between(date(2026, 4, 18), date(2026, 4, 30), "daily"), 11)
+        self.assertEqual(pattern_lessons_between(date(2026, 4, 19), date(2026, 4, 19), "odd"), 0)
+        self.assertEqual(pattern_lessons_between(date(2026, 4, 19), date(2026, 4, 19), "even"), 0)
+        self.assertEqual(pattern_lessons_between(date(2026, 4, 19), date(2026, 4, 19), "daily"), 0)
+
+    def test_pattern_lessons_between_covers_30_31_and_february_months(self):
+        cases = (
+            (date(2026, 4, 1), date(2026, 4, 30), 13, 13, 26),
+            (date(2026, 5, 1), date(2026, 5, 31), 13, 13, 26),
+            (date(2026, 2, 1), date(2026, 2, 28), 12, 12, 24),
+        )
+        for start, end, odd_count, even_count, daily_count in cases:
+            with self.subTest(start=start, end=end):
+                self.assertEqual(pattern_lessons_between(start, end, "odd"), odd_count)
+                self.assertEqual(pattern_lessons_between(start, end, "even"), even_count)
+                self.assertEqual(pattern_lessons_between(start, end, "daily"), daily_count)
+
+    def test_pattern_lessons_between_respects_month_start_middle_and_end(self):
+        cases = (
+            (date(2026, 4, 1), date(2026, 4, 30), 13, 13, 26),
+            (date(2026, 4, 15), date(2026, 4, 30), 7, 7, 14),
+            (date(2026, 4, 30), date(2026, 4, 30), 0, 1, 1),
+            (date(2026, 5, 15), date(2026, 5, 31), 7, 7, 14),
+            (date(2026, 5, 31), date(2026, 5, 31), 0, 0, 0),
+            (date(2026, 2, 15), date(2026, 2, 28), 6, 6, 12),
+            (date(2026, 2, 28), date(2026, 2, 28), 0, 1, 1),
+        )
+        for start, end, odd_count, even_count, daily_count in cases:
+            with self.subTest(start=start, end=end):
+                self.assertEqual(pattern_lessons_between(start, end, "odd"), odd_count)
+                self.assertEqual(pattern_lessons_between(start, end, "even"), even_count)
+                self.assertEqual(pattern_lessons_between(start, end, "daily"), daily_count)
+
+    def test_pattern_lessons_between_can_naturally_return_12_13_or_14(self):
+        self.assertEqual(pattern_lessons_between(date(2026, 2, 1), date(2026, 2, 28), "odd"), 12)
+        self.assertEqual(pattern_lessons_between(date(2026, 4, 1), date(2026, 4, 30), "odd"), 13)
+        self.assertEqual(pattern_lessons_between(date(2026, 7, 1), date(2026, 7, 31), "odd"), 14)
+        self.assertEqual(pattern_lessons_between(date(2026, 1, 1), date(2026, 1, 31), "even"), 14)
 
     def test_partial_month_uses_enrollment_lesson_pattern(self):
         s = self._make_student("pattern-even@t")
@@ -293,7 +325,7 @@ class ProratedTuitionTests(TestCase):
         enr.monthly_lessons = LESSONS_PER_MONTH
         enr.save(update_fields=["lesson_pattern", "joined_at", "monthly_lessons"])
 
-        expected_lessons = 7
+        expected_lessons = 6
         expected_fee = round((BASE_PRICE * expected_lessons) / LESSONS_PER_MONTH)
 
         self.assertEqual(expected_lessons_in_period(enr, date(2026, 4, 18), date(2026, 4, 30)), expected_lessons)
@@ -312,7 +344,7 @@ class ProratedTuitionTests(TestCase):
 
         self.assertEqual(tuition_month_lesson_count(enr, self.MONTH), expected_lessons)
         self.assertEqual(preview["lesson_count"], expected_lessons)
-        self.assertEqual(preview["lesson_pattern_label"], "Toq kunlar")
+        self.assertEqual(preview["lesson_pattern_label"], "Toq kunlari")
         self.assertEqual(preview["fee_amount"], BASE_PRICE)
 
     def test_tuition_preview_keeps_teacher_and_center_shares_balanced(self):
@@ -328,6 +360,22 @@ class ProratedTuitionTests(TestCase):
         self.assertEqual(preview["lesson_count"], 6)
         self.assertEqual(preview["teacher_share"] + preview["center_share"], preview["full_turnover"])
         self.assertEqual(preview["fee_amount"], round((BASE_PRICE * 6) / LESSONS_PER_MONTH))
+        self.assertEqual(preview["counted_days_summary"], "Hisoblangan kunlar: Sesh, Pay, Shan")
+
+    def test_auto_lesson_pattern_examples_follow_real_weekday(self):
+        self.assertEqual(auto_lesson_pattern_for_date(date(2026, 4, 24)), "odd")
+        self.assertEqual(auto_lesson_pattern_for_date(date(2026, 4, 25)), "even")
+        self.assertEqual(auto_lesson_pattern_for_date(date(2026, 4, 27)), "odd")
+
+    def test_sunday_start_date_is_shifted_to_next_monday_for_counting(self):
+        schedule = resolve_lesson_schedule(date(2026, 4, 26), "odd")
+
+        self.assertEqual(schedule["start_date"], date(2026, 4, 27))
+        self.assertEqual(schedule["lesson_pattern"], "odd")
+        self.assertEqual(
+            schedule["adjustment_note"],
+            "Yakshanba tanlangani uchun hisob-kitob 27.04.2026 dan boshlandi",
+        )
 
     def test_teacher_salary_is_capped_at_full_month_share(self):
         """

@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load humanize %}
+{% load custom_tags %}
 {% block body_class %}debtors-page{% endblock %}
 
 {% block title %}
@@ -515,6 +516,52 @@
         white-space: nowrap;
     }
 
+    .group-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 220px;
+    }
+
+    .group-card-mini {
+        border-radius: 14px;
+        padding: 10px 12px;
+        background: rgba(15, 23, 42, 0.62);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .group-card-mini strong {
+        color: #f8fafc;
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 1.3;
+    }
+
+    .group-card-mini span {
+        color: #94a3b8;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.4;
+    }
+
+    .group-more-btn {
+        align-self: flex-start;
+        border: 1px solid rgba(96, 165, 250, 0.22);
+        background: rgba(37, 99, 235, 0.12);
+        color: #bfdbfe;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .group-more-btn:hover {
+        background: rgba(37, 99, 235, 0.18);
+    }
+
     .empty-state {
         padding: 42px 18px;
         text-align: center;
@@ -971,7 +1018,7 @@
     <div class="filter-section">
         <form method="get" id="filterForm">
             <input type="hidden" name="per_page" value="{{ per_page }}">
-            <div class="debt-filter-grid{% if q or selected_group or min_debt or max_debt or pay_month or request.GET.date_from or request.GET.date_to or request.GET.end_date %} has-clear{% endif %}">
+            <div class="debt-filter-grid{% if q or selected_group or selected_lesson_pattern_filter or min_debt or max_debt or pay_month or request.GET.date_from or request.GET.date_to or request.GET.end_date %} has-clear{% endif %}">
                 <div class="debt-filter-field is-search">
                     <label class="filter-label">🔍 Qidiruv</label>
                     <div class="search-input-wrap">
@@ -986,6 +1033,21 @@
                         {% for g in groups %}
                         <option value="{{ g.id }}" {% if selected_group == g.id %}selected{% endif %}>{{ g.nom }}</option>
                         {% endfor %}
+                    </select>
+                </div>
+                <div class="debt-filter-field">
+                    <label class="filter-label">🗓 Dars kuni</label>
+                    <select name="lesson_pattern_filter" class="filter-select">
+                        <option value="">Barchasi ({{ lesson_pattern_filter_counts.all }})</option>
+                        <option value="odd" {% if selected_lesson_pattern_filter == 'odd' %}selected{% endif %}>
+                            Toq kunlari ({{ lesson_pattern_filter_counts.odd }})
+                        </option>
+                        <option value="even" {% if selected_lesson_pattern_filter == 'even' %}selected{% endif %}>
+                            Juft kunlari ({{ lesson_pattern_filter_counts.even }})
+                        </option>
+                        <option value="daily" {% if selected_lesson_pattern_filter == 'daily' %}selected{% endif %}>
+                            Har kuni ({{ lesson_pattern_filter_counts.daily }})
+                        </option>
                     </select>
                 </div>
                 <div class="debt-filter-field">
@@ -1009,7 +1071,7 @@
                     <label class="filter-label">📅 Sanagacha</label>
                     <input type="date" name="date_to" value="{{ date_to }}" class="filter-input">
                 </div>
-                {% if q or selected_group or min_debt or max_debt or pay_month or request.GET.date_from or request.GET.date_to or request.GET.end_date %}
+                {% if q or selected_group or selected_lesson_pattern_filter or min_debt or max_debt or pay_month or request.GET.date_from or request.GET.date_to or request.GET.end_date %}
                 <div class="clear-filter-wrap debt-filter-clear">
                     <a href="?per_page={{ per_page }}" class="clear-filter-btn" title="Filtrlarni tozalash">
                         <i class="fa-solid fa-xmark"></i> Tozalash
@@ -1091,8 +1153,31 @@
 	                            </div>
 	                        </td>
 	                        <td>
-	                            {% if row.group_label %}
-	                                <span class="group-tag">{{ row.group_label }}</span>
+	                            {% if row.group_cards %}
+                                <div class="group-stack">
+                                    {% for group_card in row.visible_group_cards %}
+                                    <div class="group-card-mini">
+                                        <strong>{{ group_card.group_name }}</strong>
+                                        <span>{{ group_card.lesson_pattern_label }} • {{ group_card.lesson_count }} ta</span>
+                                    </div>
+                                    {% endfor %}
+                                    {% if row.remaining_group_card_count %}
+                                    <button
+                                        type="button"
+                                        class="group-more-btn"
+                                        data-group-toggle="group-extra-{{ row.student.id }}">
+                                        {{ row.remaining_group_card_count }} ta guruh
+                                    </button>
+                                    <div id="group-extra-{{ row.student.id }}" hidden>
+                                        {% for group_card in row.group_cards|slice:"2:" %}
+                                        <div class="group-card-mini mt-2">
+                                            <strong>{{ group_card.group_name }}</strong>
+                                            <span>{{ group_card.lesson_pattern_label }} • {{ group_card.lesson_count }} ta</span>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
 	                            {% else %}
 	                                <span class="text-secondary small italic">Guruhsiz</span>
 	                            {% endif %}
@@ -1110,19 +1195,19 @@
 	                        <td>
 	                            <div class="table-meta">
 	                                <span class="lesson-pill"><i class="fa-solid fa-calendar-days"></i> {{ row.lesson_count }} ta</span>
-	                                <span>{{ row.lesson_pattern_label }}</span>
+	                                <span>{{ row.enrollment_count }} ta guruh</span>
 	                            </div>
 	                        </td>
 	                        <td>
-	                            <div class="debt-badge" {% if row.is_deferred %}style="color:#f59e0b;"{% endif %}>{{ row.debt|intcomma }} so'm</div>
+	                            <div class="debt-badge" {% if row.is_deferred %}style="color:#f59e0b;"{% endif %}>{{ row.debt|money_uz }}</div>
 	                            {% if row.has_teacher_share_only %}
-	                            <div class="debt-meta-line teacher-share">O'qituvchi haqqi: {{ row.teacher_share_only_debt|intcomma }} so'm</div>
-	                            <div class="debt-meta-line original-price">Umumiy narxi: {{ row.teacher_share_only_full_total|intcomma }} so'm</div>
+	                            <div class="debt-meta-line teacher-share">O'qituvchi haqqi: {{ row.teacher_share_only_debt|money_uz }}</div>
+	                            <div class="debt-meta-line original-price">Umumiy narxi: {{ row.teacher_share_only_full_total|money_uz }}</div>
 	                            {% endif %}
 	                        </td>
 	                        <td>
 	                            <div class="table-meta">
-	                                <strong>{{ row.total_paid|intcomma }} so'm</strong>
+	                                <strong>{{ row.total_paid|money_uz }}</strong>
 	                                <span>Tanlangan davr</span>
 	                            </div>
 	                        </td>
@@ -1506,6 +1591,21 @@
             }
 
             document.querySelectorAll('input[name="payment_method"]').forEach(r => r.addEventListener('change', togglePaymentInputs));
+            document.querySelectorAll('[data-group-toggle]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    const target = document.getElementById(button.getAttribute('data-group-toggle'));
+                    if (!target) return;
+                    const isHidden = target.hasAttribute('hidden');
+                    if (isHidden) {
+                        target.removeAttribute('hidden');
+                        button.textContent = "Yopish";
+                    } else {
+                        target.setAttribute('hidden', '');
+                        const hiddenItems = target.querySelectorAll('.group-card-mini').length;
+                        button.textContent = hiddenItems + " ta guruh";
+                    }
+                });
+            });
             const filterForm = document.getElementById('filterForm');
             if (filterForm) {
                 filterForm.querySelectorAll('select, input[type="date"]').forEach(el => el.addEventListener('change', () => filterForm.submit()));

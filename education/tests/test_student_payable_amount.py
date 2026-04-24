@@ -25,8 +25,10 @@ from education.services.historical_finance_service import HistoricalFinanceServi
 from education.services.tuition import (
     effective_student_payable_amount,
     ensure_tuition_month,
+    format_money,
     full_course_amount,
     pattern_lessons_between,
+    round_money_to_thousand,
     tuition_month_preview,
 )
 from education.views import sync_tuition_fee
@@ -391,10 +393,16 @@ class StudentPayableAmountTests(TestCase):
         self.assertContains(response, 'type="date"')
         self.assertContains(response, 'name="lesson_pattern"')
         self.assertContains(response, 'id="billingPreview"')
+        self.assertContains(response, "Seshanba")
+        self.assertContains(response, "Dushanba")
+        self.assertNotContains(response, "Guruh jadvali")
+        self.assertNotContains(response, "Guruhning real dars jadvali")
+        self.assertContains(response, "Toq kunlari")
+        self.assertContains(response, "Juft kunlari")
 
     def test_enrollment_edit_preview_endpoint_uses_backend_pattern_and_keeps_group_selected(self):
-        current_month = timezone.localdate().replace(day=1)
-        start_date = current_month.replace(day=18)
+        current_month = date(2026, 4, 1)
+        start_date = date(2026, 4, 24)
         self.regular_enrollment.joined_at = start_date
         self.regular_enrollment.lesson_pattern = Enrollment.LESSON_PATTERN_GROUP
         self.regular_enrollment.monthly_lessons = self.group.oy_dars_soni
@@ -403,15 +411,15 @@ class StudentPayableAmountTests(TestCase):
         edit_url = f"/{self.center.slug}{reverse('education:enrollment_edit', args=[self.regular_enrollment.id])}"
         page_response = self.client.get(edit_url)
         self.assertEqual(page_response.status_code, 200)
-        self.assertEqual(page_response.context["selected_lesson_pattern"], Enrollment.LESSON_PATTERN_GROUP)
-        self.assertContains(page_response, 'value="group"', html=False)
+        self.assertEqual(page_response.context["selected_lesson_pattern"], Enrollment.LESSON_PATTERN_ODD)
+        self.assertNotContains(page_response, 'value="group"', html=False)
 
         preview_response = self.client.get(
             edit_url,
             {
                 "preview": "1",
                 "joined_at": start_date.isoformat(),
-                "lesson_pattern": "odd",
+                "lesson_pattern": "even",
                 "group_id": self.group.id,
                 "monthly_lessons": self.group.oy_dars_soni,
                 "kurs_narhi": self.regular_enrollment.kurs_narhi,
@@ -428,7 +436,9 @@ class StudentPayableAmountTests(TestCase):
             day=calendar.monthrange(current_month.year, current_month.month)[1]
         )
         self.assertEqual(preview_payload["lesson_pattern"], "odd")
-        self.assertEqual(preview_payload["lesson_pattern_label"], "Toq kunlar")
+        self.assertEqual(preview_payload["lesson_pattern_label"], "Toq kunlari")
+        self.assertEqual(preview_payload["lesson_pattern_hint"], "Dushanba • Chorshanba • Juma")
+        self.assertEqual(preview_payload["counted_days_summary"], "Hisoblangan kunlar: Dush, Chor, Jum")
         self.assertEqual(
             preview_payload["lesson_count"],
             pattern_lessons_between(start_date, month_end, "odd"),
@@ -441,6 +451,10 @@ class StudentPayableAmountTests(TestCase):
         self.assertContains(page_response, 'id="start-date"')
         self.assertContains(page_response, 'name="lesson_pattern"')
         self.assertContains(page_response, 'id="tuition-preview"')
+        self.assertContains(page_response, "Payshanba")
+        self.assertContains(page_response, "Dushanba-Shanba")
+        self.assertNotContains(page_response, "Guruh jadvali")
+        self.assertNotContains(page_response, "Guruhning real dars jadvali")
 
         student = User.objects.create_user(
             email="ajax-pattern@payable.test",
@@ -451,8 +465,8 @@ class StudentPayableAmountTests(TestCase):
             familya="Pattern",
             telefon1="+998901000088",
         )
-        current_month = timezone.localdate().replace(day=1)
-        start_date = current_month.replace(day=18)
+        current_month = date(2026, 4, 1)
+        start_date = date(2026, 4, 25)
         month_end = current_month.replace(
             day=calendar.monthrange(current_month.year, current_month.month)[1]
         )
@@ -464,7 +478,7 @@ class StudentPayableAmountTests(TestCase):
             {
                 "preview": "1",
                 "start_date": start_date.isoformat(),
-                "lesson_pattern": "even",
+                "lesson_pattern": "odd",
             },
             HTTP_X_REQUESTED_WITH="XMLHttpRequest",
         )
@@ -472,14 +486,16 @@ class StudentPayableAmountTests(TestCase):
         preview_payload = preview_response.json()["preview"]
         self.assertEqual(preview_payload["lesson_count"], expected_lessons)
         self.assertEqual(preview_payload["fee_amount"], expected_fee)
-        self.assertEqual(preview_payload["lesson_pattern_label"], "Juft kunlar")
+        self.assertEqual(preview_payload["lesson_pattern_label"], "Juft kunlari")
+        self.assertEqual(preview_payload["lesson_pattern_hint"], "Seshanba • Payshanba • Shanba")
+        self.assertEqual(preview_payload["counted_days_summary"], "Hisoblangan kunlar: Sesh, Pay, Shan")
 
         response = self.client.post(
             add_url,
             data=json.dumps({
                 "student_id": student.id,
                 "start_date": start_date.isoformat(),
-                "lesson_pattern": "even",
+                "lesson_pattern": "odd",
             }),
             content_type="application/json",
             HTTP_X_REQUESTED_WITH="XMLHttpRequest",
@@ -494,6 +510,8 @@ class StudentPayableAmountTests(TestCase):
         self.assertEqual(payload["preview"]["lesson_count"], preview_payload["lesson_count"])
         self.assertEqual(payload["preview"]["fee_amount"], preview_payload["fee_amount"])
         self.assertEqual(payload["preview"]["lesson_pattern_label"], preview_payload["lesson_pattern_label"])
+        self.assertEqual(payload["preview"]["counted_days_summary"], preview_payload["counted_days_summary"])
+        self.assertEqual(payload["preview"]["lesson_count_summary"], preview_payload["lesson_count_summary"])
         tm = TuitionMonth.objects.get(enrollment=enrollment, month=current_month)
         self.assertEqual(tm.fee_amount, expected_fee)
 
@@ -512,6 +530,170 @@ class StudentPayableAmountTests(TestCase):
         preview = tuition_month_preview(self.regular_enrollment, current_month)
         self.assertEqual(rows[self.regular_student.email]["lesson_count"], preview["lesson_count"])
         self.assertEqual(rows[self.regular_student.email]["lesson_pattern_label"], preview["lesson_pattern_label"])
+
+    def test_qarzdorlar_filter_uses_auto_detected_lesson_pattern_counts(self):
+        odd_student = User.objects.create_user(
+            email="odd-filter@payable.test",
+            password="testpass123",
+            role="student",
+            center=self.center,
+            ism="Pattern",
+            familya="Filter Odd",
+            telefon1="+998901000065",
+        )
+        even_student = User.objects.create_user(
+            email="even-filter@payable.test",
+            password="testpass123",
+            role="student",
+            center=self.center,
+            ism="Pattern",
+            familya="Filter Even",
+            telefon1="+998901000066",
+        )
+        odd_enrollment = Enrollment.objects.create(
+            center=self.center,
+            group=self.group,
+            student=odd_student,
+            kurs_narhi=550_000,
+            oqituvchi_foiz=40,
+            joined_at=date(2026, 4, 24),
+            lesson_pattern=Enrollment.LESSON_PATTERN_GROUP,
+            is_active=True,
+        )
+        even_enrollment = Enrollment.objects.create(
+            center=self.center,
+            group=self.group,
+            student=even_student,
+            kurs_narhi=550_000,
+            oqituvchi_foiz=40,
+            joined_at=date(2026, 4, 25),
+            lesson_pattern=Enrollment.LESSON_PATTERN_GROUP,
+            is_active=True,
+        )
+        odd_enrollment.monthly_lessons = self.group.oy_dars_soni
+        odd_enrollment.save(update_fields=["monthly_lessons"])
+        even_enrollment.monthly_lessons = self.group.oy_dars_soni
+        even_enrollment.save(update_fields=["monthly_lessons"])
+        ensure_tuition_month(odd_enrollment, date(2026, 4, 1))
+        ensure_tuition_month(even_enrollment, date(2026, 4, 1))
+
+        response = self.client.get(self.qarzdorlar_url, {"lesson_pattern_filter": "odd", "q": "Pattern"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["selected_lesson_pattern_filter"], "odd")
+        self.assertEqual(response.context["lesson_pattern_filter_counts"]["all"], 2)
+        self.assertEqual(response.context["lesson_pattern_filter_counts"]["odd"], 1)
+        self.assertEqual(response.context["lesson_pattern_filter_counts"]["even"], 1)
+        rows = {row["student"].email: row for row in response.context["page_obj"].object_list}
+        self.assertIn(odd_student.email, rows)
+        self.assertNotIn(even_student.email, rows)
+
+    def test_qarzdorlar_filter_keeps_multi_group_student_visible_in_both_odd_and_even_filters(self):
+        second_group = Group.objects.create(
+            center=self.center,
+            nom="Pattern Second Group",
+            oqituvchi=self.teacher,
+            kurs_narxi=600_000,
+            oqituvchi_foiz=35,
+            oy_dars_soni=12,
+        )
+        dual_student = User.objects.create_user(
+            email="dual-pattern@payable.test",
+            password="testpass123",
+            role="student",
+            center=self.center,
+            ism="Dual",
+            familya="Pattern",
+            telefon1="+998901000067",
+        )
+        odd_enrollment = Enrollment.objects.create(
+            center=self.center,
+            group=self.group,
+            student=dual_student,
+            kurs_narhi=550_000,
+            oqituvchi_foiz=40,
+            joined_at=date(2026, 4, 24),
+            lesson_pattern=Enrollment.LESSON_PATTERN_GROUP,
+            is_active=True,
+        )
+        even_enrollment = Enrollment.objects.create(
+            center=self.center,
+            group=second_group,
+            student=dual_student,
+            kurs_narhi=600_000,
+            oqituvchi_foiz=35,
+            joined_at=date(2026, 4, 25),
+            lesson_pattern=Enrollment.LESSON_PATTERN_GROUP,
+            is_active=True,
+        )
+        odd_enrollment.monthly_lessons = self.group.oy_dars_soni
+        odd_enrollment.save(update_fields=["monthly_lessons"])
+        even_enrollment.monthly_lessons = second_group.oy_dars_soni
+        even_enrollment.save(update_fields=["monthly_lessons"])
+        ensure_tuition_month(odd_enrollment, date(2026, 4, 1))
+        ensure_tuition_month(even_enrollment, date(2026, 4, 1))
+
+        odd_response = self.client.get(self.qarzdorlar_url, {"lesson_pattern_filter": "odd", "q": "Dual"})
+        even_response = self.client.get(self.qarzdorlar_url, {"lesson_pattern_filter": "even", "q": "Dual"})
+
+        self.assertEqual(odd_response.status_code, 200)
+        self.assertEqual(even_response.status_code, 200)
+        odd_rows = {row["student"].email: row for row in odd_response.context["page_obj"].object_list}
+        even_rows = {row["student"].email: row for row in even_response.context["page_obj"].object_list}
+        self.assertIn(dual_student.email, odd_rows)
+        self.assertIn(dual_student.email, even_rows)
+
+    def test_student_detail_context_contains_group_financial_cards_and_totals(self):
+        second_group = Group.objects.create(
+            center=self.center,
+            nom="Student Detail Group",
+            oqituvchi=self.teacher,
+            kurs_narxi=640_000,
+            oqituvchi_foiz=35,
+            oy_dars_soni=12,
+        )
+        second_enrollment = Enrollment.objects.create(
+            center=self.center,
+            group=second_group,
+            student=self.regular_student,
+            kurs_narhi=620_000,
+            oqituvchi_foiz=35,
+            joined_at=date(2026, 4, 25),
+            lesson_pattern=Enrollment.LESSON_PATTERN_GROUP,
+            is_active=True,
+        )
+        self.regular_enrollment.joined_at = date(2026, 4, 24)
+        self.regular_enrollment.lesson_pattern = Enrollment.LESSON_PATTERN_GROUP
+        self.regular_enrollment.monthly_lessons = 12
+        self.regular_enrollment.save(update_fields=["joined_at", "lesson_pattern", "monthly_lessons"])
+        StudentGroupHistory.objects.filter(
+            student=self.regular_student,
+            group=self.group,
+            end_date__isnull=True,
+        ).update(start_date=date(2026, 4, 24))
+        second_enrollment.monthly_lessons = 12
+        second_enrollment.save(update_fields=["monthly_lessons"])
+        ensure_tuition_month(self.regular_enrollment, date(2026, 4, 1))
+        ensure_tuition_month(second_enrollment, date(2026, 4, 1))
+
+        response = self.client.get(
+            f"/{self.center.slug}{reverse('education:student_detail', args=[self.regular_student.id])}",
+            {"month": "2026-04"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        financials = response.context["student_group_financials"]
+        self.assertEqual(len(financials["cards"]), 2)
+        self.assertEqual(financials["cards"][0]["lesson_pattern_label"], "Toq kunlari")
+        self.assertEqual(financials["cards"][1]["lesson_pattern_label"], "Juft kunlari")
+        self.assertGreater(financials["totals"]["debt_amount"], 0)
+        self.assertContains(response, "O'quvchi guruhlari")
+        self.assertContains(response, "Student Detail Group")
+
+    def test_money_helpers_round_to_thousand_for_ui(self):
+        self.assertEqual(round_money_to_thousand(126667), 127000)
+        self.assertEqual(round_money_to_thousand(206666), 207000)
+        self.assertEqual(format_money(41667), "42 000 so'm")
 
     def test_month_preview_is_read_only_and_shows_reconciled_delta(self):
         preview_month = date(2026, 4, 1)
@@ -580,9 +762,9 @@ class StudentPayableAmountTests(TestCase):
             for row in response.context["rows"]
             if row["student"].email == preview_student.email
         )
-        self.assertEqual(preview_row["expected_lessons"], 5)
+        self.assertEqual(preview_row["expected_lessons"], 6)
         self.assertEqual(preview_row["billable_lessons"], 5)
-        self.assertEqual(preview_row["prorated_fee"], round(5 * (330_000 / 12)))
+        self.assertEqual(preview_row["prorated_fee"], round(6 * (330_000 / 12)))
         self.assertEqual(preview_row["reconciled_fee"], round(5 * (330_000 / 12)))
         self.assertEqual(preview_row["current_fee"], 330_000)
         self.assertEqual(

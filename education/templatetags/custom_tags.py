@@ -1,4 +1,5 @@
 from django import template
+from education.services.tuition import format_money, round_money_to_thousand
 register = template.Library()
 
 @register.filter
@@ -38,4 +39,14 @@ def to_uz(value):
     for ru, uz in replacements.items():
         res = re.sub(rf'\b{ru}\b', uz, res)
     return res
+
+
+@register.filter
+def round_money_thousand(value):
+    return round_money_to_thousand(value)
+
+
+@register.filter
+def money_uz(value):
+    return format_money(value)
     

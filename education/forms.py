@@ -10,8 +10,8 @@ User = get_user_model()
 class GroupForm(forms.ModelForm):
     SCHEDULE_MODE_CHOICES = (
         ("", "Keyin kiritaman"),
-        ("odd", "Toq kunlar"),
-        ("even", "Juft kunlar"),
+        ("odd", "Toq kunlari"),
+        ("even", "Juft kunlari"),
     )
 
     schedule_mode = forms.ChoiceField(

@@ -2,7 +2,7 @@ from django.utils import timezone
 from education.models import (
     Enrollment, StudentGroupHistory, Group
 )
-from education.services.tuition import normalize_lesson_pattern
+from education.services.tuition import resolve_lesson_schedule
 from django.db import transaction
 
 class EnrollmentService:
@@ -22,9 +22,10 @@ class EnrollmentService:
         # Use provided rates or fall back to group defaults
         narx = kurs_narxi if kurs_narxi is not None else group.kurs_narxi
         foiz = oqituvchi_foiz if oqituvchi_foiz is not None else group.oqituvchi_foiz
-        history_start_date = start_date or timezone.localdate()
+        schedule_meta = resolve_lesson_schedule(start_date or timezone.localdate(), lesson_pattern)
+        history_start_date = schedule_meta["start_date"]
         resolved_monthly_lessons = int(monthly_lessons or getattr(group, "oy_dars_soni", 0) or 12)
-        pattern = normalize_lesson_pattern(lesson_pattern)
+        pattern = schedule_meta["lesson_pattern"]
         
         # Use all_objects to check if a soft-deleted enrollment exists (Fix for IntegrityError)
         enrollment = Enrollment.all_objects.filter(student=student, group=group).first()

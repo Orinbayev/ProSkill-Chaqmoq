@@ -101,6 +101,15 @@
     return letters + numbers;
   }
 
+  function escapeHtml(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   function initInputFormatting(scope) {
     scope.querySelectorAll("#id_telefon1, #id_telefon2").forEach(function (input) {
       function applyPhoneMask() {
@@ -210,35 +219,355 @@
     fillCredentials();
   }
 
-  function initGroupPrice(scope) {
-    const form = scope.querySelector("[data-student-drawer-form]");
-    const groupSelect = scope.querySelector("#id_group");
-    const priceInput = scope.querySelector("#id_kurs_narhi");
-    const priceBlock = scope.querySelector("[data-drawer-price-block]");
-    const template = form ? form.dataset.groupPriceTemplate : "";
+  function roundMoneyToThousand(value) {
+    const amount = Math.round(Number(value || 0));
+    if (!amount) return 0;
+    const sign = amount >= 0 ? 1 : -1;
+    const absolute = Math.abs(amount);
+    return sign * Math.floor((absolute + 500) / 1000) * 1000;
+  }
 
-    if (!form || !groupSelect || !priceInput || !priceBlock || !template) return;
+  function formatMoney(value) {
+    return roundMoneyToThousand(value).toLocaleString("uz-UZ") + " so'm";
+  }
 
-    function hidePrice() {
-      priceBlock.style.display = "none";
-      priceInput.value = "";
+  function parseInteger(value, fallback) {
+    const parsed = parseInt(value, 10);
+    return Number.isNaN(parsed) ? (fallback || 0) : parsed;
+  }
+
+  function parseIsoDate(value) {
+    if (!value) return null;
+    const parts = String(value).split("-");
+    if (parts.length !== 3) return null;
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    const parsed = new Date(year, month, day, 12, 0, 0);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  function toIsoDate(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return year + "-" + month + "-" + day;
+  }
+
+  function formatDateLabel(value) {
+    const date = parseIsoDate(value);
+    if (!date) return "";
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    return day + "." + month + "." + date.getFullYear();
+  }
+
+  function normalizeStartDate(value) {
+    const requestedDate = parseIsoDate(value);
+    if (!requestedDate) {
+      return {
+        requestedDate: null,
+        effectiveDate: null,
+        requestedValue: value || "",
+        effectiveValue: "",
+        adjustmentNote: ""
+      };
     }
 
-    function showPrice(value) {
-      priceBlock.style.display = "";
-      if (value !== undefined && value !== null && value !== "") {
-        priceInput.value = value;
+    const effectiveDate = new Date(requestedDate.getTime());
+    let adjustmentNote = "";
+    if (effectiveDate.getDay() === 0) {
+      effectiveDate.setDate(effectiveDate.getDate() + 1);
+      adjustmentNote = "Yakshanba tanlangani uchun hisob " + formatDateLabel(toIsoDate(effectiveDate)) + " dan boshlandi.";
+    }
+
+    return {
+      requestedDate: requestedDate,
+      effectiveDate: effectiveDate,
+      requestedValue: toIsoDate(requestedDate),
+      effectiveValue: toIsoDate(effectiveDate),
+      adjustmentNote: adjustmentNote
+    };
+  }
+
+  function lessonPatternLabel(pattern) {
+    if (pattern === "odd") return "Toq kunlari";
+    if (pattern === "even") return "Juft kunlari";
+    if (pattern === "daily") return "Har kuni";
+    return "Avtomatik";
+  }
+
+  function countedWeekdayLabel(pattern) {
+    if (pattern === "odd") return "Dushanba, Chorshanba, Juma";
+    if (pattern === "even") return "Seshanba, Payshanba, Shanba";
+    if (pattern === "daily") return "Dushanba-Shanba";
+    return "";
+  }
+
+  function detectPatternForDate(value, mode) {
+    if (!value) return "";
+    if (mode === "daily") return "daily";
+    const normalized = normalizeStartDate(value);
+    const date = normalized.effectiveDate;
+    if (!date) return "";
+    return [1, 3, 5].includes(date.getDay()) ? "odd" : "even";
+  }
+
+  function lessonDatesForStartDate(value, pattern) {
+    const normalized = normalizeStartDate(value);
+    const startDate = normalized.effectiveDate;
+    if (!startDate) {
+      return {
+        startDateValue: "",
+        adjustmentNote: "",
+        dates: [],
+        labels: []
+      };
+    }
+
+    const monthEnd = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0, 12, 0, 0);
+    const allowedWeekdays = pattern === "daily"
+      ? [1, 2, 3, 4, 5, 6]
+      : pattern === "even"
+        ? [2, 4, 6]
+        : [1, 3, 5];
+    const dates = [];
+    for (let cursor = new Date(startDate.getTime()); cursor <= monthEnd; cursor.setDate(cursor.getDate() + 1)) {
+      if (allowedWeekdays.indexOf(cursor.getDay()) !== -1) {
+        dates.push(new Date(cursor.getTime()));
       }
     }
 
-    function loadPrice() {
+    return {
+      startDateValue: normalized.effectiveValue,
+      adjustmentNote: normalized.adjustmentNote,
+      dates: dates,
+      labels: dates.map(function (date) {
+        return formatDateLabel(toIsoDate(date));
+      })
+    };
+  }
+
+  function initGroupAssignments(scope) {
+    const form = scope.querySelector("[data-student-drawer-form]");
+    const builder = scope.querySelector("[data-group-assignments-builder]");
+    const template = form ? form.dataset.groupPriceTemplate : "";
+    const groupSelect = scope.querySelector("#id_group");
+    const startDateInput = scope.querySelector("#id_group_start_date");
+    const patternModeSelect = scope.querySelector("[data-group-assignment-pattern-mode]");
+    const priceInput = scope.querySelector("#id_kurs_narhi");
+    const teacherPercentInput = scope.querySelector("[data-group-assignment-teacher-percent]");
+    const monthlyLessonsInput = scope.querySelector("[data-group-assignment-monthly-lessons]");
+    const hiddenAssignmentsInput = scope.querySelector("#id_group_assignments");
+    const list = scope.querySelector("[data-group-assignment-list]");
+    const addButton = scope.querySelector("[data-add-group-assignment]");
+    const errorBox = scope.querySelector("[data-group-assignment-error]");
+    const priceNote = scope.querySelector("[data-group-price-note]");
+
+    if (
+      !form || !builder || !template || !groupSelect || !startDateInput || !patternModeSelect ||
+      !priceInput || !teacherPercentInput || !monthlyLessonsInput || !hiddenAssignmentsInput || !list
+    ) {
+      return;
+    }
+
+    const previewNodes = {
+      pattern: builder.querySelector("[data-preview-pattern]"),
+      startDate: builder.querySelector("[data-preview-start-date]"),
+      lessons: builder.querySelector("[data-preview-lessons]"),
+      fee: builder.querySelector("[data-preview-fee]"),
+      teacher: builder.querySelector("[data-preview-teacher]"),
+      center: builder.querySelector("[data-preview-center]"),
+      note: builder.querySelector("[data-preview-note]")
+    };
+    const state = {
+      currentGroupMeta: null
+    };
+
+    function readAssignments() {
+      try {
+        const parsed = JSON.parse(hiddenAssignmentsInput.value || "[]");
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (_error) {
+        return [];
+      }
+    }
+
+    function writeAssignments(assignments) {
+      hiddenAssignmentsInput.value = JSON.stringify(assignments || []);
+    }
+
+    function setError(message) {
+      if (!errorBox) return;
+      errorBox.textContent = message || "";
+    }
+
+    function candidateGroupName() {
+      const option = groupSelect.options[groupSelect.selectedIndex];
+      return option ? option.textContent.trim() : "";
+    }
+
+    function buildCandidatePreview() {
       const groupId = groupSelect.value;
-      if (!groupId) {
-        hidePrice();
+      const startDateValue = startDateInput.value;
+      const pattern = detectPatternForDate(startDateValue, patternModeSelect.value);
+      const lessonMeta = lessonDatesForStartDate(startDateValue, pattern);
+      const defaultPrice = state.currentGroupMeta ? parseInteger(state.currentGroupMeta.price, 0) : 0;
+      const defaultTeacherPercent = state.currentGroupMeta ? parseInteger(state.currentGroupMeta.oqituvchi_foiz, 40) : 40;
+      const monthlyLessons = parseInteger(monthlyLessonsInput.value, state.currentGroupMeta ? state.currentGroupMeta.monthly_lessons : 12);
+      const coursePrice = parseInteger(priceInput.value, defaultPrice);
+      const teacherPercent = parseInteger(teacherPercentInput.value, defaultTeacherPercent);
+      const feeAmount = monthlyLessons > 0 ? Math.round((coursePrice * lessonMeta.dates.length) / monthlyLessons) : 0;
+      const teacherShare = Math.round((feeAmount * teacherPercent) / 100);
+      const centerShare = feeAmount - teacherShare;
+      const isIndividualPrice = defaultPrice > 0 && coursePrice !== defaultPrice;
+
+      return {
+        ready: Boolean(groupId && startDateValue),
+        group_id: parseInteger(groupId, 0),
+        group_name: (state.currentGroupMeta && state.currentGroupMeta.group_name) || candidateGroupName(),
+        requested_start_date: startDateValue,
+        start_date: lessonMeta.startDateValue,
+        lesson_pattern: pattern,
+        lesson_pattern_label: lessonPatternLabel(pattern),
+        lesson_count: lessonMeta.dates.length,
+        lesson_dates: lessonMeta.labels,
+        course_price: coursePrice,
+        default_course_price: defaultPrice,
+        is_individual_price: isIndividualPrice,
+        teacher_percent: teacherPercent,
+        center_percent: 100 - teacherPercent,
+        monthly_lessons: monthlyLessons,
+        fee_amount: feeAmount,
+        teacher_share: teacherShare,
+        center_share: centerShare,
+        note: [lessonMeta.adjustmentNote, countedWeekdayLabel(pattern)].filter(Boolean).join(" • ")
+      };
+    }
+
+    function renderPreview() {
+      const preview = buildCandidatePreview();
+      previewNodes.pattern.textContent = preview.lesson_pattern_label || "Pattern tanlanmagan";
+      previewNodes.startDate.textContent = preview.start_date ? formatDateLabel(preview.start_date) : "Sana tanlanmagan";
+      previewNodes.lessons.textContent = preview.lesson_count + " ta";
+      previewNodes.fee.textContent = formatMoney(preview.fee_amount);
+      previewNodes.teacher.textContent = formatMoney(preview.teacher_share);
+      previewNodes.center.textContent = formatMoney(preview.center_share);
+      previewNodes.note.textContent = preview.note || "Guruh va boshlanish sanasi tanlang.";
+      if (priceNote) {
+        if (preview.default_course_price > 0) {
+          priceNote.textContent = preview.is_individual_price
+            ? "Standart " + formatMoney(preview.default_course_price) + ", individual " + formatMoney(preview.course_price) + "."
+            : "Standart guruh narxi: " + formatMoney(preview.default_course_price) + ".";
+        } else {
+          priceNote.textContent = "Standart guruh narxi avtomatik qo'yiladi, xohlasangiz individual narx kiriting.";
+        }
+      }
+      return preview;
+    }
+
+    function removeAssignment(index) {
+      const assignments = readAssignments();
+      assignments.splice(index, 1);
+      writeAssignments(assignments);
+      renderAssignments();
+      setError("");
+    }
+
+    function renderAssignments() {
+      const assignments = readAssignments();
+      list.innerHTML = "";
+
+      if (!assignments.length) {
+        list.innerHTML = '<div class="bq-sdrawer-card__note">Hali guruh qo\'shilmadi.</div>';
         return;
       }
 
-      fetch(replaceGroupId(template, groupId), {
+      assignments.forEach(function (assignment, index) {
+        const item = document.createElement("div");
+        item.className = "bq-sdrawer-group-item";
+        item.innerHTML = [
+          '<div class="bq-sdrawer-group-item__head">',
+            '<div class="bq-sdrawer-group-item__title">',
+              '<strong>' + escapeHtml(assignment.group_name) + '</strong>',
+              '<span>' + escapeHtml(assignment.lesson_pattern_label) + ' • ' + escapeHtml(formatDateLabel(assignment.start_date)) + '</span>',
+            '</div>',
+            '<button type="button" class="bq-sdrawer-group-remove" data-remove-index="' + index + '" aria-label="Guruhni olib tashlash">',
+              '<i class="fa-solid fa-trash"></i>',
+            '</button>',
+          '</div>',
+          '<div class="bq-sdrawer-group-item__metrics">',
+            '<div><span>Shu oy darslari</span><strong>' + assignment.lesson_count + ' ta</strong></div>',
+            '<div><span>Shu oy qarzi</span><strong>' + formatMoney(assignment.fee_amount) + '</strong></div>',
+            '<div><span>O\'qituvchi</span><strong>' + formatMoney(assignment.teacher_share) + '</strong></div>',
+            '<div><span>Markaz</span><strong>' + formatMoney(assignment.center_share) + '</strong></div>',
+          '</div>',
+          assignment.lesson_dates && assignment.lesson_dates.length
+            ? '<div class="bq-sdrawer-group-dates">' + assignment.lesson_dates.map(function (label) {
+                return '<span>' + escapeHtml(label) + '</span>';
+              }).join("") + '</div>'
+            : "",
+          '<div class="bq-sdrawer-group-item__foot">',
+            '<span>' + (assignment.is_individual_price
+              ? "Individual narx: " + formatMoney(assignment.course_price)
+              : "Standart narx: " + formatMoney(assignment.course_price)) + '</span>',
+            '<span>Ulush: ' + assignment.teacher_percent + '% / ' + assignment.center_percent + '%</span>',
+          '</div>'
+        ].join("");
+        list.appendChild(item);
+      });
+
+      list.querySelectorAll("[data-remove-index]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          removeAssignment(parseInteger(button.dataset.removeIndex, -1));
+        });
+      });
+    }
+
+    function addCurrentAssignment() {
+      const preview = renderPreview();
+      if (!preview.group_id) {
+        setError("Avval guruh tanlang.");
+        return false;
+      }
+      if (!preview.requested_start_date) {
+        setError("Boshlanish sanasini kiriting.");
+        return false;
+      }
+
+      const assignments = readAssignments();
+      if (assignments.some(function (assignment) { return parseInteger(assignment.group_id, 0) === preview.group_id; })) {
+        setError("Bu guruh allaqachon qo'shilgan.");
+        return false;
+      }
+
+      assignments.push(preview);
+      writeAssignments(assignments);
+      renderAssignments();
+      setError("");
+      groupSelect.value = "";
+      state.currentGroupMeta = null;
+      priceInput.value = "";
+      teacherPercentInput.value = "40";
+      monthlyLessonsInput.value = "12";
+      patternModeSelect.value = "auto";
+      renderPreview();
+      return true;
+    }
+
+    function loadGroupMeta() {
+      const groupId = groupSelect.value;
+      if (!groupId) {
+        state.currentGroupMeta = null;
+        priceInput.value = "";
+        teacherPercentInput.value = "40";
+        monthlyLessonsInput.value = "12";
+        renderPreview();
+        return Promise.resolve();
+      }
+
+      return fetch(replaceGroupId(template, groupId), {
         headers: {
           "X-Requested-With": "XMLHttpRequest"
         }
@@ -250,19 +579,46 @@
           return response.json();
         })
         .then(function (data) {
-          showPrice(data.price || "");
+          state.currentGroupMeta = data || {};
+          priceInput.value = String(parseInteger(data.price, 0));
+          teacherPercentInput.value = String(parseInteger(data.oqituvchi_foiz, 40));
+          monthlyLessonsInput.value = String(parseInteger(data.monthly_lessons, 12));
+          renderPreview();
         })
         .catch(function () {
-          showPrice(priceInput.value || "");
+          state.currentGroupMeta = {
+            price: priceInput.value || 0,
+            oqituvchi_foiz: teacherPercentInput.value || 40,
+            monthly_lessons: monthlyLessonsInput.value || 12,
+            group_name: candidateGroupName()
+          };
+          renderPreview();
         });
     }
 
-    groupSelect.addEventListener("change", loadPrice);
-    if (groupSelect.value) {
-      loadPrice();
-    } else {
-      hidePrice();
+    groupSelect.addEventListener("change", function () {
+      loadGroupMeta();
+    });
+    startDateInput.addEventListener("change", renderPreview);
+    patternModeSelect.addEventListener("change", renderPreview);
+    priceInput.addEventListener("input", renderPreview);
+    teacherPercentInput.addEventListener("input", renderPreview);
+    monthlyLessonsInput.addEventListener("input", renderPreview);
+
+    if (addButton) {
+      addButton.addEventListener("click", addCurrentAssignment);
     }
+
+    form.addEventListener("submit", function () {
+      if (groupSelect.value && startDateInput.value) {
+        addCurrentAssignment();
+      }
+    });
+
+    renderAssignments();
+    loadGroupMeta().finally(function () {
+      renderPreview();
+    });
   }
 
   function initExtraFields(scope) {
@@ -498,7 +854,7 @@
       initInputFormatting(body);
       initPasswordToggle(body);
       initCredentialGenerator(body);
-      initGroupPrice(body);
+      initGroupAssignments(body);
       initExtraFields(body);
       initOptionalSections(body);
       initRoleSwitcher(body, function (nextRole) {

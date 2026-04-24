@@ -312,7 +312,7 @@
 
 	  .pattern-toggle {
 	    display: grid;
-	    grid-template-columns: repeat(4, minmax(0, 1fr));
+	    grid-template-columns: repeat(3, minmax(0, 1fr));
 	    gap: 8px;
 	    padding: 5px;
 	    border-radius: 16px;
@@ -326,26 +326,48 @@
 	    pointer-events: none;
 	  }
 
+	  .pattern-toggle label {
+	    position: relative;
+	    display: block;
+	  }
+
 	  .pattern-toggle span {
-	    min-height: 40px;
+	    min-height: 62px;
 	    border-radius: 12px;
 	    display: flex;
-	    align-items: center;
+	    flex-direction: column;
+	    align-items: flex-start;
 	    justify-content: center;
-	    padding: 0 10px;
+	    gap: 4px;
+	    padding: 10px 12px;
 	    color: #94a3b8;
-	    font-size: 13px;
-	    font-weight: 900;
 	    line-height: 1.15;
-	    text-align: center;
+	    text-align: left;
 	    cursor: pointer;
 	    transition: all 0.18s ease;
+	  }
+
+	  .pattern-option-title {
+	    font-size: 13px;
+	    font-weight: 900;
+	    color: inherit;
+	  }
+
+	  .pattern-option-hint {
+	    display: block;
+	    font-size: 11px;
+	    font-weight: 700;
+	    color: rgba(148, 163, 184, 0.92);
 	  }
 
 	  .pattern-toggle input:checked + span {
 	    background: #2563eb;
 	    color: #fff;
 	    box-shadow: 0 10px 22px rgba(37, 99, 235, 0.26);
+	  }
+
+	  .pattern-toggle input:checked + span .pattern-option-hint {
+	    color: rgba(255, 255, 255, 0.88);
 	  }
 
 	  .billing-preview {
@@ -383,6 +405,29 @@
 	    font-size: 20px;
 	    font-weight: 900;
 	    line-height: 1.2;
+	  }
+
+	  .billing-note {
+	    margin-top: 14px;
+	    padding: 14px 16px;
+	    border-radius: 16px;
+	    background: rgba(9, 14, 28, 0.68);
+	    border: 1px solid rgba(255, 255, 255, 0.08);
+	  }
+
+	  .billing-note-title {
+	    color: #f8fafc;
+	    font-size: 13px;
+	    font-weight: 800;
+	    line-height: 1.4;
+	  }
+
+	  .billing-note-copy {
+	    margin-top: 6px;
+	    color: #94a3b8;
+	    font-size: 12px;
+	    font-weight: 700;
+	    line-height: 1.5;
 	  }
 
   html[data-role-theme="light"] .glass-card {
@@ -457,7 +502,8 @@
 	  }
 
 	  html[data-role-theme="light"] .pattern-toggle,
-	  html[data-role-theme="light"] .billing-metric {
+	  html[data-role-theme="light"] .billing-metric,
+	  html[data-role-theme="light"] .billing-note {
 	    background: rgba(255, 255, 255, 0.98);
 	    border-color: rgba(148, 163, 184, 0.18);
 	  }
@@ -466,7 +512,16 @@
 	    color: #0f172a;
 	  }
 
+	  html[data-role-theme="light"] .billing-note-title {
+	    color: #0f172a;
+	  }
+
 	  html[data-role-theme="light"] .billing-label {
+	    color: #64748b;
+	  }
+
+	  html[data-role-theme="light"] .billing-note-copy,
+	  html[data-role-theme="light"] .pattern-option-hint {
 	    color: #64748b;
 	  }
 
@@ -672,11 +727,14 @@
 	          <div class="field-stack">
 	            <label class="form-label">Dars patterni</label>
 	            <div class="pattern-toggle" role="radiogroup" aria-label="Dars patterni">
-	              {% for value, label in lesson_pattern_options %}
-	              <label>
-	                <input type="radio" name="lesson_pattern" value="{{ value }}"
-	                  {% if selected_lesson_pattern == value %}checked{% endif %}>
-	                <span>{{ label }}</span>
+	              {% for option in lesson_pattern_options %}
+	              <label class="pattern-option">
+	                <input type="radio" name="lesson_pattern" value="{{ option.value }}"
+	                  {% if selected_lesson_pattern == option.value %}checked{% endif %}>
+	                <span>
+	                  <strong class="pattern-option-title">{{ option.label }}</strong>
+	                  <small class="pattern-option-hint">{{ option.hint }}</small>
+	                </span>
 	              </label>
 	              {% endfor %}
 	            </div>
@@ -690,15 +748,23 @@
 	          </div>
 	          <div class="billing-metric highlight">
 	            <span class="billing-label">Shu oy qarzi</span>
-	            <span class="billing-value" id="editPreviewFee">{{ pricing_preview.fee_amount }} so'm</span>
+	            <span class="billing-value" id="editPreviewFee">{{ pricing_preview.fee_amount_display }}</span>
 	          </div>
 	          <div class="billing-metric">
 	            <span class="billing-label">O'qituvchi</span>
-	            <span class="billing-value" id="editPreviewTeacher">{{ pricing_preview.teacher_share }} so'm</span>
+	            <span class="billing-value" id="editPreviewTeacher">{{ pricing_preview.teacher_share_display }}</span>
 	          </div>
 	          <div class="billing-metric">
 	            <span class="billing-label">Markaz</span>
-	            <span class="billing-value" id="editPreviewCenter">{{ pricing_preview.center_share }} so'm</span>
+	            <span class="billing-value" id="editPreviewCenter">{{ pricing_preview.center_share_display }}</span>
+	          </div>
+	        </div>
+	        <div class="billing-note" id="editPreviewNote">
+	          <div class="billing-note-title" id="editPreviewPatternHint">
+	            {{ pricing_preview.lesson_pattern_label }}{% if pricing_preview.counted_days_text %} • {{ pricing_preview.counted_days_text }}{% elif pricing_preview.lesson_pattern_hint %} • {{ pricing_preview.lesson_pattern_hint }}{% endif %}
+	          </div>
+	          <div class="billing-note-copy" id="editPreviewCountedDays">
+	            {% if pricing_preview.counted_days_summary %}{{ pricing_preview.counted_days_summary }} • {% endif %}{{ pricing_preview.lesson_count_summary }}
 	          </div>
 	        </div>
 	      </div>
@@ -741,8 +807,34 @@
 	      return checked ? checked.value : '{{ selected_lesson_pattern }}';
 	    }
 
+	    function autoPatternFromDate(value) {
+	      if (!value) return '{{ selected_lesson_pattern }}';
+	      const parsed = new Date(`${value}T12:00:00`);
+	      if (Number.isNaN(parsed.getTime())) return '{{ selected_lesson_pattern }}';
+	      const weekday = parsed.getDay();
+	      if (weekday === 0) return 'odd';
+	      return [1, 3, 5].includes(weekday) ? 'odd' : 'even';
+	    }
+
+	    function syncPatternWithStartDate({ preserveDaily = true } = {}) {
+	      const checked = document.querySelector('input[name="lesson_pattern"]:checked');
+	      if (preserveDaily && checked && checked.value === 'daily') {
+	        return checked.value;
+	      }
+	      const target = autoPatternFromDate(joinedAtInput.value);
+	      const targetInput = document.querySelector(`input[name="lesson_pattern"][value="${target}"]`);
+	      if (targetInput) {
+	        targetInput.checked = true;
+	      }
+	      return target;
+	    }
+
 	    function money(value) {
-	      return `${Number(value || 0).toLocaleString('uz-UZ')} so'm`;
+	      const amount = Math.round(Number(value || 0));
+	      if (!amount) return "0 so'm";
+	      const sign = amount >= 0 ? 1 : -1;
+	      const rounded = Math.floor((Math.abs(amount) + 500) / 1000) * 1000 * sign;
+	      return `${rounded.toLocaleString('uz-UZ')} so'm`;
 	    }
 
 	    function applyPreview(previewData) {
@@ -750,12 +842,31 @@
 	        lesson_count: 0,
 	        fee_amount: 0,
 	        teacher_share: 0,
-	        center_share: 0
+	        center_share: 0,
+	        lesson_pattern_label: '',
+	        lesson_pattern_hint: '',
+	        counted_days_text: '',
+	        counted_days_summary: '',
+	        lesson_count_summary: ''
 	      };
+	      if (data.lesson_pattern) {
+	        const resolvedInput = document.querySelector(`input[name="lesson_pattern"][value="${data.lesson_pattern}"]`);
+	        if (resolvedInput) {
+	          resolvedInput.checked = true;
+	        }
+	      }
 	      document.getElementById('editPreviewLessons').textContent = `${data.lesson_count} ta`;
 	      document.getElementById('editPreviewFee').textContent = money(data.fee_amount);
 	      document.getElementById('editPreviewTeacher').textContent = money(data.teacher_share);
 	      document.getElementById('editPreviewCenter').textContent = money(data.center_share);
+	      document.getElementById('editPreviewPatternHint').textContent = [
+	        data.lesson_pattern_label,
+	        data.counted_days_text || data.lesson_pattern_hint
+	      ].filter(Boolean).join(' • ');
+	      document.getElementById('editPreviewCountedDays').textContent = [
+	        data.counted_days_summary,
+	        data.lesson_count_summary
+	      ].filter(Boolean).join(' • ');
 	    }
 
 	    async function refreshPreview() {
@@ -788,13 +899,17 @@
 	      }
 	    }
 
-	    joinedAtInput.addEventListener('change', refreshPreview);
+	    joinedAtInput.addEventListener('change', () => {
+	      syncPatternWithStartDate();
+	      refreshPreview();
+	    });
 	    if (groupSelect) {
 	      groupSelect.addEventListener('change', refreshPreview);
 	    }
 	    document.querySelectorAll('input[name="lesson_pattern"]').forEach((input) => {
 	      input.addEventListener('change', refreshPreview);
 	    });
+	    syncPatternWithStartDate();
 	    refreshPreview();
 	  })();
 	</script>
