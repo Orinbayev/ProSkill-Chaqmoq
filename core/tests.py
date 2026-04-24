@@ -5,6 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import Branch, Center, User
+from chaqmoq.models import Ledger
 from education.models import Attendance, Enrollment, Group, Payment
 
 
@@ -224,8 +225,73 @@ class BranchApiTests(TestCase):
         response = self.client.get(reverse("core:director_boshqaruv"), follow=True)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'id="bqBranchBtn"')
+        self.assertContains(response, 'id="bqBranchOverlay"')
         self.assertContains(response, "Filiallar Boshqaruvi")
+
+
+class StudentDashboardBalanceTests(TestCase):
+    def setUp(self):
+        self.center = Center.objects.create(
+            name="Student Dashboard Center",
+            slug="student-dashboard-center",
+            max_students=100,
+            capacity_limit=100,
+        )
+        self.student = User.objects.create_user(
+            email="student.dashboard@test.uz",
+            password="strong-pass-123",
+            role="student",
+            center=self.center,
+            ism="Student",
+            familya="Dashboard",
+        )
+        self.teacher = User.objects.create_user(
+            email="teacher.dashboard@test.uz",
+            password="strong-pass-123",
+            role="teacher",
+            center=self.center,
+            ism="Teacher",
+            familya="Dashboard",
+        )
+        self.group = Group.objects.create(
+            center=self.center,
+            nom="Dashboard Group",
+            oqituvchi=self.teacher,
+            kurs_narxi=500_000,
+            oqituvchi_foiz=40,
+            oy_dars_soni=12,
+        )
+        Enrollment.objects.create(
+            center=self.center,
+            student=self.student,
+            group=self.group,
+            kurs_narhi=500_000,
+            oqituvchi_foiz=40,
+            is_active=True,
+        )
+        Ledger.objects.create(
+            student=self.student,
+            beruvchi=self.teacher,
+            group=self.group,
+            rule_nom="Bonus",
+            rule_tur="plus",
+            ball=300,
+        )
+        Ledger.objects.create(
+            student=self.student,
+            beruvchi=self.teacher,
+            group=self.group,
+            rule_nom="Jarima",
+            rule_tur="minus",
+            ball=-28,
+        )
+        self.client.force_login(self.student)
+
+    def test_student_dashboard_init_api_returns_same_balance_as_ranking(self):
+        response = self.client.get(f"/{self.center.slug}{reverse('core:dashboard_student_init_api')}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["balance"], 272)
 
 
 class UserEditEnrollmentCreationTests(TestCase):

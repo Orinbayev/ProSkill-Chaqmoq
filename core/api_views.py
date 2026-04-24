@@ -173,14 +173,14 @@ def dashboard_student_init_api(request):
     """Student dashboard boshlangan'ich ma'lumotlar — balance + last actions."""
     from core.tenant import get_request_center
     from core.views import _student_last_actions
-    from chaqmoq.models import Ledger
+    from chaqmoq.views import _get_balances_with_legacy_fallback
 
     user = request.user
     if getattr(user, "role", None) != "student" and not user.is_superuser:
         return JsonResponse({"detail": "forbidden"}, status=403)
 
     center = get_request_center(request) or getattr(user, "center", None)
-    balance = Ledger.student_balansi(user.id, center=center)
+    balance = _get_balances_with_legacy_fallback([user.id], center=center).get(user.id, 0)
     last_actions = _student_last_actions(user.id, center=center)
 
     # created_at datetime → ISO string (JSON serialize uchun)

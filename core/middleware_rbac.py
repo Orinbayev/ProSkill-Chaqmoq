@@ -45,6 +45,7 @@ class RoleBasedAccessMiddleware:
             'names': {
                 'core:home',
                 'core:dashboard_student',
+                'core:dashboard_student_init_api',
                 'core:profile',
                 'core:user_view',
                 'accounts:profile',
