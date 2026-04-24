@@ -674,6 +674,9 @@ def center_manage(request, pk: int):
 
     center = get_object_or_404(Center, pk=pk)
 
+    def _redirect_center_manage():
+        return redirect("platform_global:center_manage", pk=center.id)
+
     # Mavjud director/managerlar (shu centerga biriktirilgan)
     staff = User.objects.filter(center=center, role__in=["director", "manager"]).order_by("role", "id")
 
@@ -694,17 +697,17 @@ def center_manage(request, pk: int):
             user_id = request.POST.get("director_id") or request.POST.get("user_id")
             if not user_id:
                 messages.error(request, "Director tanlanmadi.")
-                return redirect("accounts:center_manage", pk=center.id)
+                return _redirect_center_manage()
 
             u = User.objects.filter(id=user_id, role__in=["director", "manager"]).first()
             if not u:
                 messages.error(request, "Director topilmadi.")
-                return redirect("accounts:center_manage", pk=center.id)
+                return _redirect_center_manage()
 
             u.center = center
             u.save(update_fields=["center"])
             messages.success(request, f"✅ Director biriktirildi: {getattr(u, 'email', u.id)}")
-            return redirect("accounts:center_manage", pk=center.id)
+            return _redirect_center_manage()
 
         if action == "create_new":
             email = (request.POST.get("email") or "").strip().lower()
@@ -714,11 +717,11 @@ def center_manage(request, pk: int):
 
             if not email or not password:
                 messages.error(request, "Email va parol talab qilinadi.")
-                return redirect("accounts:center_manage", pk=center.id)
+                return _redirect_center_manage()
 
             if User.objects.filter(email=email).exists():
                 messages.error(request, "Bu email allaqon mavjud.")
-                return redirect("accounts:center_manage", pk=center.id)
+                return _redirect_center_manage()
 
             u = User.objects.create_user(
                 email=email,
@@ -730,7 +733,7 @@ def center_manage(request, pk: int):
                 is_staff=True  # Director bo'lsa staff bo'lishi kerak
             )
             messages.success(request, f"✅ Yangi director yaratildi: {email}")
-            return redirect("accounts:center_manage", pk=center.id)
+            return _redirect_center_manage()
 
         if action == "edit_director":
             user_id = request.POST.get("user_id")
@@ -742,12 +745,12 @@ def center_manage(request, pk: int):
             u = User.objects.filter(id=user_id, center=center, role__in=["director", "manager"]).first()
             if not u:
                 messages.error(request, "Xodim topilmadi.")
-                return redirect("accounts:center_manage", pk=center.id)
+                return _redirect_center_manage()
                 
             if email and email != u.email:
                 if User.objects.filter(email=email).exclude(id=u.id).exists():
                     messages.error(request, "Bu email allaqachon boshqa xodimda mavjud.")
-                    return redirect("accounts:center_manage", pk=center.id)
+                    return _redirect_center_manage()
                 u.email = email
             
             u.ism = ism
@@ -758,7 +761,7 @@ def center_manage(request, pk: int):
                 
             u.save()
             messages.success(request, f"✅ Xodim ma'lumotlari yangilandi: {u.email}")
-            return redirect("accounts:center_manage", pk=center.id)
+            return _redirect_center_manage()
 
     return render(request, "accounts/center_manage.html", {
         "center": center,
@@ -780,7 +783,7 @@ def center_remove_staff(request, pk: int):
     u.center = None
     u.save(update_fields=["center"])
     messages.success(request, f"✅ Hodim {u.email} centerdan uzildi.")
-    return redirect("accounts:center_manage", pk=center.id)
+    return redirect("platform_global:center_manage", pk=center.id)
 
 # --- Missing Views Restored ---
 

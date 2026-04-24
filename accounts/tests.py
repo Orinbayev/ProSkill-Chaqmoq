@@ -153,6 +153,34 @@ class CenterUiFeatureToggleTests(TestCase):
         self.assertContains(response, 'id="toggle-ui_weekly_schedule"')
         self.assertContains(response, 'id="feat-card-ui_weekly_schedule"')
 
+    def test_center_manage_assign_existing_redirects_back_to_platform_center_manage(self):
+        director = User.objects.create_user(
+            email="assign-existing@test.uz",
+            password="strong-pass-123",
+            role="director",
+            ism="Assign",
+            familya="Director",
+            center=None,
+        )
+
+        response = self.client.post(
+            reverse("platform_global:center_manage", args=[self.center.id]),
+            {
+                "action": "assign_existing",
+                "director_id": str(director.id),
+            },
+            follow=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response["Location"],
+            reverse("platform_global:center_manage", args=[self.center.id]),
+        )
+
+        director.refresh_from_db()
+        self.assertEqual(director.center_id, self.center.id)
+
 
 class SuperadminCenterCreateTests(TestCase):
     def setUp(self):
