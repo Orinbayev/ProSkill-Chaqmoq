@@ -690,6 +690,21 @@ class StudentPayableAmountTests(TestCase):
         self.assertContains(response, "O'quvchi guruhlari")
         self.assertContains(response, "Student Detail Group")
 
+    def test_student_detail_hides_group_financials_for_teacher(self):
+        self.client.force_login(self.teacher)
+
+        response = self.client.get(
+            f"/{self.center.slug}{reverse('education:student_detail', args=[self.regular_student.id])}",
+            {"month": "2026-04"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["can_view_student_group_financials"])
+        self.assertIsNone(response.context["student_group_financials"])
+        self.assertNotContains(response, "O'quvchi guruhlari")
+        self.assertNotContains(response, "Jami hisob-kitob")
+        self.assertContains(response, "Davomat va Chaqmoqlar")
+
     def test_money_helpers_round_to_thousand_for_ui(self):
         self.assertEqual(round_money_to_thousand(126667), 127000)
         self.assertEqual(round_money_to_thousand(206666), 207000)

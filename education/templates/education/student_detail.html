@@ -388,6 +388,7 @@
       </div>
     </div>
 
+    {% if can_view_student_group_financials %}
     <div class="cq-finance-head">
       <div class="flex items-center gap-3">
         <div
@@ -524,6 +525,7 @@
         </div>
       </div>
     </div>
+    {% endif %}
 
     <!-- MAIN SECTION -->
     <div class="flex items-center gap-3">
@@ -673,6 +675,7 @@
 {% endblock %}
 
 {% block modals %}
+{% if can_view_student_group_financials %}
 <div class="modal fade" id="groupFinanceModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content overflow-hidden">
@@ -719,6 +722,7 @@
     </div>
   </div>
 </div>
+{% endif %}
 
 <!-- POINTS DETAILS MODAL -->
 <div class="modal fade" id="pointsModal" tabindex="-1" aria-hidden="true">

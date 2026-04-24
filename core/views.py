@@ -446,13 +446,24 @@ def _build_stats(center):
 
 @login_required
 def home(request):
+    """
+    Skeleton-first dashboard render.
+
+    PERF v3:
+      Eski: manager/teacher/student uchun _build_stats() + low_activity +
+      balance + last_actions SYNC ishlatilardi (5–12 query, ~300–800ms).
+      Yangi: home faqat template skeleton'ni render qiladi (0 DB query).
+      Real ma'lumotlar browserda AJAX orqali keyin yuklanadi:
+        - manager  → /<slug>/api/dashboard/quick-stats/  +  /api/dashboard/low-activity/
+        - student  → /<slug>/api/dashboard/student-init/
+        - teacher  → stats template'da ishlatilmaydi, skeleton kifoya.
+    Redirectlar (director/parent/superuser) o'zgarmaydi.
+    """
     u = request.user
     role = getattr(u, "role", None)
     if (not role) and u.is_superuser:
         role = "director"
 
-    center = _get_center(request)
-    
     # ✅ SUPERADMIN: root URL '/' her doim global platform panelga yo'naltiradi.
     # Session'da active_center_id bo'lsa ham, '/' superadmin uchun tenant dashboard emas.
     if u.is_superuser:
@@ -461,33 +472,34 @@ def home(request):
     if role == "director":
         return redirect("core:director_boshqaruv")
 
-    stats = _build_stats(center)
+    if role == "parent":
+        return redirect("core:dashboard_parent")
 
-    ctx = {
-        "stats": stats,
+    # Lazy center — faqat template {{ center }} ishlatgani uchun kerak.
+    center = _get_center(request)
+
+    # Skeleton context: stats/low_activity/balance/last_actions bo'sh.
+    # Template'dagi {{ stats.X|default:0 }} 0 ko'rsatadi, JS keyin to'ldiradi.
+    skeleton_ctx = {
+        "stats": {},
         "center": center,
+        "deferred": True,
     }
 
     if role == "manager":
-        # Add low activity students for manager
-        ctx["low_activity_list"] = _get_low_activity_data(center, limit=5)
-        return render(request, "core/dashboard_manager.html", ctx)
+        skeleton_ctx["low_activity_list"] = []
+        return render(request, "core/dashboard_manager.html", skeleton_ctx)
 
     if role == "teacher":
-        return render(request, "core/dashboard_teacher.html", ctx)
+        return render(request, "core/dashboard_teacher.html", skeleton_ctx)
 
     if role == "student":
-        center = getattr(request.user, "center", None) or _get_center(request)
-        balance = Ledger.student_balansi(u.id, center=center)
-        last_actions = _student_last_actions(u.id, center=center)
         return render(request, "core/dashboard_student.html", {
-            "balance": balance,
-            "last_actions": last_actions,
+            "balance": None,
+            "last_actions": [],
             "center": center,
+            "deferred": True,
         })
-
-    if role == "parent":
-        return redirect("core:dashboard_parent")
 
     return redirect("/admin/accounts/user/")
 

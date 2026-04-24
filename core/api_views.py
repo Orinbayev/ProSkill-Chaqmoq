@@ -93,9 +93,20 @@ def exam_api_summary(request):
 
 @login_required
 def dashboard_quick_stats(request):
+    """
+    Director va Manager dashboard uchun tezkor statistikalar (JSON).
+
+    Eski fieldlar (director boshqaruv): today_income, debtors, active_groups,
+      attendance_pct, attendance_label.
+    Yangi fieldlar (manager KPI grid uchun, home view deferred bo'lganidan
+      keyin AJAX orqali yuklanadi): students, teachers, products,
+      pending_requests.
+    """
     if not _director_or_manager(request.user):
         return JsonResponse({"detail": "forbidden"}, status=403)
 
+    from django.db.models import Count, Q
+    from accounts.models import User
     from core.tenant import get_request_center
     from core.dashboard_metrics import (
         get_center_active_groups_count,
@@ -104,6 +115,7 @@ def dashboard_quick_stats(request):
         get_center_today_income,
         month_start,
     )
+    from store.models import Product, PurchaseRequest
 
     center = get_request_center(request)
     if not center:
@@ -113,12 +125,74 @@ def dashboard_quick_stats(request):
     current_month = month_start(today)
     attendance = get_center_attendance_snapshot(center, today)
 
+    # ✅ Manager KPI — 3 alohida count() emas, 1 aggregate query.
+    user_agg = User.objects.filter(center=center).aggregate(
+        teachers=Count("id", filter=Q(role="teacher")),
+        students=Count("id", filter=Q(role="student", is_archived=False)),
+    )
+    pending_status = getattr(PurchaseRequest, "PENDING", "pending")
+
     return JsonResponse(
         {
+            # director
             "today_income": get_center_today_income(center, today),
             "debtors": get_center_debtors_count(center, current_month),
             "active_groups": get_center_active_groups_count(center),
             "attendance_pct": attendance["pct"],
             "attendance_label": attendance["label"],
+            # manager KPI grid
+            "students": user_agg["students"] or 0,
+            "teachers": user_agg["teachers"] or 0,
+            "products": Product.objects.filter(center=center).count(),
+            "pending_requests": PurchaseRequest.objects.filter(
+                center=center, status=pending_status,
+            ).count(),
         }
     )
+
+
+@login_required
+def dashboard_low_activity_api(request):
+    """Manager dashboard 'Faolligi Past Talabalar' bloki — deferred load."""
+    if not _director_or_manager(request.user):
+        return JsonResponse({"detail": "forbidden"}, status=403)
+
+    from core.tenant import get_request_center
+    from core.views import _get_low_activity_data
+
+    center = get_request_center(request)
+    if not center:
+        return JsonResponse({"items": []})
+
+    items = _get_low_activity_data(center, limit=5)
+    return JsonResponse({"items": items})
+
+
+@login_required
+def dashboard_student_init_api(request):
+    """Student dashboard boshlangan'ich ma'lumotlar — balance + last actions."""
+    from core.tenant import get_request_center
+    from core.views import _student_last_actions
+    from chaqmoq.models import Ledger
+
+    user = request.user
+    if getattr(user, "role", None) != "student" and not user.is_superuser:
+        return JsonResponse({"detail": "forbidden"}, status=403)
+
+    center = get_request_center(request) or getattr(user, "center", None)
+    balance = Ledger.student_balansi(user.id, center=center)
+    last_actions = _student_last_actions(user.id, center=center)
+
+    # created_at datetime → ISO string (JSON serialize uchun)
+    for a in last_actions:
+        ca = a.get("created_at")
+        if ca is not None and not isinstance(ca, str):
+            try:
+                a["created_at"] = ca.isoformat()
+            except Exception:
+                a["created_at"] = str(ca)
+
+    return JsonResponse({
+        "balance": int(balance or 0),
+        "last_actions": last_actions,
+    })

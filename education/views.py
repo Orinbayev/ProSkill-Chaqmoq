@@ -4965,6 +4965,7 @@ def student_detail(request, student_id: int):
     student = get_object_or_404(User, pk=student_id, role="student")
     center = get_active_center(request)
     selected_month = parse_month_str((request.GET.get("month") or "").strip()) or month_first_day(timezone.localdate())
+    can_view_student_group_financials = request.user.is_superuser or getattr(request.user, "role", None) in ("director", "manager")
 
     MONTH_NAMES = {
         1: "Yanvar", 2: "Fevral", 3: "Mart", 4: "Aprel", 5: "May",
@@ -5091,11 +5092,16 @@ def student_detail(request, student_id: int):
         "student": student,
         "month_summaries": month_summaries,
         "selected_month": selected_month,
-        "student_group_financials": _student_group_financial_cards(
-            student,
-            center=center,
-            month=selected_month,
-            include_dates=True,
+        "can_view_student_group_financials": can_view_student_group_financials,
+        "student_group_financials": (
+            _student_group_financial_cards(
+                student,
+                center=center,
+                month=selected_month,
+                include_dates=True,
+            )
+            if can_view_student_group_financials
+            else None
         ),
     }
 

@@ -85,22 +85,35 @@ User = get_user_model()
 @receiver(post_save, sender=Enrollment)
 @receiver(post_save, sender=Group)
 @receiver(post_save, sender=User)
-def handle_rate_change(sender, instance, **kwargs):
+def handle_rate_change(sender, instance, update_fields=None, **kwargs):
     """
     Kurs narxi yoki foiz o'zgarganda tegishli barcha ochiq oylar daromadlarini qayta hisoblaydi.
+
+    PERF: Agar `update_fields` berilgan bo'lsa va unda narx/foiz fieldlari yo'q bo'lsa,
+    qayta hisoblash o'tkazib yuboriladi. Bu login paytida Django'ning
+    `update_last_login` signal'i (`user.save(update_fields=['last_login'])`)
+    teacher uchun ortiqcha 3000+ query tug'dirayotganini bartaraf etadi.
     """
     from .models import Attendance
-    
+
     if isinstance(instance, Group):
+        # Group'da narx/ustoz o'zgargandagina qayta hisobla.
+        if update_fields is not None and not (update_fields & {"oqituvchi", "oqituvchi_id", "kurs_narhi", "narx"}):
+            return
         atts = Attendance.objects.filter(group=instance)
     elif isinstance(instance, Enrollment):
+        if update_fields is not None and not (update_fields & {"kurs_narhi", "narx", "group", "group_id", "student", "student_id"}):
+            return
         atts = Attendance.objects.filter(group=instance.group, student=instance.student)
     elif isinstance(instance, User) and instance.role == 'teacher':
-        # Agar o'qituvchi o'z foizini o'zgartirsa, barcha tegishli davomatlar qayta hisoblanadi.
+        # Faqat oqituvchi_foizi o'zgarganda. `update_last_login` va parol
+        # update'lari bu signalni ishga tushirmasin.
+        if update_fields is not None and "oqituvchi_foizi" not in update_fields:
+            return
         atts = Attendance.objects.filter(group__oqituvchi=instance)
     else:
         return
-        
+
     for att in atts:
         create_teacher_income(Attendance, att, created=False)
 

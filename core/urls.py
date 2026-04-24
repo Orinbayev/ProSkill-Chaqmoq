@@ -51,6 +51,9 @@ urlpatterns = [
     path('api/churn/summary/', api_views.churn_api_summary, name='churn_api_summary'),
     path('api/exam/summary/', api_views.exam_api_summary, name='exam_api_summary'),
     path('api/dashboard/quick-stats/', api_views.dashboard_quick_stats, name='dashboard_quick_stats'),
+    # ✅ Skeleton-first home uchun deferred yuklash endpointlari
+    path('api/dashboard/low-activity/', api_views.dashboard_low_activity_api, name='dashboard_low_activity_api'),
+    path('api/dashboard/student-init/', api_views.dashboard_student_init_api, name='dashboard_student_init_api'),
     path('dashboard/students/low-activity/', views.low_activity_students, name='low_activity_students'),
     path('dashboard/students/churn-notify/<int:pk>/', views.churn_notify_student, name='churn_notify'),
     path('notifications/broadcast/', views.notification_broadcast, name="notification_broadcast"),

@@ -375,7 +375,7 @@
       <h4 class="justify-content-center">
         <i class="fa-solid fa-bolt"></i> Mening Chaqmog'im
       </h4>
-      <div class="balance">
+      <div class="balance" data-balance>
         {{ balance|default:"0" }} <small>⚡</small>
       </div>
     </div>
@@ -406,7 +406,12 @@
   <div class="actions scard">
     <h5><i class="fa-regular fa-clock"></i> Oxirgi harakatlar</h5>
 
-    <div class="alist">
+    <div class="alist" id="student-actions-list" data-deferred="{% if deferred %}1{% else %}0{% endif %}">
+      {% if deferred %}
+      <div class="muted text-center">
+        <i class="fa-solid fa-circle-notch fa-spin"></i> Yuklanmoqda…
+      </div>
+      {% else %}
       {% for a in last_actions %}
       <div class="aitem">
         <div class="aleft">
@@ -432,10 +437,79 @@
         {% empty %}
         <div class="muted">Hozircha harakatlar yo'q.</div>
         {% endfor %}
+        {% endif %}
       </div>
 
     </div>
 
   </div>
+
+  <script>
+    // ── Deferred student dashboard init ─────────────────────────────
+    // home view skeleton render qiladi; balance + last_actions AJAX bilan keladi.
+    (function () {
+      const centerSlug = "{{ center.slug|default:''|escapejs }}";
+      const slugPrefix = centerSlug ? "/" + centerSlug : "";
+
+      function escapeHtml(s) {
+        return String(s || "").replace(/[&<>"']/g, c => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+        }[c]));
+      }
+
+      function formatDate(iso) {
+        if (!iso) return "";
+        try {
+          const d = new Date(iso);
+          if (isNaN(d.getTime())) return String(iso);
+          const pad = n => String(n).padStart(2, "0");
+          return pad(d.getDate()) + "." + pad(d.getMonth() + 1) + "." + d.getFullYear() +
+                 " " + pad(d.getHours()) + ":" + pad(d.getMinutes());
+        } catch (e) { return String(iso); }
+      }
+
+      function renderActions(items) {
+        const container = document.getElementById("student-actions-list");
+        if (!container) return;
+        if (!items || items.length === 0) {
+          container.innerHTML = '<div class="muted">Hozircha harakatlar yo\'q.</div>';
+          return;
+        }
+        container.innerHTML = items.map(a => {
+          const minus = (a.delta || 0) < 0;
+          const grp = a.group ? '<span class="atag">' + escapeHtml(a.group) + '</span>' : '';
+          return (
+            '<div class="aitem">' +
+              '<div class="aleft">' +
+                '<div class="aplus' + (minus ? ' minus' : '') + '">' + (minus ? '-' : '+') + '</div>' +
+                '<div style="min-width:0;">' +
+                  '<div class="atitle">' + escapeHtml(a.title) + ' ' + grp + '</div>' +
+                  '<div class="atime">' + escapeHtml(formatDate(a.created_at)) + ' • ' + escapeHtml(a.who) + '</div>' +
+                '</div>' +
+              '</div>' +
+              '<div class="aright' + (minus ? ' neg' : '') + '">' + escapeHtml(a.sign) + (a.abs_delta || 0) + ' ⚡</div>' +
+            '</div>'
+          );
+        }).join("");
+      }
+
+      function loadStudentInit() {
+        const list = document.getElementById("student-actions-list");
+        const isDeferred = list && list.getAttribute("data-deferred") === "1";
+        if (!isDeferred) return;
+        fetch(slugPrefix + "/api/dashboard/student-init/", { credentials: "same-origin" })
+          .then(r => r.ok ? r.json() : null)
+          .then(data => {
+            if (!data) return;
+            const balEl = document.querySelector("[data-balance]");
+            if (balEl) balEl.innerHTML = (data.balance || 0) + ' <small>⚡</small>';
+            renderActions(data.last_actions || []);
+          })
+          .catch(() => renderActions([]));
+      }
+
+      document.addEventListener("DOMContentLoaded", loadStudentInit);
+    })();
+  </script>
 
   {% endblock %}

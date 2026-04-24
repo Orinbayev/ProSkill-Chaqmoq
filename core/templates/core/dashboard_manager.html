@@ -485,7 +485,7 @@
         <i class="fa-solid fa-graduation-cap"></i>
       </div>
       <div class="kpi-label">O'quvchilar</div>
-      <div class="kpi-value counter">{{ stats.students|default:0 }}</div>
+      <div class="kpi-value counter" data-kpi="students">{{ stats.students|default:0 }}</div>
     </a>
 
     <!-- Teachers -->
@@ -495,7 +495,7 @@
         <i class="fa-solid fa-chalkboard-user"></i>
       </div>
       <div class="kpi-label">O'qituvchilar</div>
-      <div class="kpi-value counter">{{ stats.teachers|default:0 }}</div>
+      <div class="kpi-value counter" data-kpi="teachers">{{ stats.teachers|default:0 }}</div>
     </a>
 
     <!-- Products -->
@@ -505,7 +505,7 @@
         <i class="fa-solid fa-box-open"></i>
       </div>
       <div class="kpi-label">Mahsulotlar</div>
-      <div class="kpi-value counter">{{ stats.products|default:0 }}</div>
+      <div class="kpi-value counter" data-kpi="products">{{ stats.products|default:0 }}</div>
     </a>
 
     <!-- Requests -->
@@ -515,7 +515,7 @@
         <i class="fa-solid fa-cart-shopping"></i>
       </div>
       <div class="kpi-label">So'rovlar</div>
-      <div class="kpi-value counter">{{ stats.pending_requests|default:0 }}</div>
+      <div class="kpi-value counter" data-kpi="pending_requests">{{ stats.pending_requests|default:0 }}</div>
     </a>
   </div>
 
@@ -530,7 +530,13 @@
           class="btn badge rounded-pill bg-white bg-opacity-10 text-white-50 xs-text text-uppercase px-3 py-2">Barchasi...</a>
       </div>
 
-      <div class="student-list-mini">
+      <div class="student-list-mini" id="low-activity-list" data-deferred="{% if deferred %}1{% else %}0{% endif %}">
+        {% if deferred %}
+        <div class="text-center py-5" data-placeholder="loading">
+          <i class="fa-solid fa-circle-notch fa-spin text-white-50 fa-2x mb-2"></i>
+          <p class="text-white-50 small mb-0">Yuklanmoqda…</p>
+        </div>
+        {% else %}
         {% for s in low_activity_list %}
         <a href="{% url 'core:user_view' s.student_id %}" class="student-item-card">
           <img src="{{ s.avatar }}" alt="{{ s.name }}" class="student-avatar">
@@ -549,6 +555,7 @@
           <p class="text-white-50">Hamma talabalar faol! Mukammal natija.</p>
         </div>
         {% endfor %}
+        {% endif %}
       </div>
     </div>
 
@@ -636,5 +643,88 @@
       updateCount();
     });
   });
+
+  // ── Deferred dashboard stats (manager) ─────────────────────────────
+  // home view skeleton'ni render qiladi; real KPI + low-activity ma'lumotlari
+  // shu yerda async yuklanadi. Tenant slug context'dan olinadi.
+  (function () {
+    const centerSlug = "{{ center.slug|default:''|escapejs }}";
+    const slugPrefix = centerSlug ? "/" + centerSlug : "";
+
+    function animateTo(el, target) {
+      const start = parseInt(el.innerText, 10) || 0;
+      if (start === target) { el.innerText = target; return; }
+      const diff = target - start;
+      const steps = 20;
+      let i = 0;
+      const step = () => {
+        i++;
+        const val = Math.round(start + (diff * i) / steps);
+        el.innerText = val;
+        if (i < steps) setTimeout(step, 25);
+        else el.innerText = target;
+      };
+      step();
+    }
+
+    function loadKpi() {
+      fetch(slugPrefix + "/api/dashboard/quick-stats/", { credentials: "same-origin" })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (!data) return;
+          document.querySelectorAll("[data-kpi]").forEach(el => {
+            const key = el.getAttribute("data-kpi");
+            if (data[key] !== undefined) animateTo(el, Number(data[key]) || 0);
+          });
+        })
+        .catch(() => { /* silent */ });
+    }
+
+    function escapeHtml(s) {
+      return String(s || "").replace(/[&<>"']/g, c => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+      }[c]));
+    }
+
+    function renderLowActivity(items) {
+      const container = document.getElementById("low-activity-list");
+      if (!container) return;
+      if (!items || items.length === 0) {
+        container.innerHTML =
+          '<div class="text-center py-5">' +
+          '<i class="fa-solid fa-circle-check text-success fa-3x mb-3 opacity-25"></i>' +
+          '<p class="text-white-50">Hamma talabalar faol! Mukammal natija.</p>' +
+          '</div>';
+        return;
+      }
+      container.innerHTML = items.map(s => (
+        '<a href="' + slugPrefix + '/user/' + s.student_id + '/view/" class="student-item-card">' +
+          '<img src="' + escapeHtml(s.avatar) + '" alt="' + escapeHtml(s.name) + '" class="student-avatar">' +
+          '<div class="student-info">' +
+            '<span class="name">' + escapeHtml(s.name) + '</span>' +
+            '<div class="course">' + escapeHtml(s.course) + ' • ' + escapeHtml(s.phone) + '</div>' +
+          '</div>' +
+          '<div class="activity-status-box">' +
+            '<div class="pct">' + (parseInt(s.status, 10) || 0) + '%</div>' +
+            '<div class="label">Faollik</div>' +
+          '</div>' +
+        '</a>'
+      )).join("");
+    }
+
+    function loadLowActivity() {
+      const container = document.getElementById("low-activity-list");
+      if (!container || container.getAttribute("data-deferred") !== "1") return;
+      fetch(slugPrefix + "/api/dashboard/low-activity/", { credentials: "same-origin" })
+        .then(r => r.ok ? r.json() : { items: [] })
+        .then(data => renderLowActivity(data.items || []))
+        .catch(() => renderLowActivity([]));
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      loadKpi();
+      loadLowActivity();
+    });
+  })();
 </script>
 {% endblock %}

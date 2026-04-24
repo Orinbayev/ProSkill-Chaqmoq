@@ -6,18 +6,25 @@ PERF v2:
 - form_invalid: 2 DB query (email + phone) → kerak bo'lmagan holda o'tkazib yuboriladi
 - form_valid: record_activity + Telegram xabari BLOCKING edi — Thread orqali non-blocking qilindi
 - _record_async: login tugagandan keyin fon threadida ishlaydi, response ga ta'sir qilmaydi
+
+PERF v3:
+- Orphan user (center is None) va role bo'sh bo'lgan user login qila olmaydi — aniq xato.
+- Login request timing va SQL query count log qilinadi (`chaqmoq.login.perf`).
 """
 
 import hashlib
 import logging
 import threading
+import time
 
 from django.contrib.auth import views as auth_views
 from django.core.cache import cache
+from django.db import connection
 from django.shortcuts import redirect
 from django.urls import reverse, NoReverseMatch
 
 logger = logging.getLogger(__name__)
+perf_logger = logging.getLogger("chaqmoq.login.perf")
 
 
 def _record_activity_bg(user, action, request_meta: dict):
@@ -49,17 +56,42 @@ class SecureLoginView(auth_views.LoginView):
     LOGIN_MAX_FAILED_ATTEMPTS = 8
     LOGIN_THROTTLE_WINDOW_SECONDS = 15 * 60
 
+    ORPHAN_ERROR = (
+        "Siz hech qaysi o'quv markazga biriktirilmagansiz. "
+        "Administrator bilan bog'laning."
+    )
+    NO_ROLE_ERROR = "Sizga rol biriktirilmagan. Administrator bilan bog'laning."
+
     def dispatch(self, request, *args, **kwargs):
-        """Prevent redirect loop — already authenticated users go home."""
-        if request.user.is_authenticated:
-            return redirect(self._get_home_url(request.user))
-        if request.method == "POST":
-            username = (request.POST.get("username") or "").strip().lower()
-            if self._is_login_locked(request, username):
-                form = self.get_form()
-                form.add_error(None, "Ko'p urinish bo'ldi. 15 daqiqadan keyin qayta urinib ko'ring.")
-                return self.render_to_response(self.get_context_data(form=form))
-        return super().dispatch(request, *args, **kwargs)
+        """Prevent redirect loop — already authenticated users go home.
+
+        Measures total request duration and SQL query count per login.
+        Log line: `chaqmoq.login.perf` with ms + query count.
+        """
+        t0 = time.perf_counter()
+        q0 = len(connection.queries) if connection.queries_logged else 0
+
+        try:
+            if request.user.is_authenticated:
+                return redirect(self._get_home_url(request.user))
+            if request.method == "POST":
+                username = (request.POST.get("username") or "").strip().lower()
+                if self._is_login_locked(request, username):
+                    form = self.get_form()
+                    form.add_error(None, "Ko'p urinish bo'ldi. 15 daqiqadan keyin qayta urinib ko'ring.")
+                    return self.render_to_response(self.get_context_data(form=form))
+            return super().dispatch(request, *args, **kwargs)
+        finally:
+            if request.method == "POST":
+                elapsed_ms = (time.perf_counter() - t0) * 1000.0
+                query_count = (len(connection.queries) - q0) if connection.queries_logged else -1
+                perf_logger.info(
+                    "login POST: %.1fms, %s queries, path=%s, authed=%s",
+                    elapsed_ms,
+                    query_count if query_count >= 0 else "?",
+                    request.path,
+                    request.user.is_authenticated,
+                )
 
     def form_invalid(self, form):
         response = super().form_invalid(form)
@@ -85,6 +117,22 @@ class SecureLoginView(auth_views.LoginView):
         return response
 
     def form_valid(self, form):
+        # ✅ Orphan/no-role guard: superuser bundan mustasno, qolgan rollar
+        # uchun tenant va role majburiy. Bu yerda tekshirib, login qilishdan
+        # oldin aniq xato chiqaramiz (session ga user yozilmaydi).
+        user = form.get_user()
+        if not user.is_superuser:
+            reason = None
+            if getattr(user, "center", None) is None:
+                reason = self.ORPHAN_ERROR
+            elif not (getattr(user, "role", "") or "").strip():
+                reason = self.NO_ROLE_ERROR
+            if reason:
+                # Throttle counter'ni oshirmaymiz — parol to'g'ri edi, faqat
+                # konfiguratsiya muammosi. Failed-login yozuvi ham yozilmaydi.
+                form.add_error(None, reason)
+                return self.render_to_response(self.get_context_data(form=form))
+
         remember = self.request.POST.get("remember")
         if remember:
             self.request.session.set_expiry(2592000)
