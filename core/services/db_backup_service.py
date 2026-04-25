@@ -52,8 +52,11 @@ BACKUP_SCHEDULE_TZ_FALLBACK = "Asia/Tashkent"
 BACKUP_SEND_TIME_FALLBACK = "18:00"
 BACKUP_SCHEDULER_JOB_ID = "tenant-db-backup-daily-send-telegram"
 TELEGRAM_SEND_TIMEOUT_DEFAULT = 120
-TELEGRAM_SEND_TIMEOUT_LARGE = 600
+TELEGRAM_SEND_TIMEOUT_LARGE = int(os.getenv("TELEGRAM_SEND_TIMEOUT_LARGE", "180"))
+TELEGRAM_CONNECT_TIMEOUT = int(os.getenv("TELEGRAM_CONNECT_TIMEOUT", "20"))
 TELEGRAM_MAX_DOCUMENT_SIZE_MB = int(os.getenv("TELEGRAM_MAX_DOCUMENT_SIZE_MB", "49"))
+TELEGRAM_ZIP_MIN_SIZE_MB = int(os.getenv("TELEGRAM_ZIP_MIN_SIZE_MB", "8"))
+TELEGRAM_SEND_RETRIES = int(os.getenv("TELEGRAM_SEND_RETRIES", "2"))
 
 
 def _parse_send_time(value: str | None) -> tuple[int, int]:
@@ -932,7 +935,21 @@ def _zip_single_file_for_telegram(path: Path) -> Path:
 
 def _prepare_document_for_telegram(path: Path) -> Path:
     max_bytes = TELEGRAM_MAX_DOCUMENT_SIZE_MB * 1024 * 1024
-    if path.stat().st_size <= max_bytes:
+    zip_min_bytes = TELEGRAM_ZIP_MIN_SIZE_MB * 1024 * 1024
+    original_size = path.stat().st_size
+    compressible_suffixes = {".sql", ".json", ".sqlite3"}
+
+    if (
+        path.suffix.lower() != ".zip"
+        and path.suffix.lower() in compressible_suffixes
+        and original_size >= zip_min_bytes
+    ):
+        zipped = _zip_single_file_for_telegram(path)
+        if zipped.stat().st_size < original_size or original_size > max_bytes:
+            return zipped
+        zipped.unlink(missing_ok=True)
+
+    if original_size <= max_bytes:
         return path
 
     zipped = path if path.suffix == ".zip" else _zip_single_file_for_telegram(path)
@@ -943,6 +960,11 @@ def _prepare_document_for_telegram(path: Path) -> Path:
             "yoki backupni tashqi storagega yuklang."
         )
     return zipped
+
+
+def _format_file_size(path: Path) -> str:
+    size_mb = path.stat().st_size / (1024 * 1024)
+    return f"{size_mb:.1f} MB"
 
 
 def _caption_for_artifact(artifact: BackupArtifact | dict[str, Any]) -> str:
@@ -1034,36 +1056,67 @@ def send_file_to_telegram(
     url = f"https://api.telegram.org/bot{token}/sendDocument"
     caption_text = caption or path.name
 
-    logger.info(
-        "Telegram yuborish boshlandi: file=%s size=%d bytes chat_id=%s timeout=%ds",
-        path.name,
-        size,
-        group_id,
-        timeout,
-    )
+    timeout_config = (TELEGRAM_CONNECT_TIMEOUT, timeout)
+    attempts = max(1, TELEGRAM_SEND_RETRIES + 1)
+    last_error: Exception | None = None
 
-    with path.open("rb") as fh:
-        resp = requests.post(
-            url,
-            data={"chat_id": str(group_id), "caption": caption_text},
-            files={"document": (path.name, fh, "application/octet-stream")},
-            timeout=timeout,
+    for attempt in range(1, attempts + 1):
+        started = time.monotonic()
+        logger.info(
+            "Telegram yuborish boshlandi: file=%s size=%d bytes chat_id=%s timeout=%ss attempt=%d/%d",
+            path.name,
+            size,
+            group_id,
+            timeout,
+            attempt,
+            attempts,
         )
 
-    try:
-        result = resp.json()
-    except Exception:
-        result = {}
+        try:
+            with path.open("rb") as fh:
+                resp = requests.post(
+                    url,
+                    data={"chat_id": str(group_id), "caption": caption_text},
+                    files={"document": (path.name, fh, "application/octet-stream")},
+                    timeout=timeout_config,
+                )
 
-    if not resp.ok or not result.get("ok"):
-        err_desc = result.get("description", resp.text[:400])
-        raise RuntimeError(
-            f"Telegram API xatosi [{resp.status_code}]: {err_desc}\n"
-            f"  Chat ID: {group_id}"
-        )
+            try:
+                result = resp.json()
+            except Exception:
+                result = {}
 
-    logger.info("✅ Telegram muvaffaqiyatli yuborildi: file=%s", path.name)
-    return path
+            if not resp.ok or not result.get("ok"):
+                err_desc = result.get("description", resp.text[:400])
+                raise RuntimeError(
+                    f"Telegram API xatosi [{resp.status_code}]: {err_desc}\n"
+                    f"  Chat ID: {group_id}"
+                )
+
+            logger.info(
+                "✅ Telegram muvaffaqiyatli yuborildi: file=%s elapsed=%.1fs",
+                path.name,
+                time.monotonic() - started,
+            )
+            return path
+        except requests.RequestException as exc:
+            last_error = exc
+            logger.warning(
+                "Telegram upload urinishida xato: file=%s attempt=%d/%d error=%s",
+                path.name,
+                attempt,
+                attempts,
+                exc,
+                exc_info=True,
+            )
+            if attempt < attempts:
+                time.sleep(min(5 * attempt, 15))
+                continue
+            break
+        except RuntimeError:
+            raise
+
+    raise RuntimeError(f"Telegram upload timeout/tarmoq xatosi: {path.name}: {last_error}")
 
 
 def validate_telegram_destination(
@@ -1123,6 +1176,7 @@ def send_database_backups_to_telegram(
     notify_start: bool = True,
     notify_finish: bool = True,
     notify_error: bool = True,
+    notify_progress: bool = True,
 ) -> dict[str, Any]:
     """
     Real-time backup yaratadi va Telegram backup guruhiga yuboradi.
@@ -1196,10 +1250,30 @@ def send_database_backups_to_telegram(
             else:
                 artifacts_to_send.append(zip_artifact)
 
+        if notify_progress:
+            try:
+                send_text_to_telegram(
+                    f"📦 Backup tayyorlandi: {len(artifacts)} ta fayl. Telegramga yuborilmoqda..."
+                )
+            except Exception:
+                logger.warning("Telegram progress xabar yuborilmadi", exc_info=True)
+
         gdrive_subpath = _gdrive_subfolder_path_for_date()
         for artifact in artifacts_to_send:
             try:
-                sent_path = send_file_to_telegram(artifact.path, caption=_caption_for_artifact(artifact))
+                prepared_path = artifact.path
+                if notify_progress:
+                    try:
+                        prepared_path = _prepare_document_for_telegram(artifact.path)
+                        send_text_to_telegram(
+                            f"📤 Yuborilmoqda: {prepared_path.name} ({_format_file_size(prepared_path)})"
+                        )
+                    except Exception:
+                        logger.warning("Telegram per-file progress xabar yuborilmadi", exc_info=True)
+                caption = _caption_for_artifact(artifact)
+                if prepared_path != artifact.path:
+                    caption += f"\n🗜️ Telegramga zip holatida yuborildi: {prepared_path.name}"
+                sent_path = send_file_to_telegram(prepared_path, caption=caption)
                 summary["sent"] += 1
                 summary["sent_files"].append(str(sent_path))
                 if artifact.scope == "global":
