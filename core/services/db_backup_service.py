@@ -1,18 +1,8 @@
 """
-ChaqmoqApp – Markaz DB Backup Service
-======================================
-Har kuni 17:35 (Asia/Tashkent) da:
-  1. Barcha ACTIVE markazlar olinadi
-  2. Har biri uchun alohida JSON snapshot yaratiladi
-  3. To'liq PostgreSQL dump yaratiladi (pg_dump mavjud bo'lsa)
-  4. Har bir fayl Telegram guruhga document sifatida yuboriladi
-  5. Yuborilgan/xato bo'lgan markazlar logga aniq yoziladi
+ChaqmoqApp database backup service.
 
-MUHIM TUZATISHLAR (v2):
-- Async/Event-loop muammo YO'Q: `requests` (sync HTTP) ishlatiladi
-- BackgroundScheduler (thread-based) – Django WSGI/Gunicorn bilan mos
-- Token/GroupID env var fallback: TELEGRAM_BOT_TOKEN | BOT_TOKEN
-- To'liq traceback loglanadi
+Daily scheduler, manual management commands and Telegram /db command all use
+this module so the behavior is the same in local and production.
 """
 
 from __future__ import annotations
@@ -22,11 +12,15 @@ import logging
 import os
 import gzip
 import shutil
+import sqlite3
 import subprocess
 import time
 import traceback
+import zipfile
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import requests
 from django.apps import apps
@@ -37,6 +31,7 @@ from django.db import connection, models, transaction
 from django.db.migrations.recorder import MigrationRecorder
 from django.db.models import Q
 from django.utils import timezone
+from django.utils.text import slugify
 
 from accounts.models import Center
 from core.services.gdrive_backup import (
@@ -51,17 +46,76 @@ logger = logging.getLogger(__name__)
 
 _backup_scheduler: "BackgroundScheduler | None" = None
 CENTER_EXPORT_APPS = {"accounts", "core", "billing", "education", "store", "chaqmoq"}
-BACKUP_SCHEDULE_HOUR = 17
-BACKUP_SCHEDULE_MINUTE = 35
+CENTER_LOOKUP_MAX_DEPTH = 3
+CENTER_LOOKUP_EXCLUDED_FIELDS = {"deleted_by", "restored_by"}
 BACKUP_SCHEDULE_TZ_FALLBACK = "Asia/Tashkent"
-BACKUP_LOCAL_RETENTION_DAYS = 7
+BACKUP_SEND_TIME_FALLBACK = "18:00"
+BACKUP_SCHEDULER_JOB_ID = "tenant-db-backup-daily-send-telegram"
 TELEGRAM_SEND_TIMEOUT_DEFAULT = 120
 TELEGRAM_SEND_TIMEOUT_LARGE = 600
+TELEGRAM_MAX_DOCUMENT_SIZE_MB = int(os.getenv("TELEGRAM_MAX_DOCUMENT_SIZE_MB", "49"))
+
+
+def _parse_send_time(value: str | None) -> tuple[int, int]:
+    raw = (value or BACKUP_SEND_TIME_FALLBACK).strip()
+    try:
+        hour_text, minute_text = raw.split(":", 1)
+        hour = int(hour_text)
+        minute = int(minute_text)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"BACKUP_SEND_TIME noto'g'ri formatda: {raw!r}. Format: HH:MM") from exc
+    if hour < 0 or hour > 23 or minute < 0 or minute > 59:
+        raise ValueError(f"BACKUP_SEND_TIME noto'g'ri qiymat: {raw!r}. Format: HH:MM")
+    return hour, minute
+
+
+def _get_backup_timezone_name() -> str:
+    return (
+        str(getattr(settings, "BACKUP_TIMEZONE", "") or "").strip()
+        or str(os.environ.get("BACKUP_TIMEZONE", "") or "").strip()
+        or str(getattr(settings, "TIME_ZONE", "") or "").strip()
+        or BACKUP_SCHEDULE_TZ_FALLBACK
+    )
+
+
+def _get_backup_zoneinfo() -> ZoneInfo:
+    tz_name = _get_backup_timezone_name()
+    try:
+        return ZoneInfo(tz_name)
+    except ZoneInfoNotFoundError as exc:
+        raise ValueError(f"BACKUP_TIMEZONE noto'g'ri: {tz_name!r}") from exc
+
+
+def _get_backup_send_time() -> tuple[int, int]:
+    return _parse_send_time(
+        str(getattr(settings, "BACKUP_SEND_TIME", "") or "")
+        or os.environ.get("BACKUP_SEND_TIME")
+        or BACKUP_SEND_TIME_FALLBACK
+    )
+
+
+BACKUP_SCHEDULE_HOUR, BACKUP_SCHEDULE_MINUTE = _parse_send_time(
+    os.environ.get("BACKUP_SEND_TIME") or BACKUP_SEND_TIME_FALLBACK
+)
+BACKUP_LOCAL_RETENTION_DAYS = int(os.getenv("BACKUP_KEEP_DAYS", "7"))
 
 
 def get_backup_schedule_label(timezone_name: str | None = None) -> str:
-    tz_name = timezone_name or getattr(settings, "TIME_ZONE", BACKUP_SCHEDULE_TZ_FALLBACK)
-    return f"{BACKUP_SCHEDULE_HOUR:02d}:{BACKUP_SCHEDULE_MINUTE:02d} {tz_name}"
+    hour, minute = _get_backup_send_time()
+    tz_name = timezone_name or _get_backup_timezone_name()
+    return f"{hour:02d}:{minute:02d} {tz_name}"
+
+
+def _backup_now() -> timezone.datetime:
+    return timezone.localtime(timezone.now(), _get_backup_zoneinfo())
+
+
+def _timestamp_label(now: timezone.datetime | None = None) -> str:
+    return (now or _backup_now()).strftime("%Y-%m-%d_%H-%M")
+
+
+def _backup_date_label(now: timezone.datetime | None = None) -> str:
+    return (now or _backup_now()).strftime("%Y-%m-%d")
 
 
 def _get_backup_root() -> Path:
@@ -95,7 +149,7 @@ def _cleanup_old_local_backups(max_age_days: int = BACKUP_LOCAL_RETENTION_DAYS) 
 
 def _gdrive_subfolder_path_for_date() -> list[str]:
     """Google Drive ichida sana bo'yicha tree: YYYY-MM / YYYY-MM-DD."""
-    today = timezone.localdate()
+    today = _backup_now().date()
     return [today.strftime("%Y-%m"), today.isoformat()]
 
 
@@ -111,25 +165,90 @@ def _load_backup_env_files() -> None:
 
 
 def _get_bot_token() -> str:
-    """Token priority: BACKUP_BOT_TOKEN -> TELEGRAM_BOT_TOKEN -> BOT_TOKEN."""
+    """Token priority: TELEGRAM_BOT_TOKEN -> BOT_TOKEN -> BACKUP_BOT_TOKEN."""
     _load_backup_env_files()
     return (
-        str(getattr(settings, "BACKUP_BOT_TOKEN", "") or "").strip()
-        or str(os.environ.get("BACKUP_BOT_TOKEN", "") or "").strip()
-        or str(getattr(settings, "TELEGRAM_BOT_TOKEN", "") or "").strip()
+        str(getattr(settings, "TELEGRAM_BOT_TOKEN", "") or "").strip()
         or str(os.environ.get("TELEGRAM_BOT_TOKEN", "") or "").strip()
         or str(os.environ.get("BOT_TOKEN", "") or "").strip()
+        or str(getattr(settings, "BACKUP_BOT_TOKEN", "") or "").strip()
+        or str(os.environ.get("BACKUP_BOT_TOKEN", "") or "").strip()
     )
 
 
 def _get_group_id() -> str:
-    """Group priority: BACKUP_GROUP_ID -> TELEGRAM_GROUP_ID."""
+    """Chat priority: TELEGRAM_BACKUP_CHAT_ID -> BACKUP_GROUP_ID -> TELEGRAM_GROUP_ID."""
     _load_backup_env_files()
     return (
-        str(getattr(settings, "BACKUP_GROUP_ID", "") or "").strip()
+        str(getattr(settings, "TELEGRAM_BACKUP_CHAT_ID", "") or "").strip()
+        or str(os.environ.get("TELEGRAM_BACKUP_CHAT_ID", "") or "").strip()
+        or str(getattr(settings, "BACKUP_GROUP_ID", "") or "").strip()
         or str(os.environ.get("BACKUP_GROUP_ID", "") or "").strip()
         or str(getattr(settings, "TELEGRAM_GROUP_ID", "") or "").strip()
         or str(os.environ.get("TELEGRAM_GROUP_ID", "") or "").strip()
+    )
+
+
+def _parse_csv_ids(raw: str | None) -> set[str]:
+    values: set[str] = set()
+    for item in str(raw or "").replace(";", ",").split(","):
+        item = item.strip()
+        if item:
+            values.add(item)
+    return values
+
+
+def get_admin_telegram_ids() -> set[str]:
+    _load_backup_env_files()
+    return _parse_csv_ids(
+        str(getattr(settings, "ADMIN_TELEGRAM_IDS", "") or "")
+        or os.environ.get("ADMIN_TELEGRAM_IDS", "")
+    )
+
+
+def is_authorized_telegram_backup_request(
+    chat_id: int | str | None,
+    user_id: int | str | None,
+) -> tuple[bool, str]:
+    """
+    /db command faqat TELEGRAM_BACKUP_CHAT_ID ichida va adminlardan ishlaydi.
+
+    Admin manbalari:
+      1. ADMIN_TELEGRAM_IDS env
+      2. accounts.BotAdmin
+      3. Telegram ID bog'langan Django superuser
+    """
+    allowed_chat_id = _get_group_id()
+    current_chat_id = str(chat_id or "").strip()
+    current_user_id = str(user_id or "").strip()
+
+    if not allowed_chat_id:
+        return False, "TELEGRAM_BACKUP_CHAT_ID env sozlanmagan."
+    if current_chat_id != str(allowed_chat_id):
+        return False, "Bu buyruq faqat ruxsat berilgan backup guruhida ishlaydi."
+    if not current_user_id:
+        return False, "Telegram foydalanuvchi ID aniqlanmadi."
+
+    admin_ids = get_admin_telegram_ids()
+    if admin_ids:
+        if current_user_id in admin_ids:
+            return True, ""
+        return False, "Sizga /db backup buyrug'i uchun ruxsat berilmagan."
+
+    try:
+        from accounts.models import BotAdmin, User
+
+        if BotAdmin.objects.filter(telegram_id=current_user_id).exists():
+            return True, ""
+        if User.objects.filter(is_superuser=True, telegram_id=current_user_id).exists():
+            return True, ""
+    except Exception:
+        logger.exception("Telegram admin ruxsatini tekshirishda xatolik")
+        return False, "Admin ruxsatini tekshirishda xatolik yuz berdi."
+
+    return (
+        False,
+        "ADMIN_TELEGRAM_IDS env yoki BotAdmin orqali ruxsat berilgan admin topilmadi.",
     )
 
 
@@ -150,19 +269,27 @@ def _get_default_db_credentials() -> dict[str, str]:
     return credentials
 
 
-def _build_center_export_path(center: Center) -> Path:
-    backup_date = timezone.localdate().isoformat()
-    return _get_backup_root() / f"{center.slug}_{backup_date}.json"
+def _safe_slug(value: str | None, fallback: str = "center") -> str:
+    return slugify(value or "")[:80] or fallback
 
 
-def _build_full_backup_path() -> Path:
-    backup_date = timezone.localdate().isoformat()
-    return _get_backup_root() / f"postgres_full_{backup_date}.sql"
+def _build_center_export_path(
+    center: Center,
+    timestamp_label: str | None = None,
+    suffix: str = ".json",
+) -> Path:
+    ts = timestamp_label or _timestamp_label()
+    slug = _safe_slug(center.slug, f"center-{center.pk}")
+    return _get_backup_root() / f"center_{slug}_backup_{ts}{suffix}"
+
+
+def _build_global_backup_path(suffix: str, timestamp_label: str | None = None) -> Path:
+    ts = timestamp_label or _timestamp_label()
+    return _get_backup_root() / f"global_backup_{ts}{suffix}"
 
 
 def _build_full_fixture_backup_path() -> Path:
-    backup_date = timezone.localdate().isoformat()
-    return _get_backup_root() / f"django_full_{backup_date}.json.gz"
+    return _build_global_backup_path(".json.gz")
 
 
 def _build_pg_dump_command(credentials: dict[str, str], backup_path: Path) -> list[str]:
@@ -182,6 +309,113 @@ def _build_pg_dump_command(credentials: dict[str, str], backup_path: Path) -> li
         "--no-privileges",
         "-Fp",
     ]
+
+
+def _build_pg_dump_url_command(database_url: str, backup_path: Path) -> list[str]:
+    return [
+        "pg_dump",
+        "--dbname",
+        database_url,
+        "-f",
+        str(backup_path),
+        "--no-owner",
+        "--no-privileges",
+        "-Fp",
+    ]
+
+
+def _pg_dump_missing_error() -> RuntimeError:
+    return RuntimeError(
+        "pg_dump topilmadi. PostgreSQL backup uchun pg_dump PATH ichida bo'lishi shart. "
+        "Render Native Runtime OS-level paketlarni apt/sudo orqali o'rnatishni kafolatlamaydi; "
+        "production uchun Docker image ichida postgresql-client o'rnating yoki pg_dump binary "
+        "ni build paytida /opt/render/project ichiga qo'shib PATH ga kiriting."
+    )
+
+
+def _database_engine_name(db_config: dict[str, Any]) -> str:
+    database_url = str(os.environ.get("DATABASE_URL", "") or "").lower()
+    if database_url.startswith(("postgres://", "postgresql://")):
+        return "postgresql"
+    if database_url.startswith("sqlite://"):
+        return "sqlite"
+    engine = str(db_config.get("ENGINE", "") or "").lower()
+    if "postgresql" in engine or "postgis" in engine:
+        return "postgresql"
+    if "sqlite" in engine:
+        return "sqlite"
+    return engine or "unknown"
+
+
+def _sqlite_backup(source_path: Path, backup_path: Path) -> Path:
+    if not source_path.exists():
+        raise FileNotFoundError(f"SQLite database topilmadi: {source_path}")
+
+    backup_path.unlink(missing_ok=True)
+    backup_path.parent.mkdir(parents=True, exist_ok=True)
+    source = sqlite3.connect(str(source_path), timeout=60)
+    target = sqlite3.connect(str(backup_path), timeout=60)
+    try:
+        source.backup(target)
+    finally:
+        target.close()
+        source.close()
+
+    logger.info("SQLite backup yaratildi: source=%s file=%s size=%d", source_path, backup_path, backup_path.stat().st_size)
+    return backup_path
+
+
+def _postgres_backup(
+    db_config: dict[str, Any],
+    backup_path: Path,
+    *,
+    database_url: str | None = None,
+) -> Path:
+    if shutil.which("pg_dump") is None:
+        raise _pg_dump_missing_error()
+
+    backup_path.unlink(missing_ok=True)
+    backup_path.parent.mkdir(parents=True, exist_ok=True)
+
+    env = os.environ.copy()
+    env["PGCONNECT_TIMEOUT"] = env.get("PGCONNECT_TIMEOUT", "15")
+    options = db_config.get("OPTIONS") or {}
+    sslmode = str(options.get("sslmode") or os.environ.get("PGSSLMODE") or "").strip()
+    if sslmode:
+        env["PGSSLMODE"] = sslmode
+
+    if database_url:
+        command = _build_pg_dump_url_command(database_url, backup_path)
+    else:
+        credentials = {
+            "name": str(db_config.get("NAME", "") or "").strip(),
+            "user": str(db_config.get("USER", "") or "").strip(),
+            "password": str(db_config.get("PASSWORD", "") or "").strip(),
+            "host": str(db_config.get("HOST", "") or "localhost").strip() or "localhost",
+            "port": str(db_config.get("PORT", "") or "5432").strip() or "5432",
+        }
+        missing = [key for key in ("name", "user") if not credentials[key]]
+        if missing:
+            raise ValueError(f"PostgreSQL credential yetishmayapti: {', '.join(missing)}")
+        if credentials["password"]:
+            env["PGPASSWORD"] = credentials["password"]
+        command = _build_pg_dump_command(credentials, backup_path)
+
+    result = subprocess.run(
+        command,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=int(os.environ.get("PG_DUMP_TIMEOUT_SECONDS", "900")),
+    )
+    if result.returncode != 0:
+        backup_path.unlink(missing_ok=True)
+        error_text = (result.stderr or result.stdout or f"pg_dump exited with code {result.returncode}").strip()
+        raise RuntimeError(f"pg_dump xatosi: {error_text}")
+
+    logger.info("PostgreSQL backup yaratildi: file=%s size=%d", backup_path, backup_path.stat().st_size)
+    return backup_path
 
 
 def _iter_export_models() -> list[type[models.Model]]:
@@ -206,32 +440,45 @@ def _build_center_lookup_map(
         lookup_map[Model] = ["center", "created_by__center", ...]  – filter uchun yo'llar
         skipped           = Center'ga umuman yo'li yo'q modellar (ogohlantirish uchun)
     """
-    lookup_map: dict[type[models.Model], list[str]] = {Center: [""]}
+    export_model_set = set(export_models)
+    def find_paths(
+        model: type[models.Model],
+        depth: int,
+        visiting: set[type[models.Model]],
+    ) -> list[str]:
+        if model is Center:
+            return [""]
+        if depth >= CENTER_LOOKUP_MAX_DEPTH:
+            return []
 
-    max_iterations = len(export_models) + 5  # xavfsizlik limiti
-    for _ in range(max_iterations):
-        changed = False
-        for model in export_models:
-            if model is Center:
+        paths: set[str] = set()
+        visiting.add(model)
+        for field in model._meta.fields:
+            if field.name in CENTER_LOOKUP_EXCLUDED_FIELDS:
                 continue
-            new_lookups: set[str] = set()
-            for field in model._meta.fields:
-                if not isinstance(field, (models.ForeignKey, models.OneToOneField)):
-                    continue
-                related_model = field.related_model
-                if related_model not in lookup_map:
-                    continue
-                for parent_lookup in lookup_map[related_model]:
-                    if parent_lookup:
-                        new_lookups.add(f"{field.name}__{parent_lookup}")
-                    else:
-                        new_lookups.add(field.name)
-            existing = set(lookup_map.get(model, []))
-            if new_lookups and new_lookups != existing:
-                lookup_map[model] = sorted(new_lookups)
-                changed = True
-        if not changed:
-            break
+            if not isinstance(field, (models.ForeignKey, models.OneToOneField)):
+                continue
+            related_model = field.related_model
+            if related_model is None:
+                continue
+            if related_model not in export_model_set and related_model is not Center:
+                continue
+            if related_model in visiting:
+                continue
+
+            for parent_lookup in find_paths(related_model, depth + 1, set(visiting)):
+                if parent_lookup:
+                    paths.add(f"{field.name}__{parent_lookup}")
+                else:
+                    paths.add(field.name)
+
+        return sorted(paths)
+
+    lookup_map: dict[type[models.Model], list[str]] = {}
+    for model in export_models:
+        paths = find_paths(model, 0, set())
+        if paths:
+            lookup_map[model] = paths
 
     skipped = [m for m in export_models if m not in lookup_map]
     return lookup_map, skipped
@@ -251,7 +498,7 @@ def _collect_migration_state() -> list[dict[str, str]]:
         return []
 
 
-def export_center_snapshot(center: Center) -> Path:
+def export_center_snapshot(center: Center, timestamp_label: str | None = None) -> Path:
     export_models = _iter_export_models()
     lookup_map, skipped_models = _build_center_lookup_map(export_models)
 
@@ -291,7 +538,7 @@ def export_center_snapshot(center: Center) -> Path:
             serialized = serializers.serialize("json", qs)
             objects.extend(json.loads(serialized))
 
-    export_path = _build_center_export_path(center)
+    export_path = _build_center_export_path(center, timestamp_label=timestamp_label)
     payload = {
         "meta": {
             "type": "center_scoped_snapshot",
@@ -319,37 +566,31 @@ def export_center_snapshot(center: Center) -> Path:
     return export_path
 
 
+def backup_global_database(timestamp_label: str | None = None) -> Path:
+    default_db = (getattr(settings, "DATABASES", {}) or {}).get("default", {})
+    if not default_db:
+        raise RuntimeError("settings.DATABASES['default'] topilmadi")
+
+    engine = _database_engine_name(default_db)
+    if engine == "sqlite":
+        db_name = default_db.get("NAME")
+        source_path = Path(db_name) if isinstance(db_name, (str, Path)) else Path(str(db_name))
+        return _sqlite_backup(source_path, _build_global_backup_path(".sqlite3", timestamp_label))
+
+    if engine == "postgresql":
+        database_url = str(os.environ.get("DATABASE_URL", "") or "").strip()
+        return _postgres_backup(
+            default_db,
+            _build_global_backup_path(".sql", timestamp_label),
+            database_url=database_url or None,
+        )
+
+    raise RuntimeError(f"Qo'llab-quvvatlanmagan database engine: {default_db.get('ENGINE') or engine}")
+
+
 def backup_full_database() -> Path:
-    try:
-        credentials = _get_default_db_credentials()
-    except ValueError as exc:
-        return backup_full_database_fixture(f"PostgreSQL sozlanmagan: {exc}")
-
-    if shutil.which("pg_dump") is None:
-        return backup_full_database_fixture("pg_dump topilmadi")
-
-    backup_path = _build_full_backup_path()
-    env = os.environ.copy()
-    env["PGCONNECT_TIMEOUT"] = env.get("PGCONNECT_TIMEOUT", "15")
-    if credentials["password"]:
-        env["PGPASSWORD"] = credentials["password"]
-
-    result = subprocess.run(
-        _build_pg_dump_command(credentials, backup_path),
-        env=env,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-
-    if result.returncode != 0:
-        if backup_path.exists():
-            backup_path.unlink(missing_ok=True)
-        error_text = (result.stderr or result.stdout or f"pg_dump exited with code {result.returncode}").strip()
-        return backup_full_database_fixture(f"pg_dump xatosi: {error_text}")
-
-    logger.info("Full PostgreSQL backup created: file=%s", backup_path)
-    return backup_path
+    """Backward-compatible alias for old commands/tests."""
+    return backup_global_database()
 
 
 def backup_full_database_fixture(reason: str) -> Path:
@@ -385,15 +626,383 @@ def backup_full_database_fixture(reason: str) -> Path:
     return backup_path
 
 
+@dataclass
+class BackupArtifact:
+    path: Path
+    scope: str
+    label: str
+    kind: str
+    center_slug: str = ""
+    center_name: str = ""
+
+    @property
+    def size(self) -> int:
+        return self.path.stat().st_size if self.path.exists() else 0
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "path": str(self.path),
+            "name": self.path.name,
+            "scope": self.scope,
+            "label": self.label,
+            "kind": self.kind,
+            "center_slug": self.center_slug,
+            "center_name": self.center_name,
+            "size": self.size,
+        }
+
+
+def _default_db_identity() -> tuple[str, str, str, str] | None:
+    default_db = (getattr(settings, "DATABASES", {}) or {}).get("default", {})
+    if _database_engine_name(default_db) != "postgresql":
+        return None
+    return (
+        str(default_db.get("NAME", "") or "").strip(),
+        str(default_db.get("USER", "") or "").strip(),
+        str(default_db.get("HOST", "") or "localhost").strip() or "localhost",
+        str(default_db.get("PORT", "") or "5432").strip() or "5432",
+    )
+
+
+def _center_database_config(center: Center) -> dict[str, Any] | None:
+    db_name = str(getattr(center, "db_name", "") or "").strip()
+    if not db_name:
+        return None
+    return {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": db_name,
+        "USER": str(getattr(center, "db_user", "") or "").strip(),
+        "PASSWORD": str(getattr(center, "db_password", "") or "").strip(),
+        "HOST": str(getattr(center, "db_host", "") or "localhost").strip() or "localhost",
+        "PORT": str(getattr(center, "db_port", "") or "5432").strip() or "5432",
+    }
+
+
+def _center_has_separate_database(center: Center) -> bool:
+    config = _center_database_config(center)
+    if not config:
+        return False
+    default_identity = _default_db_identity()
+    if default_identity is None:
+        return True
+    center_identity = (
+        str(config.get("NAME", "") or "").strip(),
+        str(config.get("USER", "") or "").strip(),
+        str(config.get("HOST", "") or "localhost").strip() or "localhost",
+        str(config.get("PORT", "") or "5432").strip() or "5432",
+    )
+    return bool(default_identity and center_identity != default_identity)
+
+
+def _iter_backup_centers(center_slugs: list[str] | None = None) -> list[Center]:
+    qs = Center.objects.only(
+        "id",
+        "slug",
+        "name",
+        "status",
+        "db_name",
+        "db_user",
+        "db_password",
+        "db_host",
+        "db_port",
+    ).order_by("id")
+    if center_slugs:
+        qs = qs.filter(slug__in=center_slugs)
+    centers = list(qs)
+    if center_slugs:
+        found = {center.slug for center in centers}
+        missing = sorted(set(center_slugs) - found)
+        if missing:
+            raise ValueError(f"Markaz sluglari topilmadi: {', '.join(missing)}")
+    return centers
+
+
+def backup_center_database(center: Center, timestamp_label: str | None = None) -> BackupArtifact:
+    slug = _safe_slug(center.slug, f"center-{center.pk}")
+    if _center_has_separate_database(center):
+        db_config = _center_database_config(center)
+        assert db_config is not None
+        path = _build_center_export_path(center, timestamp_label=timestamp_label, suffix=".sql")
+        _postgres_backup(db_config, path)
+        kind = "postgresql_sql"
+        label = f"Markaz DB backup: {center.name} ({slug})"
+    else:
+        path = export_center_snapshot(center, timestamp_label=timestamp_label)
+        kind = "tenant_json_snapshot"
+        label = f"Markaz tenant snapshot: {center.name} ({slug})"
+
+    return BackupArtifact(
+        path=path,
+        scope="center",
+        label=label,
+        kind=kind,
+        center_slug=slug,
+        center_name=center.name,
+    )
+
+
+def backup_global_database_artifact(timestamp_label: str | None = None) -> BackupArtifact:
+    path = backup_global_database(timestamp_label=timestamp_label)
+    kind = "sqlite3" if path.suffix == ".sqlite3" else "postgresql_sql"
+    return BackupArtifact(
+        path=path,
+        scope="global",
+        label="Umumiy/global database backup",
+        kind=kind,
+    )
+
+
+def create_all_backups_zip(
+    artifacts: list[BackupArtifact],
+    timestamp_label: str | None = None,
+) -> BackupArtifact:
+    ts = timestamp_label or _timestamp_label()
+    zip_path = _get_backup_root() / f"all_databases_backup_{ts}.zip"
+    zip_path.unlink(missing_ok=True)
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for artifact in artifacts:
+            archive.write(artifact.path, artifact.path.name)
+    logger.info("All-backups ZIP yaratildi: file=%s size=%d", zip_path, zip_path.stat().st_size)
+    return BackupArtifact(
+        path=zip_path,
+        scope="all",
+        label="Barcha database backuplar ZIP",
+        kind="zip",
+    )
+
+
+def create_database_backups(
+    *,
+    center_slugs: list[str] | None = None,
+    include_global: bool = True,
+    include_centers: bool = True,
+) -> dict[str, Any]:
+    """
+    Global DB va har bir markaz backup faylini yaratadi, Telegramga yubormaydi.
+    """
+    now = _backup_now()
+    ts = _timestamp_label(now)
+    summary: dict[str, Any] = {
+        "started_at": now.isoformat(),
+        "timestamp": ts,
+        "date": _backup_date_label(now),
+        "total": 0,
+        "backed_up": 0,
+        "failed": 0,
+        "failed_centers": [],
+        "errors": [],
+        "artifacts": [],
+        "files": [],
+        "full_backup_file": None,
+    }
+
+    logger.info("=" * 60)
+    logger.info("DATABASE BACKUP YARATISH BOSHLANDI: %s", now.isoformat())
+    logger.info("=" * 60)
+
+    if include_global:
+        logger.info("── Global DB backup ──")
+        try:
+            artifact = backup_global_database_artifact(timestamp_label=ts)
+            summary["artifacts"].append(artifact.to_dict())
+            summary["files"].append(str(artifact.path))
+            summary["full_backup_file"] = str(artifact.path)
+            summary["backed_up"] += 1
+            logger.info("✅ Global DB backup yaratildi: %s", artifact.path.name)
+        except Exception as exc:
+            summary["failed"] += 1
+            summary["errors"].append({"scope": "global", "error": str(exc)})
+            logger.error("❌ Global DB backup xatoligi:\n%s", traceback.format_exc())
+
+    centers: list[Center] = []
+    if include_centers:
+        centers = _iter_backup_centers(center_slugs)
+        summary["total"] = len(centers)
+        logger.info("Backup olinadigan markazlar: %d ta", len(centers))
+        for center in centers:
+            logger.info("── Markaz: %s (%s) ──", center.name, center.slug)
+            try:
+                artifact = backup_center_database(center, timestamp_label=ts)
+                summary["artifacts"].append(artifact.to_dict())
+                summary["files"].append(str(artifact.path))
+                summary["backed_up"] += 1
+                logger.info(
+                    "✅ Markaz backup yaratildi: center=%s file=%s kind=%s",
+                    center.slug,
+                    artifact.path.name,
+                    artifact.kind,
+                )
+            except Exception as exc:
+                summary["failed"] += 1
+                summary["failed_centers"].append(center.slug)
+                summary["errors"].append(
+                    {"scope": "center", "center": center.slug, "error": str(exc)}
+                )
+                logger.error("❌ Markaz backup xatoligi: center=%s\n%s", center.slug, traceback.format_exc())
+
+    try:
+        keep_days = int(getattr(settings, "BACKUP_KEEP_DAYS", BACKUP_LOCAL_RETENTION_DAYS))
+        _cleanup_old_local_backups(max_age_days=keep_days)
+    except Exception:
+        logger.warning("Lokal backup tozalashda xato", exc_info=True)
+
+    logger.info(
+        "DATABASE BACKUP YARATISH TUGADI | centers=%d backed_up=%d failed=%d files=%d",
+        summary["total"],
+        summary["backed_up"],
+        summary["failed"],
+        len(summary["files"]),
+    )
+    return summary
+
+
 # ────────────────────────────────────────────────────────────────────────────
 # TELEGRAM – SYNC (requests, HECH QANDAY async/event-loop muammo yo'q)
 # ────────────────────────────────────────────────────────────────────────────
+
+def _require_telegram_settings() -> tuple[str, str]:
+    token = _get_bot_token()
+    group_id = _get_group_id()
+    if not token:
+        raise ValueError(
+            "TELEGRAM_BOT_TOKEN env o'rnatilmagan. "
+            "Render/Docker/Local .env ichida TELEGRAM_BOT_TOKEN qo'shing."
+        )
+    if not group_id:
+        raise ValueError(
+            "TELEGRAM_BACKUP_CHAT_ID env o'rnatilmagan. "
+            "Backup yuboriladigan guruh chat_id qiymatini qo'shing."
+        )
+    return token, group_id
+
+
+def _telegram_api_request(
+    method: str,
+    *,
+    token: str | None = None,
+    http_method: str = "post",
+    timeout: int = 30,
+    **params: Any,
+) -> dict[str, Any]:
+    token = (token or _get_bot_token()).strip()
+    if not token:
+        raise ValueError("TELEGRAM_BOT_TOKEN env o'rnatilmagan")
+    url = f"https://api.telegram.org/bot{token}/{method}"
+    is_get = http_method.lower() == "get"
+    if is_get:
+        resp = requests.get(url, params=params, timeout=timeout)
+    else:
+        resp = requests.post(url, data=params, timeout=timeout)
+    try:
+        data = resp.json()
+    except Exception:
+        data = {}
+    if not resp.ok or not data.get("ok"):
+        description = data.get("description", resp.text[:400])
+        raise RuntimeError(f"Telegram {method} xatosi [{resp.status_code}]: {description}")
+    return data["result"]
+
+
+def send_text_to_telegram(text: str, *, chat_id: str | None = None) -> None:
+    token, default_chat_id = _require_telegram_settings()
+    target_chat_id = chat_id or default_chat_id
+    _telegram_api_request(
+        "sendMessage",
+        token=token,
+        chat_id=str(target_chat_id),
+        text=text,
+        timeout=30,
+    )
+    logger.info("Telegram xabar yuborildi: chat_id=%s text=%s", target_chat_id, text[:80])
+
+
+def _zip_single_file_for_telegram(path: Path) -> Path:
+    zip_path = path.with_suffix(path.suffix + ".zip")
+    zip_path.unlink(missing_ok=True)
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.write(path, path.name)
+    logger.info(
+        "Telegram uchun fayl zip qilindi: original=%s zipped=%s size=%d",
+        path.name,
+        zip_path.name,
+        zip_path.stat().st_size,
+    )
+    return zip_path
+
+
+def _prepare_document_for_telegram(path: Path) -> Path:
+    max_bytes = TELEGRAM_MAX_DOCUMENT_SIZE_MB * 1024 * 1024
+    if path.stat().st_size <= max_bytes:
+        return path
+
+    zipped = path if path.suffix == ".zip" else _zip_single_file_for_telegram(path)
+    if zipped.stat().st_size > max_bytes:
+        raise RuntimeError(
+            f"Backup fayli Telegram limiti uchun juda katta: {zipped.name} "
+            f"({zipped.stat().st_size} bytes). TELEGRAM_MAX_DOCUMENT_SIZE_MB ni tekshiring "
+            "yoki backupni tashqi storagega yuklang."
+        )
+    return zipped
+
+
+def _caption_for_artifact(artifact: BackupArtifact | dict[str, Any]) -> str:
+    if isinstance(artifact, dict):
+        path = Path(str(artifact["path"]))
+        scope = artifact.get("scope", "")
+        kind = artifact.get("kind", "")
+        label = artifact.get("label", "")
+        center_name = artifact.get("center_name", "")
+        center_slug = artifact.get("center_slug", "")
+    else:
+        path = artifact.path
+        scope = artifact.scope
+        kind = artifact.kind
+        label = artifact.label
+        center_name = artifact.center_name
+        center_slug = artifact.center_slug
+
+    date_label = _backup_date_label()
+    if scope == "global":
+        return (
+            "🗄️ Global database backup\n"
+            f"📅 Sana: {date_label}\n"
+            f"📁 Fayl: {path.name}\n"
+            f"🔢 Tur: {kind}"
+        )
+    if scope == "center":
+        return (
+            "📦 Markaz database backup\n"
+            f"🏢 Markaz: {center_name} ({center_slug})\n"
+            f"📅 Sana: {date_label}\n"
+            f"📁 Fayl: {path.name}\n"
+            f"🔢 Tur: {kind}"
+        )
+    if scope == "all":
+        return (
+            "🗜️ Barcha database backuplar\n"
+            f"📅 Sana: {date_label}\n"
+            f"📁 Fayl: {path.name}\n"
+            "Ichida global va har bir markaz backup fayli alohida."
+        )
+    return f"{label}\n📁 Fayl: {path.name}\n🔢 Tur: {kind}"
+
+
+def _artifact_from_dict(data: dict[str, Any]) -> BackupArtifact:
+    return BackupArtifact(
+        path=Path(str(data["path"])),
+        scope=str(data.get("scope", "")),
+        label=str(data.get("label", "")),
+        kind=str(data.get("kind", "")),
+        center_slug=str(data.get("center_slug", "")),
+        center_name=str(data.get("center_name", "")),
+    )
+
 
 def send_file_to_telegram(
     file_path: str | Path,
     caption: str | None = None,
     timeout: int | None = None,
-) -> None:
+) -> Path:
     """
     Faylni Telegram guruhga document sifatida yuboradi.
 
@@ -407,23 +1016,12 @@ def send_file_to_telegram(
         RuntimeError    – Telegram API xato qaytarsa
         requests.RequestException – tarmoq xatosi
     """
-    token = _get_bot_token()
-    group_id = _get_group_id()
-
-    if not token:
-        raise ValueError(
-            "BACKUP_BOT_TOKEN yoki TELEGRAM_BOT_TOKEN/BOT_TOKEN muhit o'zgaruvchisi o'rnatilmagan! "
-            "Render Dashboard → Environment Variables ga qo'shing."
-        )
-    if not group_id:
-        raise ValueError(
-            "BACKUP_GROUP_ID yoki TELEGRAM_GROUP_ID muhit o'zgaruvchisi o'rnatilmagan! "
-            "Render Dashboard → Environment Variables ga qo'shing."
-        )
+    token, group_id = _require_telegram_settings()
 
     path = Path(file_path)
     if not path.exists():
         raise FileNotFoundError(f"Backup fayli topilmadi: {path}")
+    path = _prepare_document_for_telegram(path)
 
     size = path.stat().st_size
     if timeout is None:
@@ -465,6 +1063,7 @@ def send_file_to_telegram(
         )
 
     logger.info("✅ Telegram muvaffaqiyatli yuborildi: file=%s", path.name)
+    return path
 
 
 def validate_telegram_destination(
@@ -480,24 +1079,18 @@ def validate_telegram_destination(
     token = (token or _get_bot_token()).strip()
     group_id = (group_id or _get_group_id()).strip()
     if not token:
-        raise ValueError("BACKUP_BOT_TOKEN yoki TELEGRAM_BOT_TOKEN/BOT_TOKEN env var o'rnatilmagan")
+        raise ValueError("TELEGRAM_BOT_TOKEN env var o'rnatilmagan")
     if not group_id:
-        raise ValueError("BACKUP_GROUP_ID yoki TELEGRAM_GROUP_ID env var o'rnatilmagan")
+        raise ValueError("TELEGRAM_BACKUP_CHAT_ID env var o'rnatilmagan")
 
     def _call(method: str, **params: str) -> dict[str, Any]:
-        resp = requests.get(
-            f"https://api.telegram.org/bot{token}/{method}",
-            params=params,
+        return _telegram_api_request(
+            method,
+            token=token,
+            http_method="get",
             timeout=15,
+            **params,
         )
-        try:
-            data = resp.json()
-        except Exception:
-            data = {}
-        if not resp.ok or not data.get("ok"):
-            description = data.get("description", resp.text[:400])
-            raise RuntimeError(f"Telegram {method} xatosi: {description}")
-        return data["result"]
 
     bot_info = _call("getMe")
     try:
@@ -505,7 +1098,7 @@ def validate_telegram_destination(
     except RuntimeError as exc:
         raise RuntimeError(
             f"{exc}. Hozirgi bot=@{bot_info.get('username')} ushbu chatga qo'shilganini "
-            "va BACKUP_BOT_TOKEN/BACKUP_GROUP_ID sozlamalari to'g'ri ekanini tekshiring."
+            "va TELEGRAM_BOT_TOKEN/TELEGRAM_BACKUP_CHAT_ID sozlamalari to'g'ri ekanini tekshiring."
         ) from exc
     logger.info(
         "Telegram destination OK: bot=@%s chat=%s type=%s",
@@ -520,14 +1113,19 @@ def validate_telegram_destination(
 # MAIN JOB
 # ────────────────────────────────────────────────────────────────────────────
 
-def backup_and_send_all_centers() -> dict[str, Any]:
+def send_database_backups_to_telegram(
+    *,
+    center_slugs: list[str] | None = None,
+    include_global: bool = True,
+    include_centers: bool = True,
+    send_zip: bool = False,
+    zip_only: bool = False,
+    notify_start: bool = True,
+    notify_finish: bool = True,
+    notify_error: bool = True,
+) -> dict[str, Any]:
     """
-    Barcha ACTIVE markazlar uchun backup yaratadi va Telegram guruhga yuboradi.
-
-    - Har bir markaz uchun alohida JSON snapshot
-    - To'liq PostgreSQL dump (pg_dump mavjud bo'lsa)
-    - Xato bo'lsa qolgan markazlar davom etadi
-    - To'liq traceback loglanadi
+    Real-time backup yaratadi va Telegram backup guruhiga yuboradi.
     """
     summary: dict[str, Any] = {
         "total": 0,
@@ -538,184 +1136,123 @@ def backup_and_send_all_centers() -> dict[str, Any]:
         "skipped": 0,
         "failed": 0,
         "files": [],
+        "sent_files": [],
         "full_backup_file": None,
         "failed_centers": [],
         "preflight_errors": [],
         "fatal_error": "",
+        "errors": [],
         "gdrive_enabled": is_gdrive_configured(),
         "gdrive_uploaded": 0,
         "gdrive_failed": 0,
     }
 
     logger.info("=" * 60)
-    logger.info("BACKUP JOB BOSHLANDI: %s", timezone.now().isoformat())
+    logger.info("BACKUP TELEGRAM JOB BOSHLANDI: %s", _backup_now().isoformat())
     logger.info("=" * 60)
 
-    # ── Env var tekshiruvi ─────────────────────────────────────────────────
-    token = _get_bot_token()
-    group_id = _get_group_id()
-    preflight_errors: list[str] = []
-    if not token:
-        preflight_errors.append(
-            "BACKUP_BOT_TOKEN yoki TELEGRAM_BOT_TOKEN/BOT_TOKEN env var o'rnatilmagan"
-        )
-    if not group_id:
-        preflight_errors.append(
-            "BACKUP_GROUP_ID yoki TELEGRAM_GROUP_ID env var o'rnatilmagan"
-        )
-    if preflight_errors:
-        summary["failed"] = 1
-        summary["preflight_errors"] = preflight_errors
-        summary["fatal_error"] = "; ".join(preflight_errors)
-        logger.error(
-            "BACKUP JOB TO'XTATILDI: %s. Render cron envVars ni tekshiring.",
-            summary["fatal_error"],
-        )
-        return summary
-
-    logger.info("Token mavjud.")
-    logger.info("Group ID: %s", group_id)
     try:
+        token, group_id = _require_telegram_settings()
+        logger.info("Telegram backup chat_id=%s", group_id)
         validate_telegram_destination(token=token, group_id=group_id)
     except Exception as exc:
         summary["failed"] = 1
         summary["fatal_error"] = str(exc)
-        logger.error("BACKUP JOB TO'XTATILDI: %s", exc)
+        summary["preflight_errors"] = [str(exc)]
+        logger.error("❌ Backup yuborishda xatolik: %s", exc, exc_info=True)
         return summary
 
-    # ── Markazlarni olish ──────────────────────────────────────────────────
-    centers = list(
-        Center.objects.filter(status=Center.STATUS_ACTIVE)
-        .only("id", "slug", "name", "status")
-        .order_by("id")
-    )
-    summary["total"] = len(centers)
-    logger.info("Aktiv markazlar: %d ta", len(centers))
-
-    if not centers:
-        logger.warning("Hech qanday aktiv markaz topilmadi. Job tugadi.")
-        return summary
-
-    date_str = timezone.localdate().isoformat()
-    gdrive_subpath = _gdrive_subfolder_path_for_date()
-
-    if summary["gdrive_enabled"]:
-        logger.info("GDrive ulangan — fayllar Telegram'dan keyin Drive'ga ham yuklanadi")
-    else:
-        logger.info(
-            "GDrive ulanmagan (GDRIVE_SERVICE_ACCOUNT_JSON / GDRIVE_FOLDER_ID yo'q) — "
-            "faqat Telegram yuboriladi"
-        )
-
-    # ── Har bir markaz ─────────────────────────────────────────────────────
-    for center in centers:
-        logger.info("── Markaz: %s (%s) ──", center.name, center.slug)
-        backup_path: Path | None = None
-        try:
-            # 1. JSON snapshot yaratish
-            backup_path = export_center_snapshot(center)
-            summary["backed_up"] += 1
-            summary["files"].append(str(backup_path))
-
-            # 2. Telegram yuborish
-            caption = (
-                f"📦 Markaz backup\n"
-                f"🏢 Markaz: {center.name} ({center.slug})\n"
-                f"📅 Sana: {date_str}\n"
-                f"📁 Fayl: {backup_path.name}\n"
-                f"🔢 Tur: JSON snapshot"
-            )
-            send_file_to_telegram(backup_path, caption=caption)
-            summary["sent"] += 1
-            logger.info(
-                "✅ Yuborildi: center=%s file=%s",
-                center.slug,
-                backup_path.name,
-            )
-
-            # 3. Google Drive – ikkinchi mustaqil manzil (sozlangan bo'lsa)
-            if summary["gdrive_enabled"]:
-                gdrive_result = safe_upload_file_to_gdrive(backup_path, gdrive_subpath)
-                if gdrive_result:
-                    summary["gdrive_uploaded"] += 1
-                else:
-                    summary["gdrive_failed"] += 1
-
-        except ValueError as exc:
-            # Token/group_id muammosi
-            summary["skipped"] += 1
-            logger.warning("⚠️ O'tkazib yuborildi: center=%s sabab=%s", center.slug, exc)
-
-        except Exception:
-            summary["failed"] += 1
-            summary["failed_centers"].append(center.slug)
-            logger.error(
-                "❌ XATOLIK: center=%s\n%s",
-                center.slug,
-                traceback.format_exc(),
-            )
-
-    # ── To'liq DB backup ──────────────────────────────────────────────────
-    logger.info("── To'liq DB backup ──")
     try:
-        full_path = backup_full_database()
-        summary["full_backup_file"] = str(full_path)
-        summary["files"].append(str(full_path))
-        full_backup_type = (
-            "PostgreSQL SQL dump"
-            if full_path.suffix == ".sql"
-            else "Django JSON fixture (gzip)"
-        )
+        if notify_start:
+            send_text_to_telegram("⏳ Database backup tayyorlanmoqda...")
 
-        caption = (
-            f"🗄️ To'liq DB backup\n"
-            f"📅 Sana: {date_str}\n"
-            f"🏢 Markazlar soni: {summary['total']}\n"
-            f"📁 Fayl: {full_path.name}\n"
-            f"🔢 Tur: {full_backup_type}"
+        backup_summary = create_database_backups(
+            center_slugs=center_slugs,
+            include_global=include_global,
+            include_centers=include_centers,
         )
-        send_file_to_telegram(full_path, caption=caption)
-        summary["sent"] += 1
-        summary["combined_sent"] = 1
-        summary["full_sent"] = 1
-        logger.info("✅ To'liq backup yuborildi: file=%s", full_path.name)
+        summary.update(
+            {
+                "total": backup_summary.get("total", 0),
+                "backed_up": backup_summary.get("backed_up", 0),
+                "failed": backup_summary.get("failed", 0),
+                "files": list(backup_summary.get("files", [])),
+                "full_backup_file": backup_summary.get("full_backup_file"),
+                "failed_centers": list(backup_summary.get("failed_centers", [])),
+                "errors": list(backup_summary.get("errors", [])),
+            }
+        )
+        artifacts = [_artifact_from_dict(item) for item in backup_summary.get("artifacts", [])]
 
-        if summary["gdrive_enabled"]:
-            gdrive_result = safe_upload_file_to_gdrive(full_path, gdrive_subpath)
-            if gdrive_result:
-                summary["gdrive_uploaded"] += 1
+        if not artifacts:
+            raise RuntimeError("Yuborish uchun backup fayl yaratilmadi")
+
+        artifacts_to_send = list(artifacts)
+        if send_zip or zip_only:
+            zip_artifact = create_all_backups_zip(artifacts, timestamp_label=backup_summary.get("timestamp"))
+            summary["files"].append(str(zip_artifact.path))
+            if zip_only:
+                artifacts_to_send = [zip_artifact]
             else:
-                summary["gdrive_failed"] += 1
+                artifacts_to_send.append(zip_artifact)
 
-    except Exception:
+        gdrive_subpath = _gdrive_subfolder_path_for_date()
+        for artifact in artifacts_to_send:
+            try:
+                sent_path = send_file_to_telegram(artifact.path, caption=_caption_for_artifact(artifact))
+                summary["sent"] += 1
+                summary["sent_files"].append(str(sent_path))
+                if artifact.scope == "global":
+                    summary["full_sent"] = 1
+                if artifact.scope == "all":
+                    summary["combined_sent"] = 1
+                logger.info("✅ Telegramga backup yuborildi: %s", artifact.path.name)
+
+                if summary["gdrive_enabled"] and artifact.scope != "all":
+                    if safe_upload_file_to_gdrive(artifact.path, gdrive_subpath):
+                        summary["gdrive_uploaded"] += 1
+                    else:
+                        summary["gdrive_failed"] += 1
+            except Exception as exc:
+                summary["failed"] += 1
+                summary["errors"].append(
+                    {"scope": artifact.scope, "file": str(artifact.path), "error": str(exc)}
+                )
+                logger.error("❌ Backup yuborishda xatolik: file=%s\n%s", artifact.path, traceback.format_exc())
+
+        if summary["failed"]:
+            error_text = summary["fatal_error"] or "; ".join(
+                str(item.get("error", item)) for item in summary.get("errors", [])[:3]
+            )
+            summary["fatal_error"] = error_text or "Backup jarayonida xatolik bor"
+            if notify_error:
+                send_text_to_telegram(f"❌ Backup yuborilmadi: {summary['fatal_error']}")
+        elif notify_finish:
+            send_text_to_telegram(f"✅ Database backup yuborildi. Sana: {backup_summary.get('date')}")
+
+    except Exception as exc:
         summary["failed"] += 1
-        logger.error("❌ To'liq backup XATOLIGI:\n%s", traceback.format_exc())
+        summary["fatal_error"] = str(exc)
+        logger.error("❌ Backup yuborishda xatolik:\n%s", traceback.format_exc())
+        if notify_error:
+            try:
+                send_text_to_telegram(f"❌ Backup yuborilmadi: {exc}")
+            except Exception:
+                logger.exception("Telegramga error xabar yuborib bo'lmadi")
 
-    # ── Lokal fayllarni tozalash ──────────────────────────────────────────
-    try:
-        _cleanup_old_local_backups()
-    except Exception:
-        logger.warning("Lokal tozalashda xato (backup natijasiga ta'sir qilmaydi)", exc_info=True)
-
-    # ── Yakuniy hisobot ────────────────────────────────────────────────────
-    logger.info("=" * 60)
     logger.info(
-        "BACKUP JOB TUGADI | total=%d backed_up=%d sent=%d "
-        "full_sent=%d skipped=%d failed=%d gdrive=%s(+%d/-%d)",
+        "BACKUP TELEGRAM JOB TUGADI | total=%d backed_up=%d sent=%d failed=%d",
         summary["total"],
         summary["backed_up"],
         summary["sent"],
-        summary["full_sent"],
-        summary["skipped"],
         summary["failed"],
-        "on" if summary["gdrive_enabled"] else "off",
-        summary["gdrive_uploaded"],
-        summary["gdrive_failed"],
     )
-    if summary["failed_centers"]:
-        logger.error("XATO bo'lgan markazlar: %s", ", ".join(summary["failed_centers"]))
-    logger.info("=" * 60)
     return summary
+
+
+def backup_and_send_all_centers() -> dict[str, Any]:
+    """Backward-compatible entrypoint for old cron/tests."""
+    return send_database_backups_to_telegram()
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -725,11 +1262,11 @@ def backup_and_send_all_centers() -> dict[str, Any]:
 def setup_backup_scheduler() -> "BackgroundScheduler":
     """
     BackgroundScheduler (thread-based) yaratadi.
-    Har kuni 17:35 Asia/Tashkent da backup_and_send_all_centers() ishlatadi.
+    BACKUP_SEND_TIME/BACKUP_TIMEZONE bo'yicha backup_and_send_all_centers() ishlatadi.
 
     Django AppConfig.ready() dan chaqiriladi.
-    Gunicorn multi-worker: faqat bitta worker uchun
-      BACKUP_SCHEDULER_ENABLED=true env var o'rnating.
+    Gunicorn/Render production uchun eng ishonchli yo'l: Render Cron -> send_db_backups.
+    Web worker ichida faqat BACKUP_SCHEDULER_ENABLED=true bo'lsa yoqing.
     """
     global _backup_scheduler
     from apscheduler.schedulers.background import BackgroundScheduler
@@ -739,13 +1276,14 @@ def setup_backup_scheduler() -> "BackgroundScheduler":
         logger.info("Backup scheduler allaqachon ishlamoqda.")
         return _backup_scheduler
 
-    tz = getattr(settings, "TIME_ZONE", BACKUP_SCHEDULE_TZ_FALLBACK)
+    tz = _get_backup_timezone_name()
+    hour, minute = _get_backup_send_time()
     scheduler = BackgroundScheduler(timezone=tz)
     scheduler.add_job(
         backup_and_send_all_centers,
-        CronTrigger(hour=BACKUP_SCHEDULE_HOUR, minute=BACKUP_SCHEDULE_MINUTE, timezone=tz),
-        id="tenant-db-backup-daily",
-        name="tenant-db-backup-daily",
+        CronTrigger(hour=hour, minute=minute, timezone=tz),
+        id=BACKUP_SCHEDULER_JOB_ID,
+        name=BACKUP_SCHEDULER_JOB_ID,
         replace_existing=True,
         coalesce=True,
         max_instances=1,
@@ -761,10 +1299,10 @@ def setup_backup_scheduler() -> "BackgroundScheduler":
 # ASYNC WRAPPER – Bot handler'laridan chaqirish uchun
 # ────────────────────────────────────────────────────────────────────────────
 
-async def run_backup_async() -> dict[str, Any]:
+async def run_backup_async(**kwargs: Any) -> dict[str, Any]:
     """
-    Bot /backup_now handler uchun async wrapper.
-    backup_and_send_all_centers() ni thread pool da ishlatadi.
+    Bot /db handler uchun async wrapper.
+    send_database_backups_to_telegram() ni thread pool da ishlatadi.
     """
     import asyncio
-    return await asyncio.to_thread(backup_and_send_all_centers)
+    return await asyncio.to_thread(send_database_backups_to_telegram, **kwargs)

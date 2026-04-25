@@ -1,7 +1,7 @@
 """
-Telegram Bot – Backup Handler
-/backup_now buyrug’i: qo’lda backup ishga tushirish.
-Bot scheduler: setup_backup_scheduler() (BackgroundScheduler, sync) ishlatadi.
+Telegram Bot backup handlers.
+
+/db va /backup_now faqat TELEGRAM_BACKUP_CHAT_ID ichida va adminlardan ishlaydi.
 """
 
 import logging
@@ -29,6 +29,7 @@ except Exception as _setup_err:
     )
 
 from core.services.db_backup_service import (  # noqa: E402
+    is_authorized_telegram_backup_request,
     run_backup_async,
     setup_backup_scheduler,
 )
@@ -37,14 +38,27 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
-@router.message(Command("backup_now"))
+@router.message(Command("db", "backup_now"))
 async def manual_backup_command(message: types.Message) -> None:
     """
-    /backup_now – qo’lda backup ishga tushiradi (admin/texnik test uchun).
+    /db – shu zahoti backup yaratadi va ruxsat berilgan Telegram guruhga yuboradi.
     """
-    await message.answer("🔄 Backup boshlandi, iltimos kuting...")
+    chat_id = getattr(getattr(message, "chat", None), "id", None)
+    user_id = getattr(getattr(message, "from_user", None), "id", None)
+    allowed, reason = is_authorized_telegram_backup_request(chat_id, user_id)
+    if not allowed:
+        await message.answer(f"⛔ {reason}")
+        logger.warning("Unauthorized /db command: chat_id=%s user_id=%s reason=%s", chat_id, user_id, reason)
+        return
+
+    await message.answer("⏳ Database backup tayyorlanmoqda...")
     try:
-        summary = await run_backup_async()
+        summary = await run_backup_async(notify_start=False, notify_finish=False, notify_error=False)
+        if summary.get("failed"):
+            error_text = summary.get("fatal_error") or "Backup jarayonida xatolik bor"
+            await message.answer(f"❌ Backup yuborilmadi: {error_text}")
+            return
+
         failed_text = (
             f"\n❌ Xato bo'lgan markazlar: {', '.join(summary['failed_centers'])}"
             if summary.get("failed_centers")
@@ -56,11 +70,11 @@ async def manual_backup_command(message: types.Message) -> None:
             else ""
         )
         await message.answer(
-            "✅ Backup yakunlandi!\n\n"
+            "✅ Database backup yuborildi.\n\n"
             f"📊 Jami markazlar: {summary['total']}\n"
             f"📦 Yaratildi: {summary['backed_up']}\n"
             f"📤 Yuborildi: {summary['sent']}\n"
-            f"🗄️ To'liq backup: {'✅' if summary.get('full_sent') else '❌'}\n"
+            f"🗄️ Global backup: {'✅' if summary.get('full_sent') else '❌'}\n"
             f"⚠️ O'tkazib yuborildi: {summary['skipped']}\n"
             f"❌ Xatolar: {summary['failed']}"
             + failed_text

@@ -16,7 +16,7 @@ class CoreConfig(AppConfig):
         # ── Backup Scheduler ─────────────────────────────────────────────
         # Django dev serveri manage.py runserver ni IKKI MARTA ishlatadi.
         # RUN_MAIN=true faqat asosiy jarayonda bo'ladi – duplicate oldini olish.
-        # Productionda backup asosan Render Cron orqali 17:35 Asia/Tashkent da yuradi.
+        # Productionda backup asosan Render Cron orqali 18:00 Asia/Tashkent da yuradi.
         # Web worker ichida scheduler ochish 512MB servisda xotirani oshirib, 502 ga olib kelishi mumkin.
         # Kerak bo'lsa BACKUP_SCHEDULER_ENABLED=true bilan qo'lda yoqing.
         run_main = os.environ.get("RUN_MAIN")          # dev server inner process

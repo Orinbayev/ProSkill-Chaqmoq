@@ -75,7 +75,22 @@ services:
       - key: TELEGRAM_GROUP_ID
         sync: false
 
+      - key: TELEGRAM_BACKUP_CHAT_ID
+        sync: false
+
       - key: BACKUP_GROUP_ID
+        sync: false
+
+      - key: BACKUP_TIMEZONE
+        value: Asia/Tashkent
+
+      - key: BACKUP_SEND_TIME
+        value: "18:00"
+
+      - key: BACKUP_KEEP_DAYS
+        value: "7"
+
+      - key: ADMIN_TELEGRAM_IDS
         sync: false
       
       - key: DJANGO_SETTINGS_MODULE
@@ -120,15 +135,15 @@ services:
 #     plan: free
 
   # ==================== CRON JOB – DAILY BACKUP ====================
-  # Render Cron Job: har kuni 17:35 Asia/Tashkent = 12:35 UTC
+  # Render Cron Job: har kuni 18:00 Asia/Tashkent = 13:00 UTC
   # Bu ENG ISHONCHLI usul – bot jarayoniga bog'liq emas!
   - type: cron
     name: daily-center-backup
     env: python
     region: frankfurt
-    schedule: "35 12 * * *"   # 12:35 UTC = 17:35 Asia/Tashkent
+    schedule: "0 13 * * *"   # 13:00 UTC = 18:00 Asia/Tashkent
     buildCommand: python3 -m pip install -r requirements.txt
-    startCommand: python3 manage.py backup_and_send
+    startCommand: python3 manage.py send_db_backups
     envVars:
       - key: MODE
         value: production
@@ -136,6 +151,12 @@ services:
         value: config.settings
       - key: TIME_ZONE
         value: Asia/Tashkent
+      - key: BACKUP_TIMEZONE
+        value: Asia/Tashkent
+      - key: BACKUP_SEND_TIME
+        value: "18:00"
+      - key: BACKUP_KEEP_DAYS
+        value: "7"
       - key: SECRET_KEY
         fromService:
           name: ProSkill-Chaqmoq
@@ -171,11 +192,21 @@ services:
           name: ProSkill-Chaqmoq
           type: web
           envVarKey: TELEGRAM_GROUP_ID
+      - key: TELEGRAM_BACKUP_CHAT_ID
+        fromService:
+          name: ProSkill-Chaqmoq
+          type: web
+          envVarKey: TELEGRAM_BACKUP_CHAT_ID
       - key: BACKUP_GROUP_ID
         fromService:
           name: ProSkill-Chaqmoq
           type: web
           envVarKey: BACKUP_GROUP_ID
+      - key: ADMIN_TELEGRAM_IDS
+        fromService:
+          name: ProSkill-Chaqmoq
+          type: web
+          envVarKey: ADMIN_TELEGRAM_IDS
 
   # ==================== CRON JOB - PAYMENT DISCIPLINE RULES ====================
   # Har kuni 02:00 Asia/Tashkent = 21:00 UTC; deadline o'tmagan kunlarda no-op.

@@ -72,8 +72,8 @@ class Command(BaseCommand):
         group_id = _get_group_id()
         if not group_id:
             self.stderr.write(self.style.ERROR(
-                "❌ BACKUP_GROUP_ID (yoki TELEGRAM_GROUP_ID) topilmadi!\n"
-                "   Render Dashboard → Environment Variables ga qo'shing."
+                "❌ TELEGRAM_BACKUP_CHAT_ID topilmadi!\n"
+                "   Render Dashboard yoki .env ichiga qo'shing."
             ))
             sys.exit(1)
         self.stdout.write(self.style.SUCCESS(f"✅ Group ID: {group_id}"))
