@@ -11,6 +11,7 @@ BACKUP_KEEP_DAYS=7
 TELEGRAM_ZIP_MIN_SIZE_MB=8
 TELEGRAM_SEND_TIMEOUT_LARGE=180
 TELEGRAM_SEND_RETRIES=2
+BACKUP_GDRIVE_ENABLED=false
 ADMIN_TELEGRAM_IDS=
 ```
 
@@ -31,6 +32,8 @@ python manage.py configure_backup_bot
 `send_db_backups` real-time backup yaratadi, Telegramga avval status xabari, keyin har bir faylni `sendDocument` orqali yuboradi.
 
 `TELEGRAM_ZIP_MIN_SIZE_MB` dan katta `.sql`, `.json`, `.sqlite3` fayllar upload oldidan avtomatik zip qilinadi. Bu Render -> Telegram upload osilib qolishini kamaytiradi va fayl hajmini pasaytiradi.
+
+Google Drive backup upload Telegram oqimida default o'chiq. Yoqish uchun `BACKUP_GDRIVE_ENABLED=true` qiling. Service Account shaxsiy Drive storage quotasiga ega emas; u faqat Shared Drive yoki domain delegation bilan ishonchli ishlaydi. Shaxsiy Gmail Drive uchun OAuth sozlamalaridan foydalaning.
 
 `configure_backup_bot` bot token/chatni tekshiradi, `/db` commandni Telegramga ro'yxatdan o'tkazadi va default polling mode uchun webhookni o'chiradi. Webhook kerak bo'lsa:
 

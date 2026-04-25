@@ -267,8 +267,17 @@ def safe_upload_file_to_gdrive(
         return None
     try:
         return upload_file_to_gdrive(file_path, subfolder_path)
-    except Exception:
+    except Exception as exc:
         import traceback
+
+        error_text = str(exc)
+        if "storageQuotaExceeded" in error_text or "Service Accounts do not have storage quota" in error_text:
+            logger.error(
+                "❌ GDrive yuklash XATOSI: storageQuotaExceeded. "
+                "Service Account shaxsiy Drive quotasiga ega emas; Shared Drive yoki OAuth kerak. file=%s",
+                file_path,
+            )
+            return None
 
         logger.error(
             "❌ GDrive yuklash XATOSI: file=%s\n%s",

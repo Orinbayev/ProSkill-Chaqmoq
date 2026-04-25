@@ -156,6 +156,17 @@ def _gdrive_subfolder_path_for_date() -> list[str]:
     return [today.strftime("%Y-%m"), today.isoformat()]
 
 
+def _env_flag(name: str, default: bool = False) -> bool:
+    raw = str(getattr(settings, name, "") or os.environ.get(name, "") or "").strip()
+    if not raw:
+        return default
+    return raw.lower() in {"1", "true", "yes", "on"}
+
+
+def is_backup_gdrive_enabled() -> bool:
+    return _env_flag("BACKUP_GDRIVE_ENABLED", False) and is_gdrive_configured()
+
+
 def _load_backup_env_files() -> None:
     try:
         from dotenv import load_dotenv
@@ -1196,7 +1207,7 @@ def send_database_backups_to_telegram(
         "preflight_errors": [],
         "fatal_error": "",
         "errors": [],
-        "gdrive_enabled": is_gdrive_configured(),
+        "gdrive_enabled": is_backup_gdrive_enabled(),
         "gdrive_uploaded": 0,
         "gdrive_failed": 0,
     }
@@ -1259,6 +1270,7 @@ def send_database_backups_to_telegram(
                 logger.warning("Telegram progress xabar yuborilmadi", exc_info=True)
 
         gdrive_subpath = _gdrive_subfolder_path_for_date()
+        gdrive_upload_enabled = bool(summary["gdrive_enabled"])
         for artifact in artifacts_to_send:
             try:
                 prepared_path = artifact.path
@@ -1280,13 +1292,17 @@ def send_database_backups_to_telegram(
                     summary["full_sent"] = 1
                 if artifact.scope == "all":
                     summary["combined_sent"] = 1
-                logger.info("✅ Telegramga backup yuborildi: %s", artifact.path.name)
+                logger.info("✅ Telegramga backup yuborildi: original=%s sent=%s", artifact.path.name, sent_path.name)
 
-                if summary["gdrive_enabled"] and artifact.scope != "all":
+                if gdrive_upload_enabled and artifact.scope != "all":
                     if safe_upload_file_to_gdrive(artifact.path, gdrive_subpath):
                         summary["gdrive_uploaded"] += 1
                     else:
                         summary["gdrive_failed"] += 1
+                        gdrive_upload_enabled = False
+                        logger.warning(
+                            "GDrive upload shu backup job uchun o'chirildi: birinchi upload muvaffaqiyatsiz."
+                        )
             except Exception as exc:
                 summary["failed"] += 1
                 summary["errors"].append(
