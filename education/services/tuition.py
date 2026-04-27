@@ -147,7 +147,7 @@ def enrollment_start_date(enrollment: Enrollment) -> date:
         ).order_by("-start_date").first()
         if history and history.start_date:
             created_at = getattr(enrollment, "created_at", None)
-            created_date = created_at.date() if created_at else None
+            created_date = timezone.localtime(created_at).date() if created_at else None
             if joined_at and joined_at != created_date:
                 return normalize_lesson_start_date(joined_at) or timezone.localdate()
             return normalize_lesson_start_date(history.start_date) or timezone.localdate()
@@ -310,8 +310,8 @@ def resolve_lesson_schedule(start_date: Optional[date], pattern: Optional[str] =
     effective_start_date = normalize_lesson_start_date(requested_start_date) or timezone.localdate()
     requested_pattern = normalize_lesson_pattern(pattern)
     resolved_pattern = (
-        LESSON_PATTERN_DAILY
-        if requested_pattern == LESSON_PATTERN_DAILY
+        requested_pattern
+        if requested_pattern in {LESSON_PATTERN_EVEN, LESSON_PATTERN_ODD, LESSON_PATTERN_DAILY}
         else auto_lesson_pattern_for_date(effective_start_date)
     )
 
@@ -542,8 +542,101 @@ def _prorated_monthly_fee_from_amount(
     if lesson_count <= 0:
         return 0
 
-    fee = proportional_amount(effective_price, lesson_count, monthly_lessons)
-    return min(int(fee), effective_price)
+    billing = calculate_student_month_billing(
+        effective_price,
+        monthly_lessons,
+        lesson_count,
+        getattr(enrollment, "oqituvchi_foiz", 0) or 0,
+    )
+    return int(billing["student_debt"])
+
+
+def calculate_student_month_billing(
+    course_price: int,
+    standard_lessons_count: int,
+    calculated_lessons_count: int,
+    teacher_percent: int,
+) -> dict:
+    """
+    O'quvchi oylik qarzini yagona formula bilan hisoblaydi.
+
+    Bir dars narxi standart oylik dars sonidan olinadi.
+    O'quvchi qarzi kurs narxidan oshmaydi.
+    O'qituvchi summasi real hisoblangan darslar bo'yicha ketadi.
+    """
+    course_price = max(0, int(course_price or 0))
+    standard_lessons_count = max(0, int(standard_lessons_count or 0))
+    calculated_lessons_count = max(0, int(calculated_lessons_count or 0))
+    teacher_percent = max(0, min(100, int(teacher_percent or 0)))
+
+    lesson_price = course_price // standard_lessons_count if course_price > 0 and standard_lessons_count > 0 else 0
+    student_debt = min(calculated_lessons_count * lesson_price, course_price)
+    teacher_month_amount = course_price * teacher_percent // 100
+    teacher_per_lesson = (
+        teacher_month_amount // standard_lessons_count
+        if teacher_month_amount > 0 and standard_lessons_count > 0
+        else 0
+    )
+    teacher_amount = teacher_per_lesson * calculated_lessons_count
+    center_amount = student_debt - teacher_amount
+
+    return {
+        "calculated_lessons": int(calculated_lessons_count),
+        "lesson_price": int(lesson_price),
+        "student_debt": int(student_debt),
+        "teacher_amount": int(teacher_amount),
+        "center_amount": int(center_amount),
+    }
+
+
+def calculate_student_month_payment(
+    course_price: int,
+    standard_lessons_count: int,
+    calculated_lessons_count: int,
+    teacher_percent: int,
+) -> dict:
+    return calculate_student_month_billing(
+        course_price,
+        standard_lessons_count,
+        calculated_lessons_count,
+        teacher_percent,
+    )
+
+
+def tuition_amount_breakdown(
+    enrollment: Enrollment,
+    lesson_count: int,
+    *,
+    course_price: int | None = None,
+    monthly_lessons: int | None = None,
+    teacher_percent: int | None = None,
+) -> dict:
+    """
+    Backward-compatible wrapper around calculate_student_month_billing().
+    """
+    course_price = int(course_price if course_price is not None else full_course_amount(enrollment) or 0)
+    monthly_lessons = int(monthly_lessons if monthly_lessons is not None else _monthly_lessons_count(enrollment) or 0)
+    teacher_percent = int(
+        teacher_percent
+        if teacher_percent is not None
+        else getattr(enrollment, "oqituvchi_foiz", 0)
+        or 0
+    )
+    payment = calculate_student_month_billing(
+        course_price,
+        monthly_lessons,
+        lesson_count,
+        teacher_percent,
+    )
+    return {
+        "course_price": int(course_price),
+        "monthly_lessons": int(monthly_lessons),
+        "lesson_count": payment["calculated_lessons"],
+        "per_lesson_amount": payment["lesson_price"],
+        "fee_amount": payment["student_debt"],
+        "teacher_share": payment["teacher_amount"],
+        "center_share": payment["center_amount"],
+    }
 
 
 def prorated_monthly_fee(enrollment: Enrollment, month: date) -> int:
@@ -572,8 +665,13 @@ def attendance_based_fee(enrollment: Enrollment, month: date) -> int:
         return 0
 
     billable = billable_attendance_count(enrollment, month)
-    fee = proportional_amount(effective_price, billable, _monthly_lessons_count(enrollment))
-    return min(int(fee), effective_price)
+    billing = calculate_student_month_billing(
+        effective_price,
+        _monthly_lessons_count(enrollment),
+        billable,
+        getattr(enrollment, "oqituvchi_foiz", 0) or 0,
+    )
+    return int(billing["student_debt"])
 
 
 def teacher_monthly_financials(
@@ -644,15 +742,22 @@ def tuition_month_preview(enrollment: Enrollment, month: date) -> dict:
     period_start = max(start_date, month_start)
     lesson_dates = expected_lesson_dates_in_period(enrollment, period_start, month_end)
     lesson_count = len(lesson_dates)
-    fee_amount = _prorated_monthly_fee_from_amount(enrollment, month_start, effective_amount)
-    full_turnover = min(
-        proportional_amount(full_amount, lesson_count, monthly_lessons),
+    teacher_percent = int(getattr(enrollment, "oqituvchi_foiz", 0) or 0)
+    fee_billing = calculate_student_month_billing(
+        effective_amount,
+        monthly_lessons,
+        lesson_count,
+        teacher_percent,
+    )
+    full_billing = calculate_student_month_billing(
         full_amount,
+        monthly_lessons,
+        lesson_count,
+        teacher_percent,
     )
-    teacher_share = min(
-        round_div(full_turnover * int(getattr(enrollment, "oqituvchi_foiz", 0) or 0), 100),
-        round_div(full_amount * int(getattr(enrollment, "oqituvchi_foiz", 0) or 0), 100),
-    )
+    fee_amount = fee_billing["student_debt"]
+    full_turnover = full_billing["student_debt"]
+    teacher_share = full_billing["teacher_amount"]
     center_share = full_turnover - teacher_share
 
     return {
@@ -662,6 +767,8 @@ def tuition_month_preview(enrollment: Enrollment, month: date) -> dict:
         "lesson_pattern_label": lesson_pattern_label(lesson_pattern),
         "monthly_lessons": monthly_lessons,
         "lesson_count": lesson_count,
+        "per_lesson_amount": round_div(full_amount, monthly_lessons) if monthly_lessons else 0,
+        "per_lesson_amount_display": format_money(round_div(full_amount, monthly_lessons) if monthly_lessons else 0),
         "lesson_pattern_hint": preview_meta["lesson_pattern_hint"],
         "counted_weekdays": preview_meta["counted_weekdays"],
         "counted_weekday_labels": preview_meta["counted_weekday_labels"],

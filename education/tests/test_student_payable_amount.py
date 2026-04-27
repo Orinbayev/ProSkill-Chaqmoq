@@ -12,6 +12,7 @@ from datetime import date, timedelta
 from accounts.models import Center, User
 from education.models import (
     Attendance,
+    Category,
     Enrollment,
     Group,
     GroupSchedule,
@@ -22,6 +23,7 @@ from education.models import (
     TuitionMonth,
 )
 from education.services.historical_finance_service import HistoricalFinanceService
+from education.services.lesson_planning import calculate_lessons
 from education.services.tuition import (
     effective_student_payable_amount,
     ensure_tuition_month,
@@ -393,6 +395,13 @@ class StudentPayableAmountTests(TestCase):
         self.assertContains(response, 'type="date"')
         self.assertContains(response, 'name="lesson_pattern"')
         self.assertContains(response, 'id="billingPreview"')
+        self.assertContains(response, 'id="groupSelect"')
+        self.assertNotContains(response, 'id="subjectSelect"')
+        self.assertContains(response, 'id="remainingLessonsInput"')
+        self.assertContains(response, "O'qish davri")
+        self.assertContains(response, "Tugash sanasi")
+        self.assertContains(response, "Oxirgi dars sanasi")
+        self.assertContains(response, "Kurs narxi")
         self.assertContains(response, "Seshanba")
         self.assertContains(response, "Dushanba")
         self.assertNotContains(response, "Guruh jadvali")
@@ -400,7 +409,7 @@ class StudentPayableAmountTests(TestCase):
         self.assertContains(response, "Toq kunlari")
         self.assertContains(response, "Juft kunlari")
 
-    def test_enrollment_edit_preview_endpoint_uses_backend_pattern_and_keeps_group_selected(self):
+    def test_enrollment_edit_preview_endpoint_respects_selected_pattern_and_returns_lesson_plan(self):
         current_month = date(2026, 4, 1)
         start_date = date(2026, 4, 24)
         self.regular_enrollment.joined_at = start_date
@@ -432,17 +441,323 @@ class StudentPayableAmountTests(TestCase):
 
         self.assertEqual(preview_response.status_code, 200)
         preview_payload = preview_response.json()["preview"]
+        lesson_plan_payload = preview_response.json()["lesson_plan"]
         month_end = current_month.replace(
             day=calendar.monthrange(current_month.year, current_month.month)[1]
         )
-        self.assertEqual(preview_payload["lesson_pattern"], "odd")
-        self.assertEqual(preview_payload["lesson_pattern_label"], "Toq kunlari")
-        self.assertEqual(preview_payload["lesson_pattern_hint"], "Dushanba • Chorshanba • Juma")
-        self.assertEqual(preview_payload["counted_days_summary"], "Hisoblangan kunlar: Dush, Chor, Jum")
+        self.assertEqual(preview_payload["lesson_pattern"], "even")
+        self.assertEqual(preview_payload["lesson_pattern_label"], "Juft kunlari")
+        self.assertEqual(preview_payload["lesson_pattern_hint"], "Seshanba • Payshanba • Shanba")
+        self.assertEqual(preview_payload["counted_days_summary"], "Hisoblangan kunlar: Sesh, Pay, Shan")
         self.assertEqual(
             preview_payload["lesson_count"],
-            pattern_lessons_between(start_date, month_end, "odd"),
+            pattern_lessons_between(start_date, month_end, "even"),
         )
+        self.assertEqual(lesson_plan_payload["remaining_lessons"], preview_payload["lesson_count"])
+        self.assertTrue(lesson_plan_payload["last_lesson_date"])
+
+    def test_enrollment_edit_only_lists_student_groups(self):
+        math = Category.objects.create(name="Matematika", center=self.center)
+        english = Category.objects.create(name="English", center=self.center)
+        self.group.category_obj = math
+        self.group.save(update_fields=["category_obj"])
+
+        second_group = Group.objects.create(
+            center=self.center,
+            category_obj=english,
+            nom="English A1",
+            oqituvchi=self.teacher,
+            kurs_narxi=480_000,
+            oqituvchi_foiz=35,
+            oy_dars_soni=12,
+        )
+        Group.objects.create(
+            center=self.center,
+            category_obj=math,
+            nom="Matematika Tashqi",
+            oqituvchi=self.teacher,
+            kurs_narxi=500_000,
+            oqituvchi_foiz=40,
+            oy_dars_soni=12,
+        )
+        Enrollment.objects.create(
+            center=self.center,
+            group=second_group,
+            student=self.regular_student,
+            kurs_narhi=480_000,
+            oqituvchi_foiz=35,
+            is_active=True,
+        )
+
+        edit_url = f"/{self.center.slug}{reverse('education:enrollment_edit', args=[self.regular_enrollment.id])}"
+        response = self.client.get(edit_url)
+
+        self.assertEqual(response.status_code, 200)
+        group_ids = {item["group_id"] for item in response.context["groups"]}
+        self.assertEqual(group_ids, {self.group.id, second_group.id})
+        self.assertNotContains(response, 'id="subjectSelect"')
+        self.assertContains(response, "English A1")
+        self.assertNotContains(response, "Matematika Tashqi")
+
+    def test_calculate_lessons_api_returns_manual_last_lesson_date(self):
+        start_date = timezone.localdate()
+        self.regular_enrollment.joined_at = start_date
+        self.regular_enrollment.lesson_pattern = Enrollment.LESSON_PATTERN_ODD
+        self.regular_enrollment.monthly_lessons = self.group.oy_dars_soni
+        self.regular_enrollment.save(update_fields=["joined_at", "lesson_pattern", "monthly_lessons"])
+
+        response = self.client.post(
+            f"/{self.center.slug}{reverse('education:calculate_lessons_api')}",
+            data=json.dumps(
+                {
+                    "enrollment_id": self.regular_enrollment.id,
+                    "group_id": self.group.id,
+                    "joined_at": start_date.isoformat(),
+                    "lesson_pattern": "odd",
+                    "remaining_lessons": 5,
+                    "monthly_lessons": self.group.oy_dars_soni,
+                    "kurs_narhi": self.regular_enrollment.kurs_narhi,
+                    "oqituvchi_foiz": self.regular_enrollment.oqituvchi_foiz,
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["success"])
+        self.assertIn("data", payload)
+        expected_plan = calculate_lessons(
+            start_date=start_date,
+            remaining_lessons=5,
+            pattern="odd",
+            from_date=timezone.localdate(),
+            group=self.group,
+        )
+        self.assertEqual(payload["lesson_plan"]["remaining_lessons"], 5)
+        self.assertEqual(payload["lesson_plan"]["last_lesson_date"], expected_plan["last_lesson_date"].isoformat())
+        self.assertEqual(payload["preview"]["lesson_pattern"], "odd")
+        self.assertEqual(payload["preview"]["lesson_count"], 5)
+        expected_lesson_price = 550_000 // self.group.oy_dars_soni
+        expected_debt = expected_lesson_price * 5
+        self.assertEqual(payload["preview"]["per_lesson_amount"], expected_lesson_price)
+        self.assertEqual(payload["preview"]["fee_amount"], expected_debt)
+        expected_teacher = ((550_000 * 40 // 100) // self.group.oy_dars_soni) * 5
+        self.assertEqual(payload["preview"]["teacher_share"], expected_teacher)
+        self.assertEqual(
+            payload["preview"]["center_share"],
+            payload["preview"]["fee_amount"] - payload["preview"]["teacher_share"],
+        )
+        self.assertEqual(payload["data"]["total_lessons"], payload["preview"]["lesson_count"])
+        self.assertEqual(payload["data"]["lesson_price"], payload["preview"]["per_lesson_amount"])
+        self.assertEqual(payload["data"]["total_debt"], payload["preview"]["fee_amount"])
+        self.assertEqual(payload["data"]["teacher_share"], payload["preview"]["teacher_share"])
+        self.assertEqual(payload["data"]["center_share"], payload["preview"]["center_share"])
+        self.assertEqual(payload["data"]["end_date"], payload["preview"]["period_end_date"])
+
+    def test_calculate_lessons_api_returns_json_error_for_invalid_input(self):
+        response = self.client.post(
+            f"/{self.center.slug}{reverse('education:calculate_lessons_api')}",
+            data=json.dumps(
+                {
+                    "enrollment_id": self.regular_enrollment.id,
+                    "group_id": "",
+                    "joined_at": timezone.localdate().isoformat(),
+                    "lesson_pattern": "not-a-pattern",
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("application/json", response["Content-Type"])
+        payload = response.json()
+        self.assertFalse(payload["success"])
+        self.assertIn("error", payload)
+        self.assertNotIn("<!doctype", response.content.decode().lower())
+
+    def test_calculate_lessons_api_root_url_returns_success_data_contract(self):
+        start_date = timezone.localdate()
+        response = self.client.post(
+            "/api/calculate-lessons/",
+            data=json.dumps(
+                {
+                    "enrollment_id": self.regular_enrollment.id,
+                    "group_id": self.group.id,
+                    "joined_at": start_date.isoformat(),
+                    "lesson_pattern": "daily",
+                    "remaining_lessons": 3,
+                    "monthly_lessons": self.group.oy_dars_soni,
+                    "kurs_narhi": self.regular_enrollment.kurs_narhi,
+                    "oqituvchi_foiz": self.regular_enrollment.oqituvchi_foiz,
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["success"])
+        self.assertEqual(payload["data"]["total_lessons"], 3)
+        expected_lesson_price = 550_000 // self.group.oy_dars_soni
+        self.assertEqual(payload["data"]["lesson_price"], expected_lesson_price)
+        self.assertEqual(payload["data"]["total_debt"], expected_lesson_price * 3)
+
+    def test_calculate_lessons_api_caps_student_debt_and_pays_teacher_by_real_lessons(self):
+        start_date = timezone.localdate()
+        response = self.client.post(
+            f"/{self.center.slug}{reverse('education:calculate_lessons_api')}",
+            data=json.dumps(
+                {
+                    "enrollment_id": self.regular_enrollment.id,
+                    "group_id": self.group.id,
+                    "joined_at": start_date.isoformat(),
+                    "lesson_pattern": "daily",
+                    "remaining_lessons": 13,
+                    "monthly_lessons": 12,
+                    "kurs_narhi": 500_000,
+                    "oqituvchi_foiz": 50,
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()["data"]
+        self.assertEqual(data["total_lessons"], 13)
+        self.assertEqual(data["lesson_price"], 41_666)
+        self.assertEqual(data["total_debt"], 500_000)
+        self.assertEqual(data["teacher_share"], 270_829)
+        self.assertEqual(data["center_share"], 229_171)
+
+    def test_qarzdorlar_debt_uses_same_capped_billing_as_profile(self):
+        current_month = timezone.localdate().replace(day=1)
+        self.regular_enrollment.joined_at = current_month
+        self.regular_enrollment.lesson_pattern = Enrollment.LESSON_PATTERN_DAILY
+        self.regular_enrollment.monthly_lessons = 12
+        self.regular_enrollment.kurs_narhi = 500_000
+        self.regular_enrollment.oqituvchi_foiz = 50
+        self.regular_enrollment.save(
+            update_fields=["joined_at", "lesson_pattern", "monthly_lessons", "kurs_narhi", "oqituvchi_foiz"]
+        )
+        StudentGroupHistory.objects.update_or_create(
+            student=self.regular_student,
+            group=self.group,
+            end_date__isnull=True,
+            defaults={
+                "center": self.center,
+                "start_date": current_month,
+                "kurs_narxi": 500_000,
+                "oqituvchi_foiz": 50,
+            },
+        )
+        ensure_tuition_month(self.regular_enrollment, current_month)
+
+        profile_response = self.client.post(
+            f"/{self.center.slug}{reverse('education:calculate_lessons_api')}",
+            data=json.dumps(
+                {
+                    "enrollment_id": self.regular_enrollment.id,
+                    "group_id": self.group.id,
+                    "joined_at": current_month.isoformat(),
+                    "lesson_pattern": "daily",
+                    "monthly_lessons": 12,
+                    "kurs_narhi": 500_000,
+                    "oqituvchi_foiz": 50,
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        qarzdorlar_response = self.client.get(self.qarzdorlar_url)
+
+        self.assertEqual(profile_response.status_code, 200)
+        self.assertEqual(qarzdorlar_response.status_code, 200)
+        profile_debt = profile_response.json()["data"]["total_debt"]
+        rows = {row["student"].email: row for row in qarzdorlar_response.context["page_obj"].object_list}
+        self.assertEqual(profile_debt, 500_000)
+        self.assertEqual(rows[self.regular_student.email]["debt"], profile_debt)
+
+    def test_calculate_lessons_api_debt_uses_full_course_price_not_teacher_share_only_amount(self):
+        start_date = timezone.localdate()
+        self.teacher_share_enrollment.joined_at = start_date
+        self.teacher_share_enrollment.lesson_pattern = Enrollment.LESSON_PATTERN_ODD
+        self.teacher_share_enrollment.monthly_lessons = self.group.oy_dars_soni
+        self.teacher_share_enrollment.save(update_fields=["joined_at", "lesson_pattern", "monthly_lessons"])
+
+        response = self.client.post(
+            f"/{self.center.slug}{reverse('education:calculate_lessons_api')}",
+            data=json.dumps(
+                {
+                    "enrollment_id": self.teacher_share_enrollment.id,
+                    "group_id": self.group.id,
+                    "joined_at": start_date.isoformat(),
+                    "lesson_pattern": "odd",
+                    "remaining_lessons": 6,
+                    "monthly_lessons": self.group.oy_dars_soni,
+                    "kurs_narhi": self.teacher_share_enrollment.kurs_narhi,
+                    "oqituvchi_foiz": self.teacher_share_enrollment.oqituvchi_foiz,
+                    "student_payable_amount": self.teacher_share_enrollment.student_payable_amount,
+                    "teacher_share_only": "1",
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        preview = response.json()["preview"]
+        expected_debt = (550_000 // self.group.oy_dars_soni) * 6
+        self.assertEqual(preview["lesson_count"], 6)
+        self.assertEqual(preview["fee_amount"], expected_debt)
+        self.assertNotEqual(preview["fee_amount"], self.teacher_share_enrollment.student_payable_amount)
+        expected_teacher = ((550_000 * 40 // 100) // self.group.oy_dars_soni) * 6
+        self.assertEqual(preview["teacher_share"], expected_teacher)
+        self.assertEqual(preview["center_share"], expected_debt - preview["teacher_share"])
+
+    def test_enrollment_edit_post_saves_manual_remaining_lessons_and_last_date(self):
+        start_date = timezone.localdate()
+        edit_url = f"/{self.center.slug}{reverse('education:enrollment_edit', args=[self.regular_enrollment.id])}"
+
+        response = self.client.post(
+            edit_url,
+            data={
+                "ism": self.regular_student.ism,
+                "familya": self.regular_student.familya,
+                "email": self.regular_student.email,
+                "active_enrollment_id": self.regular_enrollment.id,
+                "group_id": self.group.id,
+                "joined_at": start_date.isoformat(),
+                "lesson_pattern": "odd",
+                "remaining_lessons_override": "5",
+                "monthly_lessons": str(self.group.oy_dars_soni),
+                "kurs_narhi": "550000",
+                "oqituvchi_foiz": "40",
+                "next": self.qarzdorlar_url,
+                "month": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.regular_enrollment.refresh_from_db()
+        expected_plan = calculate_lessons(
+            start_date=self.regular_enrollment.joined_at,
+            remaining_lessons=5,
+            pattern=self.regular_enrollment.lesson_pattern,
+            from_date=timezone.localdate(),
+            group=self.group,
+        )
+        self.assertEqual(self.regular_enrollment.remaining_lessons_override, 5)
+        self.assertEqual(self.regular_enrollment.last_lesson_date, expected_plan["last_lesson_date"])
+        tm = TuitionMonth.objects.get(
+            enrollment=self.regular_enrollment,
+            month=start_date.replace(day=1),
+        )
+        self.assertEqual(tm.fee_amount, (550_000 // self.group.oy_dars_soni) * 5)
 
     def test_add_student_to_group_uses_start_date_pattern_and_creates_prorated_snapshot(self):
         add_url = f"/{self.center.slug}{reverse('education:add_student_to_group', args=[self.group.id])}"
@@ -470,7 +785,7 @@ class StudentPayableAmountTests(TestCase):
         month_end = current_month.replace(
             day=calendar.monthrange(current_month.year, current_month.month)[1]
         )
-        expected_lessons = pattern_lessons_between(start_date, month_end, "even")
+        expected_lessons = pattern_lessons_between(start_date, month_end, "odd")
         expected_fee = round((self.group.kurs_narxi * expected_lessons) / self.group.oy_dars_soni)
 
         preview_response = self.client.get(
@@ -486,9 +801,9 @@ class StudentPayableAmountTests(TestCase):
         preview_payload = preview_response.json()["preview"]
         self.assertEqual(preview_payload["lesson_count"], expected_lessons)
         self.assertEqual(preview_payload["fee_amount"], expected_fee)
-        self.assertEqual(preview_payload["lesson_pattern_label"], "Juft kunlari")
-        self.assertEqual(preview_payload["lesson_pattern_hint"], "Seshanba • Payshanba • Shanba")
-        self.assertEqual(preview_payload["counted_days_summary"], "Hisoblangan kunlar: Sesh, Pay, Shan")
+        self.assertEqual(preview_payload["lesson_pattern_label"], "Toq kunlari")
+        self.assertEqual(preview_payload["lesson_pattern_hint"], "Dushanba • Chorshanba • Juma")
+        self.assertEqual(preview_payload["counted_days_summary"], "Hisoblangan kunlar: Dush, Chor, Jum")
 
         response = self.client.post(
             add_url,
@@ -506,7 +821,7 @@ class StudentPayableAmountTests(TestCase):
         self.assertEqual(payload["status"], "success")
         enrollment = Enrollment.objects.get(student=student, group=self.group)
         self.assertEqual(enrollment.joined_at, start_date)
-        self.assertEqual(enrollment.lesson_pattern, "even")
+        self.assertEqual(enrollment.lesson_pattern, "odd")
         self.assertEqual(payload["preview"]["lesson_count"], preview_payload["lesson_count"])
         self.assertEqual(payload["preview"]["fee_amount"], preview_payload["fee_amount"])
         self.assertEqual(payload["preview"]["lesson_pattern_label"], preview_payload["lesson_pattern_label"])

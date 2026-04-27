@@ -27,3 +27,12 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/login_logo.png
+    - assets/images/login_illustration.png
+    - assets/images/parent_avatar.png
+    - assets/images/parent_child_avatar.png
+    - assets/images/progress_teacher_avatar.png
+    - assets/images/profile_child_sardor.png
+    - assets/images/profile_child_madina.png
+    - assets/images/profile_child_ali.png

@@ -146,6 +146,12 @@ O'quvchi profili -
                             class="text-white-50">Qo'shimcha Tel</span> <span class="text-white-50">
                             {{ u.telefon2|default:"—" }}
                         </span> </div>
+                    {% if u.role == 'student' %}
+                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5"> <span
+                            class="text-white-50">Farzand bog'lash kodi</span> <span class="text-white fw-bold">
+                            {{ u.child_code|default:"Hali yaratilmagan" }}
+                        </span> </div>
+                    {% endif %}
                     <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5"> <span
                             class="text-white-50">Ro'yxatdan o'tgan</span> <span class="text-white-50">
                             {{ u.date_joined|date:"d.m.Y" }}

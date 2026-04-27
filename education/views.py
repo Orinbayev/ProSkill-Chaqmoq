@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
 from django.core.paginator import Paginator
 from django.db.models import (
     Avg, Count, F, Min, Max, Prefetch, Q, Sum, OuterRef, Subquery
@@ -66,6 +67,7 @@ from education.services.tuition import (
     round_money_to_thousand,
     resolve_lesson_schedule,
     tuition_month_preview,
+    tuition_amount_breakdown,
     lesson_pattern_label,
     lesson_pattern_hint,
 )
@@ -105,6 +107,7 @@ from .models import (
 )
 from education.services.historical_finance_service import HistoricalFinanceService
 from education.services.enrollment_service import EnrollmentService
+from education.services.lesson_planning import calculate_lessons, validate_remaining_lessons
 from accounts.models import Center
 from .permissions import user_can_manage_payments
 from django.db import transaction
@@ -238,26 +241,146 @@ def _lesson_pattern_options():
     ]
 
 
+def _serialize_lesson_plan(plan: dict) -> dict:
+    return {
+        "requested_start_date": plan["requested_start_date"].isoformat(),
+        "start_date": plan["start_date"].isoformat(),
+        "calculation_start_date": plan["calculation_start_date"].isoformat(),
+        "remaining_lessons": int(plan["remaining_lessons"] or 0),
+        "lesson_pattern": plan["lesson_pattern"],
+        "lesson_pattern_label": plan["lesson_pattern_label"],
+        "lesson_pattern_hint": plan["lesson_pattern_hint"],
+        "lesson_dates": [lesson_date.isoformat() for lesson_date in plan.get("lesson_dates", [])],
+        "lesson_date_labels": list(plan.get("lesson_date_labels", [])),
+        "last_lesson_date": plan["last_lesson_date"].isoformat() if plan.get("last_lesson_date") else "",
+        "last_lesson_date_label": plan.get("last_lesson_date_label", "—"),
+        "calculation_note": plan.get("calculation_note", ""),
+        "used_reference_date": bool(plan.get("used_reference_date")),
+    }
+
+def _student_enrollment_catalog(enrollments: list[Enrollment]) -> dict:
+    enrollment_rows: list[dict] = []
+
+    for enrollment in enrollments:
+        enrollment_rows.append(
+            {
+                "enrollment_id": enrollment.id,
+                "group_id": enrollment.group_id,
+                "group_name": getattr(enrollment.group, "nom", "—"),
+                "joined_at": enrollment.joined_at.isoformat() if enrollment.joined_at else "",
+                "stored_lesson_pattern": getattr(enrollment, "lesson_pattern", Enrollment.LESSON_PATTERN_GROUP),
+                "resolved_lesson_pattern": enrollment_lesson_pattern(enrollment),
+                "monthly_lessons": int(getattr(enrollment, "monthly_lessons", 0) or getattr(enrollment.group, "oy_dars_soni", 0) or 12),
+                "course_price": int(getattr(enrollment, "kurs_narhi", 0) or getattr(enrollment.group, "kurs_narxi", 0) or 0),
+                "teacher_percent": int(getattr(enrollment, "oqituvchi_foiz", 0) or getattr(enrollment.group, "oqituvchi_foiz", 0) or 0),
+                "student_payable_amount": getattr(enrollment, "student_payable_amount", None),
+                "remaining_lessons_override": getattr(enrollment, "remaining_lessons_override", None),
+                "last_lesson_date": enrollment.last_lesson_date.isoformat() if getattr(enrollment, "last_lesson_date", None) else "",
+            }
+        )
+
+    enrollment_rows.sort(
+        key=lambda item: (
+            (item.get("group_name") or "").lower(),
+            int(item.get("enrollment_id") or 0),
+        )
+    )
+    return {
+        "enrollments": enrollment_rows,
+    }
+
+
 def _serialize_tuition_preview(preview: dict) -> dict:
+    period_end = preview.get("period_end_date") or month_last_day(preview["month"])
     return {
         "month": preview["month"].isoformat(),
         "start_date": preview["start_date"].isoformat(),
+        "period_end_date": period_end.isoformat(),
+        "period_end_date_label": period_end.strftime("%d.%m.%Y"),
         "lesson_pattern": preview["lesson_pattern"],
         "lesson_pattern_label": preview["lesson_pattern_label"],
         "lesson_pattern_hint": preview.get("lesson_pattern_hint", ""),
         "monthly_lessons": int(preview["monthly_lessons"] or 0),
         "lesson_count": int(preview["lesson_count"] or 0),
+        "per_lesson_amount": int(preview.get("per_lesson_amount", 0) or 0),
+        "per_lesson_amount_display": preview.get("per_lesson_amount_display", format_money(0)),
         "counted_weekdays": [int(weekday) for weekday in preview.get("counted_weekdays", [])],
         "counted_weekday_labels": list(preview.get("counted_weekday_labels", [])),
         "counted_weekday_short_labels": list(preview.get("counted_weekday_short_labels", [])),
         "counted_days_text": preview.get("counted_days_text", ""),
         "counted_days_summary": preview.get("counted_days_summary", ""),
         "lesson_count_summary": preview.get("lesson_count_summary", ""),
+        "lesson_dates": [lesson_date.isoformat() for lesson_date in preview.get("lesson_dates", [])],
+        "lesson_date_labels": list(preview.get("lesson_date_labels", [])),
         "fee_amount": int(preview["fee_amount"] or 0),
         "teacher_share": int(preview["teacher_share"] or 0),
         "center_share": int(preview["center_share"] or 0),
         "full_turnover": int(preview["full_turnover"] or 0),
     }
+
+
+def _format_money_exact(amount: int | float | None) -> str:
+    return f"{int(amount or 0):,}".replace(",", " ") + " so'm"
+
+
+def _apply_period_end_to_preview(preview: dict, period_end: date | None) -> dict:
+    if not period_end:
+        return preview
+    adjusted = dict(preview)
+    month_start = month_first_day(preview["month"])
+    month_end = month_last_day(month_start)
+    effective_period_end = min(max(period_end, month_start), month_end)
+    lesson_dates = [
+        lesson_date
+        for lesson_date in preview.get("lesson_dates", [])
+        if lesson_date <= effective_period_end
+    ]
+    adjusted.update(
+        {
+            "period_end_date": effective_period_end,
+            "lesson_dates": lesson_dates,
+            "lesson_date_labels": [lesson_date.strftime("%d.%m.%Y") for lesson_date in lesson_dates],
+            "lesson_count": len(lesson_dates),
+            "lesson_count_summary": f"Bu davr bo'yicha {len(lesson_dates)} ta mos dars kuni topildi",
+        }
+    )
+    return adjusted
+
+
+def _apply_lesson_count_breakdown(preview: dict, enrollment: Enrollment, lesson_count: int) -> dict:
+    adjusted = dict(preview)
+    breakdown = tuition_amount_breakdown(
+        enrollment,
+        lesson_count,
+        course_price=full_course_amount(enrollment),
+        monthly_lessons=int(preview.get("monthly_lessons", 0) or 0),
+        teacher_percent=getattr(enrollment, "oqituvchi_foiz", 0) or 0,
+    )
+    adjusted.update(
+        {
+            "lesson_count": breakdown["lesson_count"],
+            "per_lesson_amount": breakdown["per_lesson_amount"],
+            "per_lesson_amount_display": _format_money_exact(breakdown["per_lesson_amount"]),
+            "fee_amount": breakdown["fee_amount"],
+            "fee_amount_display": _format_money_exact(breakdown["fee_amount"]),
+            "full_turnover": breakdown["fee_amount"],
+            "teacher_share": breakdown["teacher_share"],
+            "teacher_share_display": _format_money_exact(breakdown["teacher_share"]),
+            "center_share": breakdown["center_share"],
+            "center_share_display": _format_money_exact(breakdown["center_share"]),
+            "lesson_count_summary": f"Hisoblangan darslar: {breakdown['lesson_count']} ta",
+        }
+    )
+    return adjusted
+
+
+def _parse_period_end(value, fallback_month: date) -> date:
+    parsed = parse_date((value or "").strip()) if value not in (None, "") else None
+    if parsed is None:
+        return month_last_day(fallback_month)
+    month_start = month_first_day(fallback_month)
+    month_end = month_last_day(month_start)
+    return min(max(parsed, month_start), month_end)
 
 
 def _build_tuition_preview_enrollment(
@@ -306,6 +429,7 @@ def _build_tuition_preview_enrollment(
 
     preview_enrollment = Enrollment(
         group=resolved_group,
+        course=getattr(resolved_group, "category_obj", None) or getattr(base_enrollment, "course", None),
         student=getattr(base_enrollment, "student", None),
         center=getattr(resolved_group, "center", None) or getattr(base_enrollment, "center", None),
         kurs_narhi=resolved_course_price,
@@ -320,6 +444,216 @@ def _build_tuition_preview_enrollment(
     preview_enrollment._tuition_start_date = resolved_start_date
     preview_enrollment._tuition_requested_start_date = start_date or resolved_start_date
     return preview_enrollment
+
+
+@csrf_exempt
+def calculate_lessons_api(request):
+    try:
+        if request.method != "POST":
+            return JsonResponse(
+                {"success": False, "error": "Method not allowed"},
+                status=400,
+            )
+        if not request.user.is_authenticated:
+            return JsonResponse(
+                {"success": False, "error": "Avval tizimga kiring."},
+                status=400,
+            )
+
+        center = get_active_center(request)
+        try:
+            payload = json.loads(request.body.decode("utf-8") or "{}")
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            if request.content_type == "application/json":
+                return JsonResponse(
+                    {"success": False, "error": "JSON ma'lumot noto'g'ri yuborildi."},
+                    status=400,
+                )
+            payload = request.POST
+
+        enrollment_id = _parse_int_value(payload.get("enrollment_id"))
+        group_id = _parse_int_value(payload.get("group_id"))
+
+        enrollment = None
+        if enrollment_id:
+            enrollment_qs = Enrollment.objects.select_related("group", "group__category_obj", "student", "course")
+            if center:
+                enrollment_qs = enrollment_qs.filter(center=center)
+            enrollment = enrollment_qs.filter(id=enrollment_id).first()
+            if enrollment is None:
+                return JsonResponse({"success": False, "error": "Enrollment topilmadi."}, status=400)
+
+        group = None
+        if group_id:
+            if enrollment is not None:
+                sibling_qs = Enrollment.objects.select_related("group", "group__category_obj", "student", "course").filter(
+                    student=enrollment.student,
+                    group_id=group_id,
+                    is_active=True,
+                    student__is_archived=False,
+                    group__is_archived=False,
+                )
+                if center:
+                    sibling_qs = sibling_qs.filter(center=center)
+                sibling_enrollment = sibling_qs.first()
+                if sibling_enrollment is None:
+                    return JsonResponse({"success": False, "error": "Bu o'quvchi ushbu guruhga biriktirilmagan."}, status=400)
+                enrollment = sibling_enrollment
+                group = enrollment.group
+            else:
+                group_qs = Group.objects.select_related("category_obj")
+                if center:
+                    group_qs = group_qs.filter(center=center)
+                group = group_qs.filter(id=group_id).first()
+                if group is None:
+                    return JsonResponse({"success": False, "error": "Guruh topilmadi."}, status=400)
+        elif enrollment is not None:
+            group = enrollment.group
+
+        if group is None:
+            return JsonResponse({"success": False, "error": "Guruhni tanlang."}, status=400)
+
+        start_date_raw = (payload.get("joined_at") or payload.get("start_date") or "").strip()
+        if start_date_raw:
+            start_date = parse_date(start_date_raw)
+            if start_date is None:
+                return JsonResponse({"success": False, "error": "Boshlanish sanasi noto'g'ri."}, status=400)
+        else:
+            start_date = (
+                getattr(enrollment, "joined_at", None)
+                or enrollment_start_date(enrollment)
+                if enrollment is not None
+                else timezone.localdate()
+            )
+        if payload.get("period_end_date") or payload.get("end_date"):
+            start_date = month_first_day(start_date)
+
+        allowed_lesson_patterns = {
+            Enrollment.LESSON_PATTERN_ODD,
+            Enrollment.LESSON_PATTERN_EVEN,
+            Enrollment.LESSON_PATTERN_DAILY,
+            Enrollment.LESSON_PATTERN_GROUP,
+        }
+        lesson_pattern_raw = payload.get("lesson_pattern")
+        if lesson_pattern_raw not in (None, ""):
+            lesson_pattern_raw = str(lesson_pattern_raw).strip().lower()
+            if lesson_pattern_raw not in allowed_lesson_patterns:
+                return JsonResponse({"success": False, "error": "Dars patterni noto'g'ri."}, status=400)
+        lesson_pattern = normalize_lesson_pattern(
+            lesson_pattern_raw or getattr(enrollment, "lesson_pattern", None)
+        )
+        if lesson_pattern not in allowed_lesson_patterns:
+            return JsonResponse({"success": False, "error": "Dars patterni noto'g'ri."}, status=400)
+
+        course_price = int(
+            _parse_int_value(
+                payload.get("kurs_narhi"),
+                getattr(enrollment, "kurs_narhi", 0) if enrollment is not None else getattr(group, "kurs_narxi", 0),
+            )
+            or 0
+        )
+        teacher_percent = int(
+            _parse_int_value(
+                payload.get("oqituvchi_foiz"),
+                getattr(enrollment, "oqituvchi_foiz", 0) if enrollment is not None else getattr(group, "oqituvchi_foiz", 0),
+            )
+            or 0
+        )
+        monthly_lessons = int(
+            _parse_int_value(
+                payload.get("monthly_lessons"),
+                getattr(enrollment, "monthly_lessons", 0) if enrollment is not None else getattr(group, "oy_dars_soni", 0),
+            )
+            or getattr(group, "oy_dars_soni", 0)
+            or 12
+        )
+
+        teacher_share_only = _parse_bool_value(payload.get("teacher_share_only"))
+        missing = object()
+        payable_raw = payload.get("student_payable_amount", missing)
+        if teacher_share_only:
+            student_payable_amount = round(course_price * teacher_percent / 100)
+        elif payable_raw is missing:
+            student_payable_amount = getattr(enrollment, "student_payable_amount", None) if enrollment is not None else None
+        elif payable_raw in (None, "", "None"):
+            student_payable_amount = None
+        else:
+            student_payable_amount = _parse_int_value(
+                payable_raw,
+                getattr(enrollment, "student_payable_amount", None) if enrollment is not None else None,
+            )
+
+        preview_enrollment = _build_tuition_preview_enrollment(
+            base_enrollment=enrollment,
+            group=group,
+            start_date=start_date,
+            lesson_pattern=lesson_pattern,
+            monthly_lessons=monthly_lessons,
+            course_price=course_price,
+            teacher_percent=teacher_percent,
+            student_payable_amount=student_payable_amount,
+        )
+        preview_month = _preview_month_for_start_date(start_date)
+        preview = tuition_month_preview(preview_enrollment, preview_month)
+        period_end = _parse_period_end(payload.get("period_end_date") or payload.get("end_date"), preview["month"])
+        preview = _apply_period_end_to_preview(preview, period_end)
+
+        remaining_raw = payload.get("remaining_lessons", missing)
+        if remaining_raw is missing:
+            remaining_lessons = (
+                getattr(enrollment, "remaining_lessons_override", None)
+                if enrollment is not None and getattr(enrollment, "remaining_lessons_override", None) is not None
+                else int(preview["lesson_count"] or 0)
+            )
+        elif remaining_raw in ("", None):
+            remaining_lessons = int(preview["lesson_count"] or 0)
+        else:
+            try:
+                remaining_lessons = validate_remaining_lessons(remaining_raw)
+            except ValidationError as exc:
+                return JsonResponse({"success": False, "error": exc.messages[0]}, status=400)
+
+        try:
+            lesson_plan = calculate_lessons(
+                start_date=preview["start_date"],
+                remaining_lessons=remaining_lessons,
+                pattern=preview["lesson_pattern"],
+                from_date=timezone.localdate(),
+                group=group,
+            )
+        except ValidationError as exc:
+            return JsonResponse({"success": False, "error": exc.messages[0]}, status=400)
+        preview = _apply_lesson_count_breakdown(preview, preview_enrollment, remaining_lessons)
+        preview_payload = _serialize_tuition_preview(preview)
+        lesson_plan_payload = _serialize_lesson_plan(lesson_plan)
+        response_data = {
+            "total_lessons": preview_payload["lesson_count"],
+            "lesson_price": preview_payload["per_lesson_amount"],
+            "total_debt": preview_payload["fee_amount"],
+            "teacher_share": preview_payload["teacher_share"],
+            "center_share": preview_payload["center_share"],
+            "lesson_dates": [
+                int(label.split(".", 1)[0])
+                for label in preview_payload.get("lesson_date_labels", [])
+                if str(label).split(".", 1)[0].isdigit()
+            ],
+            "end_date": preview_payload["period_end_date"],
+        }
+        return JsonResponse(
+            {
+                "success": True,
+                "data": response_data,
+                "preview": preview_payload,
+                "lesson_plan": lesson_plan_payload,
+            },
+            status=200,
+        )
+    except Exception as exc:
+        logger.exception("calculate_lessons_api failed")
+        return JsonResponse(
+            {"success": False, "error": str(exc) or "Hisob-kitobda xatolik yuz berdi."},
+            status=400,
+        )
 
 
 def sync_tuition_fee(enrollment, new_fee=None, start_month=None):
@@ -368,7 +702,7 @@ def _student_group_financial_cards(
     target_month = month_first_day(month or timezone.localdate())
     enrollments_qs = (
         Enrollment.objects
-        .select_related("group")
+        .select_related("group", "group__category_obj", "course")
         .filter(
             student=student,
             is_active=True,
@@ -1017,62 +1351,144 @@ def _first_day_of_month(d: date) -> date:
 
 @transaction.atomic
 def enrollment_edit(request, enrollment_id):
-    # from core.tenant import get_request_center
     center = get_active_center(request)
-    qs = Enrollment.objects.select_related("student", "group")
+    qs = Enrollment.objects.select_related("student", "group", "group__category_obj", "course")
     if center:
         qs = qs.filter(center=center)
-        
+
     enr = get_object_or_404(qs, id=enrollment_id)
-    
-    groups = Group.objects.all()
+    student_enrollments = list(
+        qs.filter(
+            student=enr.student,
+            is_active=True,
+            student__is_archived=False,
+            group__is_archived=False,
+        ).order_by("group__category_obj__name", "group__nom", "id")
+    )
+    if all(item.id != enr.id for item in student_enrollments):
+        student_enrollments.append(enr)
+
+    enrollment_map = {item.id: item for item in student_enrollments}
+    enrollment_by_group_id = {item.group_id: item for item in student_enrollments if item.group_id}
+    enrollment_catalog = _student_enrollment_catalog(student_enrollments)
+
+    all_groups = Group.objects.select_related("category_obj")
     if center:
-        groups = groups.filter(center=center)
+        all_groups = all_groups.filter(center=center)
 
     next_url = request.POST.get("next") or request.GET.get("next") or reverse("education:qarzdorlar_home")
-
-    # month string: ?month=2026-01
     month_str = (request.GET.get("month") or request.POST.get("month") or "").strip()
     start_month = parse_month_yyyy_mm(month_str) or first_day_of_current_month()
     lesson_pattern_options = _lesson_pattern_options()
 
-    def _render_enrollment_edit_form(*, teacher_share_only_checked: bool):
-        preview_month = _preview_month_for_start_date(enrollment_start_date(enr), start_month)
-        pricing_preview = tuition_month_preview(enr, preview_month)
-        return render(request, "education/enrollment_edit.html", {
-            "enr": enr,
-            "groups": groups,
+    def _resolve_active_enrollment(candidate_id):
+        return enrollment_map.get(candidate_id) or enr
+
+    def _build_edit_context(active_enrollment, *, teacher_share_only_checked: bool):
+        preview_month = _preview_month_for_start_date(enrollment_start_date(active_enrollment), start_month)
+        pricing_preview = tuition_month_preview(active_enrollment, preview_month)
+        group_options = [
+            {
+                "group_id": row["group_id"],
+                "group_name": row["group_name"],
+                "enrollment_id": row["enrollment_id"],
+            }
+            for row in enrollment_catalog.get("enrollments", [])
+        ]
+        remaining_lessons_value = (
+            active_enrollment.remaining_lessons_override
+            if active_enrollment.remaining_lessons_override is not None
+            else int(pricing_preview["lesson_count"] or 0)
+        )
+        lesson_plan = calculate_lessons(
+            start_date=pricing_preview["start_date"],
+            remaining_lessons=remaining_lessons_value,
+            pattern=pricing_preview["lesson_pattern"],
+            from_date=timezone.localdate(),
+            group=active_enrollment.group,
+        )
+        pricing_preview = _apply_lesson_count_breakdown(
+            pricing_preview,
+            active_enrollment,
+            remaining_lessons_value,
+        )
+        return {
+            "enr": active_enrollment,
+            "groups": group_options,
+            "selected_group_id": active_enrollment.group_id,
+            "active_enrollment_id": active_enrollment.id,
+            "active_enrollment_stored_pattern": getattr(
+                active_enrollment,
+                "lesson_pattern",
+                Enrollment.LESSON_PATTERN_GROUP,
+            ),
             "next": next_url,
             "month": month_str,
             "teacher_share_only_checked": teacher_share_only_checked,
             "pricing_preview": pricing_preview,
             "lesson_pattern_options": lesson_pattern_options,
             "selected_lesson_pattern": pricing_preview["lesson_pattern"],
-        })
+            "remaining_lessons_value": remaining_lessons_value,
+            "lesson_plan": lesson_plan,
+            "period_end_date": month_last_day(pricing_preview["month"]),
+            "course_price_display": format_money(active_enrollment.kurs_narhi),
+            "enrollment_catalog": enrollment_catalog,
+        }
+
+    def _render_enrollment_edit_form(*, teacher_share_only_checked: bool, active_enrollment=None):
+        return render(
+            request,
+            "education/enrollment_edit.html",
+            _build_edit_context(
+                active_enrollment or enr,
+                teacher_share_only_checked=teacher_share_only_checked,
+            ),
+        )
 
     if (
         request.method == "GET"
         and request.headers.get("x-requested-with") == "XMLHttpRequest"
         and request.GET.get("preview") == "1"
     ):
-        selected_group_id = _parse_int_value(request.GET.get("group_id"), enr.group_id)
-        selected_group = groups.filter(id=selected_group_id).first() or enr.group
+        active_enrollment = _resolve_active_enrollment(
+            _parse_int_value(request.GET.get("active_enrollment_id"), enr.id)
+        )
+        selected_group_id = _parse_int_value(request.GET.get("group_id"), active_enrollment.group_id)
+        if selected_group_id and selected_group_id not in enrollment_by_group_id:
+            return JsonResponse({"error": "Bu o'quvchi ushbu guruhga biriktirilmagan."}, status=400)
+        selected_group = enrollment_by_group_id.get(selected_group_id, active_enrollment).group
         joined_at = (
             parse_date((request.GET.get("joined_at") or request.GET.get("start_date") or "").strip())
-            or getattr(enr, "joined_at", None)
-            or enrollment_start_date(enr)
+            or getattr(active_enrollment, "joined_at", None)
+            or enrollment_start_date(active_enrollment)
         )
-        lesson_pattern = request.GET.get("lesson_pattern") or getattr(enr, "lesson_pattern", None)
-        course_price = int(_parse_int_value(request.GET.get("kurs_narhi"), getattr(enr, "kurs_narhi", 0) or 0) or 0)
+        if request.GET.get("period_end_date") or request.GET.get("end_date"):
+            joined_at = month_first_day(joined_at)
+        lesson_pattern = request.GET.get("lesson_pattern") or getattr(active_enrollment, "lesson_pattern", None)
+        course_price = int(
+            _parse_int_value(
+                request.GET.get("kurs_narhi"),
+                getattr(active_enrollment, "kurs_narhi", 0) or 0,
+            )
+            or 0
+        )
         teacher_percent = (
             int(getattr(selected_group, "oqituvchi_foiz", 0) or 0)
-            if getattr(selected_group, "id", None) and selected_group.id != enr.group_id
-            else int(_parse_int_value(request.GET.get("oqituvchi_foiz"), getattr(enr, "oqituvchi_foiz", 0) or 0) or 0)
+            if getattr(selected_group, "id", None) and selected_group.id != active_enrollment.group_id
+            else int(
+                _parse_int_value(
+                    request.GET.get("oqituvchi_foiz"),
+                    getattr(active_enrollment, "oqituvchi_foiz", 0) or 0,
+                )
+                or 0
+            )
         )
         monthly_lessons = int(
             _parse_int_value(
                 request.GET.get("monthly_lessons"),
-                getattr(enr, "monthly_lessons", 0) or getattr(selected_group, "oy_dars_soni", 0) or 12,
+                getattr(active_enrollment, "monthly_lessons", 0)
+                or getattr(selected_group, "oy_dars_soni", 0)
+                or 12,
             )
             or 12
         )
@@ -1082,14 +1498,17 @@ def enrollment_edit(request, enrollment_id):
         if teacher_share_only:
             student_payable_amount = round(course_price * teacher_percent / 100)
         elif payable_raw is missing:
-            student_payable_amount = getattr(enr, "student_payable_amount", None)
+            student_payable_amount = getattr(active_enrollment, "student_payable_amount", None)
         elif payable_raw in (None, "", "None"):
             student_payable_amount = None
         else:
-            student_payable_amount = _parse_int_value(payable_raw, getattr(enr, "student_payable_amount", None))
+            student_payable_amount = _parse_int_value(
+                payable_raw,
+                getattr(active_enrollment, "student_payable_amount", None),
+            )
 
         preview_enrollment = _build_tuition_preview_enrollment(
-            base_enrollment=enr,
+            base_enrollment=active_enrollment,
             group=selected_group,
             start_date=joined_at,
             lesson_pattern=lesson_pattern,
@@ -1102,127 +1521,242 @@ def enrollment_edit(request, enrollment_id):
             preview_enrollment,
             _preview_month_for_start_date(joined_at, start_month),
         )
-        return JsonResponse({"preview": _serialize_tuition_preview(preview)})
+        period_end = _parse_period_end(
+            request.GET.get("period_end_date") or request.GET.get("end_date"),
+            preview["month"],
+        )
+        preview = _apply_period_end_to_preview(preview, period_end)
+        remaining_raw = request.GET.get("remaining_lessons")
+        if remaining_raw in (None, ""):
+            remaining_lessons = (
+                getattr(active_enrollment, "remaining_lessons_override", None)
+                if getattr(active_enrollment, "remaining_lessons_override", None) is not None
+                else int(preview["lesson_count"] or 0)
+            )
+        else:
+            try:
+                remaining_lessons = validate_remaining_lessons(remaining_raw)
+            except ValidationError as exc:
+                return JsonResponse({"error": exc.messages[0]}, status=400)
+
+        lesson_plan = calculate_lessons(
+            start_date=preview["start_date"],
+            remaining_lessons=remaining_lessons,
+            pattern=preview["lesson_pattern"],
+            from_date=timezone.localdate(),
+            group=selected_group,
+        )
+        preview = _apply_lesson_count_breakdown(preview, preview_enrollment, remaining_lessons)
+        return JsonResponse(
+            {
+                "preview": _serialize_tuition_preview(preview),
+                "lesson_plan": _serialize_lesson_plan(lesson_plan),
+            }
+        )
 
     if request.method == "POST":
+        active_enrollment = _resolve_active_enrollment(
+            _parse_int_value(request.POST.get("active_enrollment_id"), enr.id)
+        )
         student_ism = request.POST.get("ism", "").strip()
         student_familya = request.POST.get("familya", "").strip()
         student_email = request.POST.get("email", "").strip()
 
-        # --- group update ---
         gid = _parse_int_value(request.POST.get("group_id"))
-        old_group_id = enr.group_id
-        selected_group = enr.group
+        selected_group = active_enrollment.group
+        old_group_id = active_enrollment.group_id
         if gid:
-            maybe_group = groups.filter(id=gid).first()
-            if maybe_group:
-                selected_group = maybe_group
-                enr.group = maybe_group
-                enr.group_id = maybe_group.id
-                enr.center = maybe_group.center
+            target_enrollment = enrollment_by_group_id.get(gid)
+            if target_enrollment:
+                if target_enrollment.id != active_enrollment.id:
+                    active_enrollment = target_enrollment
+                    selected_group = active_enrollment.group
+                    old_group_id = active_enrollment.group_id
+            else:
+                messages.error(request, "Bu o'quvchi ushbu guruhga biriktirilmagan.")
+                return _render_enrollment_edit_form(
+                    teacher_share_only_checked=_parse_bool_value(request.POST.get("teacher_share_only")),
+                    active_enrollment=active_enrollment,
+                )
 
-        # --- enrollment fields ---
         new_price = int(_parse_int_value(request.POST.get("kurs_narhi"), 0) or 0)
-        enr.kurs_narhi = new_price
+        active_enrollment.kurs_narhi = new_price
 
         oqf = _parse_int_value(request.POST.get("oqituvchi_foiz"), None)
-        
-        # O'quvchi boshqa guruhga o'tkazilganda avtomatik yangi guruhning foizini oladi
         if getattr(selected_group, "id", None) and selected_group.id != old_group_id:
-            enr.oqituvchi_foiz = int(getattr(selected_group, "oqituvchi_foiz", 0) or 0)
+            active_enrollment.oqituvchi_foiz = int(getattr(selected_group, "oqituvchi_foiz", 0) or 0)
         elif oqf is not None:
-            enr.oqituvchi_foiz = int(oqf)
+            active_enrollment.oqituvchi_foiz = int(oqf)
 
         joined_at_raw = (request.POST.get("joined_at") or request.POST.get("start_date") or "").strip()
+        if joined_at_raw and parse_date(joined_at_raw) is None:
+            messages.error(request, "Boshlanish sanasi noto'g'ri kiritildi.")
+            return _render_enrollment_edit_form(
+                teacher_share_only_checked=_parse_bool_value(request.POST.get("teacher_share_only")),
+                active_enrollment=active_enrollment,
+            )
         joined_at = parse_date(joined_at_raw) if joined_at_raw else None
+        if joined_at and (request.POST.get("period_end_date") or request.POST.get("end_date")):
+            joined_at = month_first_day(joined_at)
         schedule_meta = resolve_lesson_schedule(
-            joined_at or enr.joined_at or timezone.localdate(),
-            request.POST.get("lesson_pattern") or getattr(enr, "lesson_pattern", None),
+            joined_at or active_enrollment.joined_at or timezone.localdate(),
+            request.POST.get("lesson_pattern") or getattr(active_enrollment, "lesson_pattern", None),
         )
-        enr.joined_at = schedule_meta["start_date"]
-        enr._tuition_start_date = enr.joined_at
-        enr.lesson_pattern = schedule_meta["lesson_pattern"]
+        active_enrollment.joined_at = schedule_meta["start_date"]
+        active_enrollment._tuition_start_date = active_enrollment.joined_at
+        active_enrollment.lesson_pattern = schedule_meta["lesson_pattern"]
         if schedule_meta["adjustment_note"]:
             messages.info(request, schedule_meta["adjustment_note"])
         monthly_lessons_raw = (request.POST.get("monthly_lessons") or "").strip()
         try:
-            enr.monthly_lessons = int(
+            active_enrollment.monthly_lessons = int(
                 monthly_lessons_raw
-                or getattr(enr, "monthly_lessons", 0)
+                or getattr(active_enrollment, "monthly_lessons", 0)
                 or getattr(selected_group, "oy_dars_soni", 0)
                 or 12
             )
         except (TypeError, ValueError):
-            enr.monthly_lessons = getattr(selected_group, "oy_dars_soni", 0) or 12
-        enr.pricing_type = (
+            active_enrollment.monthly_lessons = getattr(selected_group, "oy_dars_soni", 0) or 12
+        active_enrollment.pricing_type = (
             Enrollment.PRICING_PRORATED
-            if enr.joined_at and enr.joined_at.day > 1
+            if active_enrollment.joined_at and active_enrollment.joined_at.day > 1
             else Enrollment.PRICING_FULL
         )
 
         payable_raw = (request.POST.get("student_payable_amount") or "").replace(" ", "").replace(",", "").strip()
         teacher_share_only = _parse_bool_value(request.POST.get("teacher_share_only"))
         if teacher_share_only:
-            enr.student_payable_amount = round(full_course_amount(enr) * (enr.oqituvchi_foiz or 0) / 100)
+            active_enrollment.student_payable_amount = round(
+                full_course_amount(active_enrollment) * (active_enrollment.oqituvchi_foiz or 0) / 100
+            )
         elif payable_raw == "":
-            enr.student_payable_amount = None
+            active_enrollment.student_payable_amount = None
         else:
             try:
-                enr.student_payable_amount = int(payable_raw)
+                active_enrollment.student_payable_amount = int(payable_raw)
             except (TypeError, ValueError):
                 messages.error(request, "O'quvchidan olinadigan summa noto'g'ri kiritildi.")
-                return _render_enrollment_edit_form(teacher_share_only_checked=teacher_share_only)
+                return _render_enrollment_edit_form(
+                    teacher_share_only_checked=teacher_share_only,
+                    active_enrollment=active_enrollment,
+                )
+
+        remaining_lessons_raw = (request.POST.get("remaining_lessons_override") or "").strip()
+        if remaining_lessons_raw == "":
+            active_enrollment.remaining_lessons_override = None
+        else:
+            try:
+                active_enrollment.remaining_lessons_override = validate_remaining_lessons(remaining_lessons_raw)
+            except ValidationError as exc:
+                messages.error(request, exc.messages[0])
+                return _render_enrollment_edit_form(
+                    teacher_share_only_checked=teacher_share_only,
+                    active_enrollment=active_enrollment,
+                )
+
+        preview_enrollment = _build_tuition_preview_enrollment(
+            base_enrollment=active_enrollment,
+            group=selected_group,
+            start_date=active_enrollment.joined_at,
+            lesson_pattern=active_enrollment.lesson_pattern,
+            monthly_lessons=active_enrollment.monthly_lessons,
+            course_price=active_enrollment.kurs_narhi,
+            teacher_percent=active_enrollment.oqituvchi_foiz,
+            student_payable_amount=active_enrollment.student_payable_amount,
+        )
+        preview = tuition_month_preview(
+            preview_enrollment,
+            _preview_month_for_start_date(active_enrollment.joined_at, start_month),
+        )
+        period_end = _parse_period_end(
+            request.POST.get("period_end_date") or request.POST.get("end_date"),
+            preview["month"],
+        )
+        preview = _apply_period_end_to_preview(preview, period_end)
+        billing_lesson_count = (
+            active_enrollment.remaining_lessons_override
+            if active_enrollment.remaining_lessons_override is not None
+            else int(preview["lesson_count"] or 0)
+        )
+        billing_preview = _apply_lesson_count_breakdown(
+            preview,
+            preview_enrollment,
+            billing_lesson_count,
+        )
+        lesson_plan = calculate_lessons(
+            start_date=preview["start_date"],
+            remaining_lessons=billing_lesson_count,
+            pattern=preview["lesson_pattern"],
+            from_date=timezone.localdate(),
+            group=selected_group,
+        )
+        active_enrollment.last_lesson_date = lesson_plan["last_lesson_date"]
 
         try:
-            enr.full_clean()
+            active_enrollment.full_clean()
         except ValidationError as exc:
             error_messages = []
             for messages_list in exc.message_dict.values():
                 error_messages.extend(messages_list)
             messages.error(request, " ".join(error_messages))
-            return _render_enrollment_edit_form(teacher_share_only_checked=teacher_share_only)
+            return _render_enrollment_edit_form(
+                teacher_share_only_checked=teacher_share_only,
+                active_enrollment=active_enrollment,
+            )
 
-        # --- student update ---
-        enr.student.ism = student_ism
-        enr.student.familya = student_familya
-        enr.student.email = student_email
-        enr.student.save(update_fields=["ism", "familya", "email"])
+        active_enrollment.student.ism = student_ism
+        active_enrollment.student.familya = student_familya
+        active_enrollment.student.email = student_email
+        active_enrollment.student.save(update_fields=["ism", "familya", "email"])
 
-        enr.save()
+        active_enrollment.save()
 
         open_history = StudentGroupHistory.objects.filter(
-            student=enr.student,
-            group=enr.group,
+            student=active_enrollment.student,
+            group=active_enrollment.group,
             end_date__isnull=True,
         ).order_by("-start_date").first()
         if open_history:
-            open_history.start_date = enr.joined_at
-            open_history.kurs_narxi = enr.kurs_narhi
-            open_history.oqituvchi_foiz = enr.oqituvchi_foiz
+            open_history.start_date = active_enrollment.joined_at
+            open_history.kurs_narxi = active_enrollment.kurs_narhi
+            open_history.oqituvchi_foiz = active_enrollment.oqituvchi_foiz
             open_history.save(update_fields=["start_date", "kurs_narxi", "oqituvchi_foiz"])
         else:
             StudentGroupHistory.objects.create(
-                student=enr.student,
-                group=enr.group,
-                center=enr.center,
-                start_date=enr.joined_at,
-                kurs_narxi=enr.kurs_narhi,
-                oqituvchi_foiz=enr.oqituvchi_foiz,
+                student=active_enrollment.student,
+                group=active_enrollment.group,
+                center=active_enrollment.center,
+                start_date=active_enrollment.joined_at,
+                kurs_narxi=active_enrollment.kurs_narhi,
+                oqituvchi_foiz=active_enrollment.oqituvchi_foiz,
             )
 
-        # ✅ MUHIM: Qarz bazasi o'zgargan bo'lsa yoki o'zgarmasada TuitionMonth'ni yangilaymiz
-        # Bu eski 50M kabi noto'g'ri qarzlarni ham to'g'irlaydi
         sync_tuition_fee(
-            enrollment=enr,
-            new_fee=effective_student_payable_amount(enr),
-            start_month=month_first_day(enr.joined_at or start_month),
+            enrollment=active_enrollment,
+            new_fee=effective_student_payable_amount(active_enrollment),
+            start_month=month_first_day(active_enrollment.joined_at or start_month),
         )
+        billing_month = month_first_day(active_enrollment.joined_at or start_month)
+        fee_field = tuition_month_fee_field()
+        tuition_month, _ = TuitionMonth.all_objects.update_or_create(
+            enrollment=active_enrollment,
+            month=billing_month,
+            defaults={
+                "center": active_enrollment.center,
+                fee_field: int(billing_preview["fee_amount"] or 0),
+            },
+        )
+        if tuition_month.is_deleted:
+            tuition_month.restore()
 
         messages.success(request, "O'quvchi ma'lumotlari muvaffaqiyatli yangilandi!")
         return redirect(next_url)
 
     return _render_enrollment_edit_form(
-        teacher_share_only_checked=_is_teacher_share_only_enrollment(enr)
+        teacher_share_only_checked=_is_teacher_share_only_enrollment(enr),
+        active_enrollment=_resolve_active_enrollment(
+            _parse_int_value(request.GET.get("active_enrollment_id"), enr.id)
+        ),
     )
 
 @login_required
@@ -6250,6 +6784,8 @@ def get_group_price(request, pk):
             "oqituvchi_foiz": group.oqituvchi_foiz,
             "monthly_lessons": group.oy_dars_soni,
             "group_name": group.nom,
+            "course_id": getattr(group, "category_obj_id", None),
+            "course_name": getattr(getattr(group, "category_obj", None), "name", ""),
         })
     except Group.DoesNotExist:
         return JsonResponse({
@@ -6257,6 +6793,8 @@ def get_group_price(request, pk):
             "oqituvchi_foiz": 40,
             "monthly_lessons": 12,
             "group_name": "",
+            "course_id": None,
+            "course_name": "",
         })
 
 

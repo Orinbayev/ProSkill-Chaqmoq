@@ -10,6 +10,7 @@ class Formatters {
   static final DateFormat _dateFormat = DateFormat('dd.MM.yyyy');
   static final DateFormat _monthFormat = DateFormat('MMMM yyyy', 'uz');
   static final DateFormat _dayMonthFormat = DateFormat('d MMM', 'uz');
+  static final DateFormat _dateTimeFormat = DateFormat('d MMM, HH:mm', 'uz');
 
   static String currency(num value, {bool compact = false}) {
     if (compact) {
@@ -46,6 +47,13 @@ class Formatters {
       return '—';
     }
     return _dayMonthFormat.format(value);
+  }
+
+  static String dateTime(DateTime? value) {
+    if (value == null) {
+      return '—';
+    }
+    return _dateTimeFormat.format(value);
   }
 
   static String relative(DateTime? value, {DateTime? now}) {

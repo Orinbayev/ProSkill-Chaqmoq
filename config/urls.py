@@ -12,6 +12,7 @@ from accounts.views import test_db, test_center
 from billing import click_views as billing_click_views
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from marketing import views as marketing_views
+from education import views as education_views
 
 
 urlpatterns = [
@@ -34,6 +35,7 @@ urlpatterns = [
     # o'zgarmaydi — bu alias faqat /login/ kirish nuqtasini qo'shadi.
     path('login/', SecureLoginView.as_view(), name='login_alias'),
     path('api/v1/auth/link-telegram/', api_auth.link_telegram_api, name='api_link_telegram'),
+    path('api/calculate-lessons/', education_views.calculate_lessons_api, name='api_calculate_lessons'),
 
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
 

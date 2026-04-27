@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:chaqmoq_mobile/core/config/app_config.dart';
 import 'package:chaqmoq_mobile/services/storage_service.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 class ApiException implements Exception {
-  ApiException(this.message, {this.statusCode});
+  ApiException(this.message, {this.statusCode, this.code});
 
   final String message;
   final int? statusCode;
+  final String? code;
 
   @override
   String toString() => message;
@@ -37,7 +39,22 @@ class ApiClient {
           if (_slug?.isNotEmpty == true) {
             options.headers['X-Center-Slug'] = _slug;
           }
+          _debugLog('--> ${options.method} ${options.uri}');
           handler.next(options);
+        },
+        onResponse: (response, handler) {
+          _debugLog(
+            '<-- ${response.statusCode} ${response.requestOptions.uri} '
+            '${_safeDebugBody(response.data)}',
+          );
+          handler.next(response);
+        },
+        onError: (error, handler) {
+          _debugLog(
+            '<-- ERROR ${error.response?.statusCode ?? error.type} '
+            '${error.requestOptions.uri} ${_safeDebugBody(error.response?.data)}',
+          );
+          handler.next(error);
         },
       ),
     );
@@ -51,10 +68,7 @@ class ApiClient {
   Future<void> Function()? _unauthorizedHandler;
   bool _isHandlingUnauthorized = false;
 
-  void configure({
-    String? accessToken,
-    String? slug,
-  }) {
+  void configure({String? accessToken, String? slug}) {
     _accessToken = accessToken;
     _slug = slug;
   }
@@ -97,22 +111,30 @@ class ApiClient {
   ApiException _mapError(DioException error) {
     final data = error.response?.data;
     if (data is Map) {
-      final payload = data.map(
-        (key, value) => MapEntry(key.toString(), value),
-      );
+      final payload = data.map((key, value) => MapEntry(key.toString(), value));
       final message =
           payload['message']?.toString() ??
           payload['error']?.toString() ??
           payload['detail']?.toString() ??
           payload['non_field_errors']?.toString();
       if (message != null && message.isNotEmpty) {
-        return ApiException(message, statusCode: error.response?.statusCode);
+        return ApiException(
+          message,
+          statusCode: error.response?.statusCode,
+          code: payload['code']?.toString(),
+        );
       }
     }
 
     if (error.type == DioExceptionType.connectionError ||
-        error.type == DioExceptionType.connectionTimeout) {
-      return ApiException('Server bilan aloqa o\'rnatilmadi');
+        error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.receiveTimeout ||
+        error.type == DioExceptionType.sendTimeout) {
+      return ApiException(
+        'Serverga ulanib bo‘lmadi',
+        statusCode: error.response?.statusCode,
+        code: 'network',
+      );
     }
 
     return ApiException(
@@ -131,10 +153,7 @@ class ApiClient {
       } on DioException catch (error) {
         if (error.response?.statusCode == 401) {
           await _handleUnauthorized();
-          throw ApiException(
-            'Sessiya yakunlandi. Qayta tizimga kiring.',
-            statusCode: 401,
-          );
+          throw _mapError(error);
         }
 
         if (attempt >= 2 || !_shouldRetry(error)) {
@@ -167,10 +186,7 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
   }) async {
     final response = await _sendWithRetry(
-      () => _dio.get<dynamic>(
-        path,
-        queryParameters: queryParameters,
-      ),
+      () => _dio.get<dynamic>(path, queryParameters: queryParameters),
     );
     return _mapBody(response);
   }
@@ -190,13 +206,38 @@ class ApiClient {
     return _mapBody(response);
   }
 
-  Future<Map<String, dynamic>> patch(
-    String path, {
-    Object? data,
-  }) async {
+  Future<Map<String, dynamic>> patch(String path, {Object? data}) async {
     final response = await _sendWithRetry(
       () => _dio.patch<dynamic>(path, data: data),
     );
     return _mapBody(response);
+  }
+
+  void _debugLog(String message) {
+    if (!kDebugMode) {
+      return;
+    }
+    debugPrint('[Chaqmoq API] baseUrl=${AppConfig.baseUrl} $message');
+  }
+
+  Object? _safeDebugBody(Object? data) {
+    if (data is Map) {
+      final redacted = <String, Object?>{};
+      for (final entry in data.entries) {
+        final key = entry.key.toString();
+        final lower = key.toLowerCase();
+        if (lower.contains('password') ||
+            lower == 'token' ||
+            lower == 'access' ||
+            lower == 'access_token' ||
+            lower == 'refresh') {
+          redacted[key] = '***';
+        } else {
+          redacted[key] = entry.value;
+        }
+      }
+      return redacted;
+    }
+    return data;
   }
 }

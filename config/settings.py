@@ -1,4 +1,5 @@
 import os
+import socket
 from pathlib import Path
 from dotenv import load_dotenv
 from django.utils.translation import gettext_lazy as _
@@ -17,11 +18,31 @@ if not SECRET_KEY:
     SECRET_KEY = "local-dev-unsafe-secret-key-change-in-production"
 DEBUG = True # ✅ Force Debug for Local Dev to prevent redirect issues
 
+def _detect_lan_ip():
+    sock = None
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.settimeout(0.2)
+        sock.connect(("8.8.8.8", 80))
+        return sock.getsockname()[0]
+    except OSError:
+        return ""
+    finally:
+        if sock is not None:
+            sock.close()
+
 _ALLOWED = os.getenv("ALLOWED_HOSTS", "")
 if _ALLOWED:
     ALLOWED_HOSTS = [host.strip() for host in _ALLOWED.split(",") if host.strip()]
 else:
     ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".localhost"]
+
+LOCAL_DEV_HOST = os.getenv("LOCAL_DEV_HOST") or _detect_lan_ip()
+LOCAL_EMULATOR_HOST = "10.0.2.2"
+if DEBUG:
+    for host in ("0.0.0.0", LOCAL_DEV_HOST, LOCAL_EMULATOR_HOST):
+        if host and host not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(host)
 
 # ✅ COOKIE FIX: Localhost requires strict handling to avoid loops
 # We use None so cookies are host-only. This prevents subdomain conflict on local.
@@ -38,6 +59,10 @@ CSRF_TRUSTED_ORIGINS = [
     "https://*.onrender.com",
     "https://*.chaqmoq.uz"
 ]
+if DEBUG and LOCAL_DEV_HOST:
+    CSRF_TRUSTED_ORIGINS.append(f"http://{LOCAL_DEV_HOST}:8000")
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS.append(f"http://{LOCAL_EMULATOR_HOST}:8000")
     
 # Security settings for local dev (Disable SSL/Secure cookies to prevent loops)
 SECURE_SSL_REDIRECT = False

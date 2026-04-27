@@ -1,45 +1,83 @@
 from __future__ import annotations
 
 import json
+import calendar
+import hashlib
+import html
+import logging
+import os
+import re
+import secrets
+from datetime import date
 from decimal import Decimal
+from functools import wraps
 
+from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.core.paginator import EmptyPage, Paginator
-from django.db.models import Q, Sum
+from django.core.validators import validate_email
+from django.db.models import Avg, Q, Sum
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from django.views.decorators.csrf import ensure_csrf_cookie
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from accounts.api_auth import record_activity
-from accounts.models import User
+from accounts.models import Center, User
+from accounts.utils import normalize_phone
 from billing.services import (
     get_subscription_ui_state,
     get_user_subscription_dashboard_data,
     resolve_center_student_limit,
 )
 from chaqmoq.models import Ledger
-from core.models import Notification
+from core.models import MobileAccessToken, Notification
 from education.models import (
     Attendance,
     CertificateRecord,
     Enrollment,
+    ExamResult,
     Group,
     Payment,
     PaymentAllocation,
+    StudentAcademicSummary,
     TuitionMonth,
 )
 from education.services.expected_income_service import calculate_expected_income
 from store.models import Lead, Product, PurchaseRequest, TrialLesson
 
 
+logger = logging.getLogger(__name__)
+
+
+def _mobile_debug(message: str, **extra) -> None:
+    if not settings.DEBUG:
+        return
+    logger.info("mobile_auth_debug: %s %s", message, extra)
+
+
 def _json_error(message: str, *, status: int = 400, code: str | None = None) -> JsonResponse:
     payload = {"ok": False, "error": message}
     if code:
         payload["code"] = code
+    return JsonResponse(payload, status=status)
+
+
+def _mobile_json_error(
+    message: str,
+    *,
+    status: int = 400,
+    code: str | None = None,
+    extra: dict | None = None,
+) -> JsonResponse:
+    payload = {"ok": False, "error": message, "message": message}
+    if code:
+        payload["code"] = code
+    if extra:
+        payload.update(extra)
     return JsonResponse(payload, status=status)
 
 
@@ -54,6 +92,195 @@ def _parse_json_body(request) -> dict:
 
 def _request_center(request):
     return getattr(request, "center", None) or getattr(request.user, "center", None)
+
+
+def _hash_token(raw_token: str) -> str:
+    return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+
+
+def _bearer_token(request) -> str:
+    header = request.headers.get("Authorization", "")
+    if not header.lower().startswith("bearer "):
+        return ""
+    return header.split(" ", 1)[1].strip()
+
+
+def _authenticate_mobile_token(request) -> User | None:
+    raw_token = _bearer_token(request)
+    if not raw_token:
+        return None
+
+    key_hash = _hash_token(raw_token)
+    token = (
+        MobileAccessToken.objects
+        .select_related("user", "user__center", "center")
+        .filter(
+            key_hash=key_hash,
+            is_revoked=False,
+            expires_at__gt=timezone.now(),
+            user__is_active=True,
+        )
+        .first()
+    )
+    if not token:
+        return None
+
+    token.last_used_at = timezone.now()
+    token.save(update_fields=["last_used_at"])
+    request.mobile_access_token = token
+    request.user = token.user
+    if token.center_id:
+        request.center = token.center
+        request.active_center = token.center
+    elif getattr(token.user, "center_id", None):
+        request.center = token.user.center
+        request.active_center = token.user.center
+    return token.user
+
+
+def mobile_login_required(view_func):
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            _authenticate_mobile_token(request)
+        if not request.user.is_authenticated:
+            return _mobile_json_error(
+                "Sessiya yakunlandi. Qayta tizimga kiring.",
+                status=401,
+                code="not_authenticated",
+            )
+        return view_func(request, *args, **kwargs)
+
+    return _wrapped
+
+
+def _create_mobile_access_token(request, user: User, center, data: dict) -> tuple[str, MobileAccessToken]:
+    raw_token = secrets.token_urlsafe(40)
+    token = MobileAccessToken.objects.create(
+        user=user,
+        center=center,
+        key_prefix=raw_token[:16],
+        key_hash=_hash_token(raw_token),
+        device_name=str(data.get("device_name") or "")[:120],
+        device_platform=str(data.get("device_platform") or "")[:32],
+        expires_at=timezone.now() + timezone.timedelta(days=180),
+    )
+    request.mobile_access_token = token
+    return raw_token, token
+
+
+def _center_from_login_payload(request, data: dict):
+    slug = (
+        str(data.get("slug") or data.get("center_slug") or "").strip()
+        or str(request.headers.get("X-Center-Slug") or "").strip()
+        or str(getattr(request, "url_center_slug", "") or "").strip()
+    )
+    if not slug and settings.DEBUG:
+        slug = str(os.getenv("LOCAL_DEFAULT_CENTER_SLUG") or "").strip()
+    if not slug:
+        return getattr(request, "center", None)
+    return Center.objects.filter(slug=slug, is_deleted=False).first()
+
+
+def _candidate_login_users(identifier: str, center=None):
+    normalized_phone = normalize_phone(identifier)
+    query = Q(email__iexact=identifier) | Q(telegram_username__iexact=identifier)
+    if normalized_phone:
+        query |= Q(phone_number=normalized_phone) | Q(telefon1=normalized_phone) | Q(telefon2=normalized_phone)
+    qs = User.objects.filter(query, is_active=True).select_related("center")
+    if center is not None:
+        qs = qs.filter(center=center)
+    return qs
+
+
+def _resolve_login_user(request, data: dict):
+    identifier = str(
+        data.get("login")
+        or data.get("phone")
+        or data.get("phone_number")
+        or data.get("username")
+        or data.get("email")
+        or ""
+    ).strip()
+    password = str(data.get("password") or "")
+    requested_slug = (
+        str(data.get("slug") or data.get("center_slug") or "").strip()
+        or str(request.headers.get("X-Center-Slug") or "").strip()
+        or str(getattr(request, "url_center_slug", "") or "").strip()
+        or (str(os.getenv("LOCAL_DEFAULT_CENTER_SLUG") or "").strip() if settings.DEBUG else "")
+    )
+    _mobile_debug("login_received", login=identifier, center_slug=requested_slug or None)
+    if not identifier or not password:
+        _mobile_debug("login_missing_credentials", login=identifier, center_slug=requested_slug or None)
+        return None, None, _mobile_json_error(
+            "Telefon raqam va parol majburiy",
+            code="missing_credentials",
+        )
+
+    center = _center_from_login_payload(request, data)
+    _mobile_debug(
+        "login_center_resolved",
+        login=identifier,
+        center_slug=requested_slug or None,
+        center=getattr(center, "slug", None),
+    )
+    if requested_slug and not center:
+        _mobile_debug("login_center_not_found", login=identifier, center_slug=requested_slug)
+        return None, None, _mobile_json_error("Markaz topilmadi", status=404, code="center_not_found")
+
+    authenticated_user = authenticate(request, username=identifier, password=password)
+    if not authenticated_user:
+        for candidate in _candidate_login_users(identifier, center=center):
+            if candidate.check_password(password):
+                authenticated_user = candidate
+                break
+
+    if not authenticated_user:
+        _mobile_debug("login_auth_failed", login=identifier, center_slug=requested_slug or None)
+        return None, None, _mobile_json_error(
+            "Telefon raqam yoki parol noto‘g‘ri",
+            status=401,
+            code="invalid_credentials",
+        )
+
+    if not authenticated_user.is_superuser and getattr(authenticated_user, "center", None) is None:
+        _mobile_debug("login_center_required", login=identifier, user_id=authenticated_user.id)
+        return None, None, _mobile_json_error(
+            "Siz hech qaysi o‘quv markazga biriktirilmagansiz.",
+            status=403,
+            code="center_required",
+        )
+    if not authenticated_user.is_superuser and not (getattr(authenticated_user, "role", "") or "").strip():
+        _mobile_debug("login_role_required", login=identifier, user_id=authenticated_user.id)
+        return None, None, _mobile_json_error(
+            "Sizga rol biriktirilmagan.",
+            status=403,
+            code="role_required",
+        )
+
+    user_center = getattr(authenticated_user, "center", None)
+    if center and not authenticated_user.is_superuser and user_center and user_center.id != center.id:
+        _mobile_debug(
+            "login_center_mismatch",
+            login=identifier,
+            user_id=authenticated_user.id,
+            user_center=getattr(user_center, "slug", None),
+            requested_center=getattr(center, "slug", None),
+        )
+        return None, None, _mobile_json_error(
+            "Bu markaz uchun kirish ruxsati yo‘q",
+            status=403,
+            code="center_mismatch",
+        )
+
+    _mobile_debug(
+        "login_auth_success",
+        login=identifier,
+        user_id=authenticated_user.id,
+        role=authenticated_user.role,
+        center=getattr(center or user_center, "slug", None),
+    )
+    return authenticated_user, center or user_center, None
 
 
 def _full_name(user: User) -> str:
@@ -76,6 +303,20 @@ def _money(value) -> int:
     if isinstance(value, Decimal):
         return int(value)
     return int(value or 0)
+
+
+_HTML_BR_RE = re.compile(r"<\s*br\s*/?\s*>", re.IGNORECASE)
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _clean_mobile_text(value) -> str:
+    text = html.unescape(str(value or ""))
+    text = _HTML_BR_RE.sub("\n", text)
+    text = _HTML_TAG_RE.sub("", text)
+    text = re.sub(r"[ \t\r\f\v]+", " ", text)
+    text = re.sub(r" *\n *", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
 
 
 def _serialize_center(center) -> dict | None:
@@ -102,6 +343,7 @@ def _serialize_user(request, user: User) -> dict:
     return {
         "id": user.id,
         "email": user.email,
+        "phone": user.telefon1 or user.phone_number or "",
         "phone_number": user.phone_number,
         "telefon1": user.telefon1,
         "telefon2": user.telefon2,
@@ -135,20 +377,29 @@ def _serialize_user(request, user: User) -> dict:
     }
 
 
-def _serialize_session(request, user: User) -> dict:
-    return {
+def _serialize_session(request, user: User, *, access_token: str | None = None, token_obj: MobileAccessToken | None = None) -> dict:
+    payload = {
         "ok": True,
+        "success": True,
         "authenticated": True,
         "csrf_token": get_token(request),
         "user": _serialize_user(request, user),
+        "role": user.role,
+        "center": _serialize_center(_request_center(request)),
     }
+    if access_token:
+        payload["access_token"] = access_token
+        payload["token"] = access_token
+        payload["token_type"] = "Bearer"
+        payload["expires_at"] = token_obj.expires_at.isoformat() if token_obj else None
+    return payload
 
 
 def _serialize_notification(notification: Notification) -> dict:
     return {
         "id": notification.id,
-        "title": notification.title,
-        "message": notification.message,
+        "title": _clean_mobile_text(notification.title),
+        "message": _clean_mobile_text(notification.message),
         "type": notification.type,
         "is_read": notification.is_read,
         "created_at": timezone.localtime(notification.created_at).isoformat(),
@@ -301,38 +552,298 @@ def _role_required(request, allowed_roles: tuple[str, ...]) -> JsonResponse | No
     return None
 
 
+def _month_start(date_obj):
+    return date_obj.replace(day=1)
+
+
+def _add_months(date_obj, months: int):
+    month_index = date_obj.month - 1 + months
+    year = date_obj.year + month_index // 12
+    month = month_index % 12 + 1
+    day = min(date_obj.day, calendar.monthrange(year, month)[1])
+    return date_obj.replace(year=year, month=month, day=day)
+
+
+def _month_label_uz(date_obj) -> str:
+    labels = {
+        1: "Yan",
+        2: "Fev",
+        3: "Mar",
+        4: "Apr",
+        5: "May",
+        6: "Iyun",
+        7: "Iyul",
+        8: "Avg",
+        9: "Sen",
+        10: "Okt",
+        11: "Noy",
+        12: "Dek",
+    }
+    return labels.get(date_obj.month, date_obj.strftime("%b"))
+
+
+def _parse_month_start(value: str | None):
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        year_text, month_text = raw[:7].split("-", 1)
+        year = int(year_text)
+        month = int(month_text)
+        if 1 <= month <= 12:
+            return date(year, month, 1)
+    except (TypeError, ValueError):
+        return None
+    return None
+
+
+def _parent_children_queryset(parent: User, center):
+    qs = parent.children.filter(role="student", is_archived=False).select_related("center")
+    if center:
+        qs = qs.filter(center=center)
+    return qs
+
+
+def _resolve_parent_child(request, child_id=None):
+    if not request.user.is_superuser and request.user.role != "parent":
+        return None, _mobile_json_error("Permission denied", status=403, code="permission_denied")
+
+    center = _request_center(request)
+    children = _parent_children_queryset(request.user, center)
+    if child_id:
+        child = children.filter(pk=child_id).first()
+    else:
+        child = children.first()
+
+    if not child:
+        return None, _mobile_json_error("Farzand topilmadi", status=404, code="child_not_found")
+    return child, None
+
+
+def _split_full_name(full_name: str) -> tuple[str, str, str]:
+    parts = [part for part in re.split(r"\s+", full_name.strip()) if part]
+    if not parts:
+        return "", "", ""
+    if len(parts) == 1:
+        return parts[0], "", ""
+    if len(parts) == 2:
+        return parts[0], parts[1], ""
+    return parts[0], parts[1], " ".join(parts[2:])
+
+
+def _normalize_child_code(raw_code: str) -> str:
+    return re.sub(r"\s+", "", str(raw_code or "")).upper()
+
+
+def _normalize_mobile_profile_phone(raw_phone: str) -> str | None:
+    digits = re.sub(r"\D", "", str(raw_phone or ""))
+    if not digits:
+        return ""
+    if len(digits) == 9:
+        return f"+998{digits}"
+    if len(digits) == 12 and digits.startswith("998"):
+        return f"+{digits}"
+    return None
+
+
+def _find_student_by_child_code(child_code: str) -> User | None:
+    normalized_code = _normalize_child_code(child_code)
+    if not normalized_code:
+        return None
+    return (
+        User.objects
+        .filter(
+            role="student",
+            is_archived=False,
+            child_code__iexact=normalized_code,
+        )
+        .select_related("center")
+        .first()
+    )
+
+
+def _serialize_child_profile(request, child: User, center) -> dict:
+    groups = _student_groups(child, center)
+    primary_group = groups[0] if groups else {}
+    return {
+        "id": child.id,
+        "full_name": child.get_full_name(),
+        "first_name": child.ism,
+        "last_name": child.familya,
+        "avatar_url": _safe_media_url(request, child.avatar),
+        "phone": child.phone_number or child.telefon1 or "",
+        "email": child.email,
+        "class_name": primary_group.get("category") or "",
+        "group_name": primary_group.get("name") or "",
+        "group_id": primary_group.get("id"),
+        "child_code": child.child_code or "",
+        "center": _serialize_center(center or child.center),
+        "groups": groups,
+    }
+
+
+def _student_average_score(student: User, center) -> int:
+    avg_result = (
+        ExamResult.objects
+        .filter(student=student, center=center, percent__isnull=False)
+        .aggregate(avg=Avg("percent"))["avg"]
+    )
+    if avg_result is not None:
+        return int(round(float(avg_result)))
+
+    avg_summary = (
+        StudentAcademicSummary.objects
+        .filter(student=student, center=center, average_percent__isnull=False)
+        .aggregate(avg=Avg("average_percent"))["avg"]
+    )
+    if avg_summary is not None:
+        return int(round(float(avg_summary)))
+    return 0
+
+
+def _next_payment_date(student: User, center):
+    today = timezone.localdate()
+    enrollments = Enrollment.objects.filter(student=student, group__center=center, is_active=True)
+    unpaid_months = (
+        TuitionMonth.objects
+        .filter(enrollment__in=enrollments, is_deleted=False)
+        .select_related("enrollment")
+        .order_by("month")
+    )
+    for tuition in unpaid_months:
+        paid = tuition.allocations.filter(is_deleted=False).aggregate(total=Sum("amount"))["total"] or 0
+        if _money(paid) < _money(tuition.fee_amount):
+            day = min(getattr(center, "payment_day", 5) or 5, calendar.monthrange(tuition.month.year, tuition.month.month)[1])
+            return tuition.month.replace(day=day)
+
+    target = today
+    day = min(getattr(center, "payment_day", 5) or 5, calendar.monthrange(target.year, target.month)[1])
+    due = target.replace(day=day)
+    if due < today:
+        target = _add_months(target, 1)
+        day = min(getattr(center, "payment_day", 5) or 5, calendar.monthrange(target.year, target.month)[1])
+        due = target.replace(day=day)
+    return due
+
+
+def _student_progress_chart(student: User, center) -> list[dict]:
+    today = timezone.localdate()
+    months = [_month_start(_add_months(today, offset)) for offset in range(-4, 1)]
+    enrollments = (
+        Enrollment.objects
+        .filter(student=student, group__center=center, is_active=True)
+        .select_related("group")
+        .order_by("group__nom")
+    )
+    items = []
+    for enrollment in enrollments[:6]:
+        group = enrollment.group
+        points = []
+        has_data = False
+        for month in months:
+            next_month = _add_months(month, 1)
+            avg = (
+                ExamResult.objects
+                .filter(
+                    student=student,
+                    group=group,
+                    center=center,
+                    exam_date__gte=month,
+                    exam_date__lt=next_month,
+                    percent__isnull=False,
+                )
+                .aggregate(avg=Avg("percent"))["avg"]
+            )
+            if avg is not None:
+                has_data = True
+            points.append(round(float(avg or 0), 1))
+        if not has_data:
+            summary = StudentAcademicSummary.objects.filter(student=student, group=group, center=center).first()
+            if summary and summary.average_percent is not None:
+                has_data = True
+                points = [round(float(summary.average_percent), 1)] * len(months)
+        if has_data:
+            items.append({
+                "subject": group.nom,
+                "label": group.nom,
+                "percent": int(round(points[-1])),
+                "points": points,
+                "months": [_month_label_uz(month) for month in months],
+            })
+    return items
+
+
+def _notification_queryset_for_user(user: User):
+    if getattr(user, "role", None) == "parent":
+        child_ids = list(user.children.values_list("id", flat=True))
+        return Notification.objects.filter(Q(recipient=user) | Q(recipient_id__in=child_ids))
+    return Notification.objects.filter(recipient=user)
+
+
+def _latest_parent_notifications(user: User, *, limit: int = 3) -> list[dict]:
+    return [_serialize_notification(item) for item in _notification_queryset_for_user(user).order_by("-created_at")[:limit]]
+
+
+def _parent_dashboard_payload(request, child: User) -> dict:
+    center = _request_center(request) or child.center
+    attendance = _student_attendance_summary(child, center)
+    debt = _student_open_debt(child, center)
+    average_score = _student_average_score(child, center)
+    next_payment = _next_payment_date(child, center)
+    children = [_serialize_child_profile(request, item, center) for item in _parent_children_queryset(request.user, center)]
+    return {
+        "ok": True,
+        "parent": _serialize_user(request, request.user),
+        "center": _serialize_center(center),
+        "selected_child": _serialize_child_profile(request, child, center),
+        "children": children,
+        "stats": {
+            "attendance_percent": int(round(attendance.get("recent_attendance_rate") or attendance.get("attendance_rate") or 0)),
+            "debt_amount": debt,
+            "average_score": average_score,
+            "next_payment_date": next_payment.isoformat() if next_payment else None,
+        },
+        "progress_chart": _student_progress_chart(child, center),
+        "latest_notifications": _latest_parent_notifications(request.user, limit=3),
+        "unread_notifications": _notification_queryset_for_user(request.user).filter(is_read=False).count(),
+    }
+
+
 @require_GET
 @ensure_csrf_cookie
 def mobile_auth_csrf(request):
     return JsonResponse({"ok": True, "csrf_token": get_token(request)})
 
 
+@csrf_exempt
 @require_POST
 def mobile_auth_login(request):
     data = _parse_json_body(request)
-    username = str(data.get("username") or "").strip()
-    password = str(data.get("password") or "")
-    if not username or not password:
-        return _json_error("username va password majburiy", code="missing_credentials")
+    user, center, error = _resolve_login_user(request, data)
+    if error:
+        return error
 
-    user = authenticate(request, username=username, password=password)
-    if not user:
-        return _json_error("Login yoki parol noto'g'ri", status=401, code="invalid_credentials")
-
-    center = _request_center(request)
-    if center and not user.is_superuser and getattr(user, "center_id", None) and user.center_id != center.id:
-        return _json_error("Bu markaz uchun kirish ruxsati yo'q", status=403, code="center_mismatch")
-
+    if not getattr(user, "backend", ""):
+        user.backend = settings.AUTHENTICATION_BACKENDS[0]
     login(request, user)
+    raw_token, token = _create_mobile_access_token(request, user, center, data)
     try:
         record_activity(user, "Login successful (Mobile API)", request=request)
     except Exception:
         pass
-    return JsonResponse(_serialize_session(request, user))
+    return JsonResponse(_serialize_session(request, user, access_token=raw_token, token_obj=token))
 
 
+@csrf_exempt
 @require_POST
 def mobile_auth_logout(request):
+    token = getattr(request, "mobile_access_token", None)
+    if token is None:
+        _authenticate_mobile_token(request)
+        token = getattr(request, "mobile_access_token", None)
+    if token is not None:
+        token.is_revoked = True
+        token.save(update_fields=["is_revoked"])
     if request.user.is_authenticated:
         try:
             record_activity(request.user, "Logout (Mobile API)", request=request)
@@ -345,18 +856,20 @@ def mobile_auth_logout(request):
 @require_GET
 def mobile_auth_status(request):
     if not request.user.is_authenticated:
+        _authenticate_mobile_token(request)
+    if not request.user.is_authenticated:
         return JsonResponse({"ok": True, "authenticated": False, "csrf_token": get_token(request)})
     return JsonResponse(_serialize_session(request, request.user))
 
 
 @require_GET
-@login_required
+@mobile_login_required
 def mobile_me(request):
     return JsonResponse({"ok": True, "user": _serialize_user(request, request.user), "csrf_token": get_token(request)})
 
 
 @require_GET
-@login_required
+@mobile_login_required
 def mobile_role_home(request):
     role = "superadmin" if request.user.is_superuser else getattr(request.user, "role", "")
     center = _request_center(request)
@@ -407,7 +920,7 @@ def mobile_role_home(request):
 
 
 @require_GET
-@login_required
+@mobile_login_required
 def mobile_teacher_home(request):
     permission_error = _role_required(request, ("teacher", "director", "manager"))
     if permission_error:
@@ -444,7 +957,7 @@ def mobile_teacher_home(request):
 
 
 @require_GET
-@login_required
+@mobile_login_required
 def mobile_student_home(request):
     if not request.user.is_superuser and request.user.role != "student":
         return _json_error("Permission denied", status=403, code="permission_denied")
@@ -453,7 +966,7 @@ def mobile_student_home(request):
 
 
 @require_GET
-@login_required
+@mobile_login_required
 def mobile_parent_home(request):
     if not request.user.is_superuser and request.user.role != "parent":
         return _json_error("Permission denied", status=403, code="permission_denied")
@@ -471,11 +984,355 @@ def mobile_parent_home(request):
 
 
 @require_GET
-@login_required
+@mobile_login_required
+def mobile_parent_dashboard(request):
+    child, error = _resolve_parent_child(request, request.GET.get("child_id") or request.GET.get("selected_child_id"))
+    if error:
+        return error
+    return JsonResponse(_parent_dashboard_payload(request, child))
+
+
+@require_GET
+@mobile_login_required
+def mobile_dashboard(request):
+    child, error = _resolve_parent_child(request, request.GET.get("child_id") or request.GET.get("selected_child_id"))
+    if error:
+        return error
+    return JsonResponse(_parent_dashboard_payload(request, child))
+
+
+@require_GET
+@mobile_login_required
+def mobile_parent_children(request):
+    if not request.user.is_superuser and request.user.role != "parent":
+        return _mobile_json_error("Permission denied", status=403, code="permission_denied")
+    center = _request_center(request)
+    children = [_serialize_child_profile(request, item, center) for item in _parent_children_queryset(request.user, center)]
+    return JsonResponse({"ok": True, "children": children})
+
+
+@csrf_exempt
+@require_POST
+@mobile_login_required
+def mobile_parent_select_child(request):
+    data = _parse_json_body(request)
+    child, error = _resolve_parent_child(request, data.get("child_id"))
+    if error:
+        return error
+    return JsonResponse({"ok": True, "selected_child": _serialize_child_profile(request, child, _request_center(request) or child.center)})
+
+
+@require_GET
+@mobile_login_required
+def mobile_parent_child_attendance(request, child_id: int):
+    child, error = _resolve_parent_child(request, child_id)
+    if error:
+        return error
+    center = _request_center(request) or child.center
+    month_start = _parse_month_start(request.GET.get("month"))
+    qs = (
+        Attendance.objects
+        .filter(student=child, group__center=center)
+        .select_related("group", "teacher")
+        .order_by("-date", "group__nom")
+    )
+    if month_start:
+        qs = qs.filter(date__gte=month_start, date__lt=_add_months(month_start, 1))
+    summary = _student_attendance_summary(child, center)
+    items = [
+        {
+            "id": item.id,
+            "date": item.date.isoformat(),
+            "group_id": item.group_id,
+            "group_name": item.group.nom,
+            "teacher_name": item.teacher.get_full_name() if item.teacher else "",
+            "status": item.status,
+            "status_label": "Kelgan" if bool(item.status == "present" or item.present or item.forced) else "Kelmagan",
+            "present": bool(item.status == "present" or item.present or item.forced),
+            "created_at": item.created_at.isoformat() if item.created_at else None,
+        }
+        for item in qs[:200]
+    ]
+    return JsonResponse({"ok": True, "child": _serialize_child_profile(request, child, center), "summary": summary, "items": items})
+
+
+@require_GET
+@mobile_login_required
+def mobile_attendance(request):
+    child, error = _resolve_parent_child(request, request.GET.get("child_id") or request.GET.get("selected_child_id"))
+    if error:
+        return error
+    return mobile_parent_child_attendance(request, child.id)
+
+
+@require_GET
+@mobile_login_required
+def mobile_parent_child_payments(request, child_id: int):
+    child, error = _resolve_parent_child(request, child_id)
+    if error:
+        return error
+    center = _request_center(request) or child.center
+    enrollments = Enrollment.objects.filter(student=child, group__center=center).select_related("group")
+    total_plan = sum(enrollment.resolved_monthly_price for enrollment in enrollments if enrollment.is_active)
+    paid_total = Payment.objects.filter(student=child, center=center, is_deleted=False).aggregate(total=Sum("summa"))["total"] or 0
+    current_debt = _student_open_debt(child, center)
+    next_payment = _next_payment_date(child, center)
+    payments = (
+        Payment.objects
+        .filter(student=child, center=center, is_deleted=False)
+        .select_related("group")
+        .order_by("-paid_date", "-id")
+    )
+    history = [
+        {
+            "id": payment.id,
+            "title": f"{payment.group.nom} uchun to‘lov",
+            "group_name": payment.group.nom,
+            "date": payment.paid_date.isoformat(),
+            "amount": payment.summa,
+            "status": "paid",
+            "status_label": "To‘langan",
+            "payment_type": payment.payment_type,
+            "note": payment.note or "",
+        }
+        for payment in payments[:100]
+    ]
+    return JsonResponse({
+        "ok": True,
+        "child": _serialize_child_profile(request, child, center),
+        "summary": {
+            "total_plan": total_plan,
+            "total_balance": _money(paid_total) + current_debt,
+            "paid_total": _money(paid_total),
+            "debt_amount": current_debt,
+            "next_payment_date": next_payment.isoformat() if next_payment else None,
+        },
+        "history": history,
+    })
+
+
+@require_GET
+@mobile_login_required
+def mobile_payments(request):
+    child, error = _resolve_parent_child(request, request.GET.get("child_id") or request.GET.get("selected_child_id"))
+    if error:
+        return error
+    return mobile_parent_child_payments(request, child.id)
+
+
+@require_GET
+@mobile_login_required
+def mobile_parent_child_progress(request, child_id: int):
+    child, error = _resolve_parent_child(request, child_id)
+    if error:
+        return error
+    center = _request_center(request) or child.center
+    subjects = []
+    for enrollment in Enrollment.objects.filter(student=child, group__center=center).select_related("group", "group__oqituvchi").order_by("group__nom"):
+        group = enrollment.group
+        avg = (
+            ExamResult.objects
+            .filter(student=child, group=group, center=center, percent__isnull=False)
+            .aggregate(avg=Avg("percent"))["avg"]
+        )
+        summary = StudentAcademicSummary.objects.filter(student=child, group=group, center=center).first()
+        percent = avg if avg is not None else (summary.average_percent if summary and summary.average_percent is not None else 0)
+        subjects.append({
+            "id": group.id,
+            "subject": group.nom,
+            "teacher_name": group.oqituvchi.get_full_name() if group.oqituvchi else "",
+            "percent": int(round(float(percent or 0))),
+            "status": "A’lo" if float(percent or 0) >= 90 else "Yaxshi" if float(percent or 0) >= 65 else "O‘rta",
+        })
+    latest_comment = (
+        ExamResult.objects
+        .filter(student=child, center=center)
+        .exclude(teacher_comment="")
+        .select_related("teacher", "group")
+        .order_by("-exam_date", "-id")
+        .first()
+    )
+    comment = None
+    if latest_comment:
+        comment = {
+            "teacher_name": latest_comment.teacher.get_full_name() if latest_comment.teacher else "",
+            "teacher_role": f"{latest_comment.group.nom} o‘qituvchisi",
+            "date": latest_comment.exam_date.isoformat(),
+            "comment": latest_comment.teacher_comment,
+        }
+    return JsonResponse({
+        "ok": True,
+        "child": _serialize_child_profile(request, child, center),
+        "overall_percent": _student_average_score(child, center),
+        "progress_chart": _student_progress_chart(child, center),
+        "subjects": subjects,
+        "latest_teacher_comment": comment,
+    })
+
+
+@require_GET
+@mobile_login_required
+def mobile_progress(request):
+    child, error = _resolve_parent_child(request, request.GET.get("child_id") or request.GET.get("selected_child_id"))
+    if error:
+        return error
+    return mobile_parent_child_progress(request, child.id)
+
+
+@csrf_exempt
+@require_http_methods(["GET", "PATCH"])
+@mobile_login_required
+def mobile_parent_profile(request):
+    if not request.user.is_superuser and request.user.role != "parent":
+        return _mobile_json_error("Permission denied", status=403, code="permission_denied")
+    if request.method == "PATCH":
+        data = _parse_json_body(request)
+        full_name = str(data.get("full_name") or "").strip()
+        phone = str(data.get("phone") or data.get("telefon1") or "").strip()
+        email = str(data.get("email") or "").strip()
+
+        if not full_name:
+            return _mobile_json_error("Ism-familiya majburiy", code="full_name_required")
+
+        normalized_phone = _normalize_mobile_profile_phone(phone)
+        if normalized_phone is None:
+            return _mobile_json_error(
+                "Telefon raqam noto‘g‘ri kiritildi",
+                code="invalid_phone",
+            )
+
+        if not email:
+            return _mobile_json_error("Emailni kiriting", code="email_required")
+        try:
+            validate_email(email)
+        except ValidationError:
+            return _mobile_json_error("Email noto‘g‘ri kiritildi", code="invalid_email")
+        if User.objects.filter(email__iexact=email).exclude(pk=request.user.pk).exists():
+            return _mobile_json_error("Bu email allaqachon ishlatilgan", code="email_taken")
+
+        ism, familya, otchestvo = _split_full_name(full_name)
+        if not ism:
+            return _mobile_json_error("Ism-familiya majburiy", code="full_name_required")
+
+        request.user.ism = ism
+        request.user.familya = familya
+        request.user.otchestvo = otchestvo
+        request.user.telefon1 = normalized_phone or ""
+        request.user.gmail = email
+        request.user.email = email
+        request.user.save(
+            update_fields=[
+                "ism",
+                "familya",
+                "otchestvo",
+                "telefon1",
+                "gmail",
+                "email",
+            ]
+        )
+    center = _request_center(request)
+    return JsonResponse({
+        "ok": True,
+        "parent": _serialize_user(request, request.user),
+        "children": [_serialize_child_profile(request, item, center) for item in _parent_children_queryset(request.user, center)],
+    })
+
+
+@csrf_exempt
+@require_http_methods(["GET", "PATCH"])
+@mobile_login_required
+def mobile_profile(request):
+    return mobile_parent_profile(request)
+
+
+@csrf_exempt
+@require_POST
+@mobile_login_required
+def mobile_auth_change_password(request):
+    data = _parse_json_body(request)
+    current_password = str(data.get("current_password") or "").strip()
+    new_password = str(data.get("new_password") or "").strip()
+    confirm_password = str(data.get("confirm_password") or "").strip()
+
+    if not current_password or not new_password or not confirm_password:
+        return _mobile_json_error("Barcha maydonlarni to‘ldiring", code="missing_fields")
+    if not request.user.check_password(current_password):
+        return _mobile_json_error("Joriy parol noto‘g‘ri", code="invalid_current_password")
+    if len(new_password) < 8:
+        return _mobile_json_error("Yangi parol kamida 8 ta belgidan iborat bo‘lishi kerak", code="password_too_short")
+    if new_password != confirm_password:
+        return _mobile_json_error("Parollar mos kelmadi", code="password_mismatch")
+
+    request.user.set_password(new_password)
+    request.user.save(update_fields=["password"])
+    return JsonResponse({"ok": True, "message": "Parol muvaffaqiyatli yangilandi"})
+
+
+@csrf_exempt
+@require_POST
+@mobile_login_required
+def mobile_parent_children_add(request):
+    if not request.user.is_superuser and request.user.role != "parent":
+        return _mobile_json_error("Permission denied", status=403, code="permission_denied")
+
+    data = _parse_json_body(request)
+    child_code = _normalize_child_code(
+        data.get("child_code") or data.get("code") or ""
+    )
+    if not child_code:
+        return _mobile_json_error("Farzand kodini kiriting", code="child_code_required")
+
+    center = _request_center(request)
+    child = _find_student_by_child_code(child_code)
+    if child is None:
+        return _mobile_json_error(
+            "Bu kod bo‘yicha o‘quvchi topilmadi",
+            status=404,
+            code="child_not_found",
+        )
+    if center is not None and child.center_id != center.id:
+        return _mobile_json_error(
+            "Bu o‘quvchi boshqa markazga tegishli",
+            status=403,
+            code="center_mismatch",
+        )
+    if request.user.children.filter(pk=child.pk).exists():
+        return _mobile_json_error(
+            "Bu farzand allaqachon qo‘shilgan",
+            status=409,
+            code="already_linked",
+        )
+
+    request.user.children.add(child)
+    return JsonResponse(
+        {
+            "ok": True,
+            "success": True,
+            "message": "Farzand muvaffaqiyatli qo‘shildi",
+            "child": _serialize_child_profile(request, child, center or child.center),
+        },
+        status=201,
+    )
+
+
+@csrf_exempt
+@require_POST
+@mobile_login_required
+def mobile_notification_read(request, notification_id: int):
+    qs = _notification_queryset_for_user(request.user)
+    notification = get_object_or_404(qs, pk=notification_id)
+    if not notification.is_read:
+        notification.is_read = True
+        notification.save(update_fields=["is_read"])
+    return JsonResponse({"ok": True, "notification": _serialize_notification(notification)})
+
+
+@require_GET
+@mobile_login_required
 def mobile_notifications(request):
     page = max(int(request.GET.get("page") or 1), 1)
     per_page = min(max(int(request.GET.get("per_page") or 20), 1), 100)
-    qs = Notification.objects.filter(recipient=request.user).order_by("-created_at")
+    qs = _notification_queryset_for_user(request.user).order_by("-created_at")
     paginator = Paginator(qs, per_page)
     try:
         page_obj = paginator.page(page)
@@ -496,15 +1353,16 @@ def mobile_notifications(request):
     )
 
 
+@csrf_exempt
 @require_POST
-@login_required
+@mobile_login_required
 def mobile_notifications_read_all(request):
-    updated_count = Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+    updated_count = _notification_queryset_for_user(request.user).filter(is_read=False).update(is_read=True)
     return JsonResponse({"ok": True, "updated_count": updated_count})
 
 
 @require_GET
-@login_required
+@mobile_login_required
 def mobile_billing_status(request):
     center = _request_center(request)
     user_subscription = get_user_subscription_dashboard_data(request.user)
@@ -521,7 +1379,7 @@ def mobile_billing_status(request):
 
 
 @require_GET
-@login_required
+@mobile_login_required
 def mobile_leads(request):
     permission_error = _role_required(request, ("director", "manager"))
     if permission_error:
@@ -553,7 +1411,7 @@ def mobile_leads(request):
 
 
 @require_GET
-@login_required
+@mobile_login_required
 def mobile_store_products(request):
     center = _request_center(request)
     qs = Product.objects.filter(center=center, is_deleted=False).prefetch_related("rasmlar").order_by("-yaratilgan")
@@ -561,7 +1419,7 @@ def mobile_store_products(request):
 
 
 @require_GET
-@login_required
+@mobile_login_required
 def mobile_chaqmoq_history(request):
     center = _request_center(request)
     target_user = request.user
@@ -597,7 +1455,7 @@ def mobile_chaqmoq_history(request):
 
 
 @require_GET
-@login_required
+@mobile_login_required
 def mobile_purchase_requests(request):
     if request.user.role != "student" and not request.user.is_superuser:
         return _json_error("Permission denied", status=403, code="permission_denied")
@@ -626,8 +1484,9 @@ def mobile_purchase_requests(request):
     )
 
 
+@csrf_exempt
 @require_POST
-@login_required
+@mobile_login_required
 def mobile_purchase_request_create(request):
     if request.user.role != "student" and not request.user.is_superuser:
         return _json_error("Permission denied", status=403, code="permission_denied")
@@ -646,7 +1505,7 @@ def mobile_purchase_request_create(request):
 
 
 @require_GET
-@login_required
+@mobile_login_required
 def mobile_student_debt_breakdown(request):
     if request.user.role not in ("student", "parent", "director", "manager") and not request.user.is_superuser:
         return _json_error("Permission denied", status=403, code="permission_denied")

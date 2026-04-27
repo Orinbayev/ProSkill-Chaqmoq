@@ -4,6 +4,7 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 import math
+import secrets
 
 
 from django.utils.text import slugify
@@ -450,6 +451,17 @@ class Roles(models.TextChoices):
     OTA_ONA = "parent", _("Ota-ona")
 
 
+CHILD_CODE_PREFIX = "CHQ"
+CHILD_CODE_LENGTH = 6
+
+
+def _build_child_code() -> str:
+    return (
+        f"{CHILD_CODE_PREFIX}-"
+        f"{secrets.randbelow(10 ** CHILD_CODE_LENGTH):0{CHILD_CODE_LENGTH}d}"
+    )
+
+
 class User(SoftDeleteMixin, AbstractUser):
     # ✅ username ishlatilmaydi
     username = None
@@ -540,11 +552,27 @@ class User(SoftDeleteMixin, AbstractUser):
         limit_choices_to={"role": "student"},
         verbose_name="Farzandlari"
     )
+    child_code = models.CharField(
+        max_length=16,
+        unique=True,
+        null=True,
+        blank=True,
+        db_index=True,
+        verbose_name="Farzand bog‘lash kodi",
+        help_text="Ota-onalar mobil ilovada shu kod orqali farzandni bog‘laydi.",
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
     objects = UserManager()
+
+    @classmethod
+    def generate_unique_child_code(cls) -> str:
+        while True:
+            code = _build_child_code()
+            if not cls.all_objects.filter(child_code=code).exists():
+                return code
 
     def save(self, *args, **kwargs):
         from accounts.utils import normalize_phone
@@ -555,6 +583,12 @@ class User(SoftDeleteMixin, AbstractUser):
             self.phone_number = normalize_phone(self.phone_number)
         if self.telefon1:
             self.telefon1 = normalize_phone(self.telefon1)
+        if self.child_code:
+            self.child_code = str(self.child_code).strip().upper()
+        if self.role == Roles.OQUVCHI and not self.child_code:
+            self.child_code = self.generate_unique_child_code()
+        if self.role != Roles.OQUVCHI and self.child_code == "":
+            self.child_code = None
         super().save(*args, **kwargs)
 
 

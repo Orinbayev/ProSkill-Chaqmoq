@@ -54,6 +54,7 @@ class MobileAPITests(TestCase):
             familya="One",
         )
         self.parent.children.add(self.student)
+        self.assertTrue(self.student.child_code)
 
         self.group = Group.objects.create(
             center=self.center,
@@ -181,6 +182,63 @@ class MobileAPITests(TestCase):
         self.assertEqual(status_response.status_code, 200)
         self.assertTrue(status_response.json()["authenticated"])
 
+    def test_mobile_login_returns_bearer_token_and_me_accepts_it(self):
+        response = self.client.post(
+            "/api/mobile/auth/login/",
+            data='{"login":"parent@mobile.test","password":"testpass123"}',
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["success"])
+        self.assertEqual(payload["role"], "parent")
+        self.assertEqual(payload["center"]["slug"], self.center.slug)
+        self.assertEqual(payload["token"], payload["access_token"])
+        token = payload["access_token"]
+        me_response = self.client.get(
+            "/api/mobile/me/",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+        )
+        self.assertEqual(me_response.status_code, 200)
+        self.assertEqual(me_response.json()["user"]["role"], "parent")
+
+    def test_mobile_login_is_csrf_exempt_for_native_parent_and_student(self):
+        csrf_client = Client(enforce_csrf_checks=True)
+        for login, expected_role in (
+            ("parent@mobile.test", "parent"),
+            ("student@mobile.test", "student"),
+        ):
+            response = csrf_client.post(
+                "/api/mobile/auth/login/",
+                data=(
+                    '{"login":"%s","password":"testpass123","center_slug":"%s"}'
+                    % (login, self.center.slug)
+                ),
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()["role"], expected_role)
+
+    def test_mobile_login_rejects_wrong_password_cleanly(self):
+        response = self.client.post(
+            "/api/mobile/auth/login/",
+            data='{"login":"parent@mobile.test","password":"wrong"}',
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 401)
+        payload = response.json()
+        self.assertEqual(payload["code"], "invalid_credentials")
+
+    def test_parent_dashboard_returns_real_child_stats(self):
+        self.client.force_login(self.parent)
+        response = self.client.get(self._path("parent/dashboard/"))
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["selected_child"]["id"], self.student.id)
+        self.assertEqual(payload["stats"]["debt_amount"], 400_000)
+        self.assertEqual(payload["stats"]["attendance_percent"], 50)
+        self.assertIn("progress_chart", payload)
+
     def test_student_home_contains_debt_balance_groups_and_payments(self):
         self.client.force_login(self.student)
         response = self.client.get(self._path("student/home/"))
@@ -222,3 +280,84 @@ class MobileAPITests(TestCase):
         list_response = self.client.get(self._path("store/purchase-requests/"))
         self.assertEqual(list_response.status_code, 200)
         self.assertEqual(list_response.json()["items"][0]["qty"], 2)
+
+    def test_parent_profile_patch_updates_name_phone_and_email(self):
+        self.client.force_login(self.parent)
+        response = self.client.patch(
+            self._path("parent/profile/"),
+            data='{"full_name":"Yangi Ota-ona Test","phone":"+998901112233","email":"parent.updated@mobile.test"}',
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.parent.refresh_from_db()
+        self.assertEqual(self.parent.get_full_name(), "Yangi Ota-ona Test")
+        self.assertEqual(self.parent.telefon1, "+998901112233")
+        self.assertEqual(self.parent.email, "parent.updated@mobile.test")
+        self.assertEqual(response.json()["parent"]["phone"], "+998901112233")
+
+    def test_change_password_endpoint_updates_parent_password(self):
+        self.client.force_login(self.parent)
+        response = self.client.post(
+            self._path("auth/change-password/"),
+            data='{"current_password":"testpass123","new_password":"newpass123","confirm_password":"newpass123"}',
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.parent.refresh_from_db()
+        self.assertTrue(self.parent.check_password("newpass123"))
+
+    def test_parent_children_add_links_student_from_same_center(self):
+        extra_student = User.objects.create_user(
+            email="student.extra@mobile.test",
+            password="testpass123",
+            role="student",
+            center=self.center,
+            ism="Extra",
+            familya="Student",
+        )
+        self.client.force_login(self.parent)
+        response = self.client.post(
+            self._path("parent/children/add/"),
+            data=f'{{"child_code":"{extra_student.child_code}"}}',
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.json()["success"])
+        self.assertTrue(self.parent.children.filter(pk=extra_student.pk).exists())
+        self.assertEqual(response.json()["child"]["id"], extra_student.id)
+        self.assertEqual(response.json()["child"]["child_code"], extra_student.child_code)
+
+    def test_parent_children_add_rejects_existing_child_link(self):
+        self.client.force_login(self.parent)
+        response = self.client.post(
+            self._path("parent/children/add/"),
+            data=f'{{"child_code":"{self.student.child_code}"}}',
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()["code"], "already_linked")
+
+    def test_parent_children_add_rejects_student_from_other_center(self):
+        other_center = Center.objects.create(
+            name="Other Center",
+            slug="other-center",
+            max_students=50,
+            capacity_limit=50,
+        )
+        foreign_student = User.objects.create_user(
+            email="student.foreign@mobile.test",
+            password="testpass123",
+            role="student",
+            center=other_center,
+            ism="Foreign",
+            familya="Student",
+        )
+        self.client.force_login(self.parent)
+        response = self.client.post(
+            self._path("parent/children/add/"),
+            data=f'{{"child_code":"{foreign_student.child_code}"}}',
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["code"], "center_mismatch")
+        self.assertFalse(self.parent.children.filter(pk=foreign_student.pk).exists())

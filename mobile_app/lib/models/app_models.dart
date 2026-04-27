@@ -42,6 +42,59 @@ bool jsonBool(dynamic value) {
 
 String jsonString(dynamic value) => value == null ? '' : '$value';
 
+String cleanHtmlText(dynamic value) {
+  var text = jsonString(value);
+  if (text.isEmpty) {
+    return '';
+  }
+  text = text.replaceAll(RegExp(r'<\s*br\b[^>]*>', caseSensitive: false), '\n');
+  text = text.replaceAll(
+    RegExp(r'</\s*(p|div|li|ul|ol|h[1-6])\s*>', caseSensitive: false),
+    '\n',
+  );
+  text = text.replaceAll(RegExp(r'<[^>]*>'), '');
+  text = _decodeHtmlEntities(text);
+  return text
+      .replaceAll(RegExp(r'\r\n?'), '\n')
+      .replaceAll(RegExp(r'[ \t\r\f\v]+'), ' ')
+      .replaceAll(RegExp(r' *\n *'), '\n')
+      .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+      .trim();
+}
+
+String _decodeHtmlEntities(String text) {
+  const entities = <String, String>{
+    '&nbsp;': ' ',
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&quot;': '"',
+    '&apos;': "'",
+    '&#39;': "'",
+    '&#x27;': "'",
+    '&ldquo;': '"',
+    '&rdquo;': '"',
+    '&lsquo;': "'",
+    '&rsquo;': "'",
+    '&hellip;': '...',
+    '&ndash;': '-',
+    '&mdash;': '-',
+  };
+  for (final entry in entities.entries) {
+    text = text.replaceAll(entry.key, entry.value);
+  }
+  return text.replaceAllMapped(RegExp(r'&#(\d+);|&#x([0-9a-fA-F]+);'), (match) {
+    final decimal = match.group(1);
+    final hex = match.group(2);
+    final codePoint = decimal != null
+        ? int.tryParse(decimal)
+        : int.tryParse(hex ?? '', radix: 16);
+    return codePoint == null
+        ? match.group(0) ?? ''
+        : String.fromCharCode(codePoint);
+  });
+}
+
 DateTime? jsonDate(dynamic value) {
   if (value is DateTime) {
     return value;
@@ -73,7 +126,10 @@ List<Map<String, dynamic>> jsonMapList(dynamic value) {
 
 List<String> jsonStringList(dynamic value) {
   if (value is List) {
-    return value.map((item) => jsonString(item)).where((item) => item.isNotEmpty).toList();
+    return value
+        .map((item) => jsonString(item))
+        .where((item) => item.isNotEmpty)
+        .toList();
   }
   return <String>[];
 }
@@ -143,12 +199,14 @@ class UserModel {
               jsonString(json['familya']),
             ].where((part) => part.isNotEmpty).join(' ').trim(),
       role: jsonString(json['role']),
-      center: json['center'] == null ? null : CenterModel.fromJson(jsonMap(json['center'])),
+      center: json['center'] == null
+          ? null
+          : CenterModel.fromJson(jsonMap(json['center'])),
       phone: jsonString(json['phone']).isNotEmpty
           ? jsonString(json['phone'])
           : jsonString(json['phone_number']).isNotEmpty
-              ? jsonString(json['phone_number'])
-              : jsonString(json['telefon1']),
+          ? jsonString(json['phone_number'])
+          : jsonString(json['telefon1']),
       email: jsonString(json['email']),
       joinedDate: jsonDate(json['joined_date'] ?? json['date_joined']),
       avatarUrl: jsonString(json['avatar_url']),
@@ -262,10 +320,7 @@ class DashboardMetric {
 }
 
 class ChartPointModel {
-  const ChartPointModel({
-    required this.label,
-    required this.value,
-  });
+  const ChartPointModel({required this.label, required this.value});
 
   final String label;
   final double value;
@@ -277,10 +332,7 @@ class ChartPointModel {
     );
   }
 
-  Map<String, dynamic> toJson() => {
-    'label': label,
-    'value': value,
-  };
+  Map<String, dynamic> toJson() => {'label': label, 'value': value};
 }
 
 class ChildSummaryModel {
@@ -307,10 +359,14 @@ class ChildSummaryModel {
     return ChildSummaryModel(
       id: jsonInt(json['id']),
       fullName: jsonString(json['full_name']),
-      groupName: groups.isEmpty ? jsonString(json['group_name']) : jsonString(groups.first['name']),
+      groupName: groups.isEmpty
+          ? jsonString(json['group_name'])
+          : jsonString(groups.first['name']),
       balance: jsonInt(json['balance']),
       debt: jsonInt(json['debt']),
-      attendanceRate: jsonDouble(jsonMap(json['attendance'])['attendance_rate']),
+      attendanceRate: jsonDouble(
+        jsonMap(json['attendance'])['attendance_rate'],
+      ),
       rank: jsonInt(json['rank']),
     );
   }
@@ -424,14 +480,18 @@ class StudentModel {
       groupName: jsonString(json['group_name']).isNotEmpty
           ? jsonString(json['group_name'])
           : (groups.isNotEmpty ? jsonString(groups.first['name']) : ''),
-      groupId: jsonInt(json['group_id'] ?? (groups.isNotEmpty ? groups.first['id'] : null)),
+      groupId: jsonInt(
+        json['group_id'] ?? (groups.isNotEmpty ? groups.first['id'] : null),
+      ),
       balance: jsonInt(json['balance']),
       status: jsonString(json['status']).isNotEmpty
           ? jsonString(json['status'])
           : (jsonBool(json['is_active']) ? 'active' : 'inactive'),
       isActive: jsonString(json['status']) == 'inactive'
           ? false
-          : (json.containsKey('is_active') ? jsonBool(json['is_active']) : true),
+          : (json.containsKey('is_active')
+                ? jsonBool(json['is_active'])
+                : true),
       registrationDate: jsonDate(
         json['registration_date'] ?? json['created_at'] ?? json['date_joined'],
       ),
@@ -655,10 +715,12 @@ class AttendanceStudentModel {
       fullName: jsonString(json['full_name']).isNotEmpty
           ? jsonString(json['full_name'])
           : jsonString(json['student_name']).isNotEmpty
-              ? jsonString(json['student_name'])
-              : jsonString(json['name']),
+          ? jsonString(json['student_name'])
+          : jsonString(json['name']),
       balance: jsonInt(json['balance']),
-      status: jsonString(json['status']).isEmpty ? 'none' : jsonString(json['status']),
+      status: jsonString(json['status']).isEmpty
+          ? 'none'
+          : jsonString(json['status']),
     );
   }
 
@@ -692,9 +754,9 @@ class AttendanceSheetModel {
       groupName: jsonString(json['group_name']),
       date: jsonDate(json['date']) ?? DateTime.now(),
       readOnly: jsonBool(json['read_only']),
-      items: jsonMapList(json['items'])
-          .map(AttendanceStudentModel.fromJson)
-          .toList(),
+      items: jsonMapList(
+        json['items'],
+      ).map(AttendanceStudentModel.fromJson).toList(),
     );
   }
 
@@ -742,10 +804,13 @@ class PaymentModel {
           : jsonString(json['full_name']),
       groupName: jsonString(json['group_name']),
       amount: jsonInt(json['amount'] ?? json['summa'] ?? json['debt']),
-      date: jsonDate(json['date'] ?? json['paid_date'] ?? json['raw_date']) ?? DateTime.now(),
+      date:
+          jsonDate(json['date'] ?? json['paid_date'] ?? json['raw_date']) ??
+          DateTime.now(),
       method: jsonString(json['method'] ?? json['payment_type']),
       note: jsonString(json['note']),
-      isDebt: jsonBool(json['is_debt']) ||
+      isDebt:
+          jsonBool(json['is_debt']) ||
           jsonString(json['status']).toLowerCase() == 'debt',
     );
   }
@@ -812,10 +877,10 @@ class NotificationModel {
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     return NotificationModel(
       id: jsonInt(json['id']),
-      title: jsonString(json['title']),
-      body: jsonString(json['body']).isNotEmpty
-          ? jsonString(json['body'])
-          : jsonString(json['message']),
+      title: cleanHtmlText(json['title']),
+      body: cleanHtmlText(json['body']).isNotEmpty
+          ? cleanHtmlText(json['body'])
+          : cleanHtmlText(json['message']),
       createdAt: jsonDate(json['created_at']) ?? DateTime.now(),
       type: jsonString(json['type']),
       isRead: jsonBool(json['is_read']),
@@ -902,14 +967,15 @@ class StudentDetailModel {
   factory StudentDetailModel.fromJson(Map<String, dynamic> json) {
     return StudentDetailModel(
       student: StudentModel.fromJson(jsonMap(json['student'])),
-      payments: jsonMapList(json['payments']).map(PaymentModel.fromJson).toList(),
-      attendance: jsonMapList(json['attendance'])
-          .map((item) => jsonDate(item['date']))
-          .whereType<DateTime>()
-          .toList(),
-      chaqmoqHistory: jsonMapList(json['chaqmoq_history'])
-          .map(ChaqmoqEntryModel.fromJson)
-          .toList(),
+      payments: jsonMapList(
+        json['payments'],
+      ).map(PaymentModel.fromJson).toList(),
+      attendance: jsonMapList(
+        json['attendance'],
+      ).map((item) => jsonDate(item['date'])).whereType<DateTime>().toList(),
+      chaqmoqHistory: jsonMapList(
+        json['chaqmoq_history'],
+      ).map(ChaqmoqEntryModel.fromJson).toList(),
       badges: jsonStringList(json['badges']),
     );
   }
@@ -917,7 +983,9 @@ class StudentDetailModel {
   Map<String, dynamic> toJson() => {
     'student': student.toJson(),
     'payments': payments.map((item) => item.toJson()).toList(),
-    'attendance': attendance.map((item) => {'date': item.toIso8601String()}).toList(),
+    'attendance': attendance
+        .map((item) => {'date': item.toIso8601String()})
+        .toList(),
     'chaqmoq_history': chaqmoqHistory.map((item) => item.toJson()).toList(),
     'badges': badges,
   };

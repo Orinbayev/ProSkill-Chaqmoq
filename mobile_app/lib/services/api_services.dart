@@ -1,9 +1,5 @@
-import 'dart:io';
-
-import 'package:chaqmoq_mobile/core/config/app_config.dart';
 import 'package:chaqmoq_mobile/models/app_models.dart';
 import 'package:chaqmoq_mobile/services/api_client.dart';
-import 'package:chaqmoq_mobile/services/storage_service.dart';
 
 class _BaseService {
   const _BaseService(this.apiClient);
@@ -54,108 +50,6 @@ class _BaseService {
   }
 }
 
-class AuthService extends _BaseService {
-  AuthService({
-    required ApiClient apiClient,
-    required StorageService storageService,
-  }) : _storageService = storageService,
-       super(apiClient);
-
-  final StorageService _storageService;
-
-  Future<String?> readStoredSlug() => _storageService.readSlug();
-
-  Future<AuthSession?> restoreSession() async {
-    final token = await _storageService.readToken();
-    final slug = await _storageService.readSlug();
-    final cachedUser = await _storageService.readUser();
-
-    if (slug == null || slug.isEmpty) {
-      return null;
-    }
-
-    apiClient.configure(accessToken: token, slug: slug);
-
-    try {
-      final payload = await apiClient.get(AppConfig.authStatusPath);
-      final authenticated = payload['authenticated'] == null
-          ? true
-          : jsonBool(payload['authenticated']);
-      if (!authenticated) {
-        await _storageService.clearAuth();
-        return null;
-      }
-
-      final userPayload = jsonMap(payload['user']);
-      final user = userPayload.isEmpty
-          ? cachedUser
-          : UserModel.fromJson(userPayload);
-
-      if (user == null) {
-        await _storageService.clearAuth();
-        return null;
-      }
-
-      final session = AuthSession(
-        accessToken: token ?? '',
-        slug: user.center?.slug.isNotEmpty == true ? user.center!.slug : slug,
-        user: user,
-      );
-      await _storageService.saveSession(session);
-      apiClient.configure(
-        accessToken: session.accessToken,
-        slug: session.slug,
-      );
-      return session;
-    } catch (_) {
-      await _storageService.clearAuth();
-      return null;
-    }
-  }
-
-  Future<AuthSession> login({
-    required String slug,
-    required String username,
-    required String password,
-  }) async {
-    final payload = await apiClient.post(
-      AppConfig.loginPath,
-      data: <String, dynamic>{
-        'slug': slug.trim(),
-        'username': username.trim(),
-        'password': password,
-        'device_name': AppConfig.appName,
-        'device_platform': Platform.operatingSystem,
-      },
-    );
-
-    final user = UserModel.fromJson(jsonMap(payload['user']));
-    final session = AuthSession(
-      accessToken:
-          jsonString(payload['access_token']).isNotEmpty
-              ? jsonString(payload['access_token'])
-              : jsonString(payload['access']),
-      slug: user.center?.slug.isNotEmpty == true ? user.center!.slug : slug.trim(),
-      user: user,
-    );
-    await _storageService.saveSession(session);
-    apiClient.configure(accessToken: session.accessToken, slug: session.slug);
-    return session;
-  }
-
-  Future<void> logout() async {
-    try {
-      await postFirst(const [
-        '/api/auth/logout/',
-        '/api/mobile/auth/logout/',
-      ]);
-    } catch (_) {}
-
-    await _storageService.clearAuth();
-    apiClient.clearSession();
-  }
-}
-
 class DashboardService extends _BaseService {
   const DashboardService(super.apiClient);
 
@@ -189,7 +83,11 @@ class DashboardService extends _BaseService {
         : List<dynamic>.from(charts['m_rev'] as List? ?? const []);
 
     final trend = <ChartPointModel>[];
-    for (var index = 0; index < labels.length && index < values.length; index++) {
+    for (
+      var index = 0;
+      index < labels.length && index < values.length;
+      index++
+    ) {
       trend.add(
         ChartPointModel(
           label: jsonString(labels[index]),
@@ -202,25 +100,44 @@ class DashboardService extends _BaseService {
       DashboardMetric(
         id: 'revenue',
         title: 'Tushum',
-        value: jsonInt(kpis['revenue'] ?? kpis['total_pay'] ?? jsonMap(payload['summary'])['today_payments']).toString(),
+        value: jsonInt(
+          kpis['revenue'] ??
+              kpis['total_pay'] ??
+              jsonMap(payload['summary'])['today_payments'],
+        ).toString(),
         subtitle: 'Joriy davr',
-        trend: jsonDouble(jsonMap(kpis['changes'])['revenue'] ?? jsonMap(kpis['changes'])['total_pay']),
+        trend: jsonDouble(
+          jsonMap(kpis['changes'])['revenue'] ??
+              jsonMap(kpis['changes'])['total_pay'],
+        ),
         colorKey: 'teal',
       ),
       DashboardMetric(
         id: 'students',
         title: 'O\'quvchilar',
-        value: jsonInt(kpis['active_students'] ?? kpis['active_count'] ?? kpis['total_students']).toString(),
+        value: jsonInt(
+          kpis['active_students'] ??
+              kpis['active_count'] ??
+              kpis['total_students'],
+        ).toString(),
         subtitle: 'Faol kontingent',
-        trend: jsonDouble(jsonMap(kpis['changes'])['students'] ?? jsonMap(kpis['changes'])['new_students']),
+        trend: jsonDouble(
+          jsonMap(kpis['changes'])['students'] ??
+              jsonMap(kpis['changes'])['new_students'],
+        ),
         colorKey: 'violet',
       ),
       DashboardMetric(
         id: 'attendance',
         title: 'Davomat',
-        value: jsonInt(kpis['avg_attendance'] ?? kpis['avg_att_rate']).toString(),
+        value: jsonInt(
+          kpis['avg_attendance'] ?? kpis['avg_att_rate'],
+        ).toString(),
         subtitle: 'O\'rtacha foiz',
-        trend: jsonDouble(jsonMap(kpis['changes'])['avg_attendance'] ?? jsonMap(kpis['changes'])['avg_att_rate']),
+        trend: jsonDouble(
+          jsonMap(kpis['changes'])['avg_attendance'] ??
+              jsonMap(kpis['changes'])['avg_att_rate'],
+        ),
         colorKey: 'green',
       ),
       DashboardMetric(
@@ -264,15 +181,21 @@ class DashboardService extends _BaseService {
       DashboardMetric(
         id: 'students',
         title: 'O\'quvchilar',
-        value: jsonInt(summary['students_count'] ?? kpis['student_count']).toString(),
-        subtitle: teacher['full_name'] == null ? 'Joriy yuklama' : 'Ustoz yuklamasi',
+        value: jsonInt(
+          summary['students_count'] ?? kpis['student_count'],
+        ).toString(),
+        subtitle: teacher['full_name'] == null
+            ? 'Joriy yuklama'
+            : 'Ustoz yuklamasi',
         trend: 0,
         colorKey: 'teal',
       ),
       DashboardMetric(
         id: 'attendance',
         title: 'Davomat',
-        value: jsonInt(kpis['ratio'] ?? summary['today_attendance_marked']).toString(),
+        value: jsonInt(
+          kpis['ratio'] ?? summary['today_attendance_marked'],
+        ).toString(),
         subtitle: 'Bugungi belgilashlar',
         trend: 0,
         colorKey: 'green',
@@ -280,7 +203,9 @@ class DashboardService extends _BaseService {
       DashboardMetric(
         id: 'income',
         title: 'Kutilgan daromad',
-        value: jsonInt(payload['expected_income'] ?? kpis['avg_rev']).toString(),
+        value: jsonInt(
+          payload['expected_income'] ?? kpis['avg_rev'],
+        ).toString(),
         subtitle: 'Joriy oy',
         trend: jsonDouble(jsonMap(kpis['changes'])['total_rev']),
         colorKey: 'violet',
@@ -312,9 +237,7 @@ class DashboardService extends _BaseService {
     final student = studentPayload.isNotEmpty
         ? studentPayload
         : jsonMap(home['summary']);
-    final lightning = await getFirst(const [
-      '/api/mobile/chaqmoq/history/',
-    ]);
+    final lightning = await getFirst(const ['/api/mobile/chaqmoq/history/']);
     final metrics = <DashboardMetric>[
       DashboardMetric(
         id: 'score',
@@ -335,7 +258,9 @@ class DashboardService extends _BaseService {
       DashboardMetric(
         id: 'attendance',
         title: 'Davomat',
-        value: jsonInt(jsonMap(student['attendance'])['attendance_rate']).toString(),
+        value: jsonInt(
+          jsonMap(student['attendance'])['attendance_rate'],
+        ).toString(),
         subtitle: 'So\'nggi ko\'rsatkich',
         trend: 0,
         colorKey: 'green',
@@ -358,11 +283,12 @@ class DashboardService extends _BaseService {
       '/api/mobile/home/',
     ]);
     final directChildren = jsonMapList(payload['children']);
-    final children = (directChildren.isNotEmpty
-            ? directChildren
-            : jsonMapList(jsonMap(payload['summary'])['children']))
-        .map(ChildSummaryModel.fromJson)
-        .toList();
+    final children =
+        (directChildren.isNotEmpty
+                ? directChildren
+                : jsonMapList(jsonMap(payload['summary'])['children']))
+            .map(ChildSummaryModel.fromJson)
+            .toList();
     return DashboardData(
       metrics: <DashboardMetric>[
         DashboardMetric(
@@ -385,13 +311,10 @@ class StudentsService extends _BaseService {
   const StudentsService(super.apiClient);
 
   Future<List<StudentModel>> fetchStudents({String? query}) async {
-    final payload = await getFirst(
-      const [
-        '/chaqmoq/api/students/',
-        '/api/students/',
-      ],
-      queryParameters: query == null || query.isEmpty ? null : {'q': query},
-    );
+    final payload = await getFirst(const [
+      '/chaqmoq/api/students/',
+      '/api/students/',
+    ], queryParameters: query == null || query.isEmpty ? null : {'q': query});
 
     final studentsPayload = jsonMapList(payload['students']);
     final rawItems = studentsPayload.isNotEmpty
@@ -408,16 +331,18 @@ class StudentsService extends _BaseService {
 
     Map<String, dynamic> chaqmoqPayload = <String, dynamic>{};
     try {
-      chaqmoqPayload = await getFirst([
-        '/api/mobile/chaqmoq/history/',
-      ], queryParameters: {'student_id': '${student.id}'});
+      chaqmoqPayload = await getFirst(
+        ['/api/mobile/chaqmoq/history/'],
+        queryParameters: {'student_id': '${student.id}'},
+      );
     } catch (_) {}
 
     Map<String, dynamic> debtPayload = <String, dynamic>{};
     try {
-      debtPayload = await getFirst([
-        '/api/mobile/student/debt/',
-      ], queryParameters: {'student_id': '${student.id}'});
+      debtPayload = await getFirst(
+        ['/api/mobile/student/debt/'],
+        queryParameters: {'student_id': '${student.id}'},
+      );
     } catch (_) {}
 
     final badges = <String>[
@@ -428,11 +353,17 @@ class StudentsService extends _BaseService {
 
     return StudentDetailModel(
       student: student.copyWith(
-        balance: jsonInt(chaqmoqPayload['balance']) == 0 ? student.balance : jsonInt(chaqmoqPayload['balance']),
+        balance: jsonInt(chaqmoqPayload['balance']) == 0
+            ? student.balance
+            : jsonInt(chaqmoqPayload['balance']),
       ),
-      payments: jsonMapList(paymentsPayload['payments']).map(PaymentModel.fromJson).toList(),
+      payments: jsonMapList(
+        paymentsPayload['payments'],
+      ).map(PaymentModel.fromJson).toList(),
       attendance: const <DateTime>[],
-      chaqmoqHistory: jsonMapList(chaqmoqPayload['items']).map(ChaqmoqEntryModel.fromJson).toList(),
+      chaqmoqHistory: jsonMapList(
+        chaqmoqPayload['items'],
+      ).map(ChaqmoqEntryModel.fromJson).toList(),
       badges: badges,
     );
   }
@@ -450,9 +381,7 @@ class TeachersService extends _BaseService {
     final rawItems = teachersPayload.isNotEmpty
         ? teachersPayload
         : jsonMapList(payload['items']);
-    return rawItems
-        .map(TeacherModel.fromJson)
-        .toList();
+    return rawItems.map(TeacherModel.fromJson).toList();
   }
 
   Future<TeacherModel> fetchTeacherDetail(TeacherModel teacher) async {
@@ -471,7 +400,8 @@ class TeachersService extends _BaseService {
       groupsCount: groups.length,
       studentsCount: groups.fold<int>(
         0,
-        (previousValue, element) => previousValue + jsonInt(element['student_count']),
+        (previousValue, element) =>
+            previousValue + jsonInt(element['student_count']),
       ),
       expectedIncome: jsonInt(payload['expected_income']),
       attendanceRate: teacher.attendanceRate,
@@ -498,16 +428,14 @@ class GroupsService extends _BaseService {
     final rawItems = groupsPayload.isNotEmpty
         ? groupsPayload
         : jsonMapList(payload['items']);
-    return rawItems
-        .map(GroupModel.fromJson)
-        .toList();
+    return rawItems.map(GroupModel.fromJson).toList();
   }
 
   Future<List<StudentModel>> fetchGroupStudents(int groupId) async {
-    final payload = await getFirst([
-      '/chaqmoq/api/students/',
-      '/api/groups/$groupId/students/',
-    ], queryParameters: {'group': '$groupId'});
+    final payload = await getFirst(
+      ['/chaqmoq/api/students/', '/api/groups/$groupId/students/'],
+      queryParameters: {'group': '$groupId'},
+    );
     final studentsPayload = jsonMapList(payload['students']);
     final items = studentsPayload.isNotEmpty
         ? studentsPayload
@@ -524,27 +452,28 @@ class AttendanceService extends _BaseService {
     required String groupName,
     required DateTime date,
   }) async {
-    final payload = await getFirst([
-      '/chaqmoq/api/students/',
-      '/api/groups/$groupId/students/',
-    ], queryParameters: {'group': '$groupId'});
+    final payload = await getFirst(
+      ['/chaqmoq/api/students/', '/api/groups/$groupId/students/'],
+      queryParameters: {'group': '$groupId'},
+    );
 
     final studentsPayload = jsonMapList(payload['students']);
-    final students = (studentsPayload.isNotEmpty
-            ? studentsPayload
-            : jsonMapList(payload['items']))
-        .map(
-          (item) => AttendanceStudentModel(
-            studentId: jsonInt(item['id']),
-            enrollmentId: jsonInt(item['enrollment_id'] ?? item['id']),
-            fullName: jsonString(item['full_name']).isNotEmpty
-                ? jsonString(item['full_name'])
-                : jsonString(item['name']),
-            balance: jsonInt(item['balance']),
-            status: 'none',
-          ),
-        )
-        .toList();
+    final students =
+        (studentsPayload.isNotEmpty
+                ? studentsPayload
+                : jsonMapList(payload['items']))
+            .map(
+              (item) => AttendanceStudentModel(
+                studentId: jsonInt(item['id']),
+                enrollmentId: jsonInt(item['enrollment_id'] ?? item['id']),
+                fullName: jsonString(item['full_name']).isNotEmpty
+                    ? jsonString(item['full_name'])
+                    : jsonString(item['name']),
+                balance: jsonInt(item['balance']),
+                status: 'none',
+              ),
+            )
+            .toList();
 
     return AttendanceSheetModel(
       groupId: groupId,
@@ -568,14 +497,14 @@ class AttendanceService extends _BaseService {
   }) async {
     final formattedDate = date.toIso8601String().split('T').first;
     for (final item in items) {
-      await postFirst([
-        '/talim/guruh/$groupId/attendance_today/',
-        '/api/attendance/mark/',
-      ], data: <String, dynamic>{
-        'enr_id': item.enrollmentId,
-        'date': formattedDate,
-        'status': item.status,
-      });
+      await postFirst(
+        ['/talim/guruh/$groupId/attendance_today/', '/api/attendance/mark/'],
+        data: <String, dynamic>{
+          'enr_id': item.enrollmentId,
+          'date': formattedDate,
+          'status': item.status,
+        },
+      );
     }
   }
 }
@@ -583,7 +512,9 @@ class AttendanceService extends _BaseService {
 class PaymentsService extends _BaseService {
   const PaymentsService(super.apiClient);
 
-  Future<(PaymentSummaryModel, List<PaymentModel>)> fetchPayments(UserModel user) async {
+  Future<(PaymentSummaryModel, List<PaymentModel>)> fetchPayments(
+    UserModel user,
+  ) async {
     if (user.role == 'student') {
       final data = await _studentPayments(user.id);
       return data;
@@ -615,9 +546,7 @@ class PaymentsService extends _BaseService {
       );
     }
 
-    final billingPayload = await getFirst(const [
-      '/api/dashboards/billing/',
-    ]);
+    final billingPayload = await getFirst(const ['/api/dashboards/billing/']);
     final kpis = jsonMap(billingPayload['kpis']);
     final studentsPayload = await getFirst(const ['/chaqmoq/api/students/']);
     final students = jsonMapList(studentsPayload['students']).take(10).toList();
@@ -639,7 +568,9 @@ class PaymentsService extends _BaseService {
     );
   }
 
-  Future<(PaymentSummaryModel, List<PaymentModel>)> _studentPayments(int studentId) async {
+  Future<(PaymentSummaryModel, List<PaymentModel>)> _studentPayments(
+    int studentId,
+  ) async {
     final history = await getFirst([
       '/talim/tolovlar/tarix/$studentId/',
       '/api/students/$studentId/payments/',
@@ -652,7 +583,9 @@ class PaymentsService extends _BaseService {
       );
     } catch (_) {}
 
-    final payments = jsonMapList(history['payments']).map(PaymentModel.fromJson).toList();
+    final payments = jsonMapList(
+      history['payments'],
+    ).map(PaymentModel.fromJson).toList();
     final thisMonth = jsonInt(history['paid_this_month']);
     final total = payments.fold<int>(0, (sum, item) => sum + item.amount);
 
@@ -682,8 +615,13 @@ class NotificationsService extends _BaseService {
   }
 
   Future<void> markAllRead() async {
-    await postFirst(const [
-      '/api/mobile/notifications/read-all/',
+    await postFirst(const ['/api/mobile/notifications/read-all/']);
+  }
+
+  Future<void> markRead(int notificationId) async {
+    await postFirst([
+      '/api/mobile/notifications/$notificationId/read/',
+      '/api/mobile/parent/notifications/$notificationId/read/',
     ]);
   }
 }

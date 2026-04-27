@@ -230,6 +230,14 @@ class Enrollment(SoftDeleteMixin, models.Model):
         related_name="enrollments",
         verbose_name="Guruh",
     )
+    course = models.ForeignKey(
+        "education.Category",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="enrollments",
+        verbose_name="Fan",
+    )
     student = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -280,6 +288,19 @@ class Enrollment(SoftDeleteMixin, models.Model):
         validators=[MinValueValidator(0)],
         verbose_name="Faol darslar soni",
         help_text="Joriy oy uchun avtomatik hisoblangan darslar soni.",
+    )
+    remaining_lessons_override = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        default=None,
+        validators=[MinValueValidator(0), MaxValueValidator(999)],
+        verbose_name="Qo'lda kiritilgan qolgan dars",
+        help_text="Bo'sh bo'lsa tizim avtomatik qolgan dars sonini ishlatadi.",
+    )
+    last_lesson_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Oxirgi dars sanasi",
     )
     paid_amount = models.PositiveIntegerField(
         default=0,
@@ -425,6 +446,10 @@ class Enrollment(SoftDeleteMixin, models.Model):
             self.joined_at = created_at.date() if created_at else timezone.localdate()
 
     def save(self, *args, **kwargs):
+        self.course = getattr(getattr(self, "group", None), "category_obj", None)
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            kwargs["update_fields"] = set(update_fields) | {"course"}
         if self._state.adding:
             self._ensure_pricing_snapshot()
         return super().save(*args, **kwargs)

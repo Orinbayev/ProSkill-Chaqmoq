@@ -10,10 +10,11 @@ from django.urls import reverse
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
 
-    list_display = ('email', 'ism', 'familya', 'role', 'center', 'is_demo_user', 'oqituvchi_foizi', 'is_staff')
+    list_display = ('email', 'ism', 'familya', 'role', 'child_code', 'center', 'is_demo_user', 'oqituvchi_foizi', 'is_staff')
     list_filter = ('role', 'center', 'is_demo_user', 'is_staff', 'is_active')
-    search_fields = ('email', 'ism', 'familya')
+    search_fields = ('email', 'ism', 'familya', 'child_code')
     ordering = ('email',)
+    readonly_fields = ('child_code',)
 
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
@@ -21,7 +22,7 @@ class UserAdmin(BaseUserAdmin):
         ('Shaxsiy maʼlumot', {
             'fields': (
                 'ism', 'familya', 'telefon1', 'telefon2',
-                'lavozim', 'gmail', 'role', 'center', 'is_demo_user'
+                'lavozim', 'gmail', 'role', 'center', 'is_demo_user', 'child_code'
             )
         }),
 

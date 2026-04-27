@@ -745,6 +745,7 @@
 	  let currentResults = [];
 	  let currentPreview = null;
 	  let previewController = null;
+    let patternAutoMode = true;
 
 	  function autoPatternFromDate(value) {
 	    if (!value) return '{{ default_lesson_pattern }}';
@@ -755,7 +756,10 @@
 	    return [1, 3, 5].includes(weekday) ? 'odd' : 'even';
 	  }
 
-	  function syncPatternWithStartDate({ preserveDaily = true } = {}) {
+	  function syncPatternWithStartDate({ force = false, preserveDaily = true } = {}) {
+      if (!force && !patternAutoMode) {
+        return getSelectedPattern();
+      }
 	    const checked = document.querySelector('input[name="lesson_pattern"]:checked');
 	    if (preserveDaily && checked && checked.value === 'daily') {
 	      return checked.value;
@@ -1031,9 +1035,12 @@
 	    refreshPreview();
 	  });
 	  document.querySelectorAll('input[name="lesson_pattern"]').forEach((input) => {
-	    input.addEventListener('change', () => refreshPreview());
+	    input.addEventListener('change', () => {
+        patternAutoMode = false;
+        refreshPreview();
+      });
 	  });
-	  syncPatternWithStartDate();
+	  syncPatternWithStartDate({ force: true });
 	  refreshPreview({ silent: true });
 
   // --- Keyboard Navigation ---

@@ -357,10 +357,10 @@ class ProratedTuitionTests(TestCase):
 
         preview = tuition_month_preview(enr, self.MONTH)
 
-        self.assertEqual(preview["lesson_count"], 6)
+        self.assertEqual(preview["lesson_count"], 5)
         self.assertEqual(preview["teacher_share"] + preview["center_share"], preview["full_turnover"])
-        self.assertEqual(preview["fee_amount"], round((BASE_PRICE * 6) / LESSONS_PER_MONTH))
-        self.assertEqual(preview["counted_days_summary"], "Hisoblangan kunlar: Sesh, Pay, Shan")
+        self.assertEqual(preview["fee_amount"], round((BASE_PRICE * 5) / LESSONS_PER_MONTH))
+        self.assertEqual(preview["counted_days_summary"], "Hisoblangan kunlar: Dush, Chor, Jum")
 
     def test_auto_lesson_pattern_examples_follow_real_weekday(self):
         self.assertEqual(auto_lesson_pattern_for_date(date(2026, 4, 24)), "odd")

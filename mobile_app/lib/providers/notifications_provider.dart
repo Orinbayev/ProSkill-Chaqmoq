@@ -44,10 +44,16 @@ class NotificationsProvider extends ChangeNotifier {
 
   Future<void> refresh() => load(force: true);
 
-  void markRead(NotificationModel notification) {
+  Future<void> markRead(NotificationModel notification) async {
+    if (!notification.isRead) {
+      try {
+        await _notificationsService.markRead(notification.id);
+      } catch (_) {}
+    }
     _items = _items
         .map(
-          (item) => item.id == notification.id ? item.copyWith(isRead: true) : item,
+          (item) =>
+              item.id == notification.id ? item.copyWith(isRead: true) : item,
         )
         .toList();
     _unreadCount = _items.where((item) => !item.isRead).length;
@@ -55,7 +61,11 @@ class NotificationsProvider extends ChangeNotifier {
   }
 
   Future<void> markAllRead() async {
-    await _notificationsService.markAllRead();
+    try {
+      await _notificationsService.markAllRead();
+    } catch (_) {
+      // TODO(backend): remove this fallback when read-all is guaranteed.
+    }
     _items = _items.map((item) => item.copyWith(isRead: true)).toList();
     _unreadCount = 0;
     notifyListeners();

@@ -1,12 +1,12 @@
 import 'package:chaqmoq_mobile/models/app_models.dart';
-import 'package:chaqmoq_mobile/services/api_client.dart';
-import 'package:chaqmoq_mobile/services/api_services.dart';
+import 'package:chaqmoq_mobile/repositories/auth_repository.dart';
 import 'package:flutter/foundation.dart';
 
 class AuthProvider extends ChangeNotifier {
-  AuthProvider({required AuthService authService}) : _authService = authService;
+  AuthProvider({required AuthRepository authRepository})
+    : _authRepository = authRepository;
 
-  final AuthService _authService;
+  final AuthRepository _authRepository;
 
   AuthSession? _session;
   ViewState _state = ViewState.idle;
@@ -25,27 +25,19 @@ class AuthProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    _session = await _authService.restoreSession();
+    _session = await _authRepository.restoreSession();
 
     _isInitializing = false;
     notifyListeners();
   }
 
-  Future<bool> login({
-    required String slug,
-    required String username,
-    required String password,
-  }) async {
+  Future<bool> login({required String login, required String password}) async {
     _state = ViewState.loading;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      _session = await _authService.login(
-        slug: slug,
-        username: username,
-        password: password,
-      );
+      _session = await _authRepository.login(login: login, password: password);
       _state = ViewState.success;
       return true;
     } catch (error) {
@@ -60,7 +52,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> logout() async {
     _state = ViewState.loading;
     notifyListeners();
-    await _authService.logout();
+    await _authRepository.logout();
     _session = null;
     _state = ViewState.idle;
     notifyListeners();
@@ -82,9 +74,9 @@ class AuthProvider extends ChangeNotifier {
   }
 
   String _mapError(Object error) {
-    if (error is ApiException) {
+    if (error is AuthException) {
       return error.message;
     }
-    return 'Kirishda xatolik yuz berdi';
+    return 'Serverda xatolik yuz berdi';
   }
 }

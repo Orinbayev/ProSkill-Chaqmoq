@@ -125,7 +125,7 @@ class RoleBasedAccessMiddleware:
 
         # Tizimli yo'llarni o'tkazib yuborish
         path = request.path
-        if any(path.startswith(prefix) for prefix in SKIP_PREFIXES):
+        if any(path.startswith(prefix) for prefix in SKIP_PREFIXES) or '/api/' in path:
             return self.get_response(request)
 
         # Superuser — hamma narsaga ruxsat
