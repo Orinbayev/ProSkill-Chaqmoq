@@ -525,9 +525,6 @@ def calculate_lessons_api(request):
                 if enrollment is not None
                 else timezone.localdate()
             )
-        if payload.get("period_end_date") or payload.get("end_date"):
-            start_date = month_first_day(start_date)
-
         allowed_lesson_patterns = {
             Enrollment.LESSON_PATTERN_ODD,
             Enrollment.LESSON_PATTERN_EVEN,
@@ -1462,8 +1459,6 @@ def enrollment_edit(request, enrollment_id):
             or getattr(active_enrollment, "joined_at", None)
             or enrollment_start_date(active_enrollment)
         )
-        if request.GET.get("period_end_date") or request.GET.get("end_date"):
-            joined_at = month_first_day(joined_at)
         lesson_pattern = request.GET.get("lesson_pattern") or getattr(active_enrollment, "lesson_pattern", None)
         course_price = int(
             _parse_int_value(
@@ -1596,8 +1591,6 @@ def enrollment_edit(request, enrollment_id):
                 active_enrollment=active_enrollment,
             )
         joined_at = parse_date(joined_at_raw) if joined_at_raw else None
-        if joined_at and (request.POST.get("period_end_date") or request.POST.get("end_date")):
-            joined_at = month_first_day(joined_at)
         schedule_meta = resolve_lesson_schedule(
             joined_at or active_enrollment.joined_at or timezone.localdate(),
             request.POST.get("lesson_pattern") or getattr(active_enrollment, "lesson_pattern", None),

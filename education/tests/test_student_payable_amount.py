@@ -578,6 +578,32 @@ class StudentPayableAmountTests(TestCase):
         self.assertIn("error", payload)
         self.assertNotIn("<!doctype", response.content.decode().lower())
 
+    def test_calculate_lessons_api_preserves_selected_start_date_with_period_end(self):
+        start_date = date(2026, 3, 14)
+        response = self.client.post(
+            f"/{self.center.slug}{reverse('education:calculate_lessons_api')}",
+            data=json.dumps(
+                {
+                    "enrollment_id": self.regular_enrollment.id,
+                    "group_id": self.group.id,
+                    "joined_at": start_date.isoformat(),
+                    "period_end_date": "2026-03-31",
+                    "lesson_pattern": "odd",
+                    "monthly_lessons": self.group.oy_dars_soni,
+                    "kurs_narhi": self.regular_enrollment.kurs_narhi,
+                    "oqituvchi_foiz": self.regular_enrollment.oqituvchi_foiz,
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["preview"]["start_date"], "2026-03-14")
+        self.assertEqual(payload["data"]["end_date"], "2026-03-31")
+        self.assertEqual(payload["data"]["lesson_dates"], [16, 18, 20, 23, 25, 27, 30])
+
     def test_calculate_lessons_api_root_url_returns_success_data_contract(self):
         start_date = timezone.localdate()
         response = self.client.post(

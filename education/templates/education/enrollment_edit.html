@@ -1348,12 +1348,8 @@
         return formatDateForInput(new Date(parsed.getFullYear(), parsed.getMonth() + 1, 0, 12));
       }
 
-      function syncPeriodToStartMonth({ normalizeStart = false } = {}) {
+      function syncPeriodToStartMonth() {
         if (!joinedAtInput || !joinedAtInput.value) return;
-        const startOfMonth = monthStartValue(joinedAtInput.value);
-        if (normalizeStart && startOfMonth) {
-          joinedAtInput.value = startOfMonth;
-        }
         const endOfMonth = monthEndValue(joinedAtInput.value);
         if (lastLessonDateValue && endOfMonth) {
           lastLessonDateValue.value = endOfMonth;
@@ -1430,7 +1426,7 @@
         renderGroupOptions();
         groupSelect.value = String(row.group_id);
         joinedAtInput.value = row.joined_at || '';
-        syncPeriodToStartMonth({ normalizeStart: true });
+        syncPeriodToStartMonth();
         monthlyLessonsInput.value = row.monthly_lessons || '';
         coursePriceInput.value = row.course_price || '';
         teacherPercentInput.value = row.teacher_percent || '';
@@ -1601,10 +1597,23 @@
         updateSelectionSummary(row);
       }
 
-	    joinedAtInput.addEventListener('change', () => {
-        syncPeriodToStartMonth({ normalizeStart: true });
+      joinedAtInput.removeAttribute('readonly');
+      joinedAtInput.removeAttribute('disabled');
+      joinedAtInput.style.pointerEvents = 'auto';
+
+      function handleStartDateChange(event, { showAlert = false } = {}) {
+        const value = event.target.value;
+        console.log("Start date changed:", value);
+        syncPeriodToStartMonth();
         syncPatternWithStartDate();
-	      refreshPreview({ showAlert: true });
+	      refreshPreview({ showAlert });
+      }
+
+	    joinedAtInput.addEventListener('input', (event) => {
+        console.log("Start date input:", event.target.value);
+      });
+	    joinedAtInput.addEventListener('change', (event) => {
+        handleStartDateChange(event, { showAlert: true });
 	    });
 
       if (lastLessonDateValue) {
