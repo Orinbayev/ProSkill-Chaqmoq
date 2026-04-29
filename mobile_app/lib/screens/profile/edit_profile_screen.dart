@@ -1,9 +1,13 @@
+import 'dart:typed_data';
+
 import 'package:chaqmoq_mobile/models/app_models.dart';
 import 'package:chaqmoq_mobile/models/parent_models.dart';
 import 'package:chaqmoq_mobile/screens/profile/profile_shared.dart';
 import 'package:chaqmoq_mobile/services/api_client.dart';
 import 'package:chaqmoq_mobile/services/parent_dashboard_service.dart';
+import 'package:chaqmoq_mobile/widgets/adaptive_avatar.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({
@@ -21,16 +25,28 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  late final TextEditingController _fullNameController;
+  late final TextEditingController _firstNameController;
+  late final TextEditingController _lastNameController;
   late final TextEditingController _phoneController;
   late final TextEditingController _emailController;
+  final ImagePicker _imagePicker = ImagePicker();
+  XFile? _selectedImage;
+  Uint8List? _selectedImageBytes;
+  bool _removeAvatar = false;
   bool _saving = false;
 
   @override
   void initState() {
     super.initState();
-    _fullNameController = TextEditingController(
-      text: widget.initialUser.fullName,
+    _firstNameController = TextEditingController(
+      text: widget.initialUser.firstName.isNotEmpty
+          ? widget.initialUser.firstName
+          : _splitFullName(widget.initialUser.fullName).$1,
+    );
+    _lastNameController = TextEditingController(
+      text: widget.initialUser.lastName.isNotEmpty
+          ? widget.initialUser.lastName
+          : _splitFullName(widget.initialUser.fullName).$2,
     );
     _phoneController = TextEditingController(text: widget.initialUser.phone);
     _emailController = TextEditingController(text: widget.initialUser.email);
@@ -38,10 +54,103 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   void dispose() {
-    _fullNameController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
     super.dispose();
+  }
+
+  (String, String) _splitFullName(String value) {
+    final parts = value
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) {
+      return ('', '');
+    }
+    if (parts.length == 1) {
+      return (parts.first, '');
+    }
+    return (parts.first, parts.sublist(1).join(' '));
+  }
+
+  Future<void> _openAvatarActions() async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        final hasAvatar =
+            _selectedImageBytes != null ||
+            (_removeAvatar == false && widget.initialUser.avatarUrl.isNotEmpty);
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Container(
+                  width: 42,
+                  height: 5,
+                  margin: const EdgeInsets.only(bottom: 18),
+                  decoration: BoxDecoration(
+                    color: ProfileUiColors.border,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('Galereyadan tanlash'),
+                  onTap: () => Navigator.of(context).pop('gallery'),
+                ),
+                if (hasAvatar)
+                  ListTile(
+                    leading: const Icon(
+                      Icons.delete_outline_rounded,
+                      color: ProfileUiColors.danger,
+                    ),
+                    title: const Text('Rasmni olib tashlash'),
+                    onTap: () => Navigator.of(context).pop('clear'),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (!mounted || action == null) {
+      return;
+    }
+    if (action == 'clear') {
+      setState(() {
+        _selectedImage = null;
+        _selectedImageBytes = null;
+        _removeAvatar = true;
+      });
+      return;
+    }
+    if (action == 'gallery') {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1080,
+        imageQuality: 85,
+      );
+      if (image == null || !mounted) {
+        return;
+      }
+      final bytes = await image.readAsBytes();
+      setState(() {
+        _selectedImage = image;
+        _selectedImageBytes = bytes;
+        _removeAvatar = false;
+      });
+    }
   }
 
   Future<void> _save() async {
@@ -50,12 +159,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
     setState(() => _saving = true);
     try {
-      final ParentProfileModel profile = await widget.profileService
-          .updateProfile(
-            fullName: _fullNameController.text.trim(),
-            phone: _phoneController.text.trim(),
-            email: _emailController.text.trim(),
-          );
+      ParentProfileModel profile = await widget.profileService.updateProfile(
+        fullName:
+            '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'
+                .trim(),
+        phone: _phoneController.text.trim(),
+        email: _emailController.text.trim(),
+      );
+      if (_selectedImage != null || _removeAvatar) {
+        profile = await widget.profileService.updateProfileAvatar(
+          image: _selectedImage,
+          clear: _removeAvatar,
+        );
+      }
       if (!mounted) {
         return;
       }
@@ -109,20 +225,98 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   style: ProfileUiTextStyles.muted,
                                 ),
                                 const SizedBox(height: 18),
+                                Center(
+                                  child: GestureDetector(
+                                    onTap: _saving ? null : _openAvatarActions,
+                                    child: Stack(
+                                      clipBehavior: Clip.none,
+                                      children: <Widget>[
+                                        Container(
+                                          width: 104,
+                                          height: 104,
+                                          decoration: const BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Color(0xFFEAF4FF),
+                                          ),
+                                          clipBehavior: Clip.antiAlias,
+                                          child: _selectedImageBytes != null
+                                              ? Image.memory(
+                                                  _selectedImageBytes!,
+                                                  fit: BoxFit.cover,
+                                                )
+                                              : AdaptiveAvatar(
+                                                  name:
+                                                      '${_firstNameController.text} ${_lastNameController.text}'
+                                                          .trim(),
+                                                  imageUrl: _removeAvatar
+                                                      ? ''
+                                                      : widget
+                                                            .initialUser
+                                                            .avatarUrl,
+                                                  size: 104,
+                                                ),
+                                        ),
+                                        Positioned(
+                                          right: -4,
+                                          bottom: -4,
+                                          child: Container(
+                                            width: 36,
+                                            height: 36,
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              shape: BoxShape.circle,
+                                              boxShadow:
+                                                  ProfileUiDecorations
+                                                      .softShadow,
+                                              border: Border.all(
+                                                color: ProfileUiColors.border,
+                                              ),
+                                            ),
+                                            child: const Icon(
+                                              Icons.photo_camera_outlined,
+                                              color: ProfileUiColors.primary,
+                                              size: 20,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 18),
                                 TextFormField(
-                                  controller: _fullNameController,
+                                  controller: _firstNameController,
                                   style: ProfileUiTextStyles.input,
                                   cursorColor: ProfileUiColors.primary,
                                   textCapitalization: TextCapitalization.words,
                                   textInputAction: TextInputAction.next,
                                   decoration: profileInputDecoration(
-                                    label: 'To‘liq ism',
-                                    hintText: 'Ism va familiyangiz',
+                                    label: 'Ism',
+                                    hintText: 'Ismingiz',
                                     icon: Icons.person_outline_rounded,
                                   ),
                                   validator: (String? value) {
                                     if ((value ?? '').trim().isEmpty) {
-                                      return 'To‘liq ismni kiriting';
+                                      return 'Ismni kiriting';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
+                                  controller: _lastNameController,
+                                  style: ProfileUiTextStyles.input,
+                                  cursorColor: ProfileUiColors.primary,
+                                  textCapitalization: TextCapitalization.words,
+                                  textInputAction: TextInputAction.next,
+                                  decoration: profileInputDecoration(
+                                    label: 'Familiya',
+                                    hintText: 'Familiyangiz',
+                                    icon: Icons.badge_outlined,
+                                  ),
+                                  validator: (String? value) {
+                                    if ((value ?? '').trim().isEmpty) {
+                                      return 'Familiyani kiriting';
                                     }
                                     return null;
                                   },

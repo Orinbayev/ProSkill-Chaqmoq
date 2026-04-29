@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Profil rasmini tanlash uchun foto kutubxonaga ruxsat kerak bo‘ladi.</string>
+	<key>NSUserNotificationUsageDescription</key>
+	<string>To‘lov va muhim eslatmalarni yuborish uchun bildirishnoma ruxsati kerak bo‘ladi.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

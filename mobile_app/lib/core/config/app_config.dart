@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart';
+
 class AppConfig {
   const AppConfig._();
 
   static const String _rawEnvironment = String.fromEnvironment(
     'CHAQMOQ_ENV',
-    defaultValue: 'production',
+    defaultValue: '',
   );
 
   static const String _overrideBaseUrl = String.fromEnvironment(
@@ -39,17 +41,30 @@ class AppConfig {
         return 'dev';
       case 'staging':
         return 'staging';
-      default:
+      case 'prod':
+      case 'production':
         return 'production';
+      default:
+        return kReleaseMode ? 'production' : 'dev';
     }
+  }
+
+  static String get _resolvedDevBaseUrl {
+    final configured = _devBaseUrl.trim();
+    if (configured.isNotEmpty) {
+      return configured;
+    }
+    if (kIsWeb) {
+      return 'http://127.0.0.1:8000';
+    }
+    return 'http://10.0.2.2:8000';
   }
 
   static String get baseUrl {
     final resolvedBaseUrl = _overrideBaseUrl.trim().isNotEmpty
         ? _overrideBaseUrl.trim()
         : switch (environmentName) {
-            'dev' =>
-              _devBaseUrl.trim().isNotEmpty ? _devBaseUrl : _productionBaseUrl,
+            'dev' => _resolvedDevBaseUrl,
             'staging' =>
               _stagingBaseUrl.trim().isNotEmpty
                   ? _stagingBaseUrl
@@ -76,7 +91,12 @@ class AppConfig {
   static const String progressPath = '/api/mobile/progress/';
   static const String profilePath = '/api/mobile/profile/';
   static const String parentProfilePath = '/api/mobile/parent/profile/';
+  static const String parentProfileAvatarPath =
+      '/api/mobile/parent/profile/avatar/';
+  static const String parentNotificationPreferencesPath =
+      '/api/mobile/parent/notification-preferences/';
   static const String changePasswordPath = '/api/mobile/auth/change-password/';
   static const String addChildPath = '/api/mobile/parent/children/add/';
+  static const String selectChildPath = '/api/mobile/parent/select-child/';
   static const String notificationsPath = '/api/mobile/notifications/';
 }

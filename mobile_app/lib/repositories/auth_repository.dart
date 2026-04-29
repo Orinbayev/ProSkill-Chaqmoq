@@ -174,6 +174,24 @@ class AuthRepository {
     final status = error.statusCode;
     final code = error.code;
     final message = error.message.trim();
+    if (code == 'user_not_found') {
+      return const AuthException(
+        'Bunday foydalanuvchi topilmadi',
+        presentation: AuthErrorPresentation.inline,
+      );
+    }
+    if (code == 'inactive_user') {
+      return const AuthException(
+        'Akkaunt faol emas. Administrator bilan bog‘laning.',
+        presentation: AuthErrorPresentation.inline,
+      );
+    }
+    if (code == 'invalid_password') {
+      return const AuthException(
+        'Parol noto‘g‘ri',
+        presentation: AuthErrorPresentation.inline,
+      );
+    }
     if (code == 'invalid_credentials' || status == 400 || status == 401) {
       return const AuthException(
         'Login yoki parol noto‘g‘ri',

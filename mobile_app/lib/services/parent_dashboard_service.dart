@@ -2,6 +2,8 @@ import 'package:chaqmoq_mobile/core/config/app_config.dart';
 import 'package:chaqmoq_mobile/models/app_models.dart';
 import 'package:chaqmoq_mobile/models/parent_models.dart';
 import 'package:chaqmoq_mobile/services/api_client.dart';
+import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ParentDashboardService {
   const ParentDashboardService(this._apiClient);
@@ -47,12 +49,20 @@ class ParentDashboardService {
     return ParentPaymentsModel.fromJson(payload);
   }
 
-  Future<ParentProgressModel> fetchProgress({int? childId}) async {
+  Future<ParentProgressModel> fetchProgress({
+    int? childId,
+    String? period,
+  }) async {
+    final queryParameters = <String, dynamic>{};
+    if (childId != null) {
+      queryParameters['child_id'] = childId;
+    }
+    if ((period ?? '').trim().isNotEmpty) {
+      queryParameters['period'] = period!.trim();
+    }
     final payload = await _apiClient.get(
       AppConfig.progressPath,
-      queryParameters: childId == null
-          ? null
-          : <String, dynamic>{'child_id': childId},
+      queryParameters: queryParameters.isEmpty ? null : queryParameters,
     );
     return ParentProgressModel.fromJson(payload);
   }
@@ -74,6 +84,27 @@ class ParentDashboardService {
         'phone': phone,
         'email': email,
       },
+    );
+    return ParentProfileModel.fromJson(payload);
+  }
+
+  Future<ParentProfileModel> updateProfileAvatar({
+    XFile? image,
+    bool clear = false,
+  }) async {
+    if (image == null && !clear) {
+      throw ApiException('Profil rasmi tanlanmadi');
+    }
+    final payload = await _apiClient.post(
+      AppConfig.parentProfileAvatarPath,
+      data: FormData.fromMap(<String, dynamic>{
+        if (clear) 'clear': 'true',
+        if (image != null)
+          'avatar': await MultipartFile.fromFile(
+            image.path,
+            filename: image.name,
+          ),
+      }),
     );
     return ParentProfileModel.fromJson(payload);
   }
@@ -107,12 +138,49 @@ class ParentDashboardService {
 
   Future<ParentChildModel> selectChild(int childId) async {
     final payload = await _apiClient.post(
-      '/api/mobile/parent/select-child/',
+      AppConfig.selectChildPath,
       data: <String, dynamic>{'child_id': childId},
     );
     return ParentChildModel.fromJson(
       (payload['selected_child'] as Map?)?.cast<String, dynamic>() ??
           const <String, dynamic>{},
     );
+  }
+
+  Future<Map<String, bool>> fetchNotificationPreferences() async {
+    final payload = await _apiClient.get(
+      AppConfig.parentNotificationPreferencesPath,
+    );
+    final settings = jsonMap(payload['settings']);
+    return <String, bool>{
+      'attendance': jsonBool(settings['attendance']),
+      'payments': jsonBool(settings['payments']),
+      'progress': jsonBool(settings['progress']),
+      'general': jsonBool(settings['general']),
+    };
+  }
+
+  Future<Map<String, bool>> updateNotificationPreferences({
+    required bool attendance,
+    required bool payments,
+    required bool progress,
+    required bool general,
+  }) async {
+    final payload = await _apiClient.patch(
+      AppConfig.parentNotificationPreferencesPath,
+      data: <String, dynamic>{
+        'attendance': attendance,
+        'payments': payments,
+        'progress': progress,
+        'general': general,
+      },
+    );
+    final settings = jsonMap(payload['settings']);
+    return <String, bool>{
+      'attendance': jsonBool(settings['attendance']),
+      'payments': jsonBool(settings['payments']),
+      'progress': jsonBool(settings['progress']),
+      'general': jsonBool(settings['general']),
+    };
   }
 }

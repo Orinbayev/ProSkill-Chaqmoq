@@ -3,6 +3,12 @@ set -e
 
 # ChaqmoqApp - Render-safe startup script
 echo '--- 🚀 Starting ChaqmoqApp System ---'
+echo "⚙️ DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings}"
+if [ -n "${DATABASE_URL:-}" ]; then
+  echo '🗄️ DATABASE_URL is set'
+else
+  echo '🗄️ DATABASE_URL is missing'
+fi
 
 BOT_PID=""
 cleanup() {

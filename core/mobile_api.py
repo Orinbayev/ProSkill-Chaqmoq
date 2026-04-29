@@ -26,15 +26,19 @@ from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from accounts.api_auth import record_activity
+from accounts.auth_helpers import (
+    authenticate_login_identifier,
+    mask_login_identifier,
+    resolve_login_attempt,
+)
 from accounts.models import Center, User
-from accounts.utils import normalize_phone
 from billing.services import (
     get_subscription_ui_state,
     get_user_subscription_dashboard_data,
     resolve_center_student_limit,
 )
 from chaqmoq.models import Ledger
-from core.models import MobileAccessToken, Notification
+from core.models import MobileAccessToken, Notification, NotificationPreference
 from education.models import (
     Attendance,
     CertificateRecord,
@@ -182,17 +186,6 @@ def _center_from_login_payload(request, data: dict):
     return Center.objects.filter(slug=slug, is_deleted=False).first()
 
 
-def _candidate_login_users(identifier: str, center=None):
-    normalized_phone = normalize_phone(identifier)
-    query = Q(email__iexact=identifier) | Q(telegram_username__iexact=identifier)
-    if normalized_phone:
-        query |= Q(phone_number=normalized_phone) | Q(telefon1=normalized_phone) | Q(telefon2=normalized_phone)
-    qs = User.objects.filter(query, is_active=True).select_related("center")
-    if center is not None:
-        qs = qs.filter(center=center)
-    return qs
-
-
 def _resolve_login_user(request, data: dict):
     identifier = str(
         data.get("login")
@@ -209,11 +202,17 @@ def _resolve_login_user(request, data: dict):
         or str(getattr(request, "url_center_slug", "") or "").strip()
         or (str(os.getenv("LOCAL_DEFAULT_CENTER_SLUG") or "").strip() if settings.DEBUG else "")
     )
+    masked_identifier = mask_login_identifier(identifier)
     _mobile_debug("login_received", login=identifier, center_slug=requested_slug or None)
     if not identifier or not password:
+        logger.info(
+            "mobile_login outcome=missing_credentials identifier=%s center_slug=%s",
+            masked_identifier or "-",
+            requested_slug or "-",
+        )
         _mobile_debug("login_missing_credentials", login=identifier, center_slug=requested_slug or None)
         return None, None, _mobile_json_error(
-            "Telefon raqam va parol majburiy",
+            "Login va parol majburiy",
             code="missing_credentials",
         )
 
@@ -225,25 +224,68 @@ def _resolve_login_user(request, data: dict):
         center=getattr(center, "slug", None),
     )
     if requested_slug and not center:
+        logger.info(
+            "mobile_login outcome=center_not_found identifier=%s center_slug=%s",
+            masked_identifier or "-",
+            requested_slug or "-",
+        )
         _mobile_debug("login_center_not_found", login=identifier, center_slug=requested_slug)
         return None, None, _mobile_json_error("Markaz topilmadi", status=404, code="center_not_found")
 
-    authenticated_user = authenticate(request, username=identifier, password=password)
-    if not authenticated_user:
-        for candidate in _candidate_login_users(identifier, center=center):
-            if candidate.check_password(password):
-                authenticated_user = candidate
-                break
+    login_result = resolve_login_attempt(
+        identifier,
+        password,
+        request=request,
+        center=center,
+    )
+    authenticated_user = login_result.user
 
     if not authenticated_user:
-        _mobile_debug("login_auth_failed", login=identifier, center_slug=requested_slug or None)
+        error_map = {
+            "inactive_user": (
+                403,
+                "inactive_user",
+                "Akkaunt faol emas. Administrator bilan bog‘laning.",
+            ),
+            "user_not_found": (
+                404,
+                "user_not_found",
+                "Bunday foydalanuvchi topilmadi",
+            ),
+            "invalid_password": (
+                401,
+                "invalid_password",
+                "Parol noto‘g‘ri",
+            ),
+        }
+        status, code, error_message = error_map.get(
+            login_result.code,
+            (401, "invalid_credentials", "Login yoki parol noto‘g‘ri"),
+        )
+        logger.info(
+            "mobile_login outcome=%s identifier=%s center_slug=%s",
+            code,
+            masked_identifier or "-",
+            requested_slug or "-",
+        )
+        _mobile_debug(
+            "login_auth_failed",
+            login=identifier,
+            center_slug=requested_slug or None,
+            code=code,
+        )
         return None, None, _mobile_json_error(
-            "Telefon raqam yoki parol noto‘g‘ri",
-            status=401,
-            code="invalid_credentials",
+            error_message,
+            status=status,
+            code=code,
         )
 
     if not authenticated_user.is_superuser and getattr(authenticated_user, "center", None) is None:
+        logger.info(
+            "mobile_login outcome=center_required identifier=%s user_id=%s",
+            masked_identifier or "-",
+            authenticated_user.id,
+        )
         _mobile_debug("login_center_required", login=identifier, user_id=authenticated_user.id)
         return None, None, _mobile_json_error(
             "Siz hech qaysi o‘quv markazga biriktirilmagansiz.",
@@ -251,6 +293,11 @@ def _resolve_login_user(request, data: dict):
             code="center_required",
         )
     if not authenticated_user.is_superuser and not (getattr(authenticated_user, "role", "") or "").strip():
+        logger.info(
+            "mobile_login outcome=role_required identifier=%s user_id=%s",
+            masked_identifier or "-",
+            authenticated_user.id,
+        )
         _mobile_debug("login_role_required", login=identifier, user_id=authenticated_user.id)
         return None, None, _mobile_json_error(
             "Sizga rol biriktirilmagan.",
@@ -260,6 +307,13 @@ def _resolve_login_user(request, data: dict):
 
     user_center = getattr(authenticated_user, "center", None)
     if center and not authenticated_user.is_superuser and user_center and user_center.id != center.id:
+        logger.info(
+            "mobile_login outcome=center_mismatch identifier=%s user_id=%s requested_center=%s actual_center=%s",
+            masked_identifier or "-",
+            authenticated_user.id,
+            getattr(center, "slug", None) or "-",
+            getattr(user_center, "slug", None) or "-",
+        )
         _mobile_debug(
             "login_center_mismatch",
             login=identifier,
@@ -279,6 +333,13 @@ def _resolve_login_user(request, data: dict):
         user_id=authenticated_user.id,
         role=authenticated_user.role,
         center=getattr(center or user_center, "slug", None),
+    )
+    logger.info(
+        "mobile_login outcome=success identifier=%s user_id=%s center_slug=%s role=%s",
+        masked_identifier or "-",
+        authenticated_user.id,
+        getattr(center or user_center, "slug", None) or "-",
+        getattr(authenticated_user, "role", None) or "-",
     )
     return authenticated_user, center or user_center, None
 
@@ -455,11 +516,18 @@ def _student_open_debt(student: User, center) -> int:
     return int(total_debt)
 
 
-def _student_attendance_summary(student: User, center) -> dict:
+def _student_attendance_summary(student: User, center, *, start_date=None, end_date=None) -> dict:
     qs = Attendance.objects.filter(student=student, group__center=center)
+    if start_date:
+        qs = qs.filter(date__gte=start_date)
+    if end_date:
+        qs = qs.filter(date__lt=end_date)
     total = qs.count()
     present = qs.filter(Q(status="present") | Q(present=True) | Q(forced=True)).count()
-    recent_qs = qs.filter(date__gte=timezone.localdate() - timezone.timedelta(days=30))
+    if start_date or end_date:
+        recent_qs = qs
+    else:
+        recent_qs = qs.filter(date__gte=timezone.localdate() - timezone.timedelta(days=30))
     recent_total = recent_qs.count()
     recent_present = recent_qs.filter(Q(status="present") | Q(present=True) | Q(forced=True)).count()
     return {
@@ -646,6 +714,52 @@ def _normalize_mobile_profile_phone(raw_phone: str) -> str | None:
     return None
 
 
+def _coerce_bool(value, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    return str(value).strip().lower() in {"1", "true", "yes", "ha", "on"}
+
+
+def _month_label_uz_full(date_obj) -> str:
+    labels = {
+        1: "Yanvar",
+        2: "Fevral",
+        3: "Mart",
+        4: "Aprel",
+        5: "May",
+        6: "Iyun",
+        7: "Iyul",
+        8: "Avgust",
+        9: "Sentabr",
+        10: "Oktabr",
+        11: "Noyabr",
+        12: "Dekabr",
+    }
+    return labels.get(date_obj.month, date_obj.strftime("%B"))
+
+
+def _period_month_bounds(period_key: str):
+    today = timezone.localdate()
+    current_month = today.replace(day=1)
+    normalized = str(period_key or "").strip().lower()
+    if normalized in {"joriy", "current", "current_term"}:
+        start = current_month
+        end = _add_months(current_month, 1)
+        return "current", "Joriy davr", start, end
+    if normalized in {"last_month", "previous_month", "o_tgan_oy", "otgan_oy"}:
+        start = _add_months(current_month, -1)
+        return "last_month", "O‘tgan oy", start, current_month
+    if normalized in {"last_3_months", "three_months", "oxirgi_3_oy"}:
+        start = _add_months(current_month, -2)
+        end = _add_months(current_month, 1)
+        return "last_3_months", "Oxirgi 3 oy", start, end
+    return "all", "Barcha davr", None, None
+
+
 def _find_student_by_child_code(child_code: str) -> User | None:
     normalized_code = _normalize_child_code(child_code)
     if not normalized_code:
@@ -682,20 +796,24 @@ def _serialize_child_profile(request, child: User, center) -> dict:
     }
 
 
-def _student_average_score(student: User, center) -> int:
+def _student_average_score(student: User, center, *, start_date=None, end_date=None) -> int:
+    exam_results = ExamResult.objects.filter(student=student, center=center, percent__isnull=False)
+    if start_date:
+        exam_results = exam_results.filter(exam_date__gte=start_date)
+    if end_date:
+        exam_results = exam_results.filter(exam_date__lt=end_date)
     avg_result = (
-        ExamResult.objects
-        .filter(student=student, center=center, percent__isnull=False)
-        .aggregate(avg=Avg("percent"))["avg"]
+        exam_results.aggregate(avg=Avg("percent"))["avg"]
     )
     if avg_result is not None:
         return int(round(float(avg_result)))
 
-    avg_summary = (
-        StudentAcademicSummary.objects
-        .filter(student=student, center=center, average_percent__isnull=False)
-        .aggregate(avg=Avg("average_percent"))["avg"]
+    summary_qs = StudentAcademicSummary.objects.filter(
+        student=student,
+        center=center,
+        average_percent__isnull=False,
     )
+    avg_summary = summary_qs.aggregate(avg=Avg("average_percent"))["avg"]
     if avg_summary is not None:
         return int(round(float(avg_summary)))
     return 0
@@ -726,9 +844,51 @@ def _next_payment_date(student: User, center):
     return due
 
 
-def _student_progress_chart(student: User, center) -> list[dict]:
+def _student_progress_chart(student: User, center, *, period_key: str = "current") -> list[dict]:
     today = timezone.localdate()
-    months = [_month_start(_add_months(today, offset)) for offset in range(-4, 1)]
+    resolved_period, _, start_date, end_date = _period_month_bounds(period_key)
+    bucket_starts: list[date] = []
+    bucket_labels: list[str] = []
+
+    if resolved_period in {"current", "last_month"} and start_date and end_date:
+        month_end = end_date
+        for day in (1, 8, 15, 22):
+            bucket_start = start_date.replace(day=day)
+            if bucket_start >= month_end:
+                continue
+            bucket_starts.append(bucket_start)
+            next_week = min(bucket_start + timezone.timedelta(days=7), month_end)
+            bucket_labels.append(f"{bucket_start.day}-{max(bucket_start.day, next_week.day - 1)}")
+    elif resolved_period == "last_3_months" and start_date:
+        month_cursor = start_date
+        while month_cursor < (end_date or month_cursor):
+            bucket_starts.append(month_cursor)
+            bucket_labels.append(_month_label_uz(month_cursor))
+            month_cursor = _add_months(month_cursor, 1)
+    else:
+        earliest_result = (
+            ExamResult.objects.filter(student=student, center=center)
+            .order_by("exam_date")
+            .values_list("exam_date", flat=True)
+            .first()
+        )
+        if earliest_result:
+            month_cursor = _month_start(earliest_result)
+        else:
+            month_cursor = _month_start(_add_months(today, -5))
+        end_month = _month_start(today)
+        while month_cursor <= end_month:
+            bucket_starts.append(month_cursor)
+            bucket_labels.append(_month_label_uz(month_cursor))
+            month_cursor = _add_months(month_cursor, 1)
+        if len(bucket_starts) > 8:
+            bucket_starts = bucket_starts[-8:]
+            bucket_labels = bucket_labels[-8:]
+
+    if not bucket_starts:
+        bucket_starts = [_month_start(_add_months(today, offset)) for offset in range(-2, 1)]
+        bucket_labels = [_month_label_uz(item) for item in bucket_starts]
+
     enrollments = (
         Enrollment.objects
         .filter(student=student, group__center=center, is_active=True)
@@ -740,16 +900,24 @@ def _student_progress_chart(student: User, center) -> list[dict]:
         group = enrollment.group
         points = []
         has_data = False
-        for month in months:
-            next_month = _add_months(month, 1)
+        for index, bucket_start in enumerate(bucket_starts):
+            next_bucket = (
+                bucket_starts[index + 1]
+                if index + 1 < len(bucket_starts)
+                else (
+                    end_date
+                    if end_date and resolved_period in {"current", "last_month", "last_3_months"}
+                    else _add_months(bucket_start, 1)
+                )
+            )
             avg = (
                 ExamResult.objects
                 .filter(
                     student=student,
                     group=group,
                     center=center,
-                    exam_date__gte=month,
-                    exam_date__lt=next_month,
+                    exam_date__gte=bucket_start,
+                    exam_date__lt=next_bucket,
                     percent__isnull=False,
                 )
                 .aggregate(avg=Avg("percent"))["avg"]
@@ -761,14 +929,14 @@ def _student_progress_chart(student: User, center) -> list[dict]:
             summary = StudentAcademicSummary.objects.filter(student=student, group=group, center=center).first()
             if summary and summary.average_percent is not None:
                 has_data = True
-                points = [round(float(summary.average_percent), 1)] * len(months)
+                points = [round(float(summary.average_percent), 1)] * len(bucket_starts)
         if has_data:
             items.append({
                 "subject": group.nom,
                 "label": group.nom,
                 "percent": int(round(points[-1])),
                 "points": points,
-                "months": [_month_label_uz(month) for month in months],
+                "months": bucket_labels,
             })
     return items
 
@@ -806,6 +974,24 @@ def _parent_dashboard_payload(request, child: User) -> dict:
         "progress_chart": _student_progress_chart(child, center),
         "latest_notifications": _latest_parent_notifications(request.user, limit=3),
         "unread_notifications": _notification_queryset_for_user(request.user).filter(is_read=False).count(),
+    }
+
+
+def _tuition_due_date(tuition_month: TuitionMonth, center):
+    day = min(
+        getattr(center, "payment_day", 5) or 5,
+        calendar.monthrange(tuition_month.month.year, tuition_month.month.month)[1],
+    )
+    return tuition_month.month.replace(day=day)
+
+
+def _parent_notification_settings_payload(user: User) -> dict:
+    preference, _ = NotificationPreference.objects.get_or_create(user=user)
+    return {
+        "attendance": bool(preference.receive_system),
+        "payments": bool(preference.receive_purchase),
+        "progress": bool(preference.receive_coin),
+        "general": bool(preference.receive_broadcast),
     }
 
 
@@ -1065,24 +1251,86 @@ def mobile_attendance(request):
     return mobile_parent_child_attendance(request, child.id)
 
 
-@require_GET
-@mobile_login_required
-def mobile_parent_child_payments(request, child_id: int):
-    child, error = _resolve_parent_child(request, child_id)
-    if error:
-        return error
-    center = _request_center(request) or child.center
-    enrollments = Enrollment.objects.filter(student=child, group__center=center).select_related("group")
-    total_plan = sum(enrollment.resolved_monthly_price for enrollment in enrollments if enrollment.is_active)
-    paid_total = Payment.objects.filter(student=child, center=center, is_deleted=False).aggregate(total=Sum("summa"))["total"] or 0
-    current_debt = _student_open_debt(child, center)
-    next_payment = _next_payment_date(child, center)
+def _mobile_payments_payload(request, child: User, center) -> dict:
+    enrollments = list(
+        Enrollment.objects.filter(student=child, group__center=center, is_active=True)
+        .select_related("group")
+        .order_by("group__nom")
+    )
+    tuition_months = list(
+        TuitionMonth.objects
+        .filter(enrollment__student=child, enrollment__group__center=center, is_deleted=False)
+        .select_related("enrollment", "enrollment__group")
+        .prefetch_related("allocations")
+        .order_by("month", "enrollment__group__nom")
+    )
+    paid_total = (
+        Payment.objects.filter(student=child, center=center, is_deleted=False)
+        .aggregate(total=Sum("summa"))["total"]
+        or 0
+    )
     payments = (
         Payment.objects
         .filter(student=child, center=center, is_deleted=False)
         .select_related("group")
         .order_by("-paid_date", "-id")
     )
+    current_month = timezone.localdate().replace(day=1)
+    paid_this_month = (
+        payments.filter(paid_date__gte=current_month).aggregate(total=Sum("summa"))["total"]
+        or 0
+    )
+    total_plan = 0
+    debt_amount = 0
+    pending_amount = 0
+    next_payment = None
+    plan_items = []
+    today = timezone.localdate()
+    for tuition in tuition_months:
+        group = tuition.enrollment.group
+        planned_amount = _money(tuition.fee_amount)
+        paid_amount = sum(
+            _money(allocation.amount)
+            for allocation in tuition.allocations.all()
+            if not getattr(allocation, "is_deleted", False)
+        )
+        remaining_amount = max(0, planned_amount - paid_amount)
+        due_date = _tuition_due_date(tuition, center)
+        if remaining_amount <= 0:
+            status = "paid"
+            status_label = "To‘langan"
+        elif due_date < today:
+            status = "debt"
+            status_label = "Qarzdorlik"
+            debt_amount += remaining_amount
+        else:
+            status = "pending"
+            status_label = "Kutilmoqda"
+            pending_amount += remaining_amount
+            if next_payment is None or due_date < next_payment:
+                next_payment = due_date
+
+        total_plan += planned_amount
+        plan_items.append(
+            {
+                "id": tuition.id,
+                "group_name": group.nom,
+                "title": f"{_month_label_uz_full(tuition.month)} oyi to‘lovi",
+                "month_label": _month_label_uz_full(tuition.month),
+                "month": tuition.month.isoformat(),
+                "due_date": due_date.isoformat(),
+                "planned_amount": planned_amount,
+                "paid_amount": paid_amount,
+                "remaining_amount": remaining_amount,
+                "status": status,
+                "status_label": status_label,
+            }
+        )
+
+    if total_plan <= 0:
+        total_plan = sum(enrollment.resolved_monthly_price for enrollment in enrollments)
+    if next_payment is None:
+        next_payment = _next_payment_date(child, center)
     history = [
         {
             "id": payment.id,
@@ -1097,23 +1345,44 @@ def mobile_parent_child_payments(request, child_id: int):
         }
         for payment in payments[:100]
     ]
-    return JsonResponse({
+    return {
         "ok": True,
         "child": _serialize_child_profile(request, child, center),
         "summary": {
             "total_plan": total_plan,
-            "total_balance": _money(paid_total) + current_debt,
+            "total_balance": total_plan if total_plan > 0 else _money(paid_total) + debt_amount + pending_amount,
             "paid_total": _money(paid_total),
-            "debt_amount": current_debt,
+            "debt_amount": debt_amount,
+            "pending_amount": pending_amount,
+            "paid_this_month": _money(paid_this_month),
             "next_payment_date": next_payment.isoformat() if next_payment else None,
         },
+        "plan_items": plan_items,
+        "payment_gateway_available": False,
+        "center_contact": {
+            "name": getattr(center, "name", ""),
+            "phone": getattr(center, "phone", ""),
+        },
         "history": history,
-    })
+    }
+
+
+@require_GET
+@mobile_login_required
+def mobile_parent_child_payments(request, child_id: int):
+    child, error = _resolve_parent_child(request, child_id)
+    if error:
+        return error
+    center = _request_center(request) or child.center
+    return JsonResponse(_mobile_payments_payload(request, child, center))
 
 
 @require_GET
 @mobile_login_required
 def mobile_payments(request):
+    if request.user.role == "student" and not request.user.is_superuser:
+        center = _request_center(request)
+        return JsonResponse(_mobile_payments_payload(request, request.user, center))
     child, error = _resolve_parent_child(request, request.GET.get("child_id") or request.GET.get("selected_child_id"))
     if error:
         return error
@@ -1127,46 +1396,119 @@ def mobile_parent_child_progress(request, child_id: int):
     if error:
         return error
     center = _request_center(request) or child.center
+    period_key, period_label, start_date, end_date = _period_month_bounds(
+        request.GET.get("period"),
+    )
     subjects = []
-    for enrollment in Enrollment.objects.filter(student=child, group__center=center).select_related("group", "group__oqituvchi").order_by("group__nom"):
+    for enrollment in (
+        Enrollment.objects
+        .filter(student=child, group__center=center, is_active=True)
+        .select_related("group", "group__oqituvchi")
+        .order_by("group__nom")
+    ):
         group = enrollment.group
-        avg = (
-            ExamResult.objects
-            .filter(student=child, group=group, center=center, percent__isnull=False)
-            .aggregate(avg=Avg("percent"))["avg"]
+        exam_results = ExamResult.objects.filter(
+            student=child,
+            group=group,
+            center=center,
+            percent__isnull=False,
         )
+        if start_date:
+            exam_results = exam_results.filter(exam_date__gte=start_date)
+        if end_date:
+            exam_results = exam_results.filter(exam_date__lt=end_date)
+        avg = exam_results.aggregate(avg=Avg("percent"))["avg"]
         summary = StudentAcademicSummary.objects.filter(student=child, group=group, center=center).first()
-        percent = avg if avg is not None else (summary.average_percent if summary and summary.average_percent is not None else 0)
+        attendance_qs = Attendance.objects.filter(student=child, group=group, group__center=center)
+        if start_date:
+            attendance_qs = attendance_qs.filter(date__gte=start_date)
+        if end_date:
+            attendance_qs = attendance_qs.filter(date__lt=end_date)
+        attendance_total = attendance_qs.count()
+        attendance_present = attendance_qs.filter(
+            Q(status="present") | Q(present=True) | Q(forced=True),
+        ).count()
+        attendance_percent = round((attendance_present / attendance_total) * 100) if attendance_total else 0
+        exam_percent = (
+            float(avg)
+            if avg is not None
+            else float(summary.average_percent)
+            if summary and summary.average_percent is not None
+            else 0
+        )
+        effective_percent = int(round(exam_percent if exam_percent > 0 else attendance_percent))
         subjects.append({
             "id": group.id,
             "subject": group.nom,
             "teacher_name": group.oqituvchi.get_full_name() if group.oqituvchi else "",
-            "percent": int(round(float(percent or 0))),
-            "status": "A’lo" if float(percent or 0) >= 90 else "Yaxshi" if float(percent or 0) >= 65 else "O‘rta",
+            "percent": effective_percent,
+            "exam_percent": int(round(exam_percent)),
+            "attendance_percent": attendance_percent,
+            "status": "A’lo" if effective_percent >= 90 else "Yaxshi" if effective_percent >= 65 else "O‘rta",
         })
-    latest_comment = (
+    comment_qs = (
         ExamResult.objects
         .filter(student=child, center=center)
         .exclude(teacher_comment="")
         .select_related("teacher", "group")
-        .order_by("-exam_date", "-id")
-        .first()
     )
-    comment = None
-    if latest_comment:
-        comment = {
-            "teacher_name": latest_comment.teacher.get_full_name() if latest_comment.teacher else "",
-            "teacher_role": f"{latest_comment.group.nom} o‘qituvchisi",
-            "date": latest_comment.exam_date.isoformat(),
-            "comment": latest_comment.teacher_comment,
+    if start_date:
+        comment_qs = comment_qs.filter(exam_date__gte=start_date)
+    if end_date:
+        comment_qs = comment_qs.filter(exam_date__lt=end_date)
+    comment_qs = comment_qs.order_by("-exam_date", "-id")
+    teacher_comments = [
+        {
+            "teacher_name": item.teacher.get_full_name() if item.teacher else "",
+            "teacher_role": f"{item.group.nom} o‘qituvchisi",
+            "date": item.exam_date.isoformat(),
+            "comment": item.teacher_comment,
         }
+        for item in comment_qs[:10]
+    ]
+    average_subject_percent = round(
+        sum(item["percent"] for item in subjects) / len(subjects),
+    ) if subjects else 0
+    attendance_summary = _student_attendance_summary(
+        child,
+        center,
+        start_date=start_date,
+        end_date=end_date,
+    )
+    attendance_percent = int(
+        round(
+            attendance_summary["recent_attendance_rate"]
+            if period_key == "current"
+            else attendance_summary["attendance_rate"],
+        ),
+    )
+    overall_percent = max(
+        average_subject_percent,
+        int(round((average_subject_percent * 0.75) + (attendance_percent * 0.25))),
+    ) if subjects else _student_average_score(
+        child,
+        center,
+        start_date=start_date,
+        end_date=end_date,
+    )
     return JsonResponse({
         "ok": True,
         "child": _serialize_child_profile(request, child, center),
-        "overall_percent": _student_average_score(child, center),
-        "progress_chart": _student_progress_chart(child, center),
+        "selected_period": period_key,
+        "selected_period_label": period_label,
+        "available_periods": [
+            {"key": "current", "label": "Joriy davr"},
+            {"key": "last_month", "label": "O‘tgan oy"},
+            {"key": "last_3_months", "label": "Oxirgi 3 oy"},
+            {"key": "all", "label": "Barcha davr"},
+        ],
+        "overall_percent": overall_percent,
+        "attendance_percent": attendance_percent,
+        "subject_average_percent": average_subject_percent,
+        "progress_chart": _student_progress_chart(child, center, period_key=period_key),
         "subjects": subjects,
-        "latest_teacher_comment": comment,
+        "teacher_comments": teacher_comments,
+        "latest_teacher_comment": teacher_comments[0] if teacher_comments else None,
     })
 
 
@@ -1239,10 +1581,102 @@ def mobile_parent_profile(request):
 
 
 @csrf_exempt
+@require_http_methods(["POST"])
+@mobile_login_required
+def mobile_parent_profile_avatar(request):
+    if not request.user.is_superuser and request.user.role != "parent":
+        return _mobile_json_error("Permission denied", status=403, code="permission_denied")
+
+    should_clear = _coerce_bool(request.POST.get("clear"), default=False)
+    uploaded_avatar = request.FILES.get("avatar")
+    if uploaded_avatar is None and not should_clear:
+        return _mobile_json_error("Profil rasmi yuborilmadi", code="avatar_required")
+
+    if should_clear:
+        if request.user.avatar:
+            request.user.avatar.delete(save=False)
+        request.user.avatar = None
+    elif uploaded_avatar is not None:
+        request.user.avatar = uploaded_avatar
+
+    request.user.save(update_fields=["avatar"])
+    center = _request_center(request)
+    return JsonResponse(
+        {
+            "ok": True,
+            "parent": _serialize_user(request, request.user),
+            "children": [
+                _serialize_child_profile(request, item, center)
+                for item in _parent_children_queryset(request.user, center)
+            ],
+        }
+    )
+
+
+@csrf_exempt
+@require_http_methods(["GET", "PATCH"])
+@mobile_login_required
+def mobile_parent_notification_preferences(request):
+    if not request.user.is_superuser and request.user.role != "parent":
+        return _mobile_json_error("Permission denied", status=403, code="permission_denied")
+
+    preference, _ = NotificationPreference.objects.get_or_create(user=request.user)
+    if request.method == "PATCH":
+        data = _parse_json_body(request)
+        preference.receive_system = _coerce_bool(
+            data.get("attendance"),
+            default=preference.receive_system,
+        )
+        preference.receive_purchase = _coerce_bool(
+            data.get("payments"),
+            default=preference.receive_purchase,
+        )
+        preference.receive_coin = _coerce_bool(
+            data.get("progress"),
+            default=preference.receive_coin,
+        )
+        preference.receive_broadcast = _coerce_bool(
+            data.get("general"),
+            default=preference.receive_broadcast,
+        )
+        preference.save(
+            update_fields=[
+                "receive_system",
+                "receive_purchase",
+                "receive_coin",
+                "receive_broadcast",
+                "updated_at",
+            ]
+        )
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "settings": _parent_notification_settings_payload(request.user),
+        }
+    )
+
+
+@csrf_exempt
 @require_http_methods(["GET", "PATCH"])
 @mobile_login_required
 def mobile_profile(request):
-    return mobile_parent_profile(request)
+    if request.user.role == "parent" or request.user.is_superuser:
+        return mobile_parent_profile(request)
+    if request.method == "PATCH":
+        return _mobile_json_error(
+            "Bu rol uchun profilni tahrirlash hozircha qo‘llab-quvvatlanmaydi",
+            status=405,
+            code="profile_patch_unsupported",
+        )
+    center = _request_center(request)
+    return JsonResponse(
+        {
+            "ok": True,
+            "user": _serialize_user(request, request.user),
+            "center": _serialize_center(center),
+        }
+    )
 
 
 @csrf_exempt

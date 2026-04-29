@@ -11,25 +11,25 @@ class NotificationPreferenceSettings {
   const NotificationPreferenceSettings({
     this.attendance = true,
     this.payments = true,
-    this.grades = true,
+    this.progress = true,
     this.general = true,
   });
 
   final bool attendance;
   final bool payments;
-  final bool grades;
+  final bool progress;
   final bool general;
 
   NotificationPreferenceSettings copyWith({
     bool? attendance,
     bool? payments,
-    bool? grades,
+    bool? progress,
     bool? general,
   }) {
     return NotificationPreferenceSettings(
       attendance: attendance ?? this.attendance,
       payments: payments ?? this.payments,
-      grades: grades ?? this.grades,
+      progress: progress ?? this.progress,
       general: general ?? this.general,
     );
   }
@@ -37,7 +37,7 @@ class NotificationPreferenceSettings {
   Map<String, dynamic> toJson() => <String, dynamic>{
     'attendance': attendance,
     'payments': payments,
-    'grades': grades,
+    'progress': progress,
     'general': general,
   };
 
@@ -45,7 +45,7 @@ class NotificationPreferenceSettings {
     return NotificationPreferenceSettings(
       attendance: json['attendance'] != false,
       payments: json['payments'] != false,
-      grades: json['grades'] != false,
+      progress: (json['progress'] ?? json['grades']) != false,
       general: json['general'] != false,
     );
   }
@@ -85,9 +85,9 @@ class AppPreferencesProvider extends ChangeNotifier {
       case AppThemePreference.system:
         return 'Tizim bo‘yicha';
       case AppThemePreference.light:
-        return 'Light';
+        return 'Yorug‘';
       case AppThemePreference.dark:
-        return 'Dark';
+        return 'Qorong‘i';
     }
   }
 

@@ -16,6 +16,7 @@ import 'package:chaqmoq_mobile/screens/profile/theme_screen.dart';
 import 'package:chaqmoq_mobile/screens/settings/settings_screen.dart';
 import 'package:chaqmoq_mobile/services/api_client.dart';
 import 'package:chaqmoq_mobile/services/parent_dashboard_service.dart';
+import 'package:chaqmoq_mobile/widgets/adaptive_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -458,9 +459,11 @@ class ParentInfoCard extends StatelessWidget {
                       color: Color(0xFFE7F0FF),
                     ),
                     clipBehavior: Clip.antiAlias,
-                    child: Image.asset(
-                      'assets/images/parent_avatar.png',
-                      fit: BoxFit.cover,
+                    child: AdaptiveAvatar(
+                      name: name,
+                      imageUrl: parent?.avatarUrl ?? '',
+                      size: 88,
+                      icon: Icons.person_outline_rounded,
                     ),
                   ),
                   Positioned(
@@ -491,7 +494,7 @@ class ParentInfoCard extends StatelessWidget {
                   children: <Widget>[
                     Text(
                       name,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: ProfileTextStyles.title.copyWith(fontSize: 20),
                     ),
@@ -543,22 +546,6 @@ class ChildrenSection extends StatelessWidget {
     final int? selectedId =
         dashboard.selectedChildId ?? dashboard.data?.selectedChild.id;
 
-    final List<ChildProfileData> cards = <ChildProfileData>[
-      for (int index = 0; index < children.length; index++)
-        ChildProfileData(
-          id: children[index].id,
-          name: children[index].fullName,
-          group: _childGroupLine(children[index]),
-          displayId: children[index].childCode.isNotEmpty
-              ? 'Kod: ${children[index].childCode}'
-              : '',
-          avatar: _avatarAsset(index),
-          selected:
-              children[index].id == selectedId ||
-              (selectedId == null && index == 0),
-        ),
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -595,7 +582,7 @@ class ChildrenSection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        if (cards.isEmpty)
+        if (children.isEmpty)
           ProfileCard(
             padding: const EdgeInsets.all(18),
             child: Text(
@@ -608,14 +595,20 @@ class ChildrenSection extends StatelessWidget {
           )
         else
           SizedBox(
-            height: 186,
+            height: 206,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
-              itemCount: cards.length,
+              itemCount: children.length,
               separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (BuildContext context, int index) {
-                return ChildCard(data: cards[index]);
+                final child = children[index];
+                return ChildCard(
+                  child: child,
+                  selected:
+                      child.id == selectedId ||
+                      (selectedId == null && index == 0),
+                );
               },
             ),
           ),
@@ -625,36 +618,43 @@ class ChildrenSection extends StatelessWidget {
 }
 
 class ChildCard extends StatelessWidget {
-  const ChildCard({super.key, required this.data});
+  const ChildCard({
+    super.key,
+    required this.child,
+    required this.selected,
+  });
 
-  final ChildProfileData data;
+  final ParentChildModel child;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
+    final groupLine = _childGroupLine(child);
+    final displayId = child.childCode.isNotEmpty ? 'Kod: ${child.childCode}' : '';
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: () =>
-            context.read<ParentDashboardProvider>().selectChild(data.id),
+            context.read<ParentDashboardProvider>().selectChild(child.id),
         child: Ink(
-          width: 206,
+          width: 214,
           padding: const EdgeInsets.fromLTRB(14, 18, 14, 14),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: data.selected
+              color: selected
                   ? ProfileColors.primaryBlue
                   : ProfileColors.border,
-              width: data.selected ? 2 : 1,
+              width: selected ? 2 : 1,
             ),
             boxShadow: ProfileShadows.card,
           ),
           child: Stack(
             children: <Widget>[
-              if (data.selected)
+              if (selected)
                 Positioned(
                   right: 0,
                   top: 0,
@@ -677,41 +677,67 @@ class ChildCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
                     Container(
-                      width: 62,
-                      height: 62,
-                      decoration: const BoxDecoration(shape: BoxShape.circle),
-                      clipBehavior: Clip.antiAlias,
-                      child: Image.asset(data.avatar, fit: BoxFit.cover),
+                      width: 68,
+                      height: 68,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: selected
+                              ? ProfileColors.primaryBlue.withValues(alpha: 0.18)
+                              : ProfileColors.border,
+                        ),
+                      ),
+                      child: AdaptiveAvatar(
+                        name: child.fullName,
+                        imageUrl: child.avatarUrl,
+                        size: 60,
+                        icon: Icons.school_rounded,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      data.name,
-                      maxLines: 1,
+                      child.fullName,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
-                      style: ProfileTextStyles.title.copyWith(fontSize: 15.5),
+                      style: ProfileTextStyles.title.copyWith(
+                        fontSize: 15.2,
+                        height: 1.18,
+                      ),
                     ),
                     const SizedBox(height: 7),
                     Text(
-                      data.group,
-                      maxLines: 1,
+                      groupLine,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
                       style: ProfileTextStyles.body.copyWith(
                         color: ProfileColors.secondaryText,
-                        fontSize: 13,
+                        fontSize: 12.8,
+                        height: 1.28,
                       ),
                     ),
-                    if (data.displayId.isNotEmpty) ...<Widget>[
-                      const SizedBox(height: 5),
-                      Text(
-                        data.displayId,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: ProfileTextStyles.body.copyWith(
-                          color: ProfileColors.secondaryText,
-                          fontSize: 13,
+                    if (displayId.isNotEmpty) ...<Widget>[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF4F7FB),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          displayId,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: ProfileTextStyles.body.copyWith(
+                            color: ProfileColors.secondaryText,
+                            fontSize: 12.5,
+                          ),
                         ),
                       ),
                     ],
@@ -863,7 +889,7 @@ class SettingsRow extends StatelessWidget {
                     children: <Widget>[
                       Text(
                         data.title,
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: ProfileTextStyles.title.copyWith(
                           color: data.destructive
@@ -876,7 +902,7 @@ class SettingsRow extends StatelessWidget {
                         const SizedBox(height: 5),
                         Text(
                           data.subtitle!,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: ProfileTextStyles.body.copyWith(
                             color: data.destructive
@@ -894,7 +920,7 @@ class SettingsRow extends StatelessWidget {
                   Flexible(
                     child: Text(
                       data.value!,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.right,
                       style: ProfileTextStyles.body.copyWith(
@@ -1023,7 +1049,7 @@ class _ContactLine extends StatelessWidget {
         Expanded(
           child: Text(
             text,
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: ProfileTextStyles.body.copyWith(
               color: ProfileColors.secondaryText,
@@ -1169,15 +1195,6 @@ class _ProfileStateCard extends StatelessWidget {
   }
 }
 
-String _avatarAsset(int index) {
-  const List<String> assets = <String>[
-    'assets/images/profile_child_sardor.png',
-    'assets/images/profile_child_madina.png',
-    'assets/images/profile_child_ali.png',
-  ];
-  return assets[index % assets.length];
-}
-
 String _childGroupLine(ParentChildModel child) {
   final List<String> parts = <String>[
     if (child.className.trim().isNotEmpty) child.className.trim(),
@@ -1195,24 +1212,6 @@ enum ProfileAction {
   help,
   about,
   logout,
-}
-
-class ChildProfileData {
-  const ChildProfileData({
-    required this.name,
-    required this.group,
-    required this.id,
-    required this.displayId,
-    required this.avatar,
-    this.selected = false,
-  });
-
-  final String name;
-  final String group;
-  final int id;
-  final String displayId;
-  final String avatar;
-  final bool selected;
 }
 
 class SettingsRowData {

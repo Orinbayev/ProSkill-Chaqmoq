@@ -309,6 +309,7 @@ html[data-role-theme="light"] body.attendance-month-page,
 html[data-role-theme="light"] body.debtors-page,
 html[data-role-theme="light"] body.salary-list-page,
 html[data-role-theme="light"] body.salary-summary-page,
+html[data-role-theme="light"] body.teacher-groups-page,
 html[data-role-theme="light"] body.monthly-report-page,
 html[data-role-theme="light"] body.teacher-income-page,
 html[data-role-theme="light"] body.category-add-page,
@@ -333,6 +334,7 @@ html[data-role-theme="light"] body.attendance-month-page .card,
 html[data-role-theme="light"] body.debtors-page .card,
 html[data-role-theme="light"] body.salary-list-page .card,
 html[data-role-theme="light"] body.salary-summary-page .card,
+html[data-role-theme="light"] body.teacher-groups-page .card,
 html[data-role-theme="light"] body.monthly-report-page .card,
 html[data-role-theme="light"] body.teacher-income-page .card,
 html[data-role-theme="light"] body.category-add-page .card,
@@ -345,6 +347,110 @@ html[data-role-theme="light"] body.group-detail-page .panel {
   border-color: var(--lm-border) !important;
   color: var(--lm-text) !important;
   box-shadow: var(--lm-shadow) !important;
+}
+
+html[data-role-theme="light"] body.teacher-groups-page {
+  background:
+    radial-gradient(1100px 560px at 10% 0%, rgba(37, 99, 235, 0.08), transparent 56%),
+    radial-gradient(900px 500px at 90% 10%, rgba(250, 204, 21, 0.08), transparent 58%),
+    linear-gradient(180deg, var(--lm-bg), #eef4ff 100%) !important;
+  color: var(--lm-text) !important;
+}
+
+html[data-role-theme="light"] body.teacher-groups-page .shell,
+html[data-role-theme="light"] body.teacher-groups-page .filter-bar,
+html[data-role-theme="light"] body.teacher-groups-page details.group-card {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: var(--lm-border) !important;
+  box-shadow: var(--lm-shadow) !important;
+  color: var(--lm-text) !important;
+}
+
+html[data-role-theme="light"] body.teacher-groups-page .shell::before {
+  background:
+    radial-gradient(900px 340px at 20% 0%, rgba(37, 99, 235, 0.10), transparent 62%),
+    radial-gradient(850px 320px at 92% 10%, rgba(14, 165, 233, 0.08), transparent 62%),
+    radial-gradient(900px 340px at 55% 120%, rgba(250, 204, 21, 0.10), transparent 62%) !important;
+  opacity: 1 !important;
+}
+
+html[data-role-theme="light"] body.teacher-groups-page .fg,
+html[data-role-theme="light"] body.teacher-groups-page .fg select,
+html[data-role-theme="light"] body.teacher-groups-page .fg input {
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-color: var(--lm-border) !important;
+  color: var(--lm-text) !important;
+}
+
+html[data-role-theme="light"] body.teacher-groups-page .fg .lbl,
+html[data-role-theme="light"] body.teacher-groups-page .sum-group .gmeta,
+html[data-role-theme="light"] body.teacher-groups-page .sum-percent,
+html[data-role-theme="light"] body.teacher-groups-page .empty-text {
+  color: var(--lm-muted) !important;
+}
+
+html[data-role-theme="light"] body.teacher-groups-page .filter-bar select,
+html[data-role-theme="light"] body.teacher-groups-page .filter-bar input {
+  color-scheme: light !important;
+}
+
+html[data-role-theme="light"] body.teacher-groups-page .filter-bar option {
+  background: #ffffff !important;
+  color: var(--lm-text) !important;
+}
+
+html[data-role-theme="light"] body.teacher-groups-page .summary-grid {
+  background: rgba(37, 99, 235, 0.035) !important;
+  border-bottom-color: var(--lm-border) !important;
+}
+
+html[data-role-theme="light"] body.teacher-groups-page .sum-group .gname,
+html[data-role-theme="light"] body.teacher-groups-page .table td,
+html[data-role-theme="light"] body.teacher-groups-page .table th,
+html[data-role-theme="light"] body.teacher-groups-page td strong {
+  color: var(--lm-text) !important;
+}
+
+html[data-role-theme="light"] body.teacher-groups-page .sum-total {
+  color: #059669 !important;
+}
+
+html[data-role-theme="light"] body.teacher-groups-page .chev {
+  background: rgba(37, 99, 235, 0.08) !important;
+  border-color: rgba(37, 99, 235, 0.16) !important;
+  color: var(--lm-primary) !important;
+}
+
+html[data-role-theme="light"] body.teacher-groups-page .table-box {
+  background: #ffffff !important;
+  border-color: var(--lm-border) !important;
+}
+
+html[data-role-theme="light"] body.teacher-groups-page .table,
+html[data-role-theme="light"] body.teacher-groups-page .table thead,
+html[data-role-theme="light"] body.teacher-groups-page .table tbody,
+html[data-role-theme="light"] body.teacher-groups-page .table tr,
+html[data-role-theme="light"] body.teacher-groups-page .table td,
+html[data-role-theme="light"] body.teacher-groups-page .table th {
+  background: transparent !important;
+}
+
+html[data-role-theme="light"] body.teacher-groups-page .table thead th {
+  background: #f1f5f9 !important;
+  border-color: var(--lm-border) !important;
+  color: var(--lm-text) !important;
+}
+
+html[data-role-theme="light"] body.teacher-groups-page .table tbody tr {
+  border-color: var(--lm-border) !important;
+}
+
+html[data-role-theme="light"] body.teacher-groups-page .table tbody tr:nth-child(even) {
+  background: #f8fafc !important;
+}
+
+html[data-role-theme="light"] body.teacher-groups-page .table tbody tr:hover {
+  background: rgba(37, 99, 235, 0.08) !important;
 }
 
 /* Attendance month table sticky cells */

@@ -5,6 +5,7 @@ import 'package:chaqmoq_mobile/models/app_models.dart';
 import 'package:chaqmoq_mobile/models/parent_models.dart';
 import 'package:chaqmoq_mobile/providers/parent_dashboard_provider.dart';
 import 'package:chaqmoq_mobile/screens/parent/add_child_screen.dart';
+import 'package:chaqmoq_mobile/widgets/adaptive_avatar.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -372,13 +373,13 @@ class HeaderBar extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 3),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '$parentName 👋',
-                  maxLines: 1,
-                  style: _ParentTextStyles.title.copyWith(fontSize: 18),
+              Text(
+                '$parentName 👋',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: _ParentTextStyles.title.copyWith(
+                  fontSize: 18,
+                  height: 1.18,
                 ),
               ),
             ],
@@ -436,7 +437,7 @@ class ChildProfileCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isCompact = MediaQuery.sizeOf(context).width < 380;
     final avatarSize = isCompact ? 56.0 : 64.0;
-    final cardHeight = isCompact ? 92.0 : 102.0;
+    final cardHeight = isCompact ? 108.0 : 116.0;
     final horizontalPadding = isCompact ? 14.0 : 18.0;
     final textGap = isCompact ? 12.0 : 16.0;
     final dropdownSize = isCompact ? 38.0 : 44.0;
@@ -489,7 +490,6 @@ class ChildProfileCard extends StatelessWidget {
                     child: _AvatarImage(
                       imageUrl: child.avatarUrl,
                       initials: Formatters.initials(child.fullName),
-                      fallbackAsset: 'assets/images/parent_child_avatar.png',
                     ),
                   ),
                   Positioned(
@@ -513,29 +513,25 @@ class ChildProfileCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        child.fullName,
-                        maxLines: 1,
-                        style: _ParentTextStyles.title.copyWith(
-                          color: Colors.white,
-                          fontSize: isCompact ? 18 : 20,
-                        ),
+                    Text(
+                      child.fullName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: _ParentTextStyles.title.copyWith(
+                        color: Colors.white,
+                        fontSize: isCompact ? 17 : 19,
+                        height: 1.16,
                       ),
                     ),
                     SizedBox(height: isCompact ? 5 : 7),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        groupLine,
-                        maxLines: 1,
-                        style: _ParentTextStyles.body.copyWith(
-                          color: Colors.white.withValues(alpha: 0.92),
-                          fontSize: isCompact ? 13.5 : 15,
-                        ),
+                    Text(
+                      groupLine,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: _ParentTextStyles.body.copyWith(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        fontSize: isCompact ? 12.8 : 14.2,
+                        height: 1.24,
                       ),
                     ),
                   ],
@@ -909,7 +905,7 @@ class BottomNav extends StatelessWidget {
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.bar_chart_rounded),
-              label: 'Yutuqlar',
+              label: 'Progress',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_rounded),
@@ -959,7 +955,6 @@ class _ChildSelectorTile extends StatelessWidget {
                 child: _AvatarImage(
                   imageUrl: child.avatarUrl,
                   initials: Formatters.initials(child.fullName),
-                  fallbackAsset: 'assets/images/parent_child_avatar.png',
                 ),
               ),
               const SizedBox(width: 12),
@@ -969,18 +964,22 @@ class _ChildSelectorTile extends StatelessWidget {
                   children: [
                     Text(
                       child.fullName,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: _ParentTextStyles.title.copyWith(fontSize: 15.5),
+                      style: _ParentTextStyles.title.copyWith(
+                        fontSize: 15.2,
+                        height: 1.16,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       _childGroupLine(child),
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: _ParentTextStyles.body.copyWith(
                         color: _ParentColors.secondaryText,
-                        fontSize: 13,
+                        fontSize: 12.8,
+                        height: 1.24,
                       ),
                     ),
                   ],
@@ -1030,7 +1029,6 @@ class _ProfileAvatar extends StatelessWidget {
           child: _AvatarImage(
             imageUrl: parent?.avatarUrl ?? '',
             initials: Formatters.initials(name),
-            fallbackAsset: 'assets/images/parent_avatar.png',
           ),
         ),
       ),
@@ -1042,46 +1040,26 @@ class _AvatarImage extends StatelessWidget {
   const _AvatarImage({
     required this.imageUrl,
     required this.initials,
-    required this.fallbackAsset,
   });
 
   final String imageUrl;
   final String initials;
-  final String fallbackAsset;
 
   @override
   Widget build(BuildContext context) {
-    final placeholder = Container(
-      alignment: Alignment.center,
-      decoration: const BoxDecoration(
-        color: Color(0xFFEAF4FF),
-        shape: BoxShape.circle,
-      ),
-      child: Text(
-        initials,
-        style: _ParentTextStyles.label.copyWith(
-          color: _ParentColors.primaryBlue,
-          fontSize: 14,
-        ),
-      ),
-    );
-
-    if (imageUrl.trim().isNotEmpty) {
-      return ClipOval(
-        child: Image.network(
-          imageUrl,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => placeholder,
-        ),
-      );
-    }
-
-    return ClipOval(
-      child: Image.asset(
-        fallbackAsset,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => placeholder,
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final side = math.min(constraints.maxWidth, constraints.maxHeight);
+        return AdaptiveAvatar(
+          name: initials,
+          imageUrl: imageUrl,
+          size: side.isFinite && side > 0 ? side : 44,
+          fontScale: 0.42,
+          icon: Icons.person_rounded,
+          backgroundColor: const Color(0xFFEAF4FF),
+          foregroundColor: _ParentColors.primaryBlue,
+        );
+      },
     );
   }
 }

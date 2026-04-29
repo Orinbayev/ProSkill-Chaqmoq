@@ -174,6 +174,8 @@ class UserModel {
     required this.fullName,
     required this.role,
     required this.center,
+    this.firstName = '',
+    this.lastName = '',
     this.phone = '',
     this.email = '',
     this.joinedDate,
@@ -184,24 +186,30 @@ class UserModel {
   final String fullName;
   final String role;
   final CenterModel? center;
+  final String firstName;
+  final String lastName;
   final String phone;
   final String email;
   final DateTime? joinedDate;
   final String avatarUrl;
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    final firstName = jsonString(json['ism']);
+    final lastName = jsonString(json['familya']);
     return UserModel(
       id: jsonInt(json['id']),
       fullName: jsonString(json['full_name']).isNotEmpty
           ? jsonString(json['full_name'])
           : [
-              jsonString(json['ism']),
-              jsonString(json['familya']),
+              firstName,
+              lastName,
             ].where((part) => part.isNotEmpty).join(' ').trim(),
       role: jsonString(json['role']),
       center: json['center'] == null
           ? null
           : CenterModel.fromJson(jsonMap(json['center'])),
+      firstName: firstName,
+      lastName: lastName,
       phone: jsonString(json['phone']).isNotEmpty
           ? jsonString(json['phone'])
           : jsonString(json['phone_number']).isNotEmpty
@@ -218,6 +226,8 @@ class UserModel {
     String? fullName,
     String? role,
     CenterModel? center,
+    String? firstName,
+    String? lastName,
     String? phone,
     String? email,
     DateTime? joinedDate,
@@ -228,6 +238,8 @@ class UserModel {
       fullName: fullName ?? this.fullName,
       role: role ?? this.role,
       center: center ?? this.center,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
       phone: phone ?? this.phone,
       email: email ?? this.email,
       joinedDate: joinedDate ?? this.joinedDate,
@@ -240,6 +252,8 @@ class UserModel {
     'full_name': fullName,
     'role': role,
     'center': center?.toJson(),
+    'ism': firstName,
+    'familya': lastName,
     'phone': phone,
     'email': email,
     'joined_date': joinedDate?.toIso8601String(),

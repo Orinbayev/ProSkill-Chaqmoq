@@ -11,7 +11,8 @@ class LoginService {
   Future<LoginResponse> login(LoginRequest request) async {
     if (kDebugMode) {
       debugPrint(
-        '[Chaqmoq Auth] POST ${AppConfig.loginPath} ${request.toDebugJson()}',
+        '[Chaqmoq Auth] env=${AppConfig.environmentName} '
+        'POST ${AppConfig.baseUrl}${AppConfig.loginPath} ${request.toDebugJson()}',
       );
     }
     final payload = await _apiClient.post(

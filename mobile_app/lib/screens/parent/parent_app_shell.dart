@@ -254,7 +254,7 @@ class ParentDrawer extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 18),
-            _DrawerItem(Icons.home_rounded, 'Dashboard', onDashboard),
+            _DrawerItem(Icons.home_rounded, 'Bosh sahifa', onDashboard),
             _DrawerItem(
               Icons.event_available_outlined,
               'Davomat',
@@ -267,7 +267,7 @@ class ParentDrawer extends StatelessWidget {
             ),
             _DrawerItem(
               Icons.bar_chart_rounded,
-              'Progress / Yutuqlar',
+              'Progress',
               onProgress,
             ),
             _DrawerItem(

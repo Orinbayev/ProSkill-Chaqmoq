@@ -1,3 +1,4 @@
+import 'package:chaqmoq_mobile/core/config/app_config.dart';
 import 'package:chaqmoq_mobile/core/theme/app_theme.dart';
 import 'package:chaqmoq_mobile/providers/attendance_provider.dart';
 import 'package:chaqmoq_mobile/providers/app_preferences_provider.dart';
@@ -17,6 +18,7 @@ import 'package:chaqmoq_mobile/screens/student/student_app_shell.dart';
 import 'package:chaqmoq_mobile/services/api_client.dart';
 import 'package:chaqmoq_mobile/services/api_services.dart';
 import 'package:chaqmoq_mobile/services/login_service.dart';
+import 'package:chaqmoq_mobile/services/local_notification_service.dart';
 import 'package:chaqmoq_mobile/services/parent_dashboard_service.dart';
 import 'package:chaqmoq_mobile/services/storage_service.dart';
 import 'package:flutter/material.dart';
@@ -27,9 +29,17 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('uz', null);
   await initializeDateFormatting('uz_UZ', null);
+  assert(() {
+    debugPrint(
+      '[Chaqmoq App] env=${AppConfig.environmentName} baseUrl=${AppConfig.baseUrl}',
+    );
+    return true;
+  }());
 
   final storageService = StorageService();
   final apiClient = ApiClient(storageService: storageService);
+  final localNotificationService = LocalNotificationService();
+  await localNotificationService.initialize();
 
   final loginService = LoginService(apiClient: apiClient);
   final authRepository = AuthRepository(
@@ -52,6 +62,7 @@ Future<void> main() async {
   runApp(
     ChaqmoqApp(
       storageService: storageService,
+      localNotificationService: localNotificationService,
       authProvider: authProvider,
       dashboardService: dashboardService,
       studentsService: studentsService,
@@ -70,6 +81,7 @@ class ChaqmoqApp extends StatelessWidget {
     super.key,
     required this.authProvider,
     required this.storageService,
+    required this.localNotificationService,
     required this.dashboardService,
     required this.studentsService,
     required this.teachersService,
@@ -82,6 +94,7 @@ class ChaqmoqApp extends StatelessWidget {
 
   final AuthProvider authProvider;
   final StorageService storageService;
+  final LocalNotificationService localNotificationService;
   final DashboardService dashboardService;
   final StudentsService studentsService;
   final TeachersService teachersService;
@@ -96,6 +109,7 @@ class ChaqmoqApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         Provider<ParentDashboardService>.value(value: parentDashboardService),
+        Provider<LocalNotificationService>.value(value: localNotificationService),
         ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
         ChangeNotifierProvider(
           create: (_) =>

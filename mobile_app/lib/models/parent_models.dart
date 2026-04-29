@@ -204,6 +204,7 @@ class ParentPaymentSummaryModel {
     required this.totalBalance,
     required this.paidTotal,
     required this.debtAmount,
+    this.pendingAmount = 0,
     this.nextPaymentDate,
   });
 
@@ -211,11 +212,15 @@ class ParentPaymentSummaryModel {
   final int totalBalance;
   final int paidTotal;
   final int debtAmount;
+  final int pendingAmount;
   final DateTime? nextPaymentDate;
 
   int get payableTotal =>
-      totalBalance > 0 ? totalBalance : paidTotal + debtAmount;
+      totalPlan > 0
+          ? totalPlan
+          : (totalBalance > 0 ? totalBalance : paidTotal + debtAmount + pendingAmount);
   int get remaining => debtAmount;
+  int get outstandingTotal => debtAmount + pendingAmount;
   double get paidRatio {
     final denominator = payableTotal > 0 ? payableTotal : totalPlan;
     if (denominator <= 0) {
@@ -232,7 +237,52 @@ class ParentPaymentSummaryModel {
       totalBalance: jsonInt(json['total_balance']),
       paidTotal: paidTotal,
       debtAmount: debtAmount,
+      pendingAmount: jsonInt(json['pending_amount']),
       nextPaymentDate: jsonDate(json['next_payment_date']),
+    );
+  }
+}
+
+class ParentPaymentPlanItemModel {
+  const ParentPaymentPlanItemModel({
+    required this.id,
+    required this.title,
+    required this.groupName,
+    required this.monthLabel,
+    required this.plannedAmount,
+    required this.paidAmount,
+    required this.remainingAmount,
+    required this.status,
+    required this.statusLabel,
+    this.month,
+    this.dueDate,
+  });
+
+  final int id;
+  final String title;
+  final String groupName;
+  final String monthLabel;
+  final int plannedAmount;
+  final int paidAmount;
+  final int remainingAmount;
+  final String status;
+  final String statusLabel;
+  final DateTime? month;
+  final DateTime? dueDate;
+
+  factory ParentPaymentPlanItemModel.fromJson(Map<String, dynamic> json) {
+    return ParentPaymentPlanItemModel(
+      id: jsonInt(json['id']),
+      title: jsonString(json['title']),
+      groupName: jsonString(json['group_name']),
+      monthLabel: jsonString(json['month_label']),
+      plannedAmount: jsonInt(json['planned_amount']),
+      paidAmount: jsonInt(json['paid_amount']),
+      remainingAmount: jsonInt(json['remaining_amount']),
+      status: jsonString(json['status']),
+      statusLabel: jsonString(json['status_label']),
+      month: jsonDate(json['month']),
+      dueDate: jsonDate(json['due_date']),
     );
   }
 }
@@ -283,20 +333,35 @@ class ParentPaymentsModel {
   const ParentPaymentsModel({
     required this.child,
     required this.summary,
+    required this.planItems,
     required this.history,
+    this.paymentGatewayAvailable = false,
+    this.centerContactName = '',
+    this.centerContactPhone = '',
   });
 
   final ParentChildModel child;
   final ParentPaymentSummaryModel summary;
+  final List<ParentPaymentPlanItemModel> planItems;
   final List<ParentPaymentHistoryModel> history;
+  final bool paymentGatewayAvailable;
+  final String centerContactName;
+  final String centerContactPhone;
 
   factory ParentPaymentsModel.fromJson(Map<String, dynamic> json) {
+    final centerContact = jsonMap(json['center_contact']);
     return ParentPaymentsModel(
       child: ParentChildModel.fromJson(jsonMap(json['child'])),
       summary: ParentPaymentSummaryModel.fromJson(jsonMap(json['summary'])),
+      planItems: jsonMapList(
+        json['plan_items'],
+      ).map(ParentPaymentPlanItemModel.fromJson).toList(),
       history: jsonMapList(
         json['history'],
       ).map(ParentPaymentHistoryModel.fromJson).toList(),
+      paymentGatewayAvailable: jsonBool(json['payment_gateway_available']),
+      centerContactName: jsonString(centerContact['name']),
+      centerContactPhone: jsonString(centerContact['phone']),
     );
   }
 }
@@ -308,6 +373,8 @@ class ParentSubjectProgressModel {
     required this.teacherName,
     required this.percent,
     required this.status,
+    this.examPercent = 0,
+    this.attendancePercent = 0,
   });
 
   final int id;
@@ -315,6 +382,8 @@ class ParentSubjectProgressModel {
   final String teacherName;
   final int percent;
   final String status;
+  final int examPercent;
+  final int attendancePercent;
 
   factory ParentSubjectProgressModel.fromJson(Map<String, dynamic> json) {
     return ParentSubjectProgressModel(
@@ -325,6 +394,8 @@ class ParentSubjectProgressModel {
       teacherName: jsonString(json['teacher_name']),
       percent: jsonInt(json['percent']),
       status: jsonString(json['status']),
+      examPercent: jsonInt(json['exam_percent']),
+      attendancePercent: jsonInt(json['attendance_percent']),
     );
   }
 }
@@ -356,15 +427,27 @@ class ParentProgressModel {
   const ParentProgressModel({
     required this.child,
     required this.overallPercent,
+    required this.selectedPeriod,
+    required this.selectedPeriodLabel,
+    required this.availablePeriods,
+    required this.attendancePercent,
+    required this.subjectAveragePercent,
     required this.progressChart,
     required this.subjects,
+    required this.teacherComments,
     this.latestTeacherComment,
   });
 
   final ParentChildModel child;
   final int overallPercent;
+  final String selectedPeriod;
+  final String selectedPeriodLabel;
+  final List<ParentProgressPeriodModel> availablePeriods;
+  final int attendancePercent;
+  final int subjectAveragePercent;
   final List<ParentProgressSeries> progressChart;
   final List<ParentSubjectProgressModel> subjects;
+  final List<ParentTeacherCommentModel> teacherComments;
   final ParentTeacherCommentModel? latestTeacherComment;
 
   factory ParentProgressModel.fromJson(Map<String, dynamic> json) {
@@ -372,15 +455,42 @@ class ParentProgressModel {
     return ParentProgressModel(
       child: ParentChildModel.fromJson(jsonMap(json['child'])),
       overallPercent: jsonInt(json['overall_percent']),
+      selectedPeriod: jsonString(json['selected_period']),
+      selectedPeriodLabel: jsonString(json['selected_period_label']),
+      availablePeriods: jsonMapList(
+        json['available_periods'],
+      ).map(ParentProgressPeriodModel.fromJson).toList(),
+      attendancePercent: jsonInt(json['attendance_percent']),
+      subjectAveragePercent: jsonInt(json['subject_average_percent']),
       progressChart: jsonMapList(
         json['progress_chart'],
       ).map(ParentProgressSeries.fromJson).toList(),
       subjects: jsonMapList(
         json['subjects'],
       ).map(ParentSubjectProgressModel.fromJson).toList(),
+      teacherComments: jsonMapList(
+        json['teacher_comments'],
+      ).map(ParentTeacherCommentModel.fromJson).toList(),
       latestTeacherComment: commentPayload.isEmpty
           ? null
           : ParentTeacherCommentModel.fromJson(commentPayload),
+    );
+  }
+}
+
+class ParentProgressPeriodModel {
+  const ParentProgressPeriodModel({
+    required this.key,
+    required this.label,
+  });
+
+  final String key;
+  final String label;
+
+  factory ParentProgressPeriodModel.fromJson(Map<String, dynamic> json) {
+    return ParentProgressPeriodModel(
+      key: jsonString(json['key']),
+      label: jsonString(json['label']),
     );
   }
 }

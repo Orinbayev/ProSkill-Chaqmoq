@@ -1,8 +1,36 @@
 # Environment
 .env
 venv/
+telegram_bot/venv/
 *.pyc
+*.pyo
+*.pyd
 __pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 db.sqlite3
 /media/
 /staticfiles/
+
+# OS/editor noise
+.DS_Store
+**/.DS_Store
+*.swp
+*.swo
+
+# Build/cache output
+node_modules/
+dist/
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Local debug/test artifacts
+tmp_*
+window_dump*.xml
+test_output.txt
+test_menu_button.html
+backup_before_reset*.json
+click_murojaat.txt

@@ -3,6 +3,7 @@ import 'package:chaqmoq_mobile/models/app_models.dart';
 import 'package:chaqmoq_mobile/models/parent_models.dart';
 import 'package:chaqmoq_mobile/providers/parent_dashboard_provider.dart';
 import 'package:chaqmoq_mobile/services/api_client.dart';
+import 'package:chaqmoq_mobile/services/local_notification_service.dart';
 import 'package:chaqmoq_mobile/services/parent_dashboard_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,6 +24,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   ViewState _state = ViewState.idle;
   String? _errorMessage;
   int? _loadedChildId;
+  PaymentHistoryFilter _historyFilter = PaymentHistoryFilter.all;
 
   @override
   void didChangeDependencies() {
@@ -76,6 +78,228 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         _errorMessage = 'To‘lovlar yuklanmadi';
       });
     }
+  }
+
+  List<PaymentHistoryItem> _historyRows() {
+    if (_data == null) {
+      return const <PaymentHistoryItem>[];
+    }
+    return _buildPaymentHistoryItems(
+      _data!,
+      filter: _historyFilter,
+    );
+  }
+
+  Future<void> _showReminderSheet() async {
+    final summary = _data?.summary;
+    final childName = _data?.child.fullName.trim().isNotEmpty == true
+        ? _data!.child.fullName
+        : 'farzandingiz';
+    final dueDate = summary?.nextPaymentDate;
+    if (dueDate == null) {
+      _showMessage('Keyingi to‘lov sanasi hali belgilanmagan');
+      return;
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return _PaymentBottomSheet(
+          title: 'To‘lov eslatmasi',
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _ReminderOptionTile(
+                title: '1 kun oldin',
+                subtitle: 'To‘lov sanasidan bir kun avval bildirishnoma oling',
+                onTap: () async {
+                  Navigator.of(sheetContext).pop();
+                  await _scheduleReminderAt(
+                    _normalizedReminderTime(dueDate.subtract(const Duration(days: 1))),
+                    title: '1 kun oldin',
+                    childName: childName,
+                  );
+                },
+              ),
+              _ReminderOptionTile(
+                title: '3 kun oldin',
+                subtitle: 'To‘lov sanasidan uch kun avval eslatma yuboriladi',
+                onTap: () async {
+                  Navigator.of(sheetContext).pop();
+                  await _scheduleReminderAt(
+                    _normalizedReminderTime(dueDate.subtract(const Duration(days: 3))),
+                    title: '3 kun oldin',
+                    childName: childName,
+                  );
+                },
+              ),
+              _ReminderOptionTile(
+                title: '7 kun oldin',
+                subtitle: 'Bir hafta oldin tayyor turishingiz uchun eslatadi',
+                onTap: () async {
+                  Navigator.of(sheetContext).pop();
+                  await _scheduleReminderAt(
+                    _normalizedReminderTime(dueDate.subtract(const Duration(days: 7))),
+                    title: '7 kun oldin',
+                    childName: childName,
+                  );
+                },
+              ),
+              _ReminderOptionTile(
+                title: 'To‘lov kuni',
+                subtitle: 'To‘lov kuni ertalab eslatma yuboriladi',
+                onTap: () async {
+                  Navigator.of(sheetContext).pop();
+                  await _scheduleReminderAt(
+                    _normalizedReminderTime(dueDate),
+                    title: 'To‘lov kuni',
+                    childName: childName,
+                  );
+                },
+              ),
+              _ReminderOptionTile(
+                title: 'Maxsus sana va vaqt',
+                subtitle: 'O‘zingiz istagan kun va soatni tanlang',
+                onTap: () async {
+                  Navigator.of(sheetContext).pop();
+                  await _pickCustomReminder(childName);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  DateTime _normalizedReminderTime(DateTime source) {
+    return DateTime(source.year, source.month, source.day, 9);
+  }
+
+  Future<void> _pickCustomReminder(String childName) async {
+    final now = DateTime.now();
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 3),
+      helpText: 'Eslatma sanasi',
+      cancelText: 'Bekor qilish',
+      confirmText: 'Tanlash',
+    );
+    if (!mounted || pickedDate == null) {
+      return;
+    }
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(now.add(const Duration(hours: 1))),
+      helpText: 'Eslatma vaqti',
+      cancelText: 'Bekor qilish',
+      confirmText: 'Tanlash',
+    );
+    if (!mounted || pickedTime == null) {
+      return;
+    }
+    final scheduled = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+    await _scheduleReminderAt(
+      scheduled,
+      title: 'Maxsus eslatma',
+      childName: childName,
+    );
+  }
+
+  Future<void> _scheduleReminderAt(
+    DateTime scheduledAt, {
+    required String title,
+    required String childName,
+  }) async {
+    try {
+      final outstanding = _data?.summary.outstandingTotal ?? 0;
+      await context.read<LocalNotificationService>().schedulePaymentReminder(
+        scheduledAt: scheduledAt,
+        title: 'To‘lov eslatmasi',
+        body:
+            '$childName uchun ${outstanding > 0 ? _uzs(outstanding) : 'to‘lov'} bo‘yicha $title eslatmasi',
+      );
+      if (!mounted) {
+        return;
+      }
+      _showMessage('Eslatma muvaffaqiyatli o‘rnatildi');
+    } on LocalNotificationException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      _showMessage(error.message);
+    }
+  }
+
+  Future<void> _showFilterMenu() async {
+    final selected = await showModalBottomSheet<PaymentHistoryFilter>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return _PaymentBottomSheet(
+          title: 'Filtr',
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final filter in PaymentHistoryFilter.values)
+                _FilterOptionTile(
+                  label: filter.label,
+                  selected: filter == _historyFilter,
+                  onTap: () => Navigator.of(sheetContext).pop(filter),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+    if (!mounted || selected == null) {
+      return;
+    }
+    setState(() => _historyFilter = selected);
+  }
+
+  void _openPaymentDetails() {
+    if (_data == null) {
+      return;
+    }
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) => _PaymentDetailsSheet(data: _data!),
+    );
+  }
+
+  void _openPaymentFlow() {
+    if (_data == null) {
+      return;
+    }
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) => _PaymentPlaceholderSheet(data: _data!),
+    );
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        content: Text(message),
+      ),
+    );
   }
 
   @override
@@ -140,13 +364,24 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                     ],
                     PaymentSummaryCard(summary: summary),
                     const SizedBox(height: 16),
-                    NextPaymentCard(summary: summary),
+                    NextPaymentCard(
+                      summary: summary,
+                      onReminderTap: _showReminderSheet,
+                    ),
                     const SizedBox(height: 14),
-                    PaymentPlanCard(summary: summary),
+                    PaymentPlanCard(
+                      summary: summary,
+                      planItems: _data?.planItems ?? const [],
+                      onDetailsTap: _openPaymentDetails,
+                    ),
                     const SizedBox(height: 14),
-                    PaymentHistoryCard(items: _data?.history ?? const []),
+                    PaymentHistoryCard(
+                      items: _historyRows(),
+                      selectedFilter: _historyFilter,
+                      onFilterTap: _showFilterMenu,
+                    ),
                     const SizedBox(height: 18),
-                    const PayButton(),
+                    PayButton(onTap: _openPaymentFlow),
                   ],
                 ],
               ),
@@ -310,9 +545,14 @@ class PaymentSummaryCard extends StatelessWidget {
 }
 
 class NextPaymentCard extends StatelessWidget {
-  const NextPaymentCard({super.key, required this.summary});
+  const NextPaymentCard({
+    super.key,
+    required this.summary,
+    required this.onReminderTap,
+  });
 
   final ParentPaymentSummaryModel summary;
+  final VoidCallback onReminderTap;
 
   @override
   Widget build(BuildContext context) {
@@ -321,42 +561,53 @@ class NextPaymentCard extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final compact = constraints.maxWidth < 330;
-          return Row(
+          return Column(
             children: [
-              const _BlueIconBox(icon: Icons.event_available_outlined),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Keyingi to‘lov sanasi',
-                      style: PaymentTextStyles.body.copyWith(
-                        color: PaymentColors.secondaryText,
-                        fontSize: 13,
-                      ),
+              Row(
+                children: [
+                  const _BlueIconBox(icon: Icons.event_available_outlined),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Keyingi to‘lov sanasi',
+                          style: PaymentTextStyles.body.copyWith(
+                            color: PaymentColors.secondaryText,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          Formatters.date(summary.nextPaymentDate),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: PaymentTextStyles.title.copyWith(fontSize: 20),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          _daysUntil(summary.nextPaymentDate),
+                          style: PaymentTextStyles.body.copyWith(
+                            color: PaymentColors.secondaryText,
+                            fontSize: 13.5,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      Formatters.date(summary.nextPaymentDate),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: PaymentTextStyles.title.copyWith(fontSize: 20),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      _daysUntil(summary.nextPaymentDate),
-                      style: PaymentTextStyles.body.copyWith(
-                        color: PaymentColors.secondaryText,
-                        fontSize: 13.5,
-                      ),
-                    ),
+                  ),
+                  if (!compact) ...[
+                    const SizedBox(width: 10),
+                    _ReminderButton(onTap: onReminderTap),
                   ],
-                ),
+                ],
               ),
-              if (!compact) ...[
-                const SizedBox(width: 10),
-                _ReminderButton(onTap: () {}),
+              if (compact) ...[
+                const SizedBox(height: 14),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: _ReminderButton(onTap: onReminderTap),
+                ),
               ],
             ],
           );
@@ -367,9 +618,16 @@ class NextPaymentCard extends StatelessWidget {
 }
 
 class PaymentPlanCard extends StatelessWidget {
-  const PaymentPlanCard({super.key, required this.summary});
+  const PaymentPlanCard({
+    super.key,
+    required this.summary,
+    required this.planItems,
+    required this.onDetailsTap,
+  });
 
   final ParentPaymentSummaryModel summary;
+  final List<ParentPaymentPlanItemModel> planItems;
+  final VoidCallback onDetailsTap;
 
   @override
   Widget build(BuildContext context) {
@@ -389,7 +647,7 @@ class PaymentPlanCard extends StatelessWidget {
                 ),
               ),
               TextButton(
-                onPressed: () {},
+                onPressed: onDetailsTap,
                 style: TextButton.styleFrom(
                   foregroundColor: PaymentColors.primaryBlue,
                   padding: EdgeInsets.zero,
@@ -423,32 +681,54 @@ class PaymentPlanCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 10,
             children: [
-              Expanded(
+              SizedBox(
+                width: 96,
                 child: _PlanMetric(
                   label: 'Jami',
                   value: _uzs(summary.payableTotal),
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
+              SizedBox(
+                width: 96,
                 child: _PlanMetric(
                   label: 'To‘langan',
                   value: _uzs(summary.paidTotal),
                   valueColor: PaymentColors.green,
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
+              SizedBox(
+                width: 96,
                 child: _PlanMetric(
-                  label: 'Qolgan',
-                  value: _uzs(summary.remaining),
+                  label: 'Qarzdorlik',
+                  value: _uzs(summary.debtAmount),
                   valueColor: PaymentColors.red,
                 ),
               ),
+              if (summary.pendingAmount > 0)
+                SizedBox(
+                  width: 112,
+                  child: _PlanMetric(
+                    label: 'Kutilmoqda',
+                    value: _uzs(summary.pendingAmount),
+                    valueColor: PaymentColors.orange,
+                  ),
+                ),
             ],
           ),
+          if (planItems.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Divider(height: 1, color: PaymentColors.border),
+            const SizedBox(height: 12),
+            for (final item in planItems.take(2))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _PlanPreviewTile(item: item),
+              ),
+          ],
         ],
       ),
     );
@@ -456,13 +736,20 @@ class PaymentPlanCard extends StatelessWidget {
 }
 
 class PaymentHistoryCard extends StatelessWidget {
-  const PaymentHistoryCard({super.key, required this.items});
+  const PaymentHistoryCard({
+    super.key,
+    required this.items,
+    required this.selectedFilter,
+    required this.onFilterTap,
+  });
 
-  final List<ParentPaymentHistoryModel> items;
+  final List<PaymentHistoryItem> items;
+  final PaymentHistoryFilter selectedFilter;
+  final VoidCallback onFilterTap;
 
   @override
   Widget build(BuildContext context) {
-    final rows = items.map(_historyItem).toList(growable: false);
+    final rows = items;
     return PaymentCard(
       padding: EdgeInsets.zero,
       child: Column(
@@ -477,7 +764,10 @@ class PaymentHistoryCard extends StatelessWidget {
                     style: PaymentTextStyles.title.copyWith(fontSize: 18),
                   ),
                 ),
-                const _HistoryFilterButton(),
+                _HistoryFilterButton(
+                  label: selectedFilter.label,
+                  onTap: onFilterTap,
+                ),
               ],
             ),
           ),
@@ -532,7 +822,7 @@ class PaymentHistoryRow extends StatelessWidget {
                       children: [
                         Text(
                           item.title,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: PaymentTextStyles.title.copyWith(
                             fontSize: compact ? 14 : 15.5,
@@ -540,8 +830,10 @@ class PaymentHistoryRow extends StatelessWidget {
                         ),
                         const SizedBox(height: 5),
                         Text(
-                          item.date,
-                          maxLines: 1,
+                          item.subtitle.isEmpty
+                              ? item.date
+                              : '${item.subtitle} • ${item.date}',
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: PaymentTextStyles.body.copyWith(
                             color: PaymentColors.secondaryText,
@@ -629,7 +921,9 @@ class StatusPill extends StatelessWidget {
 }
 
 class PayButton extends StatelessWidget {
-  const PayButton({super.key});
+  const PayButton({super.key, required this.onTap});
+
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -637,15 +931,7 @@ class PayButton extends StatelessWidget {
       width: double.infinity,
       height: 54,
       child: FilledButton.icon(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Online to‘lov moduli markaz tomonidan ulanmaguncha mavjud tarix va qarzdorlik holatini ko‘rishingiz mumkin.',
-              ),
-            ),
-          );
-        },
+        onPressed: onTap,
         style: FilledButton.styleFrom(
           backgroundColor: PaymentColors.primaryBlue,
           foregroundColor: Colors.white,
@@ -713,7 +999,7 @@ class ParentBottomNav extends StatelessWidget {
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.bar_chart_rounded),
-                label: 'Yutuqlar',
+                label: 'Progress',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.person_rounded),
@@ -904,14 +1190,7 @@ class _ReminderButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextButton.icon(
-      onPressed: () {
-        onTap();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('To‘lov eslatmasi funksiyasi tez orada ulanadi.'),
-          ),
-        );
-      },
+      onPressed: onTap,
       style: TextButton.styleFrom(
         backgroundColor: const Color(0xFFEAF4FF),
         foregroundColor: PaymentColors.primaryBlue,
@@ -928,12 +1207,18 @@ class _ReminderButton extends StatelessWidget {
 }
 
 class _HistoryFilterButton extends StatelessWidget {
-  const _HistoryFilterButton();
+  const _HistoryFilterButton({
+    required this.label,
+    required this.onTap,
+  });
+
+  final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return TextButton(
-      onPressed: () {},
+      onPressed: onTap,
       style: TextButton.styleFrom(
         backgroundColor: const Color(0xFFF4F6FA),
         foregroundColor: PaymentColors.secondaryText,
@@ -946,7 +1231,7 @@ class _HistoryFilterButton extends StatelessWidget {
           const Icon(Icons.filter_list_rounded, size: 18),
           const SizedBox(width: 6),
           Text(
-            'Filtr',
+            label,
             style: PaymentTextStyles.body.copyWith(
               color: PaymentColors.text,
               fontSize: 13,
@@ -960,8 +1245,414 @@ class _HistoryFilterButton extends StatelessWidget {
   }
 }
 
+class _PlanPreviewTile extends StatelessWidget {
+  const _PlanPreviewTile({required this.item});
+
+  final ParentPaymentPlanItemModel item;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = _paymentStatusFor(item.status);
+    final trailingAmount = status == PaymentStatus.paid
+        ? item.paidAmount
+        : status == PaymentStatus.pending
+        ? item.plannedAmount
+        : item.remainingAmount;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFD),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          _PaymentStatusIcon(status: status, size: 38),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.title.isNotEmpty ? item.title : 'To‘lov rejasi',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: PaymentTextStyles.title.copyWith(fontSize: 14.5),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  [
+                    if (item.groupName.isNotEmpty) item.groupName,
+                    if (item.monthLabel.isNotEmpty) item.monthLabel,
+                  ].join(' • '),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: PaymentTextStyles.body.copyWith(
+                    color: PaymentColors.secondaryText,
+                    fontSize: 12.8,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                _uzs(trailingAmount),
+                style: PaymentTextStyles.title.copyWith(
+                  color: status.amountColor,
+                  fontSize: 13.8,
+                ),
+              ),
+              const SizedBox(height: 4),
+              StatusPill(status: status, compact: true),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaymentBottomSheet extends StatelessWidget {
+  const _PaymentBottomSheet({
+    required this.title,
+    required this.child,
+  });
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: PaymentShadows.card,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD8E0EC),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              Text(
+                title,
+                style: PaymentTextStyles.title.copyWith(fontSize: 18),
+              ),
+              const SizedBox(height: 14),
+              child,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReminderOptionTile extends StatelessWidget {
+  const _ReminderOptionTile({
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFD),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: PaymentColors.border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(
+                color: Color(0xFFEAF4FF),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.notifications_active_outlined,
+                color: PaymentColors.primaryBlue,
+                size: 21,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: PaymentTextStyles.title.copyWith(fontSize: 15.2),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: PaymentTextStyles.body.copyWith(
+                      color: PaymentColors.secondaryText,
+                      fontSize: 12.8,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Color(0xFF9AA4B2),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterOptionTile extends StatelessWidget {
+  const _FilterOptionTile({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFFEAF4FF) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected
+                ? PaymentColors.primaryBlue
+                : PaymentColors.border,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: PaymentTextStyles.body.copyWith(
+                  color: PaymentColors.text,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            Icon(
+              selected
+                  ? Icons.check_circle_rounded
+                  : Icons.chevron_right_rounded,
+              color: selected
+                  ? PaymentColors.primaryBlue
+                  : const Color(0xFF9AA4B2),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PaymentDetailsSheet extends StatelessWidget {
+  const _PaymentDetailsSheet({required this.data});
+
+  final ParentPaymentsModel data;
+
+  @override
+  Widget build(BuildContext context) {
+    final historyRows = _buildPaymentHistoryItems(
+      data,
+      filter: PaymentHistoryFilter.all,
+    );
+    return _PaymentBottomSheet(
+      title: 'To‘lov rejasi va tarixi',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'To‘lov rejasi',
+            style: PaymentTextStyles.title.copyWith(fontSize: 16),
+          ),
+          const SizedBox(height: 10),
+          if (data.planItems.isEmpty)
+            const _PaymentHistoryEmptyState(
+              title: 'To‘lov rejasi topilmadi',
+              message: 'Reja ma’lumotlari backenddan kelmadi',
+            )
+          else
+            for (final item in data.planItems) ...[
+              _PlanPreviewTile(item: item),
+              const SizedBox(height: 10),
+            ],
+          const SizedBox(height: 8),
+          Text(
+            'To‘lov tarixi',
+            style: PaymentTextStyles.title.copyWith(fontSize: 16),
+          ),
+          const SizedBox(height: 10),
+          if (historyRows.isEmpty)
+            const _PaymentHistoryEmptyState()
+          else
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: PaymentColors.border),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(
+                children: [
+                  for (int index = 0; index < historyRows.length; index++)
+                    PaymentHistoryRow(
+                      item: historyRows[index],
+                      showDivider: index != historyRows.length - 1,
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaymentPlaceholderSheet extends StatelessWidget {
+  const _PaymentPlaceholderSheet({required this.data});
+
+  final ParentPaymentsModel data;
+
+  @override
+  Widget build(BuildContext context) {
+    final contact = data.centerContactPhone.trim().isNotEmpty
+        ? data.centerContactPhone
+        : 'Telefon kiritilmagan';
+    return _PaymentBottomSheet(
+      title: 'To‘lov qilish',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFD),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: PaymentColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  data.paymentGatewayAvailable
+                      ? 'Online to‘lov tez orada ishga tushadi'
+                      : 'Online to‘lov moduli hali ulanmagan',
+                  style: PaymentTextStyles.title.copyWith(fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Hozircha markaz bilan bog‘lanib yoki mavjud to‘lov usuli orqali to‘lovni amalga oshirishingiz mumkin.',
+                  style: PaymentTextStyles.body.copyWith(
+                    color: PaymentColors.secondaryText,
+                    fontSize: 13.5,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _PlanMetric(
+                  label: 'Joriy qarzdorlik',
+                  value: _uzs(data.summary.outstandingTotal),
+                  valueColor: PaymentColors.red,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Bog‘lanish uchun',
+            style: PaymentTextStyles.title.copyWith(fontSize: 16),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF4FF),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  data.centerContactName.isNotEmpty
+                      ? data.centerContactName
+                      : 'O‘quv markazi',
+                  style: PaymentTextStyles.title.copyWith(fontSize: 15),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  contact,
+                  style: PaymentTextStyles.body.copyWith(
+                    color: PaymentColors.secondaryText,
+                    fontSize: 13.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PaymentHistoryEmptyState extends StatelessWidget {
-  const _PaymentHistoryEmptyState();
+  const _PaymentHistoryEmptyState({
+    this.title = 'To‘lov tarixi topilmadi',
+    this.message =
+        'Hozircha tanlangan farzand uchun to‘lov harakati yoki kutilayotgan to‘lov topilmadi.',
+  });
+
+  final String title;
+  final String message;
 
   @override
   Widget build(BuildContext context) {
@@ -990,13 +1681,13 @@ class _PaymentHistoryEmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(
-            'To‘lov tarixi topilmadi',
+            title,
             textAlign: TextAlign.center,
             style: PaymentTextStyles.title.copyWith(fontSize: 17),
           ),
           const SizedBox(height: 8),
           Text(
-            'Bu farzand uchun hali yozilgan to‘lovlar mavjud emas. Yangi to‘lov kiritilgach, tarix shu yerda ko‘rinadi.',
+            message,
             textAlign: TextAlign.center,
             style: PaymentTextStyles.body.copyWith(
               color: PaymentColors.secondaryText,
@@ -1118,7 +1809,7 @@ class _PaymentStateCard extends StatelessWidget {
   }
 }
 
-String _uzs(num value) => '${Formatters.number(value)} UZS';
+String _uzs(num value) => '${Formatters.number(value)} so‘m';
 
 String _daysUntil(DateTime? date) {
   if (date == null) {
@@ -1143,7 +1834,68 @@ PaymentHistoryItem _historyItem(ParentPaymentHistoryModel item) {
     date: Formatters.date(item.date),
     amount: _uzs(item.amount),
     status: _paymentStatusFor(item.status),
+    subtitle: item.groupName.isNotEmpty
+        ? item.groupName
+        : (item.paymentType.isNotEmpty ? item.paymentType : item.note),
+    sortDate: item.date,
   );
+}
+
+PaymentHistoryItem _planHistoryItem(ParentPaymentPlanItemModel item) {
+  final status = _paymentStatusFor(item.status);
+  final amount = switch (status) {
+    PaymentStatus.paid => item.paidAmount,
+    PaymentStatus.pending => item.plannedAmount,
+    PaymentStatus.unpaid => item.remainingAmount,
+  };
+  final subtitleParts = <String>[
+    if (item.groupName.isNotEmpty) item.groupName,
+    if (item.monthLabel.isNotEmpty) item.monthLabel,
+  ];
+  return PaymentHistoryItem(
+    title: item.title.isNotEmpty ? item.title : 'To‘lov rejasi',
+    date: Formatters.date(item.dueDate ?? item.month),
+    amount: _uzs(amount),
+    status: status,
+    subtitle: subtitleParts.join(' • '),
+    sortDate: item.dueDate ?? item.month,
+  );
+}
+
+List<PaymentHistoryItem> _buildPaymentHistoryItems(
+  ParentPaymentsModel data, {
+  required PaymentHistoryFilter filter,
+}) {
+  final paidRows = data.history.map(_historyItem).toList(growable: false);
+  final planRows = data.planItems.map(_planHistoryItem).toList(growable: false);
+
+  List<PaymentHistoryItem> rows;
+  switch (filter) {
+    case PaymentHistoryFilter.all:
+      rows = <PaymentHistoryItem>[
+        ...paidRows,
+        ...planRows.where((item) => item.status != PaymentStatus.paid),
+      ];
+      break;
+    case PaymentHistoryFilter.paid:
+      rows = paidRows.isNotEmpty
+          ? paidRows
+          : planRows.where((item) => item.status == PaymentStatus.paid).toList();
+      break;
+    case PaymentHistoryFilter.debt:
+      rows = planRows.where((item) => item.status == PaymentStatus.unpaid).toList();
+      break;
+    case PaymentHistoryFilter.pending:
+      rows = planRows.where((item) => item.status == PaymentStatus.pending).toList();
+      break;
+  }
+
+  rows.sort((a, b) {
+    final left = a.sortDate ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final right = b.sortDate ?? DateTime.fromMillisecondsSinceEpoch(0);
+    return right.compareTo(left);
+  });
+  return rows;
 }
 
 PaymentStatus _paymentStatusFor(String status) {
@@ -1174,22 +1926,39 @@ class PaymentHistoryItem {
     required this.date,
     required this.amount,
     required this.status,
+    this.subtitle = '',
+    this.sortDate,
   });
 
   final String title;
   final String date;
   final String amount;
   final PaymentStatus status;
+  final String subtitle;
+  final DateTime? sortDate;
 }
 
+enum PaymentHistoryFilter { all, paid, debt, pending }
+
 enum PaymentStatus { paid, pending, unpaid }
+
+extension PaymentHistoryFilterStyle on PaymentHistoryFilter {
+  String get label {
+    return switch (this) {
+      PaymentHistoryFilter.all => 'Barchasi',
+      PaymentHistoryFilter.paid => 'To‘langan',
+      PaymentHistoryFilter.debt => 'Qarzdorlik',
+      PaymentHistoryFilter.pending => 'Kutilmoqda',
+    };
+  }
+}
 
 extension PaymentStatusStyle on PaymentStatus {
   String get label {
     return switch (this) {
       PaymentStatus.paid => 'To‘langan',
       PaymentStatus.pending => 'Kutilmoqda',
-      PaymentStatus.unpaid => 'To‘lanmagan',
+      PaymentStatus.unpaid => 'Qarzdorlik',
     };
   }
 

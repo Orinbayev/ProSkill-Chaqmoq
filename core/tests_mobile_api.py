@@ -1,10 +1,22 @@
 from django.test import Client, TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 
 from accounts.models import Center, User
 from chaqmoq.models import Ledger
-from core.models import Notification
-from education.models import Attendance, Category, Enrollment, Group, Payment, PaymentAllocation, TuitionMonth
+from core.models import Notification, NotificationPreference
+from education.models import (
+    Attendance,
+    Category,
+    Enrollment,
+    ExamResult,
+    ExamSession,
+    Group,
+    Payment,
+    PaymentAllocation,
+    StudentAcademicSummary,
+    TuitionMonth,
+)
 from store.models import Lead, LeadStatus, Manba, Product, PurchaseRequest
 
 
@@ -53,6 +65,9 @@ class MobileAPITests(TestCase):
             ism="Parent",
             familya="One",
         )
+        self.parent.phone_number = "+998901112233"
+        self.parent.telefon1 = "+998901112233"
+        self.parent.save(update_fields=["phone_number", "telefon1"])
         self.parent.children.add(self.student)
         self.assertTrue(self.student.child_code)
 
@@ -95,6 +110,12 @@ class MobileAPITests(TestCase):
             tuition_month=self.tuition_month,
             amount=200_000,
         )
+        self.next_tuition_month = TuitionMonth.objects.create(
+            center=self.center,
+            enrollment=self.enrollment,
+            month=(self.today.replace(day=1) + timezone.timedelta(days=32)).replace(day=1),
+            fee_amount=600_000,
+        )
 
         Attendance.objects.create(
             center=self.center,
@@ -113,6 +134,58 @@ class MobileAPITests(TestCase):
             date=self.today - timezone.timedelta(days=1),
             status="absent_unexcused",
             present=False,
+        )
+
+        previous_month = (self.today.replace(day=1) - timezone.timedelta(days=2)).replace(day=1)
+        self.current_exam_session = ExamSession.objects.create(
+            center=self.center,
+            group=self.group,
+            teacher=self.teacher,
+            exam_date=self.today,
+            attendance_date=self.today,
+            created_by=self.director,
+        )
+        self.previous_exam_session = ExamSession.objects.create(
+            center=self.center,
+            group=self.group,
+            teacher=self.teacher,
+            exam_date=previous_month,
+            attendance_date=previous_month,
+            created_by=self.director,
+        )
+        ExamResult.objects.create(
+            center=self.center,
+            session=self.current_exam_session,
+            group=self.group,
+            student=self.student,
+            teacher=self.teacher,
+            percent=82,
+            passed=True,
+            teacher_comment="Topshiriqlarni vaqtida bajaradi.",
+            exam_date=self.today,
+            created_by=self.director,
+        )
+        ExamResult.objects.create(
+            center=self.center,
+            session=self.previous_exam_session,
+            group=self.group,
+            student=self.student,
+            teacher=self.teacher,
+            percent=68,
+            passed=True,
+            teacher_comment="Amaliy mashqlarni ko‘paytirish kerak.",
+            exam_date=previous_month,
+            created_by=self.director,
+        )
+        StudentAcademicSummary.objects.create(
+            center=self.center,
+            group=self.group,
+            student=self.student,
+            exam_count=2,
+            average_percent=75,
+            attendance_total_lessons=2,
+            attendance_present_lessons=1,
+            attendance_percent=50,
         )
 
         Ledger.objects.create(
@@ -227,7 +300,41 @@ class MobileAPITests(TestCase):
         )
         self.assertEqual(response.status_code, 401)
         payload = response.json()
-        self.assertEqual(payload["code"], "invalid_credentials")
+        self.assertEqual(payload["code"], "invalid_password")
+
+    def test_mobile_login_rejects_inactive_user_cleanly(self):
+        self.parent.is_active = False
+        self.parent.save(update_fields=["is_active"])
+
+        response = self.client.post(
+            "/api/mobile/auth/login/",
+            data='{"login":"parent@mobile.test","password":"testpass123"}',
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 403)
+        payload = response.json()
+        self.assertEqual(payload["code"], "inactive_user")
+
+    def test_mobile_login_rejects_missing_user_cleanly(self):
+        response = self.client.post(
+            "/api/mobile/auth/login/",
+            data='{"login":"missing@mobile.test","password":"testpass123"}',
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 404)
+        payload = response.json()
+        self.assertEqual(payload["code"], "user_not_found")
+
+    def test_mobile_login_accepts_phone_number_field(self):
+        response = self.client.post(
+            "/api/mobile/auth/login/",
+            data='{"phone_number":"+998901112233","password":"testpass123"}',
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["success"])
+        self.assertEqual(payload["role"], "parent")
 
     def test_parent_dashboard_returns_real_child_stats(self):
         self.client.force_login(self.parent)
@@ -238,6 +345,25 @@ class MobileAPITests(TestCase):
         self.assertEqual(payload["stats"]["debt_amount"], 400_000)
         self.assertEqual(payload["stats"]["attendance_percent"], 50)
         self.assertIn("progress_chart", payload)
+
+    def test_parent_payments_include_plan_items_and_pending_amount(self):
+        self.client.force_login(self.parent)
+        response = self.client.get(self._path("payments/"))
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["summary"]["debt_amount"], 400_000)
+        self.assertEqual(payload["summary"]["pending_amount"], 600_000)
+        self.assertGreaterEqual(len(payload["plan_items"]), 2)
+
+    def test_parent_progress_supports_period_filter_and_comments(self):
+        self.client.force_login(self.parent)
+        response = self.client.get(self._path("progress/"), {"period": "last_month"})
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["selected_period"], "last_month")
+        self.assertEqual(payload["selected_period_label"], "O‘tgan oy")
+        self.assertEqual(payload["teacher_comments"][0]["comment"], "Amaliy mashqlarni ko‘paytirish kerak.")
+        self.assertGreater(payload["subjects"][0]["percent"], 0)
 
     def test_student_home_contains_debt_balance_groups_and_payments(self):
         self.client.force_login(self.student)
@@ -294,6 +420,36 @@ class MobileAPITests(TestCase):
         self.assertEqual(self.parent.telefon1, "+998901112233")
         self.assertEqual(self.parent.email, "parent.updated@mobile.test")
         self.assertEqual(response.json()["parent"]["phone"], "+998901112233")
+
+    def test_parent_profile_avatar_upload_returns_updated_profile(self):
+        self.client.force_login(self.parent)
+        avatar = SimpleUploadedFile(
+            "avatar.jpg",
+            b"filecontent",
+            content_type="image/jpeg",
+        )
+        response = self.client.post(
+            self._path("parent/profile/avatar/"),
+            data={"avatar": avatar},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.parent.refresh_from_db()
+        self.assertTrue(bool(self.parent.avatar))
+        self.assertIn("avatar_url", response.json()["parent"])
+
+    def test_parent_notification_preferences_can_be_saved(self):
+        self.client.force_login(self.parent)
+        response = self.client.patch(
+            self._path("parent/notification-preferences/"),
+            data='{"attendance":false,"payments":true,"progress":false,"general":true}',
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        pref = NotificationPreference.objects.get(user=self.parent)
+        self.assertFalse(pref.receive_system)
+        self.assertTrue(pref.receive_purchase)
+        self.assertFalse(pref.receive_coin)
+        self.assertTrue(pref.receive_broadcast)
 
     def test_change_password_endpoint_updates_parent_password(self):
         self.client.force_login(self.parent)

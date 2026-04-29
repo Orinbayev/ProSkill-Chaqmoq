@@ -6,6 +6,7 @@ import 'package:chaqmoq_mobile/models/parent_models.dart';
 import 'package:chaqmoq_mobile/providers/parent_dashboard_provider.dart';
 import 'package:chaqmoq_mobile/services/api_client.dart';
 import 'package:chaqmoq_mobile/services/parent_dashboard_service.dart';
+import 'package:chaqmoq_mobile/widgets/adaptive_avatar.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -26,6 +27,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
   ViewState _state = ViewState.idle;
   String? _errorMessage;
   int? _loadedChildId;
+  String? _selectedPeriod;
 
   @override
   void didChangeDependencies() {
@@ -43,10 +45,11 @@ class _ProgressScreenState extends State<ProgressScreen> {
     }
   }
 
-  Future<void> _load({bool force = false}) async {
+  Future<void> _load({bool force = false, String? period}) async {
     if (_state == ViewState.loading && !force) {
       return;
     }
+    final requestedPeriod = (period ?? _selectedPeriod)?.trim();
     setState(() {
       _state = ViewState.loading;
       _errorMessage = null;
@@ -54,12 +57,14 @@ class _ProgressScreenState extends State<ProgressScreen> {
     try {
       final data = await context.read<ParentDashboardService>().fetchProgress(
         childId: _loadedChildId,
+        period: requestedPeriod?.isEmpty == true ? null : requestedPeriod,
       );
       if (!mounted) {
         return;
       }
       setState(() {
         _data = data;
+        _selectedPeriod = data.selectedPeriod;
         _state = ViewState.success;
       });
     } on ApiException catch (error) {
@@ -79,6 +84,80 @@ class _ProgressScreenState extends State<ProgressScreen> {
         _errorMessage = 'Progress ma’lumotlari yuklanmadi';
       });
     }
+  }
+
+  Future<void> _changePeriod(String periodKey) async {
+    if (periodKey == _selectedPeriod && _data != null) {
+      return;
+    }
+    await _load(force: true, period: periodKey);
+  }
+
+  void _showSubjectsSheet() {
+    final subjects = _data?.subjects ?? const <ParentSubjectProgressModel>[];
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return _ProgressBottomSheet(
+          title: 'Fanlar bo‘yicha progress',
+          child: subjects.isEmpty
+              ? const _ProgressSheetEmptyState(
+                  message: 'Fanlar bo‘yicha ma’lumot mavjud emas',
+                )
+              : ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: subjects.length,
+                  separatorBuilder: (_, _) =>
+                      const Divider(height: 1, color: ProgressColors.border),
+                  itemBuilder: (context, index) {
+                    final row = _subjectData(subjects[index], index);
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: SubjectProgressRow(
+                        data: row,
+                        showDivider: false,
+                      ),
+                    );
+                  },
+                ),
+        );
+      },
+    );
+  }
+
+  void _showCommentsSheet() {
+    final comments = _data?.teacherComments ?? const <ParentTeacherCommentModel>[];
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return _ProgressBottomSheet(
+          title: 'O‘qituvchilarning izohlari',
+          child: comments.isEmpty
+              ? const _ProgressSheetEmptyState(
+                  message: 'O‘qituvchi izohlari hozircha mavjud emas',
+                )
+              : ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: comments.length,
+                  separatorBuilder: (_, _) =>
+                      const Divider(height: 1, color: ProgressColors.border),
+                  itemBuilder: (context, index) {
+                    final comment = comments[index];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: _TeacherCommentTile(comment: comment),
+                    );
+                  },
+                ),
+        );
+      },
+    );
   }
 
   @override
@@ -114,7 +193,12 @@ class _ProgressScreenState extends State<ProgressScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ProgressHeader(child: child),
+                  ProgressHeader(
+                    child: child,
+                    periodLabel:
+                        _data?.selectedPeriodLabel ?? 'Joriy davr',
+                    onSelectPeriod: () => _showPeriodMenu(context),
+                  ),
                   const SizedBox(height: 16),
                   if (_state == ViewState.loading && _data == null)
                     const _ProgressStateCard.loading()
@@ -137,9 +221,13 @@ class _ProgressScreenState extends State<ProgressScreen> {
                     const SizedBox(height: 18),
                     SubjectProgressSection(
                       subjects: _data?.subjects ?? const [],
+                      onShowAll: _showSubjectsSheet,
                     ),
                     const SizedBox(height: 18),
-                    TeacherCommentCard(comment: _data?.latestTeacherComment),
+                    TeacherCommentCard(
+                      comments: _data?.teacherComments ?? const [],
+                      onShowAll: _showCommentsSheet,
+                    ),
                   ],
                 ],
               ),
@@ -149,12 +237,50 @@ class _ProgressScreenState extends State<ProgressScreen> {
       ),
     );
   }
+
+  Future<void> _showPeriodMenu(BuildContext anchorContext) async {
+    final periods = _data?.availablePeriods ?? const <ParentProgressPeriodModel>[];
+    if (periods.isEmpty) {
+      return;
+    }
+    final selected = await showModalBottomSheet<String>(
+      context: anchorContext,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return _ProgressBottomSheet(
+          title: 'Davrni tanlang',
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final period in periods)
+                _PeriodOptionTile(
+                  label: period.label,
+                  selected: period.key == (_selectedPeriod ?? _data?.selectedPeriod),
+                  onTap: () => Navigator.of(sheetContext).pop(period.key),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+    if (!mounted || selected == null) {
+      return;
+    }
+    await _changePeriod(selected);
+  }
 }
 
 class ProgressHeader extends StatelessWidget {
-  const ProgressHeader({super.key, this.child});
+  const ProgressHeader({
+    super.key,
+    this.child,
+    required this.periodLabel,
+    required this.onSelectPeriod,
+  });
 
   final ParentChildModel? child;
+  final String periodLabel;
+  final VoidCallback onSelectPeriod;
 
   @override
   Widget build(BuildContext context) {
@@ -163,25 +289,38 @@ class ProgressHeader extends StatelessWidget {
         : _childGroupLine(child!);
     return Row(
       children: [
-        _RoundIconButton(icon: Icons.arrow_back_rounded, onTap: () {}),
-        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF4FF),
+                  borderRadius: BorderRadius.circular(999),
+                ),
                 child: Text(
-                  'Progress',
-                  maxLines: 1,
-                  style: ProgressTextStyles.title.copyWith(fontSize: 23),
+                  'Ota-ona paneli',
+                  style: ProgressTextStyles.label.copyWith(
+                    color: ProgressColors.primaryBlue,
+                    fontSize: 11.5,
+                  ),
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 10),
+              Text(
+                'Progress',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: ProgressTextStyles.title.copyWith(fontSize: 23),
+              ),
+              const SizedBox(height: 5),
               Text(
                 childLine,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: ProgressTextStyles.body.copyWith(
                   color: ProgressColors.secondaryText,
@@ -192,7 +331,10 @@ class ProgressHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        const _TermDropdownButton(),
+        _TermDropdownButton(
+          label: periodLabel,
+          onTap: onSelectPeriod,
+        ),
       ],
     );
   }
@@ -207,57 +349,84 @@ class OverallProgressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return ProgressCard(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final stacked = constraints.maxWidth < 270;
-          if (stacked) {
-            return Column(
-              children: [
-                CircularProgressBlock(percent: data?.overallPercent ?? 0),
-                const SizedBox(height: 16),
-                const Divider(color: ProgressColors.border),
-                const SizedBox(height: 14),
-                ProgressLineChart(series: data?.progressChart ?? const []),
-              ],
-            );
-          }
+      child: Column(
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final stacked = constraints.maxWidth < 270;
+              if (stacked) {
+                return Column(
+                  children: [
+                    CircularProgressBlock(data: data),
+                    const SizedBox(height: 16),
+                    const Divider(color: ProgressColors.border),
+                    const SizedBox(height: 14),
+                    ProgressLineChart(series: data?.progressChart ?? const []),
+                  ],
+                );
+              }
 
-          return SizedBox(
-            height: 204,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: CircularProgressBlock(
-                    percent: data?.overallPercent ?? 0,
-                  ),
+              return SizedBox(
+                height: 204,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: CircularProgressBlock(data: data)),
+                    const VerticalDivider(
+                      width: 22,
+                      thickness: 1,
+                      color: ProgressColors.border,
+                    ),
+                    Expanded(
+                      child: ProgressLineChart(
+                        series: data?.progressChart ?? const [],
+                      ),
+                    ),
+                  ],
                 ),
-                const VerticalDivider(
-                  width: 22,
-                  thickness: 1,
-                  color: ProgressColors.border,
-                ),
-                Expanded(
-                  child: ProgressLineChart(
-                    series: data?.progressChart ?? const [],
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _ProgressMetricChip(
+                label: 'Joriy davr',
+                value: data?.selectedPeriodLabel ?? 'Joriy davr',
+                icon: Icons.event_note_rounded,
+              ),
+              _ProgressMetricChip(
+                label: 'Davomatga ta’siri',
+                value: '${data?.attendancePercent ?? 0}%',
+                icon: Icons.event_available_outlined,
+                accentColor: ProgressColors.green,
+                backgroundColor: const Color(0xFFEAFBF2),
+              ),
+              _ProgressMetricChip(
+                label: 'Fanlar o‘rtachasi',
+                value: '${data?.subjectAveragePercent ?? 0}%',
+                icon: Icons.auto_graph_rounded,
+                accentColor: ProgressColors.purple,
+                backgroundColor: const Color(0xFFF1ECFF),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
 
 class CircularProgressBlock extends StatelessWidget {
-  const CircularProgressBlock({super.key, required this.percent});
+  const CircularProgressBlock({super.key, this.data});
 
-  final int percent;
+  final ParentProgressModel? data;
 
   @override
   Widget build(BuildContext context) {
+    final percent = data?.overallPercent ?? 0;
     final normalized = (percent / 100).clamp(0, 1).toDouble();
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -266,7 +435,7 @@ class CircularProgressBlock extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Overall Progress',
+              'Umumiy progress',
               style: ProgressTextStyles.title.copyWith(fontSize: 16),
             ),
             const SizedBox(height: 14),
@@ -327,7 +496,7 @@ class CircularProgressBlock extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'umumiy o‘zlashtirish',
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: ProgressTextStyles.body.copyWith(
                       color: ProgressColors.secondaryText,
@@ -500,15 +669,21 @@ class ProgressLineChart extends StatelessWidget {
 }
 
 class SubjectProgressSection extends StatelessWidget {
-  const SubjectProgressSection({super.key, required this.subjects});
+  const SubjectProgressSection({
+    super.key,
+    required this.subjects,
+    required this.onShowAll,
+  });
 
   final List<ParentSubjectProgressModel> subjects;
+  final VoidCallback onShowAll;
 
   @override
   Widget build(BuildContext context) {
+    final preview = subjects.take(4).toList(growable: false);
     final rows = [
-      for (var index = 0; index < subjects.length; index++)
-        _subjectData(subjects[index], index),
+      for (var index = 0; index < preview.length; index++)
+        _subjectData(preview[index], index),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -516,7 +691,7 @@ class SubjectProgressSection extends StatelessWidget {
         _SectionHeader(
           title: 'Fanlar bo‘yicha progress',
           actionText: 'Barchasi',
-          onTap: () {},
+          onTap: onShowAll,
         ),
         const SizedBox(height: 12),
         ProgressCard(
@@ -583,22 +758,35 @@ class SubjectProgressRow extends StatelessWidget {
                       children: [
                         Text(
                           data.title,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: ProgressTextStyles.title.copyWith(
-                            fontSize: compact ? 14.5 : 16,
+                            fontSize: compact ? 14.2 : 15.5,
+                            height: 1.18,
                           ),
                         ),
                         const SizedBox(height: 5),
                         Text(
                           data.teacher,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: ProgressTextStyles.body.copyWith(
                             color: ProgressColors.secondaryText,
                             fontSize: compact ? 12 : 13,
                           ),
                         ),
+                        if (data.detailLine.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            data.detailLine,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: ProgressTextStyles.body.copyWith(
+                              color: ProgressColors.secondaryText,
+                              fontSize: compact ? 11.5 : 12.2,
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 10),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(999),
@@ -666,13 +854,18 @@ class SubjectProgressRow extends StatelessWidget {
 }
 
 class TeacherCommentCard extends StatelessWidget {
-  const TeacherCommentCard({super.key, this.comment});
+  const TeacherCommentCard({
+    super.key,
+    required this.comments,
+    required this.onShowAll,
+  });
 
-  final ParentTeacherCommentModel? comment;
+  final List<ParentTeacherCommentModel> comments;
+  final VoidCallback onShowAll;
 
   @override
   Widget build(BuildContext context) {
-    final data = comment;
+    final data = comments.isEmpty ? null : comments.first;
     return ProgressCard(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
       child: Column(
@@ -681,90 +874,310 @@ class TeacherCommentCard extends StatelessWidget {
           _SectionHeader(
             title: 'O‘qituvchilarning izohi',
             actionText: 'Barchasi',
-            onTap: () {},
+            onTap: onShowAll,
           ),
           const SizedBox(height: 16),
           if (data == null)
-            Text(
-              'O‘qituvchi izohi hozircha mavjud emas',
-              style: ProgressTextStyles.body.copyWith(
-                color: ProgressColors.secondaryText,
-                fontSize: 13.5,
-              ),
+            const _ProgressSheetEmptyState(
+              message: 'O‘qituvchi izohlari hozircha mavjud emas',
             )
           else
-            Row(
+            _TeacherCommentTile(comment: data),
+        ],
+      ),
+    );
+  }
+}
+
+class _TeacherCommentTile extends StatelessWidget {
+  const _TeacherCommentTile({required this.comment});
+
+  final ParentTeacherCommentModel comment;
+
+  @override
+  Widget build(BuildContext context) {
+    final teacherName = comment.teacherName.isEmpty
+        ? 'O‘qituvchi'
+        : comment.teacherName;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AdaptiveAvatar(
+          name: teacherName,
+          size: 48,
+          icon: Icons.person_outline_rounded,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          teacherName,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: ProgressTextStyles.title.copyWith(fontSize: 16),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          comment.teacherRole.isEmpty
+                              ? 'O‘qituvchi'
+                              : comment.teacherRole,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: ProgressTextStyles.link.copyWith(
+                            fontSize: 13.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    Formatters.date(comment.date),
+                    style: ProgressTextStyles.body.copyWith(
+                      color: ProgressColors.secondaryText,
+                      fontSize: 12.5,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                comment.comment,
+                style: ProgressTextStyles.body.copyWith(
+                  color: const Color(0xFF374151),
+                  fontSize: 13.5,
+                  height: 1.45,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProgressMetricChip extends StatelessWidget {
+  const _ProgressMetricChip({
+    required this.label,
+    required this.value,
+    required this.icon,
+    this.accentColor = ProgressColors.primaryBlue,
+    this.backgroundColor = const Color(0xFFEAF4FF),
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color accentColor;
+  final Color backgroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 148),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.14),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: accentColor, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: const BoxDecoration(shape: BoxShape.circle),
-                  clipBehavior: Clip.antiAlias,
-                  child: Image.asset(
-                    'assets/images/progress_teacher_avatar.png',
-                    fit: BoxFit.cover,
+                Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: ProgressTextStyles.body.copyWith(
+                    color: ProgressColors.secondaryText,
+                    fontSize: 12,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  data.teacherName.isEmpty
-                                      ? 'O‘qituvchi'
-                                      : data.teacherName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: ProgressTextStyles.title.copyWith(
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  data.teacherRole.isEmpty
-                                      ? 'O‘qituvchi'
-                                      : data.teacherRole,
-                                  style: ProgressTextStyles.link.copyWith(
-                                    fontSize: 13.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            Formatters.date(data.date),
-                            style: ProgressTextStyles.body.copyWith(
-                              color: ProgressColors.secondaryText,
-                              fontSize: 12.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        data.comment,
-                        style: ProgressTextStyles.body.copyWith(
-                          color: const Color(0xFF374151),
-                          fontSize: 13.5,
-                          height: 1.45,
-                        ),
-                      ),
-                    ],
-                  ),
+                const SizedBox(height: 3),
+                Text(
+                  value,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: ProgressTextStyles.title.copyWith(fontSize: 14.5),
                 ),
               ],
             ),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _ProgressBottomSheet extends StatelessWidget {
+  const _ProgressBottomSheet({
+    required this.title,
+    required this.child,
+  });
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: ProgressShadows.card,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD8E0EC),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              Text(
+                title,
+                style: ProgressTextStyles.title.copyWith(fontSize: 18),
+              ),
+              const SizedBox(height: 14),
+              child,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProgressSheetEmptyState extends StatelessWidget {
+  const _ProgressSheetEmptyState({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 20, 18, 20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7FBFF),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: ProgressColors.border),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: const BoxDecoration(
+              color: Color(0xFFEAF4FF),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.info_outline_rounded,
+              color: ProgressColors.primaryBlue,
+              size: 24,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: ProgressTextStyles.body.copyWith(
+              color: ProgressColors.secondaryText,
+              fontSize: 13.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PeriodOptionTile extends StatelessWidget {
+  const _PeriodOptionTile({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFFEAF4FF) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected
+                ? ProgressColors.primaryBlue
+                : ProgressColors.border,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: ProgressTextStyles.body.copyWith(
+                  color: ProgressColors.text,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            Icon(
+              selected
+                  ? Icons.check_circle_rounded
+                  : Icons.chevron_right_rounded,
+              color: selected
+                  ? ProgressColors.primaryBlue
+                  : const Color(0xFF9AA4B2),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -900,40 +1313,19 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _RoundIconButton extends StatelessWidget {
-  const _RoundIconButton({required this.icon, required this.onTap});
+class _TermDropdownButton extends StatelessWidget {
+  const _TermDropdownButton({
+    required this.label,
+    required this.onTap,
+  });
 
-  final IconData icon;
+  final String label;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      customBorder: const CircleBorder(),
-      child: Container(
-        width: 46,
-        height: 46,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          border: Border.all(color: ProgressColors.border),
-          boxShadow: ProgressShadows.soft,
-        ),
-        child: Icon(icon, color: ProgressColors.text, size: 26),
-      ),
-    );
-  }
-}
-
-class _TermDropdownButton extends StatelessWidget {
-  const _TermDropdownButton();
-
-  @override
-  Widget build(BuildContext context) {
     return TextButton(
-      onPressed: () {},
+      onPressed: onTap,
       style: TextButton.styleFrom(
         backgroundColor: Colors.white,
         foregroundColor: ProgressColors.secondaryText,
@@ -949,7 +1341,9 @@ class _TermDropdownButton extends StatelessWidget {
           const Icon(Icons.event_available_outlined, size: 19),
           const SizedBox(width: 6),
           Text(
-            'This Term',
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: ProgressTextStyles.body.copyWith(
               color: const Color(0xFF374151),
               fontSize: 13.5,
@@ -1149,9 +1543,14 @@ SubjectProgressData _subjectData(
   final teacher = subject.teacherName.trim().isEmpty
       ? 'O‘qituvchi biriktirilmagan'
       : 'O‘qituvchi: ${subject.teacherName}';
+  final details = <String>[
+    if (subject.examPercent > 0) 'Topshiriq va baholar: ${subject.examPercent}%',
+    if (subject.attendancePercent > 0) 'Davomat ta’siri: ${subject.attendancePercent}%',
+  ];
   return SubjectProgressData(
     title: subject.subject.isEmpty ? 'Fan' : subject.subject,
     teacher: teacher,
+    detailLine: details.join(' • '),
     percent: subject.percent.clamp(0, 100),
     status: subject.status.isEmpty
         ? _progressStatus(subject.percent)
@@ -1205,6 +1604,7 @@ class SubjectProgressData {
   const SubjectProgressData({
     required this.title,
     required this.teacher,
+    required this.detailLine,
     required this.percent,
     required this.status,
     required this.iconKind,
@@ -1214,6 +1614,7 @@ class SubjectProgressData {
 
   final String title;
   final String teacher;
+  final String detailLine;
   final int percent;
   final String status;
   final SubjectIconKind iconKind;

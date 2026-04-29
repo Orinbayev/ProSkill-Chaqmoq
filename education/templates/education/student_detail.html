@@ -9,21 +9,21 @@
 
 <style>
   :root {
-    --bg0: #050814;
-    --bg1: #070b14;
+    --bg0: #f8fafc;
+    --bg1: #eef4ff;
 
-    --panelA: rgba(17, 24, 39, .66);
-    --panelB: rgba(2, 6, 23, .52);
+    --panelA: rgba(255, 255, 255, .94);
+    --panelB: rgba(248, 250, 252, .88);
 
-    --text: #e5e7eb;
-    --muted: #94a3b8;
+    --text: #0f172a;
+    --muted: #64748b;
 
     --blue: #0095ff;
     --green: #16a34a;
     --red: #ef4444;
     --amber: #f59e0b;
 
-    --shadow: 0 26px 90px rgba(0, 0, 0, .55);
+    --shadow: 0 24px 70px rgba(15, 23, 42, .10);
     --r22: 22px;
   }
 
@@ -31,6 +31,10 @@
     min-height: 100vh;
     color: var(--text);
     font-family: 'Inter', sans-serif;
+    background:
+      linear-gradient(180deg, rgba(248, 250, 252, .96), rgba(239, 246, 255, .78)),
+      radial-gradient(900px circle at 12% 0%, rgba(14, 165, 233, .14), transparent 52%),
+      radial-gradient(760px circle at 92% 14%, rgba(16, 185, 129, .12), transparent 56%);
   }
 
   .cq-wrap {
@@ -41,7 +45,7 @@
   .cq-card {
     position: relative;
     border-radius: var(--r22);
-    border: 1px solid rgba(255, 255, 255, .08);
+    border: 1px solid rgba(148, 163, 184, .22);
     background: linear-gradient(180deg, var(--panelA), var(--panelB));
     box-shadow: var(--shadow);
     backdrop-filter: blur(14px);
@@ -56,7 +60,7 @@
     background:
       radial-gradient(900px circle at 18% 8%, rgba(0, 149, 255, .08), transparent 55%),
       radial-gradient(900px circle at 88% 18%, rgba(34, 197, 94, .06), transparent 60%);
-    opacity: .42;
+    opacity: .72;
     pointer-events: none;
     filter: blur(16px);
     z-index: 0;
@@ -69,7 +73,7 @@
 
   /* OVERRIDE BOOTSTRAP PROGRESS */
   .progress {
-    background: rgba(255, 255, 255, 0.1) !important;
+    background: rgba(226, 232, 240, 0.9) !important;
     border-radius: 999px !important;
     height: 8px !important;
     overflow: hidden;
@@ -82,24 +86,24 @@
 
   /* MODAL STYLES */
   .modal-content {
-    background: #0f172a;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #ffffff;
+    border: 1px solid rgba(148, 163, 184, 0.22);
     border-radius: 24px;
-    color: #fff;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    color: #0f172a;
+    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.18);
   }
 
   .modal-header {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.9);
   }
 
   .modal-footer {
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid rgba(226, 232, 240, 0.9);
   }
 
   .btn-close {
-    filter: invert(1);
-    opacity: 0.5;
+    filter: none;
+    opacity: 0.65;
   }
 
   /* Scrollbar */
@@ -108,16 +112,16 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(226, 232, 240, 0.5);
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(148, 163, 184, 0.45);
     border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(100, 116, 139, 0.55);
   }
 
   .cq-finance-head {
@@ -134,12 +138,13 @@
     gap: 10px;
     padding: 10px 12px;
     border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(203, 213, 225, 0.9);
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
   }
 
   .cq-month-form label {
-    color: #94a3b8;
+    color: #64748b;
     font-size: 0.76rem;
     font-weight: 800;
     text-transform: uppercase;
@@ -149,10 +154,10 @@
 
   .cq-month-form input {
     min-width: 180px;
-    background: rgba(15, 23, 42, 0.65);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #ffffff;
+    border: 1px solid rgba(203, 213, 225, 0.95);
     border-radius: 12px;
-    color: #f8fafc;
+    color: #0f172a;
     padding: 10px 12px;
     font-size: 0.92rem;
     font-weight: 700;
@@ -172,12 +177,13 @@
 
   .cq-group-card {
     border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(203, 213, 225, 0.8);
+    background: linear-gradient(180deg, #ffffff, #f8fafc);
     padding: 18px;
     display: flex;
     flex-direction: column;
     gap: 14px;
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
   }
 
   .cq-group-card__top,
@@ -196,7 +202,7 @@
   }
 
   .cq-group-card__title strong {
-    color: #f8fafc;
+    color: #0f172a;
     font-size: 1.05rem;
     font-weight: 900;
     line-height: 1.2;
@@ -204,7 +210,7 @@
 
   .cq-group-card__title span,
   .cq-group-card__foot span {
-    color: #94a3b8;
+    color: #64748b;
     font-size: 0.85rem;
     font-weight: 700;
   }
@@ -223,7 +229,7 @@
     border-radius: 999px;
     background: rgba(59, 130, 246, 0.12);
     border: 1px solid rgba(59, 130, 246, 0.22);
-    color: #bfdbfe;
+    color: #1d4ed8;
     font-size: 0.78rem;
     font-weight: 800;
   }
@@ -231,13 +237,13 @@
   .cq-chip--emerald {
     background: rgba(34, 197, 94, 0.12);
     border-color: rgba(34, 197, 94, 0.2);
-    color: #86efac;
+    color: #047857;
   }
 
   .cq-chip--amber {
     background: rgba(245, 158, 11, 0.12);
     border-color: rgba(245, 158, 11, 0.2);
-    color: #fcd34d;
+    color: #b45309;
   }
 
   .cq-group-actions {
@@ -254,9 +260,9 @@
     min-height: 38px;
     padding: 0 14px;
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.04);
-    color: #e2e8f0;
+    border: 1px solid rgba(203, 213, 225, 0.85);
+    background: #ffffff;
+    color: #334155;
     font-size: 0.85rem;
     font-weight: 800;
     text-decoration: none;
@@ -264,8 +270,9 @@
   }
 
   .cq-group-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
+    background: #eff6ff;
+    border-color: rgba(59, 130, 246, 0.28);
+    color: #1d4ed8;
     transform: translateY(-1px);
   }
 
@@ -280,15 +287,15 @@
   .cq-total-card {
     border-radius: 18px;
     padding: 16px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #f8fafc;
+    border: 1px solid rgba(203, 213, 225, 0.85);
   }
 
   .cq-metric-box span,
   .cq-total-card span {
     display: block;
     margin-bottom: 8px;
-    color: #94a3b8;
+    color: #64748b;
     font-size: 0.73rem;
     font-weight: 800;
     text-transform: uppercase;
@@ -297,7 +304,7 @@
 
   .cq-metric-box strong,
   .cq-total-card strong {
-    color: #f8fafc;
+    color: #0f172a;
     font-size: 1rem;
     font-weight: 900;
     line-height: 1.2;
@@ -321,7 +328,7 @@
     border-radius: 999px;
     background: rgba(59, 130, 246, 0.14);
     border: 1px solid rgba(59, 130, 246, 0.22);
-    color: #bfdbfe;
+    color: #1d4ed8;
     font-size: 0.78rem;
     font-weight: 800;
   }
@@ -329,11 +336,363 @@
   .cq-empty {
     padding: 26px;
     border-radius: 18px;
-    border: 1px dashed rgba(255, 255, 255, 0.14);
-    color: #94a3b8;
+    border: 1px dashed rgba(148, 163, 184, 0.45);
+    color: #64748b;
     text-align: center;
     font-size: 0.95rem;
     font-weight: 700;
+  }
+
+  .cq-attendance-heading {
+    color: #0f172a;
+  }
+
+  .cq-attendance-subtitle {
+    color: #64748b;
+  }
+
+  .cq-group-label {
+    min-height: 36px;
+    padding: 0 14px;
+    border-radius: 12px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #2563eb;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.08);
+  }
+
+  .cq-attendance-list {
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .cq-attendance-item {
+    border: 1px solid #cbd5e1;
+    border-radius: 18px;
+    background: #ffffff;
+    overflow: hidden;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+  }
+
+  .cq-attendance-item:hover {
+    border-color: #93c5fd;
+    box-shadow: 0 18px 40px rgba(37, 99, 235, 0.10);
+    transform: translateY(-1px);
+  }
+
+  .cq-attendance-toggle {
+    width: 100%;
+    min-height: 76px;
+    padding: 18px 20px;
+    color: #0f172a;
+    background: #ffffff;
+    border: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    text-align: left;
+  }
+
+  .cq-attendance-title {
+    color: #0f172a;
+    font-size: 1.04rem;
+    font-weight: 900;
+    line-height: 1.2;
+  }
+
+  .cq-days-badge,
+  .cq-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border-radius: 999px;
+    border: 1px solid #bbf7d0;
+    background: #ecfdf5;
+    color: #059669;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  .cq-days-badge {
+    min-height: 32px;
+    padding: 0 13px;
+    font-size: 0.78rem;
+  }
+
+  .cq-status-badge {
+    min-height: 34px;
+    padding: 0 13px;
+    font-size: 0.70rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .cq-status-badge--absent {
+    border-color: #fecaca;
+    background: #fef2f2;
+    color: #ef4444;
+  }
+
+  .cq-score {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    font-size: 0.95rem;
+    font-weight: 900;
+  }
+
+  .cq-score--plus {
+    color: #10b981;
+  }
+
+  .cq-score--minus {
+    color: #ef4444;
+  }
+
+  .cq-score-divider {
+    color: #94a3b8;
+    font-weight: 900;
+  }
+
+  .cq-attendance-chevron {
+    color: #64748b;
+  }
+
+  .cq-attendance-content {
+    padding: 18px 20px 20px;
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+  }
+
+  .cq-progress-label {
+    color: #475569;
+    font-size: 0.82rem;
+    font-weight: 800;
+  }
+
+  .cq-progress-value {
+    color: #10b981;
+    font-size: 0.82rem;
+    font-weight: 900;
+  }
+
+  .cq-attendance-table-wrap {
+    overflow-x: auto;
+    border: 1px solid #cbd5e1;
+    border-radius: 16px;
+    background: #ffffff;
+  }
+
+  .cq-attendance-table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: separate;
+    border-spacing: 0;
+    color: #0f172a;
+    font-size: 0.92rem;
+  }
+
+  .cq-attendance-table thead {
+    background: #f1f5f9;
+  }
+
+  .cq-attendance-table th {
+    padding: 15px 16px;
+    color: #0f172a;
+    font-size: 0.78rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .cq-attendance-table td {
+    padding: 15px 16px;
+    color: #0f172a;
+    font-weight: 800;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: middle;
+  }
+
+  .cq-attendance-table tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .cq-attendance-table tbody tr:hover {
+    background: #f8fafc;
+  }
+
+  .cq-points-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 58px;
+    height: 36px;
+    padding: 0 13px;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 900;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  .cq-points-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .cq-points-btn--plus {
+    color: #059669;
+    background: #d1fae5;
+    border: 1px solid #a7f3d0;
+  }
+
+  .cq-points-btn--minus {
+    color: #ef4444;
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+  }
+
+  .cq-empty-cell {
+    color: #94a3b8;
+    font-weight: 900;
+  }
+
+  .cq-details-card {
+    padding: 14px;
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .cq-details-title {
+    color: #0f172a;
+    font-size: 0.92rem;
+    font-weight: 900;
+  }
+
+  .cq-details-meta {
+    color: #64748b;
+    font-size: 0.76rem;
+    font-weight: 700;
+  }
+
+  .cq-modal-state {
+    min-height: 260px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+  }
+
+  .cq-modal-state__title {
+    margin-top: 12px;
+    color: #0f172a;
+    font-size: 1rem;
+    font-weight: 900;
+  }
+
+  .cq-modal-state__title--danger {
+    color: #ef4444;
+  }
+
+  .cq-modal-state__subtitle {
+    margin-top: 4px;
+    color: #64748b;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .cq-page .text-white {
+    color: #0f172a !important;
+  }
+
+  .cq-page .text-slate-300 {
+    color: #475569 !important;
+  }
+
+  .cq-page .text-slate-400,
+  .cq-page .text-slate-500 {
+    color: #64748b !important;
+  }
+
+  .cq-page .text-slate-600 {
+    color: #94a3b8 !important;
+  }
+
+  .cq-page .bg-white\/5,
+  .cq-page .bg-white\/\[0\.02\] {
+    background-color: rgba(248, 250, 252, 0.82) !important;
+  }
+
+  .cq-page .hover\:bg-white\/10:hover,
+  .cq-page .hover\:bg-white\/\[0\.04\]:hover,
+  .cq-page .hover\:bg-white\/5:hover {
+    background-color: rgba(239, 246, 255, 0.92) !important;
+  }
+
+  .cq-page .border-white\/5,
+  .cq-page .border-white\/10 {
+    border-color: rgba(203, 213, 225, 0.85) !important;
+  }
+
+  .cq-page .bg-black\/20,
+  .cq-page .bg-\[\#050814\]\/50 {
+    background-color: rgba(248, 250, 252, 0.92) !important;
+  }
+
+  .cq-page table tbody {
+    color: #334155;
+  }
+
+  .cq-page table thead {
+    color: #64748b;
+    background: #f1f5f9 !important;
+  }
+
+  .cq-page .cq-card > .border-b {
+    background: #f8fafc !important;
+  }
+
+  .modal-content .text-white {
+    color: #0f172a !important;
+  }
+
+  .modal-content .text-slate-500 {
+    color: #64748b !important;
+  }
+
+  .modal-content .bg-\[\#0f172a\],
+  .modal-content .bg-white\/5 {
+    background-color: #f8fafc !important;
+  }
+
+  .modal-content .border-white\/5 {
+    border-color: rgba(203, 213, 225, 0.85) !important;
+  }
+
+  @media (max-width: 640px) {
+    .cq-attendance-toggle {
+      padding: 16px;
+    }
+
+    .cq-attendance-content {
+      padding: 16px;
+    }
+
+    .cq-attendance-title {
+      font-size: 0.98rem;
+    }
   }
 
   @media (max-width: 1024px) {
@@ -534,8 +893,8 @@
         <i class="fa fa-bolt text-lg"></i>
       </div>
       <div>
-        <h2 class="text-xl font-black text-white">Davomat va Chaqmoqlar</h2>
-        <p class="text-xs font-bold text-slate-500">Guruhlar bo'yicha tarix</p>
+        <h2 class="cq-attendance-heading text-xl font-black">Davomat va Chaqmoqlar</h2>
+        <p class="cq-attendance-subtitle text-xs font-bold">Guruhlar bo'yicha tarix</p>
       </div>
     </div>
 
@@ -543,41 +902,37 @@
     {% for group in group_list %}
     <div class="cq-card p-0 overflow-visible">
       <!-- Group Header -->
-      <div class="p-4 border-b border-white/5 bg-white/5 flex items-center gap-3">
-        <div
-          class="h-8 px-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-black uppercase flex items-center gap-2">
+      <div class="p-5 border-b border-white/5 bg-white/5 flex items-center gap-3">
+        <div class="cq-group-label text-xs font-black uppercase flex items-center gap-2">
           <i class="fa fa-users"></i> {{ group.grouper }}
         </div>
       </div>
 
-      <div class="p-4 space-y-4">
+      <div class="cq-attendance-list">
         {% for summary in group.list %}
 
         <!-- Custom Accordion Item using Vanilla JS -->
-        <div
-          class="border border-white/10 rounded-2xl bg-white/[0.02] overflow-hidden transition-colors hover:bg-white/[0.04]">
-          <button type="button" class="w-full flex flex-wrap gap-4 items-center p-4 text-left focus:outline-none"
-            onclick="toggleCustomAccordion(this)">
+        <div class="cq-attendance-item">
+          <button type="button" class="cq-attendance-toggle focus:outline-none" onclick="toggleCustomAccordion(this)">
 
             <div class="flex-1 flex items-center gap-4 min-w-[200px]">
-              <span class="text-base font-black text-white">{{ summary.year }} – {{ summary.month_name }}</span>
-              <span
-                class="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold whitespace-nowrap">
+              <span class="cq-attendance-title">{{ summary.year }} – {{ summary.month_name }}</span>
+              <span class="cq-days-badge">
                 <i class="fa fa-check mr-1"></i> {{ summary.present_days }} kun
               </span>
             </div>
 
             <div class="flex items-center gap-3 text-sm font-black mr-2">
-              <span class="text-emerald-400">+{{ summary.plus }}</span>
-              <span class="text-slate-600">/</span>
-              <span class="text-red-400">-{{ summary.minus }}</span>
+              <span class="cq-score cq-score--plus">+{{ summary.plus }}</span>
+              <span class="cq-score-divider">/</span>
+              <span class="cq-score cq-score--minus">-{{ summary.minus }}</span>
             </div>
 
-            <i class="fa fa-chevron-down text-slate-500 transition-transform duration-300 transform-gpu"></i>
+            <i class="fa fa-chevron-down cq-attendance-chevron transition-transform duration-300 transform-gpu"></i>
           </button>
 
           <!-- Accordion Content (Default Hidden) -->
-          <div class="accordion-content hidden border-t border-white/5 bg-black/20 p-4">
+          <div class="accordion-content cq-attendance-content hidden">
 
             <!-- Progress Bar -->
             {% with total_days=summary.days|length %}
@@ -585,10 +940,10 @@
             {% widthratio summary.present_days total_days 100 as percent %}
             <div class="mb-6 px-1">
               <div class="flex justify-between items-center mb-2 text-xs font-bold">
-                <span class="text-slate-400">Umumiy ishtirok</span>
-                <span class="text-emerald-400">{{ percent }}%</span>
+                <span class="cq-progress-label">Umumiy ishtirok</span>
+                <span class="cq-progress-value">{{ percent }}%</span>
               </div>
-              <div class="progress h-2 bg-white/10 rounded-full overflow-hidden">
+              <div class="progress rounded-full overflow-hidden">
                 <div class="progress-bar bg-emerald-500 h-full rounded-full" data-width="{{ percent }}"></div>
               </div>
             </div>
@@ -596,55 +951,53 @@
             {% endwith %}
 
             <!-- Data Table -->
-            <div class="overflow-x-auto rounded-xl border border-white/5 bg-[#050814]/50">
-              <table class="w-full text-left text-sm">
-                <thead class="bg-white/5 text-xs uppercase font-black text-slate-500">
+            <div class="cq-attendance-table-wrap">
+              <table class="cq-attendance-table text-left">
+                <thead>
                   <tr>
-                    <th class="p-3 text-center">#</th>
-                    <th class="p-3">Sana</th>
-                    <th class="p-3 text-center">Holat</th>
-                    <th class="p-3 text-center text-emerald-500">+ Chaqmoq</th>
-                    <th class="p-3 text-center text-red-500">- Chaqmoq</th>
+                    <th class="text-center">#</th>
+                    <th>Sana</th>
+                    <th class="text-center">Holat</th>
+                    <th class="text-center">+ Chaqmoq</th>
+                    <th class="text-center">- Chaqmoq</th>
                   </tr>
                 </thead>
-                <tbody class="text-slate-300 font-medium">
+                <tbody>
                   {% for d in summary.days %}
-                  <tr class="border-b border-white/5 last:border-0 hover:bg-white/5">
-                    <td class="p-3 text-center text-xs font-bold text-slate-600">{{ forloop.counter }}</td>
-                    <td class="p-3 font-bold">{{ d.date|date:"d M, Y" }}</td>
-                    <td class="p-3 text-center">
+                  <tr>
+                    <td class="text-center text-xs">{{ forloop.counter }}</td>
+                    <td>{{ d.date|date:"d M, Y" }}</td>
+                    <td class="text-center">
                       {% if d.present %}
-                      <span
-                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[10px] font-black uppercase tracking-wider">
+                      <span class="cq-status-badge">
                         <i class="fa fa-check"></i> Kelgan
                       </span>
                       {% else %}
-                      <span
-                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-wider">
+                      <span class="cq-status-badge cq-status-badge--absent">
                         <i class="fa fa-times"></i> Kelmadi
                       </span>
                       {% endif %}
                     </td>
-                    <td class="p-3 text-center">
+                    <td class="text-center">
                       {% if d.plus > 0 %}
                       <button
-                        class="clickable h-8 min-w-[50px] px-3 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-600/30 font-black text-xs transition-colors"
+                        class="clickable cq-points-btn cq-points-btn--plus"
                         data-type="plus" data-date="{{ d.date|date:'Y-m-d' }}" data-student="{{ student.id }}">
                         +{{ d.plus }}
                       </button>
                       {% else %}
-                      <span class="text-slate-600 font-bold">-</span>
+                      <span class="cq-empty-cell">-</span>
                       {% endif %}
                     </td>
-                    <td class="p-3 text-center">
+                    <td class="text-center">
                       {% if d.minus > 0 %}
                       <button
-                        class="clickable h-8 min-w-[50px] px-3 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-600/30 font-black text-xs transition-colors"
+                        class="clickable cq-points-btn cq-points-btn--minus"
                         data-type="minus" data-date="{{ d.date|date:'Y-m-d' }}" data-student="{{ student.id }}">
                         -{{ d.minus }}
                       </button>
                       {% else %}
-                      <span class="text-slate-600 font-bold">-</span>
+                      <span class="cq-empty-cell">-</span>
                       {% endif %}
                     </td>
                   </tr>
@@ -741,9 +1094,9 @@
       <div class="modal-body p-0 bg-[#0f172a]" id="modal-content-body"
         style="min-height:200px; max-height:60vh; overflow-y:auto;">
         <!-- Loading State (Default) -->
-        <div class="flex flex-col items-center justify-center h-full py-10 text-slate-500">
+        <div class="cq-modal-state">
           <i class="fa fa-circle-notch fa-spin text-3xl mb-3 text-blue-500"></i>
-          <span class="text-xs font-bold uppercase tracking-widest">Yuklanmoqda...</span>
+          <span class="cq-modal-state__title">Yuklanmoqda...</span>
         </div>
       </div>
     </div>
@@ -801,19 +1154,24 @@
     const modalEl = document.getElementById("pointsModal");
     const modalBody = document.getElementById("modal-content-body");
     const modal = new bootstrap.Modal(modalEl);
+    const tenantPrefix = window.location.pathname.includes("/talim/")
+      ? window.location.pathname.split("/talim/")[0]
+      : "";
+    const pointsDetailsUrl = `${tenantPrefix}/talim/points-details/`;
 
     // Styling helper for dynamic content
     function renderDetails(details, type) {
       if (!details || details.length === 0) {
         return `
-            <div class="flex flex-col items-center justify-center py-10 text-slate-500">
-                <i class="fa fa-folder-open text-4xl mb-2 opacity-50"></i>
-                <p class="text-sm font-bold">Tafsilotlar topilmadi</p>
+            <div class="cq-modal-state">
+                <i class="fa fa-folder-open text-4xl text-slate-400"></i>
+                <p class="cq-modal-state__title">Tafsilotlar topilmadi</p>
+                <p class="cq-modal-state__subtitle">Bu sana uchun alohida yozuv mavjud emas.</p>
             </div>`;
       }
 
       const isPlus = type === 'plus';
-      const colorClass = isPlus ? 'text-emerald-400' : 'text-red-400';
+      const colorClass = isPlus ? 'cq-score--plus' : 'cq-score--minus';
       const title = isPlus ? "Qo'shilgan chaqmoqlar" : "Ayirilgan chaqmoqlar";
 
       const total = details.reduce((sum, d) => sum + d.amount, 0);
@@ -827,13 +1185,13 @@
       `;
 
       html += details.map(d => `
-        <div class="p-3 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between group hover:bg-white/10 transition-colors">
+        <div class="cq-details-card">
             <div>
-                <div class="text-sm font-bold text-white mb-0.5 flex items-center gap-2">
+                <div class="cq-details-title mb-1 flex items-center gap-2">
                     <span class="w-1.5 h-1.5 rounded-full ${isPlus ? 'bg-emerald-500' : 'bg-red-500'}"></span>
                     ${d.rule || "Sabab ko'rsatilmagan"}
                 </div>
-                <div class="text-[11px] font-semibold text-slate-500 flex items-center gap-2">
+                <div class="cq-details-meta flex items-center gap-2">
                     <span><i class="fa fa-user-tie text-[10px]"></i> ${d.teacher || "Tizim"}</span>
                     <span>•</span>
                     <span>${d.time || ""}</span>
@@ -860,15 +1218,20 @@
 
         // Show loading
         modalBody.innerHTML = `
-        <div class="flex flex-col items-center justify-center h-full py-12 text-slate-500">
-            <i class="fa fa-circle-notch fa-spin text-3xl mb-3 text-blue-500"></i>
-            <span class="text-xs font-bold uppercase tracking-widest">Yuklanmoqda...</span>
+        <div class="cq-modal-state">
+            <i class="fa fa-circle-notch fa-spin text-3xl text-blue-500"></i>
+            <span class="cq-modal-state__title">Yuklanmoqda...</span>
         </div>`;
 
         modal.show();
 
         try {
-          const response = await fetch(`/talim/points-details/?student=${studentId}&date=${date}&type=${type}`);
+          const response = await fetch(`${pointsDetailsUrl}?student=${studentId}&date=${date}&type=${type}`, {
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
           const data = await response.json();
           const details = data.details || data; // handle structure variation
 
@@ -876,9 +1239,10 @@
         } catch (err) {
           console.error(err);
           modalBody.innerHTML = `
-            <div class="flex flex-col items-center justify-center py-10 text-red-400">
-                <i class="fa fa-triangle-exclamation text-3xl mb-2"></i>
-                <p class="text-sm font-bold">Xatolik yuz berdi</p>
+            <div class="cq-modal-state">
+                <i class="fa fa-triangle-exclamation text-4xl text-red-400"></i>
+                <p class="cq-modal-state__title cq-modal-state__title--danger">Xatolik yuz berdi</p>
+                <p class="cq-modal-state__subtitle">Tafsilotlarni yuklab bo'lmadi. Sahifani yangilab qayta urinib ko'ring.</p>
             </div>`;
         }
       });
