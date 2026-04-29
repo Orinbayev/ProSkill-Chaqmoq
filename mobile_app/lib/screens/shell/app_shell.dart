@@ -1,15 +1,14 @@
 import 'package:chaqmoq_mobile/core/theme/app_colors.dart';
 import 'package:chaqmoq_mobile/core/theme/app_spacing.dart';
 import 'package:chaqmoq_mobile/core/theme/app_text_styles.dart';
+import 'package:chaqmoq_mobile/core/utils/role_panel_style.dart';
 import 'package:chaqmoq_mobile/core/utils/role_utils.dart';
 import 'package:chaqmoq_mobile/providers/auth_provider.dart';
 import 'package:chaqmoq_mobile/providers/notifications_provider.dart';
-import 'package:chaqmoq_mobile/screens/attendance/attendance_screen.dart';
+import 'package:chaqmoq_mobile/screens/account/account_screen.dart';
 import 'package:chaqmoq_mobile/screens/dashboard/dashboard_screen.dart';
 import 'package:chaqmoq_mobile/screens/groups/groups_screen.dart';
 import 'package:chaqmoq_mobile/screens/notifications/notifications_screen.dart';
-import 'package:chaqmoq_mobile/screens/payments/payments_screen.dart';
-import 'package:chaqmoq_mobile/screens/profile/profile_screen.dart';
 import 'package:chaqmoq_mobile/screens/students/students_screen.dart';
 import 'package:chaqmoq_mobile/screens/teachers/teachers_screen.dart';
 import 'package:chaqmoq_mobile/widgets/role_badge.dart';
@@ -17,7 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
-enum ShellTab { dashboard, students, teachers, groups, attendance, payments, notifications, profile }
+enum ShellTab { dashboard, students, teachers, groups, notifications, profile }
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -48,7 +47,11 @@ class _AppShellState extends State<AppShell> {
         _ShellItem(ShellTab.students, 'O\'quvchi', Icons.groups_rounded),
         _ShellItem(ShellTab.teachers, 'Ustoz', Icons.school_rounded),
         _ShellItem(ShellTab.groups, 'Guruh', Icons.view_module_rounded),
-        _ShellItem(ShellTab.notifications, 'Xabar', Icons.notifications_rounded),
+        _ShellItem(
+          ShellTab.notifications,
+          'Xabar',
+          Icons.notifications_rounded,
+        ),
         _ShellItem(ShellTab.profile, 'Profil', Icons.person_rounded),
       ];
     }
@@ -57,7 +60,11 @@ class _AppShellState extends State<AppShell> {
         _ShellItem(ShellTab.dashboard, 'Dashboard', Icons.home_rounded),
         _ShellItem(ShellTab.students, 'O\'quvchi', Icons.groups_rounded),
         _ShellItem(ShellTab.groups, 'Guruh', Icons.view_module_rounded),
-        _ShellItem(ShellTab.notifications, 'Xabar', Icons.notifications_rounded),
+        _ShellItem(
+          ShellTab.notifications,
+          'Xabar',
+          Icons.notifications_rounded,
+        ),
         _ShellItem(ShellTab.profile, 'Profil', Icons.person_rounded),
       ];
     }
@@ -65,14 +72,16 @@ class _AppShellState extends State<AppShell> {
       return const [
         _ShellItem(ShellTab.dashboard, 'Dashboard', Icons.home_rounded),
         _ShellItem(ShellTab.groups, 'Guruh', Icons.view_module_rounded),
-        _ShellItem(ShellTab.attendance, 'Davomat', Icons.fact_check_rounded),
-        _ShellItem(ShellTab.notifications, 'Xabar', Icons.notifications_rounded),
+        _ShellItem(
+          ShellTab.notifications,
+          'Xabar',
+          Icons.notifications_rounded,
+        ),
         _ShellItem(ShellTab.profile, 'Profil', Icons.person_rounded),
       ];
     }
     return const [
       _ShellItem(ShellTab.dashboard, 'Dashboard', Icons.home_rounded),
-      _ShellItem(ShellTab.payments, 'To\'lov', Icons.credit_card_rounded),
       _ShellItem(ShellTab.notifications, 'Xabar', Icons.notifications_rounded),
       _ShellItem(ShellTab.profile, 'Profil', Icons.person_rounded),
     ];
@@ -84,10 +93,8 @@ class _AppShellState extends State<AppShell> {
       ShellTab.students => const StudentsScreen(),
       ShellTab.teachers => const TeachersScreen(),
       ShellTab.groups => const GroupsScreen(),
-      ShellTab.attendance => const AttendanceScreen(),
-      ShellTab.payments => const PaymentsScreen(),
       ShellTab.notifications => const NotificationsScreen(),
-      ShellTab.profile => const ProfileScreen(),
+      ShellTab.profile => const AccountScreen(),
     };
   }
 
@@ -101,6 +108,7 @@ class _AppShellState extends State<AppShell> {
     }
 
     final items = _itemsForRole(user.role);
+    final panel = RolePanelStyles.of(user.role);
     if (!items.any((item) => item.tab == _currentTab)) {
       _currentTab = items.first.tab;
     }
@@ -112,8 +120,11 @@ class _AppShellState extends State<AppShell> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('ChaqmoqApp ⚡', style: AppTextStyles.title),
-            Text(user.center?.name ?? 'CRM Platform', style: AppTextStyles.bodySmall),
+            Text(panel.panelLabel, style: AppTextStyles.title),
+            Text(
+              user.center?.name ?? 'CRM Platform',
+              style: AppTextStyles.bodySmall,
+            ),
           ],
         ),
         actions: [
@@ -122,7 +133,8 @@ class _AppShellState extends State<AppShell> {
             child: RoleBadge(role: user.role),
           ),
           IconButton(
-            onPressed: () => setState(() => _currentTab = ShellTab.notifications),
+            onPressed: () =>
+                setState(() => _currentTab = ShellTab.notifications),
             icon: Stack(
               clipBehavior: Clip.none,
               children: [
@@ -164,10 +176,9 @@ class _AppShellState extends State<AppShell> {
             duration: 280.ms,
             child: KeyedSubtree(
               key: ValueKey(_currentTab),
-              child: _screenForTab(_currentTab)
-                  .animate()
-                  .fadeIn(duration: 260.ms)
-                  .slideY(begin: 0.02, end: 0),
+              child: _screenForTab(
+                _currentTab,
+              ).animate().fadeIn(duration: 260.ms).slideY(begin: 0.02, end: 0),
             ),
           ),
         ),

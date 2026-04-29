@@ -252,25 +252,34 @@ class AuthSession {
     required this.accessToken,
     required this.slug,
     required this.user,
+    this.isOffline = false,
   });
 
   final String accessToken;
   final String slug;
   final UserModel user;
+  final bool isOffline;
 
   factory AuthSession.fromJson(Map<String, dynamic> json) {
     return AuthSession(
       accessToken: jsonString(json['access_token']),
       slug: jsonString(json['slug']),
       user: UserModel.fromJson(jsonMap(json['user'])),
+      isOffline: jsonBool(json['is_offline']),
     );
   }
 
-  AuthSession copyWith({String? accessToken, String? slug, UserModel? user}) {
+  AuthSession copyWith({
+    String? accessToken,
+    String? slug,
+    UserModel? user,
+    bool? isOffline,
+  }) {
     return AuthSession(
       accessToken: accessToken ?? this.accessToken,
       slug: slug ?? this.slug,
       user: user ?? this.user,
+      isOffline: isOffline ?? this.isOffline,
     );
   }
 
@@ -278,6 +287,7 @@ class AuthSession {
     'access_token': accessToken,
     'slug': slug,
     'user': user.toJson(),
+    'is_offline': isOffline,
   };
 }
 

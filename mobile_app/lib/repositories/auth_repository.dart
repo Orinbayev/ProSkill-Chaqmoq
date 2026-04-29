@@ -5,10 +5,16 @@ import 'package:chaqmoq_mobile/services/api_client.dart';
 import 'package:chaqmoq_mobile/services/login_service.dart';
 import 'package:chaqmoq_mobile/services/storage_service.dart';
 
+enum AuthErrorPresentation { inline, banner }
+
 class AuthException implements Exception {
-  const AuthException(this.message);
+  const AuthException(
+    this.message, {
+    this.presentation = AuthErrorPresentation.banner,
+  });
 
   final String message;
+  final AuthErrorPresentation presentation;
 
   @override
   String toString() => message;
@@ -32,7 +38,7 @@ class AuthRepository {
     final slug = await _storageService.readSlug();
     final cachedUser = await _storageService.readUser();
 
-    if (slug == null || slug.isEmpty) {
+    if (slug == null || slug.isEmpty || cachedUser == null) {
       return null;
     }
 
@@ -53,11 +59,6 @@ class AuthRepository {
           ? cachedUser
           : UserModel.fromJson(userPayload);
 
-      if (user == null) {
-        await _storageService.clearAuth();
-        return null;
-      }
-
       final session = AuthSession(
         accessToken: token ?? '',
         slug: user.center?.slug.isNotEmpty == true ? user.center!.slug : slug,
@@ -69,30 +70,65 @@ class AuthRepository {
         slug: session.slug,
       );
       return session;
-    } catch (_) {
+    } on ApiException catch (error) {
+      if (_canRecoverFromOffline(error)) {
+        return AuthSession(
+          accessToken: token ?? '',
+          slug: slug,
+          user: cachedUser,
+          isOffline: true,
+        );
+      }
       await _storageService.clearAuth();
       return null;
+    } catch (_) {
+      return AuthSession(
+        accessToken: token ?? '',
+        slug: slug,
+        user: cachedUser,
+        isOffline: true,
+      );
     }
   }
 
   Future<AuthSession> login({
-    required String login,
+    String? login,
+    String? phoneNumber,
     required String password,
   }) async {
     try {
+      final normalizedLogin = (login ?? '').trim();
+      final normalizedPhoneNumber = (phoneNumber ?? '').trim();
+      if (normalizedLogin.isEmpty && normalizedPhoneNumber.isEmpty) {
+        throw const AuthException(
+          'Email, login yoki telefon raqamini kiriting',
+          presentation: AuthErrorPresentation.inline,
+        );
+      }
+
+      final rememberedSlug = await _storageService.readLastCenterSlug();
+      final configuredSlug = AppConfig.defaultCenterSlug.trim().isNotEmpty
+          ? AppConfig.defaultCenterSlug.trim()
+          : (rememberedSlug ?? '').trim();
       final response = await _loginService.login(
-        LoginRequest(
-          login: login.trim(),
-          password: password,
-          centerSlug: AppConfig.defaultCenterSlug,
-        ),
+        normalizedPhoneNumber.isNotEmpty
+            ? LoginRequest.phone(
+                phoneNumber: normalizedPhoneNumber,
+                password: password,
+                centerSlug: configuredSlug,
+              )
+            : LoginRequest.login(
+                login: normalizedLogin,
+                password: password,
+                centerSlug: configuredSlug,
+              ),
       );
       final user = response.user;
       final session = AuthSession(
         accessToken: response.accessToken,
         slug: user.center?.slug.isNotEmpty == true
             ? user.center!.slug
-            : AppConfig.defaultCenterSlug,
+            : configuredSlug,
         user: user,
       );
       await _storageService.saveSession(session);
@@ -102,7 +138,9 @@ class AuthRepository {
       );
       return session;
     } on ApiException catch (error) {
-      throw AuthException(_friendlyLoginError(error));
+      throw _mapLoginError(error);
+    } on AuthException {
+      rethrow;
     } catch (_) {
       throw const AuthException('Serverga ulanib bo‘lmadi');
     }
@@ -132,35 +170,60 @@ class AuthRepository {
     throw ApiException('So‘rov bajarilmadi');
   }
 
-  String _friendlyLoginError(ApiException error) {
+  AuthException _mapLoginError(ApiException error) {
     final status = error.statusCode;
     final code = error.code;
-    if (code == 'invalid_credentials' || status == 401) {
-      return 'Login yoki parol noto‘g‘ri';
+    final message = error.message.trim();
+    if (code == 'invalid_credentials' || status == 400 || status == 401) {
+      return const AuthException(
+        'Login yoki parol noto‘g‘ri',
+        presentation: AuthErrorPresentation.inline,
+      );
     }
     if (code == 'center_not_found') {
-      return 'O‘quv markazi topilmadi';
+      return const AuthException('O‘quv markazi topilmadi');
     }
     if (code == 'center_mismatch') {
-      return 'Bu akkaunt tanlangan o‘quv markaziga tegishli emas';
+      return const AuthException(
+        'Bu akkaunt tanlangan o‘quv markaziga tegishli emas',
+      );
     }
     if (code == 'role_required' ||
         code == 'center_required' ||
         code == 'permission_denied') {
-      return 'Bu akkaunt mobil ilovaga ruxsat etilmagan';
+      return const AuthException('Bu akkaunt mobil ilovaga ruxsat etilmagan');
     }
     if (status == 403) {
-      return 'Bu akkaunt mobil ilovaga ruxsat etilmagan';
+      return const AuthException('Bu akkaunt mobil ilovaga ruxsat etilmagan');
     }
     if (status == 404) {
-      return 'Login endpoint topilmadi';
+      return const AuthException('Login endpoint topilmadi');
+    }
+    if (code == 'network_offline') {
+      return const AuthException('Internet aloqasini tekshiring');
+    }
+    if (code == 'timeout') {
+      return const AuthException('So‘rov vaqti tugadi, qayta urinib ko‘ring');
     }
     if (status != null && status >= 500) {
-      return 'Serverda xatolik yuz berdi';
+      return const AuthException('Serverga ulanib bo‘lmadi');
     }
-    if (status == null || status == 408 || status == 429) {
-      return 'Serverga ulanib bo‘lmadi';
+    if (code == 'network' || status == null || status == 408 || status == 429) {
+      return const AuthException('Serverga ulanib bo‘lmadi');
     }
-    return 'Serverda xatolik yuz berdi';
+    if (message.isNotEmpty) {
+      return AuthException(message);
+    }
+    return const AuthException('Serverga ulanib bo‘lmadi');
+  }
+
+  bool _canRecoverFromOffline(ApiException error) {
+    final status = error.statusCode ?? 0;
+    return error.code == 'network' ||
+        error.code == 'network_offline' ||
+        error.code == 'timeout' ||
+        error.code == 'server_unavailable' ||
+        error.code == 'rate_limited' ||
+        status >= 500;
   }
 }

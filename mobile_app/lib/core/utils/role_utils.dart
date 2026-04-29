@@ -23,6 +23,17 @@ class RoleUtils {
     };
   }
 
+  static String panelLabel(String role) {
+    return switch (normalize(role)) {
+      'student' => 'O‘quvchi paneli',
+      'parent' => 'Ota-ona paneli',
+      'teacher' => 'Ustoz paneli',
+      'manager' => 'Menejer paneli',
+      'director' || 'superuser' => 'Boshqaruv paneli',
+      _ => 'Mobil panel',
+    };
+  }
+
   static IconData roleIcon(String role) {
     return switch (normalize(role)) {
       'superuser' => Icons.admin_panel_settings_rounded,
@@ -37,12 +48,12 @@ class RoleUtils {
 
   static Color roleColor(String role) {
     return switch (normalize(role)) {
-      'superuser' => AppColors.warning,
-      'director' => AppColors.primary,
-      'manager' => AppColors.secondary,
-      'teacher' => AppColors.success,
-      'student' => AppColors.primary,
-      'parent' => AppColors.warning,
+      'superuser' => const Color(0xFFD97706),
+      'director' => const Color(0xFF2563EB),
+      'manager' => const Color(0xFF0F766E),
+      'teacher' => const Color(0xFF1A936F),
+      'student' => const Color(0xFF0F766E),
+      'parent' => const Color(0xFF2563EB),
       _ => AppColors.textMuted,
     };
   }

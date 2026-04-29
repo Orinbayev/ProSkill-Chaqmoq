@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
+enum _CredentialMode { emailOrLogin, phone }
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -16,8 +18,13 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _loginController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  _CredentialMode _credentialMode = _CredentialMode.emailOrLogin;
+  String? _formErrorMessage;
   bool _obscurePassword = true;
   bool _rememberMe = true;
+  int _bannerSequence = 0;
+
+  bool get _isPhoneMode => _credentialMode == _CredentialMode.phone;
 
   @override
   void dispose() {
@@ -33,51 +40,187 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     FocusScope.of(context).unfocus();
-    final login = _normalizeLogin(_loginController.text);
-    final password = _passwordController.text;
-
-    if (login.isEmpty || password.isEmpty) {
-      _showError('Telefon raqam yoki login va parolni kiriting');
+    _clearFeedback();
+    final identifierError = _validateIdentifier(_loginController.text);
+    if (identifierError != null) {
+      _setFormError(identifierError);
       return;
     }
 
-    final success = await auth.login(login: login, password: password);
+    final password = _passwordController.text;
+    if (password.trim().isEmpty) {
+      _setFormError('Parolni kiriting');
+      return;
+    }
+
+    final identifier = _normalizeIdentifier(_loginController.text);
+    final success = await auth.login(
+      login: _isPhoneMode ? null : identifier,
+      phoneNumber: _isPhoneMode ? identifier : null,
+      password: password,
+    );
     if (!mounted || success) {
       return;
     }
-    _showError(auth.errorMessage ?? 'Login yoki parol noto‘g‘ri');
+    final inlineError = auth.inlineErrorMessage;
+    if (inlineError != null && inlineError.isNotEmpty) {
+      _setFormError(inlineError);
+      return;
+    }
+    _showTopBanner(
+      auth.bannerErrorMessage ?? 'Kutilmagan xatolik yuz berdi',
+      isError: true,
+    );
   }
 
   void _showPendingFeature(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    _showTopBanner(message);
   }
 
-  void _showError(String message) {
-    ScaffoldMessenger.of(context)
+  void _setFormError(String message) {
+    if (_formErrorMessage == message) {
+      return;
+    }
+    setState(() => _formErrorMessage = message);
+  }
+
+  void _clearFeedback() {
+    final auth = context.read<AuthProvider>();
+    if (_formErrorMessage != null) {
+      setState(() => _formErrorMessage = null);
+    }
+    auth.clearError();
+    final messenger = ScaffoldMessenger.of(context);
+    messenger
+      ..hideCurrentMaterialBanner()
+      ..clearSnackBars();
+  }
+
+  void _showTopBanner(String message, {bool isError = false}) {
+    final messenger = ScaffoldMessenger.of(context);
+    final foregroundColor = isError
+        ? const Color(0xFF7F1D1D)
+        : const Color(0xFF0F172A);
+    final backgroundColor = isError
+        ? const Color(0xFFFFF1F2)
+        : const Color(0xFFEFF6FF);
+    final borderColor = isError
+        ? const Color(0xFFFECACA)
+        : const Color(0xFFBFDBFE);
+    final icon = isError ? Icons.error_outline_rounded : Icons.info_outline;
+    final sequence = ++_bannerSequence;
+
+    messenger
+      ..hideCurrentMaterialBanner()
       ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: const Color(0xFFB91C1C),
+      ..showMaterialBanner(
+        MaterialBanner(
+          forceActionsBelow: false,
+          overflowAlignment: OverflowBarAlignment.end,
+          backgroundColor: backgroundColor,
+          surfaceTintColor: Colors.transparent,
+          dividerColor: borderColor,
+          padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
+          leading: Icon(icon, color: foregroundColor, size: 20),
+          content: Text(
+            message,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              height: 1.3,
+              fontWeight: FontWeight.w600,
+              color: foregroundColor,
+            ),
+          ),
+          actions: [
+            IconButton(
+              onPressed: messenger.hideCurrentMaterialBanner,
+              splashRadius: 18,
+              visualDensity: VisualDensity.compact,
+              icon: Icon(Icons.close_rounded, color: foregroundColor, size: 18),
+            ),
+          ],
         ),
       );
+
+    Future<void>.delayed(const Duration(seconds: 4), () {
+      if (!mounted || sequence != _bannerSequence) {
+        return;
+      }
+      messenger.hideCurrentMaterialBanner();
+    });
   }
 
-  String _normalizeLogin(String rawValue) {
-    final value = rawValue.trim();
-    if (value.isEmpty) {
-      return '';
+  void _setCredentialMode(_CredentialMode mode) {
+    if (_credentialMode == mode) {
+      return;
     }
 
-    final compact = value.replaceAll(RegExp(r'[\s()\-.]'), '');
-    final numeric = compact.startsWith('+') ? compact.substring(1) : compact;
-    if (RegExp(r'^\d+$').hasMatch(numeric)) {
-      return numeric.length == 9 ? '998$numeric' : numeric;
+    setState(() {
+      _credentialMode = mode;
+      _loginController.clear();
+      _formErrorMessage = null;
+    });
+    context.read<AuthProvider>().clearError();
+    final messenger = ScaffoldMessenger.of(context);
+    messenger
+      ..hideCurrentMaterialBanner()
+      ..clearSnackBars();
+  }
+
+  String? _validateIdentifier(String rawValue) {
+    final value = rawValue.trim();
+    if (value.isEmpty) {
+      return _isPhoneMode
+          ? 'Telefon raqamini kiriting'
+          : 'Email yoki loginni kiriting';
     }
-    return value;
+
+    if (_isPhoneMode) {
+      final digits = _extractPhoneDigits(value);
+      if (digits.length != 9) {
+        return 'Telefon raqamini 9 xonali formatda kiriting';
+      }
+      return null;
+    }
+
+    if (value.contains(RegExp(r'\s'))) {
+      return 'Email yoki login bo‘sh joysiz bo‘lishi kerak';
+    }
+
+    if (value.contains('@') && !_isValidEmail(value)) {
+      return 'Email manzil noto‘g‘ri kiritildi';
+    }
+
+    if (!value.contains('@') && value.length < 3) {
+      return 'Login kamida 3 belgidan iborat bo‘lsin';
+    }
+
+    return null;
+  }
+
+  String _normalizeIdentifier(String rawValue) {
+    final value = rawValue.trim();
+    if (!_isPhoneMode) {
+      return value;
+    }
+
+    final digits = _extractPhoneDigits(value);
+    return '+998$digits';
+  }
+
+  String _extractPhoneDigits(String rawValue) {
+    final digits = rawValue.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('998') && digits.length == 12) {
+      return digits.substring(3);
+    }
+    return digits;
+  }
+
+  bool _isValidEmail(String value) {
+    return RegExp(
+      r'^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$',
+      caseSensitive: false,
+    ).hasMatch(value);
   }
 
   @override
@@ -150,10 +293,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         _LoginCard(
                           loginController: _loginController,
                           passwordController: _passwordController,
+                          credentialMode: _credentialMode,
                           obscurePassword: _obscurePassword,
                           rememberMe: _rememberMe,
                           isLoading: isLoading,
-                          errorMessage: auth.errorMessage,
+                          errorMessage: _formErrorMessage,
+                          onCredentialModeChanged: _setCredentialMode,
+                          onFieldChanged: _clearFeedback,
                           onTogglePassword: () {
                             setState(
                               () => _obscurePassword = !_obscurePassword,
@@ -219,9 +365,12 @@ class _LoginCard extends StatelessWidget {
   const _LoginCard({
     required this.loginController,
     required this.passwordController,
+    required this.credentialMode,
     required this.obscurePassword,
     required this.rememberMe,
     required this.isLoading,
+    required this.onCredentialModeChanged,
+    required this.onFieldChanged,
     required this.onTogglePassword,
     required this.onToggleRemember,
     required this.onSubmit,
@@ -232,10 +381,13 @@ class _LoginCard extends StatelessWidget {
 
   final TextEditingController loginController;
   final TextEditingController passwordController;
+  final _CredentialMode credentialMode;
   final bool obscurePassword;
   final bool rememberMe;
   final bool isLoading;
   final String? errorMessage;
+  final ValueChanged<_CredentialMode> onCredentialModeChanged;
+  final VoidCallback onFieldChanged;
   final VoidCallback onTogglePassword;
   final VoidCallback onToggleRemember;
   final VoidCallback onSubmit;
@@ -244,6 +396,8 @@ class _LoginCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isPhoneMode = credentialMode == _CredentialMode.phone;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(18, 20, 18, 22),
@@ -273,7 +427,7 @@ class _LoginCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Iltimos, ma’lumotlaringizni kiriting',
+            'Email, login yoki telefon orqali tizimga kiring',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 13,
@@ -283,27 +437,60 @@ class _LoginCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
+          _CredentialModeSwitcher(
+            value: credentialMode,
+            enabled: !isLoading,
+            onChanged: onCredentialModeChanged,
+          ),
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _FieldLabel(
+              text: isPhoneMode ? 'Telefon raqam' : 'Email yoki login',
+            ),
+          ),
+          const SizedBox(height: 8),
           CustomTextField(
             controller: loginController,
-            hintText: 'Telefon raqam yoki login',
+            hintText: isPhoneMode ? '901234567' : 'Email yoki login',
             enabled: !isLoading,
-            keyboardType: TextInputType.text,
+            keyboardType: isPhoneMode
+                ? TextInputType.phone
+                : TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
-            autofillHints: const [
-              AutofillHints.username,
-              AutofillHints.telephoneNumber,
-            ],
-            prefix: const _LoginPrefix(),
+            autofillHints: isPhoneMode
+                ? const [AutofillHints.telephoneNumber]
+                : const [AutofillHints.username, AutofillHints.email],
+            icon: isPhoneMode ? null : Icons.alternate_email_rounded,
+            prefix: isPhoneMode ? const _LoginPrefix() : null,
+            enableSuggestions: !isPhoneMode,
+            autocorrect: false,
+            inputFormatters: isPhoneMode
+                ? [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(9),
+                  ]
+                : null,
+            onChanged: (_) => onFieldChanged(),
           ),
           const SizedBox(height: 12),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: _FieldLabel(text: 'Parol'),
+          ),
+          const SizedBox(height: 8),
           CustomTextField(
             controller: passwordController,
             hintText: 'Parol',
             enabled: !isLoading,
             icon: Icons.lock_outline_rounded,
             obscureText: obscurePassword,
+            keyboardType: TextInputType.visiblePassword,
             textInputAction: TextInputAction.done,
             autofillHints: const [AutofillHints.password],
+            enableSuggestions: false,
+            autocorrect: false,
+            onChanged: (_) => onFieldChanged(),
             onSubmitted: (_) {
               if (!isLoading) {
                 onSubmit();
@@ -390,6 +577,10 @@ class CustomTextField extends StatelessWidget {
     this.suffix,
     this.onSubmitted,
     this.autofillHints,
+    this.inputFormatters,
+    this.enableSuggestions = true,
+    this.autocorrect = true,
+    this.onChanged,
   });
 
   final TextEditingController controller;
@@ -403,6 +594,10 @@ class CustomTextField extends StatelessWidget {
   final Widget? suffix;
   final ValueChanged<String>? onSubmitted;
   final Iterable<String>? autofillHints;
+  final List<TextInputFormatter>? inputFormatters;
+  final bool enableSuggestions;
+  final bool autocorrect;
+  final ValueChanged<String>? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -414,8 +609,12 @@ class CustomTextField extends StatelessWidget {
         keyboardType: keyboardType,
         textInputAction: textInputAction,
         obscureText: obscureText,
+        onChanged: onChanged,
         onSubmitted: onSubmitted,
         autofillHints: autofillHints,
+        inputFormatters: inputFormatters,
+        enableSuggestions: enableSuggestions,
+        autocorrect: autocorrect,
         cursorColor: _LoginColors.primary,
         style: GoogleFonts.inter(
           fontSize: 14,
@@ -462,6 +661,137 @@ class CustomTextField extends StatelessWidget {
     borderRadius: BorderRadius.circular(12),
     borderSide: const BorderSide(color: _LoginColors.border),
   );
+}
+
+class _CredentialModeSwitcher extends StatelessWidget {
+  const _CredentialModeSwitcher({
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final _CredentialMode value;
+  final bool enabled;
+  final ValueChanged<_CredentialMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F6FB),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _CredentialModeChip(
+              label: 'Email yoki login',
+              icon: Icons.alternate_email_rounded,
+              isSelected: value == _CredentialMode.emailOrLogin,
+              enabled: enabled,
+              onTap: () => onChanged(_CredentialMode.emailOrLogin),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _CredentialModeChip(
+              label: 'Telefon',
+              icon: Icons.phone_rounded,
+              isSelected: value == _CredentialMode.phone,
+              enabled: enabled,
+              onTap: () => onChanged(_CredentialMode.phone),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CredentialModeChip extends StatelessWidget {
+  const _CredentialModeChip({
+    required this.label,
+    required this.icon,
+    required this.isSelected,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool isSelected;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: enabled ? onTap : null,
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? _LoginColors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: isSelected
+              ? const [
+                  BoxShadow(
+                    color: Color(0x120F172A),
+                    blurRadius: 12,
+                    offset: Offset(0, 4),
+                  ),
+                ]
+              : const [],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected ? _LoginColors.primary : _LoginColors.textMuted,
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: isSelected
+                      ? _LoginColors.textDark
+                      : _LoginColors.textMuted,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: GoogleFonts.inter(
+        fontSize: 13,
+        fontWeight: FontWeight.w700,
+        color: _LoginColors.textDark,
+      ),
+    );
+  }
 }
 
 class _LoginPrefix extends StatelessWidget {
@@ -667,20 +997,36 @@ class _ErrorMessage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF1F2),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFFECACA)),
       ),
-      child: Text(
-        message,
-        style: GoogleFonts.inter(
-          fontSize: 12.5,
-          height: 1.25,
-          fontWeight: FontWeight.w600,
-          color: const Color(0xFFB91C1C),
-        ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 1),
+            child: Icon(
+              Icons.error_outline_rounded,
+              size: 16,
+              color: Color(0xFFB91C1C),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: GoogleFonts.inter(
+                fontSize: 12.5,
+                height: 1.25,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFFB91C1C),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

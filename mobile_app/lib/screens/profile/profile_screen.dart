@@ -376,11 +376,34 @@ class ProfileHeader extends StatelessWidget {
     return Row(
       children: <Widget>[
         Expanded(
-          child: Text(
-            'Profil',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: ProfileTextStyles.title.copyWith(fontSize: 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF4FF),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  'Ota-ona paneli',
+                  style: ProfileTextStyles.label.copyWith(
+                    color: ProfileColors.primaryBlue,
+                    fontSize: 11.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Profil',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: ProfileTextStyles.title.copyWith(fontSize: 28),
+              ),
+            ],
           ),
         ),
         const SizedBox(width: 8),
@@ -474,7 +497,7 @@ class ParentInfoCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Ota-ona',
+                      'Ota-ona paneli',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: ProfileTextStyles.body.copyWith(

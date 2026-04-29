@@ -11,7 +11,9 @@ import 'package:chaqmoq_mobile/providers/students_provider.dart';
 import 'package:chaqmoq_mobile/providers/teachers_provider.dart';
 import 'package:chaqmoq_mobile/repositories/auth_repository.dart';
 import 'package:chaqmoq_mobile/screens/auth/login_screen.dart';
+import 'package:chaqmoq_mobile/screens/shell/app_shell.dart';
 import 'package:chaqmoq_mobile/screens/parent/parent_app_shell.dart';
+import 'package:chaqmoq_mobile/screens/student/student_app_shell.dart';
 import 'package:chaqmoq_mobile/services/api_client.dart';
 import 'package:chaqmoq_mobile/services/api_services.dart';
 import 'package:chaqmoq_mobile/services/login_service.dart';
@@ -127,11 +129,17 @@ class ChaqmoqApp extends StatelessWidget {
               ParentDashboardProvider(service: parentDashboardService),
         ),
       ],
-      child: MaterialApp(
-        title: 'ChaqmoqApp Mobile',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.darkTheme,
-        home: const AuthGate(),
+      child: Consumer<AppPreferencesProvider>(
+        builder: (context, preferences, _) {
+          return MaterialApp(
+            title: 'ChaqmoqApp Mobile',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.darkTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: preferences.themeMode,
+            home: const AuthGate(),
+          );
+        },
       ),
     );
   }
@@ -164,6 +172,17 @@ class _AuthGateState extends State<AuthGate> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
-    return auth.isAuthenticated ? const ParentAppShell() : const LoginScreen();
+    if (!auth.isAuthenticated) {
+      return const LoginScreen();
+    }
+
+    final role = auth.user?.role.trim().toLowerCase();
+    if (role == 'parent') {
+      return const ParentAppShell();
+    }
+    if (role == 'student') {
+      return const StudentAppShell();
+    }
+    return const AppShell();
   }
 }

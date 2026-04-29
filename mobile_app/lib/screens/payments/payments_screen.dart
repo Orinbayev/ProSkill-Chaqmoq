@@ -174,6 +174,24 @@ class PaymentsHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: PaymentColors.primaryBlueSoft,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  'Ota-ona paneli',
+                  style: PaymentTextStyles.label.copyWith(
+                    fontSize: 11.5,
+                    color: PaymentColors.primaryBlue,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
@@ -210,112 +228,83 @@ class PaymentSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 330;
-        const illustrationWidth = 94.0;
-
-        return SizedBox(
-          height: compact ? 140 : 154,
-          child: Row(
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF173B78), Color(0xFF2752A4), Color(0xFF2B4C88)],
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x24173B78),
+            blurRadius: 28,
+            offset: Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              'Jami to‘lovlar',
+              style: PaymentTextStyles.label.copyWith(
+                color: Colors.white,
+                fontSize: 11.5,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            _uzs(summary.payableTotal),
+            style: PaymentTextStyles.title.copyWith(
+              color: Colors.white,
+              fontSize: 28,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Farzandingiz uchun rejalashtirilgan va amalga oshirilgan to‘lovlar balansi.',
+            style: PaymentTextStyles.body.copyWith(
+              color: Colors.white.withValues(alpha: 0.82),
+              fontSize: 13.5,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Container(height: 1, color: Colors.white.withValues(alpha: 0.16)),
+          const SizedBox(height: 18),
+          Row(
             children: [
               Expanded(
-                flex: 7,
-                child: Container(
-                  height: double.infinity,
-                  padding: EdgeInsets.fromLTRB(
-                    compact ? 15 : 18,
-                    compact ? 15 : 18,
-                    compact ? 15 : 18,
-                    compact ? 14 : 16,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [PaymentColors.primaryBlue, Color(0xFF0057FF)],
-                    ),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x331E73F8),
-                        blurRadius: 24,
-                        offset: Offset(0, 12),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Jami to‘lovlar',
-                        style: PaymentTextStyles.body.copyWith(
-                          color: Colors.white,
-                          fontSize: compact ? 12.5 : 14,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          _uzs(summary.payableTotal),
-                          maxLines: 1,
-                          style: PaymentTextStyles.title.copyWith(
-                            color: Colors.white,
-                            fontSize: compact ? 21 : 25,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Container(
-                        height: 1,
-                        color: Colors.white.withValues(alpha: 0.34),
-                      ),
-                      const Spacer(),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _SummaryAmount(
-                              title: 'To‘langan',
-                              amount: _uzs(summary.paidTotal),
-                              amountColor: PaymentColors.green,
-                              compact: compact,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _SummaryAmount(
-                              title: 'Qarzdorlik (qolgan)',
-                              amount: _uzs(summary.debtAmount),
-                              amountColor: PaymentColors.red,
-                              compact: compact,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                child: _SummaryAmount(
+                  title: 'To‘langan',
+                  amount: _uzs(summary.paidTotal),
+                  amountColor: PaymentColors.paidOnHero,
+                  compact: false,
                 ),
               ),
-              if (!compact) ...[
-                const SizedBox(width: 0),
-                Container(
-                  width: illustrationWidth,
-                  height: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF4F7FB),
-                    borderRadius: BorderRadius.horizontal(
-                      right: Radius.circular(20),
-                    ),
-                  ),
-                  child: const _FinanceIllustration(),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _SummaryAmount(
+                  title: 'Qarzdorlik',
+                  amount: _uzs(summary.debtAmount),
+                  amountColor: PaymentColors.debtOnHero,
+                  compact: false,
                 ),
-              ],
+              ),
             ],
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }
@@ -493,16 +482,9 @@ class PaymentHistoryCard extends StatelessWidget {
             ),
           ),
           if (rows.isEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-              child: Text(
-                'To‘lov tarixi topilmadi',
-                textAlign: TextAlign.center,
-                style: PaymentTextStyles.body.copyWith(
-                  color: PaymentColors.secondaryText,
-                  fontSize: 13.5,
-                ),
-              ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 4, 16, 20),
+              child: _PaymentHistoryEmptyState(),
             )
           else
             for (int index = 0; index < rows.length; index++)
@@ -653,26 +635,32 @@ class PayButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 48,
-      child: TextButton(
-        onPressed: () {},
-        style: TextButton.styleFrom(
-          backgroundColor: const Color(0xFFEAF4FF),
-          foregroundColor: PaymentColors.primaryBlue,
+      height: 54,
+      child: FilledButton.icon(
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Online to‘lov moduli markaz tomonidan ulanmaguncha mavjud tarix va qarzdorlik holatini ko‘rishingiz mumkin.',
+              ),
+            ),
+          );
+        },
+        style: FilledButton.styleFrom(
+          backgroundColor: PaymentColors.primaryBlue,
+          foregroundColor: Colors.white,
+          elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(16),
           ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.credit_card_rounded, size: 22),
-            const SizedBox(width: 10),
-            Text(
-              'To‘lov qilish',
-              style: PaymentTextStyles.link.copyWith(fontSize: 15),
-            ),
-          ],
+        icon: const Icon(Icons.credit_card_rounded, size: 22),
+        label: Text(
+          'To‘lov qilish',
+          style: PaymentTextStyles.link.copyWith(
+            fontSize: 15,
+            color: Colors.white,
+          ),
         ),
       ),
     );
@@ -784,8 +772,8 @@ class _SummaryAmount extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: PaymentTextStyles.body.copyWith(
-            color: Colors.white,
-            fontSize: compact ? 12 : 14,
+            color: Colors.white.withValues(alpha: 0.76),
+            fontSize: compact ? 12 : 13.5,
           ),
         ),
         const SizedBox(height: 6),
@@ -797,7 +785,7 @@ class _SummaryAmount extends StatelessWidget {
             maxLines: 1,
             style: PaymentTextStyles.title.copyWith(
               color: amountColor,
-              fontSize: compact ? 15.5 : 17.5,
+              fontSize: compact ? 15.5 : 17,
             ),
           ),
         ),
@@ -916,7 +904,14 @@ class _ReminderButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextButton.icon(
-      onPressed: onTap,
+      onPressed: () {
+        onTap();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('To‘lov eslatmasi funksiyasi tez orada ulanadi.'),
+          ),
+        );
+      },
       style: TextButton.styleFrom(
         backgroundColor: const Color(0xFFEAF4FF),
         foregroundColor: PaymentColors.primaryBlue,
@@ -940,9 +935,9 @@ class _HistoryFilterButton extends StatelessWidget {
     return TextButton(
       onPressed: () {},
       style: TextButton.styleFrom(
-        backgroundColor: const Color(0xFFF7F9FC),
+        backgroundColor: const Color(0xFFF4F6FA),
         foregroundColor: PaymentColors.secondaryText,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
       child: Row(
@@ -954,11 +949,60 @@ class _HistoryFilterButton extends StatelessWidget {
             'Filtr',
             style: PaymentTextStyles.body.copyWith(
               color: PaymentColors.text,
-              fontSize: 13.5,
+              fontSize: 13,
             ),
           ),
           const SizedBox(width: 3),
           const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaymentHistoryEmptyState extends StatelessWidget {
+  const _PaymentHistoryEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+      decoration: BoxDecoration(
+        color: PaymentColors.emptySurface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: PaymentColors.border),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Icon(
+              Icons.receipt_long_rounded,
+              color: PaymentColors.primaryBlue,
+              size: 28,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'To‘lov tarixi topilmadi',
+            textAlign: TextAlign.center,
+            style: PaymentTextStyles.title.copyWith(fontSize: 17),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Bu farzand uchun hali yozilgan to‘lovlar mavjud emas. Yangi to‘lov kiritilgach, tarix shu yerda ko‘rinadi.',
+            textAlign: TextAlign.center,
+            style: PaymentTextStyles.body.copyWith(
+              color: PaymentColors.secondaryText,
+              fontSize: 13.5,
+            ),
+          ),
         ],
       ),
     );
@@ -1002,106 +1046,6 @@ class _PaymentStatusIcon extends StatelessWidget {
       child: Icon(status.icon, color: status.iconColor, size: size * 0.48),
     );
   }
-}
-
-class _FinanceIllustration extends StatelessWidget {
-  const _FinanceIllustration();
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _FinanceIllustrationPainter(),
-      child: const SizedBox.expand(),
-    );
-  }
-}
-
-class _FinanceIllustrationPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final receiptPaint = Paint()..color = const Color(0xFFDDE8FF);
-    final linePaint = Paint()
-      ..color = const Color(0xFF9DB5F4)
-      ..strokeWidth = 4
-      ..strokeCap = StrokeCap.round;
-    final coinPaint = Paint()..color = const Color(0xFFFFC638);
-    final coinStroke = Paint()
-      ..color = const Color(0xFFF59E0B)
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke;
-    final shieldPaint = Paint()..color = PaymentColors.green;
-
-    final w = size.width;
-    final h = size.height;
-
-    final receipt = RRect.fromRectAndRadius(
-      Rect.fromLTWH(w * 0.22, h * 0.18, w * 0.46, h * 0.55),
-      const Radius.circular(12),
-    );
-    canvas.drawRRect(receipt, receiptPaint);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(w * 0.57, h * 0.18, w * 0.18, h * 0.18),
-        const Radius.circular(12),
-      ),
-      Paint()..color = const Color(0xFFBBD0FF),
-    );
-
-    for (final entry in [
-      [0.27, 0.28, 0.22],
-      [0.27, 0.40, 0.34],
-      [0.27, 0.52, 0.26],
-      [0.27, 0.64, 0.34],
-      [0.43, 0.72, 0.16],
-    ]) {
-      final x = w * entry[0];
-      final y = h * entry[1];
-      final length = w * entry[2];
-      canvas.drawLine(Offset(x, y), Offset(x + length, y), linePaint);
-    }
-
-    final shield = Path()
-      ..moveTo(w * 0.23, h * 0.60)
-      ..lineTo(w * 0.40, h * 0.52)
-      ..lineTo(w * 0.57, h * 0.60)
-      ..quadraticBezierTo(w * 0.55, h * 0.82, w * 0.40, h * 0.90)
-      ..quadraticBezierTo(w * 0.25, h * 0.82, w * 0.23, h * 0.60)
-      ..close();
-    canvas.drawPath(shield, shieldPaint);
-    canvas.drawPath(
-      shield,
-      Paint()
-        ..color = Colors.white.withValues(alpha: 0.24)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3,
-    );
-    final checkPaint = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 4
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-    canvas.drawPath(
-      Path()
-        ..moveTo(w * 0.34, h * 0.70)
-        ..lineTo(w * 0.39, h * 0.75)
-        ..lineTo(w * 0.49, h * 0.64),
-      checkPaint,
-    );
-
-    final coins = [
-      Rect.fromLTWH(w * 0.66, h * 0.62, w * 0.28, h * 0.15),
-      Rect.fromLTWH(w * 0.57, h * 0.74, w * 0.32, h * 0.17),
-      Rect.fromLTWH(w * 0.78, h * 0.76, w * 0.25, h * 0.14),
-      Rect.fromLTWH(w * 0.72, h * 0.54, w * 0.27, h * 0.12),
-    ];
-    for (final coin in coins) {
-      canvas.drawOval(coin, coinPaint);
-      canvas.drawOval(coin.deflate(4), coinStroke);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _PaymentStateCard extends StatelessWidget {
@@ -1284,16 +1228,16 @@ extension PaymentStatusStyle on PaymentStatus {
   Color get pillText {
     return switch (this) {
       PaymentStatus.paid => const Color(0xFF047857),
-      PaymentStatus.pending => PaymentColors.orange,
-      PaymentStatus.unpaid => const Color(0xFFDC2626),
+      PaymentStatus.pending => const Color(0xFF9A6B17),
+      PaymentStatus.unpaid => const Color(0xFFB85766),
     };
   }
 
   Color get amountColor {
     return switch (this) {
       PaymentStatus.paid => PaymentColors.green,
-      PaymentStatus.pending => PaymentColors.text,
-      PaymentStatus.unpaid => PaymentColors.text,
+      PaymentStatus.pending => PaymentColors.orange,
+      PaymentStatus.unpaid => PaymentColors.red,
     };
   }
 }
@@ -1303,12 +1247,16 @@ class PaymentColors {
 
   static const Color background = Color(0xFFF7FBFF);
   static const Color primaryBlue = Color(0xFF1E73F8);
-  static const Color green = Color(0xFF10B981);
-  static const Color red = Color(0xFFEF4444);
-  static const Color orange = Color(0xFFF59E0B);
+  static const Color primaryBlueSoft = Color(0xFFEAF2FF);
+  static const Color green = Color(0xFF1F9D73);
+  static const Color red = Color(0xFFD97782);
+  static const Color orange = Color(0xFFC28B34);
   static const Color text = Color(0xFF111827);
   static const Color secondaryText = Color(0xFF6B7280);
   static const Color border = Color(0xFFE5EAF2);
+  static const Color emptySurface = Color(0xFFF6F8FC);
+  static const Color paidOnHero = Color(0xFFA7F3D0);
+  static const Color debtOnHero = Color(0xFFFECACA);
 }
 
 class PaymentTextStyles {

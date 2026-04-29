@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:chaqmoq_mobile/core/config/app_config.dart';
 import 'package:chaqmoq_mobile/services/storage_service.dart';
@@ -39,7 +41,9 @@ class ApiClient {
           if (_slug?.isNotEmpty == true) {
             options.headers['X-Center-Slug'] = _slug;
           }
-          _debugLog('--> ${options.method} ${options.uri}');
+          _debugLog(
+            '--> ${options.method} ${options.uri} ${_safeDebugBody(options.data)}',
+          );
           handler.next(options);
         },
         onResponse: (response, handler) {
@@ -110,36 +114,82 @@ class ApiClient {
 
   ApiException _mapError(DioException error) {
     final data = error.response?.data;
+    final parsedMessage = _extractErrorMessage(data);
+    final parsedCode = _extractErrorCode(data);
+
     if (data is Map) {
       final payload = data.map((key, value) => MapEntry(key.toString(), value));
-      final message =
-          payload['message']?.toString() ??
-          payload['error']?.toString() ??
-          payload['detail']?.toString() ??
-          payload['non_field_errors']?.toString();
+      final message = parsedMessage;
       if (message != null && message.isNotEmpty) {
         return ApiException(
           message,
           statusCode: error.response?.statusCode,
-          code: payload['code']?.toString(),
+          code: parsedCode ?? payload['code']?.toString(),
         );
       }
     }
 
-    if (error.type == DioExceptionType.connectionError ||
-        error.type == DioExceptionType.connectionTimeout ||
+    if (error.type == DioExceptionType.connectionError) {
+      final isOffline = _looksLikeOffline(error.error);
+      return ApiException(
+        isOffline
+            ? 'Internet aloqasini tekshiring'
+            : 'Serverga ulanib bo‘lmadi',
+        statusCode: error.response?.statusCode,
+        code: isOffline ? 'network_offline' : 'network',
+      );
+    }
+
+    if (error.type == DioExceptionType.connectionTimeout ||
         error.type == DioExceptionType.receiveTimeout ||
         error.type == DioExceptionType.sendTimeout) {
       return ApiException(
-        'Serverga ulanib bo‘lmadi',
+        'Server javobi kutilganidan uzoq davom etdi',
         statusCode: error.response?.statusCode,
-        code: 'network',
+        code: 'timeout',
+      );
+    }
+
+    final statusCode = error.response?.statusCode;
+    if (statusCode == 401) {
+      return ApiException(
+        'Sessiya yakunlandi. Qayta tizimga kiring.',
+        statusCode: statusCode,
+        code: 'unauthorized',
+      );
+    }
+    if (statusCode == 403) {
+      return ApiException(
+        'Bu amal uchun ruxsat yetarli emas',
+        statusCode: statusCode,
+        code: 'forbidden',
+      );
+    }
+    if (statusCode == 404) {
+      return ApiException(
+        'So‘ralgan ma’lumot topilmadi',
+        statusCode: statusCode,
+        code: 'not_found',
+      );
+    }
+    if (statusCode == 429) {
+      return ApiException(
+        'Juda ko‘p so‘rov yuborildi. Birozdan keyin qayta urinib ko‘ring.',
+        statusCode: statusCode,
+        code: 'rate_limited',
+      );
+    }
+    if (statusCode != null && statusCode >= 500) {
+      return ApiException(
+        'Server hozircha javob bermayapti',
+        statusCode: statusCode,
+        code: 'server_unavailable',
       );
     }
 
     return ApiException(
       error.message ?? 'So\'rov bajarilmadi',
-      statusCode: error.response?.statusCode,
+      statusCode: statusCode,
     );
   }
 
@@ -185,10 +235,22 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? queryParameters,
   }) async {
-    final response = await _sendWithRetry(
-      () => _dio.get<dynamic>(path, queryParameters: queryParameters),
-    );
-    return _mapBody(response);
+    final cacheKey = _cacheKeyForGet(path, queryParameters);
+    try {
+      final response = await _sendWithRetry(
+        () => _dio.get<dynamic>(path, queryParameters: queryParameters),
+      );
+      final payload = _mapBody(response);
+      await _storageService.saveApiCache(cacheKey, payload);
+      return payload;
+    } on ApiException catch (error) {
+      final cached = await _storageService.readApiCache(cacheKey);
+      if (cached != null && _shouldUseCachedResponse(error)) {
+        _debugLog('<-- CACHE ${_buildCacheFingerprint(path, queryParameters)}');
+        return cached;
+      }
+      rethrow;
+    }
   }
 
   Future<Map<String, dynamic>> post(
@@ -217,7 +279,121 @@ class ApiClient {
     if (!kDebugMode) {
       return;
     }
-    debugPrint('[Chaqmoq API] baseUrl=${AppConfig.baseUrl} $message');
+    debugPrint(
+      '[Chaqmoq API] env=${AppConfig.environmentName} baseUrl=${AppConfig.baseUrl} $message',
+    );
+  }
+
+  String _cacheKeyForGet(String path, Map<String, dynamic>? queryParameters) {
+    final fingerprint = _buildCacheFingerprint(path, queryParameters);
+    return 'chaqmoq_api_cache_${base64Url.encode(utf8.encode(fingerprint))}';
+  }
+
+  String _buildCacheFingerprint(
+    String path,
+    Map<String, dynamic>? queryParameters,
+  ) {
+    if (queryParameters == null || queryParameters.isEmpty) {
+      return '${AppConfig.baseUrl}|$path';
+    }
+
+    final sortedEntries = queryParameters.entries.toList()
+      ..sort((left, right) => left.key.compareTo(right.key));
+    final normalizedQuery = sortedEntries
+        .map((entry) {
+          return '${entry.key}=${entry.value}';
+        })
+        .join('&');
+    return '${AppConfig.baseUrl}|$path?$normalizedQuery';
+  }
+
+  bool _shouldUseCachedResponse(ApiException error) {
+    final statusCode = error.statusCode ?? 0;
+    return error.code == 'network' ||
+        error.code == 'network_offline' ||
+        error.code == 'timeout' ||
+        error.code == 'server_unavailable' ||
+        error.code == 'rate_limited' ||
+        statusCode >= 500;
+  }
+
+  String? _extractErrorMessage(Object? data) {
+    if (data is Map) {
+      final payload = data.map((key, value) => MapEntry(key.toString(), value));
+      for (final key in const [
+        'message',
+        'error',
+        'detail',
+        'non_field_errors',
+      ]) {
+        final message = _stringifyErrorValue(payload[key]);
+        if (message != null && message.isNotEmpty) {
+          return message;
+        }
+      }
+
+      for (final entry in payload.entries) {
+        final message = _stringifyErrorValue(entry.value);
+        if (message != null && message.isNotEmpty) {
+          return message;
+        }
+      }
+    }
+
+    return _stringifyErrorValue(data);
+  }
+
+  String? _extractErrorCode(Object? data) {
+    if (data is! Map) {
+      return null;
+    }
+    final payload = data.map((key, value) => MapEntry(key.toString(), value));
+    return payload['code']?.toString();
+  }
+
+  String? _stringifyErrorValue(Object? value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is String) {
+      return value.trim();
+    }
+    if (value is List) {
+      for (final item in value) {
+        final normalized = _stringifyErrorValue(item);
+        if (normalized != null && normalized.isNotEmpty) {
+          return normalized;
+        }
+      }
+      return null;
+    }
+    if (value is Map) {
+      for (final nested in value.values) {
+        final normalized = _stringifyErrorValue(nested);
+        if (normalized != null && normalized.isNotEmpty) {
+          return normalized;
+        }
+      }
+      return null;
+    }
+    return value.toString().trim();
+  }
+
+  bool _looksLikeOffline(Object? error) {
+    if (error is SocketException) {
+      final message = [
+        error.message,
+        error.osError?.message,
+      ].whereType<String>().join(' ').toLowerCase();
+      return message.contains('network is unreachable') ||
+          message.contains('no route to host') ||
+          message.contains('temporarily unavailable') ||
+          message.contains('host lookup') ||
+          message.contains('failed host lookup') ||
+          message.contains('not known') ||
+          message.contains('nodename nor servname');
+    }
+    return false;
   }
 
   Object? _safeDebugBody(Object? data) {

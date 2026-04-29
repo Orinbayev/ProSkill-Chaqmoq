@@ -2,6 +2,7 @@ import 'package:chaqmoq_mobile/core/theme/app_colors.dart';
 import 'package:chaqmoq_mobile/core/theme/app_spacing.dart';
 import 'package:chaqmoq_mobile/core/theme/app_text_styles.dart';
 import 'package:chaqmoq_mobile/core/utils/formatters.dart';
+import 'package:chaqmoq_mobile/core/utils/role_panel_style.dart';
 import 'package:chaqmoq_mobile/core/utils/role_utils.dart';
 import 'package:chaqmoq_mobile/models/app_models.dart';
 import 'package:chaqmoq_mobile/providers/auth_provider.dart';
@@ -44,6 +45,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (user == null) {
       return const SizedBox.shrink();
     }
+    final panel = RolePanelStyles.of(user.role);
 
     return RefreshIndicator(
       onRefresh: () => dashboard.refresh(user),
@@ -52,11 +54,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           GlassCard(
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: AppSpacing.xs,
+                        ),
+                        decoration: BoxDecoration(
+                          color: panel.accent.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                        ),
+                        child: Text(
+                          panel.panelLabel,
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: panel.accent,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
                       Text(
                         'Xush kelibsiz, ${Formatters.firstName(user.fullName)}!',
                         style: AppTextStyles.headline,
@@ -66,6 +86,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         user.center?.name ?? 'Markaz ma\'lumoti mavjud emas',
                         style: AppTextStyles.subtitle,
                       ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(panel.subtitle, style: AppTextStyles.subtitle),
                     ],
                   ),
                 ),
@@ -179,7 +201,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
-              Text('Reyting badge: #${data.studentRank}', style: AppTextStyles.subtitle),
+              Text(
+                'Reyting badge: #${data.studentRank}',
+                style: AppTextStyles.subtitle,
+              ),
             ],
           ),
         ),
@@ -202,7 +227,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Row(
                   children: [
                     CircleAvatar(
-                      backgroundColor: AppColors.primary.withValues(alpha: 0.24),
+                      backgroundColor: AppColors.primary.withValues(
+                        alpha: 0.24,
+                      ),
                       child: Text(
                         Formatters.initials(child.fullName),
                         style: AppTextStyles.label,
@@ -213,7 +240,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(child.fullName, style: AppTextStyles.title.copyWith(fontSize: 16)),
+                          Text(
+                            child.fullName,
+                            style: AppTextStyles.title.copyWith(fontSize: 16),
+                          ),
                           const SizedBox(height: AppSpacing.xs),
                           Text(
                             '${child.groupName.isEmpty ? 'Guruh yo\'q' : child.groupName} • Davomat ${Formatters.percent(child.attendanceRate)}',
@@ -236,15 +266,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
       subtitle: 'So\'nggi 7 oy dinamikasi',
       child: data.revenueTrend.isEmpty
           ? Center(
-              child: Text('Trend ma\'lumoti topilmadi', style: AppTextStyles.subtitle),
+              child: Text(
+                'Trend ma\'lumoti topilmadi',
+                style: AppTextStyles.subtitle,
+              ),
             )
           : LineChart(
               LineChartData(
                 gridData: const FlGridData(show: false),
                 borderData: FlBorderData(show: false),
                 titlesData: FlTitlesData(
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,

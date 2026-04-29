@@ -1,3 +1,4 @@
+import 'package:chaqmoq_mobile/core/config/app_config.dart';
 import 'package:chaqmoq_mobile/models/app_models.dart';
 import 'package:chaqmoq_mobile/services/api_client.dart';
 
@@ -516,8 +517,19 @@ class PaymentsService extends _BaseService {
     UserModel user,
   ) async {
     if (user.role == 'student') {
-      final data = await _studentPayments(user.id);
-      return data;
+      final payload = await getFirst(const [AppConfig.paymentsPath]);
+      final summaryPayload = jsonMap(payload['summary']);
+      final history = jsonMapList(
+        payload['history'],
+      ).map(PaymentModel.fromJson).toList();
+      return (
+        PaymentSummaryModel(
+          totalReceived: jsonInt(summaryPayload['paid_total']),
+          openDebt: jsonInt(summaryPayload['debt_amount']),
+          thisMonth: jsonInt(summaryPayload['paid_this_month']),
+        ),
+        history,
+      );
     }
 
     if (user.role == 'parent') {

@@ -1,9 +1,11 @@
 import 'package:chaqmoq_mobile/core/utils/formatters.dart';
 import 'package:chaqmoq_mobile/models/app_models.dart';
+import 'package:chaqmoq_mobile/providers/auth_provider.dart';
 import 'package:chaqmoq_mobile/providers/notifications_provider.dart';
 import 'package:chaqmoq_mobile/screens/groups/groups_screen.dart';
 import 'package:chaqmoq_mobile/screens/payments/payments_screen.dart';
 import 'package:chaqmoq_mobile/screens/students/students_screen.dart';
+import 'package:chaqmoq_mobile/screens/student/student_payments_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -111,19 +113,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       return;
     }
     final lower = item.type.toLowerCase();
+    final role = context.read<AuthProvider>().user?.role.trim().toLowerCase();
     if (lower.contains('payment')) {
+      final target = role == 'student'
+          ? const StudentPaymentsScreen()
+          : const PaymentsScreen();
       Navigator.of(
         context,
-      ).push(MaterialPageRoute<void>(builder: (_) => const PaymentsScreen()));
+      ).push(MaterialPageRoute<void>(builder: (_) => target));
       return;
     }
-    if (lower.contains('student')) {
+    if (lower.contains('student') && role != 'student' && role != 'parent') {
       Navigator.of(
         context,
       ).push(MaterialPageRoute<void>(builder: (_) => const StudentsScreen()));
       return;
     }
-    if (lower.contains('group')) {
+    if (lower.contains('group') && role != 'student' && role != 'parent') {
       Navigator.of(
         context,
       ).push(MaterialPageRoute<void>(builder: (_) => const GroupsScreen()));

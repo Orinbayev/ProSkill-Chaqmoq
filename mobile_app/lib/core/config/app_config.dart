@@ -1,26 +1,66 @@
 class AppConfig {
   const AppConfig._();
 
-  // Local real-phone testing:
-  // Build with:
-  // --dart-define=CHAQMOQ_BASE_URL=http://YOUR_MAC_IP:8000
-  // --dart-define=CHAQMOQ_CENTER_SLUG=test
-  // Find YOUR_MAC_IP on macOS with: ipconfig getifaddr en0
-  static const String _rawBaseUrl = String.fromEnvironment(
+  static const String _rawEnvironment = String.fromEnvironment(
+    'CHAQMOQ_ENV',
+    defaultValue: 'production',
+  );
+
+  static const String _overrideBaseUrl = String.fromEnvironment(
     'CHAQMOQ_BASE_URL',
-    defaultValue: 'http://192.168.1.153:8000',
+    defaultValue: '',
+  );
+
+  static const String _devBaseUrl = String.fromEnvironment(
+    'CHAQMOQ_DEV_BASE_URL',
+    defaultValue: '',
+  );
+
+  static const String _stagingBaseUrl = String.fromEnvironment(
+    'CHAQMOQ_STAGING_BASE_URL',
+    defaultValue: '',
+  );
+
+  static const String _productionBaseUrl = String.fromEnvironment(
+    'CHAQMOQ_PROD_BASE_URL',
+    defaultValue: 'https://chaqmoqapp.uz',
   );
 
   static const String defaultCenterSlug = String.fromEnvironment(
     'CHAQMOQ_CENTER_SLUG',
-    defaultValue: 'test',
+    defaultValue: '',
   );
 
-  static String get baseUrl {
-    if (_rawBaseUrl.endsWith('/')) {
-      return _rawBaseUrl.substring(0, _rawBaseUrl.length - 1);
+  static String get environmentName {
+    final normalized = _rawEnvironment.trim().toLowerCase();
+    switch (normalized) {
+      case 'dev':
+      case 'development':
+        return 'dev';
+      case 'staging':
+        return 'staging';
+      default:
+        return 'production';
     }
-    return _rawBaseUrl;
+  }
+
+  static String get baseUrl {
+    final resolvedBaseUrl = _overrideBaseUrl.trim().isNotEmpty
+        ? _overrideBaseUrl.trim()
+        : switch (environmentName) {
+            'dev' =>
+              _devBaseUrl.trim().isNotEmpty ? _devBaseUrl : _productionBaseUrl,
+            'staging' =>
+              _stagingBaseUrl.trim().isNotEmpty
+                  ? _stagingBaseUrl
+                  : _productionBaseUrl,
+            _ => _productionBaseUrl,
+          };
+
+    if (resolvedBaseUrl.endsWith('/')) {
+      return resolvedBaseUrl.substring(0, resolvedBaseUrl.length - 1);
+    }
+    return resolvedBaseUrl;
   }
 
   static const Duration connectTimeout = Duration(seconds: 15);

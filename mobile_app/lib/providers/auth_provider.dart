@@ -11,18 +11,27 @@ class AuthProvider extends ChangeNotifier {
   AuthSession? _session;
   ViewState _state = ViewState.idle;
   String? _errorMessage;
+  AuthErrorPresentation? _errorPresentation;
   bool _isInitializing = true;
 
   AuthSession? get session => _session;
   UserModel? get user => _session?.user;
   bool get isAuthenticated => _session != null;
+  bool get isOfflineMode => _session?.isOffline ?? false;
   ViewState get state => _state;
   bool get isInitializing => _isInitializing;
   String? get errorMessage => _errorMessage;
+  String? get inlineErrorMessage =>
+      _errorPresentation == AuthErrorPresentation.inline ? _errorMessage : null;
+  String? get bannerErrorMessage =>
+      _errorPresentation == AuthErrorPresentation.banner ? _errorMessage : null;
+  bool get hasInlineError => inlineErrorMessage != null;
+  bool get hasBannerError => bannerErrorMessage != null;
 
   Future<void> restoreSession() async {
     _isInitializing = true;
     _errorMessage = null;
+    _errorPresentation = null;
     notifyListeners();
 
     _session = await _authRepository.restoreSession();
@@ -31,18 +40,33 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> login({required String login, required String password}) async {
+  Future<bool> login({
+    String? login,
+    String? phoneNumber,
+    required String password,
+  }) async {
     _state = ViewState.loading;
     _errorMessage = null;
+    _errorPresentation = null;
     notifyListeners();
 
     try {
-      _session = await _authRepository.login(login: login, password: password);
+      _session = await _authRepository.login(
+        login: login,
+        phoneNumber: phoneNumber,
+        password: password,
+      );
       _state = ViewState.success;
       return true;
+    } on AuthException catch (error) {
+      _state = ViewState.error;
+      _errorMessage = error.message;
+      _errorPresentation = error.presentation;
+      return false;
     } catch (error) {
       _state = ViewState.error;
       _errorMessage = _mapError(error);
+      _errorPresentation = AuthErrorPresentation.banner;
       return false;
     } finally {
       notifyListeners();
@@ -62,6 +86,19 @@ class AuthProvider extends ChangeNotifier {
     _session = null;
     _state = ViewState.error;
     _errorMessage = 'Sessiya yakunlandi. Qayta tizimga kiring.';
+    _errorPresentation = AuthErrorPresentation.banner;
+    notifyListeners();
+  }
+
+  void clearError() {
+    if (_errorMessage == null && _errorPresentation == null) {
+      return;
+    }
+    _errorMessage = null;
+    _errorPresentation = null;
+    if (_state == ViewState.error) {
+      _state = ViewState.idle;
+    }
     notifyListeners();
   }
 
@@ -74,9 +111,6 @@ class AuthProvider extends ChangeNotifier {
   }
 
   String _mapError(Object error) {
-    if (error is AuthException) {
-      return error.message;
-    }
-    return 'Serverda xatolik yuz berdi';
+    return 'Kutilmagan xatolik yuz berdi';
   }
 }

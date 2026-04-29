@@ -346,6 +346,24 @@ class HeaderBar extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF4FF),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  'Ota-ona paneli',
+                  style: _ParentTextStyles.label.copyWith(
+                    color: _ParentColors.primaryBlue,
+                    fontSize: 11.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
               Text(
                 'Salom,',
                 style: _ParentTextStyles.body.copyWith(
