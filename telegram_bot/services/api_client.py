@@ -168,6 +168,27 @@ async def _bot_json_request(method: str, path: str, *, params: dict | None = Non
             return 500, {"error": str(e)}
 
 
+async def connect_parent_link_api(
+    *,
+    token: str,
+    telegram_id: str,
+    telegram_username: str | None = None,
+    first_name: str | None = None,
+    last_name: str | None = None,
+):
+    return await _bot_json_request(
+        "POST",
+        "bot-parent-connect/",
+        data={
+            "token": token,
+            "telegram_id": telegram_id,
+            "telegram_username": telegram_username or "",
+            "first_name": first_name or "",
+            "last_name": last_name or "",
+        },
+    )
+
+
 async def get_bot_dashboard_api(telegram_id: str, email: str, child_id: int | None = None, group_id: int | None = None):
     params = {"telegram_id": telegram_id, "email": email}
     if child_id:

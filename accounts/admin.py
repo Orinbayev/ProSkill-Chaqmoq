@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import Branch, BranchRequest, Center, DirectorCenterAccess, User
+from .models import Branch, BranchRequest, Center, DirectorCenterAccess, ParentTelegramLinkToken, User
 from django.contrib import admin, messages
 from django.utils import timezone
 from django.utils.html import format_html
@@ -55,6 +55,14 @@ class UserAdmin(BaseUserAdmin):
             )
 
         return fieldsets
+
+
+@admin.register(ParentTelegramLinkToken)
+class ParentTelegramLinkTokenAdmin(admin.ModelAdmin):
+    list_display = ("student", "created_by", "expires_at", "used_at", "used_by_telegram_id")
+    list_filter = ("used_at", "expires_at")
+    search_fields = ("token", "student__email", "student__ism", "student__familya", "used_by_telegram_id")
+    readonly_fields = ("token", "created_at", "used_at", "used_by", "used_by_telegram_id")
 
 
 

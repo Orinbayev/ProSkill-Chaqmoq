@@ -25,7 +25,7 @@ from django.db import transaction
 from django.db.models import Q, Sum, Count
 from django.utils import timezone
 from django.utils.timezone import localdate
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
 from accounts.models import Branch, Center, User
 from accounts.forms import TeacherForm, ParentForm
@@ -1132,6 +1132,87 @@ def restore_student(request, pk):
     return redirect("core:stat_students")
 
 
+def _student_parent_link_payload(student):
+    from accounts.services.parent_telegram_link import parent_link_status
+
+    status = parent_link_status(student)
+    linked_at = status.get("linked_at")
+    return {
+        "is_linked": status["is_linked"],
+        "telegram_id": status["telegram_id"],
+        "telegram_username": status["telegram_username"],
+        "linked_at": linked_at.isoformat() if linked_at else "",
+        "linked_at_display": timezone.localtime(linked_at).strftime("%d.%m.%Y %H:%M") if linked_at else "",
+        "parent_id": status["parent_id"],
+        "parent_name": status["parent_name"],
+    }
+
+
+def _get_student_for_parent_link(request, pk):
+    if not _staff_only(request):
+        raise PermissionDenied
+    center = _get_center(request)
+    student = get_object_or_404(U, pk=pk, role="student")
+    _assert_same_center(student, center)
+    return student
+
+
+@login_required
+@require_GET
+def student_parent_link_status(request, pk):
+    student = _get_student_for_parent_link(request, pk)
+    return JsonResponse({"ok": True, "status": _student_parent_link_payload(student)})
+
+
+@login_required
+@require_POST
+def student_parent_link_create(request, pk):
+    student = _get_student_for_parent_link(request, pk)
+    status = _student_parent_link_payload(student)
+    if status["is_linked"]:
+        return JsonResponse({"ok": True, "already_linked": True, "status": status})
+
+    from accounts.services.parent_telegram_link import create_parent_telegram_invite
+
+    invite = create_parent_telegram_invite(student=student, created_by=request.user)
+    return JsonResponse(
+        {
+            "ok": True,
+            "already_linked": False,
+            "link": invite.link,
+            "telegram_share_url": invite.telegram_share_url,
+            "expires_at": invite.expires_at.isoformat(),
+            "expires_at_display": timezone.localtime(invite.expires_at).strftime("%d.%m.%Y %H:%M"),
+            "status": status,
+        }
+    )
+
+
+@login_required
+@require_POST
+def student_parent_link_reminder(request, pk):
+    student = _get_student_for_parent_link(request, pk)
+    status = _student_parent_link_payload(student)
+    if status["is_linked"]:
+        return JsonResponse({"ok": True, "sent": False, "already_linked": True, "status": status})
+
+    from accounts.services.parent_telegram_link import create_parent_telegram_invite
+
+    invite = create_parent_telegram_invite(student=student, created_by=request.user)
+    return JsonResponse(
+        {
+            "ok": True,
+            "sent": False,
+            "message": "Parent Telegram ID topilmadi. Linkni Telegram orqali yuboring.",
+            "link": invite.link,
+            "telegram_share_url": invite.telegram_share_url,
+            "expires_at": invite.expires_at.isoformat(),
+            "expires_at_display": timezone.localtime(invite.expires_at).strftime("%d.%m.%Y %H:%M"),
+            "status": status,
+        }
+    )
+
+
 @login_required
 @require_POST
 def hard_delete_student(request, pk):
@@ -1343,6 +1424,11 @@ def user_view(request, pk):
         total_points=Coalesce(Sum('ball'), 0)
     ).filter(total_points__gt=balance).count() + 1
 
+    parent_link_status = None
+    can_manage_parent_link = bool(user.role == "student" and _staff_only(request))
+    if user.role == "student":
+        parent_link_status = _student_parent_link_payload(user)
+
     context = {
         "u": user,
         "balance": balance,
@@ -1357,6 +1443,8 @@ def user_view(request, pk):
         "selected_year": selected_year,
         "available_months": available_months,
         "available_years": available_years,
+        "parent_link_status": parent_link_status,
+        "can_manage_parent_link": can_manage_parent_link,
     }
 
     return render(request, "core/user_view.html", context)

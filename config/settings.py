@@ -301,6 +301,7 @@ CLICK_COMPLETE_URL = "/click/complete/"
 
 # Telegram bot for payment notifications (official Telegram API via aiogram)
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", os.getenv("BOT_TOKEN", ""))
+TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "YOUR_BOT").lstrip("@")
 TELEGRAM_GROUP_ID = os.getenv("TELEGRAM_GROUP_ID", os.getenv("BACKUP_GROUP_ID", ""))
 TELEGRAM_BACKUP_CHAT_ID = os.getenv(
     "TELEGRAM_BACKUP_CHAT_ID",

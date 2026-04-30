@@ -476,6 +476,9 @@ class User(SoftDeleteMixin, AbstractUser):
     telegram_id = models.CharField(_("Telegram ID"), max_length=50, null=True, blank=True)
     telegram_username = models.CharField(_("Telegram Username"), max_length=100, null=True, blank=True)
     is_telegram_linked = models.BooleanField(_("Telegram Ulangan"), default=False)
+    parent_telegram_id = models.CharField(_("Parent Telegram ID"), max_length=50, null=True, blank=True, db_index=True)
+    parent_telegram_username = models.CharField(_("Parent Telegram Username"), max_length=100, null=True, blank=True)
+    parent_telegram_linked_at = models.DateTimeField(_("Parent Telegram ulangan sana"), null=True, blank=True)
     
     reset_code = models.CharField(_("Reset kod"), max_length=10, null=True, blank=True)
     reset_code_expire_at = models.DateTimeField(null=True, blank=True)
@@ -609,6 +612,46 @@ class User(SoftDeleteMixin, AbstractUser):
 
     def get_full_name(self) -> str:
         return self.full_name()
+
+
+class ParentTelegramLinkToken(models.Model):
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="parent_telegram_tokens",
+        limit_choices_to={"role": "student"},
+    )
+    token = models.CharField(max_length=96, unique=True, db_index=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_parent_telegram_tokens",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(db_index=True)
+    used_at = models.DateTimeField(null=True, blank=True)
+    used_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="used_parent_telegram_tokens",
+    )
+    used_by_telegram_id = models.CharField(max_length=50, null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Parent Telegram link token"
+        verbose_name_plural = "Parent Telegram link tokenlari"
+
+    @property
+    def is_active(self) -> bool:
+        return self.used_at is None and self.expires_at > timezone.now()
+
+    def __str__(self):
+        return f"{self.student_id}:{self.token[:8]}"
 
 class UserActivity(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="activities")

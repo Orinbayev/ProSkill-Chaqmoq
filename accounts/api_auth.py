@@ -185,6 +185,50 @@ def link_telegram_api(request):
         logger.exception("link_telegram_api failed")
         return JsonResponse({"error": "Internal server error"}, status=500)
 
+
+@csrf_exempt
+def connect_parent_by_token_api(request):
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "Method not allowed"}, status=405)
+    auth_error = _require_api_secret(request)
+    if auth_error:
+        return auth_error
+
+    try:
+        data = json.loads(request.body or "{}")
+        token = data.get("token")
+        tg_id = data.get("telegram_id")
+        tg_username = data.get("telegram_username") or ""
+        first_name = data.get("first_name") or ""
+        last_name = data.get("last_name") or ""
+
+        from accounts.services.parent_telegram_link import ParentLinkError, consume_parent_telegram_invite
+
+        try:
+            result = consume_parent_telegram_invite(
+                raw_token=token,
+                telegram_id=tg_id,
+                telegram_username=tg_username,
+                first_name=first_name,
+                last_name=last_name,
+            )
+        except ParentLinkError as exc:
+            return JsonResponse({"ok": False, "error": exc.message}, status=exc.status_code)
+
+        linked_at = result.get("linked_at")
+        return JsonResponse(
+            {
+                "ok": True,
+                "student": result["student"],
+                "parent": result["parent"],
+                "linked_at": linked_at.isoformat() if linked_at else "",
+                "linked_at_display": timezone.localtime(linked_at).strftime("%d.%m.%Y %H:%M") if linked_at else "",
+            }
+        )
+    except Exception:
+        logger.exception("connect_parent_by_token_api failed")
+        return JsonResponse({"ok": False, "error": "Internal server error"}, status=500)
+
 @csrf_exempt
 def unlink_telegram_api(request):
     """Disconnect telegram_id from a specific user or all linked users."""
@@ -695,4 +739,3 @@ def get_parent_reports_data(request):
 
     # Return data for bot
     return JsonResponse({"reports": parent_messages})
-

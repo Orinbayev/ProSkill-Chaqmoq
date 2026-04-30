@@ -6,7 +6,7 @@ from keyboards.profile_selector import get_profile_selection_keyboard
 from keyboards.contact_button import get_contact_keyboard
 from keyboards.menu import get_main_menu
 from states.link_state import LinkAccountState
-from services.api_client import get_user_status_api
+from services.api_client import connect_parent_link_api, get_user_status_api
 from services.deep_link_service import render_deep_link
 
 router = Router()
@@ -17,6 +17,42 @@ async def cmd_start(message: types.Message, state: FSMContext, command: CommandO
     start_param = (command.args or "").strip() if command else ""
     if start_param:
         await state.update_data(pending_start_param=start_param)
+
+    if start_param.startswith("parent_"):
+        token = start_param.split("parent_", 1)[1].strip()
+        status_code, response = await connect_parent_link_api(
+            token=token,
+            telegram_id=str(message.from_user.id),
+            telegram_username=message.from_user.username,
+            first_name=message.from_user.first_name,
+            last_name=message.from_user.last_name,
+        )
+        if status_code == 200 and response.get("ok"):
+            parent = response.get("parent") or {}
+            student = response.get("student") or {}
+            await state.update_data(
+                current_user_email=parent.get("email"),
+                current_user_role="parent",
+                current_user_name=parent.get("full_name") or parent.get("email"),
+                pending_start_param=None,
+            )
+            await message.answer(
+                "✅ <b>Ota-ona botga ulandi</b>\n\n"
+                f"Farzand: <b>{student.get('full_name', 'Oquvchi')}</b>\n"
+                f"Markaz: <b>{student.get('center') or '—'}</b>\n\n"
+                "Endi farzandingiz bo'yicha ma'lumotlarni bot orqali kuzatishingiz mumkin.",
+                reply_markup=get_main_menu("parent"),
+                parse_mode="HTML",
+            )
+            return
+
+        await message.answer(
+            "❌ <b>Ota-onani ulab bo'lmadi</b>\n\n"
+            f"{response.get('error') or 'Link noto'g'ri yoki muddati tugagan.'}\n\n"
+            "Iltimos, admin yuborgan yangi linkdan foydalaning.",
+            parse_mode="HTML",
+        )
+        return
     
     # Check if user is already linked
     status_code, response = await get_user_status_api(str(message.from_user.id))

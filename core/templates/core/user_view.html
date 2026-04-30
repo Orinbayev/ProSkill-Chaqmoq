@@ -40,15 +40,40 @@ O'quvchi profili -
                         </div>
                     </div>
                 </div>
-                <div class="balance-display text-center p-3 glass-light rounded-4">
-                    <div class="text-white-50 small text-uppercase ls-1 mb-1">Umumiy Chaqmoqlar</div>
-                    <div class="d-flex align-items-center justify-content-center gap-3"> <i
-                            class="fa-solid fa-bolt text-warning fs-1"></i> <span
-                            class="fs-1 fw-black text-warning counter">
-                            {{ balance }}
-                        </span> </div>
-                    <div class="mt-2 pt-2 border-top border-white-10 text-white-50 small">
-                        Markaz reytingida: <span class="text-white fw-bold">#{{ rank }}</span> - o'rin
+                <div class="profile-actions-stack d-flex flex-column flex-md-row align-items-stretch gap-3">
+                    {% if can_manage_parent_link %}
+                    <div class="parent-link-panel glass-light rounded-4 p-3">
+                        <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+                            <div>
+                                <div class="text-white-50 small text-uppercase ls-1 mb-1">Ota-ona boti</div>
+                                <span id="parentLinkStatusBadge"
+                                      class="parent-link-status {% if parent_link_status.is_linked %}is-linked{% else %}is-unlinked{% endif %}">
+                                    {% if parent_link_status.is_linked %}🟢 Ulangan{% else %}🔴 Ulanmagan{% endif %}
+                                </span>
+                            </div>
+                            <i class="fa-brands fa-telegram parent-link-icon"></i>
+                        </div>
+                        <button type="button"
+                                id="openParentLinkBtn"
+                                class="btn btn-warning w-100 rounded-pill fw-bold shadow-warning"
+                                data-create-url="{% url 'core:student_parent_link_create' u.id %}"
+                                data-status-url="{% url 'core:student_parent_link_status' u.id %}"
+                                data-reminder-url="{% url 'core:student_parent_link_reminder' u.id %}"
+                                data-csrf="{{ csrf_token }}">
+                            📲 Ota-onani ulash
+                        </button>
+                    </div>
+                    {% endif %}
+                    <div class="balance-display text-center p-3 glass-light rounded-4">
+                        <div class="text-white-50 small text-uppercase ls-1 mb-1">Umumiy Chaqmoqlar</div>
+                        <div class="d-flex align-items-center justify-content-center gap-3"> <i
+                                class="fa-solid fa-bolt text-warning fs-1"></i> <span
+                                class="fs-1 fw-black text-warning counter">
+                                {{ balance }}
+                            </span> </div>
+                        <div class="mt-2 pt-2 border-top border-white-10 text-white-50 small">
+                            Markaz reytingida: <span class="text-white fw-bold">#{{ rank }}</span> - o'rin
+                        </div>
                     </div>
                 </div>
             </div>
@@ -151,6 +176,20 @@ O'quvchi profili -
                             class="text-white-50">Farzand bog'lash kodi</span> <span class="text-white fw-bold">
                             {{ u.child_code|default:"Hali yaratilmagan" }}
                         </span> </div>
+                    {% if can_manage_parent_link %}
+                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5"> <span
+                            class="text-white-50">Parent bot holati</span> <span id="parentLinkInfoState" class="fw-bold {% if parent_link_status.is_linked %}text-success{% else %}text-danger{% endif %}">
+                            {% if parent_link_status.is_linked %}Ha{% else %}Yo'q{% endif %}
+                        </span> </div>
+                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5"> <span
+                            class="text-white-50">Parent Telegram</span> <span id="parentLinkInfoUsername" class="text-white fw-medium">
+                            {% if parent_link_status.telegram_username %}@{{ parent_link_status.telegram_username }}{% elif parent_link_status.telegram_id %}{{ parent_link_status.telegram_id }}{% else %}—{% endif %}
+                        </span> </div>
+                    <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5"> <span
+                            class="text-white-50">Ulangan sana</span> <span id="parentLinkInfoDate" class="text-white-50">
+                            {{ parent_link_status.linked_at_display|default:"—" }}
+                        </span> </div>
+                    {% endif %}
                     {% endif %}
                     <div class="info-item-row d-flex justify-content-between py-3 border-bottom border-white-5"> <span
                             class="text-white-50">Ro'yxatdan o'tgan</span> <span class="text-white-50">
