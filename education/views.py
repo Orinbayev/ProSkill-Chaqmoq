@@ -5495,6 +5495,20 @@ def student_detail(request, student_id: int):
     center = get_active_center(request)
     selected_month = parse_month_str((request.GET.get("month") or "").strip()) or month_first_day(timezone.localdate())
     can_view_student_group_financials = request.user.is_superuser or getattr(request.user, "role", None) in ("director", "manager")
+    can_manage_parent_link = can_view_student_group_financials
+
+    from accounts.services.parent_telegram_link import parent_link_status as build_parent_link_status
+
+    raw_parent_link_status = build_parent_link_status(student)
+    parent_linked_at = raw_parent_link_status.get("linked_at")
+    parent_link_status = {
+        "is_linked": raw_parent_link_status["is_linked"],
+        "telegram_id": raw_parent_link_status["telegram_id"],
+        "telegram_username": raw_parent_link_status["telegram_username"],
+        "linked_at_display": timezone.localtime(parent_linked_at).strftime("%d.%m.%Y %H:%M") if parent_linked_at else "",
+        "parent_id": raw_parent_link_status["parent_id"],
+        "parent_name": raw_parent_link_status["parent_name"],
+    }
 
     MONTH_NAMES = {
         1: "Yanvar", 2: "Fevral", 3: "Mart", 4: "Aprel", 5: "May",
@@ -5622,6 +5636,8 @@ def student_detail(request, student_id: int):
         "month_summaries": month_summaries,
         "selected_month": selected_month,
         "can_view_student_group_financials": can_view_student_group_financials,
+        "can_manage_parent_link": can_manage_parent_link,
+        "parent_link_status": parent_link_status,
         "can_transfer_student": user_can_transfer_student(request.user),
         "student_group_financials": (
             _student_group_financial_cards(

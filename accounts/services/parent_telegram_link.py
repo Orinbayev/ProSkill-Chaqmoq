@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import secrets
 from dataclasses import dataclass
 from urllib.parse import quote
 
@@ -124,8 +125,6 @@ def create_parent_telegram_invite(*, student: User, created_by: User | None = No
 
 
 def _generate_unique_token() -> str:
-    import secrets
-
     while True:
         token = secrets.token_urlsafe(32)
         if not ParentTelegramLinkToken.objects.filter(token=token).exists():
@@ -139,8 +138,6 @@ def _parent_email_for_telegram(*, telegram_id: str, center_id: int | None) -> st
     email = f"{base}@telegram.chaqmoq.local"
     if not User.all_objects.filter(email=email).exists():
         return email
-
-    import secrets
 
     while True:
         candidate = f"{base}-{secrets.token_hex(3)}@telegram.chaqmoq.local"
@@ -169,6 +166,7 @@ def _get_or_create_parent_user(
     if parent is None:
         parent = User.objects.create_user(
             email=_parent_email_for_telegram(telegram_id=telegram_id, center_id=student.center_id),
+            password=secrets.token_urlsafe(16),
             role="parent",
             center=student.center,
             ism=(first_name or "Ota-ona").strip(),

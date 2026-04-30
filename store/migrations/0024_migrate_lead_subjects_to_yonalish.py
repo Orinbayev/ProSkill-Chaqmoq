@@ -124,6 +124,7 @@ def migrate_lead_subjects(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
+    atomic = False
 
     dependencies = [
         ("store", "0023_lead_subject_and_index"),
@@ -150,12 +151,4 @@ class Migration(migrations.Migration):
             options={"ordering": ("nom",)},
         ),
         migrations.RunPython(migrate_lead_subjects, migrations.RunPython.noop),
-        migrations.RemoveIndex(
-            model_name="lead",
-            name="store_lead_center_subject_idx",
-        ),
-        migrations.RemoveField(
-            model_name="lead",
-            name="subject",
-        ),
     ]

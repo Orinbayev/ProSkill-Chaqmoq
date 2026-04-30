@@ -46,9 +46,10 @@ async def cmd_start(message: types.Message, state: FSMContext, command: CommandO
             )
             return
 
+        error_text = response.get("error") or "Link noto'g'ri yoki muddati tugagan."
         await message.answer(
             "❌ <b>Ota-onani ulab bo'lmadi</b>\n\n"
-            f"{response.get('error') or 'Link noto'g'ri yoki muddati tugagan.'}\n\n"
+            f"{error_text}\n\n"
             "Iltimos, admin yuborgan yangi linkdan foydalaning.",
             parse_mode="HTML",
         )

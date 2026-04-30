@@ -106,6 +106,41 @@
     opacity: 0.65;
   }
 
+  .cq-parent-link-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 11px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  .cq-parent-link-status.is-linked {
+    background: rgba(22, 163, 74, .12);
+    color: #166534;
+    border: 1px solid rgba(22, 163, 74, .24);
+  }
+
+  .cq-parent-link-status.is-unlinked {
+    background: rgba(239, 68, 68, .12);
+    color: #991b1b;
+    border: 1px solid rgba(239, 68, 68, .24);
+  }
+
+  .cq-parent-link-modal-note {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(22, 163, 74, .10);
+    color: #166534;
+    border: 1px solid rgba(22, 163, 74, .18);
+    font-weight: 800;
+  }
+
   /* Scrollbar */
   ::-webkit-scrollbar {
     width: 8px;
@@ -739,13 +774,51 @@
         </div>
       </div>
 
-      <div class="flex gap-3 w-full md:w-auto">
+      <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+        {% if can_manage_parent_link %}
+        <div class="flex flex-col gap-2 min-w-[230px]">
+          <span id="parentLinkStatusBadge"
+            class="cq-parent-link-status {% if parent_link_status.is_linked %}is-linked{% else %}is-unlinked{% endif %}">
+            {% if parent_link_status.is_linked %}🟢 Ulangan{% else %}🔴 Ulanmagan{% endif %}
+          </span>
+          <button type="button"
+            id="openParentLinkBtn"
+            class="h-10 px-5 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-sm font-black flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5"
+            data-create-url="{% url 'core:student_parent_link_create' student.id %}"
+            data-status-url="{% url 'core:student_parent_link_status' student.id %}"
+            data-reminder-url="{% url 'core:student_parent_link_reminder' student.id %}"
+            data-csrf="{{ csrf_token }}">
+            📲 Ota-onani ulash
+          </button>
+        </div>
+        {% endif %}
         <a href="{% url 'accounts:user_edit' student.id %}"
           class="flex-1 md:flex-none h-10 px-5 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 text-sm font-bold flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5">
           <i class="fa fa-pen"></i> Tahrirlash
         </a>
       </div>
     </div>
+
+    {% if can_manage_parent_link %}
+    <div class="cq-card p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div>
+        <div class="text-xs font-black uppercase tracking-[0.14em] text-slate-400 mb-1">Parent bot</div>
+        <div id="parentLinkInfoState" class="font-black {% if parent_link_status.is_linked %}text-emerald-600{% else %}text-red-600{% endif %}">
+          {% if parent_link_status.is_linked %}Ha{% else %}Yo'q{% endif %}
+        </div>
+      </div>
+      <div>
+        <div class="text-xs font-black uppercase tracking-[0.14em] text-slate-400 mb-1">Parent Telegram</div>
+        <div id="parentLinkInfoUsername" class="font-bold text-slate-700">
+          {% if parent_link_status.telegram_username %}@{{ parent_link_status.telegram_username }}{% elif parent_link_status.telegram_id %}{{ parent_link_status.telegram_id }}{% else %}—{% endif %}
+        </div>
+      </div>
+      <div>
+        <div class="text-xs font-black uppercase tracking-[0.14em] text-slate-400 mb-1">Ulangan sana</div>
+        <div id="parentLinkInfoDate" class="font-bold text-slate-700">{{ parent_link_status.linked_at_display|default:"—" }}</div>
+      </div>
+    </div>
+    {% endif %}
 
     {% if can_view_student_group_financials %}
     <div class="cq-finance-head">
@@ -1035,6 +1108,51 @@
 {% endblock %}
 
 {% block modals %}
+{% if can_manage_parent_link %}
+<div class="modal fade" id="parentLinkModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content overflow-hidden">
+      <div class="modal-header p-4">
+        <div>
+          <h5 class="font-black text-slate-900 text-base">Ota-onani botga ulash</h5>
+          <div id="parentLinkModalStatus" class="text-xs font-bold text-slate-500 mt-1">
+            {% if parent_link_status.is_linked %}Parent allaqachon ulangan.{% else %}Link 24 soat amal qiladi.{% endif %}
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4 space-y-4">
+        <div id="parentLinkConnectedNotice" class="cq-parent-link-modal-note" {% if not parent_link_status.is_linked %}hidden{% endif %}>
+          <i class="fa fa-circle-check"></i>
+          <span>Ota-ona botga ulangan.</span>
+        </div>
+        <div id="parentLinkGeneratorBlock" class="space-y-3" {% if parent_link_status.is_linked %}hidden{% endif %}>
+          <label for="parentTelegramLink" class="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Telegram link</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fa-brands fa-telegram text-sky-500"></i></span>
+            <input type="text" id="parentTelegramLink" class="form-control" readonly placeholder="Link yaratilmoqda...">
+            <button type="button" id="copyParentTelegramLink" class="btn btn-outline-secondary">Copy</button>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <a id="sendParentTelegramLink" class="btn btn-info text-white font-bold disabled" href="#" target="_blank" rel="noopener">
+              <i class="fa-brands fa-telegram me-1"></i> Telegramga yuborish
+            </a>
+            <button type="button" id="sendParentReminder" class="btn btn-outline-secondary font-bold">
+              <i class="fa fa-bell me-1"></i> Reminder yuborish
+            </button>
+          </div>
+          <div class="text-xs font-bold text-slate-500">
+            Expire: <span id="parentTelegramLinkExpire">—</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer p-4">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Yopish</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% if can_view_student_group_financials %}
 <div class="modal fade" id="groupFinanceModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -1135,6 +1253,150 @@
       monthInput.addEventListener("change", function () {
         monthInput.form.submit();
       });
+    }
+
+    const parentTrigger = document.getElementById("openParentLinkBtn");
+    if (parentTrigger) {
+      const parentModalEl = document.getElementById("parentLinkModal");
+      const parentModal = new bootstrap.Modal(parentModalEl);
+      const statusBadge = document.getElementById("parentLinkStatusBadge");
+      const modalStatus = document.getElementById("parentLinkModalStatus");
+      const connectedNotice = document.getElementById("parentLinkConnectedNotice");
+      const generatorBlock = document.getElementById("parentLinkGeneratorBlock");
+      const linkInput = document.getElementById("parentTelegramLink");
+      const copyBtn = document.getElementById("copyParentTelegramLink");
+      const sendBtn = document.getElementById("sendParentTelegramLink");
+      const reminderBtn = document.getElementById("sendParentReminder");
+      const expireEl = document.getElementById("parentTelegramLinkExpire");
+      const infoState = document.getElementById("parentLinkInfoState");
+      const infoUsername = document.getElementById("parentLinkInfoUsername");
+      const infoDate = document.getElementById("parentLinkInfoDate");
+      let parentPollTimer = null;
+
+      function stopParentPolling() {
+        if (parentPollTimer) {
+          window.clearInterval(parentPollTimer);
+          parentPollTimer = null;
+        }
+      }
+
+      function setParentBusy(isBusy) {
+        parentTrigger.disabled = isBusy;
+        reminderBtn.disabled = isBusy;
+        copyBtn.disabled = isBusy;
+        parentTrigger.dataset.originalText = parentTrigger.dataset.originalText || parentTrigger.innerHTML;
+        parentTrigger.innerHTML = isBusy
+          ? '<i class="fa fa-circle-notch fa-spin"></i> Kutilmoqda...'
+          : parentTrigger.dataset.originalText;
+      }
+
+      function renderParentStatus(status) {
+        const linked = Boolean(status && status.is_linked);
+        statusBadge.classList.toggle("is-linked", linked);
+        statusBadge.classList.toggle("is-unlinked", !linked);
+        statusBadge.textContent = linked ? "🟢 Ulangan" : "🔴 Ulanmagan";
+        if (infoState) {
+          infoState.className = linked ? "font-black text-emerald-600" : "font-black text-red-600";
+          infoState.textContent = linked ? "Ha" : "Yo'q";
+        }
+        if (infoUsername) {
+          const username = status && status.telegram_username ? "@" + status.telegram_username : "";
+          infoUsername.textContent = username || (status && status.telegram_id) || "—";
+        }
+        if (infoDate) {
+          infoDate.textContent = (status && status.linked_at_display) || "—";
+        }
+        connectedNotice.hidden = !linked;
+        generatorBlock.hidden = linked;
+        modalStatus.textContent = linked ? "Parent botga muvaffaqiyatli ulangan." : "Link 24 soat amal qiladi.";
+        if (linked) stopParentPolling();
+      }
+
+      async function parentJson(url, options) {
+        const response = await fetch(url, {
+          credentials: "same-origin",
+          ...options,
+          headers: {
+            "X-CSRFToken": parentTrigger.dataset.csrf,
+            ...(options && options.headers ? options.headers : {}),
+          },
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) {
+          throw new Error(data.error || data.message || "So'rov bajarilmadi");
+        }
+        return data;
+      }
+
+      function setParentInvite(data) {
+        if (!data.link) return;
+        linkInput.value = data.link;
+        sendBtn.href = data.telegram_share_url || "#";
+        sendBtn.classList.toggle("disabled", !data.telegram_share_url);
+        expireEl.textContent = data.expires_at_display || "24 soat";
+      }
+
+      async function pollParentStatus() {
+        try {
+          const data = await parentJson(parentTrigger.dataset.statusUrl, { method: "GET" });
+          renderParentStatus(data.status);
+        } catch (_err) {
+          stopParentPolling();
+        }
+      }
+
+      function startParentPolling() {
+        stopParentPolling();
+        parentPollTimer = window.setInterval(pollParentStatus, 4000);
+      }
+
+      parentTrigger.addEventListener("click", async function () {
+        setParentBusy(true);
+        modalStatus.textContent = "Link tayyorlanmoqda...";
+        try {
+          const data = await parentJson(parentTrigger.dataset.createUrl, { method: "POST" });
+          renderParentStatus(data.status);
+          setParentInvite(data);
+          parentModal.show();
+          if (!data.already_linked) startParentPolling();
+        } catch (err) {
+          modalStatus.textContent = err.message;
+          parentModal.show();
+        } finally {
+          setParentBusy(false);
+        }
+      });
+
+      copyBtn.addEventListener("click", async function () {
+        if (!linkInput.value) return;
+        try {
+          await navigator.clipboard.writeText(linkInput.value);
+        } catch (_err) {
+          linkInput.select();
+          document.execCommand("copy");
+        }
+        copyBtn.textContent = "Copied";
+        window.setTimeout(() => { copyBtn.textContent = "Copy"; }, 1600);
+      });
+
+      reminderBtn.addEventListener("click", async function () {
+        setParentBusy(true);
+        try {
+          const data = await parentJson(parentTrigger.dataset.reminderUrl, { method: "POST" });
+          renderParentStatus(data.status);
+          setParentInvite(data);
+          if (data.telegram_share_url) {
+            window.open(data.telegram_share_url, "_blank", "noopener");
+          }
+          if (!data.already_linked) startParentPolling();
+        } catch (err) {
+          modalStatus.textContent = err.message;
+        } finally {
+          setParentBusy(false);
+        }
+      });
+
+      parentModalEl.addEventListener("hidden.bs.modal", stopParentPolling);
     }
 
     const groupFinanceModal = document.getElementById("groupFinanceModal");
