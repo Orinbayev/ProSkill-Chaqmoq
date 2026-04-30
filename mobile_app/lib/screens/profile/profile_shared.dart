@@ -128,6 +128,155 @@ class ProfilePageCard extends StatelessWidget {
   }
 }
 
+class ProfileActionSheetOption<T> {
+  const ProfileActionSheetOption({
+    required this.value,
+    required this.title,
+    required this.icon,
+    this.subtitle,
+    this.destructive = false,
+  });
+
+  final T value;
+  final String title;
+  final String? subtitle;
+  final IconData icon;
+  final bool destructive;
+}
+
+Future<T?> showProfileActionSheet<T>({
+  required BuildContext context,
+  required String title,
+  required List<ProfileActionSheetOption<T>> options,
+}) {
+  return showModalBottomSheet<T>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (sheetContext) {
+      return SafeArea(
+        top: false,
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(12, 12, 12, 18),
+          padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(26),
+            boxShadow: ProfileUiDecorations.softShadow,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 5,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: ProfileUiColors.border,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              Text(
+                title,
+                style: ProfileUiTextStyles.section.copyWith(fontSize: 18),
+              ),
+              const SizedBox(height: 14),
+              for (final option in options)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(18),
+                      onTap: () => Navigator.of(sheetContext).pop(option.value),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                        decoration: BoxDecoration(
+                          color: option.destructive
+                              ? const Color(0xFFFFF3F2)
+                              : const Color(0xFFF8FAFD),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: option.destructive
+                                ? const Color(0xFFFFD6D3)
+                                : ProfileUiColors.border,
+                          ),
+                        ),
+                        child: Row(
+                          children: <Widget>[
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: option.destructive
+                                    ? const Color(0xFFFFE6E3)
+                                    : const Color(0xFFEAF4FF),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                option.icon,
+                                color: option.destructive
+                                    ? ProfileUiColors.danger
+                                    : ProfileUiColors.primary,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Text(
+                                    option.title,
+                                    style: ProfileUiTextStyles.body.copyWith(
+                                      fontSize: 14.2,
+                                      color: option.destructive
+                                          ? ProfileUiColors.danger
+                                          : ProfileUiColors.text,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  if ((option.subtitle ?? '').trim().isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Text(
+                                        option.subtitle!,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: ProfileUiTextStyles.muted.copyWith(
+                                          color: option.destructive
+                                              ? ProfileUiColors.danger
+                                              : ProfileUiColors.secondaryText,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              color: option.destructive
+                                  ? ProfileUiColors.danger
+                                  : ProfileUiColors.secondaryText,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
 ThemeData buildProfileFormTheme(BuildContext context) {
   final base = Theme.of(context);
   return base.copyWith(
@@ -154,6 +303,7 @@ InputDecoration profileInputDecoration({
     helperStyle: ProfileUiTextStyles.muted.copyWith(fontSize: 12.5),
     hintStyle: ProfileUiTextStyles.hint,
     prefixIcon: Icon(icon, color: ProfileUiColors.primary),
+    isDense: true,
     filled: true,
     fillColor: ProfileUiColors.card,
     labelStyle: ProfileUiTextStyles.label,
@@ -183,7 +333,7 @@ InputDecoration profileInputDecoration({
       borderRadius: BorderRadius.circular(16),
       borderSide: const BorderSide(color: Color(0xFFFF4D4F)),
     ),
-    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
   );
 }
 

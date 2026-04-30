@@ -448,13 +448,13 @@
 
     function renderPreview() {
       const preview = buildCandidatePreview();
-      previewNodes.pattern.textContent = preview.lesson_pattern_label || "Pattern tanlanmagan";
-      previewNodes.startDate.textContent = preview.start_date ? formatDateLabel(preview.start_date) : "Sana tanlanmagan";
-      previewNodes.lessons.textContent = preview.lesson_count + " ta";
-      previewNodes.fee.textContent = formatMoney(preview.fee_amount);
-      previewNodes.teacher.textContent = formatMoney(preview.teacher_share);
-      previewNodes.center.textContent = formatMoney(preview.center_share);
-      previewNodes.note.textContent = preview.note || "Guruh va boshlanish sanasi tanlang.";
+      if (previewNodes.pattern) previewNodes.pattern.textContent = preview.lesson_pattern_label || "Pattern tanlanmagan";
+      if (previewNodes.startDate) previewNodes.startDate.textContent = preview.start_date ? formatDateLabel(preview.start_date) : "Sana tanlanmagan";
+      if (previewNodes.lessons) previewNodes.lessons.textContent = preview.lesson_count + " ta";
+      if (previewNodes.fee) previewNodes.fee.textContent = formatMoney(preview.fee_amount);
+      if (previewNodes.teacher) previewNodes.teacher.textContent = formatMoney(preview.teacher_share);
+      if (previewNodes.center) previewNodes.center.textContent = formatMoney(preview.center_share);
+      if (previewNodes.note) previewNodes.note.textContent = preview.note || "Guruh va boshlanish sanasi tanlang.";
       if (priceNote) {
         if (preview.default_course_price > 0) {
           priceNote.textContent = preview.is_individual_price
@@ -683,41 +683,28 @@
   }
 
   function initOptionalSections(scope) {
-    function clearSection(sectionName) {
-      const section = scope.querySelector('[data-optional-section="' + sectionName + '"]');
-      if (!section) return;
+    function syncSectionToggle(sectionName, visible) {
+      const toggle = scope.querySelector('[data-section-toggle="' + sectionName + '"]');
+      if (!toggle) return;
 
-      section.querySelectorAll("input, textarea, select").forEach(function (input) {
-        if (input.tagName === "SELECT") {
-          input.selectedIndex = 0;
-          input.dispatchEvent(new Event("change", { bubbles: true }));
-          return;
-        }
-
-        if (input.type === "checkbox" || input.type === "radio") {
-          input.checked = false;
-          return;
-        }
-
-        input.value = "";
-      });
+      const openLabel = toggle.dataset.openLabel || "Ochish";
+      const closeLabel = toggle.dataset.closeLabel || openLabel;
+      toggle.classList.toggle("is-active", visible);
+      toggle.setAttribute("aria-expanded", visible ? "true" : "false");
+      toggle.textContent = visible ? closeLabel : openLabel;
     }
 
     function setSectionVisibility(sectionName, visible) {
       const section = scope.querySelector('[data-optional-section="' + sectionName + '"]');
-      const toggle = scope.querySelector('[data-section-toggle="' + sectionName + '"]');
-      if (!section || !toggle) return;
+      if (!section) return;
 
       section.hidden = !visible;
-      toggle.classList.toggle("is-active", visible);
+      syncSectionToggle(sectionName, visible);
 
       if (visible) {
         const input = section.querySelector("input, textarea, select");
         if (input) input.focus();
-        return;
       }
-
-      clearSection(sectionName);
     }
 
     scope.querySelectorAll("[data-section-toggle]").forEach(function (button) {
@@ -733,6 +720,10 @@
       button.addEventListener("click", function () {
         setSectionVisibility(button.dataset.sectionClose, false);
       });
+    });
+
+    scope.querySelectorAll("[data-optional-section]").forEach(function (section) {
+      setSectionVisibility(section.dataset.optionalSection, !section.hidden);
     });
   }
 
@@ -764,6 +755,7 @@
       isLoaded: false,
       endpoint: trigger.dataset.drawerUrl || options.endpoint || ""
     };
+    const duplicateModal = createDuplicateModal();
 
     function buildEndpoint(role) {
       const url = new URL(state.endpoint, window.location.origin);
@@ -777,11 +769,134 @@
       body.innerHTML = html;
     }
 
+    function ensureDuplicateOverrideInput(form) {
+      let input = form.querySelector("#id_duplicate_override, [name='duplicate_override']");
+      if (!input) {
+        input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "duplicate_override";
+        input.id = "id_duplicate_override";
+        form.appendChild(input);
+      }
+      return input;
+    }
+
+    function formatDuplicateStudentMeta(student) {
+      const parts = [];
+      if (student.primary_phone) {
+        parts.push(student.primary_phone);
+      }
+      if (student.birth_date) {
+        parts.push(student.birth_date);
+      }
+      if (student.is_archived) {
+        parts.push("arxivda");
+      }
+      return parts.join(" · ");
+    }
+
+    function closeDuplicateModal() {
+      duplicateModal.pendingForm = null;
+      duplicateModal.overlay.classList.remove("open");
+      duplicateModal.overlay.setAttribute("aria-hidden", "true");
+    }
+
+    function openDuplicateModal(form, payload) {
+      duplicateModal.pendingForm = form;
+      duplicateModal.title.textContent = payload.title || "Duplicate tekshiruvi";
+      duplicateModal.message.textContent = payload.message || "";
+      duplicateModal.confirm.textContent = payload.confirm_label || "Yangi o'quvchi qilib qo'shish";
+      duplicateModal.cancel.textContent = payload.cancel_label || "Bekor qilish";
+      duplicateModal.list.innerHTML = "";
+
+      const students = Array.isArray(payload.students) ? payload.students : [];
+      if (students.length) {
+        duplicateModal.listWrap.hidden = false;
+        students.forEach(function (student) {
+          const item = document.createElement("li");
+          item.className = "student-drawer-duplicate__item";
+
+          const name = document.createElement("strong");
+          name.textContent = student.name || "Mavjud o'quvchi";
+
+          const meta = document.createElement("span");
+          meta.textContent = formatDuplicateStudentMeta(student);
+
+          item.appendChild(name);
+          if (meta.textContent) {
+            item.appendChild(meta);
+          }
+          duplicateModal.list.appendChild(item);
+        });
+      } else {
+        duplicateModal.listWrap.hidden = true;
+      }
+
+      duplicateModal.overlay.classList.add("open");
+      duplicateModal.overlay.setAttribute("aria-hidden", "false");
+    }
+
+    function createDuplicateModal() {
+      const modalOverlay = document.createElement("div");
+      modalOverlay.className = "student-drawer-duplicate";
+      modalOverlay.setAttribute("aria-hidden", "true");
+      modalOverlay.innerHTML = [
+        '<div class="student-drawer-duplicate__dialog" role="dialog" aria-modal="true" aria-labelledby="studentDrawerDuplicateTitle">',
+        '  <div class="student-drawer-duplicate__eyebrow">Duplicate tekshiruvi</div>',
+        '  <h3 id="studentDrawerDuplicateTitle" class="student-drawer-duplicate__title"></h3>',
+        '  <p class="student-drawer-duplicate__message"></p>',
+        '  <div class="student-drawer-duplicate__list-wrap" hidden>',
+        '    <div class="student-drawer-duplicate__list-label">Mavjud o\'quvchilar</div>',
+        '    <ul class="student-drawer-duplicate__list"></ul>',
+        '  </div>',
+        '  <div class="student-drawer-duplicate__actions">',
+        '    <button type="button" class="student-drawer-duplicate__button student-drawer-duplicate__button--ghost" data-duplicate-cancel>Bekor qilish</button>',
+        '    <button type="button" class="student-drawer-duplicate__button student-drawer-duplicate__button--primary" data-duplicate-confirm>Yangi o\'quvchi qilib qo\'shish</button>',
+        '  </div>',
+        '</div>'
+      ].join("");
+      document.body.appendChild(modalOverlay);
+
+      const modal = {
+        overlay: modalOverlay,
+        title: modalOverlay.querySelector(".student-drawer-duplicate__title"),
+        message: modalOverlay.querySelector(".student-drawer-duplicate__message"),
+        listWrap: modalOverlay.querySelector(".student-drawer-duplicate__list-wrap"),
+        list: modalOverlay.querySelector(".student-drawer-duplicate__list"),
+        cancel: modalOverlay.querySelector("[data-duplicate-cancel]"),
+        confirm: modalOverlay.querySelector("[data-duplicate-confirm]"),
+        pendingForm: null
+      };
+
+      modalOverlay.addEventListener("click", function (event) {
+        if (event.target === modalOverlay || event.target.closest("[data-duplicate-cancel]")) {
+          closeDuplicateModal();
+        }
+      });
+
+      modal.confirm.addEventListener("click", function () {
+        if (!modal.pendingForm) {
+          closeDuplicateModal();
+          return;
+        }
+        ensureDuplicateOverrideInput(modal.pendingForm).value = "1";
+        closeDuplicateModal();
+        if (typeof modal.pendingForm.requestSubmit === "function") {
+          modal.pendingForm.requestSubmit();
+          return;
+        }
+        modal.pendingForm.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      });
+
+      return modal;
+    }
+
     function lockScroll(lock) {
       document.body.classList.toggle("student-drawer-open", lock);
     }
 
     function closeDrawer() {
+      closeDuplicateModal();
       overlay.classList.remove("open");
       panel.classList.remove("open");
       panel.setAttribute("aria-hidden", "true");
@@ -818,6 +933,11 @@
             if (typeof options.onSuccess === "function") {
               options.onSuccess(result.data);
             }
+            return;
+          }
+
+          if (result.data && result.data.duplicate_check) {
+            openDuplicateModal(form, result.data.duplicate_check);
             return;
           }
 
@@ -917,6 +1037,10 @@
     }
 
     document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && duplicateModal.overlay.classList.contains("open")) {
+        closeDuplicateModal();
+        return;
+      }
       if (event.key === "Escape" && panel.classList.contains("open")) {
         closeDrawer();
       }

@@ -27,6 +27,7 @@
   novalidate
   data-group-price-template="{% url 'education:group_price' 0 %}">
   {% csrf_token %}
+  {{ form.duplicate_override }}
 
   {% if drawer_center_value %}
   <input type="hidden" name="center" value="{{ drawer_center_value }}">
@@ -297,10 +298,6 @@
       </button>
     </div>
   </div>
-
-  {% if current_role == 'student' %}
-  {% include "accounts/partials/_student_group_assignments_block.html" %}
-  {% endif %}
 
   <div class="bq-sdrawer-card">
     <div>

@@ -85,7 +85,7 @@ from reportlab.lib import colors
 
 from accounts.models import User
 from chaqmoq.models import Ledger, Rule
-from .forms import CenterExpenseForm, GroupForm, ITGroupForm, LangGroupForm
+from .forms import CenterExpenseForm, GroupForm, ITGroupForm, LangGroupForm, StudentGroupTransferForm
 from .models import (
     Attendance,
     Category,
@@ -107,6 +107,7 @@ from .models import (
 )
 from education.services.historical_finance_service import HistoricalFinanceService
 from education.services.enrollment_service import EnrollmentService
+from education.services.student_transfer import transfer_student_to_group, user_can_transfer_student
 from education.services.lesson_planning import calculate_lessons, validate_remaining_lessons
 from accounts.models import Center
 from .permissions import user_can_manage_payments
@@ -4392,6 +4393,7 @@ def group_detail(request, pk: int):
         "internal_ranking_preview": internal_ranking_preview,
         "can_view_internal_ranking": can_view_internal_ranking,
         "closure_state": closure_state,
+        "can_transfer_student": user_can_transfer_student(request.user),
     }
     return render(request, "education/group_detail.html", ctx)
 
@@ -5620,6 +5622,7 @@ def student_detail(request, student_id: int):
         "month_summaries": month_summaries,
         "selected_month": selected_month,
         "can_view_student_group_financials": can_view_student_group_financials,
+        "can_transfer_student": user_can_transfer_student(request.user),
         "student_group_financials": (
             _student_group_financial_cards(
                 student,
@@ -5633,6 +5636,61 @@ def student_detail(request, student_id: int):
     }
 
     return render(request, "education/student_detail.html", ctx)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def transfer_student_view(request, enrollment_id: int):
+    from core.tenant import get_request_center
+
+    center = get_request_center(request)
+    enrollment_qs = Enrollment.objects.select_related("student", "group", "center").filter(is_active=True)
+    if center:
+        enrollment_qs = enrollment_qs.filter(center=center, group__center=center, student__center=center)
+    enrollment = get_object_or_404(enrollment_qs, pk=enrollment_id)
+
+    if not user_can_transfer_student(request.user):
+        messages.error(request, "Sizda o'quvchini boshqa guruhga ko'chirish huquqi yo'q.")
+        return redirect("education:group_detail", pk=enrollment.group_id)
+
+    if request.method == "POST":
+        form = StudentGroupTransferForm(request.POST, old_group=enrollment.group, center=center or enrollment.center)
+        if form.is_valid():
+            try:
+                result = transfer_student_to_group(
+                    student=enrollment.student,
+                    old_group=enrollment.group,
+                    new_group=form.cleaned_data["new_group"],
+                    transfer_date=form.cleaned_data["transfer_date"],
+                    reason=form.cleaned_data["reason"],
+                    user=request.user,
+                )
+            except (ValidationError, PermissionDenied) as exc:
+                messages.error(request, "; ".join(exc.messages) if hasattr(exc, "messages") else str(exc))
+            except Exception:
+                logger.exception("Student group transfer failed")
+                messages.error(request, "Ko'chirish vaqtida xatolik yuz berdi. Eski holat saqlandi.")
+            else:
+                messages.success(
+                    request,
+                    f"{enrollment.student.get_full_name()} yangi guruhga ko'chirildi. To'lov qayta hisoblandi.",
+                )
+                return redirect("education:group_detail", pk=result["new_enrollment"].group_id)
+        else:
+            messages.error(request, "Ma'lumotlarni tekshiring: yangi guruhni tanlang va sanani to'g'ri kiriting.")
+    else:
+        form = StudentGroupTransferForm(
+            initial={"transfer_date": timezone.localdate()},
+            old_group=enrollment.group,
+            center=center or enrollment.center,
+        )
+
+    return render(request, "education/student_transfer_form.html", {
+        "form": form,
+        "enrollment": enrollment,
+        "student": enrollment.student,
+        "old_group": enrollment.group,
+    })
 
 
 
@@ -6894,40 +6952,8 @@ def add_student_to_group(request, pk: int):
 
     # Markazni aniqlash (Guruh markazi asosiy hisoblanadi)
     target_center = g.center
-    lesson_pattern_options = _lesson_pattern_options()
-
     # AJAX Search
     if request.method == "GET" and request.headers.get("x-requested-with") == "XMLHttpRequest":
-        if request.GET.get("preview") == "1":
-            start_date = parse_date((request.GET.get("start_date") or request.GET.get("joined_at") or "").strip()) or timezone.localdate()
-            lesson_pattern = request.GET.get("lesson_pattern")
-            student_id = _parse_int_value(request.GET.get("student_id"))
-            existing_enr = None
-            if student_id:
-                existing_enr = Enrollment.objects.filter(
-                    student_id=student_id,
-                    center=target_center,
-                ).select_related("group").first()
-            course_price = (
-                int(getattr(existing_enr, "kurs_narhi", 0) or 0)
-                if existing_enr
-                else int(getattr(g, "kurs_narxi", 0) or 0)
-            )
-            preview_enrollment = _build_tuition_preview_enrollment(
-                base_enrollment=existing_enr,
-                group=g,
-                start_date=start_date,
-                lesson_pattern=lesson_pattern,
-                monthly_lessons=getattr(g, "oy_dars_soni", 0) or 12,
-                course_price=course_price,
-                teacher_percent=getattr(g, "oqituvchi_foiz", 0) or 0,
-            )
-            preview = tuition_month_preview(
-                preview_enrollment,
-                _preview_month_for_start_date(start_date),
-            )
-            return JsonResponse({"preview": _serialize_tuition_preview(preview)})
-
         query = request.GET.get("q", "").strip()
         student_qs = User.objects.filter(role="student", center=target_center)
         
@@ -7029,12 +7055,6 @@ def add_student_to_group(request, pk: int):
     # Standart GET render
     return render(request, "education/add_student_to_group.html", {
         "group": g,
-        "today": timezone.localdate(),
-        "default_lesson_pattern": resolve_lesson_schedule(timezone.localdate())["lesson_pattern"],
-        "lesson_pattern_options": lesson_pattern_options,
-        "monthly_lessons": getattr(g, "oy_dars_soni", 0) or 12,
-        "kurs_narhi": getattr(g, "kurs_narxi", 0) or 0,
-        "oqituvchi_foiz": getattr(g, "oqituvchi_foiz", 0) or 0,
     })
 
 

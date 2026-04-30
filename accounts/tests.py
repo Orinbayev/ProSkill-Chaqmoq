@@ -10,7 +10,7 @@ from django.utils import timezone
 from accounts.models import BranchRequest, Center, DirectorCenterAccess, User
 from accounts.student_limit import check_student_limit
 from billing.models import CenterSubscription, SubscriptionOrder, SubscriptionPlan
-from education.models import Enrollment, Group, StudentGroupHistory
+from education.models import Enrollment, Group, Payment, StudentGroupHistory, TuitionMonth
 
 
 @override_settings(TIME_ZONE="Asia/Tashkent", USE_TZ=True)
@@ -389,15 +389,15 @@ class TenantRedirectRegressionTests(TestCase):
                 "ism": "Vali",
                 "familya": "Student",
                 "otchestvo": "",
-                "telefon1": "",
+                "telefon1": "+998 90 111 22 33",
                 "telefon2": "",
                 "center": str(self.center.id),
                 "role": "student",
                 "email": "vali.student@test.uz",
                 "password": "strong-pass-123",
                 "oqituvchi_foizi": "",
-                "birth_date": "2010-01-01",
-                "gender": "male",
+                "birth_date": "",
+                "gender": "",
                 "passport_id": "",
                 "jshr": "",
                 "address": "",
@@ -411,14 +411,164 @@ class TenantRedirectRegressionTests(TestCase):
         self.assertEqual(response["Location"], "/redirect-center/stat/students/")
         self.assertTrue(User.objects.filter(email="vali.student@test.uz", role="student").exists())
 
-    def test_add_user_enrolls_student_into_selected_group(self):
+    def test_student_drawer_form_is_simplified_for_student_create(self):
+        response = self.client.get(
+            reverse("accounts:add_user") + "?role=student&drawer=1&next=/redirect-center/stat/students/"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Qo'shimcha ma'lumotlar")
+        self.assertContains(response, "Kirish ma'lumotlari")
+        self.assertNotContains(response, "O'quvchi guruhlari")
+        self.assertNotContains(response, "Guruhni qo'shish")
+        self.assertNotContains(response, 'name="group"')
+
+    def test_student_drawer_creates_student_without_group_and_generates_credentials(self):
+        response = self.client.post(
+            reverse("accounts:add_user") + "?role=student&drawer=1&next=/redirect-center/stat/students/",
+            {
+                "next": "/redirect-center/stat/students/",
+                "ism": "Dilshod",
+                "familya": "Bekov",
+                "otchestvo": "",
+                "telefon1": "+998 90 111 22 33",
+                "telefon2": "",
+                "center": str(self.center.id),
+                "role": "student",
+                "email": "",
+                "password": "",
+                "oqituvchi_foizi": "",
+                "birth_date": "",
+                "gender": "",
+                "passport_id": "",
+                "jshr": "",
+                "address": "",
+                "telegram_username": "",
+            },
+            follow=False,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+
+        student = User.objects.get(pk=payload["user"]["id"])
+        self.assertEqual(student.role, "student")
+        self.assertEqual(student.telefon1, "+998901112233")
+        self.assertTrue(student.email.endswith("@gmail.com"))
+        self.assertTrue(student.has_usable_password())
+        self.assertFalse(Enrollment.objects.filter(student=student).exists())
+        self.assertFalse(StudentGroupHistory.objects.filter(student=student).exists())
+        self.assertFalse(TuitionMonth.objects.filter(enrollment__student=student).exists())
+        self.assertFalse(Payment.objects.filter(student=student).exists())
+
+    def test_student_drawer_warns_for_phone_only_duplicate_and_allows_override(self):
+        User.objects.create_user(
+            email="existing.phone@student.test",
+            password="Pass12345!",
+            role="student",
+            center=self.center,
+            ism="Akmal",
+            familya="Parentov",
+            telefon1="+998901112233",
+        )
+
+        drawer_url = reverse("accounts:add_user") + "?role=student&drawer=1&next=/redirect-center/stat/students/"
+        base_payload = {
+            "next": "/redirect-center/stat/students/",
+            "ism": "Dilfuza",
+            "familya": "Sibling",
+            "otchestvo": "",
+            "telefon1": "+998 90 111 22 33",
+            "telefon2": "",
+            "center": str(self.center.id),
+            "role": "student",
+            "email": "",
+            "password": "",
+            "oqituvchi_foizi": "",
+            "birth_date": "",
+            "gender": "",
+            "passport_id": "",
+            "jshr": "",
+            "address": "",
+            "telegram_username": "",
+        }
+
+        response = self.client.post(drawer_url, base_payload, follow=False)
+
+        self.assertEqual(response.status_code, 409)
+        payload = response.json()
+        self.assertFalse(payload["ok"])
+        self.assertEqual(payload["duplicate_check"]["kind"], "phone_only")
+        self.assertIn("Bu telefon raqam bilan boshqa o'quvchi mavjud", payload["duplicate_check"]["message"])
+        self.assertEqual(User.objects.filter(center=self.center, role="student", telefon1="+998901112233").count(), 1)
+
+        confirmed_response = self.client.post(
+            drawer_url,
+            {
+                **base_payload,
+                "duplicate_override": "1",
+            },
+            follow=False,
+        )
+
+        self.assertEqual(confirmed_response.status_code, 200)
+        confirmed_payload = confirmed_response.json()
+        self.assertTrue(confirmed_payload["ok"])
+
+        created_student = User.objects.get(pk=confirmed_payload["user"]["id"])
+        self.assertEqual(created_student.telefon1, "+998901112233")
+        self.assertEqual(created_student.phone_number or "", "")
+        self.assertEqual(User.objects.filter(center=self.center, role="student", telefon1="+998901112233").count(), 2)
+
+    def test_student_drawer_marks_same_identity_and_birth_date_as_strong_duplicate(self):
+        User.objects.create_user(
+            email="existing.identity@student.test",
+            password="Pass12345!",
+            role="student",
+            center=self.center,
+            ism="Madina",
+            familya="Qodirova",
+            telefon1="+998931234567",
+            birth_date=datetime(2012, 5, 14).date(),
+        )
+
+        response = self.client.post(
+            reverse("accounts:add_user") + "?role=student&drawer=1&next=/redirect-center/stat/students/",
+            {
+                "next": "/redirect-center/stat/students/",
+                "ism": "Madina",
+                "familya": "Qodirova",
+                "otchestvo": "",
+                "telefon1": "+998 93 123 45 67",
+                "telefon2": "",
+                "center": str(self.center.id),
+                "role": "student",
+                "email": "",
+                "password": "",
+                "oqituvchi_foizi": "",
+                "birth_date": "2012-05-14",
+                "gender": "",
+                "passport_id": "",
+                "jshr": "",
+                "address": "",
+                "telegram_username": "",
+            },
+            follow=False,
+        )
+
+        self.assertEqual(response.status_code, 409)
+        payload = response.json()
+        self.assertEqual(payload["duplicate_check"]["kind"], "strong_identity_match")
+        self.assertIn("tug'ilgan sana", payload["duplicate_check"]["message"])
+
+    def test_add_user_ignores_selected_group_during_student_create(self):
         group = Group.objects.create(
             center=self.center,
             nom="English N1",
             kurs_narxi=650000,
             oqituvchi_foiz=45,
         )
-        start_date = timezone.localdate()
 
         response = self.client.post(
             reverse("accounts:add_user") + "?role=student&drawer=1&next=/redirect-center/stat/students/",
@@ -427,59 +577,35 @@ class TenantRedirectRegressionTests(TestCase):
                 "ism": "Gulnoza",
                 "familya": "Student",
                 "otchestvo": "",
-                "telefon1": "",
+                "telefon1": "+998 91 222 33 44",
                 "telefon2": "",
                 "center": str(self.center.id),
                 "role": "student",
                 "email": "gulnoza.student@test.uz",
                 "password": "strong-pass-123",
                 "oqituvchi_foizi": "",
-                "birth_date": "2010-01-01",
-                "gender": "female",
+                "birth_date": "",
+                "gender": "",
                 "passport_id": "",
                 "jshr": "",
                 "address": "",
                 "group": str(group.id),
                 "kurs_narhi": "",
-                "group_start_date": start_date.isoformat(),
+                "group_start_date": timezone.localdate().isoformat(),
             },
             follow=False,
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.json(),
-            {
-                "ok": True,
-                "user": {
-                    "id": User.objects.get(email="gulnoza.student@test.uz").id,
-                    "full_name": "Gulnoza Student",
-                    "email": "gulnoza.student@test.uz",
-                },
-            },
-        )
+        self.assertTrue(response.json()["ok"])
 
         student = User.objects.get(email="gulnoza.student@test.uz")
-        self.assertTrue(
-            Enrollment.objects.filter(
-                student=student,
-                group=group,
-                kurs_narhi=group.kurs_narxi,
-                oqituvchi_foiz=group.oqituvchi_foiz,
-                is_active=True,
-            ).exists()
-        )
-        self.assertTrue(
-            StudentGroupHistory.objects.filter(
-                student=student,
-                group=group,
-                start_date=start_date,
-                kurs_narxi=group.kurs_narxi,
-                oqituvchi_foiz=group.oqituvchi_foiz,
-            ).exists()
-        )
+        self.assertFalse(Enrollment.objects.filter(student=student).exists())
+        self.assertFalse(StudentGroupHistory.objects.filter(student=student).exists())
+        self.assertFalse(TuitionMonth.objects.filter(enrollment__student=student).exists())
+        self.assertFalse(Payment.objects.filter(student=student).exists())
 
-    def test_add_user_enrolls_student_into_multiple_groups_from_group_assignments(self):
+    def test_add_user_ignores_group_assignments_during_student_create(self):
         odd_group = Group.objects.create(
             center=self.center,
             nom="Matematika",
@@ -502,15 +628,15 @@ class TenantRedirectRegressionTests(TestCase):
                 "ism": "Mehribon",
                 "familya": "Student",
                 "otchestvo": "",
-                "telefon1": "",
+                "telefon1": "+998 93 444 55 66",
                 "telefon2": "",
                 "center": str(self.center.id),
                 "role": "student",
                 "email": "mehribon.student@test.uz",
                 "password": "strong-pass-123",
                 "oqituvchi_foizi": "",
-                "birth_date": "2011-01-01",
-                "gender": "female",
+                "birth_date": "",
+                "gender": "",
                 "passport_id": "",
                 "jshr": "",
                 "address": "",
@@ -540,35 +666,13 @@ class TenantRedirectRegressionTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
         student = User.objects.get(email="mehribon.student@test.uz")
 
-        odd_enrollment = Enrollment.objects.get(student=student, group=odd_group)
-        even_enrollment = Enrollment.objects.get(student=student, group=even_group)
-
-        self.assertEqual(odd_enrollment.joined_at.isoformat(), "2026-04-24")
-        self.assertEqual(odd_enrollment.lesson_pattern, Enrollment.LESSON_PATTERN_ODD)
-        self.assertEqual(odd_enrollment.kurs_narhi, 720000)
-        self.assertEqual(odd_enrollment.oqituvchi_foiz, 50)
-
-        self.assertEqual(even_enrollment.joined_at.isoformat(), "2026-04-25")
-        self.assertEqual(even_enrollment.lesson_pattern, Enrollment.LESSON_PATTERN_EVEN)
-        self.assertEqual(even_enrollment.kurs_narhi, 480000)
-        self.assertEqual(even_enrollment.oqituvchi_foiz, 35)
-
-        self.assertTrue(
-            StudentGroupHistory.objects.filter(
-                student=student,
-                group=odd_group,
-                start_date="2026-04-24",
-            ).exists()
-        )
-        self.assertTrue(
-            StudentGroupHistory.objects.filter(
-                student=student,
-                group=even_group,
-                start_date="2026-04-25",
-            ).exists()
-        )
+        self.assertFalse(Enrollment.objects.filter(student=student).exists())
+        self.assertFalse(StudentGroupHistory.objects.filter(student=student).exists())
+        self.assertFalse(TuitionMonth.objects.filter(enrollment__student=student).exists())
+        self.assertFalse(Payment.objects.filter(student=student).exists())
 
     def test_director_can_open_tenant_add_user_page(self):
         response = self.client.get(reverse("accounts:add_user") + "?role=student")

@@ -415,8 +415,23 @@
   </div>
   {% endif %}
 
+  {% if duplicate_check %}
+  <div class="limit-box" style="display:block; border-color: rgba(245, 158, 11, 0.28); background: rgba(245, 158, 11, 0.1);">
+    <strong>{{ duplicate_check.title }}</strong>
+    <div style="margin-top:8px;">{{ duplicate_check.message }}</div>
+    {% if duplicate_check.students %}
+    <small style="margin-top:10px;">
+      {% for student in duplicate_check.students %}
+      {{ student.name }}{% if student.primary_phone %} · {{ student.primary_phone }}{% endif %}{% if student.birth_date %} · {{ student.birth_date }}{% endif %}{% if student.is_archived %} · arxivda{% endif %}{% if not forloop.last %}<br>{% endif %}
+      {% endfor %}
+    </small>
+    {% endif %}
+  </div>
+  {% endif %}
+
   <form method="post" class="cq-card">
     {% csrf_token %}
+    {{ form.duplicate_override }}
     {% if next_url %}
     <input type="hidden" name="next" value="{{ next_url }}">
     {% endif %}
@@ -606,8 +621,11 @@
 
     <!-- Actions -->
     <div class="flex flex-wrap items-center gap-4 mt-8 pt-6 border-t border-white/10">
-      <button type="submit" class="btn-save">
-        <i class="fa-solid fa-check"></i> SAQLASH
+      <button
+        type="submit"
+        class="btn-save"
+        {% if duplicate_check %}onclick="document.getElementById('id_duplicate_override').value='1'"{% endif %}>
+        <i class="fa-solid fa-check"></i> {% if duplicate_check %}YANGI O'QUVCHI QILIB QO'SHISH{% else %}SAQLASH{% endif %}
       </button>
       <a href="{{ cancel_url }}" class="btn-cancel">
         Bekor qilish

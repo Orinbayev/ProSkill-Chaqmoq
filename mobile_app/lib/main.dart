@@ -29,12 +29,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('uz', null);
   await initializeDateFormatting('uz_UZ', null);
-  assert(() {
-    debugPrint(
-      '[Chaqmoq App] env=${AppConfig.environmentName} baseUrl=${AppConfig.baseUrl}',
-    );
-    return true;
-  }());
+  debugPrint(
+    '[Chaqmoq App] env=${AppConfig.environmentName} baseUrl=${AppConfig.baseUrl}',
+  );
 
   final storageService = StorageService();
   final apiClient = ApiClient(storageService: storageService);
@@ -108,6 +105,7 @@ class ChaqmoqApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        Provider<StorageService>.value(value: storageService),
         Provider<ParentDashboardService>.value(value: parentDashboardService),
         Provider<LocalNotificationService>.value(value: localNotificationService),
         ChangeNotifierProvider<AuthProvider>.value(value: authProvider),

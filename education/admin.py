@@ -19,6 +19,7 @@ from .models import (
     Group,
     Payment,
     StudentAcademicSummary,
+    StudentGroupTransfer,
 )
 
 
@@ -32,6 +33,13 @@ class GroupAdmin(admin.ModelAdmin):
 admin.site.register(Enrollment)
 admin.site.register(Payment)
 admin.site.register(Attendance)
+
+
+@admin.register(StudentGroupTransfer)
+class StudentGroupTransferAdmin(admin.ModelAdmin):
+    list_display = ("student", "old_group", "new_group", "transfer_date", "performed_by", "created_at")
+    list_filter = ("center", "transfer_date", "old_group", "new_group")
+    search_fields = ("student__ism", "student__familya", "old_group__nom", "new_group__nom", "reason")
 
 
 

@@ -21,6 +21,8 @@ class StorageService {
   static const String _notificationSettingsKey =
       'chaqmoq_notification_settings';
   static const String _cacheIndexKey = 'chaqmoq_cache_index';
+  static const String _parentReminderSettingsKey =
+      'chaqmoq_parent_reminder_settings';
 
   Future<void> saveToken(String token) =>
       _storage.write(key: _tokenKey, value: token);
@@ -76,6 +78,14 @@ class StorageService {
 
   Future<String?> readNotificationSettings() {
     return _storage.read(key: _notificationSettingsKey);
+  }
+
+  Future<void> saveParentReminderSettings(String payload) {
+    return _storage.write(key: _parentReminderSettingsKey, value: payload);
+  }
+
+  Future<String?> readParentReminderSettings() {
+    return _storage.read(key: _parentReminderSettingsKey);
   }
 
   Future<void> saveSession(AuthSession session) async {

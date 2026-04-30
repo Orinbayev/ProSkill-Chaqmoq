@@ -10,6 +10,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 
+from accounts.duplicate_checks import empty_student_duplicate_check, find_student_duplicates
 from accounts.models import Center
 from accounts.utils import normalize_phone
 
@@ -64,6 +65,10 @@ class AddUserForm(forms.ModelForm):
         required=False,
         widget=forms.HiddenInput(attrs={"id": "id_group_assignments"}),
     )
+    duplicate_override = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(attrs={"id": "id_duplicate_override"}),
+    )
 
     class Meta:
         model = User
@@ -96,10 +101,15 @@ class AddUserForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop("request", None)
         self.allowed_roles = kwargs.pop("allowed_roles", None)
+        self.allow_initial_group_assignment = bool(kwargs.pop("allow_initial_group_assignment", False))
         self.cleaned_group_assignments = []
+        self.student_duplicate_check = empty_student_duplicate_check()
+        self._student_duplicate_check_evaluated = False
         super().__init__(*args, **kwargs)
 
         self.fields["oqituvchi_foizi"].required = False
+        self.fields["birth_date"].required = False
+        self.fields["gender"].required = False
         self.fields["group"].widget.attrs.update({
             "class": "form-control uniform-input",
             "id": "id_group",
@@ -176,6 +186,41 @@ class AddUserForm(forms.ModelForm):
             else:
                 self.fields["children_ids"].queryset = User.objects.none()
 
+        current_role = (
+            (self.data.get("role") if self.is_bound else None)
+            or self.initial.get("role")
+            or getattr(self.instance, "role", "")
+        )
+        if current_role == "student" and "telefon1" in self.fields:
+            self.fields["telefon1"].required = True
+
+    def duplicate_override_requested(self) -> bool:
+        return (self.cleaned_data.get("duplicate_override") or "").strip() == "1"
+
+    def get_student_duplicate_check(self):
+        if self._student_duplicate_check_evaluated:
+            return self.student_duplicate_check
+
+        self._student_duplicate_check_evaluated = True
+        if getattr(self, "cleaned_data", {}).get("role") != "student":
+            return self.student_duplicate_check
+
+        request_user = getattr(self.request, "user", None) if self.request else None
+        center = (
+            self.cleaned_data.get("center")
+            or getattr(self.request, "center", None)
+            or getattr(request_user, "center", None)
+        )
+        self.student_duplicate_check = find_student_duplicates(
+            center=center,
+            ism=self.cleaned_data.get("ism"),
+            familya=self.cleaned_data.get("familya"),
+            telefon=self.cleaned_data.get("telefon1"),
+            birth_date=self.cleaned_data.get("birth_date"),
+            exclude_user_id=getattr(self.instance, "pk", None),
+        )
+        return self.student_duplicate_check
+
 
     def clean(self):
         cleaned_data = super().clean()
@@ -187,23 +232,22 @@ class AddUserForm(forms.ModelForm):
         self.cleaned_group_assignments = []
         
         if role == "student":
-            if not cleaned_data.get("birth_date"):
-                self.add_error("birth_date", "O‘quvchi uchun tug‘ilgan sana majburiy!")
-            if not cleaned_data.get("gender"):
-                self.add_error("gender", "O‘quvchi uchun jins tanlanishi shart!")
+            if not cleaned_data.get("telefon1"):
+                self.add_error("telefon1", "O'quvchi uchun telefon raqami majburiy.")
 
-            if group_assignments_raw:
-                self.cleaned_group_assignments = self._clean_group_assignments(
-                    raw_value=group_assignments_raw,
-                    center=center,
-                )
-            else:
-                # Security: Verify group center matches user center
-                if group and center and group.center_id != center.id:
-                    raise forms.ValidationError("Tanlangan guruh ushbu markazga tegishli emas!")
+            if self.allow_initial_group_assignment:
+                if group_assignments_raw:
+                    self.cleaned_group_assignments = self._clean_group_assignments(
+                        raw_value=group_assignments_raw,
+                        center=center,
+                    )
+                else:
+                    # Security: Verify group center matches user center
+                    if group and center and group.center_id != center.id:
+                        raise forms.ValidationError("Tanlangan guruh ushbu markazga tegishli emas!")
 
-                if group and not group_start_date:
-                    self.add_error("group_start_date", "Guruh uchun boshlash sanasini tanlang.")
+                    if group and not group_start_date:
+                        self.add_error("group_start_date", "Guruh uchun boshlash sanasini tanlang.")
             
             # ===== STUDENT LIMIT CHECK (Warning for Director/Manager ONLY) =====
             # This shows an error message when trying to add students beyond limit
@@ -375,7 +419,7 @@ class AddUserForm(forms.ModelForm):
             user.save()
             
             # Handle Enrollment
-            if user.role == "student":
+            if user.role == "student" and self.allow_initial_group_assignment:
                 from education.services.enrollment_service import EnrollmentService
                 from education.services.tuition import ensure_all_tuition_months_since_start
 

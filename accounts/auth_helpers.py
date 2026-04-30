@@ -33,11 +33,7 @@ def build_login_lookup_query(identifier: str) -> Q:
         telegram_username__iexact=normalized_identifier,
     )
     if normalized_phone:
-        query |= (
-            Q(phone_number=normalized_phone)
-            | Q(telefon1=normalized_phone)
-            | Q(telefon2=normalized_phone)
-        )
+        query |= Q(phone_number=normalized_phone)
     return query
 
 

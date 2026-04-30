@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+  :root {
+    --transfer-panel-bg: linear-gradient(180deg, rgba(15, 23, 42, 0.94), rgba(15, 23, 42, 0.86));
+    --transfer-panel-border: rgba(148, 163, 184, 0.18);
+    --transfer-shadow: 0 24px 60px rgba(2, 6, 23, 0.34);
+    --transfer-title: #f8fafc;
+    --transfer-muted: #94a3b8;
+    --transfer-card-bg: rgba(15, 23, 42, 0.72);
+    --transfer-card-border: rgba(148, 163, 184, 0.16);
+    --transfer-card-text: #e2e8f0;
+    --transfer-label: #e5e7eb;
+    --transfer-field-bg: rgba(15, 23, 42, 0.72);
+    --transfer-field-border: rgba(148, 163, 184, 0.22);
+    --transfer-field-text: #f8fafc;
+    --transfer-field-placeholder: #94a3b8;
+    --transfer-secondary-bg: rgba(30, 41, 59, 0.9);
+    --transfer-secondary-text: #e2e8f0;
+    --transfer-primary-bg: linear-gradient(180deg, #3b82f6, #2563eb);
+    --transfer-primary-text: #eff6ff;
+  }
+
+  html[data-role-theme="light"] {
+    --transfer-panel-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.96));
+    --transfer-panel-border: rgba(148, 163, 184, 0.18);
+    --transfer-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+    --transfer-title: #111827;
+    --transfer-muted: #6b7280;
+    --transfer-card-bg: #f8fafc;
+    --transfer-card-border: #e5e7eb;
+    --transfer-card-text: #334155;
+    --transfer-label: #1f2937;
+    --transfer-field-bg: #ffffff;
+    --transfer-field-border: #d1d5db;
+    --transfer-field-text: #0f172a;
+    --transfer-field-placeholder: #94a3b8;
+    --transfer-secondary-bg: #f1f5f9;
+    --transfer-secondary-text: #334155;
+    --transfer-primary-bg: linear-gradient(180deg, #3b82f6, #2563eb);
+    --transfer-primary-text: #ffffff;
+  }
+
+  .transfer-wrap {
+    max-width: 760px;
+    margin: 32px auto;
+    padding: 0 16px;
+  }
+  .transfer-panel {
+    background: var(--transfer-panel-bg);
+    border: 1px solid var(--transfer-panel-border);
+    border-radius: 20px;
+    box-shadow: var(--transfer-shadow);
+    backdrop-filter: blur(16px);
+    padding: 24px;
+  }
+  .transfer-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 22px;
+  }
+  .transfer-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--transfer-title);
+  }
+  .transfer-subtitle {
+    margin: 6px 0 0;
+    color: var(--transfer-muted);
+    font-weight: 600;
+  }
+  .transfer-current {
+    background: var(--transfer-card-bg);
+    border: 1px solid var(--transfer-card-border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    margin-bottom: 18px;
+    color: var(--transfer-card-text);
+    font-weight: 700;
+  }
+  .transfer-field {
+    margin-bottom: 16px;
+  }
+  .transfer-field label {
+    display: block;
+    margin-bottom: 7px;
+    font-weight: 800;
+    color: var(--transfer-label);
+  }
+  .transfer-field select,
+  .transfer-field input,
+  .transfer-field textarea {
+    width: 100%;
+    border: 1px solid var(--transfer-field-border);
+    background: var(--transfer-field-bg);
+    color: var(--transfer-field-text);
+    border-radius: 12px;
+    padding: 11px 12px;
+    font-size: 15px;
+  }
+  .transfer-field select::placeholder,
+  .transfer-field input::placeholder,
+  .transfer-field textarea::placeholder {
+    color: var(--transfer-field-placeholder);
+  }
+  .transfer-field select:focus,
+  .transfer-field input:focus,
+  .transfer-field textarea:focus {
+    outline: none;
+    border-color: rgba(59, 130, 246, 0.45);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.14);
+  }
+  .transfer-error {
+    margin-top: 6px;
+    color: #dc2626;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .transfer-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+  }
+  .transfer-btn {
+    border: 0;
+    border-radius: 12px;
+    padding: 11px 16px;
+    font-weight: 800;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.18s ease, opacity 0.18s ease, box-shadow 0.18s ease;
+  }
+  .transfer-btn-secondary {
+    background: var(--transfer-secondary-bg);
+    color: var(--transfer-secondary-text);
+  }
+  .transfer-btn-primary {
+    background: var(--transfer-primary-bg);
+    color: var(--transfer-primary-text);
+    box-shadow: 0 14px 24px rgba(37, 99, 235, 0.22);
+  }
+  .transfer-btn:hover {
+    transform: translateY(-1px);
+  }
+  @media (max-width: 640px) {
+    .transfer-wrap {
+      padding: 0 10px;
+    }
+    .transfer-panel {
+      padding: 18px;
+      border-radius: 16px;
+    }
+    .transfer-head,
+    .transfer-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .transfer-btn {
+      width: 100%;
+      text-align: center;
+    }
+  }
+</style>
+
+<div class="transfer-wrap">
+  <div class="transfer-panel">
+    <div class="transfer-head">
+      <div>
+        <h1 class="transfer-title">Guruhga ko'chirish</h1>
+        <p class="transfer-subtitle">{{ student.get_full_name }}</p>
+      </div>
+      <a href="{% url 'education:group_detail' old_group.id %}" class="transfer-btn transfer-btn-secondary">Ortga</a>
+    </div>
+
+    <div class="transfer-current">
+      Hozirgi guruh: {{ old_group.nom }}
+    </div>
+
+    <form method="post" onsubmit="return confirm('O‘quvchini boshqa guruhga ko‘chirmoqchimisiz? To‘lov qayta hisoblanadi.');">
+      {% csrf_token %}
+      <div class="transfer-field">
+        <label for="{{ form.new_group.id_for_label }}">{{ form.new_group.label }}</label>
+        {{ form.new_group }}
+        {% for error in form.new_group.errors %}<div class="transfer-error">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="transfer-field">
+        <label for="{{ form.transfer_date.id_for_label }}">{{ form.transfer_date.label }}</label>
+        {{ form.transfer_date }}
+        {% for error in form.transfer_date.errors %}<div class="transfer-error">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="transfer-field">
+        <label for="{{ form.reason.id_for_label }}">{{ form.reason.label }}</label>
+        {{ form.reason }}
+        {% for error in form.reason.errors %}<div class="transfer-error">{{ error }}</div>{% endfor %}
+      </div>
+
+      <div class="transfer-actions">
+        <a href="{% url 'education:group_detail' old_group.id %}" class="transfer-btn transfer-btn-secondary">Bekor qilish</a>
+        <button type="submit" class="transfer-btn transfer-btn-primary">Tasdiqlash</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

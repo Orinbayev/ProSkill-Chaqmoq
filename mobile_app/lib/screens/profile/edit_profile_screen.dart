@@ -76,55 +76,64 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return (parts.first, parts.sublist(1).join(' '));
   }
 
+  Future<void> _pickAvatar(ImageSource source) async {
+    final XFile? image = await _imagePicker.pickImage(
+      source: source,
+      maxWidth: 1080,
+      imageQuality: 85,
+    );
+    if (image == null || !mounted) {
+      return;
+    }
+    final bytes = await image.readAsBytes();
+    setState(() {
+      _selectedImage = image;
+      _selectedImageBytes = bytes;
+      _removeAvatar = false;
+    });
+  }
+
   Future<void> _openAvatarActions() async {
-    final action = await showModalBottomSheet<String>(
+    final hasAvatar =
+        _selectedImageBytes != null ||
+        (_removeAvatar == false && widget.initialUser.avatarUrl.isNotEmpty);
+    final action = await showProfileActionSheet<String>(
       context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        final hasAvatar =
-            _selectedImageBytes != null ||
-            (_removeAvatar == false && widget.initialUser.avatarUrl.isNotEmpty);
-        return SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Container(
-                  width: 42,
-                  height: 5,
-                  margin: const EdgeInsets.only(bottom: 18),
-                  decoration: BoxDecoration(
-                    color: ProfileUiColors.border,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.photo_library_outlined),
-                  title: const Text('Galereyadan tanlash'),
-                  onTap: () => Navigator.of(context).pop('gallery'),
-                ),
-                if (hasAvatar)
-                  ListTile(
-                    leading: const Icon(
-                      Icons.delete_outline_rounded,
-                      color: ProfileUiColors.danger,
-                    ),
-                    title: const Text('Rasmni olib tashlash'),
-                    onTap: () => Navigator.of(context).pop('clear'),
-                  ),
-              ],
-            ),
+      title: 'Profil rasmi',
+      options: <ProfileActionSheetOption<String>>[
+        const ProfileActionSheetOption<String>(
+          value: 'camera',
+          title: 'Kameradan olish',
+          subtitle: 'Yangi profil rasmini hozirga tushiring',
+          icon: Icons.photo_camera_outlined,
+        ),
+        const ProfileActionSheetOption<String>(
+          value: 'gallery',
+          title: 'Galereyadan tanlash',
+          subtitle: 'Telefoningizdagi rasmlar ichidan tanlang',
+          icon: Icons.photo_library_outlined,
+        ),
+        if (hasAvatar)
+          const ProfileActionSheetOption<String>(
+            value: 'clear',
+            title: 'Rasmni o‘chirish',
+            subtitle: 'Profil rasmini olib tashlaydi',
+            icon: Icons.delete_outline_rounded,
+            destructive: true,
           ),
-        );
-      },
+        const ProfileActionSheetOption<String>(
+          value: 'cancel',
+          title: 'Bekor qilish',
+          subtitle: 'Hech qanday o‘zgarish kiritilmaydi',
+          icon: Icons.close_rounded,
+        ),
+      ],
     );
 
     if (!mounted || action == null) {
+      return;
+    }
+    if (action == 'cancel') {
       return;
     }
     if (action == 'clear') {
@@ -135,21 +144,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       });
       return;
     }
+    if (action == 'camera') {
+      await _pickAvatar(ImageSource.camera);
+      return;
+    }
     if (action == 'gallery') {
-      final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1080,
-        imageQuality: 85,
-      );
-      if (image == null || !mounted) {
-        return;
-      }
-      final bytes = await image.readAsBytes();
-      setState(() {
-        _selectedImage = image;
-        _selectedImageBytes = bytes;
-        _removeAvatar = false;
-      });
+      await _pickAvatar(ImageSource.gallery);
     }
   }
 
@@ -213,7 +213,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         const ProfilePageHeader(title: 'Shaxsiy ma’lumotlar'),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 16),
                         ProfilePageCard(
                           child: Form(
                             key: _formKey,
@@ -224,7 +224,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   'Profil ma’lumotlaringizni yangilang.',
                                   style: ProfileUiTextStyles.muted,
                                 ),
-                                const SizedBox(height: 18),
+                                const SizedBox(height: 16),
                                 Center(
                                   child: GestureDetector(
                                     onTap: _saving ? null : _openAvatarActions,
@@ -232,8 +232,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       clipBehavior: Clip.none,
                                       children: <Widget>[
                                         Container(
-                                          width: 104,
-                                          height: 104,
+                                          width: 96,
+                                          height: 96,
                                           decoration: const BoxDecoration(
                                             shape: BoxShape.circle,
                                             color: Color(0xFFEAF4FF),
@@ -253,15 +253,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                                       : widget
                                                             .initialUser
                                                             .avatarUrl,
-                                                  size: 104,
+                                                  size: 96,
                                                 ),
                                         ),
                                         Positioned(
-                                          right: -4,
-                                          bottom: -4,
+                                          right: -2,
+                                          bottom: -2,
                                           child: Container(
-                                            width: 36,
-                                            height: 36,
+                                            width: 34,
+                                            height: 34,
                                             decoration: BoxDecoration(
                                               color: Colors.white,
                                               shape: BoxShape.circle,
@@ -275,7 +275,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                             child: const Icon(
                                               Icons.photo_camera_outlined,
                                               color: ProfileUiColors.primary,
-                                              size: 20,
+                                              size: 18,
                                             ),
                                           ),
                                         ),
@@ -283,7 +283,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: 18),
+                                const SizedBox(height: 14),
                                 TextFormField(
                                   controller: _firstNameController,
                                   style: ProfileUiTextStyles.input,
@@ -302,7 +302,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     return null;
                                   },
                                 ),
-                                const SizedBox(height: 14),
+                                const SizedBox(height: 12),
                                 TextFormField(
                                   controller: _lastNameController,
                                   style: ProfileUiTextStyles.input,
@@ -321,7 +321,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     return null;
                                   },
                                 ),
-                                const SizedBox(height: 14),
+                                const SizedBox(height: 12),
                                 TextFormField(
                                   controller: _phoneController,
                                   style: ProfileUiTextStyles.input,
@@ -352,7 +352,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     return null;
                                   },
                                 ),
-                                const SizedBox(height: 14),
+                                const SizedBox(height: 12),
                                 TextFormField(
                                   controller: _emailController,
                                   style: ProfileUiTextStyles.input,
@@ -379,7 +379,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   },
                                   onFieldSubmitted: (_) => _saving ? null : _save(),
                                 ),
-                                const SizedBox(height: 22),
+                                const SizedBox(height: 18),
                                 SizedBox(
                                   width: double.infinity,
                                   child: FilledButton(
@@ -388,7 +388,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       backgroundColor: ProfileUiColors.primary,
                                       foregroundColor: Colors.white,
                                       padding: const EdgeInsets.symmetric(
-                                        vertical: 15,
+                                        vertical: 14,
                                       ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(16),

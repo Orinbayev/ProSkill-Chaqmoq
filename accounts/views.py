@@ -16,6 +16,7 @@ from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.template.loader import render_to_string
 from django.utils.text import slugify
 
+from .duplicate_checks import serialize_student_duplicate_check
 from .forms import AddUserForm, TeacherForm, ProfileEditForm, PasswordUpdateForm
 from accounts.models import BranchRequest, Center, DirectorCenterAccess, User
 from education.models import Group, Enrollment, Attendance
@@ -878,7 +879,19 @@ def add_user(request):
     elif selected_center_id:
         drawer_center_value = str(selected_center_id)
 
+    pending_duplicate_check = None
     if request.method == "POST" and form.is_valid():
+        duplicate_check = form.get_student_duplicate_check()
+        if duplicate_check.requires_confirmation and not form.duplicate_override_requested():
+            pending_duplicate_check = serialize_student_duplicate_check(duplicate_check)
+            if is_user_drawer:
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "duplicate_check": pending_duplicate_check,
+                    },
+                    status=409,
+                )
         user = form.save()
         messages.success(request, f"✅ Foydalanuvchi {user.email} muvaffaqiyatli qo‘shildi.")
         if is_user_drawer:
@@ -928,6 +941,7 @@ def add_user(request):
         'form': form,
         'title': role_titles.get(current_role, "Yangi foydalanuvchi"),
         'student_limit_state': student_limit_state,
+        'duplicate_check': pending_duplicate_check,
         'next_url': next_url,
         'cancel_url': next_url or reverse("core:home"),
     })

@@ -31,7 +31,7 @@ from accounts.auth_helpers import (
     mask_login_identifier,
     resolve_login_attempt,
 )
-from accounts.models import Center, User
+from accounts.models import Center, DirectorCenterAccess, User
 from billing.services import (
     get_subscription_ui_state,
     get_user_subscription_dashboard_data,
@@ -39,6 +39,7 @@ from billing.services import (
 )
 from chaqmoq.models import Ledger
 from core.models import MobileAccessToken, Notification, NotificationPreference
+from core.tenant_context import clear_current_tenant, set_current_tenant
 from education.models import (
     Attendance,
     CertificateRecord,
@@ -57,8 +58,12 @@ from store.models import Lead, Product, PurchaseRequest, TrialLesson
 logger = logging.getLogger(__name__)
 
 
+def _mobile_debug_enabled() -> bool:
+    return bool(settings.DEBUG or os.getenv("MOBILE_AUTH_DEBUG") == "1")
+
+
 def _mobile_debug(message: str, **extra) -> None:
-    if not settings.DEBUG:
+    if not _mobile_debug_enabled():
         return
     logger.info("mobile_auth_debug: %s %s", message, extra)
 
@@ -98,6 +103,82 @@ def _request_center(request):
     return getattr(request, "center", None) or getattr(request.user, "center", None)
 
 
+def _request_payload(request) -> dict:
+    request_data = getattr(request, "data", None)
+    if request_data and hasattr(request_data, "items"):
+        return {str(key): value for key, value in request_data.items()}
+
+    json_payload = _parse_json_body(request)
+    if json_payload:
+        return json_payload
+
+    if request.POST:
+        return request.POST.dict()
+    return {}
+
+
+def _normalize_center_slug(value) -> str:
+    return str(value or "").strip().strip("/").lower()
+
+
+def _requested_center_slug(request, data: dict) -> str:
+    for key in ("center_slug", "slug", "center"):
+        slug = _normalize_center_slug(data.get(key))
+        if slug:
+            return slug
+
+    header_slug = _normalize_center_slug(request.headers.get("X-Center-Slug"))
+    if header_slug:
+        return header_slug
+
+    url_slug = _normalize_center_slug(getattr(request, "url_center_slug", ""))
+    if url_slug:
+        return url_slug
+
+    if settings.DEBUG:
+        return _normalize_center_slug(os.getenv("LOCAL_DEFAULT_CENTER_SLUG"))
+    return ""
+
+
+def _bind_request_center(request, center) -> None:
+    request.center = center
+    request.active_center = center
+    if center is not None:
+        set_current_tenant(center)
+
+
+def _print_center_debug(center_slug: str, center) -> None:
+    if not _mobile_debug_enabled():
+        return
+    print("CENTER SLUG:", center_slug)
+    print("FOUND CENTER:", center)
+
+
+def _center_not_found_extra(center_slug: str) -> dict:
+    extra = {"received_slug": center_slug}
+    if _mobile_debug_enabled():
+        extra["available_centers"] = list(
+            Center.objects.filter(is_deleted=False)
+            .order_by("name")
+            .values("name", "slug")
+        )
+    return extra
+
+
+def _user_has_center_access(user: User, center) -> bool:
+    if center is None or user.is_superuser:
+        return True
+    if getattr(user, "center_id", None) == center.id:
+        return True
+    if getattr(user, "role", "") == "director":
+        return DirectorCenterAccess.objects.filter(
+            director=user,
+            center=center,
+            is_active=True,
+        ).exists()
+    return False
+
+
 def _hash_token(raw_token: str) -> str:
     return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
 
@@ -134,26 +215,30 @@ def _authenticate_mobile_token(request) -> User | None:
     request.mobile_access_token = token
     request.user = token.user
     if token.center_id:
-        request.center = token.center
-        request.active_center = token.center
+        _bind_request_center(request, token.center)
     elif getattr(token.user, "center_id", None):
-        request.center = token.user.center
-        request.active_center = token.user.center
+        _bind_request_center(request, token.user.center)
     return token.user
 
 
 def mobile_login_required(view_func):
     @wraps(view_func)
     def _wrapped(request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            _authenticate_mobile_token(request)
-        if not request.user.is_authenticated:
-            return _mobile_json_error(
-                "Sessiya yakunlandi. Qayta tizimga kiring.",
-                status=401,
-                code="not_authenticated",
-            )
-        return view_func(request, *args, **kwargs)
+        try:
+            if not request.user.is_authenticated:
+                _authenticate_mobile_token(request)
+            center = _request_center(request)
+            if center is not None:
+                _bind_request_center(request, center)
+            if not request.user.is_authenticated:
+                return _mobile_json_error(
+                    "Sessiya yakunlandi. Qayta tizimga kiring.",
+                    status=401,
+                    code="not_authenticated",
+                )
+            return view_func(request, *args, **kwargs)
+        finally:
+            clear_current_tenant()
 
     return _wrapped
 
@@ -174,16 +259,18 @@ def _create_mobile_access_token(request, user: User, center, data: dict) -> tupl
 
 
 def _center_from_login_payload(request, data: dict):
-    slug = (
-        str(data.get("slug") or data.get("center_slug") or "").strip()
-        or str(request.headers.get("X-Center-Slug") or "").strip()
-        or str(getattr(request, "url_center_slug", "") or "").strip()
-    )
-    if not slug and settings.DEBUG:
-        slug = str(os.getenv("LOCAL_DEFAULT_CENTER_SLUG") or "").strip()
+    slug = _requested_center_slug(request, data)
     if not slug:
-        return getattr(request, "center", None)
-    return Center.objects.filter(slug=slug, is_deleted=False).first()
+        center = getattr(request, "center", None)
+        if center is not None:
+            _bind_request_center(request, center)
+        return None, center
+
+    center = Center.objects.filter(slug=slug, is_deleted=False).first()
+    _print_center_debug(slug, center)
+    if center is not None:
+        _bind_request_center(request, center)
+    return slug, center
 
 
 def _resolve_login_user(request, data: dict):
@@ -196,12 +283,7 @@ def _resolve_login_user(request, data: dict):
         or ""
     ).strip()
     password = str(data.get("password") or "")
-    requested_slug = (
-        str(data.get("slug") or data.get("center_slug") or "").strip()
-        or str(request.headers.get("X-Center-Slug") or "").strip()
-        or str(getattr(request, "url_center_slug", "") or "").strip()
-        or (str(os.getenv("LOCAL_DEFAULT_CENTER_SLUG") or "").strip() if settings.DEBUG else "")
-    )
+    requested_slug, center = _center_from_login_payload(request, data)
     masked_identifier = mask_login_identifier(identifier)
     _mobile_debug("login_received", login=identifier, center_slug=requested_slug or None)
     if not identifier or not password:
@@ -216,7 +298,6 @@ def _resolve_login_user(request, data: dict):
             code="missing_credentials",
         )
 
-    center = _center_from_login_payload(request, data)
     _mobile_debug(
         "login_center_resolved",
         login=identifier,
@@ -230,7 +311,12 @@ def _resolve_login_user(request, data: dict):
             requested_slug or "-",
         )
         _mobile_debug("login_center_not_found", login=identifier, center_slug=requested_slug)
-        return None, None, _mobile_json_error("Markaz topilmadi", status=404, code="center_not_found")
+        return None, None, _mobile_json_error(
+            "Markaz topilmadi",
+            status=404,
+            code="center_not_found",
+            extra=_center_not_found_extra(requested_slug),
+        )
 
     login_result = resolve_login_attempt(
         identifier,
@@ -306,7 +392,7 @@ def _resolve_login_user(request, data: dict):
         )
 
     user_center = getattr(authenticated_user, "center", None)
-    if center and not authenticated_user.is_superuser and user_center and user_center.id != center.id:
+    if center and not _user_has_center_access(authenticated_user, center):
         logger.info(
             "mobile_login outcome=center_mismatch identifier=%s user_id=%s requested_center=%s actual_center=%s",
             masked_identifier or "-",
@@ -322,26 +408,30 @@ def _resolve_login_user(request, data: dict):
             requested_center=getattr(center, "slug", None),
         )
         return None, None, _mobile_json_error(
-            "Bu markaz uchun kirish ruxsati yo‘q",
+            "Bu foydalanuvchi ushbu markazga tegishli emas",
             status=403,
             code="center_mismatch",
         )
+
+    resolved_center = center or user_center
+    if resolved_center is not None:
+        _bind_request_center(request, resolved_center)
 
     _mobile_debug(
         "login_auth_success",
         login=identifier,
         user_id=authenticated_user.id,
         role=authenticated_user.role,
-        center=getattr(center or user_center, "slug", None),
+        center=getattr(resolved_center, "slug", None),
     )
     logger.info(
         "mobile_login outcome=success identifier=%s user_id=%s center_slug=%s role=%s",
         masked_identifier or "-",
         authenticated_user.id,
-        getattr(center or user_center, "slug", None) or "-",
+        getattr(resolved_center, "slug", None) or "-",
         getattr(authenticated_user, "role", None) or "-",
     )
-    return authenticated_user, center or user_center, None
+    return authenticated_user, resolved_center, None
 
 
 def _full_name(user: User) -> str:
@@ -464,6 +554,8 @@ def _serialize_notification(notification: Notification) -> dict:
         "type": notification.type,
         "is_read": notification.is_read,
         "created_at": timezone.localtime(notification.created_at).isoformat(),
+        "sender_name": _full_name(notification.sender) if notification.sender_id and notification.sender else "",
+        "recipient_name": _full_name(notification.recipient) if notification.recipient_id and notification.recipient else "",
     }
 
 
@@ -1004,48 +1096,62 @@ def mobile_auth_csrf(request):
 @csrf_exempt
 @require_POST
 def mobile_auth_login(request):
-    data = _parse_json_body(request)
-    user, center, error = _resolve_login_user(request, data)
-    if error:
-        return error
-
-    if not getattr(user, "backend", ""):
-        user.backend = settings.AUTHENTICATION_BACKENDS[0]
-    login(request, user)
-    raw_token, token = _create_mobile_access_token(request, user, center, data)
+    data = _request_payload(request)
     try:
-        record_activity(user, "Login successful (Mobile API)", request=request)
-    except Exception:
-        pass
-    return JsonResponse(_serialize_session(request, user, access_token=raw_token, token_obj=token))
+        user, center, error = _resolve_login_user(request, data)
+        if error:
+            return error
+
+        if center is not None:
+            _bind_request_center(request, center)
+        if not getattr(user, "backend", ""):
+            user.backend = settings.AUTHENTICATION_BACKENDS[0]
+        login(request, user)
+        raw_token, token = _create_mobile_access_token(request, user, center, data)
+        try:
+            record_activity(user, "Login successful (Mobile API)", request=request)
+        except Exception:
+            pass
+        return JsonResponse(_serialize_session(request, user, access_token=raw_token, token_obj=token))
+    finally:
+        clear_current_tenant()
 
 
 @csrf_exempt
 @require_POST
 def mobile_auth_logout(request):
-    token = getattr(request, "mobile_access_token", None)
-    if token is None:
-        _authenticate_mobile_token(request)
+    try:
         token = getattr(request, "mobile_access_token", None)
-    if token is not None:
-        token.is_revoked = True
-        token.save(update_fields=["is_revoked"])
-    if request.user.is_authenticated:
-        try:
-            record_activity(request.user, "Logout (Mobile API)", request=request)
-        except Exception:
-            pass
-    logout(request)
-    return JsonResponse({"ok": True, "authenticated": False})
+        if token is None:
+            _authenticate_mobile_token(request)
+            token = getattr(request, "mobile_access_token", None)
+        if token is not None:
+            token.is_revoked = True
+            token.save(update_fields=["is_revoked"])
+        if request.user.is_authenticated:
+            try:
+                record_activity(request.user, "Logout (Mobile API)", request=request)
+            except Exception:
+                pass
+        logout(request)
+        return JsonResponse({"ok": True, "authenticated": False})
+    finally:
+        clear_current_tenant()
 
 
 @require_GET
 def mobile_auth_status(request):
-    if not request.user.is_authenticated:
-        _authenticate_mobile_token(request)
-    if not request.user.is_authenticated:
-        return JsonResponse({"ok": True, "authenticated": False, "csrf_token": get_token(request)})
-    return JsonResponse(_serialize_session(request, request.user))
+    try:
+        if not request.user.is_authenticated:
+            _authenticate_mobile_token(request)
+        center = _request_center(request)
+        if center is not None:
+            _bind_request_center(request, center)
+        if not request.user.is_authenticated:
+            return JsonResponse({"ok": True, "authenticated": False, "csrf_token": get_token(request)})
+        return JsonResponse(_serialize_session(request, request.user))
+    finally:
+        clear_current_tenant()
 
 
 @require_GET

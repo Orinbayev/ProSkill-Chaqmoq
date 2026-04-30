@@ -982,6 +982,38 @@ class StudentGroupHistory(models.Model):
         return f"{self.student.get_full_name()} in {self.group.nom} ({self.start_date} to {self.end_date or 'Present'})"
 
 
+class StudentGroupTransfer(models.Model):
+    """Archive record for moving a student between groups."""
+    center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, related_name="student_group_transfers")
+    student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="group_transfers")
+    old_group = models.ForeignKey("education.Group", on_delete=models.PROTECT, related_name="outgoing_transfers")
+    new_group = models.ForeignKey("education.Group", on_delete=models.PROTECT, related_name="incoming_transfers")
+    transfer_date = models.DateField()
+    reason = models.TextField(blank=True, default="")
+    performed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="performed_group_transfers",
+    )
+    old_payment_state = models.JSONField(default=dict, blank=True)
+    old_attendance_summary = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["center", "student", "transfer_date"], name="sgt_center_student_date_idx"),
+            models.Index(fields=["old_group", "new_group"], name="sgt_groups_idx"),
+        ]
+        verbose_name = "O'quvchi guruh ko'chirish tarixi"
+        verbose_name_plural = "O'quvchi guruh ko'chirish tarixlari"
+
+    def __str__(self):
+        return f"{self.student.get_full_name()} | {self.old_group.nom} -> {self.new_group.nom} ({self.transfer_date})"
+
+
 class FinancialMonth(models.Model):
     """Represents a financial period that can be locked."""
     center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE)

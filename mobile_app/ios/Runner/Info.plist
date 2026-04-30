@@ -28,6 +28,8 @@
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Profil rasmini tanlash uchun foto kutubxonaga ruxsat kerak bo‘ladi.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Profil rasmini kamerada olish uchun kamera ruxsati kerak bo‘ladi.</string>
 	<key>NSUserNotificationUsageDescription</key>
 	<string>To‘lov va muhim eslatmalarni yuborish uchun bildirishnoma ruxsati kerak bo‘ladi.</string>
 	<key>UIApplicationSceneManifest</key>

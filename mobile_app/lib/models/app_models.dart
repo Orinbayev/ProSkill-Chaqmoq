@@ -888,6 +888,8 @@ class NotificationModel {
     this.type = '',
     this.isRead = false,
     this.target = '',
+    this.senderName = '',
+    this.recipientName = '',
   });
 
   final int id;
@@ -897,6 +899,8 @@ class NotificationModel {
   final String type;
   final bool isRead;
   final String target;
+  final String senderName;
+  final String recipientName;
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     return NotificationModel(
@@ -909,6 +913,8 @@ class NotificationModel {
       type: jsonString(json['type']),
       isRead: jsonBool(json['is_read']),
       target: jsonString(json['target']),
+      senderName: cleanHtmlText(json['sender_name']),
+      recipientName: cleanHtmlText(json['recipient_name']),
     );
   }
 
@@ -921,6 +927,8 @@ class NotificationModel {
       type: type,
       isRead: isRead ?? this.isRead,
       target: target,
+      senderName: senderName,
+      recipientName: recipientName,
     );
   }
 
@@ -932,6 +940,8 @@ class NotificationModel {
     'type': type,
     'is_read': isRead,
     'target': target,
+    'sender_name': senderName,
+    'recipient_name': recipientName,
   };
 }
 

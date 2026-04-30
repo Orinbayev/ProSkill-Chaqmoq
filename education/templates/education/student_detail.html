@@ -799,6 +799,13 @@
                   class="cq-group-btn">
                   <i class="fa fa-pen"></i> Tahrirlash
                 </a>
+                {% if can_transfer_student %}
+                <a
+                  href="{% url 'education:transfer_student' card.enrollment_id %}"
+                  class="cq-group-btn">
+                  <i class="fa fa-right-left"></i> Guruhga ko'chirish
+                </a>
+                {% endif %}
               </div>
             </div>
 

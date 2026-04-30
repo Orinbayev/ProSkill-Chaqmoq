@@ -1,8 +1,8 @@
-import 'package:chaqmoq_mobile/core/utils/formatters.dart';
 import 'package:chaqmoq_mobile/models/app_models.dart';
 import 'package:chaqmoq_mobile/providers/auth_provider.dart';
 import 'package:chaqmoq_mobile/providers/notifications_provider.dart';
 import 'package:chaqmoq_mobile/screens/groups/groups_screen.dart';
+import 'package:chaqmoq_mobile/screens/notifications/notification_presenter.dart';
 import 'package:chaqmoq_mobile/screens/payments/payments_screen.dart';
 import 'package:chaqmoq_mobile/screens/students/students_screen.dart';
 import 'package:chaqmoq_mobile/screens/student/student_payments_screen.dart';
@@ -23,21 +23,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_loaded) {
-      _loaded = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          context.read<NotificationsProvider>().load();
-        }
-      });
+    if (_loaded) {
+      return;
     }
+    _loaded = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<NotificationsProvider>().load();
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<NotificationsProvider>();
     final items = provider.items;
-    return Container(
+
+    return ColoredBox(
       color: _NotificationsColors.background,
       child: RefreshIndicator(
         color: _NotificationsColors.accentBlue,
@@ -46,7 +48,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           physics: const AlwaysScrollableScrollPhysics(
             parent: BouncingScrollPhysics(),
           ),
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
           children: [
             _NotificationsHeader(
               unreadCount: provider.unreadCount,
@@ -54,34 +56,36 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               onMarkAllRead: () => _markAllRead(provider),
             ),
             if (provider.state == ViewState.loading && items.isNotEmpty) ...[
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               const LinearProgressIndicator(
                 minHeight: 3,
                 color: _NotificationsColors.accentBlue,
                 backgroundColor: Color(0xFFEAF4FF),
               ),
             ],
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             if (provider.state == ViewState.loading && items.isEmpty)
               const _NotificationsStateCard.loading()
             else if (provider.state == ViewState.error && items.isEmpty)
               _NotificationsStateCard(
                 title: 'Bildirishnomalar yuklanmadi',
-                message: provider.errorMessage ?? 'Qayta urinib ko‘ring',
+                message:
+                    provider.errorMessage ??
+                    'Server bilan aloqa uzildi. Qayta urinib ko‘ring.',
                 icon: Icons.notifications_off_rounded,
                 actionLabel: 'Qayta yuklash',
                 onAction: provider.refresh,
               )
             else if (items.isEmpty)
               const _NotificationsStateCard(
-                title: 'Xabar yo‘q',
-                message: 'Hozircha yangi bildirishnomalar mavjud emas.',
+                title: 'Bildirishnoma yo‘q',
+                message: 'Hozircha yangi xabar yoki ogohlantirish mavjud emas.',
                 icon: Icons.mark_email_read_rounded,
               )
             else
               ...items.map(
                 (item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 10),
                   child: _NotificationCard(
                     item: item,
                     onTap: () => _openNotification(provider, item),
@@ -100,7 +104,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Barcha bildirishnomalar o‘qildi')),
+      const SnackBar(
+        content: Text('Barcha bildirishnomalar o‘qildi deb belgilandi'),
+      ),
     );
   }
 
@@ -112,45 +118,96 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (!mounted) {
       return;
     }
-    final lower = item.type.toLowerCase();
     final role = context.read<AuthProvider>().user?.role.trim().toLowerCase();
-    if (lower.contains('payment')) {
-      final target = role == 'student'
-          ? const StudentPaymentsScreen()
-          : const PaymentsScreen();
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute<void>(builder: (_) => target));
-      return;
-    }
-    if (lower.contains('student') && role != 'student' && role != 'parent') {
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute<void>(builder: (_) => const StudentsScreen()));
-      return;
-    }
-    if (lower.contains('group') && role != 'student' && role != 'parent') {
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute<void>(builder: (_) => const GroupsScreen()));
-      return;
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_notificationTitle(item) ?? 'Bildirishnoma ochildi'),
+    final resolvedItem = item.copyWith(isRead: true);
+    final target = _targetForNotification(resolvedItem, role);
+    final shouldNavigate = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _NotificationDetailSheet(
+        item: resolvedItem,
+        actionLabel: _actionLabelFor(target),
       ),
     );
+
+    if (shouldNavigate == true && mounted) {
+      _navigateToTarget(target, role);
+    }
   }
 
-  String? _notificationTitle(NotificationModel item) {
-    final title = cleanHtmlText(item.title);
-    if (title.isNotEmpty) {
-      return title;
+  _NotificationTarget? _targetForNotification(
+    NotificationModel item,
+    String? role,
+  ) {
+    final kind = resolveNotificationKind(item);
+    final lower = '${item.type} ${item.target} ${item.title} ${item.body}'
+        .toLowerCase()
+        .replaceAll('’', "'")
+        .replaceAll('‘', "'");
+    if (kind == NotificationKind.payment) {
+      return role == 'student'
+          ? _NotificationTarget.studentPayments
+          : _NotificationTarget.payments;
     }
-    final body = cleanHtmlText(item.body);
-    return body.isEmpty ? null : body;
+    if ((lower.contains('student') || lower.contains("o'quvchi")) &&
+        role != 'student' &&
+        role != 'parent') {
+      return _NotificationTarget.students;
+    }
+    if (lower.contains('group') && role != 'student' && role != 'parent') {
+      return _NotificationTarget.groups;
+    }
+    return null;
+  }
+
+  String? _actionLabelFor(_NotificationTarget? target) {
+    switch (target) {
+      case _NotificationTarget.payments:
+      case _NotificationTarget.studentPayments:
+        return 'To‘lovlar bo‘limiga o‘tish';
+      case _NotificationTarget.students:
+        return 'O‘quvchilar bo‘limiga o‘tish';
+      case _NotificationTarget.groups:
+        return 'Guruhlar bo‘limiga o‘tish';
+      case null:
+        return null;
+    }
+  }
+
+  void _navigateToTarget(_NotificationTarget? target, String? role) {
+    switch (target) {
+      case _NotificationTarget.payments:
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute<void>(builder: (_) => const PaymentsScreen()));
+        return;
+      case _NotificationTarget.studentPayments:
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const StudentPaymentsScreen()),
+        );
+        return;
+      case _NotificationTarget.students:
+        if (role != 'student' && role != 'parent') {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const StudentsScreen()),
+          );
+        }
+        return;
+      case _NotificationTarget.groups:
+        if (role != 'student' && role != 'parent') {
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute<void>(builder: (_) => const GroupsScreen()));
+        }
+        return;
+      case null:
+        return;
+    }
   }
 }
+
+enum _NotificationTarget { payments, studentPayments, students, groups }
 
 class _NotificationsHeader extends StatelessWidget {
   const _NotificationsHeader({
@@ -167,8 +224,8 @@ class _NotificationsHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final badgeLabel = unreadCount > 99 ? '99+' : '$unreadCount';
     return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: _cardDecoration,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+      decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -176,19 +233,19 @@ class _NotificationsHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 52,
-                height: 52,
+                width: 46,
+                height: 46,
                 decoration: BoxDecoration(
                   color: const Color(0xFFEAF4FF),
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Icon(
                   Icons.notifications_active_rounded,
                   color: _NotificationsColors.accentBlue,
-                  size: 28,
+                  size: 24,
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -199,7 +256,7 @@ class _NotificationsHeader extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Yangi xabarlar va tezkor ogohlantirishlar',
+                      'Yangi xabarlar va muhim ogohlantirishlar shu yerda jamlanadi.',
                       style: _NotificationsTextStyles.subtitle,
                     ),
                   ],
@@ -218,7 +275,7 @@ class _NotificationsHeader extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
@@ -227,8 +284,8 @@ class _NotificationsHeader extends StatelessWidget {
                 foregroundColor: _NotificationsColors.accentBlue,
                 disabledForegroundColor: const Color(0xFF9AA4B2),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
+                  horizontal: 10,
+                  vertical: 9,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -255,85 +312,144 @@ class _NotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = cleanHtmlText(item.title).trim();
-    final message = cleanHtmlText(item.body).trim();
-    final hasMessage = message.isNotEmpty;
+    final presentation = buildNotificationPresentation(item);
+    final accent = item.isRead
+        ? presentation.accentColor.withOpacity(0.28)
+        : presentation.accentColor;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: _cardDecoration,
+          decoration: _cardDecoration(
+            borderColor: item.isRead
+                ? _NotificationsColors.border
+                : presentation.accentColor.withOpacity(0.2),
+          ),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 4,
                 decoration: BoxDecoration(
-                  color: item.isRead
-                      ? const Color(0xFFF3F6FB)
-                      : const Color(0xFFEAF4FF),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Icon(
-                  _iconForType(item.type),
-                  color: _NotificationsColors.accentBlue,
-                  size: 22,
+                  color: accent,
+                  borderRadius: const BorderRadius.horizontal(
+                    left: Radius.circular(20),
+                  ),
                 ),
               ),
-              const SizedBox(width: 14),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            title.isEmpty ? 'Bildirishnoma' : title,
-                            style: _NotificationsTextStyles.cardTitle,
-                          ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: presentation.iconBackground,
+                          borderRadius: BorderRadius.circular(15),
                         ),
-                        if (!item.isRead) ...[
-                          const SizedBox(width: 10),
-                          Container(
-                            width: 9,
-                            height: 9,
-                            margin: const EdgeInsets.only(top: 6),
-                            decoration: const BoxDecoration(
-                              color: _NotificationsColors.accentBlue,
-                              shape: BoxShape.circle,
+                        alignment: Alignment.center,
+                        child: Icon(
+                          presentation.icon,
+                          color: presentation.iconColor,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    presentation.title,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: _NotificationsTextStyles.cardTitle,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                _StatePill(
+                                  label: item.isRead ? 'O‘qilgan' : 'Yangi',
+                                  backgroundColor: item.isRead
+                                      ? const Color(0xFFF3F6FB)
+                                      : presentation.iconBackground,
+                                  foregroundColor: item.isRead
+                                      ? _NotificationsColors.secondaryText
+                                      : presentation.iconColor,
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    if (hasMessage) ...[
-                      const SizedBox(height: 8),
-                      Text(message, style: _NotificationsTextStyles.cardBody),
+                            const SizedBox(height: 6),
+                            Text(
+                              presentation.description,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: _NotificationsTextStyles.cardBody,
+                            ),
+                            if ((presentation.reason ?? '').trim().isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(
+                                    Icons.info_outline_rounded,
+                                    size: 15,
+                                    color: presentation.iconColor,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      'Sabab: ${presentation.reason}',
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: _NotificationsTextStyles.reason,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                _MetaChip(
+                                  icon: Icons.schedule_rounded,
+                                  label: presentation.timeLabel,
+                                ),
+                                _MetaChip(
+                                  icon: Icons.sell_outlined,
+                                  label: presentation.typeLabel,
+                                  foregroundColor: presentation.iconColor,
+                                  backgroundColor: presentation.iconBackground,
+                                ),
+                                if ((presentation.childName ?? '').trim().isNotEmpty)
+                                  _MetaChip(
+                                    icon: Icons.person_outline_rounded,
+                                    label: presentation.childName!,
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        size: 20,
+                        color: _NotificationsColors.secondaryText.withOpacity(0.7),
+                      ),
                     ],
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.schedule_rounded,
-                          size: 16,
-                          color: _NotificationsColors.secondaryText,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            _notificationDate(item.createdAt),
-                            style: _NotificationsTextStyles.metadata,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ],
@@ -342,32 +458,307 @@ class _NotificationCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  String _notificationDate(DateTime value) {
-    final difference = DateTime.now().difference(value);
-    if (difference.inDays < 7) {
-      return Formatters.relative(value);
-    }
-    return Formatters.dateTime(value);
+class _NotificationDetailSheet extends StatelessWidget {
+  const _NotificationDetailSheet({
+    required this.item,
+    required this.actionLabel,
+  });
+
+  final NotificationModel item;
+  final String? actionLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final presentation = buildNotificationPresentation(item);
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1A0B1220),
+              blurRadius: 24,
+              offset: Offset(0, 12),
+            ),
+          ],
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 5,
+                  margin: const EdgeInsets.only(bottom: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD8E0EC),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: presentation.iconBackground,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      presentation.icon,
+                      color: presentation.iconColor,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          presentation.title,
+                          style: _NotificationsTextStyles.sheetTitle,
+                        ),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _StatePill(
+                              label: presentation.typeLabel,
+                              backgroundColor: presentation.iconBackground,
+                              foregroundColor: presentation.iconColor,
+                            ),
+                            _StatePill(
+                              label: presentation.readLabel,
+                              backgroundColor: item.isRead
+                                  ? const Color(0xFFF3F6FB)
+                                  : presentation.iconBackground,
+                              foregroundColor: item.isRead
+                                  ? _NotificationsColors.secondaryText
+                                  : presentation.iconColor,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                presentation.description,
+                style: _NotificationsTextStyles.sheetBody,
+              ),
+              if ((presentation.reason ?? '').trim().isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: presentation.iconBackground,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Sabab', style: _NotificationsTextStyles.detailLabel),
+                      const SizedBox(height: 4),
+                      Text(
+                        presentation.reason!,
+                        style: _NotificationsTextStyles.detailValue,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              _DetailInfoRow(
+                label: 'Kim tomonidan',
+                value: (presentation.actorName ?? '').trim().isNotEmpty
+                    ? presentation.actorName!
+                    : 'Tizim',
+              ),
+              _DetailInfoRow(
+                label: 'Qachon',
+                value: presentation.timeLabel,
+              ),
+              _DetailInfoRow(
+                label: 'Holati',
+                value: presentation.readLabel,
+              ),
+              _DetailInfoRow(
+                label: 'Turi',
+                value: presentation.typeLabel,
+              ),
+              if ((presentation.childName ?? '').trim().isNotEmpty)
+                _DetailInfoRow(
+                  label: 'Qabul qiluvchi',
+                  value: presentation.childName!,
+                ),
+              if ((presentation.amountLabel ?? '').trim().isNotEmpty)
+                _DetailInfoRow(
+                  label: 'Miqdor',
+                  value: presentation.amountLabel!,
+                ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _NotificationsColors.text,
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        side: const BorderSide(color: _NotificationsColors.border),
+                      ),
+                      child: Text(
+                        'Yopish',
+                        style: _NotificationsTextStyles.button.copyWith(
+                          color: _NotificationsColors.text,
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (actionLabel != null) ...[
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: presentation.accentColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          actionLabel!,
+                          textAlign: TextAlign.center,
+                          style: _NotificationsTextStyles.button,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
+}
 
-  IconData _iconForType(String type) {
-    final lower = type.toLowerCase();
-    if (lower.contains('payment') || lower.contains('tolov')) {
-      return Icons.account_balance_wallet_outlined;
-    }
-    if (lower.contains('student')) {
-      return Icons.groups_rounded;
-    }
-    if (lower.contains('group')) {
-      return Icons.view_module_rounded;
-    }
-    if (lower.contains('grade') ||
-        lower.contains('score') ||
-        lower.contains('baho')) {
-      return Icons.star_border_rounded;
-    }
-    return Icons.notifications_rounded;
+class _MetaChip extends StatelessWidget {
+  const _MetaChip({
+    required this.icon,
+    required this.label,
+    this.backgroundColor = const Color(0xFFF3F6FB),
+    this.foregroundColor = _NotificationsColors.secondaryText,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color backgroundColor;
+  final Color foregroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: foregroundColor),
+          const SizedBox(width: 5),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 144),
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: _NotificationsTextStyles.chip.copyWith(
+                color: foregroundColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatePill extends StatelessWidget {
+  const _StatePill({
+    required this.label,
+    required this.backgroundColor,
+    required this.foregroundColor,
+  });
+
+  final String label;
+  final Color backgroundColor;
+  final Color foregroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: _NotificationsTextStyles.chip.copyWith(color: foregroundColor),
+      ),
+    );
+  }
+}
+
+class _DetailInfoRow extends StatelessWidget {
+  const _DetailInfoRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(label, style: _NotificationsTextStyles.detailLabel),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(value, style: _NotificationsTextStyles.detailValue),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -396,31 +787,31 @@ class _NotificationsStateCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: _cardDecoration,
+      padding: const EdgeInsets.fromLTRB(18, 22, 18, 18),
+      decoration: _cardDecoration(),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 60,
-            height: 60,
+            width: 54,
+            height: 54,
             decoration: BoxDecoration(
               color: const Color(0xFFEAF4FF),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(18),
             ),
             alignment: Alignment.center,
             child: actionLabel == null && onAction == null
                 ? const SizedBox(
-                    width: 24,
-                    height: 24,
+                    width: 22,
+                    height: 22,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.2,
                       color: _NotificationsColors.accentBlue,
                     ),
                   )
-                : Icon(icon, color: _NotificationsColors.accentBlue, size: 28),
+                : Icon(icon, color: _NotificationsColors.accentBlue, size: 26),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Text(
             title,
             textAlign: TextAlign.center,
@@ -433,7 +824,7 @@ class _NotificationsStateCard extends StatelessWidget {
             style: _NotificationsTextStyles.subtitle,
           ),
           if (actionLabel != null && onAction != null) ...[
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
             FilledButton(
               onPressed: onAction,
               style: FilledButton.styleFrom(
@@ -441,7 +832,7 @@ class _NotificationsStateCard extends StatelessWidget {
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 18,
-                  vertical: 14,
+                  vertical: 13,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -456,14 +847,16 @@ class _NotificationsStateCard extends StatelessWidget {
   }
 }
 
-const BoxDecoration _cardDecoration = BoxDecoration(
-  color: _NotificationsColors.card,
-  borderRadius: BorderRadius.all(Radius.circular(18)),
-  border: Border.fromBorderSide(BorderSide(color: _NotificationsColors.border)),
-  boxShadow: [
-    BoxShadow(color: Color(0x0F0B1220), blurRadius: 18, offset: Offset(0, 8)),
-  ],
-);
+BoxDecoration _cardDecoration({Color borderColor = _NotificationsColors.border}) {
+  return BoxDecoration(
+    color: _NotificationsColors.card,
+    borderRadius: const BorderRadius.all(Radius.circular(20)),
+    border: Border.fromBorderSide(BorderSide(color: borderColor)),
+    boxShadow: const [
+      BoxShadow(color: Color(0x0F0B1220), blurRadius: 18, offset: Offset(0, 8)),
+    ],
+  );
+}
 
 class _NotificationsColors {
   const _NotificationsColors._();
@@ -480,21 +873,21 @@ class _NotificationsTextStyles {
   const _NotificationsTextStyles._();
 
   static TextStyle get title => GoogleFonts.inter(
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: FontWeight.w800,
     height: 1.2,
     color: _NotificationsColors.text,
   );
 
   static TextStyle get subtitle => GoogleFonts.inter(
-    fontSize: 14,
+    fontSize: 13.2,
     fontWeight: FontWeight.w500,
     height: 1.45,
     color: _NotificationsColors.secondaryText,
   );
 
   static TextStyle get action => GoogleFonts.inter(
-    fontSize: 14,
+    fontSize: 13.4,
     fontWeight: FontWeight.w700,
     color: _NotificationsColors.accentBlue,
   );
@@ -506,28 +899,63 @@ class _NotificationsTextStyles {
   );
 
   static TextStyle get cardTitle => GoogleFonts.inter(
-    fontSize: 15.5,
+    fontSize: 14.4,
     fontWeight: FontWeight.w700,
-    height: 1.35,
+    height: 1.3,
     color: _NotificationsColors.text,
   );
 
   static TextStyle get cardBody => GoogleFonts.inter(
-    fontSize: 14,
+    fontSize: 12.9,
     fontWeight: FontWeight.w500,
     height: 1.5,
     color: _NotificationsColors.text,
   );
 
-  static TextStyle get metadata => GoogleFonts.inter(
-    fontSize: 13,
-    fontWeight: FontWeight.w500,
+  static TextStyle get reason => GoogleFonts.inter(
+    fontSize: 12.2,
+    fontWeight: FontWeight.w600,
     height: 1.35,
     color: _NotificationsColors.secondaryText,
   );
 
+  static TextStyle get chip => GoogleFonts.inter(
+    fontSize: 11.1,
+    fontWeight: FontWeight.w700,
+    height: 1.1,
+    color: _NotificationsColors.secondaryText,
+  );
+
+  static TextStyle get detailLabel => GoogleFonts.inter(
+    fontSize: 12.2,
+    fontWeight: FontWeight.w600,
+    height: 1.35,
+    color: _NotificationsColors.secondaryText,
+  );
+
+  static TextStyle get detailValue => GoogleFonts.inter(
+    fontSize: 13.2,
+    fontWeight: FontWeight.w600,
+    height: 1.35,
+    color: _NotificationsColors.text,
+  );
+
+  static TextStyle get sheetTitle => GoogleFonts.inter(
+    fontSize: 17,
+    fontWeight: FontWeight.w800,
+    height: 1.24,
+    color: _NotificationsColors.text,
+  );
+
+  static TextStyle get sheetBody => GoogleFonts.inter(
+    fontSize: 13.2,
+    fontWeight: FontWeight.w500,
+    height: 1.52,
+    color: _NotificationsColors.text,
+  );
+
   static TextStyle get button => GoogleFonts.inter(
-    fontSize: 14,
+    fontSize: 13.2,
     fontWeight: FontWeight.w700,
     color: Colors.white,
   );

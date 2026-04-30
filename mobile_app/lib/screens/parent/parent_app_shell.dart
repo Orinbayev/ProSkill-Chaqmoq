@@ -1,4 +1,5 @@
 import 'package:chaqmoq_mobile/providers/auth_provider.dart';
+import 'package:chaqmoq_mobile/providers/notifications_provider.dart';
 import 'package:chaqmoq_mobile/providers/parent_dashboard_provider.dart';
 import 'package:chaqmoq_mobile/screens/attendance/attendance_screen.dart'
     as attendance;
@@ -6,6 +7,7 @@ import 'package:chaqmoq_mobile/screens/auth/login_screen.dart';
 import 'package:chaqmoq_mobile/screens/notifications/notifications_screen.dart';
 import 'package:chaqmoq_mobile/screens/parent/parent_dashboard_screen.dart'
     as dashboard;
+import 'package:chaqmoq_mobile/screens/parent/parent_ui.dart';
 import 'package:chaqmoq_mobile/screens/payments/payments_screen.dart'
     as payments;
 import 'package:chaqmoq_mobile/screens/profile/profile_screen.dart' as profile;
@@ -25,6 +27,16 @@ class ParentAppShell extends StatefulWidget {
 
 class _ParentAppShellState extends State<ParentAppShell> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<NotificationsProvider>().load();
+      }
+    });
+  }
 
   late final List<Widget> _screens = [
     dashboard.ParentDashboardScreen(
@@ -116,16 +128,16 @@ class _ParentAppShellState extends State<ParentAppShell> {
               currentIndex: _currentIndex,
               onTap: _setTab,
               type: BottomNavigationBarType.fixed,
-              backgroundColor: Colors.white,
-              elevation: 0,
-              selectedItemColor: const Color(0xFF1E73F8),
-              unselectedItemColor: const Color(0xFF6B7280),
-              iconSize: 24,
-              selectedFontSize: 11.5,
-              unselectedFontSize: 11.5,
-              selectedLabelStyle: _labelStyle.copyWith(
-                color: const Color(0xFF1E73F8),
-              ),
+            backgroundColor: Colors.white,
+            elevation: 0,
+            selectedItemColor: const Color(0xFF1E73F8),
+            unselectedItemColor: const Color(0xFF6B7280),
+            iconSize: 24,
+            selectedFontSize: 11,
+            unselectedFontSize: 11,
+            selectedLabelStyle: _labelStyle.copyWith(
+              color: const Color(0xFF1E73F8),
+            ),
               unselectedLabelStyle: _labelStyle.copyWith(
                 color: const Color(0xFF6B7280),
                 fontWeight: FontWeight.w600,
@@ -161,7 +173,7 @@ class _ParentAppShellState extends State<ParentAppShell> {
 
   static TextStyle get _labelStyle {
     return GoogleFonts.inter(
-      fontSize: 11.5,
+      fontSize: 11,
       height: 1.16,
       fontWeight: FontWeight.w800,
       letterSpacing: 0,
@@ -200,29 +212,29 @@ class ParentDrawer extends StatelessWidget {
       backgroundColor: const Color(0xFFF7FBFF),
       child: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
+          padding: ParentUi.screenPadding,
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: ParentUi.cardPadding,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(ParentUi.cardRadius),
                 border: Border.all(color: const Color(0xFFE5EAF2)),
               ),
               child: Row(
                 children: [
                   CircleAvatar(
-                    radius: 26,
+                    radius: 24,
                     backgroundColor: const Color(0xFFEAF4FF),
                     child: Text(
                       _initials(name),
                       style: _ParentAppShellState._labelStyle.copyWith(
                         color: const Color(0xFF1E73F8),
-                        fontSize: 16,
+                        fontSize: 15,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,7 +244,7 @@ class ParentDrawer extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: _ParentAppShellState._labelStyle.copyWith(
-                            fontSize: 16,
+                            fontSize: 15,
                             color: const Color(0xFF111827),
                           ),
                         ),

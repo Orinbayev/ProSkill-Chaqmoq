@@ -2,10 +2,12 @@ import 'package:chaqmoq_mobile/models/app_models.dart';
 import 'package:chaqmoq_mobile/models/parent_models.dart';
 import 'package:chaqmoq_mobile/providers/app_preferences_provider.dart';
 import 'package:chaqmoq_mobile/providers/auth_provider.dart';
+import 'package:chaqmoq_mobile/providers/notifications_provider.dart';
 import 'package:chaqmoq_mobile/providers/parent_dashboard_provider.dart';
 import 'package:chaqmoq_mobile/screens/auth/login_screen.dart';
 import 'package:chaqmoq_mobile/screens/notifications/notifications_screen.dart';
 import 'package:chaqmoq_mobile/screens/parent/add_child_screen.dart';
+import 'package:chaqmoq_mobile/screens/parent/parent_ui.dart';
 import 'package:chaqmoq_mobile/screens/profile/about_app_screen.dart';
 import 'package:chaqmoq_mobile/screens/profile/edit_profile_screen.dart';
 import 'package:chaqmoq_mobile/screens/profile/help_support_screen.dart';
@@ -313,7 +315,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               physics: const AlwaysScrollableScrollPhysics(
                 parent: BouncingScrollPhysics(),
               ),
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
+              padding: ParentUi.screenPadding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
@@ -321,7 +323,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onNotifications: _openNotifications,
                     onSettings: _openSettingsScreen,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: ParentUi.sectionGap),
                   if (_state == ViewState.loading && _data == null)
                     const _ProfileStateCard.loading()
                   else if (_state == ViewState.error && _data == null)
@@ -337,15 +339,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: ProfileColors.primaryBlue,
                         backgroundColor: Color(0xFFEAF4FF),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
                     ],
                     ParentInfoCard(parent: parent, onTap: _openEditProfile),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: ParentUi.sectionGap),
                     ChildrenSection(
                       children: children,
                       onAddChild: _openAddChild,
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: ParentUi.sectionGap),
                     SettingsListCard(
                       languageLabel: preferences.languageLabel,
                       themeLabel: preferences.themeLabel,
@@ -402,7 +404,7 @@ class ProfileHeader extends StatelessWidget {
                 'Profil',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: ProfileTextStyles.title.copyWith(fontSize: 28),
+                style: ProfileTextStyles.title.copyWith(fontSize: 22),
               ),
             ],
           ),
@@ -440,20 +442,21 @@ class ParentInfoCard extends StatelessWidget {
 
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(ParentUi.cardRadius),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(ParentUi.cardRadius),
         child: ProfileCard(
-          padding: const EdgeInsets.fromLTRB(18, 18, 16, 18),
+          padding: ParentUi.cardPadding,
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Stack(
                 clipBehavior: Clip.none,
                 children: <Widget>[
                   Container(
-                    width: 88,
-                    height: 88,
+                    width: 72,
+                    height: 72,
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
                       color: Color(0xFFE7F0FF),
@@ -462,7 +465,7 @@ class ParentInfoCard extends StatelessWidget {
                     child: AdaptiveAvatar(
                       name: name,
                       imageUrl: parent?.avatarUrl ?? '',
-                      size: 88,
+                      size: 72,
                       icon: Icons.person_outline_rounded,
                     ),
                   ),
@@ -470,8 +473,8 @@ class ParentInfoCard extends StatelessWidget {
                     right: -2,
                     bottom: -2,
                     child: Container(
-                      width: 34,
-                      height: 34,
+                      width: 28,
+                      height: 28,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
@@ -481,13 +484,13 @@ class ParentInfoCard extends StatelessWidget {
                       child: const Icon(
                         Icons.photo_camera_outlined,
                         color: ProfileColors.primaryBlue,
-                        size: 19,
+                        size: 16,
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -496,30 +499,33 @@ class ParentInfoCard extends StatelessWidget {
                       name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: ProfileTextStyles.title.copyWith(fontSize: 20),
+                      style: ProfileTextStyles.title.copyWith(fontSize: 17),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 3),
                     Text(
                       'Ota-ona paneli',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: ProfileTextStyles.body.copyWith(
                         color: ProfileColors.secondaryText,
-                        fontSize: 14,
+                        fontSize: 12.6,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     _ContactLine(icon: Icons.phone_outlined, text: phone),
-                    const SizedBox(height: 7),
+                    const SizedBox(height: 5),
                     _ContactLine(icon: Icons.mail_outline_rounded, text: email),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: Color(0xFF8B95A1),
-                size: 22,
+              const SizedBox(width: 6),
+              const Padding(
+                padding: EdgeInsets.only(top: 4),
+                child: Icon(
+                  Icons.chevron_right_rounded,
+                  color: Color(0xFF8B95A1),
+                  size: 22,
+                ),
               ),
             ],
           ),
@@ -556,7 +562,7 @@ class ChildrenSection extends StatelessWidget {
                 'Mening farzandlarim',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: ProfileTextStyles.title.copyWith(fontSize: 18),
+                style: ProfileTextStyles.title.copyWith(fontSize: 17),
               ),
             ),
             TextButton(
@@ -572,16 +578,16 @@ class ChildrenSection extends StatelessWidget {
                 children: <Widget>[
                   Text(
                     'Qo‘shish',
-                    style: ProfileTextStyles.link.copyWith(fontSize: 14),
+                    style: ProfileTextStyles.link.copyWith(fontSize: 13.2),
                   ),
-                  const SizedBox(width: 6),
-                  const Icon(Icons.add_rounded, size: 22),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.add_rounded, size: 18),
                 ],
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         if (children.isEmpty)
           ProfileCard(
             padding: const EdgeInsets.all(18),
@@ -589,28 +595,37 @@ class ChildrenSection extends StatelessWidget {
               'Farzandlar ro‘yxati topilmadi',
               style: ProfileTextStyles.body.copyWith(
                 color: ProfileColors.secondaryText,
-                fontSize: 13.5,
+                fontSize: 12.8,
               ),
             ),
           )
         else
-          SizedBox(
-            height: 206,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              itemCount: children.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 12),
-              itemBuilder: (BuildContext context, int index) {
-                final child = children[index];
-                return ChildCard(
-                  child: child,
-                  selected:
-                      child.id == selectedId ||
-                      (selectedId == null && index == 0),
-                );
-              },
-            ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final cardWidth = constraints.maxWidth < 360
+                  ? constraints.maxWidth * 0.76
+                  : constraints.maxWidth * 0.66;
+              final resolvedWidth = cardWidth.clamp(188.0, 236.0).toDouble();
+              return SizedBox(
+                height: 184,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: children.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 12),
+                  itemBuilder: (BuildContext context, int index) {
+                    final child = children[index];
+                    return ChildCard(
+                      child: child,
+                      selected:
+                          child.id == selectedId ||
+                          (selectedId == null && index == 0),
+                      width: resolvedWidth,
+                    );
+                  },
+                ),
+              );
+            },
           ),
       ],
     );
@@ -622,28 +637,35 @@ class ChildCard extends StatelessWidget {
     super.key,
     required this.child,
     required this.selected,
+    required this.width,
   });
 
   final ParentChildModel child;
   final bool selected;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
-    final groupLine = _childGroupLine(child);
-    final displayId = child.childCode.isNotEmpty ? 'Kod: ${child.childCode}' : '';
+    final chips = <String>[
+      if (child.childCode.trim().isNotEmpty) 'Kod: ${child.childCode.trim()}',
+    ];
+    final summaryLine = <String>[
+      if (child.className.trim().isNotEmpty) child.className.trim(),
+      if (child.groupName.trim().isNotEmpty) child.groupName.trim(),
+    ].join(' • ');
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(ParentUi.cardRadius),
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(ParentUi.cardRadius),
         onTap: () =>
             context.read<ParentDashboardProvider>().selectChild(child.id),
         child: Ink(
-          width: 214,
-          padding: const EdgeInsets.fromLTRB(14, 18, 14, 14),
+          width: width,
+          padding: ParentUi.denseCardPadding,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(ParentUi.cardRadius),
             border: Border.all(
               color: selected
                   ? ProfileColors.primaryBlue
@@ -652,15 +674,17 @@ class ChildCard extends StatelessWidget {
             ),
             boxShadow: ProfileShadows.card,
           ),
-          child: Stack(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
-              if (selected)
-                Positioned(
-                  right: 0,
-                  top: 0,
+              Align(
+                alignment: Alignment.topRight,
+                child: AnimatedOpacity(
+                  opacity: selected ? 1 : 0,
+                  duration: const Duration(milliseconds: 180),
                   child: Container(
-                    width: 26,
-                    height: 26,
+                    width: 20,
+                    height: 20,
                     decoration: const BoxDecoration(
                       color: ProfileColors.primaryBlue,
                       shape: BoxShape.circle,
@@ -668,82 +692,89 @@ class ChildCard extends StatelessWidget {
                     child: const Icon(
                       Icons.check_rounded,
                       color: Colors.white,
-                      size: 18,
+                      size: 14,
                     ),
                   ),
                 ),
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Container(
-                      width: 68,
-                      height: 68,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: selected
-                              ? ProfileColors.primaryBlue.withValues(alpha: 0.18)
-                              : ProfileColors.border,
-                        ),
-                      ),
-                      child: AdaptiveAvatar(
-                        name: child.fullName,
-                        imageUrl: child.avatarUrl,
-                        size: 60,
-                        icon: Icons.school_rounded,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      child.fullName,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: ProfileTextStyles.title.copyWith(
-                        fontSize: 15.2,
-                        height: 1.18,
-                      ),
-                    ),
-                    const SizedBox(height: 7),
-                    Text(
-                      groupLine,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: ProfileTextStyles.body.copyWith(
-                        color: ProfileColors.secondaryText,
-                        fontSize: 12.8,
-                        height: 1.28,
-                      ),
-                    ),
-                    if (displayId.isNotEmpty) ...<Widget>[
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF4F7FB),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          displayId,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: ProfileTextStyles.body.copyWith(
-                            color: ProfileColors.secondaryText,
-                            fontSize: 12.5,
+              ),
+              Container(
+                width: 58,
+                height: 58,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: selected
+                        ? ProfileColors.primaryBlue.withValues(alpha: 0.18)
+                        : ProfileColors.border,
+                  ),
+                ),
+                child: AdaptiveAvatar(
+                  name: child.fullName,
+                  imageUrl: child.avatarUrl,
+                  size: 50,
+                  icon: Icons.school_rounded,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                child.fullName,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: ProfileTextStyles.title.copyWith(
+                  fontSize: 13.8,
+                  height: 1.18,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                summaryLine.isNotEmpty
+                    ? summaryLine
+                    : 'Guruh biriktirilmagan',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: ProfileTextStyles.body.copyWith(
+                  color: ProfileColors.secondaryText,
+                  fontSize: 11.8,
+                  height: 1.25,
+                ),
+              ),
+              if (chips.isNotEmpty) ...<Widget>[
+                const SizedBox(height: 8),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final chip in chips)
+                      ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: width - 42),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF4F7FB),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            chip,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: ProfileTextStyles.body.copyWith(
+                              color: ProfileColors.secondaryText,
+                              fontSize: 11.2,
+                            ),
                           ),
                         ),
                       ),
-                    ],
                   ],
                 ),
-              ),
+              ],
             ],
           ),
         ),
@@ -870,19 +901,19 @@ class SettingsRow extends StatelessWidget {
         InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+            padding: ParentUi.denseCardPadding,
             child: Row(
               children: <Widget>[
                 Container(
-                  width: 42,
-                  height: 42,
+                  width: 38,
+                  height: 38,
                   decoration: BoxDecoration(
                     color: data.iconBackground,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(data.icon, color: data.iconColor, size: 23),
+                  child: Icon(data.icon, color: data.iconColor, size: 20),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -895,11 +926,11 @@ class SettingsRow extends StatelessWidget {
                           color: data.destructive
                               ? ProfileColors.red
                               : ProfileColors.text,
-                          fontSize: 15.5,
+                          fontSize: 14.4,
                         ),
                       ),
                       if (data.subtitle != null) ...<Widget>[
-                        const SizedBox(height: 5),
+                        const SizedBox(height: 4),
                         Text(
                           data.subtitle!,
                           maxLines: 2,
@@ -908,7 +939,7 @@ class SettingsRow extends StatelessWidget {
                             color: data.destructive
                                 ? ProfileColors.red
                                 : ProfileColors.secondaryText,
-                            fontSize: 13,
+                            fontSize: 12.4,
                           ),
                         ),
                       ],
@@ -925,17 +956,17 @@ class SettingsRow extends StatelessWidget {
                       textAlign: TextAlign.right,
                       style: ProfileTextStyles.body.copyWith(
                         color: ProfileColors.secondaryText,
-                        fontSize: 13,
+                        fontSize: 12.4,
                       ),
                     ),
                   ),
                 ],
                 if (!data.destructive) ...<Widget>[
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 4),
                   const Icon(
                     Icons.chevron_right_rounded,
                     color: Color(0xFF8B95A1),
-                    size: 20,
+                    size: 18,
                   ),
                 ],
               ],
@@ -977,10 +1008,10 @@ class ParentBottomNav extends StatelessWidget {
             selectedItemColor: ProfileColors.primaryBlue,
             unselectedItemColor: ProfileColors.secondaryText,
             selectedLabelStyle: ProfileTextStyles.label.copyWith(
-              fontSize: 11.5,
+              fontSize: 11,
             ),
             unselectedLabelStyle: ProfileTextStyles.label.copyWith(
-              fontSize: 11.5,
+              fontSize: 11,
               fontWeight: FontWeight.w600,
             ),
             items: const <BottomNavigationBarItem>[
@@ -1025,7 +1056,7 @@ class ProfileCard extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(ParentUi.cardRadius),
         border: Border.all(color: ProfileColors.border),
         boxShadow: ProfileShadows.card,
       ),
@@ -1045,7 +1076,7 @@ class _ContactLine extends StatelessWidget {
     return Row(
       children: <Widget>[
         Icon(icon, color: ProfileColors.secondaryText, size: 18),
-        const SizedBox(width: 9),
+        const SizedBox(width: 8),
         Expanded(
           child: Text(
             text,
@@ -1053,7 +1084,7 @@ class _ContactLine extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: ProfileTextStyles.body.copyWith(
               color: ProfileColors.secondaryText,
-              fontSize: 13.5,
+              fontSize: 12.6,
             ),
           ),
         ),
@@ -1075,8 +1106,13 @@ class _CircleActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final int unreadCount =
+    final notifications = context.watch<NotificationsProvider>();
+    final fallbackUnreadCount =
         context.watch<ParentDashboardProvider>().data?.unreadNotifications ?? 0;
+    final unreadCount = ParentUi.resolveUnreadCount(
+      notifications: notifications,
+      fallback: fallbackUnreadCount,
+    );
     return Stack(
       clipBehavior: Clip.none,
       children: <Widget>[
@@ -1084,8 +1120,8 @@ class _CircleActionButton extends StatelessWidget {
           onTap: onTap,
           customBorder: const CircleBorder(),
           child: Container(
-            width: 46,
-            height: 46,
+            width: ParentUi.iconButtonSize,
+            height: ParentUi.iconButtonSize,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: Colors.white,
@@ -1093,7 +1129,7 @@ class _CircleActionButton extends StatelessWidget {
               border: Border.all(color: ProfileColors.border),
               boxShadow: ProfileShadows.soft,
             ),
-            child: Icon(icon, color: ProfileColors.text, size: 25),
+            child: Icon(icon, color: ProfileColors.text, size: 22),
           ),
         ),
         if (showBadge && unreadCount > 0)
@@ -1102,7 +1138,7 @@ class _CircleActionButton extends StatelessWidget {
             top: 2,
             child: Container(
               constraints: const BoxConstraints(minWidth: 18),
-              height: 18,
+              height: ParentUi.miniBadgeHeight,
               alignment: Alignment.center,
               padding: const EdgeInsets.symmetric(horizontal: 4),
               decoration: BoxDecoration(
@@ -1114,7 +1150,7 @@ class _CircleActionButton extends StatelessWidget {
                 unreadCount > 99 ? '99+' : '$unreadCount',
                 style: ProfileTextStyles.label.copyWith(
                   color: Colors.white,
-                  fontSize: 9.5,
+                  fontSize: 9,
                   height: 1,
                 ),
               ),
@@ -1146,10 +1182,10 @@ class _ProfileStateCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ProfileCard(
-      padding: const EdgeInsets.fromLTRB(18, 36, 18, 36),
+      padding: const EdgeInsets.fromLTRB(18, 28, 18, 28),
       child: loading
           ? const SizedBox(
-              height: 220,
+              height: 200,
               child: Center(
                 child: CircularProgressIndicator(
                   color: ProfileColors.primaryBlue,
@@ -1167,7 +1203,7 @@ class _ProfileStateCard extends StatelessWidget {
                 Text(
                   title,
                   textAlign: TextAlign.center,
-                  style: ProfileTextStyles.title.copyWith(fontSize: 19),
+                  style: ProfileTextStyles.title.copyWith(fontSize: 18),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -1193,14 +1229,6 @@ class _ProfileStateCard extends StatelessWidget {
             ),
     );
   }
-}
-
-String _childGroupLine(ParentChildModel child) {
-  final List<String> parts = <String>[
-    if (child.className.trim().isNotEmpty) child.className.trim(),
-    if (child.groupName.trim().isNotEmpty) child.groupName.trim(),
-  ];
-  return parts.isEmpty ? 'Guruh biriktirilmagan' : parts.join(' • ');
 }
 
 enum ProfileAction {
@@ -1256,7 +1284,7 @@ class ProfileTextStyles {
 
   static TextStyle get title {
     return GoogleFonts.inter(
-      fontSize: 18,
+      fontSize: 17,
       height: 1.16,
       fontWeight: FontWeight.w800,
       color: ProfileColors.text,
@@ -1266,7 +1294,7 @@ class ProfileTextStyles {
 
   static TextStyle get body {
     return GoogleFonts.inter(
-      fontSize: 15,
+      fontSize: 14,
       height: 1.28,
       fontWeight: FontWeight.w500,
       color: ProfileColors.text,
@@ -1276,7 +1304,7 @@ class ProfileTextStyles {
 
   static TextStyle get label {
     return GoogleFonts.inter(
-      fontSize: 13,
+      fontSize: 12.5,
       height: 1.16,
       fontWeight: FontWeight.w800,
       color: ProfileColors.text,
@@ -1286,7 +1314,7 @@ class ProfileTextStyles {
 
   static TextStyle get link {
     return GoogleFonts.inter(
-      fontSize: 15,
+      fontSize: 14,
       height: 1.16,
       fontWeight: FontWeight.w800,
       color: ProfileColors.primaryBlue,

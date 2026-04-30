@@ -3038,7 +3038,6 @@ html[data-role-theme="light"] body.director-boshqaruv-page .bq-sdrawer-extra-tog
   <div class="bq-sdrawer__header">
     <div>
       <h3 class="bq-sdrawer__title">Yangi talaba qo'shish</h3>
-      <p class="bq-sdrawer__sub">Studentni shu dashboard ichidan yaratish va saqlash mumkin.</p>
     </div>
     <button class="bq-sdrawer__close" id="bqStudentDrawerClose" type="button" aria-label="Yopish">
       <i class="fa-solid fa-xmark"></i>
@@ -4671,38 +4670,27 @@ function initStudentDrawerExtraFields(){
 }
 
 function initStudentDrawerOptionalSections(){
-  function clearSection(sectionName){
-    const section=studentDrawerBody.querySelector(`[data-optional-section="${sectionName}"]`);
-    if(!section) return;
+  function syncSectionToggle(sectionName, visible){
+    const toggle=studentDrawerBody.querySelector(`[data-section-toggle="${sectionName}"]`);
+    if(!toggle) return;
 
-    section.querySelectorAll('input, textarea, select').forEach(input=>{
-      if(input.tagName === 'SELECT'){
-        input.selectedIndex = 0;
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-        return;
-      }
-      if(input.type === 'checkbox' || input.type === 'radio'){
-        input.checked = false;
-        return;
-      }
-      input.value = '';
-    });
+    const openLabel=toggle.dataset.openLabel || 'Ochish';
+    const closeLabel=toggle.dataset.closeLabel || openLabel;
+    toggle.classList.toggle('is-active', visible);
+    toggle.setAttribute('aria-expanded', visible ? 'true' : 'false');
+    toggle.textContent = visible ? closeLabel : openLabel;
   }
 
   function setSectionVisibility(sectionName, visible){
     const section=studentDrawerBody.querySelector(`[data-optional-section="${sectionName}"]`);
-    const toggle=studentDrawerBody.querySelector(`[data-section-toggle="${sectionName}"]`);
-    if(!section || !toggle) return;
+    if(!section) return;
 
     section.hidden = !visible;
-    toggle.classList.toggle('is-active', visible);
+    syncSectionToggle(sectionName, visible);
 
     if(visible){
       section.querySelector('input, textarea, select')?.focus();
-      return;
     }
-
-    clearSection(sectionName);
   }
 
   studentDrawerBody.querySelectorAll('[data-section-toggle]').forEach(btn=>{
@@ -4717,6 +4705,10 @@ function initStudentDrawerOptionalSections(){
     btn.addEventListener('click',()=>{
       setSectionVisibility(btn.dataset.sectionClose, false);
     });
+  });
+
+  studentDrawerBody.querySelectorAll('[data-optional-section]').forEach(section=>{
+    setSectionVisibility(section.dataset.optionalSection, !section.hidden);
   });
 }
 

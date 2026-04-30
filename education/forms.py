@@ -293,6 +293,48 @@ class EnrollmentExistingForm(forms.Form):
         return enr
 
 
+class StudentGroupTransferForm(forms.Form):
+    new_group = forms.ModelChoiceField(
+        queryset=Group.objects.none(),
+        label="Yangi guruh",
+        empty_label="Yangi guruhni tanlang",
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    transfer_date = forms.DateField(
+        label="Ko'chirish sanasi",
+        required=False,
+        initial=timezone.localdate,
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+    )
+    reason = forms.CharField(
+        label="Ko'chirish sababi (ixtiyoriy)",
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 4, "placeholder": "Masalan: jadval mos kelmadi"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.old_group = kwargs.pop("old_group")
+        self.center = kwargs.pop("center", None) or self.old_group.center
+        super().__init__(*args, **kwargs)
+        self.fields["new_group"].queryset = (
+            Group.objects
+            .filter(center=self.center, is_archived=False)
+            .exclude(pk=self.old_group.pk)
+            .order_by("nom")
+        )
+
+    def clean_new_group(self):
+        new_group = self.cleaned_data["new_group"]
+        if new_group.pk == self.old_group.pk:
+            raise forms.ValidationError("Yangi guruh eski guruh bilan bir xil bo'lishi mumkin emas.")
+        if new_group.center_id != self.old_group.center_id:
+            raise forms.ValidationError("Boshqa o'quv markaz guruhiga ko'chirish mumkin emas.")
+        return new_group
+
+    def clean_transfer_date(self):
+        return self.cleaned_data.get("transfer_date") or timezone.localdate()
+
+
 class EnrollmentCreateStudentForm(forms.Form):
     """
     Yangi o‘quvchini yaratib shu zahoti guruhga qo‘shish.

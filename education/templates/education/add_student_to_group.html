@@ -1,1120 +1,845 @@
 {% extends 'base.html' %}
-{% load static %}
+
+{% block body_class %}student-add-compact-page{% endblock %}
 
 {% block extra_css %}
 <style>
   :root {
-    --glass-bg: rgba(255, 255, 255, 0.03);
-    --glass-border: rgba(255, 255, 255, 0.08);
-    --glass-hover: rgba(56, 189, 248, 0.12);
-    --accent: #38bdf8;
-    --success: #22c55e;
-    --warning: #f59e0b;
-    --danger: #ef4444;
+    --sac-bg: #0b0f14;
+    --sac-panel: #11161d;
+    --sac-panel-soft: #151b23;
+    --sac-border: rgba(148, 163, 184, 0.14);
+    --sac-border-strong: rgba(148, 163, 184, 0.24);
+    --sac-text: #f3f5f7;
+    --sac-muted: #97a3b6;
+    --sac-accent: #4f8cff;
+    --sac-accent-soft: rgba(79, 140, 255, 0.14);
+    --sac-success: #23c16b;
+    --sac-success-soft: rgba(35, 193, 107, 0.14);
+    --sac-danger: #f05a7e;
+    --sac-danger-soft: rgba(240, 90, 126, 0.14);
+    --sac-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
+    --sac-radius: 12px;
   }
 
-  .wrapper {
-    max-width: 650px;
-    margin: 2rem auto;
-    padding: 2.5rem;
-    border-radius: 24px;
-    background: linear-gradient(145deg, rgba(15, 23, 42, 0.4), rgba(2, 6, 23, 0.6));
-    border: 1px solid var(--glass-border);
-    backdrop-filter: blur(20px);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    position: relative;
-    overflow: hidden;
+  body.student-add-compact-page {
+    background: var(--sac-bg);
+    color: var(--sac-text);
   }
 
-  .wrapper::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.05), transparent 50%);
-    pointer-events: none;
-    z-index: 0;
+  .sac-page {
+    min-height: calc(100vh - 72px);
+    padding: 20px 16px 104px;
+    font-family: Inter, "Segoe UI", sans-serif;
   }
 
-  .wrapper>* {
-    position: relative;
-    z-index: 1;
+  .sac-shell {
+    width: min(960px, 100%);
+    margin: 0 auto;
   }
 
-  h2 {
-    font-weight: 800;
-    font-size: 1.75rem;
-    margin-bottom: 0.5rem;
-    color: #fff;
-    letter-spacing: -0.025em;
-  }
-
-  p.subtitle {
-    color: var(--muted);
-    font-size: 0.95rem;
-    margin-bottom: 2rem;
-  }
-
-  /* Search Box */
-  .search-container {
-    position: relative;
-    margin-bottom: 1.5rem;
-  }
-
-  .search-container label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 0.75rem;
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 0.9rem;
-  }
-
-  .search-input-wrap {
-    position: relative;
-  }
-
-  .search-input {
-    width: 100%;
-    background: rgba(2, 6, 23, 0.5);
-    border: 1px solid var(--glass-border);
-    border-radius: 16px;
-    padding: 1rem 1rem 1rem 3rem;
-    color: #fff;
-    font-size: 1rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    outline: none !important;
-  }
-
-  .search-input:focus {
-    border-color: var(--accent);
-    background: rgba(2, 6, 23, 0.8);
-    box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15);
-  }
-
-  .search-icon {
-    position: absolute;
-    left: 1.2rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--muted);
-    font-size: 1.1rem;
-    transition: color 0.3s;
-  }
-
-  .search-input:focus+.search-icon {
-    color: var(--accent);
-  }
-
-  .loading-spinner {
-    position: absolute;
-    right: 1.2rem;
-    top: 50%;
-    transform: translateY(-50%);
-    display: none;
-  }
-
-  /* Results List */
-  .results-list {
-    background: rgba(2, 6, 23, 0.4);
-    border: 1px solid var(--glass-border);
-    border-radius: 18px;
-    max-height: 420px;
-    overflow-y: auto;
-    margin-top: 0.5rem;
-    display: none;
-    padding: 6px;
-  }
-
-  .results-list.active {
-    display: block;
-    animation: slideUp 0.3s ease-out;
-  }
-
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .student-card {
+  .sac-header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
-    padding: 12px 16px;
-    border-radius: 14px;
-    cursor: pointer;
-    transition: all 0.2s;
-    margin-bottom: 4px;
-    border: 1px solid transparent;
+    gap: 16px;
+    margin-bottom: 18px;
   }
 
-  .student-card:hover,
-  .student-card.focused {
-    background: var(--glass-hover);
-    border-color: rgba(56, 189, 248, 0.2);
-  }
-
-  .student-card.disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .student-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .student-name {
+  .sac-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid var(--sac-border);
+    background: var(--sac-panel);
+    color: var(--sac-text);
+    text-decoration: none;
+    font-size: 13px;
     font-weight: 700;
+  }
+
+  .sac-back:hover {
+    border-color: var(--sac-border-strong);
     color: #fff;
-    font-size: 0.95rem;
   }
 
-  .student-phone {
-    font-size: 0.8rem;
-    color: var(--muted);
+  .sac-title {
+    margin: 14px 0 4px;
+    font-size: 30px;
+    line-height: 1.1;
+    font-weight: 800;
+    letter-spacing: -0.02em;
   }
 
-  .status-badge {
-    font-size: 0.75rem;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-weight: 600;
-    letter-spacing: 0.025em;
+  .sac-subtitle {
+    margin: 0;
+    color: var(--sac-muted);
+    font-size: 14px;
+    line-height: 1.5;
   }
 
-  .badge-current {
-    background: rgba(245, 158, 11, 0.15);
-    color: var(--warning);
-    border: 1px solid rgba(245, 158, 11, 0.2);
-  }
-
-  .badge-other {
-    background: rgba(56, 189, 248, 0.15);
-    color: var(--accent);
-    border: 1px solid rgba(56, 189, 248, 0.2);
-  }
-
-  /* Empty/No data State */
-	  .no-results {
-	    padding: 2rem;
-	    text-align: center;
-	    color: var(--muted);
-	    font-style: italic;
-	  }
-
-	  .enrollment-setup {
-	    margin-bottom: 1.5rem;
-	    padding: 18px;
-	    border-radius: 18px;
-	    background: rgba(2, 6, 23, 0.36);
-	    border: 1px solid var(--glass-border);
-	  }
-
-	  .setup-grid {
-	    display: grid;
-	    grid-template-columns: minmax(170px, 0.9fr) minmax(260px, 1.4fr);
-	    gap: 16px;
-	    align-items: end;
-	  }
-
-	  .setup-field label,
-	  .pattern-label {
-	    display: block;
-	    color: rgba(255, 255, 255, 0.88);
-	    font-size: 0.78rem;
-	    font-weight: 800;
-	    letter-spacing: 0.06em;
-	    text-transform: uppercase;
-	    margin-bottom: 9px;
-	  }
-
-	  .setup-input {
-	    width: 100%;
-	    height: 46px;
-	    border-radius: 12px;
-	    border: 1px solid var(--glass-border);
-	    background: rgba(2, 6, 23, 0.62);
-	    color: #fff;
-	    padding: 0 14px;
-	    font-weight: 700;
-	    outline: none;
-	  }
-
-	  .setup-input:focus {
-	    border-color: var(--accent);
-	    box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.14);
-	  }
-
-	  .pattern-toggle {
-	    display: grid;
-	    grid-template-columns: repeat(3, minmax(0, 1fr));
-	    gap: 8px;
-	    padding: 5px;
-	    border-radius: 14px;
-	    background: rgba(15, 23, 42, 0.72);
-	    border: 1px solid var(--glass-border);
-	  }
-
-	  .pattern-toggle input {
-	    position: absolute;
-	    opacity: 0;
-	    pointer-events: none;
-	  }
-
-	  .pattern-toggle label {
-	    position: relative;
-	    display: block;
-	  }
-
-	  .pattern-toggle span {
-	    display: flex;
-	    flex-direction: column;
-	    align-items: flex-start;
-	    justify-content: center;
-	    gap: 4px;
-	    min-height: 62px;
-	    border-radius: 10px;
-	    padding: 10px 12px;
-	    color: #94a3b8;
-	    line-height: 1.15;
-	    text-align: left;
-	    cursor: pointer;
-	    transition: all 0.18s ease;
-	  }
-
-	  .pattern-option-title {
-	    font-weight: 800;
-	    font-size: 0.86rem;
-	    color: inherit;
-	  }
-
-	  .pattern-option-hint {
-	    display: block;
-	    font-size: 0.72rem;
-	    font-weight: 700;
-	    color: rgba(148, 163, 184, 0.92);
-	  }
-
-	  .pattern-toggle input:checked + span {
-	    background: #2563eb;
-	    color: #fff;
-	    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.26);
-	  }
-
-	  .pattern-toggle input:checked + span .pattern-option-hint {
-	    color: rgba(255, 255, 255, 0.88);
-	  }
-
-	  .preview-panel {
-	    margin-top: 16px;
-	    display: grid;
-	    grid-template-columns: repeat(4, minmax(0, 1fr));
-	    gap: 10px;
-	  }
-
-	  .preview-metric {
-	    min-height: 86px;
-	    padding: 14px;
-	    border-radius: 14px;
-	    background: rgba(15, 23, 42, 0.62);
-	    border: 1px solid rgba(255, 255, 255, 0.08);
-	  }
-
-	  .preview-label {
-	    display: block;
-	    color: #94a3b8;
-	    font-size: 0.72rem;
-	    font-weight: 800;
-	    letter-spacing: 0.06em;
-	    text-transform: uppercase;
-	    margin-bottom: 8px;
-	  }
-
-	  .preview-value {
-	    color: #f8fafc;
-	    font-size: 1.05rem;
-	    font-weight: 900;
-	    line-height: 1.25;
-	  }
-
-	  .preview-metric.highlight {
-	    background: linear-gradient(180deg, rgba(34, 197, 94, 0.18), rgba(15, 23, 42, 0.72));
-	    border-color: rgba(34, 197, 94, 0.26);
-	  }
-
-	  .preview-note {
-	    margin-top: 12px;
-	    padding: 14px 16px;
-	    border-radius: 14px;
-	    background: rgba(15, 23, 42, 0.62);
-	    border: 1px solid rgba(255, 255, 255, 0.08);
-	  }
-
-	  .preview-note-title {
-	    color: #f8fafc;
-	    font-size: 0.86rem;
-	    font-weight: 800;
-	    line-height: 1.4;
-	  }
-
-	  .preview-note-copy {
-	    margin-top: 6px;
-	    color: #94a3b8;
-	    font-size: 0.76rem;
-	    font-weight: 700;
-	    line-height: 1.5;
-	  }
-
-  /* Back Button */
-  .back-btn {
+  .sac-group-chip {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    color: var(--muted);
-    text-decoration: none;
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin-bottom: 1.5rem;
-    transition: color 0.2s;
-  }
-
-  .back-btn:hover {
-    color: #fff;
-  }
-
-  /* Custom Confirmation Modal */
-  .confirm-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(8px);
-    z-index: 1050;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s;
-  }
-
-  .confirm-overlay.active {
-    opacity: 1;
-    visibility: visible;
-  }
-
-  .confirm-modal {
-    background: #0f172a;
-    border: 1px solid var(--glass-border);
-    border-radius: 24px;
-    width: 100%;
-    max-width: 440px;
-    padding: 2rem;
-    transform: scale(0.9);
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6);
-  }
-
-  .confirm-overlay.active .confirm-modal {
-    transform: scale(1);
-  }
-
-  .confirm-icon {
-    width: 64px;
-    height: 64px;
-    background: rgba(56, 189, 248, 0.1);
-    color: var(--accent);
-    border-radius: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.75rem;
-    margin: 0 auto 1.5rem;
-  }
-
-  .confirm-title {
-    text-align: center;
-    font-weight: 800;
-    margin-bottom: 0.75rem;
-    color: #fff;
-  }
-
-  .confirm-text {
-    text-align: center;
-    color: var(--muted);
-    font-size: 0.95rem;
-    line-height: 1.5;
-    margin-bottom: 2rem;
-  }
-
-  .confirm-actions {
-    display: flex;
-    gap: 12px;
-  }
-
-  .btn-confirm {
-    flex: 1;
-    padding: 12px;
-    border-radius: 14px;
+    min-height: 32px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid var(--sac-border);
+    background: var(--sac-panel);
+    color: var(--sac-muted);
+    font-size: 12px;
     font-weight: 700;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
+    white-space: nowrap;
   }
 
-  .btn-cancel {
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
+  .sac-stack {
+    display: grid;
+    gap: 14px;
   }
 
-  .btn-cancel:hover {
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  .btn-submit {
-    background: var(--success);
-    color: #062314;
-  }
-
-  .btn-submit:hover {
-    filter: brightness(1.1);
-    transform: translateY(-2px);
-  }
-
-  /* Toast helper */
-  #toast-container {
-    position: fixed;
-    top: 2rem;
-    right: 2rem;
-    z-index: 2000;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .custom-toast {
-    padding: 14px 20px;
+  .sac-panel {
+    border: 1px solid var(--sac-border);
     border-radius: 14px;
-    background: rgba(15, 23, 42, 0.9);
-    border: 1px solid var(--glass-border);
-    color: #fff;
-    backdrop-filter: blur(10px);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 300px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
+    background: var(--sac-panel);
+    box-shadow: var(--sac-shadow);
   }
 
-  @keyframes slideInRight {
-    from {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-
-    to {
-      transform: translateX(0);
-      opacity: 1;
-    }
-  }
-
-  .custom-toast.hide {
-    animation: slideOutRight 0.3s forwards;
-  }
-
-  @keyframes slideOutRight {
-    to {
-      transform: translateX(120%);
-      opacity: 0;
-    }
-  }
-
-  .custom-toast::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 4px;
-  }
-
-  .toast-success::before {
-    background: var(--success);
-  }
-
-  .toast-warning::before {
-    background: var(--warning);
-  }
-
-  .toast-error::before {
-    background: var(--danger);
-  }
-
-  /* Added Student Row */
-  .added-students {
-    margin-top: 2.5rem;
-    border-top: 1px solid var(--glass-border);
-    padding-top: 1.5rem;
-  }
-
-  .added-title {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .added-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-	  .added-student-item {
-    background: rgba(34, 197, 94, 0.08);
-    border: 1px solid rgba(34, 197, 94, 0.2);
-    border-radius: 14px;
-    padding: 12px 16px;
+  .sac-panel__head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    animation: fadeInScale 0.4s ease-out;
+    gap: 12px;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.08);
   }
 
-  @keyframes fadeInScale {
-    from {
-      opacity: 0;
-      transform: scale(0.95);
-    }
+  .sac-panel__title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+  }
 
+  .sac-panel__hint {
+    margin: 2px 0 0;
+    color: var(--sac-muted);
+    font-size: 12px;
+  }
+
+  .sac-search {
+    padding: 16px;
+  }
+
+  .sac-search-wrap {
+    position: relative;
+  }
+
+  .sac-search-icon,
+  .sac-search-loader {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--sac-muted);
+  }
+
+  .sac-search-icon {
+    left: 14px;
+  }
+
+  .sac-search-loader {
+    right: 14px;
+    display: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(148, 163, 184, 0.2);
+    border-top-color: var(--sac-accent);
+    border-radius: 999px;
+    animation: sacSpin 700ms linear infinite;
+  }
+
+  @keyframes sacSpin {
     to {
-      opacity: 1;
-      transform: scale(1);
+      transform: translateY(-50%) rotate(360deg);
     }
-	  }
+  }
 
-	  @media (max-width: 720px) {
-	    .setup-grid,
-	    .preview-panel {
-	      grid-template-columns: 1fr;
-	    }
-	  }
-	</style>
+  .sac-input {
+    width: 100%;
+    height: 40px;
+    padding: 0 42px;
+    border-radius: 10px;
+    border: 1px solid var(--sac-border);
+    background: var(--sac-panel-soft);
+    color: var(--sac-text);
+    font-size: 14px;
+    outline: none;
+  }
+
+  .sac-input:focus {
+    border-color: rgba(79, 140, 255, 0.46);
+    box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.12);
+  }
+
+  .sac-status {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .sac-status.is-visible {
+    display: flex;
+  }
+
+  .sac-status[data-type="success"] {
+    color: #d7ffe6;
+    background: var(--sac-success-soft);
+    border-color: rgba(35, 193, 107, 0.22);
+  }
+
+  .sac-status[data-type="warning"] {
+    color: #ffe9a6;
+    background: rgba(245, 158, 11, 0.14);
+    border-color: rgba(245, 158, 11, 0.24);
+  }
+
+  .sac-status[data-type="error"] {
+    color: #ffd8e2;
+    background: var(--sac-danger-soft);
+    border-color: rgba(240, 90, 126, 0.24);
+  }
+
+  .sac-list {
+    display: grid;
+  }
+
+  .sac-empty {
+    padding: 22px 16px;
+    color: var(--sac-muted);
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .sac-student {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    min-height: 68px;
+    padding: 10px 16px;
+    border-top: 1px solid rgba(148, 163, 184, 0.08);
+  }
+
+  .sac-student:first-child {
+    border-top: 0;
+  }
+
+  .sac-student.is-disabled {
+    opacity: 0.58;
+  }
+
+  .sac-avatar {
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #1b2430;
+    color: #d9e2f2;
+    font-size: 13px;
+    font-weight: 700;
+    flex: 0 0 auto;
+  }
+
+  .sac-student__name {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sac-student__phone {
+    margin: 3px 0 0;
+    color: var(--sac-muted);
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sac-student__meta {
+    margin-top: 6px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .sac-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.08);
+    color: var(--sac-muted);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .sac-chip--warn {
+    color: #f7cc7a;
+    background: rgba(245, 158, 11, 0.12);
+  }
+
+  .sac-chip--info {
+    color: #b8c6ff;
+    background: rgba(79, 140, 255, 0.12);
+  }
+
+  .sac-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid var(--sac-border);
+    background: var(--sac-panel-soft);
+    color: var(--sac-text);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: border-color 160ms ease, background 160ms ease, opacity 160ms ease;
+  }
+
+  .sac-btn:hover {
+    border-color: var(--sac-border-strong);
+  }
+
+  .sac-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .sac-btn--add {
+    min-width: 98px;
+    background: var(--sac-accent-soft);
+    border-color: rgba(79, 140, 255, 0.26);
+    color: #dfe9ff;
+  }
+
+  .sac-btn--add.is-selected {
+    background: var(--sac-success-soft);
+    border-color: rgba(35, 193, 107, 0.24);
+    color: #d7ffe6;
+  }
+
+  .sac-btn--remove {
+    width: 32px;
+    min-height: 32px;
+    min-width: 32px;
+    padding: 0;
+    color: #ffb9c9;
+    background: transparent;
+  }
+
+  .sac-selection {
+    overflow: hidden;
+  }
+
+  .sac-selected-list {
+    display: grid;
+  }
+
+  .sac-selected-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    min-height: 60px;
+    padding: 10px 16px;
+    border-top: 1px solid rgba(148, 163, 184, 0.08);
+  }
+
+  .sac-selected-item:first-child {
+    border-top: 0;
+  }
+
+  .sac-selected-item__name {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .sac-selected-item__phone {
+    margin: 3px 0 0;
+    color: var(--sac-muted);
+    font-size: 12px;
+  }
+
+  .sac-footer {
+    position: sticky;
+    bottom: 12px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+    padding: 12px 14px;
+    border: 1px solid var(--sac-border);
+    border-radius: 14px;
+    background: rgba(17, 22, 29, 0.92);
+    box-shadow: var(--sac-shadow);
+    backdrop-filter: blur(10px);
+  }
+
+  .sac-footer__meta {
+    min-width: 0;
+  }
+
+  .sac-footer__label {
+    display: block;
+    color: var(--sac-muted);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .sac-footer__count {
+    display: block;
+    margin-top: 4px;
+    font-size: 22px;
+    line-height: 1;
+    font-weight: 800;
+  }
+
+  .sac-submit {
+    min-height: 40px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--sac-accent);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .sac-submit:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 720px) {
+    .sac-page {
+      padding: 16px 12px 100px;
+    }
+
+    .sac-header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .sac-title {
+      font-size: 26px;
+    }
+
+    .sac-group-chip {
+      width: max-content;
+    }
+
+    .sac-student,
+    .sac-selected-item {
+      grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .sac-student > .sac-btn,
+    .sac-selected-item > .sac-btn--remove {
+      grid-column: 2;
+      justify-self: end;
+      margin-top: 8px;
+    }
+
+    .sac-footer {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .sac-submit {
+      width: 100%;
+    }
+  }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="wrapper">
-  <a href="{% url 'education:group_detail' group.id %}" class="back-btn">
-    <i class="fa-solid fa-arrow-left"></i> Ortga qaytish
-  </a>
-
-	  <h2>Guruhga o'quvchi qo'shish</h2>
-	  <p class="subtitle"><strong>{{ group.nom }}</strong> guruhi uchun yangi o'quvchilar qidiring</p>
-
-	  <div class="enrollment-setup"
-	    data-course-price="{{ kurs_narhi }}"
-	    data-teacher-percent="{{ oqituvchi_foiz }}"
-	    data-monthly-lessons="{{ monthly_lessons }}">
-	    <div class="setup-grid">
-	      <div class="setup-field">
-	        <label for="start-date">Boshlanish sanasi</label>
-	        <input type="date" id="start-date" class="setup-input" value="{{ today|date:'Y-m-d' }}">
-	      </div>
-	        <div class="setup-field">
-	          <span class="pattern-label">Dars patterni</span>
-	          <div class="pattern-toggle" role="radiogroup" aria-label="Dars patterni">
-	            {% for option in lesson_pattern_options %}
-	            <label class="pattern-option">
-	              <input type="radio" name="lesson_pattern" value="{{ option.value }}" {% if option.value == default_lesson_pattern %}checked{% endif %}>
-	              <span>
-	                <strong class="pattern-option-title">{{ option.label }}</strong>
-	                <small class="pattern-option-hint">{{ option.hint }}</small>
-	              </span>
-	            </label>
-	            {% endfor %}
-	          </div>
-	        </div>
-	    </div>
-	    <div class="preview-panel" id="tuition-preview">
-	      <div class="preview-metric">
-	        <span class="preview-label">Qolgan dars</span>
-	        <span class="preview-value" id="preview-lessons">0 ta</span>
-	      </div>
-	      <div class="preview-metric highlight">
-	        <span class="preview-label">Shu oy qarzi</span>
-	        <span class="preview-value" id="preview-fee">0 so'm</span>
-	      </div>
-	      <div class="preview-metric">
-	        <span class="preview-label">O'qituvchi</span>
-	        <span class="preview-value" id="preview-teacher">0 so'm</span>
-	      </div>
-	      <div class="preview-metric">
-	        <span class="preview-label">Markaz</span>
-	        <span class="preview-value" id="preview-center">0 so'm</span>
-	      </div>
-	    </div>
-	    <div class="preview-note" id="preview-note">
-	      <div class="preview-note-title" id="preview-pattern-hint"></div>
-	      <div class="preview-note-copy" id="preview-counted-days"></div>
-	    </div>
-	  </div>
-
-  <div class="search-container">
-    <label for="search-input">O'quvchini qidirish</label>
-    <div class="search-input-wrap">
-      <i class="fa-solid fa-search search-icon"></i>
-      <input type="text" id="search-input" class="search-input" placeholder="Ism, familiya yoki telefon..."
-        autocomplete="off">
-      <div class="loading-spinner" id="loader">
-        <div class="spinner-border spinner-border-sm text-info"></div>
+<main class="sac-page">
+  <div class="sac-shell">
+    <header class="sac-header">
+      <div>
+        <a href="{% url 'education:group_detail' group.id %}" class="sac-back">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span>Orqaga</span>
+        </a>
+        <h1 class="sac-title">Guruhga o'quvchi qo'shish</h1>
+        <p class="sac-subtitle">Qidirib tanlang va 2 klikda guruhga qo'shing.</p>
       </div>
+      <div class="sac-group-chip">
+        <i class="fa-solid fa-users"></i>
+        <span>{{ group.nom }}</span>
+      </div>
+    </header>
+
+    <div class="sac-stack">
+      <section class="sac-panel">
+        <div class="sac-search">
+          <div class="sac-search-wrap">
+            <i class="fa-solid fa-magnifying-glass sac-search-icon"></i>
+            <input
+              id="search-input"
+              class="sac-input"
+              type="text"
+              placeholder="Ism yoki telefon bo'yicha qidiring"
+              autocomplete="off">
+            <span id="search-loader" class="sac-search-loader" aria-hidden="true"></span>
+          </div>
+          <div id="page-status" class="sac-status" role="status" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="sac-panel">
+        <div class="sac-panel__head">
+          <div>
+            <h2 class="sac-panel__title">O'quvchilar ro'yxati</h2>
+            <p class="sac-panel__hint">Bir klik bilan tanlang.</p>
+          </div>
+        </div>
+        <div id="results-list" class="sac-list">
+          <div class="sac-empty">Qidiruvni boshlang yoki ro'yxat yuklanishini kuting.</div>
+        </div>
+      </section>
+
+      <section class="sac-panel sac-selection">
+        <div class="sac-panel__head">
+          <div>
+            <h2 class="sac-panel__title">Tanlangan o'quvchilar</h2>
+            <p class="sac-panel__hint">Qo'shishdan oldin shu yerda tekshirasiz.</p>
+          </div>
+        </div>
+        <div id="selected-list" class="sac-selected-list">
+          <div class="sac-empty">Hozircha tanlangan o'quvchi yo'q.</div>
+        </div>
+      </section>
     </div>
 
-    <!-- Results Dropdown -->
-    <div class="results-list" id="results-list">
-      <!-- AJAX results injected here -->
-    </div>
+    <footer class="sac-footer">
+      <div class="sac-footer__meta">
+        <span class="sac-footer__label">Jami o'quvchi soni</span>
+        <strong id="selected-count" class="sac-footer__count">0</strong>
+      </div>
+      <button id="submit-button" type="button" class="sac-submit" disabled>Guruhga qo'shish</button>
+    </footer>
   </div>
-
-  <div class="added-students" id="added-students-section" style="display: none;">
-    <div class="added-title">
-      <i class="fa-solid fa-user-plus"></i> Yangi qo'shilganlar
-    </div>
-    <div class="added-list" id="added-list">
-      <!-- Successfully added students show up here -->
-    </div>
-  </div>
-</div>
-
-<!-- Confirm Modal -->
-<div class="confirm-overlay" id="confirm-overlay">
-  <div class="confirm-modal">
-    <div class="confirm-icon">
-      <i class="fa-solid fa-question"></i>
-    </div>
-    <h4 class="confirm-title" id="confirm-title">Guruhga qo'shilsinmi?</h4>
-    <p class="confirm-text" id="confirm-text">
-      Siz rosterga yangi o'quvchi qo'shmoqchisiz. Davom etilsinmi?
-    </p>
-    <div class="confirm-actions">
-      <button class="btn-confirm btn-cancel" id="cancel-confirm">Bekor qilish</button>
-      <button class="btn-confirm btn-submit" id="confirm-submit">Tasdiqlash</button>
-    </div>
-  </div>
-</div>
-
-<div id="toast-container"></div>
+</main>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-  /**
-   * AJAX Student Search & Add Module
-   */
   const searchInput = document.getElementById('search-input');
+  const searchLoader = document.getElementById('search-loader');
   const resultsList = document.getElementById('results-list');
-  const loader = document.getElementById('loader');
-  const confirmOverlay = document.getElementById('confirm-overlay');
-	  const confirmSubmit = document.getElementById('confirm-submit');
-	  const cancelConfirm = document.getElementById('cancel-confirm');
-	  const addedSection = document.getElementById('added-students-section');
-	  const addedList = document.getElementById('added-list');
-	  const startDateInput = document.getElementById('start-date');
+  const selectedList = document.getElementById('selected-list');
+  const selectedCount = document.getElementById('selected-count');
+  const submitButton = document.getElementById('submit-button');
+  const pageStatus = document.getElementById('page-status');
 
-  let searchTimeout = null;
-	  let selectedStudent = null;
-	  let focusedIndex = -1;
-	  let currentResults = [];
-	  let currentPreview = null;
-	  let previewController = null;
-    let patternAutoMode = true;
+  let searchTimer = null;
+  let searchController = null;
+  let currentResults = [];
+  const selectedStudents = new Map();
 
-	  function autoPatternFromDate(value) {
-	    if (!value) return '{{ default_lesson_pattern }}';
-	    const parsed = new Date(`${value}T12:00:00`);
-	    if (Number.isNaN(parsed.getTime())) return '{{ default_lesson_pattern }}';
-	    const weekday = parsed.getDay();
-	    if (weekday === 0) return 'odd';
-	    return [1, 3, 5].includes(weekday) ? 'odd' : 'even';
-	  }
-
-	  function syncPatternWithStartDate({ force = false, preserveDaily = true } = {}) {
-      if (!force && !patternAutoMode) {
-        return getSelectedPattern();
-      }
-	    const checked = document.querySelector('input[name="lesson_pattern"]:checked');
-	    if (preserveDaily && checked && checked.value === 'daily') {
-	      return checked.value;
-	    }
-	    const target = autoPatternFromDate(startDateInput.value);
-	    const targetInput = document.querySelector(`input[name="lesson_pattern"][value="${target}"]`);
-	    if (targetInput) {
-	      targetInput.checked = true;
-	    }
-	    return target;
-	  }
-
-  // --- Search Logic ---
-  // --- Search Logic ---
-  const handleSearch = (query) => {
-    if (searchTimeout) clearTimeout(searchTimeout);
-
-    loader.style.display = 'block';
-    resultsList.classList.add('active');
-
-    searchTimeout = setTimeout(() => {
-      fetchStudents(query);
-    }, 300);
-  };
-
-  searchInput.addEventListener('input', (e) => {
-    handleSearch(e.target.value.trim());
-  });
-
-  searchInput.addEventListener('focus', () => {
-    handleSearch(searchInput.value.trim());
-  });
-
-  const searchIcon = document.querySelector('.search-icon');
-  if (searchIcon) {
-    searchIcon.addEventListener('click', () => {
-      searchInput.focus();
-      handleSearch(searchInput.value.trim());
-    });
+  function showStatus(message, type = 'success') {
+    if (!message) {
+      pageStatus.classList.remove('is-visible');
+      pageStatus.textContent = '';
+      pageStatus.dataset.type = '';
+      return;
+    }
+    pageStatus.textContent = message;
+    pageStatus.dataset.type = type;
+    pageStatus.classList.add('is-visible');
   }
 
+  function avatarInitial(name) {
+    const clean = String(name || '?').trim();
+    return clean ? clean.charAt(0).toUpperCase() : '?';
+  }
 
-  async function fetchStudents(q) {
-    try {
-      const resp = await fetch(`?q=${encodeURIComponent(q)}`, {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-      });
-      const data = await resp.json();
-      renderResults(data.results);
-    } catch (err) {
-      showToast('Xatolik yuz berdi. Iltimos qaytadan urinib ko\'ring', 'error');
-    } finally {
-      loader.style.display = 'none';
+  function selectedKey(student) {
+    return String(student.id);
+  }
+
+  function updateFooter() {
+    const count = selectedStudents.size;
+    selectedCount.textContent = count;
+    submitButton.disabled = count === 0;
+  }
+
+  function createChip(text, modifier = '') {
+    const chip = document.createElement('span');
+    chip.className = ['sac-chip', modifier].filter(Boolean).join(' ');
+    chip.textContent = text;
+    return chip;
+  }
+
+  function toggleStudent(student) {
+    const key = selectedKey(student);
+    if (student.is_in_current) return;
+    if (selectedStudents.has(key)) {
+      selectedStudents.delete(key);
+    } else {
+      selectedStudents.set(key, student);
     }
+    renderResults(currentResults);
+    renderSelected();
+  }
+
+  function removeStudent(studentId) {
+    selectedStudents.delete(String(studentId));
+    renderResults(currentResults);
+    renderSelected();
   }
 
   function renderResults(results) {
-    currentResults = results;
-    focusedIndex = -1;
     resultsList.innerHTML = '';
 
-    if (results.length === 0) {
-      resultsList.innerHTML = '<div class="no-results">Natija topilmadi</div>';
-    } else {
-      results.forEach((s, idx) => {
-        const card = document.createElement('div');
-        card.className = 'student-card';
-        card.dataset.id = s.id;
-        card.dataset.idx = idx;
-
-        // Status badges
-        let badgesHtml = '';
-        if (s.is_in_current) {
-          badgesHtml = '<span class="status-badge badge-current">Allaqachon qo\'shilgan</span>';
-          card.classList.add('disabled');
-        } else if (s.is_in_other) {
-          badgesHtml = '<span class="status-badge badge-other">Boshqa guruhda</span>';
-        }
-
-        card.innerHTML = `
-          <div class="student-info">
-            <div class="student-name">${escaped(s.full_name)}</div>
-            <div class="student-phone">${escaped(s.phone)}</div>
-          </div>
-          ${badgesHtml}
-        `;
-
-        if (!s.is_in_current) {
-          card.addEventListener('click', () => openConfirm(s));
-          card.addEventListener('mouseenter', () => {
-            focusedIndex = idx;
-            const allCards = Array.from(resultsList.querySelectorAll('.student-card:not(.disabled)'));
-            // Sync current index based on visible cards if necessary
-            updateFocus(resultsList.querySelectorAll('.student-card:not(.disabled)'));
-          });
-        }
-
-        resultsList.appendChild(card);
-      });
+    if (!results.length) {
+      const empty = document.createElement('div');
+      empty.className = 'sac-empty';
+      empty.textContent = "O'quvchi topilmadi.";
+      resultsList.appendChild(empty);
+      return;
     }
 
-    resultsList.classList.add('active');
-  }
+    results.forEach((student) => {
+      const row = document.createElement('article');
+      const isSelected = selectedStudents.has(selectedKey(student));
+      row.className = ['sac-student', student.is_in_current ? 'is-disabled' : ''].filter(Boolean).join(' ');
 
-  // --- Confirmation Logic ---
-	  async function openConfirm(student) {
-	    selectedStudent = student;
-	    await refreshPreview({ studentId: student.id, silent: true });
-	    const preview = currentPreview || emptyPreview();
-	    document.getElementById('confirm-title').innerText = "Tasdiqlang";
-	    document.getElementById('confirm-text').innerHTML = `
-	      <strong>${escaped(student.full_name)}</strong> o'quvchisini <br>
-	      <strong>{{ group.nom }}</strong> guruhiga ${escaped(preview.start_date)} sanadan qo'shishni tasdiqlaysizmi?<br>
-	      <span style="color:#94a3b8;">${preview.lesson_count} ta dars • ${escaped(preview.lesson_pattern_label || '')} • ${formatMoney(preview.fee_amount)}</span>
-	      <br><span style="color:#64748b;">${escaped(preview.counted_days_summary || preview.lesson_count_summary || '')}</span>
-	    `;
-	    confirmOverlay.classList.add('active');
-	  }
+      const avatar = document.createElement('div');
+      avatar.className = 'sac-avatar';
+      avatar.textContent = avatarInitial(student.full_name);
 
-  cancelConfirm.addEventListener('click', () => {
-    confirmOverlay.classList.remove('active');
-    selectedStudent = null;
-  });
+      const content = document.createElement('div');
 
-  confirmSubmit.addEventListener('click', async () => {
-    if (!selectedStudent) return;
+      const name = document.createElement('p');
+      name.className = 'sac-student__name';
+      name.textContent = student.full_name;
 
-    const originalText = confirmSubmit.innerText;
-    confirmSubmit.innerText = "Kutilmoqda...";
-    confirmSubmit.disabled = true;
+      const phone = document.createElement('p');
+      phone.className = 'sac-student__phone';
+      phone.textContent = student.phone || "Telefon yo'q";
 
-    try {
-      const resp = await fetch('', {
-        method: 'POST',
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRFToken': '{{ csrf_token }}',
-          'Content-Type': 'application/json'
-	        },
-	        body: JSON.stringify({
-	          student_id: selectedStudent.id,
-	          start_date: startDateInput.value,
-	          lesson_pattern: getSelectedPattern()
-	        })
-	      });
+      content.appendChild(name);
+      content.appendChild(phone);
 
-      const data = await resp.json();
+      if (student.is_in_current || student.is_in_other) {
+        const meta = document.createElement('div');
+        meta.className = 'sac-student__meta';
+        if (student.is_in_current) {
+          meta.appendChild(createChip("Allaqachon guruhda", 'sac-chip--warn'));
+        }
+        if (student.is_in_other && !student.is_in_current) {
+          meta.appendChild(createChip("Boshqa guruhda bor", 'sac-chip--info'));
+        }
+        content.appendChild(meta);
+      }
 
-	      if (data.status === 'success') {
-	        showToast(data.message, 'success');
-	        if (data.info) {
-	          showToast(data.info, 'warning');
-	        }
-	        onStudentAdded(data.student, data.preview);
-      } else if (data.status === 'warning') {
-        showToast(data.message, 'warning');
+      const action = document.createElement('button');
+      action.type = 'button';
+      action.className = ['sac-btn', 'sac-btn--add', isSelected ? 'is-selected' : ''].join(' ');
+
+      if (student.is_in_current) {
+        action.textContent = "Qo'shilgan";
+        action.disabled = true;
+      } else if (isSelected) {
+        action.innerHTML = '<i class="fa-solid fa-check"></i><span>Tanlandi</span>';
       } else {
-        showToast(data.error || 'Xatolik yuz berdi', 'error');
+        action.innerHTML = '<i class="fa-solid fa-plus"></i><span>Qo\'shish</span>';
       }
-    } catch (err) {
-      showToast('Server bilan bog\'lanishda xatolik', 'error');
-    } finally {
-      confirmSubmit.innerText = originalText;
-      confirmSubmit.disabled = false;
-      confirmOverlay.classList.remove('active');
-      selectedStudent = null;
-    }
-  });
 
-	  function onStudentAdded(student, preview) {
-    // Hide dropdown
-    resultsList.classList.remove('active');
-    searchInput.value = '';
+      row.appendChild(avatar);
+      row.appendChild(content);
+      row.appendChild(action);
 
-    // Add to bottom list
-    addedSection.style.display = 'block';
-    const item = document.createElement('div');
-	    item.className = 'added-student-item';
-	    item.innerHTML = `
-	      <div class="student-info">
-	        <div class="student-name">${escaped(student.full_name)}</div>
-	        <div class="student-phone">${escaped(student.phone)} • ${preview ? escaped(preview.start_date) : ''}</div>
-	      </div>
-		      <div class="text-success"><i class="fa-solid fa-check-double"></i> ${preview ? formatMoney(preview.fee_amount) : "Qo'shildi"}</div>
-	    `;
-	    addedList.prepend(item);
-	  }
-
-	  function getSelectedPattern() {
-	    const checked = document.querySelector('input[name="lesson_pattern"]:checked');
-	    return checked ? checked.value : '{{ default_lesson_pattern }}';
-	  }
-
-	  function emptyPreview() {
-	    return {
-	      start_date: startDateInput.value || '',
-	      lesson_pattern: getSelectedPattern(),
-	      lesson_pattern_label: '',
-	      lesson_pattern_hint: '',
-	      lesson_count: 0,
-	      counted_days_text: '',
-	      counted_days_summary: '',
-	      lesson_count_summary: '',
-	      fee_amount: 0,
-	      teacher_share: 0,
-	      center_share: 0
-	    };
-	  }
-
-	  function applyPreview(preview) {
-	    currentPreview = preview || emptyPreview();
-	    if (currentPreview.lesson_pattern) {
-	      const resolvedInput = document.querySelector(`input[name="lesson_pattern"][value="${currentPreview.lesson_pattern}"]`);
-	      if (resolvedInput) {
-	        resolvedInput.checked = true;
-	      }
-	    }
-	    document.getElementById('preview-lessons').textContent = `${currentPreview.lesson_count} ta`;
-	    document.getElementById('preview-fee').textContent = formatMoney(currentPreview.fee_amount);
-	    document.getElementById('preview-teacher').textContent = formatMoney(currentPreview.teacher_share);
-	    document.getElementById('preview-center').textContent = formatMoney(currentPreview.center_share);
-	    document.getElementById('preview-pattern-hint').textContent = [
-	      currentPreview.lesson_pattern_label,
-	      currentPreview.counted_days_text || currentPreview.lesson_pattern_hint
-	    ].filter(Boolean).join(' • ');
-	    document.getElementById('preview-counted-days').textContent = [
-	      currentPreview.counted_days_summary,
-	      currentPreview.lesson_count_summary
-	    ].filter(Boolean).join(' • ');
-	  }
-
-	  async function refreshPreview({ studentId = null, silent = false } = {}) {
-	    if (previewController) {
-	      previewController.abort();
-	    }
-	    previewController = new AbortController();
-	    const params = new URLSearchParams({
-	      preview: '1',
-	      start_date: startDateInput.value,
-	      lesson_pattern: getSelectedPattern()
-	    });
-	    if (studentId) {
-	      params.set('student_id', String(studentId));
-	    }
-
-	    try {
-	      const resp = await fetch(`?${params.toString()}`, {
-	        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-	        signal: previewController.signal
-	      });
-	      if (!resp.ok) throw new Error('preview_failed');
-	      const data = await resp.json();
-	      applyPreview(data.preview || emptyPreview());
-	    } catch (err) {
-	      if (err.name === 'AbortError') return;
-	      applyPreview(emptyPreview());
-	      if (!silent) {
-	        showToast("Previewni yangilab bo'lmadi", 'warning');
-	      }
-	    }
-	  }
-
-	  function formatMoney(value) {
-	    const amount = Math.round(Number(value || 0));
-	    if (!amount) return "0 so'm";
-	    const sign = amount >= 0 ? 1 : -1;
-	    const rounded = Math.floor((Math.abs(amount) + 500) / 1000) * 1000 * sign;
-	    return `${rounded.toLocaleString('uz-UZ')} so'm`;
-	  }
-
-	  startDateInput.addEventListener('change', () => {
-	    syncPatternWithStartDate();
-	    refreshPreview();
-	  });
-	  document.querySelectorAll('input[name="lesson_pattern"]').forEach((input) => {
-	    input.addEventListener('change', () => {
-        patternAutoMode = false;
-        refreshPreview();
-      });
-	  });
-	  syncPatternWithStartDate({ force: true });
-	  refreshPreview({ silent: true });
-
-  // --- Keyboard Navigation ---
-  searchInput.addEventListener('keydown', (e) => {
-    if (!resultsList.classList.contains('active')) return;
-
-    const cards = Array.from(resultsList.querySelectorAll('.student-card:not(.disabled)'));
-    if (cards.length === 0) return;
-
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      focusedIndex = (focusedIndex + 1) % cards.length;
-      updateFocus(cards);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      focusedIndex = (focusedIndex - 1 + cards.length) % cards.length;
-      updateFocus(cards);
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (focusedIndex >= 0) {
-        cards[focusedIndex].click();
+      if (!student.is_in_current) {
+        row.addEventListener('click', (event) => {
+          if (event.target.closest('button')) return;
+          toggleStudent(student);
+        });
+        action.addEventListener('click', () => toggleStudent(student));
       }
-    } else if (e.key === 'Escape') {
-      resultsList.classList.remove('active');
-    }
-  });
 
-  function updateFocus(cards) {
-    cards.forEach((c, i) => {
-      c.classList.toggle('focused', i === focusedIndex);
-      if (i === focusedIndex) {
-        c.scrollIntoView({ block: 'nearest' });
-      }
+      resultsList.appendChild(row);
     });
   }
 
-  // --- UI Helpers ---
-  function showToast(message, type = 'success') {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = `custom-toast toast-${type}`;
+  function renderSelected() {
+    selectedList.innerHTML = '';
 
-    const icons = {
-      success: 'fa-circle-check',
-      warning: 'fa-triangle-exclamation',
-      error: 'fa-circle-xmark'
-    };
-
-    toast.innerHTML = `
-      <i class="fa-solid ${icons[type]}"></i>
-      <span>${message}</span>
-    `;
-
-    container.appendChild(toast);
-
-    setTimeout(() => {
-      toast.classList.add('hide');
-      setTimeout(() => toast.remove(), 400);
-    }, 4000);
-  }
-
-  function escaped(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.innerText = str;
-    return div.innerHTML;
-  }
-
-  // Click outside search
-  document.addEventListener('click', (e) => {
-    if (!searchInput.contains(e.target) && !resultsList.contains(e.target)) {
-      resultsList.classList.remove('active');
+    if (!selectedStudents.size) {
+      const empty = document.createElement('div');
+      empty.className = 'sac-empty';
+      empty.textContent = "Hozircha tanlangan o'quvchi yo'q.";
+      selectedList.appendChild(empty);
+      updateFooter();
+      return;
     }
-  });
 
+    Array.from(selectedStudents.values()).forEach((student) => {
+      const row = document.createElement('div');
+      row.className = 'sac-selected-item';
+
+      const avatar = document.createElement('div');
+      avatar.className = 'sac-avatar';
+      avatar.textContent = avatarInitial(student.full_name);
+
+      const content = document.createElement('div');
+      const name = document.createElement('p');
+      name.className = 'sac-selected-item__name';
+      name.textContent = student.full_name;
+      const phone = document.createElement('p');
+      phone.className = 'sac-selected-item__phone';
+      phone.textContent = student.phone || "Telefon yo'q";
+      content.appendChild(name);
+      content.appendChild(phone);
+
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'sac-btn sac-btn--remove';
+      remove.setAttribute('aria-label', `${student.full_name} ni olib tashlash`);
+      remove.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+      remove.addEventListener('click', () => removeStudent(student.id));
+
+      row.appendChild(avatar);
+      row.appendChild(content);
+      row.appendChild(remove);
+      selectedList.appendChild(row);
+    });
+
+    updateFooter();
+  }
+
+  async function fetchStudents(query = '') {
+    if (searchController) searchController.abort();
+    searchController = new AbortController();
+    searchLoader.style.display = 'block';
+
+    try {
+      const response = await fetch(`?q=${encodeURIComponent(query)}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        signal: searchController.signal,
+      });
+      if (!response.ok) throw new Error('search_failed');
+      const data = await response.json();
+      currentResults = Array.isArray(data.results) ? data.results : [];
+      renderResults(currentResults);
+    } catch (error) {
+      if (error.name === 'AbortError') return;
+      currentResults = [];
+      renderResults(currentResults);
+      showStatus("Qidiruvda xatolik yuz berdi.", 'error');
+    } finally {
+      searchLoader.style.display = 'none';
+    }
+  }
+
+  function scheduleSearch() {
+    if (searchTimer) clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => fetchStudents(searchInput.value.trim()), 220);
+  }
+
+  async function addStudent(student) {
+    const response = await fetch('', {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRFToken': '{{ csrf_token }}',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        student_id: student.id,
+      }),
+    });
+    return response.json();
+  }
+
+  async function submitSelected() {
+    const students = Array.from(selectedStudents.values());
+    if (!students.length) return;
+
+    submitButton.disabled = true;
+    submitButton.textContent = "Qo'shilmoqda...";
+    showStatus('', 'success');
+
+    let successCount = 0;
+    let warningCount = 0;
+
+    for (const student of students) {
+      try {
+        const data = await addStudent(student);
+        if (data.status === 'success') {
+          successCount += 1;
+          selectedStudents.delete(selectedKey(student));
+          const resultStudent = currentResults.find((item) => String(item.id) === String(student.id));
+          if (resultStudent) resultStudent.is_in_current = true;
+        } else if (data.status === 'warning') {
+          warningCount += 1;
+          selectedStudents.delete(selectedKey(student));
+          const resultStudent = currentResults.find((item) => String(item.id) === String(student.id));
+          if (resultStudent) resultStudent.is_in_current = true;
+        } else {
+          showStatus(data.error || "Qo'shishda xatolik yuz berdi.", 'error');
+        }
+      } catch (error) {
+        showStatus("Server bilan bog'lanib bo'lmadi.", 'error');
+      }
+    }
+
+    renderResults(currentResults);
+    renderSelected();
+
+    if (successCount) {
+      showStatus(`${successCount} ta o'quvchi guruhga qo'shildi.${warningCount ? ` ${warningCount} tasi allaqachon mavjud edi.` : ''}`, 'success');
+    } else if (warningCount) {
+      showStatus(`${warningCount} ta o'quvchi allaqachon guruhda mavjud.`, 'warning');
+    }
+
+    submitButton.textContent = "Guruhga qo'shish";
+    updateFooter();
+  }
+
+  searchInput.addEventListener('input', scheduleSearch);
+  searchInput.addEventListener('focus', () => {
+    if (!currentResults.length) fetchStudents(searchInput.value.trim());
+  });
+  submitButton.addEventListener('click', submitSelected);
+
+  renderSelected();
+  fetchStudents('');
 </script>
 {% endblock %}

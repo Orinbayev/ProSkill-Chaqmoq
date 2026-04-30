@@ -4,6 +4,7 @@ import 'package:chaqmoq_mobile/core/utils/formatters.dart';
 import 'package:chaqmoq_mobile/models/app_models.dart';
 import 'package:chaqmoq_mobile/models/parent_models.dart';
 import 'package:chaqmoq_mobile/providers/parent_dashboard_provider.dart';
+import 'package:chaqmoq_mobile/screens/parent/parent_ui.dart';
 import 'package:chaqmoq_mobile/services/api_client.dart';
 import 'package:chaqmoq_mobile/services/parent_dashboard_service.dart';
 import 'package:chaqmoq_mobile/widgets/adaptive_avatar.dart';
@@ -28,6 +29,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
   String? _errorMessage;
   int? _loadedChildId;
   String? _selectedPeriod;
+  int? _selectedChartIndex;
 
   @override
   void didChangeDependencies() {
@@ -65,6 +67,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
       setState(() {
         _data = data;
         _selectedPeriod = data.selectedPeriod;
+        _selectedChartIndex = _defaultChartIndex(
+          data.progressChart,
+          data.subjects,
+        );
         _state = ViewState.success;
       });
     } on ApiException catch (error) {
@@ -93,6 +99,17 @@ class _ProgressScreenState extends State<ProgressScreen> {
     await _load(force: true, period: periodKey);
   }
 
+  int? _defaultChartIndex(
+    List<ParentProgressSeries> series,
+    List<ParentSubjectProgressModel> subjects,
+  ) {
+    final chart = _buildProgressChartModel(series, subjects);
+    if (chart.points.isEmpty) {
+      return null;
+    }
+    return chart.points.length - 1;
+  }
+
   void _showSubjectsSheet() {
     final subjects = _data?.subjects ?? const <ParentSubjectProgressModel>[];
     showModalBottomSheet<void>(
@@ -119,6 +136,12 @@ class _ProgressScreenState extends State<ProgressScreen> {
                       child: SubjectProgressRow(
                         data: row,
                         showDivider: false,
+                        onTap: () {
+                          Navigator.of(sheetContext).pop();
+                          Future<void>.microtask(
+                            () => _openSubjectDetails(subjects[index], index),
+                          );
+                        },
                       ),
                     );
                   },
@@ -160,6 +183,24 @@ class _ProgressScreenState extends State<ProgressScreen> {
     );
   }
 
+  void _openSubjectDetails(ParentSubjectProgressModel subject, int index) {
+    final data = _subjectData(subject, index);
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return _ProgressBottomSheet(
+          title: data.title,
+          child: _SubjectDetailsSheet(
+            data: data,
+            subject: subject,
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final fallbackChild = context
@@ -167,6 +208,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
         .data
         ?.selectedChild;
     final child = _data?.child ?? fallbackChild;
+    final chart = _buildProgressChartModel(
+      _data?.progressChart ?? const <ParentProgressSeries>[],
+      _data?.subjects ?? const <ParentSubjectProgressModel>[],
+    );
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -189,7 +234,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
               physics: const AlwaysScrollableScrollPhysics(
                 parent: BouncingScrollPhysics(),
               ),
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
+              padding: ParentUi.screenPadding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -199,7 +244,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                         _data?.selectedPeriodLabel ?? 'Joriy davr',
                     onSelectPeriod: () => _showPeriodMenu(context),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: ParentUi.sectionGap),
                   if (_state == ViewState.loading && _data == null)
                     const _ProgressStateCard.loading()
                   else if (_state == ViewState.error && _data == null)
@@ -215,15 +260,25 @@ class _ProgressScreenState extends State<ProgressScreen> {
                         color: ProgressColors.primaryBlue,
                         backgroundColor: Color(0xFFEAF4FF),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
                     ],
-                    OverallProgressCard(data: _data),
-                    const SizedBox(height: 18),
+                    OverallProgressCard(
+                      data: _data,
+                      chart: chart,
+                      selectedChartIndex: _selectedChartIndex,
+                      onChartPointSelected: (index) {
+                        setState(() => _selectedChartIndex = index);
+                      },
+                    ),
+                    const SizedBox(height: ParentUi.sectionGap),
                     SubjectProgressSection(
                       subjects: _data?.subjects ?? const [],
                       onShowAll: _showSubjectsSheet,
+                      onSubjectTap: _openSubjectDetails,
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: ParentUi.sectionGap),
+                    LearningHighlightsSection(data: _data),
+                    const SizedBox(height: ParentUi.sectionGap),
                     TeacherCommentCard(
                       comments: _data?.teacherComments ?? const [],
                       onShowAll: _showCommentsSheet,
@@ -312,10 +367,10 @@ class ProgressHeader extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                'Progress',
+                'O‘zlashtirish',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: ProgressTextStyles.title.copyWith(fontSize: 23),
+                style: ProgressTextStyles.title.copyWith(fontSize: 22),
               ),
               const SizedBox(height: 5),
               Text(
@@ -341,45 +396,63 @@ class ProgressHeader extends StatelessWidget {
 }
 
 class OverallProgressCard extends StatelessWidget {
-  const OverallProgressCard({super.key, this.data});
+  const OverallProgressCard({
+    super.key,
+    this.data,
+    required this.chart,
+    required this.selectedChartIndex,
+    required this.onChartPointSelected,
+  });
 
   final ParentProgressModel? data;
+  final _ProgressChartModel chart;
+  final int? selectedChartIndex;
+  final ValueChanged<int> onChartPointSelected;
 
   @override
   Widget build(BuildContext context) {
+    final selectedPoint = chart.pointAt(selectedChartIndex);
     return ProgressCard(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      padding: ParentUi.cardPadding,
       child: Column(
         children: [
           LayoutBuilder(
             builder: (context, constraints) {
-              final stacked = constraints.maxWidth < 270;
+              final stacked = constraints.maxWidth < 360;
               if (stacked) {
                 return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     CircularProgressBlock(data: data),
                     const SizedBox(height: 16),
                     const Divider(color: ProgressColors.border),
                     const SizedBox(height: 14),
-                    ProgressLineChart(series: data?.progressChart ?? const []),
+                    ProgressLineChart(
+                      chart: chart,
+                      selectedIndex: selectedChartIndex,
+                      onPointSelected: onChartPointSelected,
+                    ),
                   ],
                 );
               }
 
               return SizedBox(
-                height: 204,
+                height: 198,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(child: CircularProgressBlock(data: data)),
+                    Expanded(flex: 9, child: CircularProgressBlock(data: data)),
                     const VerticalDivider(
                       width: 22,
                       thickness: 1,
                       color: ProgressColors.border,
                     ),
                     Expanded(
+                      flex: 11,
                       child: ProgressLineChart(
-                        series: data?.progressChart ?? const [],
+                        chart: chart,
+                        selectedIndex: selectedChartIndex,
+                        onPointSelected: onChartPointSelected,
                       ),
                     ),
                   ],
@@ -413,6 +486,13 @@ class OverallProgressCard extends StatelessWidget {
               ),
             ],
           ),
+          if (selectedPoint != null) ...[
+            const SizedBox(height: 12),
+            SelectedChartInsightCard(
+              point: selectedPoint,
+              latestComment: data?.latestTeacherComment,
+            ),
+          ],
         ],
       ),
     );
@@ -436,9 +516,9 @@ class CircularProgressBlock extends StatelessWidget {
           children: [
             Text(
               'Umumiy progress',
-              style: ProgressTextStyles.title.copyWith(fontSize: 16),
+              style: ProgressTextStyles.title.copyWith(fontSize: 15),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             Center(
               child: SizedBox(
                 width: size,
@@ -461,14 +541,14 @@ class CircularProgressBlock extends StatelessWidget {
                         Text(
                           '$percent%',
                           style: ProgressTextStyles.title.copyWith(
-                            fontSize: 32,
+                            fontSize: 28,
                             height: 0.98,
                           ),
                         ),
                         const SizedBox(height: 5),
                         Text(
                           _progressStatus(percent),
-                          style: ProgressTextStyles.link.copyWith(fontSize: 15),
+                          style: ProgressTextStyles.link.copyWith(fontSize: 13.6),
                         ),
                       ],
                     ),
@@ -476,7 +556,7 @@ class CircularProgressBlock extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             Row(
               children: [
                 const Icon(
@@ -514,25 +594,31 @@ class CircularProgressBlock extends StatelessWidget {
 }
 
 class ProgressLineChart extends StatelessWidget {
-  const ProgressLineChart({super.key, required this.series});
+  const ProgressLineChart({
+    super.key,
+    required this.chart,
+    required this.selectedIndex,
+    required this.onPointSelected,
+  });
 
-  final List<ParentProgressSeries> series;
+  final _ProgressChartModel chart;
+  final int? selectedIndex;
+  final ValueChanged<int> onPointSelected;
 
   @override
   Widget build(BuildContext context) {
-    final chart = _averageProgressSeries(series);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Progress dinamikasi',
-          style: ProgressTextStyles.title.copyWith(fontSize: 16),
+          style: ProgressTextStyles.title.copyWith(fontSize: 15),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         SizedBox(
-          height: 144,
+          height: 132,
           width: double.infinity,
-          child: chart.points.length < 2
+          child: chart.points.isEmpty
               ? Center(
                   child: Text(
                     'Progress ma’lumoti yo‘q',
@@ -545,17 +631,28 @@ class ProgressLineChart extends StatelessWidget {
               : LineChart(
                   LineChartData(
                     minX: 0,
-                    maxX: (chart.points.length - 1).toDouble(),
+                    maxX: math.max(chart.points.length - 1, 1).toDouble(),
                     minY: 0,
                     maxY: 100,
-                    clipData: const FlClipData.all(),
+                    clipData: const FlClipData.horizontal(),
                     lineTouchData: LineTouchData(
+                      handleBuiltInTouches: true,
+                      touchCallback: (event, response) {
+                        final spots = response?.lineBarSpots;
+                        final spot = spots == null || spots.isEmpty
+                            ? null
+                            : spots.first;
+                        if (spot == null) {
+                          return;
+                        }
+                        onPointSelected(spot.x.round());
+                      },
                       touchTooltipData: LineTouchTooltipData(
                         getTooltipColor: (_) => ProgressColors.text,
                         getTooltipItems: (spots) => spots
                             .map(
                               (spot) => LineTooltipItem(
-                                '${spot.y.toStringAsFixed(0)}%',
+                                '${chart.points[spot.x.round()].label}\n${spot.y.toStringAsFixed(0)}%',
                                 ProgressTextStyles.label.copyWith(
                                   color: Colors.white,
                                 ),
@@ -586,7 +683,7 @@ class ProgressLineChart extends StatelessWidget {
                       leftTitles: AxisTitles(
                         sideTitles: SideTitles(
                           showTitles: true,
-                          reservedSize: 34,
+                          reservedSize: 38,
                           interval: 25,
                           getTitlesWidget: (value, meta) {
                             return Text(
@@ -602,16 +699,19 @@ class ProgressLineChart extends StatelessWidget {
                       bottomTitles: AxisTitles(
                         sideTitles: SideTitles(
                           showTitles: true,
-                          reservedSize: 22,
+                          reservedSize: 26,
                           interval: 1,
                           getTitlesWidget: (value, meta) {
                             final index = value.round();
                             if (index < 0 || index >= chart.points.length) {
                               return const SizedBox.shrink();
                             }
-                            final label = index < chart.months.length
-                                ? chart.months[index]
-                                : '${index + 1}';
+                            if (chart.points.length > 5 && index.isOdd) {
+                              return const SizedBox.shrink();
+                            }
+                            final label = _shortChartLabel(
+                              chart.points[index].label,
+                            );
                             return Padding(
                               padding: const EdgeInsets.only(top: 5),
                               child: Text(
@@ -634,7 +734,10 @@ class ProgressLineChart extends StatelessWidget {
                             index < chart.points.length;
                             index++
                           )
-                            FlSpot(index.toDouble(), chart.points[index]),
+                            FlSpot(
+                              index.toDouble(),
+                              chart.points[index].averagePercent,
+                            ),
                         ],
                         isCurved: true,
                         preventCurveOverShooting: true,
@@ -644,10 +747,13 @@ class ProgressLineChart extends StatelessWidget {
                         dotData: FlDotData(
                           show: true,
                           getDotPainter: (spot, percent, barData, index) {
+                            final active = selectedIndex == index;
                             return FlDotCirclePainter(
-                              radius: 3.2,
-                              color: Colors.white,
-                              strokeWidth: 2,
+                              radius: active ? 4.2 : 3.2,
+                              color: active
+                                  ? ProgressColors.primaryBlue
+                                  : Colors.white,
+                              strokeWidth: active ? 3 : 2,
                               strokeColor: ProgressColors.primaryBlue,
                             );
                           },
@@ -673,10 +779,13 @@ class SubjectProgressSection extends StatelessWidget {
     super.key,
     required this.subjects,
     required this.onShowAll,
+    required this.onSubjectTap,
   });
 
   final List<ParentSubjectProgressModel> subjects;
   final VoidCallback onShowAll;
+  final void Function(ParentSubjectProgressModel subject, int index)
+  onSubjectTap;
 
   @override
   Widget build(BuildContext context) {
@@ -693,20 +802,20 @@ class SubjectProgressSection extends StatelessWidget {
           actionText: 'Barchasi',
           onTap: onShowAll,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         ProgressCard(
           padding: EdgeInsets.zero,
           child: Column(
             children: [
               if (rows.isEmpty)
                 Padding(
-                  padding: const EdgeInsets.all(18),
+                  padding: const EdgeInsets.all(16),
                   child: Text(
                     'Progress ma’lumoti yo‘q',
                     textAlign: TextAlign.center,
                     style: ProgressTextStyles.body.copyWith(
                       color: ProgressColors.secondaryText,
-                      fontSize: 13.5,
+                      fontSize: 12.8,
                     ),
                   ),
                 )
@@ -715,6 +824,7 @@ class SubjectProgressSection extends StatelessWidget {
                   SubjectProgressRow(
                     data: rows[index],
                     showDivider: index != rows.length - 1,
+                    onTap: () => onSubjectTap(preview[index], index),
                   ),
             ],
           ),
@@ -729,119 +839,128 @@ class SubjectProgressRow extends StatelessWidget {
     super.key,
     required this.data,
     required this.showDivider,
+    this.onTap,
   });
 
   final SubjectProgressData data;
   final bool showDivider;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 330;
+        final content = Padding(
+          padding: EdgeInsets.fromLTRB(
+            compact ? 12 : 16,
+            12,
+            compact ? 10 : 14,
+            12,
+          ),
+          child: Row(
+            children: [
+              _SubjectIconTile(data: data, compact: compact),
+              SizedBox(width: compact ? 10 : 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      data.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: ProgressTextStyles.title.copyWith(
+                        fontSize: compact ? 13.6 : 14.6,
+                        height: 1.18,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      data.teacher,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: ProgressTextStyles.body.copyWith(
+                        color: ProgressColors.secondaryText,
+                        fontSize: compact ? 11.6 : 12.2,
+                      ),
+                    ),
+                    if (data.detailLine.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        data.detailLine,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: ProgressTextStyles.body.copyWith(
+                          color: ProgressColors.secondaryText,
+                          fontSize: compact ? 11 : 11.6,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        value: data.percent / 100,
+                        minHeight: 5,
+                        backgroundColor: const Color(0xFFEFF2F6),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          data.color,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: compact ? 6 : 10),
+              SizedBox(
+                width: compact ? 46 : 54,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        '${data.percent}%',
+                        style: ProgressTextStyles.title.copyWith(
+                          color: data.color,
+                          fontSize: compact ? 18 : 20,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      data.status,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: ProgressTextStyles.body.copyWith(
+                        color: data.status == 'O‘rta'
+                            ? ProgressColors.orange
+                            : ProgressColors.green,
+                        fontSize: compact ? 11 : 11.8,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Color(0xFF9AA4B2),
+                size: 20,
+              ),
+            ],
+          ),
+        );
         return Column(
           children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                compact ? 12 : 16,
-                14,
-                compact ? 10 : 14,
-                14,
-              ),
-              child: Row(
-                children: [
-                  _SubjectIconTile(data: data, compact: compact),
-                  SizedBox(width: compact ? 10 : 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          data.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: ProgressTextStyles.title.copyWith(
-                            fontSize: compact ? 14.2 : 15.5,
-                            height: 1.18,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          data.teacher,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: ProgressTextStyles.body.copyWith(
-                            color: ProgressColors.secondaryText,
-                            fontSize: compact ? 12 : 13,
-                          ),
-                        ),
-                        if (data.detailLine.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            data.detailLine,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: ProgressTextStyles.body.copyWith(
-                              color: ProgressColors.secondaryText,
-                              fontSize: compact ? 11.5 : 12.2,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 10),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(999),
-                          child: LinearProgressIndicator(
-                            value: data.percent / 100,
-                            minHeight: 5,
-                            backgroundColor: const Color(0xFFEFF2F6),
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              data.color,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(width: compact ? 6 : 10),
-                  SizedBox(
-                    width: compact ? 46 : 54,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            '${data.percent}%',
-                            style: ProgressTextStyles.title.copyWith(
-                              color: data.color,
-                              fontSize: compact ? 20 : 22,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          data.status,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: ProgressTextStyles.body.copyWith(
-                            color: data.status == 'O‘rta'
-                                ? ProgressColors.orange
-                                : ProgressColors.green,
-                            fontSize: compact ? 11.5 : 12.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(
-                    Icons.chevron_right_rounded,
-                    color: Color(0xFF9AA4B2),
-                    size: 20,
-                  ),
-                ],
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onTap,
+                child: content,
               ),
             ),
             if (showDivider)
@@ -885,6 +1004,76 @@ class TeacherCommentCard extends StatelessWidget {
             _TeacherCommentTile(comment: data),
         ],
       ),
+    );
+  }
+}
+
+class LearningHighlightsSection extends StatelessWidget {
+  const LearningHighlightsSection({super.key, this.data});
+
+  final ParentProgressModel? data;
+
+  @override
+  Widget build(BuildContext context) {
+    final subjects = data?.subjects ?? const <ParentSubjectProgressModel>[];
+    final rankedSubjects = [...subjects]
+      ..sort((left, right) => right.percent.compareTo(left.percent));
+    final best = rankedSubjects.isEmpty ? null : rankedSubjects.first;
+    final latestComment = data?.latestTeacherComment;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'O‘quvdagi yutuqlar',
+          style: ProgressTextStyles.title.copyWith(fontSize: 17),
+        ),
+        const SizedBox(height: 10),
+        ProgressCard(
+          padding: ParentUi.cardPadding,
+          child: subjects.isEmpty && latestComment == null
+              ? const _ProgressSheetEmptyState(
+                  message: 'Hozircha o‘quv yutuqlari bo‘yicha ma’lumot mavjud emas',
+                )
+              : Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _HighlightTile(
+                      icon: Icons.workspace_premium_rounded,
+                      accentColor: ProgressColors.primaryBlue,
+                      title: 'Eng kuchli fan',
+                      value: best?.subject.isNotEmpty == true
+                          ? best!.subject
+                          : 'Ma’lumot mavjud emas',
+                      subtitle: best == null
+                          ? 'Fanlar bo‘yicha yetarli ma’lumot kelmadi'
+                          : '${best.percent}% natija',
+                    ),
+                    _HighlightTile(
+                      icon: Icons.event_available_outlined,
+                      accentColor: ProgressColors.green,
+                      title: 'Davomat ta’siri',
+                      value: '${data?.attendancePercent ?? 0}%',
+                      subtitle: (data?.attendancePercent ?? 0) >= 85
+                          ? 'Davomat barqaror va ijobiy'
+                          : 'Davomatni yaxshilash foydali bo‘ladi',
+                    ),
+                    _HighlightTile(
+                      icon: Icons.chat_bubble_outline_rounded,
+                      accentColor: ProgressColors.purple,
+                      title: 'So‘nggi izoh',
+                      value: latestComment?.teacherName.isNotEmpty == true
+                          ? latestComment!.teacherName
+                          : 'Izoh mavjud emas',
+                      subtitle: latestComment?.comment.isNotEmpty == true
+                          ? latestComment!.comment
+                          : 'O‘qituvchi izohi backenddan kelmagan',
+                    ),
+                  ],
+                ),
+        ),
+      ],
     );
   }
 }
@@ -966,6 +1155,364 @@ class _TeacherCommentTile extends StatelessWidget {
   }
 }
 
+class SelectedChartInsightCard extends StatelessWidget {
+  const SelectedChartInsightCard({
+    super.key,
+    required this.point,
+    this.latestComment,
+  });
+
+  final _ProgressChartPoint point;
+  final ParentTeacherCommentModel? latestComment;
+
+  @override
+  Widget build(BuildContext context) {
+    final comment = latestComment?.comment.trim() ?? '';
+    return Container(
+      width: double.infinity,
+      padding: ParentUi.denseCardPadding,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFD),
+        borderRadius: BorderRadius.circular(ParentUi.cardRadius),
+        border: Border.all(color: ProgressColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF4FF),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  point.label,
+                  style: ProgressTextStyles.label.copyWith(
+                    color: ProgressColors.primaryBlue,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+              Text(
+                '${point.averagePercent.toStringAsFixed(0)}%',
+                style: ProgressTextStyles.title.copyWith(fontSize: 18),
+              ),
+              Text(
+                'o‘rtacha ko‘rsatkich',
+                style: ProgressTextStyles.body.copyWith(
+                  color: ProgressColors.secondaryText,
+                  fontSize: 12.2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Shu davrdagi fanlar kesimi',
+            style: ProgressTextStyles.title.copyWith(fontSize: 14.5),
+          ),
+          const SizedBox(height: 8),
+          if (point.subjects.isEmpty)
+            Text(
+              'Tanlangan nuqta uchun fanlar kesimi mavjud emas',
+              style: ProgressTextStyles.body.copyWith(
+                color: ProgressColors.secondaryText,
+                fontSize: 12.8,
+              ),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final item in point.subjects.take(4))
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: ProgressColors.border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${item.subject}: ${item.pointPercent.toStringAsFixed(0)}%',
+                          style: ProgressTextStyles.body.copyWith(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        if (item.teacherName.trim().isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            item.teacherName.trim(),
+                            style: ProgressTextStyles.body.copyWith(
+                              color: ProgressColors.secondaryText,
+                              fontSize: 11.5,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                if (point.subjects.length > 4)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: ProgressColors.border),
+                    ),
+                    child: Text(
+                      '+${point.subjects.length - 4} ta fan',
+                      style: ProgressTextStyles.body.copyWith(
+                        color: ProgressColors.secondaryText,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          const SizedBox(height: 12),
+          Text(
+            'Izoh',
+            style: ProgressTextStyles.title.copyWith(fontSize: 14.5),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            comment.isNotEmpty ? comment : 'Hozircha qo‘shimcha izoh mavjud emas',
+            style: ProgressTextStyles.body.copyWith(
+              color: ProgressColors.secondaryText,
+              fontSize: 12.8,
+              height: 1.42,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SubjectDetailsSheet extends StatelessWidget {
+  const _SubjectDetailsSheet({
+    required this.data,
+    required this.subject,
+  });
+
+  final SubjectProgressData data;
+  final ParentSubjectProgressModel subject;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFD),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: ProgressColors.border),
+          ),
+          child: Row(
+            children: [
+              _SubjectIconTile(data: data, compact: false),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      data.title,
+                      style: ProgressTextStyles.title.copyWith(fontSize: 17),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      data.status,
+                      style: ProgressTextStyles.body.copyWith(
+                        color: data.status == 'O‘rta'
+                            ? ProgressColors.orange
+                            : ProgressColors.green,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '${data.percent}%',
+                style: ProgressTextStyles.title.copyWith(
+                  color: data.color,
+                  fontSize: 24,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        _DetailInfoTile(
+          label: 'O‘qituvchi',
+          value: subject.teacherName.trim().isNotEmpty
+              ? subject.teacherName.trim()
+              : 'Biriktirilmagan',
+        ),
+        _DetailInfoTile(
+          label: 'Progress foizi',
+          value: '${subject.percent.clamp(0, 100)}%',
+        ),
+        _DetailInfoTile(
+          label: 'Davomat ta’siri',
+          value: subject.attendancePercent > 0
+              ? '${subject.attendancePercent}%'
+              : 'Ma’lumot mavjud emas',
+        ),
+        _DetailInfoTile(
+          label: 'Topshiriq va imtihonlar',
+          value: subject.examPercent > 0
+              ? '${subject.examPercent}%'
+              : 'Ma’lumot mavjud emas',
+        ),
+        _DetailInfoTile(
+          label: 'Holati',
+          value: data.status,
+          isLast: true,
+        ),
+      ],
+    );
+  }
+}
+
+class _HighlightTile extends StatelessWidget {
+  const _HighlightTile({
+    required this.icon,
+    required this.accentColor,
+    required this.title,
+    required this.value,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final Color accentColor;
+  final String title;
+  final String value;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 138, maxWidth: 260),
+      padding: ParentUi.denseCardPadding,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFD),
+        borderRadius: BorderRadius.circular(ParentUi.cardRadius),
+        border: Border.all(color: ProgressColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: accentColor, size: 18),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            style: ProgressTextStyles.body.copyWith(
+              color: ProgressColors.secondaryText,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: ProgressTextStyles.title.copyWith(fontSize: 14),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            subtitle,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: ProgressTextStyles.body.copyWith(
+              color: ProgressColors.secondaryText,
+              fontSize: 12,
+              height: 1.36,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailInfoTile extends StatelessWidget {
+  const _DetailInfoTile({
+    required this.label,
+    required this.value,
+    this.isLast = false,
+  });
+
+  final String label;
+  final String value;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: EdgeInsets.only(bottom: isLast ? 0 : 8),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: ProgressColors.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: ProgressTextStyles.body.copyWith(
+                color: ProgressColors.secondaryText,
+                fontSize: 12.8,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: ProgressTextStyles.title.copyWith(fontSize: 14.2),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ProgressMetricChip extends StatelessWidget {
   const _ProgressMetricChip({
     required this.label,
@@ -984,25 +1531,25 @@ class _ProgressMetricChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minWidth: 148),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      constraints: const BoxConstraints(minWidth: 132),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(ParentUi.softRadius),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 34,
-            height: 34,
+            width: 30,
+            height: 30,
             decoration: BoxDecoration(
               color: accentColor.withValues(alpha: 0.14),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: accentColor, size: 18),
+            child: Icon(icon, color: accentColor, size: 16),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Flexible(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1013,7 +1560,7 @@ class _ProgressMetricChip extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: ProgressTextStyles.body.copyWith(
                     color: ProgressColors.secondaryText,
-                    fontSize: 12,
+                    fontSize: 11.4,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -1021,7 +1568,7 @@ class _ProgressMetricChip extends StatelessWidget {
                   value,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: ProgressTextStyles.title.copyWith(fontSize: 14.5),
+                  style: ProgressTextStyles.title.copyWith(fontSize: 13.5),
                 ),
               ],
             ),
@@ -1208,10 +1755,10 @@ class ParentBottomNav extends StatelessWidget {
             selectedItemColor: ProgressColors.primaryBlue,
             unselectedItemColor: ProgressColors.secondaryText,
             selectedLabelStyle: ProgressTextStyles.label.copyWith(
-              fontSize: 11.5,
+              fontSize: 11,
             ),
             unselectedLabelStyle: ProgressTextStyles.label.copyWith(
-              fontSize: 11.5,
+              fontSize: 11,
               fontWeight: FontWeight.w600,
             ),
             items: const [
@@ -1256,7 +1803,7 @@ class ProgressCard extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(ParentUi.cardRadius),
         border: Border.all(color: ProgressColors.border),
         boxShadow: ProgressShadows.card,
       ),
@@ -1329,9 +1876,9 @@ class _TermDropdownButton extends StatelessWidget {
       style: TextButton.styleFrom(
         backgroundColor: Colors.white,
         foregroundColor: ProgressColors.secondaryText,
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(ParentUi.cardRadius),
           side: const BorderSide(color: ProgressColors.border),
         ),
       ),
@@ -1346,11 +1893,11 @@ class _TermDropdownButton extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: ProgressTextStyles.body.copyWith(
               color: const Color(0xFF374151),
-              fontSize: 13.5,
+              fontSize: 12.8,
             ),
           ),
-          const SizedBox(width: 5),
-          const Icon(Icons.keyboard_arrow_down_rounded, size: 19),
+          const SizedBox(width: 4),
+          const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
         ],
       ),
     );
@@ -1481,42 +2028,103 @@ class _ProgressStateCard extends StatelessWidget {
   }
 }
 
-class _AverageChartData {
-  const _AverageChartData({required this.points, required this.months});
+class _ProgressChartModel {
+  const _ProgressChartModel({required this.points});
 
-  final List<double> points;
-  final List<String> months;
+  final List<_ProgressChartPoint> points;
+
+  _ProgressChartPoint? pointAt(int? index) {
+    if (index == null || index < 0 || index >= points.length) {
+      return null;
+    }
+    return points[index];
+  }
 }
 
-_AverageChartData _averageProgressSeries(List<ParentProgressSeries> series) {
+class _ProgressChartPoint {
+  const _ProgressChartPoint({
+    required this.label,
+    required this.averagePercent,
+    required this.subjects,
+  });
+
+  final String label;
+  final double averagePercent;
+  final List<_ProgressChartSubjectPoint> subjects;
+}
+
+class _ProgressChartSubjectPoint {
+  const _ProgressChartSubjectPoint({
+    required this.subject,
+    required this.teacherName,
+    required this.pointPercent,
+  });
+
+  final String subject;
+  final String teacherName;
+  final double pointPercent;
+}
+
+_ProgressChartModel _buildProgressChartModel(
+  List<ParentProgressSeries> series,
+  List<ParentSubjectProgressModel> subjects,
+) {
   if (series.isEmpty) {
-    return const _AverageChartData(points: [], months: []);
+    return const _ProgressChartModel(points: <_ProgressChartPoint>[]);
   }
   final pointCount = series.fold<int>(
     0,
     (previous, item) => math.max(previous, item.points.length),
   );
   if (pointCount == 0) {
-    return const _AverageChartData(points: [], months: []);
+    return const _ProgressChartModel(points: <_ProgressChartPoint>[]);
   }
 
-  final points = <double>[];
-  for (var index = 0; index < pointCount; index++) {
-    final values = [
-      for (final item in series)
-        if (index < item.points.length) item.points[index].clamp(0, 100),
-    ];
-    if (values.isEmpty) {
-      points.add(0);
-    } else {
-      points.add(values.reduce((a, b) => a + b) / values.length);
-    }
-  }
-
-  final months = series
+  final subjectByLabel = <String, ParentSubjectProgressModel>{
+    for (final subject in subjects) subject.subject.trim().toLowerCase(): subject,
+  };
+  final monthSource = series
       .firstWhere((item) => item.months.isNotEmpty, orElse: () => series.first)
       .months;
-  return _AverageChartData(points: points, months: months);
+
+  final points = <_ProgressChartPoint>[];
+  for (var index = 0; index < pointCount; index++) {
+    final pointSubjects = <_ProgressChartSubjectPoint>[];
+    for (final item in series) {
+      if (index >= item.points.length) {
+        continue;
+      }
+      final subjectLabel = item.label.trim().isNotEmpty ? item.label.trim() : 'Fan';
+      final subjectDetails = subjectByLabel[subjectLabel.toLowerCase()];
+      final pointPercent = item.points[index].clamp(0, 100).toDouble();
+      pointSubjects.add(
+        _ProgressChartSubjectPoint(
+          subject: subjectLabel,
+          teacherName: subjectDetails?.teacherName.trim() ?? '',
+          pointPercent: pointPercent,
+        ),
+      );
+    }
+    pointSubjects.sort(
+      (left, right) => right.pointPercent.compareTo(left.pointPercent),
+    );
+    final average = pointSubjects.isEmpty
+        ? 0.0
+        : pointSubjects
+                .map((item) => item.pointPercent)
+                .reduce((left, right) => left + right) /
+            pointSubjects.length;
+    points.add(
+      _ProgressChartPoint(
+        label: index < monthSource.length && monthSource[index].trim().isNotEmpty
+            ? monthSource[index]
+            : 'Davr ${index + 1}',
+        averagePercent: average,
+        subjects: pointSubjects,
+      ),
+    );
+  }
+  return _ProgressChartModel(points: points);
 }
 
 SubjectProgressData _subjectData(
@@ -1591,6 +2199,14 @@ String _progressStatus(int percent) {
   return 'O‘rta';
 }
 
+String _shortChartLabel(String label) {
+  final trimmed = label.trim();
+  if (trimmed.length <= 8) {
+    return trimmed;
+  }
+  return '${trimmed.substring(0, 8)}…';
+}
+
 String _childGroupLine(ParentChildModel child) {
   final parts = <String>[
     if (child.fullName.trim().isNotEmpty) child.fullName.trim(),
@@ -1643,7 +2259,7 @@ class ProgressTextStyles {
 
   static TextStyle get title {
     return GoogleFonts.inter(
-      fontSize: 18,
+      fontSize: 17,
       height: 1.16,
       fontWeight: FontWeight.w800,
       color: ProgressColors.text,
@@ -1653,7 +2269,7 @@ class ProgressTextStyles {
 
   static TextStyle get body {
     return GoogleFonts.inter(
-      fontSize: 15,
+      fontSize: 14,
       height: 1.28,
       fontWeight: FontWeight.w500,
       color: ProgressColors.text,
@@ -1663,7 +2279,7 @@ class ProgressTextStyles {
 
   static TextStyle get label {
     return GoogleFonts.inter(
-      fontSize: 13,
+      fontSize: 12.5,
       height: 1.16,
       fontWeight: FontWeight.w800,
       color: ProgressColors.text,
@@ -1673,7 +2289,7 @@ class ProgressTextStyles {
 
   static TextStyle get link {
     return GoogleFonts.inter(
-      fontSize: 15,
+      fontSize: 14,
       height: 1.16,
       fontWeight: FontWeight.w800,
       color: ProgressColors.primaryBlue,

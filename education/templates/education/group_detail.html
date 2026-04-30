@@ -496,7 +496,7 @@
   }
 
   .tr-student.forced-row { background: rgba(239, 68, 68, 0.05); }
-  .tr-student.row-not-present .student-actions { opacity: 0.3; pointer-events: none; }
+  .tr-student.row-not-present .student-points-actions { opacity: 0.3; pointer-events: none; }
 
   /* =========================
      NAME & INFO
@@ -629,6 +629,15 @@
     gap: 6px;
   }
 
+  .student-actions {
+    flex-wrap: wrap;
+  }
+
+  .student-points-actions {
+    display: flex;
+    gap: 6px;
+  }
+
   .pill-btn {
     width: 34px;
     height: 34px;
@@ -671,6 +680,24 @@
   }
   .btn-plus-p:hover { color: var(--green); border-color: rgba(34, 197, 94, 0.3); }
   .btn-minus-p:hover { color: var(--red); border-color: rgba(239, 68, 68, 0.3); }
+
+  .pill-btn-transfer {
+    width: auto;
+    min-width: 112px;
+    padding: 0 10px;
+    font-size: 11px;
+    text-decoration: none;
+    border-color: rgba(96, 165, 250, 0.35);
+    background: rgba(37, 99, 235, 0.16);
+    color: #bfdbfe;
+  }
+
+  .pill-btn-transfer:hover {
+    background: rgba(37, 99, 235, 0.26);
+    border-color: rgba(96, 165, 250, 0.52);
+    color: #eff6ff;
+    transform: translateY(-1px);
+  }
 
   /* =========================
      MODALS & OTHER
@@ -903,6 +930,19 @@
     color: #dc2626;
     border-color: rgba(239, 68, 68, 0.24);
     box-shadow: 0 8px 16px rgba(239, 68, 68, 0.08);
+  }
+
+  html[data-role-theme="light"] .pill-btn-transfer {
+    background: linear-gradient(180deg, rgba(239, 246, 255, 0.98), rgba(219, 234, 254, 0.95));
+    color: #1d4ed8;
+    border-color: rgba(59, 130, 246, 0.26);
+    box-shadow: 0 8px 16px rgba(59, 130, 246, 0.1);
+  }
+
+  html[data-role-theme="light"] .pill-btn-transfer:hover {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(239, 246, 255, 0.97));
+    color: #1e40af;
+    border-color: rgba(59, 130, 246, 0.34);
   }
 
   html[data-role-theme="light"] .score-range-label {
@@ -1308,8 +1348,18 @@
             </td>
             <td class="text-center">
               <div class="action-pills student-actions justify-center">
-                <button type="button" class="pill-btn btn-plus-p btn-add" data-student="{{ e.student.id }}"><span class="pill-symbol">+</span></button>
-                <button type="button" class="pill-btn btn-minus-p btn-sub" data-student="{{ e.student.id }}"><span class="pill-symbol">−</span></button>
+                <div class="student-points-actions">
+                  <button type="button" class="pill-btn btn-plus-p btn-add" data-student="{{ e.student.id }}"><span class="pill-symbol">+</span></button>
+                  <button type="button" class="pill-btn btn-minus-p btn-sub" data-student="{{ e.student.id }}"><span class="pill-symbol">−</span></button>
+                </div>
+                {% if can_transfer_student %}
+                <a
+                  href="{% url 'education:transfer_student' e.id %}"
+                  class="pill-btn pill-btn-transfer"
+                  title="Guruhga ko'chirish">
+                  Guruhga ko'chirish
+                </a>
+                {% endif %}
               </div>
             </td>
           </tr>

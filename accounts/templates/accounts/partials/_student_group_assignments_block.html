@@ -52,45 +52,11 @@
           class="form-control uniform-input"
           data-group-assignment-teacher-percent>
       </div>
-      <div class="bq-sdrawer-field">
-        <label for="id_group_monthly_lessons">Oy dars soni</label>
-        <input
-          type="number"
-          min="0"
-          step="1"
-          value="12"
-          id="id_group_monthly_lessons"
-          class="form-control uniform-input"
-          data-group-assignment-monthly-lessons>
-      </div>
-    </div>
-
-    <div class="bq-sdrawer-group-preview" data-group-assignment-preview>
-      <div class="bq-sdrawer-group-preview__head">
-        <strong data-preview-pattern>Pattern tanlanmagan</strong>
-        <span data-preview-start-date>Sana tanlanmagan</span>
-      </div>
-      <div class="bq-sdrawer-group-preview__metrics">
-        <div>
-          <span>Shu oy darslari</span>
-          <strong data-preview-lessons>0 ta</strong>
-        </div>
-        <div>
-          <span>Shu oy qarzi</span>
-          <strong data-preview-fee>0 so'm</strong>
-        </div>
-        <div>
-          <span>O'qituvchi</span>
-          <strong data-preview-teacher>0 so'm</strong>
-        </div>
-        <div>
-          <span>Markaz</span>
-          <strong data-preview-center>0 so'm</strong>
-        </div>
-      </div>
-      <div class="bq-sdrawer-group-preview__note" data-preview-note>
-        Guruh va boshlanish sanasi tanlang.
-      </div>
+      <input
+        type="hidden"
+        value="12"
+        id="id_group_monthly_lessons"
+        data-group-assignment-monthly-lessons>
     </div>
 
     <div class="bq-sdrawer-group-actions">

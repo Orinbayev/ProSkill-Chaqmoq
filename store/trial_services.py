@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from core.models import Notification
 
-from .lead_services import convert_lead_to_student_safe, get_status_by_code, log_lead_activity
+from .lead_services import confirm_lead, convert_lead_to_student_safe, get_status_by_code, log_lead_activity
 from .models import LeadActivity, LeadStatus, TrialLesson, TrialLessonActivity
 
 
@@ -143,6 +143,7 @@ def _apply_trial_result_effects(*, trial: TrialLesson, actor=None):
             lead.next_follow_up_date = timezone.localdate() + timedelta(days=1)
     elif trial.result_status == TrialLesson.ResultStatus.CONVERTED:
         target_status = get_status_by_code(center=center, code=LeadStatus.Code.REGISTERED)
+        confirm_lead(lead=lead, actor=actor)
         user, _, _ = convert_lead_to_student_safe(lead, converted_by=actor, target_center=center)
         trial.registered_after_trial = True
         trial.attended = True

@@ -183,14 +183,15 @@ class SecureLoginView(auth_views.LoginView):
                     "is_telegram_linked", "is_demo_user",
                 ).get(email__iexact=email)
             except User.DoesNotExist:
-                try:
-                    norm = normalize_phone(email)
-                    user = User.objects.only(
+                norm = normalize_phone(email)
+                matches = list(
+                    User.objects.only(
                         "id", "email", "phone_number", "telegram_id",
                         "is_telegram_linked", "is_demo_user",
-                    ).get(phone_number=norm)
-                except User.DoesNotExist:
-                    pass
+                    ).filter(phone_number=norm).order_by("id")[:2]
+                )
+                if len(matches) == 1:
+                    user = matches[0]
 
             if user:
                 _record_activity_bg(user, "Failed login attempt detected", meta_copy)

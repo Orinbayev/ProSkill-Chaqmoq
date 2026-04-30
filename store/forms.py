@@ -3,9 +3,18 @@ from datetime import timedelta
 from django import forms
 from .models import Product, ProductImage
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from django.utils import timezone
 
-from .models import Lead, TrialLesson
+from .models import Lead, LeadGroup, LeadStatus, TrialLesson, Yonalish
+from .lead_services import (
+    build_dynamic_lead_status_choices,
+    get_or_create_custom_lead_status,
+    get_or_create_lead_subject,
+    get_or_create_pipeline_status,
+    normalize_phone,
+    resolve_dynamic_status_value,
+)
 
 User = get_user_model()
 
@@ -210,3 +219,358 @@ class TrialLessonForm(forms.ModelForm):
             cleaned["registered_after_trial"] = True
 
         return cleaned
+
+
+class LeadApiFilterForm(forms.Form):
+    DATE_PRESET_CHOICES = (
+        ("", "Barchasi"),
+        ("today", "Bugun"),
+        ("7", "7 kun"),
+        ("30", "30 kun"),
+        ("custom", "Oraliq"),
+    )
+    VIEW_CHOICES = (
+        ("table", "Jadval"),
+        ("kanban", "Bosqichlar"),
+    )
+
+    subjects = forms.ModelMultipleChoiceField(queryset=Yonalish.objects.none(), required=False)
+    statuses = forms.MultipleChoiceField(choices=(), required=False)
+    date_preset = forms.ChoiceField(choices=DATE_PRESET_CHOICES, required=False)
+    date_from = forms.DateField(required=False)
+    date_to = forms.DateField(required=False)
+    q = forms.CharField(required=False, max_length=120)
+    page = forms.IntegerField(required=False, min_value=1, initial=1)
+    page_size = forms.IntegerField(required=False, min_value=1, max_value=100, initial=20)
+    view = forms.ChoiceField(choices=VIEW_CHOICES, required=False, initial="table")
+
+    def __init__(self, *args, **kwargs):
+        center = kwargs.pop("center", None)
+        super().__init__(*args, **kwargs)
+        queryset = Yonalish.objects.filter(is_active=True)
+        if center:
+            queryset = queryset.filter(center=center)
+        else:
+            queryset = queryset.none()
+        self.fields["subjects"].queryset = queryset.order_by("nom")
+        self.fields["statuses"].choices = [
+            (item["value"], item["label"])
+            for item in build_dynamic_lead_status_choices(center)
+        ]
+
+    def clean(self):
+        cleaned = super().clean()
+        date_from = cleaned.get("date_from")
+        date_to = cleaned.get("date_to")
+        if date_from and date_to and date_from > date_to:
+            self.add_error("date_to", "Tugash sanasi boshlanish sanasidan oldin bo'lishi mumkin emas.")
+        return cleaned
+
+
+class LeadApiForm(forms.Form):
+    name = forms.CharField(max_length=220, required=True)
+    phone = forms.CharField(max_length=20, required=True)
+    subject = forms.ModelChoiceField(queryset=Yonalish.objects.none(), required=True)
+    status = forms.ChoiceField(choices=(), required=False, initial=Lead.PipelineStatus.NEW)
+    note = forms.CharField(required=False, widget=forms.Textarea)
+    manager = forms.ModelChoiceField(queryset=User.objects.none(), required=False)
+    lead_group = forms.ModelChoiceField(queryset=LeadGroup.objects.none(), required=False)
+
+    def __init__(self, *args, **kwargs):
+        self.center = kwargs.pop("center", None)
+        self.instance = kwargs.pop("instance", None)
+        super().__init__(*args, **kwargs)
+        if self.center:
+            subject_qs = Yonalish.objects.filter(center=self.center, is_active=True)
+            if self.instance and getattr(self.instance, "yonalish_id", None):
+                subject_qs = Yonalish.objects.filter(center=self.center).filter(
+                    Q(is_active=True) | Q(id=self.instance.yonalish_id)
+                )
+            self.fields["subject"].queryset = subject_qs.order_by("nom")
+            self.fields["manager"].queryset = User.objects.filter(
+                center=self.center,
+                role="manager",
+                is_archived=False,
+            ).order_by("ism", "familya")
+            lead_group_qs = LeadGroup.objects.filter(center=self.center, is_archived=False)
+            if self.instance and getattr(self.instance, "lead_group_id", None):
+                lead_group_qs = lead_group_qs | LeadGroup.objects.filter(center=self.center, id=self.instance.lead_group_id)
+            self.fields["lead_group"].queryset = lead_group_qs.order_by("name", "id")
+        else:
+            self.fields["subject"].queryset = Yonalish.objects.none()
+            self.fields["manager"].queryset = User.objects.none()
+            self.fields["lead_group"].queryset = LeadGroup.objects.none()
+
+        status_choices = build_dynamic_lead_status_choices(self.center)
+        status_values = {item["value"] for item in status_choices}
+        if self.instance and getattr(self.instance, "status_id", None):
+            current_status_value = resolve_dynamic_status_value(self.instance)
+            if current_status_value.startswith("custom:") and current_status_value not in status_values:
+                status_choices.append(
+                    {
+                        "value": current_status_value,
+                        "label": getattr(self.instance.status, "nom", "Holat"),
+                        "tone": "gray",
+                        "kind": "custom",
+                        "id": self.instance.status_id,
+                    }
+                )
+        self.fields["status"].choices = [(item["value"], item["label"]) for item in status_choices]
+
+    def clean_phone(self):
+        return normalize_phone(self.cleaned_data.get("phone") or "")
+
+    def clean_status(self):
+        value = (self.cleaned_data.get("status") or Lead.PipelineStatus.NEW).strip()
+        if value.startswith("custom:"):
+            raw_id = value.split(":", 1)[1].strip()
+            if not raw_id.isdigit():
+                raise forms.ValidationError("Tanlangan holat noto‘g‘ri.")
+            from .models import LeadStatus
+
+            status = LeadStatus.objects.filter(
+                center=self.center,
+                id=int(raw_id),
+                is_active=True,
+            ).first()
+            if not status:
+                raise forms.ValidationError("Tanlangan holat topilmadi.")
+        return value
+
+    def save(self, *, actor=None):
+        if not self.is_valid():
+            raise ValueError("LeadApiForm save() faqat valid form bilan ishlaydi.")
+
+        lead = self.instance or Lead(center=self.center)
+        raw_name = (self.cleaned_data["name"] or "").strip()
+        name_parts = raw_name.split()
+        lead.ism = name_parts[0] if name_parts else raw_name
+        lead.familya = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
+        lead.telefon1 = self.cleaned_data["phone"]
+        lead.yonalish = self.cleaned_data["subject"]
+        lead.comment = (self.cleaned_data.get("note") or "").strip()
+        lead.lead_group = self.cleaned_data.get("lead_group")
+        lead.center = self.center or lead.center
+        lead.yosh = int(getattr(lead, "yosh", 0) or 0)
+        if actor and not lead.created_by_id:
+            lead.created_by = actor
+
+        selected_manager = self.cleaned_data.get("manager")
+        if actor and getattr(actor, "role", "") == "manager":
+            lead.assigned_manager = actor
+        elif selected_manager:
+            lead.assigned_manager = selected_manager
+        elif lead.assigned_manager_id:
+            pass
+        else:
+            fallback_manager = User.objects.filter(
+                center=self.center,
+                role="manager",
+                is_archived=False,
+            ).order_by("ism", "familya", "id").first()
+            if fallback_manager:
+                lead.assigned_manager = fallback_manager
+            elif actor:
+                lead.assigned_manager = actor
+
+        status_value = self.cleaned_data.get("status") or Lead.PipelineStatus.NEW
+        if status_value.startswith("custom:"):
+            from .models import LeadStatus
+
+            status_id = int(status_value.split(":", 1)[1])
+            lead.status = LeadStatus.objects.filter(
+                center=self.center,
+                id=status_id,
+                is_active=True,
+            ).first()
+        else:
+            lead.status = get_or_create_pipeline_status(center=self.center, pipeline_status=status_value)
+        lead.save()
+        return lead
+
+
+class LeadSubjectForm(forms.Form):
+    name = forms.CharField(max_length=100, required=True)
+
+    def __init__(self, *args, **kwargs):
+        self.center = kwargs.pop("center", None)
+        self.instance = kwargs.pop("instance", None)
+        super().__init__(*args, **kwargs)
+
+    def clean_name(self):
+        value = " ".join((self.cleaned_data.get("name") or "").strip().split())
+        if not value:
+            raise forms.ValidationError("Fan nomini kiriting.")
+        if self.instance and Yonalish.objects.filter(center=self.center, nom__iexact=value).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Bunday fan allaqachon mavjud.")
+        return value
+
+    def save(self):
+        if not self.is_valid():
+            raise ValueError("LeadSubjectForm save() faqat valid form bilan ishlaydi.")
+        if self.instance:
+            changed_fields = []
+            if self.instance.nom != self.cleaned_data["name"]:
+                self.instance.nom = self.cleaned_data["name"]
+                changed_fields.append("nom")
+            if not self.instance.is_active:
+                self.instance.is_active = True
+                changed_fields.append("is_active")
+            if changed_fields:
+                self.instance.save(update_fields=changed_fields)
+            return self.instance
+        return get_or_create_lead_subject(
+            center=self.center,
+            name=self.cleaned_data["name"],
+        )
+
+
+class LeadStatusForm(forms.Form):
+    name = forms.CharField(max_length=100, required=True)
+
+    def __init__(self, *args, **kwargs):
+        self.center = kwargs.pop("center", None)
+        self.instance = kwargs.pop("instance", None)
+        super().__init__(*args, **kwargs)
+
+    def clean_name(self):
+        value = " ".join((self.cleaned_data.get("name") or "").strip().split())
+        if not value:
+            raise forms.ValidationError("Holat nomini kiriting.")
+        if self.instance and LeadStatus.objects.filter(center=self.center, nom__iexact=value).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Bunday holat allaqachon mavjud.")
+        return value
+
+    def save(self):
+        if not self.is_valid():
+            raise ValueError("LeadStatusForm save() faqat valid form bilan ishlaydi.")
+        if self.instance:
+            changed_fields = []
+            if self.instance.nom != self.cleaned_data["name"]:
+                self.instance.nom = self.cleaned_data["name"]
+                changed_fields.append("nom")
+            if not self.instance.is_active:
+                self.instance.is_active = True
+                changed_fields.append("is_active")
+            if changed_fields:
+                self.instance.save(update_fields=changed_fields)
+            return self.instance
+        return get_or_create_custom_lead_status(
+            center=self.center,
+            name=self.cleaned_data["name"],
+        )
+
+
+class LeadAssignLeadGroupForm(forms.Form):
+    lead_group = forms.ModelChoiceField(queryset=LeadGroup.objects.none(), required=False)
+
+    def __init__(self, *args, **kwargs):
+        center = kwargs.pop("center", None)
+        super().__init__(*args, **kwargs)
+        queryset = LeadGroup.objects.filter(is_archived=False)
+        if center:
+            queryset = queryset.filter(center=center)
+        self.fields["lead_group"].queryset = queryset.order_by("name", "id")
+
+
+class LeadConvertForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        kwargs.pop("center", None)
+        super().__init__(*args, **kwargs)
+
+
+class LeadGroupForm(forms.Form):
+    name = forms.CharField(max_length=150, required=True)
+    subject = forms.ModelChoiceField(queryset=Yonalish.objects.none(), required=False)
+    department = forms.ModelChoiceField(queryset=Yonalish.objects.none(), required=False)
+    min_students = forms.IntegerField(required=True, min_value=1, max_value=100)
+    note = forms.CharField(required=False, widget=forms.Textarea)
+
+    def __init__(self, *args, **kwargs):
+        self.center = kwargs.pop("center", None)
+        self.instance = kwargs.pop("instance", None)
+        super().__init__(*args, **kwargs)
+        from education.models import Category
+
+        if self.center:
+            self.fields["subject"].queryset = Yonalish.objects.filter(center=self.center, is_active=True).order_by("nom")
+            self.fields["department"].queryset = Category.objects.filter(center=self.center).order_by("name")
+        else:
+            self.fields["subject"].queryset = Yonalish.objects.none()
+            self.fields["department"].queryset = Category.objects.none()
+
+    def clean_name(self):
+        value = " ".join((self.cleaned_data.get("name") or "").split()).strip()
+        if not value:
+            raise forms.ValidationError("Lead guruhi nomini kiriting.")
+        qs = LeadGroup.objects.filter(center=self.center, name__iexact=value, is_archived=False)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError("Bunday lead guruhi allaqachon mavjud.")
+        return value
+
+    def save(self, *, actor=None):
+        if not self.is_valid():
+            raise ValueError("LeadGroupForm save() faqat valid form bilan ishlaydi.")
+
+        lead_group = self.instance or LeadGroup(center=self.center)
+        lead_group.name = self.cleaned_data["name"]
+        if "subject" in self.data:
+            lead_group.subject = self.cleaned_data.get("subject")
+        lead_group.department = self.cleaned_data.get("department")
+        lead_group.min_students = self.cleaned_data["min_students"]
+        lead_group.note = (self.cleaned_data.get("note") or "").strip()
+        if actor and not lead_group.created_by_id:
+            lead_group.created_by = actor
+        lead_group.save()
+        return lead_group
+
+
+class LeadGroupConvertForm(forms.Form):
+    WEEKDAY_CHOICES = [
+        ("1", "Du"),
+        ("2", "Se"),
+        ("3", "Cho"),
+        ("4", "Pa"),
+        ("5", "Ju"),
+        ("6", "Sha"),
+        ("7", "Yak"),
+    ]
+
+    name = forms.CharField(max_length=150, required=True)
+    department = forms.ModelChoiceField(queryset=LeadGroup.objects.none(), required=False)
+    teacher = forms.ModelChoiceField(queryset=User.objects.none(), required=True)
+    lesson_days = forms.MultipleChoiceField(choices=WEEKDAY_CHOICES, required=False)
+    lesson_time = forms.TimeField(required=True)
+    start_date = forms.DateField(required=True)
+    price = forms.IntegerField(required=True, min_value=0)
+    teacher_share = forms.CharField(required=False)
+
+    def __init__(self, *args, **kwargs):
+        self.center = kwargs.pop("center", None)
+        super().__init__(*args, **kwargs)
+        from education.models import Category
+
+        if self.center:
+            self.fields["department"].queryset = Category.objects.filter(center=self.center).order_by("name")
+            self.fields["teacher"].queryset = User.objects.filter(
+                center=self.center,
+                role="teacher",
+                is_archived=False,
+            ).order_by("ism", "familya")
+        else:
+            self.fields["department"].queryset = Category.objects.none()
+            self.fields["teacher"].queryset = User.objects.none()
+
+    def clean_lesson_days(self):
+        values = self.cleaned_data.get("lesson_days") or []
+        unique_values = []
+        for value in values:
+            cleaned = str(value).strip()
+            if cleaned and cleaned not in unique_values:
+                unique_values.append(cleaned)
+        return unique_values
+
+    def clean_teacher_share(self):
+        return (self.cleaned_data.get("teacher_share") or "").strip()

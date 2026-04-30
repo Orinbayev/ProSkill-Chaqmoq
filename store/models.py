@@ -256,12 +256,20 @@ class Expense(models.Model):
 class Yonalish(models.Model):
     nom = models.CharField(max_length=100)
     center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True)
+    color = models.CharField(max_length=20, blank=True, default="#64748b")
+    is_active = models.BooleanField(default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     
     class Meta:
         unique_together = ('nom', 'center')
+        ordering = ("nom",)
         
     def __str__(self):
         return self.nom
+
+    @property
+    def display_color(self) -> str:
+        return self.color or "#64748b"
 
 
 class Manba(models.Model):
@@ -280,10 +288,10 @@ class LeadStatus(models.Model):
         NEW = "new", "Yangi"
         CONTACTED = "contacted", "Bog'lanildi"
         NO_ANSWER = "no_answer", "Javob bermadi"
-        TRIAL_SCHEDULED = "trial_scheduled", "Sinov dars belgilandi"
+        TRIAL_SCHEDULED = "trial_scheduled", "Sinovga yozildi"
         TRIAL_ATTENDED = "trial_attended", "Sinov darsda qatnashdi"
-        REGISTERED = "registered", "Ro'yxatdan o'tdi"
-        LOST = "lost", "Yo'qotildi"
+        REGISTERED = "registered", "Tasdiqlandi"
+        LOST = "lost", "Bekor qilingan"
 
     nom = models.CharField(max_length=100)
     code = models.CharField(max_length=32, choices=Code.choices, blank=True, default="", db_index=True)
@@ -301,7 +309,115 @@ class LeadStatus(models.Model):
 
 
 
+
+class LeadGroup(models.Model):
+    class Status(models.TextChoices):
+        COLLECTING = "collecting", "Yig'ilmoqda"
+        READY = "ready", "Tayyor"
+        CONVERTED = "converted", "Guruhga aylantirilgan"
+
+    center = models.ForeignKey("accounts.Center", on_delete=models.CASCADE, null=True, blank=True)
+    name = models.CharField(max_length=150)
+    subject = models.ForeignKey(
+        Yonalish,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="lead_groups",
+    )
+    department = models.ForeignKey(
+        "education.Category",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="lead_groups",
+    )
+    min_students = models.PositiveSmallIntegerField(default=1)
+    note = models.TextField(blank=True, default="")
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.COLLECTING,
+        db_index=True,
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_lead_groups",
+    )
+    converted_group = models.ForeignKey(
+        "education.Group",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="source_lead_groups",
+    )
+    is_archived = models.BooleanField(default=False, db_index=True)
+    archived_at = models.DateTimeField(null=True, blank=True)
+    archived_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="archived_lead_groups",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+        indexes = [
+            models.Index(fields=["center", "status"]),
+            models.Index(fields=["center", "is_archived"]),
+            models.Index(fields=["center", "subject"]),
+            models.Index(fields=["center", "department"]),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def lead_count(self) -> int:
+        return self.leads.filter(is_archived=False).count()
+
+    @property
+    def confirmed_lead_count(self) -> int:
+        return self.leads.filter(is_archived=False).filter(
+            models.Q(is_confirmed=True) | models.Q(converted_to_student=True)
+        ).count()
+
+    def mark_archived(self, by_user=None):
+        self.is_archived = True
+        self.archived_at = timezone.now()
+        if by_user:
+            self.archived_by = by_user
+        self.save(update_fields=["is_archived", "archived_at", "archived_by", "updated_at"])
+
+    def restore(self):
+        self.is_archived = False
+        self.archived_at = None
+        self.archived_by = None
+        self.save(update_fields=["is_archived", "archived_at", "archived_by", "updated_at"])
+
+
 class Lead(models.Model):
+    class Subject(models.TextChoices):
+        IELTS = "ielts", "IELTS"
+        GENERAL_ENGLISH = "general_english", "General English"
+        MATH = "math", "Matematika"
+        RUSSIAN = "russian", "Rus tili"
+        OTHER = "other", "Boshqa"
+
+    class PipelineStatus(models.TextChoices):
+        NEW = "new", "Yangi"
+        CONTACTED = "contacted", "Bog'lanildi"
+        TRIAL = "trial", "Sinovga yozildi"
+        CONFIRMED = "confirmed", "Tasdiqlandi"
+        CONVERTED = "converted", "O'quvchiga aylangan"
+        CANCELED = "canceled", "Bekor qilingan"
+
     center = models.ForeignKey('accounts.Center', on_delete=models.CASCADE, null=True, blank=True)
     ism = models.CharField(max_length=100)
     familya = models.CharField(max_length=100, blank=True)
@@ -326,6 +442,14 @@ class Lead(models.Model):
         related_name="assigned_leads",
         limit_choices_to={"role": "manager"},
     )
+    lead_group = models.ForeignKey(
+        "LeadGroup",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="leads",
+    )
+    added_to_group_at = models.DateTimeField(null=True, blank=True)
     comment = models.TextField(blank=True, null=True, verbose_name="Izoh (comment)")
     lost_reason = models.CharField(max_length=255, blank=True, default="")
     next_follow_up_date = models.DateField(null=True, blank=True, db_index=True)
@@ -354,6 +478,16 @@ class Lead(models.Model):
         verbose_name="Kim o‘tkazdi"
     )
     converted_to_student = models.BooleanField(default=False, db_index=True)
+    is_confirmed = models.BooleanField(default=False, db_index=True)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    confirmed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="confirmed_leads",
+        verbose_name="Kim tasdiqladi",
+    )
 
     is_archived = models.BooleanField(default=False, db_index=True)
     archived_at = models.DateTimeField(null=True, blank=True)
@@ -370,8 +504,10 @@ class Lead(models.Model):
             models.Index(fields=["center", "qoshilgan_sana"]),
             models.Index(fields=["center", "status"]),
             models.Index(fields=["center", "assigned_manager"]),
+            models.Index(fields=["center", "lead_group"]),
             models.Index(fields=["center", "manba"]),
             models.Index(fields=["center", "is_archived"]),
+            models.Index(fields=["center", "is_confirmed"]),
             models.Index(fields=["center", "converted_to_student"]),
             models.Index(fields=["next_follow_up_date"]),
         ]
@@ -388,12 +524,89 @@ class Lead(models.Model):
         return self.comment or ""
 
     @property
+    def name(self) -> str:
+        return self.full_name
+
+    @property
+    def phone(self) -> str:
+        return self.telefon1 or self.telefon2 or self.parent_phone or ""
+
+    @property
     def source(self):
         return self.manba
 
     @property
     def interested_course(self):
         return self.yonalish
+
+    @property
+    def manager(self):
+        return self.assigned_manager
+
+    @property
+    def subject_name(self) -> str:
+        return getattr(self.yonalish, "nom", "") or self.Subject.OTHER.label
+
+    @property
+    def subject_color(self) -> str:
+        return getattr(self.yonalish, "display_color", "#64748b") or "#64748b"
+
+    @property
+    def pipeline_status(self) -> str:
+        if self.converted_to_student:
+            return self.PipelineStatus.CONVERTED
+
+        status_code = (getattr(self.status, "code", "") or "").strip().lower()
+        status_name = (getattr(self.status, "nom", "") or "").strip().lower()
+
+        if status_code == LeadStatus.Code.LOST or "yo'qot" in status_name or "bekor" in status_name:
+            return self.PipelineStatus.CANCELED
+        if status_code in {LeadStatus.Code.TRIAL_SCHEDULED, LeadStatus.Code.TRIAL_ATTENDED} or "trial" in status_name or "sinov" in status_name:
+            return self.PipelineStatus.TRIAL
+        if status_code in {LeadStatus.Code.CONTACTED, LeadStatus.Code.NO_ANSWER} or "bog" in status_name or "aloqa" in status_name or "javob" in status_name:
+            return self.PipelineStatus.CONTACTED
+        if self.is_confirmed or status_code == LeadStatus.Code.REGISTERED or "tasdiq" in status_name or "register" in status_name:
+            return self.PipelineStatus.CONFIRMED
+        return self.PipelineStatus.NEW
+
+    @property
+    def pipeline_status_label(self) -> str:
+        return dict(self.PipelineStatus.choices).get(self.pipeline_status, self.pipeline_status)
+
+    def save(self, *args, **kwargs):
+        update_fields = kwargs.get("update_fields")
+        normalized_update_fields = set(update_fields or [])
+        previous_group_id = None
+        previous_added_at = None
+        should_track_group_change = self._state.adding or update_fields is None or bool(
+            {"lead_group", "lead_group_id", "added_to_group_at"} & normalized_update_fields
+        )
+
+        if should_track_group_change and self.pk:
+            previous_group_id, previous_added_at = (
+                type(self).objects.filter(pk=self.pk)
+                .values_list("lead_group_id", "added_to_group_at")
+                .first()
+                or (None, None)
+            )
+
+        if self.lead_group_id:
+            if self._state.adding and not self.added_to_group_at:
+                self.added_to_group_at = timezone.now()
+            elif previous_group_id != self.lead_group_id:
+                self.added_to_group_at = timezone.now()
+            elif not self.added_to_group_at:
+                self.added_to_group_at = previous_added_at or timezone.now()
+        else:
+            self.added_to_group_at = None
+
+        if update_fields is not None:
+            normalized_fields = set(update_fields)
+            if "lead_group" in normalized_fields or "lead_group_id" in normalized_fields or "added_to_group_at" in normalized_fields:
+                normalized_fields.add("added_to_group_at")
+                kwargs["update_fields"] = list(normalized_fields)
+
+        return super().save(*args, **kwargs)
 
     def mark_archived(self, by_user=None):
         self.is_archived = True
@@ -402,15 +615,54 @@ class Lead(models.Model):
             self.archived_by = by_user
         self.save(update_fields=["is_archived", "archived_at", "archived_by", "updated_at"])
 
+    def restore(self):
+        self.is_archived = False
+        self.archived_at = None
+        self.archived_by = None
+        self.save(update_fields=["is_archived", "archived_at", "archived_by", "updated_at"])
+
+    def mark_confirmed(self, by_user=None, save=True):
+        self.is_confirmed = True
+        if not self.confirmed_at:
+            self.confirmed_at = timezone.now()
+        if by_user:
+            self.confirmed_by = by_user
+        if save:
+            self.save(update_fields=["is_confirmed", "confirmed_at", "confirmed_by", "updated_at"])
+
     def mark_converted(self, converted_user=None, converted_by=None):
+        self.is_confirmed = True
         self.converted_to_student = True
         if converted_user:
             self.converted_user = converted_user
         if converted_by:
             self.converted_by = converted_by
+            if not self.confirmed_by_id:
+                self.confirmed_by = converted_by
         if not self.converted_at:
             self.converted_at = timezone.now()
-        self.save(update_fields=["converted_to_student", "converted_user", "converted_by", "converted_at", "updated_at"])
+        if not self.confirmed_at:
+            self.confirmed_at = self.converted_at
+        self.is_archived = True
+        if converted_by:
+            self.archived_by = converted_by
+        if not self.archived_at:
+            self.archived_at = timezone.now()
+        self.save(
+            update_fields=[
+                "is_confirmed",
+                "confirmed_at",
+                "confirmed_by",
+                "converted_to_student",
+                "converted_user",
+                "converted_by",
+                "converted_at",
+                "is_archived",
+                "archived_by",
+                "archived_at",
+                "updated_at",
+            ]
+        )
 
 
 class LeadActivity(models.Model):

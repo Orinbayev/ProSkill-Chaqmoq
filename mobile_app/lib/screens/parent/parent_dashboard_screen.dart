@@ -3,8 +3,10 @@ import 'dart:math' as math;
 import 'package:chaqmoq_mobile/core/utils/formatters.dart';
 import 'package:chaqmoq_mobile/models/app_models.dart';
 import 'package:chaqmoq_mobile/models/parent_models.dart';
+import 'package:chaqmoq_mobile/providers/notifications_provider.dart';
 import 'package:chaqmoq_mobile/providers/parent_dashboard_provider.dart';
 import 'package:chaqmoq_mobile/screens/parent/add_child_screen.dart';
+import 'package:chaqmoq_mobile/screens/parent/parent_ui.dart';
 import 'package:chaqmoq_mobile/widgets/adaptive_avatar.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -43,6 +45,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<ParentDashboardProvider>().load();
+        context.read<NotificationsProvider>().load();
       }
     });
   }
@@ -84,10 +87,10 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
             ),
             child: Container(
               margin: const EdgeInsets.all(12),
-              padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+              padding: ParentUi.sheetPadding,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(ParentUi.sheetRadius),
                 boxShadow: _ParentShadows.card,
               ),
               child: Column(
@@ -106,10 +109,10 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'Farzandni tanlang',
-                      style: _ParentTextStyles.title.copyWith(fontSize: 18),
+                      style: _ParentTextStyles.title.copyWith(fontSize: 17),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Flexible(
                     child: SingleChildScrollView(
                       child: Column(
@@ -127,7 +130,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
@@ -136,12 +139,12 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                         backgroundColor: const Color(0xFFEAF4FF),
                         foregroundColor: _ParentColors.primaryBlue,
                         elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(ParentUi.softRadius),
                         ),
                       ),
-                      icon: const Icon(Icons.add_rounded, size: 20),
+                      icon: const Icon(Icons.add_rounded, size: 18),
                       label: Text(
                         'Farzand qo‘shish',
                         style: _ParentTextStyles.body.copyWith(
@@ -163,8 +166,13 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final dashboard = context.watch<ParentDashboardProvider>();
+    final notifications = context.watch<NotificationsProvider>();
     final data = dashboard.data;
     final hasData = data != null && data.selectedChild.id > 0;
+    final unreadCount = ParentUi.resolveUnreadCount(
+      notifications: notifications,
+      fallback: data?.unreadNotifications ?? 0,
+    );
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -180,23 +188,28 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
         body: SafeArea(
           child: RefreshIndicator(
             color: _ParentColors.primaryBlue,
-            onRefresh: dashboard.refresh,
+            onRefresh: () async {
+              await Future.wait([
+                dashboard.refresh(),
+                context.read<NotificationsProvider>().refresh(),
+              ]);
+            },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(
                 parent: BouncingScrollPhysics(),
               ),
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
+              padding: ParentUi.screenPadding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   HeaderBar(
                     parent: data?.parent,
-                    unreadCount: data?.unreadNotifications ?? 0,
+                    unreadCount: unreadCount,
                     onMenuTap: widget.onOpenDrawer,
                     onBellTap: widget.onOpenNotifications,
                     onAvatarTap: widget.onOpenProfile,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: ParentUi.sectionGap),
                   if (dashboard.state == ViewState.loading && data == null)
                     const _DashboardLoading()
                   else if (dashboard.state == ViewState.error && data == null)
@@ -221,39 +234,49 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                         color: _ParentColors.primaryBlue,
                         backgroundColor: Color(0xFFEAF4FF),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
                     ],
                     ChildProfileCard(
                       child: data.selectedChild,
                       onTap: () => _showChildSelector(data),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: ParentUi.sectionGap),
                     SectionHeader(
                       title: 'Umumiy ko‘rsatkichlar',
                       actionText: 'Batafsil',
                       onTap: widget.onOpenProgress,
                     ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        for (final entry in _statsFor(
-                          data.stats,
-                        ).asMap().entries) ...[
-                          Expanded(child: StatCard(data: entry.value)),
-                          if (entry.key != 3) const SizedBox(width: 8),
-                        ],
-                      ],
+                    const SizedBox(height: 8),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final stats = _statsFor(data.stats);
+                        if (constraints.maxWidth < 420) {
+                          final width =
+                              (constraints.maxWidth - ParentUi.cardGap) / 2;
+                          return Wrap(
+                            spacing: ParentUi.cardGap,
+                            runSpacing: ParentUi.cardGap,
+                            children: [
+                              for (final item in stats)
+                                SizedBox(width: width, child: StatCard(data: item)),
+                            ],
+                          );
+                        }
+                        return Row(
+                          children: [
+                            for (final entry in stats.asMap().entries) ...[
+                              Expanded(child: StatCard(data: entry.value)),
+                              if (entry.key != stats.length - 1)
+                                const SizedBox(width: ParentUi.cardGap),
+                            ],
+                          ],
+                        );
+                      },
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: ParentUi.sectionGap),
                     ProgressChartCard(
                       series: data.progressChart,
                       onDetailsTap: widget.onOpenProgress,
-                    ),
-                    const SizedBox(height: 18),
-                    NotificationCard(
-                      notifications: data.latestNotifications,
-                      onSeeAll: widget.onOpenNotifications,
-                      onNotificationTap: widget.onOpenNotifications,
                     ),
                   ],
                 ],
@@ -338,10 +361,10 @@ class HeaderBar extends StatelessWidget {
       children: [
         _CircleIconButton(
           icon: Icons.menu_rounded,
-          iconSize: 26,
+          iconSize: 22,
           onTap: onMenuTap ?? () {},
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 10),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,38 +377,38 @@ class HeaderBar extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFEAF4FF),
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(ParentUi.chipRadius),
                 ),
                 child: Text(
                   'Ota-ona paneli',
                   style: _ParentTextStyles.label.copyWith(
                     color: _ParentColors.primaryBlue,
-                    fontSize: 11.5,
+                    fontSize: 11.2,
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
                 'Salom,',
                 style: _ParentTextStyles.body.copyWith(
-                  fontSize: 12.5,
+                  fontSize: 12.2,
                   color: _ParentColors.secondaryText,
                 ),
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 2),
               Text(
                 '$parentName 👋',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: _ParentTextStyles.title.copyWith(
-                  fontSize: 18,
+                  fontSize: 17,
                   height: 1.18,
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         Stack(
           clipBehavior: Clip.none,
           children: [
@@ -400,7 +423,7 @@ class HeaderBar extends StatelessWidget {
                 top: 2,
                 child: Container(
                   constraints: const BoxConstraints(minWidth: 18),
-                  height: 18,
+                  height: ParentUi.miniBadgeHeight,
                   alignment: Alignment.center,
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   decoration: BoxDecoration(
@@ -412,7 +435,7 @@ class HeaderBar extends StatelessWidget {
                     unreadCount > 99 ? '99+' : '$unreadCount',
                     style: _ParentTextStyles.label.copyWith(
                       color: Colors.white,
-                      fontSize: 9.5,
+                      fontSize: 9,
                       height: 1,
                     ),
                   ),
@@ -420,7 +443,7 @@ class HeaderBar extends StatelessWidget {
               ),
           ],
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         _ProfileAvatar(parent: parent, onTap: onAvatarTap ?? () {}),
       ],
     );
@@ -435,19 +458,19 @@ class ChildProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isCompact = MediaQuery.sizeOf(context).width < 380;
-    final avatarSize = isCompact ? 56.0 : 64.0;
-    final cardHeight = isCompact ? 108.0 : 116.0;
-    final horizontalPadding = isCompact ? 14.0 : 18.0;
-    final textGap = isCompact ? 12.0 : 16.0;
-    final dropdownSize = isCompact ? 38.0 : 44.0;
+    final isCompact = ParentUi.isCompact(context);
+    final avatarSize = isCompact ? 52.0 : 58.0;
+    final cardHeight = isCompact ? 96.0 : 104.0;
+    final horizontalPadding = isCompact ? 13.0 : 16.0;
+    final textGap = isCompact ? 10.0 : 13.0;
+    final dropdownSize = isCompact ? 34.0 : 38.0;
     final groupLine = _childGroupLine(child);
 
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(ParentUi.cardRadius),
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(ParentUi.cardRadius),
         onTap: onTap,
         child: Ink(
           height: cardHeight,
@@ -456,7 +479,7 @@ class ChildProfileCard extends StatelessWidget {
             vertical: isCompact ? 14.0 : 16.0,
           ),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(ParentUi.cardRadius),
             gradient: const LinearGradient(
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
@@ -484,7 +507,7 @@ class ChildProfileCard extends StatelessWidget {
                       color: Colors.white.withValues(alpha: 0.22),
                       border: Border.all(
                         color: Colors.white.withValues(alpha: 0.72),
-                        width: 2.5,
+                        width: 2.2,
                       ),
                     ),
                     child: _AvatarImage(
@@ -496,12 +519,12 @@ class ChildProfileCard extends StatelessWidget {
                     right: -1,
                     bottom: 4,
                     child: Container(
-                      width: isCompact ? 17 : 19,
-                      height: isCompact ? 17 : 19,
+                      width: isCompact ? 15 : 17,
+                      height: isCompact ? 15 : 17,
                       decoration: BoxDecoration(
                         color: _ParentColors.green,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 4),
+                        border: Border.all(color: Colors.white, width: 3),
                       ),
                     ),
                   ),
@@ -519,25 +542,25 @@ class ChildProfileCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: _ParentTextStyles.title.copyWith(
                         color: Colors.white,
-                        fontSize: isCompact ? 17 : 19,
+                        fontSize: isCompact ? 15.5 : 17,
                         height: 1.16,
                       ),
                     ),
-                    SizedBox(height: isCompact ? 5 : 7),
+                    SizedBox(height: isCompact ? 4 : 5),
                     Text(
                       groupLine,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: _ParentTextStyles.body.copyWith(
                         color: Colors.white.withValues(alpha: 0.92),
-                        fontSize: isCompact ? 12.8 : 14.2,
+                        fontSize: isCompact ? 12 : 12.8,
                         height: 1.24,
                       ),
                     ),
                   ],
                 ),
               ),
-              SizedBox(width: isCompact ? 8 : 12),
+              SizedBox(width: isCompact ? 6 : 10),
               Container(
                 width: dropdownSize,
                 height: dropdownSize,
@@ -549,7 +572,7 @@ class ChildProfileCard extends StatelessWidget {
                 child: Icon(
                   Icons.keyboard_arrow_down_rounded,
                   color: Colors.white,
-                  size: isCompact ? 27 : 30,
+                  size: isCompact ? 22 : 24,
                 ),
               ),
             ],
@@ -581,7 +604,7 @@ class SectionHeader extends StatelessWidget {
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: _ParentTextStyles.title.copyWith(fontSize: 18),
+            style: _ParentTextStyles.title.copyWith(fontSize: 17),
           ),
         ),
         TextButton(
@@ -597,10 +620,10 @@ class SectionHeader extends StatelessWidget {
             children: [
               Text(
                 actionText,
-                style: _ParentTextStyles.link.copyWith(fontSize: 14.5),
+                style: _ParentTextStyles.link.copyWith(fontSize: 13.2),
               ),
-              const SizedBox(width: 3),
-              const Icon(Icons.chevron_right_rounded, size: 21),
+              const SizedBox(width: 2),
+              const Icon(Icons.chevron_right_rounded, size: 18),
             ],
           ),
         ),
@@ -618,16 +641,16 @@ class StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(ParentUi.cardRadius),
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(ParentUi.cardRadius),
         onTap: data.onTap,
         child: Ink(
-          height: 118,
-          padding: const EdgeInsets.fromLTRB(7, 10, 7, 9),
+          height: 104,
+          padding: const EdgeInsets.fromLTRB(8, 9, 8, 9),
           decoration: BoxDecoration(
             color: data.background,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(ParentUi.cardRadius),
             border: Border.all(
               color: _ParentColors.border.withValues(alpha: 0.72),
             ),
@@ -638,13 +661,13 @@ class StatCard extends StatelessWidget {
             children: [
               Center(
                 child: Container(
-                  width: 36,
-                  height: 36,
+                  width: 32,
+                  height: 32,
                   decoration: BoxDecoration(
                     color: data.accent.withValues(alpha: 0.16),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(data.icon, color: data.accent, size: 20),
+                  child: Icon(data.icon, color: data.accent, size: 18),
                 ),
               ),
               const Spacer(),
@@ -658,14 +681,14 @@ class StatCard extends StatelessWidget {
                     maxLines: 1,
                     style: _ParentTextStyles.body.copyWith(
                       color: _ParentColors.secondaryText,
-                      fontSize: 11.5,
+                      fontSize: 11.2,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 2),
               SizedBox(
-                height: 23,
+                height: 21,
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
@@ -674,7 +697,7 @@ class StatCard extends StatelessWidget {
                     maxLines: 1,
                     style: _ParentTextStyles.title.copyWith(
                       color: data.accent,
-                      fontSize: 20,
+                      fontSize: 18,
                       letterSpacing: 0,
                     ),
                   ),
@@ -687,7 +710,7 @@ class StatCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: _ParentTextStyles.body.copyWith(
                   color: data.subtitleColor ?? _ParentColors.secondaryText,
-                  fontSize: 11.5,
+                  fontSize: 11,
                 ),
               ),
             ],
@@ -714,7 +737,7 @@ class ProgressChartCard extends StatelessWidget {
     final months = _chartMonths(series);
 
     return _DashboardCard(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      padding: ParentUi.cardPadding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -723,19 +746,22 @@ class ProgressChartCard extends StatelessWidget {
             actionText: 'Batafsil',
             onTap: onDetailsTap,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           if (chartSeries.isEmpty)
             const _InlineEmptyState(text: 'Progress ma’lumoti yo‘q')
           else
             LayoutBuilder(
               builder: (context, constraints) {
-                final isNarrow = constraints.maxWidth < 320;
+                final isNarrow = constraints.maxWidth < 420;
                 if (isNarrow) {
                   return Column(
                     children: [
                       _ChartWithAxes(series: chartSeries, months: months),
                       const SizedBox(height: 10),
-                      _ChartLegend(series: chartSeries, compact: true),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: _ChartLegend(series: chartSeries, compact: true),
+                      ),
                     ],
                   );
                 }
@@ -749,7 +775,7 @@ class ProgressChartCard extends StatelessWidget {
                         months: months,
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Padding(
                       padding: const EdgeInsets.only(top: 2),
                       child: _ChartLegend(series: chartSeries),
@@ -758,97 +784,6 @@ class ProgressChartCard extends StatelessWidget {
                 );
               },
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class NotificationCard extends StatelessWidget {
-  const NotificationCard({
-    super.key,
-    required this.notifications,
-    required this.onSeeAll,
-    required this.onNotificationTap,
-  });
-
-  final List<ParentNotificationModel> notifications;
-  final VoidCallback? onSeeAll;
-  final VoidCallback? onNotificationTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return _DashboardCard(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-      child: Column(
-        children: [
-          SectionHeader(
-            title: 'So‘nggi bildirishnomalar',
-            actionText: 'Barchasi',
-            onTap: onSeeAll,
-          ),
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: _ParentColors.border),
-            ),
-            child: Column(
-              children: [
-                if (notifications.isEmpty)
-                  const _InlineEmptyState(text: 'Bildirishnoma yo‘q')
-                else
-                  for (
-                    int index = 0;
-                    index < notifications.length;
-                    index++
-                  ) ...[
-                    _NotificationTile(
-                      data: _notificationData(notifications[index]),
-                      unread: !notifications[index].isRead,
-                      onTap: onNotificationTap,
-                    ),
-                    if (index != notifications.length - 1)
-                      const Padding(
-                        padding: EdgeInsets.only(left: 86, right: 14),
-                        child: Divider(height: 1, color: _ParentColors.border),
-                      ),
-                  ],
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-                  child: SizedBox(
-                    height: 46,
-                    width: double.infinity,
-                    child: TextButton(
-                      onPressed: onSeeAll,
-                      style: TextButton.styleFrom(
-                        backgroundColor: const Color(0xFFEAF4FF),
-                        foregroundColor: _ParentColors.primaryBlue,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          const Spacer(),
-                          Text(
-                            'Barcha bildirishnomalar',
-                            style: _ParentTextStyles.link.copyWith(
-                              fontSize: 14.5,
-                            ),
-                          ),
-                          const Spacer(),
-                          const Icon(Icons.chevron_right_rounded, size: 22),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -885,9 +820,9 @@ class BottomNav extends StatelessWidget {
           iconSize: 24,
           selectedFontSize: 11.5,
           unselectedFontSize: 11.5,
-          selectedLabelStyle: _ParentTextStyles.label.copyWith(fontSize: 11.5),
+          selectedLabelStyle: _ParentTextStyles.label.copyWith(fontSize: 11),
           unselectedLabelStyle: _ParentTextStyles.label.copyWith(
-            fontSize: 11.5,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
           ),
           items: const [
@@ -934,13 +869,13 @@ class _ChildSelectorTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(ParentUi.cardRadius),
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
           decoration: BoxDecoration(
             color: selected ? const Color(0xFFF4F9FF) : Colors.white,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(ParentUi.cardRadius),
             border: Border.all(
               color: selected
                   ? _ParentColors.primaryBlue
@@ -950,8 +885,8 @@ class _ChildSelectorTile extends StatelessWidget {
           child: Row(
             children: [
               SizedBox(
-                width: 44,
-                height: 44,
+                width: 40,
+                height: 40,
                 child: _AvatarImage(
                   imageUrl: child.avatarUrl,
                   initials: Formatters.initials(child.fullName),
@@ -967,7 +902,7 @@ class _ChildSelectorTile extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: _ParentTextStyles.title.copyWith(
-                        fontSize: 15.2,
+                        fontSize: 14.2,
                         height: 1.16,
                       ),
                     ),
@@ -978,7 +913,7 @@ class _ChildSelectorTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: _ParentTextStyles.body.copyWith(
                         color: _ParentColors.secondaryText,
-                        fontSize: 12.8,
+                        fontSize: 12.2,
                         height: 1.24,
                       ),
                     ),
@@ -1018,8 +953,8 @@ class _ProfileAvatar extends StatelessWidget {
         customBorder: const CircleBorder(),
         onTap: onTap,
         child: Container(
-          width: 46,
-          height: 46,
+          width: ParentUi.avatarButtonSize,
+          height: ParentUi.avatarButtonSize,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: const Color(0xFFEAF0F7),
@@ -1086,8 +1021,8 @@ class _CircleIconButton extends StatelessWidget {
         customBorder: const CircleBorder(),
         onTap: onTap,
         child: Container(
-          width: 46,
-          height: 46,
+          width: ParentUi.iconButtonSize,
+          height: ParentUi.iconButtonSize,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
@@ -1118,7 +1053,7 @@ class _DashboardCard extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(ParentUi.cardRadius),
         border: Border.all(color: _ParentColors.border),
         boxShadow: _ParentShadows.card,
       ),
@@ -1133,7 +1068,7 @@ class _DashboardLoading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const SizedBox(
-      height: 520,
+      height: 460,
       child: Center(
         child: CircularProgressIndicator(color: _ParentColors.primaryBlue),
       ),
@@ -1157,19 +1092,19 @@ class _DashboardStateCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _DashboardCard(
-      padding: const EdgeInsets.fromLTRB(22, 32, 22, 32),
+      padding: const EdgeInsets.fromLTRB(18, 26, 18, 26),
       child: Column(
         children: [
           const Icon(
             Icons.info_outline_rounded,
             color: _ParentColors.primaryBlue,
-            size: 42,
+            size: 36,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: _ParentTextStyles.title.copyWith(fontSize: 20),
+            style: _ParentTextStyles.title.copyWith(fontSize: 18),
           ),
           const SizedBox(height: 8),
           Text(
@@ -1212,7 +1147,7 @@ class _InlineEmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 72,
+      height: 56,
       child: Center(
         child: Text(
           text,
@@ -1240,7 +1175,7 @@ class _ChartWithAxes extends StatelessWidget {
     final maxX = math.max(pointCount - 1, 1).toDouble();
 
     return SizedBox(
-      height: 176,
+      height: 154,
       child: LineChart(
         LineChartData(
           minX: 0,
@@ -1282,14 +1217,14 @@ class _ChartWithAxes extends StatelessWidget {
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: 36,
+                reservedSize: 32,
                 interval: 25,
                 getTitlesWidget: (value, meta) {
                   return Text(
                     '${value.toInt()}%',
                     style: _ParentTextStyles.body.copyWith(
                       color: _ParentColors.secondaryText,
-                      fontSize: 11,
+                      fontSize: 10.6,
                     ),
                   );
                 },
@@ -1306,7 +1241,7 @@ class _ChartWithAxes extends StatelessWidget {
                     return const SizedBox.shrink();
                   }
                   final label = index < months.length
-                      ? months[index]
+                      ? _shortMonth(months[index])
                       : '${index + 1}';
                   return Padding(
                     padding: const EdgeInsets.only(top: 6),
@@ -1314,7 +1249,7 @@ class _ChartWithAxes extends StatelessWidget {
                       label,
                       style: _ParentTextStyles.body.copyWith(
                         color: _ParentColors.secondaryText,
-                        fontSize: 11,
+                        fontSize: 10.6,
                       ),
                     ),
                   );
@@ -1378,13 +1313,13 @@ class _ChartLegend extends StatelessWidget {
     }
 
     return SizedBox(
-      width: 98,
+      width: 90,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: series
             .map(
               (item) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.only(bottom: 8),
                 child: _legendItem(item),
               ),
             )
@@ -1399,12 +1334,12 @@ class _ChartLegend extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 10,
-          height: 10,
+          width: 8,
+          height: 8,
           margin: const EdgeInsets.only(top: 4),
           decoration: BoxDecoration(color: item.color, shape: BoxShape.circle),
         ),
-        const SizedBox(width: 7),
+        const SizedBox(width: 6),
         Flexible(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1414,138 +1349,22 @@ class _ChartLegend extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: _ParentTextStyles.body.copyWith(
-                  fontSize: 14,
+                  fontSize: 12.5,
                   color: _ParentColors.secondaryText,
                 ),
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 2),
               Text(
                 item.percent,
                 style: _ParentTextStyles.title.copyWith(
                   color: item.color,
-                  fontSize: 14.5,
+                  fontSize: 13.5,
                 ),
               ),
             ],
           ),
         ),
       ],
-    );
-  }
-}
-
-class _NotificationTile extends StatelessWidget {
-  const _NotificationTile({
-    required this.data,
-    required this.unread,
-    required this.onTap,
-  });
-
-  final _NotificationData data;
-  final bool unread;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 290;
-        final horizontalPadding = compact ? 10.0 : 14.0;
-        final iconSize = compact ? 36.0 : 40.0;
-        final gap = compact ? 7.0 : 10.0;
-
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                horizontalPadding,
-                12,
-                horizontalPadding,
-                12,
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: compact ? 7 : 8,
-                    height: compact ? 7 : 8,
-                    decoration: BoxDecoration(
-                      color: unread
-                          ? _ParentColors.primaryBlue
-                          : const Color(0xFFCBD5E1),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  SizedBox(width: gap),
-                  Container(
-                    width: iconSize,
-                    height: iconSize,
-                    decoration: BoxDecoration(
-                      color: data.iconBackground,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      data.icon,
-                      color: data.iconColor,
-                      size: compact ? 20 : 22,
-                    ),
-                  ),
-                  SizedBox(width: gap),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          data.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: _ParentTextStyles.title.copyWith(
-                            fontSize: compact ? 15.5 : 17,
-                            height: 1.15,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          data.subtitle,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: _ParentTextStyles.body.copyWith(
-                            color: _ParentColors.secondaryText,
-                            fontSize: compact ? 12 : 12.8,
-                            height: 1.2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(width: compact ? 5 : 8),
-                  SizedBox(
-                    width: compact ? 54 : 66,
-                    child: Text(
-                      data.time,
-                      maxLines: 2,
-                      textAlign: TextAlign.right,
-                      overflow: TextOverflow.ellipsis,
-                      style: _ParentTextStyles.body.copyWith(
-                        color: _ParentColors.secondaryText,
-                        fontSize: compact ? 10.8 : 11.5,
-                        height: 1.18,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: compact ? 2 : 4),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: const Color(0xFF9AA4B2),
-                    size: compact ? 18 : 20,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }
@@ -1586,24 +1405,6 @@ class _ChartSeries {
   final List<double> points;
 }
 
-class _NotificationData {
-  const _NotificationData({
-    required this.icon,
-    required this.iconColor,
-    required this.iconBackground,
-    required this.title,
-    required this.subtitle,
-    required this.time,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final Color iconBackground;
-  final String title;
-  final String subtitle;
-  final String time;
-}
-
 class _ParentColors {
   const _ParentColors._();
 
@@ -1623,7 +1424,7 @@ class _ParentTextStyles {
 
   static TextStyle get title {
     return GoogleFonts.inter(
-      fontSize: 18,
+      fontSize: 17,
       height: 1.15,
       fontWeight: FontWeight.w800,
       color: _ParentColors.text,
@@ -1633,7 +1434,7 @@ class _ParentTextStyles {
 
   static TextStyle get body {
     return GoogleFonts.inter(
-      fontSize: 15,
+      fontSize: 14,
       height: 1.28,
       fontWeight: FontWeight.w500,
       color: _ParentColors.text,
@@ -1643,7 +1444,7 @@ class _ParentTextStyles {
 
   static TextStyle get label {
     return GoogleFonts.inter(
-      fontSize: 13,
+      fontSize: 12.5,
       height: 1.15,
       fontWeight: FontWeight.w800,
       color: _ParentColors.text,
@@ -1653,7 +1454,7 @@ class _ParentTextStyles {
 
   static TextStyle get link {
     return GoogleFonts.inter(
-      fontSize: 15,
+      fontSize: 14,
       height: 1.15,
       fontWeight: FontWeight.w700,
       color: _ParentColors.primaryBlue,
@@ -1680,6 +1481,14 @@ String _childGroupLine(ParentChildModel child) {
     if (child.groupName.trim().isNotEmpty) child.groupName.trim(),
   ];
   return parts.isEmpty ? 'Guruh biriktirilmagan' : parts.join(' • ');
+}
+
+String _shortMonth(String label) {
+  final trimmed = label.trim();
+  if (trimmed.length <= 8) {
+    return trimmed;
+  }
+  return '${trimmed.substring(0, 8)}…';
 }
 
 (String, String) _dateParts(DateTime? date) {
@@ -1751,48 +1560,4 @@ List<String> _chartMonths(List<ParentProgressSeries> series) {
     }
   }
   return const ['Yan', 'Fev', 'Mar', 'Apr', 'May'];
-}
-
-_NotificationData _notificationData(ParentNotificationModel notification) {
-  final type = notification.type.toLowerCase();
-  if (type.contains('payment') || type.contains('tolov')) {
-    return _NotificationData(
-      icon: Icons.account_balance_wallet_outlined,
-      iconColor: _ParentColors.purple,
-      iconBackground: const Color(0xFFF0ECFF),
-      title: notification.title,
-      subtitle: notification.message,
-      time: Formatters.relative(notification.createdAt),
-    );
-  }
-  if (type.contains('grade') ||
-      type.contains('score') ||
-      type.contains('baho')) {
-    return _NotificationData(
-      icon: Icons.star_border_rounded,
-      iconColor: _ParentColors.orange,
-      iconBackground: const Color(0xFFFFF5DE),
-      title: notification.title,
-      subtitle: notification.message,
-      time: Formatters.relative(notification.createdAt),
-    );
-  }
-  if (type.contains('comment') || type.contains('izoh')) {
-    return _NotificationData(
-      icon: Icons.chat_bubble_outline_rounded,
-      iconColor: _ParentColors.primaryBlue,
-      iconBackground: const Color(0xFFEAF4FF),
-      title: notification.title,
-      subtitle: notification.message,
-      time: Formatters.relative(notification.createdAt),
-    );
-  }
-  return _NotificationData(
-    icon: Icons.event_available_outlined,
-    iconColor: _ParentColors.green,
-    iconBackground: const Color(0xFFE8FAF1),
-    title: notification.title,
-    subtitle: notification.message,
-    time: Formatters.relative(notification.createdAt),
-  );
 }

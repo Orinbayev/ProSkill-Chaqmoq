@@ -511,6 +511,55 @@ class ParentProfileModel {
   }
 }
 
+class ParentReminderSettingsModel {
+  const ParentReminderSettingsModel({
+    required this.childId,
+    required this.centerSlug,
+    required this.label,
+    required this.scheduledAt,
+    this.notificationId,
+    this.note = '',
+  });
+
+  final int childId;
+  final String centerSlug;
+  final String label;
+  final DateTime scheduledAt;
+  final int? notificationId;
+  final String note;
+
+  factory ParentReminderSettingsModel.fromJson(Map<String, dynamic> json) {
+    return ParentReminderSettingsModel(
+      childId: jsonInt(json['child_id']),
+      centerSlug: jsonString(json['center_slug']),
+      label: jsonString(json['label']),
+      scheduledAt: jsonDate(json['scheduled_at']) ?? DateTime.now(),
+      notificationId: json['notification_id'] == null
+          ? null
+          : jsonInt(json['notification_id']),
+      note: jsonString(json['note']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'child_id': childId,
+    'center_slug': centerSlug,
+    'label': label,
+    'scheduled_at': scheduledAt.toIso8601String(),
+    'notification_id': notificationId,
+    'note': note,
+  };
+
+  bool matchesChild({
+    required int currentChildId,
+    required String currentCenterSlug,
+  }) {
+    return childId == currentChildId &&
+        centerSlug.trim().toLowerCase() ==
+            currentCenterSlug.trim().toLowerCase();
+  }
+}
+
 class ParentDashboardModel {
   const ParentDashboardModel({
     required this.parent,

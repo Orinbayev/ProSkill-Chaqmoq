@@ -22,13 +22,12 @@
                 </div>
             </div>
 
-            <div class="header-actions">
+                <div class="header-actions">
                 {% if not lead.converted_user %}
                 <form method="POST" action="{% url 'store:lead_convert' lead.id %}" style="display:inline;">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-convert"
-                        onclick="return confirm('O‘quvchiga aylantirilsinmi?')">
-                        <i class="fa-solid fa-user-plus"></i> Tasdiqlash & O'tkazish
+                    <button type="submit" class="btn btn-convert" {% if not lead.is_confirmed and lead.pipeline_status != "confirmed" %}disabled title="Faqat tasdiqlangan leadlar o‘quvchiga aylantiriladi"{% endif %}>
+                        <i class="fa-solid fa-user-plus"></i> O'quvchiga aylantirish
                     </button>
                 </form>
                 {% else %}
@@ -43,7 +42,7 @@
 
                 <form method="POST" action="{% url 'store:lead_delete' lead.id %}" style="display:inline;">
                     {% csrf_token %}
-                    <button class="btn btn-delete" onclick="return confirm('Haqiqatan ham o‘chirmoqchimisiz?')">
+                    <button class="btn btn-delete">
                         <i class="fa-solid fa-trash"></i>
                     </button>
                 </form>

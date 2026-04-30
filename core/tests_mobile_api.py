@@ -1,4 +1,5 @@
 from django.test import Client, TestCase
+from django.test import override_settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 
@@ -336,6 +337,63 @@ class MobileAPITests(TestCase):
         self.assertTrue(payload["success"])
         self.assertEqual(payload["role"], "parent")
 
+    def test_mobile_login_accepts_center_field_alias(self):
+        response = self.client.post(
+            "/api/mobile/auth/login/",
+            data=(
+                '{"login":"parent@mobile.test","password":"testpass123","center":"%s"}'
+                % self.center.slug
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["success"])
+        self.assertEqual(payload["center"]["slug"], self.center.slug)
+
+    @override_settings(DEBUG=True)
+    def test_mobile_login_returns_debug_payload_for_unknown_center_slug(self):
+        response = self.client.post(
+            "/api/mobile/auth/login/",
+            data='{"login":"parent@mobile.test","password":"testpass123","center_slug":"missing-center"}',
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 404)
+        payload = response.json()
+        self.assertEqual(payload["code"], "center_not_found")
+        self.assertEqual(payload["received_slug"], "missing-center")
+        self.assertIn(
+            {"name": self.center.name, "slug": self.center.slug},
+            payload["available_centers"],
+        )
+
+    def test_mobile_login_rejects_user_outside_requested_center(self):
+        other_center = Center.objects.create(
+            name="Other Mobile Center",
+            slug="other-mobile-center",
+            max_students=50,
+            capacity_limit=50,
+        )
+        foreign_user = User.objects.create_user(
+            email="student.foreign.login@mobile.test",
+            password="testpass123",
+            role="student",
+            center=other_center,
+            ism="Foreign",
+            familya="Login",
+        )
+        response = self.client.post(
+            "/api/mobile/auth/login/",
+            data=(
+                '{"login":"%s","password":"testpass123","center_slug":"%s"}'
+                % (foreign_user.email, self.center.slug)
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 403)
+        payload = response.json()
+        self.assertEqual(payload["code"], "center_mismatch")
+
     def test_parent_dashboard_returns_real_child_stats(self):
         self.client.force_login(self.parent)
         response = self.client.get(self._path("parent/dashboard/"))
@@ -392,6 +450,23 @@ class MobileAPITests(TestCase):
         latest = Notification.objects.filter(recipient=self.student).order_by("-id").first()
         self.assertIsNotNone(latest)
         self.assertTrue(latest.is_read)
+
+    def test_parent_notifications_include_sender_and_recipient_names(self):
+        Notification.objects.create(
+            center=self.center,
+            recipient=self.student,
+            sender=self.teacher,
+            title="Chaqmoq qo‘shildi ⚡",
+            message="Sizga Teacher Test tomonidan 2 chaqmoq qo‘shildi.\nSabab: Faollik",
+            type="coin",
+        )
+        self.client.force_login(self.parent)
+        response = self.client.get(self._path("notifications/"))
+        self.assertEqual(response.status_code, 200)
+        items = response.json()["items"]
+        target = next(item for item in items if item["title"] == "Chaqmoq qo‘shildi ⚡")
+        self.assertEqual(target["sender_name"], self.teacher.get_full_name())
+        self.assertEqual(target["recipient_name"], self.student.get_full_name())
 
     def test_store_purchase_request_create_and_list(self):
         self.client.force_login(self.student)

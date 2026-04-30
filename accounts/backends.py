@@ -39,15 +39,17 @@ class EmailOrPhoneBackend(ModelBackend):
                 .get(email__iexact=username)
             )
         except User.DoesNotExist:
-            try:
-                norm_phone = normalize_phone(username)
-                user = (
-                    User.objects
-                    .select_related("center")
-                    .only(*self._SELECT_FIELDS)
-                    .get(phone_number=norm_phone)
-                )
-            except User.DoesNotExist:
+            norm_phone = normalize_phone(username)
+            phone_matches = list(
+                User.objects
+                .select_related("center")
+                .only(*self._SELECT_FIELDS)
+                .filter(phone_number=norm_phone)
+                .order_by("id")[:2]
+            )
+            if len(phone_matches) == 1:
+                user = phone_matches[0]
+            else:
                 # Timing attack oldini olish
                 User().set_password(password)
                 return None
@@ -55,4 +57,3 @@ class EmailOrPhoneBackend(ModelBackend):
         if user.check_password(password) and self.user_can_authenticate(user):
             return user
         return None
-
