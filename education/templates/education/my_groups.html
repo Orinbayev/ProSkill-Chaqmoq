@@ -5,13 +5,15 @@
 📘 Mening guruhlarim — ChaqmoqApp
 {% endblock %}
 
+{% block body_class %}teacher-my-groups-page{% endblock %}
+
 {% block content %}
-<div class="container-fluid py-4 animate__animated animate__fadeIn">
+<div class="my-groups-page container-fluid py-4 animate__animated animate__fadeIn">
 
   <!-- HEADER SECTION -->
   <div class="row g-4 mb-4">
     <div class="col-12">
-      <div class="glass p-4 border-amber-soft">
+      <div class="my-groups-surface my-groups-hero p-4 border-amber-soft">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-4">
 
           <!-- Title & Back Button -->
@@ -26,8 +28,8 @@
                 <i class="fa-solid fa-layer-group"></i>
               </div>
               <div>
-                <h2 class="m-0 fw-black text-white" style="letter-spacing: -1px;">Mening guruhlarim</h2>
-                <p class="m-0 text-white-50 small">Siz dars beradigan barcha faol guruhlar ro'yxati</p>
+                <h2 class="my-groups-title m-0 fw-black">Mening guruhlarim</h2>
+                <p class="my-groups-subtitle m-0 small">Siz dars beradigan barcha faol guruhlar ro'yxati</p>
               </div>
             </div>
           </div>
@@ -52,7 +54,7 @@
     {% for g in rows %}
     <div class="col-12">
       <div
-        class="group-list-card glass p-3 px-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-4"
+        class="group-list-card my-groups-surface p-3 px-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-4"
         onclick="location.href='{% url 'education:group_detail' g.id %}'">
 
         <div class="card-glow"></div>
@@ -65,18 +67,18 @@
 
           <div class="d-flex flex-column">
             <h4 class="group-name m-0 mb-1">{{ g.nom }}</h4>
-            <div class="d-flex align-items-center gap-3 flex-wrap text-white-50 small">
+            <div class="my-group-meta d-flex align-items-center gap-3 flex-wrap small">
               <div class="d-flex align-items-center gap-1">
-                <i class="fa-solid fa-building-columns text-warning"></i>
+                <i class="fa-solid fa-building-columns group-meta-icon group-meta-icon-warning"></i>
                 <span>{{ g.center|default:"Markaz" }}</span>
               </div>
-              <span class="opacity-25 d-none d-md-block">|</span>
+              <span class="group-meta-separator d-none d-md-block">|</span>
               <div class="d-flex align-items-center gap-1">
-                <i class="fa-solid fa-user-graduate text-info"></i>
+                <i class="fa-solid fa-user-graduate group-meta-icon group-meta-icon-info"></i>
                 <span>{{ g.student_count }} o'quvchi</span>
               </div>
               {% if g.category_obj %}
-              <span class="opacity-25 d-none d-md-block">|</span>
+              <span class="group-meta-separator d-none d-md-block">|</span>
               <div class="badge-category">
                 {{ g.category_obj.name }}
               </div>
@@ -87,19 +89,19 @@
 
         <!-- Actions -->
         <div class="z-1 d-flex align-items-center gap-3 justify-content-end w-100-mobile">
-          <button class="btn btn-glass-blue rounded-pill px-4 py-2 w-100-mobile text-nowrap">
+          <a href="{% url 'education:group_detail' g.id %}" class="btn btn-glass-blue rounded-pill px-4 py-2 w-100-mobile text-nowrap">
             <i class="fa-solid fa-eye me-2"></i> Batafsil
-          </button>
+          </a>
         </div>
 
       </div>
     </div>
     {% empty %}
     <div class="col-12">
-      <div class="glass p-5 text-center opacity-75">
-        <div class="fs-1 mb-3">📭</div>
-        <h4 class="text-white">Guruhlar topilmadi</h4>
-        <p class="text-white-50">Hozircha sizga biriktirilgan faol guruhlar mavjud emas.</p>
+      <div class="my-groups-surface my-groups-empty p-5 text-center opacity-75">
+        <div class="my-groups-empty-icon fs-1 mb-3">📭</div>
+        <h4 class="my-groups-empty-title">Guruhlar topilmadi</h4>
+        <p class="my-groups-empty-copy">Hozircha sizga biriktirilgan faol guruhlar mavjud emas.</p>
       </div>
     </div>
     {% endfor %}
@@ -110,136 +112,204 @@
 
 {% block extra_css %}
 <style>
-  :root {
-    --text-warning: #facc15;
-    --text-info: #38bdf8;
-    --white-5: rgba(255, 255, 255, 0.05);
-    --white-10: rgba(255, 255, 255, 0.1);
+  body.teacher-my-groups-page {
+    --bg: var(--bg0);
+    --card-bg: var(--panel);
+    --muted-text: var(--muted);
+    --border: var(--line);
+    --input-bg: var(--panel2);
+    --card-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+    --card-shadow-hover: 0 22px 54px rgba(15, 23, 42, 0.22);
+    --accent-amber: #facc15;
+    --accent-info: #38bdf8;
+    --accent-blue: #2563eb;
+    --accent-blue-soft: rgba(37, 99, 235, 0.16);
+    --accent-amber-soft: rgba(250, 204, 21, 0.16);
+    --chip-bg: rgba(255, 255, 255, 0.05);
+    --chip-border: rgba(255, 255, 255, 0.08);
+    --hero-gradient: linear-gradient(135deg, rgba(37, 99, 235, 0.92), rgba(56, 189, 248, 0.92));
+    --hero-text: #f8fafc;
+    --meta-separator: rgba(148, 163, 184, 0.35);
+    --glow-surface: radial-gradient(circle at right, rgba(56, 189, 248, 0.12) 0%, transparent 62%);
   }
 
-  .glass {
-    background: rgba(15, 23, 42, 0.6);
+  html[data-role-theme="light"] body.teacher-my-groups-page,
+  html[data-theme="light"] body.teacher-my-groups-page {
+    --bg0: #f6f7fb;
+    --bg1: #f6f7fb;
+    --bg2: #f6f7fb;
+    --bg: #f6f7fb;
+    --card-bg: #ffffff;
+    --text: #0f172a;
+    --muted: #64748b;
+    --muted-text: #64748b;
+    --border: #e2e8f0;
+    --line: #e2e8f0;
+    --panel: #ffffff;
+    --panel2: #f1f5f9;
+    --input-bg: #ffffff;
+    --card-shadow: 0 18px 38px rgba(15, 23, 42, 0.08);
+    --card-shadow-hover: 0 24px 52px rgba(37, 99, 235, 0.14);
+    --accent-blue-soft: rgba(37, 99, 235, 0.1);
+    --accent-amber-soft: rgba(250, 204, 21, 0.12);
+    --chip-bg: #f8fafc;
+    --chip-border: #e2e8f0;
+    --hero-gradient: linear-gradient(135deg, #eff6ff, #dbeafe);
+    --hero-text: #0f172a;
+    --meta-separator: rgba(100, 116, 139, 0.32);
+    --glow-surface: radial-gradient(circle at right, rgba(37, 99, 235, 0.08) 0%, transparent 62%);
+  }
+
+  body.teacher-my-groups-page .my-groups-page {
+    color: var(--text);
+  }
+
+  body.teacher-my-groups-page .my-groups-surface {
+    background: var(--card-bg);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border);
     border-radius: 20px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--card-shadow);
     transition: all 0.3s ease;
   }
 
-  .border-amber-soft {
-    border-color: rgba(250, 204, 21, 0.2) !important;
+  body.teacher-my-groups-page .border-amber-soft {
+    border-color: var(--accent-amber-soft) !important;
   }
 
-  .icon-box-amber {
+  body.teacher-my-groups-page .my-groups-hero {
+    position: relative;
+    overflow: hidden;
+  }
+
+  body.teacher-my-groups-page .my-groups-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 34%);
+    pointer-events: none;
+  }
+
+  body.teacher-my-groups-page .icon-box-amber {
     width: 60px;
     height: 60px;
     border-radius: 16px;
-    background: rgba(250, 204, 21, 0.1);
-    border: 1px solid rgba(250, 204, 21, 0.2);
+    background: var(--accent-amber-soft);
+    border: 1px solid color-mix(in srgb, var(--accent-amber) 24%, var(--border));
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--text-warning);
+    color: var(--accent-amber);
     font-size: 24px;
-    box-shadow: 0 10px 30px rgba(250, 204, 21, 0.1);
+    box-shadow: 0 10px 30px rgba(250, 204, 21, 0.12);
+    flex-shrink: 0;
   }
 
-  /* Back Button */
-  .btn-glass-back {
+  body.teacher-my-groups-page .my-groups-title {
+    color: var(--text);
+    letter-spacing: -1px;
+  }
+
+  body.teacher-my-groups-page .my-groups-subtitle {
+    color: var(--muted-text);
+  }
+
+  body.teacher-my-groups-page .btn-glass-back {
     width: 60px;
     height: 60px;
     border-radius: 16px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
     font-size: 18px;
     transition: all 0.3s;
+    box-shadow: none;
   }
 
-  .btn-glass-back:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.3);
+  body.teacher-my-groups-page .btn-glass-back:hover {
+    background: var(--card-bg);
+    border-color: color-mix(in srgb, var(--accent-blue) 24%, var(--border));
     transform: translateX(-3px);
-    color: white;
+    color: var(--text);
   }
 
-  /* Search */
-  .search-form-premium {
+  body.teacher-my-groups-page .search-form-premium {
     width: 320px;
   }
 
-  .search-input-wrapper {
+  body.teacher-my-groups-page .search-input-wrapper {
     position: relative;
     display: flex;
     align-items: center;
   }
 
-  .search-icon {
+  body.teacher-my-groups-page .search-icon {
     position: absolute;
     left: 16px;
-    color: var(--text-warning);
+    color: var(--accent-amber);
     opacity: 0.7;
     pointer-events: none;
   }
 
-  .search-form-premium input {
+  body.teacher-my-groups-page .search-form-premium input {
     width: 100%;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--input-bg);
+    border: 1px solid var(--border);
     border-radius: 16px;
     padding: 12px 16px 12px 48px;
-    color: white;
+    color: var(--text);
     font-size: 14px;
     outline: none;
     transition: all 0.3s;
   }
 
-  .search-form-premium input:focus {
-    border-color: var(--text-warning);
-    background: rgba(0, 0, 0, 0.3);
-    box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.1);
+  body.teacher-my-groups-page .search-form-premium input::placeholder {
+    color: var(--muted-text);
   }
 
-  /* List Card */
-  .group-list-card {
+  body.teacher-my-groups-page .search-form-premium input:focus {
+    border-color: color-mix(in srgb, var(--accent-blue) 48%, var(--border));
+    background: var(--card-bg);
+    box-shadow: 0 0 0 4px var(--accent-blue-soft);
+  }
+
+  body.teacher-my-groups-page .group-list-card {
     position: relative;
     overflow: hidden;
     border-radius: 18px;
     cursor: pointer;
-    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
-  .group-list-card:hover {
+  body.teacher-my-groups-page .group-list-card:hover {
     transform: translateY(-4px);
-    border-color: rgba(56, 189, 248, 0.3);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-    background: rgba(15, 23, 42, 0.8);
+    border-color: color-mix(in srgb, var(--accent-info) 26%, var(--border));
+    box-shadow: var(--card-shadow-hover);
+    background: color-mix(in srgb, var(--card-bg) 94%, var(--accent-info) 6%);
   }
 
-  .card-glow {
+  body.teacher-my-groups-page .card-glow {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(circle at right, rgba(56, 189, 248, 0.1) 0%, transparent 60%);
+    background: var(--glow-surface);
     opacity: 0;
     transition: opacity 0.4s;
     pointer-events: none;
   }
 
-  .group-list-card:hover .card-glow {
+  body.teacher-my-groups-page .group-list-card:hover .card-glow {
     opacity: 1;
   }
 
-  /* Group Icon */
-  .group-icon-circle {
+  body.teacher-my-groups-page .group-icon-circle {
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(37, 99, 235, 0.1));
-    border: 1px solid rgba(56, 189, 248, 0.2);
-    color: #38bdf8;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.14), rgba(37, 99, 235, 0.1));
+    border: 1px solid color-mix(in srgb, var(--accent-info) 22%, var(--border));
+    color: var(--accent-info);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -247,50 +317,76 @@
     font-weight: 800;
   }
 
-  .group-name {
-    color: white;
+  body.teacher-my-groups-page .group-name {
+    color: var(--text);
     font-weight: 700;
     font-size: 1.25rem;
   }
 
-  .badge-category {
-    padding: 4px 12px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    font-size: 0.75rem;
-    color: #e2e8f0;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+  body.teacher-my-groups-page .my-group-meta {
+    color: var(--muted-text);
   }
 
-  .btn-glass-blue {
+  body.teacher-my-groups-page .group-meta-separator {
+    color: var(--meta-separator);
+  }
+
+  body.teacher-my-groups-page .group-meta-icon-warning {
+    color: var(--accent-amber);
+  }
+
+  body.teacher-my-groups-page .group-meta-icon-info {
+    color: var(--accent-info);
+  }
+
+  body.teacher-my-groups-page .badge-category {
+    padding: 4px 12px;
+    border-radius: 10px;
+    background: var(--chip-bg);
+    font-size: 0.75rem;
+    color: var(--text);
+    border: 1px solid var(--chip-border);
+  }
+
+  body.teacher-my-groups-page .btn-glass-blue {
     background: rgba(56, 189, 248, 0.1);
-    border: 1px solid rgba(56, 189, 248, 0.2);
-    color: #38bdf8;
+    border: 1px solid color-mix(in srgb, var(--accent-info) 22%, var(--border));
+    color: var(--accent-info);
     font-weight: 800;
     transition: all 0.3s;
   }
 
-  .group-list-card:hover .btn-glass-blue {
-    background: #38bdf8;
-    color: white;
+  body.teacher-my-groups-page .group-list-card:hover .btn-glass-blue,
+  body.teacher-my-groups-page .btn-glass-blue:hover {
+    background: var(--accent-info);
+    color: #ffffff;
     box-shadow: 0 10px 20px rgba(56, 189, 248, 0.2);
   }
 
+  body.teacher-my-groups-page .my-groups-empty-title {
+    color: var(--text);
+  }
+
+  body.teacher-my-groups-page .my-groups-empty-copy {
+    color: var(--muted-text);
+    margin-bottom: 0;
+  }
+
   @media (max-width: 768px) {
-    .w-100-mobile {
+    body.teacher-my-groups-page .w-100-mobile {
       width: 100% !important;
       justify-content: space-between;
     }
 
-    .search-form-premium {
+    body.teacher-my-groups-page .search-form-premium {
       width: 100%;
     }
 
-    .group-list-card {
+    body.teacher-my-groups-page .group-list-card {
       align-items: flex-start !important;
     }
 
-    .d-none-mobile {
+    body.teacher-my-groups-page .d-none-mobile {
       display: none !important;
     }
   }
