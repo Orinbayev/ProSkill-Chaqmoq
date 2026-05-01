@@ -8,7 +8,7 @@ import logging
 import os
 import re
 import secrets
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from functools import wraps
 
@@ -551,17 +551,90 @@ def _serialize_session(request, user: User, *, access_token: str | None = None, 
     return payload
 
 
+_CHAQMOQ_ADDED_KEYWORDS = (
+    "qo‘shildi",
+    "qoshildi",
+    "qo'shildi",
+    "added",
+    "bonus",
+)
+_CHAQMOQ_REMOVED_KEYWORDS = (
+    "ayrildi",
+    "ayirildi",
+    "olib tashlandi",
+    "removed",
+    "jarima",
+    "penalty",
+    "minus",
+)
+
+
+def _classify_notification(notification: Notification) -> tuple[str, int | None, str]:
+    """Return (kind, amount, reason) for a notification.
+
+    `kind` is one of: ``chaqmoq_added``, ``chaqmoq_removed``, or the original
+    ``notification.type``. `amount` is the chaqmoq integer if present.
+    `reason` is the explicit "Sabab: ..." line from the message if any.
+    """
+    base = (notification.type or "").lower()
+    raw = " ".join(
+        [
+            notification.title or "",
+            notification.message or "",
+            notification.type or "",
+        ]
+    )
+    text = raw.replace("’", "'").replace("‘", "'").lower()
+
+    is_coin = base == "coin" or "chaqmoq" in text or "lightning" in text
+    kind = base or "info"
+    amount: int | None = None
+    if is_coin:
+        if any(kw in text for kw in _CHAQMOQ_REMOVED_KEYWORDS):
+            kind = "chaqmoq_removed"
+        elif any(kw in text for kw in _CHAQMOQ_ADDED_KEYWORDS):
+            kind = "chaqmoq_added"
+        else:
+            kind = "chaqmoq_added"
+
+        match = re.search(r"(\d+)\s*chaqmoq", text)
+        if match:
+            try:
+                amount = int(match.group(1))
+            except (TypeError, ValueError):
+                amount = None
+
+    reason = ""
+    for line in (notification.message or "").splitlines():
+        stripped = line.strip()
+        lower = stripped.lower().replace("’", "'").replace("‘", "'")
+        if lower.startswith("sabab:") or lower.startswith("izoh:"):
+            reason = stripped.split(":", 1)[1].strip()
+            break
+
+    return kind, amount, reason
+
+
 def _serialize_notification(notification: Notification) -> dict:
-    return {
+    kind, amount, reason = _classify_notification(notification)
+    payload = {
         "id": notification.id,
         "title": _clean_mobile_text(notification.title),
         "message": _clean_mobile_text(notification.message),
         "type": notification.type,
+        "kind": kind,
         "is_read": notification.is_read,
         "created_at": timezone.localtime(notification.created_at).isoformat(),
         "sender_name": _full_name(notification.sender) if notification.sender_id and notification.sender else "",
         "recipient_name": _full_name(notification.recipient) if notification.recipient_id and notification.recipient else "",
+        "reason": reason,
     }
+    if amount is not None:
+        payload["amount"] = amount
+        payload["signed_amount"] = (
+            amount if kind == "chaqmoq_added" else -amount if kind == "chaqmoq_removed" else amount
+        )
+    return payload
 
 
 def _serialize_group(group: Group) -> dict:
@@ -1159,34 +1232,32 @@ def _latest_parent_notifications(user: User, *, limit: int = 3) -> list[dict]:
     return [_serialize_notification(item) for item in _notification_queryset_for_user(user).order_by("-created_at")[:limit]]
 
 
+_CHAQMOQ_REMOVED_KEYWORDS_FALLBACK = (
+    "ayrildi",
+    "ayirildi",
+    "olib tashlandi",
+    "removed",
+    "jarima",
+    "penalty",
+    "minus",
+)
+
+
 def _student_chaqmoq_stats(child: User, center, *, months: int = 6) -> dict:
     """Joriy balans + so'nggi N oy bo'yicha chaqmoq xulosasi.
 
-    Faqat chaqmoq.Ledger jadvalidan o'qiydi — bu o'qituvchi ataylab qo'ygan
-    ballar manbasi. Har bir oy uchun: olingan (musbat), yo'qotilgan (manfiy
-    absolyut qiymati), va net.
+    Asosiy manba: ``chaqmoq.Ledger``. Agar bu jadvalda o'quvchi uchun yozuv
+    bo'lmasa (legacy ma'lumot — chaqmoq faqat ``Notification`` orqali yuborilgan
+    bo'lsa), bildirishnomalardan miqdorni regex bilan ajratib hisoblaymiz.
     """
     from collections import OrderedDict
     from chaqmoq.models import Ledger
 
     today = timezone.localdate()
-    balance = Ledger.student_balansi(child.id, center=center)
 
     start = today.replace(day=1)
     for _ in range(max(0, months - 1)):
         start = (start - timedelta(days=1)).replace(day=1)
-
-    qs = Ledger.objects.filter(
-        student_id=child.id,
-        sana__date__gte=start,
-        sana__date__lte=today,
-    )
-    if center:
-        qs = qs.filter(
-            Q(group__center=center)
-            | Q(rule__center=center)
-            | Q(rule__center__isnull=True)
-        )
 
     buckets: "OrderedDict[str, dict]" = OrderedDict()
     cursor = start
@@ -1207,31 +1278,94 @@ def _student_chaqmoq_stats(child: User, center, *, months: int = 6) -> dict:
 
     this_month_key = f"{today.year:04d}-{today.month:02d}"
 
-    for entry in qs.only("ball", "sana"):
-        ball = int(entry.ball or 0)
-        if ball == 0 or not entry.sana:
-            continue
-        d = entry.sana.date()
-        key = f"{d.year:04d}-{d.month:02d}"
-        bucket = buckets.get(key)
-        if bucket is None:
-            continue
-        if ball >= 0:
-            bucket["earned"] += ball
-        else:
-            bucket["lost"] += abs(ball)
-        bucket["net"] += ball
+    # ─── 1) Asosiy manba: Ledger ─────────────────────────────────────
+    ledger_qs = Ledger.objects.filter(student_id=child.id)
+    if center:
+        ledger_qs = ledger_qs.filter(
+            Q(group__center=center)
+            | Q(rule__center=center)
+            | Q(rule__center__isnull=True)
+        )
+    ledger_total_count = ledger_qs.count()
+
+    if ledger_total_count > 0:
+        balance = int(Ledger.student_balansi(child.id, center=center) or 0)
+        period_qs = ledger_qs.filter(
+            sana__date__gte=start, sana__date__lte=today,
+        ).only("ball", "sana")
+        for entry in period_qs:
+            ball = int(entry.ball or 0)
+            if ball == 0 or not entry.sana:
+                continue
+            d = entry.sana.date()
+            key = f"{d.year:04d}-{d.month:02d}"
+            bucket = buckets.get(key)
+            if bucket is None:
+                continue
+            if ball >= 0:
+                bucket["earned"] += ball
+            else:
+                bucket["lost"] += abs(ball)
+            bucket["net"] += ball
+        source = "ledger"
+    else:
+        # ─── 2) Fallback: bildirishnoma matnidan parse ───────────────
+        # Bu loyihada chaqmoq xabarlari ko'pincha Notification.type="coin"
+        # bilan yuboriladi. Agar Ledger yozuvi bo'lmasa, balansni xabarlardan
+        # tiklab olamiz — shu tarzda parent ekrani 0 ko'rsatib qolmaydi.
+        notif_qs = Notification.objects.filter(recipient=child).only(
+            "title", "message", "type", "created_at",
+        )
+        balance_from_notifs = 0
+        for notif in notif_qs:
+            text = (
+                f"{notif.title or ''} {notif.message or ''} {notif.type or ''}"
+            )
+            text = text.replace("’", "'").replace("‘", "'").lower()
+            is_coin = (notif.type or "").lower() == "coin" or (
+                "chaqmoq" in text or "lightning" in text
+            )
+            if not is_coin:
+                continue
+            match = re.search(r"(\d+)\s*chaqmoq", text)
+            if not match:
+                continue
+            amount = int(match.group(1))
+            is_removed = any(
+                kw in text for kw in _CHAQMOQ_REMOVED_KEYWORDS_FALLBACK
+            )
+            signed = -amount if is_removed else amount
+            balance_from_notifs += signed
+
+            if not notif.created_at:
+                continue
+            d = timezone.localtime(notif.created_at).date()
+            key = f"{d.year:04d}-{d.month:02d}"
+            bucket = buckets.get(key)
+            if bucket is None:
+                continue
+            if signed >= 0:
+                bucket["earned"] += amount
+            else:
+                bucket["lost"] += amount
+            bucket["net"] += signed
+        balance = balance_from_notifs
+        source = "notifications" if balance != 0 else "empty"
 
     this_month = buckets.get(
         this_month_key,
         {"earned": 0, "lost": 0, "net": 0},
     )
     return {
-        "balance": int(balance or 0),
+        "balance": int(balance),
+        "chaqmoq_balance": int(balance),
         "this_month_earned": int(this_month["earned"]),
         "this_month_lost": int(this_month["lost"]),
         "this_month_net": int(this_month["net"]),
+        "monthly_added": int(this_month["earned"]),
+        "monthly_removed": int(this_month["lost"]),
         "monthly": list(buckets.values()),
+        "source": source,
     }
 
 
@@ -1265,6 +1399,10 @@ def _parent_dashboard_payload(request, child: User) -> dict:
     chaqmoq_stats = _student_chaqmoq_stats(child, center, months=6)
     return {
         "ok": True,
+        "student_id": child.id,
+        "chaqmoq_balance": chaqmoq_stats["balance"],
+        "monthly_added": chaqmoq_stats["this_month_earned"],
+        "monthly_removed": chaqmoq_stats["this_month_lost"],
         "parent": _serialize_user(request, request.user),
         "center": _serialize_center(center),
         "selected_child": _serialize_child_profile(request, child, center),

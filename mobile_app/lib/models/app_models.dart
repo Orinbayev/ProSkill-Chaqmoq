@@ -886,6 +886,10 @@ class NotificationModel {
     required this.body,
     required this.createdAt,
     this.type = '',
+    this.kind = '',
+    this.amount,
+    this.signedAmount,
+    this.reason = '',
     this.isRead = false,
     this.target = '',
     this.senderName = '',
@@ -897,6 +901,10 @@ class NotificationModel {
   final String body;
   final DateTime createdAt;
   final String type;
+  final String kind;
+  final int? amount;
+  final int? signedAmount;
+  final String reason;
   final bool isRead;
   final String target;
   final String senderName;
@@ -911,6 +919,12 @@ class NotificationModel {
           : cleanHtmlText(json['message']),
       createdAt: jsonDate(json['created_at']) ?? DateTime.now(),
       type: jsonString(json['type']),
+      kind: jsonString(json['kind']),
+      amount: json['amount'] is num ? (json['amount'] as num).toInt() : null,
+      signedAmount: json['signed_amount'] is num
+          ? (json['signed_amount'] as num).toInt()
+          : null,
+      reason: cleanHtmlText(json['reason']),
       isRead: jsonBool(json['is_read']),
       target: jsonString(json['target']),
       senderName: cleanHtmlText(json['sender_name']),
@@ -925,6 +939,10 @@ class NotificationModel {
       body: body,
       createdAt: createdAt,
       type: type,
+      kind: kind,
+      amount: amount,
+      signedAmount: signedAmount,
+      reason: reason,
       isRead: isRead ?? this.isRead,
       target: target,
       senderName: senderName,

@@ -29,6 +29,8 @@ class NotificationPresentation {
     this.actorName,
     this.childName,
     this.amountLabel,
+    this.signedAmount,
+    this.chaqmoqLabel,
   });
 
   final NotificationKind kind;
@@ -45,6 +47,15 @@ class NotificationPresentation {
   final String? actorName;
   final String? childName;
   final String? amountLabel;
+  final int? signedAmount;
+  final String? chaqmoqLabel;
+
+  bool get isReward =>
+      kind == NotificationKind.rewardAdded ||
+      kind == NotificationKind.rewardRemoved;
+
+  bool get isPositive => kind == NotificationKind.rewardAdded;
+  bool get isNegative => kind == NotificationKind.rewardRemoved;
 }
 
 NotificationPresentation buildNotificationPresentation(NotificationModel item) {
@@ -56,10 +67,13 @@ NotificationPresentation buildNotificationPresentation(NotificationModel item) {
       .toList();
   String? reason;
   final summaryLines = <String>[];
+  if (item.reason.trim().isNotEmpty) {
+    reason = item.reason.trim();
+  }
   for (final line in lines) {
     if (reason == null && _looksLikeReason(line)) {
       reason = _normalizeReason(line);
-    } else {
+    } else if (!_looksLikeReason(line)) {
       summaryLines.add(line);
     }
   }
@@ -80,6 +94,36 @@ NotificationPresentation buildNotificationPresentation(NotificationModel item) {
     source: '$title\n${item.body}',
     kind: kind,
   );
+  // Serverdan kelgan signed_amount/amount maydonlari ustun;
+  // bo'lmasa matndan ajratamiz.
+  int? signedAmount = item.signedAmount;
+  int? rawAmount = item.amount;
+  if (signedAmount == null && rawAmount != null) {
+    if (kind == NotificationKind.rewardAdded) {
+      signedAmount = rawAmount;
+    } else if (kind == NotificationKind.rewardRemoved) {
+      signedAmount = -rawAmount;
+    }
+  }
+  if (signedAmount == null) {
+    final extracted = _extractAmountValue(
+      source: '$title\n${item.body}',
+      kind: kind,
+    );
+    if (extracted != null) {
+      if (kind == NotificationKind.rewardAdded) {
+        signedAmount = extracted;
+      } else if (kind == NotificationKind.rewardRemoved) {
+        signedAmount = -extracted;
+      }
+    }
+  }
+  String? chaqmoqLabel;
+  if (signedAmount != null) {
+    chaqmoqLabel = signedAmount >= 0
+        ? '+$signedAmount'
+        : '−${signedAmount.abs()}';
+  }
   final visual = _visualFor(kind);
 
   return NotificationPresentation(
@@ -90,6 +134,8 @@ NotificationPresentation buildNotificationPresentation(NotificationModel item) {
     actorName: actorName.isEmpty ? null : actorName,
     childName: childName == null || childName.isEmpty ? null : childName,
     amountLabel: amountLabel,
+    signedAmount: signedAmount,
+    chaqmoqLabel: chaqmoqLabel,
     typeLabel: _typeLabel(kind),
     readLabel: item.isRead ? 'O‘qilgan' : 'O‘qilmagan',
     timeLabel: _timeLabel(item.createdAt),
@@ -100,7 +146,32 @@ NotificationPresentation buildNotificationPresentation(NotificationModel item) {
   );
 }
 
+int? _extractAmountValue({
+  required String source,
+  required NotificationKind kind,
+}) {
+  if (kind != NotificationKind.rewardAdded &&
+      kind != NotificationKind.rewardRemoved) {
+    return null;
+  }
+  final normalized = source.replaceAll('’', "'").replaceAll('‘', "'");
+  final match = RegExp(r'(\d+)\s*chaqmoq', caseSensitive: false).firstMatch(
+    normalized,
+  );
+  if (match == null) return null;
+  return int.tryParse(match.group(1) ?? '');
+}
+
 NotificationKind resolveNotificationKind(NotificationModel item) {
+  // Backend `kind` maydoni ustun: agar server xabar turini aniq belgilab
+  // yuborgan bo'lsa, hech qanday matn-asosli taxmin qilmaymiz.
+  switch (item.kind) {
+    case 'chaqmoq_added':
+      return NotificationKind.rewardAdded;
+    case 'chaqmoq_removed':
+      return NotificationKind.rewardRemoved;
+  }
+
   final raw = '${item.type} ${item.title} ${item.body}'.toLowerCase();
   final text = raw
       .replaceAll('`', "'")
@@ -122,6 +193,7 @@ NotificationKind resolveNotificationKind(NotificationModel item) {
     if (hasAny(const [
       'ayirildi',
       'ayrildi',
+      'olib tashlandi',
       'minus',
       'jarima',
       'removed',

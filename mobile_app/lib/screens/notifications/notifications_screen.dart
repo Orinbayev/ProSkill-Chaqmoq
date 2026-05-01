@@ -316,6 +316,19 @@ class _NotificationCard extends StatelessWidget {
     final accent = item.isRead
         ? presentation.accentColor.withOpacity(0.28)
         : presentation.accentColor;
+    // Chaqmoq xabarlari uchun butun kartochka yengilcha yashil/qizil tusda.
+    final cardBackground = presentation.isReward
+        ? presentation.iconBackground.withValues(
+            alpha: item.isRead ? 0.45 : 0.7,
+          )
+        : Colors.white;
+    final cardBorder = presentation.isReward
+        ? presentation.accentColor.withValues(
+            alpha: item.isRead ? 0.16 : 0.32,
+          )
+        : item.isRead
+            ? _NotificationsColors.border
+            : presentation.accentColor.withValues(alpha: 0.2);
 
     return Material(
       color: Colors.transparent,
@@ -324,9 +337,8 @@ class _NotificationCard extends StatelessWidget {
         onTap: onTap,
         child: Container(
           decoration: _cardDecoration(
-            borderColor: item.isRead
-                ? _NotificationsColors.border
-                : presentation.accentColor.withOpacity(0.2),
+            borderColor: cardBorder,
+            backgroundColor: cardBackground,
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -373,19 +385,31 @@ class _NotificationCard extends StatelessWidget {
                                     presentation.title,
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
-                                    style: _NotificationsTextStyles.cardTitle,
+                                    style: presentation.isReward
+                                        ? _NotificationsTextStyles.cardTitle
+                                            .copyWith(
+                                              color: presentation.iconColor,
+                                            )
+                                        : _NotificationsTextStyles.cardTitle,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                _StatePill(
-                                  label: item.isRead ? 'O‘qilgan' : 'Yangi',
-                                  backgroundColor: item.isRead
-                                      ? const Color(0xFFF3F6FB)
-                                      : presentation.iconBackground,
-                                  foregroundColor: item.isRead
-                                      ? _NotificationsColors.secondaryText
-                                      : presentation.iconColor,
-                                ),
+                                if (presentation.isReward &&
+                                    presentation.chaqmoqLabel != null)
+                                  _ChaqmoqAmountPill(
+                                    label: presentation.chaqmoqLabel!,
+                                    isPositive: presentation.isPositive,
+                                  )
+                                else
+                                  _StatePill(
+                                    label: item.isRead ? 'O‘qilgan' : 'Yangi',
+                                    backgroundColor: item.isRead
+                                        ? const Color(0xFFF3F6FB)
+                                        : presentation.iconBackground,
+                                    foregroundColor: item.isRead
+                                        ? _NotificationsColors.secondaryText
+                                        : presentation.iconColor,
+                                  ),
                               ],
                             ),
                             const SizedBox(height: 6),
@@ -528,7 +552,11 @@ class _NotificationDetailSheet extends StatelessWidget {
                       children: [
                         Text(
                           presentation.title,
-                          style: _NotificationsTextStyles.sheetTitle,
+                          style: presentation.isReward
+                              ? _NotificationsTextStyles.sheetTitle.copyWith(
+                                  color: presentation.iconColor,
+                                )
+                              : _NotificationsTextStyles.sheetTitle,
                         ),
                         const SizedBox(height: 6),
                         Wrap(
@@ -557,6 +585,14 @@ class _NotificationDetailSheet extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 16),
+              if (presentation.isReward && presentation.chaqmoqLabel != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _ChaqmoqAmountBanner(
+                    label: presentation.chaqmoqLabel!,
+                    isPositive: presentation.isPositive,
+                  ),
+                ),
               Text(
                 presentation.description,
                 style: _NotificationsTextStyles.sheetBody,
@@ -847,15 +883,137 @@ class _NotificationsStateCard extends StatelessWidget {
   }
 }
 
-BoxDecoration _cardDecoration({Color borderColor = _NotificationsColors.border}) {
+BoxDecoration _cardDecoration({
+  Color borderColor = _NotificationsColors.border,
+  Color backgroundColor = _NotificationsColors.card,
+}) {
   return BoxDecoration(
-    color: _NotificationsColors.card,
+    color: backgroundColor,
     borderRadius: const BorderRadius.all(Radius.circular(20)),
     border: Border.fromBorderSide(BorderSide(color: borderColor)),
     boxShadow: const [
       BoxShadow(color: Color(0x0F0B1220), blurRadius: 18, offset: Offset(0, 8)),
     ],
   );
+}
+
+class _ChaqmoqAmountBanner extends StatelessWidget {
+  const _ChaqmoqAmountBanner({
+    required this.label,
+    required this.isPositive,
+  });
+
+  final String label;
+  final bool isPositive;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isPositive
+        ? const Color(0xFF15803D)
+        : const Color(0xFFDC2626);
+    final background = isPositive
+        ? const Color(0xFFEAF8EF)
+        : const Color(0xFFFDECEC);
+    final caption = isPositive
+        ? 'Balansga qo‘shildi'
+        : 'Balansdan ayrildi';
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.bolt_rounded, size: 19, color: color),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  caption,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: color.withValues(alpha: 0.75),
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$label chaqmoq',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: color,
+                    height: 1.1,
+                    letterSpacing: -0.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChaqmoqAmountPill extends StatelessWidget {
+  const _ChaqmoqAmountPill({
+    required this.label,
+    required this.isPositive,
+  });
+
+  final String label;
+  final bool isPositive;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isPositive
+        ? const Color(0xFF15803D)
+        : const Color(0xFFDC2626);
+    final background = isPositive
+        ? const Color(0xFFEAF8EF)
+        : const Color(0xFFFDECEC);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.bolt_rounded, size: 13, color: color),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w800,
+              color: color,
+              height: 1,
+              letterSpacing: -0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _NotificationsColors {
